@@ -5,6 +5,8 @@
 
 using namespace Sph;
 
+#ifdef SPH_USE_EIGEN
+
 static void testAnyMatrix(const SparseMatrix::Solver solver) {
     SparseMatrix matrix(5);
     REQUIRE_ASSERT(matrix.solve(Array<Float>{ 1.f }, solver));
@@ -69,3 +71,5 @@ TEST_CASE("Invert matrix BICG", "[sparsematrix]") {
     testAnyMatrix(SparseMatrix::Solver::BI_CG);
     testSymmetricMatrix(SparseMatrix::Solver::BI_CG);
 }
+
+#endif

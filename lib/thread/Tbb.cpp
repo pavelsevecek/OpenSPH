@@ -1,9 +1,14 @@
 #include "thread/Tbb.h"
 #include "math/Math.h"
 #include "objects/wrappers/Optional.h"
+
+#ifdef SPH_USE_TBB
 #include <tbb/tbb.h>
+#endif
 
 NAMESPACE_SPH_BEGIN
+
+#ifdef SPH_USE_TBB
 
 SharedPtr<Tbb> Tbb::globalInstance = nullptr;
 
@@ -121,5 +126,7 @@ SharedPtr<Tbb> Tbb::getGlobalInstance() {
     }
     return globalInstance;
 }
+
+#endif
 
 NAMESPACE_SPH_END

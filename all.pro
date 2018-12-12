@@ -3,12 +3,10 @@ TEMPLATE = subdirs
 CONFIG += ordered
 
 SUBDIRS = lib \
-          cli \
           cli/launcher \
           cli/problems \
           gui \
           gui/collision \
-          gui/rotation \
           gui/launcherGui \
           gui/nbody \
           gui/rubblepile \
@@ -18,13 +16,11 @@ SUBDIRS = lib \
           post
 
 run.depends = lib
-cli.depends = lib
 launcher.depends = lib
 problems.depends = lib
 gui.depends = lib
 collision.depends = lib gui
 player.depends = lib gui
-rotation.depends = lib gui
 nbody.depends = lib gui
 launcherGui.depends = lib gui
 rubblepile.depends = lib gui

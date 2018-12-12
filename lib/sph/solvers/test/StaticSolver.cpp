@@ -10,6 +10,8 @@
 
 using namespace Sph;
 
+#ifdef SPH_USE_EIGEN
+
 TEST_CASE("StaticSolver no forces", "[staticsolver]") {
     // tests that with no external forces, the stress tensor is zero
     RunSettings settings;
@@ -130,3 +132,5 @@ TEST_CASE("StaticSolver stationary", "[staticsolver]") {
                  makeTerm<ContinuityEquation>(settings);
     GenericSolver genericSolver(settings, equations);*/
 }
+
+#endif

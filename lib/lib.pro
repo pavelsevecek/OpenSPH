@@ -2,38 +2,7 @@ TEMPLATE = lib
 CONFIG += c++14 staticlib thread silent
 CONFIG -= app_bundle qt
 
-# disable if you dont have eigen
-DEFINES += SPH_USE_EIGEN
-INCLUDEPATH += /usr/include/eigen3
-
-# disable if you dont have TBB
-DEFINES += SPH_USE_TBB
-INCLUDEPATH += /usr/include/tb
-QMAKE_LFLAGS += -ltbb -ltbb_debug -ltbbmalloc -ltbbmalloc_debug
-
-QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -ffast-math -std=c++14 -pthread
-
-CONFIG(release, debug|profile|assert|release) {
-  message( "SPH LIB --- Building for Release" )
-  QMAKE_CXXFLAGS += -O2
-}
-
-CONFIG(profile, debug|profile|assert|release) {
-  message( "SPH LIB --- Building for Profile" )
-  DEFINES += SPH_PROFILE
-  QMAKE_CXXFLAGS += -O2
-}
-
-CONFIG(assert, debug|profile|assert|release) {
-  message( "SPH LIB --- Building for Assert" )
-  DEFINES += SPH_DEBUG
-  QMAKE_CXXFLAGS += -O2
-}
-
-CONFIG(debug, debug|profile|assert|release) {
-  message( "SPH LIB --- Building for Debug" )
-  DEFINES += SPH_DEBUG
-}
+include(inc.pro)
 
 SOURCES += \
     common/Assert.cpp \
@@ -110,7 +79,8 @@ SOURCES += \
     sph/initial/MeshDomain.cpp \
     sph/handoff/Handoff.cpp \
     run/RubblePile.cpp \
-    sph/solvers/EnergyConservingSolver.cpp
+    sph/solvers/EnergyConservingSolver.cpp \
+    physics/Functions.cpp
 
 HEADERS += \
     common/Assert.h \

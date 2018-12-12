@@ -10,35 +10,13 @@ LIBS += `wx-config --libs --gl-libs`
 LIBS += -lGL -lGLU -lGLEW
 LIBS += ../lib/liblib.a
 
-DEFINES += SPH_USE_EIGEN
+include(../lib/inc.pro)
 
-QMAKE_CXXFLAGS += -Wall -Werror -msse4.1 -mavx -std=c++14 `wx-config --cxxflags`
+QMAKE_CXXFLAGS += `wx-config --cxxflags`
 
 linux-g++ {
     # disabling maybe-uninitialized because of Factory::getCamera, either gcc bug or some weird behavior
     QMAKE_CXXFLAGS += -Wno-maybe-uninitialized
-}
-
-CONFIG(release, debug|profile|assert|release) {
-  message( "SPH GUI --- Building for Release" )
-  QMAKE_CXXFLAGS += -O2
-}
-
-CONFIG(profile, debug|profile|assert|release) {
-  message( "SPH GUI --- Building for Profile" )
-  DEFINES += SPH_PROFILE
-  QMAKE_CXXFLAGS += -O2
-}
-
-CONFIG(assert, debug|profile|assert|release) {
-  message( "SPH GUI --- Building for Assert" )
-  DEFINES += SPH_DEBUG
-  QMAKE_CXXFLAGS += -O2
-}
-
-CONFIG(debug, debug|profile|assert|release) {
-  message( "SPH GUI --- Building for Debug" )
-  DEFINES += SPH_DEBUG
 }
 
 SOURCES += \
@@ -58,7 +36,9 @@ SOURCES += \
     renderers/MeshRenderer.cpp \
     objects/Camera.cpp \
     objects/RenderContext.cpp \
-    windows/ParticleProbe.cpp
+    windows/ParticleProbe.cpp \
+    Config.cpp \
+    windows/PaletteDialog.cpp
 
 HEADERS += \
     ArcBall.h \
@@ -92,4 +72,5 @@ HEADERS += \
     renderers/MeshRenderer.h \
     renderers/FrameBuffer.h \
     objects/RenderContext.h \
-    windows/PaletteDialog.h
+    windows/PaletteDialog.h \
+    Config.h
