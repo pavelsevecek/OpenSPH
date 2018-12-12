@@ -264,7 +264,7 @@ void Controller::update(const Storage& storage) {
     /// \todo can we do this safely from run thread?
     executeOnMainThread([this, &storage] { //
         window->runStarted();
-        window->setColorizerList(this->getColorizerList(storage, false, vis.paletteOverrides));
+        window->setColorizerList(this->getColorizerList(storage, false));
     });
 
     // draw initial positions of particles
@@ -287,9 +287,7 @@ bool Controller::isQuitting() const {
     return status == RunStatus::QUITTING;
 }
 
-Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage,
-    const bool forMovie,
-    const FlatMap<ColorizerId, Palette>& overrides) const {
+Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage, const bool forMovie) const {
     // Available colorizers for display and movie are currently hardcoded
     Array<ColorizerId> colorizerIds;
     Array<QuantityId> quantityColorizerIds;
@@ -375,21 +373,21 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
 
     Array<SharedPtr<IColorizer>> colorizers;
     // add velocity (always present)
-    colorizers.push(Factory::getColorizer(gui, ColorizerId::VELOCITY, overrides));
+    colorizers.push(Factory::getColorizer(gui, ColorizerId::VELOCITY));
 
     if (!forMovie) {
         // add all quantity colorizers (sorted by the key)
         std::sort(quantityColorizerIds.begin(), quantityColorizerIds.end());
         for (QuantityId id : quantityColorizerIds) {
             if (storage.has(id)) {
-                colorizers.push(Factory::getColorizer(gui, ColorizerId(id), overrides));
+                colorizers.push(Factory::getColorizer(gui, ColorizerId(id)));
             }
         }
 
         // add all auxiliary colorizers (sorted by the key)
         std::sort(colorizerIds.begin(), colorizerIds.end());
         for (ColorizerId id : colorizerIds) {
-            colorizers.push(Factory::getColorizer(gui, id, overrides));
+            colorizers.push(Factory::getColorizer(gui, id));
         }
     }
     return colorizers;
@@ -476,6 +474,9 @@ void Controller::setColorizer(const SharedPtr<IColorizer>& newColorizer) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     vis.colorizer = newColorizer;
     this->tryRedraw();
+
+    // update particle probe with the new colorizer
+    this->setSelectedParticle(vis.selectedParticle);
 }
 
 void Controller::setRenderer(AutoPtr<IRenderer>&& newRenderer) {
@@ -521,16 +522,16 @@ void Controller::setSelectedParticle(const Optional<Size>& particleIdx) {
     window->deselectParticle();
 }
 
-void Controller::setPaletteOverride(const ColorizerId id, const Palette palette) {
+void Controller::setPaletteOverride(const Palette palette) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
 
-    vis.paletteOverrides.insert(id, palette);
+    // Config::setPalette();
+    // vis.paletteOverrides.insert(id, palette);
     /// \todo accessing storage from main thread! (should be ok as we only check whether quantities exist, but
+    /// still
     /// ...)
-    Array<SharedPtr<IColorizer>> colorizers =
-        this->getColorizerList(*sph.run->getStorage(), false, vis.paletteOverrides);
-    window->setColorizerList(colorizers.clone());
-    this->setColorizer(colorizers[0]);
+    vis.colorizer->setPalette(palette);
+    this->tryRedraw();
 }
 
 Optional<Size> Controller::getSelectedParticle() const {
@@ -552,7 +553,7 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
     // limit colorizer list for slower renderers
     switch (gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER)) {
     case RendererEnum::PARTICLE:
-        colorizers = this->getColorizerList(storage, true, {});
+        colorizers = this->getColorizerList(storage, true);
         break;
     case RendererEnum::MESH:
         colorizers = { Factory::getColorizer(gui, ColorizerId::VELOCITY) };

@@ -84,13 +84,23 @@ void OrthoPane::onRightUp(wxMouseEvent& evt) {
     dragging.initialMatrix = dragging.initialMatrix * matrix;
 }
 
-void OrthoPane::onDoubleClick(wxMouseEvent& UNUSED(evt)) {
+void OrthoPane::onDoubleClick(wxMouseEvent& evt) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    const wxPoint position = evt.GetPosition();
+    /// \todo has to match palette drawn by particle renderer ...
+    const Pixel origin(this->GetSize().x - 50, 231);
+    const Pixel size(30, 201);
+    if (!Interval(origin.x, origin.x + size.x).contains(position.x) ||
+        !Interval(origin.y - size.y, origin.y).contains(position.y)) {
+        // did not click on the palette
+        return;
+    }
+
     Optional<Palette> palette = controller->getCurrentColorizer()->getPalette();
     if (palette) {
         PaletteDialog* paletteDialog = new PaletteDialog(
             this->GetParent(), wxSize(300, 240), palette.value(), [this](const Palette& selected) {
-                controller->setPaletteOverride(ColorizerId::VELOCITY, selected);
+                controller->setPaletteOverride(selected);
             });
         paletteDialog->Show();
     }

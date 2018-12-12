@@ -685,6 +685,10 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
     { BodySettingsId::BODY_ANGULAR_VELOCITY,   "body.angular_velocity",        Vector(0._f),
       "Initial angular frequency of the body. Needed by stabilization solver to correctly compute velocities "
       "in co-moving (co-rotating) frame." },
+
+    /// Metadata
+    { BodySettingsId::IDENTIFIER, "identifier", std::string("basalt"),
+      "Arbitrary string identifying this material" },
 });
 
 // clang-format on

@@ -6,7 +6,7 @@
 /// \date 2016-2018
 
 #include "gravity/AggregateSolver.h"
-#include "gui/Factory.h"
+#include "gui/Settings.h"
 #include "gui/Uvw.h"
 #include "gui/objects/Palette.h"
 #include "gui/objects/Point.h"
@@ -71,6 +71,9 @@ public:
     ///
     /// In case there is no palette, returns NOTHING.
     virtual Optional<Palette> getPalette() const = 0;
+
+    /// \brief Modifies the palette used by ths colorizer.
+    virtual void setPalette(const Palette& newPalette) = 0;
 
     /// \brief Returns the name of the colorizer.
     ///
@@ -166,10 +169,6 @@ public:
         : id(id)
         , palette(std::move(palette)) {}
 
-    TypedColorizer(const QuantityId id, const ColorizerId colorizerId, const Interval range)
-        : id(id)
-        , palette(Factory::getPalette(colorizerId, range)) {}
-
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
         values = makeArrayRef(storage.getValue<Type>(id), ref);
     }
@@ -197,6 +196,10 @@ public:
 
     virtual Optional<Palette> getPalette() const override {
         return palette;
+    }
+
+    virtual void setPalette(const Palette& newPalette) override {
+        palette = newPalette;
     }
 
     virtual std::string name() const override {
@@ -256,8 +259,8 @@ private:
     ArrayRef<const Vector> values;
 
 public:
-    explicit DirectionColorizer(const Vector& axis)
-        : palette(Factory::getPalette(ColorizerId::MOVEMENT_DIRECTION, Interval(0._f, 2._f * PI)))
+    explicit DirectionColorizer(const Vector& axis, const Palette& palette)
+        : palette(palette)
         , axis(axis) {
         ASSERT(almostEqual(getLength(axis), 1._f));
         // compute 2 perpendicular directions
@@ -296,6 +299,10 @@ public:
 
     virtual Optional<Palette> getPalette() const override {
         return palette;
+    }
+
+    virtual void setPalette(const Palette& newPalette) override {
+        palette = newPalette;
     }
 
     virtual std::string name() const override {
@@ -357,6 +364,10 @@ public:
         return palette;
     }
 
+    virtual void setPalette(const Palette& newPalette) override {
+        palette = newPalette;
+    }
+
     virtual std::string name() const override {
         return "Corot. velocity";
     }
@@ -402,6 +413,10 @@ public:
 
     virtual Optional<Palette> getPalette() const override {
         return palette;
+    }
+
+    virtual void setPalette(const Palette& newPalette) override {
+        palette = newPalette;
     }
 
     virtual std::string name() const override {
@@ -450,6 +465,10 @@ public:
         return palette;
     }
 
+    virtual void setPalette(const Palette& newPalette) override {
+        palette = newPalette;
+    }
+
     virtual std::string name() const override {
         return "Summed Density";
     }
@@ -490,8 +509,9 @@ public:
     virtual Optional<Float> evalScalar(const Size idx) const override {
         ASSERT(this->isInitialized());
         SymmetricTensor sigma = SymmetricTensor(s[idx]) - p[idx] * SymmetricTensor::identity();
-        StaticArray<Float, 3> eigens = findEigenvalues(sigma);
-        return max(abs(eigens[0]), abs(eigens[1]), abs(eigens[2]));
+        // StaticArray<Float, 3> eigens = findEigenvalues(sigma);
+        // return max(abs(eigens[0]), abs(eigens[1]), abs(eigens[2]));
+        return sqrt(ddot(sigma, sigma));
     }
 
     virtual Optional<Vector> evalVector(const Size UNUSED(idx)) const override {
@@ -507,6 +527,10 @@ public:
         return palette;
     }
 
+    virtual void setPalette(const Palette& newPalette) override {
+        palette = newPalette;
+    }
+
     virtual std::string name() const override {
         return "Total stress";
     }
@@ -515,7 +539,6 @@ public:
 class EnergyColorizer : public IColorizer {
     Palette palette;
     ArrayRef<const Float> u;
-    ArrayRef<const Float> m;
     ArrayRef<const Vector> v;
 
 public:
@@ -524,12 +547,11 @@ public:
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
         u = makeArrayRef(storage.getValue<Float>(QuantityId::ENERGY), ref);
-        m = makeArrayRef(storage.getValue<Float>(QuantityId::MASS), ref);
         v = makeArrayRef(storage.getDt<Vector>(QuantityId::POSITION), ref);
     }
 
     virtual bool isInitialized() const override {
-        return !m.empty();
+        return !u.empty();
     }
 
     virtual Rgba evalColor(const Size idx) const override {
@@ -538,7 +560,7 @@ public:
 
     virtual Optional<Float> evalScalar(const Size idx) const override {
         ASSERT(this->isInitialized());
-        return m[idx] * u[idx] + 0.5_f * m[idx] * getSqrLength(v[idx]);
+        return u[idx] + 0.5_f * getSqrLength(v[idx]);
     }
 
     virtual Optional<Vector> evalVector(const Size UNUSED(idx)) const override {
@@ -552,6 +574,10 @@ public:
 
     virtual Optional<Palette> getPalette() const override {
         return palette;
+    }
+
+    virtual void setPalette(const Palette& newPalette) override {
+        palette = newPalette;
     }
 
     virtual std::string name() const override {
@@ -582,6 +608,10 @@ public:
 
     virtual Optional<Palette> getPalette() const override {
         return palette;
+    }
+
+    virtual void setPalette(const Palette& newPalette) override {
+        palette = newPalette;
     }
 
     virtual std::string name() const override {
@@ -656,6 +686,10 @@ public:
         return palette;
     }
 
+    virtual void setPalette(const Palette& newPalette) override {
+        palette = newPalette;
+    }
+
     virtual std::string name() const override {
         return "Damage activation ratio";
     }
@@ -697,6 +731,10 @@ public:
 
     virtual Optional<Palette> getPalette() const override {
         return palette;
+    }
+
+    virtual void setPalette(const Palette& newPalette) override {
+        palette = newPalette;
     }
 
     virtual std::string name() const override {
@@ -753,6 +791,8 @@ public:
     virtual Optional<Palette> getPalette() const override {
         return NOTHING;
     }
+
+    virtual void setPalette(const Palette& UNUSED(newPalette)) override {}
 
     virtual std::string name() const override {
         return "Uvws";
@@ -827,6 +867,8 @@ public:
         return NOTHING;
     }
 
+    virtual void setPalette(const Palette& UNUSED(newPalette)) override {}
+
     virtual std::string name() const override {
         return "Boundary";
     }
@@ -868,10 +910,11 @@ public:
         return NOTHING;
     }
 
-
     virtual Optional<Palette> getPalette() const override {
         return NOTHING;
     }
+
+    virtual void setPalette(const Palette& UNUSED(newPalette)) override {}
 
     virtual std::string name() const override {
         return "Marker";
@@ -938,6 +981,8 @@ public:
     virtual Optional<Palette> getPalette() const override {
         return NOTHING;
     }
+
+    virtual void setPalette(const Palette& UNUSED(newPalette)) override {}
 };
 
 class ParticleIdColorizer : public IdColorizerTemplate<ParticleIdColorizer> {

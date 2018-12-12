@@ -2,7 +2,6 @@
 
 #include "gui/Settings.h"
 #include "io/Path.h"
-#include "objects/containers/FlatMap.h"
 #include "objects/wrappers/Locking.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "system/Settings.h"
@@ -98,9 +97,6 @@ private:
         /// Accessed from run thread and render thread, guarded by renderThreadMutex.
         SharedPtr<IColorizer> colorizer;
 
-        /// \brief User-specified palettes to be used instead of default values.
-        FlatMap<ColorizerId, Palette> paletteOverrides;
-
         /// \brief Current camera of the view.
         ///
         /// Accessed from multiple threads, needs to be always guarded by cameraMutex.
@@ -169,11 +165,7 @@ public:
     /// \param storage Particle storage containing data for the colorizer
     /// \param forMovie Whether to return list of colorizers for image output or for interactive preview.
     ///                 Some colorizers are skipped when create image files (boundary, ...)
-    /// \param paletteOverrides Sets palettes for specific colorizers. Ordinarilly, default palettes are used
-    ///                         as returned by Factory::getPalette, this map can be used for customization.
-    Array<SharedPtr<IColorizer>> getColorizerList(const Storage& storage,
-        const bool forMovie,
-        const FlatMap<ColorizerId, Palette>& paletteOverrides) const;
+    Array<SharedPtr<IColorizer>> getColorizerList(const Storage& storage, const bool forMovie) const;
 
     /// \brief Renders a bitmap of current view.
     ///
@@ -237,10 +229,10 @@ public:
     /// \param particleIdx Particle to selected; if NOTHING, the current selection is cleared.
     void setSelectedParticle(const Optional<Size>& particleIdx);
 
-    /// \brief Modifies the color palette for given colorizer.
+    /// \brief Modifies the color palette for current colorizer.
     ///
     /// Function must be called from main thread.
-    void setPaletteOverride(const ColorizerId id, const Palette palette);
+    void setPaletteOverride(const Palette palette);
 
     /// \brief If possible, redraws the particles with data from storage.
     ///

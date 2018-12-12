@@ -26,11 +26,10 @@ namespace Factory {
 
     AutoPtr<IBrdf> getBrdf(const GuiSettings& settings);
 
-    AutoPtr<IColorizer> getColorizer(const GuiSettings& settings,
-        const ColorizerId id,
-        const FlatMap<ColorizerId, Palette>& paletteOverrides = {});
+    AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const ColorizerId id);
 
-    Palette getPalette(const ColorizerId id, const Interval range);
+    Palette getPalette(const ColorizerId id);
+
 } // namespace Factory
 
 NAMESPACE_SPH_END

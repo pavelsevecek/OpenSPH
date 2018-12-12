@@ -1,4 +1,5 @@
 #include "gui/renderers/RayTracer.h"
+#include "gui/Factory.h"
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"

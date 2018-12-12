@@ -2,9 +2,12 @@
 
 #include "gui/objects/Color.h"
 #include "objects/containers/Array.h"
+#include "objects/wrappers/Outcome.h"
 #include "quantities/QuantityIds.h"
 
 NAMESPACE_SPH_BEGIN
+
+class Path;
 
 enum class PaletteScale {
     /// Control points are interpolated on linear scale
@@ -50,6 +53,8 @@ public:
     /// Values outside the interval will be mapped to the colors at the boundary of the interval.
     Interval getInterval() const;
 
+    void setInterval(const Interval& newRange);
+
     /// \brief Returns the scale of the palette.
     PaletteScale getScale() const;
 
@@ -66,8 +71,16 @@ public:
     /// \brief Inverse transform to \ref relativeToPalette.
     float paletteToRelative(const float value) const;
 
+    /// \brief Loads the palette from given .csv file.
+    Outcome loadFromFile(const Path& path);
+
+    /// \brief Saves the palette to a .csv file.
+    Outcome saveToFile(const Path& path, const Size lineCnt = 256) const;
+
 private:
     float linearToPalette(const float value) const;
+
+    float paletteToLinear(const float value) const;
 };
 
 NAMESPACE_SPH_END

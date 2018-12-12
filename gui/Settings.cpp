@@ -115,28 +115,6 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
     { GuiSettingsId::IMAGES_HEIGHT,         "images.height",        600,
         "Height of the created images." },
 
-    /// Color palettes
-    { GuiSettingsId::PALETTE_DENSITY,       "palette.density",      Interval(2650._f, 2750._f) },
-    { GuiSettingsId::PALETTE_MASS,          "palette.mass",         Interval(0._f, 1.e10_f) },
-    { GuiSettingsId::PALETTE_VELOCITY,      "palette.velocity",     Interval(0._f, 1._f) },
-    { GuiSettingsId::PALETTE_ACCELERATION,  "palette.acceleration", Interval(0.1_f, 100._f) },
-    { GuiSettingsId::PALETTE_PRESSURE,      "palette.pressure",     Interval(-1000._f, 1.e10_f) },
-    { GuiSettingsId::PALETTE_ENERGY,        "palette.energy",       Interval(1._f, 1.e6_f) },
-    { GuiSettingsId::PALETTE_STRESS,        "palette.stress",       Interval(0._f, 1.e10_f) },
-    { GuiSettingsId::PALETTE_DAMAGE,        "palette.damage",       Interval(0._f, 1._f) },
-    { GuiSettingsId::PALETTE_DIVV,          "palette.divv",         Interval(-0.1_f, 0.1_f) },
-    { GuiSettingsId::PALETTE_GRADV,         "palette.gradv",        Interval(0._f, 1.e-3_f) },
-    { GuiSettingsId::PALETTE_ROTV,          "palette.rotv",         Interval(0._f, 4._f) },
-    { GuiSettingsId::PALETTE_RADIUS,        "palette.radius",       Interval(0._f, 1.e3_f) },
-    { GuiSettingsId::PALETTE_TOTAL_ENERGY,  "palette.total_energy", Interval(1.e14_f, 1.e17_f) },
-    { GuiSettingsId::PALETTE_TEMPERATURE,   "palette.temperature",  Interval(100._f, 1.e7_f) },
-    { GuiSettingsId::PALETTE_AV_STRESS,     "palette.av_stress",    Interval(0._f, 1.e8_f) },
-    { GuiSettingsId::PALETTE_DENSITY_PERTURB,               "palette.density_perturb",                  Interval(-1.e-6_f, 1.e-6_f) },
-    { GuiSettingsId::PALETTE_ANGULAR_VELOCITY,              "palette.angular_velocity",                 Interval(0._f, 1.e-3_f) },
-    { GuiSettingsId::PALETTE_MOMENT_OF_INERTIA,             "palette.moment_of_inertia",                Interval(0._f, 1.e10_f) },
-    { GuiSettingsId::PALETTE_STRAIN_RATE_CORRECTION_TENSOR, "palette.strain_rate_correction_tensor",    Interval(0.5_f, 5._f) },
-    { GuiSettingsId::PALETTE_ACTIVATION_STRAIN,             "palette.activation_strain",                Interval(2.e-4_f, 8.e-4_f) },
-    { GuiSettingsId::PALETTE_VELOCITY_SECOND_DERIVATIVES,   "palette.velocity_second_derivatives",      Interval(0._f, 5._f) },
 });
 // clang-format on
 

@@ -152,7 +152,7 @@ void AntiAliasedRenderContext::drawCircle(const Coords center, const float radiu
             const float distSqr = sqr(x - center.x) + sqr(y - center.y);
             if (distSqr <= sqr(radius + 1)) {
                 Rgba color = colors.fill;
-                color[3] = clamp(radius - sqrt(distSqr), 0.f, 1.f);
+                color.a() = clamp(radius - sqrt(distSqr), 0.f, 1.f);
                 drawSafe(Pixel(x, y), color);
             }
         }

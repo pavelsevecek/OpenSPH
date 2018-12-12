@@ -31,12 +31,43 @@ public:
         return wxColour(getByte(data[0]), getByte(data[1]), getByte(data[2]));
     }
 
-    float operator[](const Size idx) const {
+    /*float operator[](const Size idx) const {
         return data[idx];
     }
 
     float& operator[](const Size idx) {
         return data[idx];
+    }*/
+    float& r() {
+        return data[0];
+    }
+
+    float r() const {
+        return data[0];
+    }
+
+    float& g() {
+        return data[1];
+    }
+
+    float g() const {
+        return data[1];
+    }
+
+    float& b() {
+        return data[2];
+    }
+
+    float b() const {
+        return data[2];
+    }
+
+    float& a() {
+        return data[3];
+    }
+
+    float a() const {
+        return data[3];
     }
 
     /// \brief Multiplies the intensity of the color by given factor.
@@ -79,18 +110,14 @@ public:
         return (data[0] + data[1] + data[2]) / 3.f;
     }
 
-    float alpha() const {
-        return data[3];
-    }
-
     /// \brief Blends two colors together using "over" operation.
     Rgba over(const Rgba& other) const {
-        const float a1 = other.alpha();
-        const float a2 = this->alpha();
+        const float a1 = other.a();
+        const float a2 = this->a();
         const float ar = a2 + a1 * (1.f - a2);
         ASSERT(ar > 0.f);
         Rgba color = (data * a2 + other.data * a1 * (1.f - a2)) / ar;
-        color[3] = ar;
+        color.a() = ar;
         return color;
     }
 
@@ -150,7 +177,7 @@ public:
 private:
     Rgba preserveAlpha(const Rgba& color) const {
         Rgba result = color;
-        result[3] = data[3];
+        result.a() = data[3];
         return result;
     }
 
@@ -159,5 +186,97 @@ private:
     }
 };
 
+class Hsv {
+private:
+    BasicVector<float> data;
+
+public:
+    Hsv(const float h, const float s, const float v)
+        : data(h, s, v) {}
+
+    float& operator[](const int index) {
+        ASSERT(index < 3);
+        return data[index];
+    }
+
+    float& h() {
+        return data[0];
+    }
+
+    float h() const {
+        return data[0];
+    }
+
+    float& s() {
+        return data[1];
+    }
+
+    float s() const {
+        return data[1];
+    }
+
+    float& v() {
+        return data[2];
+    }
+
+    float v() const {
+        return data[2];
+    }
+};
+/*
+template <>
+inline Hsv convert(const Rgba& rgb) {
+    const float cmin = min(rgb.r(), rgb.g(), rgb.b());
+    const float cmax = max(rgb.r(), rgb.g(), rgb.b());
+    const float delta = cmax - cmin;
+    if (delta < 1.e-3f) {
+        return Hsv(0.f, 0.f, cmax);
+    }
+    const float v = cmax;
+    const float s = (cmax < 1.e-3f) ? 0.f : delta / cmax;
+    float h;
+    if (cmax == rgb.r()) {
+        h = (rgb.g() - rgb.b()) / delta;
+    } else if (cmax == rgb.g()) {
+        h = 2.f + (rgb.b() - rgb.r()) / delta;
+    } else {
+        h = 4.f + (rgb.r() - rgb.g()) / delta;
+    }
+    if (h >= 0.f) {
+        h /= 6.f;
+    } else {
+        h = h / 6.f + 1.f;
+    }
+    return Hsv(h, s, v);
+}
+
+template <>
+inline Rgba convert(const Hsv& hsv) {
+    if (hsv.s() == 0.f) {
+        return Rgba(hsv.v());
+    }
+    const float h = hsv.h() * 6.f;
+    const int hidx = int(h);
+    const float diff = h - hidx;
+    const float p = hsv.v() * (1.f - hsv.s());
+    const float q = hsv.v() * (1.f - (hsv.s() * diff));
+    const float t = hsv.v() * (1.f - (hsv.s() * (1.f - diff)));
+
+    switch (hidx) {
+    case 0:
+        return Rgba(hsv.v(), t, p);
+    case 1:
+        return Rgba(q, hsv.v(), p);
+    case 2:
+        return Rgba(p, hsv.v(), t);
+    case 3:
+        return Rgba(p, q, hsv.v());
+    case 4:
+        return Rgba(t, p, hsv.v());
+    default:
+        return Rgba(hsv.v(), p, q);
+    }
+}
+*/
 
 NAMESPACE_SPH_END

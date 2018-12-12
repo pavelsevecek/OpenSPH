@@ -6,6 +6,8 @@
 
 using namespace Sph;
 
+#ifdef SPH_USE_TBB
+
 TYPED_TEST_CASE_2("ThreadLocal", "[thread]", TScheduler, ThreadPool, Tbb) {
     TScheduler& scheduler = *TScheduler::getGlobalInstance();
     ThreadLocal<uint64_t> partialSum(scheduler);
@@ -73,6 +75,7 @@ TYPED_TEST_CASE_2("ThreadLocal parallelFor", "[thread]", TScheduler, ThreadPool,
     }
     REQUIRE_THREAD_SAFE(areAllMatching(sum, [](const Size v) { return v == 1; }));
 }
+#endif
 
 TEST_CASE("Concurrent parallelFor", "[thread]") {
     /// \todo the same for TBBs !!
@@ -92,6 +95,7 @@ TEST_CASE("Concurrent parallelFor", "[thread]") {
     REQUIRE_THREAD_SAFE(sum2 == expectedSum);
 }
 
+#ifdef SPH_USE_TBB
 TYPED_TEST_CASE_2("ThreadLocal accumulate", "[thread]", TScheduler, ThreadPool, Tbb) {
     TScheduler& scheduler = *TScheduler::getGlobalInstance();
     ThreadLocal<int64_t> sumTl(scheduler, 0._f);
@@ -104,3 +108,4 @@ TYPED_TEST_CASE_2("ThreadLocal accumulate", "[thread]", TScheduler, ThreadPool, 
     const int64_t expectedSum2 = -49994975;
     REQUIRE_THREAD_SAFE(sum2 == expectedSum2);
 }
+#endif

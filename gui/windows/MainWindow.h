@@ -88,7 +88,7 @@ private:
 
     wxBoxSizer* createStatusbar();
 
-    void updateCutoff(const int cutoff);
+    void updateCutoff(const double cutoff);
 
     /// wx event handlers
 

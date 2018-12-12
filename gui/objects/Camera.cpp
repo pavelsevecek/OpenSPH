@@ -45,7 +45,8 @@ void OrthoCamera::initialize(const Storage& storage) {
     // find median distance
     const Size mid = r.size() / 2;
     std::nth_element(distances.begin(), distances.begin() + mid, distances.end());
-    const Float fov = 2._f * distances[mid];
+    // factor 5 is ad hoc
+    const Float fov = 5._f * distances[mid];
     ASSERT(fov > EPS);
 
     data.fov = imageSize.y / fov;

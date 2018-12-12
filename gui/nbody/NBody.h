@@ -64,16 +64,15 @@ private:
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
             .set(GuiSettingsId::IMAGES_SAVE, true)
             .set(GuiSettingsId::IMAGES_TIMESTEP, 4.e4_f)
-            .set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))
+            /*.set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))
             .set(GuiSettingsId::PALETTE_VELOCITY, Interval(0.01_f, 1.e2_f))
             .set(GuiSettingsId::PALETTE_PRESSURE, Interval(-5.e4_f, 5.e4_f))
             .set(GuiSettingsId::PALETTE_ENERGY, Interval(0._f, 1.e3_f))
             .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
-            .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
+            .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))*/
             .set(GuiSettingsId::PLOT_INTEGRALS,
                 PlotEnum::TOTAL_MOMENTUM | PlotEnum::TOTAL_ANGULAR_MOMENTUM | PlotEnum::PERIOD_HISTOGRAM |
-                    PlotEnum::PARTICLE_SFD)
-            .set(GuiSettingsId::PALETTE_VELOCITY, Interval(1.e-4_f, 1.e-2_f));
+                    PlotEnum::PARTICLE_SFD);
 
         AutoPtr<NBody> run = makeAuto<NBody>();
 

@@ -232,47 +232,6 @@ enum class GuiSettingsId {
     /// specified times, as time step of the run is generally different than this value.
     IMAGES_TIMESTEP,
 
-    PALETTE_DENSITY,
-
-    PALETTE_MASS,
-
-    PALETTE_VELOCITY,
-
-    PALETTE_ACCELERATION,
-
-    PALETTE_PRESSURE,
-
-    PALETTE_ENERGY,
-
-    PALETTE_STRESS,
-
-    PALETTE_DAMAGE,
-
-    PALETTE_DIVV,
-
-    PALETTE_GRADV,
-
-    PALETTE_ROTV,
-
-    PALETTE_DENSITY_PERTURB,
-
-    PALETTE_RADIUS,
-
-    PALETTE_ANGULAR_VELOCITY,
-
-    PALETTE_MOMENT_OF_INERTIA,
-
-    PALETTE_STRAIN_RATE_CORRECTION_TENSOR,
-
-    PALETTE_VELOCITY_SECOND_DERIVATIVES,
-
-    PALETTE_ACTIVATION_STRAIN,
-
-    PALETTE_TOTAL_ENERGY,
-
-    PALETTE_TEMPERATURE,
-
-    PALETTE_AV_STRESS
 };
 
 class GuiSettings : public Settings<GuiSettingsId> {

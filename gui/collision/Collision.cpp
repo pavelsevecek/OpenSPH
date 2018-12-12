@@ -96,7 +96,9 @@ AsteroidCollision::AsteroidCollision() {
 
 void AsteroidCollision::setUp() {
     storage = makeShared<Storage>();
+#ifdef SPH_USE_TBB
     scheduler = Tbb::getGlobalInstance();
+#endif
 
     solver = Factory::getSolver(*scheduler, settings);
 

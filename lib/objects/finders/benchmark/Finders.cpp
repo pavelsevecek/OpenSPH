@@ -70,7 +70,9 @@ BENCHMARK("Finder build KdTree ThreadPool", "[finders]", Benchmark::Context& con
     finderBuild(context, tree, *ThreadPool::getGlobalInstance());
 }
 
+#ifdef SPH_USE_TBB
 BENCHMARK("Finder build KdTree Tbb", "[finders]", Benchmark::Context& context) {
     KdTree<KdNode> tree;
     finderBuild(context, tree, *Tbb::getGlobalInstance());
 }
+#endif

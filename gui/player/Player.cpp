@@ -218,12 +218,12 @@ bool App::OnInit() {
         .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"))
         .set(GuiSettingsId::IMAGES_TIMESTEP, 0._f)
         .set(GuiSettingsId::IMAGES_RENDERER, RendererEnum::PARTICLE)
-        .set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))
+        /*.set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))
         .set(GuiSettingsId::PALETTE_VELOCITY, Interval(1._f, 100._f))
         .set(GuiSettingsId::PALETTE_PRESSURE, Interval(-5.e6_f, 5.e6_f))
         .set(GuiSettingsId::PALETTE_ENERGY, Interval(100._f, 5.e4_f))
         .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
-        .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
+        .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))*/
         .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::ALL)
         .set(GuiSettingsId::PLOT_OVERPLOT_SFD, std::string("/home/pavel/Dropbox/family.dat_hc"));
 

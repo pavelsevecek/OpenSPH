@@ -1272,6 +1272,9 @@ enum class BodySettingsId {
 
     /// Heat capacity at constant pressure,
     HEAT_CAPACITY = 65,
+
+    /// Arbitrary string identifying this material
+    IDENTIFIER = 99,
 };
 
 using RunSettings = Settings<RunSettingsId>;

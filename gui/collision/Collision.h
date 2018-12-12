@@ -93,13 +93,6 @@ private:
             .set(GuiSettingsId::IMAGES_TIMESTEP, 0.25_f)
             .set(GuiSettingsId::IMAGES_RENDERER, RendererEnum::RAYTRACER)
             .set(GuiSettingsId::RAYTRACE_ITERATION_LIMIT, 1)
-            .set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))
-            .set(GuiSettingsId::PALETTE_VELOCITY, Interval(0.0125_f, 3.4e2_f))
-            .set(GuiSettingsId::PALETTE_PRESSURE, Interval(-5.e4_f, 5.e4_f))
-            .set(GuiSettingsId::PALETTE_ENERGY, Interval(1._f, 1.e4_f))
-            .set(GuiSettingsId::PALETTE_ACCELERATION, Interval(1.e3_f, 1.e8_f))
-            .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
-            .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
             .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 1._f)
             .set(GuiSettingsId::PLOT_INTEGRALS,
                 PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY | PlotEnum::TOTAL_ENERGY |

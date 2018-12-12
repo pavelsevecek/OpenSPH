@@ -60,12 +60,12 @@ private:
             .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("stab_%e.avi"))
             .set(GuiSettingsId::IMAGES_TIMESTEP, 100._f)
             //.set(GuiSettingsId::IMAGES_RENDERER, int(RendererEnum::RAYTRACER))
-            .set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))
+            /*.set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))
             .set(GuiSettingsId::PALETTE_VELOCITY, Interval(0.01_f, 1.e2_f))
             .set(GuiSettingsId::PALETTE_PRESSURE, Interval(-5.e4_f, 5.e4_f))
             .set(GuiSettingsId::PALETTE_ENERGY, Interval(1.e-1_f, 1.e3_f))
             .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
-            .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
+            .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))*/
             .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 1._f)
             .set(GuiSettingsId::PLOT_INTEGRALS,
                 PlotEnum::TOTAL_ENERGY | PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY);

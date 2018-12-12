@@ -12,12 +12,11 @@
 
 NAMESPACE_SPH_BEGIN
 
-#ifdef SPH_USE_EIGEN
 
 /// \brief Solves for total stress tensor sigma.
 ///
-/// Equations to be solved cannot be specified at the moment, that would require a lot of extra work and it is
-/// not needed at the moment. Will be possibly extended in the future.
+/// \note Equations to be solved cannot be specified at the moment, that would require a lot of extra work and
+/// it is not needed. Will be possibly extended in the future.
 class StaticSolver {
 private:
     IScheduler& scheduler;
@@ -52,7 +51,5 @@ public:
     /// \brief Creates all the necessary quantities in the storage.
     void create(Storage& storage, IMaterial& material);
 };
-
-#endif
 
 NAMESPACE_SPH_END

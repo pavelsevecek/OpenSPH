@@ -256,10 +256,14 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
 
     toolbar->Add(new wxStaticText(this, wxID_ANY, "Cutoff"), 0, wxALIGN_CENTER_VERTICAL);
     const Float cutoff = gui.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
-    wxSpinCtrl* cutoffSpinner = new wxSpinCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(80, -1));
-    cutoffSpinner->SetRange(0, 1000000);
+    wxSpinCtrlDouble* cutoffSpinner =
+        new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, wxSize(145, -1));
+    cutoffSpinner->SetRange(0., 1000000.);
     cutoffSpinner->SetValue(int(cutoff));
-    cutoffSpinner->Bind(wxEVT_SPINCTRL, [this](wxSpinEvent& evt) { this->updateCutoff(evt.GetPosition()); });
+    cutoffSpinner->SetDigits(3);
+    cutoffSpinner->SetIncrement(1);
+    cutoffSpinner->Bind(
+        wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent& evt) { this->updateCutoff(evt.GetValue()); });
     cutoffSpinner->Bind(wxEVT_MOTION, [this, cutoffSpinner](wxMouseEvent& evt) {
         static wxPoint prevPos = evt.GetPosition();
         if (evt.Dragging()) {
@@ -320,7 +324,7 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
     return toolbar;
 }
 
-void MainWindow::updateCutoff(const int cutoff) {
+void MainWindow::updateCutoff(const double cutoff) {
     // has to be generalized if perspective camera gets cutoff
     AutoPtr<ICamera> camera = controller->getCurrentCamera();
     if (RawPtr<OrthoCamera> ortho = dynamicCast<OrthoCamera>(camera.get())) {
@@ -541,6 +545,9 @@ wxBoxSizer* MainWindow::createSidebar() {
     PlotView* secondPlot =
         new PlotView(this, wxSize(300, 200), wxSize(10, 10), list, list->size() == 1 ? 0 : 1, false);
     sidebarSizer->Add(secondPlot, 1, wxALIGN_TOP);
+
+    /*wxButton* settingsButton = new wxButton(this, wxID_ANY, "Show material");
+    sidebarSizer->Add(settingsButton);*/
 
     return sidebarSizer;
 }

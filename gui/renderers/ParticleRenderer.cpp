@@ -50,14 +50,17 @@ static void drawVector(IRenderContext& context,
     context.drawLine(c2, c2 + Coords(a2.x, a2.y));
 }
 
-void drawPalette(IRenderContext& context, const Pixel origin, const Rgba& lineColor, const Palette& palette) {
-    const int size = 201;
+void drawPalette(IRenderContext& context,
+    const Pixel origin,
+    const Pixel size,
+    const Rgba& lineColor,
+    const Palette& palette) {
 
     // draw palette
-    for (Size i = 0; i < size; ++i) {
-        const float value = palette.relativeToPalette(float(i) / (size - 1));
+    for (int i = 0; i < size.y; ++i) {
+        const float value = palette.relativeToPalette(float(i) / (size.y - 1));
         context.setColor(palette(value), ColorFlag::LINE);
-        context.drawLine(Coords(origin.x, origin.y - i), Coords(origin.x + 30, origin.y - i));
+        context.drawLine(Coords(origin.x, origin.y - i), Coords(origin.x + size.x, origin.y - i));
     }
 
     // draw tics
@@ -86,9 +89,10 @@ void drawPalette(IRenderContext& context, const Pixel origin, const Rgba& lineCo
     context.setColor(lineColor, ColorFlag::LINE | ColorFlag::TEXT);
     for (Float tic : tics) {
         const Float value = palette.paletteToRelative(tic);
-        const Size i = value * size;
+        const int i = value * size.y;
         context.drawLine(Coords(origin.x, origin.y - i), Coords(origin.x + 6, origin.y - i));
-        context.drawLine(Coords(origin.x + 24, origin.y - i), Coords(origin.x + 30, origin.y - i));
+        context.drawLine(
+            Coords(origin.x + size.x - 6, origin.y - i), Coords(origin.x + size.x, origin.y - i));
 
         std::wstring text = toPrintableString(tic, 1, 1000);
         context.drawText(
@@ -266,7 +270,7 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
 
     if (cached.palette) {
         const Pixel origin(context.size().x - 50, 231);
-        drawPalette(context, origin, background.inverse(), cached.palette.value());
+        drawPalette(context, origin, Pixel(30, 201), background.inverse(), cached.palette.value());
     }
 
     const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
