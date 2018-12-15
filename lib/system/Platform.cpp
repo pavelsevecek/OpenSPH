@@ -4,6 +4,7 @@
 #include "objects/wrappers/Finally.h"
 #include <fcntl.h>
 
+#include <libgen.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/times.h>
@@ -11,6 +12,17 @@
 #include <unistd.h>
 
 NAMESPACE_SPH_BEGIN
+
+Expected<Path> getExecutablePath() {
+    char result[PATH_MAX];
+    ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+    if (count != -1) {
+        Path path(result);
+        return path.parentPath();
+    } else {
+        return makeUnexpected<Path>("Unknown error");
+    }
+}
 
 Outcome sendMail(const std::string& to,
     const std::string& from,

@@ -86,7 +86,9 @@ AutoPtr<IBrdf> Factory::getBrdf(const GuiSettings& UNUSED(settings)) {
     return makeAuto<LambertBrdf>(1._f);
 }
 
-AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings, const ColorizerId id) {
+static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const ColorizerId id) {
+    using Factory::getPalette;
+
     switch (id) {
     case ColorizerId::VELOCITY:
         return makeAuto<VelocityColorizer>(getPalette(id));
@@ -156,6 +158,14 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings, const Col
     }
 }
 
+AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings, const ColorizerId id) {
+    AutoPtr<IColorizer> colorizer = Sph::getColorizer(settings, id);
+    Optional<Palette> palette = colorizer->getPalette();
+    if (palette && Config::getPalette(colorizer->name(), palette.value())) {
+        colorizer->setPalette(palette.value());
+    }
+    return colorizer;
+}
 
 class PaletteKey {
 private:
@@ -223,7 +233,7 @@ static Palette getDefaultPalette(const Interval range) {
         PaletteScale::LINEAR);
 }
 
-static Palette getOriginalPalette(const ColorizerId id) {
+Palette Factory::getPalette(const ColorizerId id) {
     const PaletteDesc desc = paletteDescs[id];
     const Interval range = desc.range;
     const PaletteScale scale = desc.scale;
@@ -376,13 +386,6 @@ static Palette getOriginalPalette(const ColorizerId id) {
             return getDefaultPalette(Interval(x0, x0 + dx));
         }
     }
-}
-
-Palette Factory::getPalette(const ColorizerId id) {
-    Palette palette = getOriginalPalette(id);
-    // check if we have override
-    Config::getPalette(id, palette);
-    return palette;
 }
 
 NAMESPACE_SPH_END

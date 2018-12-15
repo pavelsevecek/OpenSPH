@@ -138,8 +138,10 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
     rangeSizer->Add(new wxStaticText(this, wxID_ANY, "From: ", wxDefaultPosition, wxSize(-1, height)));
     wxSpinCtrlDouble* lowerSpinner =
         new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, wxSize(100, height));
-    lowerSpinner->SetRange(-1e8, 1e8);
-    lowerSpinner->SetDigits(2);
+    const int range = 1000 * initialPalette.getInterval().size();
+    lowerSpinner->SetRange(-range, range);
+    const int lowerDigits = max(0, 2 - int(log10(abs(initialPalette.getInterval().lower()) + EPS)));
+    lowerSpinner->SetDigits(lowerDigits);
     lowerSpinner->SetValue(initialPalette.getInterval().lower());
     lowerSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this, parent, lowerSpinner](wxSpinDoubleEvent& UNUSED(evt)) {
         const double value = lowerSpinner->GetValue();
@@ -153,8 +155,9 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
     rangeSizer->Add(new wxStaticText(this, wxID_ANY, "To: ", wxDefaultPosition, wxSize(-1, height)));
     wxSpinCtrlDouble* upperSpinner =
         new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, wxSize(100, height));
-    upperSpinner->SetRange(-1e8, 1e8);
-    upperSpinner->SetDigits(2);
+    upperSpinner->SetRange(-range, range);
+    const int upperDigits = max(0, 2 - int(log10(abs(initialPalette.getInterval().upper()) + EPS)));
+    upperSpinner->SetDigits(upperDigits);
     upperSpinner->SetValue(initialPalette.getInterval().upper());
     upperSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this, parent, upperSpinner](wxSpinDoubleEvent& UNUSED(evt)) {
         /// \todo deduplicate

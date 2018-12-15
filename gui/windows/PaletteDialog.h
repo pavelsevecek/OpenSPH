@@ -26,13 +26,7 @@ private:
     Palette selected;
 
 public:
-    PaletteDialog(wxWindow* parent,
-        wxSize size,
-        const Palette initialPalette,
-        Function<void(Palette)> setPalette);
-    /*Optional<Palette> getSelectedPalette() const {
-        return selected;
-    }*/
+    PaletteDialog(wxWindow* parent, wxSize size, const Palette palette, Function<void(Palette)> setPalette);
 
 private:
     void update();

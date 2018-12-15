@@ -210,7 +210,7 @@ bool App::OnInit() {
         .set(GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY, std::string(""))
         .set(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY, std::string(""))
         .set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 3)
-        .set(GuiSettingsId::RAYTRACE_ITERATION_LIMIT, 12)
+        .set(GuiSettingsId::RAYTRACE_ITERATION_LIMIT, 50)
         .set(GuiSettingsId::IMAGES_WIDTH, 800)
         .set(GuiSettingsId::IMAGES_HEIGHT, 800)
         .set(GuiSettingsId::IMAGES_SAVE, false)

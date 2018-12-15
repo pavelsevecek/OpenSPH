@@ -189,9 +189,20 @@ Outcome Palette::loadFromFile(const Path& path) {
 }
 
 Outcome Palette::saveToFile(const Path& path, const Size lineCnt) const {
-    (void)path;
-    (void)lineCnt;
-    NOT_IMPLEMENTED;
+    try {
+        std::ofstream ofs(path.native());
+        for (Size i = 0; i < lineCnt; ++i) {
+            const float value = this->relativeToPalette(float(i) / (lineCnt - 1));
+            const Rgba color = operator()(value);
+            ofs << color.r() << "," << color.g() << "," << color.b();
+            if (i != lineCnt - 1) {
+                ofs << std::endl;
+            }
+        }
+        return SUCCESS;
+    } catch (std::exception& e) {
+        return std::string("Cannot save palette: ") + e.what();
+    }
 }
 
 NAMESPACE_SPH_END

@@ -1,4 +1,5 @@
 #include "gui/Controller.h"
+#include "gui/Config.h"
 #include "gui/Factory.h"
 #include "gui/MainLoop.h"
 #include "gui/Utils.h"
@@ -373,7 +374,12 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
 
     Array<SharedPtr<IColorizer>> colorizers;
     // add velocity (always present)
-    colorizers.push(Factory::getColorizer(gui, ColorizerId::VELOCITY));
+    if (vis.colorizer && typeid(*vis.colorizer) == typeid(VelocityColorizer)) {
+        // hack to avoid creating two velocity colorizers (they would have to somehow share the palette ...)
+        colorizers.push(vis.colorizer);
+    } else {
+        colorizers.push(Factory::getColorizer(gui, ColorizerId::VELOCITY));
+    }
 
     if (!forMovie) {
         // add all quantity colorizers (sorted by the key)
@@ -525,11 +531,7 @@ void Controller::setSelectedParticle(const Optional<Size>& particleIdx) {
 void Controller::setPaletteOverride(const Palette palette) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
 
-    // Config::setPalette();
-    // vis.paletteOverrides.insert(id, palette);
-    /// \todo accessing storage from main thread! (should be ok as we only check whether quantities exist, but
-    /// still
-    /// ...)
+    Config::setPalette(vis.colorizer->name(), palette);
     vis.colorizer->setPalette(palette);
     this->tryRedraw();
 }
