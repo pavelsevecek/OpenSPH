@@ -7,7 +7,6 @@
 
 #include "objects/containers/Array.h"
 #include "objects/geometry/Indices.h"
-#include "objects/utility/Iterators.h"
 #include <algorithm>
 
 NAMESPACE_SPH_BEGIN
@@ -105,56 +104,5 @@ INLINE Order getOrder(ArrayView<const Float> values) {
     return order.getInverted();
 }
 
-/// Order in each component
-class VectorOrder : public Noncopyable {
-private:
-    Array<Indices> storage;
-
-
-    /// Private constructor from int storage
-    VectorOrder(Array<Indices>&& other)
-        : storage(std::move(other)) {}
-
-public:
-    VectorOrder();
-
-    VectorOrder(VectorOrder&& other)
-        : storage(std::move(other.storage)) {}
-
-    /// Construct identity of given size
-    VectorOrder(const Size n)
-        : storage(0, n) {
-        for (Size i = 0; i < n; ++i) {
-            storage.push(Indices(i));
-        }
-    }
-
-    VectorOrder& operator=(VectorOrder&& other) {
-        storage = std::move(other.storage);
-        return *this;
-    }
-
-    /// Shuffle order by given comparator
-    template <typename TComparator>
-    void shuffle(const uint component, TComparator&& comparator) {
-        auto adapter = componentAdapter(storage, component);
-        std::sort(adapter.begin(), adapter.end(), std::forward<TComparator>(comparator));
-    }
-
-    /// Returns inverted order
-    VectorOrder getInverted() const {
-        Array<Indices> inverted(storage.size());
-        for (Size i = 0; i < storage.size(); ++i) {
-            for (uint j = 0; j < 3; ++j) {
-                inverted[storage[i][j]][j] = i;
-            }
-        }
-        return inverted;
-    }
-
-    INLINE const Indices& operator[](const Size idx) const {
-        return storage[idx];
-    }
-};
 
 NAMESPACE_SPH_END

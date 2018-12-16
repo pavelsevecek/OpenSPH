@@ -2,6 +2,7 @@
 #include "gravity/BruteForceGravity.h"
 #include "gravity/Collision.h"
 #include "objects/finders/NeighbourFinder.h"
+#include "quantities/Quantity.h"
 #include "sph/Diagnostics.h"
 #include "system/Factory.h"
 #include "system/Settings.h"

@@ -7,6 +7,7 @@
 
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Optional.h"
+#include <algorithm>
 
 NAMESPACE_SPH_BEGIN
 

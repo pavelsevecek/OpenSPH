@@ -1,9 +1,9 @@
 #include "io/FileManager.h"
 #include "io/FileSystem.h"
+#include <algorithm>
 #include <iomanip>
 
 NAMESPACE_SPH_BEGIN
-
 
 class PathError : public std::exception {
 public:

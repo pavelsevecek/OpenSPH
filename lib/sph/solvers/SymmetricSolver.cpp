@@ -1,4 +1,5 @@
 #include "sph/solvers/SymmetricSolver.h"
+#include "objects/Exceptions.h"
 #include "objects/finders/NeighbourFinder.h"
 #include "quantities/IMaterial.h"
 #include "sph/boundary/Boundary.h"

@@ -4,7 +4,7 @@
 #include "system/Factory.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
-#include "thread/Pool.h"
+#include "thread/Scheduler.h"
 #include "timestepping/ISolver.h"
 #include "timestepping/TimeStepCriterion.h"
 

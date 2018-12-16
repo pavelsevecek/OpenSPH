@@ -1,7 +1,7 @@
-#include "objects/utility/Iterators.h"
 #include "catch.hpp"
 #include "objects/containers/Array.h"
 #include "objects/geometry/Vector.h"
+#include "objects/utility/IteratorAdapters.h"
 #include "utils/Utils.h"
 #include <algorithm>
 

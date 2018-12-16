@@ -6,18 +6,21 @@
 /// \date 2016-2018
 
 #include "common/ForwardDecl.h"
-#include "objects/Exceptions.h"
 #include "objects/containers/Array.h"
 #include "objects/containers/FlatMap.h"
+#include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Function.h"
 #include "objects/wrappers/Outcome.h"
 #include "objects/wrappers/SharedPtr.h"
-#include "quantities/Quantity.h"
 #include "quantities/QuantityIds.h"
 
 NAMESPACE_SPH_BEGIN
 
 class IMaterial;
+class Quantity;
+enum class OrderEnum;
+enum class VisitorEnum;
+
 
 struct StorageElement {
     QuantityId id;
@@ -37,25 +40,15 @@ private:
     ActIterator iter;
 
 public:
-    StorageIterator(const ActIterator iterator)
-        : iter(iterator) {}
+    StorageIterator(const ActIterator iterator);
 
-    StorageIterator& operator++() {
-        ++iter;
-        return *this;
-    }
+    StorageIterator& operator++();
 
-    StorageElement operator*() {
-        return { iter->key, iter->value };
-    }
+    StorageElement operator*();
 
-    bool operator==(const StorageIterator& other) const {
-        return iter == other.iter;
-    }
+    bool operator==(const StorageIterator& other) const;
 
-    bool operator!=(const StorageIterator& other) const {
-        return iter != other.iter;
-    }
+    bool operator!=(const StorageIterator& other) const;
 };
 
 /// \brief Helper class for iterating over quantities stored in \ref Storage, const version.
@@ -66,25 +59,15 @@ private:
     ActIterator iter;
 
 public:
-    ConstStorageIterator(const ActIterator iterator)
-        : iter(iterator) {}
+    ConstStorageIterator(const ActIterator iterator);
 
-    ConstStorageIterator& operator++() {
-        ++iter;
-        return *this;
-    }
+    ConstStorageIterator& operator++();
 
-    ConstStorageElement operator*() {
-        return { iter->key, iter->value };
-    }
+    ConstStorageElement operator*();
 
-    bool operator==(const ConstStorageIterator& other) const {
-        return iter == other.iter;
-    }
+    bool operator==(const ConstStorageIterator& other) const;
 
-    bool operator!=(const ConstStorageIterator& other) const {
-        return iter != other.iter;
-    }
+    bool operator!=(const ConstStorageIterator& other) const;
 };
 
 /// \brief Helper class, provides functions \ref begin and \ref end, returning iterators to the first and last
@@ -294,35 +277,19 @@ public:
     /// \brief Checks if the storage contains quantity with given key.
     ///
     /// Type or order of unit is not specified, any quantity with this key will match.
-    bool has(const QuantityId key) const {
-        return quantities.contains(key);
-    }
+    bool has(const QuantityId key) const;
 
     /// \brief Checks if the storage contains quantity with given key, value type and order.
     template <typename TValue>
-    bool has(const QuantityId key, const OrderEnum order) const {
-        Optional<const Quantity&> quantity = quantities.tryGet(key);
-        if (!quantity) {
-            return false;
-        }
-        return quantity->getOrderEnum() == order && quantity->getValueEnum() == GetValueEnum<TValue>::type;
-    }
+    bool has(const QuantityId key, const OrderEnum order) const;
 
     /// \brief Retrieves quantity with given key from the storage.
     ///
     /// Quantity must be already stored, checked by assert.
-    Quantity& getQuantity(const QuantityId key) {
-        Optional<Quantity&> quantity = quantities.tryGet(key);
-        ASSERT(quantity, getMetadata(key).quantityName);
-        return quantity.value();
-    }
+    Quantity& getQuantity(const QuantityId key);
 
     /// \brief Retrieves quantity with given key from the storage, const version.
-    const Quantity& getQuantity(const QuantityId key) const {
-        Optional<const Quantity&> quantity = quantities.tryGet(key);
-        ASSERT(quantity, getMetadata(key).quantityName);
-        return quantity.value();
-    }
+    const Quantity& getQuantity(const QuantityId key) const;
 
     /// \brief Retrieves quantity buffers from the storage, given its key and value type.
     ///
@@ -330,19 +297,11 @@ public:
     /// storage, checked by assert. To check whether the quantity is stored, use has() method.
     /// \return Array of references to Arrays, containing quantity values and all derivatives.
     template <typename TValue>
-    StaticArray<Array<TValue>&, 3> getAll(const QuantityId key) {
-        Quantity& q = this->getQuantity(key);
-        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        return q.getAll<TValue>();
-    }
+    StaticArray<Array<TValue>&, 3> getAll(const QuantityId key);
 
     /// \brief Retrieves quantity buffers from the storage, given its key and value type, const version.
     template <typename TValue>
-    StaticArray<const Array<TValue>&, 3> getAll(const QuantityId key) const {
-        const Quantity& q = this->getQuantity(key);
-        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        return q.getAll<TValue>();
-    }
+    StaticArray<const Array<TValue>&, 3> getAll(const QuantityId key) const;
 
     /// \brief Retrieves a quantity values from the storage, given its key and value type.
     ///
@@ -350,17 +309,11 @@ public:
     /// storage, checked by assert.
     /// \return Array reference containing stored quantity values.
     template <typename TValue>
-    Array<TValue>& getValue(const QuantityId key) {
-        Quantity& q = this->getQuantity(key);
-        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        return q.getValue<TValue>();
-    }
+    Array<TValue>& getValue(const QuantityId key);
 
     /// \copydoc getValue
     template <typename TValue>
-    const Array<TValue>& getValue(const QuantityId key) const {
-        return const_cast<Storage*>(this)->getValue<TValue>(key);
-    }
+    const Array<TValue>& getValue(const QuantityId key) const;
 
     /// \brief Retrieves a quantity derivative from the storage, given its key and value type.
     ///
@@ -368,17 +321,11 @@ public:
     /// storage and must be first or second order, checked by assert.
     /// \return Array reference containing quantity derivatives.
     template <typename TValue>
-    Array<TValue>& getDt(const QuantityId key) {
-        Quantity& q = this->getQuantity(key);
-        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        return q.getDt<TValue>();
-    }
+    Array<TValue>& getDt(const QuantityId key);
 
     /// \brief Retrieves a quantity derivative from the storage, given its key and value type, const version.
     template <typename TValue>
-    const Array<TValue>& getDt(const QuantityId key) const {
-        return const_cast<Storage*>(this)->getDt<TValue>(key);
-    }
+    const Array<TValue>& getDt(const QuantityId key) const;
 
     /// \brief Retrieves a quantity second derivative from the storage, given its key and value type.
     ///
@@ -386,17 +333,11 @@ public:
     /// storage and must be second order, checked by assert.
     /// \return Array reference containing quantity second derivatives.
     template <typename TValue>
-    Array<TValue>& getD2t(const QuantityId key) {
-        Quantity& q = this->getQuantity(key);
-        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        return q.getD2t<TValue>();
-    }
+    Array<TValue>& getD2t(const QuantityId key);
 
     /// \copydoc getD2t
     template <typename TValue>
-    const Array<TValue>& getD2t(const QuantityId key) const {
-        return const_cast<Storage*>(this)->getD2t<TValue>(key);
-    }
+    const Array<TValue>& getD2t(const QuantityId key) const;
 
     /// \brief Retrieves an array of quantities from the key.
     ///

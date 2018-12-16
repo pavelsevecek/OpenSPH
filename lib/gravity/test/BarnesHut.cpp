@@ -3,6 +3,7 @@
 #include "gravity/BruteForceGravity.h"
 #include "gravity/Moments.h"
 #include "physics/Integrals.h"
+#include "quantities/Quantity.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
 #include "utils/SequenceTest.h"

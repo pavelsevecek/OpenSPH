@@ -1,6 +1,8 @@
 #include "sph/equations/Accumulated.h"
 #include "catch.hpp"
 #include "objects/utility/PerElementWrapper.h"
+#include "quantities/Quantity.h"
+#include "quantities/Storage.h"
 #include "thread/Pool.h"
 #include "utils/SequenceTest.h"
 #include "utils/Utils.h"

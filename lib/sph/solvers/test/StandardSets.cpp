@@ -1,5 +1,6 @@
 #include "sph/solvers/StandardSets.h"
 #include "catch.hpp"
+#include "quantities/Quantity.h"
 #include "sph/solvers/AsymmetricSolver.h"
 #include "sph/solvers/SymmetricSolver.h"
 #include "system/Statistics.h"

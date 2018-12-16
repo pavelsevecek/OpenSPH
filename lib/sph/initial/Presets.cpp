@@ -1,11 +1,12 @@
 #include "sph/initial/Presets.h"
 #include "objects/geometry/Domain.h"
 #include "physics/Constants.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "sph/initial/Distribution.h"
 #include "system/Factory.h"
 #include "system/Settings.impl.h"
-#include "thread/Pool.h"
+#include "thread/Scheduler.h"
 #include "timestepping/ISolver.h"
 
 NAMESPACE_SPH_BEGIN

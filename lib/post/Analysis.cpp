@@ -5,7 +5,7 @@
 #include "objects/finders/BruteForceFinder.h"
 #include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Box.h"
-#include "objects/utility/Iterators.h"
+#include "objects/utility/IteratorAdapters.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"

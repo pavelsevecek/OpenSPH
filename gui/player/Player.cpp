@@ -4,6 +4,7 @@
 #include "gui/Uvw.h"
 #include "io/FileSystem.h"
 #include "io/Logger.h"
+#include "objects/Exceptions.h"
 #include "objects/utility/StringUtils.h"
 #include "timestepping/ISolver.h"
 #include <wx/msgdlg.h>

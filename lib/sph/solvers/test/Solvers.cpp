@@ -1,4 +1,5 @@
 #include "catch.hpp"
+#include "objects/Exceptions.h"
 #include "objects/geometry/Domain.h"
 #include "objects/utility/ArrayUtils.h"
 #include "objects/wrappers/Interval.h"

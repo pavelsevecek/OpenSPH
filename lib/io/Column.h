@@ -6,6 +6,7 @@
 /// \date 2016-2018
 
 #include "objects/utility/Dynamic.h"
+#include "quantities/Quantity.h"
 #include "quantities/QuantityIds.h"
 #include "quantities/Storage.h"
 #include "system/Statistics.h"

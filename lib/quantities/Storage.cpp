@@ -1,11 +1,52 @@
 #include "quantities/Storage.h"
+#include "objects/Exceptions.h"
 #include "physics/Eos.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Iterate.h"
 #include "system/Factory.h"
+#include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
 
+StorageIterator::StorageIterator(const ActIterator iterator)
+    : iter(iterator) {}
+
+StorageIterator& StorageIterator::operator++() {
+    ++iter;
+    return *this;
+}
+
+StorageElement StorageIterator::operator*() {
+    return { iter->key, iter->value };
+}
+
+bool StorageIterator::operator==(const StorageIterator& other) const {
+    return iter == other.iter;
+}
+
+bool StorageIterator::operator!=(const StorageIterator& other) const {
+    return iter != other.iter;
+}
+
+ConstStorageIterator::ConstStorageIterator(const ActIterator iterator)
+    : iter(iterator) {}
+
+ConstStorageIterator& ConstStorageIterator::operator++() {
+    ++iter;
+    return *this;
+}
+
+ConstStorageElement ConstStorageIterator::operator*() {
+    return { iter->key, iter->value };
+}
+
+bool ConstStorageIterator::operator==(const ConstStorageIterator& other) const {
+    return iter == other.iter;
+}
+
+bool ConstStorageIterator::operator!=(const ConstStorageIterator& other) const {
+    return iter != other.iter;
+}
 
 StorageSequence::StorageSequence(Storage& storage)
     : storage(storage) {}
@@ -68,6 +109,146 @@ Storage& Storage::operator=(Storage&& other) {
     }
     return *this;
 }
+
+bool Storage::has(const QuantityId key) const {
+    return quantities.contains(key);
+}
+
+template <typename TValue>
+bool Storage::has(const QuantityId key, const OrderEnum order) const {
+    Optional<const Quantity&> quantity = quantities.tryGet(key);
+    if (!quantity) {
+        return false;
+    }
+    return quantity->getOrderEnum() == order && quantity->getValueEnum() == GetValueEnum<TValue>::type;
+}
+
+template bool Storage::has<Size>(const QuantityId, const OrderEnum) const;
+template bool Storage::has<Float>(const QuantityId, const OrderEnum) const;
+template bool Storage::has<Vector>(const QuantityId, const OrderEnum) const;
+template bool Storage::has<SymmetricTensor>(const QuantityId, const OrderEnum) const;
+template bool Storage::has<TracelessTensor>(const QuantityId, const OrderEnum) const;
+template bool Storage::has<Tensor>(const QuantityId, const OrderEnum) const;
+
+
+Quantity& Storage::getQuantity(const QuantityId key) {
+    Optional<Quantity&> quantity = quantities.tryGet(key);
+    ASSERT(quantity, getMetadata(key).quantityName);
+    return quantity.value();
+}
+
+const Quantity& Storage::getQuantity(const QuantityId key) const {
+    Optional<const Quantity&> quantity = quantities.tryGet(key);
+    ASSERT(quantity, getMetadata(key).quantityName);
+    return quantity.value();
+}
+
+template <typename TValue>
+StaticArray<Array<TValue>&, 3> Storage::getAll(const QuantityId key) {
+    Quantity& q = this->getQuantity(key);
+    ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+    return q.getAll<TValue>();
+}
+
+template StaticArray<Array<Size>&, 3> Storage::getAll(const QuantityId);
+template StaticArray<Array<Float>&, 3> Storage::getAll(const QuantityId);
+template StaticArray<Array<Vector>&, 3> Storage::getAll(const QuantityId);
+template StaticArray<Array<SymmetricTensor>&, 3> Storage::getAll(const QuantityId);
+template StaticArray<Array<TracelessTensor>&, 3> Storage::getAll(const QuantityId);
+template StaticArray<Array<Tensor>&, 3> Storage::getAll(const QuantityId);
+
+template <typename TValue>
+StaticArray<const Array<TValue>&, 3> Storage::getAll(const QuantityId key) const {
+    const Quantity& q = this->getQuantity(key);
+    ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+    return q.getAll<TValue>();
+}
+
+template StaticArray<const Array<Size>&, 3> Storage::getAll(const QuantityId) const;
+template StaticArray<const Array<Float>&, 3> Storage::getAll(const QuantityId) const;
+template StaticArray<const Array<Vector>&, 3> Storage::getAll(const QuantityId) const;
+template StaticArray<const Array<SymmetricTensor>&, 3> Storage::getAll(const QuantityId) const;
+template StaticArray<const Array<TracelessTensor>&, 3> Storage::getAll(const QuantityId) const;
+template StaticArray<const Array<Tensor>&, 3> Storage::getAll(const QuantityId) const;
+
+template <typename TValue>
+Array<TValue>& Storage::getValue(const QuantityId key) {
+    Quantity& q = this->getQuantity(key);
+    ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+    return q.getValue<TValue>();
+}
+
+template Array<Size>& Storage::getValue(const QuantityId);
+template Array<Float>& Storage::getValue(const QuantityId);
+template Array<Vector>& Storage::getValue(const QuantityId);
+template Array<SymmetricTensor>& Storage::getValue(const QuantityId);
+template Array<TracelessTensor>& Storage::getValue(const QuantityId);
+template Array<Tensor>& Storage::getValue(const QuantityId);
+
+template <typename TValue>
+const Array<TValue>& Storage::getValue(const QuantityId key) const {
+    return const_cast<Storage*>(this)->getValue<TValue>(key);
+}
+
+template const Array<Size>& Storage::getValue(const QuantityId) const;
+template const Array<Float>& Storage::getValue(const QuantityId) const;
+template const Array<Vector>& Storage::getValue(const QuantityId) const;
+template const Array<SymmetricTensor>& Storage::getValue(const QuantityId) const;
+template const Array<TracelessTensor>& Storage::getValue(const QuantityId) const;
+template const Array<Tensor>& Storage::getValue(const QuantityId) const;
+
+template <typename TValue>
+Array<TValue>& Storage::getDt(const QuantityId key) {
+    Quantity& q = this->getQuantity(key);
+    ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+    return q.getDt<TValue>();
+}
+
+template Array<Size>& Storage::getDt(const QuantityId);
+template Array<Float>& Storage::getDt(const QuantityId);
+template Array<Vector>& Storage::getDt(const QuantityId);
+template Array<SymmetricTensor>& Storage::getDt(const QuantityId);
+template Array<TracelessTensor>& Storage::getDt(const QuantityId);
+template Array<Tensor>& Storage::getDt(const QuantityId);
+
+template <typename TValue>
+const Array<TValue>& Storage::getDt(const QuantityId key) const {
+    return const_cast<Storage*>(this)->getDt<TValue>(key);
+}
+
+template const Array<Size>& Storage::getDt(const QuantityId) const;
+template const Array<Float>& Storage::getDt(const QuantityId) const;
+template const Array<Vector>& Storage::getDt(const QuantityId) const;
+template const Array<SymmetricTensor>& Storage::getDt(const QuantityId) const;
+template const Array<TracelessTensor>& Storage::getDt(const QuantityId) const;
+template const Array<Tensor>& Storage::getDt(const QuantityId) const;
+
+template <typename TValue>
+Array<TValue>& Storage::getD2t(const QuantityId key) {
+    Quantity& q = this->getQuantity(key);
+    ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+    return q.getD2t<TValue>();
+}
+
+template Array<Size>& Storage::getD2t(const QuantityId);
+template Array<Float>& Storage::getD2t(const QuantityId);
+template Array<Vector>& Storage::getD2t(const QuantityId);
+template Array<SymmetricTensor>& Storage::getD2t(const QuantityId);
+template Array<TracelessTensor>& Storage::getD2t(const QuantityId);
+template Array<Tensor>& Storage::getD2t(const QuantityId);
+
+template <typename TValue>
+const Array<TValue>& Storage::getD2t(const QuantityId key) const {
+    return const_cast<Storage*>(this)->getD2t<TValue>(key);
+}
+
+template const Array<Size>& Storage::getD2t(const QuantityId) const;
+template const Array<Float>& Storage::getD2t(const QuantityId) const;
+template const Array<Vector>& Storage::getD2t(const QuantityId) const;
+template const Array<SymmetricTensor>& Storage::getD2t(const QuantityId) const;
+template const Array<TracelessTensor>& Storage::getD2t(const QuantityId) const;
+template const Array<Tensor>& Storage::getD2t(const QuantityId) const;
+
 
 template <typename TValue>
 Quantity& Storage::insert(const QuantityId key, const OrderEnum order, const TValue& defaultValue) {
@@ -428,6 +609,7 @@ Outcome Storage::isValid(const Flags<ValidFlag> flags) const {
 
 Array<Size> Storage::duplicate(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags) {
     ASSERT(!userData, "Duplicating particles in storages with user data is currently not supported");
+    MEASURE_SCOPE("Storage::duplicate");
     Array<Size> sortedHolder;
     ArrayView<const Size> sorted;
     if (flags.has(IndicesFlag::INDICES_SORTED)) {

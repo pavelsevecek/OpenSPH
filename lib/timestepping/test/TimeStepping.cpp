@@ -1,5 +1,6 @@
 #include "timestepping/TimeStepping.h"
 #include "catch.hpp"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "sph/Materials.h"
 #include "system/Settings.h"

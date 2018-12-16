@@ -4,6 +4,7 @@
 #include "gravity/BruteForceGravity.h"
 #include "gravity/Moments.h"
 #include "gravity/SphericalGravity.h"
+#include "objects/Exceptions.h"
 #include "sph/solvers/SymmetricSolver.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"

@@ -1,7 +1,7 @@
 #include "math/rng/VectorRng.h"
 #include "catch.hpp"
 #include "objects/geometry/Box.h"
-#include "math/Math.h"
+#include "math/MathUtils.h"
 #include "tests/Approx.h"
 
 using namespace Sph;

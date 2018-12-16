@@ -1,5 +1,6 @@
 #pragma once
 
+#include "quantities/Quantity.h"
 #include "sph/equations/Derivative.h"
 
 NAMESPACE_SPH_BEGIN
@@ -396,7 +397,8 @@ using VelocityGradient = VelocityTemplate<QuantityId::VELOCITY_GRADIENT, Discr, 
 /// discretization is defined.
 template <template <class> class TVelocityDerivative>
 AutoPtr<IDerivative> makeDerivative(const RunSettings& settings, Flags<DerivativeFlag> flags = EMPTY_FLAGS) {
-    const DiscretizationEnum formulation = settings.get<DiscretizationEnum>(RunSettingsId::SPH_DISCRETIZATION);
+    const DiscretizationEnum formulation =
+        settings.get<DiscretizationEnum>(RunSettingsId::SPH_DISCRETIZATION);
     switch (formulation) {
     case DiscretizationEnum::STANDARD:
         return makeAuto<TVelocityDerivative<CenterDensityDiscr>>(settings, flags);

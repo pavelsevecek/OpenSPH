@@ -1,4 +1,5 @@
 #include "catch.hpp"
+#include "objects/Exceptions.h"
 #include "objects/utility/PerElementWrapper.h"
 #include "sph/equations/DerivativeHelpers.h"
 #include "utils/Utils.h"

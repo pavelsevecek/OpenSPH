@@ -6,7 +6,7 @@
 #include "quantities/Storage.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
-#include "thread/Pool.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 

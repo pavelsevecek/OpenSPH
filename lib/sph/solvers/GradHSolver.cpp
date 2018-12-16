@@ -1,5 +1,6 @@
 #include "sph/solvers/GradHSolver.h"
 #include "objects/finders/NeighbourFinder.h"
+#include "quantities/Quantity.h"
 
 NAMESPACE_SPH_BEGIN
 

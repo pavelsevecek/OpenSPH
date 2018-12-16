@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz
 /// \date 2016-2018
 
+#include "objects/Exceptions.h"
 #include "objects/finders/NeighbourFinder.h"
 #include "sph/Materials.h"
 #include "sph/equations/EquationTerm.h"

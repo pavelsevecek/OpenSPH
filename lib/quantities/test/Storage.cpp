@@ -1,5 +1,6 @@
 #include "quantities/Storage.h"
 #include "catch.hpp"
+#include "objects/Exceptions.h"
 #include "physics/Eos.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Iterate.h"

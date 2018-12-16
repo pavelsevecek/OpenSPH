@@ -1,6 +1,7 @@
 #include "sph/kernel/Interpolation.h"
 #include "catch.hpp"
 #include "objects/geometry/Domain.h"
+#include "quantities/Quantity.h"
 #include "sph/initial/Distribution.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"

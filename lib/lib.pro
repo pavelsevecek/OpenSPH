@@ -80,7 +80,10 @@ SOURCES += \
     sph/handoff/Handoff.cpp \
     run/RubblePile.cpp \
     sph/solvers/EnergyConservingSolver.cpp \
-    physics/Functions.cpp
+    physics/Functions.cpp \
+    sph/equations/Accumulated.cpp \
+    sph/equations/av/Stress.cpp \
+    quantities/Quantity.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -104,7 +107,6 @@ HEADERS += \
     io/Serializer.h \
     io/Table.h \
     math/AffineMatrix.h \
-    math/Math.h \
     math/Matrix.h \
     math/Means.h \
     math/Morton.h \
@@ -154,7 +156,6 @@ HEADERS += \
     objects/geometry/Vector.h \
     objects/utility/ArrayUtils.h \
     objects/utility/Dynamic.h \
-    objects/utility/Iterators.h \
     objects/utility/OperatorTemplate.h \
     objects/utility/PerElementWrapper.h \
     objects/utility/StringUtils.h \
@@ -282,4 +283,8 @@ HEADERS += \
     sph/handoff/Handoff.h \
     run/RubblePile.h \
     sph/solvers/EnergyConservingSolver.h \
-    sph/equations/DerivativeHelpers.h
+    sph/equations/DerivativeHelpers.h \
+    math/MathUtils.h \
+    math/MathBasic.h \
+    objects/utility/Iterator.h \
+    objects/utility/IteratorAdapters.h

@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "math/Math.h"
+#include "math/MathUtils.h"
 #include "objects/Object.h"
 #include <wx/gdicmn.h>
 

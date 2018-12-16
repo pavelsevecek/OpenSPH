@@ -4,6 +4,7 @@
 #include "objects/containers/Array.h"
 #include "objects/containers/ArrayView.h"
 #include "objects/wrappers/Interval.h"
+#include <algorithm>
 
 NAMESPACE_SPH_BEGIN
 
@@ -55,8 +56,8 @@ public:
     }
 
     void write(ILogger& logger) {
-        logger.write("Min = " + std::to_string(min()) + "; Max = " + std::to_string(max()) + "; Mean = " +
-                     std::to_string(average()) + "; Median = " + std::to_string(median()));
+        logger.write("Min = " + std::to_string(min()) + "; Max = " + std::to_string(max()) +
+                     "; Mean = " + std::to_string(average()) + "; Median = " + std::to_string(median()));
     }
 };
 

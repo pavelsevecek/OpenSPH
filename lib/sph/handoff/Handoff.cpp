@@ -3,6 +3,7 @@
 #include "objects/geometry/Domain.h"
 #include "physics/Integrals.h"
 #include "post/Analysis.h"
+#include "quantities/Quantity.h"
 #include "sph/Materials.h"
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"

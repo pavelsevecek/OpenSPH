@@ -2,6 +2,7 @@
 #include "catch.hpp"
 #include "objects/geometry/Domain.h"
 #include "quantities/IMaterial.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "sph/Materials.h"
 #include "sph/initial/Distribution.h"

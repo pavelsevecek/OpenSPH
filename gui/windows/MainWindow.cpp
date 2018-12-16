@@ -14,6 +14,7 @@
 #include "io/LogFile.h"
 #include "sph/Diagnostics.h"
 #include "thread/CheckFunction.h"
+#include "thread/Pool.h"
 #include <fstream>
 #include <wx/button.h>
 #include <wx/combobox.h>

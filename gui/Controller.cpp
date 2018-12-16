@@ -14,6 +14,7 @@
 #include "system/Statistics.h"
 #include "system/Timer.h"
 #include "thread/CheckFunction.h"
+#include "thread/Pool.h"
 #include <wx/app.h>
 #include <wx/dcmemory.h>
 #include <wx/msgdlg.h>

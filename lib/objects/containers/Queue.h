@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "math/Math.h"
+#include "math/MathUtils.h"
 #include "objects/containers/ArrayView.h"
 #include <mm_malloc.h>
 

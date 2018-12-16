@@ -18,7 +18,7 @@
 #include "quantities/Particle.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
-#include "thread/Pool.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 

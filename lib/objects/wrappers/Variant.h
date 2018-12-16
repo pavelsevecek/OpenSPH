@@ -7,7 +7,7 @@
 
 #include "common/Assert.h"
 #include "common/Globals.h"
-#include "math/Math.h"
+#include "math/MathUtils.h"
 #include "objects/wrappers/Optional.h"
 
 NAMESPACE_SPH_BEGIN

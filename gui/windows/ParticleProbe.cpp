@@ -1,4 +1,5 @@
 #include "gui/windows/ParticleProbe.h"
+#include "quantities/QuantityIds.h"
 
 NAMESPACE_SPH_BEGIN
 

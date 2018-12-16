@@ -1,8 +1,9 @@
 #include "physics/Rheology.h"
 #include "physics/Damage.h"
 #include "quantities/IMaterial.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
-#include "thread/Pool.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 

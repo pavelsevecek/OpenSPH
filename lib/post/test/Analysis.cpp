@@ -7,6 +7,7 @@
 #include "objects/utility/PerElementWrapper.h"
 #include "physics/Constants.h"
 #include "physics/Functions.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"

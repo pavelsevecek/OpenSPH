@@ -6,7 +6,7 @@
 /// \date 2016-2018
 
 #include "objects/containers/Array.h"
-#include "objects/utility/Iterators.h"
+#include "objects/utility/Iterator.h"
 #include "objects/wrappers/Optional.h"
 #include "thread/Scheduler.h"
 

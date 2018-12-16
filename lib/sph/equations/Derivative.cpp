@@ -1,5 +1,7 @@
 #include "sph/equations/Derivative.h"
+#include "objects/Exceptions.h"
 #include "objects/containers/FlatMap.h"
+#include "quantities/Quantity.h"
 
 NAMESPACE_SPH_BEGIN
 

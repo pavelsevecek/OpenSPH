@@ -1,6 +1,7 @@
 #include "physics/Integrals.h"
 #include "catch.hpp"
 #include "objects/geometry/Domain.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "sph/initial/Initial.h"
 #include "tests/Approx.h"

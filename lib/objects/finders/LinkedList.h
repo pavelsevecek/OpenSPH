@@ -2,7 +2,7 @@
 
 #include "objects/finders/NeighbourFinder.h"
 #include "objects/geometry/Box.h"
-#include "objects/utility/Iterators.h"
+#include "objects/utility/Iterator.h"
 #include <algorithm>
 
 NAMESPACE_SPH_BEGIN

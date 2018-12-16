@@ -2,6 +2,7 @@
 
 #include "gui/objects/Bitmap.h"
 #include "quantities/IMaterial.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN

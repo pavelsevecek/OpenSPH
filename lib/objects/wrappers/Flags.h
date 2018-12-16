@@ -7,7 +7,7 @@
 
 #include "common/Assert.h"
 #include "common/Traits.h"
-#include "math/Math.h"
+#include "math/MathUtils.h"
 
 NAMESPACE_SPH_BEGIN
 

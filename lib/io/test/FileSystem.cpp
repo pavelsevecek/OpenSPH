@@ -1,6 +1,7 @@
 #include "io/FileSystem.h"
 #include "catch.hpp"
 #include "io/FileManager.h"
+#include "objects/utility/IteratorAdapters.h"
 #include "system/Platform.h"
 #include "utils/Config.h"
 #include "utils/Utils.h"

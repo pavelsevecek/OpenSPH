@@ -1,6 +1,6 @@
 #pragma once
 
-#include "math/Math.h"
+#include "math/MathUtils.h"
 #include "objects/containers/Array.h"
 
 

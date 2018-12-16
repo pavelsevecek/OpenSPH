@@ -7,7 +7,7 @@
 
 #include "math/rng/Rng.h"
 #include "objects/containers/FlatMap.h"
-#include "objects/utility/Iterators.h"
+#include "objects/utility/IteratorAdapters.h"
 #include "quantities/QuantityIds.h"
 #include "system/Settings.h"
 

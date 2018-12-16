@@ -4,6 +4,7 @@
 #include "objects/geometry/Domain.h"
 #include "objects/utility/ArrayUtils.h"
 #include "physics/Rheology.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "sph/Materials.h"
 #include "sph/initial/Distribution.h"

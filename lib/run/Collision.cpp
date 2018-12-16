@@ -3,6 +3,8 @@
 #include "io/FileSystem.h"
 #include "io/LogFile.h"
 #include "io/Output.h"
+#include "objects/Exceptions.h"
+#include "quantities/Quantity.h"
 #include "sph/Diagnostics.h"
 #include "sph/solvers/StabilizationSolver.h"
 #include "system/Factory.h"

@@ -1,4 +1,5 @@
 #include "sph/solvers/AsymmetricSolver.h"
+#include "objects/Exceptions.h"
 #include "objects/finders/NeighbourFinder.h"
 #include "quantities/IMaterial.h"
 #include "sph/boundary/Boundary.h"
@@ -125,7 +126,7 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
             const Size j = n.index;
             const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
             ASSERT(hbar > EPS, hbar);
-            if (i == j || getSqrLength(r[i] - r[j]) >= sqr(kernel.radius() * hbar)) {
+            if (i == j || n.distanceSqr >= sqr(kernel.radius() * hbar)) {
                 // aren't actual neighbours
                 continue;
             }

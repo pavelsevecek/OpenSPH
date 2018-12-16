@@ -1,6 +1,7 @@
 #include "gravity/BruteForceGravity.h"
 #include "catch.hpp"
 #include "gravity/SphericalGravity.h"
+#include "quantities/Quantity.h"
 #include "sph/equations/Potentials.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"

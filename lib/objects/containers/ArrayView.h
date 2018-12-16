@@ -5,9 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "common/Assert.h"
-#include "common/Traits.h"
-#include "objects/utility/Iterators.h"
+#include "objects/utility/Iterator.h"
 
 NAMESPACE_SPH_BEGIN
 

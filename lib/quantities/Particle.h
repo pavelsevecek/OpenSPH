@@ -1,9 +1,12 @@
 #pragma once
 
+#include "objects/containers/FlatMap.h"
 #include "objects/utility/Dynamic.h"
-#include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
+
+class Storage;
+enum class QuantityId;
 
 /// \brief Object holding information about single particle
 ///

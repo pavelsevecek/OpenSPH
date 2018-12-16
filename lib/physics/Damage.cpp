@@ -2,10 +2,11 @@
 #include "io/Logger.h"
 #include "math/rng/Rng.h"
 #include "quantities/IMaterial.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
-#include "thread/Pool.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 

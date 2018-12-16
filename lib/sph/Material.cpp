@@ -1,9 +1,10 @@
 #include "physics/Eos.h"
 #include "physics/Rheology.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "sph/Materials.h"
 #include "system/Factory.h"
-#include "thread/Pool.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 

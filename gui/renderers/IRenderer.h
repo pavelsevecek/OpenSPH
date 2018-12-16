@@ -8,6 +8,7 @@
 #include "gui/objects/Color.h"
 #include "gui/objects/Point.h"
 #include "objects/wrappers/ClonePtr.h"
+#include "objects/wrappers/Flags.h"
 #include "quantities/Particle.h"
 
 NAMESPACE_SPH_BEGIN
@@ -16,7 +17,7 @@ template <typename T>
 class Bitmap;
 class ICamera;
 class IColorizer;
-
+class Statistics;
 
 enum class TextAlign {
     LEFT = 1 << 0,

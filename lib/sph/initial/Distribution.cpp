@@ -5,6 +5,7 @@
 #include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Domain.h"
 #include "objects/wrappers/Optional.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "sph/boundary/Boundary.h"
 #include "system/Profiler.h"

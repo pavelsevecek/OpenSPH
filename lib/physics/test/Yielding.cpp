@@ -2,6 +2,7 @@
 #include "objects/geometry/Domain.h"
 #include "physics/Rheology.h"
 #include "quantities/IMaterial.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "sph/Materials.h"
 #include "sph/initial/Initial.h"

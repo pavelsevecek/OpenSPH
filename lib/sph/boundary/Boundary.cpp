@@ -1,6 +1,6 @@
 #include "sph/boundary/Boundary.h"
 #include "objects/geometry/Domain.h"
-#include "objects/utility/Iterators.h"
+#include "objects/utility/Iterator.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Iterate.h"
 #include "sph/initial/Distribution.h"

@@ -6,6 +6,7 @@
 #include "objects/geometry/Domain.h"
 #include "objects/geometry/Sphere.h"
 #include "post/Analysis.h"
+#include "quantities/Quantity.h"
 #include "run/Collision.h"
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Presets.h"

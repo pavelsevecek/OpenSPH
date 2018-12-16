@@ -1,4 +1,5 @@
 #include "sph/equations/EquationTerm.h"
+#include "objects/Exceptions.h"
 #include "sph/Materials.h"
 #include "sph/equations/DerivativeHelpers.h"
 #include "thread/Scheduler.h"

@@ -3,6 +3,7 @@
 #include "gravity/Collision.h"
 #include "physics/Integrals.h"
 #include "quantities/IMaterial.h"
+#include "quantities/Quantity.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
 #include "thread/Pool.h"

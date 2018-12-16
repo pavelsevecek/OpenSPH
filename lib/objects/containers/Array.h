@@ -5,15 +5,25 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "math/Math.h"
+#include "math/MathBasic.h"
 #include "objects/containers/ArrayView.h"
-#include <limits>
 #include <mm_malloc.h>
 
 NAMESPACE_SPH_BEGIN
 
 template <typename T, typename TCounter = Size>
 class CopyableArray;
+
+/// \brief Helper class, used to avoid including large header limits.h
+template <typename TValue>
+struct NumericLimits;
+
+template <>
+struct NumericLimits<Size> {
+    static constexpr Size max() {
+        return Size(-1);
+    }
+};
 
 /// \brief Generic dynamically allocated resizable storage.
 ///
@@ -28,7 +38,7 @@ private:
     TCounter actSize = 0;
     TCounter maxSize = 0;
 
-    static constexpr TCounter maxValue = std::numeric_limits<TCounter>::max();
+    static constexpr TCounter maxValue = NumericLimits<TCounter>::max();
 
 public:
     using Type = T;
@@ -188,7 +198,7 @@ public:
     /// elements of the array.
     void resize(const TCounter newSize) {
         // check suspiciously high values
-        ASSERT(newSize < (std::numeric_limits<TCounter>::max() >> 1));
+        ASSERT(newSize < (NumericLimits<TCounter>::max() >> 1));
         if (newSize <= maxSize) {
             // enough elements is already allocated
             if (newSize >= actSize) {
@@ -251,7 +261,7 @@ public:
     /// \attention This invalidates all references, pointers, iterators, array views, etc. pointed to the
     /// elements of the array.
     void reserve(const TCounter newMaxSize) {
-        ASSERT(newMaxSize < (std::numeric_limits<TCounter>::max() >> 1));
+        ASSERT(newMaxSize < (NumericLimits<TCounter>::max() >> 1));
         if (newMaxSize > maxSize) {
             const TCounter actNewSize = max(2 * maxSize, newMaxSize);
             Array newArray;

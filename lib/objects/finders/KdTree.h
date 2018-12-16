@@ -7,6 +7,7 @@
 
 #include "objects/finders/NeighbourFinder.h"
 #include "objects/geometry/Box.h"
+#include "objects/utility/IteratorAdapters.h"
 #include "objects/wrappers/Finally.h"
 #include "objects/wrappers/Function.h"
 #include "objects/wrappers/Outcome.h"

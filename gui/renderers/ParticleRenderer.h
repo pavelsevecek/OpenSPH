@@ -9,6 +9,7 @@
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Palette.h"
 #include "gui/renderers/IRenderer.h"
+#include <atomic>
 
 NAMESPACE_SPH_BEGIN
 
