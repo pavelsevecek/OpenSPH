@@ -208,7 +208,7 @@ PlotFrame::PlotFrame(wxWindow* parent, const wxSize size, const wxSize padding, 
     sizer->Add(plotView);
     this->SetSizerAndFit(sizer);
 
-    this->Bind(wxEVT_SIZE, [this, toolbarHeight](wxSizeEvent& evt) {
+    this->Bind(wxEVT_SIZE, [this](wxSizeEvent& evt) {
         const wxSize size = evt.GetSize();
         plotView->resize(Pixel(size.x, size.y - toolbarHeight));
     });

@@ -143,7 +143,7 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
     const int lowerDigits = max(0, 2 - int(log10(abs(initialPalette.getInterval().lower()) + EPS)));
     lowerSpinner->SetDigits(lowerDigits);
     lowerSpinner->SetValue(initialPalette.getInterval().lower());
-    lowerSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this, parent, lowerSpinner](wxSpinDoubleEvent& UNUSED(evt)) {
+    lowerSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this, lowerSpinner](wxSpinDoubleEvent& UNUSED(evt)) {
         const double value = lowerSpinner->GetValue();
         const Interval newRange(value, selected.getInterval().upper());
         selected.setInterval(newRange);
@@ -159,7 +159,7 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
     const int upperDigits = max(0, 2 - int(log10(abs(initialPalette.getInterval().upper()) + EPS)));
     upperSpinner->SetDigits(upperDigits);
     upperSpinner->SetValue(initialPalette.getInterval().upper());
-    upperSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this, parent, upperSpinner](wxSpinDoubleEvent& UNUSED(evt)) {
+    upperSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this, upperSpinner](wxSpinDoubleEvent& UNUSED(evt)) {
         /// \todo deduplicate
         const double value = upperSpinner->GetValue();
         const Interval newRange(selected.getInterval().lower(), value);

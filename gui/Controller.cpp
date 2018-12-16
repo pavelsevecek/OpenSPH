@@ -375,10 +375,15 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
 
     Array<SharedPtr<IColorizer>> colorizers;
     // add velocity (always present)
-    if (vis.colorizer && typeid(*vis.colorizer) == typeid(VelocityColorizer)) {
-        // hack to avoid creating two velocity colorizers (they would have to somehow share the palette ...)
-        colorizers.push(vis.colorizer);
-    } else {
+    if (vis.colorizer) {
+        IColorizer& colorizer = *vis.colorizer; // clang complains when dereferencing ptr inside typeid
+        if (typeid(colorizer) == typeid(VelocityColorizer)) {
+            // hack to avoid creating two velocity colorizers (they would have to somehow share the palette
+            // ...)
+            colorizers.push(vis.colorizer);
+        }
+    }
+    if (colorizers.empty()) {
         colorizers.push(Factory::getColorizer(gui, ColorizerId::VELOCITY));
     }
 

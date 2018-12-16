@@ -671,7 +671,7 @@ Array<Size> Storage::duplicate(ArrayView<const Size> idxs, const Flags<IndicesFl
         for (Size i = 0; i < sorted.size(); ++i) {
             createdIdxs.push(n0 + i);
         }
-        iterate<VisitorEnum::ALL_BUFFERS>(*this, [this, &sorted](auto& buffer) {
+        iterate<VisitorEnum::ALL_BUFFERS>(*this, [&sorted](auto& buffer) {
             using Type = typename std::decay_t<decltype(buffer)>::Type;
             Array<Type> duplicates;
             for (Size i : sorted) {
