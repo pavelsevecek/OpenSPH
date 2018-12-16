@@ -19,8 +19,7 @@ public:
         params.impactSpeed = 1.e3_f;             // v_imp = 1km/s
         params.optimizeImpactor = true;
 
-        BodySettings body;
-        Presets::Collision ic(*scheduler, settings, body, params);
+        Presets::Collision ic(*scheduler, settings, params);
         ic.addTarget(*storage);
         ic.addImpactor(*storage);
 
@@ -92,8 +91,8 @@ public:
         // OrderEnum::ZERO.
         storage->insert<Float>(QuantityId::MASS, OrderEnum::ZERO, m_sph.clone());
 
-        // In N-body simulation, we also need the angular velocities of particles - initialize them to zero.
-        storage->insert<Vector>(QuantityId::ANGULAR_VELOCITY, OrderEnum::ZERO, Vector(0._f));
+        // In N-body simulation, we also need the angular frequencies of particles - initialize them to zero.
+        storage->insert<Vector>(QuantityId::ANGULAR_FREQUENCY, OrderEnum::ZERO, Vector(0._f));
 
         // Finally, we need to set the radii of the created spheres. Let's choose the radii so that the
         // volume of the sphere is the same as the volume of the SPH particles.

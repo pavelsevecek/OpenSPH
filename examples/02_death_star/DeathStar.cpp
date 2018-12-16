@@ -10,8 +10,7 @@ private:
 
 public:
     SubtractDomain(IDomain& primary, IDomain& subtracted)
-        : IDomain(primary.getCenter())
-        , primary(primary)
+        : primary(primary)
         , subtracted(subtracted) {}
 
     virtual Vector getCenter() const override {

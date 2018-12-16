@@ -13,6 +13,7 @@
 #include "physics/Eos.h"
 #include "physics/Functions.h"
 #include "quantities/Quantity.h"
+#include "quantities/QuantityIds.h"
 #include "quantities/Storage.h"
 #include "run/IRun.h"
 #include "sph/Materials.h"
