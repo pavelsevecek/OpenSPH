@@ -58,6 +58,11 @@ public:
     /// than its surface.
     virtual Optional<float> getCutoff() const = 0;
 
+    /// \brief Modifies the clipping distance of the camera.
+    ///
+    /// The clipping can be disabled by passing NOTHING.
+    virtual void setCutoff(const Optional<float> newCutoff) = 0;
+
     /// \param Applies zoom to the camera.
     ///
     /// This is usually equivalent to transforming the view with scaling matrix, alhough it can be implemented
@@ -112,10 +117,6 @@ private:
 public:
     OrthoCamera(const Pixel imageSize, const Pixel center, OrthoCameraData data);
 
-    void setCutoff(const Optional<float> cutoff) {
-        data.cutoff = cutoff;
-    }
-
     virtual void initialize(const Storage& storage) override;
 
     virtual Optional<ProjectedPoint> project(const Vector& r) const override;
@@ -125,6 +126,8 @@ public:
     virtual Vector getDirection() const override;
 
     virtual Optional<float> getCutoff() const override;
+
+    virtual void setCutoff(const Optional<float> newCutoff) override;
 
     virtual void zoom(const Pixel fixedPoint, const float magnitude) override;
 
@@ -218,6 +221,8 @@ public:
     virtual Vector getDirection() const override;
 
     virtual Optional<float> getCutoff() const override;
+
+    virtual void setCutoff(const Optional<float> newCutoff) override;
 
     virtual void zoom(const Pixel UNUSED(fixedPoint), const float magnitude) override;
 

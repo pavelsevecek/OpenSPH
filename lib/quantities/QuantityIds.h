@@ -5,7 +5,8 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "QuantityHelpers.h"
+#include "physics/Units.h"
+#include "quantities/QuantityHelpers.h"
 #include <string>
 
 NAMESPACE_SPH_BEGIN
@@ -258,6 +259,8 @@ struct QuantityMetadata {
     /// etc.), even though most quantities have only one type in any meaningful SPH simulation (density will
     /// always be scalar, for example).
     ValueEnum expectedType;
+
+    UnitDimensions expectedUnit = BasicDimension::LENGTH;
 
     QuantityMetadata(const std::string& fullName,
         const std::wstring& label,

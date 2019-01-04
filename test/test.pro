@@ -143,7 +143,8 @@ SOURCES += \
     ../lib/sph/solvers/test/EnergyConservingSolver.cpp \
     ../lib/gravity/test/CachedGravity.cpp \
     ../lib/run/test/IRun.cpp \
-    ../lib/run/test/Collision.cpp
+    ../lib/run/test/Collision.cpp \
+    ../lib/system/test/Crashpad.cpp
 
 HEADERS += \
     utils/Utils.h \

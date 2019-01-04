@@ -83,7 +83,8 @@ SOURCES += \
     physics/Functions.cpp \
     sph/equations/Accumulated.cpp \
     sph/equations/av/Stress.cpp \
-    quantities/Quantity.cpp
+    quantities/Quantity.cpp \
+    physics/Units.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -287,4 +288,5 @@ HEADERS += \
     math/MathUtils.h \
     math/MathBasic.h \
     objects/utility/Iterator.h \
-    objects/utility/IteratorAdapters.h
+    objects/utility/IteratorAdapters.h \
+    system/Crashpad.h

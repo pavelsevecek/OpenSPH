@@ -437,42 +437,91 @@ Array<Post::Tumbler> Post::findTumblers(const Storage& storage, const Float limi
 
 SymmetricTensor Post::getInertiaTensor(ArrayView<const Float> m,
     ArrayView<const Vector> r,
-    const Vector& r0) {
+    const Vector& r0,
+    ArrayView<const Size> idxs) {
     SymmetricTensor I = SymmetricTensor::null();
-    for (Size i = 0; i < r.size(); ++i) {
+
+    auto functor = [&I, r, m, &r0](Size i) {
         const Vector dr = r[i] - r0;
         I += m[i] * (SymmetricTensor::identity() * getSqrLength(dr) - outer(dr, dr));
+    };
+    if (idxs) {
+        for (Size i : idxs) {
+            functor(i);
+        }
+    } else {
+        for (Size i = 0; i < r.size(); ++i) {
+            functor(i);
+        }
     }
     return I;
 }
 
-SymmetricTensor Post::getInertiaTensor(ArrayView<const Float> m, ArrayView<const Vector> r) {
-    Vector com(0._f);
+static Vector getCenterOfMass(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    ArrayView<const Size> idxs) {
+    Vector r_com(0._f);
     Float m_tot = 0._f;
-    for (Size i = 0; i < r.size(); ++i) {
-        com += m[i] * r[i];
+    auto functor = [&m_tot, &r_com, m, r](Size i) {
+        r_com += m[i] * r[i];
         m_tot += m[i];
+    };
+    if (idxs) {
+        for (Size i : idxs) {
+            functor(i);
+        }
+    } else {
+        for (Size i = 0; i < r.size(); ++i) {
+            functor(i);
+        }
     }
-    com /= m_tot;
+    return r_com / m_tot;
+}
 
-    return getInertiaTensor(m, r, com);
+SymmetricTensor Post::getInertiaTensor(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    ArrayView<const Size> idxs) {
+
+    const Vector r_com = getCenterOfMass(m, r, idxs);
+    return getInertiaTensor(m, r, r_com, idxs);
 }
 
 Vector Post::getAngularFrequency(ArrayView<const Float> m,
     ArrayView<const Vector> r,
     ArrayView<const Vector> v,
     const Vector& r0,
-    const Vector& v0) {
-    SymmetricTensor I = getInertiaTensor(m, r, r0);
+    const Vector& v0,
+    ArrayView<const Size> idxs) {
+    SymmetricTensor I = getInertiaTensor(m, r, r0, idxs);
     Vector L(0._f);
-    for (Size i = 0; i < r.size(); ++i) {
+    auto functor = [&L, m, r, v, &r0, &v0](const Size i) { //
         L += m[i] * cross(r[i] - r0, v[i] - v0);
+    };
+
+    if (idxs) {
+        for (Size i : idxs) {
+            functor(i);
+        }
+    } else {
+        for (Size i = 0; i < r.size(); ++i) {
+            functor(i);
+        }
     }
     // L = I * omega => omega = I^-1 * L)
     const SymmetricTensor I_inv = I.inverse();
     ASSERT(isReal(I_inv));
     return I_inv * L;
 }
+
+Vector Post::getAngularFrequency(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    ArrayView<const Vector> v,
+    ArrayView<const Size> idxs) {
+    const Vector r_com = getCenterOfMass(m, r, idxs);
+    const Vector v_com = getCenterOfMass(m, v, idxs);
+    return getAngularFrequency(m, r, v, r_com, v_com, idxs);
+}
+
 
 Float Post::KeplerianElements::ascendingNode() const {
     if (sqr(L[Z]) > (1._f - EPS) * getSqrLength(L)) {

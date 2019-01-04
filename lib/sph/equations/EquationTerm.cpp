@@ -148,7 +148,7 @@ void SolidStressForce::setDerivatives(DerivativeHolder& derivatives, const RunSe
         settings, DerivativeFlag::SUM_ONLY_UNDAMAGED | DerivativeFlag::CORRECTED));
     /// \todo Correction tensor should be added automatically; same as above
     if (useCorrectionTensor) {
-        derivatives.require(makeAuto<CorrectionTensor>());
+        derivatives.require(makeAuto<CorrectionTensor>(settings));
     }
 
     const DiscretizationEnum formulation =

@@ -65,6 +65,9 @@ public:
     /// Can be called from any thread; the function is blocking, waits until all images are saved.
     void onTimeStep(const Storage& storage, Statistics& stats);
 
+    /// \brief Manually saves the images.
+    void save(const Storage& storage, Statistics& stats);
+
     /// \brief Creates the animations from generated images.
     void finalize();
 

@@ -153,7 +153,11 @@ private:
     ArrayView<const Float> m, rho;
     ArrayView<SymmetricTensor> C;
 
+    bool sumOnlyUndamaged;
+
 public:
+    explicit CorrectionTensor(const RunSettings& settings);
+
     virtual void create(Accumulated& results) override;
 
     virtual void initialize(const Storage& input, Accumulated& results) override;

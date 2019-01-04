@@ -76,6 +76,10 @@ Optional<float> OrthoCamera::getCutoff() const {
     return data.cutoff;
 }
 
+void OrthoCamera::setCutoff(const Optional<float> newCutoff) {
+    data.cutoff = newCutoff;
+}
+
 void OrthoCamera::zoom(const Pixel fixedPoint, const float magnitude) {
     ASSERT(magnitude > 0.f);
     center += (fixedPoint - center) * (1.f - magnitude);
@@ -166,6 +170,8 @@ Optional<float> PerspectiveCamera::getCutoff() const {
     // not implemented yet
     return NOTHING;
 }
+
+void PerspectiveCamera::setCutoff(const Optional<float> UNUSED(newCutoff)) {}
 
 void PerspectiveCamera::zoom(const Pixel UNUSED(fixedPoint), const float magnitude) {
     ASSERT(magnitude > 0.f);

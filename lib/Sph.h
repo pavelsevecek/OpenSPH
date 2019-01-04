@@ -26,4 +26,5 @@
 #include "sph/solvers/StandardSets.h"
 #include "system/ArgsParser.h"
 #include "system/Factory.h"
+#include "thread/Pool.h"
 #include "timestepping/TimeStepping.h"

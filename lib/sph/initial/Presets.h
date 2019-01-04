@@ -44,7 +44,7 @@ struct CollisionParams : public TwoBodyParams {
     ///
     /// Note that the parameter \ref BodySettingsId::PARTICLE_COUNT is overriden by targetParticleCnt for
     /// target, and similarly by impactorParticleCntOverride for impactor.
-    BodySettings body;
+    BodySettings body = EMPTY_SETTINGS;
 
     /// \brief Radius of the projectile in meters
     Float impactorRadius = 0._f;

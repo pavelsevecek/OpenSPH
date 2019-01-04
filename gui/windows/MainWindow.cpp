@@ -326,13 +326,14 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
 }
 
 void MainWindow::updateCutoff(const double cutoff) {
-    // has to be generalized if perspective camera gets cutoff
-    AutoPtr<ICamera> camera = controller->getCurrentCamera();
-    if (RawPtr<OrthoCamera> ortho = dynamicCast<OrthoCamera>(camera.get())) {
-        ortho->setCutoff(cutoff > 0 ? Optional<float>(cutoff) : NOTHING);
-        controller->refresh(std::move(camera));
-        controller->tryRedraw();
-    }
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    // Note that we have to get camera from pane, not controller, as pane camera is always the one being
+    // modified and fed to controller. Using controller's camera would cause cutoff to be later overriden by
+    // the camera from pane.
+    ICamera& camera = pane->getCamera();
+    camera.setCutoff(cutoff > 0 ? Optional<float>(cutoff) : NOTHING);
+    controller->refresh(camera.clone());
+    controller->tryRedraw();
 }
 
 /// \brief Helper object used for drawing multiple plots into the same device.

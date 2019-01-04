@@ -31,7 +31,9 @@ static void drawVector(IRenderContext& context,
 
     Coords dir = p2->coords - p1->coords;
     const Float l = getLength(dir);
-    ASSERT(l != 0._f);
+    if (l == 0._f) {
+        return;
+    }
     dir *= length / l;
     const Coords c1 = p1->coords;
     const Coords c2 = p1->coords + dir;

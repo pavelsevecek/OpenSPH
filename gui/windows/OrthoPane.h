@@ -37,6 +37,10 @@ public:
 
     ~OrthoPane();
 
+    virtual ICamera& getCamera() override {
+        return *camera;
+    }
+
     virtual void resetView() override;
 
     virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;

@@ -5,6 +5,10 @@
 
 NAMESPACE_SPH_BEGIN
 
+CorrectionTensor::CorrectionTensor(const RunSettings& settings) {
+    sumOnlyUndamaged = settings.get<bool>(RunSettingsId::SPH_SUM_ONLY_UNDAMAGED);
+}
+
 DerivativePhase CorrectionTensor::phase() const {
     // needs to be computed first, so that other derivatives can use the result
     return DerivativePhase::PRECOMPUTE;
@@ -17,24 +21,37 @@ void CorrectionTensor::create(Accumulated& results) {
 
 void CorrectionTensor::initialize(const Storage& input, Accumulated& results) {
     r = input.getValue<Vector>(QuantityId::POSITION);
-    idxs = input.getValue<Size>(QuantityId::FLAG);
-    tie(m, rho, reduce) =
-        input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY, QuantityId::STRESS_REDUCING);
+    tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
+
+    if (sumOnlyUndamaged) {
+        idxs = input.getValue<Size>(QuantityId::FLAG);
+        reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
+    }
+
     C = results.getBuffer<SymmetricTensor>(QuantityId::STRAIN_RATE_CORRECTION_TENSOR, OrderEnum::ZERO);
 }
 
 void CorrectionTensor::evalNeighs(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
     ASSERT(neighs.size() == grads.size());
     C[i] = SymmetricTensor::null();
-    for (Size k = 0; k < neighs.size(); ++k) {
-        const Size j = neighs[k];
-        if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
-            // condition must match the one in velocity template!
-            continue;
+    if (sumOnlyUndamaged) {
+        for (Size k = 0; k < neighs.size(); ++k) {
+            const Size j = neighs[k];
+            if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
+                // condition must match the one in velocity template!
+                continue;
+            }
+            SymmetricTensor t = outer(r[j] - r[i], grads[k]); // symmetric in i,j ?
+            C[i] += m[j] / rho[j] * t;
         }
-        SymmetricTensor t = outer(r[j] - r[i], grads[k]); // symmetric in i,j ?
-        C[i] += m[j] / rho[j] * t;
+    } else {
+        for (Size k = 0; k < neighs.size(); ++k) {
+            const Size j = neighs[k];
+            SymmetricTensor t = outer(r[j] - r[i], grads[k]);
+            C[i] += m[j] / rho[j] * t;
+        }
     }
+
     if (C[i] == SymmetricTensor::null()) {
         C[i] = SymmetricTensor::identity();
     } else {

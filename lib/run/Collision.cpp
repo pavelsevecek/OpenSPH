@@ -8,6 +8,7 @@
 #include "sph/Diagnostics.h"
 #include "sph/solvers/StabilizationSolver.h"
 #include "system/Factory.h"
+#include "thread/Tbb.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -98,6 +99,10 @@ void StabilizationRunPhase::create(const PhaseParams phaseParams) {
         settingsLoaded = false;
     }
 
+#ifdef SPH_USE_TBB
+    scheduler = Tbb::getGlobalInstance();
+#endif
+
     logger = Factory::getLogger(settings);
 
     if (settingsLoaded) {
@@ -112,7 +117,8 @@ void StabilizationRunPhase::setUp() {
     storage = makeShared<Storage>();
     solver = makeAuto<StabilizationSolver>(*scheduler, settings);
 
-    collisionParams.body.set(BodySettingsId::ENERGY, 1.e3_f)
+    BodySettings body;
+    body.set(BodySettingsId::ENERGY, 1.e3_f)
         .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
@@ -122,6 +128,8 @@ void StabilizationRunPhase::setUp() {
         .set(BodySettingsId::ENERGY_MIN, 10._f)
         .set(BodySettingsId::DAMAGE_MIN, 0.25_f)
         .set(BodySettingsId::PARTICLE_COUNT, int(collisionParams.targetParticleCnt));
+    body.addEntries(collisionParams.body);
+    collisionParams.body = std::move(body);
 
     collision = makeShared<Presets::Collision>(*scheduler, settings, collisionParams);
 
@@ -218,6 +226,10 @@ void FragmentationRunPhase::create(const PhaseParams phaseParams) {
         settings.saveToFile(fragPath);
         settingsLoaded = false;
     }
+
+#ifdef SPH_USE_TBB
+    scheduler = Tbb::getGlobalInstance();
+#endif
 
     logger = Factory::getLogger(settings);
 
@@ -345,6 +357,10 @@ void ReaccumulationRunPhase::create(const PhaseParams phaseParams) {
         settings.saveToFile(reaccPath);
         settingsLoaded = false;
     }
+
+#ifdef SPH_USE_TBB
+    scheduler = Tbb::getGlobalInstance();
+#endif
 
     logger = Factory::getLogger(settings);
 

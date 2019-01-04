@@ -109,17 +109,28 @@ Array<MoonEnum> findMoons(const Storage& storage, const Float radius = 1._f, con
 
 
 /// \brief Computes the total inertia tensor of particles with respect to given center.
-SymmetricTensor getInertiaTensor(ArrayView<const Float> m, ArrayView<const Vector> r, const Vector& r0);
+SymmetricTensor getInertiaTensor(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    const Vector& r0,
+    ArrayView<const Size> idxs = nullptr);
 
 /// \brief Computes the total inertia tensor of particle with respect to their center of mass.
-SymmetricTensor getInertiaTensor(ArrayView<const Float> m, ArrayView<const Vector> r);
+SymmetricTensor getInertiaTensor(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    ArrayView<const Size> idxs = nullptr);
 
 /// \brief Computes the immediate vector of angular frequency of a rigid body.
 Vector getAngularFrequency(ArrayView<const Float> m,
     ArrayView<const Vector> r,
     ArrayView<const Vector> v,
     const Vector& r0,
-    const Vector& v0);
+    const Vector& v0,
+    ArrayView<const Size> idxs = nullptr);
+
+Vector getAngularFrequency(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    ArrayView<const Vector> v,
+    ArrayView<const Size> idxs = nullptr);
 
 
 /// \brief Object holding Keplerian orbital elements of a body

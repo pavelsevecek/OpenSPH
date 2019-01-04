@@ -66,6 +66,12 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
     if (stats.get<Float>(StatisticsId::RUN_TIME) < nextOutput || !enabled) {
         return;
     }
+
+    this->save(storage, stats);
+    nextOutput += outputStep;
+}
+
+void Movie::save(const Storage& storage, Statistics& stats) {
     // initialize the camera (shared for all colorizers)
     params.camera->initialize(storage);
 
@@ -98,7 +104,6 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
             waitVar.wait(lock);
         }
     }
-    nextOutput += outputStep;
 }
 
 void Movie::finalize() {

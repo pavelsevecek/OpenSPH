@@ -114,28 +114,28 @@ void ParticleProbe::onPaint(wxPaintEvent& UNUSED(evt)) {
             /// \todo we should use the name of the colorizer, not quantity
             /// \todo replace full quantity name with shorter designation (rho, ...)
             drawTextWithSubscripts(dc, label + L" = " + toPrintableString(data.value.get<Float>()), offset);
-            offset.y += config.leftSkip;
+            offset.y += config.lineSkip;
             break;
         case DynamicId::SIZE:
             drawTextWithSubscripts(dc, label + L" = " + std::to_wstring(data.value.get<Size>()), offset);
-            offset.y += config.leftSkip;
+            offset.y += config.lineSkip;
             break;
         case DynamicId::VECTOR: {
             const Vector vector = data.value;
             this->printVector(dc, vector, label, offset);
-            offset.y += 3 * config.leftSkip;
+            offset.y += 3 * config.lineSkip;
             break;
         }
         case DynamicId::TRACELESS_TENSOR: {
             const TracelessTensor tensor = data.value;
             this->printTensor(dc, tensor, label, offset);
-            offset.y += 6 * config.leftSkip;
+            offset.y += 6 * config.lineSkip;
             break;
         }
         case DynamicId::SYMMETRIC_TENSOR: {
             const SymmetricTensor tensor = data.value;
             this->printTensor(dc, tensor, label, offset);
-            offset.y += 6 * config.leftSkip;
+            offset.y += 6 * config.lineSkip;
             break;
         }
 

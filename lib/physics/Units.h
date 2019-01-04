@@ -30,9 +30,10 @@ enum class BasicDimension {
     LENGTH,
     MASS,
     TIME,
+    ANGLE,
 };
 
-constexpr Size DIMENSION_CNT = 3;
+constexpr Size DIMENSION_CNT = 4;
 
 // use only the units we need, we can extend it any time
 class UnitDimensions {
@@ -53,8 +54,8 @@ public:
         }
     }
 
-    UnitDimensions(const int length, const int mass, const int time)
-        : values{ length, mass, time } {}
+    UnitDimensions(const int length, const int mass, const int time, const int angle)
+        : values{ length, mass, time, angle } {}
 
     UnitDimensions& operator=(const UnitDimensions& other) {
         for (Size i = 0; i < DIMENSION_CNT; ++i) {
@@ -131,6 +132,10 @@ public:
         return values != other.values;
     }
 
+    static UnitDimensions dimensionless() {
+        return { 0, 0, 0, 0 };
+    }
+
     static UnitDimensions length() {
         return BasicDimension::LENGTH;
     }
@@ -198,8 +203,8 @@ public:
         }
     }
 
-    UnitSystem(const Float length, const Float mass, const Float time)
-        : coeffs{ length, mass, time } {}
+    UnitSystem(const Float length, const Float mass, const Float time, const Float angle)
+        : coeffs{ length, mass, time, angle } {}
 
     /// \brief Returns the conversion factor with a respect to the reference unit system.
     Float getFactor(const UnitDimensions& dimensions) const {
@@ -210,16 +215,24 @@ public:
         return factor;
     }
 
+    Float& operator[](const BasicDimension dim) {
+        return coeffs[int(dim)];
+    }
+
+    Float operator[](const BasicDimension dim) const {
+        return coeffs[int(dim)];
+    }
+
     static UnitSystem SI() {
-        return { 1._f, 1._f, 1._f };
+        return { 1._f, 1._f, 1._f, 1._f };
     }
 
     static UnitSystem CGS() {
-        return { 0.01_f, 0.001_f, 1._f };
+        return { 0.01_f, 0.001_f, 1._f, 1._f };
     }
 };
 
-UnitSystem CODE_UNITS = UnitSystem::SI();
+extern UnitSystem CODE_UNITS;
 
 /// \todo better name
 class Unit {
@@ -324,11 +337,7 @@ public:
         }
     }*/
 
-    friend std::ostream& operator<<(std::ostream& stream, const Unit& u) {
-        /// \todo
-        stream << u.value(UnitSystem::SI());
-        return stream;
-    }
+    friend std::ostream& operator<<(std::ostream& stream, const Unit& u);
 
     friend Unit pow(const Unit& u, const int power) {
         Unit result;
@@ -343,7 +352,7 @@ public:
     }
 
     static Unit dimensionless(const Float value) {
-        return Unit(value, UnitDimensions(0, 0, 0), UnitSystem::SI());
+        return Unit(value, UnitDimensions(0, 0, 0, 0), UnitSystem::SI());
     }
 
     static Unit kilogram(const Float value) {
@@ -356,6 +365,10 @@ public:
 
     static Unit second(const Float value) {
         return Unit(value, BasicDimension::TIME, UnitSystem::SI());
+    }
+
+    static Unit radian(const Float value) {
+        return Unit(value, BasicDimension::ANGLE, UnitSystem::SI());
     }
 };
 
@@ -445,64 +458,16 @@ INLINE Unit operator"" _km(long double value) {
 INLINE Unit operator"" _s(long double value) {
     return Unit::second(value);
 }
+INLINE Unit operator"" _rad(long double value) {
+    return Unit::radian(value);
+}
+
 
 INLINE Unit operator"" _mps(long double value) {
     return Unit(value, UnitDimensions::velocity(), UnitSystem::SI());
 }
 
-FlatMap<std::string, Unit> UNITS = {
-    { "kg", 1._kg },
-    { "g", 1.e-3_kg },
-    { "M_sun", Unit::kilogram(Constants::M_sun) },
-    { "M_earth", Unit::kilogram(Constants::M_earth) },
-
-    { "m", 1._m },
-    { "mm", 1.e-3_m },
-    { "cm", 1.e-2_m },
-    { "km", 1.e3_m },
-    { "au", Unit::meter(Constants::au) },
-
-    { "s", 1._s },
-    { "min", 60._s },
-    { "h", 3600._s },
-    { "d", 86400._s },
-    { "y", 31556926._s },
-
-    //    { UnitEnum::KELVIN, "K", 1._K },
-};
-
-inline Expected<Unit> parseUnit(const std::string& text) {
-    Unit u = Unit::dimensionless(1._f);
-    Array<std::string> parts = split(text, ' ');
-    for (std::string& part : parts) {
-        if (part.empty()) {
-            // multiple spaces or empty input string; allow and continue
-            continue;
-        }
-        Array<std::string> valueAndPower = split(part, '^');
-        if (valueAndPower.size() > 2) {
-            return makeUnexpected<Unit>("More than one exponent");
-        }
-        ASSERT(valueAndPower.size() == 1 || valueAndPower.size() == 2);
-        int power;
-        if (valueAndPower.size() == 1) {
-            // just unit without any power
-            power = 1;
-        } else {
-            if (Optional<int> optPower = fromString<int>(valueAndPower[1])) {
-                power = optPower.value();
-            } else {
-                return makeUnexpected<Unit>("Cannot convert power to int");
-            }
-        }
-        if (auto optValue = UNITS.tryGet(valueAndPower[0])) {
-            u *= pow(optValue.value(), power);
-        } else {
-            return makeUnexpected<Unit>("Unknown unit: " + valueAndPower[0]);
-        }
-    }
-    return u;
-}
+Expected<Unit> parseUnit(const std::string& text);
 
 /// Expected format: kg^3 m s^-1
 /// No * or / symbols allowed, used powers

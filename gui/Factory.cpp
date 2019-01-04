@@ -22,6 +22,10 @@ AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Pixel siz
             data.fov = NOTHING;
         }
         data.zoffset = settings.get<Float>(GuiSettingsId::ORTHO_ZOFFSET);
+        data.cutoff = settings.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
+        if (data.cutoff.value() == 0._f) {
+            data.cutoff = NOTHING;
+        }
         const OrthoEnum id = settings.get<OrthoEnum>(GuiSettingsId::ORTHO_PROJECTION);
         switch (id) {
         case OrthoEnum::XY:
@@ -269,10 +273,10 @@ Palette Factory::getPalette(const ColorizerId id) {
         case QuantityId::VELOCITY_LAPLACIAN:
         case QuantityId::FRICTION:
         case QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE:
-            return Palette({ { x0, Rgba(0.1f, 0.1f, 0.1f) },
-                               { x0 + 0.4f * dx, Rgba(0.2_f, 0.2_f, 1._f) },
+            return Palette({ { x0, Rgba(0.4f, 0.f, 0.4f) },
+                               { x0 + 0.3f * dx, Rgba(0.3_f, 0.3_f, 1._f) },
                                { x0 + 0.5f * dx, Rgba(0.9f, 0.9f, 0.9f) },
-                               { x0 + 0.6f * dx, Rgba(1.f, 0.f, 0.f) },
+                               { x0 + 0.7f * dx, Rgba(1.f, 0.f, 0.f) },
                                { x0 + dx, Rgba(1.f, 1.f, 0.f) } },
                 scale);
         case QuantityId::DAMAGE:

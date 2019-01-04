@@ -68,3 +68,19 @@ TEST_CASE("Unit parseUnit", "[units]") {
     REQUIRE_FALSE(parseUnit("m^2^3"));
     REQUIRE_FALSE(parseUnit("kg^ "));
 }
+
+TEST_CASE("Unit print", "[units") {
+    auto print = [](Unit u) {
+        std::stringstream ss;
+        ss << u;
+        return ss.str();
+    };
+
+    REQUIRE(print(1200._m) == "1.2km");
+    REQUIRE(print(400._m) == "400m");
+    REQUIRE(print(0.8_m) == "80cm");
+    REQUIRE(print(0.004_m) == "4mm");
+    REQUIRE(print(0.0001_m) == "0.1mm");
+
+    REQUIRE(print(Unit::dimensionless(1._f) / Unit::second(1.e4_f)) == "1.e-4s^-1");
+}

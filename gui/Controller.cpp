@@ -294,9 +294,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
     Array<ColorizerId> colorizerIds;
     Array<QuantityId> quantityColorizerIds;
 
-
     /// \todo custom colorizer lists
-
 
     colorizerIds.push(ColorizerId::COROTATING_VELOCITY);
     if (storage.has(QuantityId::DENSITY)) {
@@ -387,21 +385,20 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         colorizers.push(Factory::getColorizer(gui, ColorizerId::VELOCITY));
     }
 
-    if (!forMovie) {
-        // add all quantity colorizers (sorted by the key)
-        std::sort(quantityColorizerIds.begin(), quantityColorizerIds.end());
-        for (QuantityId id : quantityColorizerIds) {
-            if (storage.has(id)) {
-                colorizers.push(Factory::getColorizer(gui, ColorizerId(id)));
-            }
-        }
-
-        // add all auxiliary colorizers (sorted by the key)
-        std::sort(colorizerIds.begin(), colorizerIds.end());
-        for (ColorizerId id : colorizerIds) {
-            colorizers.push(Factory::getColorizer(gui, id));
+    // add all quantity colorizers (sorted by the key)
+    std::sort(quantityColorizerIds.begin(), quantityColorizerIds.end());
+    for (QuantityId id : quantityColorizerIds) {
+        if (storage.has(id)) {
+            colorizers.push(Factory::getColorizer(gui, ColorizerId(id)));
         }
     }
+
+    // add all auxiliary colorizers (sorted by the key)
+    std::sort(colorizerIds.begin(), colorizerIds.end());
+    for (ColorizerId id : colorizerIds) {
+        colorizers.push(Factory::getColorizer(gui, id));
+    }
+
     return colorizers;
 }
 
@@ -435,6 +432,7 @@ Optional<Size> Controller::getIntersectedParticle(const Pixel position, const fl
 
     const float radius = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
     const CameraRay ray = camera->unproject(Coords(position));
+    const float cutoff = camera->getCutoff().valueOr(0.f);
     const Vector dir = getNormalized(ray.target - ray.origin);
 
     struct {
@@ -443,7 +441,6 @@ Optional<Size> Controller::getIntersectedParticle(const Pixel position, const fl
         bool wasHitOutside = true;
     } first;
 
-    const Float cutoff = gui.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
     for (Size i = 0; i < vis.positions.size(); ++i) {
         Optional<ProjectedPoint> p = camera->project(vis.positions[i]);
         if (!p) {
