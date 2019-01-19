@@ -41,7 +41,7 @@ public:
     virtual Expected<Array<Triangle>> load(const Path& path) override;
 };
 
-/// \brief Simple text format containing mesh vertictes and triangle indices.
+/// \brief Simple text format containing mesh vertices and triangle indices.
 ///
 /// Used for example by Gaskell Itokawa Shape Model (https://sbn.psi.edu/pds/resource/itokawashape.html).
 class TabFile : public IMeshFile {
@@ -52,6 +52,14 @@ public:
     /// \param lengthUnit Conversion factor from the loaded values to meters.
     explicit TabFile(const Float lengthUnit = 1.e3_f);
 
+    virtual Outcome save(const Path& path, ArrayView<const Triangle> triangles) override;
+
+    virtual Expected<Array<Triangle>> load(const Path& path) override;
+};
+
+/// \brief Text format containing mesh vertices (prefixed by 'v') and triangle indices (prefixed by 'f')
+class ObjFile : public IMeshFile {
+public:
     virtual Outcome save(const Path& path, ArrayView<const Triangle> triangles) override;
 
     virtual Expected<Array<Triangle>> load(const Path& path) override;

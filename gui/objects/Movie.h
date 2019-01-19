@@ -68,6 +68,8 @@ public:
     /// \brief Manually saves the images.
     void save(const Storage& storage, Statistics& stats);
 
+    void setCamera(AutoPtr<ICamera>&& camera);
+
     /// \brief Creates the animations from generated images.
     void finalize();
 

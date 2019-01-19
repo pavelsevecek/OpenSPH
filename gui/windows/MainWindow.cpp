@@ -11,6 +11,7 @@
 #include "gui/windows/OrthoPane.h"
 #include "gui/windows/ParticleProbe.h"
 #include "gui/windows/PlotView.h"
+#include "io/FileSystem.h"
 #include "io/LogFile.h"
 #include "sph/Diagnostics.h"
 #include "thread/CheckFunction.h"
@@ -456,7 +457,7 @@ wxBoxSizer* MainWindow::createSidebar() {
     }
 
     if (flags.has(PlotEnum::PARTICLE_SFD)) {
-        data.plot = makeLocking<SfdPlot>(NOTHING, 0._f);
+        data.plot = makeLocking<SfdPlot>(0._f);
         plots.push(data.plot);
         data.color = Rgba(wxColour(0, 190, 255));
         list->push(data);
@@ -464,7 +465,7 @@ wxBoxSizer* MainWindow::createSidebar() {
 
     if (flags.has(PlotEnum::CURRENT_SFD)) {
         Array<AutoPtr<IPlot>> multiplot;
-        multiplot.emplaceBack(makeAuto<SfdPlot>(Post::ComponentConnectivity::OVERLAP, params.period));
+        multiplot.emplaceBack(makeAuto<SfdPlot>(Post::ComponentFlag::OVERLAP, params.period));
         if (!overplotSfd.empty()) {
             multiplot.emplaceBack(
                 makeAuto<DataPlot>(overplotSfd, AxisScaleEnum::LOG_X | AxisScaleEnum::LOG_Y, "Overplot"));
@@ -478,7 +479,7 @@ wxBoxSizer* MainWindow::createSidebar() {
     if (flags.has(PlotEnum::PREDICTED_SFD)) {
         /// \todo could be deduplicated a bit
         Array<AutoPtr<IPlot>> multiplot;
-        multiplot.emplaceBack(makeAuto<SfdPlot>(Post::ComponentConnectivity::ESCAPE_VELOCITY, params.period));
+        multiplot.emplaceBack(makeAuto<SfdPlot>(Post::ComponentFlag::ESCAPE_VELOCITY, params.period));
         if (!overplotSfd.empty()) {
             multiplot.emplaceBack(
                 makeAuto<DataPlot>(overplotSfd, AxisScaleEnum::LOG_X | AxisScaleEnum::LOG_Y, "Overplot"));
@@ -662,8 +663,12 @@ void MainWindow::onTimeStep(const Storage& storage, const Statistics& stats) {
         colorizer->initialize(storage, RefEnum::WEAK);
         selectedParticlePlot->setColorizer(colorizer);
     }
-    for (auto plot : plots) {
-        plot->onTimeStep(storage, stats);
+
+    if (storage.has(QuantityId::MASS)) {
+        // skip plots if we don't have mass, for simplicity; this can be generalized if needed
+        for (auto plot : plots) {
+            plot->onTimeStep(storage, stats);
+        }
     }
 }
 

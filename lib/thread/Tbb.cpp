@@ -68,13 +68,13 @@ public:
 struct TbbData {
     tbb::task_arena arena;
 
-    TbbData() {
-        arena.initialize(tbb::task_scheduler_init::default_num_threads());
+    TbbData(const Size numThreads) {
+        arena.initialize(numThreads == 0 ? tbb::task_scheduler_init::default_num_threads() : numThreads);
     }
 };
 
-Tbb::Tbb() {
-    data = makeAuto<TbbData>();
+Tbb::Tbb(const Size numThreads) {
+    data = makeAuto<TbbData>(numThreads);
 }
 
 Tbb::~Tbb() = default;
@@ -116,8 +116,10 @@ void Tbb::parallelFor(const Size from,
     const Size to,
     const Size granularity,
     const Function<void(Size, Size)>& functor) {
-    tbb::parallel_for(tbb::blocked_range<Size>(from, to, granularity),
-        [&functor](const tbb::blocked_range<Size> range) { functor(range.begin(), range.end()); });
+    data->arena.execute([from, to, granularity, &functor] {
+        tbb::parallel_for(tbb::blocked_range<Size>(from, to, granularity),
+            [&functor](const tbb::blocked_range<Size> range) { functor(range.begin(), range.end()); });
+    });
 }
 
 SharedPtr<Tbb> Tbb::getGlobalInstance() {

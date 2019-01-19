@@ -1,4 +1,5 @@
 #include "gui/Config.h"
+#include "io/FileSystem.h"
 #include "objects/utility/StringUtils.h"
 #include "system/Platform.h"
 #include <fstream>

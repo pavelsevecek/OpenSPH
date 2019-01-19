@@ -28,15 +28,22 @@ namespace Post {
 Array<Size> findNeighbourCounts(const Storage& storage, const Float particleRadius);
 
 
-enum class ComponentConnectivity {
-    /// Overlapping particles belong into the same component
-    OVERLAP,
+enum class ComponentFlag {
+    /// Specifies that overlapping particles belong into the same component
+    OVERLAP = 0,
 
-    /// Particles belong to the same component if they overlap and the have the same flag.
-    SEPARATE_BY_FLAG,
+    /// Specifies that particles with different flag belong to different component, even if they overlap.
+    SEPARATE_BY_FLAG = 1 << 0,
 
-    /// Particles overlap or their relative velocity is less than the escape velocity
-    ESCAPE_VELOCITY,
+    /// Specifies that the gravitationally bound particles belong to the same component. If used, the
+    /// components are constructed in two steps; first, the initial components are created from overlapping
+    /// particles. Then each pair of components is merged if their relative velocity is less then the escape
+    /// velocity.
+    ESCAPE_VELOCITY = 1 << 1,
+
+    /// If used, components are sorted by the total mass of the particles, i.e. component with index 0 will
+    /// correspond to the largest remnant, index 1 will be the second largest body, etc.
+    SORT_BY_MASS = 1 << 2,
 };
 
 /// \brief Finds and marks connected components (a.k.a. separated bodies) in the array of vertices.
@@ -45,13 +52,13 @@ enum class ComponentConnectivity {
 /// \param storage Storage containing the particles. Must also contain QuantityId::FLAG if
 ///                SEPARATE_BY_FLAG option is used.
 /// \param particleRadius Size of particles in smoothing lengths.
-/// \param connectivity Defines additional conditions of particle separation (besides their distance).
+/// \param flags Flags specifying connectivity of components, etc; see emum \ref ComponentFlag.
 /// \param indices[out] Array of indices from 0 to n-1, where n is the number of components. In the array,
 ///                     i-th index corresponds to component to which i-th particle belongs.
 /// \return Number of components
 Size findComponents(const Storage& storage,
     const Float particleRadius,
-    const ComponentConnectivity connectivity,
+    const Flags<ComponentFlag> flags,
     Array<Size>& indices);
 
 /// \brief Returns the indices of particles belonging to the largest remnant.
@@ -249,7 +256,7 @@ struct HistogramParams {
         Float radius = 2._f;
 
         /// Determines how the particles are clustered into the components.
-        Post::ComponentConnectivity connectivity = Post::ComponentConnectivity::OVERLAP;
+        Flags<Post::ComponentFlag> flags = Post::ComponentFlag::OVERLAP;
 
     } components;
 

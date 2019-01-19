@@ -1,4 +1,5 @@
 #include "gui/objects/Camera.h"
+#include "objects/containers/ArrayRef.h"
 #include "objects/geometry/Box.h"
 #include "quantities/Storage.h"
 
@@ -26,8 +27,17 @@ void OrthoCamera::initialize(const Storage& storage) {
 
     /// \todo also auto-center?
 
+    // handle case without mass in storage
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    ArrayRef<const Float> m;
+    if (storage.has(QuantityId::MASS)) {
+        m = makeArrayRef(storage.getValue<Float>(QuantityId::MASS), RefEnum::WEAK);
+    } else {
+        Array<Float> dummy(r.size());
+        dummy.fill(1._f);
+        m = makeArrayRef(std::move(dummy), RefEnum::STRONG);
+    }
+
     Float m_sum = 0._f;
     Vector r_com(0._f);
 

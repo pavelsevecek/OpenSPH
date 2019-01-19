@@ -135,4 +135,10 @@ ArrayRef<const T> makeArrayRef(const Array<T>& data, const RefEnum type) {
     return ArrayRef<const T>(data, type);
 }
 
+template <typename T>
+ArrayRef<T> makeArrayRef(Array<T>&& data) {
+    // we never want to hold a weak reference to temporary data
+    return ArrayRef<T>(std::move(data), RefEnum::STRONG);
+}
+
 NAMESPACE_SPH_END

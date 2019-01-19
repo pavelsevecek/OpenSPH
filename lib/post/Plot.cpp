@@ -1,6 +1,7 @@
 #include "post/Plot.h"
 #include "io/Logger.h"
 #include "post/Point.h"
+#include "quantities/IMaterial.h"
 #include "quantities/Storage.h"
 #include "system/Statistics.h"
 #include <set>
@@ -203,16 +204,17 @@ void HistogramPlot::plot(IDrawingContext& dc) const {
 /// SfdPlot
 /// ----------------------------------------------------------------------------------------------------------
 
-SfdPlot::SfdPlot(const Optional<Post::ComponentConnectivity> connectivity, const Float period)
+SfdPlot::SfdPlot(const Flags<Post::ComponentFlag> connectivity, const Float period)
     : period(period) {
-    if (connectivity) {
-        source = Post::HistogramSource::COMPONENTS;
-        connect = connectivity.value();
-        name = (connect == Post::ComponentConnectivity::OVERLAP) ? "Current SFD" : "Predicted SFD";
-    } else {
-        source = Post::HistogramSource::PARTICLES;
-        name = "Particle SFD";
-    }
+    source = Post::HistogramSource::COMPONENTS;
+    connect = connectivity;
+    name = connect.has(Post::ComponentFlag::ESCAPE_VELOCITY) ? "Predicted SFD" : "Current SFD";
+}
+
+SfdPlot::SfdPlot(const Float period)
+    : period(period) {
+    source = Post::HistogramSource::PARTICLES;
+    name = "Particle SFD";
 }
 
 std::string SfdPlot::getCaption() const {
@@ -226,8 +228,11 @@ void SfdPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
     }
     lastTime = time;
     Post::HistogramParams params;
-    params.components.connectivity = connect;
+    params.components.flags = connect;
     params.velocityCutoff = 3.e3_f; // km/s  /// \todo generalize
+    if (storage.getMaterialCnt() > 0) {
+        params.referenceDensity = storage.getMaterial(0)->getParam<Float>(BodySettingsId::DENSITY);
+    }
     Array<Post::HistPoint> points =
         Post::getCumulativeHistogram(storage, Post::HistogramId::EQUIVALENT_MASS_RADII, source, params);
 

@@ -219,6 +219,36 @@ TEST_CASE("Array Remove by index", "[array]") {
     REQUIRE_ASSERT(ar.remove(-1));
 }
 
+TEST_CASE("Array Remove multiple", "[array]") {
+    Array<int> ar{ 0, 1, 2, 3, 4 };
+    ar.remove(Array<Size>{});
+    REQUIRE(ar == Array<int>({ 0, 1, 2, 3, 4 }));
+    ar.remove(Array<Size>{ 0 });
+    REQUIRE(ar == Array<int>({ 1, 2, 3, 4 }));
+    ar.remove(Array<Size>{ 3 });
+    REQUIRE(ar == Array<int>({ 1, 2, 3 }));
+    ar.remove(Array<Size>{ 1 });
+    REQUIRE(ar == Array<int>({ 1, 3 }));
+    ar.remove(Array<Size>{ 1, 2 });
+    REQUIRE(ar == Array<int>());
+
+    ar = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+    ar.remove(Array<Size>{ 0, 3, 4, 5, 7 });
+    REQUIRE(ar == Array<int>({ 1, 2, 6, 8 }));
+
+    ar = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+    ar.remove(Array<Size>{ 2, 4, 6, 7, 8 });
+    REQUIRE(ar == Array<int>({ 0, 1, 3, 5 }));
+
+    ar = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+    ar.remove(Array<Size>{ 0, 1, 2, 6, 7 });
+    REQUIRE(ar == Array<int>({ 3, 4, 5, 8 }));
+
+    ar = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+    ar.remove(Array<Size>{ 0, 1, 2, 3, 4, 5, 6, 7, 8 });
+    REQUIRE(ar == Array<int>());
+}
+
 TEST_CASE("Array clone", "[array]") {
     Array<RecordType> ar1{ 5, 6, 7 };
     Array<RecordType> ar2 = ar1.clone();

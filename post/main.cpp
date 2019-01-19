@@ -6,9 +6,11 @@
 #include "io/FileSystem.h"
 #include "io/Logger.h"
 #include "io/Output.h"
+#include "objects/containers/ArrayRef.h"
 #include "objects/utility/StringUtils.h"
 #include "post/Analysis.h"
 #include "post/StatisticTests.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "run/Collision.h"
 #include "system/Factory.h"
@@ -574,6 +576,98 @@ void makeSwift(const Path& filePath) {
     }
 }
 
+void origComponents(const Path& lastDumpPath, const Path& firstDumpPath, const Path& colorizedDumpPath) {
+    BinaryInput input;
+    Storage lastDump, firstDump;
+    Statistics stats;
+    Outcome res1 = input.load(lastDumpPath, lastDump, stats);
+    Outcome res2 = input.load(firstDumpPath, firstDump, stats);
+    if (!res1 || !res2) {
+        throw IoError((res1 || res2).error());
+    }
+
+    // use last dump to find components
+    Array<Size> components;
+    Post::findComponents(
+        lastDump, 2._f, Post::ComponentFlag::ESCAPE_VELOCITY | Post::ComponentFlag::SORT_BY_MASS, components);
+
+    // "colorize" the flag quantity using the components
+    ASSERT(firstDump.getParticleCnt() == components.size());
+    firstDump.getValue<Size>(QuantityId::FLAG) = components.clone();
+
+    // save as new file
+    BinaryOutput output(colorizedDumpPath);
+    output.dump(firstDump, stats);
+}
+
+void extractLr(const Path& inputPath, const Path& outputPath) {
+    BinaryInput input;
+    Storage storage;
+    Statistics stats;
+    Outcome res = input.load(inputPath, storage, stats);
+    if (!res) {
+        throw IoError(res.error());
+    }
+
+    // allow using this for storage without masses --> add ad hoc mass if it's missing
+    if (!storage.has(QuantityId::MASS)) {
+        storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, 1._f);
+    }
+
+    Array<Size> components;
+    const Size componentCnt =
+        Post::findComponents(storage, 1.5_f, Post::ComponentFlag::SORT_BY_MASS, components);
+    std::cout << "Component cnt = " << componentCnt << std::endl;
+
+    Array<Size> toRemove;
+    for (Size i = 0; i < components.size(); ++i) {
+        if (components[i] != 0) {
+            // not LR
+            toRemove.push(i);
+        }
+    }
+    storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED);
+
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    moveToCenterOfMassSystem(m, r);
+
+    BinaryOutput output(outputPath);
+    output.dump(storage, stats);
+
+    if (storage.has(QuantityId::DENSITY)) {
+        ArrayView<const Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
+
+        Float volume = 0._f;
+        for (Size i = 0; i < m.size(); ++i) {
+            volume += m[i] / rho[i];
+        }
+
+        std::cout << "eq. diameter = " << Sph::cbrt(3._f * volume / (4._f * PI)) * 2._f / 1000._f << "km"
+                  << std::endl;
+    }
+
+    const Float omega = getLength(Post::getAngularFrequency(m, r, v));
+    std::cout << "period = " << 2._f * PI / omega / 3600._f << "h" << std::endl;
+
+    SymmetricTensor I = Post::getInertiaTensor(m, r);
+    ASSERT(isReal(I), I);
+    Eigen e = eigenDecomposition(I);
+    /*std::cout << "I = " << I << std::endl;
+    std::cout << "matrix = " << e.vectors << std::endl;
+    std::cout << "values = " << e.values << std::endl;*/
+    const Float A = e.values[2];
+    const Float B = e.values[1];
+    const Float C = e.values[0];
+    const Float a = sqrt(B + C - A);
+    const Float b = sqrt(A + C - B);
+    const Float c = sqrt(A + B - C);
+    ASSERT(a > 0._f && b > 0._f && c > 0._f, a, b, c);
+    std::cout << "a/b = " << a / b << std::endl;
+    std::cout << "b/c = " << b / c << std::endl;
+}
+
 void printHelp() {
     std::cout << "Expected usage: post mode [parameters]" << std::endl
               << " where 'mode' is one of:" << std::endl
@@ -643,6 +737,18 @@ int main(int argc, char** argv) {
                 return 0;
             }
             makeSwift(Path(argv[2]));
+        } else if (mode == "origComponents") {
+            if (argc < 5) {
+                std::cout << "Expected parameters: post origComponents lastDump.ssf firstDump.ssf "
+                             "colorizedDump.ssf"
+                          << std::endl;
+            }
+            origComponents(Path(argv[2]), Path(argv[3]), Path(argv[4]));
+        } else if (mode == "extractLr") {
+            if (argc < 4) {
+                std::cout << "Expected parameters: post extractLr input.ssf lr.ssf" << std::endl;
+            }
+            extractLr(Path(argv[2]), Path(argv[3]));
         } else {
             printHelp();
             return 0;

@@ -106,6 +106,10 @@ void Movie::save(const Storage& storage, Statistics& stats) {
     }
 }
 
+void Movie::setCamera(AutoPtr<ICamera>&& camera) {
+    params.camera = std::move(camera);
+}
+
 void Movie::finalize() {
     if (!makeAnimation) {
         return;

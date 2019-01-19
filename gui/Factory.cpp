@@ -129,9 +129,11 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const Color
     case ColorizerId::PARTICLE_ID:
         return makeAuto<ParticleIdColorizer>(settings);
     case ColorizerId::COMPONENT_ID:
-        return makeAuto<ComponentIdColorizer>(settings, Post::ComponentConnectivity::OVERLAP);
+        return makeAuto<ComponentIdColorizer>(
+            settings, Post::ComponentFlag::OVERLAP | Post::ComponentFlag::SORT_BY_MASS);
     case ColorizerId::BOUND_COMPONENT_ID:
-        return makeAuto<ComponentIdColorizer>(settings, Post::ComponentConnectivity::ESCAPE_VELOCITY);
+        return makeAuto<ComponentIdColorizer>(
+            settings, Post::ComponentFlag::ESCAPE_VELOCITY | Post::ComponentFlag::SORT_BY_MASS);
     case ColorizerId::AGGREGATE_ID:
         return makeAuto<AggregateIdColorizer>(settings);
     case ColorizerId::FLAG:

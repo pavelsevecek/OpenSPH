@@ -283,7 +283,7 @@ public:
 class SfdPlot : public IPlot {
 private:
     Post::HistogramSource source;
-    Post::ComponentConnectivity connect;
+    Flags<Post::ComponentFlag> connect;
     Float period;
     std::string name;
 
@@ -291,7 +291,11 @@ private:
     Array<PlotPoint> sfd;
 
 public:
-    SfdPlot(const Optional<Post::ComponentConnectivity> connectivity, const Float period);
+    /// \brief Plots SFD of components, given their connectivity.
+    SfdPlot(const Flags<Post::ComponentFlag> connectivity, const Float period);
+
+    /// \brief Plots SFD of individual particles, makes only sense when merging the particles on collisions.
+    SfdPlot(const Float period);
 
     virtual std::string getCaption() const override;
 

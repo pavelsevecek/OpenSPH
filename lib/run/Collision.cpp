@@ -72,15 +72,18 @@ StabilizationRunPhase::StabilizationRunPhase(const Presets::CollisionParams coll
     , phaseParams(phaseParams) {
     this->create(phaseParams);
 
-    this->collisionParams.saveToFile(collisionParams.outputPath / Path("collision.sph"));
+    const Path collisionPath = collisionParams.outputPath / Path("collision.sph");
+    if (FileSystem::pathExists(collisionPath)) {
+        this->collisionParams.loadFromFile(collisionPath);
+    } else {
+        this->collisionParams.saveToFile(collisionPath);
+    }
 }
 
 StabilizationRunPhase::StabilizationRunPhase(const Path& resumePath, const PhaseParams phaseParams)
     : phaseParams(phaseParams)
     , resumePath(resumePath) {
     this->create(phaseParams);
-
-    this->collisionParams.saveToFile(collisionParams.outputPath / Path("collision.sph"));
 }
 
 void StabilizationRunPhase::create(const PhaseParams phaseParams) {

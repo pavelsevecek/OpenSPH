@@ -31,13 +31,6 @@ public:
         return wxColour(getByte(data[0]), getByte(data[1]), getByte(data[2]));
     }
 
-    /*float operator[](const Size idx) const {
-        return data[idx];
-    }
-
-    float& operator[](const Size idx) {
-        return data[idx];
-    }*/
     float& r() {
         return data[0];
     }

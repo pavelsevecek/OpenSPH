@@ -28,11 +28,14 @@ Array<Size> Post::findNeighbourCounts(const Storage& storage, const Float partic
 }
 
 // Checks if two particles belong to the same component
-struct IComponentChecker : public Polymorphic {
-    virtual bool belong(const Size i, const Size j) = 0;
+struct ComponentChecker : public Polymorphic {
+    virtual bool belong(const Size UNUSED(i), const Size UNUSED(j)) {
+        // by default, any two particles within the search radius belong to the same component
+        return true;
+    }
 };
 
-static Size findComponentsImpl(IComponentChecker& checker,
+static Size findComponentsImpl(ComponentChecker& checker,
     ArrayView<const Vector> r,
     const Float radius,
     Array<Size>& indices) {
@@ -78,14 +81,14 @@ static Size findComponentsImpl(IComponentChecker& checker,
 
 Size Post::findComponents(const Storage& storage,
     const Float radius,
-    const ComponentConnectivity connectivity,
+    const Flags<ComponentFlag> flags,
     Array<Size>& indices) {
     ASSERT(radius > 0._f);
 
-    AutoPtr<IComponentChecker> checker;
-    switch (connectivity) {
-    case ComponentConnectivity::SEPARATE_BY_FLAG:
-        class FlagComponentChecker : public IComponentChecker {
+    AutoPtr<ComponentChecker> checker = makeAuto<ComponentChecker>();
+
+    if (flags.has(ComponentFlag::SEPARATE_BY_FLAG)) {
+        class FlagComponentChecker : public ComponentChecker {
             ArrayView<const Size> flag;
 
         public:
@@ -97,29 +100,13 @@ Size Post::findComponents(const Storage& storage,
             }
         };
         checker = makeAuto<FlagComponentChecker>(storage);
-        break;
-    case ComponentConnectivity::OVERLAP:
-    case ComponentConnectivity::ESCAPE_VELOCITY:
-        class AnyChecker : public IComponentChecker {
-        public:
-            virtual bool belong(const Size UNUSED(i), const Size UNUSED(j)) override {
-                // any two particles within the search radius belong to the same component
-                return true;
-            }
-        };
-        checker = makeAuto<AnyChecker>();
-        break;
-    default:
-        NOT_IMPLEMENTED;
     }
-
-    ASSERT(checker);
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
 
     Size componentCnt = findComponentsImpl(*checker, r, radius, indices);
 
-    if (connectivity == ComponentConnectivity::ESCAPE_VELOCITY) {
+    if (flags.has(ComponentFlag::ESCAPE_VELOCITY)) {
         // now we have to merge components with relative velocity lower than the (mutual) escape velocity
 
         // first, compute the total mass and the average velocity of each component
@@ -151,7 +138,7 @@ Size Post::findComponents(const Storage& storage,
         }
 
         // Helper checker connecting components with relative velocity lower than v_esc
-        struct EscapeVelocityComponentChecker : public IComponentChecker {
+        struct EscapeVelocityComponentChecker : public ComponentChecker {
             ArrayView<const Vector> r;
             ArrayView<const Vector> v;
             ArrayView<const Float> m;
@@ -202,13 +189,32 @@ Size Post::findComponents(const Storage& storage,
 
 #endif
 
+    if (flags.has(ComponentFlag::SORT_BY_MASS)) {
+        Array<Float> componentMass(componentCnt);
+        componentMass.fill(0._f);
+        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+        for (Size i = 0; i < indices.size(); ++i) {
+            componentMass[indices[i]] += m[i];
+        }
+        Order mapping(componentCnt);
+        mapping.shuffle([&componentMass](Size i, Size j) { return componentMass[i] > componentMass[j]; });
+        mapping = mapping.getInverted();
+
+        Array<Size> realIndices(indices.size());
+        for (Size i = 0; i < indices.size(); ++i) {
+            realIndices[i] = mapping[indices[i]];
+        }
+
+        indices = copyable(realIndices);
+    }
+
     return componentCnt;
 }
 
 Array<Size> Post::findLargestComponent(const Storage& storage, const Float particleRadius) {
     Array<Size> componentIdxs;
     const Size componentCnt =
-        Post::findComponents(storage, particleRadius, ComponentConnectivity::OVERLAP, componentIdxs);
+        Post::findComponents(storage, particleRadius, ComponentFlag::OVERLAP, componentIdxs);
 
     // find the masses of each component
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
@@ -733,7 +739,7 @@ static Array<Float> getComponentValues(const Storage& storage,
 
     Array<Size> components;
     const Size numComponents =
-        findComponents(storage, params.components.radius, params.components.connectivity, components);
+        findComponents(storage, params.components.radius, params.components.flags, components);
 
     Array<Size> toRemove = processComponentCutoffs(storage, components, numComponents, params);
 
@@ -765,9 +771,7 @@ static Array<Float> getComponentValues(const Storage& storage,
         }
 
         // remove the components we cut off (in reverse to avoid invalidating indices)
-        for (Size i : reverse(toRemove)) {
-            values.remove(i);
-        }
+        values.remove(toRemove);
 
         // compute equivalent radii from volumes
         Array<Float> radii(values.size());
@@ -792,10 +796,8 @@ static Array<Float> getComponentValues(const Storage& storage,
         }
 
         // remove the components we cut off (in reverse to avoid invalidating indices)
-        for (Size i : reverse(toRemove)) {
-            sumV.remove(i);
-            weights.remove(i);
-        }
+        sumV.remove(toRemove);
+        weights.remove(toRemove);
 
         Array<Float> velocities(sumV.size());
         for (Size i = 0; i < sumV.size(); ++i) {

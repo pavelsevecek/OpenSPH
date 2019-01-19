@@ -38,7 +38,8 @@ SOURCES += \
     objects/RenderContext.cpp \
     windows/ParticleProbe.cpp \
     Config.cpp \
-    windows/PaletteDialog.cpp
+    windows/PaletteDialog.cpp \
+    objects/Bitmap.cpp
 
 HEADERS += \
     ArcBall.h \

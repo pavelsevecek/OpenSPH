@@ -255,4 +255,37 @@ Expected<Array<Triangle>> TabFile::load(const Path& path) {
     }
 }
 
+Outcome ObjFile::save(const Path& path, ArrayView<const Triangle> triangles) {
+    (void)path;
+    (void)triangles;
+    NOT_IMPLEMENTED;
+}
+
+Expected<Array<Triangle>> ObjFile::load(const Path& path) {
+    try {
+        std::ifstream ifs(path.native());
+        Array<Vector> vertices;
+        Array<Triangle> triangles;
+
+        char symb;
+        while (ifs) {
+            ifs >> symb;
+            if (symb == 'v') {
+                Vector v;
+                ifs >> v[X] >> v[Y] >> v[Z];
+                vertices.push(v);
+            } else if (symb == 'f') {
+                Size i, j, k;
+                ifs >> i >> j >> k;
+                triangles.emplaceBack(vertices[i - 1], vertices[j - 1], vertices[k - 1]);
+            }
+        }
+
+        return triangles;
+
+    } catch (std::exception& e) {
+        return makeUnexpected<Array<Triangle>>(e.what());
+    }
+}
+
 NAMESPACE_SPH_END

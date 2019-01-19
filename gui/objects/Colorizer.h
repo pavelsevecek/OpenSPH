@@ -1008,11 +1008,15 @@ public:
 
 class ComponentIdColorizer : public IdColorizerTemplate<ComponentIdColorizer> {
 private:
+    Flags<Post::ComponentFlag> connectivity;
+
     Array<Size> components;
-    Post::ComponentConnectivity connectivity;
+
+    ArrayRef<const Float> m;
+    ArrayRef<const Vector> r, v;
 
 public:
-    explicit ComponentIdColorizer(const GuiSettings& gui, const Post::ComponentConnectivity connectivity)
+    explicit ComponentIdColorizer(const GuiSettings& gui, const Flags<Post::ComponentFlag> connectivity)
         : IdColorizerTemplate<ComponentIdColorizer>(gui)
         , connectivity(connectivity) {}
 
@@ -1020,7 +1024,27 @@ public:
         return components[idx];
     }
 
-    virtual void initialize(const Storage& storage, const RefEnum UNUSED(ref)) override {
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        Particle particle(idx);
+        const Optional<Size> id = this->evalId(idx);
+        particle.addValue(QuantityId::FLAG, id.value());
+
+        Array<Size> indices;
+        for (Size i = 0; i < r.size(); ++i) {
+            if (components[i] == id.value()) {
+                indices.push(i);
+            }
+        }
+        const Vector omega = Post::getAngularFrequency(m, r, v, indices);
+        particle.addValue(QuantityId::ANGULAR_FREQUENCY, getLength(omega));
+        return particle;
+    }
+
+    virtual void initialize(const Storage& storage, const RefEnum ref) override {
+        m = makeArrayRef(storage.getValue<Float>(QuantityId::MASS), ref);
+        r = makeArrayRef(storage.getValue<Vector>(QuantityId::POSITION), ref);
+        v = makeArrayRef(storage.getDt<Vector>(QuantityId::POSITION), ref);
+
         Post::findComponents(storage, 2._f, connectivity, components);
     }
 
@@ -1029,15 +1053,12 @@ public:
     }
 
     virtual std::string name() const override {
-        switch (connectivity) {
-        case Post::ComponentConnectivity::OVERLAP:
-            return "Component ID";
-        case Post::ComponentConnectivity::SEPARATE_BY_FLAG:
-            return "Component ID (flag)";
-        case Post::ComponentConnectivity::ESCAPE_VELOCITY:
+        if (connectivity.has(Post::ComponentFlag::ESCAPE_VELOCITY)) {
             return "Bound component ID";
-        default:
-            STOP;
+        } else if (connectivity.has(Post::ComponentFlag::SEPARATE_BY_FLAG)) {
+            return "Component ID (flag)";
+        } else {
+            return "Component ID";
         }
     }
 };

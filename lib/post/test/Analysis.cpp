@@ -22,8 +22,7 @@ TEST_CASE("Components simple", "[post]") {
     Array<Size> components;
     Storage storage;
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::ZERO, std::move(r));
-    Size numComponents =
-        Post::findComponents(storage, 2._f, Post::ComponentConnectivity::OVERLAP, components);
+    Size numComponents = Post::findComponents(storage, 2._f, Post::ComponentFlag::OVERLAP, components);
     REQUIRE(numComponents == 3);
     REQUIRE(components == Array<Size>({ 0, 1, 2, 2 }));
 }
@@ -43,8 +42,7 @@ TEST_CASE("Component initconds", "[post]") {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     Array<Size> components;
     RunSettings settings;
-    const Size numComponents =
-        Post::findComponents(storage, 2._f, Post::ComponentConnectivity::OVERLAP, components);
+    const Size numComponents = Post::findComponents(storage, 2._f, Post::ComponentFlag::OVERLAP, components);
     REQUIRE(numComponents == 3);
     REQUIRE(components.size() > 0); // sanity check
 
@@ -79,7 +77,7 @@ TEST_CASE("Component by v_esc", "[post]") {
     const Float m0 = 1._f;
     storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, m0);
     Size numComponents =
-        Post::findComponents(storage, 2._f, Post::ComponentConnectivity::ESCAPE_VELOCITY, components);
+        Post::findComponents(storage, 2._f, Post::ComponentFlag::ESCAPE_VELOCITY, components);
     // all particles still, one component only
     REQUIRE(numComponents == 1);
     REQUIRE(components == Array<Size>({ 0, 0, 0, 0 }));
@@ -88,14 +86,12 @@ TEST_CASE("Component by v_esc", "[post]") {
     auto v_esc = [m0](const Float dr) { return sqrt(4._f * m0 * Constants::gravity / dr); };
     v[0] = Vector(0.8_f * v_esc(3._f), 0._f, 0._f);
     // too low velocity, nothing should change
-    numComponents =
-        Post::findComponents(storage, 2._f, Post::ComponentConnectivity::ESCAPE_VELOCITY, components);
+    numComponents = Post::findComponents(storage, 2._f, Post::ComponentFlag::ESCAPE_VELOCITY, components);
     REQUIRE(numComponents == 1);
 
     v[0] = Vector(1.2_f * v_esc(3._f), 0._f, 0._f);
     // first and last particle are now separated
-    numComponents =
-        Post::findComponents(storage, 2._f, Post::ComponentConnectivity::ESCAPE_VELOCITY, components);
+    numComponents = Post::findComponents(storage, 2._f, Post::ComponentFlag::ESCAPE_VELOCITY, components);
     REQUIRE(numComponents == 2);
     REQUIRE(components == Array<Size>({ 0, 1, 1, 1 }));
 }

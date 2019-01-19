@@ -22,7 +22,7 @@ bool App::OnInit() {
         .set(GuiSettingsId::IMAGES_HEIGHT, 768)
         .set(GuiSettingsId::WINDOW_WIDTH, 1334)
         .set(GuiSettingsId::WINDOW_HEIGHT, 768)
-        .set(GuiSettingsId::PARTICLE_RADIUS, 0.25_f)
+        .set(GuiSettingsId::PARTICLE_RADIUS, 0.35_f)
         .set(GuiSettingsId::SURFACE_RESOLUTION, 1.e2_f)
         .set(GuiSettingsId::SURFACE_LEVEL, 0.1_f)
         .set(GuiSettingsId::SURFACE_AMBIENT, 0.1_f)
@@ -42,7 +42,7 @@ bool App::OnInit() {
         .set(GuiSettingsId::IMAGES_SAVE, false)
         .set(GuiSettingsId::IMAGES_NAME, std::string("frag_%e_%d.png"))
         .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"))
-        .set(GuiSettingsId::IMAGES_TIMESTEP, 100._f)
+        .set(GuiSettingsId::IMAGES_TIMESTEP, 10._f)
         //.set(GuiSettingsId::IMAGES_RENDERER, int(RendererEnum::RAYTRACER))
         /*.set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))
         .set(GuiSettingsId::PALETTE_VELOCITY, Interval(0.01_f, 1.e2_f))
@@ -50,7 +50,7 @@ bool App::OnInit() {
         .set(GuiSettingsId::PALETTE_ENERGY, Interval(1.e-1_f, 1.e3_f))
         .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
         .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))*/
-        .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 1._f)
+        .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 20._f)
         .set(GuiSettingsId::PLOT_OVERPLOT_SFD,
             std::string("/home/pavel/projects/astro/asteroids/hygiea/main_belt_families_2018/10_Hygiea/"
                         "size_distribution/family.dat_hc"))
@@ -60,18 +60,18 @@ bool App::OnInit() {
 
 
     Presets::CollisionParams cp;
-    cp.targetParticleCnt = 10000;
+    cp.targetParticleCnt = 400000;
     cp.targetRadius = 0.5_f * 428.e3_f;
-    cp.impactAngle = 45._f * DEG_TO_RAD;
+    cp.impactAngle = 15._f * DEG_TO_RAD;
     cp.impactSpeed = 7.e3_f;
-    cp.impactorRadius = 0.5_f * 100.e3_f;
-    cp.targetRotation = 0._f;
+    cp.impactorRadius = 0.5_f * 40.e3_f;
+    cp.targetRotation = 0._f; // 2._f * PI / (3600._f * 2._f);
     cp.impactorOffset = 6;
     cp.centerOfMassFrame = false;
     cp.optimizeImpactor = true;
     PhaseParams phaseParams;
-    phaseParams.stab.range = Interval(0._f, 200._f);
-    phaseParams.frag.range = Interval(0._f, 500._f); // 3._f * 24 * 3600);
+    phaseParams.stab.range = Interval(0._f, 5000._f);
+    phaseParams.frag.range = Interval(0._f, 20000000._f); // 3._f * 24 * 3600);
     phaseParams.reacc.range = Interval(0._f, 1.e10_f);
 
 
@@ -91,7 +91,10 @@ bool App::OnInit() {
         if (typeid(next) == typeid(ReaccumulationRunPhase)) {
             newGui.set(GuiSettingsId::PARTICLE_RADIUS, 1._f)
                 .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
-                .set(GuiSettingsId::IMAGES_NAME, std::string("reac_%e_%d.png"));
+                .set(GuiSettingsId::IMAGES_NAME, std::string("reac_%e_%d.png"))
+                .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 1000._f)
+                .set(GuiSettingsId::IMAGES_TIMESTEP, 30._f)
+                .set(GuiSettingsId::IMAGES_SAVE, true);
 
             controller->setParams(newGui);
         }

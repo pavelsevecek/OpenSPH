@@ -253,11 +253,7 @@ void WindTunnel::finalize(Storage& storage) {
             toRemove.push(i);
         }
     }
-    iterate<VisitorEnum::ALL_BUFFERS>(storage, [&toRemove](auto& v) {
-        for (Size idx : reverse(toRemove)) { // iterate in reverse to remove higher indices first
-            v.remove(idx);
-        }
-    });
+    iterate<VisitorEnum::ALL_BUFFERS>(storage, [&toRemove](auto& v) { v.remove(toRemove); });
 
     // find z positions of upper two layers of particles
     /* Float z1 = -INFTY, z2 = -INFTY;

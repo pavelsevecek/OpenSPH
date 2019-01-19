@@ -434,7 +434,7 @@ INLINE Vector MarchingCubes::interpolate(const Vector& v1,
 }
 
 
-struct NumberDensityField : public IScalarField {
+class ColorField : public IScalarField {
 private:
     LutKernel<3> kernel;
     AutoPtr<IBasicFinder> finder;
@@ -442,13 +442,11 @@ private:
     ArrayView<const Vector> r;
     ArrayView<const Float> m, rho;
     ArrayView<const Size> flag;
-    ArrayView<const SymmetricTensor> aniso;
+    Float maxH = 0._f;
 
     ThreadLocal<Array<NeighbourRecord>> neighs;
 
 public:
-    Float maxH = 0._f;
-
     /// \brief Creates the number density field.
     ///
     /// This implementation uses anisotropic kernel to reduce the perturbations of the boundary, see
@@ -460,16 +458,16 @@ public:
     /// \param aniso Particle anisotropy matrix, for isotropic distribution equals to I/h
     /// \param kernel SPH kernel used for particle smoothing
     /// \param finder Neighbour finder
-    NumberDensityField(const Storage& storage,
+    ColorField(const Storage& storage,
         IScheduler& scheduler,
         const ArrayView<const Vector> r,
-        const ArrayView<const SymmetricTensor> aniso,
+        const Float maxH,
         LutKernel<3>&& kernel,
         AutoPtr<IBasicFinder>&& finder)
         : kernel(std::move(kernel))
         , finder(std::move(finder))
         , r(r)
-        , aniso(aniso)
+        , maxH(maxH)
         , neighs(scheduler) {
         tie(m, rho) = storage.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
         flag = storage.getValue<Size>(QuantityId::FLAG);
@@ -504,8 +502,50 @@ public:
                 continue;
             }
             phi += m[j] / rho[j] * kernel.value(pos - r[j], r[j][H]);
-            /*phi += m[j] / rho[j] * aniso[j].determinant() *
-                   kernel.valueImpl(getSqrLength(aniso[j] * (pos - r[j])));*/
+        }
+        return phi;
+    }
+};
+
+
+class FallbackField : public IScalarField {
+private:
+    LutKernel<3> kernel;
+    AutoPtr<IBasicFinder> finder;
+
+    ArrayView<const Vector> r;
+    Float maxH = 0._f;
+
+    ThreadLocal<Array<NeighbourRecord>> neighs;
+
+public:
+    FallbackField(IScheduler& scheduler,
+        const ArrayView<const Vector> r,
+        const Float maxH,
+        LutKernel<3>&& kernel,
+        AutoPtr<IBasicFinder>&& finder)
+        : kernel(std::move(kernel))
+        , finder(std::move(finder))
+        , r(r)
+        , maxH(maxH)
+        , neighs(scheduler) {
+
+        // we have to re-build the tree since we are using different positions (in general)
+        this->finder->build(scheduler, r);
+    }
+
+    virtual Float operator()(const Vector& pos) override {
+        ASSERT(maxH > 0._f);
+        Array<NeighbourRecord>& neighsTl = neighs.local();
+        /// \todo for now let's just search some random multiple of smoothing length, we should use the
+        /// largest singular value here
+        finder->findAll(pos, maxH * kernel.radius(), neighsTl);
+        Float phi = 0._f;
+
+        // interpolate values of neighbours
+        for (NeighbourRecord& n : neighsTl) {
+            const Size j = n.index;
+            phi += sphereVolume(0.5_f * r[j][H]) * kernel.value(pos - r[j], r[j][H]);
         }
         return phi;
     }
@@ -615,9 +655,13 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
         box.extend(r[i] - dr);
         maxH = max(maxH, r_bar[i][H]);
     }
-    SharedPtr<NumberDensityField> field =
-        makeShared<NumberDensityField>(storage, scheduler, r, C, std::move(kernel), std::move(finder));
-    field->maxH = maxH;
+    SharedPtr<IScalarField> field;
+
+    if (storage.has(QuantityId::MASS) && storage.has(QuantityId::DENSITY) && storage.has(QuantityId::FLAG)) {
+        field = makeShared<ColorField>(storage, scheduler, r, maxH, std::move(kernel), std::move(finder));
+    } else {
+        field = makeShared<FallbackField>(scheduler, r, maxH, std::move(kernel), std::move(finder));
+    }
     MarchingCubes mc(scheduler, surfaceLevel, field);
 
     // 6. find the surface using marching cubes

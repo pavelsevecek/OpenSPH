@@ -21,7 +21,7 @@ private:
     static SharedPtr<Tbb> globalInstance;
 
 public:
-    Tbb();
+    Tbb(const Size numThreads = 0);
 
     ~Tbb();
 

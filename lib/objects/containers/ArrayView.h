@@ -78,6 +78,26 @@ public:
         return data[idx];
     }
 
+    INLINE T& front() {
+        ASSERT(actSize > 0);
+        return data[0];
+    }
+
+    INLINE const T& front() const {
+        ASSERT(actSize > 0);
+        return data[0];
+    }
+
+    INLINE T& back() {
+        ASSERT(actSize > 0);
+        return data[actSize - 1];
+    }
+
+    INLINE const T& back() const {
+        ASSERT(actSize > 0);
+        return data[actSize - 1];
+    }
+
     INLINE TCounter size() const {
         return this->actSize;
     }

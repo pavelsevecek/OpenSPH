@@ -725,11 +725,7 @@ void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags)
         sortedIdxs = sortedHolder;
     }
 
-    iterate<VisitorEnum::ALL_BUFFERS>(*this, [&sortedIdxs](auto& buffer) {
-        for (Size i : reverse(sortedIdxs)) {
-            buffer.remove(i);
-        }
-    });
+    iterate<VisitorEnum::ALL_BUFFERS>(*this, [&sortedIdxs](auto& buffer) { buffer.remove(sortedIdxs); });
 
     this->update();
     ASSERT(this->isValid());

@@ -17,6 +17,8 @@ int main(int argc, char* argv[]) {
         meshLoader = makeAuto<PlyFile>();
     } else if (meshPath.extension() == Path("tab")) {
         meshLoader = makeAuto<TabFile>();
+    } else if (meshPath.extension() == Path("obj")) {
+        meshLoader = makeAuto<ObjFile>();
     } else {
         std::cout << "Unknown file format: " << meshPath.extension().native() << std::endl;
         return -1;
@@ -30,11 +32,15 @@ int main(int argc, char* argv[]) {
 
     MeshDomain domain(std::move(triangles.value())); // , AffineMatrix::rotateX(PI / 2._f));
     HexagonalPacking packing;
-    Array<Vector> r = packing.generate(SEQUENTIAL, 200000, domain);
+    Array<Vector> r = packing.generate(SEQUENTIAL, 500000, domain);
+    for (Size i = 0; i < r.size(); ++i) {
+        r[i][H] *= 1.5_f; // eta
+    }
     Storage storage(makeAuto<NullMaterial>(BodySettings::getDefaults()));
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(r));
     Statistics stats;
     stats.set(StatisticsId::RUN_TIME, 0._f);
+    stats.set(StatisticsId::TIMESTEP_VALUE, 1._f);
     Path ssfPath(argv[2]);
     BinaryOutput output(ssfPath);
 

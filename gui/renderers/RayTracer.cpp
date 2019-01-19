@@ -56,17 +56,31 @@ void RayTracer::initialize(const Storage& storage,
     }
 
     cached.flags.resize(particleCnt);
-    ArrayView<const Size> idxs = storage.getValue<Size>(QuantityId::FLAG);
-    // assign separate flag to fully damaged particles so that they do not blend with other particles
-    for (Size i = 0; i < particleCnt; ++i) {
-        cached.flags[i] = idxs[i];
+    if (storage.has(QuantityId::FLAG)) {
+        ArrayView<const Size> idxs = storage.getValue<Size>(QuantityId::FLAG);
+        // assign separate flag to fully damaged particles so that they do not blend with other particles
+        for (Size i = 0; i < particleCnt; ++i) {
+            cached.flags[i] = idxs[i];
+        }
+    } else {
+        cached.flags.fill(0);
     }
 
-    ArrayView<const Float> rho, m;
-    tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
     cached.v.resize(particleCnt);
-    for (Size i = 0; i < particleCnt; ++i) {
-        cached.v[i] = m[i] / 2700._f; //  rho[i];
+    if (storage.has(QuantityId::MASS) && storage.has(QuantityId::DENSITY)) {
+        ArrayView<const Float> rho, m;
+        tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
+        for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
+            MaterialView material = storage.getMaterial(matId);
+            const Float rho = material->getParam<Float>(BodySettingsId::DENSITY);
+            for (Size i : material.sequence()) {
+                cached.v[i] = m[i] / rho;
+            }
+        }
+    } else {
+        for (Size i = 0; i < particleCnt; ++i) {
+            cached.v[i] = sphereVolume(cached.r[i][H]);
+        }
     }
 
     cached.colors.resize(particleCnt);
@@ -91,6 +105,40 @@ void RayTracer::initialize(const Storage& storage,
 
     shouldContinue = true;
 }
+
+/*
+INLINE Float weight(const Vector& r1, const Vector& r2) {
+    const Float lengthSqr = getSqrLength(r1 - r2);
+    // Eq. (11)
+    if (lengthSqr < sqr(2._f * r1[H])) {
+        return 1._f - pow<3>(sqrt(lengthSqr) / (2._f * r1[H]));
+    } else {
+        return 0._f;
+    }
+}
+
+Array<Vector> RayTracer::denoisePositions(ArrayView<const Vector> r) const {
+    ASSERT(finder);
+    Array<Vector> r_bar(r.size());
+    Array<NeighbourRecord> neighs;
+    const Float lambda = 1._f;
+    for (Size i = 0; i < r.size(); ++i) {
+        finder->findAll(i, 2._f * r[i][H], neighs);
+
+        Vector wr(0._f);
+        Float wsum = 0._f;
+        for (NeighbourRecord& n : neighs) {
+            const Size j = n.index;
+            const Float w = weight(r[i], r[j]);
+            wr += w * r[j];
+            wsum += w;
+        }
+        ASSERT(wsum > 0._f);
+        r_bar[i] = (1._f - lambda) * r[i] + lambda * wr / wsum;
+        r_bar[i][H] = r[i][H];
+    }
+    return r_bar;
+}*/
 
 void RayTracer::render(const RenderParams& renderParams,
     Statistics& UNUSED(stats),
@@ -129,7 +177,7 @@ void RayTracer::refine(const RenderParams& renderParams, const Size iteration, F
                 const Vector dir = getNormalized(cameraRay.target - cameraRay.origin);
                 const Ray ray(cameraRay.origin, dir);
 
-                Rgba accumulatedColor;
+                Rgba accumulatedColor = Rgba::transparent();
                 if (Optional<Vector> hit = this->intersect(data, ray, false)) {
                     accumulatedColor = this->shade(data, data.previousIdx, hit.value(), ray.direction());
                 } else {

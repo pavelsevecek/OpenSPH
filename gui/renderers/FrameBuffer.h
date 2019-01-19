@@ -11,7 +11,7 @@ private:
 
 public:
     explicit FrameBuffer(const Pixel resolution) {
-        values.resize(resolution, Rgba::black());
+        values.resize(resolution, Rgba::transparent());
     }
 
     void accumulate(const Bitmap<Rgba>& pass) {
@@ -19,7 +19,8 @@ public:
         for (int y = 0; y < values.size().y; ++y) {
             for (int x = 0; x < values.size().x; ++x) {
                 Pixel p(x, y);
-                values[p] = (values[p] * passCnt + pass[p]) / (passCnt + 1);
+                const Rgba accumulatedColor = (pass[p] + values[p] * passCnt) / (passCnt + 1);
+                values[p] = accumulatedColor.over(values[p]);
             }
         }
         passCnt++;

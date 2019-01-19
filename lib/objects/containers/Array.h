@@ -368,6 +368,32 @@ public:
         resize(actSize - 1);
     }
 
+    /// \brief Removes element specified by indices from the array.
+    ///
+    /// This is effectively the same as calling \ref remove with each index separately. The given array of
+    /// indices must be sorted (from smallest to largest), checked by assert.
+    void remove(const ArrayView<const TCounter> idxs) {
+        Size shift = 0;
+        if (SPH_UNLIKELY(idxs.empty())) {
+            return;
+        }
+
+        // move all elements between indices
+        for (Size k = 0; k < idxs.size() - 1; ++k) {
+            ASSERT(idxs[k] < idxs[k + 1]);
+            for (TCounter i = idxs[k]; i < idxs[k + 1] - 1; ++i) {
+                data[i - shift] = std::move(data[i + 1]);
+            }
+            shift++;
+        }
+        // move all elements after last index
+        for (TCounter i = idxs.back(); i < actSize - 1; ++i) {
+            data[i - shift] = std::move(data[i + 1]);
+        }
+
+        resize(actSize - idxs.size());
+    }
+
     /// \brief Removes all elements from the array, but does NOT release the memory.
     void clear() {
         if (!std::is_trivially_destructible<T>::value) {

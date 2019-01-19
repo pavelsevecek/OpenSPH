@@ -187,6 +187,17 @@ public:
     }
 };
 
+class IBvh : public Polymorphic {
+public:
+    /// \brief Finds the closest intersection of the ray.
+    ///
+    /// Returns true if an intersection has been found.
+    virtual bool getFirstIntersection(const Ray& ray, IntersectionInfo& intersection) const = 0;
+
+    /// \brief Returns all intersections of the ray.
+    virtual void getAllIntersections(const Ray& ray, std::set<IntersectionInfo>& intersections) const = 0;
+};
+
 struct BvhNode {
     Box box;
     Size start;
@@ -201,7 +212,7 @@ struct BvhNode {
 /// other geometric primitives are needed, either add the specialization to cpp, or move the implementation to
 /// header.
 template <typename TBvhObject>
-class Bvh {
+class Bvh : public IBvh {
 private:
     const Size leafSize;
     Size nodeCnt = 0;
@@ -223,10 +234,11 @@ public:
     /// \brief Finds the closest intersection of the ray.
     ///
     /// Returns true if an intersection has been found.
-    bool getFirstIntersection(const Ray& ray, IntersectionInfo& intersection) const;
+    virtual bool getFirstIntersection(const Ray& ray, IntersectionInfo& intersection) const override;
 
     /// \brief Returns all intersections of the ray.
-    void getAllIntersections(const Ray& ray, std::set<IntersectionInfo>& intersections) const;
+    virtual void getAllIntersections(const Ray& ray,
+        std::set<IntersectionInfo>& intersections) const override;
 
     /// \brief Returns true if the ray is occluded by some geometry
     bool isOccluded(const Ray& ray) const;

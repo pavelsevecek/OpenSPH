@@ -211,11 +211,9 @@ Storage convertSphToSpheres(const Storage& sph, const RunSettings& settings, con
         }
 
         // remove all old particles
-        for (Size i : reverse(idxs)) {
-            r_nbody.remove(i);
-            v_nbody.remove(i);
-            m_nbody.remove(i);
-        }
+        r_nbody.remove(idxs);
+        v_nbody.remove(idxs);
+        m_nbody.remove(idxs);
 
         // add the new particles
         r_nbody.pushAll(r_lr);
