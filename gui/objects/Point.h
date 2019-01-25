@@ -17,7 +17,7 @@ struct BasicPoint {
 
     BasicPoint() = default;
 
-    BasicPoint(const T& x, const T& y)
+    BasicPoint(const T x, const T y)
         : x(x)
         , y(y) {}
 
@@ -73,7 +73,10 @@ struct BasicPoint {
 };
 
 struct Pixel : public BasicPoint<int, Pixel> {
-    using BasicPoint<int, Pixel>::BasicPoint;
+    Pixel() = default;
+
+    Pixel(const int x, const int y)
+        : BasicPoint<int, Pixel>(x, y) {}
 
     explicit Pixel(const wxPoint point)
         : BasicPoint<int, Pixel>(point.x, point.y) {}
@@ -84,7 +87,10 @@ struct Pixel : public BasicPoint<int, Pixel> {
 };
 
 struct Coords : public BasicPoint<float, Coords> {
-    using BasicPoint<float, Coords>::BasicPoint;
+    Coords() = default;
+
+    Coords(const float x, const float y)
+        : BasicPoint<float, Coords>(x, y) {}
 
     explicit Coords(const Pixel p)
         : BasicPoint<float, Coords>(p.x, p.y) {}

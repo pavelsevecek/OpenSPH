@@ -73,9 +73,6 @@ void RunPlayer::setUp() {
         virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
     };
     solver = makeAuto<PlayerSolver>();
-
-
-    //     ArrayView<const Float> omega
 }
 
 Size RunPlayer::getFileCount(const Path& pathMask) const {
