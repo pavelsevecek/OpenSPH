@@ -9,6 +9,7 @@
 #include "objects/wrappers/SharedPtr.h"
 #include "physics/Constants.h"
 #include "quantities/Storage.h"
+#include <typeinfo>
 
 NAMESPACE_SPH_BEGIN
 
