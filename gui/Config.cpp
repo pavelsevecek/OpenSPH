@@ -55,7 +55,7 @@ Path Config::getConfigPath() {
     }
     Expected<Path> homePath = FileSystem::getHomeDirectory();
     if (homePath) {
-        return executablePath.value() / Path(".config/opensph/palettes.conf");
+        return homePath.value() / Path(".config/opensph/palettes.conf");
     }
     return Path("palettes.conf");
 }

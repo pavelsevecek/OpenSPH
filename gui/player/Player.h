@@ -10,7 +10,6 @@
 #include "io/Output.h"
 #include "run/IRun.h"
 #include <wx/app.h>
-#include <wx/filedlg.h>
 
 NAMESPACE_SPH_BEGIN
 

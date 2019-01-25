@@ -15,6 +15,10 @@ Float evalBenzAsphaugScalingLaw(const Float D, const Float rho) {
     return 1.e-4_f * Q_cgs;
 }
 
+Float getImpactEnergy(const Float R, const Float r, const Float v) {
+    return 0.5_f * sphereVolume(r) * sqr(v) / sphereVolume(R);
+}
+
 Float getEffectiveImpactArea(const Float R, const Float r, const Float phi) {
     ASSERT(phi >= 0._f && phi <= PI / 2._f);
     const Float d = (r + R) * sin(phi);

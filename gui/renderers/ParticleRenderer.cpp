@@ -159,11 +159,12 @@ void ParticleRenderer::initialize(const Storage& storage,
     bool hasVectorData = false;
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
-        const Rgba color = colorizer.evalColor(i);
         const Optional<ProjectedPoint> p = camera.project(r[i]);
         if (p && !isCutOff(camera, r[i])) {
             cached.idxs.push(i);
             cached.positions.push(r[i]);
+
+            const Rgba color = colorizer.evalColor(i);
             cached.colors.push(color);
 
             if (Optional<Vector> v = colorizer.evalVector(i)) {
@@ -242,7 +243,7 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
     shouldContinue = true;
     // draw particles
     for (Size i = 0; i < cached.positions.size() /* && shouldContinue*/; ++i) {
-        if (params.selectedParticle && cached.idxs[i] == params.selectedParticle.value()) {
+        if (params.particles.selected && cached.idxs[i] == params.particles.selected.value()) {
             // highlight the selected particle
             context.setColor(Rgba::red(), ColorFlag::FILL);
             context.setColor(Rgba::white(), ColorFlag::LINE);
@@ -253,7 +254,11 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
                 dir.r = cached.positions[i];
             }
         } else {
-            context.setColor(cached.colors[i], ColorFlag::FILL | ColorFlag::LINE);
+            Rgba color = cached.colors[i];
+            if (params.particles.grayScale) {
+                color = Rgba(color.intensity());
+            }
+            context.setColor(color, ColorFlag::FILL | ColorFlag::LINE);
             if (cached.idxs[i] == Size(-1)) {
                 // ghost
                 context.setColor(Rgba::gray(0.7_f), ColorFlag::LINE);
@@ -272,13 +277,21 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
 
     if (cached.palette) {
         const Pixel origin(context.size().x - 50, 231);
-        drawPalette(context, origin, Pixel(30, 201), background.inverse(), cached.palette.value());
+        Palette palette;
+        if (params.particles.grayScale) {
+            palette = cached.palette->transform([](const Rgba& color) { return Rgba(color.intensity()); });
+        } else {
+            palette = cached.palette.value();
+        }
+        drawPalette(context, origin, Pixel(30, 201), background.inverse(), palette);
     }
 
     const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
+    const Flags<TextAlign> flags = TextAlign::RIGHT | TextAlign::BOTTOM;
     context.setColor(background.inverse(), ColorFlag::TEXT);
+    context.drawText(Coords(0, 0), flags, "t = " + getFormattedTime(1.e3_f * time));
     context.drawText(
-        Coords(0, 0), TextAlign::RIGHT | TextAlign::BOTTOM, "t = " + getFormattedTime(1.e3_f * time));
+        Coords(0, 16), flags, L"fov = " + toPrintableString(params.camera->getFov().value(), 1, 1000));
 
     output.update(bitmap, context.getLabels());
 }

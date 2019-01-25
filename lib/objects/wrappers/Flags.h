@@ -109,7 +109,7 @@ public:
     }
 
     /// Returns a Flags object by adding a single flag to currently stored values.
-    INLINE constexpr Flags operator|(const TEnum flag) {
+    INLINE constexpr Flags operator|(const TEnum flag) const {
         ASSERT(isPower2(TValue(flag)));
         Flags<TEnum> flags(*this);
         flags.set(flag);

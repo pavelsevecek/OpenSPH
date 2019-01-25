@@ -10,6 +10,7 @@
 #include "gui/Uvw.h"
 #include "gui/objects/Palette.h"
 #include "gui/objects/Point.h"
+#include "gui/renderers/Spectrum.h"
 #include "objects/containers/ArrayRef.h"
 #include "objects/finders/NeighbourFinder.h"
 #include "objects/utility/Dynamic.h"
@@ -589,8 +590,8 @@ class TemperatureColorizer : public TypedColorizer<Float> {
     Float cp;
 
 public:
-    explicit TemperatureColorizer(Palette palette)
-        : TypedColorizer<Float>(QuantityId::ENERGY, std::move(palette)) {}
+    explicit TemperatureColorizer()
+        : TypedColorizer<Float>(QuantityId::ENERGY, getEmissionPalette(Interval(500, 10000))) {}
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
         TypedColorizer<Float>::initialize(storage, ref);

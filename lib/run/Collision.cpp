@@ -8,7 +8,6 @@
 #include "sph/Diagnostics.h"
 #include "sph/solvers/StabilizationSolver.h"
 #include "system/Factory.h"
-#include "thread/Tbb.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -102,10 +101,7 @@ void StabilizationRunPhase::create(const PhaseParams phaseParams) {
         settingsLoaded = false;
     }
 
-#ifdef SPH_USE_TBB
-    scheduler = Tbb::getGlobalInstance();
-#endif
-
+    scheduler = Factory::getScheduler(settings);
     logger = Factory::getLogger(settings);
 
     if (settingsLoaded) {
@@ -230,10 +226,7 @@ void FragmentationRunPhase::create(const PhaseParams phaseParams) {
         settingsLoaded = false;
     }
 
-#ifdef SPH_USE_TBB
-    scheduler = Tbb::getGlobalInstance();
-#endif
-
+    scheduler = Factory::getScheduler(settings);
     logger = Factory::getLogger(settings);
 
     if (settingsLoaded) {
@@ -326,7 +319,8 @@ static RunSettings getReaccSettings(const PhaseParams phaseParams) {
         .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.5_f)
         .set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 1._f)
         .set(RunSettingsId::COLLISION_ALLOWED_OVERLAP, 0.01_f)
-        .set(RunSettingsId::COLLISION_MERGING_LIMIT, 1._f)
+        .set(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, 4._f)
+        .set(RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT, 1._f)
         .set(RunSettingsId::NBODY_INERTIA_TENSOR, false)
         .set(RunSettingsId::NBODY_MAX_ROTATION_ANGLE, 0.01_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
@@ -361,10 +355,7 @@ void ReaccumulationRunPhase::create(const PhaseParams phaseParams) {
         settingsLoaded = false;
     }
 
-#ifdef SPH_USE_TBB
-    scheduler = Tbb::getGlobalInstance();
-#endif
-
+    scheduler = Factory::getScheduler(settings);
     logger = Factory::getLogger(settings);
 
     if (settingsLoaded) {

@@ -12,28 +12,25 @@ RayTracer::RayTracer(IScheduler& scheduler, const GuiSettings& settings)
     : scheduler(scheduler)
     , threadData(scheduler) {
     kernel = CubicSpline<3>();
-    params.surfaceLevel = settings.get<Float>(GuiSettingsId::SURFACE_LEVEL);
-    params.dirToSun = settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION);
-    params.brdf = Factory::getBrdf(settings);
-    params.ambientLight = settings.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
-    params.sunLight = settings.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY);
-    params.subsampling = settings.get<int>(GuiSettingsId::RAYTRACE_SUBSAMPLING);
-    params.iterationLimit = settings.get<int>(GuiSettingsId::RAYTRACE_ITERATION_LIMIT);
+    fixed.dirToSun = settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION);
+    fixed.brdf = Factory::getBrdf(settings);
+    fixed.subsampling = settings.get<int>(GuiSettingsId::RAYTRACE_SUBSAMPLING);
+    fixed.iterationLimit = settings.get<int>(GuiSettingsId::RAYTRACE_ITERATION_LIMIT);
 
     std::string hdriPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_HDRI);
     if (!hdriPath.empty()) {
-        params.enviro.hdri = Texture(Path(hdriPath), TextureFiltering::BILINEAR);
+        fixed.enviro.hdri = Texture(Path(hdriPath), TextureFiltering::BILINEAR);
     }
 
     std::string primaryPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY);
     if (!primaryPath.empty()) {
-        params.textures.emplaceBack(Path(primaryPath), TextureFiltering::BILINEAR);
+        fixed.textures.emplaceBack(Path(primaryPath), TextureFiltering::BILINEAR);
 
         std::string secondaryPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY);
         if (!secondaryPath.empty()) {
-            params.textures.emplaceBack(Path(secondaryPath), TextureFiltering::BILINEAR);
+            fixed.textures.emplaceBack(Path(secondaryPath), TextureFiltering::BILINEAR);
         } else {
-            params.textures.emplaceBack(params.textures.front().clone());
+            fixed.textures.emplaceBack(fixed.textures.front().clone());
         }
     }
 
@@ -140,24 +137,22 @@ Array<Vector> RayTracer::denoisePositions(ArrayView<const Vector> r) const {
     return r_bar;
 }*/
 
-void RayTracer::render(const RenderParams& renderParams,
-    Statistics& UNUSED(stats),
-    IRenderOutput& output) const {
+void RayTracer::render(const RenderParams& params, Statistics& UNUSED(stats), IRenderOutput& output) const {
     shouldContinue = true;
     ASSERT(finder && bvh.getBoundingBox().volume() > 0._f);
-    FrameBuffer fb(renderParams.size);
-    for (Size iteration = 0; iteration < params.iterationLimit && shouldContinue; ++iteration) {
-        this->refine(renderParams, iteration, fb);
+    FrameBuffer fb(params.size);
+    for (Size iteration = 0; iteration < fixed.iterationLimit && shouldContinue; ++iteration) {
+        this->refine(params, iteration, fb);
         output.update(fb.bitmap(), {});
     }
 }
 
-void RayTracer::refine(const RenderParams& renderParams, const Size iteration, FrameBuffer& fb) const {
+void RayTracer::refine(const RenderParams& params, const Size iteration, FrameBuffer& fb) const {
     MEASURE_SCOPE("Rendering frame");
-    const Size level = 1 << max(int(params.subsampling) - int(iteration), 0);
+    const Size level = 1 << max(int(fixed.subsampling) - int(iteration), 0);
     Pixel actSize;
-    actSize.x = renderParams.size.x / level + sgn(renderParams.size.x % level);
-    actSize.y = renderParams.size.y / level + sgn(renderParams.size.y % level);
+    actSize.x = params.size.x / level + sgn(params.size.x % level);
+    actSize.y = params.size.y / level + sgn(params.size.y % level);
     Bitmap<Rgba> bitmap(actSize);
 
     const bool first = (iteration == 0);
@@ -165,7 +160,7 @@ void RayTracer::refine(const RenderParams& renderParams, const Size iteration, F
         threadData,
         0,
         Size(bitmap.size().y),
-        [this, &bitmap, &renderParams, level, first](Size y, ThreadData& data) {
+        [this, &bitmap, &params, level, first](Size y, ThreadData& data) {
             if (!shouldContinue && !first) {
                 return;
             }
@@ -173,13 +168,14 @@ void RayTracer::refine(const RenderParams& renderParams, const Size iteration, F
                 /// \todo generalize
                 const float rx = x * level + (level == 1 ? data.rng() : 0.5f);
                 const float ry = y * level + (level == 1 ? data.rng() : 0.5f);
-                CameraRay cameraRay = renderParams.camera->unproject(Coords(rx, ry));
+                CameraRay cameraRay = params.camera->unproject(Coords(rx, ry));
                 const Vector dir = getNormalized(cameraRay.target - cameraRay.origin);
                 const Ray ray(cameraRay.origin, dir);
 
                 Rgba accumulatedColor = Rgba::transparent();
-                if (Optional<Vector> hit = this->intersect(data, ray, false)) {
-                    accumulatedColor = this->shade(data, data.previousIdx, hit.value(), ray.direction());
+                if (Optional<Vector> hit = this->intersect(data, ray, params.surface.level, false)) {
+                    accumulatedColor =
+                        this->shade(data, params, data.previousIdx, hit.value(), ray.direction());
                 } else {
                     accumulatedColor = this->getEnviroColor(ray);
                 }
@@ -193,7 +189,7 @@ void RayTracer::refine(const RenderParams& renderParams, const Size iteration, F
     if (level == 1) {
         fb.accumulate(bitmap);
     } else {
-        Bitmap<Rgba> full(renderParams.size);
+        Bitmap<Rgba> full(params.size);
         for (Size y = 0; y < Size(full.size().y); ++y) {
             for (Size x = 0; x < Size(full.size().x); ++x) {
                 full[Pixel(x, y)] = bitmap[Pixel(x / level, y / level)];
@@ -221,14 +217,18 @@ ArrayView<const Size> RayTracer::getNeighbourList(ThreadData& data, const Size i
     return data.neighs;
 }
 
-Optional<Vector> RayTracer::intersect(ThreadData& data, const Ray& ray, const bool occlusion) const {
+Optional<Vector> RayTracer::intersect(ThreadData& data,
+    const Ray& ray,
+    const Float surfaceLevel,
+    const bool occlusion) const {
     bvh.getAllIntersections(ray, data.intersections);
 
     for (const IntersectionInfo& intersect : data.intersections) {
-        ShadeContext sc;
+        IntersectContext sc;
         sc.index = intersect.object->userData;
         sc.ray = ray;
         sc.t_min = intersect.t;
+        sc.surfaceLevel = surfaceLevel;
         const Optional<Vector> hit = this->getSurfaceHit(data, sc, occlusion);
         if (hit) {
             return hit;
@@ -239,7 +239,7 @@ Optional<Vector> RayTracer::intersect(ThreadData& data, const Ray& ray, const bo
 }
 
 Optional<Vector> RayTracer::getSurfaceHit(ThreadData& data,
-    const ShadeContext& context,
+    const IntersectContext& context,
     bool occlusion) const {
     this->getNeighbourList(data, context.index);
 
@@ -259,7 +259,7 @@ Optional<Vector> RayTracer::getSurfaceHit(ThreadData& data,
     Float phi = 0._f;
     Float travelled = eps;
     while (travelled < limit && eps > 0.2_f * cached.r[i][H]) {
-        phi = this->evalField(data.neighs, v2);
+        phi = this->evalField(data.neighs, v2) - context.surfaceLevel;
         if (phi > 0._f) {
             if (occlusion) {
                 return v2;
@@ -285,11 +285,15 @@ Optional<Vector> RayTracer::getSurfaceHit(ThreadData& data,
     }
 }
 
-Rgba RayTracer::shade(ThreadData& data, const Size index, const Vector& hit, const Vector& dir) const {
+Rgba RayTracer::shade(ThreadData& data,
+    const RenderParams& params,
+    const Size index,
+    const Vector& hit,
+    const Vector& dir) const {
     Rgba color = Rgba::white();
-    if (!params.textures.empty() && !cached.uvws.empty()) {
+    if (!fixed.textures.empty() && !cached.uvws.empty()) {
         const Vector uvw = this->evalUvws(data.neighs, hit);
-        color = params.textures[cached.flags[index]].eval(uvw) * 2._f;
+        color = fixed.textures[cached.flags[index]].eval(uvw) * 2._f;
     }
 
     // evaluate color before checking for occlusion as that invalidates the neighbour list
@@ -299,25 +303,25 @@ Rgba RayTracer::shade(ThreadData& data, const Size index, const Vector& hit, con
     const Vector n = this->evalGradient(data.neighs, hit);
     ASSERT(n != Vector(0._f));
     const Vector n_norm = getNormalized(n);
-    const Float cosPhi = dot(n_norm, params.dirToSun);
+    const Float cosPhi = dot(n_norm, fixed.dirToSun);
     if (cosPhi <= 0._f) {
         // not illuminated
-        return colorizerValue * params.ambientLight;
+        return colorizerValue * params.surface.ambientLight;
     }
 
     // check for occlusion
-    if (params.shadows) {
-        Ray rayToSun(hit - 1.e-3_f * params.dirToSun, -params.dirToSun);
-        if (this->intersect(data, rayToSun, true)) {
+    if (fixed.shadows) {
+        Ray rayToSun(hit - 1.e-3_f * fixed.dirToSun, -fixed.dirToSun);
+        if (this->intersect(data, rayToSun, params.surface.level, true)) {
             // casted shadow
-            return colorizerValue * params.ambientLight;
+            return colorizerValue * params.surface.ambientLight;
         }
     }
 
     // evaluate BRDF
-    const Float f = params.brdf->transport(n_norm, -dir, params.dirToSun);
+    const Float f = fixed.brdf->transport(n_norm, -dir, fixed.dirToSun);
 
-    return colorizerValue * (PI * f * cosPhi * params.sunLight + params.ambientLight);
+    return colorizerValue * (PI * f * cosPhi * params.surface.sunLight + params.surface.ambientLight);
 }
 
 Float RayTracer::evalField(ArrayView<const Size> neighs, const Vector& pos1) const {
@@ -329,7 +333,7 @@ Float RayTracer::evalField(ArrayView<const Size> neighs, const Vector& pos1) con
         const Float w = kernel.value(pos1 - pos2, pos2[H]);
         value += cached.v[index] * w;
     }
-    return value - params.surfaceLevel;
+    return value;
 }
 
 Vector RayTracer::evalGradient(ArrayView<const Size> neighs, const Vector& pos1) const {
@@ -397,14 +401,14 @@ Vector RayTracer::evalUvws(ArrayView<const Size> neighs, const Vector& pos1) con
 }
 
 Rgba RayTracer::getEnviroColor(const Ray& ray) const {
-    if (params.enviro.hdri.empty()) {
-        return params.enviro.color;
+    if (fixed.enviro.hdri.empty()) {
+        return fixed.enviro.color;
     } else {
         const Vector dir = ray.direction();
         /// \todo deduplicate with setupUvws
         const SphericalCoords spherical = cartensianToSpherical(Vector(dir[X], dir[Z], dir[Y]));
         const Vector uvw(spherical.phi / (2._f * PI) + 0.5_f, spherical.theta / PI, 0._f);
-        return params.enviro.hdri.eval(uvw);
+        return fixed.enviro.hdri.eval(uvw);
     }
 }
 

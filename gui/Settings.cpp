@@ -76,6 +76,9 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "If true, ghost particles will be displayed as transparent circles, otherwise they are hidden." },
     { GuiSettingsId::BACKGROUND_COLOR,      "background_color",     Vector(0._f),
         "Background color of the rendered image." },
+    { GuiSettingsId::FORCE_GRAYSCALE,       "force_grayscale",      false,
+        "Palette used for particle colorization is converted to grayscale. Useful for checking how the "
+        "image will look when printed on blank-and-white printer. "},
 
     /// Window settings
     { GuiSettingsId::WINDOW_TITLE,          "window.title",         std::string("OpenSPH"),

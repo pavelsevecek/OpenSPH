@@ -81,12 +81,20 @@ public:
 
     void deselectParticle();
 
+    wxSize getCanvasSize() const;
+
 private:
-    wxBoxSizer* createToolbar(Controller* parent);
+    /// Toolbar on the top, containing buttons for controlling the run.
+    wxBoxSizer* createToolBar();
 
-    wxBoxSizer* createSidebar();
+    /// Panel on the right, with plots and particle info
+    wxBoxSizer* createPlotBar();
 
-    wxBoxSizer* createStatusbar();
+    /// Panel on the left, with visualization controls
+    wxBoxSizer* createVisBar();
+
+    /// Panel on the bottom, with run log and error reporting
+    wxBoxSizer* createStatusBar();
 
     void updateCutoff(const double cutoff);
 

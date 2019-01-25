@@ -27,6 +27,7 @@ class IBoundaryCondition;
 class IMaterial;
 class ILogger;
 class IOutput;
+class IScheduler;
 class IRng;
 class IEquationTerm;
 class IScheduler;
@@ -72,6 +73,8 @@ AutoPtr<IDomain> getDomain(const RunSettings& settings);
 AutoPtr<IBoundaryCondition> getBoundaryConditions(const RunSettings& settings);
 
 AutoPtr<ISymmetricFinder> getFinder(const RunSettings& settings);
+
+SharedPtr<IScheduler> getScheduler(const RunSettings& settings);
 
 
 /// \addtogroup Material components

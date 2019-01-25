@@ -8,6 +8,7 @@
 #include "io/Output.h"
 #include "objects/containers/ArrayRef.h"
 #include "objects/utility/StringUtils.h"
+#include "physics/Functions.h"
 #include "post/Analysis.h"
 #include "post/StatisticTests.h"
 #include "quantities/Quantity.h"
@@ -181,8 +182,8 @@ int ssfToOmega(const Path& filePath,
     return 0;
 }
 
-// prints total ejected mass and period of the LR
-void ssfToStats(const Path& filePath) {
+void ssfToVelDir(const Path& filePath, const Path& outPath) {
+    std::cout << "Processing SPH file ... " << std::endl;
     BinaryInput input;
     Storage storage;
     Statistics stats;
@@ -191,14 +192,103 @@ void ssfToStats(const Path& filePath) {
         std::cout << "Cannot load particle data, " << outcome.error() << std::endl;
         return;
     }
+
+    // convert to system with center at LR
+    Array<Size> idxs = Post::findLargestComponent(storage, 2._f, EMPTY_FLAGS);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    ArrayView<Vector> r, v, dv;
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+    Vector r0(0._f);
+    Vector v0(0._f);
+    Float m0 = 0._f;
+    for (Size i : idxs) {
+        m0 += m[i];
+        r0 += m[i] * r[i];
+        v0 += m[i] * v[i];
+    }
+    r0 /= m0;
+    v0 /= m0;
+
+    for (Size i = 0; i < r.size(); ++i) {
+        r[i] -= r0;
+        v[i] -= v0;
+    }
+
+    // compute velocity directions (in x-y plane)
+    Array<Float> dirs;
+    for (Size i = 0; i < v.size(); ++i) {
+        Float dir = atan2(v[i][Y], v[i][X]);
+        if (dir < 0._f) {
+            dir += 2._f * PI;
+        }
+        dirs.push(dir * RAD_TO_DEG);
+    }
+
+    Post::HistogramParams params;
+    params.range = Interval(0._f, 360._f);
+    params.binCnt = 72; // 5 deg bins
+    Array<Post::HistPoint> hist = Post::getDifferentialHistogram(dirs, params);
+    FileLogger logSfd(outPath, FileLogger::Options::KEEP_OPENED);
+    for (Post::HistPoint& p : hist) {
+        logSfd.write(p.value, "  ", p.count);
+    }
+}
+
+static Pair<Float> getLr(const Path& filePath, const Path& settingsPath) {
+    BinaryInput input;
+    Storage storage;
+    Statistics stats;
+    Outcome outcome = input.load(filePath, storage, stats);
+    if (!outcome) {
+        std::cout << "Cannot load particle data, " << outcome.error() << std::endl;
+        throw;
+    }
+
+    Presets::CollisionParams params;
+    Outcome loaded = params.loadFromFile(settingsPath);
+    if (!loaded) {
+        std::cout << "Cannot load settings, " << loaded.error() << std::endl;
+        throw;
+    }
+
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+
+    Array<Size> idxs = Post::findLargestComponent(storage, 2._f, Post::ComponentFlag::ESCAPE_VELOCITY);
+    Float m_comp = 0._f;
+    for (Size i : idxs) {
+        m_comp += m[i];
+    }
+
+    const Float m_tot = 2700._f * sphereVolume(params.targetRadius);
+    return { m_comp / m_tot,
+        getImpactEnergy(params.targetRadius, params.impactorRadius, params.impactSpeed) };
+}
+
+// prints total ejected mass and period of the LR
+void ssfToStats(const Path& fileDir1, const Path& fileDir2) {
+    Float q1, q2, Q1, Q2;
+    tie(q1, Q1) = getLr(fileDir1 / Path("reacc_final.ssf"), fileDir1 / Path("collision.sph"));
+    tie(q2, Q2) = getLr(fileDir2 / Path("reacc_final.ssf"), fileDir2 / Path("collision.sph"));
+
+
+    // find 0.5
+    const Float a = (q2 - q1) / (Q2 - Q1);
+    const Float b = q2 - a * Q2;
+    const Float Q = (0.5 - b) / a;
+
+    Presets::CollisionParams params;
+    params.loadFromFile(fileDir1 / Path("collision.sph"));
+    std::cout << params.targetRadius << "   " << 2._f * PI / (3600._f * params.targetRotation) << "   " << q1
+              << "   " << q2 << "   " << Q << std::endl;
+
+    /*ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
     ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
 
     const Size largestIdx = std::distance(m.begin(), std::max_element(m.begin(), m.end()));
     const Float m_sum = std::accumulate(m.begin(), m.end(), 0._f);
 
     std::cout << (m_sum - m[largestIdx]) / m_sum << "   "
-              << 2._f * PI / (3600._f * getLength(omega[largestIdx])) << std::endl;
+              << 2._f * PI / (3600._f * getLength(omega[largestIdx])) << std::endl;*/
 }
 
 struct HarrisAsteroid {
@@ -727,8 +817,14 @@ int main(int argc, char** argv) {
                 return 0;
             }
             return ssfToOmega(Path(argv[2]), Path(argv[3]), Path(argv[4]), Path(argv[5]));
+        } else if (mode == "ssfToVelDir") {
+            if (argc < 4) {
+                std::cout << "Expected parameters: post ssfToVelDir output.ssf veldir.txt" << std::endl;
+                return 0;
+            }
+            ssfToVelDir(Path(argv[2]), Path(argv[3]));
         } else if (mode == "stats") {
-            ssfToStats(Path(argv[2]));
+            ssfToStats(Path(argv[2]), Path(argv[3]));
         } else if (mode == "harris") {
             processHarrisFile();
         } else if (mode == "swift") {

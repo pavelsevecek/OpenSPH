@@ -14,8 +14,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-class Deserializer;
-
 /// \brief Helper file generating file names for output files.
 class OutputFile {
 private:
@@ -382,6 +380,49 @@ public:
     };
 
     /// \brief Opens the file and reads header info without reading the rest of the file.
+    Expected<Info> getInfo(const Path& path) const;
+};
+
+enum class CompressedIoVersion : int {
+    FIRST = 0,
+};
+
+enum class CompressionEnum {
+    NONE,
+    RLE,
+};
+
+class CompressedOutput : public IOutput {
+private:
+    CompressionEnum compression;
+    RunTypeEnum runTypeId;
+
+public:
+    explicit CompressedOutput(const OutputFile& fileMask,
+        const CompressionEnum compression,
+        const RunTypeEnum runTypeId = RunTypeEnum::SPH);
+
+    virtual Path dump(const Storage& storage, const Statistics& stats) override;
+};
+
+class CompressedInput : public IInput {
+public:
+    virtual Outcome load(const Path& path, Storage& storage, Statistics& stats) override;
+
+    struct Info {
+        /// Number of particles in the file
+        Size particleCnt;
+
+        /// Run time of the snapshot
+        Float runTime;
+
+        /// Type of the simulation.
+        RunTypeEnum runType;
+
+        /// Format version of the file
+        CompressedIoVersion version;
+    };
+
     Expected<Info> getInfo(const Path& path) const;
 };
 

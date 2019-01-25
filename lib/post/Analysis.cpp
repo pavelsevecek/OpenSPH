@@ -211,27 +211,16 @@ Size Post::findComponents(const Storage& storage,
     return componentCnt;
 }
 
-Array<Size> Post::findLargestComponent(const Storage& storage, const Float particleRadius) {
+Array<Size> Post::findLargestComponent(const Storage& storage,
+    const Float particleRadius,
+    const Flags<ComponentFlag> flags) {
     Array<Size> componentIdxs;
-    const Size componentCnt =
-        Post::findComponents(storage, particleRadius, ComponentFlag::OVERLAP, componentIdxs);
+    Post::findComponents(storage, particleRadius, flags | ComponentFlag::SORT_BY_MASS, componentIdxs);
 
-    // find the masses of each component
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-    Array<Float> masses(componentCnt);
-    masses.fill(0);
-    for (Size i = 0; i < m.size(); ++i) {
-        masses[componentIdxs[i]] += m[i];
-    }
-
-    // find the largest remnant
-    const Size largestComponentIdx =
-        Size(std::distance(masses.begin(), std::max_element(masses.begin(), masses.end())));
-
-    // get the indices
+    // get the indices of the largest component (with index 0)
     Array<Size> idxs;
-    for (Size i = 0; i < m.size(); ++i) {
-        if (componentIdxs[i] == largestComponentIdx) {
+    for (Size i = 0; i < componentIdxs.size(); ++i) {
+        if (componentIdxs[i] == 0) {
             idxs.push(i);
         }
     }

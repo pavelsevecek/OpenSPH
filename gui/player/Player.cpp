@@ -1,6 +1,7 @@
 #include "gui/player/Player.h"
 #include "gui/GuiCallbacks.h"
 #include "gui/Settings.h"
+#include "gui/Utils.h"
 #include "gui/Uvw.h"
 #include "io/FileSystem.h"
 #include "io/Logger.h"
@@ -23,6 +24,8 @@ RunPlayer::RunPlayer(const Path& fileMask)
 static AutoPtr<IInput> getInput(const Path& path) {
     if (path.extension() == Path("ssf")) {
         return makeAuto<BinaryInput>();
+    } else if (path.extension() == Path("scf")) {
+        return makeAuto<CompressedInput>();
     } else {
         std::string str = path.native();
         if (str.substr(str.size() - 3) == ".bt") {
@@ -37,6 +40,10 @@ void RunPlayer::setUp() {
 
     files = OutputFile(fileMask);
     fileCnt = this->getFileCount(fileMask);
+
+    if (fileCnt > 1) {
+        logger->write("Loading sequence of ", fileCnt, " files");
+    }
 
     Statistics stats;
     stats.set(StatisticsId::RUN_TIME, 0._f);
@@ -154,13 +161,14 @@ bool App::OnInit() {
 
     Path fileMask;
     if (wxTheApp->argc == 1) {
-        const std::string desc = "SPH state files (*.ssf)|*.ssf|Pkdgrav output files (*.bt)|*bt|All files|*";
-        wxFileDialog dialog(nullptr, "Open file", "", "", desc, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-        if (dialog.ShowModal() == wxID_CANCEL) {
+        Optional<Path> selectedFile = doOpenFileDialog("Open file",
+            { { "SPH state files", "ssf" },
+                { "SPH compressed files", "scf" },
+                { "Pkdgrav output files", "bt" } });
+        if (!selectedFile) {
             return false;
         }
-        std::string s(dialog.GetPath());
-        fileMask = Path(s);
+        fileMask = selectedFile.value();
 
     } else {
         fileMask = Path(std::string(wxTheApp->argv[1]));
@@ -178,13 +186,13 @@ bool App::OnInit() {
     const bool isNBody = (runType == RunTypeEnum::NBODY) || (runType == RunTypeEnum::RUBBLE_PILE);
 
     GuiSettings gui;
-    gui.set(GuiSettingsId::ORTHO_FOV, 0._f) // 1.e6_f)
+    gui.set(GuiSettingsId::ORTHO_FOV, 0._f)
         .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(768, 768, 0))
         .set(GuiSettingsId::VIEW_WIDTH, 1024)
         .set(GuiSettingsId::VIEW_HEIGHT, 768)
         .set(GuiSettingsId::IMAGES_WIDTH, 1024)
         .set(GuiSettingsId::IMAGES_HEIGHT, 768)
-        .set(GuiSettingsId::WINDOW_WIDTH, 1334)
+        .set(GuiSettingsId::WINDOW_WIDTH, 1600)
         .set(GuiSettingsId::WINDOW_HEIGHT, 768)
         .set(GuiSettingsId::WINDOW_TITLE,
             std::string("OpenSPH viewer - ") + path.native() + " (build: " + __DATE__ + ")")
@@ -193,7 +201,7 @@ bool App::OnInit() {
         .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-1.e6_f, -1.5e6_f, 0._f)))
         .set(GuiSettingsId::SURFACE_SUN_INTENSITY, 0.7_f)
         .set(GuiSettingsId::SURFACE_AMBIENT, 0.3_f)
-        .set(GuiSettingsId::SURFACE_RESOLUTION, 10._f)
+        .set(GuiSettingsId::SURFACE_RESOLUTION, 1e5_f)
         .set(GuiSettingsId::CAMERA, CameraEnum::ORTHO)
         //.set(GuiSettingsId::PERSPECTIVE_TRACKED_PARTICLE, 776703)
         //.set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(-3.e6_f, 4.e6_f, 0._f))
@@ -207,7 +215,7 @@ bool App::OnInit() {
         .set(GuiSettingsId::BACKGROUND_COLOR, Vector(0._f))
         .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
         .set(GuiSettingsId::ORTHO_CUTOFF, 0._f) // 10000._f)
-        .set(GuiSettingsId::ORTHO_ZOFFSET, -4.e6_f)
+        .set(GuiSettingsId::ORTHO_ZOFFSET, -1.e7_f)
         .set(GuiSettingsId::VIEW_GRID_SIZE, 0._f)
         .set(GuiSettingsId::RENDERER, RendererEnum::PARTICLE)
         .set(GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY, std::string(""))
@@ -227,7 +235,7 @@ bool App::OnInit() {
         .set(GuiSettingsId::PALETTE_ENERGY, Interval(100._f, 5.e4_f))
         .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
         .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))*/
-        .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::ALL)
+        .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::KINETIC_ENERGY)
         .set(GuiSettingsId::PLOT_OVERPLOT_SFD, std::string("/home/pavel/Dropbox/family.dat_hc"));
 
     if (runType == RunTypeEnum::NBODY) {

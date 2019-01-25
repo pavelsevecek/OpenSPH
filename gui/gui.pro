@@ -39,7 +39,8 @@ SOURCES += \
     windows/ParticleProbe.cpp \
     Config.cpp \
     windows/PaletteDialog.cpp \
-    objects/Bitmap.cpp
+    objects/Bitmap.cpp \
+    renderers/Spectrum.cpp
 
 HEADERS += \
     ArcBall.h \
@@ -74,4 +75,5 @@ HEADERS += \
     renderers/FrameBuffer.h \
     objects/RenderContext.h \
     windows/PaletteDialog.h \
-    Config.h
+    Config.h \
+    renderers/Spectrum.h

@@ -363,7 +363,7 @@ private:
     ArrayView<const Vector> r;
     ArrayView<const Vector> v;
     ArrayView<const Float> m;
-    Float mergingLimit;
+    Float bounceLimit;
 
     struct {
         Float n;
@@ -374,7 +374,7 @@ private:
 
 public:
     explicit AggregateCollisionHandler(const RunSettings& settings) {
-        mergingLimit = settings.get<Float>(RunSettingsId::COLLISION_MERGING_LIMIT);
+        bounceLimit = settings.get<Float>(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT);
         restitution.n = settings.get<Float>(RunSettingsId::COLLISION_RESTITUTION_NORMAL);
         restitution.t = settings.get<Float>(RunSettingsId::COLLISION_RESTITUTION_TANGENT);
     }
@@ -400,7 +400,7 @@ public:
         }
 
         // if the particles are gravitationally bound, add them to the aggregate, otherwise bounce
-        if (areParticlesBound(m[i] + m[j], r[i][H] + r[j][H], v[i] - v[j], mergingLimit)) {
+        if (areParticlesBound(m[i] + m[j], r[i][H] + r[j][H], v[i] - v[j], bounceLimit)) {
             // add to aggregate
             holder->merge(ag_i, ag_j);
             ag_i.integrate();

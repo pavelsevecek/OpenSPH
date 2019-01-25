@@ -6,7 +6,6 @@
 #include <wx/button.h>
 #include <wx/checkbox.h>
 #include <wx/dcclient.h>
-#include <wx/filedlg.h>
 #include <wx/menu.h>
 #include <wx/sizer.h>
 
@@ -219,24 +218,19 @@ wxBoxSizer* PlotFrame::createToolbar(const Size UNUSED(toolbarHeight)) {
 
     wxButton* savePlotButton = new wxButton(this, wxID_ANY, "Save Plot");
     savePlotButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
-        wxFileDialog saveFile(this,
-            "Save image",
-            "",
-            "",
-            "PNG image (*.png)|*.png|SVG image (*.svg)|*.svg",
-            wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-        if (saveFile.ShowModal() == wxID_OK) {
-            this->saveImage(std::string(saveFile.GetPath()), saveFile.GetFilterIndex());
+        Optional<Path> path =
+            doSaveFileDialog("Save image", { { "PNG image", "png" }, { "SVG image", "svg" } });
+        if (path) {
+            this->saveImage(path.value());
         }
     });
     sizer->Add(savePlotButton, 0, wxALIGN_CENTER_VERTICAL);
 
     wxButton* saveDataButton = new wxButton(this, wxID_ANY, "Save Data");
     saveDataButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
-        wxFileDialog saveFile(
-            this, "Save data", "", "", "Text file (*.txt)|*.txt", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-        if (saveFile.ShowModal() == wxID_OK) {
-            this->saveData(std::string(saveFile.GetPath()));
+        Optional<Path> path = doSaveFileDialog("Save data", { { "Text file", "txt" } });
+        if (path) {
+            this->saveData(path.value());
         }
     });
     sizer->Add(saveDataButton, 0, wxALIGN_CENTER_VERTICAL);
@@ -263,13 +257,8 @@ wxBoxSizer* PlotFrame::createToolbar(const Size UNUSED(toolbarHeight)) {
     return sizer;
 }
 
-void PlotFrame::saveImage(const std::string& pathStr, const int fileIndex) {
-    Path path(pathStr);
-
-    switch (fileIndex) {
-    case 0: { // png file
-        path.replaceExtension("png");
-
+void PlotFrame::saveImage(const Path& path) {
+    if (path.extension() == Path("png")) {
         wxBitmap bitmap(800, 600, wxBITMAP_SCREEN_DEPTH);
         wxMemoryDC dc(bitmap);
         dc.SetBrush(*wxWHITE_BRUSH);
@@ -292,17 +281,14 @@ void PlotFrame::saveImage(const std::string& pathStr, const int fileIndex) {
         dc.SelectObject(wxNullBitmap);
 
         bitmap.SaveFile(path.native().c_str(), wxBITMAP_TYPE_PNG);
-        break;
-    }
-    case 1: { // svg file
-        path.replaceExtension("svg");
-
+    } else if (path.extension() == Path("svg")) {
         auto proxy = plot.lock();
         SvgContext gc(path, Pixel(800, 600));
         AffineMatrix2 matrix = plotView->getPlotTransformMatrix(proxy->rangeX(), proxy->rangeY());
         gc.setTransformMatrix(matrix);
         proxy->plot(gc);
-    }
+    } else {
+        NOT_IMPLEMENTED;
     }
 }
 
@@ -355,9 +341,8 @@ public:
     }
 };
 
-void PlotFrame::saveData(const std::string& pathStr) {
-    Path path(pathStr);
-    path.replaceExtension("txt");
+void PlotFrame::saveData(const Path& path) {
+    ASSERT(path.extension() == Path("txt"));
     auto proxy = plot.lock();
     TextContext context(path);
     proxy->plot(context);

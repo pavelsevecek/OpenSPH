@@ -29,6 +29,8 @@
 #include "sph/solvers/GravitySolver.h"
 #include "sph/solvers/StandardSets.h"
 #include "sph/solvers/SummationSolver.h"
+#include "thread/Pool.h"
+#include "thread/Tbb.h"
 #include "timestepping/TimeStepCriterion.h"
 #include "timestepping/TimeStepping.h"
 
@@ -160,6 +162,19 @@ AutoPtr<ISymmetricFinder> Factory::getFinder(const RunSettings& settings) {
     }
 }
 
+SharedPtr<IScheduler> Factory::getScheduler(const RunSettings& settings) {
+    if (settings.get<int>(RunSettingsId::RUN_THREAD_CNT) == 1) {
+        // optimization - use directly SequentialScheduler instead of thread pool with 1 thread
+        return SequentialScheduler::getGlobalInstance();
+    } else {
+#ifdef SPH_USE_TBB
+        return Tbb::getGlobalInstance();
+#else
+        return ThreadPool::getGlobalInstance();
+#endif
+    }
+}
+
 AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& body) {
     const DistributionEnum id = body.get<DistributionEnum>(BodySettingsId::INITIAL_DISTRIBUTION);
     const bool center = body.get<bool>(BodySettingsId::CENTER_PARTICLES);
@@ -283,7 +298,7 @@ AutoPtr<ICollisionHandler> Factory::getCollisionHandler(const RunSettings& setti
     case CollisionHandlerEnum::ELASTIC_BOUNCE:
         return makeAuto<ElasticBounceHandler>(settings);
     case CollisionHandlerEnum::PERFECT_MERGING:
-        return makeAuto<MergingCollisionHandler>(0._f);
+        return makeAuto<MergingCollisionHandler>(0._f, 0._f);
     case CollisionHandlerEnum::MERGE_OR_BOUNCE:
         return makeAuto<FallbackHandler<MergingCollisionHandler, ElasticBounceHandler>>(settings);
     default:
@@ -427,6 +442,10 @@ AutoPtr<IOutput> Factory::getOutput(const RunSettings& settings) {
     case IoEnum::BINARY_FILE: {
         const RunTypeEnum runType = settings.get<RunTypeEnum>(RunSettingsId::RUN_TYPE);
         return makeAuto<BinaryOutput>(file, runType);
+    }
+    case IoEnum::COMPRESSED_FILE: {
+        const RunTypeEnum runType = settings.get<RunTypeEnum>(RunSettingsId::RUN_TYPE);
+        return makeAuto<CompressedOutput>(file, CompressionEnum::RLE, runType);
     }
     case IoEnum::PKDGRAV_INPUT: {
         PkdgravParams pkd;

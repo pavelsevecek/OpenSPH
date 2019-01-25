@@ -707,9 +707,13 @@ enum class IoEnum {
     /// dump.
     GNUPLOT_OUTPUT,
 
-    /// Binary file. This data dump is lossless and can be use to restart run from saved snapshot. Stores
-    /// values, all derivatives and materials of the storage.
+    /// Full binary output file. This data dump is lossless and can be use to restart run from saved snapshot.
+    /// Stores values, all derivatives and materials of the storage.
     BINARY_FILE,
+
+    /// Compressed binary output file, containing only few selected quantities. This is the most convenient
+    /// format for storing full simulation in high resolution in time.
+    COMPRESSED_FILE,
 
     /// Pkdgrav input file.
     PKDGRAV_INPUT,
@@ -937,11 +941,16 @@ enum class RunSettingsId {
     /// as collision due to numerical imprecisions.
     COLLISION_ALLOWED_OVERLAP,
 
-    /// Multiplier of the relative velocity and the angular velocity of the merger, used when determining
-    /// whether to merge the collided particles or reject the collision. If zero, particles are always merged,
-    /// values slightly lower than 1 can be used to simulate strength, holding together a body rotating above
-    /// breakup limit. Larger values can be used to merge only very slowly moving particles.
-    COLLISION_MERGING_LIMIT,
+    /// Multiplier of the relative velocity, used when determining whether to merge the collided particles or
+    /// reject the collision. If zero, particles are always merged. Larger values than 1 can be used to merge
+    /// only very slowly moving particles.
+    COLLISION_BOUNCE_MERGE_LIMIT,
+
+    /// Parameter analogous to COLLISION_BOUNCE_MERGE_LIMIT, but used for the rotation of the merger.
+    /// Particles can only be merged if the angular frequency multiplied by this parameter is lower than the
+    /// breakup frequency. If zero, particles are always merged, values larger than 1 can be used to avoid
+    /// fast rotators in the simulation.
+    COLLISION_ROTATION_MERGE_LIMIT,
 
     /// Selected solver for computing derivatives of physical variables.
     SOLVER_TYPE,

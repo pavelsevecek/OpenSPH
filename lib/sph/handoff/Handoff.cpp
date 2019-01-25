@@ -179,7 +179,7 @@ Storage convertSphToSpheres(const Storage& sph, const RunSettings& settings, con
     }
 
     if (params.largestRemnant) {
-        Array<Size> idxs = Post::findLargestComponent(sph, 2._f);
+        Array<Size> idxs = Post::findLargestComponent(sph, 2._f, EMPTY_FLAGS);
         ASSERT(std::is_sorted(idxs.begin(), idxs.end()));
 
         // find mass, COM and velocity of the largest remnant

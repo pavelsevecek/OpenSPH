@@ -2,6 +2,7 @@
 
 #include "gui/objects/Color.h"
 #include "objects/containers/Array.h"
+#include "objects/wrappers/Function.h"
 #include "objects/wrappers/Outcome.h"
 #include "quantities/QuantityIds.h"
 
@@ -22,11 +23,13 @@ enum class PaletteScale {
 
 /// \brief Represents a color palette, used for mapping arbitrary number to a color.
 class Palette {
-private:
+public:
     struct Point {
         float value;
         Rgba color;
     };
+
+private:
     Array<Point> points;
     Interval range;
     PaletteScale scale;
@@ -60,6 +63,9 @@ public:
 
     /// \brief Returns the color mapped to given number.
     Rgba operator()(const float value) const;
+
+    /// \brief Returns the palette with colors modified by generic transform.
+    Palette transform(Function<Rgba(const Rgba&)> func) const;
 
     /// \brief Converts a relative position to an absolute position on a palette.
     ///

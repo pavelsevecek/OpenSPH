@@ -58,6 +58,12 @@ public:
     /// than its surface.
     virtual Optional<float> getCutoff() const = 0;
 
+    /// \brief Returns the field of view of the camera.
+    ///
+    /// Note that the meaning of this value may be specific for given camera or it might be undefined, in
+    /// which case the function returns NOTHING.
+    virtual Optional<float> getFov() const = 0;
+
     /// \brief Modifies the clipping distance of the camera.
     ///
     /// The clipping can be disabled by passing NOTHING.
@@ -79,6 +85,9 @@ public:
 
     /// \brief Moves the camera by relative offset
     virtual void pan(const Pixel offset) = 0;
+
+    /// \brief Changes the image size.
+    virtual void resize(const Pixel newSize) = 0;
 
     /// \todo revert to ClonePtr!
     virtual AutoPtr<ICamera> clone() const = 0;
@@ -127,6 +136,8 @@ public:
 
     virtual Optional<float> getCutoff() const override;
 
+    virtual Optional<float> getFov() const override;
+
     virtual void setCutoff(const Optional<float> newCutoff) override;
 
     virtual void zoom(const Pixel fixedPoint, const float magnitude) override;
@@ -134,6 +145,8 @@ public:
     virtual void transform(const AffineMatrix& matrix) override;
 
     virtual void pan(const Pixel offset) override;
+
+    virtual void resize(const Pixel newSize) override;
 
     virtual AutoPtr<ICamera> clone() const override {
         return makeAuto<OrthoCamera>(*this);
@@ -222,6 +235,8 @@ public:
 
     virtual Optional<float> getCutoff() const override;
 
+    virtual Optional<float> getFov() const override;
+
     virtual void setCutoff(const Optional<float> newCutoff) override;
 
     virtual void zoom(const Pixel UNUSED(fixedPoint), const float magnitude) override;
@@ -229,6 +244,8 @@ public:
     virtual void transform(const AffineMatrix& matrix) override;
 
     virtual void pan(const Pixel offset) override;
+
+    virtual void resize(const Pixel newSize) override;
 
     virtual AutoPtr<ICamera> clone() const override {
         return makeAuto<PerspectiveCamera>(*this);

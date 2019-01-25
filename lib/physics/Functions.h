@@ -92,6 +92,13 @@ INLINE Float computeCriticalFrequency(const Float rho) {
 /// \todo replace D with units, do not enforce SI
 Float evalBenzAsphaugScalingLaw(const Float D, const Float rho);
 
+/// \brief Computes the impact energy Q from impact parameters.
+///
+/// \param R Radius of the target
+/// \param r Radius of the impactor
+/// \param v Impact speed.
+Float getImpactEnergy(const Float R, const Float r, const Float v);
+
 /// \brief Returns the the ratio of the cross-sectional area of the impact and the total area of the
 /// impactor.
 ///

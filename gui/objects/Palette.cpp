@@ -127,6 +127,14 @@ Rgba Palette::operator()(const float value) const {
     STOP;
 }
 
+Palette Palette::transform(Function<Rgba(const Rgba&)> func) const {
+    Palette cloned = *this;
+    for (auto& point : cloned.points) {
+        point.color = func(point.color);
+    }
+    return cloned;
+}
+
 float Palette::relativeToPalette(const float value) const {
     ASSERT(value >= 0.f && value <= 1.f);
     const float interpol = points[0].value * (1.f - value) + points.back().value * value;

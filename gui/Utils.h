@@ -9,9 +9,21 @@
 #include "gui/renderers/IRenderer.h"
 #include "objects/Object.h"
 #include "objects/wrappers/Flags.h"
-#include <wx/dc.h>
+
+class wxDC;
 
 NAMESPACE_SPH_BEGIN
+
+class Path;
+
+struct FileFormat {
+    std::string desc;
+    std::string ext;
+};
+
+Optional<Path> doSaveFileDialog(const std::string& title, Array<FileFormat>&& formats);
+
+Optional<Path> doOpenFileDialog(const std::string& title, Array<FileFormat>&& formats);
 
 /// Draws a text into the DC using current font and color, replacing all _x with corresponding subscript
 /// character.

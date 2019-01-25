@@ -62,10 +62,11 @@ AutoPtr<CollisionSettings> CollisionSettings::instance(new CollisionSettings{
 
 template class Settings<CollisionSettingsId>;
 
-bool Presets::CollisionParams::loadFromFile(const Path& path) {
+Outcome Presets::CollisionParams::loadFromFile(const Path& path) {
     CollisionSettings settings;
-    if (!settings.loadFromFile(path)) {
-        return false;
+    Outcome result = settings.loadFromFile(path);
+    if (!result) {
+        return result;
     }
     targetRadius = settings.get<Float>(CollisionSettingsId::TARGET_RADIUS);
     targetRotation =
@@ -78,7 +79,7 @@ bool Presets::CollisionParams::loadFromFile(const Path& path) {
     impactAngle = settings.get<Float>(CollisionSettingsId::IMPACT_ANGLE) * DEG_TO_RAD;
     impactorOffset = settings.get<int>(CollisionSettingsId::IMPACTOR_OFFSET);
     optimizeImpactor = settings.get<bool>(CollisionSettingsId::OPTIMIZE_IMPACTOR);
-    return true;
+    return SUCCESS;
 }
 
 bool Presets::CollisionParams::saveToFile(const Path& path) {

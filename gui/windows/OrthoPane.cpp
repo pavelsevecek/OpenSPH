@@ -13,12 +13,11 @@
 
 NAMESPACE_SPH_BEGIN
 
-OrthoPane::OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings& gui)
+OrthoPane::OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings& UNUSED(gui))
     : IGraphicsPane(parent)
     , controller(controller) {
-    const int width = gui.get<int>(GuiSettingsId::VIEW_WIDTH);
-    const int height = gui.get<int>(GuiSettingsId::VIEW_HEIGHT);
-    this->SetMinSize(wxSize(width, height));
+    /// \todo weird hack, but seems to correctly expand the pane
+    this->SetMinSize(wxSize(10000, 10000));
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(OrthoPane::onPaint));
     this->Connect(wxEVT_MOTION, wxMouseEventHandler(OrthoPane::onMouseMotion));
     this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(OrthoPane::onMouseWheel));
@@ -26,10 +25,15 @@ OrthoPane::OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(OrthoPane::onRightUp));
     this->Connect(wxEVT_LEFT_UP, wxMouseEventHandler(OrthoPane::onLeftUp));
     this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(OrthoPane::onDoubleClick));
+    this->Connect(wxEVT_SIZE, wxSizeEventHandler(OrthoPane::onResize));
 
+    // get the camera from controller; note that since then, we provided the updated camera to controller from
+    // here, the camera is never modified in controller!
     camera = controller->getCurrentCamera();
     particle.lastIdx = -1;
-    arcBall.resize(Pixel(width, height));
+
+    const wxSize size = this->GetSize();
+    arcBall.resize(Pixel(size.x, size.y));
 }
 
 OrthoPane::~OrthoPane() = default;
@@ -126,5 +130,10 @@ void OrthoPane::onMouseWheel(wxMouseEvent& evt) {
     controller->refresh(camera->clone());
 }
 
+void OrthoPane::onResize(wxSizeEvent& evt) {
+    const Pixel newSize(evt.GetSize().x, evt.GetSize().y);
+    arcBall.resize(newSize);
+    camera->resize(newSize);
+}
 
 NAMESPACE_SPH_END

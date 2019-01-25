@@ -25,18 +25,13 @@ private:
 
     LutKernel<3> kernel;
 
+    /// \brief Parameters fixed for the renderer.
+    ///
+    /// Note that additional parameters which can differ for each rendered image are passed to \ref render.
     struct {
-        /// Iso-level of the surface; see GuiSettingsId::SURFACE_LEVEL.
-        Float surfaceLevel;
 
         /// Direction to sun; sun is assumed to be a point light source.
         Vector dirToSun;
-
-        /// Intensity of the ambient light, illuminating every point unconditionally.
-        Float ambientLight;
-
-        /// Intensity of the sunlight.
-        Float sunLight;
 
         /// BRDF used to get the surface reflectance.
         AutoPtr<IBrdf> brdf;
@@ -63,7 +58,7 @@ private:
         /// Number of subsampled iterations.
         Size subsampling;
 
-    } params;
+    } fixed;
 
     IScheduler& scheduler;
 
@@ -121,17 +116,6 @@ public:
 private:
     void refine(const RenderParams& params, const Size iteration, FrameBuffer& fb) const;
 
-    struct ShadeContext {
-        /// Particle hit by the ray
-        Size index;
-
-        /// Ray casted from the camera
-        Ray ray;
-
-        /// Distance of the sphere hit, i.e. the minimap distance of the actual hit.
-        Float t_min;
-    };
-
     /// \param Creates a neighbour list for given particle.
     ///
     /// The neighbour list is cached and can be reused by the calling thread next time the function is called.
@@ -141,15 +125,38 @@ private:
     /// \brief Returns the intersection of the iso-surface.
     ///
     /// If no intersection exists, function returns NOTHING.
-    Optional<Vector> intersect(ThreadData& data, const Ray& ray, const bool occlusion) const;
+    Optional<Vector> intersect(ThreadData& data,
+        const Ray& ray,
+        const Float surfaceLevel,
+        const bool occlusion) const;
+
+    struct IntersectContext {
+        /// Particle hit by the ray.
+        Size index;
+
+        /// Ray casted from the camera.
+        Ray ray;
+
+        /// Distance of the sphere hit, i.e. the minimap distance of the actual hit.
+        Float t_min;
+
+        /// Selected value of the iso-surface.
+        Float surfaceLevel;
+    };
 
     /// \brief Finds the actual surface point for given shade context.
     ///
     /// If no such point exists, function returns NOTHING.
-    Optional<Vector> getSurfaceHit(ThreadData& data, const ShadeContext& context, const bool occlusion) const;
+    Optional<Vector> getSurfaceHit(ThreadData& data,
+        const IntersectContext& context,
+        const bool occlusion) const;
 
     /// \brief Returns the color of given hit point.
-    Rgba shade(ThreadData& data, const Size index, const Vector& hit, const Vector& dir) const;
+    Rgba shade(ThreadData& data,
+        const RenderParams& params,
+        const Size index,
+        const Vector& hit,
+        const Vector& dir) const;
 
     Rgba getEnviroColor(const Ray& ray) const;
 

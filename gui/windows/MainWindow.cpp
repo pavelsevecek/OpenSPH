@@ -2,6 +2,7 @@
 #include "gui/Controller.h"
 #include "gui/Factory.h"
 #include "gui/MainLoop.h"
+#include "gui/Utils.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/renderers/MeshRenderer.h"
@@ -26,11 +27,6 @@
 #include <wx/textctrl.h>
 
 NAMESPACE_SPH_BEGIN
-
-enum class ControlIds {
-    QUANTITY_BOX,
-    RENDERER_BOX,
-};
 
 class SelectedParticleIntegral : public IIntegral<Float> {
 private:
@@ -168,16 +164,20 @@ MainWindow::MainWindow(Controller* parent, const GuiSettings& settings, RawPtr<I
 
     // toolbar
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-    wxBoxSizer* toolbarSizer = createToolbar(parent);
+    wxBoxSizer* toolbarSizer = createToolBar();
     sizer->Add(toolbarSizer);
 
     // everything below toolbar
     wxBoxSizer* mainSizer = new wxBoxSizer(wxHORIZONTAL);
+    wxBoxSizer* visBarSizer = createVisBar();
+    mainSizer->Add(visBarSizer);
+    mainSizer->AddSpacer(5);
+
     pane = alignedNew<OrthoPane>(this, parent, settings);
     mainSizer->Add(pane.get(), 4);
     mainSizer->AddSpacer(5);
 
-    wxBoxSizer* sidebarSizer = createSidebar();
+    wxBoxSizer* sidebarSizer = createPlotBar();
     mainSizer->Add(sidebarSizer);
     sizer->Add(mainSizer);
 
@@ -187,7 +187,7 @@ MainWindow::MainWindow(Controller* parent, const GuiSettings& settings, RawPtr<I
     } else {
         // status bar
         sizer->AddSpacer(5);
-        wxBoxSizer* statusSizer = createStatusbar();
+        wxBoxSizer* statusSizer = createStatusBar();
         sizer->Add(statusSizer);
     }
 
@@ -198,54 +198,60 @@ MainWindow::MainWindow(Controller* parent, const GuiSettings& settings, RawPtr<I
     Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(MainWindow::onClose));
 }
 
-wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
+wxBoxSizer* MainWindow::createToolBar() {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     wxBoxSizer* toolbar = new wxBoxSizer(wxHORIZONTAL);
 
     wxButton* button = new wxButton(this, wxID_ANY, "Start");
-    button->Bind(wxEVT_BUTTON, [parent](wxCommandEvent& UNUSED(evt)) { parent->restart(); });
+    button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { controller->restart(); });
     toolbar->Add(button);
 
     button = new wxButton(this, wxID_ANY, "Pause");
     toolbar->Add(button);
-    button->Bind(wxEVT_BUTTON, [parent](wxCommandEvent& UNUSED(evt)) { parent->pause(); });
+    button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { controller->pause(); });
 
     button = new wxButton(this, wxID_ANY, "Stop");
     toolbar->Add(button);
-    button->Bind(wxEVT_BUTTON, [parent](wxCommandEvent& UNUSED(evt)) { parent->stop(); });
+    button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { controller->stop(); });
 
-
-    static wxString fileDesc = "SPH state file (*.ssf)|*.ssf|Text file (*.txt)|*.txt";
     button = new wxButton(this, wxID_ANY, "Save");
     toolbar->Add(button);
-    button->Bind(wxEVT_BUTTON, [parent, this](wxCommandEvent& UNUSED(evt)) {
-        wxFileDialog saveFileDialog(
-            this, _("Save state file"), "", "", fileDesc, wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-        if (saveFileDialog.ShowModal() == wxID_CANCEL) {
+    button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
+        static Array<FileFormat> fileFormats = {
+            { "SPH state file", "ssf" }, { "SPH compressed file", "scf" }, { "Text file", "txt" }
+        };
+        Optional<Path> path = doSaveFileDialog("Save state file", fileFormats.clone());
+        if (!path) {
             return;
         }
-        Path path(std::string(saveFileDialog.GetPath()));
-        if (saveFileDialog.GetFilterIndex() == 0) {
-            path.replaceExtension("ssf");
-        } else {
-            path.replaceExtension("txt");
-        }
-        parent->saveState(path);
+        controller->saveState(path.value());
     });
 
     button = new wxButton(this, wxID_ANY, "Load");
     toolbar->Add(button);
-    button->Bind(wxEVT_BUTTON, [parent, this](wxCommandEvent& UNUSED(evt)) {
-        wxFileDialog loadFileDialog(
-            this, _("Load state file"), "", "", fileDesc, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-        if (loadFileDialog.ShowModal() == wxID_CANCEL) {
+    button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
+        static Array<FileFormat> fileFormats = { { "SPH state file", "ssf" } };
+        Optional<Path> path = doOpenFileDialog("Load state file", fileFormats.clone());
+        if (!path) {
             return;
         }
-        const std::string path(loadFileDialog.GetPath());
-        parent->loadState(Path(path).replaceExtension("ssf"));
+        controller->loadState(path.value());
     });
 
-    quantityBox = new wxComboBox(this, int(ControlIds::QUANTITY_BOX), "");
+    button = new wxButton(this, wxID_ANY, "Snap");
+    toolbar->Add(button);
+    button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
+        Optional<Path> path = doSaveFileDialog("Save image", { { "PNG image", "png" } });
+        if (!path) {
+            return;
+        }
+        const wxBitmap& bitmap = controller->getRenderedBitmap();
+        saveToFile(bitmap, path.value());
+    });
+
+    toolbar->AddSpacer(480);
+
+    quantityBox = new wxComboBox(this, wxID_ANY, "");
     quantityBox->SetWindowStyle(wxCB_SIMPLE | wxCB_READONLY);
     quantityBox->SetSelection(0);
     quantityBox->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& UNUSED(evt)) {
@@ -256,12 +262,46 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
     });
     toolbar->Add(quantityBox);
 
-    toolbar->Add(new wxStaticText(this, wxID_ANY, "Cutoff"), 0, wxALIGN_CENTER_VERTICAL);
+    wxButton* resetView = new wxButton(this, wxID_ANY, "Reset view");
+    resetView->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
+        pane->resetView();
+        AutoPtr<ICamera> camera = controller->getCurrentCamera();
+        camera->transform(AffineMatrix::identity());
+        controller->refresh(std::move(camera));
+    });
+    toolbar->Add(resetView);
+
+    wxButton* refresh = new wxButton(this, wxID_ANY, "Refresh");
+    refresh->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { controller->tryRedraw(); });
+    toolbar->Add(refresh);
+
+    gauge = new wxGauge(this, wxID_ANY, 1000);
+    gauge->SetValue(0);
+    gauge->SetMinSize(wxSize(300, -1));
+    toolbar->AddSpacer(10);
+    toolbar->Add(gauge, 0, wxALIGN_CENTER_VERTICAL);
+    return toolbar;
+}
+
+wxBoxSizer* MainWindow::createVisBar() {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    wxBoxSizer* visbarSizer = new wxBoxSizer(wxVERTICAL);
+
+    const wxSize buttonSize(250, 35);
+    const wxSize textSize(120, -1);
+    wxRadioButton* particleButton =
+        new wxRadioButton(this, wxID_ANY, "Particles", wxDefaultPosition, buttonSize, wxRB_GROUP);
+    visbarSizer->Add(particleButton);
+
+    wxBoxSizer* cutoffSizer = new wxBoxSizer(wxHORIZONTAL);
+    cutoffSizer->AddSpacer(25);
+    wxStaticText* text = new wxStaticText(this, wxID_ANY, "Cutoff", wxDefaultPosition, textSize);
+    cutoffSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
     const Float cutoff = gui.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
     wxSpinCtrlDouble* cutoffSpinner =
         new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, wxSize(145, -1));
     cutoffSpinner->SetRange(0., 1000000.);
-    cutoffSpinner->SetValue(int(cutoff));
+    cutoffSpinner->SetValue(cutoff);
     cutoffSpinner->SetDigits(3);
     cutoffSpinner->SetIncrement(1);
     cutoffSpinner->Bind(
@@ -277,53 +317,135 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
         }
         prevPos = evt.GetPosition();
     });
-    toolbar->Add(cutoffSpinner);
+    cutoffSizer->Add(cutoffSpinner);
+    visbarSizer->Add(cutoffSizer);
 
-    wxComboBox* rendererBox = new wxComboBox(this, int(ControlIds::RENDERER_BOX), "");
-    rendererBox->SetWindowStyle(wxCB_SIMPLE | wxCB_READONLY);
-    rendererBox->Append("Particles");
-    rendererBox->Append("Mesh");
-    rendererBox->Append("Surface");
-    rendererBox->SetSelection(0);
-    rendererBox->Bind(wxEVT_COMBOBOX, [this, rendererBox](wxCommandEvent& UNUSED(evt)) {
+    wxBoxSizer* particleSizeSizer = new wxBoxSizer(wxHORIZONTAL);
+    particleSizeSizer->AddSpacer(25);
+    text = new wxStaticText(this, wxID_ANY, "Particle radius", wxDefaultPosition, textSize);
+    particleSizeSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
+    wxSpinCtrlDouble* particleSizeSpinner =
+        new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, wxSize(145, -1));
+    const Float radius = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
+    particleSizeSpinner->SetValue(radius);
+    particleSizeSpinner->SetDigits(3);
+    particleSizeSpinner->SetRange(0.001, 1.);
+    particleSizeSpinner->SetIncrement(0.001);
+    particleSizeSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent& evt) {
+        GuiSettings& gui = controller->getParams();
+        gui.set(GuiSettingsId::PARTICLE_RADIUS, evt.GetValue());
+        controller->tryRedraw();
+    });
+    particleSizeSizer->Add(particleSizeSpinner);
+    visbarSizer->Add(particleSizeSizer);
+
+
+    wxBoxSizer* grayscaleSizer = new wxBoxSizer(wxHORIZONTAL);
+    grayscaleSizer->AddSpacer(25);
+    wxCheckBox* grayscaleBox = new wxCheckBox(this, wxID_ANY, "Force grayscale");
+    grayscaleBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
+        const bool value = evt.IsChecked();
+        GuiSettings& gui = controller->getParams();
+        gui.set(GuiSettingsId::FORCE_GRAYSCALE, value);
+        controller->tryRedraw();
+    });
+    grayscaleSizer->Add(grayscaleBox);
+    visbarSizer->Add(grayscaleSizer);
+
+    wxRadioButton* meshButton =
+        new wxRadioButton(this, wxID_ANY, "Surface mesh", wxDefaultPosition, buttonSize, 0);
+    visbarSizer->Add(meshButton);
+
+    wxRadioButton* surfaceButton =
+        new wxRadioButton(this, wxID_ANY, "Raytraced surface", wxDefaultPosition, buttonSize, 0);
+    visbarSizer->Add(surfaceButton);
+
+    wxBoxSizer* levelSizer = new wxBoxSizer(wxHORIZONTAL);
+    levelSizer->AddSpacer(25);
+    text = new wxStaticText(this, wxID_ANY, "Surface level", wxDefaultPosition, textSize);
+    levelSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
+    const Float level = gui.get<Float>(GuiSettingsId::SURFACE_LEVEL);
+    wxSpinCtrlDouble* levelSpinner =
+        new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, wxSize(145, -1));
+    levelSpinner->SetRange(0., 10.);
+    levelSpinner->SetValue(level);
+    levelSpinner->SetDigits(3);
+    levelSpinner->SetIncrement(0.001);
+    levelSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent& evt) {
+        GuiSettings& gui = controller->getParams();
+        gui.set(GuiSettingsId::SURFACE_LEVEL, evt.GetValue());
+        controller->tryRedraw();
+    });
+    levelSizer->Add(levelSpinner);
+    visbarSizer->Add(levelSizer);
+
+    wxBoxSizer* sunlightSizer = new wxBoxSizer(wxHORIZONTAL);
+    sunlightSizer->AddSpacer(25);
+    text = new wxStaticText(this, wxID_ANY, "Sunlight", wxDefaultPosition, textSize);
+    sunlightSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
+    const Float sunlight = gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY);
+    wxSpinCtrlDouble* sunlightSpinner =
+        new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, wxSize(145, -1));
+    sunlightSpinner->SetRange(0., 10.);
+    sunlightSpinner->SetValue(sunlight);
+    sunlightSpinner->SetDigits(3);
+    sunlightSpinner->SetIncrement(0.001);
+    sunlightSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent& evt) {
+        GuiSettings& gui = controller->getParams();
+        gui.set(GuiSettingsId::SURFACE_SUN_INTENSITY, evt.GetValue());
+        controller->tryRedraw();
+    });
+    sunlightSizer->Add(sunlightSpinner);
+    visbarSizer->Add(sunlightSizer);
+
+    wxBoxSizer* ambientSizer = new wxBoxSizer(wxHORIZONTAL);
+    ambientSizer->AddSpacer(25);
+    text = new wxStaticText(this, wxID_ANY, "Ambient", wxDefaultPosition, textSize);
+    ambientSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
+    const Float ambient = gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
+    wxSpinCtrlDouble* ambientSpinner =
+        new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, wxSize(145, -1));
+    ambientSpinner->SetRange(0., 10.);
+    ambientSpinner->SetValue(ambient);
+    ambientSpinner->SetDigits(3);
+    ambientSpinner->SetIncrement(0.001);
+    ambientSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent& evt) {
+        GuiSettings& gui = controller->getParams();
+        gui.set(GuiSettingsId::SURFACE_AMBIENT, evt.GetValue());
+        controller->tryRedraw();
+    });
+    ambientSizer->Add(ambientSpinner);
+    visbarSizer->Add(ambientSizer);
+
+
+    auto enableControls = [=](int renderIdx) {
+        cutoffSpinner->Enable(renderIdx == 0);
+        particleSizeSpinner->Enable(renderIdx == 0);
+        levelSpinner->Enable(renderIdx == 2);
+        sunlightSpinner->Enable(renderIdx == 2);
+        ambientSpinner->Enable(renderIdx == 2);
+    };
+    enableControls(0);
+
+    particleButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-        const int idx = rendererBox->GetSelection();
+        controller->setRenderer(makeAuto<ParticleRenderer>(gui));
+        enableControls(0);
+    });
+    meshButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
+        CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         IScheduler& scheduler = *ThreadPool::getGlobalInstance();
-        switch (idx) {
-        case 0:
-            controller->setRenderer(makeAuto<ParticleRenderer>(gui));
-            break;
-        case 1:
-            controller->setRenderer(makeAuto<MeshRenderer>(scheduler, gui));
-            break;
-        case 2:
-            controller->setRenderer(makeAuto<RayTracer>(scheduler, gui));
-            break;
-        default:
-            NOT_IMPLEMENTED;
-        }
+        controller->setRenderer(makeAuto<MeshRenderer>(scheduler, gui));
+        enableControls(1);
     });
-    toolbar->Add(rendererBox);
-
-    wxButton* resetView = new wxButton(this, wxID_ANY, "Reset view");
-    resetView->Bind(wxEVT_BUTTON, [this, parent](wxCommandEvent& UNUSED(evt)) {
-        pane->resetView();
-        AutoPtr<ICamera> camera = parent->getCurrentCamera();
-        camera->transform(AffineMatrix::identity());
-        parent->refresh(std::move(camera));
+    surfaceButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
+        CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+        IScheduler& scheduler = *ThreadPool::getGlobalInstance();
+        controller->setRenderer(makeAuto<RayTracer>(scheduler, gui));
+        enableControls(2);
     });
-    toolbar->Add(resetView);
 
-    wxButton* refresh = new wxButton(this, wxID_ANY, "Refresh");
-    refresh->Bind(wxEVT_BUTTON, [parent](wxCommandEvent& UNUSED(evt)) { parent->tryRedraw(); });
-    toolbar->Add(refresh);
-
-    gauge = new wxGauge(this, wxID_ANY, 1000);
-    gauge->SetValue(0);
-    gauge->SetMinSize(wxSize(300, -1));
-    toolbar->AddSpacer(10);
-    toolbar->Add(gauge, 0, wxALIGN_CENTER_VERTICAL);
-    return toolbar;
+    return visbarSizer;
 }
 
 void MainWindow::updateCutoff(const double cutoff) {
@@ -393,7 +515,7 @@ static Array<Post::HistPoint> getOverplotSfd(const GuiSettings& gui) {
     return overplotSfd;
 }
 
-wxBoxSizer* MainWindow::createSidebar() {
+wxBoxSizer* MainWindow::createPlotBar() {
     wxBoxSizer* sidebarSizer = new wxBoxSizer(wxVERTICAL);
     probe = new ParticleProbe(this, wxSize(300, 155));
     sidebarSizer->Add(probe.get(), 1, wxALIGN_TOP);
@@ -555,7 +677,7 @@ wxBoxSizer* MainWindow::createSidebar() {
     return sidebarSizer;
 }
 
-wxBoxSizer* MainWindow::createStatusbar() {
+wxBoxSizer* MainWindow::createStatusBar() {
     wxBoxSizer* statusSizer = new wxBoxSizer(wxHORIZONTAL);
     wxSize size;
     size.x = gui.get<int>(GuiSettingsId::VIEW_WIDTH) / 2 - 2;
@@ -723,6 +845,10 @@ void MainWindow::setSelectedParticle(const Particle& particle, const Rgba color)
 void MainWindow::deselectParticle() {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     probe->clear();
+}
+
+wxSize MainWindow::getCanvasSize() const {
+    return pane->GetSize();
 }
 
 void MainWindow::onClose(wxCloseEvent& evt) {

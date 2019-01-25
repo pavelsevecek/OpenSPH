@@ -89,6 +89,21 @@ struct Coords : public BasicPoint<float, Coords> {
     explicit Coords(const Pixel p)
         : BasicPoint<float, Coords>(p.x, p.y) {}
 
+    Coords operator*(const Coords& other) const {
+        Coords res = *this;
+        res.x *= other.x;
+        res.y *= other.y;
+        return res;
+    }
+
+    Coords operator/(const Coords& other) const {
+        Coords res = *this;
+        ASSERT(other.x != 0.f && other.y != 0.f);
+        res.x /= other.x;
+        res.y /= other.y;
+        return res;
+    }
+
     explicit operator Pixel() const {
         return Pixel(int(x), int(y));
     }

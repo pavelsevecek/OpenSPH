@@ -279,6 +279,11 @@ static RegisterEnum<IoEnum> sIo({
         "binary_file",
         "Save output data into binary file. This data dump is lossless and can be use to restart run from "
         "saved snapshot. Stores values, all derivatives and materials of the storage." },
+    { IoEnum::COMPRESSED_FILE,
+        "compressed_file",
+        "Compressed binary output file, containing only few selected quantities. This is the most convenient "
+        "format for storing full simulation in high resolution in time. Cannot be used to continue "
+        "simulation." },
     { IoEnum::PKDGRAV_INPUT, "pkdgrav_input", "Generate a pkdgrav input file." },
 });
 
@@ -452,11 +457,16 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::COLLISION_ALLOWED_OVERLAP,     "collision.allowed_overlap",        0.01_f,
         "Maximum relative overlap of particle that is still classified as collision rather than overlap. Needed "
         "mainly for numerical reasons (floating-point arithmetics). "},
-    { RunSettingsId::COLLISION_MERGING_LIMIT,       "collision.merging_limit",          1._f,
+    { RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT,       "collision.bounce_merge_limit",    1._f,
         "Multiplier of the relative velocity and the angular velocity of the merger, used when determining "
         "whether to merge the collided particles or reject the collision. If zero, particles are always merged, "
         "values slightly lower than 1 can be used to simulate strength, holding together a body rotating above "
         "the breakup limit. Larger values can be used to merge only very slowly moving particles." },
+    { RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT,     "collision.rotation_merge_limit",  1._f,
+        "Parameter analogous to collision.bounce_merge_limit, but used for the rotation of the merger. "
+        "Particles can only be merged if the angular frequency multiplied by this parameter is lower than the "
+        "breakup frequency. If zero, particles are always merged, values larger than 1 can be used to avoid "
+        "fast rotators in the simulation." },
 
     /// Timestepping parameters
     { RunSettingsId::TIMESTEPPING_INTEGRATOR,       "timestep.integrator",      TimesteppingEnum::PREDICTOR_CORRECTOR,
@@ -640,7 +650,7 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
         "Surface tension of the fluid. Not applicable for solids nor gass." },
     { BodySettingsId::BULK_POROSITY,           "material.bulk_porosity",       0.4_f,
         "Bulk (macro)porosity of the material, used when creating a rubble-pile body" },
-    { BodySettingsId::HEAT_CAPACITY,           "material.heat_capacity",       1000._f,
+    { BodySettingsId::HEAT_CAPACITY,           "material.heat_capacity",       700._f,
         "Specific heat capacity at constant pressure. While it is generally a function of temperature, "
         "this value can be used to estimate the temperature from the internal energy." },
 

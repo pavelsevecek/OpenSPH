@@ -100,7 +100,7 @@ public:
 
     /// \brief Returns the average intensity of the color.
     float intensity() const {
-        return (data[0] + data[1] + data[2]) / 3.f;
+        return 0.2126f * data[0] + 0.7152f * data[1] + 0.0722f * data[2];
     }
 
     /// \brief Blends two colors together using "over" operation.
@@ -162,10 +162,6 @@ public:
     static Rgba transparent() {
         return Rgba(0.f, 0.f, 0.f, 0.f);
     }
-
-    /*INLINE friend Rgba max(const Rgba& c1, const Rgba& c2) {
-        return Rgba(max(c1[0], c2[0]), max(c1[1], c2[1]), max(c1[2], c2[2]));
-    }*/
 
 private:
     Rgba preserveAlpha(const Rgba& color) const {

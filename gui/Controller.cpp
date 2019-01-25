@@ -129,16 +129,20 @@ void Controller::stop(const bool waitForFinish) {
 void Controller::saveState(const Path& path) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     auto dump = [path](const Storage& storage, const Statistics& stats) {
+        AutoPtr<IOutput> output;
         if (path.extension() == Path("ssf")) {
-            BinaryOutput output(path);
-            output.dump(storage, stats);
+            /// \todo run type!
+            output = makeAuto<BinaryOutput>(path);
+        } else if (path.extension() == Path("scf")) {
+            output = makeAuto<CompressedOutput>(path, CompressionEnum::RLE, RunTypeEnum::SPH);
         } else {
             ASSERT(path.extension() == Path("txt"));
-            TextOutput output(path,
-                "unnamed",
-                OutputQuantityFlag::INDEX | OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY);
-            output.dump(storage, stats);
+            Flags<OutputQuantityFlag> flags =
+                OutputQuantityFlag::INDEX | OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY;
+            output = makeAuto<TextOutput>(path, "unnamed", flags);
         }
+
+        output->dump(storage, stats);
     };
 
     if (status == RunStatus::RUNNING) {
@@ -650,6 +654,7 @@ void Controller::startRunThread(const Path& path) {
 
         // if we want to resume run from state file, load the storage
         if (!path.empty()) {
+            ASSERT(path.extension() == Path("ssf"));
             BinaryInput input;
             Statistics stats;
             Outcome result = input.load(path, *storage, stats);
@@ -710,11 +715,16 @@ void Controller::startRenderThread() {
             vis.renderThreadVar.wait(renderLock, [this] { return vis.needsRefresh.load(); });
             vis.needsRefresh = false;
             ASSERT(vis.isInitialized());
+
+            const wxSize canvasSize = window->getCanvasSize();
             RenderParams params;
+            params.size = Pixel(canvasSize.x, canvasSize.y);
             params.particles.scale = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
-            params.size =
-                Pixel(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
-            params.selectedParticle = vis.selectedParticle;
+            params.particles.selected = vis.selectedParticle;
+            params.particles.grayScale = gui.get<bool>(GuiSettingsId::FORCE_GRAYSCALE);
+            params.surface.level = gui.get<Float>(GuiSettingsId::SURFACE_LEVEL);
+            params.surface.ambientLight = gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
+            params.surface.sunLight = gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY);
 
             vis.cameraMutex.lock();
             params.camera = vis.camera->clone();

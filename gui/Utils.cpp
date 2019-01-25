@@ -1,10 +1,62 @@
 #include "gui/Utils.h"
 #include "common/Assert.h"
+#include "io/FileSystem.h"
 #include "objects/utility/StringUtils.h"
 #include <iomanip>
 #include <wx/dcmemory.h>
+#include <wx/filedlg.h>
 
 NAMESPACE_SPH_BEGIN
+
+static std::string getDesc(ArrayView<const FileFormat> formats) {
+    std::string desc;
+    bool isFirst = true;
+    for (const FileFormat& format : formats) {
+        if (!isFirst) {
+            desc += "|";
+        }
+        isFirst = false;
+        desc += format.desc + " (*." + format.ext + ")|*." + format.ext;
+    }
+    return desc;
+}
+
+static Optional<std::pair<Path, int>> doFileDialog(const std::string& title,
+    const std::string& fileMask,
+    std::string& defaultDir,
+    const int flags) {
+    wxFileDialog dialog(nullptr, title, "", defaultDir, fileMask, flags);
+    if (dialog.ShowModal() == wxID_CANCEL) {
+        return NOTHING;
+    }
+    std::string s(dialog.GetPath());
+    Path path(std::move(s));
+    defaultDir = path.parentPath().native();
+    return std::make_pair(path, dialog.GetFilterIndex());
+}
+
+Optional<Path> doOpenFileDialog(const std::string& title, Array<FileFormat>&& formats) {
+    static std::string defaultDir = "";
+    Optional<std::pair<Path, int>> pathAndIndex =
+        doFileDialog(title, getDesc(formats), defaultDir, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (pathAndIndex) {
+        return pathAndIndex->first;
+    } else {
+        return NOTHING;
+    }
+}
+
+Optional<Path> doSaveFileDialog(const std::string& title, Array<FileFormat>&& formats) {
+    static std::string defaultDir = "";
+    Optional<std::pair<Path, int>> pathAndIndex =
+        doFileDialog(title, getDesc(formats), defaultDir, wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    if (pathAndIndex) {
+        const std::string ext = formats[pathAndIndex->second].ext;
+        return pathAndIndex->first.replaceExtension(ext);
+    } else {
+        return NOTHING;
+    }
+}
 
 static Size getSubscriptSize(const std::wstring& text) {
     Size size = 0;

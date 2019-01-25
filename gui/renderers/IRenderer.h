@@ -56,21 +56,44 @@ struct RenderParams {
     /// \brief Camera used for rendering.
     AutoPtr<ICamera> camera;
 
+    /// \brief Parameters of the particle renderer
     struct {
-        ///  Scaling factor of drawn particles relative to 1. Can be (in theory) any positive value.
+        /// \brief  Scaling factor of drawn particles relative to 1.
+        ///
+        /// Can be (in theory) any positive value.
         float scale = 1.f;
+
+        /// \brief Highlighted particle (only for interactive view).
+        ///
+        /// If NOTHING, no particle is selected.
+        Optional<Size> selected = NOTHING;
+
+        /// \brief If true, the palette is converted to grayscale.
+        bool grayScale = false;
 
     } particles;
 
+    /// \brief Parameters of rendered vectors
     struct {
 
-        /// Length of the drawn vectors in pixels;
+        /// \brief Length of the drawn vectors in pixels;
         float length = 100.f;
 
     } vectors;
 
-    /// \brief Highlighted particle (only for interactive view). If NOTHING, no particle is selected.
-    Optional<Size> selectedParticle = NOTHING;
+    /// \brief Parameters of rendered surface
+    struct {
+
+        /// \brief Value of the iso-surface defining the rendered surface
+        float level = 0.15f;
+
+        /// \brief Intensity of the ambient light, illuminating every point unconditionally.
+        Float ambientLight = 0.3f;
+
+        /// \brief Intensity of the sunlight.
+        Float sunLight = 0.7f;
+
+    } surface;
 };
 
 /// \brief Interface used to implement renderers.

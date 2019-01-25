@@ -318,8 +318,9 @@ Path GnuplotOutput::dump(const Storage& storage, const Statistics& stats) {
 namespace {
 
 /// \todo this should be really part of the serializer/deserializer, otherwise it's kinda pointless
+template <bool Precise>
 struct SerializerDispatcher {
-    Serializer& serializer;
+    Serializer<Precise>& serializer;
 
     template <typename T>
     void operator()(const T& value) {
@@ -345,12 +346,11 @@ struct SerializerDispatcher {
         // compatibility)
         serializer.write(e.value, 0);
     }
-    void operator()(const ClonePtr<ISettingsValue>&) {
-        NOT_IMPLEMENTED;
-    }
 };
+
+template <bool Precise>
 struct DeserializerDispatcher {
-    Deserializer& deserializer;
+    Deserializer<Precise>& deserializer;
 
     template <typename T>
     void operator()(T& value) {
@@ -385,8 +385,8 @@ struct DeserializerDispatcher {
 
 struct StoreBuffersVisitor {
     template <typename TValue>
-    void visit(const Quantity& q, Serializer& serializer, const IndexSequence& sequence) {
-        SerializerDispatcher dispatcher{ serializer };
+    void visit(const Quantity& q, Serializer<true>& serializer, const IndexSequence& sequence) {
+        SerializerDispatcher<true> dispatcher{ serializer };
         StaticArray<const Array<TValue>&, 3> buffers = q.getAll<TValue>();
         for (Size i : sequence) {
             dispatcher(buffers[0][i]);
@@ -416,11 +416,11 @@ struct StoreBuffersVisitor {
 struct LoadBuffersVisitor {
     template <typename TValue>
     void visit(Storage& storage,
-        Deserializer& deserializer,
+        Deserializer<true>& deserializer,
         const IndexSequence& sequence,
         const QuantityId id,
         const OrderEnum order) {
-        DeserializerDispatcher dispatcher{ deserializer };
+        DeserializerDispatcher<true> dispatcher{ deserializer };
         Array<TValue> buffer(sequence.size());
         for (Size i : sequence) {
             dispatcher(buffer[i]);
@@ -465,7 +465,7 @@ Path BinaryOutput::dump(const Storage& storage, const Statistics& stats) {
 
     const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
 
-    Serializer serializer(fileName);
+    Serializer<true> serializer(fileName);
     // file format identifier
     const Size materialCnt = storage.getMaterialCnt();
     const Size quantityCnt = storage.getQuantityCnt() - int(storage.has(QuantityId::MATERIAL_ID));
@@ -499,7 +499,7 @@ Path BinaryOutput::dump(const Storage& storage, const Statistics& stats) {
         }
     }
 
-    SerializerDispatcher dispatcher{ serializer };
+    SerializerDispatcher<true> dispatcher{ serializer };
     const bool hasMaterials = materialCnt > 0;
     // dump quantities separated by materials
     for (Size matIdx = 0; matIdx < max(materialCnt, Size(1)); ++matIdx) {
@@ -563,7 +563,7 @@ void setTypeHash(const BodySettings& settings, const BodySettingsId paramId, Enu
 
 
 static Expected<Storage> loadMaterial(const Size matIdx,
-    Deserializer& deserializer,
+    Deserializer<true>& deserializer,
     ArrayView<QuantityId> ids,
     const BinaryIoVersion version) {
     Size matIdxCheck;
@@ -603,7 +603,7 @@ static Expected<Storage> loadMaterial(const Size matIdx,
             { CONSTRUCT_TYPE_IDX, valueId } };
 
         forValue(iteratorValue.value, [&deserializer, &body, paramId](auto& entry) {
-            DeserializerDispatcher{ deserializer }(entry);
+            DeserializerDispatcher<true>{ deserializer }(entry);
             // little hack: EnumWrapper is loaded with typeHash 0 (as it cannot be serialized, so we have to
             // set it to correct value, otherwise it would trigger asserts in set function.
             setTypeHash(body, paramId, entry);
@@ -647,7 +647,7 @@ static Optional<RunTypeEnum> readRunType(char* buffer, const BinaryIoVersion ver
 
 Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats) {
     storage.removeAll();
-    Deserializer deserializer(path);
+    Deserializer<true> deserializer(path);
     std::string identifier;
     Float time, timeStep;
     Size particleCnt, quantityCnt, materialCnt;
@@ -733,7 +733,7 @@ Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) const {
     char runTypeBuffer[16];
     std::string identifier;
     try {
-        Deserializer deserializer(path);
+        Deserializer<true> deserializer(path);
         deserializer.read(identifier,
             info.runTime,
             info.particleCnt,
@@ -750,6 +750,186 @@ Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) const {
     }
     info.runType = readRunType(runTypeBuffer, info.version);
     return std::move(info);
+}
+
+/// ----------------------------------------------------------------------------------------------------------
+/// CompressedOutput/Input
+/// ----------------------------------------------------------------------------------------------------------
+
+CompressedOutput::CompressedOutput(const OutputFile& fileMask,
+    const CompressionEnum compression,
+    const RunTypeEnum runTypeId)
+    : IOutput(fileMask)
+    , compression(compression)
+    , runTypeId(runTypeId) {}
+
+const int MAGIC_NUMBER = 42;
+
+template <typename T>
+static void compressQuantity(Serializer<false>& serializer,
+    const CompressionEnum compression,
+    const Array<T>& values) {
+    SerializerDispatcher<false> dispatcher{ serializer };
+    if (compression == CompressionEnum::RLE) {
+        dispatcher(MAGIC_NUMBER);
+
+        // StaticArray<char, 256> lastBuffer;
+        T lastValue(NAN);
+        Size count = 0;
+        for (Size i = 0; i < values.size(); ++i) {
+            /// \todo this should be done properly! We need to compare the actually written data, not the
+            /// original values!!
+            if (!almostEqual(values[i], lastValue, 1.e-4_f)) {
+                if (count > 0) {
+                    // end of the run, write the count
+                    dispatcher(count);
+                    count = 0;
+                }
+                dispatcher(values[i]);
+                lastValue = values[i];
+            } else {
+                if (count == 0) {
+                    // first repeated value, write again to mark the start of the run
+                    dispatcher(lastValue);
+                }
+                ++count;
+            }
+        }
+        // close the last run
+        if (count > 0) {
+            dispatcher(count);
+        }
+    } else {
+        ASSERT(compression == CompressionEnum::NONE);
+        for (Size i = 0; i < values.size(); ++i) {
+            dispatcher(values[i]);
+        }
+    }
+}
+
+template <typename T>
+static void decompressQuantity(Deserializer<false>& deserializer,
+    const CompressionEnum compression,
+    Array<T>& values) {
+    DeserializerDispatcher<false> dispatcher{ deserializer };
+
+    if (compression == CompressionEnum::RLE) {
+        int magic;
+        dispatcher(magic);
+        if (magic != MAGIC_NUMBER) {
+            throw SerializerException("Invalid compression", 0);
+        }
+
+        T lastValue = T(NAN);
+        Size i = 0;
+        while (i < values.size()) {
+            dispatcher(values[i]);
+            if (values[i] != lastValue) {
+                lastValue = values[i];
+                ++i;
+            } else {
+                Size count;
+                dispatcher(count);
+                ASSERT(i + count <= values.size());
+                for (Size j = 0; j < count; ++j) {
+                    values[i++] = lastValue;
+                }
+            }
+        }
+    } else {
+        for (Size i = 0; i < values.size(); ++i) {
+            dispatcher(values[i]);
+        }
+    }
+}
+
+Path CompressedOutput::dump(const Storage& storage, const Statistics& stats) {
+    const Path fileName = paths.getNextPath(stats);
+    FileSystem::createDirectory(fileName.parentPath());
+
+    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
+
+    Serializer<false> serializer(fileName);
+    serializer.write("CPRSPH", time, storage.getParticleCnt(), compression, CompressedIoVersion::FIRST);
+
+    /// \todo runType as string
+    serializer.write(runTypeId);
+    serializer.addPadding(230);
+
+    // mandatory, without prefix
+    compressQuantity(serializer, compression, storage.getValue<Vector>(QuantityId::POSITION));
+    compressQuantity(serializer, compression, storage.getDt<Vector>(QuantityId::POSITION));
+
+    Array<QuantityId> expectedIds{
+        QuantityId::MASS, QuantityId::DENSITY, QuantityId::ENERGY, QuantityId::DAMAGE
+    };
+    Array<QuantityId> ids;
+    Size count = 0;
+    for (QuantityId id : expectedIds) {
+        if (storage.has(id)) {
+            ++count;
+            ids.push(id);
+        }
+    }
+    serializer.write(count);
+
+    for (QuantityId id : ids) {
+        serializer.write(id);
+        compressQuantity(serializer, compression, storage.getValue<Float>(id));
+    }
+
+    return fileName;
+}
+
+Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& stats) {
+    storage.removeAll();
+    Deserializer<false> deserializer(path);
+    std::string identifier;
+    Float time;
+    Size particleCnt;
+    CompressedIoVersion version;
+    CompressionEnum compression;
+    RunTypeEnum runTypeId;
+    try {
+        deserializer.read(identifier, time, particleCnt, compression, version, runTypeId);
+    } catch (SerializerException&) {
+        return "Invalid file format";
+    }
+    if (identifier != "CPRSPH") {
+        return "Invalid format specifier: expected CPRSPH, got " + identifier;
+    }
+    stats.set(StatisticsId::RUN_TIME, time);
+    try {
+        deserializer.skip(230);
+    } catch (SerializerException&) {
+        return "Incorrect header size";
+    }
+
+    try {
+        Array<Vector> positions(particleCnt);
+        decompressQuantity(deserializer, compression, positions);
+        storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(positions));
+
+        Array<Vector> velocities(particleCnt);
+        decompressQuantity(deserializer, compression, velocities);
+        storage.getDt<Vector>(QuantityId::POSITION) = std::move(velocities);
+
+        Size count;
+        deserializer.read(count);
+        for (Size i = 0; i < count; ++i) {
+            QuantityId id;
+            deserializer.read(id);
+            Array<Float> values(particleCnt);
+            decompressQuantity(deserializer, compression, values);
+            storage.insert<Float>(id, OrderEnum::ZERO, std::move(values));
+        }
+    } catch (SerializerException& e) {
+        return e.what();
+    }
+
+    ASSERT(storage.isValid());
+
+    return SUCCESS;
 }
 
 /// ----------------------------------------------------------------------------------------------------------

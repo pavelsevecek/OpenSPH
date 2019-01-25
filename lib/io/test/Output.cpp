@@ -52,12 +52,12 @@ TEST_CASE("TextOutput dump", "[output]") {
 }
 
 template <typename TValue>
-static bool almostEqual(const Array<TValue>& b1, const Array<TValue>& b2) {
+static bool almostEqual(const Array<TValue>& b1, const Array<TValue>& b2, const Float eps = EPS) {
     struct Element {
         TValue v1, v2;
     };
     for (Element e : iterateTuple<Element>(b1, b2)) {
-        if (!almostEqual(e.v1, e.v2)) {
+        if (!almostEqual(e.v1, e.v2, eps)) {
             return false;
         }
     }
@@ -329,6 +329,43 @@ TEST_CASE("BinaryOutput backward compatibility", "[output]") {
     testVersion(BinaryIoVersion::FIRST);
     testVersion(BinaryIoVersion::V2018_04_07);
     testVersion(BinaryIoVersion::V2018_10_24);
+}
+
+static void testCompression(CompressionEnum compression) {
+    Storage storage = Tests::getSolidStorage(1200);
+    Statistics stats;
+    stats.set(StatisticsId::RUN_TIME, 20._f);
+
+    ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
+    rho[5] = 5._f;
+    rho[6] = 5._f + EPS;
+
+    static RandomPathManager manager;
+
+    Path path = manager.getPath("scf");
+    CompressedOutput output(path, compression);
+    output.dump(storage, stats);
+
+    Storage loaded;
+    CompressedInput input;
+    REQUIRE(input.load(path, loaded, stats));
+
+    REQUIRE(almostEqual(storage.getValue<Vector>(QuantityId::POSITION),
+        loaded.getValue<Vector>(QuantityId::POSITION),
+        1.e-6_f));
+    REQUIRE(almostEqual(
+        storage.getDt<Vector>(QuantityId::POSITION), loaded.getDt<Vector>(QuantityId::POSITION), 1.e-6_f));
+    for (QuantityId id : { QuantityId::MASS, QuantityId::DENSITY, QuantityId::ENERGY }) {
+        REQUIRE(almostEqual(storage.getValue<Float>(id), loaded.getValue<Float>(id), 1.e-6_f));
+    }
+}
+
+TEST_CASE("CompressedOutput no compression", "[output]") {
+    testCompression(CompressionEnum::NONE);
+}
+
+TEST_CASE("CompressedOutput RLE", "[output]") {
+    testCompression(CompressionEnum::RLE);
 }
 
 TEST_CASE("Pkdgrav output", "[output]") {

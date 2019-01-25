@@ -113,7 +113,7 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const Color
     case ColorizerId::TOTAL_ENERGY:
         return makeAuto<EnergyColorizer>(getPalette(id));
     case ColorizerId::TEMPERATURE:
-        return makeAuto<TemperatureColorizer>(getPalette(id));
+        return makeAuto<TemperatureColorizer>();
     case ColorizerId::TOTAL_STRESS:
         return makeAuto<StressColorizer>(getPalette(id));
     case ColorizerId::YIELD_REDUCTION:

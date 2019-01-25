@@ -161,6 +161,8 @@ enum class GuiSettingsId {
 
     BACKGROUND_COLOR,
 
+    FORCE_GRAYSCALE,
+
     RENDER_GHOST_PARTICLES,
 
     /// Displayed radius of particle in units of smoothing length

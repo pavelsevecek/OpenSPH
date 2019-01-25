@@ -64,7 +64,9 @@ Size findComponents(const Storage& storage,
 /// \brief Returns the indices of particles belonging to the largest remnant.
 ///
 /// The returned indices are sorted.
-Array<Size> findLargestComponent(const Storage& storage, const Float particleRadius);
+Array<Size> findLargestComponent(const Storage& storage,
+    const Float particleRadius,
+    const Flags<ComponentFlag> flags);
 
 
 struct Tumbler {

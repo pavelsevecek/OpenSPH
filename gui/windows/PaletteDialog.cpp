@@ -3,11 +3,11 @@
 #include "gui/objects/Colorizer.h"
 #include "gui/objects/RenderContext.h"
 #include "gui/renderers/ParticleRenderer.h"
+#include "gui/renderers/Spectrum.h"
 #include "io/FileSystem.h"
 #include <wx/button.h>
 #include <wx/combobox.h>
 #include <wx/dcclient.h>
-#include <wx/filedlg.h>
 #include <wx/panel.h>
 #include <wx/sizer.h>
 #include <wx/spinctrl.h>
@@ -208,20 +208,15 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
     paletteBox->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& UNUSED(evt)) { this->update(); });
 
     loadButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
-        static std::string desc = "Palette files (*.csv)|*.csv";
-        static std::string defaultDir;
-        wxFileDialog dialog(nullptr, "Load palette", defaultDir, "", desc, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-        if (dialog.ShowModal() == wxID_CANCEL) {
+        Optional<Path> path = doOpenFileDialog("Load palette", { { "Palette files", "csv" } });
+        if (!path) {
             return;
         }
-        const Path path(std::string(dialog.GetPath()));
-        defaultDir = path.parentPath().native();
-
         paletteMap.clear();
-        for (Path file : FileSystem::iterateDirectory(path.parentPath())) {
+        for (Path file : FileSystem::iterateDirectory(path->parentPath())) {
             if (file.extension().native() == "csv") {
                 Palette palette = initial;
-                if (palette.loadFromFile(path.parentPath() / file)) {
+                if (palette.loadFromFile(path->parentPath() / file)) {
                     paletteMap.insert(file.native(), palette);
                 }
             }
@@ -230,7 +225,7 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
         int selectionIdx = 0, idx = 0;
         for (FlatMap<std::string, Palette>::Element& e : paletteMap) {
             items.Add(e.key);
-            if (e.key == path.fileName().native()) {
+            if (e.key == path->fileName().native()) {
                 // this is the palette we selected
                 selectionIdx = idx;
             }
@@ -248,8 +243,9 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
 
 void PaletteDialog::setDefaultPaletteList() {
     paletteMap = {
-        { "Default", initial },
+        { "(default)", initial },
         { "Grayscale", Factory::getPalette(ColorizerId(QuantityId::DAMAGE)) },
+        { "Blackbody", getBlackBodyPalette(Interval(300, 12000)) },
         { "Hot and cold", Factory::getPalette(ColorizerId::DENSITY_PERTURBATION) },
         { "Velocity", Factory::getPalette(ColorizerId::VELOCITY) },
     };

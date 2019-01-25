@@ -18,31 +18,32 @@ namespace Detail {
 ///
 /// Every type used in serialization must explicitly specialize the class. Only std::string has dedicated
 /// member functions in (de)serializer classes and does not have to be specialized.
-template <typename T, typename TEnabler = void>
+template <bool Precise, typename T, typename TEnabler = void>
 struct SerializedType;
 
-template <typename T>
-struct SerializedType<T, std::enable_if_t<std::is_integral<T>::value || std::is_enum<T>::value>> {
+template <bool Precise, typename T>
+struct SerializedType<Precise, T, std::enable_if_t<std::is_integral<T>::value || std::is_enum<T>::value>> {
     // convert all intergral types and enums to int64_t
-    using Type = int64_t;
+    using Type = std::conditional_t<Precise, int64_t, int32_t>;
 };
-template <typename T>
-struct SerializedType<T, std::enable_if_t<std::is_floating_point<T>::value>> {
+template <bool Precise, typename T>
+struct SerializedType<Precise, T, std::enable_if_t<std::is_floating_point<T>::value>> {
     // convert floating point types to double
-    using Type = double;
+    using Type = std::conditional_t<Precise, double, float>;
 };
-template <Size N>
-struct SerializedType<char[N]> {
+template <bool Precise, Size N>
+struct SerializedType<Precise, char[N]> {
     // keep char[] as is
     using Type = std::add_lvalue_reference_t<const char[N]>;
 };
 
-template <typename T>
-using Serialized = typename SerializedType<T>::Type;
+template <bool Precise, typename T>
+using Serialized = typename SerializedType<Precise, T>::Type;
 
 } // namespace Detail
 
 /// \brief Object providing serialization of primitives into a stream
+template <bool Precise>
 class Serializer : public Noncopyable {
 private:
     std::ofstream ofs;
@@ -73,7 +74,7 @@ private:
     template <typename T0, typename... TArgs>
     void serializeImpl(Array<char>& bytes, const T0& t0, const TArgs&... args) {
         const Size size = bytes.size();
-        using ActType = Detail::Serialized<T0>;
+        using ActType = Detail::Serialized<Precise, T0>;
 
         bytes.resize(size + sizeof(ActType));
         ActType serializable = static_cast<ActType>(t0);
@@ -119,6 +120,7 @@ public:
 };
 
 /// \brief Object for reading serialized primitives from input stream
+template <bool Precise>
 class Deserializer : public Noncopyable {
 private:
     std::ifstream ifs;
@@ -154,7 +156,7 @@ private:
     template <typename T0, typename... TArgs>
     void readImpl(T0& t0, TArgs&... args) {
         static_assert(!std::is_array<T0>::value, "String must be read as std::string");
-        using ActType = Detail::Serialized<T0>;
+        using ActType = Detail::Serialized<Precise, T0>;
         buffer.resize(sizeof(ActType));
         if (!ifs.read(&buffer[0], sizeof(ActType))) {
             /// \todo maybe print the name of the primitive?

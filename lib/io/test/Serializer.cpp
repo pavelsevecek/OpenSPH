@@ -7,7 +7,7 @@ using namespace Sph;
 TEST_CASE("Serialize", "[serialize]") {
     Path path("serialized");
     {
-        Serializer serializer(path);
+        Serializer<true> serializer(path);
         serializer.write(5, 5u, 'c', 3.f, 4., "SPH");
         serializer.addPadding(13);
         serializer.write(std::string("test"));
@@ -15,7 +15,7 @@ TEST_CASE("Serialize", "[serialize]") {
     REQUIRE(FileSystem::fileSize(path) == 44 + 13 + 5);
 
     {
-        Deserializer deserializer(path);
+        Deserializer<true> deserializer(path);
         Size p1;
         int64_t p2;
         int p3;

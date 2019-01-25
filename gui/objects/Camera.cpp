@@ -86,6 +86,10 @@ Optional<float> OrthoCamera::getCutoff() const {
     return data.cutoff;
 }
 
+Optional<float> OrthoCamera::getFov() const {
+    return imageSize.y / data.fov.value();
+}
+
 void OrthoCamera::setCutoff(const Optional<float> newCutoff) {
     data.cutoff = newCutoff;
 }
@@ -104,6 +108,12 @@ void OrthoCamera::transform(const AffineMatrix& matrix) {
 
 void OrthoCamera::pan(const Pixel offset) {
     center += offset;
+}
+
+void OrthoCamera::resize(const Pixel newSize) {
+    const Coords scaling = Coords(newSize) / Coords(imageSize);
+    imageSize = newSize;
+    center = Pixel(Coords(center) * scaling);
 }
 
 /// ----------------------------------------------------------------------------------------------------------
@@ -181,6 +191,10 @@ Optional<float> PerspectiveCamera::getCutoff() const {
     return NOTHING;
 }
 
+Optional<float> PerspectiveCamera::getFov() const {
+    return data.fov;
+}
+
 void PerspectiveCamera::setCutoff(const Optional<float> UNUSED(newCutoff)) {}
 
 void PerspectiveCamera::zoom(const Pixel UNUSED(fixedPoint), const float magnitude) {
@@ -205,6 +219,11 @@ void PerspectiveCamera::pan(const Pixel offset) {
     const Vector worldOffset = getLength(data.target - data.position) * (cached.left * x + cached.up * y);
     data.position -= worldOffset;
     data.target -= worldOffset;
+}
+
+void PerspectiveCamera::resize(const Pixel newSize) {
+    imageSize = newSize;
+    this->update();
 }
 
 void PerspectiveCamera::update() {

@@ -60,6 +60,8 @@ private:
     void onDoubleClick(wxMouseEvent& evt);
 
     void onMouseWheel(wxMouseEvent& evt);
+
+    void onResize(wxSizeEvent& evt);
 };
 
 NAMESPACE_SPH_END

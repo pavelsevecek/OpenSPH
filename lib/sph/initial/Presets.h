@@ -82,7 +82,7 @@ struct CollisionParams : public TwoBodyParams {
 
 
     /// \brief Loads the parameters from given configuration file, overriding current values.
-    bool loadFromFile(const Path& path);
+    Outcome loadFromFile(const Path& path);
 
     /// \brief Saves the parameters into a given configuration file.
     bool saveToFile(const Path& path);

@@ -125,15 +125,18 @@ private:
 
     /// \todo filling factor, collapse of particles in contact must result in sphere of same volume!
 
-    Float mergingLimit;
+    Float bounceLimit;
+    Float rotationLimit;
 
 public:
     explicit MergingCollisionHandler(const RunSettings& settings) {
-        mergingLimit = settings.get<Float>(RunSettingsId::COLLISION_MERGING_LIMIT);
+        bounceLimit = settings.get<Float>(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT);
+        rotationLimit = settings.get<Float>(RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT);
     }
 
-    explicit MergingCollisionHandler(const Float mergingLimit)
-        : mergingLimit(mergingLimit) {}
+    explicit MergingCollisionHandler(const Float bounceLimit, const Float rotationLimit)
+        : bounceLimit(bounceLimit)
+        , rotationLimit(rotationLimit) {}
 
     virtual void initialize(Storage& storage) override {
         ArrayView<Vector> dv;
@@ -244,14 +247,14 @@ private:
     /// \param h Radius of the merger
     /// \param omega Angular velocity of the merger
     INLINE bool acceptMerge(const Size i, const Size j, const Float h, const Vector& omega) const {
-        if (!areParticlesBound(m[i] + m[j], r[i][H] + r[j][H], v[i] - v[j], mergingLimit)) {
+        if (!areParticlesBound(m[i] + m[j], r[i][H] + r[j][H], v[i] - v[j], bounceLimit)) {
             // moving too fast, reject the merge
             /// \todo shouldn't we check velocities AFTER the bounce?
             return false;
         }
         const Float omegaCritSqr = Constants::gravity * (m[i] + m[j]) / pow<3>(h);
         const Float omegaSqr = getSqrLength(omega);
-        if (omegaSqr * mergingLimit > omegaCritSqr) {
+        if (omegaSqr * rotationLimit > omegaCritSqr) {
             // rotates too fast, reject the merge
             return false;
         }
@@ -392,7 +395,7 @@ private:
 
 public:
     MergeOverlapHandler()
-        : handler(0._f) {}
+        : handler(0._f, 0._f) {}
 
     virtual void initialize(Storage& storage) override {
         handler.initialize(storage);
@@ -511,12 +514,14 @@ public:
     ArrayView<Vector> r, v, omega;
     ArrayView<Float> m;
 
-    Float mergingLimit;
+    Float bounceLimit;
+    Float rotationLimit;
 
 public:
     explicit MergeBoundHandler(const RunSettings& settings)
         : handler(settings) {
-        mergingLimit = settings.get<Float>(RunSettingsId::COLLISION_MERGING_LIMIT);
+        bounceLimit = settings.get<Float>(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT);
+        rotationLimit = settings.get<Float>(RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT);
     }
 
     virtual void initialize(Storage& storage) override {
@@ -530,7 +535,7 @@ public:
 
     virtual bool overlaps(const Size i, const Size j) const override {
         const Float m_merger = m[i] + m[j];
-        if (!areParticlesBound(m_merger, r[i][H] + r[j][H], v[i] - v[j], mergingLimit)) {
+        if (!areParticlesBound(m_merger, r[i][H] + r[j][H], v[i] - v[j], bounceLimit)) {
             // moving too fast, reject the merge
             /// \todo shouldn't we check velocities AFTER the bounce?
             return false;
@@ -547,7 +552,7 @@ public:
                                 Rigid::sphereInertia(m[j], r[j][H]) * omega[j];
         const Vector omega_merger = Rigid::sphereInertia(m_merger, h_merger).inverse() * L_merger;
         const Float omegaSqr = getSqrLength(omega_merger);
-        if (omegaSqr * mergingLimit > omegaCritSqr) {
+        if (omegaSqr * rotationLimit > omegaCritSqr) {
             // rotates too fast, reject the merge
             return false;
         }
