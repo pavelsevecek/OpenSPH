@@ -351,18 +351,15 @@ TEST_CASE("KdTree empty leaf bug", "[finders]") {
     // before 2018-10-23, this test would produce empty leafs in KdTree and fail a sanity check
 
     RunSettings settings;
-    BodySettings body;
-    Size N = 1000;
 
-    Presets::CollisionParams params;
-    params.targetRadius = 1.e5_f;
-    params.impactorRadius = 1.3e4_f;
-    params.impactAngle = 0._f * DEG_TO_RAD;
-    params.impactSpeed = 5.e3_f;
-    params.body = body;
+    CollisionParams params;
+    params.geometry.set(CollisionGeometrySettingsId::TARGET_RADIUS, 1.e5_f)
+        .set(CollisionGeometrySettingsId::IMPACTOR_RADIUS, 1.3e4_f)
+        .set(CollisionGeometrySettingsId::IMPACT_ANGLE, 0._f)
+        .set(CollisionGeometrySettingsId::IMPACT_SPEED, 5.e3_f);
 
     Storage storage;
-    Presets::Collision collision(SEQUENTIAL, settings, params);
+    CollisionInitialConditions collision(SEQUENTIAL, settings, params);
     collision.addTarget(storage);
     collision.addImpactor(storage);
 

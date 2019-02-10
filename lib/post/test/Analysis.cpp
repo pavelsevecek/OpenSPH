@@ -7,6 +7,7 @@
 #include "objects/utility/PerElementWrapper.h"
 #include "physics/Constants.h"
 #include "physics/Functions.h"
+#include "post/Point.h"
 #include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "sph/initial/Distribution.h"
@@ -216,4 +217,13 @@ TEST_CASE("Angular Frequency", "[post]") {
 
     const Vector w = Post::getAngularFrequency(m, r, v, Vector(0._f), Vector(0._f));
     REQUIRE(w == approx(omega, 1.e-3_f));
+}
+
+TEST_CASE("Linear Regression", "[post]") {
+    Array<PlotPoint> points = { { 0, 2 }, { 2, 3 }, { 6, 5 } };
+    Post::LinearFunction func = Post::computeLinearRegression(points);
+
+    REQUIRE(func.slope() == 0.5_f);
+    REQUIRE(func.offset() == 2);
+    REQUIRE(func.solve(4) == 4);
 }

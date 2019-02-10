@@ -150,20 +150,6 @@ public:
     std::string toString() const;
 };
 
-/// Exception thrown by FileLogger
-class IoError : public std::exception {
-private:
-    std::string message;
-
-public:
-    explicit IoError(const std::string& message)
-        : message(message) {}
-
-    virtual const char* what() const noexcept override {
-        return message.c_str();
-    }
-};
-
 /// File output logger
 class FileLogger : public ILogger {
 public:

@@ -118,13 +118,12 @@ private:
     MaterialInitialContext context;
 
 public:
-    /// \brief Constructs object by taking a reference to particle storage.
+    /// \brief Constructs object by taking a reference to a solver using in the simulation.
     ///
-    /// Subsequent calls of \ref addBody function fill this storage with particles.
     /// \param scheduler Scheduler used for parallelization.
     /// \param solver Solver used to create all the necessary quantities. Also must exist for the duration
     ///               of this object as it is stored by reference.
-    /// \param settings Run settings
+    /// \param settings Run settings used to initialize \ref MaterialInitialContext.
     InitialConditions(IScheduler& scheduler, ISolver& solver, const RunSettings& settings);
 
     /// \brief Constructor creating solver from values in settings.
@@ -239,6 +238,7 @@ void repelParticles(ArrayView<Vector> r, const Float radius);
 /// Function can be also used for particle velocities, modifying them so that the total momentum is zero.
 /// \param m Particle masses; must be positive values
 /// \param r Particle positions (or velocities)
-void moveToCenterOfMassSystem(ArrayView<const Float> m, ArrayView<Vector> r);
+/// \return Computed center of mass, subtracted from positions.
+Vector moveToCenterOfMassSystem(ArrayView<const Float> m, ArrayView<Vector> r);
 
 NAMESPACE_SPH_END

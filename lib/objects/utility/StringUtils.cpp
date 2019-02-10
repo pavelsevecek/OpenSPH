@@ -52,6 +52,21 @@ Optional<float> fromString(const std::string& s) {
     }
 }
 
+template <>
+Optional<double> fromString(const std::string& s) {
+    try {
+        std::size_t idx;
+        const double result = std::stod(s, &idx);
+        if (idx == s.size()) {
+            return result;
+        } else {
+            return NOTHING;
+        }
+    } catch (std::exception&) {
+        return NOTHING;
+    }
+}
+
 std::string trim(const std::string& s) {
     Size i1 = 0;
     for (; i1 < s.size(); ++i1) {

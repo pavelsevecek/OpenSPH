@@ -61,7 +61,7 @@ public:
             MaterialView mat = storage.getMaterial(matId);
             const Vector center = mat->getParam<Vector>(BodySettingsId::BODY_CENTER);
             const Vector v0 = mat->getParam<Vector>(BodySettingsId::BODY_VELOCITY);
-            const Vector omega0 = mat->getParam<Vector>(BodySettingsId::BODY_ANGULAR_VELOCITY);
+            const Vector omega0 = mat->getParam<Vector>(BodySettingsId::BODY_SPIN_RATE);
             for (Size i : mat.sequence()) {
                 // gradually decrease the delta
                 const Float factor =

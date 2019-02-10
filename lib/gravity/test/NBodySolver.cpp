@@ -16,9 +16,9 @@ using namespace Sph;
 template <typename TTimestepping, typename TFunctor>
 static void integrate(SharedPtr<Storage> storage, ISolver& solver, const Float dt, TFunctor functor) {
     RunSettings settings;
-    settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, dt);
-    settings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, dt);
-    settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
+    settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, dt)
+        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, dt)
+        .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     TTimestepping timestepping(storage, settings);
@@ -148,10 +148,10 @@ static SharedPtr<Storage> makeTwoParticles() {
 
 TYPED_TEST_CASE_2("Collision bounce two", "[nbody]", T, EulerExplicit, LeapFrog) {
     RunSettings settings;
-    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::ELASTIC_BOUNCE);
-    settings.set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 1._f);
-    settings.set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 1._f);
-    settings.set(RunSettingsId::NBODY_INERTIA_TENSOR, true);
+    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::ELASTIC_BOUNCE)
+        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 1._f)
+        .set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 1._f)
+        .set(RunSettingsId::NBODY_INERTIA_TENSOR, true);
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     NBodySolver solver(pool, settings);
@@ -226,9 +226,10 @@ TYPED_TEST_CASE_2("Collision bounce two", "[nbody]", T, EulerExplicit, LeapFrog)
 
 TYPED_TEST_CASE_2("Collision merge two", "[nbody]", T, EulerExplicit, LeapFrog) {
     RunSettings settings;
-    settings.set(RunSettingsId::NBODY_INERTIA_TENSOR, true);
-    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::PERFECT_MERGING);
-    settings.set(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, 0._f);
+    settings.set(RunSettingsId::NBODY_INERTIA_TENSOR, true)
+        .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::PERFECT_MERGING)
+        .set(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, 0._f)
+        .set(RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT, 0._f);
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     NBodySolver solver(pool, settings);
@@ -324,9 +325,10 @@ TYPED_TEST_CASE_2("Collision merge two", "[nbody]", T, EulerExplicit, LeapFrog) 
 TYPED_TEST_CASE_2("Collision merge off-center", "[nbody]", T, EulerExplicit, LeapFrog) {
     // hit on high impact angle should give the body some rotation
     RunSettings settings;
-    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::PERFECT_MERGING);
-    settings.set(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, 0._f);
-    settings.set(RunSettingsId::NBODY_INERTIA_TENSOR, true);
+    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::PERFECT_MERGING)
+        .set(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, 0._f)
+        .set(RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT, 0._f)
+        .set(RunSettingsId::NBODY_INERTIA_TENSOR, true);
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     NBodySolver solver(pool, settings);
@@ -378,9 +380,10 @@ TYPED_TEST_CASE_2("Collision merge off-center", "[nbody]", T, EulerExplicit, Lea
 
 TYPED_TEST_CASE_2("Collision merge miss", "[nbody]", T, EulerExplicit, LeapFrog) {
     RunSettings settings;
-    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::PERFECT_MERGING);
-    settings.set(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, 0._f);
-    settings.set(RunSettingsId::NBODY_INERTIA_TENSOR, true);
+    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::PERFECT_MERGING)
+        .set(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, 0._f)
+        .set(RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT, 0._f)
+        .set(RunSettingsId::NBODY_INERTIA_TENSOR, true);
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     NBodySolver solver(pool, settings);
@@ -403,9 +406,9 @@ TYPED_TEST_CASE_2("Collision merge miss", "[nbody]", T, EulerExplicit, LeapFrog)
 
 TYPED_TEST_CASE_2("Collision merge rejection", "[nbody]", T, EulerExplicit, LeapFrog) {
     RunSettings settings;
-    settings.set(RunSettingsId::NBODY_INERTIA_TENSOR, true);
-    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::MERGE_OR_BOUNCE);
-    settings.set(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, 1.e6_f); // to reject the collision
+    settings.set(RunSettingsId::NBODY_INERTIA_TENSOR, true)
+        .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::MERGE_OR_BOUNCE)
+        .set(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, 1.e6_f); // to reject the collision
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     NBodySolver solver(pool, settings);
@@ -481,10 +484,11 @@ static SharedPtr<Storage> runCloud(const RunSettings& settings, const Size parti
 TYPED_TEST_CASE_2("Collision cloud merge", "[nbody]", T, EulerExplicit, LeapFrog) {
     // just check that many particles fired into one point will all merge into a single particle
     RunSettings settings;
-    settings.set(RunSettingsId::NBODY_INERTIA_TENSOR, true);
-    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::PERFECT_MERGING);
-    settings.set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::FORCE_MERGE);
-    settings.set(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, 0._f);
+    settings.set(RunSettingsId::NBODY_INERTIA_TENSOR, true)
+        .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::PERFECT_MERGING)
+        .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::FORCE_MERGE)
+        .set(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, 0._f)
+        .set(RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT, 0._f);
     SharedPtr<Storage> storage = runCloud<T>(settings, 100);
 
     // all particles should be merged into one
@@ -495,10 +499,11 @@ TYPED_TEST_CASE_2("Collision cloud merge&bounce", "[nbody]", T, EulerExplicit, L
     // similar to above, more or less tests that MERGE_OR_BOUNCE with REPEL overlap handler will not cause any
     // assert
     RunSettings settings;
-    settings.set(RunSettingsId::NBODY_INERTIA_TENSOR, true);
-    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::MERGE_OR_BOUNCE);
-    settings.set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::REPEL);
-    settings.set(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, 0._f);
+    settings.set(RunSettingsId::NBODY_INERTIA_TENSOR, true)
+        .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::MERGE_OR_BOUNCE)
+        .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::REPEL)
+        .set(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, 0._f)
+        .set(RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT, 0._f);
     SharedPtr<Storage> storage = runCloud<T>(settings, 100);
 
     // some particles either bounced away or were repelled in overlap, so we generally don't get 1 particle
@@ -510,9 +515,9 @@ TYPED_TEST_CASE_2("Collision cloud bounce", "[nbody]", T, EulerExplicit, LeapFro
     // for elastic bounces there should be NO overlaps (except for some very improbably numerical reasons);
     // this setup would cause an assert
     RunSettings settings;
-    settings.set(RunSettingsId::NBODY_INERTIA_TENSOR, true);
-    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::ELASTIC_BOUNCE);
-    settings.set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::NONE);
+    settings.set(RunSettingsId::NBODY_INERTIA_TENSOR, true)
+        .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::ELASTIC_BOUNCE)
+        .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::NONE);
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     NBodySolver solver(pool, settings);
     REQUIRE_NOTHROW(runCloud<T>(settings, 50));

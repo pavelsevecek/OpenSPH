@@ -15,6 +15,7 @@ NAMESPACE_SPH_BEGIN
 class Storage;
 class Path;
 class ILogger;
+struct PlotPoint;
 
 namespace Post {
 
@@ -300,6 +301,52 @@ Array<HistPoint> getCumulativeHistogram(const Storage& storage,
     const HistogramId id,
     const HistogramSource source,
     const HistogramParams& params);
+
+
+/// \brief Class representing an ordinary 1D linear function
+class LinearFunction {
+private:
+    Float a;
+    Float b;
+
+public:
+    /// \brief Creates a new linear function.
+    ///
+    /// \param slope Slope of the function (atan of the angle between the line and the x-axis).
+    /// \param offset Offset in y-direction (value of the function for x=0).
+    LinearFunction(const Float slope, const Float offset)
+        : a(slope)
+        , b(offset) {}
+
+    /// \brief Evaluates the linear function for given value.
+    INLINE Float operator()(const Float x) const {
+        return a * x + b;
+    }
+
+    /// \brief Returns the slope of the function.
+    Float slope() const {
+        return a;
+    }
+
+    /// \brief Returns the offset in y-direction.
+    Float offset() const {
+        return b;
+    }
+
+    /// \brief Finds a value of x such that f(x) = y for given y.
+    ///
+    /// Slope of the function must not be zero.
+    Float solve(const Float y) const {
+        ASSERT(a != 0._f);
+        return (y - b) / a;
+    }
+};
+
+/// \brief Finds a linear fit to a set of points.
+///
+/// The set of points must have at least two elements and they must not coincide.
+/// \return Function representing the linear fit.
+LinearFunction computeLinearRegression(ArrayView<const PlotPoint> points);
 
 } // namespace Post
 

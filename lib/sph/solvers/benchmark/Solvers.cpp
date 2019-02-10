@@ -60,6 +60,7 @@ BENCHMARK("GravitySolver simple", "[solvers]", Benchmark::Context& context) {
     benchmarkSolver(solver, context);
 }
 
+#ifdef SPH_USE_TBB
 template <typename TSolver>
 void test(const std::string path) {
     RunSettings settings;
@@ -101,3 +102,5 @@ BENCHMARK("Thread scaling", "[solvers]", Benchmark::Context& context) {
     while (context.running()) {
     }
 }
+
+#endif

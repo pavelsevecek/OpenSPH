@@ -4,6 +4,7 @@ CONFIG += ordered
 
 SUBDIRS = lib \
           cli/launcher \
+          cli/batch \
           cli/problems \
           gui \
           gui/collision \
@@ -17,6 +18,7 @@ SUBDIRS = lib \
 
 run.depends = lib
 launcher.depends = lib
+batch.depends = lib
 problems.depends = lib
 gui.depends = lib
 collision.depends = lib gui

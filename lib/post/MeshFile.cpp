@@ -1,5 +1,5 @@
 #include "post/MeshFile.h"
-#include "io/Logger.h"
+#include "objects/Exceptions.h"
 #include <fstream>
 
 NAMESPACE_SPH_BEGIN

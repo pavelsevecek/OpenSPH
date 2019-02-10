@@ -49,6 +49,24 @@ static RunSettings getSphSettings(const Interval timeRange,
     return settings;
 }
 
+/// \brief Modifies the settings, setting initial time, timestep and dump index according to values stored in
+/// the resumed snapshot.
+static void setInitialParams(RunSettings& settings, const Path& resumePath) {
+    BinaryInput input;
+    Expected<BinaryInput::Info> info = input.getInfo(resumePath);
+    ASSERT(info); // should have been already checked
+
+    const Interval range = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
+    settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(info->runTime, range.upper()))
+        .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, info->timeStep);
+
+    if (Optional<Size> firstIdx = OutputFile::getDumpIdx(resumePath)) {
+        // first dump is saved at starting time, so we intentionally set the dump index to the index of
+        // resumed snapshot, it will be overriden with the same data.
+        settings.set(RunSettingsId::RUN_OUTPUT_FIRST_INDEX, int(firstIdx.value()));
+    }
+}
+
 class EnergyLog : public ILogFile {
 public:
     using ILogFile::ILogFile;
@@ -65,46 +83,39 @@ private:
 /// Stabilization
 /// ----------------------------------------------------------------------------------------------------------
 
-StabilizationRunPhase::StabilizationRunPhase(const Presets::CollisionParams collisionParams,
+StabilizationRunPhase::StabilizationRunPhase(const CollisionParams collisionParams,
     const PhaseParams phaseParams)
     : collisionParams(collisionParams)
     , phaseParams(phaseParams) {
     this->create(phaseParams);
-
-    const Path collisionPath = collisionParams.outputPath / Path("collision.sph");
-    if (FileSystem::pathExists(collisionPath)) {
-        this->collisionParams.loadFromFile(collisionPath);
-    } else {
-        this->collisionParams.saveToFile(collisionPath);
-    }
 }
 
 StabilizationRunPhase::StabilizationRunPhase(const Path& resumePath, const PhaseParams phaseParams)
     : phaseParams(phaseParams)
     , resumePath(resumePath) {
     this->create(phaseParams);
+
+    setInitialParams(settings, resumePath);
 }
 
 void StabilizationRunPhase::create(const PhaseParams phaseParams) {
     const Path stabPath = phaseParams.outputPath / Path("stabilization.sph");
-    bool settingsLoaded;
-    if (FileSystem::pathExists(stabPath)) {
-        settings.loadFromFile(stabPath);
-        settingsLoaded = true;
-    } else {
-        settings = getSphSettings(phaseParams.stab.range, 1, phaseParams.outputPath, "stab_%d.ssf");
-        settings.set(RunSettingsId::RUN_NAME, std::string("Stabilization"))
-            .set(RunSettingsId::RUN_TYPE, RunTypeEnum::STABILIZATION)
-            .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::NONE);
-        settings.addEntries(phaseParams.stab.overrides);
-        settings.saveToFile(stabPath);
-        settingsLoaded = false;
+
+    settings = getSphSettings(phaseParams.stab.range, 1, phaseParams.outputPath, "stab_%d.ssf");
+    settings.set(RunSettingsId::RUN_NAME, std::string("Stabilization"))
+        .set(RunSettingsId::RUN_TYPE, RunTypeEnum::STABILIZATION)
+        .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::NONE);
+
+    const Expected<bool> loaded = settings.tryLoadFileOrSaveCurrent(stabPath, phaseParams.stab.overrides);
+    if (!loaded) {
+        throw InvalidSetup(
+            "Cannot load stabilization settings from file " + stabPath.native() + "\n\n" + loaded.error());
     }
 
     scheduler = Factory::getScheduler(settings);
     logger = Factory::getLogger(settings);
 
-    if (settingsLoaded) {
+    if (loaded.value()) {
         logger->write("Loaded stabilization settings from file '", stabPath.native(), "'");
     } else {
         logger->write("No stabilization settings found, defaults saved to file '", stabPath.native(), "'");
@@ -116,21 +127,7 @@ void StabilizationRunPhase::setUp() {
     storage = makeShared<Storage>();
     solver = makeAuto<StabilizationSolver>(*scheduler, settings);
 
-    BodySettings body;
-    body.set(BodySettingsId::ENERGY, 1.e3_f)
-        .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
-        .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
-        .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
-        .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
-        .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, false)
-        .set(BodySettingsId::STRESS_TENSOR_MIN, 4.e6_f)
-        .set(BodySettingsId::ENERGY_MIN, 10._f)
-        .set(BodySettingsId::DAMAGE_MIN, 0.25_f)
-        .set(BodySettingsId::PARTICLE_COUNT, int(collisionParams.targetParticleCnt));
-    body.addEntries(collisionParams.body);
-    collisionParams.body = std::move(body);
-
-    collision = makeShared<Presets::Collision>(*scheduler, settings, collisionParams);
+    collision = makeShared<CollisionInitialConditions>(*scheduler, settings, collisionParams);
 
     // create the target even when continuing from file, so that we can than add an impactor in fragmentation
     collision->addTarget(*storage);
@@ -144,21 +141,23 @@ void StabilizationRunPhase::setUp() {
         } else {
             logger->write("Loaded state file containing ", storage->getParticleCnt(), " particles.");
         }
-    } else {
+    } else if (!phaseParams.dryRun) {
         logger->write("Created target with ", storage->getParticleCnt(), " particles");
     }
-
-    logger->write(
-        "Running STABILIZATION for ", settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE).size(), " s");
 
     // add printing of run progress
     triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
 
-    const Float runTime = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE).size();
-    SharedPtr<ILogger> energyLogger =
-        makeShared<FileLogger>(collisionParams.outputPath / Path("stab_energy.txt"));
-    AutoPtr<EnergyLog> energyFile = makeAuto<EnergyLog>(energyLogger, runTime / 50._f);
-    triggers.pushBack(std::move(energyFile));
+    if (!phaseParams.dryRun) {
+        const Float runTime = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE).size();
+        SharedPtr<ILogger> energyLogger =
+            makeShared<FileLogger>(collisionParams.outputPath / Path("stab_energy.txt"));
+        AutoPtr<EnergyLog> energyFile = makeAuto<EnergyLog>(energyLogger, runTime / 50._f);
+        triggers.pushBack(std::move(energyFile));
+
+    } else {
+        this->doDryRun();
+    }
 }
 
 void StabilizationRunPhase::handoff(Storage&& input) {
@@ -174,7 +173,7 @@ void StabilizationRunPhase::handoff(Storage&& input) {
     logger = Factory::getLogger(settings);
     triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
 
-    collision = makeShared<Presets::Collision>(*scheduler, settings, collisionParams);
+    collision = makeShared<CollisionInitialConditions>(*scheduler, settings, collisionParams);
 
     // we need to create a "dummy" target, otherwise impactor would be created with flag 0
     /// \todo this is really dumb
@@ -205,31 +204,27 @@ FragmentationRunPhase::FragmentationRunPhase(const Path& resumePath, const Phase
     , resumePath(resumePath) {
     this->create(phaseParams);
 
-    if (Optional<Size> firstIdx = OutputFile::getDumpIdx(resumePath)) {
-        settings.set(RunSettingsId::RUN_OUTPUT_FIRST_INDEX, int(firstIdx.value() + 1));
-    }
+    setInitialParams(settings, resumePath);
 }
 
 void FragmentationRunPhase::create(const PhaseParams phaseParams) {
     const Path fragPath = phaseParams.outputPath / Path("fragmentation.sph");
-    bool settingsLoaded;
-    if (FileSystem::pathExists(fragPath)) {
-        settings.loadFromFile(fragPath);
-        settingsLoaded = true;
-    } else {
-        settings = getSphSettings(
-            phaseParams.frag.range, phaseParams.frag.dumpCnt, phaseParams.outputPath, "frag_%d.ssf");
-        settings.set(RunSettingsId::RUN_NAME, std::string("Fragmentation"))
-            .set(RunSettingsId::RUN_TYPE, RunTypeEnum::SPH);
-        settings.addEntries(phaseParams.frag.overrides);
-        settings.saveToFile(fragPath);
-        settingsLoaded = false;
+
+    settings = getSphSettings(
+        phaseParams.frag.range, phaseParams.frag.dumpCnt, phaseParams.outputPath, "frag_%d.ssf");
+    settings.set(RunSettingsId::RUN_NAME, std::string("Fragmentation"))
+        .set(RunSettingsId::RUN_TYPE, RunTypeEnum::SPH);
+
+    const Expected<bool> loaded = settings.tryLoadFileOrSaveCurrent(fragPath, phaseParams.frag.overrides);
+    if (!loaded) {
+        throw InvalidSetup(
+            "Cannot load fragmentation settings from file " + fragPath.native() + "\n\n" + loaded.error());
     }
 
     scheduler = Factory::getScheduler(settings);
     logger = Factory::getLogger(settings);
 
-    if (settingsLoaded) {
+    if (loaded.value()) {
         logger->write("Loaded fragmentation settings from file '", fragPath.native(), "'");
     } else {
         logger->write("No fragmentation settings found, defaults saved to file '", fragPath.native(), "'");
@@ -252,10 +247,11 @@ void FragmentationRunPhase::setUp() {
         logger->write("Loaded state file containing ", storage->getParticleCnt(), " particles.");
     }
 
-    logger->write(
-        "Running FRAGMENTATION for ", settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE).size(), " s");
-
     triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
+
+    if (phaseParams.dryRun) {
+        this->doDryRun();
+    }
 }
 
 AutoPtr<IRunPhase> FragmentationRunPhase::getNextPhase() const {
@@ -270,15 +266,20 @@ void FragmentationRunPhase::handoff(Storage&& input) {
     collision->addImpactor(*storage);
 
     logger = Factory::getLogger(settings);
-
-    logger->write("Created impactor with ", storage->getParticleCnt() - targetParticleCnt, " particles");
-    logger->write(
-        "Running FRAGMENTATION for ", settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE).size(), " s");
-
     triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
+
+    if (!phaseParams.dryRun) {
+        logger->write("Created impactor with ", storage->getParticleCnt() - targetParticleCnt, " particles");
+    } else {
+        this->doDryRun();
+    }
 }
 
 void FragmentationRunPhase::tearDown(const Statistics& stats) {
+    if (phaseParams.dryRun) {
+        return;
+    }
+
     Flags<OutputQuantityFlag> quantities = OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY |
                                            OutputQuantityFlag::DENSITY | OutputQuantityFlag::PRESSURE |
                                            OutputQuantityFlag::DEVIATORIC_STRESS | OutputQuantityFlag::MASS |
@@ -324,7 +325,6 @@ static RunSettings getReaccSettings(const PhaseParams phaseParams) {
         .set(RunSettingsId::NBODY_INERTIA_TENSOR, false)
         .set(RunSettingsId::NBODY_MAX_ROTATION_ANGLE, 0.01_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
-    settings.addEntries(phaseParams.reacc.overrides);
     return settings;
 }
 
@@ -338,27 +338,23 @@ ReaccumulationRunPhase::ReaccumulationRunPhase(const Path& resumePath, const Pha
     , resumePath(resumePath) {
     this->create(phaseParams);
 
-    if (Optional<Size> firstIdx = OutputFile::getDumpIdx(resumePath)) {
-        settings.set(RunSettingsId::RUN_OUTPUT_FIRST_INDEX, int(firstIdx.value() + 1));
-    }
+    setInitialParams(settings, resumePath);
 }
 
 void ReaccumulationRunPhase::create(const PhaseParams phaseParams) {
     const Path reaccPath = phaseParams.outputPath / Path("reaccumulation.sph");
-    bool settingsLoaded;
-    if (FileSystem::pathExists(reaccPath)) {
-        settings.loadFromFile(reaccPath);
-        settingsLoaded = true;
-    } else {
-        settings = getReaccSettings(phaseParams);
-        settings.saveToFile(reaccPath);
-        settingsLoaded = false;
+
+    settings = getReaccSettings(phaseParams);
+    const Expected<bool> loaded = settings.tryLoadFileOrSaveCurrent(reaccPath, phaseParams.reacc.overrides);
+    if (!loaded) {
+        throw InvalidSetup(
+            "Cannot load reaccumulation settings from file " + reaccPath.native() + "\n\n" + loaded.error());
     }
 
     scheduler = Factory::getScheduler(settings);
     logger = Factory::getLogger(settings);
 
-    if (settingsLoaded) {
+    if (loaded.value()) {
         logger->write("Loaded reaccumulation settings from file '", reaccPath.native(), "'");
     } else {
         logger->write("No reaccumulation settings found, defaults saved to file '", reaccPath.native(), "'");
@@ -381,10 +377,11 @@ void ReaccumulationRunPhase::setUp() {
         logger->write("Loaded state file containing ", storage->getParticleCnt(), " particles.");
     }
 
-    logger->write(
-        "Running REACCUMULATION for ", settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE).size(), " s");
-
     triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
+
+    if (phaseParams.dryRun) {
+        this->doDryRun();
+    }
 }
 
 void ReaccumulationRunPhase::handoff(Storage&& input) {
@@ -437,6 +434,10 @@ void ReaccumulationRunPhase::handoff(Storage&& input) {
     logger = Factory::getLogger(settings);
 
     triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings), settings));
+
+    if (phaseParams.dryRun) {
+        this->doDryRun();
+    }
 }
 
 AutoPtr<IRunPhase> ReaccumulationRunPhase::getNextPhase() const {
@@ -444,6 +445,9 @@ AutoPtr<IRunPhase> ReaccumulationRunPhase::getNextPhase() const {
 }
 
 void ReaccumulationRunPhase::tearDown(const Statistics& stats) {
+    if (phaseParams.dryRun) {
+        return;
+    }
     BinaryOutput binaryOutput(phaseParams.outputPath / Path("reacc_final.ssf"), RunTypeEnum::NBODY);
     binaryOutput.dump(*storage, stats);
 }
@@ -452,7 +456,7 @@ void ReaccumulationRunPhase::tearDown(const Statistics& stats) {
 /// CollisionRun
 /// ----------------------------------------------------------------------------------------------------------
 
-CollisionRun::CollisionRun(const Presets::CollisionParams collisionParams,
+CollisionRun::CollisionRun(const CollisionParams collisionParams,
     const PhaseParams phaseParams,
     SharedPtr<IRunCallbacks> runCallbacks) {
     first = makeShared<StabilizationRunPhase>(collisionParams, phaseParams);
@@ -460,6 +464,9 @@ CollisionRun::CollisionRun(const Presets::CollisionParams collisionParams,
 }
 
 CollisionRun::CollisionRun(const Path& path, PhaseParams phaseParams, SharedPtr<IRunCallbacks> runCallbacks) {
+    if (!FileSystem::pathExists(path)) {
+        throw InvalidSetup("File " + path.native() + " does not exist or is inaccessible");
+    }
     BinaryInput input;
     Expected<BinaryInput::Info> info = input.getInfo(path);
     if (!info) {
@@ -469,18 +476,12 @@ CollisionRun::CollisionRun(const Path& path, PhaseParams phaseParams, SharedPtr<
     if (info->runType) {
         switch (info->runType.value()) {
         case RunTypeEnum::STABILIZATION:
-            phaseParams.stab.range = Interval(info->runTime, phaseParams.stab.range.upper());
-            phaseParams.stab.overrides.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, info->timeStep);
-            first = makeShared<FragmentationRunPhase>(path, phaseParams);
+            first = makeShared<StabilizationRunPhase>(path, phaseParams);
             break;
         case RunTypeEnum::SPH:
-            phaseParams.frag.range = Interval(info->runTime, phaseParams.frag.range.upper());
-            phaseParams.frag.overrides.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, info->timeStep);
             first = makeShared<FragmentationRunPhase>(path, phaseParams);
             break;
         case RunTypeEnum::NBODY:
-            phaseParams.reacc.range = Interval(info->runTime, phaseParams.reacc.range.upper());
-            phaseParams.reacc.overrides.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, info->timeStep);
             first = makeShared<ReaccumulationRunPhase>(path, phaseParams);
             break;
         case RunTypeEnum::RUBBLE_PILE:

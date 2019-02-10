@@ -389,7 +389,7 @@ void repelParticles(ArrayView<Vector> r, const Float radius) {
     }
 }
 
-void moveToCenterOfMassSystem(ArrayView<const Float> m, ArrayView<Vector> r) {
+Vector moveToCenterOfMassSystem(ArrayView<const Float> m, ArrayView<Vector> r) {
     ASSERT(m.size() == r.size());
     Vector r_com(0._f);
     Float m_tot = 0._f;
@@ -402,6 +402,7 @@ void moveToCenterOfMassSystem(ArrayView<const Float> m, ArrayView<Vector> r) {
     for (Size i = 0; i < r.size(); ++i) {
         r[i] -= r_com;
     }
+    return r_com;
 }
 
 NAMESPACE_SPH_END

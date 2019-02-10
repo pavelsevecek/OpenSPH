@@ -142,7 +142,8 @@ void IRun::run() {
     }
 
     Float nextOutput = timeRange.lower();
-    logger->write("Running ", settings.get<std::string>(RunSettingsId::RUN_NAME));
+    logger->write(
+        "Running ", settings.get<std::string>(RunSettingsId::RUN_NAME), " for ", timeRange.size(), " s");
     Timer runTimer;
     EndingCondition condition(settings.get<Float>(RunSettingsId::RUN_WALLCLOCK_TIME),
         settings.get<int>(RunSettingsId::RUN_TIMESTEP_CNT));

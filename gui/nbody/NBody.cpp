@@ -123,14 +123,14 @@ void NBody::setUp() {
 
 
     } else {
-        Presets::CloudParams params;
+        CloudParams params;
         params.particleCnt = 100;
         params.cloudRadius = 1.e5_f;
         params.particleRadius = 1.e3_f;
         params.totalMass = 2.e11_f;
 
         BodySettings body;
-        Presets::addCloud(*storage, *solver, settings, body, params);
+        setupCloudInitialConditions(*storage, *solver, settings, body, params);
     }
 
     ASSERT(storage->isValid());

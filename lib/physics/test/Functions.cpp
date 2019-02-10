@@ -35,19 +35,15 @@ static void testImpactorRadius(const Float QoverQ_D) {
     const Float v_imp = 5.e3_f;
     const Float rho = 2700._f;
 
-    const Float r1 = getImpactorRadius(R_pb, v_imp, 0._f, QoverQ_D, rho, EMPTY_FLAGS);
+    const Float r1 = getImpactorRadius(R_pb, v_imp, QoverQ_D, rho);
     REQUIRE(r1 == approx(TABULATED_RADII[QoverQ_D], 0.1_f));
 
     // check that the impact energy from this impactor is the expected value
     const Float Q = 0.5_f * pow<3>(r1) * sqr(v_imp) / pow<3>(R_pb);
     REQUIRE(Q == approx(QoverQ_D * evalBenzAsphaugScalingLaw(2._f * R_pb, rho)));
 
-    const Float r2 = getImpactorRadius(R_pb, v_imp, 80._f * DEG_TO_RAD, QoverQ_D, rho, EMPTY_FLAGS);
-    REQUIRE(r1 == r2); // for regular impact energy, it should be independent on impact angle
-
-    const Float r3 =
-        getImpactorRadius(R_pb, v_imp, 20._f * DEG_TO_RAD, QoverQ_D, rho, GetImpactorFlag::EFFECTIVE_ENERGY);
-    REQUIRE(r1 == r3); // effective energy but at low impact angles - should be equal to the regular energy
+    const Float r2 = getImpactorRadius(R_pb, v_imp, 20._f * DEG_TO_RAD, QoverQ_D, rho);
+    REQUIRE(r1 == r2); // effective energy but at low impact angles - should be equal to the regular energy
 
     // Test impactor radius even close to extreme angles.
     // This is currently WRONG! We compute the effective energy from the AREA of impact, so we can deliver
@@ -58,8 +54,7 @@ static void testImpactorRadius(const Float QoverQ_D) {
     // impactor. The effective energy should scale with VOLUME, not with AREA!
     // For now, we keep it this way to be at least consistent with the previous work.
     for (Float phi = 80 * DEG_TO_RAD; phi <= 89 * DEG_TO_RAD; phi += 2._f * DEG_TO_RAD) {
-        const Float r4 =
-            getImpactorRadius(R_pb, v_imp, phi, QoverQ_D, rho, GetImpactorFlag::EFFECTIVE_ENERGY);
+        const Float r4 = getImpactorRadius(R_pb, v_imp, phi, QoverQ_D, rho);
         REQUIRE(r4 > r1 + EPS);
         const Float Q_eff =
             0.5_f * pow<3>(r4) * sqr(v_imp) / pow<3>(R_pb) * getEffectiveImpactArea(R_pb, r4, phi);

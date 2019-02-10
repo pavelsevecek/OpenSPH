@@ -1,14 +1,24 @@
+QMAKE_CXXFLAGS += -Wall -Wextra -msse4.1 -std=c++14 -pthread
+
+linux-g++ {
+    # seems like gcc reports false positive for this warning
+    QMAKE_CXXFLAGS += -Wno-aggressive-loop-optimizations
+}
+
+
 CONFIG(use_tbb) {
     DEFINES += SPH_USE_TBB
     INCLUDEPATH += /usr/include/tbb
-    QMAKE_LFLAGS += -ltbb -ltbb_debug -ltbbmalloc -ltbbmalloc_debug
+    LIBS += -ltbb -ltbb_debug -ltbbmalloc -ltbbmalloc_debug
 }
-
-QMAKE_CXXFLAGS += -Wall -Wextra -msse4.1 -std=c++14 -pthread
 
 CONFIG(use_eigen) {
     DEFINES += SPH_USE_EIGEN
     INCLUDEPATH += /usr/include/eigen3
+}
+
+CONFIG(static_libc) {
+    QMAKE_LFLAGS += -static -static-libstdc++ -static-libgcc -Wl,--whole-archive -lpthread -Wl,--no-whole-archive
 }
 
 CONFIG(devel) {

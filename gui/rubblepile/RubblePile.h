@@ -72,15 +72,15 @@ private:
 
         controller = makeAuto<Controller>(gui);
 
-        Presets::CollisionParams params;
-        params.targetParticleCnt = 100000;
+        CollisionParams params;
+        /*params.targetParticleCnt = 100000;
         params.targetRadius = 1.e5_f;
         params.impactorRadius = 2.e4_f;
         params.impactAngle = 0._f * DEG_TO_RAD;
         params.impactSpeed = 3.e3_f;
-        params.impactorParticleCntOverride = 130;
+        params.impactorParticleCntOverride = 130;*/
 
-        params.body
+        params.targetBody
             .set(BodySettingsId::STRESS_TENSOR_MIN, 2.e8_f)
             //.set(BodySettingsId::ENERGY, 2000._f)
             .set(BodySettingsId::ENERGY_MIN, 100._f)
@@ -88,6 +88,7 @@ private:
             .set(BodySettingsId::DAMAGE_MIN, 1._f)
             .set(BodySettingsId::MIN_PARTICLE_COUNT, 100)
             .set(BodySettingsId::BULK_POROSITY, 0.3_f);
+        params.impactorBody = params.targetBody;
 
         /*SharedPtr<GuiCallbacks> callbacks = makeShared<GuiCallbacks>(*controller);
         AutoPtr<RubblePileRunPhase> phase1 = makeAuto<RubblePileRunPhase>(params, callbacks);*/

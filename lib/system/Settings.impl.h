@@ -1,4 +1,5 @@
 #include "io/FileSystem.h"
+#include "objects/Exceptions.h"
 #include "objects/utility/StringUtils.h"
 #include "objects/wrappers/Outcome.h"
 #include "system/Settings.h"
@@ -225,55 +226,82 @@ Outcome Settings<TEnum>::loadFromFile(const Path& path) {
 }
 
 template <typename TEnum>
-void Settings<TEnum>::saveToFile(const Path& path) const {
-    FileSystem::createDirectory(path.parentPath());
-    std::ofstream ofs(path.native());
-    for (auto& e : entries) {
-        const Entry& entry = e.value;
-        if (!entry.desc.empty()) {
-            std::string desc = "# " + entry.desc;
-            desc = setLineBreak(desc, 120);
-            desc = replaceAll(desc, "\n", "\n# ");
-            ofs << desc << std::endl;
-        }
-
-        ofs << std::setw(30) << std::left << entry.name << " = ";
-        switch (entry.value.getTypeIdx()) {
-        case BOOL:
-            ofs << (entry.value.template get<bool>() ? "true" : "false");
-            break;
-        case INT:
-            ofs << entry.value.template get<int>();
-            break;
-        case FLOAT:
-            ofs << entry.value.template get<Float>();
-            break;
-        case INTERVAL:
-            ofs << entry.value.template get<Interval>();
-            break;
-        case STRING:
-            ofs << entry.value.template get<std::string>();
-            break;
-        case VECTOR:
-            ofs << entry.value.template get<Vector>();
-            break;
-        case SYMMETRIC_TENSOR:
-            ofs << entry.value.template get<SymmetricTensor>();
-            break;
-        case TRACELESS_TENSOR:
-            ofs << entry.value.template get<TracelessTensor>();
-            break;
-        case ENUM: {
-            EnumWrapper e = entry.value.template get<EnumWrapper>();
-            ofs << EnumMap::toString(e.value, e.typeHash);
-            break;
-        }
-        default:
-            NOT_IMPLEMENTED;
-        }
-        ofs << std::endl;
+Outcome Settings<TEnum>::saveToFile(const Path& path) const {
+    const Outcome dirCreated = FileSystem::createDirectory(path.parentPath());
+    if (!dirCreated) {
+        return "Cannot save settings: " + dirCreated.error();
     }
-    ofs.close();
+
+    try {
+        std::ofstream ofs(path.native());
+        for (auto& e : entries) {
+            const Entry& entry = e.value;
+            if (!entry.desc.empty()) {
+                std::string desc = "# " + entry.desc;
+                desc = setLineBreak(desc, 120);
+                desc = replaceAll(desc, "\n", "\n# ");
+                ofs << desc << std::endl;
+            }
+
+            ofs << std::setw(30) << std::left << entry.name << " = ";
+            switch (entry.value.getTypeIdx()) {
+            case BOOL:
+                ofs << (entry.value.template get<bool>() ? "true" : "false");
+                break;
+            case INT:
+                ofs << entry.value.template get<int>();
+                break;
+            case FLOAT:
+                ofs << entry.value.template get<Float>();
+                break;
+            case INTERVAL:
+                ofs << entry.value.template get<Interval>();
+                break;
+            case STRING:
+                ofs << entry.value.template get<std::string>();
+                break;
+            case VECTOR:
+                ofs << entry.value.template get<Vector>();
+                break;
+            case SYMMETRIC_TENSOR:
+                ofs << entry.value.template get<SymmetricTensor>();
+                break;
+            case TRACELESS_TENSOR:
+                ofs << entry.value.template get<TracelessTensor>();
+                break;
+            case ENUM: {
+                EnumWrapper e = entry.value.template get<EnumWrapper>();
+                ofs << EnumMap::toString(e.value, e.typeHash);
+                break;
+            }
+            default:
+                NOT_IMPLEMENTED;
+            }
+            ofs << std::endl;
+        }
+        ofs.close();
+        return SUCCESS;
+    } catch (std::exception& e) {
+        return std::string("Cannot save settings: ") + e.what();
+    }
+}
+
+template <typename TEnum>
+Expected<bool> Settings<TEnum>::tryLoadFileOrSaveCurrent(const Path& path, const Settings& overrides) {
+    if (FileSystem::pathExists(path)) {
+        // load from file and apply the overrides
+        const Outcome result = this->loadFromFile(path);
+        if (!result) {
+            return makeUnexpected<bool>(result.error());
+        }
+        this->addEntries(overrides);
+        return true;
+    } else {
+        // apply overrides and then save
+        this->addEntries(overrides);
+        this->saveToFile(path);
+        return false;
+    }
 }
 
 template <typename TEnum>

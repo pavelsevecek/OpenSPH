@@ -417,7 +417,9 @@ AutoPtr<ILogger> Factory::getLogger(const RunSettings& settings) {
         return makeAuto<StdOutLogger>();
     case LoggerEnum::FILE: {
         const Path path(settings.get<std::string>(RunSettingsId::RUN_LOGGER_FILE));
-        return makeAuto<FileLogger>(path);
+        const Flags<FileLogger::Options> flags =
+            FileLogger::Options::ADD_TIMESTAMP | FileLogger::Options::KEEP_OPENED;
+        return makeAuto<FileLogger>(path, flags);
     }
     default:
         NOT_IMPLEMENTED;
@@ -445,7 +447,7 @@ AutoPtr<IOutput> Factory::getOutput(const RunSettings& settings) {
     }
     case IoEnum::COMPRESSED_FILE: {
         const RunTypeEnum runType = settings.get<RunTypeEnum>(RunSettingsId::RUN_TYPE);
-        return makeAuto<CompressedOutput>(file, CompressionEnum::RLE, runType);
+        return makeAuto<CompressedOutput>(file, CompressionEnum::NONE /*TODO*/, runType);
     }
     case IoEnum::PKDGRAV_INPUT: {
         PkdgravParams pkd;

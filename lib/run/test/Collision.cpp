@@ -2,6 +2,7 @@
 #include "catch.hpp"
 #include "io/FileSystem.h"
 #include "io/Output.h"
+#include "run/RunCallbacks.h"
 #include "utils/Utils.h"
 
 using namespace Sph;
@@ -10,7 +11,7 @@ TEST_CASE("CollisionRun", "[run]") {
 
     Path dir("collision");
     Array<Path> files = {
-        Path("collision.sph"),
+        Path("geometry.sph"),
         Path("fragmentation.sph"),
         Path("stabilization.sph"),
         Path("reaccumulation.sph"),
@@ -24,13 +25,13 @@ TEST_CASE("CollisionRun", "[run]") {
         FileSystem::removePath(dir / file);
     }
 
-    Presets::CollisionParams cp;
-    cp.targetParticleCnt = 1000;
-    cp.targetRadius = 1.e5_f;
-    cp.impactorRadius = 1.e4_f;
-    cp.impactAngle = 15._f * DEG_TO_RAD;
-    cp.impactSpeed = 5.e3_f;
-    cp.targetRotation = 2._f * PI / (3600._f * 6._f);
+    CollisionParams cp;
+    cp.geometry.set(CollisionGeometrySettingsId::TARGET_PARTICLE_COUNT, 1000)
+        .set(CollisionGeometrySettingsId::TARGET_RADIUS, 1.e5_f)
+        .set(CollisionGeometrySettingsId::IMPACTOR_RADIUS, 1.e4_f)
+        .set(CollisionGeometrySettingsId::IMPACT_ANGLE, 15._f)
+        .set(CollisionGeometrySettingsId::IMPACT_SPEED, 5.e3_f)
+        .set(CollisionGeometrySettingsId::TARGET_SPIN_RATE, 24._f / 6._f);
 
     PhaseParams pp;
     pp.outputPath = cp.outputPath = dir;
@@ -59,11 +60,10 @@ TEST_CASE("CollisionRun", "[run]") {
     REQUIRE(reaccInfo);
     REQUIRE(reaccInfo->runType == RunTypeEnum::NBODY);
 
-    // clear to be sure
-    cp = Presets::CollisionParams{};
-    REQUIRE(cp.loadFromFile(pp.outputPath / Path("collision.sph")));
-    REQUIRE(cp.targetRotation == 2._f * PI / (3600._f * 6._f));
-    REQUIRE(cp.impactAngle == 15._f * DEG_TO_RAD);
+    CollisionGeometrySettings geometry;
+    REQUIRE(geometry.loadFromFile(pp.outputPath / Path("geometry.sph")));
+    REQUIRE(geometry.get<Float>(CollisionGeometrySettingsId::TARGET_SPIN_RATE) == 24._f / 6._f);
+    REQUIRE(geometry.get<Float>(CollisionGeometrySettingsId::IMPACT_ANGLE) == 15._f);
 
     // resume fragmentation
     CollisionRun resumeFrag(dir / Path("frag_0002.ssf"), pp, makeShared<NullCallbacks>());

@@ -20,11 +20,11 @@ bool App::OnInit() {
         .set(GuiSettingsId::VIEW_MAX_FRAMERATE, 100)
         .set(GuiSettingsId::IMAGES_WIDTH, 1024)
         .set(GuiSettingsId::IMAGES_HEIGHT, 768)
-        .set(GuiSettingsId::WINDOW_WIDTH, 1334)
+        .set(GuiSettingsId::WINDOW_WIDTH, 1600)
         .set(GuiSettingsId::WINDOW_HEIGHT, 768)
         .set(GuiSettingsId::PARTICLE_RADIUS, 0.35_f)
         .set(GuiSettingsId::SURFACE_RESOLUTION, 1.e2_f)
-        .set(GuiSettingsId::SURFACE_LEVEL, 0.1_f)
+        .set(GuiSettingsId::SURFACE_LEVEL, 0.13_f)
         .set(GuiSettingsId::SURFACE_AMBIENT, 0.1_f)
         .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-0.4f, -0.1f, 0.6f)))
         .set(GuiSettingsId::RAYTRACE_HDRI, std::string("/home/pavel/projects/astro/sph/external/hdri3.jpg"))
@@ -50,29 +50,38 @@ bool App::OnInit() {
         .set(GuiSettingsId::PALETTE_ENERGY, Interval(1.e-1_f, 1.e3_f))
         .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
         .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))*/
-        .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 20._f)
+        .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 60._f)
         .set(GuiSettingsId::PLOT_OVERPLOT_SFD,
             std::string("/home/pavel/projects/astro/asteroids/hygiea/main_belt_families_2018/10_Hygiea/"
                         "size_distribution/family.dat_hc"))
-        .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::ALL);
+        .set(GuiSettingsId::PLOT_INTEGRALS,
+            PlotEnum::KINETIC_ENERGY | PlotEnum::TOTAL_ENERGY | PlotEnum::INTERNAL_ENERGY |
+                PlotEnum::TOTAL_ANGULAR_MOMENTUM | PlotEnum::TOTAL_MOMENTUM);
 
     controller = makeAuto<Controller>(gui);
 
 
-    Presets::CollisionParams cp;
-    cp.targetParticleCnt = 400000;
-    cp.targetRadius = 0.5_f * 428.e3_f;
-    cp.impactAngle = 15._f * DEG_TO_RAD;
-    cp.impactSpeed = 7.e3_f;
-    cp.impactorRadius = 0.5_f * 40.e3_f;
-    cp.targetRotation = 0._f; // 2._f * PI / (3600._f * 2._f);
-    cp.impactorOffset = 6;
-    cp.centerOfMassFrame = false;
-    cp.optimizeImpactor = true;
+    CollisionParams cp;
+    cp.geometry.set(CollisionGeometrySettingsId::TARGET_PARTICLE_COUNT, 10000)
+        .set(CollisionGeometrySettingsId::TARGET_RADIUS, 0.5_f * 2000.e3_f)
+        .set(CollisionGeometrySettingsId::IMPACT_ANGLE, 45._f)
+        .set(CollisionGeometrySettingsId::IMPACT_SPEED, 1300._f)
+        .set(CollisionGeometrySettingsId::IMPACTOR_RADIUS, 0.5_f * 1200.e3_f)
+        .set(CollisionGeometrySettingsId::TARGET_SPIN_RATE, 0._f);
+
     PhaseParams phaseParams;
     phaseParams.stab.range = Interval(0._f, 5000._f);
-    phaseParams.frag.range = Interval(0._f, 20000000._f); // 3._f * 24 * 3600);
+    phaseParams.frag.range = Interval(0._f, 200000000._f); // 3._f * 24 * 3600);
     phaseParams.reacc.range = Interval(0._f, 1.e10_f);
+
+    phaseParams.stab.overrides.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT);
+    phaseParams.frag.overrides.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
+        .set(RunSettingsId::RUN_THREAD_GRANULARITY, 1000)
+        .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::COMPRESSED_FILE)
+        .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("impact_%d.scf"))
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f);
+    phaseParams.reacc.overrides.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 2._f)
+        .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::NONE);
 
 
     SharedPtr<GuiCallbacks> callbacks = makeShared<GuiCallbacks>(*controller);
@@ -80,12 +89,19 @@ bool App::OnInit() {
     AutoPtr<CollisionRun> collision;
     if (wxTheApp->argc > 1) {
         Path resumePath(std::string(wxTheApp->argv[1]));
-        collision = makeAuto<CollisionRun>(resumePath, phaseParams, callbacks);
+        try {
+            collision = makeAuto<CollisionRun>(resumePath, phaseParams, callbacks);
+        } catch (std::exception& e) {
+            wxMessageBox("Cannot load the run state file " + resumePath.native() + "\n\nError: " + e.what(),
+                "Error",
+                wxOK);
+            return true;
+        }
     } else {
         collision = makeAuto<CollisionRun>(cp, phaseParams, callbacks);
     }
 
-    collision->setOnNextPhase([gui, this](const IRunPhase& next) {
+    collision->setOnNextPhase([gui, cp, run = collision.get(), this](const IRunPhase& next) {
         GuiSettings newGui = gui;
 
         if (typeid(next) == typeid(ReaccumulationRunPhase)) {
@@ -94,7 +110,7 @@ bool App::OnInit() {
                 .set(GuiSettingsId::IMAGES_NAME, std::string("reac_%e_%d.png"))
                 .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 1000._f)
                 .set(GuiSettingsId::IMAGES_TIMESTEP, 30._f)
-                .set(GuiSettingsId::IMAGES_SAVE, true);
+                .set(GuiSettingsId::IMAGES_SAVE, false);
 
             controller->setParams(newGui);
         }

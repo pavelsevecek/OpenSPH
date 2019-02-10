@@ -46,24 +46,25 @@ public:
     virtual void setUp() override {
         storage = makeShared<Storage>();
 
-        Presets::CollisionParams params;
-        params.body.set(BodySettingsId::ENERGY, 10._f)
+        CollisionParams params;
+        params.targetBody.set(BodySettingsId::ENERGY, 10._f)
             .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
             .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
             .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
             .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, false)
             .set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::HEXAGONAL);
+        params.impactorBody = params.targetBody;
 
-        params.targetRadius = 10.e3_f;
-        params.impactorRadius = 1.e3_f;
-        params.targetRotation = 2._f * PI / (3600._f * 4._f);
-        params.impactAngle = 45._f * DEG_TO_RAD;
-        params.impactSpeed = 5.e3_f;
-        params.targetParticleCnt = 10000;
+        params.geometry.set(CollisionGeometrySettingsId::TARGET_RADIUS, 10.e3_f)
+            .set(CollisionGeometrySettingsId::IMPACTOR_RADIUS, 1.e3_f)
+            .set(CollisionGeometrySettingsId::TARGET_SPIN_RATE, 24._f / 4._f) // 4h
+            .set(CollisionGeometrySettingsId::IMPACT_ANGLE, 45._f)
+            .set(CollisionGeometrySettingsId::IMPACT_SPEED, 5.e3_f)
+            .set(CollisionGeometrySettingsId::TARGET_PARTICLE_COUNT, 10000);
         params.outputPath = Path("collision");
 
-        Presets::Collision collision(*scheduler, settings, params);
+        CollisionInitialConditions collision(*scheduler, settings, params);
         collision.addTarget(*storage);
         collision.addImpactor(*storage);
 

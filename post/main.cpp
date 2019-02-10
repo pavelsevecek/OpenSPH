@@ -6,6 +6,7 @@
 #include "io/FileSystem.h"
 #include "io/Logger.h"
 #include "io/Output.h"
+#include "objects/Exceptions.h"
 #include "objects/containers/ArrayRef.h"
 #include "objects/utility/StringUtils.h"
 #include "physics/Functions.h"
@@ -244,8 +245,8 @@ static Pair<Float> getLr(const Path& filePath, const Path& settingsPath) {
         throw;
     }
 
-    Presets::CollisionParams params;
-    Outcome loaded = params.loadFromFile(settingsPath);
+    CollisionGeometrySettings geometry;
+    Outcome loaded = geometry.loadFromFile(settingsPath);
     if (!loaded) {
         std::cout << "Cannot load settings, " << loaded.error() << std::endl;
         throw;
@@ -253,33 +254,48 @@ static Pair<Float> getLr(const Path& filePath, const Path& settingsPath) {
 
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
 
-    Array<Size> idxs = Post::findLargestComponent(storage, 2._f, Post::ComponentFlag::ESCAPE_VELOCITY);
+    Array<Size> idxs = Post::findLargestComponent(storage, 1._f, Post::ComponentFlag::ESCAPE_VELOCITY);
     Float m_comp = 0._f;
     for (Size i : idxs) {
         m_comp += m[i];
     }
 
-    const Float m_tot = 2700._f * sphereVolume(params.targetRadius);
-    return { m_comp / m_tot,
-        getImpactEnergy(params.targetRadius, params.impactorRadius, params.impactSpeed) };
+    const Float targetRadius = geometry.get<Float>(CollisionGeometrySettingsId::TARGET_RADIUS);
+    const Float impactorRadius = geometry.get<Float>(CollisionGeometrySettingsId::IMPACTOR_RADIUS);
+    const Float impactSpeed = geometry.get<Float>(CollisionGeometrySettingsId::IMPACT_SPEED);
+    const Float m_tot = 2700._f * sphereVolume(targetRadius);
+    return { m_comp / m_tot, getImpactEnergy(targetRadius, impactorRadius, impactSpeed) };
 }
 
 // prints total ejected mass and period of the LR
-void ssfToStats(const Path& fileDir1, const Path& fileDir2) {
-    Float q1, q2, Q1, Q2;
-    tie(q1, Q1) = getLr(fileDir1 / Path("reacc_final.ssf"), fileDir1 / Path("collision.sph"));
-    tie(q2, Q2) = getLr(fileDir2 / Path("reacc_final.ssf"), fileDir2 / Path("collision.sph"));
+void ssfToStats(const Path& fileDir) {
+    // Array<int> ds = { 359, 395, 425, 452, 476 };
+    Array<int> ds = { 8865, 10683, 10683, 12032, 12032, 13773, 13773, 17353 };
+    Float q, Q;
+    Array<PlotPoint> points;
+    Path firstDir;
+    for (int d : ds) {
+        const Path dir(replaceFirst(fileDir.native(), "%d", std::to_string(d)));
+        tie(q, Q) = getLr(dir / Path("frag_final.ssf"), dir / Path("collision.sph"));
+        points.push(PlotPoint{ log10(Q), q });
 
+        if (firstDir.empty()) {
+            firstDir = dir;
+        }
+    }
 
-    // find 0.5
-    const Float a = (q2 - q1) / (Q2 - Q1);
-    const Float b = q2 - a * Q2;
-    const Float Q = (0.5 - b) / a;
+    Post::LinearFunction func = Post::computeLinearRegression(points);
 
-    Presets::CollisionParams params;
-    params.loadFromFile(fileDir1 / Path("collision.sph"));
-    std::cout << params.targetRadius << "   " << 2._f * PI / (3600._f * params.targetRotation) << "   " << q1
-              << "   " << q2 << "   " << Q << std::endl;
+    CollisionGeometrySettings geometry;
+    geometry.loadFromFile(firstDir / Path("collision.sph"));
+    /*std::cout << params.targetRadius << "  " << 2._f * PI / (3600._f * params.targetRotation) << "  ";
+    for (PlotPoint p : points) {
+        std::cout << "(" << p.x << ", " << p.y << "); ";
+    }
+    std::cout << func.solve(0.5f) << std::endl;*/
+    const Float spinRate = geometry.get<Float>(CollisionGeometrySettingsId::TARGET_SPIN_RATE);
+    std::cout << 24._f / spinRate << "   " << func.solve(0.5f) << std::endl;
+
 
     /*ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
     ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
@@ -824,7 +840,7 @@ int main(int argc, char** argv) {
             }
             ssfToVelDir(Path(argv[2]), Path(argv[3]));
         } else if (mode == "stats") {
-            ssfToStats(Path(argv[2]), Path(argv[3]));
+            ssfToStats(Path(argv[2]));
         } else if (mode == "harris") {
             processHarrisFile();
         } else if (mode == "swift") {

@@ -10,6 +10,11 @@
 
 NAMESPACE_SPH_BEGIN
 
+static_assert(sizeof(InnerNode<BarnesHutNode>) == sizeof(LeafNode<BarnesHutNode>),
+    "Invalid size of BarnesHut nodes");
+static_assert(alignof(InnerNode<BarnesHutNode>) == alignof(LeafNode<BarnesHutNode>),
+    "Invalid alignment of BarnesHut nodes");
+
 BarnesHut::BarnesHut(const Float theta, const MultipoleOrder order, const Size leafSize)
     : kdTree(leafSize)
     , thetaInv(1.f / theta)

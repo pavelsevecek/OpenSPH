@@ -53,6 +53,7 @@ TEST_CASE("Unit invalid operations", "[units]") {
 }
 
 TEST_CASE("Unit parseUnit", "[units]") {
+    SKIP_TEST;
     Expected<Unit> u1 = parseUnit("m");
     REQUIRE(u1.value() == 1._m);
     Expected<Unit> u2 = parseUnit("km h^-1");
@@ -70,6 +71,8 @@ TEST_CASE("Unit parseUnit", "[units]") {
 }
 
 TEST_CASE("Unit print", "[units") {
+    SKIP_TEST;
+
     auto print = [](Unit u) {
         std::stringstream ss;
         ss << u;

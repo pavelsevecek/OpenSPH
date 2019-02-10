@@ -6,8 +6,6 @@
 /// \date 2016-2018
 
 #include "run/IRun.h"
-#include "run/RunCallbacks.h"
-#include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -24,9 +22,11 @@ public:
     ///
     /// If nullptr, this is the last phase of the composite run.
     virtual AutoPtr<IRunPhase> getNextPhase() const = 0;
-};
 
-enum class RunTypeEnum;
+protected:
+    /// \brief Turns on the "dry" run for this phase.
+    void doDryRun();
+};
 
 class CompositeRun : public IRun {
 protected:
@@ -43,49 +43,9 @@ public:
         : first(std::move(first))
         , onNextPhase(onNextPhase) {}
 
-    virtual void setUp() override {
-        ASSERT(first);
-        first->setUp();
-        storage = first->getStorage();
+    virtual void setUp() override;
 
-        if (callbacks) {
-            // override the callbacks by shared value
-            first->callbacks = callbacks;
-        }
-    }
-
-    virtual void run() override {
-        SharedPtr<IRunPhase> current = first;
-
-        while (true) {
-            // run the current phase
-            current->run();
-
-            // check whether another phase follows
-            SharedPtr<IRunPhase> next = current->getNextPhase();
-            if (!next) {
-                break;
-            }
-
-            // make the handoff, using the storage of the previous run
-            try {
-                next->handoff(std::move(*storage));
-            } catch (std::exception&) {
-                return;
-            }
-
-            // copy the callbacks
-            next->callbacks = callbacks;
-
-            storage = next->getStorage();
-
-            if (onNextPhase) {
-                onNextPhase(*next);
-            }
-
-            current = next;
-        }
-    }
+    virtual void run() override;
 
 protected:
     virtual void tearDown(const Statistics& UNUSED(stats)) override {}

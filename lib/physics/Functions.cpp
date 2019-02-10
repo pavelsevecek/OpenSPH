@@ -32,39 +32,37 @@ Float getEffectiveImpactArea(const Float R, const Float r, const Float phi) {
     }
 }
 
+Float getImpactorRadius(const Float R_pb, const Float v_imp, const Float QOverQ_D, const Float rho) {
+    // for 'regular' impact energy, simply compute the impactor radius by inverting Q=1/2 m_imp v^2/M_pb
+    const Float Q_D = evalBenzAsphaugScalingLaw(2._f * R_pb, rho);
+    const Float Q = QOverQ_D * Q_D;
+    return root<3>(2._f * Q / sqr(v_imp)) * R_pb;
+}
+
 Float getImpactorRadius(const Float R_pb,
     const Float v_imp,
     const Float phi,
-    const Float QoverQ_D,
-    const Float rho,
-    const Flags<GetImpactorFlag> flags) {
-    if (flags.has(GetImpactorFlag::EFFECTIVE_ENERGY)) {
-        // The effective impact energy depends on impactor radius, which is what we want to compute; needs
-        // to be solved by iterative algorithm. First, get an estimate of the radius by using the regular
-        // impact energy
-        Float r = getImpactorRadius(R_pb, v_imp, phi, QoverQ_D, rho, EMPTY_FLAGS);
-        if (almostEqual(getEffectiveImpactArea(R_pb, r, phi), 1._f, 1.e-4_f)) {
-            // (almost) whole impactor hits the target, no need to account for effective energy
-            return r;
-        }
-        // Effective energy LOWER than the regular energy, so we only need to increase the impactor, no
-        // need to check for smaller values.
-        Float lastR = LARGE;
-        const Float eps = 1.e-4_f * r;
-        while (abs(r - lastR) > eps) {
-            lastR = r;
-            const Float a = getEffectiveImpactArea(R_pb, r, phi);
-            // effective->regular = divide by a
-            r = getImpactorRadius(R_pb, v_imp, phi, QoverQ_D / a, rho, EMPTY_FLAGS);
-        }
+    const Float Q_effOverQ_D,
+    const Float rho) {
+    // The effective impact energy depends on impactor radius, which is what we want to compute; needs
+    // to be solved by iterative algorithm. First, get an estimate of the radius by using the regular
+    // impact energy
+    Float r = getImpactorRadius(R_pb, v_imp, Q_effOverQ_D, rho);
+    if (almostEqual(getEffectiveImpactArea(R_pb, r, phi), 1._f, 1.e-4_f)) {
+        // (almost) whole impactor hits the target, no need to account for effective energy
         return r;
-    } else {
-        // for 'regular' impact energy, simply compute the impactor radius by inverting Q=1/2 m_imp
-        // v^2/M_pb
-        const Float Q_D = evalBenzAsphaugScalingLaw(2._f * R_pb, rho);
-        const Float Q = QoverQ_D * Q_D;
-        return root<3>(2._f * Q / sqr(v_imp)) * R_pb;
     }
+    // Effective energy LOWER than the regular energy, so we only need to increase the impactor, no
+    // need to check for smaller values.
+    Float lastR = LARGE;
+    const Float eps = 1.e-4_f * r;
+    while (abs(r - lastR) > eps) {
+        lastR = r;
+        const Float a = getEffectiveImpactArea(R_pb, r, phi);
+        // effective->regular = divide by a
+        r = getImpactorRadius(R_pb, v_imp, Q_effOverQ_D / a, rho);
+    }
+    return r;
 }
 
 NAMESPACE_SPH_END

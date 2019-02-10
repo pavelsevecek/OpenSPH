@@ -131,7 +131,7 @@ void OrthoPane::onMouseWheel(wxMouseEvent& evt) {
 }
 
 void OrthoPane::onResize(wxSizeEvent& evt) {
-    const Pixel newSize(evt.GetSize().x, evt.GetSize().y);
+    const Pixel newSize(max(10, evt.GetSize().x), max(10, evt.GetSize().y));
     arcBall.resize(newSize);
     camera->resize(newSize);
 }

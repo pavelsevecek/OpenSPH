@@ -113,25 +113,31 @@ Float getImpactEnergy(const Float R, const Float r, const Float v);
 /// \param phi Impact angle in radians
 Float getEffectiveImpactArea(const Float R, const Float r, const Float phi);
 
-enum class GetImpactorFlag {
-    /// Use effective impact energy instead of 'regular' impact energy when determining impactor size
-    EFFECTIVE_ENERGY = 1 << 0,
-};
-
 /// \brief Calculates the impactor radius to satisfy required impact parameters.
 ///
 /// The radius is computed so that the total relative impact energy is equal to the given value, assuming
 /// Benz & Asphaug scaling law.
 /// \param R_pb Radius of the parent body (target)
 /// \param v_imp Impact velocity
-/// \param QoverQ_D Ratio of the impact energy and the critical energy given by the scaling law
+/// \param QOverQ_D Ratio of the impact energy and the critical energy given by the scaling law
+/// \param rho Density of the parent bod
+Float getImpactorRadius(const Float R_pb, const Float v_imp, const Float QOverQ_D, const Float rho);
+
+/// \brief Calculates the impactor radius to satisfy required impact parameters.
+///
+/// The radius is computed so that the total relative effective impact energy is equal to the given value,
+/// assuming Benz & Asphaug scaling law. The effective impact energy takes into account the projected impact
+/// area, see \ref getEffectiveImpactArea.
+/// \param R_pb Radius of the parent body (target)
+/// \param v_imp Impact velocity
+/// \param phi Impact angle
+/// \param Q_effOverQ_D Ratio of the relative impact energy and the critical energy given by the scaling law
 /// \param rho Density of the parent bod
 Float getImpactorRadius(const Float R_pb,
     const Float v_imp,
     const Float phi,
-    const Float QoverQ_D,
-    const Float rho,
-    const Flags<GetImpactorFlag> flags);
+    const Float Q_effOverQ_D,
+    const Float rho);
 
 
 class ImpactCone {

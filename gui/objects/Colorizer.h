@@ -340,7 +340,7 @@ public:
         for (Size i = 0; i < data.size(); ++i) {
             MaterialView mat = storage.getMaterial(i);
             data[i].center = mat->getParam<Vector>(BodySettingsId::BODY_CENTER);
-            data[i].omega = mat->getParam<Vector>(BodySettingsId::BODY_ANGULAR_VELOCITY);
+            data[i].omega = mat->getParam<Vector>(BodySettingsId::BODY_SPIN_RATE);
         }
     }
 
@@ -702,19 +702,20 @@ private:
     Palette palette;
 
 public:
-    virtual void initialize(const Storage& storage, const RefEnum ref) override {
-        u = makeArrayRef(storage.getValue<Float>(QuantityId::ENERGY), ref);
-
-        // IMaterial& mat = storage.getMaterial(0).material();
-        const float u_iv = 3.e4_f; // mat.getParam<Float>(BodySettingsId::TILLOTSON_ENERGY_IV);
-        const float u_cv = 5.e5_f; // mat.getParam<Float>(BodySettingsId::TILLOTSON_ENERGY_CV);
-        palette = Palette({ { 0.01f * u_iv, Rgba(0.5f, 0.5f, 0.5) },
+    BeautyColorizer() {
+        const float u_iv = 3.e5_f;
+        const float u_cv = 5.e6_f;
+        palette = Palette({ { 0.1f * u_iv, Rgba(0.5f, 0.5f, 0.5) },
                               { 0.5f * u_iv, Rgba(0.5f, 0.5f, 0.5f) },
                               /*{ u_iv, Color(1.5f, 0.f, 0.f) },
                               { u_cv, Color(2.f, 2.f, 0.95) } },*/
                               { u_iv, Rgba(0.8f, 0.f, 0.f) },
                               { u_cv, Rgba(1.f, 1.f, 0.6) } },
             PaletteScale::LOGARITHMIC);
+    }
+
+    virtual void initialize(const Storage& storage, const RefEnum ref) override {
+        u = makeArrayRef(storage.getValue<Float>(QuantityId::ENERGY), ref);
     }
 
     virtual bool isInitialized() const override {

@@ -20,30 +20,31 @@ linux-g++ {
 }
 
 SOURCES += \
+    Config.cpp \
     Controller.cpp \
+    Factory.cpp \
     MainLoop.cpp \
     Settings.cpp \
     Utils.cpp \
-    Factory.cpp \
+    objects/Bitmap.cpp \
+    objects/Camera.cpp \
     objects/Movie.cpp \
     objects/Palette.cpp \
+    objects/RenderContext.cpp \
+    renderers/MeshRenderer.cpp \
     renderers/ParticleRenderer.cpp \
+    renderers/RayTracer.cpp \
+    renderers/Spectrum.cpp \
     windows/GlPane.cpp \
     windows/MainWindow.cpp \
     windows/OrthoPane.cpp \
-    windows/PlotView.cpp \
-    renderers/RayTracer.cpp \
-    renderers/MeshRenderer.cpp \
-    objects/Camera.cpp \
-    objects/RenderContext.cpp \
-    windows/ParticleProbe.cpp \
-    Config.cpp \
     windows/PaletteDialog.cpp \
-    objects/Bitmap.cpp \
-    renderers/Spectrum.cpp
+    windows/ParticleProbe.cpp \
+    windows/PlotView.cpp
 
 HEADERS += \
     ArcBall.h \
+    Config.h \
     Controller.h \
     Factory.h \
     GuiCallbacks.h \
@@ -51,6 +52,7 @@ HEADERS += \
     Renderer.h \
     Settings.h \
     Utils.h \
+    Uvw.h \
     objects/Bitmap.h \
     objects/Camera.h \
     objects/Color.h \
@@ -59,21 +61,19 @@ HEADERS += \
     objects/Movie.h \
     objects/Palette.h \
     objects/Point.h \
+    objects/RenderContext.h \
     objects/SvgContext.h \
+    renderers/Brdf.h \
+    renderers/FrameBuffer.h \
     renderers/IRenderer.h \
+    renderers/MeshRenderer.h \
     renderers/ParticleRenderer.h \
+    renderers/RayTracer.h \
+    renderers/Spectrum.h \
     windows/GlPane.h \
     windows/IGraphicsPane.h \
     windows/MainWindow.h \
     windows/OrthoPane.h \
-    windows/ParticleProbe.h \
-    windows/PlotView.h \
-    renderers/RayTracer.h \
-    renderers/Brdf.h \
-    Uvw.h \
-    renderers/MeshRenderer.h \
-    renderers/FrameBuffer.h \
-    objects/RenderContext.h \
     windows/PaletteDialog.h \
-    Config.h \
-    renderers/Spectrum.h
+    windows/ParticleProbe.h \
+    windows/PlotView.h

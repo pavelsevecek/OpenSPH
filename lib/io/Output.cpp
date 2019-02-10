@@ -63,6 +63,23 @@ Optional<Size> OutputFile::getDumpIdx(const Path& path) {
     return NOTHING;
 }
 
+Optional<OutputFile> OutputFile::getMaskFromPath(const Path& path) {
+    /// \todo could be deduplicated a bit
+    const std::string s = path.fileName().native();
+    for (int i = 0; i < int(s.size()) - 3; ++i) {
+        if (std::isdigit(s[i]) && std::isdigit(s[i + 1]) && std::isdigit(s[i + 2]) &&
+            std::isdigit(s[i + 3])) {
+            if (i + 4 < int(s.size()) && std::isdigit(s[i + 4])) {
+                return NOTHING;
+            }
+            std::string mask = s.substr(0, i) + "%d" + s.substr(i + 4);
+            // prepend the original parent path
+            return OutputFile(path.parentPath() / Path(mask));
+        }
+    }
+    return NOTHING;
+}
+
 bool OutputFile::hasWildcard() const {
     std::string path = pathMask.native();
     return path.find("%d") != std::string::npos || path.find("%t") != std::string::npos;
@@ -378,9 +395,6 @@ struct DeserializerDispatcher {
     void operator()(EnumWrapper& e) {
         deserializer.read(e.value, e.typeHash);
     }
-    void operator()(ClonePtr<ISettingsValue>&) {
-        NOT_IMPLEMENTED;
-    }
 };
 
 struct StoreBuffersVisitor {
@@ -588,7 +602,7 @@ static Expected<Storage> loadMaterial(const Size matIdx,
         deserializer.read(paramId, valueId);
 
         if (version == BinaryIoVersion::FIRST) {
-            if (valueId == 1 && body.has<EnumWrapper>(paramId)) {
+            if (valueId == 1 && body.hasType<EnumWrapper>(paramId)) {
                 // enums used to be stored as ints (index 1), now we store it as enum wrapper;
                 // convert the value to enum and save manually
                 EnumWrapper e = body.get<EnumWrapper>(paramId);

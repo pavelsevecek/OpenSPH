@@ -6,6 +6,7 @@
 #include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Box.h"
 #include "objects/utility/IteratorAdapters.h"
+#include "post/Point.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
@@ -914,6 +915,27 @@ Array<Post::HistPoint> Post::getDifferentialHistogram(ArrayView<const Float> val
         ASSERT(isReal(histogram[i].value), sfd[i], range);
     }
     return histogram;
+}
+
+Post::LinearFunction Post::computeLinearRegression(ArrayView<const PlotPoint> points) {
+    ASSERT(points.size() >= 2);
+    Float x = 0._f, x2 = 0._f;
+    Float y = 0._f, y2 = 0._f;
+    Float xy = 0._f;
+    for (PlotPoint p : points) {
+        x += p.x;
+        x2 += sqr(p.x);
+        y += p.y;
+        y2 += sqr(p.y);
+        xy += p.x * p.y;
+    }
+
+    const Size n = points.size();
+    const Float denom = n * x2 - sqr(x);
+    ASSERT(denom > 0._f);
+    const Float b = (y * x2 - x * xy) / denom;
+    const Float a = (n * xy - x * y) / denom;
+    return LinearFunction(a, b);
 }
 
 NAMESPACE_SPH_END

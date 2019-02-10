@@ -96,7 +96,7 @@ public:
 };
 
 /// \brief Computes the color field of the fluid.
-class ColorField : public DerivativeTemplate<ColorField> {
+class ColorFieldDerivative : public DerivativeTemplate<ColorFieldDerivative> {
 private:
     ArrayView<const Float> m, rho;
     ArrayView<const Vector> r;
@@ -104,8 +104,8 @@ private:
     ArrayView<Vector> n;
 
 public:
-    explicit ColorField(const RunSettings& settings)
-        : DerivativeTemplate<ColorField>(settings) {}
+    explicit ColorFieldDerivative(const RunSettings& settings)
+        : DerivativeTemplate<ColorFieldDerivative>(settings) {}
 
     INLINE void additionalCreate(Accumulated& results) {
         results.insert<Vector>(QuantityId::SURFACE_NORMAL, OrderEnum::ZERO, BufferSource::UNIQUE);
@@ -118,7 +118,7 @@ public:
         n = results.getBuffer<Vector>(QuantityId::SURFACE_NORMAL, OrderEnum::ZERO);
     }
 
-    INLINE bool additionalEquals(const ColorField& UNUSED(other)) const {
+    INLINE bool additionalEquals(const ColorFieldDerivative& UNUSED(other)) const {
         return true;
     }
 
@@ -135,7 +135,7 @@ class CohesionTerm : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
         derivatives.require(makeAuto<CohesionDerivative>(settings));
-        derivatives.require(makeAuto<ColorField>(settings));
+        derivatives.require(makeAuto<ColorFieldDerivative>(settings));
     }
 
     virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}

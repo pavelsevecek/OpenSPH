@@ -434,3 +434,14 @@ TEST_CASE("OutputFile getDumpIdx", "[output]") {
     REQUIRE_FALSE(OutputFile::getDumpIdx(Path("")));
     REQUIRE_FALSE(OutputFile::getDumpIdx(Path("45786")));
 }
+
+TEST_CASE("OutputFile getMaskFromPath", "[output]") {
+    REQUIRE(OutputFile::getMaskFromPath(Path("test_0005"))->getMask() == Path("test_%d"));
+    REQUIRE(OutputFile::getMaskFromPath(Path("0013"))->getMask() == Path("%d"));
+    REQUIRE(OutputFile::getMaskFromPath(Path("out-0242.txt"))->getMask() == Path("out-%d.txt"));
+    REQUIRE(OutputFile::getMaskFromPath(Path("directory0124/out_5131.txt"))->getMask() ==
+            Path("directory0124/out_%d.txt"));
+    REQUIRE_FALSE(OutputFile::getMaskFromPath(Path("out_244.txt")));
+    REQUIRE_FALSE(OutputFile::getMaskFromPath(Path("")));
+    REQUIRE_FALSE(OutputFile::getMaskFromPath(Path("45786")));
+}

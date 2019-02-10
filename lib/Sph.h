@@ -16,6 +16,7 @@
 #include "quantities/QuantityIds.h"
 #include "quantities/Storage.h"
 #include "run/IRun.h"
+#include "run/RunCallbacks.h"
 #include "sph/Materials.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/equations/EquationTerm.h"

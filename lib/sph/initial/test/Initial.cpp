@@ -4,6 +4,7 @@
 #include "io/Output.h"
 #include "objects/geometry/Domain.h"
 #include "objects/utility/ArrayUtils.h"
+#include "physics/Integrals.h"
 #include "quantities/Iterate.h"
 #include "quantities/Storage.h"
 #include "system/Settings.h"
@@ -241,4 +242,24 @@ TEST_CASE("Initial addRubblePileBody", "[initial]") {
     Statistics stats;
     stats.set(StatisticsId::RUN_TIME, 0._f);
     output.dump(storage, stats);
+}
+
+TEST_CASE("Initial moveToCenterOfMassSystem", "[initial]") {
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    RunSettings settings;
+    InitialConditions ic(pool, settings);
+
+    BodySettings body;
+    body.set(BodySettingsId::CENTER_PARTICLES, true);
+    Storage storage;
+    const Vector r_com(3._f, 3._f, 2._f);
+    ic.addMonolithicBody(storage, SphericalDomain(r_com, 2._f), body);
+
+
+    CenterOfMass evaluator;
+    REQUIRE(evaluator.evaluate(storage) == approx(r_com));
+
+    moveToCenterOfMassSystem(
+        storage.getValue<Float>(QuantityId::MASS), storage.getValue<Vector>(QuantityId::POSITION));
+    REQUIRE(evaluator.evaluate(storage) == approx(Vector(0._f)));
 }

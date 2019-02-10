@@ -11,81 +11,108 @@
 
 NAMESPACE_SPH_BEGIN
 
-namespace Presets {
+enum class CollisionGeometrySettingsId {
+    /// Radius of the parent body in meters
+    TARGET_RADIUS,
 
-struct TwoBodyParams {
-    /// \brief Radius of the parent body in meters
-    Float targetRadius = 0._f;
+    /// Approximate number of target particles. Actual number of generated particles might differ, depending
+    /// on selected distribution.
+    TARGET_PARTICLE_COUNT,
 
-    /// \brief Number of target particles.
-    Size targetParticleCnt = 100000;
+    /// Minimal number of particles per body.
+    MIN_PARTICLE_COUNT,
 
-    /// \brief Minimal number of particles per body
-    Size minParticleCnt = 100;
+    /// Number of impactor particles. If zero, the number of particles is automatically computed based on the
+    /// number of target particles and the ratio of target radius to projectile radius.
+    IMPACTOR_PARTICLE_COUNT_OVERRIDE,
 
-    /// \brief If true, positions and velocities of particles are modified so that center of mass is at origin
-    /// and has zero velocity.
-    bool centerOfMassFrame = false;
+    /// If true, positions and velocities of particles are modified so that center of mass is at origin and
+    /// has zero velocity.
+    CENTER_OF_MASS_FRAME,
+
+    /// Radius of the projectile in meters
+    IMPACTOR_RADIUS,
+
+    /// Impact speed in m/s
+    IMPACT_SPEED,
+
+    /// Impact angle in degrees, i.e. angle between velocity vector and normal at the impact point.
+    IMPACT_ANGLE,
+
+    /// Angular frequency of the target around z-axis in units rev/day.
+    TARGET_SPIN_RATE,
+
+    /// Initial distance of the impactor from the impact point. This value is in units of smoothing length h.
+    /// Should not be lower than kernel.radius() * eta.
+    IMPACTOR_OFFSET,
+
+    /// If true, derivatives in impactor will be computed with lower precision. This significantly improves
+    /// the performance of the code. The option is intended mainly for cratering impacts and should be always
+    /// false when simulating collision of bodies of comparable sizes.
+    OPTIMIZE_IMPACTOR
+};
+
+using CollisionGeometrySettings = Settings<CollisionGeometrySettingsId>;
+
+/// \brief Holds all parameters specifying initial conditions of a collision simulation.
+///
+/// Note that all \ref Settings objects in this struct behave as overrides. All settings are associated with
+/// configuration files; if the configuration file exists, the settings are loaded from it, otherwise the file
+/// is created using default settings. These settings, either loaded from file or the defauls, can be then
+/// overriden by settings in \ref CollisionParams. By default, the settings stored here are empty, meaning the
+/// values loaded from the configuration files are used directly, without any modification. If the settings
+/// are reset to defaults, this effectively disables loading of configuration files, as all loaded values
+/// are overriden.
+///
+/// If the configuration file exists, but does not have a valid format or contains unknown values, an \ref
+/// InvalidSetup exception is thrown.
+struct CollisionParams {
+
+    /// \brief Material parameters used for the target.
+    ///
+    /// These parameters are associated with configuration file "target.sph". Note that the material parameter
+    /// \ref BodySettingsId::PARTICLE_COUNT is unused, as it is specified by collision parameter \ref
+    /// CollisionId::TARGET_PARTICLE_COUNT instead.
+    BodySettings targetBody = EMPTY_SETTINGS;
+
+    /// \brief Material parameters used for the impactor.
+    ///
+    /// These parameters are associated with configuration file "impactor.sph". Note that the material
+    /// parameter \ref BodySettingsId::PARTICLE_COUNT is unused, as it is specified by collision parameter
+    /// \ref CollisionId::TARGET_PARTICLE_COUNT or \ref CollisionId::IMPACTOR_PARTICLE_COUNT instead.
+    BodySettings impactorBody = EMPTY_SETTINGS;
+
+    /// \brief Parameters describing the initial geometry of the two colliding bodies.
+    ///
+    /// These parameters are associated with configuration file "geometry.sph".
+    CollisionGeometrySettings geometry = EMPTY_SETTINGS;
 
     /// \brief Path to the output directory.
     ///
-    /// If set, parameters of target and impactor are saved there.
+    /// If set, configuration files are stored there.
     Path outputPath;
+
+    /// \brief Logger used to notify about created bodies.
+    ///
+    /// May be nullptr.
+    SharedPtr<ILogger> logger;
 
     /// \brief Function specifying particle concentration inside the target.
     ///
     /// If not specified, particles are spaced homogeneously.
     Function<Float(const Vector& r)> concentration;
-};
 
-struct CollisionParams : public TwoBodyParams {
-
-    /// \brief Material parameters used for both the target and the impactor.
+    /// \brief Generic callback executed for both bodies added into the simulation.
     ///
-    /// Note that the parameter \ref BodySettingsId::PARTICLE_COUNT is overriden by targetParticleCnt for
-    /// target, and similarly by impactorParticleCntOverride for impactor.
-    BodySettings body = EMPTY_SETTINGS;
-
-    /// \brief Radius of the projectile in meters
-    Float impactorRadius = 0._f;
-
-    /// \brief Impact speed in m/s
-    Float impactSpeed = 0._f;
-
-    /// \brief Impact angle, i.e. angle between velocity vector and normal at the impact point
-    Float impactAngle = 0._f;
-
-    /// \brief Angular frequency of the target around z-axis.
-    Float targetRotation = 0._f;
+    /// While quantities and material parameters needed for the simulation are set up automatically using
+    /// values from \ref BodySettings, this callback can be used to add additional auxiliary quantities, for
+    /// example UVW coordinates of particles. If unused, no additional setup is performed.
+    Function<void(Storage&)> additionalBodySetup;
 
     /// \brief Size distribution of the pebbles forming the rubble-pile target body.
     ///
     /// If NOTHING, the target is assumed to be monolithic.
     Optional<PowerLawSfd> pebbleSfd = NOTHING;
-
-    /// \brief Number of impactor particles.
-    ///
-    /// If unused (value is NOTHING), the number of particles is automatically computed based on the
-    /// number of target particles and the ratio of target radius to projectile radius.
-    Optional<Size> impactorParticleCntOverride = NOTHING;
-
-    /// \brief Initial distance of the impactor from the impact point.
-    ///
-    /// This value is in units of smoothing length h. Should not be lower than kernel.radius() * eta.
-    Float impactorOffset = 6._f;
-
-    /// \brief If true, derivatives in impactor will be computed with lower precision.
-    ///
-    /// This significantly improves the performance of the code. The option is intended mainly for cratering
-    /// impacts and should be always false when simulating collision of bodies of comparable sizes.
-    bool optimizeImpactor = true;
-
-
-    /// \brief Loads the parameters from given configuration file, overriding current values.
-    Outcome loadFromFile(const Path& path);
-
-    /// \brief Saves the parameters into a given configuration file.
-    bool saveToFile(const Path& path);
 };
 
 /// \brief Class for setting up initial conditions of asteroid impact.
@@ -97,20 +124,20 @@ struct CollisionParams : public TwoBodyParams {
 /// \code
 /// storage = makeShared<Storage>(); // no need to specify a material
 ///
-/// Presets::CollisionParams params;
-/// params.targetRadius   = 1.e5_f;             // R_pb = 100km
-/// params.impactorRadius = 2.e4_f;             // r_imp = 20km
-/// params.impactSpeed    = 5.e3_f;             // v_imp = 5km/s
-/// params.impactAngle    = 45._f * DEG_TO_RAD; // \phi_imp = 45°
+/// CollisionParams params;
+/// params.collision.set(CollisionGeometrySettingsId::TARGET_RADIUS, 1.e5_f)    // R_pb = 100km
+///                 .set(CollisionGeometrySettingsId::IMPACTOR_RADIUS, 2.e4_f)  // r_imp = 20km
+///                 .set(CollisionGeometrySettingsId::IMPACT_SPEED, 5.e3_f)     // v_imp = 5km/s
+///                 .set(CollisionGeometrySettingsId::IMPACT_ANGLE, 45._f);     // \phi_imp = 45°
 ///
-/// Presets::Collision setup(*ThreadPool::getGlobalInstance(), settings, params);
-/// setup.addTarget(*setup);
-/// setup.addImpactor(*setup);
+/// CollisionInitialConditions setup(*ThreadPool::getGlobalInstance(), settings, params);
+/// setup.addTarget(*storage);
+/// setup.addImpactor(*storage);
 /// \endcode
-class Collision : public Noncopyable {
+class CollisionInitialConditions : public Noncopyable {
 private:
-    InitialConditions _ic;
-    CollisionParams _params;
+    InitialConditions ic;
+    CollisionParams setup;
 
 public:
     /// \brief Creates a new collision setup.
@@ -122,7 +149,10 @@ public:
     ///                  know what you are doing.
     /// \param settings Settings of the simulation. Used for determined the used SPH kernel, for example.
     /// \param params Parameters of the collision; see \ref CollisionParams struct.
-    Collision(IScheduler& scheduler, const RunSettings& settings, const CollisionParams& params);
+    /// \throw InvalidSetup if an error is encountered, for example if the configuration files are invalid.
+    CollisionInitialConditions(IScheduler& scheduler,
+        const RunSettings& settings,
+        const CollisionParams& params);
 
     /// \brief Adds a target (primary body) into the storage.
     ///
@@ -140,52 +170,11 @@ public:
 
     /// \brief Returns the position of the impact point.
     Vector getImpactPoint() const;
-};
 
-
-struct SatelliteParams : public TwoBodyParams {
-    /// \brief Initial position of the satellite.
-    Vector satellitePosition;
-
-    /// \brief Radius of the satellite.
-    Float satelliteRadius;
-
-    /// \brief Initial velocity of the satellite.
-    Vector velocityDirection;
-
-    /// \brief Multiplicative factor of the Keplerian velocity.
-    Float velocityMultiplier = 1._f;
-
-    Vector primaryRotation = Vector(0._f);
-
-    /// \brief Initial angular frequency of the satellite.
-    Vector satelliteRotation = Vector(0._f);
-};
-
-class Satellite : public Noncopyable {
 private:
-    InitialConditions _ic;
-    BodySettings _body;
-    SatelliteParams _params;
-
-public:
-    Satellite(IScheduler& scheduler,
-        ISolver& solver,
-        const RunSettings& settings,
-        const BodySettings& body,
-        const SatelliteParams& params);
-
-    /// \brief Adds the primary body into the storage.
-    ///
-    /// Can be called only once for given storage.
-    void addPrimary(Storage& storage);
-
-    /// \brief Adds the secondary body into the storage.
-    ///
-    /// Can be called only once for given storage. Must be called after \ref addPrimary has been called.
-    void addSecondary(Storage& storage);
+    void setTargetParams(BodySettings overrides);
+    void setImpactorParams(BodySettings overrides);
 };
-
 
 struct CloudParams {
     Float cloudRadius;
@@ -199,12 +188,11 @@ struct CloudParams {
     Float radialExponent = 0.5_f;
 };
 
-void addCloud(Storage& storage,
+void setupCloudInitialConditions(Storage& storage,
     ISolver& solver,
     const RunSettings& settings,
     const BodySettings& body,
     const CloudParams& params);
 
-} // namespace Presets
 
 NAMESPACE_SPH_END

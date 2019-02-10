@@ -8,6 +8,7 @@
 #include "objects/geometry/TracelessTensor.h"
 #include "objects/utility/EnumMap.h"
 #include "objects/wrappers/ClonePtr.h"
+#include "objects/wrappers/Expected.h"
 #include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Interval.h"
 #include "objects/wrappers/Outcome.h"
@@ -58,37 +59,6 @@ struct EnumWrapper {
         return ofs;
     }
 };
-
-/// \brief Interface for storing arbitrary values in \ref Settings.
-///
-/// Primitive types (float, vector, string, etc.) are already implemented efficiently, this class is mainly
-/// intended for storing additional types that cannot be represented by one of the primitives. Values must be
-/// stored in specializations of \ref SettingsValue below.
-class ISettingsValue : public Polymorphic {
-public:
-    /// \brief Serializes the value to an output stream.
-    virtual void save(std::ostream& os) = 0;
-
-    /// \brief Deserializes the value from an input stream.
-    virtual void load(std::istream& is) = 0;
-
-    /// \brief Checks for equality with other value.
-    virtual bool operator==(const ISettingsValue& other) const = 0;
-};
-
-/// \brief Operator for printing a \ref ISettingsValue pointer into a stream.
-std::ostream& operator<<(std::ostream& os, const ClonePtr<ISettingsValue>& value);
-
-/// \brief Operator for reading a \ref ISettingsValue pointer from a stream.
-std::istream& operator>>(std::istream& is, ClonePtr<ISettingsValue>& value);
-
-/// \brief "Placeholder" class, used to access the value.
-///
-/// The default implementation should never be used. To store a value of specific type, specialize the
-/// template and implement functions TValue get() and set(const TValue&), and also the functions of \ref
-/// ISettingsValue interface.
-template <typename TValue>
-class SettingsValue : public ISettingsValue {};
 
 /// \brief Generic object containing various settings and parameters of the run.
 ///
@@ -290,6 +260,13 @@ public:
         }
     }
 
+    /// \brief Removes given parameter from settings.
+    ///
+    /// If the parameter is not in settings, nothing happens (it isn't considered as an error).
+    void unset(const TEnum idx) {
+        entries.tryRemove(idx);
+    }
+
     /// \brief Returns a value of given type from the settings.
     ///
     /// Value must be stored in settings and must have corresponding type, checked by assert.
@@ -323,11 +300,16 @@ public:
         return Flags<TValue>::fromValue(std::underlying_type_t<TValue>(value));
     }
 
+    /// \brief Checks if the given entry is stored in the settings.
+    bool has(const TEnum idx) const {
+        return entries.contains(idx);
+    }
+
     /// \brief Checks if the given entry has specified type.
     ///
     /// Entry must be in settings, checked by assert.
     template <typename TValue>
-    bool has(const TEnum idx) const {
+    bool hasType(const TEnum idx) const {
         Optional<const Entry&> entry = entries.tryGet(idx);
         ASSERT(entry, int(idx));
         return entry->value.template has<TValue>();
@@ -337,15 +319,39 @@ public:
     ///
     /// \param path Path (relative or absolute) to the file. The file will be created, any previous
     ///             content will be overriden.
-    void saveToFile(const Path& path) const;
+    /// \returns SUCCESS if the file has been correctly written, otherwise returns encountered error.
+    Outcome saveToFile(const Path& path) const;
 
     /// \brief Loads the settings from file.
     ///
     /// Previous values stored in settings are removed. The file must have a valid settings format.
     /// \param path Path to the file. The file must exist.
-    /// \returns Successful \ref Outcome if the settings were correctly parsed from the file, otherwise
-    ///          returns encountered error.
+    /// \returns SUCCESS if the settings were correctly parsed from the file, otherwise returns encountered
+    ///          error.
     Outcome loadFromFile(const Path& path);
+
+    /// \brief If the specified file exists, loads the settings from it, otherwise creates the file and saves
+    /// the current values.
+    ///
+    /// This is a standard behavior of configuration files used in the simulation. First time the simulation
+    /// is started, the configuration files are created with default values. The files can then be modified by
+    /// the user and the next time simulation is started, the parameters are parsed and used instead of the
+    /// defaults.
+    ///
+    /// For convenience, it is possible to pass a set of overrides, which are used instead of the values
+    /// loaded from the configuration file (or defaults, if the file does not exist). This can be used to
+    /// specify settings as command-line parameters, for example.
+    /// \param path Path to the configuration file.
+    /// \param overrides Set of overrides applied on the current values or after the settings are loaded.
+    /// \return True if the settings have been successfully loaded, false if the configuration file did not
+    ///         exist, in which case the function attempted to create the file using current values (with
+    ///         applied overrides). If loading of the file failed (invalid content, unknown parameters, ...),
+    ///         an error is returned.
+    ///
+    /// \note Function returns a valid result (false) even if the configuration file cannot be created, for
+    ///       example if the directory access is denied. This does not prohibit the simulation in any way, the
+    ///       settings object is in valid state.
+    Expected<bool> tryLoadFileOrSaveCurrent(const Path& path, const Settings& overrides = EMPTY_SETTINGS);
 
     /// \brief Iterator to the first entry of the settings storage.
     SettingsIterator<TEnum> begin() const;
@@ -1266,15 +1272,15 @@ enum class BodySettingsId {
     /// Lower and upper bound of the alpha coefficient, used only for time-dependent artificial viscosity.
     AV_ALPHA_RANGE = 58,
 
-    /// Center point of the body. Currently used only by StabilizationSolver.
+    /// Center point of the body. Currently used only by \ref StabilizationSolver.
     BODY_CENTER = 61,
 
-    /// Velocity of the body. `Currently used only by StabilizationSolver.
+    /// Velocity of the body. `Currently used only by \ref StabilizationSolver.
     BODY_VELOCITY = 62,
 
-    /// Angular velocity of the body with a respect to position given by BODY_CENTER. `Currently used only by
-    /// StabilizationSolver.
-    BODY_ANGULAR_VELOCITY = 63,
+    /// Angular frequency of the body with a respect to position given by BODY_CENTER. Currently used only by
+    /// \ref StabilizationSolver.
+    BODY_SPIN_RATE = 63,
 
     /// Bulk (macro)porosity of the body
     BULK_POROSITY = 64,

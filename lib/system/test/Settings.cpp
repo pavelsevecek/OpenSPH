@@ -7,7 +7,7 @@
 using namespace Sph;
 
 TEST_CASE("Settings set/get", "[settings]") {
-    Settings<BodySettingsId> settings;
+    BodySettings settings;
     settings.set(BodySettingsId::DENSITY, 100._f);
     settings.set(BodySettingsId::PARTICLE_COUNT, 50);
     settings.set(BodySettingsId::DENSITY_RANGE, Interval(1._f, 2._f));
@@ -25,10 +25,30 @@ TEST_CASE("Settings set/get", "[settings]") {
 }
 
 TEST_CASE("Settings has", "[settings]") {
+    RunSettings settings = EMPTY_SETTINGS;
+    REQUIRE_FALSE(settings.has(RunSettingsId::COLLISION_HANDLER));
+    REQUIRE_FALSE(settings.has(RunSettingsId::COLLISION_OVERLAP));
+    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::MERGE_OR_BOUNCE);
+    REQUIRE(settings.has(RunSettingsId::COLLISION_HANDLER));
+    REQUIRE_FALSE(settings.has(RunSettingsId::COLLISION_OVERLAP));
+}
+
+TEST_CASE("Settings hasType", "[settings]") {
     RunSettings settings;
-    REQUIRE(settings.has<Float>(RunSettingsId::COLLISION_ALLOWED_OVERLAP));
-    REQUIRE(settings.has<bool>(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR));
-    REQUIRE(settings.has<std::string>(RunSettingsId::RUN_NAME));
+    REQUIRE(settings.hasType<Float>(RunSettingsId::COLLISION_ALLOWED_OVERLAP));
+    REQUIRE(settings.hasType<bool>(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR));
+    REQUIRE(settings.hasType<std::string>(RunSettingsId::RUN_NAME));
+}
+
+
+TEST_CASE("Settings unset", "[settings]") {
+    RunSettings settings;
+    const Size size = settings.size();
+    REQUIRE(settings.has(RunSettingsId::DOMAIN_TYPE));
+
+    settings.unset(RunSettingsId::DOMAIN_TYPE);
+    REQUIRE_FALSE(settings.has(RunSettingsId::DOMAIN_TYPE));
+    REQUIRE(settings.size() == size - 1);
 }
 
 TEST_CASE("Settings iterator", "[settings]") {

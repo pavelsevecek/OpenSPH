@@ -1,6 +1,7 @@
 #include "io/Logger.h"
 #include "common/Assert.h"
 #include "io/FileSystem.h"
+#include "objects/Exceptions.h"
 #include <fstream>
 #include <iostream>
 
@@ -56,7 +57,7 @@ void FileLogger::writeString(const std::string& s) {
             std::time_t t = std::time(nullptr);
             *stream << std::put_time(std::localtime(&t), "%b %d, %H:%M:%S -- ");
         }
-        *stream << s;
+        *stream << s << std::flush;
     };
 
     if (flags.has(Options::OPEN_WHEN_WRITING)) {

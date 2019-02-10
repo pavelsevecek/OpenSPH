@@ -1,5 +1,5 @@
 TEMPLATE = app
-CONFIG += c++14 thread silent
+CONFIG += c++14 thread silent static
 CONFIG -= app_bundle
 CONFIG -= qt
 
@@ -11,4 +11,4 @@ LIBS += ../../lib/liblib.a
 include(../../lib/inc.pro)
 
 SOURCES += \
-    Launcher.cpp
+    Batch.cpp

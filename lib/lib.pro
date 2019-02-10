@@ -6,6 +6,7 @@ include(inc.pro)
 
 SOURCES += \
     common/Assert.cpp \
+    gravity/AggregateSolver.cpp \
     gravity/BarnesHut.cpp \
     gravity/NBodySolver.cpp \
     io/FileManager.cpp \
@@ -20,6 +21,8 @@ SOURCES += \
     objects/containers/String.cpp \
     objects/finders/Bvh.cpp \
     objects/finders/DynamicFinder.cpp \
+    objects/finders/KdTree.cpp \
+    objects/finders/NeighbourFinder.cpp \
     objects/finders/UniformGrid.cpp \
     objects/geometry/Domain.cpp \
     objects/geometry/SymmetricTensor.cpp \
@@ -28,9 +31,11 @@ SOURCES += \
     objects/wrappers/Interval.cpp \
     physics/Damage.cpp \
     physics/Eos.cpp \
+    physics/Functions.cpp \
     physics/Integrals.cpp \
     physics/Rheology.cpp \
     physics/TimeFormat.cpp \
+    physics/Units.cpp \
     post/Analysis.cpp \
     post/MarchingCubes.cpp \
     post/MeshFile.cpp \
@@ -38,61 +43,60 @@ SOURCES += \
     post/StatisticTests.cpp \
     quantities/IMaterial.cpp \
     quantities/Particle.cpp \
+    quantities/Quantity.cpp \
     quantities/QuantityIds.cpp \
     quantities/Storage.cpp \
+    run/Collision.cpp \
     run/IRun.cpp \
+    run/RubblePile.cpp \
     sph/Diagnostics.cpp \
     sph/Material.cpp \
     sph/boundary/Boundary.cpp \
+    sph/equations/Accumulated.cpp \
+    sph/equations/Derivative.cpp \
     sph/equations/EquationTerm.cpp \
     sph/equations/Rotation.cpp \
+    sph/equations/av/Stress.cpp \
+    sph/handoff/Handoff.cpp \
     sph/initial/Distribution.cpp \
     sph/initial/Initial.cpp \
+    sph/initial/MeshDomain.cpp \
+    sph/initial/Presets.cpp \
     sph/solvers/AsymmetricSolver.cpp \
+    sph/solvers/EnergyConservingSolver.cpp \
+    sph/solvers/GradHSolver.cpp \
     sph/solvers/GravitySolver.cpp \
     sph/solvers/StandardSets.cpp \
     sph/solvers/StaticSolver.cpp \
+    sph/solvers/SummationSolver.cpp \
     sph/solvers/SymmetricSolver.cpp \
     system/ArgsParser.cpp \
     system/Factory.cpp \
     system/Platform.cpp \
     system/Process.cpp \
     system/Profiler.cpp \
+    system/Settings.cpp \
     system/Statistics.cpp \
     system/Timer.cpp \
     tests/Setup.cpp \
     thread/CheckFunction.cpp \
     thread/Pool.cpp \
-    timestepping/TimeStepCriterion.cpp \
-    timestepping/TimeStepping.cpp \
-    sph/equations/Derivative.cpp \
-    sph/solvers/SummationSolver.cpp \
-    sph/initial/Presets.cpp \
-    system/Settings.cpp \
-    run/Collision.cpp \
-    sph/solvers/GradHSolver.cpp \
-    objects/finders/NeighbourFinder.cpp \
     thread/Scheduler.cpp \
     thread/Tbb.cpp \
-    objects/finders/KdTree.cpp \
-    gravity/AggregateSolver.cpp \
-    sph/initial/MeshDomain.cpp \
-    sph/handoff/Handoff.cpp \
-    run/RubblePile.cpp \
-    sph/solvers/EnergyConservingSolver.cpp \
-    physics/Functions.cpp \
-    sph/equations/Accumulated.cpp \
-    sph/equations/av/Stress.cpp \
-    quantities/Quantity.cpp \
-    physics/Units.cpp
+    timestepping/TimeStepCriterion.cpp \
+    timestepping/TimeStepping.cpp \
+    run/CompositeRun.cpp
 
 HEADERS += \
+    Sph.h \
     common/Assert.h \
     common/ForwardDecl.h \
     common/Globals.h \
     common/Traits.h \
+    gravity/AggregateSolver.h \
     gravity/BarnesHut.h \
     gravity/BruteForceGravity.h \
+    gravity/CachedGravity.h \
     gravity/Collision.h \
     gravity/IGravity.h \
     gravity/Moments.h \
@@ -108,6 +112,9 @@ HEADERS += \
     io/Serializer.h \
     io/Table.h \
     math/AffineMatrix.h \
+    math/Functional.h \
+    math/MathBasic.h \
+    math/MathUtils.h \
     math/Matrix.h \
     math/Means.h \
     math/Morton.h \
@@ -127,8 +134,10 @@ HEADERS += \
     objects/containers/BufferedArray.h \
     objects/containers/FlatMap.h \
     objects/containers/FlatSet.h \
+    objects/containers/Grid.h \
     objects/containers/List.h \
     objects/containers/LookupMap.h \
+    objects/containers/Queue.h \
     objects/containers/StaticArray.h \
     objects/containers/String.h \
     objects/containers/Tuple.h \
@@ -137,6 +146,7 @@ HEADERS += \
     objects/finders/Bvh.h \
     objects/finders/DynamicFinder.h \
     objects/finders/KdTree.h \
+    objects/finders/KdTree.inl.h \
     objects/finders/LinkedList.h \
     objects/finders/Linkedlist.h \
     objects/finders/NeighbourFinder.h \
@@ -154,9 +164,13 @@ HEADERS += \
     objects/geometry/SymmetricTensor.h \
     objects/geometry/Tensor.h \
     objects/geometry/TracelessTensor.h \
+    objects/geometry/Triangle.h \
     objects/geometry/Vector.h \
     objects/utility/ArrayUtils.h \
     objects/utility/Dynamic.h \
+    objects/utility/EnumMap.h \
+    objects/utility/Iterator.h \
+    objects/utility/IteratorAdapters.h \
     objects/utility/OperatorTemplate.h \
     objects/utility/PerElementWrapper.h \
     objects/utility/StringUtils.h \
@@ -205,13 +219,16 @@ HEADERS += \
     run/Collision.h \
     run/CompositeRun.h \
     run/IRun.h \
+    run/RubblePile.h \
     run/RunCallbacks.h \
     run/Trigger.h \
     sph/Diagnostics.h \
     sph/Materials.h \
     sph/boundary/Boundary.h \
     sph/equations/Accumulated.h \
+    sph/equations/DeltaSph.h \
     sph/equations/Derivative.h \
+    sph/equations/DerivativeHelpers.h \
     sph/equations/EquationTerm.h \
     sph/equations/Fluids.h \
     sph/equations/Friction.h \
@@ -227,8 +244,10 @@ HEADERS += \
     sph/equations/av/Stress.h \
     sph/equations/heat/Heat.h \
     sph/equationsav/Standard.h \
+    sph/handoff/Handoff.h \
     sph/initial/Distribution.h \
     sph/initial/Initial.h \
+    sph/initial/MeshDomain.h \
     sph/initial/Presets.h \
     sph/kernel/GravityKernel.h \
     sph/kernel/Interpolation.h \
@@ -236,7 +255,9 @@ HEADERS += \
     sph/solvers/AsymmetricSolver.h \
     sph/solvers/CollisionSolver.h \
     sph/solvers/DensityIndependentSolver.h \
+    sph/solvers/EnergyConservingSolver.h \
     sph/solvers/EntropySolver.h \
+    sph/solvers/GradHSolver.h \
     sph/solvers/GravitySolver.h \
     sph/solvers/StabilizationSolver.h \
     sph/solvers/StandardSets.h \
@@ -246,6 +267,7 @@ HEADERS += \
     system/ArgsParser.h \
     system/ArrayStats.h \
     system/Column.h \
+    system/Crashpad.h \
     system/Element.h \
     system/Factory.h \
     system/Platform.h \
@@ -253,6 +275,7 @@ HEADERS += \
     system/Profiler.h \
     system/RunCallbacks.h \
     system/Settings.h \
+    system/Settings.impl.h \
     system/Statistics.h \
     system/Timer.h \
     tests/Approx.h \
@@ -260,33 +283,10 @@ HEADERS += \
     thread/AtomicFloat.h \
     thread/CheckFunction.h \
     thread/Pool.h \
+    thread/Scheduler.h \
+    thread/Tbb.h \
     thread/ThreadLocal.h \
     timestepping/ISolver.h \
     timestepping/ISolverr.h \
     timestepping/TimeStepCriterion.h \
-    timestepping/TimeStepping.h \
-    io/OutOfCore.h \
-    objects/utility/EnumMap.h \
-    system/Settings.impl.h \
-    math/Functional.h \
-    sph/solvers/GradHSolver.h \
-    sph/equations/DeltaSph.h \
-    gravity/CachedGravity.h \
-    thread/Scheduler.h \
-    thread/Tbb.h \
-    objects/containers/Queue.h \
-    objects/finders/KdTree.inl.h \
-    objects/containers/Grid.h \
-    Sph.h \
-    gravity/AggregateSolver.h \
-    objects/geometry/Triangle.h \
-    sph/initial/MeshDomain.h \
-    sph/handoff/Handoff.h \
-    run/RubblePile.h \
-    sph/solvers/EnergyConservingSolver.h \
-    sph/equations/DerivativeHelpers.h \
-    math/MathUtils.h \
-    math/MathBasic.h \
-    objects/utility/Iterator.h \
-    objects/utility/IteratorAdapters.h \
-    system/Crashpad.h
+    timestepping/TimeStepping.h

@@ -100,6 +100,7 @@ Expected<Unit> parseUnit(const std::string& text) {
         if (valueAndPower.size() == 1) {
             // just unit without any power
             power = 1;
+            (void)power;
         } else {
             if (Optional<int> optPower = fromString<int>(valueAndPower[1])) {
                 power = optPower.value();
@@ -107,11 +108,6 @@ Expected<Unit> parseUnit(const std::string& text) {
                 return makeUnexpected<Unit>("Cannot convert power to int");
             }
         }
-        /*if (auto optValue = UNITS.tryGet(valueAndPower[0])) {
-            u *= pow(optValue.value(), power);
-        } else {
-            return makeUnexpected<Unit>("Unknown unit: " + valueAndPower[0]);
-        }*/
     }
     return u;
 }

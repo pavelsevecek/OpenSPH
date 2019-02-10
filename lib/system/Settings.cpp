@@ -457,12 +457,12 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::COLLISION_ALLOWED_OVERLAP,     "collision.allowed_overlap",        0.01_f,
         "Maximum relative overlap of particle that is still classified as collision rather than overlap. Needed "
         "mainly for numerical reasons (floating-point arithmetics). "},
-    { RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT,       "collision.bounce_merge_limit",    1._f,
+    { RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT,       "collision.merging_limit",    1._f,
         "Multiplier of the relative velocity and the angular velocity of the merger, used when determining "
         "whether to merge the collided particles or reject the collision. If zero, particles are always merged, "
         "values slightly lower than 1 can be used to simulate strength, holding together a body rotating above "
         "the breakup limit. Larger values can be used to merge only very slowly moving particles." },
-    { RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT,     "collision.rotation_merge_limit",  1._f,
+    { RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT,     "collision.rotation_merging_limit",  1._f,
         "Parameter analogous to collision.bounce_merge_limit, but used for the rotation of the merger. "
         "Particles can only be merged if the angular frequency multiplied by this parameter is lower than the "
         "breakup frequency. If zero, particles are always merged, values larger than 1 can be used to avoid "
@@ -692,7 +692,7 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
     { BodySettingsId::BODY_VELOCITY,           "body.velocity",                Vector(0._f),
         "Initial velocity of the body. Needed by stabilization solver to correctly compute velocities in "
         "co-moving (co-rotating) frame." },
-    { BodySettingsId::BODY_ANGULAR_VELOCITY,   "body.angular_velocity",        Vector(0._f),
+    { BodySettingsId::BODY_SPIN_RATE,          "body.spin_rate",               Vector(0._f),
       "Initial angular frequency of the body. Needed by stabilization solver to correctly compute velocities "
       "in co-moving (co-rotating) frame." },
 
@@ -710,15 +710,5 @@ template class SettingsIterator<BodySettingsId>;
 
 template class Settings<RunSettingsId>;
 template class SettingsIterator<RunSettingsId>;
-
-std::ostream& operator<<(std::ostream& os, const ClonePtr<ISettingsValue>& value) {
-    value->save(os);
-    return os;
-}
-
-std::istream& operator>>(std::istream& is, ClonePtr<ISettingsValue>& value) {
-    value->load(is);
-    return is;
-}
 
 NAMESPACE_SPH_END

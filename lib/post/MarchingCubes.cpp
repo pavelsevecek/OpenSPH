@@ -433,6 +433,7 @@ INLINE Vector MarchingCubes::interpolate(const Vector& v1,
     return v1 + mu * (v2 - v1);
 }
 
+namespace {
 
 class ColorField : public IScalarField {
 private:
@@ -550,6 +551,8 @@ public:
         return phi;
     }
 };
+
+} // namespace
 
 INLINE Float weight(const Vector& r1, const Vector& r2) {
     const Float lengthSqr = getSqrLength(r1 - r2);
