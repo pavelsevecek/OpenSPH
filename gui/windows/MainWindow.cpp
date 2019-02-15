@@ -13,7 +13,8 @@
 #include "gui/windows/ParticleProbe.h"
 #include "gui/windows/PlotView.h"
 #include "io/FileSystem.h"
-#include "io/LogFile.h"
+#include "io/LogWriter.h"
+#include "io/Logger.h"
 #include "sph/Diagnostics.h"
 #include "thread/CheckFunction.h"
 #include "thread/Pool.h"
@@ -767,7 +768,7 @@ void MainWindow::onTimeStep(const Storage& storage, const Statistics& stats) {
         // avoid code duplication
         /// \todo how to access settings here??
         SharedPtr<LinesLogger> logger = makeShared<LinesLogger>();
-        CommonStatsLog statsLog(logger, RunSettings::getDefaults());
+        StandardLogWriter statsLog(logger, RunSettings::getDefaults());
         statsLog.write(storage, stats);
         // we have to modify wxTextCtrl from main thread!!
         executeOnMainThread([this, logger] { logger->setText(status); });

@@ -79,7 +79,7 @@ INLINE SymmetricTensor parallelAxisTheorem(const SymmetricTensor& I, const Float
 /// only, is does not depend on the radius of the body. Note that bodies rotating above the break-up limit
 /// exist, especially smaller monolithic bodies with D ~ 100m!
 /// \return Angular velocity (in rev/s).
-INLINE Float computeCriticalFrequency(const Float rho) {
+INLINE Float getCriticalFrequency(const Float rho) {
     return sqrt(sphereVolume(1._f) * rho * Constants::gravity);
 }
 

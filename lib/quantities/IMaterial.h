@@ -128,13 +128,13 @@ public:
         params.set(paramIdx, std::forward<TValue>(value));
     }
 
-    /// Returns a parameter associated with given particle.
+    /// \brief Returns a parameter associated with given particle.
     template <typename TValue>
     INLINE TValue getParam(const BodySettingsId paramIdx) const {
         return params.get<TValue>(paramIdx);
     }
 
-    /// Returns settings containing material parameters
+    /// \brief Returns settings containing material parameters.
     INLINE const BodySettings& getParams() const {
         return params;
     }
@@ -172,10 +172,20 @@ public:
     /// \brief Create all quantities needed by the material.
     virtual void create(Storage& storage, const MaterialInitialContext& context) = 0;
 
-    /// Initialize all quantities and material parameters. Called once every step before loop.
+    /// \brief Initialize all quantities and material parameters.
+    ///
+    /// Called once every step before loop.
+    /// \param scheduler Scheduler potentially used for parallelization
+    /// \param storage Storage containing the particles and materials
+    /// \param sequence Index sequence of the particles with this material
     virtual void initialize(IScheduler& scheduler, Storage& storage, const IndexSequence sequence) = 0;
 
+    /// \brief Finalizes the material for the time step.
+    ///
     /// Called after derivatives are computed.
+    /// \param scheduler Scheduler potentially used for parallelization
+    /// \param storage Storage containing the particles and materials
+    /// \param sequence Index sequence of the particles with this material
     virtual void finalize(IScheduler& scheduler, Storage& storage, const IndexSequence sequence) = 0;
 };
 

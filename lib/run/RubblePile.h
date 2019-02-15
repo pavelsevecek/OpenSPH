@@ -1,6 +1,6 @@
 #pragma once
 
-#include "run/CompositeRun.h"
+#include "run/Collision.h"
 #include "sph/initial/Presets.h"
 
 NAMESPACE_SPH_BEGIN
@@ -8,9 +8,10 @@ NAMESPACE_SPH_BEGIN
 class RubblePileRunPhase : public IRunPhase {
 private:
     CollisionParams collisionParams;
+    PhaseParams phaseParams;
 
 public:
-    explicit RubblePileRunPhase(const CollisionParams collisionParams, SharedPtr<IRunCallbacks> callbacks);
+    explicit RubblePileRunPhase(const CollisionParams& collisionParams, const PhaseParams& phaseParams);
 
     virtual void setUp() override;
 

@@ -1,5 +1,5 @@
 #include "run/IRun.h"
-#include "io/LogFile.h"
+#include "io/LogWriter.h"
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "physics/Integrals.h"
@@ -175,6 +175,9 @@ void IRun::run() {
         // make time step
         timeStepping->step(*scheduler, *solver, stats);
 
+        // log stats
+        logWriter->write(*storage, stats);
+
         // triggers
         for (auto iter = triggers.begin(); iter != triggers.end();) {
             ITrigger& trig = **iter;
@@ -228,6 +231,9 @@ void IRun::setNullToDefaults() {
     if (!logger) {
         logger = Factory::getLogger(settings);
     }
+    if (!logWriter) {
+        logWriter = makeAuto<StandardLogWriter>(logger, settings);
+    }
     if (!timeStepping) {
         timeStepping = Factory::getTimeStepping(settings, storage);
     }
@@ -248,6 +254,7 @@ void IRun::tearDownInternal(Statistics& stats) {
     output.reset();
     callbacks.reset();
     logger.reset();
+    logWriter.reset();
     timeStepping.reset();
     solver.reset();
     // keep storage so that we can access particle data after run ends

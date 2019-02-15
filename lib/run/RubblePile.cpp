@@ -1,6 +1,6 @@
 #include "run/RubblePile.h"
 #include "gravity/NBodySolver.h"
-#include "io/LogFile.h"
+#include "io/LogWriter.h"
 #include "io/Logger.h"
 #include "math/rng/VectorRng.h"
 #include "objects/geometry/Domain.h"
@@ -14,9 +14,9 @@
 
 NAMESPACE_SPH_BEGIN
 
-RubblePileRunPhase::RubblePileRunPhase(const CollisionParams params, SharedPtr<IRunCallbacks> callbacks)
-    : collisionParams(params) {
-    this->callbacks = callbacks;
+RubblePileRunPhase::RubblePileRunPhase(const CollisionParams& collisionParams, const PhaseParams& phaseParams)
+    : collisionParams(collisionParams)
+    , phaseParams(phaseParams) {
     settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 5.e4_f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 1.e3_f)
         .set(RunSettingsId::SPH_KERNEL_ETA, 1.3_f)
@@ -99,8 +99,6 @@ void RubblePileRunPhase::setUp() {
     storage->insert<Float>(QuantityId::MASS, OrderEnum::ZERO, std::move(masses));
 
     solver->create(*storage, storage->getMaterial(0));
-
-    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings), settings));
 }
 
 /// \brief Helper domain defined by a set of spheres
@@ -234,8 +232,7 @@ void RubblePileRunPhase::handoff(Storage&& UNUSED(input)) {
 }
 
 AutoPtr<IRunPhase> RubblePileRunPhase::getNextPhase() const {
-    TODO("Properly add into the pipeline");
-    return makeAuto<StabilizationRunPhase>(collisionParams, PhaseParams{});
+    return makeAuto<StabilizationRunPhase>(collisionParams, phaseParams);
 }
 
 NAMESPACE_SPH_END

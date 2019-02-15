@@ -3,7 +3,7 @@
 #include "gui/Settings.h"
 #include "gui/Uvw.h"
 #include "io/FileSystem.h"
-#include "io/LogFile.h"
+#include "io/LogWriter.h"
 #include "objects/geometry/Domain.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/equations/Fluids.h"
@@ -203,9 +203,6 @@ void AsteroidCollision::setUp() {
     }
 
     callbacks = makeAuto<GuiCallbacks>(*controller);
-
-    // add printing of run progres
-    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings), settings));
 }
 
 void AsteroidCollision::tearDown(const Statistics& UNUSED(stats)) {}

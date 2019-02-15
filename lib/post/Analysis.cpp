@@ -917,7 +917,7 @@ Array<Post::HistPoint> Post::getDifferentialHistogram(ArrayView<const Float> val
     return histogram;
 }
 
-Post::LinearFunction Post::computeLinearRegression(ArrayView<const PlotPoint> points) {
+Post::LinearFunction Post::getLinearFit(ArrayView<const PlotPoint> points) {
     ASSERT(points.size() >= 2);
     Float x = 0._f, x2 = 0._f;
     Float y = 0._f, y2 = 0._f;
@@ -936,6 +936,31 @@ Post::LinearFunction Post::computeLinearRegression(ArrayView<const PlotPoint> po
     const Float b = (y * x2 - x * xy) / denom;
     const Float a = (n * xy - x * y) / denom;
     return LinearFunction(a, b);
+}
+
+Post::QuadraticFunction Post::getQuadraticFit(ArrayView<const PlotPoint> points) {
+    ASSERT(points.size() >= 3);
+    Array<Vector> xs(points.size());
+    Array<Float> ys(points.size());
+    for (Size k = 0; k < xs.size(); ++k) {
+        xs[k] = Vector(1._f, points[k].x, sqr(points[k].x));
+        ys[k] = points[k].y;
+    }
+    AffineMatrix xTx = AffineMatrix::null();
+    Vector xTy = Vector(0._f);
+
+    for (Size k = 0; k < xs.size(); ++k) {
+        for (Size i = 0; i < 3; ++i) {
+            for (Size j = 0; j < 3; ++j) {
+                xTx(i, j) += xs[k][j] * xs[k][i];
+            }
+            xTy[i] += xs[k][i] * ys[k];
+        }
+    }
+    ASSERT(xTx.determinant() != 0._f);
+
+    const Vector result = xTx.inverse() * xTy;
+    return QuadraticFunction(result[2], result[1], result[0]);
 }
 
 NAMESPACE_SPH_END

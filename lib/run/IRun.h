@@ -15,7 +15,7 @@
 NAMESPACE_SPH_BEGIN
 
 class IRunCallbacks;
-class ILogFile;
+class ILogWriter;
 class IScheduler;
 class IOutput;
 class ITrigger;
@@ -49,6 +49,9 @@ protected:
 
     /// Logging
     SharedPtr<ILogger> logger;
+
+    /// Writes statistics into logger every timestep
+    AutoPtr<ILogWriter> logWriter;
 
     /// Stores all SPH particles
     SharedPtr<Storage> storage;

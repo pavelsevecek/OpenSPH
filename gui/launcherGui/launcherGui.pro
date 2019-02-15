@@ -8,7 +8,7 @@ DEPENDPATH += .. ../../lib ../../gui
 PRE_TARGETDEPS += ../../lib/liblib.a ../../gui/libgui.a
 LIBS += ../../gui/libgui.a
 LIBS += ../../lib/liblib.a # must be used after libgui
-LIBS += `wx-config --libs --gl-libs`
+LIBS += `wx-config --libs`
 
 include(../../lib/inc.pro)
 QMAKE_CXXFLAGS += `wx-config --cxxflags`

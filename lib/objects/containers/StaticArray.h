@@ -8,6 +8,12 @@ NAMESPACE_SPH_BEGIN
 const struct EmptyArray {
 } EMPTY_ARRAY;
 
+/// \brief Array with fixed number of allocated elements.
+///
+/// Number of actually created elements can be different and it can also be changed; elements can be created
+/// and destroyed, although it is not possible to construct more elements than the maximum allocated number,
+/// determined by template parameter N or function \ref maxSize. The array is intentionally non-copyable to
+/// avoid accidentaly copying values, where move or pass-by-reference is possible.
 template <typename T, int N, typename TCounter = Size>
 class StaticArray {
 private:
@@ -17,7 +23,7 @@ private:
     using StorageType = WrapReference<T>;
 
 public:
-    /// Default constructor, calls default constructor on all elements.
+    /// \brief Default constructor, calls default constructor on all elements.
     StaticArray() {
         if (!std::is_trivially_default_constructible<T>::value) {
             for (TCounter i = 0; i < N; ++i) {
@@ -27,14 +33,18 @@ public:
         actSize = N;
     }
 
-    /// Initialize empty array, corresponding to static stack. All N elements are allocated, but none is
-    /// constructed and size of the static array is zero.
+    /// \brief Initialize an empty array.
+    ///
+    /// This effectively creates an empty stack; all N elements are allocated, but none is constructed and
+    /// size of the array is zero.
     StaticArray(const EmptyArray&) {
         actSize = 0;
     }
 
-    /// Initialize from initializer list. The size of the list must be smaller or equal to N. All N elements
-    /// are all allocated, elements are constructed from initializer list using copy constructor.
+    /// \brief Initialize using initializer_list.
+    ///
+    /// The size of the list must be smaller or equal to N. All N elements are all allocated, elements are
+    /// constructed from initializer_list using copy constructor.
     StaticArray(std::initializer_list<StorageType> list) {
         actSize = 0;
         ASSERT(list.size() <= N);
@@ -53,7 +63,7 @@ public:
         }
     }
 
-    /// Destructor, destroys all elements in the array.
+    /// \brief Destructor, destroys all constructed elements in the array.
     ~StaticArray() {
         if (!std::is_trivially_destructible<T>::value) {
             for (TCounter i = 0; i < actSize; ++i) {
@@ -65,8 +75,9 @@ public:
 
     StaticArray& operator=(const StaticArray& other) = delete;
 
-    /// Move operator for arrays holding default-constructible types. Resizes array and moves all elements of
-    /// the rhs array.
+    /// \brief Move operator for arrays holding default-constructible types.
+    ///
+    /// Resizes array and moves all elements of the rhs array.
     template <typename U, typename = std::enable_if_t<std::is_default_constructible<T>::value, U>>
     StaticArray& operator=(StaticArray<U, N>&& other) {
         this->resize(other.size());
@@ -77,7 +88,12 @@ public:
         return *this;
     }
 
-    /// Assignment operator for array of references on left-hand side. Can be used as std::tie.
+    /// \brief Special assignment operator for array of references on left-hand side.
+    ///
+    /// Can be used similarly to std::tie; a function may return multiple values by wrapping them into
+    /// StaticArray<T>, these values can be then saved individual variables by wrapping the variables into
+    /// \ref StaticArray<T&>. A big advantage over tuple is the option to return a variable number of elements
+    /// (i.e. number of arguments is not known at compile time).
     template <typename U, int M, typename = std::enable_if_t<std::is_lvalue_reference<T>::value, U>>
     StaticArray& operator=(StaticArray<U, M>&& other) {
         ASSERT(this->size() == other.size());
@@ -87,8 +103,9 @@ public:
         return *this;
     }
 
-    /// Clones the array, calling copy constructor on all elements. The size of the cloned array corresponds
-    /// to current size of this array.
+    /// \brief Clones the array, calling copy constructor on all elements.
+    ///
+    /// The size of the cloned array corresponds to current size of this array.
     StaticArray clone() const {
         StaticArray cloned(EMPTY_ARRAY);
         for (TCounter i = 0; i < actSize; ++i) {
@@ -97,48 +114,58 @@ public:
         return cloned;
     }
 
-    /// Assigns a value to all constructed elements of the array. Does not resize the array.
+    /// \brief Assigns a value to all constructed elements of the array.
+    ///
+    /// Does not resize the array.
     void fill(const T& value) {
         for (TCounter i = 0; i < actSize; ++i) {
             data[i].get() = value;
         }
     }
 
+    /// \brief Returns the element with given index.
     INLINE T& operator[](const TCounter idx) noexcept {
         ASSERT(idx >= 0 && idx < actSize, idx, actSize);
         return data[idx].get();
     }
 
+    /// \brief Returns the element with given index.
     INLINE const T& operator[](const TCounter idx) const noexcept {
         ASSERT(idx >= 0 && idx < actSize, idx, actSize);
         return data[idx].get();
     }
 
-    /// Maximum allowed size of the array.
+    /// \brief Returns the maximum allowed size of the array.
     INLINE constexpr TCounter maxSize() const noexcept {
         return N;
     }
 
-    /// Current size of the array (number of constructed elements). Can be between 0 and N.
+    /// \brief Returns the current size of the array (number of constructed elements).
+    ///
+    /// Can be between 0 and N.
     INLINE TCounter size() const {
         return actSize;
     }
 
-    /// Return true if the array is empty. Depends only on number of constructed elements, not allocated size.
+    /// \brief Return true if the array is empty.
+    ///
+    /// Depends only on number of constructed elements, not allocated size.
     INLINE bool empty() const {
         return actSize == 0;
     }
 
-    /// Inserts a value to the end of the array using copy/move constructor. The current size of the array
-    /// must be less than N, checked by assert.
+    /// \brief Inserts a value to the end of the array using copy/move constructor.
+    ///
+    /// The current size of the array must be less than N, checked by assert.
     template <typename U, typename = std::enable_if_t<std::is_constructible<StorageType, U>::value>>
     INLINE void push(U&& value) {
         ASSERT(actSize < N);
         data[actSize++].emplace(std::forward<U>(value));
     }
 
-    /// Removes and destroys element from the end of the array. The removed element is returned from the
-    /// function. Array must not be empty, checked by assert.
+    /// \brief Removes and destroys element from the end of the array.
+    ///
+    /// The removed element is returned from the function. Array must not be empty, checked by assert.
     INLINE T pop() {
         ASSERT(actSize > 0);
         T value = data[actSize - 1];
@@ -147,9 +174,10 @@ public:
         return value;
     }
 
-    /// Changes size of the array. New size must be between 0 and N. If the array is shrinked, elements from
-    /// the end of the array are destroyed; if the array is enlarged, new elements are created using default
-    /// constructor.
+    /// \brief Changes size of the array.
+    ///
+    /// New size must be between 0 and N. If the array is shrinked, elements from the end of the array are
+    /// destroyed; if the array is enlarged, new elements are created using default constructor.
     void resize(const TCounter newSize) {
         ASSERT(unsigned(newSize) <= N);
         if (!std::is_trivially_default_constructible<T>::value) {
@@ -214,7 +242,9 @@ public:
         return !(*this == other);
     }
 
-    /// Prints content of array to stream. Stored values must have overloaded << operator.
+    /// \brief Prints content of array to stream.
+    ///
+    /// Stored values must have overloaded << operator.
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const StaticArray& array) {
         for (const T& t : array) {
@@ -233,26 +263,30 @@ private:
     }
 };
 
-/// Creates a static array from a list of parameters. All parameters must have the same type. Both the
-/// allocated size of the array and the number of constructed elements equal to the number of parameters.
+/// \brief Creates a static array from a list of parameters.
+///
+/// All parameters must have the same type. Both the allocated size of the array and the number of constructed
+/// elements equal to the number of parameters.
 template <typename T0, typename... TArgs>
 StaticArray<T0, sizeof...(TArgs) + 1> makeStatic(T0&& t0, TArgs&&... rest) {
     return StaticArray<T0, sizeof...(TArgs) + 1>({ std::forward<T0>(t0), std::forward<TArgs>(rest)... });
 }
 
-/// Creates a static array from a list of l-value references. All parameters must have the same type. Both the
-/// allocated size of the array and the number of constructed elements equal to the number of parameters.
+/// \brief Creates a static array from a list of l-value references.
+///
+/// All parameters must have the same type. Both the allocated size of the array and the number of constructed
+/// elements equal to the number of parameters.
 template <typename T0, typename... TArgs>
 StaticArray<T0&, sizeof...(TArgs) + 1> tie(T0& t0, TArgs&... rest) {
     return StaticArray<T0&, sizeof...(TArgs) + 1>({ t0, rest... });
 }
 
-/// Alias for array holding two elements of the same type.
+/// \brief Alias for array holding two elements of the same type.
 template <typename T>
 using Pair = StaticArray<T, 2>;
 
 
-/// Container similar to \ref StaticArray, but with constexpr constructors and getters.
+/// \brief Container similar to \ref StaticArray, but with constexpr constructors and getters.
 template <typename T, Size N>
 class ConstexprArray {
 private:

@@ -89,6 +89,9 @@ public:
         InitialConditions ic(*scheduler, settings);
         ic.addMonolithicBody(*storage, block, body);
 
+        logWriter = makeAuto<NullLogFile>();
+
+        /// \todo change to logfile
         triggers.pushBack(makeAuto<ProgressLog>(10._f));
     }
 

@@ -85,7 +85,8 @@ SOURCES += \
     thread/Tbb.cpp \
     timestepping/TimeStepCriterion.cpp \
     timestepping/TimeStepping.cpp \
-    run/CompositeRun.cpp
+    run/CompositeRun.cpp \
+    io/LogWriter.cpp
 
 HEADERS += \
     Sph.h \
@@ -105,7 +106,6 @@ HEADERS += \
     io/Column.h \
     io/FileManager.h \
     io/FileSystem.h \
-    io/LogFile.h \
     io/Logger.h \
     io/Output.h \
     io/Path.h \
@@ -289,4 +289,5 @@ HEADERS += \
     timestepping/ISolver.h \
     timestepping/ISolverr.h \
     timestepping/TimeStepCriterion.h \
-    timestepping/TimeStepping.h
+    timestepping/TimeStepping.h \
+    io/LogWriter.h

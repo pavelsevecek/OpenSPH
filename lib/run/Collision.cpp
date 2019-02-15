@@ -1,9 +1,11 @@
 #include "run/Collision.h"
 #include "gravity/NBodySolver.h"
 #include "io/FileSystem.h"
-#include "io/LogFile.h"
+#include "io/LogWriter.h"
+#include "io/Logger.h"
 #include "io/Output.h"
 #include "objects/Exceptions.h"
+#include "physics/Functions.h"
 #include "quantities/Quantity.h"
 #include "sph/Diagnostics.h"
 #include "sph/solvers/StabilizationSolver.h"
@@ -67,9 +69,39 @@ static void setInitialParams(RunSettings& settings, const Path& resumePath) {
     }
 }
 
-class EnergyLog : public ILogFile {
+static void printRunSettings(const CollisionInitialConditions& ic, const Storage& storage, ILogger& logger) {
+    const CollisionGeometrySettings& geometry = ic.getGeometry();
+    const BodySettings& targetBody = ic.getTargetBody();
+    const Float targetRadius = geometry.get<Float>(CollisionGeometrySettingsId::TARGET_RADIUS);
+    const Float impactorRadius = geometry.get<Float>(CollisionGeometrySettingsId::IMPACTOR_RADIUS);
+    const Float impactSpeed = geometry.get<Float>(CollisionGeometrySettingsId::IMPACT_SPEED);
+    const Float impactAngle = geometry.get<Float>(CollisionGeometrySettingsId::IMPACT_ANGLE);
+    const Float spinRate = geometry.get<Float>(CollisionGeometrySettingsId::TARGET_SPIN_RATE);
+    const Float rho = targetBody.get<Float>(BodySettingsId::DENSITY);
+    const Float Q_D = evalBenzAsphaugScalingLaw(2._f * targetRadius, rho);
+    const Float impactEnergy = getImpactEnergy(targetRadius, impactorRadius, impactSpeed) / Q_D;
+
+    logger.setScientific(false);
+    logger.setPrecision(4);
+    logger.write();
+    logger.write("Run parameters");
+    logger.write("-------------------------------------");
+    logger.write("  Target radius (R_pb):     ", 1.e-3_f * targetRadius, " km");
+    logger.write("  Impactor radius (r_imp):  ", 1.e-3_f * impactorRadius, " km");
+    logger.write("  Impact speed (v_imp):     ", 1.e-3_f * impactSpeed, " km/s");
+    logger.write("  Impact angle (phi_imp):   ", impactAngle, "°");
+    logger.write("  Impact energy (Q/Q*_D):   ", impactEnergy);
+    logger.write("  Target period (P_pb):     ", 24._f / spinRate, spinRate == 0._f ? "" : "h");
+    logger.write("  Particle count (N):       ", storage.getParticleCnt());
+    logger.write("-------------------------------------");
+    logger.write();
+    logger.setScientific(true);
+    logger.setPrecision(PRECISION);
+}
+
+class EnergyLogWriter : public ILogWriter {
 public:
-    using ILogFile::ILogFile;
+    using ILogWriter::ILogWriter;
 
 private:
     virtual void write(const Storage& storage, const Statistics& stats) override {
@@ -83,8 +115,8 @@ private:
 /// Stabilization
 /// ----------------------------------------------------------------------------------------------------------
 
-StabilizationRunPhase::StabilizationRunPhase(const CollisionParams collisionParams,
-    const PhaseParams phaseParams)
+StabilizationRunPhase::StabilizationRunPhase(const CollisionParams& collisionParams,
+    const PhaseParams& phaseParams)
     : collisionParams(collisionParams)
     , phaseParams(phaseParams) {
     this->create(phaseParams);
@@ -123,36 +155,37 @@ void StabilizationRunPhase::create(const PhaseParams phaseParams) {
 }
 
 void StabilizationRunPhase::setUp() {
-    logger = Factory::getLogger(settings);
     storage = makeShared<Storage>();
     solver = makeAuto<StabilizationSolver>(*scheduler, settings);
+    logger = Factory::getLogger(settings);
 
     collision = makeShared<CollisionInitialConditions>(*scheduler, settings, collisionParams);
-
-    // create the target even when continuing from file, so that we can than add an impactor in fragmentation
-    collision->addTarget(*storage);
 
     if (!resumePath.empty()) {
         BinaryInput input;
         Statistics stats;
-        const Outcome result = input.load(resumePath, *storage, stats);
+        Storage target;
+        const Outcome result = input.load(resumePath, target, stats);
         if (!result) {
             throw InvalidSetup("Cannot open or parse file " + resumePath.native() + "\n" + result.error());
         } else {
-            logger->write("Loaded state file containing ", storage->getParticleCnt(), " particles.");
+            logger->write("Loaded state file containing ", target.getParticleCnt(), " particles.");
         }
-    } else if (!phaseParams.dryRun) {
-        logger->write("Created target with ", storage->getParticleCnt(), " particles");
+
+        collision->addCustomTarget(*storage, std::move(target));
+    } else {
+        collision->addTarget(*storage);
     }
 
-    // add printing of run progress
-    triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
-
     if (!phaseParams.dryRun) {
+        if (!resumePath.empty()) {
+            printRunSettings(*collision, *storage, *logger);
+        }
+
         const Float runTime = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE).size();
         SharedPtr<ILogger> energyLogger =
             makeShared<FileLogger>(collisionParams.outputPath / Path("stab_energy.txt"));
-        AutoPtr<EnergyLog> energyFile = makeAuto<EnergyLog>(energyLogger, runTime / 50._f);
+        AutoPtr<EnergyLogWriter> energyFile = makeAuto<EnergyLogWriter>(energyLogger, runTime / 50._f);
         triggers.pushBack(std::move(energyFile));
 
     } else {
@@ -161,24 +194,21 @@ void StabilizationRunPhase::setUp() {
 }
 
 void StabilizationRunPhase::handoff(Storage&& input) {
-    storage = makeShared<Storage>();
-    storage->merge(std::move(input));
-    solver = makeAuto<StabilizationSolver>(*scheduler, settings);
-
-    IMaterial& material = storage->getMaterial(0);
-    solver->create(*storage, material);
-    MaterialInitialContext context(settings);
-    material.create(*storage, context);
 
     logger = Factory::getLogger(settings);
-    triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
-
+    solver = makeAuto<StabilizationSolver>(*scheduler, settings);
+    storage = makeShared<Storage>();
     collision = makeShared<CollisionInitialConditions>(*scheduler, settings, collisionParams);
 
-    // we need to create a "dummy" target, otherwise impactor would be created with flag 0
-    /// \todo this is really dumb
-    Storage dummy;
-    collision->addTarget(dummy);
+    // rubble-pile sets up only basic quantities (position, mass, ...), we need to add quantities required by
+    // the solver
+    IMaterial& material = input.getMaterial(0);
+    solver->create(input, material);
+    ASSERT(input.getMaterialCnt() == 1);
+    MaterialInitialContext context(settings);
+    material.create(input, context);
+
+    collision->addCustomTarget(*storage, std::move(input));
 
     diagnostics.push(makeAuto<CourantInstabilityDiagnostic>(20._f));
 }
@@ -199,7 +229,7 @@ FragmentationRunPhase::FragmentationRunPhase(const StabilizationRunPhase& stabil
     this->create(phaseParams);
 }
 
-FragmentationRunPhase::FragmentationRunPhase(const Path& resumePath, const PhaseParams phaseParams)
+FragmentationRunPhase::FragmentationRunPhase(const Path& resumePath, const PhaseParams& phaseParams)
     : phaseParams(phaseParams)
     , resumePath(resumePath) {
     this->create(phaseParams);
@@ -234,6 +264,8 @@ void FragmentationRunPhase::create(const PhaseParams phaseParams) {
 void FragmentationRunPhase::setUp() {
     ASSERT(!resumePath.empty());
 
+    logger = Factory::getLogger(settings);
+
     storage = makeShared<Storage>();
     solver = Factory::getSolver(*scheduler, settings);
 
@@ -243,11 +275,8 @@ void FragmentationRunPhase::setUp() {
     if (!result) {
         throw InvalidSetup("Cannot open or parse file " + resumePath.native() + "\n" + result.error());
     } else {
-        logger = Factory::getLogger(settings);
         logger->write("Loaded state file containing ", storage->getParticleCnt(), " particles.");
     }
-
-    triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
 
     if (phaseParams.dryRun) {
         this->doDryRun();
@@ -266,7 +295,6 @@ void FragmentationRunPhase::handoff(Storage&& input) {
     collision->addImpactor(*storage);
 
     logger = Factory::getLogger(settings);
-    triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
 
     if (!phaseParams.dryRun) {
         logger->write("Created impactor with ", storage->getParticleCnt() - targetParticleCnt, " particles");
@@ -333,7 +361,7 @@ ReaccumulationRunPhase::ReaccumulationRunPhase(const FragmentationRunPhase& frag
     this->create(phaseParams);
 }
 
-ReaccumulationRunPhase::ReaccumulationRunPhase(const Path& resumePath, const PhaseParams phaseParams)
+ReaccumulationRunPhase::ReaccumulationRunPhase(const Path& resumePath, const PhaseParams& phaseParams)
     : phaseParams(phaseParams)
     , resumePath(resumePath) {
     this->create(phaseParams);
@@ -376,8 +404,6 @@ void ReaccumulationRunPhase::setUp() {
         logger = Factory::getLogger(settings);
         logger->write("Loaded state file containing ", storage->getParticleCnt(), " particles.");
     }
-
-    triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
 
     if (phaseParams.dryRun) {
         this->doDryRun();
@@ -433,8 +459,6 @@ void ReaccumulationRunPhase::handoff(Storage&& input) {
 
     logger = Factory::getLogger(settings);
 
-    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings), settings));
-
     if (phaseParams.dryRun) {
         this->doDryRun();
     }
@@ -456,14 +480,16 @@ void ReaccumulationRunPhase::tearDown(const Statistics& stats) {
 /// CollisionRun
 /// ----------------------------------------------------------------------------------------------------------
 
-CollisionRun::CollisionRun(const CollisionParams collisionParams,
-    const PhaseParams phaseParams,
+CollisionRun::CollisionRun(const CollisionParams& collisionParams,
+    const PhaseParams& phaseParams,
     SharedPtr<IRunCallbacks> runCallbacks) {
     first = makeShared<StabilizationRunPhase>(collisionParams, phaseParams);
     callbacks = runCallbacks;
 }
 
-CollisionRun::CollisionRun(const Path& path, PhaseParams phaseParams, SharedPtr<IRunCallbacks> runCallbacks) {
+CollisionRun::CollisionRun(const Path& path,
+    const PhaseParams& phaseParams,
+    SharedPtr<IRunCallbacks> runCallbacks) {
     if (!FileSystem::pathExists(path)) {
         throw InvalidSetup("File " + path.native() + " does not exist or is inaccessible");
     }

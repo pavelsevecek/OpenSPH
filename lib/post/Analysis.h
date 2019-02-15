@@ -306,8 +306,7 @@ Array<HistPoint> getCumulativeHistogram(const Storage& storage,
 /// \brief Class representing an ordinary 1D linear function
 class LinearFunction {
 private:
-    Float a;
-    Float b;
+    Float a, b;
 
 public:
     /// \brief Creates a new linear function.
@@ -346,7 +345,58 @@ public:
 ///
 /// The set of points must have at least two elements and they must not coincide.
 /// \return Function representing the linear fit.
-LinearFunction computeLinearRegression(ArrayView<const PlotPoint> points);
+LinearFunction getLinearFit(ArrayView<const PlotPoint> points);
+
+
+class QuadraticFunction {
+private:
+    Float a, b, c;
+
+public:
+    /// y = a*x^2 + b*x + c
+    QuadraticFunction(const Float a, const Float b, const Float c)
+        : a(a)
+        , b(b)
+        , c(c) {}
+
+    INLINE Float operator()(const Float x) const {
+        return (a * x + b) * x + c;
+    }
+
+    Float quadratic() const {
+        return a;
+    }
+    Float linear() const {
+        return b;
+    }
+    Float constant() const {
+        return c;
+    }
+
+    /// \brief Returns solutions of a quadratic equation y = a*x^2 + b*x + c
+    ///
+    /// Returned array contains 0, 1 or 2 values, depending on the number of real solutions of the equation.
+    /// If two solutions exist, the first element of the array is always the smaller solution.
+    StaticArray<Float, 2> solve(const Float y) const {
+        ASSERT(a != 0);
+        const Float disc = sqr(b) - 4._f * a * (c - y);
+        if (disc < 0._f) {
+            return EMPTY_ARRAY;
+        } else if (disc == 0._f) {
+            return { -b / (2._f * a) };
+        } else {
+            const Float sqrtDisc = sqrt(disc);
+            Float x1 = (-b - sqrtDisc) / (2._f * a);
+            Float x2 = (-b + sqrtDisc) / (2._f * a);
+            if (x1 > x2) {
+                std::swap(x1, x2);
+            }
+            return { x1, x2 };
+        }
+    }
+};
+
+QuadraticFunction getQuadraticFit(ArrayView<const PlotPoint> points);
 
 } // namespace Post
 

@@ -67,7 +67,8 @@ bool App::OnInit() {
         .set(CollisionGeometrySettingsId::IMPACT_ANGLE, 45._f)
         .set(CollisionGeometrySettingsId::IMPACT_SPEED, 1300._f)
         .set(CollisionGeometrySettingsId::IMPACTOR_RADIUS, 0.5_f * 1200.e3_f)
-        .set(CollisionGeometrySettingsId::TARGET_SPIN_RATE, 0._f);
+        .set(CollisionGeometrySettingsId::TARGET_SPIN_RATE, 0._f)
+        .set(CollisionGeometrySettingsId::OPTIMIZE_IMPACTOR, false);
 
     PhaseParams phaseParams;
     phaseParams.stab.range = Interval(0._f, 5000._f);

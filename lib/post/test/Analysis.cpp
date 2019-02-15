@@ -219,11 +219,37 @@ TEST_CASE("Angular Frequency", "[post]") {
     REQUIRE(w == approx(omega, 1.e-3_f));
 }
 
-TEST_CASE("Linear Regression", "[post]") {
+TEST_CASE("Linear Fit", "[post]") {
     Array<PlotPoint> points = { { 0, 2 }, { 2, 3 }, { 6, 5 } };
-    Post::LinearFunction func = Post::computeLinearRegression(points);
+    Post::LinearFunction func = Post::getLinearFit(points);
 
     REQUIRE(func.slope() == 0.5_f);
     REQUIRE(func.offset() == 2);
     REQUIRE(func.solve(4) == 4);
+}
+
+TEST_CASE("Quadratic Fit perfect", "[post]") {
+    Array<PlotPoint> points = { { 0, 4 }, { 2, 0 }, { 4, 5 } };
+    Post::QuadraticFunction func = Post::getQuadraticFit(points);
+
+    REQUIRE(func.quadratic() == 1.125_f);
+    REQUIRE(func.linear() == -4.25_f);
+    REQUIRE(func.constant() == 4._f);
+
+    StaticArray<Float, 2> roots = func.solve(5._f);
+    REQUIRE(roots.size() == 2);
+    REQUIRE(roots[0] == -2._f / 9._f);
+    REQUIRE(roots[1] == 4._f);
+
+    roots = func.solve(-2._f);
+    REQUIRE(roots.empty());
+}
+
+TEST_CASE("Quadratic Fit overdetermined", "[post]") {
+    Array<PlotPoint> points = { { -3, 2 }, { -1, 0 }, { 0, -1 }, { 1, -3 }, { 3, -5 }, { 4, -2 }, { 8, 1 } };
+    Post::QuadraticFunction func = Post::getQuadraticFit(points);
+
+    REQUIRE(func.quadratic() == approx(0.164284_f, 1.e-6_f));
+    REQUIRE(func.linear() == approx(-0.966283_f, 1.e-6_f));
+    REQUIRE(func.constant() == approx(-1.83329_f, 1.e-6_f));
 }

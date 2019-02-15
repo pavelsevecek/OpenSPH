@@ -1,5 +1,4 @@
 #include "catch.hpp"
-#include "io/LogFile.h"
 #include "objects/utility/PerElementWrapper.h"
 #include "sph/equations/av/Riemann.h"
 #include "sph/equations/av/Standard.h"

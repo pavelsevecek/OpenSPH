@@ -87,7 +87,7 @@ public:
     /// \brief Creates a stabilization phase, given the collision setup.
     ///
     /// This is used when the stabilization is the first phase in the run.
-    StabilizationRunPhase(const CollisionParams collisionParams, const PhaseParams phaseParams);
+    StabilizationRunPhase(const CollisionParams& collisionParams, const PhaseParams& phaseParams);
 
     /// \brief Creates a stabilization phase that continues from provided snapshot.
     StabilizationRunPhase(const Path& resumePath, const PhaseParams phaseParams);
@@ -120,7 +120,7 @@ public:
     explicit FragmentationRunPhase(const StabilizationRunPhase& stabilization);
 
     /// \brief Creates a fragmentation phase that continues from provided snapshot.
-    FragmentationRunPhase(const Path& resumePath, const PhaseParams phaseParams);
+    FragmentationRunPhase(const Path& resumePath, const PhaseParams& phaseParams);
 
     virtual void setUp() override;
 
@@ -145,7 +145,7 @@ public:
     explicit ReaccumulationRunPhase(const FragmentationRunPhase& fragmentation);
 
     /// \brief Creates a reaccumulation phase that continues from provided snapshot.
-    ReaccumulationRunPhase(const Path& resumePath, const PhaseParams phaseParams);
+    ReaccumulationRunPhase(const Path& resumePath, const PhaseParams& phaseParams);
 
     virtual void setUp() override;
 
@@ -167,8 +167,8 @@ public:
     /// \param collisionParams Parameters specifying the initial conditions of the simulation.
     /// \param phaseParams Additional parameters of the simulation.
     /// \param runCallbacks Run callbacks used by all phases.
-    explicit CollisionRun(CollisionParams collisionParams,
-        PhaseParams phaseParams,
+    explicit CollisionRun(const CollisionParams& collisionParams,
+        const PhaseParams& phaseParams,
         SharedPtr<IRunCallbacks> runCallbacks);
 
     /// \brief Creates a simulation that continues from given snapshot.
@@ -179,7 +179,9 @@ public:
     /// \param phaseParams Additional parameters of the simulation.
     /// \param runCallbacks Run callbacks used by all phases.
     /// \throws InvalidSetup if the file cannot be loaded or has invalid format.
-    explicit CollisionRun(const Path& path, PhaseParams phaseParams, SharedPtr<IRunCallbacks> runCallbacks);
+    explicit CollisionRun(const Path& path,
+        const PhaseParams& phaseParams,
+        SharedPtr<IRunCallbacks> runCallbacks);
 
     /// \brief Sets an arbitrary callback executed when a phase ends.
     void setOnNextPhase(Function<void(const IRunPhase&)> newOnPhasePhase);

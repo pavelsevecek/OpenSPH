@@ -68,6 +68,9 @@ public:
         collision.addTarget(*storage);
         collision.addImpactor(*storage);
 
+        logWriter = makeAuto<NullLogFile>();
+
+        /// \todo change to logfile
         triggers.pushBack(makeAuto<ProgressLog>(25._f));
     }
 

@@ -3,7 +3,8 @@
 #include "gui/GuiCallbacks.h"
 #include "gui/Settings.h"
 #include "io/FileSystem.h"
-#include "io/LogFile.h"
+#include "io/LogWriter.h"
+#include "io/Logger.h"
 #include "math/rng/VectorRng.h"
 #include "objects/geometry/Domain.h"
 #include "quantities/IMaterial.h"
@@ -139,8 +140,6 @@ void NBody::setUp() {
 
     logger = Factory::getLogger(settings);
     output = makeAuto<BinaryOutput>(Path("reacc_%d.ssf"));
-
-    triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
 
     logger->write("Particles: ", storage->getParticleCnt());
 }

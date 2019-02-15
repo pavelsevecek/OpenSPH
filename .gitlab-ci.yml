@@ -1,0 +1,38 @@
+before_script:  
+  - echo "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main" >> /etc/apt/sources.list.d/llvm.list
+  - wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+  - apt-get update -qy
+  - apt-get install -y clang-4.0 qt5-default libwxgtk3.0-dev wx3.0-headers wx-common
+  - ln -s /usr/bin/clang++-4.0 /usr/bin/clang++
+ 
+gcc_debug:
+  stage: build
+  script:
+    - mkdir gcc_debug
+    - cd gcc_debug
+    - qmake -spec linux-g++ CONFIG+=debug ../sph.pro
+    - make
+    
+gcc_release:
+  stage: build
+  script:
+    - mkdir gcc_release
+    - cd gcc_release
+    - qmake -spec linux-g++ CONFIG+=release ../sph.pro
+    - make
+
+clang_debug:
+  stage: build
+  script:
+    - mkdir gcc_debug
+    - cd gcc_debug
+    - qmake -spec linux-clang CONFIG+=debug ../sph.pro
+    - make
+    
+clang_release:
+  stage: build
+  script:
+    - mkdir gcc_release
+    - cd gcc_release
+    - qmake -spec linux-clang CONFIG+=release ../sph.pro
+    - make

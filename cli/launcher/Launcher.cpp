@@ -185,16 +185,6 @@ int main(int argc, char* argv[]) {
             pp.reacc.overrides.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, reacTime.value()));
         }
 
-        // write parameters to the standard output
-        /*logger.write("Target radius [m]:             ", cp.targetRadius);
-        logger.write("Impactor radius [m]:           ", cp.impactorRadius);
-        logger.write("Target period [h]:             ", 2._f * PI / (3600._f * cp.targetRotation));
-        logger.write(
-            "Critical period [h]:           ", 2._f * PI / (3600._f * computeCriticalFrequency(2700._f)));
-        logger.write("Impact speed [km/s]:           ", cp.impactSpeed / 1000._f);
-        logger.write("Impact angle [°]:              ", cp.impactAngle * RAD_TO_DEG);
-        logger.write("Impact energy [Q/Q*_D]:        ", impactEnergy);*/
-
         if (parser.empty() && doDryRun(cp.outputPath)) {
             // first run with no pararameters - just output the config files
             pp.dryRun = true;

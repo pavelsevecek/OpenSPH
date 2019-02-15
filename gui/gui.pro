@@ -6,8 +6,7 @@ CONFIG -= qt
 INCLUDEPATH += /usr/include/wx-3.0 ../lib/ ..
 DEPENDPATH += ../lib ../test
 PRE_TARGETDEPS += ../lib/liblib.a
-LIBS += `wx-config --libs --gl-libs`
-LIBS += -lGL -lGLU -lGLEW
+LIBS += `wx-config --libs`
 LIBS += ../lib/liblib.a
 
 include(../lib/inc.pro)
