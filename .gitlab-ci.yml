@@ -41,8 +41,9 @@ clang_release:
 unit_test:
   stage: test
   script:
-    - cd gcc_debug
     - mkdir tests
     - cd tests
-    - qmake -spec linux-g++ CONFIG+=debug ../../test/test.pro
+    - qmake -spec linux-g++ CONFIG+=debug ../all.pro
     - make
+    - cd test
+    - ./test -d yes [gravity],[nbody],[equationterm],[solvers],[impact],[timestepping],[quantity],[storage],[material],[damage],[eos],[yielding]
