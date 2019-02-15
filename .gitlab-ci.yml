@@ -39,7 +39,7 @@ clang_release:
     - make
 
 unit_test:
-  stage: tests
+  stage: test
   script:
     - cd gcc_debug
     - mkdir tests
