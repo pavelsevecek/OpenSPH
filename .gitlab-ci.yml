@@ -40,10 +40,10 @@ clang_release:
 test_debug:
   stage: test
   script:
-    - wget -P /usr/include/catch2/ "https://github.com/philsquared/Catch/releases/download/v1.12.2/catch.hpp" 
+    - wget -P /usr/include/catch2/ "https://github.com/catchorg/Catch2/releases/download/v2.5.0/catch.hpp"
     - mkdir tests
     - cd tests
-    - qmake -spec linux-g++ CONFIG+=debug ../all.pro
+    - qmake -spec linux-g++ CONFIG+=debug ../test.pro
     - make
     - cd test
     - ./test -d yes [gravity],[nbody],[equationterm],[solvers],[impact],[timestepping],[quantity],[storage],[material],[damage],[eos],[yielding]
@@ -51,10 +51,10 @@ test_debug:
 test_release:
   stage: test
   script:
-    - wget -P /usr/include/catch2/ "https://github.com/philsquared/Catch/releases/download/v1.12.2/catch.hpp" 
+    - wget -P /usr/include/catch2/ "https://github.com/catchorg/Catch2/releases/download/v2.5.0/catch.hpp" 
     - mkdir tests
     - cd tests
-    - qmake -spec linux-g++ CONFIG+=release ../all.pro
+    - qmake -spec linux-g++ CONFIG+=release ../test.pro
     - make
     - cd test
     - ./test -d yes [gravity],[nbody],[equationterm],[solvers],[impact],[timestepping],[quantity],[storage],[material],[damage],[eos],[yielding]
