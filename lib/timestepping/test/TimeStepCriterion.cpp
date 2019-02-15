@@ -35,8 +35,8 @@ static Storage getStorage() {
     ArrayView<Float> u, du;
     tie(u, du) = storage.getAll<Float>(QuantityId::ENERGY);
     for (Size i = 0; i < u.size(); ++i) {
-        u[i] = 12._f + abs(MINIMAL_PARTICLE_IDX - i); // minimal value is 12 for particle 53
-        du[i] = 4._f;                                 // du/dt = 4
+        u[i] = 12._f + Sph::abs(MINIMAL_PARTICLE_IDX - i); // minimal value is 12 for particle 53
+        du[i] = 4._f;                                      // du/dt = 4
     }
 
     return storage;
@@ -110,7 +110,7 @@ TEST_CASE("Derivative Criterion mean", "[timestepping]") {
     // compute what the result should be
     GeneralizedMean<-8> expectedMean;
     for (Size i = 0; i < storage.getParticleCnt(); ++i) {
-        expectedMean.accumulate((12._f + abs(i - MINIMAL_PARTICLE_IDX)) / 4._f);
+        expectedMean.accumulate((12._f + Sph::abs(i - MINIMAL_PARTICLE_IDX)) / 4._f);
     }
     const Float factor = settings.get<Float>(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR);
     REQUIRE(step.value == approx(factor * expectedMean.compute(), 0.02_f));
