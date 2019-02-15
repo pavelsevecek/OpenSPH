@@ -155,7 +155,7 @@ TEST_CASE("Pool wait for child", "[thread]") {
     REQUIRE_THREAD_SAFE(childFinished);
 }
 
-class Exception : public std::exception {
+class TestException : public std::exception {
     virtual const char* what() const noexcept override {
         return "exception";
     }
@@ -166,9 +166,9 @@ TEST_CASE("Pool task throw", "[thread]") {
 
     auto task = pool.submit([] {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        throw Exception();
+        throw TestException();
     });
-    REQUIRE_THROWS_AS(task->wait(), Exception&);
+    REQUIRE_THROWS_AS(task->wait(), TestException);
 }
 
 TEST_CASE("Pool task throw nested", "[thread]") {
@@ -178,10 +178,10 @@ TEST_CASE("Pool task throw nested", "[thread]") {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         pool.submit([] {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            throw Exception();
+            throw TestException();
         });
     });
-    REQUIRE_THROWS_AS(task->wait(), Exception&);
+    REQUIRE_THROWS_AS(task->wait(), TestException);
 }
 
 TEST_CASE("ParallelFor", "[thread]") {

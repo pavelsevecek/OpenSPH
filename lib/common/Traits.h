@@ -98,19 +98,15 @@ struct IsCallable {
 };
 
 
-static_assert(!IsCallable<float>::value, "static test failed");
-static_assert(!IsCallable<float, int>::value, "static test failed");
-
-struct DummyCallable {
-    void operator()(float, int) {}
-    int operator()(double, float) {
-        return 0;
-    }
+template <typename T, typename TStream, typename = void>
+struct HasStreamOperator {
+    static constexpr bool value = false;
 };
-static_assert(IsCallable<DummyCallable, float, int>::value, "static test failed");
-static_assert(!IsCallable<DummyCallable, float, float>::value, "static test failed");
-static_assert(IsCallable<DummyCallable, double, float>::value, "static test failed");
-static_assert(!IsCallable<DummyCallable, double, float, int>::value, "static test failed");
+
+template <typename T, typename TStream>
+struct HasStreamOperator<T, TStream, VoidType<decltype(std::declval<TStream&>() << std::declval<T>())>> {
+    static constexpr bool value = true;
+};
 
 
 /// Helper class for storing l-value references. Has a default constructor for convenient usage in containers.
@@ -182,11 +178,6 @@ struct UndecayType<T, const TOther&> {
 template <typename T, typename TOther>
 using Undecay = typename UndecayType<T, TOther>::Type;
 
-static_assert(std::is_same<int, Undecay<int, float>>::value, "invalid Undecay");
-static_assert(std::is_same<int&, Undecay<int, float&>>::value, "invalid Undecay");
-static_assert(std::is_same<const int, Undecay<int, const float>>::value, "invalid Undecay");
-static_assert(std::is_same<const int&, Undecay<int, const float&>>::value, "invalid Undecay");
-
 /// Converts all signed integral types and enums into Size, does not change other types.
 template <typename T, typename TEnabler = void>
 struct ConvertToSizeType {
@@ -199,15 +190,6 @@ struct ConvertToSizeType<T, std::enable_if_t<std::is_enum<std::decay_t<T>>::valu
 template <typename T>
 using ConvertToSize = typename ConvertToSizeType<T>::Type;
 
-namespace Detail {
-enum class TestEnum { DUMMY };
-
-static_assert(std::is_same<int, ConvertToSize<int>>::value, "invalid EnumToInt");
-static_assert(std::is_same<float, ConvertToSize<float>>::value, "invalid EnumToInt");
-static_assert(std::is_same<bool, ConvertToSize<bool>>::value, "invalid EnumToInt");
-static_assert(std::is_same<int, ConvertToSize<TestEnum>>::value, "invalid EnumToInt");
-static_assert(std::is_same<int&, ConvertToSize<TestEnum&>>::value, "invalid EnumToInt");
-} // namespace Detail
 
 template <typename T>
 struct IsEnumClass {
@@ -239,19 +221,6 @@ template <bool Value>
 struct AnyTrue<Value> {
     static constexpr bool value = Value;
 };
-
-static_assert(AllTrue<true, true, true, true>::value == true, "invalid AllTrue");
-static_assert(AllTrue<true, true, false, true>::value == false, "invalid AllTrue");
-static_assert(AllTrue<true, true, true, false>::value == false, "invalid AllTrue");
-static_assert(AllTrue<false>::value == false, "invalid AllTrue");
-static_assert(AllTrue<true>::value == true, "invalid AllTrue");
-
-static_assert(AnyTrue<true, true, true, true>::value == true, "invalid AnyTrue");
-static_assert(AnyTrue<false, false, false, true>::value == true, "invalid AnyTrue");
-static_assert(AnyTrue<true, true, true, false>::value == true, "invalid AnyTrue");
-static_assert(AnyTrue<false, false, false, false>::value == false, "invalid AnyTrue");
-static_assert(AnyTrue<true>::value == true, "invalid AnyTrue");
-static_assert(AnyTrue<false>::value == false, "invalid AnyTrue");
 
 
 /// \brief Converts a non-const reference to const one.

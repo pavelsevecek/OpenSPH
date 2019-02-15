@@ -12,7 +12,6 @@ using namespace Sph;
 
 TEST_CASE("StressAV test", "[av]") {
     // prepare storage, two hemispheres moving towards each other in x direction
-    const Float u0 = 0._f;
     BodySettings body;
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);

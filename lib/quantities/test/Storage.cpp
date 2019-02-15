@@ -53,8 +53,7 @@ TEST_CASE("Storage insert existing by value", "[storage]") {
     REQUIRE(storage.getQuantity(QuantityId::DENSITY).getOrderEnum() == OrderEnum::SECOND);
     REQUIRE(storage.getParticleCnt() == 1);
 
-    REQUIRE_THROWS_AS(
-        storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 2._f), const InvalidSetup&);
+    REQUIRE_THROWS_AS(storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 2._f), InvalidSetup);
 }
 
 TEST_CASE("Storage insert existing by array", "[storage]") {
@@ -253,7 +252,7 @@ TEST_CASE("Storage merge", "[storage]") {
     REQUIRE(storage1.getQuantityCnt() == 1);
     REQUIRE(storage1.getParticleCnt() == 4);
 
-    ArrayView<Float> rho = storage1.getValue<Float>(QuantityId::DENSITY);
+    ArrayView<const Float> rho = storage1.getValue<Float>(QuantityId::DENSITY);
     REQUIRE(rho == makeArray(0._f, 1._f, 2._f, 3._f));
 
     // merge into empty
@@ -452,7 +451,7 @@ TEST_CASE("Storage persistent indices", "[storage]") {
 
     setPersistentIndices(storage1);
     REQUIRE(storage1.has(QuantityId::PERSISTENT_INDEX));
-    ArrayView<Size> idxs = storage1.getValue<Size>(QuantityId::PERSISTENT_INDEX);
+    ArrayView<const Size> idxs = storage1.getValue<Size>(QuantityId::PERSISTENT_INDEX);
     REQUIRE(idxs == Array<Size>({ 0, 1, 2, 3 }));
     storage1.remove(Array<Size>{ 1 });
     idxs = storage1.getValue<Size>(QuantityId::PERSISTENT_INDEX);

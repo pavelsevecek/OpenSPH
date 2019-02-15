@@ -8,8 +8,8 @@ using namespace Sph;
 
 #ifdef SPH_USE_TBB
 
-TYPED_TEST_CASE_2("ThreadLocal", "[thread]", TScheduler, ThreadPool, Tbb) {
-    TScheduler& scheduler = *TScheduler::getGlobalInstance();
+TEMPLATE_TEST_CASE("ThreadLocal", "[thread]", ThreadPool, Tbb) {
+    TestType& scheduler = *TestType::getGlobalInstance();
     ThreadLocal<uint64_t> partialSum(scheduler);
     parallelFor(scheduler, 1, 100000, 10, [&partialSum](Size i) {
         uint64_t& value = partialSum.local();
@@ -25,7 +25,7 @@ TYPED_TEST_CASE_2("ThreadLocal", "[thread]", TScheduler, ThreadPool, Tbb) {
     for (auto& value : partialSum) {
 
         // this can be very noisy, so lets be generous
-        if (std::is_same<TScheduler, Tbb>::value) {
+        if (std::is_same<TestType, Tbb>::value) {
             // TBBs do not attempt to equalize the work in this way
             REQUIRE_THREAD_SAFE(value > 0);
         } else {
@@ -41,8 +41,8 @@ TYPED_TEST_CASE_2("ThreadLocal", "[thread]", TScheduler, ThreadPool, Tbb) {
     // REQUIRE_THREAD_SAFE(pool.remainingTaskCnt() == 0);
 }
 
-TYPED_TEST_CASE_2("ThreadLocal parallelFor", "[thread]", TScheduler, ThreadPool, Tbb) {
-    TScheduler& scheduler = *TScheduler::getGlobalInstance();
+TEMPLATE_TEST_CASE("ThreadLocal parallelFor", "[thread]", ThreadPool, Tbb) {
+    TestType& scheduler = *TestType::getGlobalInstance();
     const Size N = 100000;
     ThreadLocal<Array<Size>> partial(scheduler, N);
     for (Array<Size>& value : partial) {
@@ -66,7 +66,7 @@ TYPED_TEST_CASE_2("ThreadLocal parallelFor", "[thread]", TScheduler, ThreadPool,
             perThreadSum += value[i];
         }
 
-        if (std::is_same<TScheduler, ThreadPool>::value) {
+        if (std::is_same<TestType, ThreadPool>::value) {
             // TBBs do not attempt to equalize the work in this way
 
             REQUIRE_THREAD_SAFE(perThreadSum > N / scheduler.getThreadCnt() - 2000);
@@ -96,8 +96,8 @@ TEST_CASE("Concurrent parallelFor", "[thread]") {
 }
 
 #ifdef SPH_USE_TBB
-TYPED_TEST_CASE_2("ThreadLocal accumulate", "[thread]", TScheduler, ThreadPool, Tbb) {
-    TScheduler& scheduler = *TScheduler::getGlobalInstance();
+TEMPLATE_TEST_CASE("ThreadLocal accumulate", "[thread]", ThreadPool, Tbb) {
+    TestType& scheduler = *TestType::getGlobalInstance();
     ThreadLocal<int64_t> sumTl(scheduler, 0._f);
     parallelFor(scheduler, sumTl, 0, 10000, 10, [](Size i, int64_t& value) { value += i; });
     const int64_t sum = sumTl.accumulate(12);

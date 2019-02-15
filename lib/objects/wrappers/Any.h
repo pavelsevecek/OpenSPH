@@ -78,7 +78,7 @@ public:
     }
 
     template <typename Type>
-    bool operator!=(Type&& value) {
+    bool operator!=(Type&& value) const {
         return !(*this == std::forward<Type>(value));
     }
 };

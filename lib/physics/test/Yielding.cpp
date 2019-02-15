@@ -14,8 +14,8 @@
 
 using namespace Sph;
 
-TYPED_TEST_CASE_2("Rheology reduction", "[yielding]", TRheology, VonMisesRheology, DruckerPragerRheology) {
-    TRheology rheology;
+TEMPLATE_TEST_CASE("Rheology reduction", "[yielding]", VonMisesRheology, DruckerPragerRheology) {
+    TestType rheology;
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     Storage storage(getDefaultMaterial());
 
@@ -45,9 +45,9 @@ TYPED_TEST_CASE_2("Rheology reduction", "[yielding]", TRheology, VonMisesRheolog
     REQUIRE(p[0] == p0);                      // u has no effect on p
 }
 
-TYPED_TEST_CASE_2("Rheology repeated", "[yielding]", TRheology, VonMisesRheology, DruckerPragerRheology) {
+TEMPLATE_TEST_CASE("Rheology repeated", "[yielding]", VonMisesRheology, DruckerPragerRheology) {
     // rheology should not affect already reduced stress tensor
-    TRheology rheology;
+    TestType rheology;
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     BodySettings settings;
     settings.set(BodySettingsId::ELASTICITY_LIMIT, 0.5_f);

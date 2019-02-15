@@ -83,7 +83,7 @@ static void runImpact(EquationHolder eqs, const RunSettings& settings) {
     REQUIRE(drhoCnt > 50);
 }
 
-TYPED_TEST_CASE_2("Impact standard SPH", "[impact]]", TSolver, SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("Impact standard SPH", "[impact]]", SymmetricSolver, AsymmetricSolver) {
     // Check that first two steps of impact work as expected.
 
     RunSettings settings;
@@ -96,10 +96,10 @@ TYPED_TEST_CASE_2("Impact standard SPH", "[impact]]", TSolver, SymmetricSolver, 
 
     EquationHolder eqs = getStandardEquations(settings);
 
-    runImpact<TSolver>(std::move(eqs), settings);
+    runImpact<TestType>(std::move(eqs), settings);
 }
 
-TYPED_TEST_CASE_2("Impact B&A SPH", "[impact]]", TSolver, SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("Impact B&A SPH", "[impact]]", SymmetricSolver, AsymmetricSolver) {
     RunSettings settings;
     settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD);
@@ -109,5 +109,5 @@ TYPED_TEST_CASE_2("Impact B&A SPH", "[impact]]", TSolver, SymmetricSolver, Asymm
     settings.set(RunSettingsId::SPH_CONTINUITY_USING_UNDAMAGED, true);
     EquationHolder eqs = getStandardEquations(settings);
 
-    runImpact<TSolver>(std::move(eqs), settings);
+    runImpact<TestType>(std::move(eqs), settings);
 }

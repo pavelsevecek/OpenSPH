@@ -125,12 +125,12 @@ static void flywheel(const Float dt, const Float eps) {
     REQUIRE(w[0] != approx(w0));
 }
 
-TYPED_TEST_CASE_2("Flywheel small timestep", "[nbody]", T, EulerExplicit, LeapFrog) {
-    flywheel<T>(1.e-5_f, 4.e-5_f);
+TEMPLATE_TEST_CASE("Flywheel small timestep", "[nbody]", EulerExplicit, LeapFrog) {
+    flywheel<TestType>(1.e-5_f, 4.e-5_f);
 }
 
-TYPED_TEST_CASE_2("Flywheel large timestep", "[nbody]", T, EulerExplicit, LeapFrog) {
-    flywheel<T>(1.e-3_f, 0.01_f);
+TEMPLATE_TEST_CASE("Flywheel large timestep", "[nbody]", EulerExplicit, LeapFrog) {
+    flywheel<TestType>(1.e-3_f, 0.01_f);
 }
 
 static SharedPtr<Storage> makeTwoParticles() {
@@ -146,7 +146,7 @@ static SharedPtr<Storage> makeTwoParticles() {
     return storage;
 }
 
-TYPED_TEST_CASE_2("Collision bounce two", "[nbody]", T, EulerExplicit, LeapFrog) {
+TEMPLATE_TEST_CASE("Collision bounce two", "[nbody]", EulerExplicit, LeapFrog) {
     RunSettings settings;
     settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::ELASTIC_BOUNCE)
         .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 1._f)
@@ -217,14 +217,14 @@ TYPED_TEST_CASE_2("Collision bounce two", "[nbody]", T, EulerExplicit, LeapFrog)
         }
         return SUCCESS;
     };
-    integrate<T>(storage, solver, dt, test);
+    integrate<TestType>(storage, solver, dt, test);
 
     // did bounce
     REQUIRE(v[0] == approx(v1, 1.e-6_f));
     REQUIRE(v[1] == approx(v0, 1.e-6_f));
 }
 
-TYPED_TEST_CASE_2("Collision merge two", "[nbody]", T, EulerExplicit, LeapFrog) {
+TEMPLATE_TEST_CASE("Collision merge two", "[nbody]", EulerExplicit, LeapFrog) {
     RunSettings settings;
     settings.set(RunSettingsId::NBODY_INERTIA_TENSOR, true)
         .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::PERFECT_MERGING)
@@ -317,12 +317,12 @@ TYPED_TEST_CASE_2("Collision merge two", "[nbody]", T, EulerExplicit, LeapFrog) 
         }
         return SUCCESS;
     };
-    integrate<T>(storage, solver, dt, test);
+    integrate<TestType>(storage, solver, dt, test);
 
     REQUIRE(didMerge);
 }
 
-TYPED_TEST_CASE_2("Collision merge off-center", "[nbody]", T, EulerExplicit, LeapFrog) {
+TEMPLATE_TEST_CASE("Collision merge off-center", "[nbody]", EulerExplicit, LeapFrog) {
     // hit on high impact angle should give the body some rotation
     RunSettings settings;
     settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::PERFECT_MERGING)
@@ -373,12 +373,12 @@ TYPED_TEST_CASE_2("Collision merge off-center", "[nbody]", T, EulerExplicit, Lea
         E_prev = E[0];
         return SUCCESS;
     };
-    integrate<T>(storage, solver, 1.e-4_f, test);
+    integrate<TestType>(storage, solver, 1.e-4_f, test);
 
     REQUIRE(didMerge);
 }
 
-TYPED_TEST_CASE_2("Collision merge miss", "[nbody]", T, EulerExplicit, LeapFrog) {
+TEMPLATE_TEST_CASE("Collision merge miss", "[nbody]", EulerExplicit, LeapFrog) {
     RunSettings settings;
     settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::PERFECT_MERGING)
         .set(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, 0._f)
@@ -401,10 +401,10 @@ TYPED_TEST_CASE_2("Collision merge miss", "[nbody]", T, EulerExplicit, LeapFrog)
         }
         return SUCCESS;
     };
-    integrate<T>(storage, solver, 1.e-4_f, test);
+    integrate<TestType>(storage, solver, 1.e-4_f, test);
 }
 
-TYPED_TEST_CASE_2("Collision merge rejection", "[nbody]", T, EulerExplicit, LeapFrog) {
+TEMPLATE_TEST_CASE("Collision merge rejection", "[nbody]", EulerExplicit, LeapFrog) {
     RunSettings settings;
     settings.set(RunSettingsId::NBODY_INERTIA_TENSOR, true)
         .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::MERGE_OR_BOUNCE)
@@ -421,7 +421,7 @@ TYPED_TEST_CASE_2("Collision merge rejection", "[nbody]", T, EulerExplicit, Leap
     Array<SymmetricTensor> I0 = storage->getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA).clone();
 
     auto test = [&](Size) -> Outcome { return SUCCESS; };
-    integrate<T>(storage, solver, 1.e-4_f, test);
+    integrate<TestType>(storage, solver, 1.e-4_f, test);
 
     Array<Float> m1 = storage->getValue<Float>(QuantityId::MASS).clone();
     Array<Vector> w1 = storage->getValue<Vector>(QuantityId::ANGULAR_FREQUENCY).clone();
@@ -481,7 +481,7 @@ static SharedPtr<Storage> runCloud(const RunSettings& settings, const Size parti
     return storage;
 }
 
-TYPED_TEST_CASE_2("Collision cloud merge", "[nbody]", T, EulerExplicit, LeapFrog) {
+TEMPLATE_TEST_CASE("Collision cloud merge", "[nbody]", EulerExplicit, LeapFrog) {
     // just check that many particles fired into one point will all merge into a single particle
     RunSettings settings;
     settings.set(RunSettingsId::NBODY_INERTIA_TENSOR, true)
@@ -489,13 +489,13 @@ TYPED_TEST_CASE_2("Collision cloud merge", "[nbody]", T, EulerExplicit, LeapFrog
         .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::FORCE_MERGE)
         .set(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, 0._f)
         .set(RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT, 0._f);
-    SharedPtr<Storage> storage = runCloud<T>(settings, 100);
+    SharedPtr<Storage> storage = runCloud<TestType>(settings, 100);
 
     // all particles should be merged into one
     REQUIRE(storage->getParticleCnt() == 1);
 }
 
-TYPED_TEST_CASE_2("Collision cloud merge&bounce", "[nbody]", T, EulerExplicit, LeapFrog) {
+TEMPLATE_TEST_CASE("Collision cloud merge&bounce", "[nbody]", EulerExplicit, LeapFrog) {
     // similar to above, more or less tests that MERGE_OR_BOUNCE with REPEL overlap handler will not cause any
     // assert
     RunSettings settings;
@@ -504,14 +504,14 @@ TYPED_TEST_CASE_2("Collision cloud merge&bounce", "[nbody]", T, EulerExplicit, L
         .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::REPEL)
         .set(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, 0._f)
         .set(RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT, 0._f);
-    SharedPtr<Storage> storage = runCloud<T>(settings, 100);
+    SharedPtr<Storage> storage = runCloud<TestType>(settings, 100);
 
     // some particles either bounced away or were repelled in overlap, so we generally don't get 1 particle
     REQUIRE(storage->getParticleCnt() > 1);
     REQUIRE(storage->getParticleCnt() < 30);
 }
 
-TYPED_TEST_CASE_2("Collision cloud bounce", "[nbody]", T, EulerExplicit, LeapFrog) {
+TEMPLATE_TEST_CASE("Collision cloud bounce", "[nbody]", EulerExplicit, LeapFrog) {
     // for elastic bounces there should be NO overlaps (except for some very improbably numerical reasons);
     // this setup would cause an assert
     RunSettings settings;
@@ -520,5 +520,5 @@ TYPED_TEST_CASE_2("Collision cloud bounce", "[nbody]", T, EulerExplicit, LeapFro
         .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::NONE);
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     NBodySolver solver(pool, settings);
-    REQUIRE_NOTHROW(runCloud<T>(settings, 50));
+    REQUIRE_NOTHROW(runCloud<TestType>(settings, 50));
 }

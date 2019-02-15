@@ -107,7 +107,7 @@ public:
     }
 
     /// Returns a subset of the arrayview.
-    INLINE ArrayView subset(const TCounter start, const TCounter length) {
+    INLINE ArrayView subset(const TCounter start, const TCounter length) const {
         ASSERT(start + length <= size());
         return ArrayView(data + start, length);
     }

@@ -468,8 +468,10 @@ public:
         return view() != other.view();
     }
 
-    /// \brief Prints content of array to stream. Stored values must have overloaded << operator.
-    template <typename TStream>
+    /// \brief Prints content of array to stream.
+    ///
+    /// Enabled only if the stored type has overloaded << operator.
+    template <typename TStream, typename = std::enable_if_t<HasStreamOperator<T, TStream>::value>>
     friend TStream& operator<<(TStream& stream, const Array& array) {
         for (const T& t : array) {
             stream << t << std::endl;

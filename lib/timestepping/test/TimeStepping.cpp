@@ -88,8 +88,6 @@ static void testHomogeneousField(TArgs&&... args) {
     tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
     Statistics stats;
-    Size n = 0;
-
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
 
     const Size testCnt = Size(3._f / timeStep);
@@ -121,8 +119,6 @@ static void testHarmonicOscillator(TArgs&&... args) {
     tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
     Statistics stats;
-    Size n = 0;
-
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
 
     const Size testCnt = Size(3._f / timeStep);
@@ -158,8 +154,6 @@ static void testGyroscopicMotion(TArgs&&... args) {
 
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
     Statistics stats;
-    Size n = 0;
-
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
 
     const Size testCnt = Size(3._f / timeStep);

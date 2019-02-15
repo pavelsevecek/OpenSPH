@@ -61,10 +61,8 @@ SharedPtr<Storage> solveGassBall(RunSettings settings, Flags<Options> flags) {
 
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
-    const Float h = r[0][H];
 
     // check integrals of motion
-
     TotalMomentum momentum;
     TotalAngularMomentum angularMomentum;
     TotalEnergy energy;
@@ -126,18 +124,17 @@ SharedPtr<Storage> solveGassBall(RunSettings settings, Flags<Options> flags) {
     return storage;
 }
 
-TYPED_TEST_CASE_3("Solvers gass ball",
+TEMPLATE_TEST_CASE("Solvers gass ball",
     "[solvers]",
-    TSolver,
     SymmetricSolver,
     AsymmetricSolver,
     EnergyConservingSolver) {
     RunSettings settings;
     settings.set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::STANDARD);
-    solveGassBall<TSolver>(settings, Options::CHECK_INTEGRALS | Options::CHECK_MOVEMENT);
+    solveGassBall<TestType>(settings, Options::CHECK_INTEGRALS | Options::CHECK_MOVEMENT);
 
     settings.set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::BENZ_ASPHAUG);
-    solveGassBall<TSolver>(settings, Options::CHECK_INTEGRALS | Options::CHECK_MOVEMENT);
+    solveGassBall<TestType>(settings, Options::CHECK_INTEGRALS | Options::CHECK_MOVEMENT);
 }
 
 TEST_CASE("SymmetricSolver asymmetric derivative", "[solvers]") {
@@ -160,7 +157,7 @@ TEST_CASE("SymmetricSolver asymmetric derivative", "[solvers]") {
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     auto eq = makeTerm<Tests::SingleDerivativeMaker<AsymmetricDerivative>>();
-    REQUIRE_THROWS_AS(SymmetricSolver(pool, RunSettings::getDefaults(), eq), InvalidSetup&);
+    REQUIRE_THROWS_AS(SymmetricSolver(pool, RunSettings::getDefaults(), eq), InvalidSetup);
 }
 
 TEST_CASE("SummationSolver gass ball", "[solvers]") {

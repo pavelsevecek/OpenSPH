@@ -8,7 +8,8 @@ using namespace Sph;
 TEST_CASE("AtomicFloat operations", "[thread]") {
     // just test that the operation are correctly defined (and do not assert nor throw),
     // this does not test atomicity of operators!
-    REQUIRE_NOTHROW(Atomic<Float> f1;);
+    AlignedStorage<Atomic<Float>> f1;
+    REQUIRE_NOTHROW(f1.emplace());
     Atomic<Float> f2 = 2._f;
     REQUIRE(f2 == 2._f);
     f2 += 3._f;

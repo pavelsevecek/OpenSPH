@@ -521,11 +521,11 @@ public:
         return *iter;
     }
 
-    INLINE bool operator==(const SubsetIterator& other) {
+    INLINE bool operator==(const SubsetIterator& other) const {
         return iter == other.iter;
     }
 
-    INLINE bool operator!=(const SubsetIterator& other) {
+    INLINE bool operator!=(const SubsetIterator& other) const {
         return iter != other.iter;
     }
 };
@@ -614,7 +614,7 @@ public:
         return to - from;
     }
 
-    INLINE bool operator==(const IndexSequence& other) {
+    INLINE bool operator==(const IndexSequence& other) const {
         return from == other.from && to == other.to;
     }
 

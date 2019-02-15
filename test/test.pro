@@ -7,12 +7,13 @@ LIBS += ../lib/liblib.a
 
 include(../lib/inc.pro)
 
-INCLUDEPATH += ../lib ../../external/Catch/include
+INCLUDEPATH += ../lib /usr/include/catch2
 DEPENDPATH += . ../lib
 LIBS += ../lib/liblib.a
 PRE_TARGETDEPS += ../lib/liblib.a
 
 SOURCES += \
+    ../lib/common/test/Traits.cpp \
     ../lib/gravity/test/BarnesHut.cpp \
     ../lib/gravity/test/BruteForceGravity.cpp \
     ../lib/gravity/test/Moments.cpp \

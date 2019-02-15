@@ -73,5 +73,5 @@ TEST_CASE("GravitySolver setup", "[solvers]") {
     RunSettings settings;
     Storage storage = Tests::getGassStorage(2);
     GravitySolver<SymmetricSolver> solver(pool, settings, holder, makeAuto<BruteForceGravity>());
-    REQUIRE_THROWS_AS(solver.create(storage, storage.getMaterial(0)), InvalidSetup&);
+    REQUIRE_THROWS_AS(solver.create(storage, storage.getMaterial(0)), InvalidSetup);
 }

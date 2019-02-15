@@ -8,7 +8,8 @@ using namespace Sph;
 
 
 TEST_CASE("TracelessTensor construction", "[tracelesstensor]") {
-    REQUIRE_NOTHROW(TracelessTensor t1);
+    AlignedStorage<TracelessTensor> t1;
+    REQUIRE_NOTHROW(t1.emplace());
 
     TracelessTensor t2(Vector(1._f, 2._f, 3._f), Vector(2._f, 2._f, 4._f), Vector(3._f, 4._f, -3._f));
     REQUIRE(t2.row(0) == Vector(1._f, 2._f, 3._f));
