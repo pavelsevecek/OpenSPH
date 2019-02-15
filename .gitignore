@@ -75,5 +75,3 @@ Thumbs.db
 # Output directories
 problems/sod/out
 
-# Config for unit tests
-test/utils/Config.h
