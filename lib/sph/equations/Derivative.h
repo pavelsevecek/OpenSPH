@@ -11,6 +11,7 @@
 #include "sph/equations/Accumulated.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"
+#include <typeinfo>
 
 NAMESPACE_SPH_BEGIN
 

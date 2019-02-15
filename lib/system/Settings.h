@@ -13,6 +13,7 @@
 #include "objects/wrappers/Interval.h"
 #include "objects/wrappers/Outcome.h"
 #include "objects/wrappers/Variant.h"
+#include <typeinfo>
 
 NAMESPACE_SPH_BEGIN
 

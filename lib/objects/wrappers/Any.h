@@ -7,6 +7,7 @@
 
 #include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Optional.h"
+#include <typeinfo>
 
 NAMESPACE_SPH_BEGIN
 
