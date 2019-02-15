@@ -3,7 +3,7 @@ CONFIG += c++14 thread silent
 CONFIG -= app_bundle
 CONFIG -= qt
 
-INCLUDEPATH += ../../lib ../../../external/Catch/include
+INCLUDEPATH += ../../lib /usr/include/catch2
 DEPENDPATH += . ../../lib
 PRE_TARGETDEPS += ../../lib/liblib.a
 LIBS += ../../lib/liblib.a

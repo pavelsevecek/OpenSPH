@@ -4,7 +4,6 @@ before_script:
   - apt-get update -qy
   - apt-get install -y clang-4.0 qt5-default libwxgtk3.0-dev wx3.0-headers wx-common
   - ln -s /usr/bin/clang++-4.0 /usr/bin/clang++
-  - wget -P /usr/include/catch2/ "https://github.com/philsquared/Catch/releases/download/v1.12.2/catch.hpp" 
  
 gcc_debug:
   stage: build
@@ -38,12 +37,24 @@ clang_release:
     - qmake -spec linux-clang CONFIG+=release ../sph.pro
     - make
 
-unit_test:
+test_debug:
   stage: test
   script:
+    - wget -P /usr/include/catch2/ "https://github.com/philsquared/Catch/releases/download/v1.12.2/catch.hpp" 
     - mkdir tests
     - cd tests
     - qmake -spec linux-g++ CONFIG+=debug ../all.pro
+    - make
+    - cd test
+    - ./test -d yes [gravity],[nbody],[equationterm],[solvers],[impact],[timestepping],[quantity],[storage],[material],[damage],[eos],[yielding]
+
+test_release:
+  stage: test
+  script:
+    - wget -P /usr/include/catch2/ "https://github.com/philsquared/Catch/releases/download/v1.12.2/catch.hpp" 
+    - mkdir tests
+    - cd tests
+    - qmake -spec linux-g++ CONFIG+=release ../all.pro
     - make
     - cd test
     - ./test -d yes [gravity],[nbody],[equationterm],[solvers],[impact],[timestepping],[quantity],[storage],[material],[damage],[eos],[yielding]
