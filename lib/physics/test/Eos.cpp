@@ -56,7 +56,7 @@ TEST_CASE("Tillotson inverted energy", "[eos]") {
     settings.set(BodySettingsId::TILLOTSON_SUBLIMATION, 1.e8_f);
     TillotsonEos eos(settings);
 
-    auto test = [&](const Float u0, const Float rho0, const Float eps = 1.e-6_f) {
+    auto test = [&](const Float u0, const Float rho0, const Float eps = 2.e-6_f) {
         Float p, cs;
         tie(p, cs) = eos.evaluate(rho0, u0);
         REQUIRE(eos.getInternalEnergy(rho0, p) == approx(u0, eps));

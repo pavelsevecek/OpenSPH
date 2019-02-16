@@ -232,14 +232,14 @@ TEST_CASE("Quadratic Fit perfect", "[post]") {
     Array<PlotPoint> points = { { 0, 4 }, { 2, 0 }, { 4, 5 } };
     Post::QuadraticFunction func = Post::getQuadraticFit(points);
 
-    REQUIRE(func.quadratic() == 1.125_f);
-    REQUIRE(func.linear() == -4.25_f);
-    REQUIRE(func.constant() == 4._f);
+    REQUIRE(func.quadratic() == approx(1.125_f));
+    REQUIRE(func.linear() == approx(-4.25_f));
+    REQUIRE(func.constant() == approx(4._f));
 
     StaticArray<Float, 2> roots = func.solve(5._f);
     REQUIRE(roots.size() == 2);
-    REQUIRE(roots[0] == -2._f / 9._f);
-    REQUIRE(roots[1] == 4._f);
+    REQUIRE(roots[0] == approx(-2._f / 9._f));
+    REQUIRE(roots[1] == approx(4._f));
 
     roots = func.solve(-2._f);
     REQUIRE(roots.empty());
