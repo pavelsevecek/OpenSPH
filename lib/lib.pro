@@ -290,4 +290,5 @@ HEADERS += \
     timestepping/ISolverr.h \
     timestepping/TimeStepCriterion.h \
     timestepping/TimeStepping.h \
-    io/LogWriter.h
+    io/LogWriter.h \
+    objects/finders/PeriodicFinder.h

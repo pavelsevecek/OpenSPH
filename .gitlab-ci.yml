@@ -46,7 +46,7 @@ test_debug:
     - qmake -spec linux-g++ DEFINES+="SPH_CONFIG_SET" CONFIG+=debug ../test.pro
     - make
     - cd test
-    - ./test -d yes [gravity],[nbody],[equationterm],[solvers],[impact],[timestepping],[quantity],[storage],[material],[damage],[eos],[yielding]
+    - ./test -d yes [gravity],[nbody],[equationterm],[solvers],[impact],[timestepping],[quantity],[storage],[material],[damage],[eos],[yielding],[run],[post],[finders]
 
 test_release:
   stage: test
@@ -57,4 +57,4 @@ test_release:
     - qmake -spec linux-g++ DEFINES+="SPH_CONFIG_SET" CONFIG+=release ../test.pro
     - make
     - cd test
-    - ./test -d yes [gravity],[nbody],[equationterm],[solvers],[impact],[timestepping],[quantity],[storage],[material],[damage],[eos],[yielding]
+    - ./test -d yes [gravity],[nbody],[equationterm],[solvers],[impact],[timestepping],[quantity],[storage],[material],[damage],[eos],[yielding],[run],[post],[finders]

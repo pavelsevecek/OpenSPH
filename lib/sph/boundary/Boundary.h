@@ -203,9 +203,36 @@ public:
     virtual void finalize(Storage& storage) override;
 };
 
-/// Boundary condition moving all particles passed through the domain to the other side of the domain.
+/// \brief Boundary condition moving all particles passed through the domain to the other side of the domain.
 class PeriodicDomain : public IBoundaryCondition {
-    /// \todo modify Finder to search periodically in domain. That should be the whole trick
+private:
+    Box domain;
+
+    AutoPtr<IBoundaryCondition> additional;
+
+public:
+    PeriodicDomain(const Box& domain, AutoPtr<IBoundaryCondition>&& additional);
+
+    virtual void initialize(Storage& storage) override {
+        ArrayView<Vector> positions = storage.getValue<Vector>(QuantityId::POSITION);
+        for (Vector& pos : positions) {
+            if (pos[X] < domain.lower()[X]) {
+                pos[X] += domain.size()[X];
+            } else if (pos[X] > domain.upper()[X]) {
+                pos[X] -= domain.size()[X];
+            }
+        }
+
+        if (additional) {
+            additional->initialize(storage);
+        }
+    }
+
+    virtual void finalize(Storage& storage) override {
+        if (additional) {
+            additional->finalize(storage);
+        }
+    }
 };
 
 

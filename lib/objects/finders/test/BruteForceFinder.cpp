@@ -5,7 +5,7 @@
 
 using namespace Sph;
 
-TEST_CASE("BruteForceFinder", "[bruteforce]") {
+TEST_CASE("BruteForceFinder", "[finders]") {
     Array<Vector> storage(0, 10);
     for (int i = 0; i < 10; ++i) {
         storage.push(Vector(i, 0, 0, i + 1)); // points on line with increasing H
