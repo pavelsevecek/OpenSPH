@@ -24,7 +24,9 @@ private:
     LutKernel<DIMENSIONS> densityKernel;
 
 public:
-    explicit SummationSolver(const RunSettings& settings, const EquationHolder& additionalEquations = {});
+    SummationSolver(IScheduler& scheduler,
+        const RunSettings& settings,
+        const EquationHolder& additionalEquations = {});
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 

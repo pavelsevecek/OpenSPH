@@ -31,9 +31,11 @@ private:
         Array<Triangle> triangles;
 
         /// Colors of surface vertices assigned by the colorizer
-        Array<Color> colors;
+        Array<Rgba> colors;
 
     } cached;
+
+    IScheduler& scheduler;
 
     /// Finder used for colorization of the surface
     AutoPtr<IBasicFinder> finder;
@@ -41,16 +43,16 @@ private:
     LutKernel<3> kernel;
 
 public:
-    explicit MeshRenderer(const GuiSettings& settings);
+    explicit MeshRenderer(IScheduler& scheduler, const GuiSettings& settings);
 
     virtual void initialize(const Storage& storage,
         const IColorizer& colorizer,
         const ICamera& camera) override;
 
     /// Can only be called from main thread
-    virtual SharedPtr<wxBitmap> render(const ICamera& camera,
-        const RenderParams& params,
-        Statistics& stats) const override;
+    virtual void render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const override;
+
+    virtual void cancelRender() override {}
 };
 
 NAMESPACE_SPH_END

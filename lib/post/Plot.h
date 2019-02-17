@@ -12,8 +12,8 @@
 
 NAMESPACE_SPH_BEGIN
 
-class PlotPoint;
-class ErrorPlotPoint;
+struct PlotPoint;
+struct ErrorPlotPoint;
 class AffineMatrix2;
 
 class IDrawPath : public Polymorphic {
@@ -32,7 +32,6 @@ public:
 ///
 /// Object operates in plot coordinates.
 class IDrawingContext : public Polymorphic {
-private:
 public:
     /// \brief Adds a single point to the plot
     ///
@@ -53,6 +52,14 @@ public:
     /// The path copies the state from the parent drawing context, so if a drawing style of the context
     /// changes, the change does not affect already existing paths.
     virtual AutoPtr<IDrawPath> drawPath() = 0;
+
+    /// \brief Changes the current drawing style.
+    ///
+    /// Interpretation of the style is implementation-defined. It is assumed that the derived classes will
+    /// have a predefined set of drawing styles, this function will then selects the style with appropriate
+    /// index.
+    /// \param index Index of the selected style.
+    virtual void setStyle(const Size index) = 0;
 
     /// \brief Applies the given tranformation matrix on all primitives.
     ///
@@ -97,7 +104,6 @@ public:
     /// \brief Draws the plot into the drawing context
     virtual void plot(IDrawingContext& dc) const = 0;
 };
-
 
 /// \brief Base class for plots showing a dependence of given quantity on a spatial coordinate.
 ///
@@ -239,17 +245,32 @@ protected:
     Post::HistogramId id;
 
     /// Points representing the histogram
-    Array<Post::SfdPoint> points;
+    Array<Post::HistPoint> points;
+
+    /// Interval for which the histogram is constructed.
+    ///
+    /// If NOTHING, the interval is created by enclosing all x values.
+    Optional<Interval> interval;
+
+    /// Displayed name of the histogram.
+    std::string name;
 
 public:
-    explicit HistogramPlot(const Post::HistogramId id)
-        : id(id) {}
+    explicit HistogramPlot(const Post::HistogramId id,
+        const Optional<Interval> interval,
+        const std::string& name)
+        : id(id)
+        , interval(interval)
+        , name(name) {}
 
-    explicit HistogramPlot(const QuantityId id)
-        : id(Post::HistogramId(id)) {}
+    explicit HistogramPlot(const QuantityId id, const Optional<Interval> interval)
+        : id(Post::HistogramId(id))
+        , interval(interval) {
+        name = getMetadata(id).quantityName;
+    }
 
     virtual std::string getCaption() const override {
-        return getMetadata(QuantityId(id)).quantityName;
+        return name;
     }
 
     virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;
@@ -259,21 +280,61 @@ public:
     virtual void plot(IDrawingContext& dc) const override;
 };
 
-class SfdPlot : public HistogramPlot {
+class SfdPlot : public IPlot {
 private:
+    Post::HistogramSource source;
+    Flags<Post::ComponentFlag> connect;
+    Float period;
+    std::string name;
+
+    Float lastTime = 0._f;
     Array<PlotPoint> sfd;
 
 public:
-    SfdPlot()
-        : HistogramPlot(Post::HistogramId::RADII) {}
+    /// \brief Plots SFD of components, given their connectivity.
+    SfdPlot(const Flags<Post::ComponentFlag> connectivity, const Float period);
 
-    virtual std::string getCaption() const override {
-        return "Size-frequency distribution";
-    }
+    /// \brief Plots SFD of individual particles, makes only sense when merging the particles on collisions.
+    SfdPlot(const Float period);
+
+    virtual std::string getCaption() const override;
 
     virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;
 
+    virtual void clear() override;
+
     virtual void plot(IDrawingContext& dc) const override;
 };
+
+enum class AxisScaleEnum {
+    LOG_X = 1 << 0,
+    LOG_Y = 1 << 1,
+};
+
+/// \brief Plots given array of points.
+class DataPlot : public IPlot {
+private:
+    Array<PlotPoint> values;
+    std::string name;
+
+public:
+    DataPlot(const Array<Post::HistPoint>& points, const Flags<AxisScaleEnum> scale, const std::string& name);
+
+    virtual std::string getCaption() const override;
+
+    virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;
+
+    virtual void clear() override;
+
+    virtual void plot(IDrawingContext& dc) const override;
+};
+
+/// \brief Returns the tics to be drawn on a linear axis of a plot.
+///
+/// The tics are not necessarily equidistant.
+Array<Float> getLinearTics(const Interval& interval, const Size minCount);
+
+/// \brief Returns the tics to be drawn on a logarithmic axis of a plot.
+Array<Float> getLogTics(const Interval& interval, const Size minCount);
 
 NAMESPACE_SPH_END

@@ -6,9 +6,14 @@
 #include "quantities/Storage.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
-#include "thread/Pool.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
+
+static_assert(sizeof(InnerNode<BarnesHutNode>) == sizeof(LeafNode<BarnesHutNode>),
+    "Invalid size of BarnesHut nodes");
+static_assert(alignof(InnerNode<BarnesHutNode>) == alignof(LeafNode<BarnesHutNode>),
+    "Invalid alignment of BarnesHut nodes");
 
 BarnesHut::BarnesHut(const Float theta, const MultipoleOrder order, const Size leafSize)
     : kdTree(leafSize)
@@ -32,19 +37,24 @@ BarnesHut::BarnesHut(const Float theta,
     ASSERT(theta > 0._f, theta);
 }
 
-void BarnesHut::build(const Storage& storage) {
+void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
     // save source data
     r = storage.getValue<Vector>(QuantityId::POSITION);
-    m = storage.getValue<Float>(QuantityId::MASS);
+
+    m.resize(r.size());
+    ArrayView<const Float> masses = storage.getValue<Float>(QuantityId::MASS);
+    for (Size i = 0; i < m.size(); ++i) {
+        m[i] = Constants::gravity * masses[i];
+    }
 
     // build K-d Tree; no need for rank as we are never searching neighbours
-    kdTree.build(r, FinderFlag::SKIP_RANK);
+    kdTree.build(scheduler, r, FinderFlag::SKIP_RANK);
 
     if (SPH_UNLIKELY(r.empty())) {
         return;
     }
     // constructs nodes
-    kdTree.iterate<KdTree::Direction::BOTTOM_UP>([this](KdNode& node, KdNode* left, KdNode* right) INL {
+    auto functor = [this](BarnesHutNode& node, BarnesHutNode* left, BarnesHutNode* right) INL {
         if (node.isLeaf()) {
             ASSERT(left == nullptr && right == nullptr);
             buildLeaf(node);
@@ -54,58 +64,31 @@ void BarnesHut::build(const Storage& storage) {
             buildInner(node, *left, *right);
         }
         return true;
+    };
+    /// \todo sequential needed because TBB cannot wait on child tasks yet
+    iterateTree<IterateDirection::BOTTOM_UP>(kdTree, SEQUENTIAL, functor);
+}
+
+void BarnesHut::evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const {
+    TreeWalkState data;
+    TreeWalkResult result;
+    SharedPtr<ITask> rootTask = scheduler.submit([this, &scheduler, dv, &data, &result] { //
+        this->evalNode(scheduler, dv, 0, std::move(data), result);
     });
-}
-
-void BarnesHut::evalAll(ArrayView<Vector> dv, Statistics& stats) const {
-    TreeWalkState data;
-    TreeWalkResult result;
-
-    // Dummy scheduler without any parallelization
-    class SequentialScheduler : public IScheduler {
-    public:
-        virtual void submit(AutoPtr<ITask>&& task) override {
-            (*task)();
-        }
-
-        virtual void waitForAll() override {
-            // do nothing
-        }
-    } scheduler;
-
-    this->evalNode(scheduler, dv, 0, std::move(data), result);
+    rootTask->wait();
 
     stats.set<int>(StatisticsId::GRAVITY_NODES_APPROX, result.approximatedNodes);
     stats.set<int>(StatisticsId::GRAVITY_NODES_EXACT, result.exactNodes);
     stats.set<int>(StatisticsId::GRAVITY_NODE_COUNT, kdTree.getNodeCnt());
-
-    // set correct units
-    for (Size i = 0; i < dv.size(); ++i) {
-        dv[i] *= Constants::gravity;
-    }
-}
-
-void BarnesHut::evalAll(ThreadPool& pool, ArrayView<Vector> dv, Statistics& stats) const {
-    TreeWalkState data;
-    TreeWalkResult result;
-    pool.submit(makeTask([this, &pool, dv, &data, &result] { //
-        this->evalNode(pool, dv, 0, std::move(data), result);
-    }));
-    pool.waitForAll();
-
-    stats.set<int>(StatisticsId::GRAVITY_NODES_APPROX, result.approximatedNodes);
-    stats.set<int>(StatisticsId::GRAVITY_NODES_EXACT, result.exactNodes);
-    stats.set<int>(StatisticsId::GRAVITY_NODE_COUNT, kdTree.getNodeCnt());
-
-    // set correct units
-    for (Size i = 0; i < dv.size(); ++i) {
-        dv[i] *= Constants::gravity;
-    }
 }
 
 
 Vector BarnesHut::eval(const Vector& r0, Statistics& stats) const {
     return this->evalImpl(r0, Size(-1), stats);
+}
+
+Float BarnesHut::evalEnergy(IScheduler& UNUSED(scheduler), Statistics& UNUSED(stats)) const {
+    NOT_IMPLEMENTED;
 }
 
 Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(stats)) const {
@@ -114,7 +97,8 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(
     }
     Vector f(0._f);
 
-    auto lambda = [this, &r0, &f, idx](const KdNode& node, const KdNode*, const KdNode*) {
+    auto lambda = [this, &r0, &f, idx](
+                      const BarnesHutNode& node, const BarnesHutNode*, const BarnesHutNode*) {
         if (node.box == Box::EMPTY()) {
             // no particles in this node, skip
             return false;
@@ -132,7 +116,7 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(
         } else {
             // too large box; if inner, recurse into children, otherwise sum each particle of the leaf
             if (node.isLeaf()) {
-                const LeafNode& leaf = reinterpret_cast<const LeafNode&>(node);
+                const LeafNode<BarnesHutNode>& leaf = reinterpret_cast<const LeafNode<BarnesHutNode>&>(node);
                 f += this->evalExact(leaf, r0, idx);
                 return false; // return value doesn't matter here
             } else {
@@ -141,12 +125,12 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(
             }
         }
     };
-    kdTree.iterate<KdTree::Direction::TOP_DOWN>(lambda);
+    iterateTree<IterateDirection::TOP_DOWN>(kdTree, SEQUENTIAL, lambda);
 
-    return Constants::gravity * f;
+    return f;
 }
 
-class BarnesHut::NodeTask : public ITask {
+class BarnesHut::NodeTask : public Noncopyable {
 private:
     const BarnesHut& bh;
     IScheduler& scheduler;
@@ -169,7 +153,7 @@ public:
         , data(std::move(data))
         , result(result) {}
 
-    virtual void operator()() override {
+    void operator()() {
         bh.evalNode(scheduler, dv, nodeIdx, std::move(data), result);
     }
 };
@@ -179,18 +163,18 @@ BarnesHut::TreeWalkState BarnesHut::TreeWalkState::clone() const {
     cloned.checkList = checkList.clone();
     cloned.particleList = particleList.clone();
     cloned.nodeList = nodeList.clone();
+    cloned.depth = depth;
     return cloned;
 }
 
 /// \todo try different containers; we need fast inserting & deletion
-
 void BarnesHut::evalNode(IScheduler& scheduler,
     ArrayView<Vector> dv,
     const Size evaluatedNodeIdx,
     TreeWalkState data,
     TreeWalkResult& result) const {
 
-    const KdNode& evaluatedNode = kdTree.getNode(evaluatedNodeIdx);
+    const BarnesHutNode& evaluatedNode = kdTree.getNode(evaluatedNodeIdx);
     const Box& box = evaluatedNode.box;
 
     if (box == Box::EMPTY()) {
@@ -205,7 +189,7 @@ void BarnesHut::evalNode(IScheduler& scheduler,
         ASSERT(areElementsUnique(data.checkList), data.checkList);
 
         const Size idx = *iter;
-        const KdNode& node = kdTree.getNode(idx);
+        const BarnesHutNode& node = kdTree.getNode(idx);
         if (node.r_open == 0.f) {
             // either empty node or a single particle in a leaf, just add it to particle list
             ASSERT(node.isLeaf());
@@ -225,7 +209,8 @@ void BarnesHut::evalNode(IScheduler& scheduler,
                 data.particleList.push(idx);
             } else {
                 // add child nodes into the checklist
-                const InnerNode& inner = reinterpret_cast<const InnerNode&>(node);
+                const InnerNode<BarnesHutNode>& inner =
+                    reinterpret_cast<const InnerNode<BarnesHutNode>&>(node);
                 data.checkList.pushBack(inner.left);
                 data.checkList.pushBack(inner.right);
             }
@@ -248,7 +233,7 @@ void BarnesHut::evalNode(IScheduler& scheduler,
     if (evaluatedNode.isLeaf()) {
         // checklist must be empty, otherwise we forgot something
         ASSERT(data.checkList.empty(), data.checkList);
-        const LeafNode& leaf = reinterpret_cast<const LeafNode&>(evaluatedNode);
+        const LeafNode<BarnesHutNode>& leaf = reinterpret_cast<const LeafNode<BarnesHutNode>&>(evaluatedNode);
 
         // 1) evaluate the particle list:
         this->evalParticleList(leaf, data.particleList, dv);
@@ -259,15 +244,25 @@ void BarnesHut::evalNode(IScheduler& scheduler,
         result.approximatedNodes += data.nodeList.size();
 
     } else {
-        const InnerNode& inner = reinterpret_cast<const InnerNode&>(evaluatedNode);
+        const InnerNode<BarnesHutNode>& inner =
+            reinterpret_cast<const InnerNode<BarnesHutNode>&>(evaluatedNode);
         // recurse into child nodes
+        data.depth++;
         // we evaluate the left one from a (possibly) different thread, we thus have to clone buffers now so
         // that we don't override the lists when evaluating different node (each node has its own lists).
         TreeWalkState childData = data.clone();
         childData.checkList.pushBack(inner.right);
-        AutoPtr<NodeTask> task =
-            makeAuto<NodeTask>(*this, scheduler, dv, inner.left, std::move(childData), result);
-        scheduler.submit(std::move(task));
+        auto task = makeShared<NodeTask>(*this, scheduler, dv, inner.left, std::move(childData), result);
+        if (childData.depth < maxDepth) {
+            // Ad-hoc decision (see also KdTree.cpp where we do the same trick);
+            // only split the build in the topmost nodes, process the bottom nodes in the same thread to avoid
+            // high scheduling overhead of ThreadPool (TBBs deal with this quite well)
+            //
+            // The expression above can be modified to get optimal performance.
+            scheduler.submit(std::move(task));
+        } else {
+            task();
+        }
 
         // since we go only once through the tree (we never go 'up'), we can simply move the lists into the
         // right child and modify them for the child node
@@ -276,7 +271,7 @@ void BarnesHut::evalNode(IScheduler& scheduler,
     }
 }
 
-void BarnesHut::evalParticleList(const LeafNode& leaf,
+void BarnesHut::evalParticleList(const LeafNode<BarnesHutNode>& leaf,
     ArrayView<Size> particleList,
     ArrayView<Vector> dv) const {
     // needs to symmetrize smoothing length to keep the total momentum conserved
@@ -287,9 +282,10 @@ void BarnesHut::evalParticleList(const LeafNode& leaf,
     for (Size idx : particleList) {
         // the particle lists do not have to be necessarily symmetric, we have to do each node separately
         ASSERT(idx < kdTree.getNodeCnt(), idx, kdTree.getNodeCnt());
-        const KdNode& node = kdTree.getNode(idx);
+        const BarnesHutNode& node = kdTree.getNode(idx);
         ASSERT(node.isLeaf());
-        LeafIndexSequence seq2 = kdTree.getLeafIndices(reinterpret_cast<const LeafNode&>(node));
+        LeafIndexSequence seq2 =
+            kdTree.getLeafIndices(reinterpret_cast<const LeafNode<BarnesHutNode>&>(node));
         for (Size i : seq1) {
             ASSERT(r[i][H] > 0._f, r[i][H]);
             for (Size j : seq2) {
@@ -312,11 +308,13 @@ void BarnesHut::evalParticleList(const LeafNode& leaf,
     }
 }
 
-void BarnesHut::evalNodeList(const LeafNode& leaf, ArrayView<Size> nodeList, ArrayView<Vector> dv) const {
+void BarnesHut::evalNodeList(const LeafNode<BarnesHutNode>& leaf,
+    ArrayView<Size> nodeList,
+    ArrayView<Vector> dv) const {
     ASSERT(areElementsUnique(nodeList), nodeList);
     LeafIndexSequence seq1 = kdTree.getLeafIndices(leaf);
     for (Size idx : nodeList) {
-        const KdNode& node = kdTree.getNode(idx);
+        const BarnesHutNode& node = kdTree.getNode(idx);
         ASSERT(seq1.size() > 0);
         for (Size i : seq1) {
             dv[i] += evaluateGravity(r[i] - node.com, node.moments, order);
@@ -324,7 +322,7 @@ void BarnesHut::evalNodeList(const LeafNode& leaf, ArrayView<Size> nodeList, Arr
     }
 }
 
-Vector BarnesHut::evalExact(const LeafNode& leaf, const Vector& r0, const Size idx) const {
+Vector BarnesHut::evalExact(const LeafNode<BarnesHutNode>& leaf, const Vector& r0, const Size idx) const {
     LeafIndexSequence sequence = kdTree.getLeafIndices(leaf);
     Vector f(0._f);
     for (Size i : sequence) {
@@ -336,8 +334,8 @@ Vector BarnesHut::evalExact(const LeafNode& leaf, const Vector& r0, const Size i
     return f;
 }
 
-void BarnesHut::buildLeaf(KdNode& node) {
-    LeafNode& leaf = (LeafNode&)node;
+void BarnesHut::buildLeaf(BarnesHutNode& node) {
+    LeafNode<BarnesHutNode>& leaf = (LeafNode<BarnesHutNode>&)node;
     if (leaf.size() == 0) {
         // set to zero to correctly compute mass and com of parent nodes
         leaf.com = Vector(0._f);
@@ -394,8 +392,8 @@ void BarnesHut::buildLeaf(KdNode& node) {
     // ASSERT(leaf.size() > 1 || q3 == TracelessMultipole<3>(0._f));
 }
 
-void BarnesHut::buildInner(KdNode& node, KdNode& left, KdNode& right) {
-    InnerNode& inner = (InnerNode&)node;
+void BarnesHut::buildInner(BarnesHutNode& node, BarnesHutNode& left, BarnesHutNode& right) {
+    InnerNode<BarnesHutNode>& inner = (InnerNode<BarnesHutNode>&)node;
 
     // update bounding box
     inner.box = Box::EMPTY();
@@ -447,7 +445,13 @@ void BarnesHut::buildInner(KdNode& node, KdNode& left, KdNode& right) {
 }
 
 MultipoleExpansion<3> BarnesHut::getMoments() const {
-    return kdTree.getNode(0).moments;
+    // masses are premultiplied by gravitational constants, so we have to divide
+    return kdTree.getNode(0).moments.multiply(1._f / Constants::gravity);
+}
+
+RawPtr<const IBasicFinder> BarnesHut::getFinder() const {
+    ASSERT(kdTree.getNodeCnt() > 0 && kdTree.sanityCheck(), kdTree.sanityCheck());
+    return &kdTree;
 }
 
 NAMESPACE_SPH_END

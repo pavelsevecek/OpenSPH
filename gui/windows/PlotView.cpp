@@ -1,11 +1,11 @@
 #include "gui/windows/PlotView.h"
 #include "gui/Utils.h"
 #include "gui/objects/SvgContext.h"
+#include "io/Logger.h"
 #include "io/Path.h"
 #include <wx/button.h>
 #include <wx/checkbox.h>
 #include <wx/dcclient.h>
-#include <wx/filedlg.h>
 #include <wx/menu.h>
 #include <wx/sizer.h>
 
@@ -27,6 +27,11 @@ PlotView::PlotView(wxWindow* parent,
     Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(PlotView::onDoubleClick));
 
     this->updatePlot(defaultSelectedIdx);
+}
+
+void PlotView::resize(const Pixel size) {
+    //    this->SetMaxSize(wxSize(size.x, size.y));
+    this->SetSize(wxSize(size.x, size.y));
 }
 
 static Interval extendRange(const Interval& range, const bool addZero) {
@@ -97,7 +102,7 @@ void PlotView::onPaint(wxPaintEvent& UNUSED(evt)) {
     wxSize canvasSize = dc.GetSize();
 
     // draw background
-    Color backgroundColor = Color(this->GetParent()->GetBackgroundColour());
+    Rgba backgroundColor = Rgba(this->GetParent()->GetBackgroundColour());
     wxBrush brush;
     brush.SetColour(wxColour(backgroundColor.darken(0.2_f)));
     dc.SetBrush(brush);
@@ -130,7 +135,7 @@ void PlotView::drawPlot(wxPaintDC& dc, IPlot& lockedPlot, const Interval rangeX,
 
 void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) {
     const wxSize size = this->GetSize();
-    const AffineMatrix2 invMatrix = this->getPlotTransformMatrix(rangeX, rangeY).inverse();
+    const AffineMatrix2 matrix = this->getPlotTransformMatrix(rangeX, rangeY);
 
     // find point where y-axis appears on the polot
     const Float x0 = -rangeX.lower() / rangeX.size();
@@ -139,14 +144,16 @@ void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) 
         const Float dcX = padding.x + x0 * (size.x - 2 * padding.x);
         dc.DrawLine(dcX, size.y - padding.y, dcX, padding.y);
         if (showLabels) {
-            for (Size i = 0; i < 6; ++i) {
-                const Float dcY = padding.y + (i + 0.5_f) * (size.y - 2 * padding.y) / 6._f;
-                dc.DrawLine(dcX - 2, dcY, dcX + 2, dcY);
-                const PlotPoint p = invMatrix.transformPoint({ dcX, dcY });
-                const std::wstring text = toPrintableString(p.y, 2);
+            Array<Float> tics = getLinearTics(rangeY, 6);
+            ASSERT(tics.size() >= 6);
+            for (const Float tic : tics) {
+                const PlotPoint plotPoint(0, tic);
+                const PlotPoint imagePoint = matrix.transformPoint(plotPoint);
+                dc.DrawLine(imagePoint.x - 2, imagePoint.y, imagePoint.x + 2, imagePoint.y);
+                const std::wstring text = toPrintableString(tic, 3);
                 const wxSize extent = dc.GetTextExtent(text);
-                const Float labelX = (dcX > size.x / 2._f) ? dcX - extent.x : dcX;
-                drawTextWithSubscripts(dc, text, wxPoint(labelX, dcY - extent.y / 2));
+                const Float labelX = (imagePoint.x > size.x / 2._f) ? imagePoint.x - extent.x : imagePoint.x;
+                drawTextWithSubscripts(dc, text, wxPoint(labelX, imagePoint.y - extent.y / 2));
             }
         }
     }
@@ -157,14 +164,15 @@ void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) 
         const Float dcY = size.y - padding.y - y0 * (size.y - 2 * padding.y);
         dc.DrawLine(padding.x, dcY, size.x - padding.x, dcY);
         if (showLabels) {
-            for (Size i = 0; i < 8; ++i) {
-                const Float dcX = padding.x + (i + 0.5_f) * (size.x - 2 * padding.x) / 6._f;
-                dc.DrawLine(dcX, dcY - 2, dcX, dcY + 2);
-                const PlotPoint p = invMatrix.transformPoint({ dcX, dcY });
-                const std::wstring text = toPrintableString(p.x, 2);
+            Array<Float> tics = getLinearTics(rangeX, 6);
+            for (const Float tic : tics) {
+                const PlotPoint plotPoint(tic, 0);
+                const PlotPoint imagePoint = matrix.transformPoint(plotPoint);
+                dc.DrawLine(imagePoint.x, imagePoint.y - 2, imagePoint.x, imagePoint.y + 2);
+                const std::wstring text = toPrintableString(tic, 3);
                 const wxSize extent = dc.GetTextExtent(text);
-                const Float labelY = (dcY < size.y / 2._f) ? dcY : dcY - extent.y;
-                drawTextWithSubscripts(dc, text, wxPoint(dcX - extent.x / 2, labelY));
+                const Float labelY = (imagePoint.y < size.y / 2._f) ? imagePoint.y : imagePoint.y - extent.y;
+                drawTextWithSubscripts(dc, text, wxPoint(imagePoint.x - extent.x / 2, labelY));
             }
         }
     }
@@ -187,7 +195,7 @@ PlotFrame::PlotFrame(wxWindow* parent, const wxSize size, const wxSize padding, 
     , padding(padding) {
     this->SetMinSize(size);
     SharedPtr<Array<PlotData>> data = makeShared<Array<PlotData>>();
-    data->push(PlotData{ plot, Color(0.7f, 0.7f, 0.7f) });
+    data->push(PlotData{ plot, Rgba(0.7f, 0.7f, 0.7f) });
 
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     const Size toolbarHeight = 20;
@@ -197,25 +205,35 @@ PlotFrame::PlotFrame(wxWindow* parent, const wxSize size, const wxSize padding, 
     wxSize viewSize(size.x, size.y - toolbarHeight);
     plotView = new PlotView(this, viewSize, padding, data, 0, true);
     sizer->Add(plotView);
-    this->SetSizer(sizer);
+    this->SetSizerAndFit(sizer);
+
+    this->Bind(wxEVT_SIZE, [this](wxSizeEvent& evt) {
+        const wxSize size = evt.GetSize();
+        plotView->resize(Pixel(size.x, size.y - toolbarHeight));
+    });
 }
 
 wxBoxSizer* PlotFrame::createToolbar(const Size UNUSED(toolbarHeight)) {
     wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    wxButton* saveButton = new wxButton(this, wxID_ANY, "Save");
-    saveButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
-        wxFileDialog saveFile(this,
-            "Save image",
-            "",
-            "",
-            "PNG image (*.png)|*.png|SVG image (*.svg)|*.svg",
-            wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-        if (saveFile.ShowModal() == wxID_OK) {
-            this->saveImage(std::string(saveFile.GetPath()), saveFile.GetFilterIndex());
+    wxButton* savePlotButton = new wxButton(this, wxID_ANY, "Save Plot");
+    savePlotButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
+        Optional<Path> path =
+            doSaveFileDialog("Save image", { { "PNG image", "png" }, { "SVG image", "svg" } });
+        if (path) {
+            this->saveImage(path.value());
         }
     });
-    sizer->Add(saveButton, 0, wxALIGN_CENTER_VERTICAL);
+    sizer->Add(savePlotButton, 0, wxALIGN_CENTER_VERTICAL);
+
+    wxButton* saveDataButton = new wxButton(this, wxID_ANY, "Save Data");
+    saveDataButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
+        Optional<Path> path = doSaveFileDialog("Save data", { { "Text file", "txt" } });
+        if (path) {
+            this->saveData(path.value());
+        }
+    });
+    sizer->Add(saveDataButton, 0, wxALIGN_CENTER_VERTICAL);
 
     wxButton* refreshButton = new wxButton(this, wxID_ANY, "Refresh");
     refreshButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { this->Refresh(); });
@@ -239,20 +257,15 @@ wxBoxSizer* PlotFrame::createToolbar(const Size UNUSED(toolbarHeight)) {
     return sizer;
 }
 
-void PlotFrame::saveImage(const std::string& pathStr, const int fileIndex) {
-    Path path(pathStr);
-
-    switch (fileIndex) {
-    case 0: { // png file
-        path.replaceExtension("png");
-
+void PlotFrame::saveImage(const Path& path) {
+    if (path.extension() == Path("png")) {
         wxBitmap bitmap(800, 600, wxBITMAP_SCREEN_DEPTH);
         wxMemoryDC dc(bitmap);
         dc.SetBrush(*wxWHITE_BRUSH);
         dc.DrawRectangle(0, 0, 800, 600);
 
         auto proxy = plot.lock();
-        GraphicsContext gc(dc, Color(0.f, 0.f, 0.5f));
+        GraphicsContext gc(dc, Rgba(0.f, 0.f, 0.5f));
         const Interval actRangeX = extendRange(proxy->rangeX(), plotView->addZeroX);
         const Interval actRangeY = extendRange(proxy->rangeY(), plotView->addZeroY);
         AffineMatrix2 matrix = plotView->getPlotTransformMatrix(actRangeX, actRangeY);
@@ -268,18 +281,71 @@ void PlotFrame::saveImage(const std::string& pathStr, const int fileIndex) {
         dc.SelectObject(wxNullBitmap);
 
         bitmap.SaveFile(path.native().c_str(), wxBITMAP_TYPE_PNG);
-        break;
-    }
-    case 1: { // svg file
-        path.replaceExtension("svg");
-
+    } else if (path.extension() == Path("svg")) {
         auto proxy = plot.lock();
-        SvgContext gc(path, Point(800, 600));
+        SvgContext gc(path, Pixel(800, 600));
         AffineMatrix2 matrix = plotView->getPlotTransformMatrix(proxy->rangeX(), proxy->rangeY());
         gc.setTransformMatrix(matrix);
         proxy->plot(gc);
+    } else {
+        NOT_IMPLEMENTED;
     }
+}
+
+class TextContext : public IDrawingContext {
+private:
+    FileLogger logger;
+
+public:
+    explicit TextContext(const Path& path)
+        : logger(path) {}
+
+    virtual void drawPoint(const PlotPoint& point) override {
+        logger.write(point.x, "  ", point.y);
     }
+
+    virtual void drawErrorPoint(const ErrorPlotPoint& point) override {
+        logger.write(point.x, "  ", point.y);
+    }
+
+    virtual void drawLine(const PlotPoint& UNUSED(from), const PlotPoint& UNUSED(to)) override {
+        NOT_IMPLEMENTED;
+    }
+
+    class TextPath : public IDrawPath {
+    public:
+        virtual void addPoint(const PlotPoint& UNUSED(point)) override {
+            // N/A
+        }
+
+        virtual void closePath() override {
+            // N/A
+        }
+
+        virtual void endPath() override {
+            // N/A
+        }
+    };
+
+    virtual AutoPtr<IDrawPath> drawPath() override {
+        return makeAuto<TextPath>();
+    }
+
+    virtual void setStyle(const Size UNUSED(index)) override {
+        // possibly new plot, separate by newline
+        logger.write("");
+    }
+
+    virtual void setTransformMatrix(const AffineMatrix2& UNUSED(matrix)) override {
+        // not applicable for text output
+    }
+};
+
+void PlotFrame::saveData(const Path& path) {
+    ASSERT(path.extension() == Path("txt"));
+    auto proxy = plot.lock();
+    TextContext context(path);
+    proxy->plot(context);
 }
 
 NAMESPACE_SPH_END

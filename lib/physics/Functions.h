@@ -7,14 +7,15 @@
 
 #include "math/rng/Rng.h"
 #include "objects/geometry/SymmetricTensor.h"
+#include "objects/wrappers/Flags.h"
 #include "physics/Constants.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// Contains analytic solutions of equations
+/// Contains analytic solutions of equations.
 namespace Analytic {
 
-/// Properties of a homogeneous sphere in rest (no temporal derivatives)
+/// \brief Properties of a homogeneous sphere in rest (no temporal derivatives)
 class StaticSphere {
 private:
     /// Radius
@@ -28,7 +29,7 @@ public:
         : r0(r0)
         , rho(rho) {}
 
-    /// Return the pressure at given radius r of a sphere self-compressed by gravity.
+    /// \brief Return the pressure at given radius r of a sphere self-compressed by gravity.
     INLINE Float getPressure(const Float r) const {
         if (r > r0) {
             return 0._f;
@@ -36,18 +37,26 @@ public:
         return 2._f / 3._f * PI * Constants::gravity * sqr(rho) * (sqr(r0) - sqr(r));
     }
 
-    /// Returns the gravitational acceleration at given radius r. The acceleration increases linearily up
-    /// to r0 and then decreases with r^2.
+    /// \brief Returns the gravitational acceleration at given radius r.
+    ///
+    /// The acceleration increases linearily up to r0 and then decreases with r^2.
     INLINE Vector getAcceleration(const Vector& r) const {
         const Float l = getLength(r);
         const Float l0 = min(r0, l);
         return -Constants::gravity * rho * sphereVolume(l0) * r / pow<3>(l);
     }
+
+    /// \brief Returns the gravitational potential energy of the sphere.
+    INLINE Float getEnergy() const {
+        return -16._f / 15._f * sqr(PI) * sqr(rho) * Constants::gravity * pow<5>(r0);
+    }
 };
+
 } // namespace Analytic
 
 /// Physics of rigid body
 namespace Rigid {
+
 /// \brief Computes the inertia tensor of a homogeneous sphere.
 INLINE SymmetricTensor sphereInertia(const Float m, const Float r) {
     return SymmetricTensor::identity() * (0.4_f * m * sqr(r));
@@ -64,40 +73,71 @@ INLINE SymmetricTensor parallelAxisTheorem(const SymmetricTensor& I, const Float
 
 } // namespace Rigid
 
+/// \brief Computes the critical (break-up) angular velocity of a body.
+///
+/// This value is only based on the ratio of the gravity and centrifugal force. It is a function of density
+/// only, is does not depend on the radius of the body. Note that bodies rotating above the break-up limit
+/// exist, especially smaller monolithic bodies with D ~ 100m!
+/// \return Angular velocity (in rev/s).
+INLINE Float getCriticalFrequency(const Float rho) {
+    return sqrt(sphereVolume(1._f) * rho * Constants::gravity);
+}
+
 /// \brief Returns the critical energy Q_D^* as a function of body diameter.
 ///
-/// The critical energy is a kinetic energy for which half of the target is dispersed into the fragments. In
-/// other words, impact with critical energy will produce largest remnant (or fragment), mass of which is 50%
-/// mass of the parent body, The relation follows the scaling law of Benz & Asphaug (1999).
+/// The critical energy is a kinetic energy for which half of the target is dispersed into the fragments.
+/// In other words, impact with critical energy will produce largest remnant (or fragment), mass of which
+/// is 50% mass of the parent body, The relation follows the scaling law of Benz & Asphaug (1999).
 ///
 /// \todo replace D with units, do not enforce SI
-INLINE Float evalBenzAsphaugScalingLaw(const Float D, const Float rho) {
-    const Float D_cgs = 100._f * D;
-    const Float rho_cgs = 1.e-3_f * rho;
-    //  the scaling law parameters (in CGS units)
-    constexpr Float Q_0 = 9.e7_f;
-    constexpr Float B = 0.5_f;
-    constexpr Float a = -0.36_f;
-    constexpr Float b = 1.36_f;
+Float evalBenzAsphaugScalingLaw(const Float D, const Float rho);
 
-    return Q_0 * pow(D_cgs / 2._f, a) + B * rho_cgs * pow(D_cgs / 2._f, b);
-}
+/// \brief Computes the impact energy Q from impact parameters.
+///
+/// \param R Radius of the target
+/// \param r Radius of the impactor
+/// \param v Impact speed.
+Float getImpactEnergy(const Float R, const Float r, const Float v);
 
-/// \brief Calculates the impactor diameter to satisfy required impact parameters.
+/// \brief Returns the the ratio of the cross-sectional area of the impact and the total area of the
+/// impactor.
 ///
-/// The radius is computed so that the total relative impact energy is equal to the given value, assuming Benz
-/// & Asphaug scaling law.
+/// This value is lower than 1 only at high impact angles, where a part of the impactor misses the target
+/// entirely (hit-and-run collision) and does not deliver its kinetic energy into the target. For the same
+/// Q/Q_D, oblique impacts will therefore look 'artificially' weaker than the impacts and lower impacts
+/// angle. Effective impact area can be used to 'correct' the impact energy, so that impacts at high
+/// impact angles are comparable with head-on impats. See \ref Sevecek_2017 for details.
+/// \param Q Relative impact energy (kinetic energy of the impactor divided by the impactor mass)
+/// \param R Radius of the target
+/// \param r Radius of the impactor
+/// \param phi Impact angle in radians
+Float getEffectiveImpactArea(const Float R, const Float r, const Float phi);
+
+/// \brief Calculates the impactor radius to satisfy required impact parameters.
 ///
-/// \param D_pb Diameter of the parent body (target).
-/// \param rho Density of the parent body
+/// The radius is computed so that the total relative impact energy is equal to the given value, assuming
+/// Benz & Asphaug scaling law.
+/// \param R_pb Radius of the parent body (target)
 /// \param v_imp Impact velocity
-/// \param Q_over_Q_D Ratio of the impact velocity and the critical velocity. Values <<1 imply cratering
-///                   impacts, while values >>1 imply (super)catastrophic impacts.
-INLINE Float getImpactorDiameter(const Float D_pb, const Float rho, const Float v_imp, const Float QoverQ_D) {
-    const Float Q_D = evalBenzAsphaugScalingLaw(D_pb, rho);
-    const Float Q = QoverQ_D * Q_D;
-    return root<3>(2._f * Q / sqr(v_imp)) * D_pb;
-}
+/// \param QOverQ_D Ratio of the impact energy and the critical energy given by the scaling law
+/// \param rho Density of the parent bod
+Float getImpactorRadius(const Float R_pb, const Float v_imp, const Float QOverQ_D, const Float rho);
+
+/// \brief Calculates the impactor radius to satisfy required impact parameters.
+///
+/// The radius is computed so that the total relative effective impact energy is equal to the given value,
+/// assuming Benz & Asphaug scaling law. The effective impact energy takes into account the projected impact
+/// area, see \ref getEffectiveImpactArea.
+/// \param R_pb Radius of the parent body (target)
+/// \param v_imp Impact velocity
+/// \param phi Impact angle
+/// \param Q_effOverQ_D Ratio of the relative impact energy and the critical energy given by the scaling law
+/// \param rho Density of the parent bod
+Float getImpactorRadius(const Float R_pb,
+    const Float v_imp,
+    const Float phi,
+    const Float Q_effOverQ_D,
+    const Float rho);
 
 
 class ImpactCone {

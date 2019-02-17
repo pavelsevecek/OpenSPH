@@ -7,13 +7,14 @@
 #include "system/ArrayStats.h"
 #include "system/Factory.h"
 #include "tests/Approx.h"
+#include "thread/Scheduler.h"
 #include "utils/SequenceTest.h"
 #include "utils/Utils.h"
 
 using namespace Sph;
 
 void testDistributionForDomain(IDistribution* distribution, const IDomain& domain) {
-    Array<Vector> values = distribution->generate(1000, domain);
+    Array<Vector> values = distribution->generate(SEQUENTIAL, 1000, domain);
 
     // distribution generates approximately 1000 particles
     REQUIRE(values.size() > 900);
@@ -64,9 +65,9 @@ TEST_CASE("HexaPacking grid", "[initial]") {
     // test that within 1.5h of each particle, there are 12 neighbours in the same distance.
     HexagonalPacking packing(EMPTY_FLAGS);
     SphericalDomain domain(Vector(0._f), 2._f);
-    Array<Vector> r = packing.generate(1000, domain);
+    Array<Vector> r = packing.generate(SEQUENTIAL, 1000, domain);
     AutoPtr<ISymmetricFinder> finder = Factory::getFinder(RunSettings::getDefaults());
-    finder->build(r);
+    finder->build(SEQUENTIAL, r);
     Array<NeighbourRecord> neighs;
     auto test = [&](const Size i) -> Outcome {
         if (getLength(r[i]) > 1.3_f) {
@@ -98,15 +99,15 @@ TEST_CASE("HexaPacking sorted", "[initial]") {
     HexagonalPacking unsorted(EMPTY_FLAGS);
 
     BlockDomain domain(Vector(-3._f), Vector(2._f));
-    Array<Vector> r_sort = sorted.generate(1000, domain);
-    Array<Vector> r_unsort = unsorted.generate(1000, domain);
+    Array<Vector> r_sort = sorted.generate(SEQUENTIAL, 1000, domain);
+    Array<Vector> r_unsort = unsorted.generate(SEQUENTIAL, 1000, domain);
     ASSERT(r_sort.size() == r_unsort.size());
 
 
     AutoPtr<ISymmetricFinder> finder_sort = Factory::getFinder(RunSettings::getDefaults());
-    finder_sort->build(r_sort);
+    finder_sort->build(SEQUENTIAL, r_sort);
     AutoPtr<ISymmetricFinder> finder_unsort = Factory::getFinder(RunSettings::getDefaults());
-    finder_unsort->build(r_unsort);
+    finder_unsort->build(SEQUENTIAL, r_unsort);
 
     // find maximum distance of neighbouring particles in memory
     Size neighCnt_sort = 0;
@@ -150,14 +151,14 @@ TEST_CASE("RandomDistribution", "[initial]") {
 
 TEST_CASE("DiehlDistribution", "[initial]") {
     // Diehl et al. (2012) algorithm, using uniform particle density
-    DiehlDistribution diehl([](const Vector&) { return 1._f; });
+    DiehlDistribution diehl(DiehlParams{});
     testDistribution(&diehl);
 }
 
 TEST_CASE("LinearDistribution", "[initial]") {
     LinearDistribution linear;
     SphericalDomain domain(Vector(0.5_f), 0.5_f);
-    Array<Vector> values = linear.generate(101, domain);
+    Array<Vector> values = linear.generate(SEQUENTIAL, 101, domain);
     REQUIRE(values.size() == 101);
     auto test = [&](const Size i) -> Outcome {
         if (values[i] != approx(Vector(i / 100._f, 0._f, 0._f), 1.e-5_f)) {

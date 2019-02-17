@@ -1,7 +1,9 @@
 #include "sph/solvers/SummationSolver.h"
 #include "objects/finders/NeighbourFinder.h"
+#include "quantities/IMaterial.h"
 #include "sph/equations/av/Standard.h"
-#include "sph/kernel/KernelFactory.h"
+#include "sph/kernel/Kernel.h"
+#include "system/Factory.h"
 #include "system/Statistics.h"
 #include "thread/AtomicFloat.h"
 
@@ -10,7 +12,7 @@ NAMESPACE_SPH_BEGIN
 static EquationHolder getEquations(const RunSettings& settings) {
     Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
     EquationHolder equations;
-    if (forces.has(ForceEnum::PRESSURE_GRADIENT)) {
+    if (forces.has(ForceEnum::PRESSURE)) {
         equations += makeTerm<PressureForce>();
     }
     if (forces.has(ForceEnum::SOLID_STRESS)) {
@@ -25,13 +27,15 @@ static EquationHolder getEquations(const RunSettings& settings) {
     return equations;
 }
 
-SummationSolver::SummationSolver(const RunSettings& settings, const EquationHolder& additionalEquations)
-    : SymmetricSolver(settings, getEquations(settings) + additionalEquations) {
+SummationSolver::SummationSolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    const EquationHolder& additionalEquations)
+    : SymmetricSolver(scheduler, settings, getEquations(settings) + additionalEquations) {
     eta = settings.get<Float>(RunSettingsId::SPH_KERNEL_ETA);
     targetDensityDifference = settings.get<Float>(RunSettingsId::SUMMATION_DENSITY_DELTA);
     densityKernel = Factory::getKernel<DIMENSIONS>(settings);
     Flags<SmoothingLengthEnum> flags =
-        Flags<SmoothingLengthEnum>::fromValue(settings.get<int>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH));
+        settings.getFlags<SmoothingLengthEnum>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH);
     adaptiveH = !flags.has(SmoothingLengthEnum::CONST);
     maxIteration = adaptiveH ? settings.get<int>(RunSettingsId::SUMMATION_MAX_ITERATIONS) : 1;
 }
@@ -79,10 +83,10 @@ void SummationSolver::beforeLoop(Storage& storage, Statistics& stats) {
         totalDiff += abs(rho[i] - rho0) / (rho[i] + rho0);
     };
 
-    finder->build(r);
+    finder->build(scheduler, r);
     Size iterationIdx = 0;
     for (; iterationIdx < maxIteration; ++iterationIdx) {
-        parallelFor(pool, threadData, 0, r.size(), granularity, functor);
+        parallelFor(scheduler, threadData, 0, r.size(), granularity, functor);
         const Float diff = totalDiff / r.size();
         if (diff < targetDensityDifference) {
             break;

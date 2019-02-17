@@ -7,7 +7,6 @@
 
 #include "objects/containers/Array.h"
 #include "objects/geometry/Indices.h"
-#include "objects/utility/Iterators.h"
 #include <algorithm>
 
 NAMESPACE_SPH_BEGIN
@@ -31,7 +30,7 @@ public:
     Order(Order&& other)
         : storage(std::move(other.storage)) {}
 
-    /// Construct identity of given size
+    /// \brief Construct identity of given size
     explicit Order(const Size n)
         : storage(0, n) {
         for (Size i = 0; i < n; ++i) {
@@ -44,13 +43,13 @@ public:
         return *this;
     }
 
-    /// Shuffle order by given binary predicate.
+    /// \brief Shuffles the order using a binary predicate.
     template <typename TBinaryPredicate>
     void shuffle(TBinaryPredicate&& predicate) {
         std::sort(storage.begin(), storage.end(), predicate);
     }
 
-    /// Returns inverted order
+    /// \brief Returns the inverted order
     Order getInverted() const {
         Array<Size> inverted(storage.size());
         for (Size i = 0; i < storage.size(); ++i) {
@@ -59,11 +58,12 @@ public:
         return inverted;
     }
 
+    /// \brief Clones the order.
     Order clone() const {
         return storage.clone();
     }
 
-    /// Compose two orders
+    /// \brief Composes two orders
     Order compose(const Order& other) const {
         Array<Size> composed(storage.size());
         for (Size i = 0; i < storage.size(); ++i) {
@@ -72,7 +72,7 @@ public:
         return composed;
     }
 
-    /// Shuffles given array using this order
+    /// \brief Shuffles given array using this order.
     template <typename T>
     Array<T> apply(const Array<T>& input) {
         Array<T> sorted(input.size());
@@ -95,56 +95,14 @@ public:
     }
 };
 
-/// Order in each component
-class VectorOrder : public Noncopyable {
-private:
-    Array<Indices> storage;
+/// \brief Finds the order of values in given array.
+///
+/// The returned order, when applied on sorted values, gives the original (unsorted) values
+INLINE Order getOrder(ArrayView<const Float> values) {
+    Order order(values.size());
+    order.shuffle([values](Size i, Size j) { return values[i] < values[j]; });
+    return order.getInverted();
+}
 
-
-    /// Private constructor from int storage
-    VectorOrder(Array<Indices>&& other)
-        : storage(std::move(other)) {}
-
-public:
-    VectorOrder();
-
-    VectorOrder(VectorOrder&& other)
-        : storage(std::move(other.storage)) {}
-
-    /// Construct identity of given size
-    VectorOrder(const Size n)
-        : storage(0, n) {
-        for (Size i = 0; i < n; ++i) {
-            storage.push(Indices(i));
-        }
-    }
-
-    VectorOrder& operator=(VectorOrder&& other) {
-        storage = std::move(other.storage);
-        return *this;
-    }
-
-    /// Shuffle order by given comparator
-    template <typename TComparator>
-    void shuffle(const uint component, TComparator&& comparator) {
-        auto adapter = componentAdapter(storage, component);
-        std::sort(adapter.begin(), adapter.end(), std::forward<TComparator>(comparator));
-    }
-
-    /// Returns inverted order
-    VectorOrder getInverted() const {
-        Array<Indices> inverted(storage.size());
-        for (Size i = 0; i < storage.size(); ++i) {
-            for (uint j = 0; j < 3; ++j) {
-                inverted[storage[i][j]][j] = i;
-            }
-        }
-        return inverted;
-    }
-
-    INLINE const Indices& operator[](const Size idx) const {
-        return storage[idx];
-    }
-};
 
 NAMESPACE_SPH_END

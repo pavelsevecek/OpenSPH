@@ -1,5 +1,5 @@
 #include "physics/Eos.h"
-#include "math/Roots.h"
+#include "math/Functional.h"
 #include "physics/Constants.h"
 #include "system/Settings.h"
 
@@ -122,13 +122,13 @@ Float TillotsonEos::getInternalEnergy(const Float rho, const Float p) const {
 
     if (rho <= rho0 && u > uiv) {
         // this is actually in expanded regime, find root
-        auto func = [ this, rho, p0 = p ](const Float u) {
+        auto func = [this, rho, p0 = p](const Float u) {
             Float p, cs;
             tie(p, cs) = this->evaluate(rho, u);
             return p0 - p;
         };
         /// \todo optimize, find proper upper bound
-        Optional<Float> root = getRoot(func, Interval(0._f, u0), EPS);
+        Optional<Float> root = getRoot(Interval(0._f, u0), EPS, func);
         ASSERT(root);
         return root.value();
     } else {
@@ -139,12 +139,12 @@ Float TillotsonEos::getInternalEnergy(const Float rho, const Float p) const {
 Float TillotsonEos::getDensity(const Float p, const Float u) const {
     // both phases are highly non-linear in density, no chance of getting an analytic solution ...
     // so let's find the root
-    auto func = [ this, u, p0 = p ](const Float rho) {
+    auto func = [this, u, p0 = p](const Float rho) {
         Float p, cs;
         tie(p, cs) = this->evaluate(rho, u);
         return p0 - p;
     };
-    Optional<Float> root = getRoot(func, Interval(0.95_f * rho0, 1.05 * rho0));
+    Optional<Float> root = getRoot(Interval(0.95_f * rho0, 1.05 * rho0), EPS, func);
     ASSERT(root);
     return root.value();
 }

@@ -16,8 +16,9 @@ NAMESPACE_SPH_BEGIN
 /// \brief Helper solver used to converge into stable initial conditions.
 ///
 /// It is a wrapper of another solver (assumed SPH solver, but it can be theoretically anything).
-/// StabilizationSolver forwards calls to the underlying solver, but it also damps particle velocities and
-/// additionally resets all material fracture every timestep, provided the underlying solver uses fracture.
+/// \ref StabilizationSolver forwards calls to the underlying solver, but it also damps particle velocities
+/// and additionally resets all material fracture every timestep, provided the underlying solver uses
+/// fracture.
 class StabilizationSolver : public ISolver {
 private:
     AutoPtr<ISolver> solver;
@@ -40,8 +41,8 @@ public:
         delta = settings.get<Float>(RunSettingsId::SPH_STABILIZATION_DAMPING);
     }
 
-    explicit StabilizationSolver(const RunSettings& settings)
-        : StabilizationSolver(settings, Factory::getSolver(settings)) {}
+    StabilizationSolver(IScheduler& scheduler, const RunSettings& settings)
+        : StabilizationSolver(settings, Factory::getSolver(scheduler, settings)) {}
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
         solver->integrate(storage, stats);
@@ -60,7 +61,7 @@ public:
             MaterialView mat = storage.getMaterial(matId);
             const Vector center = mat->getParam<Vector>(BodySettingsId::BODY_CENTER);
             const Vector v0 = mat->getParam<Vector>(BodySettingsId::BODY_VELOCITY);
-            const Vector omega0 = mat->getParam<Vector>(BodySettingsId::BODY_ANGULAR_VELOCITY);
+            const Vector omega0 = mat->getParam<Vector>(BodySettingsId::BODY_SPIN_RATE);
             for (Size i : mat.sequence()) {
                 // gradually decrease the delta
                 const Float factor =

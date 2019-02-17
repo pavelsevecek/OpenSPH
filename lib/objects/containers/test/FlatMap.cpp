@@ -1,5 +1,5 @@
-#include "catch.hpp"
 #include "objects/containers/FlatMap.h"
+#include "catch.hpp"
 #include "utils/RecordType.h"
 #include "utils/Utils.h"
 
@@ -154,8 +154,6 @@ TEST_CASE("Map optimize small", "[flatmap]") {
     REQUIRE_ASSERT(map[500]);
 }
 
-/// \todo add benchmark against std::map?
-
 TEST_CASE("Map remove", "[flatmap]") {
     RecordType::resetStats();
     FlatMap<int, RecordType> map;
@@ -204,6 +202,21 @@ TEST_CASE("Map remove multiple", "[flatmap]") {
         }
         return true;
     }());
+}
+
+TEST_CASE("Map tryRemove", "[flatmap]") {
+    FlatMap<int, RecordType> map;
+    map.insert(3, RecordType(5));
+    map.insert(5, RecordType(1));
+    REQUIRE(map.tryRemove(3));
+    REQUIRE(map.size() == 1);
+    REQUIRE(map[5].value == 1);
+    REQUIRE_FALSE(map.tryRemove(6));
+    REQUIRE_FALSE(map.tryRemove(4));
+    REQUIRE(map.size() == 1);
+    REQUIRE(map[5].value == 1);
+    REQUIRE(map.tryRemove(5));
+    REQUIRE(map.empty());
 }
 
 TEST_CASE("Map tryGet", "[flatmap]") {

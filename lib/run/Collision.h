@@ -1,200 +1,190 @@
 #pragma once
 
-#include "gravity/SphericalGravity.h"
-#include "io/Column.h"
-#include "io/FileSystem.h"
-#include "io/LogFile.h"
-#include "io/Output.h"
-#include "run/IRun.h"
-#include "run/Trigger.h"
-#include "sph/equations/Potentials.h"
+#include "run/CompositeRun.h"
 #include "sph/initial/Presets.h"
-#include "sph/solvers/StandardSets.h"
-#include "sph/solvers/SymmetricSolver.h"
-#include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
 
-class CollisionRun : public IRun {
+/// \brief Holds parameters of each phase.
+struct PhaseParams {
+
+    /// \brief Directory where the output files are generated.
+    Path outputPath;
+
+    struct {
+
+        /// \brief Duration of the phase in seconds.
+        ///
+        /// Note that if the settings of the stabilization phase are loaded from the configuration file, this
+        /// value is overriden. To preserve the set duration, set it using \ref RunSettingsId::RUN_TIME_RANGE
+        /// in overrides.
+        Interval range = Interval(0._f, 100._f);
+
+        /// \brief Settings that override the default parameters.
+        ///
+        /// Note that these parameters also override parameters loaded from settings file.
+        RunSettings overrides = EMPTY_SETTINGS;
+
+    } stab;
+
+    struct {
+
+        /// \brief Duration of the phase in seconds.
+        ///
+        /// Note that if the settings of the fragmentation are loaded from the configuration file, this
+        /// value is overriden. To preserve the set duration, set it using \ref RunSettingsId::RUN_TIME_RANGE
+        /// in overrides.
+        Interval range = Interval(0._f, 100._f);
+
+        /// \brief Number of output files generated during the phase.
+        Size dumpCnt = 10;
+
+        /// \brief Settings that override the default parameters.
+        ///
+        /// Note that these parameters also override parameters loaded from settings file.
+        RunSettings overrides = EMPTY_SETTINGS;
+
+    } frag;
+
+    struct {
+
+        /// \brief Duration of the phase in seconds.
+        ///
+        /// Note that if the settings of the reaccumulation phase are loaded from the configuration file, this
+        /// value is overriden. To preserve the set duration, set it using \ref RunSettingsId::RUN_TIME_RANGE
+        /// in overrides.
+        Interval range = Interval(0._f, 100._f);
+
+        /// \brief Number of output files generated during the phase.
+        Size dumpCnt = 10;
+
+        /// \brief Settings that override the default parameters.
+        ///
+        /// Note that these parameters also override parameters loaded from settings file.
+        RunSettings overrides = EMPTY_SETTINGS;
+
+    } reacc;
+
+    /// \brief If true, the durations of all phases are set to zero.
+    ///
+    /// Particles are set up as in real simulations, all hand-offs are performed and all configuration files
+    /// are generated, but the simulation ends as soon as possible.
+    bool dryRun = false;
+};
+
+class StabilizationRunPhase : public IRunPhase {
+    friend class FragmentationRunPhase;
+
 private:
-    Presets::CollisionParams _params;
+    CollisionParams collisionParams;
+    PhaseParams phaseParams;
+
+    Path resumePath;
+
+    SharedPtr<CollisionInitialConditions> collision;
 
 public:
-    CollisionRun(const Presets::CollisionParams params)
-        : _params(params) {
+    /// \brief Creates a stabilization phase, given the collision setup.
+    ///
+    /// This is used when the stabilization is the first phase in the run.
+    StabilizationRunPhase(const CollisionParams& collisionParams, const PhaseParams& phaseParams);
 
-        settings.set(RunSettingsId::RUN_NAME, std::string("Impact"))
-            .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
-            .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
-            .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
-            .set(RunSettingsId::RUN_TIME_RANGE, Interval(-50._f, 10._f))
-            .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.1_f)
-            .setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT | ForceEnum::SOLID_STRESS)
-            .set(RunSettingsId::SPH_FINDER, FinderEnum::UNIFORM_GRID)
-            .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
-            .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
-            .set(RunSettingsId::SPH_AV_BETA, 3._f)
-            .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
-            .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.5_f)
-            .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
-            .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
-            .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f, 0._f, _params.targetRotation))
-            .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, false)
-            .set(RunSettingsId::RUN_OUTPUT_PATH, _params.outputPath.native());
+    /// \brief Creates a stabilization phase that continues from provided snapshot.
+    StabilizationRunPhase(const Path& resumePath, const PhaseParams phaseParams);
 
-        settings.saveToFile(_params.outputPath / Path("code.sph"));
-    }
+    virtual void setUp() override;
 
-    virtual void setUp() override {
+    virtual void handoff(Storage&& input) override;
 
-        BodySettings body;
-        body.set(BodySettingsId::ENERGY, 0._f)
-            .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
-            .set(BodySettingsId::PARTICLE_COUNT, int(_params.targetParticleCnt))
-            .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
-            .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
-            .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
-            .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
-            .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
-
-        solver = makeAuto<SymmetricSolver>(settings, this->getEquations(settings));
-        AutoPtr<Presets::Collision> maker = makeAuto<Presets::Collision>(*solver, settings, body, _params);
-        Path logPath = _params.outputPath / Path("log.txt");
-        logger = makeAuto<FileLogger>(logPath, FileLogger::Options::ADD_TIMESTAMP);
-        storage = makeShared<Storage>();
-
-        maker->addTarget(*storage);
-        logger->write("Created target with ", storage->getParticleCnt(), " particles");
-
-
-        this->setupOutput();
-        this->setupTriggers(std::move(maker));
-
-        // add printing of run progres
-        triggers.pushBack(makeAuto<CommonStatsLog>(logger));
-    }
+    virtual AutoPtr<IRunPhase> getNextPhase() const override;
 
 private:
-    virtual void tearDown() override {
-        PkdgravParams params;
-        params.omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
-        PkdgravOutput pkdgravOutput(_params.outputPath / Path("pkdgrav/pkdgrav.out"), std::move(params));
-        Statistics stats;
-        pkdgravOutput.dump(*storage, stats);
-    }
+    virtual void tearDown(const Statistics& UNUSED(stats)) override {}
 
-    void setupOutput() {
-        Path outputPath = Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_PATH)) /
-                          Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
-        const std::string name = settings.get<std::string>(RunSettingsId::RUN_NAME);
-        output = makeAuto<TextOutput>(
-            outputPath, name, TextOutput::Options::SCIENTIFIC | TextOutput::Options::EXTENDED_COLUMNS);
-    }
+    void create(const PhaseParams phaseParams);
+};
 
+class FragmentationRunPhase : public IRunPhase {
+    friend class ReaccumulationRunPhase;
 
-    void setupTriggers(AutoPtr<Presets::Collision>&& maker) {
+private:
+    CollisionParams collisionParams;
+    PhaseParams phaseParams;
 
-        // Trigger creating impactor at t = 0
-        class ImpactorTrigger : public ITrigger {
-        private:
-            AutoPtr<Presets::Collision> maker;
-            Float startTime;
+    Path resumePath;
 
-        public:
-            explicit ImpactorTrigger(AutoPtr<Presets::Collision>&& maker, const Float startTime)
-                : maker(std::move(maker))
-                , startTime(startTime) {}
+    SharedPtr<CollisionInitialConditions> collision;
 
-            virtual TriggerEnum type() const override {
-                return TriggerEnum::ONE_TIME;
-            }
+public:
+    /// \brief Creates fragmentation phase that follows a stabilization phase.
+    explicit FragmentationRunPhase(const StabilizationRunPhase& stabilization);
 
-            virtual bool condition(const Storage& UNUSED(storage), const Statistics& stats) override {
-                const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
-                return t >= startTime;
-            }
+    /// \brief Creates a fragmentation phase that continues from provided snapshot.
+    FragmentationRunPhase(const Path& resumePath, const PhaseParams& phaseParams);
 
-            virtual AutoPtr<ITrigger> action(Storage& storage, Statistics& UNUSED(stats)) override {
-                maker->addImpactor(storage);
-                /* const Size targetParticleCnt = storage.getParticleCnt();
-                 /// \todo add logger here, either global or as a member variable
-                 * globalLogger.write(
-                    "Added impactor, particle cnt = ", storage.getParticleCnt() - targetParticleCnt);*/
-                return nullptr;
-            }
-        };
+    virtual void setUp() override;
 
-        class DumpTrigger : public ITrigger {
-        private:
-            /// Time range of the simulation.
-            Interval timeRange;
+    virtual void handoff(Storage&& input) override;
 
-            /// Time when initial dampening phase is ended and impact starts
-            Float startTime = 0._f;
+    virtual AutoPtr<IRunPhase> getNextPhase() const override;
 
-            /// Velocity damping constant
-            Float delta = 0.5_f;
+private:
+    virtual void tearDown(const Statistics& stats) override;
 
-        public:
-            explicit DumpTrigger(const RunSettings& settings) {
-                timeRange = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
-            }
+    void create(const PhaseParams phaseParams);
+};
 
-            virtual TriggerEnum type() const override {
-                return TriggerEnum::REPEATING;
-            }
+class ReaccumulationRunPhase : public IRunPhase {
+private:
+    PhaseParams phaseParams;
 
-            virtual bool condition(const Storage& UNUSED(storage), const Statistics& stats) override {
-                const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+    Path resumePath;
 
-                // only dump before the start of the simulation
-                return t < startTime;
-            }
+public:
+    /// \brief Creates reaccumulation phase that follows a fragmentation phase.
+    explicit ReaccumulationRunPhase(const FragmentationRunPhase& fragmentation);
 
-            virtual AutoPtr<ITrigger> action(Storage& storage, Statistics& stats) override {
-                const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
-                const Float dt = stats.getOr<Float>(StatisticsId::TIMESTEP_VALUE, 0.01_f);
-                ASSERT(t < startTime);
-                // damp velocities
-                ArrayView<Vector> r, v, dv;
-                tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-                for (Size i = 0; i < v.size(); ++i) {
-                    // gradually decrease the delta
-                    const Float t0 = timeRange.lower();
-                    const Float factor =
-                        1._f + lerp(delta * dt, 0._f, min((t - t0) / (startTime - t0), 1._f));
-                    // we have to dump only the deviation of velocities, not the initial rotation!
-                    v[i] /= factor;
-                    ASSERT(isReal(v[i]));
-                }
+    /// \brief Creates a reaccumulation phase that continues from provided snapshot.
+    ReaccumulationRunPhase(const Path& resumePath, const PhaseParams& phaseParams);
 
-                if (storage.has(QuantityId::DAMAGE)) {
-                    // zero all damage potentially created during the initial phase
-                    ArrayView<Float> d = storage.getValue<Float>(QuantityId::DAMAGE);
-                    for (Size i = 0; i < d.size(); ++i) {
-                        d[i] = 0._f;
-                    }
-                }
-                return nullptr;
-            }
-        };
-        triggers.pushBack(makeAuto<ImpactorTrigger>(std::move(maker), 0._f));
-        triggers.pushBack(makeAuto<DumpTrigger>(settings));
-    }
+    virtual void setUp() override;
 
-    static EquationHolder getEquations(const RunSettings& settings) {
+    virtual void handoff(Storage&& input) override;
 
-        EquationHolder equations;
+    virtual AutoPtr<IRunPhase> getNextPhase() const override;
 
-        // noninertial acceleration
-        const Vector omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
-        equations += makeTerm<InertialForce>(omega);
+private:
+    virtual void tearDown(const Statistics& stats) override;
 
-        // gravity (approximation)
-        equations += makeTerm<SphericalGravityEquation>();
+    void create(const PhaseParams phaseParams);
+};
 
-        return getStandardEquations(settings, std::move(equations));
-    }
+/// \brief Simulation consisting of stabilization, fragmentation and reaccumulation phase.
+class CollisionRun : public CompositeRun {
+public:
+    /// \brief Creates a collision simulation, given parameters of the collision.
+    ///
+    /// \param collisionParams Parameters specifying the initial conditions of the simulation.
+    /// \param phaseParams Additional parameters of the simulation.
+    /// \param runCallbacks Run callbacks used by all phases.
+    explicit CollisionRun(const CollisionParams& collisionParams,
+        const PhaseParams& phaseParams,
+        SharedPtr<IRunCallbacks> runCallbacks);
+
+    /// \brief Creates a simulation that continues from given snapshot.
+    ///
+    /// The simulation automatically selects a correct phase, i.e. when the snapshot has been saved during
+    /// fragmentation phase, the \ref CollisionRun starts with fragmentation.
+    /// \param path Path to the snapshot file (created with \ref BinaryOutput).
+    /// \param phaseParams Additional parameters of the simulation.
+    /// \param runCallbacks Run callbacks used by all phases.
+    /// \throws InvalidSetup if the file cannot be loaded or has invalid format.
+    explicit CollisionRun(const Path& path,
+        const PhaseParams& phaseParams,
+        SharedPtr<IRunCallbacks> runCallbacks);
+
+    /// \brief Sets an arbitrary callback executed when a phase ends.
+    void setOnNextPhase(Function<void(const IRunPhase&)> newOnPhasePhase);
 };
 
 NAMESPACE_SPH_END

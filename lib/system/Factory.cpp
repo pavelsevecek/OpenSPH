@@ -1,9 +1,11 @@
 #include "system/Factory.h"
 #include "gravity/BarnesHut.h"
 #include "gravity/BruteForceGravity.h"
+#include "gravity/CachedGravity.h"
 #include "gravity/Collision.h"
 #include "gravity/SphericalGravity.h"
 #include "io/Logger.h"
+#include "io/Output.h"
 #include "math/rng/Rng.h"
 #include "objects/finders/BruteForceFinder.h"
 #include "objects/finders/DynamicFinder.h"
@@ -20,29 +22,33 @@
 #include "sph/equations/av/MorrisMonaghan.h"
 #include "sph/equations/av/Riemann.h"
 #include "sph/initial/Distribution.h"
+#include "sph/kernel/GravityKernel.h"
 #include "sph/solvers/AsymmetricSolver.h"
 #include "sph/solvers/DensityIndependentSolver.h"
+#include "sph/solvers/EnergyConservingSolver.h"
 #include "sph/solvers/GravitySolver.h"
 #include "sph/solvers/StandardSets.h"
 #include "sph/solvers/SummationSolver.h"
+#include "thread/Pool.h"
+#include "thread/Tbb.h"
 #include "timestepping/TimeStepCriterion.h"
 #include "timestepping/TimeStepping.h"
 
 NAMESPACE_SPH_BEGIN
 
-AutoPtr<IEos> Factory::getEos(const BodySettings& settings) {
-    const EosEnum id = settings.get<EosEnum>(BodySettingsId::EOS);
+AutoPtr<IEos> Factory::getEos(const BodySettings& body) {
+    const EosEnum id = body.get<EosEnum>(BodySettingsId::EOS);
     switch (id) {
     case EosEnum::IDEAL_GAS:
-        return makeAuto<IdealGasEos>(settings.get<Float>(BodySettingsId::ADIABATIC_INDEX));
+        return makeAuto<IdealGasEos>(body.get<Float>(BodySettingsId::ADIABATIC_INDEX));
     case EosEnum::TAIT:
-        return makeAuto<TaitEos>(settings);
+        return makeAuto<TaitEos>(body);
     case EosEnum::MIE_GRUNEISEN:
-        return makeAuto<MieGruneisenEos>(settings);
+        return makeAuto<MieGruneisenEos>(body);
     case EosEnum::TILLOTSON:
-        return makeAuto<TillotsonEos>(settings);
+        return makeAuto<TillotsonEos>(body);
     case EosEnum::MURNAGHAN:
-        return makeAuto<MurnaghanEos>(settings);
+        return makeAuto<MurnaghanEos>(body);
     case EosEnum::NONE:
         return nullptr;
     default:
@@ -50,30 +56,29 @@ AutoPtr<IEos> Factory::getEos(const BodySettings& settings) {
     }
 }
 
-AutoPtr<IRheology> Factory::getRheology(const BodySettings& settings) {
-    const YieldingEnum id = settings.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
+AutoPtr<IRheology> Factory::getRheology(const BodySettings& body) {
+    const YieldingEnum id = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
     switch (id) {
     case YieldingEnum::NONE:
         return nullptr;
     case YieldingEnum::ELASTIC:
         return makeAuto<ElasticRheology>();
     case YieldingEnum::VON_MISES:
-        return makeAuto<VonMisesRheology>(Factory::getDamage(settings));
+        return makeAuto<VonMisesRheology>(Factory::getDamage(body));
     case YieldingEnum::DRUCKER_PRAGER:
-        return makeAuto<DruckerPragerRheology>(Factory::getDamage(settings));
+        return makeAuto<DruckerPragerRheology>(Factory::getDamage(body));
     default:
         NOT_IMPLEMENTED;
     }
 }
 
-AutoPtr<IFractureModel> Factory::getDamage(const BodySettings& settings) {
-    const FractureEnum id = settings.get<FractureEnum>(BodySettingsId::RHEOLOGY_DAMAGE);
+AutoPtr<IFractureModel> Factory::getDamage(const BodySettings& body) {
+    const FractureEnum id = body.get<FractureEnum>(BodySettingsId::RHEOLOGY_DAMAGE);
     switch (id) {
     case FractureEnum::NONE:
         return makeAuto<NullFracture>();
     case FractureEnum::SCALAR_GRADY_KIPP:
-        /// \todo  where to get kernel radius from??
-        return makeAuto<ScalarGradyKippModel>(2._f);
+        return makeAuto<ScalarGradyKippModel>();
     case FractureEnum::TENSOR_GRADY_KIPP:
         return makeAuto<TensorGradyKippModel>();
     default:
@@ -92,7 +97,7 @@ AutoPtr<IEquationTerm> makeAV(const RunSettings& settings, const bool balsara) {
 
 AutoPtr<IEquationTerm> Factory::getArtificialViscosity(const RunSettings& settings) {
     const ArtificialViscosityEnum id = settings.get<ArtificialViscosityEnum>(RunSettingsId::SPH_AV_TYPE);
-    const bool balsara = settings.get<bool>(RunSettingsId::SPH_AV_BALSARA);
+    const bool balsara = settings.get<bool>(RunSettingsId::SPH_AV_USE_BALSARA);
     switch (id) {
     case ArtificialViscosityEnum::NONE:
         return nullptr;
@@ -119,6 +124,8 @@ AutoPtr<ITimeStepping> Factory::getTimeStepping(const RunSettings& settings,
         return makeAuto<LeapFrog>(storage, settings);
     case TimesteppingEnum::BULIRSCH_STOER:
         return makeAuto<BulirschStoer>(storage, settings);
+    case TimesteppingEnum::MODIFIED_MIDPOINT:
+        return makeAuto<ModifiedMidpointMethod>(storage, settings);
     case TimesteppingEnum::RUNGE_KUTTA:
         return makeAuto<RungeKutta>(storage, settings);
     default:
@@ -127,23 +134,13 @@ AutoPtr<ITimeStepping> Factory::getTimeStepping(const RunSettings& settings,
 }
 
 AutoPtr<ITimeStepCriterion> Factory::getTimeStepCriterion(const RunSettings& settings) {
-    const Size flags = settings.get<int>(RunSettingsId::TIMESTEPPING_CRITERION);
-    if (flags == 0) {
+    const Flags<TimeStepCriterionEnum> flags =
+        settings.getFlags<TimeStepCriterionEnum>(RunSettingsId::TIMESTEPPING_CRITERION);
+    if (flags == EMPTY_FLAGS) {
         // no criterion
         return nullptr;
     }
     return makeAuto<MultiCriterion>(settings);
-    /*switch (flags) {
-    case Size(TimeStepCriterionEnum::COURANT):
-        return makeAuto<CourantCriterion>(settings);
-    case Size(TimeStepCriterionEnum::DERIVATIVES):
-        return makeAuto<DerivativeCriterion>(settings);
-    case Size(TimeStepCriterionEnum::ACCELERATION):
-        return makeAuto<AccelerationCriterion>(settings);
-    default:
-        ASSERT(!isPower2(flags)); // multiple criteria, assert in case we add another criterion
-        return makeAuto<MultiCriterion>(settings);
-    }*/
 }
 
 AutoPtr<ISymmetricFinder> Factory::getFinder(const RunSettings& settings) {
@@ -152,7 +149,7 @@ AutoPtr<ISymmetricFinder> Factory::getFinder(const RunSettings& settings) {
     case FinderEnum::BRUTE_FORCE:
         return makeAuto<BruteForceFinder>();
     case FinderEnum::KD_TREE:
-        return makeAuto<KdTree>();
+        return makeAuto<KdTree<KdNode>>();
     case FinderEnum::OCTREE:
         NOT_IMPLEMENTED;
         // return makeAuto<Octree>();
@@ -165,11 +162,24 @@ AutoPtr<ISymmetricFinder> Factory::getFinder(const RunSettings& settings) {
     }
 }
 
-AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& settings) {
-    const DistributionEnum id = settings.get<DistributionEnum>(BodySettingsId::INITIAL_DISTRIBUTION);
-    const bool center = settings.get<bool>(BodySettingsId::CENTER_PARTICLES);
-    const bool sort = settings.get<bool>(BodySettingsId::PARTICLE_SORTING);
-    const bool sph5mode = settings.get<bool>(BodySettingsId::DISTRIBUTE_MODE_SPH5);
+SharedPtr<IScheduler> Factory::getScheduler(const RunSettings& settings) {
+    if (settings.get<int>(RunSettingsId::RUN_THREAD_CNT) == 1) {
+        // optimization - use directly SequentialScheduler instead of thread pool with 1 thread
+        return SequentialScheduler::getGlobalInstance();
+    } else {
+#ifdef SPH_USE_TBB
+        return Tbb::getGlobalInstance();
+#else
+        return ThreadPool::getGlobalInstance();
+#endif
+    }
+}
+
+AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& body) {
+    const DistributionEnum id = body.get<DistributionEnum>(BodySettingsId::INITIAL_DISTRIBUTION);
+    const bool center = body.get<bool>(BodySettingsId::CENTER_PARTICLES);
+    const bool sort = body.get<bool>(BodySettingsId::PARTICLE_SORTING);
+    const bool sph5mode = body.get<bool>(BodySettingsId::DISTRIBUTE_MODE_SPH5);
     switch (id) {
     case DistributionEnum::HEXAGONAL: {
         Flags<HexagonalPacking::Options> flags;
@@ -184,9 +194,11 @@ AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& settings) {
         /// \todo user-selected seed?
         return makeAuto<RandomDistribution>(1234);
     case DistributionEnum::DIEHL_ET_AL: {
-        const Float strength = settings.get<Float>(BodySettingsId::DIELH_STRENGTH);
-        const Size maxDiff = settings.get<int>(BodySettingsId::DIEHL_MAX_DIFFERENCE);
-        return makeAuto<DiehlDistribution>([](const Vector&) { return 1._f; }, maxDiff, 50, strength);
+        DiehlParams diehl;
+        diehl.particleDensity = [](const Vector&) { return 1._f; };
+        diehl.strength = body.get<Float>(BodySettingsId::DIELH_STRENGTH);
+        diehl.maxDifference = body.get<int>(BodySettingsId::DIEHL_MAX_DIFFERENCE);
+        return makeAuto<DiehlDistribution>(diehl);
     }
     case DistributionEnum::LINEAR:
         return makeAuto<LinearDistribution>();
@@ -196,27 +208,39 @@ AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& settings) {
 }
 
 template <typename TSolver>
-static AutoPtr<ISolver> getActualSolver(const RunSettings& settings, EquationHolder&& eqs) {
+static AutoPtr<ISolver> getActualSolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    EquationHolder&& eqs) {
     const Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
     if (forces.has(ForceEnum::GRAVITY)) {
-        return makeAuto<GravitySolver<TSolver>>(settings, std::move(eqs));
+        return makeAuto<GravitySolver<TSolver>>(scheduler, settings, std::move(eqs));
     } else {
-        return makeAuto<TSolver>(settings, std::move(eqs));
+        return makeAuto<TSolver>(scheduler, settings, std::move(eqs));
     }
 }
 
-AutoPtr<ISolver> Factory::getSolver(const RunSettings& settings) {
+AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler, const RunSettings& settings) {
     EquationHolder eqs = getStandardEquations(settings);
     const SolverEnum id = settings.get<SolverEnum>(RunSettingsId::SOLVER_TYPE);
+    auto throwIfGravity = [&settings] {
+        const Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
+        if (forces.has(ForceEnum::GRAVITY)) {
+            throw InvalidSetup("Using solver incompatible with gravity.");
+        }
+    };
     switch (id) {
     case SolverEnum::SYMMETRIC_SOLVER:
-        return getActualSolver<SymmetricSolver>(settings, std::move(eqs));
+        return getActualSolver<SymmetricSolver>(scheduler, settings, std::move(eqs));
     case SolverEnum::ASYMMETRIC_SOLVER:
-        return getActualSolver<AsymmetricSolver>(settings, std::move(eqs));
+        return getActualSolver<AsymmetricSolver>(scheduler, settings, std::move(eqs));
+    case SolverEnum::ENERGY_CONSERVING_SOLVER:
+        return getActualSolver<EnergyConservingSolver>(scheduler, settings, std::move(eqs));
     case SolverEnum::SUMMATION_SOLVER:
-        return makeAuto<SummationSolver>(settings);
+        throwIfGravity();
+        return makeAuto<SummationSolver>(scheduler, settings);
     case SolverEnum::DENSITY_INDEPENDENT:
-        return makeAuto<DensityIndependentSolver>(settings);
+        throwIfGravity();
+        return makeAuto<DensityIndependentSolver>(scheduler, settings);
     default:
         NOT_IMPLEMENTED;
     }
@@ -240,19 +264,31 @@ AutoPtr<IGravity> Factory::getGravity(const RunSettings& settings) {
         NOT_IMPLEMENTED;
     }
 
+    AutoPtr<IGravity> gravity;
     switch (id) {
     case GravityEnum::SPHERICAL:
-        return makeAuto<SphericalGravity>();
+        gravity = makeAuto<SphericalGravity>();
+        break;
     case GravityEnum::BRUTE_FORCE:
-        return makeAuto<BruteForceGravity>(std::move(kernel));
+        gravity = makeAuto<BruteForceGravity>(std::move(kernel));
+        break;
     case GravityEnum::BARNES_HUT: {
         const Float theta = settings.get<Float>(RunSettingsId::GRAVITY_OPENING_ANGLE);
-        const MultipoleOrder order = settings.get<MultipoleOrder>(RunSettingsId::GRAVITY_MULTIPOLE_ORDER);
+        const MultipoleOrder order =
+            MultipoleOrder(settings.get<int>(RunSettingsId::GRAVITY_MULTIPOLE_ORDER));
         const int leafSize = settings.get<int>(RunSettingsId::GRAVITY_LEAF_SIZE);
-        return makeAuto<BarnesHut>(theta, order, std::move(kernel), leafSize);
+        gravity = makeAuto<BarnesHut>(theta, order, std::move(kernel), leafSize);
+        break;
     }
     default:
         NOT_IMPLEMENTED;
+    }
+
+    const Float period = settings.get<Float>(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD);
+    if (period > 0._f) {
+        return makeAuto<CachedGravity>(period, std::move(gravity));
+    } else {
+        return gravity;
     }
 }
 
@@ -262,9 +298,9 @@ AutoPtr<ICollisionHandler> Factory::getCollisionHandler(const RunSettings& setti
     case CollisionHandlerEnum::ELASTIC_BOUNCE:
         return makeAuto<ElasticBounceHandler>(settings);
     case CollisionHandlerEnum::PERFECT_MERGING:
-        return makeAuto<PerfectMergingHandler>(0._f);
+        return makeAuto<MergingCollisionHandler>(0._f, 0._f);
     case CollisionHandlerEnum::MERGE_OR_BOUNCE:
-        return makeAuto<FallbackHandler<PerfectMergingHandler, ElasticBounceHandler>>(settings);
+        return makeAuto<FallbackHandler<MergingCollisionHandler, ElasticBounceHandler>>(settings);
     default:
         NOT_IMPLEMENTED;
     }
@@ -280,7 +316,7 @@ AutoPtr<IOverlapHandler> Factory::getOverlapHandler(const RunSettings& settings)
     case OverlapEnum::REPEL:
         return makeAuto<RepelHandler<ElasticBounceHandler>>(settings);
     case OverlapEnum::REPEL_OR_MERGE:
-        using FollowupHandler = FallbackHandler<PerfectMergingHandler, ElasticBounceHandler>;
+        using FollowupHandler = FallbackHandler<MergingCollisionHandler, ElasticBounceHandler>;
         return makeAuto<RepelHandler<FollowupHandler>>(settings);
     case OverlapEnum::INTERNAL_BOUNCE:
         return makeAuto<InternalBounceHandler>(settings);
@@ -327,6 +363,8 @@ AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& se
     case BoundaryEnum::GHOST_PARTICLES:
         ASSERT(domain != nullptr);
         return makeAuto<GhostParticles>(std::move(domain), settings);
+    case BoundaryEnum::FIXED_PARTICLES:
+        throw InvalidSetup("FixedParticles cannot be create from Factory, use manual setup.");
     case BoundaryEnum::FROZEN_PARTICLES:
         if (domain) {
             const Float radius = settings.get<Float>(RunSettingsId::DOMAIN_FROZEN_DIST);
@@ -349,20 +387,20 @@ AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& se
     }
 }
 
-AutoPtr<IMaterial> Factory::getMaterial(const BodySettings& settings) {
-    const YieldingEnum yieldId = settings.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
-    const EosEnum eosId = settings.get<EosEnum>(BodySettingsId::EOS);
+AutoPtr<IMaterial> Factory::getMaterial(const BodySettings& body) {
+    const YieldingEnum yieldId = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
+    const EosEnum eosId = body.get<EosEnum>(BodySettingsId::EOS);
     switch (yieldId) {
     case YieldingEnum::DRUCKER_PRAGER:
     case YieldingEnum::VON_MISES:
     case YieldingEnum::ELASTIC:
-        return makeAuto<SolidMaterial>(settings);
+        return makeAuto<SolidMaterial>(body);
     case YieldingEnum::NONE:
         switch (eosId) {
         case EosEnum::NONE:
-            return makeAuto<NullMaterial>(settings);
+            return makeAuto<NullMaterial>(body);
         default:
-            return makeAuto<EosMaterial>(settings);
+            return makeAuto<EosMaterial>(body);
         }
 
     default:
@@ -374,12 +412,47 @@ AutoPtr<ILogger> Factory::getLogger(const RunSettings& settings) {
     const LoggerEnum id = settings.get<LoggerEnum>(RunSettingsId::RUN_LOGGER);
     switch (id) {
     case LoggerEnum::NONE:
-        return makeAuto<DummyLogger>();
+        return makeAuto<NullLogger>();
     case LoggerEnum::STD_OUT:
         return makeAuto<StdOutLogger>();
     case LoggerEnum::FILE: {
         const Path path(settings.get<std::string>(RunSettingsId::RUN_LOGGER_FILE));
-        return makeAuto<FileLogger>(path);
+        const Flags<FileLogger::Options> flags =
+            FileLogger::Options::ADD_TIMESTAMP | FileLogger::Options::KEEP_OPENED;
+        return makeAuto<FileLogger>(path, flags);
+    }
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+AutoPtr<IOutput> Factory::getOutput(const RunSettings& settings) {
+    const IoEnum id = settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
+    const Path outputPath(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_PATH));
+    const Path fileMask(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
+    const Size firstIndex = settings.get<int>(RunSettingsId::RUN_OUTPUT_FIRST_INDEX);
+    const OutputFile file(outputPath / fileMask, firstIndex);
+    switch (id) {
+    case IoEnum::NONE:
+        return makeAuto<NullOutput>();
+    case IoEnum::TEXT_FILE: {
+        const std::string name = settings.get<std::string>(RunSettingsId::RUN_NAME);
+        const Flags<OutputQuantityFlag> flags =
+            settings.getFlags<OutputQuantityFlag>(RunSettingsId::RUN_OUTPUT_QUANTITIES);
+        return makeAuto<TextOutput>(file, name, flags);
+    }
+    case IoEnum::BINARY_FILE: {
+        const RunTypeEnum runType = settings.get<RunTypeEnum>(RunSettingsId::RUN_TYPE);
+        return makeAuto<BinaryOutput>(file, runType);
+    }
+    case IoEnum::COMPRESSED_FILE: {
+        const RunTypeEnum runType = settings.get<RunTypeEnum>(RunSettingsId::RUN_TYPE);
+        return makeAuto<CompressedOutput>(file, CompressionEnum::NONE /*TODO*/, runType);
+    }
+    case IoEnum::PKDGRAV_INPUT: {
+        PkdgravParams pkd;
+        pkd.omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
+        return makeAuto<PkdgravOutput>(file, std::move(pkd));
     }
     default:
         NOT_IMPLEMENTED;
@@ -396,6 +469,52 @@ AutoPtr<IRng> Factory::getRng(const RunSettings& settings) {
         return makeAuto<RngWrapper<HaltonQrng>>();
     case RngEnum::BENZ_ASPHAUG:
         return makeAuto<RngWrapper<BenzAsphaugRng>>(seed);
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+template <Size D>
+LutKernel<D> Factory::getKernel(const RunSettings& settings) {
+    const KernelEnum id = settings.get<KernelEnum>(RunSettingsId::SPH_KERNEL);
+    switch (id) {
+    case KernelEnum::CUBIC_SPLINE:
+        return CubicSpline<D>();
+    case KernelEnum::FOURTH_ORDER_SPLINE:
+        return FourthOrderSpline<D>();
+    case KernelEnum::GAUSSIAN:
+        return Gaussian<D>();
+    case KernelEnum::TRIANGLE:
+        return TriangleKernel<D>();
+    case KernelEnum::CORE_TRIANGLE:
+        ASSERT(D == 3);
+        // original core triangle has radius 1, rescale to 2 for drop-in replacement of cubic spline
+        return ScalingKernel<3, CoreTriangle>(2._f);
+    case KernelEnum::THOMAS_COUCHMAN:
+        return ThomasCouchmanKernel<D>();
+    case KernelEnum::WENDLAND_C2:
+        ASSERT(D == 3);
+        return WendlandC2();
+    case KernelEnum::WENDLAND_C4:
+        ASSERT(D == 3);
+        return WendlandC4();
+    case KernelEnum::WENDLAND_C6:
+        ASSERT(D == 3);
+        return WendlandC6();
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+template LutKernel<1> Factory::getKernel(const RunSettings& settings);
+template LutKernel<2> Factory::getKernel(const RunSettings& settings);
+template LutKernel<3> Factory::getKernel(const RunSettings& settings);
+
+GravityLutKernel Factory::getGravityKernel(const RunSettings& settings) {
+    const KernelEnum id = settings.get<KernelEnum>(RunSettingsId::SPH_KERNEL);
+    switch (id) {
+    case KernelEnum::CUBIC_SPLINE:
+        return GravityKernel<CubicSpline<3>>();
     default:
         NOT_IMPLEMENTED;
     }

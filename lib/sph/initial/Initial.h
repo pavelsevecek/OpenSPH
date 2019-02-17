@@ -28,6 +28,13 @@ private:
 public:
     BodyView(Storage& storage, const Size bodyIndex);
 
+    /// \brief Moves the particles of the body in given direction.
+    ///
+    /// The particles are moved relative to the current position.
+    /// \param dr Displacement vector.
+    /// \return Reference to itself.
+    BodyView& displace(const Vector& dr);
+
     /// \brief Adds a velocity vector to all particles of the body.
     ///
     /// If the particles previously had nonzero velocities, the velocities are added; the previous velocities
@@ -64,8 +71,10 @@ private:
 
 /// \brief Holds the information about a power-law size-frequency distributions.
 struct PowerLawSfd {
-    /// Exponent alpha of the power-law x^-alpha. Can be lower than 1 or negative, meaning there is more
-    /// larger modies than smaller bodies. Cannot be exactly 1.
+    /// Exponent alpha of the power-law x^-alpha.
+    ///
+    /// Can be lower than 1 or negative, meaning there is more larger modies than smaller bodies. Cannot be
+    /// exactly 1.
     Float exponent;
 
     /// Minimal and maximal value of the SFD
@@ -75,7 +84,7 @@ struct PowerLawSfd {
     ///
     /// For x=0 and x=1, interval.lower() and interval.upper() is returned, respectively. Input value must lie
     /// in unit interval, checked by assert.
-    Float operator()(const Float x) const {
+    INLINE Float operator()(const Float x) const {
         ASSERT(x >= 0._f && x <= 1._f);
         ASSERT(exponent != 1._f);
         const Float Rmin = pow(interval.lower(), 1._f - exponent);
@@ -94,6 +103,9 @@ struct PowerLawSfd {
 /// simulation.
 class InitialConditions : public Noncopyable {
 private:
+    /// Scheduler that can be used to parallelize the generation of the initial conditions.
+    IScheduler& scheduler;
+
     /// Solver used for creating necessary quantities. Does not necessarily have to be the same the solver
     /// used for the actual run, although it is recommended to make sure all the quantities are set up
     /// correctly.
@@ -106,13 +118,13 @@ private:
     MaterialInitialContext context;
 
 public:
-    /// \brief Constructs object by taking a reference to particle storage.
+    /// \brief Constructs object by taking a reference to a solver using in the simulation.
     ///
-    /// Subsequent calls of \ref addBody function fill this storage with particles.
+    /// \param scheduler Scheduler used for parallelization.
     /// \param solver Solver used to create all the necessary quantities. Also must exist for the duration
     ///               of this object as it is stored by reference.
-    /// \param settings Run settings
-    InitialConditions(ISolver& solver, const RunSettings& settings);
+    /// \param settings Run settings used to initialize \ref MaterialInitialContext.
+    InitialConditions(IScheduler& scheduler, ISolver& solver, const RunSettings& settings);
 
     /// \brief Constructor creating solver from values in settings.
     ///
@@ -121,7 +133,7 @@ public:
     /// quantities. Mostly, this will throw an exception or assert, but in case the custom solver uses the
     /// same quantities as the default one, but it initializes them to different values, this error would go
     /// unnoticed.
-    InitialConditions(const RunSettings& settings);
+    InitialConditions(IScheduler& scheduler, const RunSettings& settings);
 
     ~InitialConditions();
 
@@ -136,9 +148,9 @@ public:
     /// \param domain Spatial domain where the particles are placed. The domain should not overlap a body
     ///               already added into the storage as that would lead to incorrect density estimating in
     ///               overlapping regions.
-    /// \param bodySettings Parameters of the body
+    /// \param body Parameters of the body
     /// \todo generalize for entropy solver
-    BodyView addMonolithicBody(Storage& storage, const IDomain& domain, const BodySettings& bodySettings);
+    BodyView addMonolithicBody(Storage& storage, const IDomain& domain, const BodySettings& body);
 
     /// Adds a body by explicitly specifying its material.
     /// \copydoc addBody
@@ -150,7 +162,7 @@ public:
         AutoPtr<IDistribution>&& distribution);
 
 
-    /// Holds data needed to create a single body in \ref addHeterogeneousBody function.
+    /// \brief Holds data needed to create a single body in \ref addHeterogeneousBody function.
     struct BodySetup {
         AutoPtr<IDomain> domain;
         AutoPtr<IMaterial> material;
@@ -162,7 +174,7 @@ public:
         BodySetup(AutoPtr<IDomain>&& domain, AutoPtr<IMaterial>&& material);
 
         /// Creates a body by specifying its domain; material is created from parameters in settings
-        BodySetup(AutoPtr<IDomain>&& domain, const BodySettings& settings);
+        BodySetup(AutoPtr<IDomain>&& domain, const BodySettings& body);
 
         /// Move constructor
         BodySetup(BodySetup&& other);
@@ -211,11 +223,22 @@ public:
         const BodySettings& bodySettings);
 
 private:
-    void createCommon(const RunSettings& settings);
-
     void setQuantities(Storage& storage, IMaterial& material, const Float volume);
 };
 
-void spaceParticles(ArrayView<Vector> r, const Float radius);
+/// \brief Displaces particles so that no two particles overlap.
+///
+/// In case no particles overlap, function does nothing.
+/// \param r Positions of particles
+/// \param radius Radius of the particles in units of smoothing length.
+void repelParticles(ArrayView<Vector> r, const Float radius);
+
+/// \brief Modifies particle positions so that their center of mass lies at origin.
+///
+/// Function can be also used for particle velocities, modifying them so that the total momentum is zero.
+/// \param m Particle masses; must be positive values
+/// \param r Particle positions (or velocities)
+/// \return Computed center of mass, subtracted from positions.
+Vector moveToCenterOfMassSystem(ArrayView<const Float> m, ArrayView<Vector> r);
 
 NAMESPACE_SPH_END

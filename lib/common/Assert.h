@@ -13,7 +13,17 @@ NAMESPACE_SPH_BEGIN
 
 struct Assert {
     static bool isTest;
-    static bool breakOnFail;
+
+    /// \brief If true, assert throws an exception.
+    static bool throwAssertException;
+
+    typedef bool (*Handler)(const std::string& message);
+
+    /// \brief Custom assert handler.
+    ///
+    /// Assert message is passed as an argument. If it returns false, the assert is ignored and the program
+    /// continues. Note that assert can be fired from any thread, so it has to be thread-safe.
+    static Handler handler;
 
     class Exception : public std::exception {
     private:
@@ -28,15 +38,15 @@ struct Assert {
         }
     };
 
-    struct ScopedBreakDisabler {
+    struct ScopedAssertExceptionEnabler {
         const bool originalValue;
 
-        ScopedBreakDisabler()
-            : originalValue(breakOnFail) {
-            breakOnFail = false;
+        ScopedAssertExceptionEnabler()
+            : originalValue(throwAssertException) {
+            throwAssertException = true;
         }
-        ~ScopedBreakDisabler() {
-            breakOnFail = originalValue;
+        ~ScopedAssertExceptionEnabler() {
+            throwAssertException = originalValue;
         }
     };
 
@@ -79,9 +89,11 @@ struct Assert {
         Assert::fire(#x, __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);                                   \
     }
 #define CONSTEXPR_ASSERT(x) assert(x)
+#define ASSERT_UNEVAL(x, ...) ASSERT(x, ##__VA_ARGS__)
 #else
-#define ASSERT(x, ...)
-#define CONSTEXPR_ASSERT(x)
+#define ASSERT(x, ...) MARK_USED(x)
+#define CONSTEXPR_ASSERT(x) MARK_USED(x)
+#define ASSERT_UNEVAL(x, ...)
 #endif
 
 /// Helper macro marking missing implementation

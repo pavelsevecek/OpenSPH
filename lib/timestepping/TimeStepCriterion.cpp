@@ -35,9 +35,10 @@ std::ostream& operator<<(std::ostream& stream, const CriterionId id) {
     return stream;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// DerivativeCriterion implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//-----------------------------------------------------------------------------------------------------------
+// DerivativeCriterion implementation
+//-----------------------------------------------------------------------------------------------------------
 
 /// Helper class storing a minimal value of time step and corresponding statistics.
 template <typename T>
@@ -120,20 +121,22 @@ DerivativeCriterion::DerivativeCriterion(const RunSettings& settings) {
     ASSERT(power < 0._f); // currently not implemented for non-negative powers
 }
 
-Tuple<Float, CriterionId> DerivativeCriterion::compute(Storage& storage,
+TimeStep DerivativeCriterion::compute(IScheduler& scheduler,
+    Storage& storage,
     const Float maxStep,
     Statistics& stats) {
     if (power < -1.e3_f) {
         // very high negative power, this is effectively computing minimal timestep
-        return this->computeImpl<MinimalStepTls>(storage, maxStep, stats);
+        return this->computeImpl<MinimalStepTls>(scheduler, storage, maxStep, stats);
     } else {
         // generic case, compute a generalized mean of timesteps
-        return this->computeImpl<MeanStepTls>(storage, maxStep, stats);
+        return this->computeImpl<MeanStepTls>(scheduler, storage, maxStep, stats);
     }
 }
 
 template <template <typename> class Tls>
-Tuple<Float, CriterionId> DerivativeCriterion::computeImpl(Storage& storage,
+TimeStep DerivativeCriterion::computeImpl(IScheduler& scheduler,
+    Storage& storage,
     const Float maxStep,
     Statistics& stats) {
     Float totalMinStep = INFTY;
@@ -146,8 +149,7 @@ Tuple<Float, CriterionId> DerivativeCriterion::computeImpl(Storage& storage,
 
         // ... and for each particle ...
         Tls<T> result(power);
-        ThreadPool& pool = ThreadPool::getGlobalInstance();
-        ThreadLocal<Tls<T>> tls(pool, power);
+        ThreadLocal<Tls<T>> tls(scheduler, power);
 
         auto functor = [&](const Size i, Tls<T>& tls) {
             const auto absdv = abs(dv[i]);
@@ -169,11 +171,11 @@ Tuple<Float, CriterionId> DerivativeCriterion::computeImpl(Storage& storage,
             }
         };
 
-        parallelFor(pool, tls, 0, v.size(), functor);
+        parallelFor(scheduler, tls, 0, v.size(), functor);
         // get min step from thread-local results
-        tls.forEach([&result](Tls<T>& tl) { //
+        for (Tls<T>& tl : tls) {
             result.add(tl);
-        });
+        }
 
         // save statistics
         const Optional<Float> minStep = result.getStep();
@@ -202,17 +204,16 @@ Tuple<Float, CriterionId> DerivativeCriterion::computeImpl(Storage& storage,
     return { totalMinStep, minId };
 }
 
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// AccelerationCriterion implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+//-----------------------------------------------------------------------------------------------------------
+// AccelerationCriterion implementation
+//-----------------------------------------------------------------------------------------------------------
 
 AccelerationCriterion::AccelerationCriterion(const RunSettings& settings) {
     factor = settings.get<Float>(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR);
 }
 
-Tuple<Float, CriterionId> AccelerationCriterion::compute(Storage& storage,
+TimeStep AccelerationCriterion::compute(IScheduler& scheduler,
+    Storage& storage,
     const Float maxStep,
     Statistics& UNUSED(stats)) {
     ArrayView<const Vector> r, v, dv;
@@ -230,10 +231,11 @@ Tuple<Float, CriterionId> AccelerationCriterion::compute(Storage& storage,
         }
     };
     Tl result;
-    ThreadPool& pool = ThreadPool::getGlobalInstance();
-    ThreadLocal<Tl> tls(pool);
-    parallelFor(pool, tls, 0, r.size(), functor);
-    tls.forEach([&result](Tl& tl) { result.minStep = min(result.minStep, tl.minStep); });
+    ThreadLocal<Tl> tls(scheduler);
+    parallelFor(scheduler, tls, 0, r.size(), functor);
+    for (Tl& tl : tls) {
+        result.minStep = min(result.minStep, tl.minStep);
+    }
 
     if (result.minStep > maxStep) {
         return { maxStep, CriterionId::MAXIMAL_VALUE };
@@ -242,19 +244,17 @@ Tuple<Float, CriterionId> AccelerationCriterion::compute(Storage& storage,
     }
 }
 
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// CourantCriterion implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+//-----------------------------------------------------------------------------------------------------------
+// CourantCriterion implementation
+//-----------------------------------------------------------------------------------------------------------
 
 CourantCriterion::CourantCriterion(const RunSettings& settings) {
     courant = settings.get<Float>(RunSettingsId::TIMESTEPPING_COURANT_NUMBER);
-    neighLimit = settings.get<int>(RunSettingsId::TIMESTEPPING_COURANT_NEIGHBOUR_LIMIT);
 }
 
 
-Tuple<Float, CriterionId> CourantCriterion::compute(Storage& storage,
+TimeStep CourantCriterion::compute(IScheduler& scheduler,
+    Storage& storage,
     const Float maxStep,
     Statistics& UNUSED(stats)) {
 
@@ -271,17 +271,18 @@ Tuple<Float, CriterionId> CourantCriterion::compute(Storage& storage,
     };
 
     auto functor = [&](const Size i, Tl& tl) {
-        if (cs[i] > 0._f && (!neighs || neighs[i] > neighLimit)) {
+        if (cs[i] > 0._f) {
             const Float value = courant * r[i][H] / cs[i];
             ASSERT(isReal(value) && value > 0._f && value < INFTY);
             tl.minStep = min(tl.minStep, value);
         }
     };
     Tl result;
-    ThreadPool& pool = ThreadPool::getGlobalInstance();
-    ThreadLocal<Tl> tls(pool);
-    parallelFor(pool, tls, 0, r.size(), functor);
-    tls.forEach([&result](Tl& tl) { result.minStep = min(result.minStep, tl.minStep); });
+    ThreadLocal<Tl> tls(scheduler);
+    parallelFor(scheduler, tls, 0, r.size(), functor);
+    for (Tl& tl : tls) {
+        result.minStep = min(result.minStep, tl.minStep);
+    }
 
     if (result.minStep > maxStep) {
         return { maxStep, CriterionId::MAXIMAL_VALUE };
@@ -290,10 +291,9 @@ Tuple<Float, CriterionId> CourantCriterion::compute(Storage& storage,
     }
 }
 
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// MultiCriterion implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------
+// MultiCriterion implementation
+//-----------------------------------------------------------------------------------------------------------
 
 MultiCriterion::MultiCriterion(const RunSettings& settings) {
     const Flags<TimeStepCriterionEnum> flags =
@@ -308,7 +308,7 @@ MultiCriterion::MultiCriterion(const RunSettings& settings) {
         criteria.push(makeAuto<AccelerationCriterion>(settings));
     }
 
-    maxChange = settings.get<Float>(RunSettingsId::TIMESTEPPING_MAX_CHANGE);
+    maxChange = settings.get<Float>(RunSettingsId::TIMESTEPPING_MAX_INCREASE);
     lastStep = settings.get<Float>(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP);
 }
 
@@ -319,27 +319,25 @@ MultiCriterion::MultiCriterion(Array<AutoPtr<ITimeStepCriterion>>&& criteria,
     , maxChange(maxChange)
     , lastStep(initial) {}
 
-Tuple<Float, CriterionId> MultiCriterion::compute(Storage& storage, const Float maxStep, Statistics& stats) {
+TimeStep MultiCriterion::compute(IScheduler& scheduler,
+    Storage& storage,
+    const Float maxStep,
+    Statistics& stats) {
     PROFILE_SCOPE("MultiCriterion::compute");
     ASSERT(!criteria.empty());
     Float minStep = INFTY;
     CriterionId minId = CriterionId::INITIAL_VALUE;
     for (auto& crit : criteria) {
-        Float step;
-        CriterionId id;
-        tieToTuple(step, id) = crit->compute(storage, maxStep, stats);
-        if (step < minStep) {
-            minStep = step;
-            minId = id;
+        const TimeStep step = crit->compute(scheduler, storage, maxStep, stats);
+        if (step.value < minStep) {
+            minStep = step.value;
+            minId = step.id;
         }
     }
 
     // smooth the timestep if required
     if (maxChange < INFTY) {
-        if (minStep < lastStep * (1._f - maxChange)) {
-            minStep = lastStep * (1._f - maxChange);
-            minId = CriterionId::MAX_CHANGE;
-        } else if (minStep > lastStep * (1._f + maxChange)) {
+        if (minStep > lastStep * (1._f + maxChange)) {
             minStep = lastStep * (1._f + maxChange);
             minId = CriterionId::MAX_CHANGE;
         }

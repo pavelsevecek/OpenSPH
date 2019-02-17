@@ -9,13 +9,17 @@
 
 using namespace Sph;
 
-TYPED_TEST_CASE_2("MorrisMonaghan sanitycheck", "[av]", TSolver, SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("MorrisMonaghan sanitycheck", "[av]", SymmetricSolver, AsymmetricSolver) {
     BodySettings body;
-    body.set(BodySettingsId::DENSITY, 1._f).set(BodySettingsId::ENERGY, 1._f);
+    body.set(BodySettingsId::DENSITY, 1._f)
+        .set(BodySettingsId::ENERGY, 1._f)
+        // maximum of alpha_AV is 1.5, so we need to lower the default to allow for growth
+        .set(BodySettingsId::AV_ALPHA, 0.5_f);
     Storage storage = Tests::getGassStorage(1000, body);
     const Float cs = storage.getValue<Float>(QuantityId::SOUND_SPEED)[0];
+    REQUIRE(cs > 0._f);
 
-    Tests::computeField<TSolver>(storage, makeTerm<MorrisMonaghanAV>(), [cs](const Vector r) {
+    Tests::computeField<TestType>(storage, makeTerm<MorrisMonaghanAV>(), [cs](const Vector r) {
         // supersonic shock at x=0
         if (r[X] > 0.f) {
             return Vector(-25._f * cs, 0._f, 0._f);

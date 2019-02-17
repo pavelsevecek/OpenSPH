@@ -5,9 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "common/Assert.h"
-#include "common/Traits.h"
-#include "objects/utility/Iterators.h"
+#include "objects/utility/Iterator.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -80,6 +78,26 @@ public:
         return data[idx];
     }
 
+    INLINE T& front() {
+        ASSERT(actSize > 0);
+        return data[0];
+    }
+
+    INLINE const T& front() const {
+        ASSERT(actSize > 0);
+        return data[0];
+    }
+
+    INLINE T& back() {
+        ASSERT(actSize > 0);
+        return data[actSize - 1];
+    }
+
+    INLINE const T& back() const {
+        ASSERT(actSize > 0);
+        return data[actSize - 1];
+    }
+
     INLINE TCounter size() const {
         return this->actSize;
     }
@@ -89,7 +107,7 @@ public:
     }
 
     /// Returns a subset of the arrayview.
-    INLINE ArrayView subset(const TCounter start, const TCounter length) {
+    INLINE ArrayView subset(const TCounter start, const TCounter length) const {
         ASSERT(start + length <= size());
         return ArrayView(data + start, length);
     }
@@ -129,5 +147,9 @@ public:
     }
 };
 
+template <typename T>
+INLINE ArrayView<T> getSingleValueView(T& value) {
+    return ArrayView<T>(&value, 1);
+}
 
 NAMESPACE_SPH_END

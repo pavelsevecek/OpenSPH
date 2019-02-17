@@ -1,13 +1,16 @@
 #include "sph/equations/Accumulated.h"
 #include "catch.hpp"
 #include "objects/utility/PerElementWrapper.h"
+#include "quantities/Quantity.h"
+#include "quantities/Storage.h"
+#include "thread/Pool.h"
 #include "utils/SequenceTest.h"
 #include "utils/Utils.h"
 
 using namespace Sph;
 
 TEST_CASE("Accumulated sum simple", "[accumulated]") {
-    Accumulated ac1(RunSettings::getDefaults());
+    Accumulated ac1;
     REQUIRE_ASSERT(ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
     REQUIRE(ac1.getBufferCnt() == 0);
     ac1.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, BufferSource::SHARED);
@@ -25,7 +28,7 @@ TEST_CASE("Accumulated sum simple", "[accumulated]") {
     REQUIRE(ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO).size() == 5);
     REQUIRE(ac1.getBufferCnt() == 1);
 
-    Accumulated ac2(RunSettings::getDefaults());
+    Accumulated ac2;
     ac2.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, BufferSource::SHARED);
     ac2.initialize(5);
     ArrayView<Size> buffer2 = ac2.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
@@ -47,7 +50,7 @@ ArrayView<TValue> getInserted(Accumulated& ac, const QuantityId id, const Size s
 }
 
 static Accumulated getAccumulated() {
-    Accumulated ac(RunSettings::getDefaults());
+    Accumulated ac;
     ArrayView<Size> buffer1 = getInserted<Size>(ac, QuantityId::NEIGHBOUR_CNT, 5);
     ArrayView<Float> buffer2 = getInserted<Float>(ac, QuantityId::DENSITY, 5);
     ArrayView<Vector> buffer3 = getInserted<Vector>(ac, QuantityId::ENERGY, 5);
@@ -73,7 +76,7 @@ static Storage getStorage() {
 TEST_CASE("Accumulated sum parallelized", "[accumulated]") {
     Accumulated ac1 = getAccumulated();
     Accumulated ac2 = getAccumulated();
-    ThreadPool pool;
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     ac1.sum(pool, Array<Accumulated*>{ &ac2 });
     Storage storage = getStorage();
     ac1.store(storage);
@@ -95,7 +98,7 @@ TEST_CASE("Accumulated sum parallelized", "[accumulated]") {
 }
 
 TEST_CASE("Accumulated store", "[accumulated]") {
-    Accumulated ac(RunSettings::getDefaults());
+    Accumulated ac;
     ArrayView<Size> buffer1 = getInserted<Size>(ac, QuantityId::NEIGHBOUR_CNT, 5);
     for (Size i = 0; i < 5; ++i) {
         buffer1[i] = i;
@@ -110,7 +113,7 @@ TEST_CASE("Accumulated store", "[accumulated]") {
 }
 
 TEST_CASE("Accumulate store second derivative", "[accumulated]") {
-    Accumulated ac(RunSettings::getDefaults());
+    Accumulated ac;
     ac.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
     ac.initialize(1);
     ArrayView<Vector> dv = ac.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
@@ -126,7 +129,7 @@ TEST_CASE("Accumulate store second derivative", "[accumulated]") {
 }
 
 TEST_CASE("Accumulated insert two orders", "[accumulated]") {
-    Accumulated ac(RunSettings::getDefaults());
+    Accumulated ac;
     ac.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
     REQUIRE_ASSERT(ac.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST, BufferSource::SHARED));
     REQUIRE_ASSERT(ac.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::FIRST));

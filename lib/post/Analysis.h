@@ -15,41 +15,60 @@ NAMESPACE_SPH_BEGIN
 class Storage;
 class Path;
 class ILogger;
+struct PlotPoint;
 
 namespace Post {
 
-enum class ComponentConnectivity {
-    /// Overlapping particles belong into the same component
-    OVERLAP,
+/// \brief Finds the number of neighbours of each particle.
+///
+/// Note that each particle searches neighbours up to the distance given by their smoothing length, so the
+/// relation "A is a neighbour of B" might not be symmetrical.
+/// \param storage Storage containing the particles.
+/// \param particleRadius Size of particles in smoothing lengths.
+/// \return Number of neighbours of each particle.
+Array<Size> findNeighbourCounts(const Storage& storage, const Float particleRadius);
 
-    /// Particles belong to the same component if they overlap and the have the same flag.
-    SEPARATE_BY_FLAG,
 
-    /// Particles overlap or their relative velocity is less than the escape velocity
-    ESCAPE_VELOCITY,
+enum class ComponentFlag {
+    /// Specifies that overlapping particles belong into the same component
+    OVERLAP = 0,
+
+    /// Specifies that particles with different flag belong to different component, even if they overlap.
+    SEPARATE_BY_FLAG = 1 << 0,
+
+    /// Specifies that the gravitationally bound particles belong to the same component. If used, the
+    /// components are constructed in two steps; first, the initial components are created from overlapping
+    /// particles. Then each pair of components is merged if their relative velocity is less then the escape
+    /// velocity.
+    ESCAPE_VELOCITY = 1 << 1,
+
+    /// If used, components are sorted by the total mass of the particles, i.e. component with index 0 will
+    /// correspond to the largest remnant, index 1 will be the second largest body, etc.
+    SORT_BY_MASS = 1 << 2,
 };
 
 /// \brief Finds and marks connected components (a.k.a. separated bodies) in the array of vertices.
 ///
+/// It is a useful function for finding bodies in simulations where we do not merge particles.
 /// \param storage Storage containing the particles. Must also contain QuantityId::FLAG if
 ///                SEPARATE_BY_FLAG option is used.
 /// \param particleRadius Size of particles in smoothing lengths.
-/// \param connectivity Defines additional conditions of particle separation (besides their distance).
+/// \param flags Flags specifying connectivity of components, etc; see emum \ref ComponentFlag.
 /// \param indices[out] Array of indices from 0 to n-1, where n is the number of components. In the array,
 ///                     i-th index corresponds to component to which i-th particle belongs.
 /// \return Number of components
 Size findComponents(const Storage& storage,
     const Float particleRadius,
-    const ComponentConnectivity connectivity,
+    const Flags<ComponentFlag> flags,
     Array<Size>& indices);
 
-/// \todo docs
+/// \brief Returns the indices of particles belonging to the largest remnant.
 ///
-/// \todo escape velocity
-Storage findFutureBodies(const Storage& storage, const Float particleRadius, ILogger& logger);
+/// The returned indices are sorted.
+Array<Size> findLargestComponent(const Storage& storage,
+    const Float particleRadius,
+    const Flags<ComponentFlag> flags);
 
-/// \todo TEMPORARY FUNCTION, REMOVE
-Storage findFutureBodies2(const Storage& storage, ILogger& logger);
 
 struct Tumbler {
     /// Index of particle (body)
@@ -66,7 +85,7 @@ struct Tumbler {
 /// accuracy data (Henych, 2013).
 Array<Tumbler> findTumblers(const Storage& storage, const Float limit);
 
-/// Potential relationship of the body with a respect to the largest remnant (fragment).
+/// \brief Potential relationship of the body with a respect to the largest remnant (fragment).
 enum class MoonEnum {
     LARGEST_FRAGMENT, ///< This is the largest fragment (or remnant, depending on definition)
     RUNAWAY,          ///< Body is on hyperbolic trajectory, ejected away from the largest remnant (fragment)
@@ -98,11 +117,31 @@ enum class MoonEnum {
 /// \return Array of the same size of storage, marking each body in the storage; see MoonEnum.
 Array<MoonEnum> findMoons(const Storage& storage, const Float radius = 1._f, const Float limit = 0._f);
 
-/// \brief Computes the total inertia tensor of particles with respect to given center
-SymmetricTensor getInertiaTensor(ArrayView<const Float> m, ArrayView<const Vector> r, const Vector& r0);
+
+/// \brief Computes the total inertia tensor of particles with respect to given center.
+SymmetricTensor getInertiaTensor(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    const Vector& r0,
+    ArrayView<const Size> idxs = nullptr);
 
 /// \brief Computes the total inertia tensor of particle with respect to their center of mass.
-SymmetricTensor getInertiaTensor(ArrayView<const Float> m, ArrayView<const Vector> r);
+SymmetricTensor getInertiaTensor(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    ArrayView<const Size> idxs = nullptr);
+
+/// \brief Computes the immediate vector of angular frequency of a rigid body.
+Vector getAngularFrequency(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    ArrayView<const Vector> v,
+    const Vector& r0,
+    const Vector& v0,
+    ArrayView<const Size> idxs = nullptr);
+
+Vector getAngularFrequency(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    ArrayView<const Vector> v,
+    ArrayView<const Size> idxs = nullptr);
+
 
 /// \brief Object holding Keplerian orbital elements of a body
 ///
@@ -159,77 +198,205 @@ enum class HistogramId {
     /// Particle velocities
     VELOCITIES = -3,
 
-    /// Angular velocities of particles
-    ANGULAR_VELOCITIES = -4,
+    /// Rotational frequency in revs/day
+    ROTATIONAL_FREQUENCY = -4,
+
+    /// Rotational periods of particles (in hours)
+    /// \todo it should be in code units and then converted to hours on output!
+    ROTATIONAL_PERIOD = -5,
+
+    /// Distribution of axis directions, from -pi to pi
+    ROTATIONAL_AXIS = -6,
 };
 
-/// Parameters of the histogram
+/// \brief Source data used to construct the histogram.
+enum class HistogramSource {
+    /// Equivalent radii of connected chunks of particles (SPH framework)
+    COMPONENTS,
+
+    /// Radii of individual particles, considering particles as spheres (N-body framework)
+    PARTICLES,
+};
+
+
+/// \brief Parameters of the histogram
 struct HistogramParams {
 
-    /// \brief Source data used to construct the histogram.
-    enum class Source {
-        /// Equivalent radii of connected chunks of particles (SPH framework)
-        COMPONENTS,
-
-        /// Radii of individual particles, considering particles as spheres (N-body framework)
-        PARTICLES,
-    };
-
-    Source source = Source::PARTICLES;
-
-    HistogramId id = HistogramId::RADII;
-
-    /// Range of values from which the histogram is constructed. Unbounded range means the range is
-    /// selected based on the source data.
+    /// \brief Range of values from which the histogram is constructed.
+    ///
+    /// Unbounded range means the range is selected based on the source data.
     Interval range;
 
-    /// Number of histogram bins. 0 means the number is selected based on the source data. Used only by
-    /// differential SFD.
+    /// \brief Number of histogram bins.
+    ///
+    /// 0 means the number is selected based on the source data. Used only by differential SFD.
     Size binCnt = 0;
 
-    /// Reference density, used when computing particle radii from their masses.
+    /// \brief Reference density, used when computing particle radii from their masses.
     Float referenceDensity = 2700._f;
 
-    /// Parameters used by histogram of components
+    /// \brief Cutoff value (lower bound) of particle mass for inclusion in the histogram.
+    ///
+    /// Particles with masses below this value are considered "below observational limit".
+    /// Applicable for both component and particle histogram.
+    Float massCutoff = 0._f;
+
+    /// \brief Cutoff value (upper bound) of particle velocity for inclusion in the histogram
+    ///
+    /// Particles moving faster than the cutoff are considered as fragments of projectile and excluded from
+    /// histogram, as they are (most probably) not part of any observed family. Applicable for both component
+    /// and particle histogram.
+    Float velocityCutoff = INFTY;
+
+    /// If true, the bin values of the differential histogram are in the centers of the corresponding
+    /// intervals, otherwise they correspond to the lower bound of the interval.
+    bool centerBins = true;
+
+    /// \brief Parameters used by histogram of components
     struct ComponentParams {
+
+        /// Radius of particles in units of their smoothing lengths.
         Float radius = 2._f;
+
+        /// Determines how the particles are clustered into the components.
+        Flags<Post::ComponentFlag> flags = Post::ComponentFlag::OVERLAP;
+
     } components;
 
-    /// Validator used to determine particles/component included in the histogram
+    /// \brief Function used for inclusiong/exclusion of values in the histogram.
     ///
-    /// By default, all particles/components are included
-    Function<bool(const Float value)> validator = [](const Float UNUSED(value)) { return true; };
+    /// Works only for particle histograms.
+    Function<bool(Size index)> validator = [](Size UNUSED(index)) { return true; };
 };
 
-/// Point in SFD
-struct SfdPoint {
-    /// Radius or value of measured quantity (x coordinate in the plot)
+/// \brief Point in the histogram
+struct HistPoint {
+    /// Value of the quantity
     Float value;
 
     /// Number of particles/components
     Size count;
+
+    bool operator==(const HistPoint& other) const;
 };
 
-/// \brief Computes differential size-frequency distribution of particle radii.
-Array<SfdPoint> getDifferentialSfd(const Storage& storage, const HistogramParams& params);
-
-/// \brief Computes cummulative size-frequency distribution of body sizes (equivalent diameters).
+/// \brief Computes the differential histogram from given values.
 ///
-/// The storage must contain at least particle positions, masses and densities.
+/// Note that only bin count and input range are used from the histogram parameters. No cut-offs are applied.
+Array<HistPoint> getDifferentialHistogram(ArrayView<const Float> values, const HistogramParams& params);
+
+/// \brief Computes the differential histogram of particles in the storage.
+Array<HistPoint> getDifferentialHistogram(const Storage& storage,
+    const HistogramId id,
+    const HistogramSource source,
+    const HistogramParams& params);
+
+/// \brief Computes cumulative (integral) histogram of particles in the storage.
+///
+/// \param storage Storage containing particle data.
+/// \param id Specifies the quantity for which the histogram is constructed.
+/// \param source Specifies the input bodies, see \ref HistogramSource.
 /// \param params Parameters of the histogram.
-Array<SfdPoint> getCummulativeSfd(const Storage& storage, const HistogramParams& params);
+Array<HistPoint> getCumulativeHistogram(const Storage& storage,
+    const HistogramId id,
+    const HistogramSource source,
+    const HistogramParams& params);
 
 
-/// \brief Parses the pkdgrav output file and creates a storage with quantities stored in the file.
+/// \brief Class representing an ordinary 1D linear function
+class LinearFunction {
+private:
+    Float a, b;
+
+public:
+    /// \brief Creates a new linear function.
+    ///
+    /// \param slope Slope of the function (atan of the angle between the line and the x-axis).
+    /// \param offset Offset in y-direction (value of the function for x=0).
+    LinearFunction(const Float slope, const Float offset)
+        : a(slope)
+        , b(offset) {}
+
+    /// \brief Evaluates the linear function for given value.
+    INLINE Float operator()(const Float x) const {
+        return a * x + b;
+    }
+
+    /// \brief Returns the slope of the function.
+    Float slope() const {
+        return a;
+    }
+
+    /// \brief Returns the offset in y-direction.
+    Float offset() const {
+        return b;
+    }
+
+    /// \brief Finds a value of x such that f(x) = y for given y.
+    ///
+    /// Slope of the function must not be zero.
+    Float solve(const Float y) const {
+        ASSERT(a != 0._f);
+        return (y - b) / a;
+    }
+};
+
+/// \brief Finds a linear fit to a set of points.
 ///
-/// Pkdgrav output contains particle positions, their velocities, angular velocities and their masses.
-/// Parsed storage is constructed with these quantities, the radii of the spheres are saved as
-/// H-component (however the radius is NOT equal to the smoothing length). The particles are sorted in the
-/// storage according to their masses, in descending order. The largest remnant (if exists) or largest
-/// fragment is therefore particle with index 0.
-/// \param path Path to the file. The extension of the file shall be ".bt".
-/// \return Storage with created quantities or error message.
-Expected<Storage> parsePkdgravOutput(const Path& path);
+/// The set of points must have at least two elements and they must not coincide.
+/// \return Function representing the linear fit.
+LinearFunction getLinearFit(ArrayView<const PlotPoint> points);
+
+
+class QuadraticFunction {
+private:
+    Float a, b, c;
+
+public:
+    /// y = a*x^2 + b*x + c
+    QuadraticFunction(const Float a, const Float b, const Float c)
+        : a(a)
+        , b(b)
+        , c(c) {}
+
+    INLINE Float operator()(const Float x) const {
+        return (a * x + b) * x + c;
+    }
+
+    Float quadratic() const {
+        return a;
+    }
+    Float linear() const {
+        return b;
+    }
+    Float constant() const {
+        return c;
+    }
+
+    /// \brief Returns solutions of a quadratic equation y = a*x^2 + b*x + c
+    ///
+    /// Returned array contains 0, 1 or 2 values, depending on the number of real solutions of the equation.
+    /// If two solutions exist, the first element of the array is always the smaller solution.
+    StaticArray<Float, 2> solve(const Float y) const {
+        ASSERT(a != 0);
+        const Float disc = sqr(b) - 4._f * a * (c - y);
+        if (disc < 0._f) {
+            return EMPTY_ARRAY;
+        } else if (disc == 0._f) {
+            return { -b / (2._f * a) };
+        } else {
+            const Float sqrtDisc = sqrt(disc);
+            Float x1 = (-b - sqrtDisc) / (2._f * a);
+            Float x2 = (-b + sqrtDisc) / (2._f * a);
+            if (x1 > x2) {
+                std::swap(x1, x2);
+            }
+            return { x1, x2 };
+        }
+    }
+};
+
+QuadraticFunction getQuadraticFit(ArrayView<const PlotPoint> points);
 
 } // namespace Post
 

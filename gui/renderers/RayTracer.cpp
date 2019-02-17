@@ -1,35 +1,40 @@
 #include "gui/renderers/RayTracer.h"
+#include "gui/Factory.h"
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
-#include "objects/finders/KdTree.h"
+#include "gui/renderers/FrameBuffer.h"
 #include "system/Profiler.h"
-#include <wx/dcmemory.h>
 
 NAMESPACE_SPH_BEGIN
 
-RayTracer::RayTracer(const GuiSettings& settings)
-    : threadData(pool) {
-    kernel = Factory::getKernel<3>(RunSettings::getDefaults());
-    params.surfaceLevel = settings.get<Float>(GuiSettingsId::SURFACE_LEVEL);
-    params.dirToSun = settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION);
-    params.brdf = Factory::getBrdf(settings);
-    params.ambientLight = settings.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
+RayTracer::RayTracer(IScheduler& scheduler, const GuiSettings& settings)
+    : scheduler(scheduler)
+    , threadData(scheduler) {
+    kernel = CubicSpline<3>();
+    fixed.dirToSun = settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION);
+    fixed.brdf = Factory::getBrdf(settings);
+    fixed.subsampling = settings.get<int>(GuiSettingsId::RAYTRACE_SUBSAMPLING);
+    fixed.iterationLimit = settings.get<int>(GuiSettingsId::RAYTRACE_ITERATION_LIMIT);
 
     std::string hdriPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_HDRI);
     if (!hdriPath.empty()) {
-        params.hdri = Texture(Path(hdriPath), TextureFiltering::BILINEAR);
+        fixed.enviro.hdri = Texture(Path(hdriPath), TextureFiltering::BILINEAR);
     }
 
     std::string primaryPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY);
     if (!primaryPath.empty()) {
-        params.textures.emplaceBack(Path(primaryPath), TextureFiltering::BILINEAR);
+        fixed.textures.emplaceBack(Path(primaryPath), TextureFiltering::BILINEAR);
 
         std::string secondaryPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY);
         if (!secondaryPath.empty()) {
-            params.textures.emplaceBack(Path(secondaryPath), TextureFiltering::BILINEAR);
+            fixed.textures.emplaceBack(Path(secondaryPath), TextureFiltering::BILINEAR);
+        } else {
+            fixed.textures.emplaceBack(fixed.textures.front().clone());
         }
     }
+
+    shouldContinue = true;
 }
 
 RayTracer::~RayTracer() = default;
@@ -41,26 +46,38 @@ void RayTracer::initialize(const Storage& storage,
     cached.r = storage.getValue<Vector>(QuantityId::POSITION).clone();
     const Size particleCnt = cached.r.size();
 
-    cached.uvws = storage.getValue<Vector>(QuantityId(GuiQuantityId::UVW)).clone();
-
-    cached.flags.resize(particleCnt);
-    ArrayView<const Size> idxs = storage.getValue<Size>(QuantityId::FLAG);
-    ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
-    // assign separate flag to fully damaged particles so that they do not blend with other particles
-    // Size damagedIdx = 5;
-    for (Size i = 0; i < particleCnt; ++i) {
-        if (reduce[i] == 0._f) {
-            cached.flags[i] = idxs[i]; // damagedIdx++;
-        } else {
-            cached.flags[i] = idxs[i];
-        }
+    if (storage.has(QuantityId(GuiQuantityId::UVW))) {
+        cached.uvws = storage.getValue<Vector>(QuantityId(GuiQuantityId::UVW)).clone();
+    } else {
+        cached.uvws.clear();
     }
 
-    ArrayView<const Float> rho, m;
-    tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
+    cached.flags.resize(particleCnt);
+    if (storage.has(QuantityId::FLAG)) {
+        ArrayView<const Size> idxs = storage.getValue<Size>(QuantityId::FLAG);
+        // assign separate flag to fully damaged particles so that they do not blend with other particles
+        for (Size i = 0; i < particleCnt; ++i) {
+            cached.flags[i] = idxs[i];
+        }
+    } else {
+        cached.flags.fill(0);
+    }
+
     cached.v.resize(particleCnt);
-    for (Size i = 0; i < particleCnt; ++i) {
-        cached.v[i] = m[i] / 2700._f; //  rho[i];
+    if (storage.has(QuantityId::MASS) && storage.has(QuantityId::DENSITY)) {
+        ArrayView<const Float> rho, m;
+        tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
+        for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
+            MaterialView material = storage.getMaterial(matId);
+            const Float rho = material->getParam<Float>(BodySettingsId::DENSITY);
+            for (Size i : material.sequence()) {
+                cached.v[i] = m[i] / rho;
+            }
+        }
+    } else {
+        for (Size i = 0; i < particleCnt; ++i) {
+            cached.v[i] = sphereVolume(cached.r[i][H]);
+        }
     }
 
     cached.colors.resize(particleCnt);
@@ -76,57 +93,117 @@ void RayTracer::initialize(const Storage& storage,
     }
     bvh.build(std::move(spheres));
 
-    finder = makeAuto<KdTree>();
-    finder->build(cached.r);
+    finder = Factory::getFinder(RunSettings::getDefaults());
+    finder->build(scheduler, cached.r);
 
-    threadData.forEach([](ThreadData& data) { data.previousIdx = Size(-1); });
+    for (ThreadData& data : threadData) {
+        data.previousIdx = Size(-1);
+    }
+
+    shouldContinue = true;
 }
 
-static void drawText(wxBitmap& bitmap, const std::string& text) {
-    wxMemoryDC dc(bitmap);
-    wxFont font = dc.GetFont();
-    font.MakeSmaller();
-    dc.SetFont(font);
-
-    dc.SetTextForeground(*wxWHITE);
-    dc.DrawText(text, 10, 10);
-
-    dc.SelectObject(wxNullBitmap);
+/*
+INLINE Float weight(const Vector& r1, const Vector& r2) {
+    const Float lengthSqr = getSqrLength(r1 - r2);
+    // Eq. (11)
+    if (lengthSqr < sqr(2._f * r1[H])) {
+        return 1._f - pow<3>(sqrt(lengthSqr) / (2._f * r1[H]));
+    } else {
+        return 0._f;
+    }
 }
 
-SharedPtr<wxBitmap> RayTracer::render(const ICamera& camera,
-    const RenderParams& params,
-    Statistics& UNUSED(stats)) const {
-    MEASURE_SCOPE("Rendering frame");
-    Bitmap bitmap(params.size);
-    Timer timer;
-    parallelFor(pool, 0, Size(params.size.y), [this, &bitmap, &camera, &params](Size y) {
-        ThreadData& data = threadData.get();
-        for (Size x = 0; x < Size(params.size.x); ++x) {
-            CameraRay cameraRay = camera.unproject(Point(x, y));
-            const Vector dir = getNormalized(cameraRay.target - cameraRay.origin);
-            const Ray ray(cameraRay.origin, dir);
+Array<Vector> RayTracer::denoisePositions(ArrayView<const Vector> r) const {
+    ASSERT(finder);
+    Array<Vector> r_bar(r.size());
+    Array<NeighbourRecord> neighs;
+    const Float lambda = 1._f;
+    for (Size i = 0; i < r.size(); ++i) {
+        finder->findAll(i, 2._f * r[i][H], neighs);
 
-            Color accumulatedColor;
-            if (Optional<Vector> hit = this->intersect(data, ray, false)) {
-                accumulatedColor = this->shade(data, data.previousIdx, hit.value(), ray.direction());
-            } else {
-                accumulatedColor = this->getEnviroColor(ray);
-            }
-            bitmap[Point(x, y)] = wxColour(accumulatedColor);
+        Vector wr(0._f);
+        Float wsum = 0._f;
+        for (NeighbourRecord& n : neighs) {
+            const Size j = n.index;
+            const Float w = weight(r[i], r[j]);
+            wr += w * r[j];
+            wsum += w;
         }
-    });
-    SharedPtr<wxBitmap> wx = makeShared<wxBitmap>();
-    toWxBitmap(bitmap, *wx);
-    drawText(*wx, "Rendering took " + std::to_string(timer.elapsed(TimerUnit::MILLISECOND)) + "ms");
-    return wx;
+        ASSERT(wsum > 0._f);
+        r_bar[i] = (1._f - lambda) * r[i] + lambda * wr / wsum;
+        r_bar[i][H] = r[i][H];
+    }
+    return r_bar;
+}*/
+
+void RayTracer::render(const RenderParams& params, Statistics& UNUSED(stats), IRenderOutput& output) const {
+    shouldContinue = true;
+    ASSERT(finder && bvh.getBoundingBox().volume() > 0._f);
+    FrameBuffer fb(params.size);
+    for (Size iteration = 0; iteration < fixed.iterationLimit && shouldContinue; ++iteration) {
+        this->refine(params, iteration, fb);
+        output.update(fb.bitmap(), {});
+    }
+}
+
+void RayTracer::refine(const RenderParams& params, const Size iteration, FrameBuffer& fb) const {
+    MEASURE_SCOPE("Rendering frame");
+    const Size level = 1 << max(int(fixed.subsampling) - int(iteration), 0);
+    Pixel actSize;
+    actSize.x = params.size.x / level + sgn(params.size.x % level);
+    actSize.y = params.size.y / level + sgn(params.size.y % level);
+    Bitmap<Rgba> bitmap(actSize);
+
+    const bool first = (iteration == 0);
+    parallelFor(scheduler,
+        threadData,
+        0,
+        Size(bitmap.size().y),
+        [this, &bitmap, &params, level, first](Size y, ThreadData& data) {
+            if (!shouldContinue && !first) {
+                return;
+            }
+            for (Size x = 0; x < Size(bitmap.size().x); ++x) {
+                /// \todo generalize
+                const float rx = x * level + (level == 1 ? data.rng() : 0.5f);
+                const float ry = y * level + (level == 1 ? data.rng() : 0.5f);
+                CameraRay cameraRay = params.camera->unproject(Coords(rx, ry));
+                const Vector dir = getNormalized(cameraRay.target - cameraRay.origin);
+                const Ray ray(cameraRay.origin, dir);
+
+                Rgba accumulatedColor = Rgba::transparent();
+                if (Optional<Vector> hit = this->intersect(data, ray, params.surface.level, false)) {
+                    accumulatedColor =
+                        this->shade(data, params, data.previousIdx, hit.value(), ray.direction());
+                } else {
+                    accumulatedColor = this->getEnviroColor(ray);
+                }
+                bitmap[Pixel(x, y)] = accumulatedColor;
+            }
+        });
+
+    if (!shouldContinue && !first) {
+        return;
+    }
+    if (level == 1) {
+        fb.accumulate(bitmap);
+    } else {
+        Bitmap<Rgba> full(params.size);
+        for (Size y = 0; y < Size(full.size().y); ++y) {
+            for (Size x = 0; x < Size(full.size().x); ++x) {
+                full[Pixel(x, y)] = bitmap[Pixel(x / level, y / level)];
+            }
+        }
+        fb.override(std::move(full));
+    }
 }
 
 ArrayView<const Size> RayTracer::getNeighbourList(ThreadData& data, const Size index) const {
     // look for neighbours only if the intersected particle differs from the previous one
     if (index != data.previousIdx) {
         Array<NeighbourRecord> neighs;
-        finder->findAll(index, 2._f * cached.r[index][H], neighs);
+        finder->findAll(index, kernel.radius() * cached.r[index][H], neighs);
         data.previousIdx = index;
 
         // find the actual list of neighbours
@@ -140,14 +217,18 @@ ArrayView<const Size> RayTracer::getNeighbourList(ThreadData& data, const Size i
     return data.neighs;
 }
 
-Optional<Vector> RayTracer::intersect(ThreadData& data, const Ray& ray, const bool occlusion) const {
+Optional<Vector> RayTracer::intersect(ThreadData& data,
+    const Ray& ray,
+    const Float surfaceLevel,
+    const bool occlusion) const {
     bvh.getAllIntersections(ray, data.intersections);
 
     for (const IntersectionInfo& intersect : data.intersections) {
-        ShadeContext sc;
+        IntersectContext sc;
         sc.index = intersect.object->userData;
         sc.ray = ray;
         sc.t_min = intersect.t;
+        sc.surfaceLevel = surfaceLevel;
         const Optional<Vector> hit = this->getSurfaceHit(data, sc, occlusion);
         if (hit) {
             return hit;
@@ -158,7 +239,7 @@ Optional<Vector> RayTracer::intersect(ThreadData& data, const Ray& ray, const bo
 }
 
 Optional<Vector> RayTracer::getSurfaceHit(ThreadData& data,
-    const ShadeContext& context,
+    const IntersectContext& context,
     bool occlusion) const {
     this->getNeighbourList(data, context.index);
 
@@ -178,7 +259,7 @@ Optional<Vector> RayTracer::getSurfaceHit(ThreadData& data,
     Float phi = 0._f;
     Float travelled = eps;
     while (travelled < limit && eps > 0.2_f * cached.r[i][H]) {
-        phi = this->evalField(data.neighs, v2);
+        phi = this->evalField(data.neighs, v2) - context.surfaceLevel;
         if (phi > 0._f) {
             if (occlusion) {
                 return v2;
@@ -204,39 +285,43 @@ Optional<Vector> RayTracer::getSurfaceHit(ThreadData& data,
     }
 }
 
-Color RayTracer::shade(ThreadData& data, const Size index, const Vector& hit, const Vector& dir) const {
-    Color color = Color::white();
-    if (!params.textures.empty()) {
+Rgba RayTracer::shade(ThreadData& data,
+    const RenderParams& params,
+    const Size index,
+    const Vector& hit,
+    const Vector& dir) const {
+    Rgba color = Rgba::white();
+    if (!fixed.textures.empty() && !cached.uvws.empty()) {
         const Vector uvw = this->evalUvws(data.neighs, hit);
-        color = params.textures[cached.flags[index]].eval(uvw) * 2._f;
+        color = fixed.textures[cached.flags[index]].eval(uvw) * 2._f;
     }
+
+    // evaluate color before checking for occlusion as that invalidates the neighbour list
+    const Rgba colorizerValue = this->evalColor(data.neighs, hit) * color;
 
     // compute normal = gradient of the field
     const Vector n = this->evalGradient(data.neighs, hit);
     ASSERT(n != Vector(0._f));
     const Vector n_norm = getNormalized(n);
-    const Float cosPhi = dot(n_norm, params.dirToSun);
+    const Float cosPhi = dot(n_norm, fixed.dirToSun);
     if (cosPhi <= 0._f) {
         // not illuminated
-        return Color(params.ambientLight) * color;
+        return colorizerValue * params.surface.ambientLight;
     }
 
-    // evaluate color before checking for occlusion as that invalidates the neighbour list
-    const Color colorizerValue = this->evalColor(data.neighs, hit);
-
     // check for occlusion
-    if (params.shadows) {
-        Ray rayToSun(hit - 1.e-3_f * params.dirToSun, -params.dirToSun);
-        if (this->intersect(data, rayToSun, true)) {
+    if (fixed.shadows) {
+        Ray rayToSun(hit - 1.e-3_f * fixed.dirToSun, -fixed.dirToSun);
+        if (this->intersect(data, rayToSun, params.surface.level, true)) {
             // casted shadow
-            return Color(params.ambientLight) * color;
+            return colorizerValue * params.surface.ambientLight;
         }
     }
 
     // evaluate BRDF
-    const Float f = params.brdf->transport(n_norm, -dir, params.dirToSun);
+    const Float f = fixed.brdf->transport(n_norm, -dir, fixed.dirToSun);
 
-    return color * (colorizerValue * PI * f * cosPhi + Color(params.ambientLight));
+    return colorizerValue * (PI * f * cosPhi * params.surface.sunLight + params.surface.ambientLight);
 }
 
 Float RayTracer::evalField(ArrayView<const Size> neighs, const Vector& pos1) const {
@@ -248,7 +333,7 @@ Float RayTracer::evalField(ArrayView<const Size> neighs, const Vector& pos1) con
         const Float w = kernel.value(pos1 - pos2, pos2[H]);
         value += cached.v[index] * w;
     }
-    return value - params.surfaceLevel;
+    return value;
 }
 
 Vector RayTracer::evalGradient(ArrayView<const Size> neighs, const Vector& pos1) const {
@@ -261,9 +346,9 @@ Vector RayTracer::evalGradient(ArrayView<const Size> neighs, const Vector& pos1)
     return value;
 }
 
-Color RayTracer::evalColor(ArrayView<const Size> neighs, const Vector& pos1) const {
+Rgba RayTracer::evalColor(ArrayView<const Size> neighs, const Vector& pos1) const {
     ASSERT(!neighs.empty());
-    Color color = Color::black();
+    Rgba color = Rgba::black();
     Float weightSum = 0._f;
     for (Size index : neighs) {
         const Vector& pos2 = cached.r[index];
@@ -315,15 +400,15 @@ Vector RayTracer::evalUvws(ArrayView<const Size> neighs, const Vector& pos1) con
     }
 }
 
-Color RayTracer::getEnviroColor(const Ray& ray) const {
-    if (params.hdri.empty()) {
-        return Color::black();
+Rgba RayTracer::getEnviroColor(const Ray& ray) const {
+    if (fixed.enviro.hdri.empty()) {
+        return fixed.enviro.color;
     } else {
         const Vector dir = ray.direction();
         /// \todo deduplicate with setupUvws
         const SphericalCoords spherical = cartensianToSpherical(Vector(dir[X], dir[Z], dir[Y]));
         const Vector uvw(spherical.phi / (2._f * PI) + 0.5_f, spherical.theta / PI, 0._f);
-        return params.hdri.eval(uvw);
+        return fixed.enviro.hdri.eval(uvw);
     }
 }
 

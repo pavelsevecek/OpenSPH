@@ -130,7 +130,7 @@ public:
 
     /// Equality operator with one of stored types.
     template <typename T, typename = std::enable_if_t<DynamicVariant::canHold<T>()>>
-    bool operator==(const T& value) {
+    bool operator==(const T& value) const {
         return this->get<T>() == value;
     }
 

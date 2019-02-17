@@ -14,6 +14,7 @@ NAMESPACE_SPH_BEGIN
 
 struct MaterialInitialContext;
 class IFractureModel;
+class IScheduler;
 
 /// \brief Base class of rheological models
 ///
@@ -36,18 +37,20 @@ public:
     /// \brief Evaluates the stress tensor reduction factors.
     ///
     /// Called for every material in the simulation every timestep, before iteration over particle pairs
+    /// \param scheduler Scheduler used for parallelization.
     /// \param storage Storage including all the particles.
     /// \param material Material properties and sequence of particles with this material. Implementation
     ///                 should only modify particles with indices in this sequence.
-    virtual void initialize(Storage& storage, const MaterialView material) = 0;
+    virtual void initialize(IScheduler& scheduler, Storage& storage, const MaterialView material) = 0;
 
     /// \brief Computes derivatives of the time-dependent quantities of the rheological model.
     ///
     /// Called for every material in the simulation every timestep, after all derivatives are computed.
+    /// \param scheduler Scheduler used for parallelization.
     /// \param storage Storage including all the particles.
     /// \param material Material properties and sequence of particles with this material. Implementation
     ///                 should only modify particles with indices in this sequence.
-    virtual void integrate(Storage& storage, const MaterialView material) = 0;
+    virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) = 0;
 };
 
 
@@ -57,11 +60,12 @@ private:
     AutoPtr<IFractureModel> damage;
 
 public:
-    /// Constructs a rheology with no fragmentation model. Stress tensor is only modified by von Mises
-    /// criterion, yielding strength does not depend on damage.
+    /// \brief Constructs a rheology with no fragmentation model.
+    ///
+    /// Stress tensor is only modified by von Mises criterion, yielding strength does not depend on damage.
     VonMisesRheology();
 
-    /// Constructs a rheology with given fragmentation model.
+    /// \brief Constructs a rheology with given fragmentation model.
     VonMisesRheology(AutoPtr<IFractureModel>&& damage);
 
     ~VonMisesRheology();
@@ -70,9 +74,9 @@ public:
         IMaterial& settings,
         const MaterialInitialContext& context) const override;
 
-    virtual void initialize(Storage& storage, const MaterialView material) override;
+    virtual void initialize(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
 
-    virtual void integrate(Storage& storage, const MaterialView material) override;
+    virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
 };
 
 
@@ -81,11 +85,13 @@ class DruckerPragerRheology : public IRheology {
 private:
     AutoPtr<IFractureModel> damage;
 
-    /// \todo Fix implementation according to von Mises
-
-    Array<Float> yieldingStress;
-
 public:
+    /// \brief Constructs a rheology with no fragmentation model.
+    ///
+    /// Stress tensor is only modified by von Mises criterion, yielding strength does not depend on damage.
+    DruckerPragerRheology();
+
+    /// \brief Constructs a rheology with given fragmentation model.
     DruckerPragerRheology(AutoPtr<IFractureModel>&& damage);
 
     ~DruckerPragerRheology();
@@ -94,23 +100,9 @@ public:
         IMaterial& material,
         const MaterialInitialContext& context) const override;
 
-    virtual void initialize(Storage& storage, const MaterialView material) override;
+    virtual void initialize(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
 
-    virtual void integrate(Storage& storage, const MaterialView material) override;
-
-    /// \todo code duplication
-    INLINE TracelessTensor reduce(const TracelessTensor& s, const int i) const {
-        ASSERT(yieldingStress[i] > EPS);
-        const Float inv = 0.5_f * ddot(s, s) / sqr(yieldingStress[i]);
-        if (inv < EPS) {
-            return s;
-        } else {
-            ASSERT(isReal(inv));
-            const TracelessTensor s_red = s * min(sqrt(1._f / (3._f * inv)), 1._f);
-            ASSERT(isReal(s_red));
-            return s_red;
-        }
-    }
+    virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
 };
 
 /// Perfectly elastic material, no yielding nor fragmentation
@@ -120,9 +112,9 @@ public:
         IMaterial& material,
         const MaterialInitialContext& context) const override;
 
-    virtual void initialize(Storage& storage, const MaterialView material) override;
+    virtual void initialize(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
 
-    virtual void integrate(Storage& storage, const MaterialView material) override;
+    virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
 };
 
 NAMESPACE_SPH_END

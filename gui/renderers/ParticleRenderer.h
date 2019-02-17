@@ -9,16 +9,29 @@
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Palette.h"
 #include "gui/renderers/IRenderer.h"
+#include <atomic>
 
 NAMESPACE_SPH_BEGIN
 
+class IRenderContext;
+
+/// \todo exposed for PaletteDialog, should be possibly generalized, used by other renderers, etc.
+void drawPalette(IRenderContext& context,
+    const Pixel origin,
+    const Pixel size,
+    const Rgba& lineColor,
+    const Palette& palette);
+
 class ParticleRenderer : public IRenderer {
 private:
-    /// Cutoff distance of visible particles.
-    float cutoff;
-
     /// Grid size
     float grid;
+
+    /// Background color
+    Rgba background;
+
+    /// Show ghost particles
+    bool renderGhosts;
 
     /// Cached values of visible particles, used for faster drawing.
     struct {
@@ -29,7 +42,7 @@ private:
         Array<Size> idxs;
 
         /// Colors of particles assigned by the colorizer
-        Array<Color> colors;
+        Array<Rgba> colors;
 
         /// Vectors representing the colorized quantity. May be empty.
         Array<Vector> vectors;
@@ -39,6 +52,8 @@ private:
 
     } cached;
 
+    mutable std::atomic_bool shouldContinue;
+
 public:
     explicit ParticleRenderer(const GuiSettings& settings);
 
@@ -46,13 +61,9 @@ public:
         const IColorizer& colorizer,
         const ICamera& camera) override;
 
-    /// Can only be called from main thread
-    virtual SharedPtr<wxBitmap> render(const ICamera& camera,
-        const RenderParams& params,
-        Statistics& stats) const override;
+    virtual void render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const override;
 
-private:
-    bool isCutOff(const ICamera& camera, const Vector& r);
+    virtual void cancelRender() override;
 };
 
 NAMESPACE_SPH_END

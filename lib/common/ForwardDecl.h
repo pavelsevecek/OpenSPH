@@ -4,6 +4,31 @@
 
 NAMESPACE_SPH_BEGIN
 
+template <typename T>
+class RawPtr;
+template <typename T>
+class AutoPtr;
+template <typename T>
+class SharedPtr;
+template <typename T>
+class Function;
+template <typename T>
+class Optional;
+template <typename T>
+class BasicOutcome;
+
+class IScheduler;
+class Task;
+class ThreadPool;
+template <typename T>
+class ThreadLocal;
+
+template <typename T>
+class List;
+
+template <typename T>
+class Flags;
+
 class Storage;
 class Quantity;
 enum class QuantityId;
@@ -27,6 +52,8 @@ class IDomain;
 class ISolver;
 class ITimeStepping;
 class ITimeStepCriterion;
+
+class DerivativeHolder;
 
 struct Ghost;
 struct NeighbourRecord;

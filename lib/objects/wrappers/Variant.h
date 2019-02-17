@@ -7,12 +7,12 @@
 
 #include "common/Assert.h"
 #include "common/Globals.h"
-#include "math/Math.h"
+#include "math/MathUtils.h"
 #include "objects/wrappers/Optional.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// Stores value of type std::aligned_union, having size and alignment equal to maximum of sizes and
+/// \brief Stores value of type std::aligned_union, having size and alignment equal to maximum of sizes and
 /// alignments of template types.
 template <typename... TArgs>
 class AlignedUnion {
@@ -20,37 +20,42 @@ private:
     std::aligned_union_t<4, TArgs...> storage;
 
 public:
-    /// Creates value of type T in place. Does not check whether another object has already been created.
+    /// \brief Creates value of type T in place.
+    ///
+    /// Does not check whether another object has already been created.
     template <typename T, typename... Ts>
     INLINE void emplace(Ts&&... args) {
+        ASSERT(isAligned(storage));
         new (&storage) T(std::forward<Ts>(args)...);
     }
 
-    /// Destroys value of type T. Does not check that the value of type T is currently stored
+    /// \brief Destroys value of type T.
+    ///
+    /// Does not check that the value of type T is currently stored
     template <typename T>
     INLINE void destroy() {
         get<T>().~T();
     }
 
-    /// Converts stored value to a reference of type T, without checking that the currently stored value has
-    /// such a type.
+    /// \brief Converts stored value to a reference of type T.
+    ///
+    /// Does not check that the currently stored value has such a type.
     template <typename T>
     INLINE T& get() {
         return reinterpret_cast<T&>(storage);
     }
 
-    /// Converts stored value to a reference of type T, without checking that the currently stored value has
-    /// such a type, const version.
+    /// \copydoc get
     template <typename T>
     INLINE const T& get() const {
         return reinterpret_cast<const T&>(storage);
     }
 };
 
-/// Helper visitors creating, deleting or modifying Variant
+/// \brief Helper visitors creating, deleting or modifying Variant
 namespace VariantHelpers {
 
-/// Creates a variant using default constructor
+/// \brief Creates a variant using default constructor
 template <typename... TArgs>
 struct DefaultCreate {
     AlignedUnion<TArgs...>& storage;
@@ -61,7 +66,7 @@ struct DefaultCreate {
     }
 };
 
-/// Destroys the object currently stored in variant.
+/// \brief Destroys the object currently stored in variant.
 template <typename... TArgs>
 struct Delete {
     AlignedUnion<TArgs...>& storage;
@@ -72,7 +77,7 @@ struct Delete {
     }
 };
 
-/// Creates a variant by copying/moving value currently stored in other variant.
+/// \brief Creates a variant by copying/moving value currently stored in other variant.
 template <typename... TArgs>
 struct CopyMoveCreate {
     AlignedUnion<TArgs...>& storage;
@@ -90,7 +95,7 @@ struct CopyMoveCreate {
     }
 };
 
-/// Assigns a value type of which can be stored in variant.
+/// \brief Assigns a value type of which can be stored in variant.
 template <typename... TArgs>
 struct Assign {
     AlignedUnion<TArgs...>& storage;
@@ -102,7 +107,7 @@ struct Assign {
     }
 };
 
-/// Creates a variant by copying/moving value currently stored in other variant.
+/// \brief Creates a variant by copying/moving value currently stored in other variant.
 template <typename... TArgs>
 struct CopyMoveAssign {
     AlignedUnion<TArgs...>& storage;
@@ -120,7 +125,7 @@ struct CopyMoveAssign {
     }
 };
 
-/// Swaps content of two variants.
+/// \brief Swaps content of two variants.
 template <typename... TArgs>
 struct Swap {
     AlignedUnion<TArgs...>& storage;
@@ -130,10 +135,11 @@ struct Swap {
         std::swap(storage.template get<T>(), other.template get<T>());
     }
 };
+
 } // namespace VariantHelpers
 
-/// Iterates through types of variant until idx-th type is found, and executes given TVisitor, passing
-/// arguments to its method visit().
+/// \brief Iterates through types of variant until idx-th type is found, and executes given TVisitor, passing
+/// arguments to its method \ref visit.
 template <typename T0, typename... TArgs>
 struct VariantIterator {
     template <typename TVisitor, typename... Ts>
@@ -146,17 +152,17 @@ struct VariantIterator {
         }
     }
 };
-/// Specialization for last type
+/// \brief Specialization for last type
 template <typename T0>
 struct VariantIterator<T0> {
     template <typename TVisitor, typename... Ts>
-    static void visit(Size UNUSED_IN_RELEASE(idx), TVisitor&& visitor, Ts&&... args) {
+    static void visit(Size idx, TVisitor&& visitor, Ts&&... args) {
         ASSERT(idx == 0);
         visitor.template visit<T0>(std::forward<Ts>(args)...);
     }
 };
 
-/// Tag for invoking constructor with type index as parameter.
+/// \brief Tag for invoking constructor with type index as parameter.
 static constexpr struct ConstructTypeIdxTag {
 } CONSTRUCT_TYPE_IDX;
 
@@ -165,7 +171,7 @@ template <typename... TArgs>
 class Variant {
 private:
     AlignedUnion<TArgs...> storage;
-    Size typeIdx;
+    int typeIdx;
 
     void destroy() {
         VariantHelpers::Delete<TArgs...> deleter{ storage };
@@ -175,15 +181,17 @@ private:
     static_assert(sizeof...(TArgs) >= 1, "Must have at least 1 variant");
 
 public:
-    /// Default constructor, constructs the object of type listed first in the type list using its default
-    /// constructor. The default constructor must exist.
+    /// \brief Default constructor, constructs the object of type listed first in the type list using its
+    /// default constructor.
+    ///
+    /// The default constructor must exist.
     Variant() {
         using T = SelectType<0, TArgs...>;
         storage.template emplace<T>();
         typeIdx = 0;
     }
 
-    /// Construct variant from value of stored type
+    /// \brief Construct variant from value of stored type
     template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, Variant>::value>>
     Variant(T&& value) {
         using RawT = std::decay_t<T>;
@@ -193,7 +201,9 @@ public:
         typeIdx = idx;
     }
 
-    /// Default-constructs a type with given type index. Useful for (de)serialization of variant.
+    /// \brief Default-constructs a type with given type index.
+    ///
+    /// Useful for (de)serialization of variant.
     Variant(const ConstructTypeIdxTag, const Size typeIdx)
         : typeIdx(typeIdx) {
         ASSERT(typeIdx < sizeof...(TArgs));
@@ -217,9 +227,11 @@ public:
         destroy();
     }
 
-    /// Universal copy/move operator with type of rhs being one of stored types. Valid type is checked by
-    /// static assert. If the type of rhs is the same as the type currently stored in variant, the value is
-    /// copy/move assigned, otherwise the current value is destroyed and a copy/move constructor is used.
+    /// \brief Universal copy/move operator with type of rhs being one of stored types.
+    ///
+    /// Valid type is checked by static assert. If the type of rhs is the same as the type currently stored in
+    /// variant, the value is copy/move assigned, otherwise the current value is destroyed and a copy/move
+    /// constructor is used.
     template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, Variant>::value>>
     Variant& operator=(T&& value) {
         using RawT = std::decay_t<T>;
@@ -237,9 +249,11 @@ public:
         return *this;
     }
 
-    /// Assigns another variant into this. If the type of the currently stored value is the same as type in
-    /// rhs, the copy operator is utilized, otherwise the current value (if there is one) is destroyed and a
-    /// new value is created using copy constructor.
+    /// \brief Assigns another variant into this.
+    ///
+    /// If the type of the currently stored value is the same as type in rhs, the copy operator is utilized,
+    /// otherwise the current value (if there is one) is destroyed and a new value is created using copy
+    /// constructor.
     Variant& operator=(const Variant& other) {
         if (typeIdx != other.typeIdx) {
             destroy();
@@ -253,9 +267,10 @@ public:
         return *this;
     }
 
-    /// Moves another variant into this. If the type of the currently stored value is the same as type in
-    /// rhs, the move operator is utilized, otherwise the current value is destroyed and a new value is
-    /// created using move constructor.
+    /// \brief Moves another variant into this.
+    ///
+    /// If the type of the currently stored value is the same as type in rhs, the move operator is utilized,
+    /// otherwise the current value is destroyed and a new value is created using move constructor.
     Variant& operator=(Variant&& other) {
         if (typeIdx != other.typeIdx) {
             destroy();
@@ -269,16 +284,18 @@ public:
         return *this;
     }
 
-    /// Swaps value stored in the variant with value of different variant. Both variants must hold the value
-    /// of the same type, checked by assert.
+    /// \brief Swaps value stored in the variant with value of different variant.
+    ///
+    /// Both variants must hold the value of the same type, checked by assert.
     void swap(Variant& other) {
         ASSERT(typeIdx == other.typeIdx);
         VariantHelpers::Swap<TArgs...> swapper{ storage };
         VariantIterator<TArgs...>::visit(typeIdx, swapper, other);
     }
 
-    /// Creates a value of type T in place. Type T must be one of variant types. Any previously stored value
-    /// is destroyed.
+    /// \brief Creates a value of type T in place.
+    ///
+    /// Type T must be one of variant types. Any previously stored value is destroyed.
     template <typename T, typename... Ts>
     void emplace(Ts&&... args) {
         using RawT = std::decay_t<T>;
@@ -289,29 +306,31 @@ public:
         typeIdx = idx;
     }
 
-    /// Returns index of type currently stored in variant.
+    /// \brief Returns index of type currently stored in variant.
     INLINE Size getTypeIdx() const {
         return typeIdx;
     }
 
-    /// Checks if the variant currently hold value of given type
-    /// \todo test
+    /// \brief Checks if the variant currently hold value of given type.
     template <typename T>
     INLINE bool has() const {
         constexpr int idx = getTypeIndex<std::decay_t<T>, TArgs...>;
         return typeIdx == idx;
     }
 
-    /// Checks if the given type is one of the listed ones. Returns true even for references and
-    /// const/volatile-qualified types.
+    /// \brief Checks if the given type is one of the listed ones.
+    ///
+    /// Returns true even for references and const/volatile-qualified types.
     template <typename T>
     INLINE static constexpr bool canHold() {
         using RawT = std::decay_t<T>;
         return getTypeIndex<RawT, TArgs...> != -1;
     }
 
-    /// Returns the stored value. Performs a compile-time check that the type is contained in Variant, and
-    /// runtime check that the variant currently holds value of given type.
+    /// \brief Returns the stored value.
+    ///
+    /// Performs a compile-time check that the type is contained in Variant, and runtime check that the
+    /// variant currently holds value of given type.
     template <typename T>
     INLINE T& get() {
         constexpr int idx = getTypeIndex<std::decay_t<T>, TArgs...>;
@@ -320,7 +339,7 @@ public:
         return storage.template get<T>();
     }
 
-    /// Returns the stored value, const version.
+    /// \brief Returns the stored value, const version.
     template <typename T>
     INLINE const T& get() const {
         constexpr int idx = getTypeIndex<std::decay_t<T>, TArgs...>;
@@ -329,21 +348,25 @@ public:
         return storage.template get<T>();
     }
 
-    /// Implicit conversion to one of stored values. Performs a compile-time check that the type is contained
-    /// in Variant, and runtime check that the variant currently holds value of given type.
+    /// \brief Implicit conversion to one of stored values.
+    ///
+    /// Performs a compile-time check that the type is contained in Variant, and runtime check that the
+    /// variant currently holds value of given type.
     template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, Variant>::value>>
     operator T&() {
         return get<T>();
     }
 
-    /// Const version of conversion operator.
+    /// \brief Const version of conversion operator.
     template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, Variant>::value>>
     operator const T&() const {
         return get<T>();
     }
 
-    /// Returns the stored value in the variant. Safer than implicit conversion as it returns NOTHING in case
-    /// the value is currently not stored in variant.
+    /// \brief Returns the stored value in the variant.
+    ///
+    /// Safer than implicit conversion as it returns NOTHING in case the value is currently not stored in
+    /// variant.
     template <typename T>
     Optional<T> tryGet() const {
         constexpr int idx = getTypeIndex<std::decay_t<T>, TArgs...>;
@@ -361,7 +384,7 @@ template <Size N, typename T0, typename... TArgs>
 struct ForValue {
     template <typename TVariant, typename TFunctor>
     INLINE static decltype(auto) action(TVariant&& variant, TFunctor&& functor) {
-        if (variant.template getTypeIdx() == N) {
+        if (variant.getTypeIdx() == N) {
             return functor(variant.template get<T0>());
         } else {
             return ForValue<N + 1, TArgs...>::action(
@@ -375,7 +398,7 @@ template <Size N, typename... TArgs>
 struct ForValue<N, NothingType, TArgs...> {
     template <typename TVariant, typename TFunctor>
     INLINE static decltype(auto) action(TVariant&& variant, TFunctor&& functor) {
-        if (variant.template getTypeIdx() != N) {
+        if (variant.getTypeIdx() != N) {
             return ForValue<N + 1, TArgs...>::action(
                 std::forward<TVariant>(variant), std::forward<TFunctor>(functor));
         }

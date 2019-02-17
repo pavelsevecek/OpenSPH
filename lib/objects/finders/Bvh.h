@@ -68,6 +68,57 @@ struct IntersectionInfo {
     }
 };
 
+/// \brief Trait for finding intersections with a triangle
+class BvhTriangle : public BvhPrimitive {
+private:
+    Vector v0;
+    Vector dir1, dir2;
+
+public:
+    BvhTriangle(const Vector& v0, const Vector& v1, const Vector& v2)
+        : v0(v0) {
+        dir1 = v1 - v0;
+        dir2 = v2 - v0;
+    }
+
+    INLINE bool getIntersection(const Ray& ray, IntersectionInfo& intersection) const {
+        // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm#C++_Implementation
+
+        const Float eps = EPS * dot(dir1, dir2);
+        const Vector h = cross(ray.direction(), dir2);
+        const Float a = dot(dir1, h);
+        if (a > -eps && a < eps) {
+            return false;
+        }
+        const Float f = 1._f / a;
+        const Vector s = ray.origin() - v0;
+        const Float u = f * dot(s, h);
+        if (u < 0._f || u > 1._f) {
+            return false;
+        }
+        const Vector q = cross(s, dir1);
+        const Float v = f * dot(ray.direction(), q);
+        if (v < 0._f || u + v > 1._f) {
+            return false;
+        }
+        intersection.object = this;
+        intersection.t = f * dot(dir2, q);
+        return true;
+    }
+
+    INLINE Box getBBox() const {
+        Box box;
+        box.extend(v0);
+        box.extend(v0 + dir1);
+        box.extend(v0 + dir2);
+        return box;
+    }
+
+    INLINE Vector getCenter() const {
+        return v0 + (dir1 + dir2) / 3._f;
+    }
+};
+
 /// \brief Trait for finding intersections with a sphere.
 class BvhSphere : public BvhPrimitive {
 private:
@@ -136,6 +187,17 @@ public:
     }
 };
 
+class IBvh : public Polymorphic {
+public:
+    /// \brief Finds the closest intersection of the ray.
+    ///
+    /// Returns true if an intersection has been found.
+    virtual bool getFirstIntersection(const Ray& ray, IntersectionInfo& intersection) const = 0;
+
+    /// \brief Returns all intersections of the ray.
+    virtual void getAllIntersections(const Ray& ray, std::set<IntersectionInfo>& intersections) const = 0;
+};
+
 struct BvhNode {
     Box box;
     Size start;
@@ -150,7 +212,7 @@ struct BvhNode {
 /// other geometric primitives are needed, either add the specialization to cpp, or move the implementation to
 /// header.
 template <typename TBvhObject>
-class Bvh {
+class Bvh : public IBvh {
 private:
     const Size leafSize;
     Size nodeCnt = 0;
@@ -172,10 +234,11 @@ public:
     /// \brief Finds the closest intersection of the ray.
     ///
     /// Returns true if an intersection has been found.
-    bool getFirstIntersection(const Ray& ray, IntersectionInfo& intersection) const;
+    virtual bool getFirstIntersection(const Ray& ray, IntersectionInfo& intersection) const override;
 
     /// \brief Returns all intersections of the ray.
-    void getAllIntersections(const Ray& ray, std::set<IntersectionInfo>& intersections) const;
+    virtual void getAllIntersections(const Ray& ray,
+        std::set<IntersectionInfo>& intersections) const override;
 
     /// \brief Returns true if the ray is occluded by some geometry
     bool isOccluded(const Ray& ray) const;

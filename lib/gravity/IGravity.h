@@ -5,36 +5,29 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "objects/finders/KdTree.h"
-#include "system/Statistics.h"
+#include "common/ForwardDecl.h"
+#include "objects/geometry/Vector.h"
 
 NAMESPACE_SPH_BEGIN
 
-class ThreadPool;
-
-/// \brief Interface for evaluators of gravitational interaction
+/// \brief Interface for computing gravitational interactions of particles.
 class IGravity : public Polymorphic {
 public:
-    /// Builds the accelerating structure; needs to be called every time step.
-    virtual void build(const Storage& storage) = 0;
-
-    /// \brief Evaluates the gravitational acceleration for all particles in the storage.
+    /// \brief Builds the accelerating structure.
     ///
-    /// The implementation must be either single-threaded or parallelize the computation internally,
-    /// possibly using global ThreadPool instance.
-    /// \param dv Acceleration values, may contain previous values, gravity should add acceleration
-    ///           instead of replacing the previous values with new one.
-    /// \param stats Output statistics of the gravitational solver.
-    virtual void evalAll(ArrayView<Vector> dv, Statistics& stats) const = 0;
+    /// Needs to be called every time step.
+    /// \param scheduler Scheduler used for parallelization of the build. Use \ref SEQUENTAIL for sequential
+    ///                 (single-threaded) execution.
+    virtual void build(IScheduler& scheduler, const Storage& storage) = 0;
 
     /// \brief Evaluates the gravitational acceleration concurrently.
     ///
     /// The function is blocking, it must exit after the gravity is evaluated.
-    /// \param pool Thread pool used for parallelization
-    /// \param dv Acceleration values, my contain previous values, gravity should add acceleration
-    ///           instead of replacing the previous values with new one.
+    /// \param scheduler Scheduler used for parallelization.
+    /// \param dv Acceleration values; it may already contain some accelerations computed by other code
+    ///           components, gravity should add acceleration instead of replacing the current values.
     /// \param stats Output statistics of the gravitational solver.
-    virtual void evalAll(ThreadPool& pool, ArrayView<Vector> dv, Statistics& stats) const = 0;
+    virtual void evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const = 0;
 
     /// \brief Evaluates the gravitational acceleration at given point.
     ///
@@ -42,6 +35,23 @@ public:
     /// acceleration if no smoothing kernel is used.
     /// \param r0 Point where the gravity is evaluated.
     virtual Vector eval(const Vector& r0, Statistics& stats) const = 0;
+
+    /// \brief Computes the total potential energy of the particles.
+    ///
+    /// The zero point is implementation-specific; it is not required that the energy is strictly negative.
+    /// \param scheduler Scheduler used for parallelization.
+    /// \param stats Output statistics of the gravitational solver.
+    virtual Float evalEnergy(IScheduler& scheduler, Statistics& stats) const = 0;
+
+    /// \brief Optionally returns a finder used by the gravity implementation.
+    ///
+    /// If the gravity uses an acceleration structure that implements the \ref IBasicFinder interface, this
+    /// function allows the user to obtain the object and re-use in other parts of the code. Finder is assumed
+    /// to be initialized after \ref build is called.
+    ///
+    /// If the gravity does not use any such structure or it simply does not implement the \ref IBasicFinder
+    /// interface, the function returns nullptr.
+    virtual RawPtr<const IBasicFinder> getFinder() const = 0;
 };
 
 NAMESPACE_SPH_END

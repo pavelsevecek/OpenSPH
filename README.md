@@ -1,4 +1,5 @@
 # OpenSPH
+
 ![alt text](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/snapshot.png "Graphical interface")
 
 ## About
@@ -35,7 +36,7 @@ Another optional dependencies of the code are:
 
 The compilation should be as easy as
 ```bash
-qmake CONFIG+=version project.pro
+qmake CONFIG+=version sph.pro
 make
 ```
 where *version* can be one of:
@@ -62,6 +63,9 @@ See file cli/main.cpp for an example of a simple impact simulation.
 
 ## Documentation
 See [documentation](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/docs/index.html)
+
+## Examples of the code usage
+See [examples](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/docs/Examples.html)
 
 ## Bug reports, ideas, question
 Feel free to contact me at <a href="mailto:sevecek@sirrah.troja.mff.cuni.cz">sevecek@sirrah.troja.mff.cuni.cz</a>. 

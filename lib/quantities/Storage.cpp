@@ -1,11 +1,52 @@
 #include "quantities/Storage.h"
+#include "objects/Exceptions.h"
 #include "physics/Eos.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Iterate.h"
 #include "system/Factory.h"
+#include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
 
+StorageIterator::StorageIterator(const ActIterator iterator)
+    : iter(iterator) {}
+
+StorageIterator& StorageIterator::operator++() {
+    ++iter;
+    return *this;
+}
+
+StorageElement StorageIterator::operator*() {
+    return { iter->key, iter->value };
+}
+
+bool StorageIterator::operator==(const StorageIterator& other) const {
+    return iter == other.iter;
+}
+
+bool StorageIterator::operator!=(const StorageIterator& other) const {
+    return iter != other.iter;
+}
+
+ConstStorageIterator::ConstStorageIterator(const ActIterator iterator)
+    : iter(iterator) {}
+
+ConstStorageIterator& ConstStorageIterator::operator++() {
+    ++iter;
+    return *this;
+}
+
+ConstStorageElement ConstStorageIterator::operator*() {
+    return { iter->key, iter->value };
+}
+
+bool ConstStorageIterator::operator==(const ConstStorageIterator& other) const {
+    return iter == other.iter;
+}
+
+bool ConstStorageIterator::operator!=(const ConstStorageIterator& other) const {
+    return iter != other.iter;
+}
 
 StorageSequence::StorageSequence(Storage& storage)
     : storage(storage) {}
@@ -38,8 +79,8 @@ Size ConstStorageSequence::size() const {
 }
 
 
-Storage::MatRange::MatRange(SharedPtr<IMaterial>&& material, const Size from, const Size to)
-    : material(std::move(material))
+Storage::MatRange::MatRange(const SharedPtr<IMaterial>& material, const Size from, const Size to)
+    : material(material)
     , from(from)
     , to(to) {
     ASSERT(from < to || (from == 0 && to == 0));
@@ -47,8 +88,8 @@ Storage::MatRange::MatRange(SharedPtr<IMaterial>&& material, const Size from, co
 
 Storage::Storage() = default;
 
-Storage::Storage(AutoPtr<IMaterial>&& material) {
-    mats.emplaceBack(std::move(material), 0, 0);
+Storage::Storage(const SharedPtr<IMaterial>& material) {
+    mats.emplaceBack(material, 0, 0);
 }
 
 Storage::~Storage() = default;
@@ -61,12 +102,153 @@ Storage& Storage::operator=(Storage&& other) {
     quantities = std::move(other.quantities);
     mats = std::move(other.mats);
     dependent = std::move(other.dependent);
+    userData = std::move(other.userData);
 
     if (this->getParticleCnt() > 0) {
         this->update();
     }
     return *this;
 }
+
+bool Storage::has(const QuantityId key) const {
+    return quantities.contains(key);
+}
+
+template <typename TValue>
+bool Storage::has(const QuantityId key, const OrderEnum order) const {
+    Optional<const Quantity&> quantity = quantities.tryGet(key);
+    if (!quantity) {
+        return false;
+    }
+    return quantity->getOrderEnum() == order && quantity->getValueEnum() == GetValueEnum<TValue>::type;
+}
+
+template bool Storage::has<Size>(const QuantityId, const OrderEnum) const;
+template bool Storage::has<Float>(const QuantityId, const OrderEnum) const;
+template bool Storage::has<Vector>(const QuantityId, const OrderEnum) const;
+template bool Storage::has<SymmetricTensor>(const QuantityId, const OrderEnum) const;
+template bool Storage::has<TracelessTensor>(const QuantityId, const OrderEnum) const;
+template bool Storage::has<Tensor>(const QuantityId, const OrderEnum) const;
+
+
+Quantity& Storage::getQuantity(const QuantityId key) {
+    Optional<Quantity&> quantity = quantities.tryGet(key);
+    ASSERT(quantity, getMetadata(key).quantityName);
+    return quantity.value();
+}
+
+const Quantity& Storage::getQuantity(const QuantityId key) const {
+    Optional<const Quantity&> quantity = quantities.tryGet(key);
+    ASSERT(quantity, getMetadata(key).quantityName);
+    return quantity.value();
+}
+
+template <typename TValue>
+StaticArray<Array<TValue>&, 3> Storage::getAll(const QuantityId key) {
+    Quantity& q = this->getQuantity(key);
+    ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+    return q.getAll<TValue>();
+}
+
+template StaticArray<Array<Size>&, 3> Storage::getAll(const QuantityId);
+template StaticArray<Array<Float>&, 3> Storage::getAll(const QuantityId);
+template StaticArray<Array<Vector>&, 3> Storage::getAll(const QuantityId);
+template StaticArray<Array<SymmetricTensor>&, 3> Storage::getAll(const QuantityId);
+template StaticArray<Array<TracelessTensor>&, 3> Storage::getAll(const QuantityId);
+template StaticArray<Array<Tensor>&, 3> Storage::getAll(const QuantityId);
+
+template <typename TValue>
+StaticArray<const Array<TValue>&, 3> Storage::getAll(const QuantityId key) const {
+    const Quantity& q = this->getQuantity(key);
+    ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+    return q.getAll<TValue>();
+}
+
+template StaticArray<const Array<Size>&, 3> Storage::getAll(const QuantityId) const;
+template StaticArray<const Array<Float>&, 3> Storage::getAll(const QuantityId) const;
+template StaticArray<const Array<Vector>&, 3> Storage::getAll(const QuantityId) const;
+template StaticArray<const Array<SymmetricTensor>&, 3> Storage::getAll(const QuantityId) const;
+template StaticArray<const Array<TracelessTensor>&, 3> Storage::getAll(const QuantityId) const;
+template StaticArray<const Array<Tensor>&, 3> Storage::getAll(const QuantityId) const;
+
+template <typename TValue>
+Array<TValue>& Storage::getValue(const QuantityId key) {
+    Quantity& q = this->getQuantity(key);
+    ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+    return q.getValue<TValue>();
+}
+
+template Array<Size>& Storage::getValue(const QuantityId);
+template Array<Float>& Storage::getValue(const QuantityId);
+template Array<Vector>& Storage::getValue(const QuantityId);
+template Array<SymmetricTensor>& Storage::getValue(const QuantityId);
+template Array<TracelessTensor>& Storage::getValue(const QuantityId);
+template Array<Tensor>& Storage::getValue(const QuantityId);
+
+template <typename TValue>
+const Array<TValue>& Storage::getValue(const QuantityId key) const {
+    return const_cast<Storage*>(this)->getValue<TValue>(key);
+}
+
+template const Array<Size>& Storage::getValue(const QuantityId) const;
+template const Array<Float>& Storage::getValue(const QuantityId) const;
+template const Array<Vector>& Storage::getValue(const QuantityId) const;
+template const Array<SymmetricTensor>& Storage::getValue(const QuantityId) const;
+template const Array<TracelessTensor>& Storage::getValue(const QuantityId) const;
+template const Array<Tensor>& Storage::getValue(const QuantityId) const;
+
+template <typename TValue>
+Array<TValue>& Storage::getDt(const QuantityId key) {
+    Quantity& q = this->getQuantity(key);
+    ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+    return q.getDt<TValue>();
+}
+
+template Array<Size>& Storage::getDt(const QuantityId);
+template Array<Float>& Storage::getDt(const QuantityId);
+template Array<Vector>& Storage::getDt(const QuantityId);
+template Array<SymmetricTensor>& Storage::getDt(const QuantityId);
+template Array<TracelessTensor>& Storage::getDt(const QuantityId);
+template Array<Tensor>& Storage::getDt(const QuantityId);
+
+template <typename TValue>
+const Array<TValue>& Storage::getDt(const QuantityId key) const {
+    return const_cast<Storage*>(this)->getDt<TValue>(key);
+}
+
+template const Array<Size>& Storage::getDt(const QuantityId) const;
+template const Array<Float>& Storage::getDt(const QuantityId) const;
+template const Array<Vector>& Storage::getDt(const QuantityId) const;
+template const Array<SymmetricTensor>& Storage::getDt(const QuantityId) const;
+template const Array<TracelessTensor>& Storage::getDt(const QuantityId) const;
+template const Array<Tensor>& Storage::getDt(const QuantityId) const;
+
+template <typename TValue>
+Array<TValue>& Storage::getD2t(const QuantityId key) {
+    Quantity& q = this->getQuantity(key);
+    ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+    return q.getD2t<TValue>();
+}
+
+template Array<Size>& Storage::getD2t(const QuantityId);
+template Array<Float>& Storage::getD2t(const QuantityId);
+template Array<Vector>& Storage::getD2t(const QuantityId);
+template Array<SymmetricTensor>& Storage::getD2t(const QuantityId);
+template Array<TracelessTensor>& Storage::getD2t(const QuantityId);
+template Array<Tensor>& Storage::getD2t(const QuantityId);
+
+template <typename TValue>
+const Array<TValue>& Storage::getD2t(const QuantityId key) const {
+    return const_cast<Storage*>(this)->getD2t<TValue>(key);
+}
+
+template const Array<Size>& Storage::getD2t(const QuantityId) const;
+template const Array<Float>& Storage::getD2t(const QuantityId) const;
+template const Array<Vector>& Storage::getD2t(const QuantityId) const;
+template const Array<SymmetricTensor>& Storage::getD2t(const QuantityId) const;
+template const Array<TracelessTensor>& Storage::getD2t(const QuantityId) const;
+template const Array<Tensor>& Storage::getD2t(const QuantityId) const;
+
 
 template <typename TValue>
 Quantity& Storage::insert(const QuantityId key, const OrderEnum order, const TValue& defaultValue) {
@@ -75,13 +257,19 @@ Quantity& Storage::insert(const QuantityId key, const OrderEnum order, const TVa
         if (q.getValueEnum() != GetValueEnum<TValue>::type) {
             throw InvalidSetup("Inserting quantity already stored with different type");
         }
+        Array<TValue>& values = q.getValue<TValue>();
+        if (!std::all_of(values.begin(), values.end(), [&defaultValue](const TValue& value) { //
+                return value == defaultValue;
+            })) {
+            throw InvalidSetup("Re-creating quantity with different values.");
+        }
         if (q.getOrderEnum() < order) {
             q.setOrder(order);
         }
     } else {
         const Size particleCnt = getParticleCnt();
         ASSERT(particleCnt);
-        quantities[key] = Quantity(order, defaultValue, particleCnt);
+        quantities.insert(key, Quantity(order, defaultValue, particleCnt));
     }
     return quantities[key];
 }
@@ -111,8 +299,8 @@ Quantity& Storage::insert(const QuantityId key, const OrderEnum order, Array<TVa
         }
     } else {
         Quantity q(order, std::move(values));
-        UNUSED_IN_RELEASE(const Size size = q.size();)
-        quantities[key] = std::move(q);
+        const Size size = q.size();
+        quantities.insert(key, std::move(q));
         ASSERT(quantities.empty() || size == getParticleCnt()); // size must match sizes of other quantities
 
         if (this->getQuantityCnt() == 1 && this->getMaterialCnt() > 0) {
@@ -235,11 +423,13 @@ Size Storage::getParticleCnt() const {
     if (quantities.empty()) {
         return 0;
     } else {
-        return quantities.begin()->second.size();
+        return quantities.begin()->value.size();
     }
 }
 
 void Storage::merge(Storage&& other) {
+    ASSERT(!userData && !other.userData, "Merging storages with user data is currently not supported");
+
     // allow merging into empty storage for convenience
     if (this->getQuantityCnt() == 0) {
         *this = std::move(other);
@@ -270,8 +460,37 @@ void Storage::merge(Storage&& other) {
         ar1.pushAll(std::move(ar2));
     });
 
+    // update persistent indices
+    if (this->has(QuantityId::PERSISTENT_INDEX)) {
+        ArrayView<Size> idxs = this->getValue<Size>(QuantityId::PERSISTENT_INDEX);
+        const Size idx0 = idxs[partCnt - 1] + 1; // next available index
+        for (Size i = partCnt; i < this->getParticleCnt(); ++i) {
+            idxs[i] = idx0 + (i - partCnt);
+        }
+    }
+
     // merge materials
     this->mats.pushAll(std::move(other.mats));
+
+    // remove duplicate materials (only consecutive, otherwise we would have to reorder particles)
+    for (Size matId = 1; matId < this->getMaterialCnt();) {
+        if (mats[matId].material == mats[matId - 1].material) {
+            // same material, we can merge them
+            mats[matId - 1].to = mats[matId].to;
+            mats.remove(matId);
+
+            if (this->has(QuantityId::MATERIAL_ID)) {
+                ArrayView<Size> id = this->getValue<Size>(QuantityId::MATERIAL_ID);
+                for (Size i = 0; i < id.size(); ++i) {
+                    if (id[i] >= matId) {
+                        id[i]--;
+                    }
+                }
+            }
+        } else {
+            ++matId;
+        }
+    }
 
     // cache the view
     this->update();
@@ -288,9 +507,10 @@ void Storage::zeroHighestDerivatives() {
 }
 
 Storage Storage::clone(const Flags<VisitorEnum> buffers) const {
+    ASSERT(!userData, "Cloning storages with user data is currently not supported");
     Storage cloned;
     for (const auto& q : quantities) {
-        cloned.quantities[q.first] = q.second.clone(buffers);
+        cloned.quantities.insert(q.key, q.value.clone(buffers));
     }
 
     // clone the materials if we cloned MATERIAL_IDs.
@@ -304,6 +524,8 @@ Storage Storage::clone(const Flags<VisitorEnum> buffers) const {
 
 void Storage::resize(const Size newParticleCnt, const Flags<ResizeFlag> flags) {
     ASSERT(getQuantityCnt() > 0 && getMaterialCnt() <= 1);
+    ASSERT(!userData, "Cloning storages with user data is currently not supported");
+
     iterate<VisitorEnum::ALL_BUFFERS>(*this, [newParticleCnt, flags](auto& buffer) { //
         if (!flags.has(ResizeFlag::KEEP_EMPTY_UNCHANGED) || !buffer.empty()) {
             using Type = typename std::decay_t<decltype(buffer)>::Type;
@@ -326,95 +548,149 @@ void Storage::resize(const Size newParticleCnt, const Flags<ResizeFlag> flags) {
 void Storage::swap(Storage& other, const Flags<VisitorEnum> flags) {
     ASSERT(this->getQuantityCnt() == other.getQuantityCnt());
     for (auto i1 = quantities.begin(), i2 = other.quantities.begin(); i1 != quantities.end(); ++i1, ++i2) {
-        i1->second.swap(i2->second, flags);
+        i1->value.swap(i2->value, flags);
     }
 }
 
-bool Storage::isValid(const Flags<ValidFlag> flags) const {
+Outcome Storage::isValid(const Flags<ValidFlag> flags) const {
     const Size cnt = this->getParticleCnt();
-    bool valid = true;
+    Outcome result = SUCCESS;
     // check that all buffers have the same number of particles
-    iterate<VisitorEnum::ALL_BUFFERS>(*this, [cnt, &valid, flags](const auto& buffer) {
+    iterate<VisitorEnum::ALL_BUFFERS>(*this, [cnt, &result, flags](const auto& buffer) {
         if (buffer.size() != cnt && (flags.has(ValidFlag::COMPLETE) || !buffer.empty())) {
-            valid = false;
+            result =
+                "One or more buffers have different number of particles:\nExpected: " + std::to_string(cnt) +
+                ", actual: " + std::to_string(buffer.size());
         }
     });
-    if (!valid) {
-        return false;
+    if (!result) {
+        return result;
     }
 
     // check that materials are set up correctly
     if (this->getMaterialCnt() == 0 || this->getQuantityCnt() == 0) {
         // no materials are a valid state, all OK
-        return true;
+        return SUCCESS;
     }
     if (bool(matIds) != this->has(QuantityId::MATERIAL_ID)) {
         // checks that either both matIds and quantity MATERIAL_ID exist, or neither of them do;
         // if we cloned just some buffers, quantity MATERIAL_ID might not be there even though the storage has
         // materials, so we don't report it as an error.
-        return false;
+        return "MaterialID view not present";
     }
 
     if (ArrayView<const Size>(matIds) != this->getValue<Size>(QuantityId::MATERIAL_ID)) {
         // WTF did I cache?
-        return false;
+        return "Cached view of MaterialID does not reference the stored quantity. Did you forget to call "
+               "update?";
     }
 
     for (Size matId = 0; matId < mats.size(); ++matId) {
         const MatRange& mat = mats[matId];
         for (Size i = mat.from; i < mat.to; ++i) {
             if (matIds[i] != matId) {
-                return false;
+                return "MaterialID of particle does not belong to the material range.\nExpected: " +
+                       std::to_string(matId) + ", actual: " + std::to_string(matIds[i]);
             }
         }
         if ((matId != mats.size() - 1) && (mat.to != mats[matId + 1].from)) {
-            return false;
+            return "Material are not stored consecutively.\nLast index: " + std::to_string(mat.to) +
+                   ", first index: " + std::to_string(mats[matId + 1].from);
         }
     }
     if (mats[0].from != 0 || mats[mats.size() - 1].to != cnt) {
-        return false;
+        return "Materials do not cover all particles.\nFirst: " + std::to_string(mats[0].from) +
+               ", last: " + std::to_string(mats[mats.size() - 1].to) + " (size: " + std::to_string(cnt) +
+               ").";
     }
 
-    return true;
+    return SUCCESS;
 }
 
-Array<Size> Storage::duplicate(ArrayView<const Size> idxs) {
-    // first, sort the indices, so that we start with the backmost particles, that way the lower indices
-    // won't get invalidated.
-    Array<Size> sorted(0, idxs.size());
-    sorted.pushAll(idxs.begin(), idxs.end());
-    std::sort(sorted.begin(), sorted.end());
+Array<Size> Storage::duplicate(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags) {
+    ASSERT(!userData, "Duplicating particles in storages with user data is currently not supported");
+    MEASURE_SCOPE("Storage::duplicate");
+    Array<Size> sortedHolder;
+    ArrayView<const Size> sorted;
+    if (flags.has(IndicesFlag::INDICES_SORTED)) {
+        ASSERT(std::is_sorted(idxs.begin(), idxs.end()));
+        sorted = idxs;
+    } else {
+        sortedHolder.reserve(idxs.size());
+        sortedHolder.pushAll(idxs.begin(), idxs.end());
+        std::sort(sortedHolder.begin(), sortedHolder.end());
+        sorted = sortedHolder;
+    }
 
-    Array<Size> createdIds;
+    Array<Size> createdIdxs;
+    if (this->has(QuantityId::MATERIAL_ID)) {
 
-    // get reference to matIds array, to avoid having to update arrayview over and over
-    Array<Size>& matIdsRef = this->getValue<Size>(QuantityId::MATERIAL_ID);
-
-    // duplicate all the quantities
-    iterate<VisitorEnum::ALL_BUFFERS>(*this, [this, &matIdsRef, &sorted, &createdIds](auto& buffer) {
+        // split by material
+        Array<Array<Size>> idxsPerMaterial(this->getMaterialCnt());
+        Array<Size>& matIdsRef = this->getValue<Size>(QuantityId::MATERIAL_ID);
         for (Size i : sorted) {
-            MatRange& mat = mats[matIdsRef[i]];
-            auto value = buffer[i];
-            buffer.insert(mat.to, value);
+            idxsPerMaterial[matIdsRef[i]].push(i);
+        }
 
-            createdIds.push(mat.to);
+        // add the new values after the last value of each material
+        for (Array<Size>& idxs : reverse(idxsPerMaterial)) {
+            if (idxs.empty()) {
+                // no duplicates from this material
+                continue;
+            }
+            const Size matId = matIdsRef[idxs[0]];
+            iterate<VisitorEnum::ALL_BUFFERS>(*this, [this, &idxs, matId](auto& buffer) {
+                using Type = typename std::decay_t<decltype(buffer)>::Type;
+                Array<Type> duplicates;
+                for (Size i : idxs) {
+                    Type value = buffer[i];
+                    duplicates.push(value);
+                }
+                buffer.insert(mats[matId].to, duplicates.begin(), duplicates.end());
+            });
 
-            mat.to++;
-            if (matIdsRef[i] < mats.size() - 1) {
-                // we also have to correct the starting index of the following material
-                mats[matIdsRef[i] + 1].from++;
+            for (Size& createdIdx : createdIdxs) {
+                createdIdx += idxs.size();
+            }
+            for (Size i = 0; i < idxs.size(); ++i) {
+                createdIdxs.push(mats[matId].to + i);
             }
         }
-    });
+
+        // fix material ranges
+        ASSERT(std::is_sorted(matIdsRef.begin(), matIdsRef.end()));
+        for (Size matId = 0; matId < this->getMaterialCnt(); ++matId) {
+            std::pair<Iterator<Size>, Iterator<Size>> range =
+                std::equal_range(matIdsRef.begin(), matIdsRef.end(), matId);
+            mats[matId].from = std::distance(matIdsRef.begin(), range.first);
+            mats[matId].to = std::distance(matIdsRef.begin(), range.second);
+        }
+    } else {
+        // just duplicate the particles
+        const Size n0 = this->getParticleCnt();
+        for (Size i = 0; i < sorted.size(); ++i) {
+            createdIdxs.push(n0 + i);
+        }
+        iterate<VisitorEnum::ALL_BUFFERS>(*this, [&sorted](auto& buffer) {
+            using Type = typename std::decay_t<decltype(buffer)>::Type;
+            Array<Type> duplicates;
+            for (Size i : sorted) {
+                Type value = buffer[i];
+                duplicates.push(value);
+            }
+            buffer.pushAll(duplicates.cbegin(), duplicates.cend());
+        });
+    }
 
     this->update();
-    ASSERT(this->isValid());
+    ASSERT(this->isValid(), this->isValid().error());
 
-    TODO("TEST!");
-    return createdIds;
+    return createdIdxs;
 }
 
-void Storage::remove(ArrayView<const Size> idxs, const Flags<RemoveFlag> flags) {
+void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags) {
+    ASSERT(!userData, "Removing particles from storages with user data is currently not supported");
+
     Size particlesRemoved = 0;
     for (Size matId = 0; matId < mats.size();) {
         MatRange& mat = mats[matId];
@@ -440,7 +716,7 @@ void Storage::remove(ArrayView<const Size> idxs, const Flags<RemoveFlag> flags) 
 
     ArrayView<const Size> sortedIdxs;
     Array<Size> sortedHolder;
-    if (flags.has(RemoveFlag::INDICES_SORTED)) {
+    if (flags.has(IndicesFlag::INDICES_SORTED)) {
         ASSERT(std::is_sorted(idxs.begin(), idxs.end()));
         sortedIdxs = idxs;
     } else {
@@ -449,17 +725,14 @@ void Storage::remove(ArrayView<const Size> idxs, const Flags<RemoveFlag> flags) 
         sortedIdxs = sortedHolder;
     }
 
-    iterate<VisitorEnum::ALL_BUFFERS>(*this, [&sortedIdxs](auto& buffer) {
-        for (Size i : reverse(sortedIdxs)) {
-            buffer.remove(i);
-        }
-    });
+    iterate<VisitorEnum::ALL_BUFFERS>(*this, [&sortedIdxs](auto& buffer) { buffer.remove(sortedIdxs); });
 
     this->update();
     ASSERT(this->isValid());
 }
 
 void Storage::removeAll() {
+    ASSERT(!userData, "Removing particles from storages with user data is currently not supported");
     this->propagate([](Storage& storage) { storage.removeAll(); });
     *this = Storage();
 }
@@ -470,6 +743,23 @@ void Storage::update() {
     } else {
         matIds = nullptr;
     }
+}
+
+void setPersistentIndices(Storage& storage) {
+    const Size n = storage.getParticleCnt();
+    Array<Size> idxs(n);
+    for (Size i = 0; i < n; ++i) {
+        idxs[i] = i;
+    }
+    storage.insert<Size>(QuantityId::PERSISTENT_INDEX, OrderEnum::ZERO, std::move(idxs));
+}
+
+void Storage::setUserData(SharedPtr<IStorageUserData> newData) {
+    userData = std::move(newData);
+}
+
+SharedPtr<IStorageUserData> Storage::getUserData() const {
+    return userData;
 }
 
 NAMESPACE_SPH_END

@@ -11,25 +11,37 @@ NAMESPACE_SPH_BEGIN
 
 namespace Constants {
 
-const Float gasConstant = 8.3144598_f; // J mol^−1 K^−1
+constexpr Float gasConstant = 8.3144598_f; // J mol^−1 K^−1
 
-const Float atomicMass = 1.660539040e-27_f; // kg
+constexpr Float atomicMass = 1.660539040e-27_f; // kg
 
 /// Boltzmann constant
-const Float boltzmann = 1.380648e-23_f; // J K^-1
+constexpr Float boltzmann = 1.380648e-23_f; // J K^-1
+
+/// Stefan-Boltzmann constant
+constexpr Float stefanBoltzmann = 5.670367e-8_f; // W m^2 K^-4
+
+/// Planck constant
+constexpr Float planckConstant = 6.62607015e-34_f; // Js
 
 /// Gravitational constant (CODATA 2014)
-const Float gravity = 6.67408e-11_f; // m^3 kg^-1 s^-2
+constexpr Float gravity = 6.67408e-11_f; // m^3 kg^-1 s^-2
+
+/// Speed of light in vacuum (exactly)
+constexpr Float speedOfLight = 299792458._f; // ms^-1
 
 /// Astronomical unit (exactly)
-const Float au = 149597870700._f; // m
+constexpr Float au = 149597870700._f; // m
+
+/// Number of seconds in year
+constexpr Float year = 3.154e7_f; // s
 
 /// Solar mass
 /// http://asa.usno.navy.mil/static/files/2014/Astronomical_Constants_2014.pdf
-const Float M_sun = 1.9884e30_f; // kg
+constexpr Float M_sun = 1.9884e30_f; // kg
 
 /// Earth mass
-const Float M_earth = 5.9722e24_f; // kg
+constexpr Float M_earth = 5.9722e24_f; // kg
 
 } // namespace Constants
 

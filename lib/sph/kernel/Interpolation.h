@@ -8,9 +8,10 @@
 #include "objects/finders/NeighbourFinder.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "quantities/Storage.h"
-#include "sph/kernel/KernelFactory.h"
+#include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -30,7 +31,7 @@ private:
 
 public:
     /// \brief Constructs the interpolation object from settings.
-    Interpolation(const Storage& storage, const RunSettings& settings = RunSettings::getDefaults())
+    explicit Interpolation(const Storage& storage, const RunSettings& settings = RunSettings::getDefaults())
         : finder(Factory::getFinder(settings))
         , kernel(Factory::getKernel<3>(settings))
         , storage(storage) {
@@ -80,7 +81,7 @@ public:
 private:
     void build() {
         ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-        finder->build(r);
+        finder->build(SEQUENTIAL, r);
         searchRadius = 0._f;
         for (Size i = 0; i < r.size(); ++i) {
             searchRadius = max(searchRadius, r[i][H]);

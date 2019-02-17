@@ -9,6 +9,10 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Symmetric traceless 2nd order tensor
+///
+/// Only the independenct components of the tensor are stored, the other components are computed on the fly,
+/// thus ensuring the tensor will always be symmetric and traceless.
 class TracelessTensor {
     template <typename T>
     friend Float minElement(const T& t);
@@ -33,6 +37,8 @@ private:
         M01,
         M02 // order of components in vector
     };
+
+    /// \todo this doesn't make much sense, we have to align the vector anyway
     Vector m;
     Float m12;
 
@@ -47,8 +53,9 @@ public:
         : m(other.m)
         , m12(other.m12) {}
 
-    /// Construct traceless tensor using other tensor (not traceless in general). "Tracelessness" of the
-    /// tensor is checked by assert.
+    /// \brief Construct traceless tensor using other tensor (not traceless in general).
+    ///
+    /// "Tracelessness" of the tensor is checked by assert.
     INLINE explicit TracelessTensor(const SymmetricTensor& other) {
         m = other.diagonal();
         const Vector off = other.offDiagonal();
@@ -59,21 +66,23 @@ public:
         ASSERT(abs(other.trace()) <= 1.e-3_f * getLength(other.diagonal()) + EPS, *this, other);
     }
 
-    /// Initialize all components of the tensor to given value, excluding last element of the diagonal, which
-    /// is computed to keep the trace zero. This constructor is mainly used to create null tensor; for
-    /// non-zero values should be used sparingly.
+    /// \brief Initialize all components of the tensor to given value, excluding last element of the diagonal,
+    /// which is computed to keep the trace zero.
+    ///
+    /// This constructor is mainly used to create null tensor; for non-zero values should be used sparingly.
     INLINE explicit TracelessTensor(const Float value)
         : m(value)
         , m12(value) {}
 
-    /// Initialize tensor given 5 independent components.
+    /// \brief Initialize tensor given 5 independent components.
     INLINE TracelessTensor(const Float xx, const Float yy, const Float xy, const Float xz, const Float yz)
         : m(xx, yy, xy, xz)
         , m12(yz) {}
 
-    /// Construct tensor given three vectors as rows. Matrix represented by the vectors MUST be symmetric and
-    /// traceless, checked by assert.
-    INLINE TracelessTensor(const Vector& v0, const Vector& v1, const Vector& UNUSED_IN_RELEASE(v2)) {
+    /// \brief Construct tensor given three vectors as rows.
+    ///
+    /// Matrix represented by the vectors MUST be symmetric and traceless, checked by assert.
+    INLINE TracelessTensor(const Vector& v0, const Vector& v1, const Vector& v2) {
         ASSERT(v0[1] == v1[0]);
         ASSERT(v0[2] == v2[0]);
         ASSERT(v1[2] == v2[1]);
@@ -93,12 +102,12 @@ public:
         return *this;
     }
 
-    /// Conversion to ordinary SymmetricTensor
+    /// \brief Conversion to ordinary SymmetricTensor
     INLINE explicit operator SymmetricTensor() const {
         return SymmetricTensor(Vector(m[M00], m[M11], -m[M00] - m[M11]), Vector(m[M01], m[M02], m12));
     }
 
-    /// Returns a row of the matrix.
+    /// \brief Returns a row of the matrix.
     INLINE Vector row(const int idx) const {
         ASSERT(unsigned(idx) < 3);
         switch (idx) {
@@ -113,18 +122,20 @@ public:
         }
     }
 
-    /// Returns diagonal of the matrix
+    /// \brief Returns diagonal of the matrix
     INLINE Vector diagonal() const {
         return Vector(m[M00], m[M11], -m[M00] - m[M11]);
     }
 
-    /// Returns off-diagonal elements of the matrix
+    /// \brief Returns off-diagonal elements of the matrix
     INLINE Vector offDiagonal() const {
         return Vector(m[M01], m[M02], m12);
     }
 
-    /// Returns a given element of the matrix. Does NOT returns a reference last element of diagonal is always
-    /// computed from others and is not stored in the object.
+    /// \brief Returns a given element of the matrix.
+    ///
+    /// Does NOT returns a reference last element of diagonal is always computed from others and is not stored
+    /// in the object.
     INLINE Float operator()(const int rowIdx, const int colIdx) const {
         if (rowIdx == colIdx) {
             // diagonal
@@ -144,7 +155,7 @@ public:
         }
     }
 
-    /// Applies the tensor on given vector
+    /// \brief Applies the tensor on given vector
     INLINE Vector operator*(const Vector& v) const {
         return Vector(m[M00] * v[0] + m[M01] * v[1] + m[M02] * v[2],
             m[M01] * v[0] + m[M11] * v[1] + m12 * v[2],
@@ -257,15 +268,13 @@ INLINE AffineMatrix convert(const TracelessTensor& t) {
     return AffineMatrix(t.row(0), t.row(1), t.row(2));
 }
 
-/// Traceless tensor utils
-
-/// Checks if two tensors are equal to some given accuracy.
+/// \brief Checks if two tensors are equal to some given accuracy.
 INLINE bool almostEqual(const TracelessTensor& t1, const TracelessTensor& t2, const Float eps = EPS) {
     return almostEqual(t1.diagonal(), t2.diagonal(), eps) &&
            almostEqual(t1.offDiagonal(), t2.offDiagonal(), eps);
 }
 
-/// Arbitrary norm of the tensor.
+/// \brief Arbitrary norm of the tensor.
 /// \todo Use some well-defined norm instead? (spectral norm, L1 or L2 norm, ...)
 template <>
 INLINE Float norm(const TracelessTensor& t) {
@@ -275,7 +284,7 @@ INLINE Float norm(const TracelessTensor& t) {
     return norm(v);
 }
 
-/// Arbitrary squared norm of the tensor
+/// \brief Arbitrary squared norm of the tensor
 template <>
 INLINE Float normSqr(const TracelessTensor& t) {
     const Vector v = max(t.diagonal(), t.offDiagonal());
@@ -283,7 +292,7 @@ INLINE Float normSqr(const TracelessTensor& t) {
     return normSqr(v);
 }
 
-/// Returns the minimal component of the traceless tensor.
+/// \brief Returns the minimal component of the traceless tensor.
 template <>
 INLINE Float minElement(const TracelessTensor& t) {
     /// \todo optimize
@@ -293,8 +302,9 @@ INLINE Float minElement(const TracelessTensor& t) {
     return result;
 }
 
-/// Returns the tensor of absolute values form traceless tensor elements.. This yields a tensor with nonzero
-/// trace (unless the tensor has zero diagonal elements).
+/// \brief Returns the tensor of absolute values form traceless tensor elements.
+///
+/// This yields a tensor with nonzero trace (unless the tensor has zero diagonal elements).
 template <>
 INLINE auto abs(const TracelessTensor& t) {
     return SymmetricTensor(abs(t.diagonal()), abs(t.offDiagonal()));
@@ -305,13 +315,13 @@ INLINE TracelessTensor sqrtInv(const TracelessTensor&) {
     NOT_IMPLEMENTED
 }
 
-/// Component-wise minimum of two tensors.
+/// \brief Component-wise minimum of two tensors.
 template <>
 INLINE TracelessTensor min(const TracelessTensor& t1, const TracelessTensor& t2) {
     return TracelessTensor(min(t1.m, t2.m), min(t1.m12, t2.m12));
 }
 
-/// Component-wise maximum of two tensors.
+/// \brief Component-wise maximum of two tensors.
 template <>
 INLINE TracelessTensor max(const TracelessTensor& t1, const TracelessTensor& t2) {
     return TracelessTensor(max(t1.m, t2.m), max(t1.m12, t2.m12));
@@ -323,10 +333,12 @@ INLINE auto less(const TracelessTensor& t1, const TracelessTensor& t2) {
     return SymmetricTensor(less(t1.diagonal(), t2.diagonal()), less(t1.offDiagonal(), t2.offDiagonal()));
 }
 
-/// Clamps components of the traceless tensor. To preserve invariant (zero trace), the components are clamped
-/// and the trace of the clamped tensor is subtracted from the result. Diagonal components of the traceless
-/// tensor can therefore be changed even if they lie within the range.
-/// For exact clamping of tensor components, the traceless tensor must be explicitly casted to Tensor.
+/// \brief Clamps components of the traceless tensor.
+///
+/// To preserve the invariant (zero trace), the components are clamped and the trace of the clamped tensor is
+/// subtracted from the result. Diagonal components of the traceless tensor can therefore be changed even if
+/// they lie within the range. For exact clamping of tensor components, the traceless tensor must be
+/// explicitly casted to Tensor.
 template <>
 INLINE TracelessTensor clamp(const TracelessTensor& t, const Interval& range) {
     const SymmetricTensor clamped(clamp(t.diagonal(), range), clamp(t.offDiagonal(), range));

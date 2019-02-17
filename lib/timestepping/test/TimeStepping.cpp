@@ -1,5 +1,6 @@
 #include "timestepping/TimeStepping.h"
 #include "catch.hpp"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "sph/Materials.h"
 #include "system/Settings.h"
@@ -12,60 +13,60 @@
 using namespace Sph;
 
 namespace {
-    struct HomogeneousField : public ISolver {
-        Vector g = Vector(0.f, 0.f, 1._f);
+struct HomogeneousField : public ISolver {
+    Vector g = Vector(0.f, 0.f, 1._f);
 
-        HomogeneousField() = default;
+    HomogeneousField() = default;
 
-        virtual void integrate(Storage& storage, Statistics&) override {
-            ArrayView<Vector> r, v, dv;
-            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-            for (Size i = 0; i < r.size(); ++i) {
-                dv[i] = g;
-            }
+    virtual void integrate(Storage& storage, Statistics&) override {
+        ArrayView<Vector> r, v, dv;
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+        for (Size i = 0; i < r.size(); ++i) {
+            dv[i] = g;
         }
+    }
 
-        virtual void create(Storage&, IMaterial&) const override {
-            NOT_IMPLEMENTED;
+    virtual void create(Storage&, IMaterial&) const override {
+        NOT_IMPLEMENTED;
+    }
+};
+
+struct HarmonicOscillator : public ISolver {
+    Float period = 1._f;
+
+    HarmonicOscillator() = default;
+
+    virtual void integrate(Storage& storage, Statistics&) override {
+        ArrayView<Vector> r, v, dv;
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+        Float omega = 2._f * PI / period;
+        for (Size i = 0; i < r.size(); ++i) {
+            dv[i] = -sqr(omega) * r[i];
         }
-    };
+    }
 
-    struct HarmonicOscillator : public ISolver {
-        Float period = 1._f;
+    virtual void create(Storage&, IMaterial&) const override {
+        NOT_IMPLEMENTED;
+    }
+};
 
-        HarmonicOscillator() = default;
+struct LorentzForce : public ISolver {
+    const Vector B = Vector(0.f, 0.f, 1.f);
 
-        virtual void integrate(Storage& storage, Statistics&) override {
-            ArrayView<Vector> r, v, dv;
-            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-            Float omega = 2._f * PI / period;
-            for (Size i = 0; i < r.size(); ++i) {
-                dv[i] = -sqr(omega) * r[i];
-            }
+    LorentzForce() = default;
+
+    virtual void integrate(Storage& storage, Statistics&) override {
+        ArrayView<Vector> r, v, dv;
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+        for (Size i = 0; i < r.size(); ++i) {
+            dv[i] = cross(v[i], B);
         }
+    }
 
-        virtual void create(Storage&, IMaterial&) const override {
-            NOT_IMPLEMENTED;
-        }
-    };
-
-    struct LorentzForce : public ISolver {
-        const Vector B = Vector(0.f, 0.f, 1.f);
-
-        LorentzForce() = default;
-
-        virtual void integrate(Storage& storage, Statistics&) override {
-            ArrayView<Vector> r, v, dv;
-            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-            for (Size i = 0; i < r.size(); ++i) {
-                dv[i] = cross(v[i], B);
-            }
-        }
-
-        virtual void create(Storage&, IMaterial&) const override {
-            NOT_IMPLEMENTED;
-        }
-    };
+    virtual void create(Storage&, IMaterial&) const override {
+        NOT_IMPLEMENTED;
+    }
+};
 
 } // namespace
 
@@ -87,7 +88,7 @@ static void testHomogeneousField(TArgs&&... args) {
     tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
     Statistics stats;
-    Size n = 0;
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
 
     const Size testCnt = Size(3._f / timeStep);
     auto test = [&](const Size i) -> Outcome {
@@ -100,7 +101,7 @@ static void testHomogeneousField(TArgs&&... args) {
         if (v[0] != approx(vel, timeStep)) {
             return makeFailed("Invalid velocity: \n", v[0], " == ", vel, "\n t = ", t);
         }
-        timestepping.step(solver, stats);
+        timestepping.step(pool, solver, stats);
         return SUCCESS;
     };
     REQUIRE_SEQUENCE(test, 0, testCnt);
@@ -118,7 +119,7 @@ static void testHarmonicOscillator(TArgs&&... args) {
     tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
     Statistics stats;
-    Size n = 0;
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
 
     const Size testCnt = Size(3._f / timeStep);
     auto test = [&](const Size i) -> Outcome {
@@ -131,7 +132,7 @@ static void testHarmonicOscillator(TArgs&&... args) {
             return makeFailed(
                 "Invalid velocity: \n", v[0], " == ", Vector(-sin(2.f * PI * t), 0.f, 0.f), "\n t = ", t);
         }
-        timestepping.step(solver, stats);
+        timestepping.step(pool, solver, stats);
         return SUCCESS;
     };
     REQUIRE_SEQUENCE(test, 0, testCnt);
@@ -153,7 +154,8 @@ static void testGyroscopicMotion(TArgs&&... args) {
 
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
     Statistics stats;
-    Size n = 0;
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+
     const Size testCnt = Size(3._f / timeStep);
     auto test = [&](const Size i) -> Outcome {
         const Float t = i * timeStep;
@@ -165,7 +167,7 @@ static void testGyroscopicMotion(TArgs&&... args) {
         if (v[0] != approx(vel, 3._f * timeStep)) {
             return makeFailed("Invalid velocity: \n", v[0], " == ", vel, "\n t = ", t);
         }
-        timestepping.step(solver, stats);
+        timestepping.step(pool, solver, stats);
         return SUCCESS;
     };
     REQUIRE_SEQUENCE(test, 0, testCnt);
@@ -203,7 +205,7 @@ struct ClampSolver : public ISolver {
 };
 
 template <typename TTimestepping>
-static void testClamping() {
+static void testClamping(RunSettings settings) {
     SharedPtr<Storage> storage = makeShared<Storage>(getDefaultMaterial());
     storage->insert<Vector>(
         QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
@@ -212,21 +214,22 @@ static void testClamping() {
     IMaterial& material = storage->getMaterial(0);
     material.setRange(QuantityId::ENERGY, range, 0._f);
 
-    RunSettings settings;
     settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1._f);
     settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
     TTimestepping timestepping(storage, settings);
     Statistics stats;
     ClampSolver solver1(ClampSolver::Direction::INCREASING, range);
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+
     for (Size i = 0; i < 6; ++i) {
-        timestepping.step(solver1, stats);
+        timestepping.step(pool, solver1, stats);
     }
     ArrayView<const Float> u = storage->getValue<Float>(QuantityId::ENERGY);
     REQUIRE(u[0] == range.upper());
 
     ClampSolver solver2(ClampSolver::Direction::DECREASING, range);
     for (Size i = 0; i < 6; ++i) {
-        timestepping.step(solver2, stats);
+        timestepping.step(pool, solver2, stats);
     }
     REQUIRE(u[0] == range.lower());
 }
@@ -234,7 +237,7 @@ static void testClamping() {
 class AddingParticlesSolver : public ISolver {
 public:
     virtual void integrate(Storage& storage, Statistics& UNUSED(stats)) override {
-        storage.resize(storage.getParticleCnt() + 100);
+        storage.resize(storage.getParticleCnt() + 100, Storage::ResizeFlag::KEEP_EMPTY_UNCHANGED);
 
         /// \todo test adding and removing particles from the middle after layered storage is implemented
     }
@@ -243,39 +246,61 @@ public:
 };
 
 
+struct TestContext {
+    Size callsPerStep = 1;
+};
+
 template <typename TTimestepping>
-static void testAddingParticles(const RunSettings& settings) {
+static void testAddingParticles(const RunSettings& settings, TestContext context) {
     // test that solver can add particles during the run without assert/crash
     SharedPtr<Storage> storage = makeShared<Storage>(Tests::getGassStorage(1000));
     const Size particleCnt = storage->getParticleCnt();
 
     TTimestepping timestepping(storage, settings);
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     AddingParticlesSolver solver;
     Statistics stats;
     for (Size i = 0; i < 5; ++i) {
-        REQUIRE_NOTHROW(timestepping.step(solver, stats));
+        REQUIRE_NOTHROW(timestepping.step(pool, solver, stats));
     }
-    REQUIRE(storage->getParticleCnt() == particleCnt + 500);
+    REQUIRE(storage->getParticleCnt() == particleCnt + context.callsPerStep * 500);
 }
 
 template <typename TTimestepping>
-static void testAll() {
-    RunSettings settings;
+static void testAll(RunSettings settings, TestContext context = {}) {
     settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, timeStep);
     settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
     testHomogeneousField<TTimestepping>(settings);
     testHarmonicOscillator<TTimestepping>(settings);
     testGyroscopicMotion<TTimestepping>(settings);
-    testClamping<TTimestepping>();
-    testAddingParticles<TTimestepping>(settings);
+    testClamping<TTimestepping>(settings);
+    testAddingParticles<TTimestepping>(settings, context);
 }
 
 TEST_CASE("EulerExplicit", "[timestepping]") {
-    testAll<EulerExplicit>();
+    RunSettings settings;
+    testAll<EulerExplicit>(settings);
 }
 
 TEST_CASE("PredictorCorrector", "[timestepping]") {
-    testAll<PredictorCorrector>();
+    RunSettings settings;
+    testAll<PredictorCorrector>(settings);
+}
+
+TEST_CASE("LeapFrog", "[timestepping]") {
+    RunSettings settings;
+    testAll<LeapFrog>(settings);
+}
+
+TEST_CASE("ModifiedMidpoint", "[timestepping]") {
+    RunSettings settings;
+    TestContext context;
+
+    for (Size n : { 2, 5, 10 }) {
+        settings.set(RunSettingsId::TIMESTEPPING_MIDPOINT_COUNT, int(n));
+        context.callsPerStep = n;
+        testAll<ModifiedMidpointMethod>(settings, context);
+    }
 }
 
 /// \todo test timestepping of other quantities (first order and sanity check that zero-order quantities

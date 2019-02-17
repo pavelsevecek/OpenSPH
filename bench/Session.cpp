@@ -2,6 +2,7 @@
 #include "io/FileSystem.h"
 #include "io/Logger.h"
 #include "system/Platform.h"
+#include <algorithm>
 
 NAMESPACE_BENCHMARK_BEGIN
 

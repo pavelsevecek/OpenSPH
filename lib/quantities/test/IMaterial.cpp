@@ -1,5 +1,6 @@
 #include "catch.hpp"
 #include "physics/Eos.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "sph/Materials.h"
 #include "system/Factory.h"

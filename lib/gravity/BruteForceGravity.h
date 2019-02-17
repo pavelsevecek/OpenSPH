@@ -9,7 +9,7 @@
 #include "physics/Constants.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/GravityKernel.h"
-#include "thread/Pool.h"
+#include "thread/ThreadLocal.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -25,29 +25,21 @@ private:
     GravityLutKernel kernel;
 
 public:
-    /// Default-construced gravity, assuming point-like particles
+    /// \brief Default-construced gravity, assuming point-like particles
     BruteForceGravity() {
         ASSERT(kernel.radius() == 0._f);
     }
 
-    /// Constructs gravity using smoothing kernel
+    /// \brief Constructs gravity using smoothing kernel
     BruteForceGravity(GravityLutKernel&& kernel)
         : kernel(std::move(kernel)) {}
 
-    virtual void build(const Storage& storage) override {
+    virtual void build(IScheduler& UNUSED(scheduler), const Storage& storage) override {
         r = storage.getValue<Vector>(QuantityId::POSITION);
         m = storage.getValue<Float>(QuantityId::MASS);
     }
 
-    virtual void evalAll(ArrayView<Vector> dv, Statistics& UNUSED(stats)) const override {
-        ASSERT(r.size() == dv.size());
-        SymmetrizeSmoothingLengths<const GravityLutKernel&> actKernel(kernel);
-        for (Size i = 0; i < dv.size(); ++i) {
-            dv[i] += this->evalImpl(actKernel, r[i], i);
-        }
-    }
-
-    virtual void evalAll(ThreadPool& scheduler,
+    virtual void evalAll(IScheduler& scheduler,
         ArrayView<Vector> dv,
         Statistics& UNUSED(stats)) const override {
         ASSERT(r.size() == dv.size());
@@ -66,6 +58,23 @@ public:
             }
         };
         return this->evalImpl(NoSymmetrization{ kernel }, r0, Size(-1));
+    }
+
+    virtual Float evalEnergy(IScheduler& scheduler, Statistics& UNUSED(stats)) const override {
+        SymmetrizeSmoothingLengths<const GravityLutKernel&> actKernel(kernel);
+        ThreadLocal<Float> energy(scheduler, 0._f);
+        parallelFor(scheduler, energy, 0, r.size(), [&actKernel, this](const Size i, Float& e) {
+            for (Size j = 0; j < m.size(); ++j) {
+                if (i != j) {
+                    e += m[i] * m[j] * actKernel.value(r[i], r[j]);
+                }
+            }
+        });
+        return 0.5_f * Constants::gravity * energy.accumulate();
+    }
+
+    virtual RawPtr<const IBasicFinder> getFinder() const override {
+        return nullptr;
     }
 
 private:

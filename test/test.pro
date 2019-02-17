@@ -3,41 +3,21 @@ CONFIG += c++14 thread silent
 CONFIG -= app_bundle
 CONFIG -= qt
 
-QMAKE_CXXFLAGS += -msse4.1 -Wall -Wextra -Werror -std=c++14 -pthread
-
-DEFINES += SPH_USE_EIGEN
 LIBS += ../lib/liblib.a
 
-#QMAKE_CXX = clang++
-#QMAKE_LINK = clang++
+include(../lib/inc.pro)
 
-CONFIG(release, debug|profile|assert|release) {
-  message( "SPH TESTS --- Building for Release" )
+CONFIG(devel) {
+    DEFINES += SPH_CONFIG_SET
 }
 
-CONFIG(profile, debug|profile|assert|release) {
-  message( "SPH TESTS --- Building for Profile" )
-  DEFINES += SPH_PROFILE
-}
-
-CONFIG(assert, debug|profile|assert|release) {
-  message( "SPH TESTS --- Building for Assert" )
-  DEFINES += SPH_DEBUG SPH_PROFILE
-  QMAKE_CXXFLAGS += -O2
-}
-
-CONFIG(debug, debug|profile|assert|release) {
-  message( "SPH TESTS --- Building for Debug" )
-  DEFINES += SPH_DEBUG SPH_PROFILE
-}
-
-
-INCLUDEPATH += ../lib ../../external/Catch/include
+INCLUDEPATH += ../lib /usr/include/catch2
 DEPENDPATH += . ../lib
 LIBS += ../lib/liblib.a
 PRE_TARGETDEPS += ../lib/liblib.a
 
 SOURCES += \
+    ../lib/common/test/Traits.cpp \
     ../lib/gravity/test/BarnesHut.cpp \
     ../lib/gravity/test/BruteForceGravity.cpp \
     ../lib/gravity/test/Moments.cpp \
@@ -45,25 +25,23 @@ SOURCES += \
     ../lib/io/test/FileManager.cpp \
     ../lib/io/test/FileSystem.cpp \
     ../lib/io/test/Logger.cpp \
-    ../lib/io/test/OutOfCore.cpp \
     ../lib/io/test/Output.cpp \
     ../lib/io/test/Path.cpp \
     ../lib/io/test/Serializer.cpp \
     ../lib/math/rng/test/Rng.cpp \
     ../lib/math/rng/test/VectorRng.cpp \
     ../lib/math/test/AffineMatrix.cpp \
-    ../lib/math/test/Integrator.cpp \
     ../lib/math/test/Math.cpp \
     ../lib/math/test/Means.cpp \
     ../lib/math/test/Morton.cpp \
     ../lib/math/test/Quat.cpp \
-    ../lib/math/test/Roots.cpp \
     ../lib/math/test/SparseMatrix.cpp \
     ../lib/objects/containers/test/Array.cpp \
     ../lib/objects/containers/test/ArrayRef.cpp \
     ../lib/objects/containers/test/BufferedArray.cpp \
     ../lib/objects/containers/test/FlatMap.cpp \
     ../lib/objects/containers/test/FlatSet.cpp \
+    ../lib/objects/containers/test/Grid.cpp \
     ../lib/objects/containers/test/List.cpp \
     ../lib/objects/containers/test/StaticArray.cpp \
     ../lib/objects/containers/test/String.cpp \
@@ -119,7 +97,6 @@ SOURCES += \
     ../lib/quantities/test/Quantity.cpp \
     ../lib/quantities/test/QuantityHelpers.cpp \
     ../lib/quantities/test/Storage.cpp \
-    ../lib/run/test/Run.cpp \
     ../lib/sph/boundary/test/Boundary.cpp \
     ../lib/sph/equations/av/test/AV.cpp \
     ../lib/sph/equations/av/test/Balsara.cpp \
@@ -129,7 +106,6 @@ SOURCES += \
     ../lib/sph/equations/test/Derivative.cpp \
     ../lib/sph/equations/test/EquationTerm.cpp \
     ../lib/sph/equations/test/Friction.cpp \
-    ../lib/sph/equations/test/GradH.cpp \
     ../lib/sph/equations/test/Heat.cpp \
     ../lib/sph/equations/test/Potentials.cpp \
     ../lib/sph/equations/test/Rotation.cpp \
@@ -139,7 +115,6 @@ SOURCES += \
     ../lib/sph/kernel/test/GravityKernel.cpp \
     ../lib/sph/kernel/test/Interpolation.cpp \
     ../lib/sph/kernel/test/Kernel.cpp \
-    ../lib/sph/solvers/test/DensityIndependentSolver.cpp \
     ../lib/sph/solvers/test/GravitySolver.cpp \
     ../lib/sph/solvers/test/Impact.cpp \
     ../lib/sph/solvers/test/Solvers.cpp \
@@ -163,9 +138,20 @@ SOURCES += \
     utils/SequenceTest.cpp \
     utils/Utils.cpp \
     ../lib/sph/equations/test/Fluids.cpp \
-    ../lib/physics/test/Units.cpp
+    ../lib/physics/test/Units.cpp \
+    ../lib/math/test/Functional.cpp \
+    ../lib/physics/test/Functions.cpp \
+    ../lib/sph/solvers/test/DensityIndependentSolver.cpp \
+    ../lib/thread/test/Scheduler.cpp \
+    ../lib/sph/handoff/test/Handoff.cpp \
+    ../lib/sph/solvers/test/EnergyConservingSolver.cpp \
+    ../lib/gravity/test/CachedGravity.cpp \
+    ../lib/run/test/IRun.cpp \
+    ../lib/run/test/Collision.cpp \
+    ../lib/system/test/Crashpad.cpp
 
 HEADERS += \
     utils/Utils.h \
     utils/RecordType.h \
-    utils/SequenceTest.h
+    utils/SequenceTest.h \
+    utils/Config.h

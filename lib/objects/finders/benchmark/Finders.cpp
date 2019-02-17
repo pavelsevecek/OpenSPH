@@ -5,17 +5,20 @@
 #include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Domain.h"
 #include "sph/initial/Distribution.h"
+#include "thread/Pool.h"
+#include "thread/Tbb.h"
 
 using namespace Sph;
 
 template <typename TFinder>
 void finderRun(Benchmark::Context& context, TFinder& finder, const Size particleCnt) {
     HexagonalPacking distribution;
-    Array<Vector> r = distribution.generate(particleCnt, SphericalDomain(Vector(0._f), 1._f));
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    Array<Vector> r = distribution.generate(pool, particleCnt, SphericalDomain(Vector(0._f), 1._f));
     Array<NeighbourRecord> neighs;
     double distSum = 0.;
+    finder.build(pool, r);
     while (context.running()) {
-        finder.build(r);
         for (Size i = 0; i < r.size(); ++i) {
             finder.findAll(i, 2._f * r[i][H], neighs);
             for (NeighbourRecord& n : neighs) {
@@ -26,7 +29,7 @@ void finderRun(Benchmark::Context& context, TFinder& finder, const Size particle
 }
 
 BENCHMARK("Finder run KdTree", "[finders]", Benchmark::Context& context) {
-    KdTree tree;
+    KdTree<KdNode> tree;
     finderRun(context, tree, 10000);
 }
 
@@ -45,32 +48,31 @@ BENCHMARK("Finder run BruteForce", "[finders]", Benchmark::Context& context) {
     LinkedList linkedList;
     finderRun(state, linkedList);
 }
-BENCHMARK(linkedListRun);
+BENCHMARK(linkedListRun);*/
 
 
-static void finderBuild(benchmark::State& state, INeighbourFinder& finder) {
+static void finderBuild(Benchmark::Context& context, IBasicFinder& finder, IScheduler& scheduler) {
     HexagonalPacking distribution;
-    Array<Vector> r = distribution.generate(10000, SphericalDomain(Vector(0._f), 1._f));
-    while (state.KeepRunning()) {
-        finder.build(r);
+    Array<Vector> r = distribution.generate(scheduler, 1000000, SphericalDomain(Vector(0._f), 1._f));
+    while (context.running()) {
+        finder.build(scheduler, r);
+        Benchmark::clobberMemory();
     }
 }
 
-static void kdTreeBuild(benchmark::State& state) {
-    KdTree tree;
-    finderBuild(state, tree);
+BENCHMARK("Finder build KdTree Sequential", "[finders]", Benchmark::Context& context) {
+    KdTree<KdNode> tree;
+    finderBuild(context, tree, SEQUENTIAL);
 }
-BENCHMARK(kdTreeBuild);
 
-static void voxelBuild(benchmark::State& state) {
-    VoxelFinder voxelFiner;
-    finderBuild(state, voxelFiner);
+BENCHMARK("Finder build KdTree ThreadPool", "[finders]", Benchmark::Context& context) {
+    KdTree<KdNode> tree;
+    finderBuild(context, tree, *ThreadPool::getGlobalInstance());
 }
-BENCHMARK(voxelBuild);
 
-static void linkedListBuild(benchmark::State& state) {
-    LinkedList linkedList;
-    finderBuild(state, linkedList);
+#ifdef SPH_USE_TBB
+BENCHMARK("Finder build KdTree Tbb", "[finders]", Benchmark::Context& context) {
+    KdTree<KdNode> tree;
+    finderBuild(context, tree, *Tbb::getGlobalInstance());
 }
-BENCHMARK(linkedListBuild);
-*/
+#endif

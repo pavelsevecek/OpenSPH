@@ -6,9 +6,12 @@
 /// \date 2016-2018
 
 #include "io/Logger.h"
+#include "objects/wrappers/Optional.h"
+#include "system/Platform.h"
 #include "system/Timer.h"
 #include <atomic>
 #include <map>
+#include <thread>
 
 NAMESPACE_SPH_BEGIN
 
@@ -68,6 +71,7 @@ public:
 #define MEASURE(name, what) what
 #endif
 
+#ifdef SPH_PROFILE
 
 struct ScopeStatistics {
     /// User defined name of the scope
@@ -79,6 +83,8 @@ struct ScopeStatistics {
     /// Relative time spent in the scope with a respect to all measured scopes. Relative times of all measured
     /// scoped sum up to 1.
     Float relativeTime;
+
+    Float cpuUsage;
 };
 
 
@@ -87,18 +93,47 @@ class Profiler : public Noncopyable {
 private:
     static AutoPtr<Profiler> instance;
 
-    struct Duration {
-        std::atomic<uint64_t> time;
+    struct ScopeRecord {
+        /// Total time spent inside the scope
+        std::atomic<uint64_t> duration{ 0 };
 
-        Duration() {
-            time = 0; // initialize to zero
-        }
+        /// Average cpu usage inside the scope
+        Float cpuUsage = 0._f;
+
+        /// Number of samples used to compute the cpu Usage
+        Size weight = 0;
     };
-    // map of profiled scopes, its key being a string = name of the scope
-    std::map<std::string, Duration> map;
 
+    // map of profiled scopes, its key being a string = name of the scope
+    std::map<std::string, ScopeRecord> records;
+
+    struct {
+        std::string currentScope;
+        std::thread thread;
+    } cpuUsage;
+
+    std::atomic_bool quitting{ false };
 
 public:
+    Profiler() {
+        cpuUsage.thread = std::thread([this] {
+            while (!quitting) {
+                const Optional<Float> usage = getCpuUsage();
+                if (usage && !cpuUsage.currentScope.empty()) {
+                    ScopeRecord& scope = records[cpuUsage.currentScope];
+                    scope.cpuUsage = (scope.cpuUsage * scope.weight + usage.value()) / (scope.weight + 1);
+                    scope.weight++;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            }
+        });
+    }
+
+    ~Profiler() {
+        quitting = true;
+        cpuUsage.thread.join();
+    }
+
     static Profiler& getInstance() {
         if (!instance) {
             instance = makeAuto<Profiler>();
@@ -106,11 +141,13 @@ public:
         return *instance;
     }
 
-    /// Creates a new scoped timer of given name. The timer will automatically adds elapsed time to the
-    /// profile when being destroyed.
+    /// \brief Creates a new scoped timer of given name.
+    ///
+    /// The timer will automatically adds elapsed time to the profile when being destroyed.
     ScopedTimer makeScopedTimer(const std::string& name) {
+        cpuUsage.currentScope = name;
         return ScopedTimer(name, [this](const std::string& n, const uint64_t elapsed) { //
-            map[n].time += elapsed;
+            records[n].duration += elapsed;
         });
     }
 
@@ -122,11 +159,10 @@ public:
 
     /// Clears all records, mainly for testing purposes
     void clear() {
-        map.clear();
+        records.clear();
     }
 };
 
-#ifdef SPH_PROFILE
 #define PROFILE_SCOPE(name)                                                                                  \
     Profiler& __instance = Profiler::getInstance();                                                          \
     ScopedTimer __scopedTimer = __instance.makeScopedTimer(name);

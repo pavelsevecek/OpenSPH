@@ -2,22 +2,20 @@
 #include "io/Logger.h"
 #include "math/rng/Rng.h"
 #include "quantities/IMaterial.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
-#include "sph/kernel/KernelFactory.h"
-#include "thread/Pool.h"
+#include "sph/kernel/Kernel.h"
+#include "system/Factory.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// ScalarDamage implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------
+// ScalarGradyKippModel implementation
+//-----------------------------------------------------------------------------------------------------------
 
-ScalarGradyKippModel::ScalarGradyKippModel(const Float kernelRadius, const ExplicitFlaws options)
-    : kernelRadius(kernelRadius)
-    , options(options) {}
-
-ScalarGradyKippModel::ScalarGradyKippModel(const RunSettings& settings, const ExplicitFlaws options)
-    : ScalarGradyKippModel(Factory::getKernel<3>(settings).radius(), options) {}
+ScalarGradyKippModel::ScalarGradyKippModel(const ExplicitFlaws options)
+    : options(options) {}
 
 void ScalarGradyKippModel::setFlaws(Storage& storage,
     IMaterial& material,
@@ -60,7 +58,7 @@ void ScalarGradyKippModel::setFlaws(Storage& storage,
     const Size size = storage.getParticleCnt();
     // compute explicit growth
     for (Size i = 0; i < size; ++i) {
-        growth[i] = cg / (kernelRadius * r[i][H]);
+        growth[i] = cg / (context.kernelRadius * r[i][H]);
     }
     // find volume used to normalize fracture model
     Float V = 0._f;
@@ -101,69 +99,31 @@ void ScalarGradyKippModel::setFlaws(Storage& storage,
     }
 }
 
-void ScalarGradyKippModel::reduce(Storage& storage,
-    const Flags<DamageFlag> flags,
-    const MaterialView material) {
-    ArrayView<Float> damage = storage.getValue<Float>(QuantityId::DAMAGE);
-    // we can reduce pressure in place as the original value can be computed from equation of state
-    ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
-    ArrayView<Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
-    // stress tensor is evolved in time, so we need to keep unchanged value; create modified value
-    ArrayView<TracelessTensor> s, s_dmg;
-    tie(s, s_dmg) = storage.modify<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
-
-    IndexSequence seq = material.sequence();
-    parallelFor(*seq.begin(), *seq.end(), [&](const Size i) INL {
-        const Float d = pow<3>(damage[i]);
-        // pressure is reduced only for negative values
-        /// \todo could be vectorized, maybe
-        if (flags.has(DamageFlag::PRESSURE)) {
-            if (p[i] < 0._f) {
-                p[i] = (1._f - d) * p[i];
-            }
-        }
-        // stress is reduced for both positive and negative values
-        if (flags.has(DamageFlag::STRESS_TENSOR)) {
-            s_dmg[i] = (1._f - d) * s[i];
-        }
-        if (flags.has(DamageFlag::REDUCTION_FACTOR)) {
-            reduce[i] = (1._f - d) * reduce[i];
-        }
-    });
-}
-
-void ScalarGradyKippModel::integrate(Storage& storage, const MaterialView material) {
-    ArrayView<TracelessTensor> s, s_dmg, ds;
-    s_dmg = storage.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+void ScalarGradyKippModel::integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) {
+    ArrayView<TracelessTensor> s, ds;
     s = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     ds = storage.getDt<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     ArrayView<Float> p, eps_min, m_zero, growth;
     tie(eps_min, m_zero, growth) =
         storage.getValues<Float>(QuantityId::EPS_MIN, QuantityId::M_ZERO, QuantityId::EXPLICIT_GROWTH);
-    p = storage.getPhysicalValue<Float>(QuantityId::PRESSURE);
+    p = storage.getValue<Float>(QuantityId::PRESSURE);
     ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityId::N_FLAWS);
     ArrayView<Float> damage, ddamage;
     tie(damage, ddamage) = storage.getAll<Float>(QuantityId::DAMAGE);
 
     IndexSequence seq = material.sequence();
-    parallelFor(*seq.begin(), *seq.end(), [&](const Size i) {
-        // if damage is already on max value, set stress to zero to avoid limiting timestep by
-        // non-existent stresses
+    parallelFor(scheduler, *seq.begin(), *seq.end(), [&](const Size i) {
         const Interval range = material->range(QuantityId::DAMAGE);
-        /// \todo skip if the stress tensor is already fully damaged?
-        /// \todo can we set S derivatives to zero? This will break PC timestepping for stress tensor
-        /// but all physics depend on damaged values, anyway
+
         if (damage[i] >= range.upper()) {
-            // we CANNOT set derivative of damage to zero!
-            ddamage[i] = LARGE; /// \todo is this ok?
-            // we set damage derivative to large value, so that it is larger than the derivative from
+            // We CANNOT set derivative of damage to zero, it would break predictor-corrector integrator!
+            // Instead, we set damage derivative to large value, so that it is larger than the derivative from
             // prediction, therefore damage will INCREASE in corrections, but will be immediately clamped
             // to 1 TOGETHER WITH DERIVATIVES, time step is computed afterwards, so it should be ok.
-            s[i] = TracelessTensor::null();
-            ds[i] = TracelessTensor::null(); /// \todo this is the derivative used for computing time step
+            ddamage[i] = LARGE;
             return;
         }
-        const SymmetricTensor sigma = SymmetricTensor(s_dmg[i]) - p[i] * SymmetricTensor::identity();
+        const SymmetricTensor sigma = SymmetricTensor(s[i]) - p[i] * SymmetricTensor::identity();
         Float sig1, sig2, sig3;
         tie(sig1, sig2, sig3) = findEigenvalues(sigma);
         const Float sigMax = max(sig1, sig2, sig3);
@@ -181,19 +141,62 @@ void ScalarGradyKippModel::integrate(Storage& storage, const MaterialView materi
     });
 }
 
+//-----------------------------------------------------------------------------------------------------------
+// TensorGradyKippModel implementation
+//-----------------------------------------------------------------------------------------------------------
+
 void TensorGradyKippModel::setFlaws(Storage& UNUSED(storage),
     IMaterial& UNUSED(material),
     const MaterialInitialContext& UNUSED(context)) const {
     NOT_IMPLEMENTED;
 }
 
-void TensorGradyKippModel::reduce(Storage& UNUSED(storage),
-    const Flags<DamageFlag> UNUSED(flags),
-    const MaterialView UNUSED(material)) {
-    NOT_IMPLEMENTED;
-}
+/*void TensorGradyKippModel::reduce(IScheduler& scheduler,
+    Storage& storage,
+    const Flags<DamageFlag> flags,
+    const MaterialView material) {
+    ArrayView<SymmetricTensor> damage = storage.getValue<SymmetricTensor>(QuantityId::DAMAGE);
+    // we can reduce pressure in place as the original value can be computed from equation of state
+    ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
+    ArrayView<Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
+    // stress tensor is evolved in time, so we need to keep unchanged value; create modified value
+    ArrayView<TracelessTensor> s, s_dmg;
+    tie(s, s_dmg) = storage.modify<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
 
-void TensorGradyKippModel::integrate(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {
+    IndexSequence seq = material.sequence();
+    parallelFor(scheduler, *seq.begin(), *seq.end(), [&](const Size i) INL {
+        // const Float d = pow<3>(damage[i]);
+        const SymmetricTensor d = damage[i]; /// \todo should we have third root here?
+
+        const SymmetricTensor f = SymmetricTensor::identity() - d;
+
+        SymmetricTensor sigmaD;
+        if (p[i] < 0._f) {
+            const SymmetricTensor sigma = SymmetricTensor(s[i]) - p[i] * SymmetricTensor::identity();
+            sigmaD = f * sigma * f;
+        } else {
+            sigmaD = f * SymmetricTensor(s[i]) * f - p[i] * SymmetricTensor::identity();
+        }
+        const Float pD = -sigmaD.trace() / 3._f;
+        const TracelessTensor sD = TracelessTensor(sigmaD + pD * SymmetricTensor::identity());
+
+        // pressure is reduced only for negative values
+        if (flags.has(DamageFlag::PRESSURE)) {
+            p[i] = pD;
+        }
+        // stress is reduced for both positive and negative values
+        if (flags.has(DamageFlag::STRESS_TENSOR)) {
+            s_dmg[i] = sD;
+        }
+        if (flags.has(DamageFlag::REDUCTION_FACTOR)) {
+            reduce[i] = (1._f - d.trace()) * reduce[i];
+        }
+    });
+}*/
+
+void TensorGradyKippModel::integrate(IScheduler& UNUSED(scheduler),
+    Storage& UNUSED(storage),
+    const MaterialView UNUSED(material)) {
     NOT_IMPLEMENTED;
 }
 
@@ -205,7 +208,9 @@ void MohrCoulombModel::setFlaws(Storage& storage,
     storage.insert<Float>(QuantityId::FRICTION_ANGLE, OrderEnum::ZERO, 0._f);
 }
 
-void MohrCoulombModel::integrate(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {
+void MohrCoulombModel::integrate(IScheduler& UNUSED(scheduler),
+    Storage& UNUSED(storage),
+    const MaterialView UNUSED(material)) {
     NOT_IMPLEMENTED;
     /*for (Size i = 0; i < p.size(); ++i) {
         const SymmetricTensor sigma = SymmetricTensor(s_dmg[i]) - p[i] * SymmetricTensor::identity();
@@ -219,16 +224,8 @@ void NullFracture::setFlaws(Storage& UNUSED(storage),
     IMaterial& UNUSED(material),
     const MaterialInitialContext& UNUSED(context)) const {}
 
-void NullFracture::reduce(Storage& storage,
-    const Flags<DamageFlag> UNUSED(flags),
-    const MaterialView material) {
-    ArrayView<TracelessTensor> s, s_dmg;
-    tie(s, s_dmg) = storage.modify<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
-
-    IndexSequence seq = material.sequence();
-    parallelFor(*seq.begin(), *seq.end(), [&](const Size i) INL { s_dmg[i] = s[i]; });
-}
-
-void NullFracture::integrate(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {}
+void NullFracture::integrate(IScheduler& UNUSED(scheduler),
+    Storage& UNUSED(storage),
+    const MaterialView UNUSED(material)) {}
 
 NAMESPACE_SPH_END

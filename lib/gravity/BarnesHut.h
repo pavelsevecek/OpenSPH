@@ -5,26 +5,50 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "common/ForwardDecl.h"
 #include "gravity/IGravity.h"
 #include "objects/containers/List.h"
 #include "objects/finders/KdTree.h"
+#include "objects/geometry/Multipole.h"
 #include "sph/kernel/GravityKernel.h"
 #include <atomic>
 
 NAMESPACE_SPH_BEGIN
 
-class IScheduler;
 enum class MultipoleOrder;
+
+struct BarnesHutNode : public KdNode {
+    /// Center of mass of contained particles
+    Vector com;
+
+    /// Gravitational moments with a respect to the center of mass, using expansion to octupole order.
+    MultipoleExpansion<3> moments;
+
+    /// Opening radius of the node; see Eq. (2.36) of Stadel PhD thesis
+    /// \todo can be stored as 4th component of com.
+    Float r_open;
+
+    BarnesHutNode(const Type& type)
+        : KdNode(type) {
+#ifdef SPH_DEBUG
+        com = Vector(NAN);
+        r_open = NAN;
+#endif
+    }
+};
+
 
 /// \brief Multipole approximation of distance particle.
 class BarnesHut : public IGravity {
 protected:
-    /// Source data
+    /// View of a position buffer in the storage
     ArrayView<const Vector> r;
-    ArrayView<const Float> m;
+
+    /// Particle masses multiplied by gravitational constant.
+    Array<Float> m;
 
     /// K-d tree storing gravitational moments
-    KdTree kdTree;
+    KdTree<BarnesHutNode> kdTree;
 
     /// Kernel used to evaluate gravity of close particles
     GravityLutKernel kernel;
@@ -35,14 +59,21 @@ protected:
     /// Order of multipole approximation
     MultipoleOrder order;
 
+    /// Maximum depth at which the nodes evaluation is parallelized.
+    ///
+    /// Child nodes are then evaluated serially on the same thread.
+    Size maxDepth = 50;
+
 public:
-    /// Constructs the Barnes-Hut gravity assuming point-like particles (with zero radius).
+    /// \brief Constructs the Barnes-Hut gravity assuming point-like particles (with zero radius).
+    ///
     /// \param theta Opening angle; lower value means higher precision, but slower computation
     /// \param order Order of multipole approximation
     /// \param leafSize Maximum number of particles in a leaf
     BarnesHut(const Float theta, const MultipoleOrder order, const Size leafSize = 20);
 
-    /// Constructs the Barnes-Hut gravity with given smoothing kernel
+    /// \brief Constructs the Barnes-Hut gravity with given smoothing kernel
+    ///
     /// \param theta Opening angle; lower value means higher precision, but slower computation
     /// \param order Order of multipole approximation
     /// \param leafSize Maximum number of particles in a leaf
@@ -52,15 +83,19 @@ public:
         const Size leafSize = 20);
 
     /// Masses of particles must be strictly positive, otherwise center of mass would be undefined.
-    virtual void build(const Storage& storage) override;
+    virtual void build(IScheduler& pool, const Storage& storage) override;
 
-    virtual void evalAll(ArrayView<Vector> dv, Statistics& stats) const override;
-
-    virtual void evalAll(ThreadPool& pool, ArrayView<Vector> dv, Statistics& stats) const override;
+    virtual void evalAll(IScheduler& pool, ArrayView<Vector> dv, Statistics& stats) const override;
 
     virtual Vector eval(const Vector& r0, Statistics& stats) const override;
 
-    /// Returns the multipole moments computed from root node.
+    virtual Float evalEnergy(IScheduler& scheduler, Statistics& stats) const override;
+
+    virtual RawPtr<const IBasicFinder> getFinder() const override;
+
+    /// \brief Returns the multipole moments computed from root node.
+    ///
+    /// Mostly for testing purposes.
     MultipoleExpansion<3> getMoments() const;
 
 protected:
@@ -84,6 +119,9 @@ protected:
         /// Indices of nodes that shall be evaluated using multipole approximation.
         Array<Size> nodeList;
 
+        /// Current depth in the tree; root node has depth equal to zero.
+        Size depth = 0;
+
         /// Clones all lists in the state object
         TreeWalkState clone() const;
     };
@@ -101,7 +139,7 @@ protected:
     /// Treewalk starts at given node and subsequently calls \ref evalNode for children nodes. Function moves
     /// nodes from checkList into interaction lists and in case the node is a leaf, gravity is computed using
     /// constructed interaction lists.
-    /// \param scheduler Scheduler used for parallelization
+    /// \param scheduler Scheduler used for (potential) parallelization
     /// \param dv Output thread-local buffer where computed accelerations are stored
     /// \param nodeIdx Index of the first node evaluated by the function
     /// \param data Checklist nad interaction lists of he node
@@ -112,16 +150,19 @@ protected:
         TreeWalkState data,
         TreeWalkResult& result) const;
 
-    void evalParticleList(const LeafNode& leaf, ArrayView<Size> particleList, ArrayView<Vector> dv) const;
+    void evalParticleList(const LeafNode<BarnesHutNode>& leaf,
+        ArrayView<Size> particleList,
+        ArrayView<Vector> dv) const;
 
-    void evalNodeList(const LeafNode& leaf, ArrayView<Size> nodeList, ArrayView<Vector> dv) const;
+    void evalNodeList(const LeafNode<BarnesHutNode>& leaf,
+        ArrayView<Size> nodeList,
+        ArrayView<Vector> dv) const;
 
-    Vector evalExact(const LeafNode& node, const Vector& r0, const Size idx) const;
+    Vector evalExact(const LeafNode<BarnesHutNode>& node, const Vector& r0, const Size idx) const;
 
-    void buildLeaf(KdNode& node);
+    void buildLeaf(BarnesHutNode& node);
 
-    void buildInner(KdNode& node, KdNode& left, KdNode& right);
+    void buildInner(BarnesHutNode& node, BarnesHutNode& left, BarnesHutNode& right);
 };
-
 
 NAMESPACE_SPH_END

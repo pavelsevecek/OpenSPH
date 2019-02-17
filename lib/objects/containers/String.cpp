@@ -128,7 +128,7 @@ String String::lower() const {
 String getFormattedTime(const String& format) {
     std::time_t t = std::time(nullptr);
     char buffer[256];
-    UNUSED_IN_RELEASE(auto retval =) strftime(buffer, sizeof(buffer), format.cStr(), std::localtime(&t));
+    auto retval = strftime(buffer, sizeof(buffer), format.cStr(), std::localtime(&t));
     String s(buffer);
     ASSERT(retval == s.size());
     return s;

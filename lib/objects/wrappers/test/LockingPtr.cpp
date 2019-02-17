@@ -105,11 +105,3 @@ TEST_CASE("LockingPtr move while locked", "[lockingptr]") {
     REQUIRE(l1->value == 6);
     t.join();
 }
-
-#ifdef SPH_DEBUG
-TEST_CASE("LockingPtr double lock", "[lockingptr]") {
-    LockingPtr<RecordType> l1(new RecordType(5));
-    auto dummy = [](int, int) {};
-    REQUIRE_ASSERT(dummy(l1->value, l1->value));
-}
-#endif

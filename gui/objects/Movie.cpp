@@ -1,6 +1,7 @@
 #include "gui/objects/Movie.h"
 #include "gui/MainLoop.h"
 #include "gui/Settings.h"
+#include "gui/Utils.h"
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
@@ -10,20 +11,18 @@
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
 #include <condition_variable>
+#include <wx/dcmemory.h>
 #include <wx/image.h>
-
 
 NAMESPACE_SPH_BEGIN
 
 Movie::Movie(const GuiSettings& settings,
     AutoPtr<IRenderer>&& renderer,
-    AutoPtr<ICamera>&& camera,
     Array<SharedPtr<IColorizer>>&& colorizers,
-    const RenderParams& params)
+    RenderParams&& params)
     : renderer(std::move(renderer))
-    , camera(std::move(camera))
     , colorizers(std::move(colorizers))
-    , params(params) {
+    , params(std::move(params)) {
     enabled = settings.get<bool>(GuiSettingsId::IMAGES_SAVE);
     makeAnimation = settings.get<bool>(GuiSettingsId::IMAGES_MAKE_MOVIE);
     outputStep = settings.get<Float>(GuiSettingsId::IMAGES_TIMESTEP);
@@ -50,11 +49,32 @@ INLINE std::string escapeColorizerName(const std::string& name) {
     return lowercase(escaped);
 }
 
+class MovieRenderOutput : public IRenderOutput {
+public:
+    wxBitmap wx;
+
+    virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels) override {
+        CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+        toWxBitmap(bitmap, wx);
+        wxMemoryDC dc(wx);
+        printLabels(dc, labels);
+        dc.SelectObject(wxNullBitmap);
+    }
+};
 
 void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
     if (stats.get<Float>(StatisticsId::RUN_TIME) < nextOutput || !enabled) {
         return;
     }
+
+    this->save(storage, stats);
+    nextOutput += outputStep;
+}
+
+void Movie::save(const Storage& storage, Statistics& stats) {
+    // initialize the camera (shared for all colorizers)
+    params.camera->initialize(storage);
+
     const Path path = paths.getNextPath(stats);
     FileSystem::createDirectory(path.parentPath());
     for (auto& e : colorizers) {
@@ -64,15 +84,15 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
         e->initialize(storage, RefEnum::WEAK);
 
         // initialize render with new data (outside main thread)
-        renderer->initialize(storage, *e, *camera);
+        renderer->initialize(storage, *e, *params.camera);
 
-        auto functor = [this, actPath, &storage, &e, &stats] {
+        auto functor = [this, actPath, &stats] {
             std::unique_lock<std::mutex> lock(waitMutex);
 
             // create the bitmap and save it to file
-            SharedPtr<wxBitmap> bitmap = renderer->render(*camera, params, stats);
-            saveToFile(*bitmap, actPath);
-
+            MovieRenderOutput output;
+            renderer->render(params, stats, output);
+            saveToFile(output.wx, actPath);
             waitVar.notify_one();
         };
         if (isMainThread()) {
@@ -84,7 +104,10 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
             waitVar.wait(lock);
         }
     }
-    nextOutput += outputStep;
+}
+
+void Movie::setCamera(AutoPtr<ICamera>&& camera) {
+    params.camera = std::move(camera);
 }
 
 void Movie::finalize() {

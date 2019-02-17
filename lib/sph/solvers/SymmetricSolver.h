@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "sph/Materials.h"
+#include "sph/equations/Derivative.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/Kernel.h"
 #include "thread/ThreadLocal.h"
@@ -41,12 +41,10 @@ protected:
 
         /// Cached array of gradients
         Array<Vector> grads;
-
-        explicit ThreadData(const RunSettings& settings);
     };
 
-    /// Thread pool used to parallelize the solver, runs the whole time the solver exists.
-    ThreadPool pool;
+    /// Scheduler to parallelize the solver.
+    IScheduler& scheduler;
 
     /// Selected granularity of the parallel processing. The more particles in simulation, the higher the
     /// value should be to utilize the solver optimally.
@@ -64,17 +62,17 @@ protected:
     /// Structure used to search for neighbouring particles
     AutoPtr<ISymmetricFinder> finder;
 
-    /// Selected SPH kernel, symmetrized over smoothing lenghs:
-    /// \f$ W_ij(r_i - r_j, 0.5(h[i] + h[j]) \f$
-    SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>> kernel;
+    /// Selected SPH kernel
+    LutKernel<DIMENSIONS> kernel;
 
 public:
     /// \brief Creates the symmetric solver, given the list of equations to solve
     ///
     /// Constructor may throw if the list of equations is not consistent with the solver.
+    /// \param scheduler Scheduler used for parallelization.
     /// \param settings Settings containing parameter of the solver (SPH kernel used, etc.)
     /// \param eqs List of equations to solve.
-    SymmetricSolver(const RunSettings& settings, const EquationHolder& eqs);
+    SymmetricSolver(IScheduler& scheduler, const RunSettings& settings, const EquationHolder& eqs);
 
     ~SymmetricSolver();
 
@@ -90,6 +88,8 @@ protected:
     virtual void beforeLoop(Storage& storage, Statistics& stats);
 
     virtual void afterLoop(Storage& storage, Statistics& stats);
+
+    virtual const IBasicFinder& getFinder(ArrayView<const Vector> r);
 
     /// \brief Used to check internal consistency of the solver.
     ///

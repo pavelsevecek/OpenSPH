@@ -1,5 +1,5 @@
 #include "quantities/QuantityIds.h"
-#include "common/Assert.h"
+#include "objects/utility/EnumMap.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -36,6 +36,8 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Density", L"\u03C1" /*rho*/, ValueEnum::SCALAR);
     case QuantityId::ENERGY:
         return QuantityMetadata("Specific energy", L"u", ValueEnum::SCALAR);
+    case QuantityId::TEMPERATURE:
+        return QuantityMetadata("Temperature", L"T", ValueEnum::SCALAR);
     case QuantityId::SOUND_SPEED:
         return QuantityMetadata("Sound speed", L"c_s", ValueEnum::SCALAR);
     case QuantityId::DEVIATORIC_STRESS:
@@ -80,8 +82,6 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Energy laplacian", L"\u0394u" /*Delta u*/, ValueEnum::SCALAR);
     case QuantityId::AV_ALPHA:
         return QuantityMetadata("AV alpha", L"\u03B1_AV" /*alpha_AV*/, ValueEnum::SCALAR);
-    case QuantityId::AV_BETA:
-        return QuantityMetadata("AV beta", L"\u03B2_AV" /*beta_AV*/, ValueEnum::SCALAR);
     case QuantityId::AV_STRESS:
         return QuantityMetadata("Artificial stress", L"R", ValueEnum::SYMMETRIC_TENSOR);
     case QuantityId::AV_BALSARA:
@@ -100,8 +100,10 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Grad-h terms", L"\u03A9" /*Omega*/, ValueEnum::SCALAR);
     case QuantityId::GRAVITY_POTENTIAL:
         return QuantityMetadata("Grav. potential", L"\u03A6" /*Phi*/, ValueEnum::SCALAR);
-    case QuantityId::ANGULAR_VELOCITY:
-        return QuantityMetadata("Angular velocity", L"\u03C9" /*omega*/, ValueEnum::VECTOR);
+    case QuantityId::ANGULAR_FREQUENCY:
+        return QuantityMetadata("Angular frequency", L"\u03C9" /*omega*/, ValueEnum::VECTOR);
+    case QuantityId::ANGULAR_MOMENTUM:
+        return QuantityMetadata("Angular momentum", L"L", ValueEnum::VECTOR);
     case QuantityId::NEIGHBOUR_CNT:
         return QuantityMetadata("Neigh. cnt", L"N_neigh", ValueEnum::INDEX);
     case QuantityId::SURFACE_NORMAL:
@@ -110,7 +112,7 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Mom. of intertia", L"I", ValueEnum::SCALAR);
     case QuantityId::PHASE_ANGLE:
         return QuantityMetadata("Phase angle", L"\u03C6" /*phi*/, ValueEnum::VECTOR);
-    case QuantityId::SMOOTHING_LENGHT:
+    case QuantityId::SMOOTHING_LENGTH:
         return QuantityMetadata("Smoothing length", L"h", ValueEnum::SCALAR);
     default:
         NOT_IMPLEMENTED;

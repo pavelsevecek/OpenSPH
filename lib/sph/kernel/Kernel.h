@@ -47,11 +47,6 @@ class LutKernel : public Kernel<LutKernel<D>, D> {
 private:
     static constexpr Size NEntries = 40000;
 
-    /*struct {
-        Float values[NEntries + 4096 / sizeof(Float)];
-        Float grads[NEntries + 4096 / sizeof(Float)];
-    } storage;*/
-
     Float values[NEntries];
     Float grads[NEntries];
 
@@ -131,7 +126,7 @@ public:
 };
 
 
-/// A cubic spline (M4) kernel
+/// \brief Cubic spline (M4) kernel
 template <Size D>
 class CubicSpline : public Kernel<CubicSpline<D>, D> {
 private:
@@ -173,7 +168,7 @@ public:
     }
 };
 
-/// A fourth-order spline (M5) kernel
+/// \brief Fourth-order spline (M5) kernel
 template <Size D>
 class FourthOrderSpline : public Kernel<FourthOrderSpline<D>, D> {
 private:
@@ -224,8 +219,15 @@ public:
     }
 };
 
-/// Kernel proposed by Read et al. (2010) with improved stability. Only for 3 dimensions.
+/// \brief Kernel proposed by Read et al. (2010) with improved stability.
+///
+/// Defined only for 3 dimensions.
 class CoreTriangle : public Kernel<CoreTriangle, 3> {
+private:
+    const Float alpha = 1._f / 3._f;
+    const Float beta = 1._f + 6._f * sqr(alpha) - 12._f * pow<3>(alpha);
+    const Float normalization = 8._f / (PI * (6.4_f * pow<5>(alpha) - 16._f * pow<6>(alpha) + 1._f));
+
 public:
     INLINE Float radius() const {
         return 1._f;
@@ -233,13 +235,11 @@ public:
 
     INLINE Float valueImpl(const Float qSqr) const {
         const Float q = sqrt(qSqr);
-        const Float alpha = 1._f / 3._f;
-        const Float beta = 1._f + 6._f * sqr(alpha) - 12._f * pow<3>(alpha);
-        const Float normalization = 8._f / (PI * (6.4_f * pow<5>(alpha) - 16._f * pow<6>(alpha) + 1._f));
+
         if (q < alpha) {
             return normalization * ((-12._f * alpha + 18._f * sqr(alpha)) * q + beta);
         } else if (q < 0.5_f) {
-            return normalization * (1._f - 6._f * q * q * (1._f - q));
+            return normalization * (1._f - 6._f * sqr(q) * (1._f - q));
         } else if (q < 1._f) {
             return normalization * 2._f * pow<3>(1._f - q);
         } else {
@@ -247,35 +247,55 @@ public:
         }
     }
 
-    INLINE Float gradImpl(const Float UNUSED(qSqr)) const {
-        NOT_IMPLEMENTED;
+    INLINE Float gradImpl(const Float qSqr) const {
+        const Float q = sqrt(qSqr);
+        if (q < alpha) {
+            return normalization / q * (-12._f * alpha + 18._f * sqr(alpha));
+        } else if (q < 0.5_f) {
+            return normalization / q * (-12._f * q + 18._f * sqr(q));
+        } else if (q < 1._f) {
+            return normalization / q * (-6._f * sqr(1._f - q));
+        } else {
+            return 0._f;
+        }
     }
 };
 
-/// Kernel introduced by Thomas & Couchman (1992).
+/// \brief Kernel introduced by Thomas & Couchman (1992).
 ///
 /// The kernel values are the same as for cubic spline, but the gradient is modified, adding a small repulsive
 /// force. This attempts to prevent particle clustering.
 template <Size D>
-class ThomasCouchmanKernel : public CubicSpline<D> {
+class ThomasCouchmanKernel : public Kernel<ThomasCouchmanKernel<D>, D> {
+private:
+    CubicSpline<D> M4;
+
+    const Float normalization[3] = { 2._f / 3._f, 10._f / (7._f * PI), 1._f / PI };
+
 public:
+    INLINE Float radius() const {
+        return 2._f;
+    }
+
+    INLINE Float valueImpl(const Float qSqr) const {
+        return M4.valueImpl(qSqr);
+    }
+
     INLINE Float gradImpl(const Float qSqr) const {
         const Float q = sqrt(qSqr);
         if (q == 0._f) {
             // this kernel has discontinuous gradient - it is nonzero for q->0, so the value for q = 0 is
-            // undefined (it is a "0/0" expression). To avoid this, let's just return zero.
-            return 0._f;
+            // undefined (it is a "0/0" expression). To avoid this, return a reasonably high (nonzero) number.
+            return -100._f;
         }
-        TODO("finish");
         if (q < 2._f / 3._f) {
-            return -(1._f / q) * this->normalization[D - 1];
+            return -(1._f / q) * normalization[D - 1];
         }
         if (q < 1._f) {
-            return (1._f / q) * this->normalization[D - 1] *
-                   (-0.75_f * q * pow<2>(2._f - q) + 3._f * pow<2>(1._f - q));
+            return (1._f / q) * normalization[D - 1] * (-0.75_f * q * (4._f - 3._f * q));
         }
         if (q < 2._f) {
-            return (1._f / q) * this->normalization[D - 1] * (-0.75f * pow<2>(2.f - q));
+            return (1._f / q) * normalization[D - 1] * (-0.75_f * pow<2>(2._f - q));
         }
         return 0._f;
     }
@@ -376,7 +396,9 @@ public:
     }
 };
 
-/// Gaussian kernel, clamped to zero at radius 5 (the error is therefore about exp(-5^2) = 10^-11).
+/// \brief Gaussian kernel
+///
+/// Clamped to zero at radius 5, the error is therefore about exp(-5^2) = 10^-11.
 template <Size D>
 class Gaussian : public Kernel<Gaussian<D>, D> {
 private:
@@ -403,6 +425,66 @@ public:
         }
         const Float q = sqrt(qSqr);
         return normalization[D - 1] / q * exp(-qSqr) * (-2._f * q);
+    }
+};
+
+/// \brief Triangular (piecewise linear) kernel.
+///
+/// Does not have continuous derivatives, mainly for testing purposes and non-SPH applications.
+template <Size D>
+class TriangleKernel : public Kernel<TriangleKernel<D>, D> {
+private:
+    const Float normalization[3] = { 1._f, 3._f / PI, 3._f / PI };
+
+public:
+    INLINE Float radius() const {
+        return 1._f;
+    }
+
+    INLINE Float valueImpl(const Float qSqr) const {
+        if (qSqr >= sqr(radius())) {
+            return 0._f;
+        }
+        const Float q = sqrt(qSqr);
+        return normalization[D - 1] * (1._f - q);
+    }
+
+    INLINE Float gradImpl(const Float qSqr) const {
+        if (qSqr >= sqr(radius())) {
+            return 0._f;
+        }
+        // unfortunately this gradient is nonzero at q->0, so grad/q diverges;
+        // let's return a reasonable value to avoid numerical problems
+        if (qSqr == 0._f) {
+            return -100._f;
+        }
+        const Float q = sqrt(qSqr);
+        return -normalization[D - 1] / q;
+    }
+};
+
+/// \brief Helper kernel wrapper that modifies the support of another kernel.
+template <Size D, typename TKernel>
+class ScalingKernel : public Kernel<ScalingKernel<D, TKernel>, D> {
+private:
+    TKernel kernel;
+    Float scaling;
+
+public:
+    ScalingKernel(const Float newRadius) {
+        scaling = newRadius / kernel.radius();
+    }
+
+    INLINE Float radius() const {
+        return scaling * kernel.radius();
+    }
+
+    INLINE Float valueImpl(const Float qSqr) const {
+        return kernel.valueImpl(qSqr / sqr(scaling)) / pow<D>(scaling);
+    }
+
+    INLINE Float gradImpl(const Float qSqr) const {
+        return kernel.gradImpl(qSqr / sqr(scaling)) / pow<D + 2>(scaling);
     }
 };
 

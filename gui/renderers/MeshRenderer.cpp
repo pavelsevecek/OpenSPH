@@ -2,15 +2,16 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Color.h"
 #include "gui/objects/Colorizer.h"
+#include "gui/objects/RenderContext.h"
 #include "objects/finders/Order.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
-#include <wx/dcmemory.h>
 
 NAMESPACE_SPH_BEGIN
 
-MeshRenderer::MeshRenderer(const GuiSettings& gui) {
+MeshRenderer::MeshRenderer(IScheduler& scheduler, const GuiSettings& gui)
+    : scheduler(scheduler) {
     surfaceLevel = gui.get<Float>(GuiSettingsId::SURFACE_LEVEL);
     surfaceResolution = gui.get<Float>(GuiSettingsId::SURFACE_RESOLUTION);
     sunPosition = gui.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION);
@@ -28,37 +29,39 @@ void MeshRenderer::initialize(const Storage& storage,
     const ICamera& UNUSED(camera)) {
     cached.colors.clear();
 
-    // get the surface as triangles
-    cached.triangles = getSurfaceMesh(storage, surfaceResolution, surfaceLevel);
-
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    /*Float maxH = 0._f;
+    Box boundingBox;
     for (Size i = 0; i < r.size(); ++i) {
-        maxH = max(maxH, r[i][H]);
-    }*/
+        boundingBox.extend(r[i]);
+    }
+    const Float dim = maxElement(boundingBox.size());
+    // clamp to avoid extreme resolution (which would most likely cause bad alloc)
+    const Float actResolution = clamp(surfaceResolution, 0.001_f * dim, 0.1_f * dim);
 
-    finder->build(r);
+    // get the surface as triangles
+    cached.triangles = getSurfaceMesh(scheduler, storage, actResolution, surfaceLevel);
+
+    finder->build(scheduler, r);
     Array<NeighbourRecord> neighs;
 
     for (Triangle& t : cached.triangles) {
         const Vector pos = t.center();
-        /// \todo test wxGraphicsContext::CreateLinearGradientBrush, it might be possible to interpolate
-        /// colors between triangle vertices
-        finder->findAll(pos, 2.f * surfaceResolution, neighs);
+        finder->findAll(pos, 4._f * actResolution, neighs);
 
-        Color colorSum(0._f);
+        Rgba colorSum(0._f);
         Float weightSum = 0._f;
         for (auto& n : neighs) {
             const Size i = n.index;
-            const Color color = colorizer.evalColor(i);
-            const Float w = kernel.value(r[i] - pos, surfaceResolution);
+            const Rgba color = colorizer.evalColor(i);
+            /// \todo fix, the weight here should be consistent with MC
+            const Float w = max(kernel.value(r[i] - pos, r[i][H]), EPS);
             colorSum += color * w;
             weightSum += w;
         }
 
         if (weightSum == 0._f) {
             // we somehow didn't find any neighbours, indicate the error by red triangle
-            cached.colors.push(Color::red());
+            cached.colors.push(Rgba::red());
         } else {
             // supersimple diffuse shading
             const float gray = ambient + sunIntensity * max(0._f, dot(sunPosition, t.normal()));
@@ -67,58 +70,40 @@ void MeshRenderer::initialize(const Storage& storage,
     }
 }
 
-SharedPtr<wxBitmap> MeshRenderer::render(const ICamera& camera,
-    const RenderParams& params,
-    Statistics& stats) const {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    // MEASURE_SCOPE("SurfaceRenderer::render");
-    const wxSize size(params.size.x, params.size.y);
-    SharedPtr<wxBitmap> bitmap = makeShared<wxBitmap>(size, 24);
-    wxMemoryDC dc(*bitmap);
+void MeshRenderer::render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const {
+    Bitmap<Rgba> bitmap(params.size);
+    PreviewRenderContext context(bitmap);
 
-    // draw black background (there is no fill method?)
-    dc.SetBrush(*wxBLACK_BRUSH);
-    dc.DrawRectangle(wxPoint(0, 0), size);
-
-    // draw particles
-    wxBrush brush(*wxBLACK_BRUSH);
-    wxPen pen(*wxBLACK_PEN);
+    // draw black background
+    context.fill(Rgba::black());
 
     // sort the arrays by z-depth
     Order triangleOrder(cached.triangles.size());
-    triangleOrder.shuffle([this, &camera](const Size i1, const Size i2) {
+    const Vector cameraDir = params.camera->getDirection();
+    triangleOrder.shuffle([this, &cameraDir](const Size i1, const Size i2) {
         const Vector v1 = cached.triangles[i1].center();
         const Vector v2 = cached.triangles[i2].center();
-        const Vector cameraDir = camera.getDirection();
         return dot(cameraDir, v1) > dot(cameraDir, v2);
     });
 
     // draw all triangles, starting from the ones with largest z-depth
     for (Size i = 0; i < cached.triangles.size(); ++i) {
         const Size idx = triangleOrder[i];
-        brush.SetColour(wxColour(cached.colors[idx]));
-        pen.SetColour(wxColour(cached.colors[idx]));
-        dc.SetBrush(brush);
-        dc.SetPen(pen);
+        context.setColor(cached.colors[idx], ColorFlag::LINE | ColorFlag::FILL);
 
-        Optional<ProjectedPoint> p1 = camera.project(cached.triangles[idx][0]);
-        Optional<ProjectedPoint> p2 = camera.project(cached.triangles[idx][1]);
-        Optional<ProjectedPoint> p3 = camera.project(cached.triangles[idx][2]);
+        Optional<ProjectedPoint> p1 = params.camera->project(cached.triangles[idx][0]);
+        Optional<ProjectedPoint> p2 = params.camera->project(cached.triangles[idx][1]);
+        Optional<ProjectedPoint> p3 = params.camera->project(cached.triangles[idx][2]);
         if (!p1 || !p2 || !p3) {
             continue;
         }
-        StaticArray<wxPoint, 3> pts;
-        pts[0] = p1->point;
-        pts[1] = p2->point;
-        pts[2] = p3->point;
-        dc.DrawPolygon(3, &pts[0]);
+        context.drawTriangle(p1->coords, p2->coords, p3->coords);
     }
 
     const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
-    dc.DrawText(("t = " + std::to_string(time) + "s").c_str(), wxPoint(0, 0));
+    context.drawText(Coords(0, 0), TextAlign::RIGHT | TextAlign::BOTTOM, getFormattedTime(time * 1000));
 
-    dc.SelectObject(wxNullBitmap);
-    return bitmap;
+    output.update(bitmap, context.getLabels());
 }
 
 NAMESPACE_SPH_END

@@ -6,7 +6,7 @@
 /// \date 2016-2018
 
 #include "common/Globals.h"
-#include "math/Math.h"
+#include "math/MathUtils.h"
 #include <string>
 
 NAMESPACE_SPH_BEGIN

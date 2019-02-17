@@ -22,6 +22,9 @@ std::string replaceFirst(const std::string& source, const std::string& old, cons
 /// Replaces all occurences of string with a new string
 std::string replaceAll(const std::string& source, const std::string& old, const std::string& s);
 
+/// Inserts \n to string so that no line is longer than given limit
+std::string setLineBreak(const std::string& s, const Size lineWidth);
+
 /// Splits a string into an array of string using given delimiter.
 Array<std::string> split(const std::string& s, const char delimiter);
 

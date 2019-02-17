@@ -69,7 +69,7 @@ public:
     /// Whether to keep running or exit
     INLINE bool running() {
         state = this->shouldContinue();
-        if (iterateCnt == 2) {
+        if (iterateCnt <= 2) {
             // restart to discard benchmark setup time and first few iterations (startup)
             timer.restart();
         } else {

@@ -17,20 +17,22 @@ public:
     GuiCallbacks(Controller& controller)
         : controller(controller) {}
 
+    virtual void onRunStart(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
+
+    virtual void onRunEnd(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {
+        if (controller.movie) {
+            controller.movie->finalize();
+        }
+    }
+
     virtual void onTimeStep(const Storage& storage, Statistics& stats) override {
         Timer timer;
         controller.onTimeStep(storage, stats);
         stats.set(StatisticsId::POSTPROCESS_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
     }
 
-    virtual void onRunStart(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {
-        controller.setRunning();
-    }
-
-    virtual void onRunEnd(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {
-        if (controller.movie) {
-            controller.movie->finalize();
-        }
+    virtual void onRunFailure(const DiagnosticsError& error, const Statistics& stats) const override {
+        controller.onRunFailure(error, stats);
     }
 
     virtual bool shouldAbortRun() const override {

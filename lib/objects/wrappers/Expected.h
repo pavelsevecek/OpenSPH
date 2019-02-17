@@ -110,25 +110,30 @@ public:
         return &value();
     }
 
-    /// If the object contains an expected value, prints the value into the stream, otherwise print the error
-    /// message.
-    friend std::ostream& operator<<(std::ostream& stream, const Expected& expected) {
-        if (expected) {
-            stream << expected.value();
-        } else {
-            stream << expected.error();
-        }
-        return stream;
-    }
-
 private:
     bool isExpected() const {
         return data.getTypeIdx() == 1;
     }
 };
 
-/// Constructs an unexpected value of given type, given error message as std::string. For other type of error
-/// messages, use constructor of Expected.
+/// \brief Prints the expected value into a stream.
+///
+/// If the object contains an expected value, prints the value into the stream, otherwise print the error
+/// message. Enabled only if the wrapped type defines the operator<<, to that it corretly works with Catch
+/// framework.
+template <typename T, typename = decltype(std::declval<std::ostream&>() << std::declval<T>())>
+inline std::ostream& operator<<(std::ostream& stream, const Expected<T>& expected) {
+    if (expected) {
+        stream << expected.value();
+    } else {
+        stream << expected.error();
+    }
+    return stream;
+}
+
+/// \brief Constructs an unexpected value of given type, given error message as std::string.
+///
+/// For other type of error messages, use constructor of Expected.
 template <typename Type>
 Expected<Type> makeUnexpected(const std::string& error) {
     return Expected<Type>(UNEXPECTED, error);

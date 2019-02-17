@@ -8,9 +8,11 @@
 #include "objects/finders/Bvh.h"
 #include "sph/kernel/Kernel.h"
 #include "thread/ThreadLocal.h"
+#include <atomic>
 
 NAMESPACE_SPH_BEGIN
 
+class FrameBuffer;
 class IBrdf;
 
 class RayTracer : public IRenderer {
@@ -18,50 +20,61 @@ private:
     /// BVH for finding intersections of rays with particles
     Bvh<BvhSphere> bvh;
 
-    /// Finds for finding neighbours of intersected particles
-    /// \todo we need to share finders! Right now we can have finder in SPH, gravity, density sum colorizer
-    /// and here
+    /// Finder for finding neighbours of intersected particles
     AutoPtr<IBasicFinder> finder;
 
     LutKernel<3> kernel;
 
+    /// \brief Parameters fixed for the renderer.
+    ///
+    /// Note that additional parameters which can differ for each rendered image are passed to \ref render.
     struct {
-        /// Iso-level of the surface; see GuiSettingsId::SURFACE_LEVEL.
-        Float surfaceLevel;
 
         /// Direction to sun; sun is assumed to be a point light source.
         Vector dirToSun;
 
-        /// Ambient light illuminating every point unconditionally.
-        Float ambientLight;
-
         /// BRDF used to get the surface reflectance.
         AutoPtr<IBrdf> brdf;
 
-        /// HDRI for the background. Can be empty.
-        Texture hdri;
+        struct {
+
+            Rgba color = Rgba::black();
+
+            /// HDRI for the background. Can be empty.
+            Texture hdri;
+
+        } enviro;
 
         /// Textures of the rendered bodies. Can be empty. The textures are assigned to the bodies using their
         /// flags (not material IDs).
         Array<Texture> textures;
 
         /// Cast shadows
-        bool shadows = true;
+        bool shadows = false;
 
-    } params;
+        /// Number of iterations of the progressive renderer.
+        Size iterationLimit;
+
+        /// Number of subsampled iterations.
+        Size subsampling;
+
+    } fixed;
+
+    IScheduler& scheduler;
 
     struct ThreadData {
+        /// Neighbour indices of the current particle
         Array<Size> neighs;
 
+        /// Intersection for the current ray
         std::set<IntersectionInfo> intersections;
 
+        /// Cached index of the previously evaluated particle, used for optimizations.
         Size previousIdx;
-    };
 
-    /// Thread pool for parallelization; we need to use a custom instance instead of the global one as there
-    /// is currently no way to wait for just some tasks - using the global instance could clash with the
-    /// simulation tasks,
-    mutable ThreadPool pool;
+        /// Random-number generator for this thread.
+        UniformRng rng;
+    };
 
     mutable ThreadLocal<ThreadData> threadData;
 
@@ -70,8 +83,9 @@ private:
         Array<Vector> r;
 
         /// Particle colors
-        Array<Color> colors;
+        Array<Rgba> colors;
 
+        /// Mapping coordinates. May be empty.
         Array<Vector> uvws;
 
         /// Particle volume (=mass/density)
@@ -82,8 +96,10 @@ private:
 
     } cached;
 
+    mutable std::atomic_bool shouldContinue;
+
 public:
-    explicit RayTracer(const GuiSettings& settings);
+    explicit RayTracer(IScheduler& scheduler, const GuiSettings& settings);
 
     ~RayTracer();
 
@@ -91,21 +107,14 @@ public:
         const IColorizer& colorizer,
         const ICamera& camera) override;
 
-    virtual SharedPtr<wxBitmap> render(const ICamera& camera,
-        const RenderParams& params,
-        Statistics& stats) const override;
+    virtual void render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const override;
+
+    virtual void cancelRender() override {
+        shouldContinue = false;
+    }
 
 private:
-    struct ShadeContext {
-        /// Particle hit by the ray
-        Size index;
-
-        /// Ray casted from the camera
-        Ray ray;
-
-        /// Distance of the sphere hit, i.e. the minimap distance of the actual hit.
-        Float t_min;
-    };
+    void refine(const RenderParams& params, const Size iteration, FrameBuffer& fb) const;
 
     /// \param Creates a neighbour list for given particle.
     ///
@@ -116,23 +125,46 @@ private:
     /// \brief Returns the intersection of the iso-surface.
     ///
     /// If no intersection exists, function returns NOTHING.
-    Optional<Vector> intersect(ThreadData& data, const Ray& ray, const bool occlusion) const;
+    Optional<Vector> intersect(ThreadData& data,
+        const Ray& ray,
+        const Float surfaceLevel,
+        const bool occlusion) const;
+
+    struct IntersectContext {
+        /// Particle hit by the ray.
+        Size index;
+
+        /// Ray casted from the camera.
+        Ray ray;
+
+        /// Distance of the sphere hit, i.e. the minimap distance of the actual hit.
+        Float t_min;
+
+        /// Selected value of the iso-surface.
+        Float surfaceLevel;
+    };
 
     /// \brief Finds the actual surface point for given shade context.
     ///
     /// If no such point exists, function returns NOTHING.
-    Optional<Vector> getSurfaceHit(ThreadData& data, const ShadeContext& context, const bool occlusion) const;
+    Optional<Vector> getSurfaceHit(ThreadData& data,
+        const IntersectContext& context,
+        const bool occlusion) const;
 
     /// \brief Returns the color of given hit point.
-    Color shade(ThreadData& data, const Size index, const Vector& hit, const Vector& dir) const;
+    Rgba shade(ThreadData& data,
+        const RenderParams& params,
+        const Size index,
+        const Vector& hit,
+        const Vector& dir) const;
 
-    Color getEnviroColor(const Ray& ray) const;
+    Rgba getEnviroColor(const Ray& ray) const;
 
     Float evalField(ArrayView<const Size> neighs, const Vector& pos) const;
 
     Vector evalGradient(ArrayView<const Size> neighs, const Vector& pos) const;
 
-    Color evalColor(ArrayView<const Size> neighs, const Vector& pos1) const;
+    Rgba evalColor(ArrayView<const Size> neighs, const Vector& pos1) const;
 
     Vector evalUvws(ArrayView<const Size> neighs, const Vector& pos1) const;
 };

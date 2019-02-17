@@ -18,9 +18,7 @@ NAMESPACE_SPH_BEGIN
 class BruteForceFinder : public FinderTemplate<BruteForceFinder> {
 protected:
     // no need to implement these for brute force
-    virtual void buildImpl(ArrayView<const Vector> UNUSED(values)) override {}
-
-    virtual void rebuildImpl(ArrayView<const Vector> UNUSED(values)) override {}
+    virtual void buildImpl(IScheduler& UNUSED(scheduler), ArrayView<const Vector> UNUSED(values)) override {}
 
 public:
     template <bool FindAll>
@@ -33,9 +31,6 @@ public:
         }
         return neighs.size();
     }
-
-    /// Updates the structure when the position change.
-    virtual void rebuild() {}
 };
 
 NAMESPACE_SPH_END

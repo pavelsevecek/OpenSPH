@@ -1,279 +1,181 @@
 #pragma once
 
+#include "io/Logger.h"
+#include "objects/Exceptions.h"
 #include "objects/containers/FlatMap.h"
-#include "objects/utility/StringUtils.h"
+#include "objects/wrappers/Function.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "objects/wrappers/Variant.h"
+#include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
 
 enum class ArgEnum {
+    NONE, ///< No value after the argument
+    BOOL,
     INT,
     FLOAT,
     STRING,
 };
 
-INLINE std::string toString(const ArgEnum type) {
-    switch (type) {
-    case ArgEnum::INT:
-        return "Int";
-    case ArgEnum::FLOAT:
-        return "Float";
-    case ArgEnum::STRING:
-        return "String";
-    default:
-        NOT_IMPLEMENTED;
-    }
-}
 
-using ArgValue = Variant<int, float, std::string>;
-
-/// Exception thrown if the arguments are invalid
-class ArgsError : public std::exception {
-private:
-    std::string message;
-
+/// \brief Exception thrown if the arguments are invalid
+class ArgError : public Exception {
 public:
-    explicit ArgsError(const std::string& message)
-        : message(message) {}
+    explicit ArgError(const std::string& message)
+        : Exception(message) {}
+};
 
-    virtual const char* what() const noexcept override {
-        return message.c_str();
+/// \brief Descriptor of a command-line argument.
+struct ArgDesc {
+    /// Short name, prefixed by single dash (e.g. -h)
+    std::string shortName;
+
+    /// Long name, prefixed by double-dash (e.g. --help)
+    std::string longName;
+
+    /// Type of the parameter
+    ArgEnum type;
+
+    /// Parameter description, printed in help
+    std::string desc;
+
+    /// Generic callback executed when the parameter is parsed
+    Function<void()> callback = nullptr;
+
+    /// \brief Checks if the descriptor matches given argument.
+    bool matches(const std::string& name) {
+        return (name == "-" + shortName) || (name == "--" + longName);
     }
 };
 
-class IArg : public Polymorphic {
+/// \brief Provides functions for parsing command-line arguments.
+class ArgParser {
+private:
+    using ArgValue = Variant<int, Float, bool, std::string>;
+
+    /// Input argument descriptors
+    Array<ArgDesc> descs;
+
+    /// Parsed argument values
+    FlatMap<std::string, ArgValue> params;
+
 public:
-    /// \brief Tries to parse this argument.
+    /// \brief Creates a parser, given a set of parameter descriptors.
     ///
-    /// If the argument matches, the parsed value is returned and the input arrayview is moved to the next
-    /// argument. Otherwise, NOTHING is returned.
-    virtual Optional<ArgValue> tryParse(ArrayView<char*>& args) const = 0;
+    /// The "help" parameter (-h or --help) is automatically added into the set. It can be used to print the
+    /// program help, using data provided in the descriptors.
+    explicit ArgParser(ArrayView<const ArgDesc> args);
 
-    virtual bool isNamed() const = 0;
+    /// \brief Parses the input arguments and stored the parsed values.
+    ///
+    /// Parsed values can be later queried using \ref getArg or \ref forEach functions. Previous values are
+    /// removed.
+    /// \throw ArgError if the input is not valid.
+    void parse(const int argc, char** argv);
 
-    virtual bool isOptional() const = 0;
-};
+    /// \brief Prints the help information into given logger.
+    ///
+    /// This is automatically called when \ref parse is called with argument -h or --help.
+    void printHelp(ILogger& logger);
 
-static Optional<ArgValue> tryParseValue(const ArgEnum type, const std::string& s) {
-    switch (type) {
-    case ArgEnum::INT: {
-        Optional<int> value = fromString<int>(s);
-        if (value) {
-            return value.value();
+    /// \brief Returns the value of an argument, given its short name (without the dash).
+    ///
+    /// \throw ArgError if the argument was not been parsed or it has different type.
+    template <typename TValue>
+    TValue getArg(const std::string& name) const {
+        Optional<const ArgValue&> value = params.tryGet(name);
+        if (value && value->has<TValue>()) {
+            return value->get<TValue>();
         } else {
-            return NOTHING;
+            const std::string message = value ? "Invalid type of argument" : "Invalid argument name: " + name;
+            throw ArgError(message);
         }
     }
-    case ArgEnum::FLOAT: {
-        Optional<float> value = fromString<float>(s);
+
+    /// \brief Retunrs the value of an argument or NOTHING if the argument was not parsed.
+    ///
+    /// \throw ArgError if the name does not match any argument descriptor or it has different type.
+    template <typename TValue>
+    Optional<TValue> tryGetArg(const std::string& name) const {
+        throwIfUnknownArg(name);
+        Optional<const ArgValue&> value = params.tryGet(name);
         if (value) {
-            return value.value();
-        } else {
-            return NOTHING;
-        }
-    }
-    case ArgEnum::STRING: {
-        Optional<std::string> value = fromString<std::string>(s);
-        if (value) {
-            return value.value();
-        } else {
-            return NOTHING;
-        }
-    }
-    default:
-        NOT_IMPLEMENTED;
-    }
-}
-
-class NamedArg : public IArg {
-private:
-    ArgEnum _type;
-    std::string _shortName;
-    std::string _longName;
-
-public:
-    NamedArg(const ArgEnum type, const std::string& shortName, const std::string& longName)
-        : _type(type)
-        , _shortName(shortName)
-        , _longName(longName) {}
-
-    virtual Optional<ArgValue> tryParse(ArrayView<char*>& args) const override {
-        if (args.size() < 2) {
-            throw ArgsError(std::string("Missing value of parameter ") + args[0]);
-        }
-        if (args[0] == _shortName || args[0] == _longName) {
-            Optional<ArgValue> parsedValue = tryParseValue(_type, args[1]);
-            if (parsedValue) {
-                args = args.subset(2, args.size() - 2);
-                return parsedValue;
-            } else {
-                throw ArgsError("Invalid parameter, expected " + toString(_type) + ", got + " + args[1]);
+            if (!value->has<TValue>()) {
+                throw ArgError("Invalid type");
             }
+            return value->get<TValue>();
+        } else {
+            return NOTHING;
         }
-        return NOTHING;
     }
 
-    virtual bool isNamed() const override {
-        return true;
-    }
-
-    virtual bool isOptional() const override {
-        return true;
-    }
-};
-
-enum class OptionalEnum {
-    OPTIONAL,
-    MANDATORY,
-};
-
-class UnnamedArg : public IArg {
-private:
-    ArgEnum _type;
-    OptionalEnum _optional;
-
-public:
-    UnnamedArg(const ArgEnum type, const OptionalEnum optional)
-        : _type(type)
-        , _optional(optional) {}
-
-    virtual Optional<ArgValue> tryParse(ArrayView<char*>& args) const override {
-        ASSERT(!args.empty());
-        Optional<ArgValue> parsedValue = tryParseValue(_type, args[0]);
-        if (parsedValue) {
-            args = args.subset(1, args.size() - 1);
-            return parsedValue;
-        } else if (_optional == OptionalEnum::MANDATORY) {
-            throw ArgsError("Invalid parameter, expected " + toString(_type) + ", got " + args[0]);
+    /// \brief Stores the value of given argument into an instance of \ref Settings.
+    ///
+    /// If the value was not parsed, no value is stored and function returns false. Otherwise, true is
+    /// returned.
+    /// \param settings \ref Settings object where the parsed value is stored (if present).
+    /// \param name Short name identifying the argument.
+    /// \param idx Index of the target entry in \ref Settings.
+    /// \param conv Generic value convertor, applied on value saved to \ref Settings. Applied only on float
+    ///             arguments.
+    /// \throw ArgError if the name does not match any argument descriptor.
+    template <typename TEnum, typename TConvertor>
+    bool tryStore(Settings<TEnum>& settings, const std::string& name, const TEnum idx, TConvertor&& conv) {
+        throwIfUnknownArg(name);
+        auto value = params.tryGet(name);
+        if (value) {
+            // special handling of floats - convert units
+            if (value->has<Float>()) {
+                settings.set(idx, conv(value->get<Float>()));
+            } else {
+                forValue(value.value(), [&settings, idx](auto& value) { settings.set(idx, value); });
+            }
+            return true;
         }
-        return NOTHING;
-    }
-
-    virtual bool isNamed() const override {
         return false;
     }
 
-    virtual bool isOptional() const override {
-        return _optional == OptionalEnum::OPTIONAL;
+    /// \brief Stores the value of given argument into an instance of \ref Settings.
+    ///
+    /// Overload without value convertor.
+    template <typename TEnum>
+    bool tryStore(Settings<TEnum>& settings, const std::string& name, const TEnum idx) {
+        return tryStore(settings, name, idx, [](Float value) { return value; });
     }
-};
 
-template <typename TEnum>
-class Arg {
+    /// \brief Enumerates all parsed arguments and executes a generic functor with parsed values.
+    ///
+    /// Functor must be either generic lambda, or it must overload operator() for each parsed type, as listed
+    /// in enum \ref ArgEnum. The operator must have signature void(std::string, Type). The arguments are
+    /// identified using its short name, without the dash.
+    template <typename TFunctor>
+    void forEach(const TFunctor& functor) {
+        for (auto& e : params) {
+            forValue(e.value, [&e, &functor](auto& value) { functor(e.key, value); });
+        }
+    }
+
+    /// \brief Returns the number of parsed arguments.
+    Size size() const {
+        return params.size();
+    }
+
+    /// \brief Returns true if no arguments have been parsed.
+    bool empty() const {
+        return params.empty();
+    }
+
 private:
-    TEnum _id;
-    SharedPtr<IArg> _impl;
+    void parseValuelessArg(const ArgDesc& desc);
 
-public:
-    /// \brief Creates a named argument.
-    Arg(const TEnum id, const ArgEnum type, const std::string& shortName, const std::string& longName = "")
-        : _id(id) {
-        _impl = makeShared<NamedArg>(type, shortName, longName);
-    }
+    void parseValueArg(const ArgDesc& desc, const std::string& value);
 
-    /// \brief Creates an unnamed argument.
-    Arg(const TEnum id, const ArgEnum type, const OptionalEnum optional)
-        : _id(id) {
-        _impl = makeShared<UnnamedArg>(type, optional);
-    }
+    template <typename TValue>
+    void insertArg(const std::string& name, const std::string& textValue);
 
-    Optional<ArgValue> tryParse(ArrayView<char*>& args) {
-        return _impl->tryParse(args);
-    }
-
-    TEnum id() const {
-        return _id;
-    }
-
-    bool isNamed() const {
-        return _impl->isNamed();
-    }
-
-    bool isOptional() const {
-        return _impl->isOptional();
-    }
+    void throwIfUnknownArg(const std::string& name) const;
 };
 
-template <typename TEnum>
-class ArgsParser {
-private:
-    Array<Arg<TEnum>> _namedArgs;
-    Array<Arg<TEnum>> _unnamedArgs;
-
-public:
-    ArgsParser(Array<Arg<TEnum>>&& args) {
-        for (auto& a : args) {
-            if (a.isNamed()) {
-                _namedArgs.emplaceBack(std::move(a));
-            } else {
-                _unnamedArgs.emplaceBack(std::move(a));
-            }
-        }
-    }
-
-    FlatMap<TEnum, ArgValue> parse(int argc, char** argv) {
-        FlatMap<TEnum, ArgValue> map;
-        if (argc == 0) {
-            throw ArgsError("Empty parameter list");
-        }
-        ArrayView<char*> argsView(argv + 1, argc - 1);
-
-        // keep track of already parsed args to avoid duplicates
-        Array<bool> namedParsed(_namedArgs.size());
-        namedParsed.fill(false);
-        Array<bool> unnamedParsed(_unnamedArgs.size());
-        unnamedParsed.fill(false);
-
-        while (!argsView.empty()) {
-            bool matchFound = false;
-            if (argsView[0][0] == '-') {
-                for (Size i = 0; i < _namedArgs.size(); ++i) {
-                    Arg<TEnum>& a = _namedArgs[i];
-                    Optional<ArgValue> parsedValue = a.tryParse(argsView);
-                    if (parsedValue) {
-                        if (!namedParsed[i]) {
-                            map.insert(a.id(), parsedValue.value());
-                            namedParsed[i] = true;
-                            matchFound = true;
-                            break;
-                        } else {
-                            throw ArgsError(std::string("Duplicate parameter: ") + argsView[0]);
-                        }
-                    }
-                }
-                if (!matchFound) {
-                    throw ArgsError(std::string("Unknown parameter: ") + argsView[0]);
-                }
-            } else {
-                for (Size i = 0; i < _unnamedArgs.size(); ++i) {
-                    if (unnamedParsed[i]) {
-                        continue;
-                    }
-                    Arg<TEnum>& a = _unnamedArgs[i];
-                    Optional<ArgValue> parsedValue = a.tryParse(argsView);
-                    if (parsedValue) {
-                        map.insert(a.id(), parsedValue.value());
-                        matchFound = true;
-                        unnamedParsed[i] = true;
-                        break;
-                    }
-                }
-                if (!matchFound) {
-                    // too many unnamed parameters?
-                    throw ArgsError(std::string("Invalid parameter: ") + argsView[0]);
-                }
-            }
-        }
-
-        // check that all mandatory unnamed parameters has been parsed
-        for (Size i = 0; i < _unnamedArgs.size(); ++i) {
-            if (!_unnamedArgs[i].isNamed() && !_unnamedArgs[i].isOptional() && !unnamedParsed[i]) {
-                throw ArgsError("Too few parameters");
-            }
-        }
-        return map;
-    }
-};
 
 NAMESPACE_SPH_END

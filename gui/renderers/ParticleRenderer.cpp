@@ -1,21 +1,26 @@
 #include "gui/renderers/ParticleRenderer.h"
+#include "gui/Utils.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Color.h"
 #include "gui/objects/Colorizer.h"
+#include "gui/objects/RenderContext.h"
 #include "objects/finders/Order.h"
+#include "objects/wrappers/Finally.h"
+#include "post/Plot.h"
 #include "post/Point.h"
+#include "sph/boundary/Boundary.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
-#include "system/Profiler.h"
-#include <wx/dcmemory.h>
 
 NAMESPACE_SPH_BEGIN
 
-
-static void drawVector(wxDC& dc, const ICamera& camera, const Vector& r, const Vector& v) {
-    const Float scale = getLength(v);
-    if (scale < EPS) {
+static void drawVector(IRenderContext& context,
+    const ICamera& camera,
+    const Vector& r,
+    const Vector& v,
+    const float length) {
+    if (getSqrLength(v) == 0._f) {
         return;
     }
     const Optional<ProjectedPoint> p1 = camera.project(r);
@@ -23,53 +28,83 @@ static void drawVector(wxDC& dc, const ICamera& camera, const Vector& r, const V
     if (!p1 || !p2) {
         return;
     }
-    wxPen pen = dc.GetPen();
-    pen.SetColour(wxColour(255, 165, 0));
-    pen.SetWidth(2);
-    dc.SetPen(pen);
-    dc.DrawLine(p1->point, p2->point);
+
+    Coords dir = p2->coords - p1->coords;
+    const Float l = getLength(dir);
+    if (l == 0._f) {
+        return;
+    }
+    dir *= length / l;
+    const Coords c1 = p1->coords;
+    const Coords c2 = p1->coords + dir;
+
+    context.setColor(Rgba(1.f, 0.65f, 0.f), ColorFlag::LINE);
+    context.setThickness(2.f);
+    context.drawLine(c1, c2);
 
     // make an arrow
-    AffineMatrix2 rot = AffineMatrix2::rotate(20._f * DEG_TO_RAD);
-    Point dp = p1->point - p2->point;
-    PlotPoint dir(dp.x, dp.y);
-    PlotPoint a1 = rot.transformPoint(dir) * 0.1f;
-    PlotPoint a2 = rot.transpose().transformPoint(dir) * 0.1f;
+    AffineMatrix2 rot = AffineMatrix2::rotate(160._f * DEG_TO_RAD);
+    PlotPoint dp(dir.x, dir.y);
+    PlotPoint a1 = rot.transformPoint(dp) * 0.1f;
+    PlotPoint a2 = rot.transpose().transformPoint(dp) * 0.1f;
 
-    dc.DrawLine(p2->point, p2->point + Point(a1.x, a1.y));
-    dc.DrawLine(p2->point, p2->point + Point(a2.x, a2.y));
+    context.drawLine(c2, c2 + Coords(a1.x, a1.y));
+    context.drawLine(c2, c2 + Coords(a2.x, a2.y));
 }
 
-static void drawPalette(wxDC& dc, const Palette& palette) {
-    const int size = 201;
-    wxPoint origin(dc.GetSize().x - 50, size + 30);
-    wxPen pen = dc.GetPen();
-    wxFont font = dc.GetFont();
-    font.MakeSmaller();
-    dc.SetFont(font);
-    for (Size i = 0; i < size; ++i) {
-        const float value = palette.getInterpolatedValue(float(i) / (size - 1));
-        wxColour color = wxColour(palette(value));
-        pen.SetColour(color);
-        dc.SetPen(pen);
-        dc.DrawLine(wxPoint(origin.x, origin.y - i), wxPoint(origin.x + 30, origin.y - i));
-        if (i % 50 == 0) {
-            dc.SetPen(*wxWHITE_PEN);
-            dc.DrawLine(wxPoint(origin.x, origin.y - i), wxPoint(origin.x + 6, origin.y - i));
-            dc.DrawLine(wxPoint(origin.x + 24, origin.y - i), wxPoint(origin.x + 30, origin.y - i));
-            dc.SetTextForeground(wxColour(Color::white()));
-            // wxFont font(9, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
+void drawPalette(IRenderContext& context,
+    const Pixel origin,
+    const Pixel size,
+    const Rgba& lineColor,
+    const Palette& palette) {
 
-            std::wstring text = toPrintableString(value, 1, 1000);
-            wxSize extent = dc.GetTextExtent(text);
-            drawTextWithSubscripts(dc, text, wxPoint(origin.x - 75, origin.y - i - (extent.y >> 1)));
+    // draw palette
+    for (int i = 0; i < size.y; ++i) {
+        const float value = palette.relativeToPalette(float(i) / (size.y - 1));
+        context.setColor(palette(value), ColorFlag::LINE);
+        context.drawLine(Coords(origin.x, origin.y - i), Coords(origin.x + size.x, origin.y - i));
+    }
+
+    // draw tics
+    const Interval interval = palette.getInterval();
+    const PaletteScale scale = palette.getScale();
+
+    Array<Float> tics;
+    switch (scale) {
+    case PaletteScale::LINEAR:
+        tics = getLinearTics(interval, 4);
+        break;
+    case PaletteScale::LOGARITHMIC:
+        tics = getLogTics(interval, 4);
+        break;
+    case PaletteScale::HYBRID: {
+        const Size ticsCnt = 5;
+        // tics currently not implemented, so just split the range to equidistant steps
+        for (Size i = 0; i < ticsCnt; ++i) {
+            tics.push(palette.relativeToPalette(float(i) / (ticsCnt - 1)));
         }
+        break;
+    }
+    default:
+        NOT_IMPLEMENTED;
+    }
+    context.setColor(lineColor, ColorFlag::LINE | ColorFlag::TEXT);
+    for (Float tic : tics) {
+        const Float value = palette.paletteToRelative(tic);
+        const int i = value * size.y;
+        context.drawLine(Coords(origin.x, origin.y - i), Coords(origin.x + 6, origin.y - i));
+        context.drawLine(
+            Coords(origin.x + size.x - 6, origin.y - i), Coords(origin.x + size.x, origin.y - i));
+
+        std::wstring text = toPrintableString(tic, 1, 1000);
+        context.drawText(
+            Coords(origin.x - 15, origin.y - i), TextAlign::LEFT | TextAlign::VERTICAL_CENTER, text);
     }
 }
 
-static void drawGrid(wxDC& dc, const ICamera& camera, const float grid) {
+static void drawGrid(IRenderContext& context, const ICamera& camera, const float grid) {
     // find (any) direction in the camera plane
-    const CameraRay originRay = camera.unproject(Point(0, 0));
+    const CameraRay originRay = camera.unproject(Coords(0, 0));
     const Vector dir = getNormalized(originRay.target - originRay.origin);
     Vector perpDir;
     if (dir == Vector(0._f, 0._f, 1._f)) {
@@ -79,35 +114,37 @@ static void drawGrid(wxDC& dc, const ICamera& camera, const float grid) {
     }
 
     // find how much is projected grid distance
-    const Point shifted = camera.project(originRay.origin + grid * perpDir)->point;
+    const Coords shifted = camera.project(originRay.origin + grid * perpDir)->coords;
     const float dx = getLength(shifted);
     const float dy = dx;
-    const Point origin = camera.project(Vector(0._f))->point;
+    const Coords origin = camera.project(Vector(0._f))->coords;
 
-    wxPen pen(*wxWHITE_PEN);
-    pen.SetColour(wxColour(40, 40, 40));
-    dc.SetPen(pen);
-    for (float x = origin.x; x < dc.GetSize().x; x += dx) {
-        dc.DrawLine(wxPoint(x, 0), wxPoint(x, dc.GetSize().y));
+    context.setColor(Rgba(0.16_f), ColorFlag::LINE);
+    const Pixel size = context.size();
+    for (float x = origin.x; x < size.x; x += dx) {
+        context.drawLine(Coords(x, 0), Coords(x, size.y));
     }
     for (float x = origin.x - dx; x >= 0; x -= dx) {
-        dc.DrawLine(wxPoint(x, 0), wxPoint(x, dc.GetSize().y));
+        context.drawLine(Coords(x, 0), Coords(x, size.y));
     }
-    for (float y = origin.y; y < dc.GetSize().y; y += dy) {
-        dc.DrawLine(wxPoint(0, y), wxPoint(dc.GetSize().x, y));
+    for (float y = origin.y; y < size.y; y += dy) {
+        context.drawLine(Coords(0, y), Coords(size.x, y));
     }
     for (float y = origin.y - dy; y >= 0; y -= dy) {
-        dc.DrawLine(wxPoint(0, y), wxPoint(dc.GetSize().x, y));
+        context.drawLine(Coords(0, y), Coords(size.x, y));
     }
 }
 
 ParticleRenderer::ParticleRenderer(const GuiSettings& settings) {
-    cutoff = settings.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
     grid = settings.get<Float>(GuiSettingsId::VIEW_GRID_SIZE);
+    background = settings.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
+    renderGhosts = settings.get<bool>(GuiSettingsId::RENDER_GHOST_PARTICLES);
+    shouldContinue = true;
 }
 
-bool ParticleRenderer::isCutOff(const ICamera& camera, const Vector& r) {
-    return cutoff != 0._f && abs(dot(camera.getDirection(), r)) > cutoff;
+static bool isCutOff(const ICamera& camera, const Vector& r) {
+    const Optional<float> cutoff = camera.getCutoff();
+    return cutoff && abs(dot(camera.getDirection(), r)) > cutoff.value();
 }
 
 void ParticleRenderer::initialize(const Storage& storage,
@@ -122,11 +159,12 @@ void ParticleRenderer::initialize(const Storage& storage,
     bool hasVectorData = false;
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
-        const Color color = colorizer.evalColor(i);
         const Optional<ProjectedPoint> p = camera.project(r[i]);
-        if (p && !this->isCutOff(camera, r[i])) {
+        if (p && !isCutOff(camera, r[i])) {
             cached.idxs.push(i);
             cached.positions.push(r[i]);
+
+            const Rgba color = colorizer.evalColor(i);
             cached.colors.push(color);
 
             if (Optional<Vector> v = colorizer.evalVector(i)) {
@@ -137,6 +175,23 @@ void ParticleRenderer::initialize(const Storage& storage,
             }
         }
     }
+
+    if (renderGhosts) {
+        SharedPtr<IStorageUserData> data = storage.getUserData();
+        if (RawPtr<GhostParticlesData> ghosts = dynamicCast<GhostParticlesData>(data.get())) {
+            for (Size i = 0; i < ghosts->size(); ++i) {
+                const Vector pos = ghosts->getGhost(i).position;
+                const Optional<ProjectedPoint> p = camera.project(pos);
+                if (p && !isCutOff(camera, pos)) {
+                    cached.idxs.push(Size(-1));
+                    cached.positions.push(pos);
+                    cached.colors.push(Rgba::transparent());
+                    cached.vectors.push(Vector(0._f));
+                }
+            }
+        }
+    }
+
     // sort in z-order
     const Vector dir = camera.getDirection();
     Order order(cached.positions.size());
@@ -158,21 +213,23 @@ void ParticleRenderer::initialize(const Storage& storage,
     cached.palette = colorizer.getPalette();
 }
 
-SharedPtr<wxBitmap> ParticleRenderer::render(const ICamera& camera,
-    const RenderParams& params,
-    Statistics& stats) const {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const {
     MEASURE_SCOPE("ParticleRenderer::render");
-    const wxSize size(params.size.x, params.size.y);
-    SharedPtr<wxBitmap> bitmap = makeShared<wxBitmap>(size, 24);
-    wxMemoryDC dc(*bitmap);
+    Bitmap<Rgba> bitmap(params.size);
+    PreviewRenderContext context(bitmap);
 
-    // draw black background (there is no fill method?)
-    dc.SetBrush(*wxBLACK_BRUSH);
-    dc.DrawRectangle(wxPoint(0, 0), size);
+    // fill with the background color
+    context.fill(background);
+
+    // black frame
+    context.setColor(Rgba::black(), ColorFlag::LINE);
+    context.drawLine(Coords(0, 0), Coords(params.size.x - 1, 0));
+    context.drawLine(Coords(params.size.x - 1, 0), Coords(params.size.x - 1, params.size.y - 1));
+    context.drawLine(Coords(params.size.x - 1, params.size.y - 1), Coords(0, params.size.y - 1));
+    context.drawLine(Coords(0, params.size.y - 1), Coords(0, 0));
 
     if (grid > 0.f) {
-        drawGrid(dc, camera, grid);
+        drawGrid(context, *params.camera, grid);
     }
 
     struct {
@@ -181,54 +238,66 @@ SharedPtr<wxBitmap> ParticleRenderer::render(const ICamera& camera,
         bool used = false;
     } dir;
 
-    wxBrush brush(*wxBLACK_BRUSH);
-    wxPen pen(*wxBLACK_PEN);
+    context.setColor(Rgba::black(), ColorFlag::LINE);
+
+    shouldContinue = true;
     // draw particles
-    for (Size i = 0; i < cached.positions.size(); ++i) {
-        if (params.selectedParticle && cached.idxs[i] == params.selectedParticle.value()) {
+    for (Size i = 0; i < cached.positions.size() /* && shouldContinue*/; ++i) {
+        if (params.particles.selected && cached.idxs[i] == params.particles.selected.value()) {
             // highlight the selected particle
-            brush.SetColour(*wxRED);
-            pen.SetColour(*wxWHITE);
+            context.setColor(Rgba::red(), ColorFlag::FILL);
+            context.setColor(Rgba::white(), ColorFlag::LINE);
 
             if (!cached.vectors.empty()) {
                 dir.used = true;
-                if (params.vectors.toLog) {
-                    Float len;
-                    tieToTuple(dir.v, len) = getNormalizedWithLength(cached.vectors[i]);
-                    dir.v = dir.v * log(1._f + len) * params.vectors.scale;
-                } else {
-                    dir.v = cached.vectors[i] * params.vectors.scale;
-                }
+                dir.v = cached.vectors[i];
                 dir.r = cached.positions[i];
             }
         } else {
-            brush.SetColour(wxColour(cached.colors[i]));
-            pen.SetColour(wxColour(cached.colors[i]));
+            Rgba color = cached.colors[i];
+            if (params.particles.grayScale) {
+                color = Rgba(color.intensity());
+            }
+            context.setColor(color, ColorFlag::FILL | ColorFlag::LINE);
+            if (cached.idxs[i] == Size(-1)) {
+                // ghost
+                context.setColor(Rgba::gray(0.7_f), ColorFlag::LINE);
+            }
         }
-        dc.SetBrush(brush);
-        dc.SetPen(pen);
-        const Optional<ProjectedPoint> p = camera.project(cached.positions[i]);
+
+        const Optional<ProjectedPoint> p = params.camera->project(cached.positions[i]);
         ASSERT(p); // cached values must be visible by the camera
-        const int size = round(p->radius * params.particles.scale);
-        if (size == 0) {
-            dc.DrawPoint(p->point);
-        } else {
-            dc.DrawCircle(p->point, size);
-        }
+        const Float size = p->radius * params.particles.scale;
+        context.drawCircle(p->coords, size);
     }
     // after all particles are drawn, draw the velocity vector over
     if (dir.used) {
-        drawVector(dc, camera, dir.r, dir.v);
+        drawVector(context, *params.camera, dir.r, dir.v, params.vectors.length);
     }
 
     if (cached.palette) {
-        drawPalette(dc, cached.palette.value());
+        const Pixel origin(context.size().x - 50, 231);
+        Palette palette;
+        if (params.particles.grayScale) {
+            palette = cached.palette->transform([](const Rgba& color) { return Rgba(color.intensity()); });
+        } else {
+            palette = cached.palette.value();
+        }
+        drawPalette(context, origin, Pixel(30, 201), background.inverse(), palette);
     }
-    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
-    dc.DrawText(("t = " + std::to_string(time) + "s").c_str(), wxPoint(0, 0));
 
-    dc.SelectObject(wxNullBitmap);
-    return bitmap;
+    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
+    const Flags<TextAlign> flags = TextAlign::RIGHT | TextAlign::BOTTOM;
+    context.setColor(background.inverse(), ColorFlag::TEXT);
+    context.drawText(Coords(0, 0), flags, "t = " + getFormattedTime(1.e3_f * time));
+    context.drawText(
+        Coords(0, 16), flags, L"fov = " + toPrintableString(params.camera->getFov().value(), 1, 1000));
+
+    output.update(bitmap, context.getLabels());
+}
+
+void ParticleRenderer::cancelRender() {
+    shouldContinue = false;
 }
 
 NAMESPACE_SPH_END

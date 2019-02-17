@@ -17,18 +17,21 @@ NAMESPACE_SPH_BEGIN
 /// \brief Interface providing generic (text, human readable) output of the program.
 ///
 /// It's meant for logging current time, some statistics of the simulation, encountered warnings and errors,
-/// etc. For output of particle quantities, use IOutput.
+/// etc. For output of particle quantities, use \ref IOutput.
 class ILogger : public Polymorphic, public Noncopyable {
 private:
     Size precision = PRECISION;
     bool scientific = true;
 
 public:
-    /// Logs a string message.
+    /// \brief Logs a string message.
+    ///
     /// \todo different types (log, warning, error, ...) and levels of verbosity
     virtual void writeString(const std::string& s) = 0;
 
-    /// Creates and logs message by concating arguments. Adds a new line to the output.
+    /// \brief Creates and logs a message by concatenating arguments.
+    ///
+    /// Adds a new line to the output.
     template <typename... TArgs>
     void write(TArgs&&... args) {
         std::stringstream ss;
@@ -37,12 +40,14 @@ public:
         this->writeString(ss.str());
     }
 
-    /// Changes the precision of printed numbers. The default value is given by global PRECISION constant.
+    /// \brief Changes the precision of printed numbers.
+    ///
+    /// The default value is given by global PRECISION constant.
     void setPrecision(const Size newPrecision) {
         precision = newPrecision;
     }
 
-    /// Sets/unsets scientific notation
+    /// \brief Sets/unsets scientific notation
     void setScientific(const bool newScientific) {
         scientific = newScientific;
     }
@@ -150,20 +155,6 @@ public:
     std::string toString() const;
 };
 
-/// Exception thrown by FileLogger
-class IoError : public std::exception {
-private:
-    std::string message;
-
-public:
-    explicit IoError(const std::string& message)
-        : message(message) {}
-
-    virtual const char* what() const noexcept override {
-        return message.c_str();
-    }
-};
-
 /// File output logger
 class FileLogger : public ILogger {
 public:
@@ -220,7 +211,7 @@ public:
     }
 };
 
-class DummyLogger : public ILogger {
+class NullLogger : public ILogger {
     virtual void writeString(const std::string& UNUSED(s)) override {}
 };
 

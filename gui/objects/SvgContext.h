@@ -16,16 +16,14 @@ class SvgPath : public IDrawPath {
 private:
     wxSVGFileDC& dc;
     AffineMatrix2 matrix;
-    Size pointSize;
 
     PlotPoint prev{ -1, -1 };
     PlotPoint first;
 
 public:
-    SvgPath(wxSVGFileDC& dc, const AffineMatrix2& matrix, const Size pointSize)
+    SvgPath(wxSVGFileDC& dc, const AffineMatrix2& matrix)
         : dc(dc)
-        , matrix(matrix)
-        , pointSize(pointSize) {}
+        , matrix(matrix) {}
 
     virtual void addPoint(const PlotPoint& point) override {
         if (prev == PlotPoint{ -1, -1 }) {
@@ -56,7 +54,7 @@ private:
     AffineMatrix2 matrix;
 
 public:
-    SvgContext(const Path& path, const Point size, const double dpi = 72)
+    SvgContext(const Path& path, const Pixel size, const double dpi = 72)
         : dc(path.native(), size.x, size.y, dpi) {}
 
     virtual void drawPoint(const PlotPoint& point) override {
@@ -76,7 +74,11 @@ public:
     }
 
     virtual AutoPtr<IDrawPath> drawPath() override {
-        return makeAuto<SvgPath>(dc, matrix, pointSize);
+        return makeAuto<SvgPath>(dc, matrix);
+    }
+
+    virtual void setStyle(const Size UNUSED(index)) override {
+        // currently not implemented
     }
 
     virtual void setTransformMatrix(const AffineMatrix2& newMatrix) override {

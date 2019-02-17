@@ -1,18 +1,121 @@
 #include "thread/Pool.h"
+#include "objects/wrappers/Finally.h"
 
 NAMESPACE_SPH_BEGIN
 
-ThreadPool* ThreadPool::globalInstance;
+SharedPtr<ThreadPool> ThreadPool::globalInstance;
 
 struct ThreadContext {
     /// Owner of this thread
-    const ThreadPool* parentPool = nullptr;
+    ThreadPool* parentPool = nullptr;
 
     /// Index of this thread in the parent thread pool (not std::this_thread::get_id() !)
     Size index = Size(-1);
+
+    /// Task currently processed by this thread
+    SharedPtr<Task> current = nullptr;
 };
 
 static thread_local ThreadContext threadLocalContext;
+
+Task::Task(const Function<void()>& callable)
+    : callable(callable) {}
+
+Task::~Task() {
+    ASSERT(this->completed());
+}
+
+void Task::wait() {
+    if (threadLocalContext.parentPool) {
+        // worker thread, we can work on tasks
+        while (tasksLeft > 0) {
+            threadLocalContext.parentPool->processTask(false);
+        }
+    } else {
+        std::unique_lock<std::mutex> lock(waitMutex);
+        if (tasksLeft > 0) {
+            // non-worker thread, simply wait until no tasks are left
+            waitVar.wait(lock, [this] { return tasksLeft == 0; });
+        }
+    }
+    ASSERT(tasksLeft == 0);
+
+    if (caughtException) {
+        std::rethrow_exception(caughtException);
+    }
+}
+
+bool Task::completed() const {
+    return tasksLeft == 0;
+}
+
+bool Task::isRoot() const {
+    return parent == nullptr;
+}
+
+SharedPtr<Task> Task::getParent() const {
+    return parent;
+}
+
+SharedPtr<Task> Task::getCurrent() {
+    return threadLocalContext.current;
+}
+
+void Task::setParent(SharedPtr<Task> task) {
+    parent = task;
+
+    // sanity check to avoid circular dependency
+    ASSERT(!parent || parent->getParent().get() != RawPtr<Task>(this));
+
+    if (task) {
+        task->addReference();
+    }
+}
+
+void Task::setException(std::exception_ptr exception) {
+    if (this->isRoot()) {
+        caughtException = exception;
+    } else {
+        parent->setException(exception);
+    }
+}
+
+void Task::runAndNotify() {
+    // this may be called from within another task, so we override the threadLocalContext.current for
+    // this scope only
+    SharedPtr<Task> callingTask = threadLocalContext.current;
+    threadLocalContext.current = this->sharedFromThis();
+    auto guard = finally([this, callingTask] {
+        threadLocalContext.current = callingTask;
+        this->removeReference();
+    });
+
+    try {
+        callable();
+    } catch (...) {
+        // store caught exception, replacing the previous one
+        this->setException(std::current_exception());
+    }
+}
+
+void Task::addReference() {
+    std::unique_lock<std::mutex> lock(waitMutex);
+    ASSERT(tasksLeft > 0);
+    tasksLeft++;
+}
+
+void Task::removeReference() {
+    std::unique_lock<std::mutex> lock(waitMutex);
+    tasksLeft--;
+    ASSERT(tasksLeft >= 0);
+
+    if (tasksLeft == 0) {
+        if (!this->isRoot()) {
+            parent->removeReference();
+        }
+        waitVar.notify_all();
+    }
+}
 
 ThreadPool::ThreadPool(const Size numThreads)
     : threads(numThreads == 0 ? std::thread::hardware_concurrency() : numThreads) {
@@ -24,21 +127,7 @@ ThreadPool::ThreadPool(const Size numThreads)
 
         // run the loop
         while (!stop) {
-            AutoPtr<ITask> task = this->getNextTask();
-            if (task) {
-                // run the task
-                try {
-                    (*task)();
-                } catch (...) {
-                    // store caught exception, replacing the previous one
-                    //   std::unique_lock<std::mutex> lock(exceptionMutex);
-                    caughtException = std::current_exception();
-                }
-
-                std::unique_lock<std::mutex> lock(waitMutex);
-                --tasksLeft;
-            }
-            waitVar.notify_one();
+            this->processTask(true);
         }
     };
     stop = false;
@@ -64,16 +153,34 @@ ThreadPool::~ThreadPool() {
     }
 }
 
-void ThreadPool::submit(AutoPtr<ITask>&& task) {
+SharedPtr<ITask> ThreadPool::submit(const Function<void()>& task) {
+    SharedPtr<Task> handle = makeShared<Task>(task);
+    handle->setParent(threadLocalContext.current);
+
     {
         std::unique_lock<std::mutex> lock(waitMutex);
         ++tasksLeft;
     }
     {
         std::unique_lock<std::mutex> lock(taskMutex);
-        tasks.emplace(std::move(task));
+        tasks.emplace(handle);
     }
-    taskVar.notify_one();
+    taskVar.notify_all();
+    return handle;
+}
+
+void ThreadPool::processTask(const bool wait) {
+    SharedPtr<Task> task = this->getNextTask(wait);
+    if (task) {
+        // run the task
+        task->runAndNotify();
+
+        std::unique_lock<std::mutex> lock(waitMutex);
+        --tasksLeft;
+    } else {
+        ASSERT(!wait || stop);
+    }
+    waitVar.notify_one();
 }
 
 void ThreadPool::waitForAll() {
@@ -82,12 +189,11 @@ void ThreadPool::waitForAll() {
         waitVar.wait(lock, [this] { return tasksLeft == 0; });
     }
     ASSERT(tasks.empty() && tasksLeft == 0);
-    /// \todo find better way to rethrow the exception?
-    if (caughtException) {
-        std::exception_ptr current = caughtException;
-        caughtException = nullptr; // null to avoid throwing it twice
-        std::rethrow_exception(current);
-    }
+}
+
+Size ThreadPool::getRecommendedGranularity(const Size from, const Size to) const {
+    ASSERT(to > from);
+    return min<Size>(1000, max<Size>((to - from) / this->getThreadCnt(), 1));
 }
 
 Optional<Size> ThreadPool::getThreadIdx() const {
@@ -98,21 +204,28 @@ Optional<Size> ThreadPool::getThreadIdx() const {
     return threadLocalContext.index;
 }
 
-ThreadPool& ThreadPool::getGlobalInstance() {
-    if (!globalInstance) {
-        globalInstance = new ThreadPool();
-    }
-    return *globalInstance;
+Size ThreadPool::getThreadCnt() const {
+    return threads.size();
 }
 
-AutoPtr<ITask> ThreadPool::getNextTask() {
+SharedPtr<ThreadPool> ThreadPool::getGlobalInstance() {
+    if (!globalInstance) {
+        globalInstance = makeShared<ThreadPool>();
+    }
+    return globalInstance;
+}
+
+SharedPtr<Task> ThreadPool::getNextTask(const bool wait) {
     std::unique_lock<std::mutex> lock(taskMutex);
 
-    // wait till a task is available
-    taskVar.wait(lock, [this] { return tasks.size() || stop; });
-    // execute task
+    if (wait) {
+        // wait till a task is available
+        taskVar.wait(lock, [this] { return !tasks.empty() || stop; });
+    }
+
+    // remove the task from the queue and return it
     if (!stop && !tasks.empty()) {
-        AutoPtr<ITask> task = std::move(tasks.front());
+        SharedPtr<Task> task = tasks.front();
         tasks.pop();
         return task;
     } else {

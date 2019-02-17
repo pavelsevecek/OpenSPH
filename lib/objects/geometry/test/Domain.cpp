@@ -2,6 +2,7 @@
 #include "catch.hpp"
 #include "sph/initial/Distribution.h"
 #include "tests/Approx.h"
+#include "thread/Scheduler.h"
 #include "utils/SequenceTest.h"
 #include "utils/Utils.h"
 
@@ -13,7 +14,7 @@ template <typename TDomain>
 static void testDomain(TDomain&& domain) {
     HexagonalPacking distr;
     SphericalDomain large(Vector(0._f), 10._f);
-    Array<Vector> r = distr.generate(1000, large);
+    Array<Vector> r = distr.generate(SEQUENTIAL, 1000, large);
     const Float h = r[0][H];
 
     domain.project(r);

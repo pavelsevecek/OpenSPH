@@ -5,19 +5,20 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "common/Traits.h"
 #include "objects/wrappers/SharedPtr.h"
 
 NAMESPACE_SPH_BEGIN
 
 namespace Detail {
-    template <typename TSignature>
-    class Callable;
+template <typename TSignature>
+class Callable;
 
-    template <typename TReturn, typename... TArgs>
-    class Callable<TReturn(TArgs...)> : public Polymorphic {
-    public:
-        virtual TReturn operator()(TArgs... args) = 0;
-    };
+template <typename TReturn, typename... TArgs>
+class Callable<TReturn(TArgs...)> : public Polymorphic {
+public:
+    virtual TReturn operator()(TArgs... args) = 0;
+};
 } // namespace Detail
 
 template <typename TSignature>
@@ -52,7 +53,7 @@ public:
     ///
     /// The functor is passed by value on purpose, we do not want to store references in the function. It also
     /// helps avoiding calling this constructor instead of copy/move constructors.
-    template <typename TFunctor>
+    template <typename TFunctor, typename = std::enable_if_t<IsCallable<TFunctor, TArgs...>::value>>
     Function(TFunctor functor)
         : holder(makeShared<FunctorCallable<TFunctor>>(std::move(functor))) {}
 

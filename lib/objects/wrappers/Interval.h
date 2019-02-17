@@ -6,7 +6,7 @@
 /// \date 2016-2018
 
 #include "common/Globals.h"
-#include "math/Math.h"
+#include "math/MathUtils.h"
 #include "objects/containers/StaticArray.h"
 
 NAMESPACE_SPH_BEGIN
@@ -43,6 +43,14 @@ public:
     INLINE void extend(const Float& value) {
         minBound = min(minBound, value);
         maxBound = max(maxBound, value);
+    }
+
+    /// \brief Extends the interval to contain another interval.
+    ///
+    /// If the other interval is already inside this interval, nothing changes.
+    INLINE void extend(const Interval& other) {
+        minBound = min(minBound, other.minBound);
+        maxBound = max(maxBound, other.maxBound);
     }
 
     /// \brief Checks whether value is inside the interval.

@@ -10,12 +10,13 @@
 NAMESPACE_SPH_BEGIN
 
 class IGravity;
+class IScheduler;
 class EquationHolder;
 class Accumulated;
 
 /// \brief Extension of a generic SPH solver, including gravitational interactions of particles.
 ///
-/// Can be used with symmetric solver or asymmetric solver.
+/// Explicitly specialized for \ref AsymmetricSolver, \ref SymmetricSolver and \ref EnergyConservingSolver.
 template <typename TSphSolver>
 class GravitySolver : public TSphSolver {
 private:
@@ -23,15 +24,25 @@ private:
     AutoPtr<IGravity> gravity;
 
 public:
-    GravitySolver(const RunSettings& settings, const EquationHolder& equations);
+    /// \brief Creates the gravity solver, used implementation of gravity given by settings parameters.
+    GravitySolver(IScheduler& scheduler, const RunSettings& settings, const EquationHolder& equations);
 
-    GravitySolver(const RunSettings& settings, const EquationHolder& equations, AutoPtr<IGravity>&& gravity);
+    /// \brief Creates the gravity solver by explicitly specifying the gravity implementation.
+    GravitySolver(IScheduler& scheduler,
+        const RunSettings& settings,
+        const EquationHolder& equations,
+        AutoPtr<IGravity>&& gravity);
+
+    ~GravitySolver();
 
 protected:
     virtual void loop(Storage& storage, Statistics& stats) override;
 
     virtual void sanityCheck(const Storage& storage) const override;
 
+    virtual const IBasicFinder& getFinder(ArrayView<const Vector> r) override;
+
+    /// \brief Returns the accumulated storage, either thread-local or shared one based on SPH solver.
     Accumulated& getAccumulated();
 };
 

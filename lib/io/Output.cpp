@@ -1,15 +1,21 @@
-﻿#include "io/Output.h"
+#include "io/Output.h"
 #include "io/Column.h"
 #include "io/FileSystem.h"
 #include "io/Serializer.h"
+#include "objects/finders/Order.h"
 #include "quantities/IMaterial.h"
 #include "system/Factory.h"
 #include <fstream>
 
 NAMESPACE_SPH_BEGIN
 
-OutputFile::OutputFile(const Path& pathMask)
+/// ----------------------------------------------------------------------------------------------------------
+/// OutputFile
+/// ----------------------------------------------------------------------------------------------------------
+
+OutputFile::OutputFile(const Path& pathMask, const Size firstDumpIdx)
     : pathMask(pathMask) {
+    dumpNum = firstDumpIdx;
     ASSERT(!pathMask.empty());
 }
 
@@ -34,6 +40,46 @@ Path OutputFile::getNextPath(const Statistics& stats) const {
     return Path(path);
 }
 
+Optional<Size> OutputFile::getDumpIdx(const Path& path) {
+    // look for 4 consecutive digits.
+    const std::string s = path.fileName().native();
+    for (int i = 0; i < int(s.size()) - 3; ++i) {
+        if (std::isdigit(s[i]) && std::isdigit(s[i + 1]) && std::isdigit(s[i + 2]) &&
+            std::isdigit(s[i + 3])) {
+            // next digit must NOT be a number
+            if (i + 4 < int(s.size()) && std::isdigit(s[i + 4])) {
+                // 4-digit sequence is not unique, report error
+                return NOTHING;
+            }
+            try {
+                Size index = std::stoul(s.substr(i, 4));
+                return index;
+            } catch (std::exception& e) {
+                ASSERT(false, e.what());
+                return NOTHING;
+            }
+        }
+    }
+    return NOTHING;
+}
+
+Optional<OutputFile> OutputFile::getMaskFromPath(const Path& path) {
+    /// \todo could be deduplicated a bit
+    const std::string s = path.fileName().native();
+    for (int i = 0; i < int(s.size()) - 3; ++i) {
+        if (std::isdigit(s[i]) && std::isdigit(s[i + 1]) && std::isdigit(s[i + 2]) &&
+            std::isdigit(s[i + 3])) {
+            if (i + 4 < int(s.size()) && std::isdigit(s[i + 4])) {
+                return NOTHING;
+            }
+            std::string mask = s.substr(0, i) + "%d" + s.substr(i + 4);
+            // prepend the original parent path
+            return OutputFile(path.parentPath() / Path(mask));
+        }
+    }
+    return NOTHING;
+}
+
 bool OutputFile::hasWildcard() const {
     std::string path = pathMask.native();
     return path.find("%d") != std::string::npos || path.find("%t") != std::string::npos;
@@ -43,10 +89,14 @@ Path OutputFile::getMask() const {
     return pathMask;
 }
 
-IOutput::IOutput(const Path& fileMask)
+IOutput::IOutput(const OutputFile& fileMask)
     : paths(fileMask) {
-    ASSERT(!fileMask.empty());
+    ASSERT(!fileMask.getMask().empty());
 }
+
+/// ----------------------------------------------------------------------------------------------------------
+/// TextOutput/Input
+/// ----------------------------------------------------------------------------------------------------------
 
 static void printHeader(std::ostream& ofs, const std::string& name, const ValueEnum type) {
     switch (type) {
@@ -72,22 +122,46 @@ static void printHeader(std::ostream& ofs, const std::string& name, const ValueE
     }
 }
 
-static void addBasicColumns(Array<AutoPtr<ITextColumn>>& columns) {
-    columns.push(makeAuto<ParticleNumberColumn>());
-    columns.push(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
-    columns.push(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
-    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::MASS));
-}
-
-static void addExtendedColumns(Array<AutoPtr<ITextColumn>>& columns) {
-    addBasicColumns(columns);
-
-    columns.push(makeAuto<SmoothingLengthColumn>());
-    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
-    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));
-    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::ENERGY));
-    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
-    columns.push(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
+static void addColumns(const Flags<OutputQuantityFlag> quantities, Array<AutoPtr<ITextColumn>>& columns) {
+    if (quantities.has(OutputQuantityFlag::INDEX)) {
+        columns.push(makeAuto<ParticleNumberColumn>());
+    }
+    if (quantities.has(OutputQuantityFlag::POSITION)) {
+        columns.push(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+    }
+    if (quantities.has(OutputQuantityFlag::VELOCITY)) {
+        columns.push(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
+    }
+    if (quantities.has(OutputQuantityFlag::ANGULAR_FREQUENCY)) {
+        columns.push(makeAuto<ValueColumn<Vector>>(QuantityId::ANGULAR_FREQUENCY));
+    }
+    if (quantities.has(OutputQuantityFlag::SMOOTHING_LENGTH)) {
+        columns.push(makeAuto<SmoothingLengthColumn>());
+    }
+    if (quantities.has(OutputQuantityFlag::MASS)) {
+        columns.push(makeAuto<ValueColumn<Float>>(QuantityId::MASS));
+    }
+    if (quantities.has(OutputQuantityFlag::PRESSURE)) {
+        columns.push(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));
+    }
+    if (quantities.has(OutputQuantityFlag::DENSITY)) {
+        columns.push(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
+    }
+    if (quantities.has(OutputQuantityFlag::ENERGY)) {
+        columns.push(makeAuto<ValueColumn<Float>>(QuantityId::ENERGY));
+    }
+    if (quantities.has(OutputQuantityFlag::DEVIATORIC_STRESS)) {
+        columns.push(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
+    }
+    if (quantities.has(OutputQuantityFlag::DAMAGE)) {
+        columns.push(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
+    }
+    if (quantities.has(OutputQuantityFlag::STRAIN_RATE_CORRECTION_TENSOR)) {
+        columns.push(makeAuto<ValueColumn<SymmetricTensor>>(QuantityId::STRAIN_RATE_CORRECTION_TENSOR));
+    }
+    if (quantities.has(OutputQuantityFlag::MATERIAL_ID)) {
+        columns.push(makeAuto<ValueColumn<Size>>(QuantityId::MATERIAL_ID));
+    }
 }
 
 struct DumpAllVisitor {
@@ -97,39 +171,30 @@ struct DumpAllVisitor {
     }
 };
 
-TextOutput::TextOutput(const Flags<Options> flags)
-    : flags(flags) {
-    if (flags.has(Options::BASIC_COLUMNS)) {
-        addBasicColumns(columns);
-    }
-    if (flags.has(Options::EXTENDED_COLUMNS)) {
-        addExtendedColumns(columns);
-    }
-}
-
-TextOutput::TextOutput(const Path& fileMask, const std::string& runName, const Flags<Options> flags)
+TextOutput::TextOutput(const OutputFile& fileMask,
+    const std::string& runName,
+    const Flags<OutputQuantityFlag> quantities,
+    const Flags<Options> options)
     : IOutput(fileMask)
     , runName(runName)
-    , flags(flags) {
-    if (flags.has(Options::BASIC_COLUMNS)) {
-        addBasicColumns(columns);
-    }
-    if (flags.has(Options::EXTENDED_COLUMNS)) {
-        addExtendedColumns(columns);
-    }
+    , options(options) {
+    addColumns(quantities, columns);
 }
 
 TextOutput::~TextOutput() = default;
 
-Path TextOutput::dump(Storage& storage, const Statistics& stats) {
-    if (flags.has(Options::DUMP_ALL)) {
+Path TextOutput::dump(const Storage& storage, const Statistics& stats) {
+    if (options.has(Options::DUMP_ALL)) {
         columns.clear();
-        addBasicColumns(columns);
-        // the one 'extraordinary' quantity
+        // add some 'extraordinary' quantities and position (we want those to be one of the first, not after
+        // density, etc).
+        columns.push(makeAuto<ParticleNumberColumn>());
+        columns.push(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+        columns.push(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
         columns.push(makeAuto<SmoothingLengthColumn>());
-        for (StorageElement e : storage.getQuantities()) {
-            if (e.id == QuantityId::POSITION || e.id == QuantityId::MASS) {
-                // already added as basic columns
+        for (ConstStorageElement e : storage.getQuantities()) {
+            if (e.id == QuantityId::POSITION) {
+                // already added
                 continue;
             }
             dispatch(e.quantity.getValueEnum(), DumpAllVisitor{}, e.id, columns);
@@ -152,7 +217,7 @@ Path TextOutput::dump(Storage& storage, const Statistics& stats) {
     for (Size i = 0; i < storage.getParticleCnt(); ++i) {
         for (auto& column : columns) {
             // write one extra space to be sure numbers won't merge
-            if (flags.has(Options::SCIENTIFIC)) {
+            if (options.has(Options::SCIENTIFIC)) {
                 ofs << std::scientific << std::setprecision(PRECISION) << column->evaluate(storage, stats, i);
             } else {
                 ofs << std::setprecision(PRECISION) << column->evaluate(storage, stats, i);
@@ -164,7 +229,16 @@ Path TextOutput::dump(Storage& storage, const Statistics& stats) {
     return fileName;
 }
 
-Outcome TextOutput::load(const Path& path, Storage& storage, Statistics& UNUSED(stats)) {
+TextOutput& TextOutput::addColumn(AutoPtr<ITextColumn>&& column) {
+    columns.push(std::move(column));
+    return *this;
+}
+
+TextInput::TextInput(Flags<OutputQuantityFlag> quantities) {
+    addColumns(quantities, columns);
+}
+
+Outcome TextInput::load(const Path& path, Storage& storage, Statistics& UNUSED(stats)) {
     try {
         std::ifstream ifs(path.native());
         if (!ifs) {
@@ -173,7 +247,7 @@ Outcome TextOutput::load(const Path& path, Storage& storage, Statistics& UNUSED(
         std::string line;
         storage.removeAll();
         // storage currently requires at least one quantity for insertion by value
-        Quantity& flags = storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 0 });
+        storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 0 });
 
         Size particleCnt = 0;
         while (std::getline(ifs, line)) {
@@ -181,7 +255,7 @@ Outcome TextOutput::load(const Path& path, Storage& storage, Statistics& UNUSED(
                 continue;
             }
             std::stringstream ss(line);
-            for (auto& column : columns) {
+            for (AutoPtr<ITextColumn>& column : columns) {
                 switch (column->getType()) {
                 /// \todo de-duplicate the loading (used in Settings)
                 case ValueEnum::INDEX: {
@@ -218,6 +292,7 @@ Outcome TextOutput::load(const Path& path, Storage& storage, Statistics& UNUSED(
         ifs.close();
 
         // resize the flag quantity to make the storage consistent
+        Quantity& flags = storage.getQuantity(QuantityId::FLAG);
         for (Array<Size>& buffer : flags.getAll<Size>()) {
             buffer.resize(particleCnt);
         }
@@ -233,13 +308,16 @@ Outcome TextOutput::load(const Path& path, Storage& storage, Statistics& UNUSED(
     return SUCCESS;
 }
 
-TextOutput& TextOutput::addColumn(AutoPtr<ITextColumn>&& column) {
+TextInput& TextInput::addColumn(AutoPtr<ITextColumn>&& column) {
     columns.push(std::move(column));
     return *this;
 }
 
+/// ----------------------------------------------------------------------------------------------------------
+/// GnuplotOutput
+/// ----------------------------------------------------------------------------------------------------------
 
-Path GnuplotOutput::dump(Storage& storage, const Statistics& stats) {
+Path GnuplotOutput::dump(const Storage& storage, const Statistics& stats) {
     const Path path = TextOutput::dump(storage, stats);
     const Path pathWithoutExt = Path(path).removeExtension();
     const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
@@ -250,12 +328,16 @@ Path GnuplotOutput::dump(Storage& storage, const Statistics& stats) {
     return path;
 }
 
+/// ----------------------------------------------------------------------------------------------------------
+/// BinaryOutput/Input
+/// ----------------------------------------------------------------------------------------------------------
 
 namespace {
 
 /// \todo this should be really part of the serializer/deserializer, otherwise it's kinda pointless
+template <bool Precise>
 struct SerializerDispatcher {
-    Serializer& serializer;
+    Serializer<Precise>& serializer;
 
     template <typename T>
     void operator()(const T& value) {
@@ -276,9 +358,16 @@ struct SerializerDispatcher {
     void operator()(const Tensor& t) {
         serializer.write(t(0, 0), t(0, 1), t(0, 2), t(1, 0), t(1, 1), t(1, 2), t(2, 0), t(2, 1), t(2, 2));
     }
+    void operator()(const EnumWrapper& e) {
+        // Type hash can be different between invocations, so we cannot serialize it. Write 0 (for backward
+        // compatibility)
+        serializer.write(e.value, 0);
+    }
 };
+
+template <bool Precise>
 struct DeserializerDispatcher {
-    Deserializer& deserializer;
+    Deserializer<Precise>& deserializer;
 
     template <typename T>
     void operator()(T& value) {
@@ -303,13 +392,16 @@ struct DeserializerDispatcher {
     void operator()(Tensor& t) {
         deserializer.read(t(0, 0), t(0, 1), t(0, 2), t(1, 0), t(1, 1), t(1, 2), t(2, 0), t(2, 1), t(2, 2));
     }
+    void operator()(EnumWrapper& e) {
+        deserializer.read(e.value, e.typeHash);
+    }
 };
 
 struct StoreBuffersVisitor {
     template <typename TValue>
-    void visit(Quantity& q, Serializer& serializer, const IndexSequence& sequence) {
-        SerializerDispatcher dispatcher{ serializer };
-        StaticArray<Array<TValue>&, 3> buffers = q.getAll<TValue>();
+    void visit(const Quantity& q, Serializer<true>& serializer, const IndexSequence& sequence) {
+        SerializerDispatcher<true> dispatcher{ serializer };
+        StaticArray<const Array<TValue>&, 3> buffers = q.getAll<TValue>();
         for (Size i : sequence) {
             dispatcher(buffers[0][i]);
         }
@@ -338,11 +430,11 @@ struct StoreBuffersVisitor {
 struct LoadBuffersVisitor {
     template <typename TValue>
     void visit(Storage& storage,
-        Deserializer& deserializer,
+        Deserializer<true>& deserializer,
         const IndexSequence& sequence,
         const QuantityId id,
         const OrderEnum order) {
-        DeserializerDispatcher dispatcher{ deserializer };
+        DeserializerDispatcher<true> dispatcher{ deserializer };
         Array<TValue> buffer(sequence.size());
         for (Size i : sequence) {
             dispatcher(buffer[i]);
@@ -377,20 +469,35 @@ struct LoadBuffersVisitor {
 };
 } // namespace
 
-BinaryOutput::BinaryOutput(const Path& fileMask)
-    : IOutput(fileMask) {}
+BinaryOutput::BinaryOutput(const OutputFile& fileMask, const RunTypeEnum runTypeId)
+    : IOutput(fileMask)
+    , runTypeId(runTypeId) {}
 
-Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
+Path BinaryOutput::dump(const Storage& storage, const Statistics& stats) {
     const Path fileName = paths.getNextPath(stats);
+    FileSystem::createDirectory(fileName.parentPath());
+
     const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
 
-    Serializer serializer(fileName);
+    Serializer<true> serializer(fileName);
     // file format identifier
-    // size: 4 + 8 + 8 + 8 + 8 = 36
     const Size materialCnt = storage.getMaterialCnt();
     const Size quantityCnt = storage.getQuantityCnt() - int(storage.has(QuantityId::MATERIAL_ID));
     const Float timeStep = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
-    serializer.write("SPH", time, storage.getParticleCnt(), quantityCnt, materialCnt, timeStep);
+    serializer.write(
+        "SPH", time, storage.getParticleCnt(), quantityCnt, materialCnt, timeStep, BinaryIoVersion::LATEST);
+    // write run type
+    char runTypeBuffer[16];
+    const std::string runTypeStr = EnumMap::toString(runTypeId);
+    for (Size i = 0; i < 16; ++i) {
+        if (i < runTypeStr.size()) {
+            runTypeBuffer[i] = runTypeStr[i];
+        } else {
+            runTypeBuffer[i] = '\0';
+        }
+    }
+    serializer.write(runTypeBuffer);
+
     // zero bytes until 256 to allow extensions of the header
     serializer.addPadding(PADDING_SIZE);
 
@@ -398,7 +505,7 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
     Array<QuantityId> cachedIds;
     for (auto i : storage.getQuantities()) {
         // first 3 values: quantity ID, order (number of derivatives), type
-        Quantity& q = i.quantity;
+        const Quantity& q = i.quantity;
         if (i.id != QuantityId::MATERIAL_ID) {
             // no need to dump material IDs, they are always consecutive
             cachedIds.push(i.id);
@@ -406,7 +513,7 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
         }
     }
 
-    SerializerDispatcher dispatcher{ serializer };
+    SerializerDispatcher<true> dispatcher{ serializer };
     const bool hasMaterials = materialCnt > 0;
     // dump quantities separated by materials
     for (Size matIdx = 0; matIdx < max(materialCnt, Size(1)); ++matIdx) {
@@ -445,7 +552,7 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
 
         for (auto i : storage.getQuantities()) {
             if (i.id != QuantityId::MATERIAL_ID) {
-                Quantity& q = i.quantity;
+                const Quantity& q = i.quantity;
                 StoreBuffersVisitor visitor;
                 dispatch(q.getValueEnum(), visitor, q, serializer, sequence);
             }
@@ -455,10 +562,24 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
     return fileName;
 }
 
+template <typename T>
+static void setTypeHash(const BodySettings& UNUSED(settings),
+    const BodySettingsId UNUSED(paramId),
+    T& UNUSED(entry)) {
+    // do nothing for other types
+}
+
+template <>
+void setTypeHash(const BodySettings& settings, const BodySettingsId paramId, EnumWrapper& entry) {
+    EnumWrapper current = settings.get<EnumWrapper>(paramId);
+    entry.typeHash = current.typeHash;
+}
+
 
 static Expected<Storage> loadMaterial(const Size matIdx,
-    Deserializer& deserializer,
-    ArrayView<QuantityId> ids) {
+    Deserializer<true>& deserializer,
+    ArrayView<QuantityId> ids,
+    const BinaryIoVersion version) {
     Size matIdxCheck;
     std::string identifier;
     deserializer.read(identifier, matIdxCheck);
@@ -473,23 +594,39 @@ static Expected<Storage> loadMaterial(const Size matIdx,
 
     Size matParamCnt;
     deserializer.read(matParamCnt);
-    BodySettings settings;
+    BodySettings body;
     for (Size i = 0; i < matParamCnt; ++i) {
         // read body settings
         BodySettingsId paramId;
         Size valueId;
         deserializer.read(paramId, valueId);
+
+        if (version == BinaryIoVersion::FIRST) {
+            if (valueId == 1 && body.hasType<EnumWrapper>(paramId)) {
+                // enums used to be stored as ints (index 1), now we store it as enum wrapper;
+                // convert the value to enum and save manually
+                EnumWrapper e = body.get<EnumWrapper>(paramId);
+                deserializer.read(e.value);
+                body.set(paramId, e);
+                continue;
+            }
+        }
+
         /// \todo this is currently the only way to access Settings variant, refactor if possible
         SettingsIterator<BodySettingsId>::IteratorValue iteratorValue{ paramId,
             { CONSTRUCT_TYPE_IDX, valueId } };
-        forValue(iteratorValue.value, [&deserializer, &settings, paramId](auto& entry) {
-            DeserializerDispatcher{ deserializer }(entry);
-            settings.set(paramId, entry);
+
+        forValue(iteratorValue.value, [&deserializer, &body, paramId](auto& entry) {
+            DeserializerDispatcher<true>{ deserializer }(entry);
+            // little hack: EnumWrapper is loaded with typeHash 0 (as it cannot be serialized, so we have to
+            // set it to correct value, otherwise it would trigger asserts in set function.
+            setTypeHash(body, paramId, entry);
+            body.set(paramId, entry);
         });
     }
 
     // create material based on settings
-    AutoPtr<IMaterial> material = Factory::getMaterial(settings);
+    AutoPtr<IMaterial> material = Factory::getMaterial(body);
     // read all ranges and minimal values for timestepping
     for (Size i = 0; i < ids.size(); ++i) {
         QuantityId id;
@@ -512,15 +649,27 @@ static Expected<Storage> loadMaterial(const Size matIdx,
     return Storage(std::move(material));
 }
 
+static Optional<RunTypeEnum> readRunType(char* buffer, const BinaryIoVersion version) {
+    std::string runTypeStr(buffer);
+    if (!runTypeStr.empty()) {
+        return EnumMap::fromString<RunTypeEnum>(runTypeStr).value();
+    } else {
+        ASSERT(version < BinaryIoVersion::V2018_10_24);
+        return NOTHING;
+    }
+}
 
-Outcome BinaryOutput::load(const Path& path, Storage& storage, Statistics& stats) {
+Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats) {
     storage.removeAll();
-    Deserializer deserializer(path);
+    Deserializer<true> deserializer(path);
     std::string identifier;
     Float time, timeStep;
     Size particleCnt, quantityCnt, materialCnt;
+    BinaryIoVersion version;
+    char runTypeBuffer[16];
     try {
-        deserializer.read(identifier, time, particleCnt, quantityCnt, materialCnt, timeStep);
+        deserializer.read(
+            identifier, time, particleCnt, quantityCnt, materialCnt, timeStep, version, runTypeBuffer);
     } catch (SerializerException&) {
         return "Invalid file format";
     }
@@ -530,11 +679,10 @@ Outcome BinaryOutput::load(const Path& path, Storage& storage, Statistics& stats
     stats.set(StatisticsId::RUN_TIME, time);
     stats.set(StatisticsId::TIMESTEP_VALUE, timeStep);
     try {
-        deserializer.skip(PADDING_SIZE);
+        deserializer.skip(BinaryOutput::PADDING_SIZE);
     } catch (SerializerException&) {
         return "Incorrect header size";
     }
-
     Array<QuantityId> quantityIds(quantityCnt);
     Array<OrderEnum> orders(quantityCnt);
     Array<ValueEnum> valueTypes(quantityCnt);
@@ -552,7 +700,7 @@ Outcome BinaryOutput::load(const Path& path, Storage& storage, Statistics& stats
         Storage bodyStorage;
         if (hasMaterials) {
             try {
-                Expected<Storage> loadedStorage = loadMaterial(matIdx, deserializer, quantityIds);
+                Expected<Storage> loadedStorage = loadMaterial(matIdx, deserializer, quantityIds, version);
                 if (!loadedStorage) {
                     return loadedStorage.error();
                 } else {
@@ -594,36 +742,229 @@ Outcome BinaryOutput::load(const Path& path, Storage& storage, Statistics& stats
     return SUCCESS;
 }
 
-Expected<BinaryOutput::Info> BinaryOutput::getInfo(const Path& path) const {
-    Deserializer deserializer(path);
-    std::string identifier;
+Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) const {
     Info info;
+    char runTypeBuffer[16];
+    std::string identifier;
     try {
-        deserializer.read(
-            identifier, info.runTime, info.particleCnt, info.quantityCnt, info.materialCnt, info.timeStep);
+        Deserializer<true> deserializer(path);
+        deserializer.read(identifier,
+            info.runTime,
+            info.particleCnt,
+            info.quantityCnt,
+            info.materialCnt,
+            info.timeStep,
+            info.version,
+            runTypeBuffer);
     } catch (SerializerException&) {
         return makeUnexpected<Info>("Invalid file format");
     }
     if (identifier != "SPH") {
         return makeUnexpected<Info>("Invalid format specifier: expected SPH, got " + identifier);
     }
+    info.runType = readRunType(runTypeBuffer, info.version);
     return std::move(info);
 }
 
-PkdgravOutput::PkdgravOutput(const Path& fileMask, PkdgravParams&& params)
+/// ----------------------------------------------------------------------------------------------------------
+/// CompressedOutput/Input
+/// ----------------------------------------------------------------------------------------------------------
+
+CompressedOutput::CompressedOutput(const OutputFile& fileMask,
+    const CompressionEnum compression,
+    const RunTypeEnum runTypeId)
+    : IOutput(fileMask)
+    , compression(compression)
+    , runTypeId(runTypeId) {}
+
+const int MAGIC_NUMBER = 42;
+
+template <typename T>
+static void compressQuantity(Serializer<false>& serializer,
+    const CompressionEnum compression,
+    const Array<T>& values) {
+    SerializerDispatcher<false> dispatcher{ serializer };
+    if (compression == CompressionEnum::RLE) {
+        dispatcher(MAGIC_NUMBER);
+
+        // StaticArray<char, 256> lastBuffer;
+        T lastValue(NAN);
+        Size count = 0;
+        for (Size i = 0; i < values.size(); ++i) {
+            /// \todo this should be done properly! We need to compare the actually written data, not the
+            /// original values!!
+            if (!almostEqual(values[i], lastValue, 1.e-4_f)) {
+                if (count > 0) {
+                    // end of the run, write the count
+                    dispatcher(count);
+                    count = 0;
+                }
+                dispatcher(values[i]);
+                lastValue = values[i];
+            } else {
+                if (count == 0) {
+                    // first repeated value, write again to mark the start of the run
+                    dispatcher(lastValue);
+                }
+                ++count;
+            }
+        }
+        // close the last run
+        if (count > 0) {
+            dispatcher(count);
+        }
+    } else {
+        ASSERT(compression == CompressionEnum::NONE);
+        for (Size i = 0; i < values.size(); ++i) {
+            dispatcher(values[i]);
+        }
+    }
+}
+
+template <typename T>
+static void decompressQuantity(Deserializer<false>& deserializer,
+    const CompressionEnum compression,
+    Array<T>& values) {
+    DeserializerDispatcher<false> dispatcher{ deserializer };
+
+    if (compression == CompressionEnum::RLE) {
+        int magic;
+        dispatcher(magic);
+        if (magic != MAGIC_NUMBER) {
+            throw SerializerException("Invalid compression", 0);
+        }
+
+        T lastValue = T(NAN);
+        Size i = 0;
+        while (i < values.size()) {
+            dispatcher(values[i]);
+            if (values[i] != lastValue) {
+                lastValue = values[i];
+                ++i;
+            } else {
+                Size count;
+                dispatcher(count);
+                ASSERT(i + count <= values.size());
+                for (Size j = 0; j < count; ++j) {
+                    values[i++] = lastValue;
+                }
+            }
+        }
+    } else {
+        for (Size i = 0; i < values.size(); ++i) {
+            dispatcher(values[i]);
+        }
+    }
+}
+
+Path CompressedOutput::dump(const Storage& storage, const Statistics& stats) {
+    const Path fileName = paths.getNextPath(stats);
+    FileSystem::createDirectory(fileName.parentPath());
+
+    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
+
+    Serializer<false> serializer(fileName);
+    serializer.write("CPRSPH", time, storage.getParticleCnt(), compression, CompressedIoVersion::FIRST);
+
+    /// \todo runType as string
+    serializer.write(runTypeId);
+    serializer.addPadding(230);
+
+    // mandatory, without prefix
+    compressQuantity(serializer, compression, storage.getValue<Vector>(QuantityId::POSITION));
+    compressQuantity(serializer, compression, storage.getDt<Vector>(QuantityId::POSITION));
+
+    Array<QuantityId> expectedIds{
+        QuantityId::MASS, QuantityId::DENSITY, QuantityId::ENERGY, QuantityId::DAMAGE
+    };
+    Array<QuantityId> ids;
+    Size count = 0;
+    for (QuantityId id : expectedIds) {
+        if (storage.has(id)) {
+            ++count;
+            ids.push(id);
+        }
+    }
+    serializer.write(count);
+
+    for (QuantityId id : ids) {
+        serializer.write(id);
+        compressQuantity(serializer, compression, storage.getValue<Float>(id));
+    }
+
+    return fileName;
+}
+
+Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& stats) {
+    storage.removeAll();
+    Deserializer<false> deserializer(path);
+    std::string identifier;
+    Float time;
+    Size particleCnt;
+    CompressedIoVersion version;
+    CompressionEnum compression;
+    RunTypeEnum runTypeId;
+    try {
+        deserializer.read(identifier, time, particleCnt, compression, version, runTypeId);
+    } catch (SerializerException&) {
+        return "Invalid file format";
+    }
+    if (identifier != "CPRSPH") {
+        return "Invalid format specifier: expected CPRSPH, got " + identifier;
+    }
+    stats.set(StatisticsId::RUN_TIME, time);
+    try {
+        deserializer.skip(230);
+    } catch (SerializerException&) {
+        return "Incorrect header size";
+    }
+
+    try {
+        Array<Vector> positions(particleCnt);
+        decompressQuantity(deserializer, compression, positions);
+        storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(positions));
+
+        Array<Vector> velocities(particleCnt);
+        decompressQuantity(deserializer, compression, velocities);
+        storage.getDt<Vector>(QuantityId::POSITION) = std::move(velocities);
+
+        Size count;
+        deserializer.read(count);
+        for (Size i = 0; i < count; ++i) {
+            QuantityId id;
+            deserializer.read(id);
+            Array<Float> values(particleCnt);
+            decompressQuantity(deserializer, compression, values);
+            storage.insert<Float>(id, OrderEnum::ZERO, std::move(values));
+        }
+    } catch (SerializerException& e) {
+        return e.what();
+    }
+
+    ASSERT(storage.isValid());
+
+    return SUCCESS;
+}
+
+/// ----------------------------------------------------------------------------------------------------------
+/// PkdgravOutput/Input
+/// ----------------------------------------------------------------------------------------------------------
+
+PkdgravOutput::PkdgravOutput(const OutputFile& fileMask, PkdgravParams&& params)
     : IOutput(fileMask)
     , params(std::move(params)) {
     ASSERT(almostEqual(this->params.conversion.velocity, 2.97853e4_f, 1.e-4_f));
 }
 
-Path PkdgravOutput::dump(Storage& storage, const Statistics& stats) {
+Path PkdgravOutput::dump(const Storage& storage, const Statistics& stats) {
     const Path fileName = paths.getNextPath(stats);
+    FileSystem::createDirectory(fileName.parentPath());
 
-    ArrayView<Float> m, rho, u;
+    ArrayView<const Float> m, rho, u;
     tie(m, rho, u) = storage.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY, QuantityId::ENERGY);
-    ArrayView<Vector> r, v, dv;
+    ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-    ArrayView<Size> flags = storage.getValue<Size>(QuantityId::FLAG);
+    ArrayView<const Size> flags = storage.getValue<Size>(QuantityId::FLAG);
 
     std::ofstream ofs(fileName.native());
     ofs << std::setprecision(PRECISION) << std::scientific;
@@ -647,6 +988,102 @@ Path PkdgravOutput::dump(Storage& storage, const Statistics& stats) {
         idx++;
     }
     return fileName;
+}
+
+Outcome PkdgravInput::load(const Path& path, Storage& storage, Statistics& stats) {
+    TextInput input(EMPTY_FLAGS);
+
+    // 1) Particle index -- we don't really need that, just add dummy columnm
+    class DummyColumn : public ITextColumn {
+    private:
+        ValueEnum type;
+
+    public:
+        DummyColumn(const ValueEnum type)
+            : type(type) {}
+
+        virtual Dynamic evaluate(const Storage&, const Statistics&, const Size) const override {
+            NOT_IMPLEMENTED;
+        }
+
+        virtual void accumulate(Storage&, const Dynamic, const Size) const override {}
+
+        virtual std::string getName() const override {
+            return "dummy";
+        }
+
+        virtual ValueEnum getType() const override {
+            return type;
+        }
+    };
+    input.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
+
+    // 2) Original index -- not really needed, skip
+    input.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
+
+    // 3) Particle mass
+    input.addColumn(makeAuto<ValueColumn<Float>>(QuantityId::MASS));
+
+    // 4) radius ?  -- skip
+    input.addColumn(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
+
+    // 5) Positions (3 components)
+    input.addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+
+    // 6) Velocities (3 components)
+    input.addColumn(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
+
+    // 7) Angular velocities (3 components)
+    input.addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::ANGULAR_FREQUENCY));
+
+    // 8) Color index -- skip
+    input.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
+
+    Outcome outcome = input.load(path, storage, stats);
+
+    if (!outcome) {
+        return outcome;
+    }
+
+    // whole code assumes positions is a 2nd order quantity, so we have to add the acceleration
+    ASSERT(storage.has<Vector>(QuantityId::POSITION, OrderEnum::FIRST));
+    storage.getQuantity(QuantityId::POSITION).setOrder(OrderEnum::SECOND);
+
+    // Convert units -- assuming default conversion values
+    PkdgravParams::Conversion conversion;
+    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
+    Array<Vector>& v = storage.getDt<Vector>(QuantityId::POSITION);
+    Array<Float>& m = storage.getValue<Float>(QuantityId::MASS);
+    Array<Float>& rho = storage.getValue<Float>(QuantityId::DENSITY);
+    Array<Vector>& omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
+
+    for (Size i = 0; i < r.size(); ++i) {
+        r[i] *= conversion.distance;
+        v[i] *= conversion.velocity;
+        m[i] *= conversion.mass;
+
+        // compute radius, using the density formula
+        /// \todo here we actually store radius in rho ...
+        rho[i] *= conversion.distance;
+        r[i][H] = root<3>(3.f * m[i] / (2700.f * 4.f * PI));
+
+        // replace the radius with actual density
+        /// \todo too high, fix
+        rho[i] = m[i] / pow<3>(rho[i]);
+
+        omega[i] *= conversion.velocity / conversion.distance;
+    }
+
+    // sort
+    Order order(r.size());
+    order.shuffle([&m](const Size i1, const Size i2) { return m[i1] > m[i2]; });
+    r = order.apply(r);
+    v = order.apply(v);
+    m = order.apply(m);
+    rho = order.apply(rho);
+    omega = order.apply(omega);
+
+    return SUCCESS;
 }
 
 NAMESPACE_SPH_END

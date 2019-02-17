@@ -7,7 +7,7 @@
 
 #include "common/Assert.h"
 #include "common/Traits.h"
-#include "math/Math.h"
+#include "math/MathUtils.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -109,7 +109,7 @@ public:
     }
 
     /// Returns a Flags object by adding a single flag to currently stored values.
-    INLINE constexpr Flags operator|(const TEnum flag) {
+    INLINE constexpr Flags operator|(const TEnum flag) const {
         ASSERT(isPower2(TValue(flag)));
         Flags<TEnum> flags(*this);
         flags.set(flag);

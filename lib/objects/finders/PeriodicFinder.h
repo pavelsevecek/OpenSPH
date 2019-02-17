@@ -1,39 +1,49 @@
 #pragma once
 
-/// \file PeriodicFinder.h
-/// \brief Wrapper over other finder allowing to search neighbours in periodic domain.
-/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
-
 #include "objects/finders/NeighbourFinder.h"
+#include "objects/geometry/Box.h"
+#include "objects/wrappers/AutoPtr.h"
+#include "thread/ThreadLocal.h"
 
 NAMESPACE_SPH_BEGIN
 
-template <typename TFinder>
-class PeriodicFinder : public INeighbourFinder {
+// currently fixed to x-direction
+class PeriodicFinder : public IBasicFinder {
 private:
-    TFinder finder;
-    IDomain* domain;
+    AutoPtr<IBasicFinder> actual;
+    Box domain;
+
+    mutable ThreadLocal<Array<NeighbourRecord>> extra;
 
 public:
-    template <typename... TArgs>
-    PeriodicFinder(TArgs&& args)
-        : finder(std::forward<TArgs>(args)...) {}
+    PeriodicFinder(AutoPtr<IBasicFinder>&& actual, const Box& domain, IScheduler& scheduler)
+        : actual(std::move(actual))
+        , domain(domain)
+        , extra(scheduler) {}
 
-    virtual void findNeighbours(const int index,
+    virtual Size findAll(const Size index,
         const Float radius,
-        Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlag> flags = EMPTY_FLAGS,
-        const Float error = 0._f) const override {
-        // seach 'regular' particles
-        int n = finder(index, radius, neighbours, flags, error);
+        Array<NeighbourRecord>& neighbours) const override {
+        return this->findAll(values[index], radius, neighbours);
+    }
 
-        /// now we have to move the particle, or create a new one with the same smoothing rank, but we are in
-        /// const method, hm ...
-        /// seems like removing const here would be the best way to do it (plus we need an array instead of
-        /// arrayview)
-        /// also, periodic conditions don't make much sense for 'curved' surfaces (like a spherical domain)
-        /// we should only use it for a block domain, possibly for the base of a cylinder (infinite tube)
+    virtual Size findAll(const Vector& pos,
+        const Float radius,
+        Array<NeighbourRecord>& neighbours) const override {
+        Size count = actual->findAll(pos, radius, neighbours);
+        if (pos[X] < domain.lower()[X] + radius) {
+            count += actual->findAll(pos + Vector(domain.size()[X], 0._f, 0._f), radius, extra.local());
+            neighbours.pushAll(extra.local());
+        } else if (pos[X] > domain.upper()[X] - radius) {
+            count += actual->findAll(pos - Vector(domain.size()[X], 0._f, 0._f), radius, extra.local());
+            neighbours.pushAll(extra.local());
+        }
+        return count;
+    }
+
+protected:
+    virtual void buildImpl(IScheduler& scheduler, ArrayView<const Vector> points) override {
+        actual->build(scheduler, points);
     }
 };
 

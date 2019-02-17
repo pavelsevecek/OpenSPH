@@ -5,15 +5,44 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "gui/Utils.h"
+#include "gui/objects/Color.h"
 #include "gui/objects/Point.h"
+#include "objects/wrappers/ClonePtr.h"
+#include "objects/wrappers/Flags.h"
 #include "quantities/Particle.h"
 
 NAMESPACE_SPH_BEGIN
 
+template <typename T>
 class Bitmap;
 class ICamera;
 class IColorizer;
+class Statistics;
+
+enum class TextAlign {
+    LEFT = 1 << 0,
+    RIGHT = 1 << 1,
+    HORIZONTAL_CENTER = 1 << 2,
+    TOP = 1 << 3,
+    BOTTOM = 1 << 4,
+    VERTICAL_CENTER = 1 << 5,
+};
+
+class IRenderOutput : public Polymorphic {
+public:
+    /// \todo would be nice to make it more general, cleaner
+    struct Label {
+        std::wstring text;
+        Rgba color;
+        int fontSize;
+        Flags<TextAlign> align;
+        Pixel position;
+    };
+
+    /// May be called once after render finishes or multiple times for progressive renderers.
+    virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels) = 0;
+};
+
 
 /// \brief Parameters of the rendered image
 ///
@@ -21,32 +50,59 @@ class IColorizer;
 /// one huge catch-all settings.
 struct RenderParams {
 
-    /// Resolution of the produced bitmap
-    Point size = Point(640, 480);
+    /// \brief Resolution of the produced bitmap
+    Pixel size = Pixel(640, 480);
 
+    /// \brief Camera used for rendering.
+    AutoPtr<ICamera> camera;
+
+    /// \brief Parameters of the particle renderer
     struct {
-        /// Scaling factor of drawn particles relative to 1. Can be (in theory) any positive value.
+        /// \brief  Scaling factor of drawn particles relative to 1.
+        ///
+        /// Can be (in theory) any positive value.
         float scale = 1.f;
+
+        /// \brief Highlighted particle (only for interactive view).
+        ///
+        /// If NOTHING, no particle is selected.
+        Optional<Size> selected = NOTHING;
+
+        /// \brief If true, the palette is converted to grayscale.
+        bool grayScale = false;
 
     } particles;
 
+    /// \brief Parameters of rendered vectors
     struct {
-        /// Multiplier of the rendered vector field
-        float scale = 1.e4_f;
 
-        /// Size of the vector proportional to the logarithm of velocity
-        bool toLog = true;
+        /// \brief Length of the drawn vectors in pixels;
+        float length = 100.f;
 
     } vectors;
 
-    /// Highlighted particle (only for interactive view). If NOTHING, no particle is selected.
-    Optional<Size> selectedParticle = NOTHING;
+    /// \brief Parameters of rendered surface
+    struct {
+
+        /// \brief Value of the iso-surface defining the rendered surface
+        float level = 0.15f;
+
+        /// \brief Intensity of the ambient light, illuminating every point unconditionally.
+        Float ambientLight = 0.3f;
+
+        /// \brief Intensity of the sunlight.
+        Float sunLight = 0.7f;
+
+    } surface;
 };
 
-
+/// \brief Interface used to implement renderers.
 class IRenderer : public Polymorphic {
 public:
-    /// Prepares the objects for rendering and updates its data. Called every time a parameter change.
+    /// \brief Prepares the objects for rendering and updates its data.
+    ///
+    /// Called every time a parameter changes. Renderer should cache any data necessary for rendering of
+    /// particles (particle positions, colors, etc.).
     /// \param storage Storage containing positions of particles, must match the particles in colorizer.
     /// \param colorizer Data-to-color conversion object for particles. Must be already initialized!
     /// \param camera Camera used for rendering.
@@ -57,14 +113,14 @@ public:
     /// This function is called every time the view changes (display parameters change, camera pan & zoom,
     /// ...). Implementation shall be callable from any thread, but does not have to be thread-safe (never
     /// will be executed from multiple threads at once).
-    /// \param camera Camera used for rendering
     /// \param params Parameters of the render
     /// \param stats Input-output parameter, contains run statistics that can be included in the render
     ///              (run time, timestep, ...), renderers can also output some statistics of their own
     ///              (time used in rendering, framerate, ...)
-    virtual SharedPtr<wxBitmap> render(const ICamera& camera,
-        const RenderParams& params,
-        Statistics& stats) const = 0;
+    virtual void render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const = 0;
+
+    /// \todo
+    virtual void cancelRender() = 0;
 };
 
 NAMESPACE_SPH_END

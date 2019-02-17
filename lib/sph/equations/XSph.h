@@ -5,8 +5,10 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "sph/equations/DerivativeHelpers.h"
 #include "sph/equations/EquationTerm.h"
-#include "sph/kernel/KernelFactory.h"
+#include "sph/kernel/Kernel.h"
+#include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -37,15 +39,19 @@ private:
             epsilon = settings.get<Float>(RunSettingsId::XSPH_EPSILON);
         }
 
-        virtual void create(Accumulated& results) override {
+        INLINE void additionalCreate(Accumulated& results) {
             results.insert<Vector>(QuantityId::XSPH_VELOCITIES, OrderEnum::ZERO, BufferSource::UNIQUE);
         }
 
-        INLINE void init(const Storage& input, Accumulated& results) {
+        INLINE void additionalInitialize(const Storage& input, Accumulated& results) {
             dr = results.getBuffer<Vector>(QuantityId::XSPH_VELOCITIES, OrderEnum::ZERO);
             tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
+        }
+
+        INLINE bool additionalEquals(const Derivative& other) const {
+            return epsilon == other.epsilon;
         }
 
         template <bool Symmetric>
@@ -64,11 +70,11 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(Storage& storage, ThreadPool& UNUSED(pool)) override {
+    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& storage) override {
         // fix previously modified velocities before computing derivatives
         /// \todo this is not very good solution as it depends on ordering of equation term in the array;
         /// some may already get corrected velocities.
-        /// This should be really done by deriving GenericSolver and correcting velocities manually.
+        /// This should be really done by deriving the solver and correcting velocities manually.
         ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
         ArrayView<Vector> dr = storage.getValue<Vector>(QuantityId::XSPH_VELOCITIES);
         for (Size i = 0; i < v.size(); ++i) {
@@ -76,7 +82,7 @@ public:
         }
     }
 
-    virtual void finalize(Storage& storage, ThreadPool& UNUSED(pool)) override {
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& storage) override {
         ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
         ArrayView<Vector> dr = storage.getValue<Vector>(QuantityId::XSPH_VELOCITIES);
         for (Size i = 0; i < v.size(); ++i) {

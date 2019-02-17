@@ -4,18 +4,20 @@
 #include "quantities/Storage.h"
 #include "sph/initial/Initial.h"
 #include "system/Settings.h"
+#include "thread/Pool.h"
 
 using namespace Sph;
 
 TEST_CASE("Pairing", "[diagnostics]") {
     Storage storage;
-    InitialConditions conds(RunSettings::getDefaults());
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    InitialConditions conds(pool, RunSettings::getDefaults());
     BodySettings settings;
     settings.set(BodySettingsId::PARTICLE_COUNT, 100);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 3._f), settings);
     Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
 
-    ParticlePairing diag(2, 1.e-1_f);
+    ParticlePairingDiagnostic diag(2, 1.e-1_f);
     REQUIRE(diag.getPairs(storage).empty());
 
     const Size n = r.size();
@@ -23,8 +25,8 @@ TEST_CASE("Pairing", "[diagnostics]") {
     r.push(r[68]); // -> pair n+1, 68
     r.push(r[12]); // -> pair n+2, 12
 
-    diag = ParticlePairing(2, 1.e-2_f);
-    Array<ParticlePairing::Pair> pairs = diag.getPairs(storage);
+    diag = ParticlePairingDiagnostic(2, 1.e-2_f);
+    Array<ParticlePairingDiagnostic::Pair> pairs = diag.getPairs(storage);
     REQUIRE(pairs.size() == 3);
     std::sort(pairs.begin(), pairs.end(), [](auto&& p1, auto&& p2) {
         // sort by lower indices

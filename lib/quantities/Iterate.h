@@ -5,6 +5,8 @@
 /// \author Pavel Sevecek
 /// \date 2016-2018
 
+#include "objects/utility/IteratorAdapters.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN

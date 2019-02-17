@@ -1,10 +1,11 @@
 #include "sph/initial/Distribution.h"
-#include "math/Integrator.h"
+#include "math/Functional.h"
 #include "math/Morton.h"
 #include "math/rng/VectorRng.h"
 #include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Domain.h"
 #include "objects/wrappers/Optional.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "sph/boundary/Boundary.h"
 #include "system/Profiler.h"
@@ -12,9 +13,9 @@
 
 NAMESPACE_SPH_BEGIN
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// RandomDistribution implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------
+// RandomDistribution implementation
+//-----------------------------------------------------------------------------------------------------------
 
 RandomDistribution::RandomDistribution(AutoPtr<IRng>&& rng)
     : rng(std::move(rng)) {}
@@ -22,7 +23,9 @@ RandomDistribution::RandomDistribution(AutoPtr<IRng>&& rng)
 RandomDistribution::RandomDistribution(const Size seed)
     : rng(makeRng<UniformRng>(seed)) {}
 
-Array<Vector> RandomDistribution::generate(const Size n, const IDomain& domain) const {
+Array<Vector> RandomDistribution::generate(IScheduler& UNUSED(scheduler),
+    const Size n,
+    const IDomain& domain) const {
     const Box bounds = domain.getBoundingBox();
     VectorRng<IRng&> boxRng(*rng);
     Array<Vector> vecs(0, n);
@@ -41,11 +44,13 @@ Array<Vector> RandomDistribution::generate(const Size n, const IDomain& domain) 
     return vecs;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// CubicPacking implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------
+// CubicPacking implementation
+//-----------------------------------------------------------------------------------------------------------
 
-Array<Vector> CubicPacking::generate(const Size n, const IDomain& domain) const {
+Array<Vector> CubicPacking::generate(IScheduler& UNUSED(scheduler),
+    const Size n,
+    const IDomain& domain) const {
     PROFILE_SCOPE("CubicPacking::generate")
     ASSERT(n > 0);
     const Float volume = domain.getVolume();
@@ -68,14 +73,16 @@ Array<Vector> CubicPacking::generate(const Size n, const IDomain& domain) const 
     return vecs;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// HexagonalPacking implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------
+// HexagonalPacking implementation
+//-----------------------------------------------------------------------------------------------------------
 
 HexagonalPacking::HexagonalPacking(const Flags<Options> f)
     : flags(f) {}
 
-Array<Vector> HexagonalPacking::generate(const Size n, const IDomain& domain) const {
+Array<Vector> HexagonalPacking::generate(IScheduler& UNUSED(scheduler),
+    const Size n,
+    const IDomain& domain) const {
     PROFILE_SCOPE("HexagonalPacking::generate")
     ASSERT(n > 0);
     const Float volume = domain.getVolume();
@@ -88,6 +95,7 @@ Array<Vector> HexagonalPacking::generate(const Size n, const IDomain& domain) co
     const Float dz = sqrt(6._f) / 3._f * dx;
 
     const Box boundingBox = domain.getBoundingBox();
+    ASSERT(boundingBox.volume() > 0._f && boundingBox.volume() < pow<3>(LARGE));
     const Vector step(dx, dy, dz);
     const Box box = flags.has(Options::SPH5_COMPATIBILITY)
                         ? boundingBox
@@ -138,30 +146,26 @@ Array<Vector> HexagonalPacking::generate(const Size n, const IDomain& domain) co
     return vecs;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// DiehlEtAlDistribution implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------
+// DiehlEtAlDistribution implementation
+//-----------------------------------------------------------------------------------------------------------
 
-DiehlDistribution::DiehlDistribution(const DiehlDistribution::DensityFunc& particleDensity,
-    const Float maxDifference,
-    const Size numOfIters,
-    const Float strength,
-    const Float small)
-    : particleDensity(particleDensity)
-    , maxDifference(maxDifference)
-    , numOfIters(numOfIters)
-    , strength(strength)
-    , small(small) {}
+DiehlDistribution::DiehlDistribution(const DiehlParams& params)
+    : params(params) {}
 
 namespace {
+
 class ForwardingDomain : public IDomain {
 private:
     const IDomain& domain;
 
 public:
     explicit ForwardingDomain(const IDomain& domain)
-        : IDomain(domain.getCenter())
-        , domain(domain) {}
+        : domain(domain) {}
+
+    virtual Vector getCenter() const override {
+        return domain.getCenter();
+    }
 
     virtual Box getBoundingBox() const override {
         return domain.getBoundingBox();
@@ -195,6 +199,7 @@ public:
         domain.addGhosts(vs, ghosts, radius, eps);
     }
 };
+
 } // namespace
 
 /// Renormalizes particle density so that integral matches expected particle count.
@@ -222,7 +227,7 @@ static auto renormalizeDensity(const IDomain& domain, Size& n, const Size error,
     Float particleCnt;
     for (particleCnt = mc.integrate(actDensity); abs(particleCnt - n) > error;) {
         const Float ratio = n / max(particleCnt, 1._f);
-        ASSERT(ratio > EPS);
+        ASSERT(ratio > EPS, ratio);
         multiplier *= ratio;
         particleCnt = mc.integrate(actDensity);
         if (cnt++ > 100) { // break potential infinite loop
@@ -264,10 +269,12 @@ static Storage generateInitial(const IDomain& domain, const Size N, TDensity&& d
     return storage;
 }
 
-Array<Vector> DiehlDistribution::generate(const Size expectedN, const IDomain& domain) const {
+Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
+    const Size expectedN,
+    const IDomain& domain) const {
     Size N = expectedN;
-    auto actDensity = renormalizeDensity(domain, N, maxDifference, particleDensity);
-    ASSERT(abs(int(N) - int(expectedN)) <= maxDifference);
+    auto actDensity = renormalizeDensity(domain, N, params.maxDifference, params.particleDensity);
+    ASSERT(abs(int(N) - int(expectedN)) <= params.maxDifference);
 
     // generate initial particle positions
     Storage storage = generateInitial(domain, N, actDensity);
@@ -276,16 +283,15 @@ Array<Vector> DiehlDistribution::generate(const Size expectedN, const IDomain& d
     GhostParticles bc(makeAuto<ForwardingDomain>(domain), 2._f, EPS);
 
     UniformGridFinder finder;
-    ThreadPool& pool = ThreadPool::getGlobalInstance();
-    ThreadLocal<Array<NeighbourRecord>> neighs(pool);
-    finder.build(r);
+    ThreadLocal<Array<NeighbourRecord>> neighs(scheduler);
+    finder.build(scheduler, r);
 
-    const Float correction = strength / (1.f + small);
+    const Float correction = params.strength / (1.f + params.small);
     // radius of search, does not have to be equal to radius of used SPH kernel
     const Float kernelRadius = 2._f;
 
     Array<Vector> deltas(N);
-    for (Size k = 0; k < numOfIters; ++k) {
+    for (Size k = 0; k < params.numOfIters; ++k) {
         // gradually decrease the strength of particle dislocation
         const Float converg = 1._f / sqrt(Float(k + 1));
 
@@ -294,7 +300,7 @@ Array<Vector> DiehlDistribution::generate(const Size expectedN, const IDomain& d
 
         // reconstruct finder to allow for variable topology of particles (we need to reset the internal
         // arrayview as we added ghosts)
-        finder.build(r);
+        finder.build(scheduler, r);
 
         // clean up the previous displacements
         deltas.fill(Vector(0._f));
@@ -321,13 +327,14 @@ Array<Vector> DiehlDistribution::generate(const Size expectedN, const IDomain& d
                 ASSERT(length != 0._f);
                 const Vector diffUnit = diff / length;
                 const Float t =
-                    converg * h * (strength / (small + getSqrLength(diff) * hSqrInv) - correction);
+                    converg * h *
+                    (params.strength / (params.small + getSqrLength(diff) * hSqrInv) - correction);
                 deltas[i] += diffUnit * min(t, h); // clamp the displacement to particle distance
                 ASSERT(isReal(deltas[i]));
             }
             deltas[i][H] = 0._f; // do not affect smoothing lengths
         };
-        parallelFor(pool, neighs, 0, N, 100, lambda);
+        parallelFor(scheduler, neighs, 0, N, 100, lambda);
 
         // apply the computed displacements; note that r might be larger than deltas due to ghost particles -
         // we don't need to move them
@@ -353,11 +360,13 @@ Array<Vector> DiehlDistribution::generate(const Size expectedN, const IDomain& d
     return positions;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// LinearDistribution implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------
+// LinearDistribution implementation
+//-----------------------------------------------------------------------------------------------------------
 
-Array<Vector> LinearDistribution::generate(const Size n, const IDomain& domain) const {
+Array<Vector> LinearDistribution::generate(IScheduler& UNUSED(scheduler),
+    const Size n,
+    const IDomain& domain) const {
     const Float center = domain.getCenter()[X];
     const Float radius = 0.5_f * domain.getBoundingBox().size()[X];
     Array<Vector> vs(0, n);

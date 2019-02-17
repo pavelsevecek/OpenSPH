@@ -1,48 +1,78 @@
 #include "sph/equations/EquationTerm.h"
+#include "objects/Exceptions.h"
+#include "sph/Materials.h"
+#include "sph/equations/DerivativeHelpers.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 
-template <typename Discr>
-class PressureGradient : public DerivativeTemplate<PressureGradient<Discr>> {
-private:
-    ArrayView<const Float> p, m;
-    Discr discr;
-
-    ArrayView<Vector> dv;
+/// \brief Discretization of pressure term in standard SPH formulation.
+class StandardForceDiscr {
+    ArrayView<const Float> rho;
 
 public:
-    using DerivativeTemplate<PressureGradient<Discr>>::DerivativeTemplate;
-
-    virtual void create(Accumulated& results) override {
-        results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
+    void initialize(const Storage& input) {
+        rho = input.getValue<Float>(QuantityId::DENSITY);
     }
 
-    INLINE void init(const Storage& input, Accumulated& results) {
-        tie(p, m) = input.getValues<Float>(QuantityId::PRESSURE, QuantityId::MASS);
+    template <typename T>
+    INLINE T eval(const Size i, const Size j, const T& vi, const T& vj) const {
+        return vi / sqr(rho[i]) + vj / sqr(rho[j]);
+    }
+};
+
+/// \brief Discretization of pressure term in code SPH5
+class BenzAsphaugForceDiscr {
+    ArrayView<const Float> rho;
+
+public:
+    void initialize(const Storage& input) {
+        rho = input.getValue<Float>(QuantityId::DENSITY);
+    }
+
+    template <typename T>
+    INLINE T eval(const Size i, const Size j, const T& vi, const T& vj) const {
+        return (vi + vj) / (rho[i] * rho[j]);
+    }
+};
+
+template <typename Discr>
+class PressureGradient : public AccelerationTemplate<PressureGradient<Discr>> {
+private:
+    ArrayView<const Float> p;
+    Discr discr;
+
+public:
+    using AccelerationTemplate<PressureGradient<Discr>>::AccelerationTemplate;
+
+    INLINE void additionalCreate(Accumulated& UNUSED(results)) {}
+
+    INLINE void additionalInitialize(const Storage& input, Accumulated& UNUSED(results)) {
+        p = input.getValue<Float>(QuantityId::PRESSURE);
         discr.initialize(input);
-
-        dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
     }
 
-    template <bool Symmetrize>
-    INLINE void eval(const Size i, const Size j, const Vector& grad) {
+    INLINE bool additionalEquals(const PressureGradient& UNUSED(other)) const {
+        return true;
+    }
+
+    template <bool Symmetric>
+    INLINE Tuple<Vector, Float> eval(const Size i, const Size j, const Vector& grad) {
         const Vector f = discr.eval(i, j, p[i], p[j]) * grad;
         ASSERT(isReal(f));
-        dv[i] -= m[j] * f;
-        if (Symmetrize) {
-            dv[j] += m[i] * f;
-        }
+        return { -f, 0._f };
     }
 };
 
 void PressureForce::setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) {
-    const FormulationEnum formulation = settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION);
+    const DiscretizationEnum formulation =
+        settings.get<DiscretizationEnum>(RunSettingsId::SPH_DISCRETIZATION);
     switch (formulation) {
-    case FormulationEnum::STANDARD:
+    case DiscretizationEnum::STANDARD:
         derivatives.require(makeAuto<VelocityDivergence<CenterDensityDiscr>>(settings));
         derivatives.require(makeAuto<PressureGradient<StandardForceDiscr>>(settings));
         break;
-    case FormulationEnum::BENZ_ASPHAUG:
+    case DiscretizationEnum::BENZ_ASPHAUG:
         derivatives.require(makeAuto<VelocityDivergence<NeighbourDensityDiscr>>(settings));
         derivatives.require(makeAuto<PressureGradient<BenzAsphaugForceDiscr>>(settings));
         break;
@@ -51,14 +81,14 @@ void PressureForce::setDerivatives(DerivativeHolder& derivatives, const RunSetti
     }
 }
 
-void PressureForce::initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) {}
+void PressureForce::initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) {}
 
-void PressureForce::finalize(Storage& storage, ThreadPool& pool) {
+void PressureForce::finalize(IScheduler& scheduler, Storage& storage) {
     ArrayView<const Float> p, rho;
     tie(p, rho) = storage.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY);
     ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
     ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
-    parallelFor(pool, 0, du.size(), [&](const Size i) INL { //
+    parallelFor(scheduler, 0, du.size(), [&](const Size i) INL { //
         du[i] -= p[i] / rho[i] * divv[i];
     });
 }
@@ -76,38 +106,31 @@ void PressureForce::create(Storage& storage, IMaterial& material) const {
 
 
 template <typename Discr>
-class StressDivergence : public DerivativeTemplate<StressDivergence<Discr>> {
+class StressDivergence : public AccelerationTemplate<StressDivergence<Discr>> {
 private:
-    ArrayView<const Float> m;
     ArrayView<const TracelessTensor> s;
     Discr discr;
 
-    ArrayView<Vector> dv;
-
 public:
     explicit StressDivergence(const RunSettings& settings)
-        : DerivativeTemplate<StressDivergence<Discr>>(settings, DerivativeFlag::SUM_ONLY_UNDAMAGED) {}
+        : AccelerationTemplate<StressDivergence<Discr>>(settings, DerivativeFlag::SUM_ONLY_UNDAMAGED) {}
 
-    virtual void create(Accumulated& results) override {
-        results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
+    INLINE void additionalCreate(Accumulated& UNUSED(results)) {}
+
+    INLINE void additionalInitialize(const Storage& input, Accumulated& UNUSED(results)) {
+        s = input.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+        discr.initialize(input);
     }
 
-    INLINE void init(const Storage& input, Accumulated& results) {
-        m = input.getValue<Float>(QuantityId::MASS);
-        s = input.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
-        discr.initialize(input);
-
-        dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
+    INLINE bool additionalEquals(const StressDivergence& UNUSED(other)) const {
+        return true;
     }
 
     template <bool Symmetrize>
-    INLINE void eval(const Size i, const Size j, const Vector& grad) {
+    INLINE Tuple<Vector, Float> eval(const Size i, const Size j, const Vector& grad) {
         const Vector f = discr.eval(i, j, s[i], s[j]) * grad;
         ASSERT(isReal(f));
-        dv[i] += m[j] * f;
-        if (Symmetrize) {
-            dv[j] -= m[i] * f;
-        }
+        return { f, 0._f };
     }
 };
 
@@ -125,15 +148,16 @@ void SolidStressForce::setDerivatives(DerivativeHolder& derivatives, const RunSe
         settings, DerivativeFlag::SUM_ONLY_UNDAMAGED | DerivativeFlag::CORRECTED));
     /// \todo Correction tensor should be added automatically; same as above
     if (useCorrectionTensor) {
-        derivatives.require(makeAuto<CorrectionTensor>());
+        derivatives.require(makeAuto<CorrectionTensor>(settings));
     }
 
-    const FormulationEnum formulation = settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION);
+    const DiscretizationEnum formulation =
+        settings.get<DiscretizationEnum>(RunSettingsId::SPH_DISCRETIZATION);
     switch (formulation) {
-    case FormulationEnum::STANDARD:
+    case DiscretizationEnum::STANDARD:
         derivatives.require(makeAuto<StressDivergence<StandardForceDiscr>>(settings));
         break;
-    case FormulationEnum::BENZ_ASPHAUG:
+    case DiscretizationEnum::BENZ_ASPHAUG:
         derivatives.require(makeAuto<StressDivergence<BenzAsphaugForceDiscr>>(settings));
         break;
     default:
@@ -141,36 +165,25 @@ void SolidStressForce::setDerivatives(DerivativeHolder& derivatives, const RunSe
     }
 }
 
-void SolidStressForce::initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) {}
+void SolidStressForce::initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) {}
 
-void SolidStressForce::finalize(Storage& storage, ThreadPool& pool) {
+void SolidStressForce::finalize(IScheduler& scheduler, Storage& storage) {
     ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
     ArrayView<TracelessTensor> s, ds;
-    tie(s, ds) = storage.getPhysicalAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+    tie(s, ds) = storage.getAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
     ArrayView<SymmetricTensor> gradv = storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
-    // ArrayView<Vector> rhoRotV = storage.getValue<Vector>(QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION);
-    ArrayView<Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
 
     for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {
         MaterialView material = storage.getMaterial(matIdx);
         const Float mu = material->getParam<Float>(BodySettingsId::SHEAR_MODULUS);
         IndexSequence seq = material.sequence();
-        parallelFor(pool, *seq.begin(), *seq.end(), [&](const Size i) INL {
-            if (reduce[i] == 0._f) {
-                return;
-            }
+        parallelFor(scheduler, *seq.begin(), *seq.end(), [&](const Size i) INL {
             du[i] += 1._f / rho[i] * ddot(s[i], gradv[i]);
 
             // Hooke's law
             TracelessTensor dev(gradv[i] - SymmetricTensor::identity() * gradv[i].trace() / 3._f);
             ds[i] += 2._f * mu * dev;
-
-            // add rotation terms for independence of reference frame
-            /*const AffineMatrix R = 0.5_f * AffineMatrix::crossProductOperator(rhoRotV[i]);
-            const AffineMatrix S = convert<AffineMatrix>(s[i]);
-            const TracelessTensor ds_rot = convert<TracelessTensor>(1._f / rho[i] * (S * R - R * S));
-            ds[i] += ds_rot;*/
             ASSERT(isReal(du[i]) && isReal(ds[i]));
         });
     }
@@ -199,14 +212,14 @@ void NavierStokesForce::setDerivatives(DerivativeHolder& derivatives, const RunS
     derivatives.require(makeDerivative<VelocityGradient>(settings, DerivativeFlag::CORRECTED));
 }
 
-void NavierStokesForce::initialize(Storage&, ThreadPool&) {
+void NavierStokesForce::initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) {
     TODO("implement");
 }
 
-void NavierStokesForce::finalize(Storage& storage, ThreadPool&) {
+void NavierStokesForce::finalize(IScheduler& UNUSED(scheduler), Storage& storage) {
     ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
     ArrayView<TracelessTensor> s, ds;
-    tie(s, ds) = storage.getPhysicalAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+    tie(s, ds) = storage.getAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
     ArrayView<SymmetricTensor> gradv = storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
 
@@ -232,6 +245,10 @@ void NavierStokesForce::create(Storage& storage, IMaterial& material) const {
 }
 
 
+ContinuityEquation::ContinuityEquation(const RunSettings& settings) {
+    useUndamaged = settings.get<bool>(RunSettingsId::SPH_CONTINUITY_USING_UNDAMAGED);
+}
+
 void ContinuityEquation::setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) {
     // this formulation uses equation \dot \rho_i = m_i \sum_j m_j/rho_j \nabla \cdot \vec  v where the
     // velocity divergence is taken either directly, or as a trace of strength velocity gradient, see
@@ -244,18 +261,18 @@ void ContinuityEquation::setDerivatives(DerivativeHolder& derivatives, const Run
     derivatives.require(makeDerivative<VelocityDivergence>(settings));
 }
 
-void ContinuityEquation::initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) {}
+void ContinuityEquation::initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) {}
 
-void ContinuityEquation::finalize(Storage& storage, ThreadPool& pool) {
+void ContinuityEquation::finalize(IScheduler& scheduler, Storage& storage) {
     ArrayView<Float> rho, drho;
     tie(rho, drho) = storage.getAll<Float>(QuantityId::DENSITY);
     ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
 
-    if (storage.has(QuantityId::VELOCITY_GRADIENT)) {
+    if (useUndamaged && storage.has(QuantityId::VELOCITY_GRADIENT)) {
         ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
         ArrayView<const SymmetricTensor> gradv =
             storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
-        parallelFor(pool, 0, rho.size(), [&](const Size i) INL {
+        parallelFor(scheduler, 0, rho.size(), [&](const Size i) INL {
             if (reduce[i] > 0._f) {
                 drho[i] = -rho[i] * gradv[i].trace();
             } else {
@@ -263,7 +280,7 @@ void ContinuityEquation::finalize(Storage& storage, ThreadPool& pool) {
             }
         });
     } else {
-        parallelFor(pool, 0, rho.size(), [&](const Size i) INL { //
+        parallelFor(scheduler, 0, rho.size(), [&](const Size i) INL { //
             drho[i] = -rho[i] * divv[i];
         });
     }
@@ -295,7 +312,7 @@ void AdaptiveSmoothingLength::setDerivatives(DerivativeHolder& derivatives, cons
     derivatives.require(makeDerivative<VelocityDivergence>(settings));
 }
 
-void AdaptiveSmoothingLength::initialize(Storage& storage, ThreadPool& UNUSED(pool)) {
+void AdaptiveSmoothingLength::initialize(IScheduler& UNUSED(scheduler), Storage& storage) {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     // clamp smoothing lengths
     for (Size i = 0; i < r.size(); ++i) {
@@ -303,14 +320,14 @@ void AdaptiveSmoothingLength::initialize(Storage& storage, ThreadPool& UNUSED(po
     }
 }
 
-void AdaptiveSmoothingLength::finalize(Storage& storage, ThreadPool& pool) {
+void AdaptiveSmoothingLength::finalize(IScheduler& scheduler, Storage& storage) {
     ArrayView<const Float> divv, cs;
     tie(divv, cs) = storage.getValues<Float>(QuantityId::VELOCITY_DIVERGENCE, QuantityId::SOUND_SPEED);
     ArrayView<const Size> neighCnt = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
 
-    parallelFor(pool, 0, r.size(), [&](const Size i) INL {
+    parallelFor(scheduler, 0, r.size(), [&](const Size i) INL {
         // 'continuity equation' for smoothing lengths
         if (r[i][H] > 2._f * minimal) {
             v[i][H] = r[i][H] / dimensions * divv[i];
@@ -360,12 +377,12 @@ INLINE void AdaptiveSmoothingLength::enforce(const Size i,
 void ConstSmoothingLength::setDerivatives(DerivativeHolder& UNUSED(derivatives),
     const RunSettings& UNUSED(settings)) {}
 
-void ConstSmoothingLength::initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) {}
+void ConstSmoothingLength::initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) {}
 
-void ConstSmoothingLength::finalize(Storage& storage, ThreadPool& pool) {
+void ConstSmoothingLength::finalize(IScheduler& scheduler, Storage& storage) {
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-    parallelFor(pool, 0, r.size(), [&v, &dv](const Size i) INL {
+    parallelFor(scheduler, 0, r.size(), [&v, &dv](const Size i) INL {
         v[i][H] = 0._f;
         dv[i][H] = 0._f;
     });

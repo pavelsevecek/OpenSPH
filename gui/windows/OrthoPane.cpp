@@ -4,6 +4,8 @@
 #include "gui/Utils.h"
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Camera.h"
+#include "gui/objects/Colorizer.h"
+#include "gui/windows/PaletteDialog.h"
 #include "system/Profiler.h"
 #include "thread/CheckFunction.h"
 #include <wx/dcclient.h>
@@ -11,76 +13,111 @@
 
 NAMESPACE_SPH_BEGIN
 
-OrthoPane::OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings& gui)
+OrthoPane::OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings& UNUSED(gui))
     : IGraphicsPane(parent)
     , controller(controller) {
-    const int width = gui.get<int>(GuiSettingsId::RENDER_WIDTH);
-    const int height = gui.get<int>(GuiSettingsId::RENDER_HEIGHT);
-    this->SetMinSize(wxSize(width, height));
+    /// \todo weird hack, but seems to correctly expand the pane
+    this->SetMinSize(wxSize(10000, 10000));
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(OrthoPane::onPaint));
     this->Connect(wxEVT_MOTION, wxMouseEventHandler(OrthoPane::onMouseMotion));
     this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(OrthoPane::onMouseWheel));
     this->Connect(wxEVT_RIGHT_DOWN, wxMouseEventHandler(OrthoPane::onRightDown));
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(OrthoPane::onRightUp));
     this->Connect(wxEVT_LEFT_UP, wxMouseEventHandler(OrthoPane::onLeftUp));
+    this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(OrthoPane::onDoubleClick));
+    this->Connect(wxEVT_SIZE, wxSizeEventHandler(OrthoPane::onResize));
 
+    // get the camera from controller; note that since then, we provided the updated camera to controller from
+    // here, the camera is never modified in controller!
+    camera = controller->getCurrentCamera();
     particle.lastIdx = -1;
-    arcBall.resize(Point(width, height));
+
+    const wxSize size = this->GetSize();
+    arcBall.resize(Pixel(size.x, size.y));
 }
 
 OrthoPane::~OrthoPane() = default;
 
+void OrthoPane::resetView() {
+    dragging.initialMatrix = AffineMatrix::identity();
+    camera->transform(AffineMatrix::identity());
+}
+
+void OrthoPane::onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) {
+    camera->initialize(storage);
+}
+
 void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    // MEASURE_SCOPE("OrthoPane::onPaint");
+
     wxPaintDC dc(this);
-    SharedPtr<wxBitmap> bitmap = controller->getRenderedBitmap();
-    if (bitmap->IsOk()) { // not empty
-        dc.DrawBitmap(*bitmap, wxPoint(0, 0));
+    const wxBitmap& bitmap = controller->getRenderedBitmap();
+    if (!bitmap.IsOk()) {
+        return;
     }
+
+    dc.DrawBitmap(bitmap, wxPoint(0, 0));
 }
 
 void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    Point position = evt.GetPosition();
+    Pixel position(evt.GetPosition());
     if (evt.Dragging()) {
-        SharedPtr<ICamera> camera = controller->getCurrentCamera();
-        Point offset = Point(position.x - dragging.position.x, -(position.y - dragging.position.y));
+        Pixel offset = Pixel(position.x - dragging.position.x, -(position.y - dragging.position.y));
         if (evt.RightIsDown()) {
             // right button, rotate view
-            AffineMatrix matrix = arcBall.drag(position);
+            AffineMatrix matrix = arcBall.drag(position, Vector(0._f));
             camera->transform(dragging.initialMatrix * matrix);
-
-            // needs to re-initialize the renderer
-            // controller->tryRedraw();
         } else {
             // left button (or middle), pan
             camera->pan(offset);
         }
-        this->Refresh();
+        controller->refresh(camera->clone());
     }
     dragging.position = position;
 }
 
 void OrthoPane::onRightDown(wxMouseEvent& evt) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    arcBall.click(evt.GetPosition());
+    arcBall.click(Pixel(evt.GetPosition()));
 }
 
 void OrthoPane::onRightUp(wxMouseEvent& evt) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    AffineMatrix matrix = arcBall.drag(evt.GetPosition());
+    AffineMatrix matrix = arcBall.drag(Pixel(evt.GetPosition()), Vector(0._f));
     dragging.initialMatrix = dragging.initialMatrix * matrix;
+}
+
+void OrthoPane::onDoubleClick(wxMouseEvent& evt) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    const wxPoint position = evt.GetPosition();
+    /// \todo has to match palette drawn by particle renderer ...
+    const Pixel origin(this->GetSize().x - 50, 231);
+    const Pixel size(30, 201);
+    if (!Interval(origin.x, origin.x + size.x).contains(position.x) ||
+        !Interval(origin.y - size.y, origin.y).contains(position.y)) {
+        // did not click on the palette
+        return;
+    }
+
+    Optional<Palette> palette = controller->getCurrentColorizer()->getPalette();
+    if (palette) {
+        PaletteDialog* paletteDialog = new PaletteDialog(
+            this->GetParent(), wxSize(300, 240), palette.value(), [this](const Palette& selected) {
+                controller->setPaletteOverride(selected);
+            });
+        paletteDialog->Show();
+    }
 }
 
 void OrthoPane::onLeftUp(wxMouseEvent& evt) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    Point position = evt.GetPosition();
-    Optional<Size> selectedIdx = controller->getIntersectedParticle(position);
+    Pixel position(evt.GetPosition());
+    Optional<Size> selectedIdx = controller->getIntersectedParticle(position, 1.f);
     if (selectedIdx.valueOr(-1) != particle.lastIdx.valueOr(-1)) {
         particle.lastIdx = selectedIdx;
         controller->setSelectedParticle(selectedIdx);
-        this->Refresh();
+        controller->refresh(camera->clone());
     }
 }
 
@@ -88,10 +125,15 @@ void OrthoPane::onMouseWheel(wxMouseEvent& evt) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     const float spin = evt.GetWheelRotation();
     const float amount = (spin > 0.f) ? 1.2f : 1.f / 1.2f;
-    SharedPtr<ICamera> camera = controller->getCurrentCamera();
-    Point fixedPoint = evt.GetPosition();
-    camera->zoom(Point(fixedPoint.x, this->GetSize().y - fixedPoint.y - 1), amount);
-    this->Refresh();
+    Pixel fixedPoint(evt.GetPosition());
+    camera->zoom(Pixel(fixedPoint.x, this->GetSize().y - fixedPoint.y - 1), amount);
+    controller->refresh(camera->clone());
+}
+
+void OrthoPane::onResize(wxSizeEvent& evt) {
+    const Pixel newSize(max(10, evt.GetSize().x), max(10, evt.GetSize().y));
+    arcBall.resize(newSize);
+    camera->resize(newSize);
 }
 
 NAMESPACE_SPH_END

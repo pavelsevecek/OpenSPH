@@ -6,6 +6,7 @@
 /// \date 2016-2018
 
 #include "quantities/Storage.h"
+#include "sph/equations/DerivativeHelpers.h"
 #include "sph/equations/EquationTerm.h"
 
 NAMESPACE_SPH_BEGIN
@@ -15,63 +16,42 @@ NAMESPACE_SPH_BEGIN
 /// See Monaghan (1997), SPH and Riemann Solvers, J. Comput. Phys. 136, 298
 class RiemannAV : public IEquationTerm {
 public:
-    class Derivative : public DerivativeTemplate<Derivative> {
+    class Derivative : public AccelerationTemplate<Derivative> {
     private:
         Float alpha;
         ArrayView<const Vector> r, v;
-        ArrayView<const Float> cs, rho, m;
-
-        ArrayView<Vector> dv;
-        ArrayView<Float> du;
+        ArrayView<const Float> cs, rho;
 
     public:
         explicit Derivative(const RunSettings& settings)
-            : DerivativeTemplate<Derivative>(settings) {
+            : AccelerationTemplate<Derivative>(settings) {
             alpha = settings.get<Float>(RunSettingsId::SPH_AV_ALPHA);
         }
 
-        virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
-            results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, BufferSource::SHARED);
-        }
+        INLINE void additionalCreate(Accumulated& UNUSED(results)) {}
 
-        virtual bool equals(const IDerivative& other) const override {
-            if (!DerivativeTemplate<Derivative>::equals(other)) {
-                return false;
-            }
-            const Derivative* actOther = assert_cast<const Derivative*>(&other);
-            return alpha == actOther->alpha;
-        }
-
-        INLINE void init(const Storage& storage, Accumulated& results) {
+        INLINE void additionalInitialize(const Storage& storage, Accumulated& UNUSED(results)) {
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = storage.getAll<Vector>(QuantityId::POSITION);
             cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
             rho = storage.getValue<Float>(QuantityId::SOUND_SPEED);
-            m = storage.getValue<Float>(QuantityId::MASS);
-
-            dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
-            du = results.getBuffer<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
         }
 
-        /// \todo can be de-duplicated, moving to common parent for all AVs
+        INLINE bool additionalEquals(const Derivative& other) const {
+            return alpha == other.alpha;
+        }
+
         template <bool Symmetrize>
-        INLINE void eval(const Size i, const Size j, const Vector& grad) {
-            const Float av = (*this)(i, j);
+        INLINE Tuple<Vector, Float> eval(const Size i, const Size j, const Vector& grad) {
+            const Float av = evalAv(i, j);
             ASSERT(isReal(av) && av >= 0._f);
             const Vector Pi = av * grad;
             const Float heating = 0.5_f * av * dot(v[i] - v[j], grad);
             ASSERT(isReal(heating) && heating >= 0._f);
-            dv[i] -= m[j] * Pi;
-            du[i] += m[j] * heating;
-
-            if (Symmetrize) {
-                dv[j] += m[i] * Pi;
-                du[j] += m[i] * heating;
-            }
+            return { -Pi, heating };
         }
 
-        INLINE Float operator()(const int i, const int j) {
+        INLINE Float evalAv(const int i, const int j) {
             const Float dvdr = dot(v[i] - v[j], r[i] - r[j]);
             if (dvdr >= 0._f) {
                 return 0._f;
@@ -87,9 +67,9 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
-    virtual void finalize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
     virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };

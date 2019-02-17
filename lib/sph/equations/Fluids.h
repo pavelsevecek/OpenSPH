@@ -5,6 +5,8 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "quantities/IMaterial.h"
+#include "sph/equations/DerivativeHelpers.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/Kernel.h"
 
@@ -47,7 +49,7 @@ public:
     }
 };
 
-class CohesionDerivative : public DerivativeTemplate<CohesionDerivative> {
+class CohesionDerivative : public AccelerationTemplate<CohesionDerivative> {
 private:
     /// Surface tension coefficient
     Float gamma;
@@ -56,46 +58,45 @@ private:
     SymmetrizeSmoothingLengths<LutKernel<3>> kernel;
 
     ArrayView<const Vector> r;
-    ArrayView<const Float> m;
     ArrayView<const Vector> n;
-    ArrayView<Vector> dv;
 
 public:
-    CohesionDerivative(const RunSettings& settings)
-        : DerivativeTemplate<CohesionDerivative>(settings)
+    explicit CohesionDerivative(const RunSettings& settings)
+        : AccelerationTemplate<CohesionDerivative>(settings)
         , kernel(CohesionKernel{}) {}
 
-    virtual void create(Accumulated& results) override {
-        results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
-    }
+    INLINE void additionalCreate(Accumulated& UNUSED(results)) {}
 
-    INLINE void init(const Storage& input, Accumulated& results) {
+    INLINE void additionalInitialize(const Storage& input, Accumulated& UNUSED(results)) {
         r = input.getValue<Vector>(QuantityId::POSITION);
         n = input.getValue<Vector>(QuantityId::SURFACE_NORMAL);
-        m = input.getValue<Float>(QuantityId::MASS);
-        dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
 
         /// \todo needs to be generalized for heterogeneous fluids
         gamma = input.getMaterial(0)->getParam<Float>(BodySettingsId::SURFACE_TENSION);
     }
 
+    INLINE bool additionalEquals(const CohesionDerivative& UNUSED(other)) const {
+        return true;
+    }
+
     template <bool Symmetrize>
-    INLINE void eval(const Size i, const Size j, const Vector& UNUSED(grad)) {
+    INLINE Tuple<Vector, Float> eval(const Size i, const Size j, const Vector& UNUSED(grad)) {
+        if (SPH_UNLIKELY(r[i] == r[j])) {
+            return { Vector(0._f), 0._f };
+        }
         const Vector dr = getNormalized(r[i] - r[j]);
         const Float C = kernel.value(r[i], r[j]);
 
         // cohesive term + surface area normalizing term
         const Vector f = -gamma * C * dr - gamma * (n[i] - n[j]);
+        ASSERT(isReal(f));
 
-        dv[i] += m[j] * f;
-        if (Symmetrize) {
-            dv[j] -= m[i] * f;
-        }
+        return { f, 0._f }; /// \todo heating?
     }
 };
 
 /// \brief Computes the color field of the fluid.
-class ColorField : public DerivativeTemplate<ColorField> {
+class ColorFieldDerivative : public DerivativeTemplate<ColorFieldDerivative> {
 private:
     ArrayView<const Float> m, rho;
     ArrayView<const Vector> r;
@@ -103,18 +104,22 @@ private:
     ArrayView<Vector> n;
 
 public:
-    explicit ColorField(const RunSettings& settings)
-        : DerivativeTemplate<ColorField>(settings) {}
+    explicit ColorFieldDerivative(const RunSettings& settings)
+        : DerivativeTemplate<ColorFieldDerivative>(settings) {}
 
-    virtual void create(Accumulated& results) override {
+    INLINE void additionalCreate(Accumulated& results) {
         results.insert<Vector>(QuantityId::SURFACE_NORMAL, OrderEnum::ZERO, BufferSource::UNIQUE);
     }
 
-    INLINE void init(const Storage& input, Accumulated& results) {
+    INLINE void additionalInitialize(const Storage& input, Accumulated& results) {
         r = input.getValue<Vector>(QuantityId::POSITION);
         tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
 
         n = results.getBuffer<Vector>(QuantityId::SURFACE_NORMAL, OrderEnum::ZERO);
+    }
+
+    INLINE bool additionalEquals(const ColorFieldDerivative& UNUSED(other)) const {
+        return true;
     }
 
     template <bool Symmetrize>
@@ -130,14 +135,14 @@ class CohesionTerm : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
         derivatives.require(makeAuto<CohesionDerivative>(settings));
-        derivatives.require(makeAuto<ColorField>(settings));
+        derivatives.require(makeAuto<ColorFieldDerivative>(settings));
     }
 
-    virtual void initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
-    virtual void finalize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
-    virtual void create(Storage& storage, IMaterial& UNUSED(material)) const {
+    virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
         storage.insert<Vector>(QuantityId::SURFACE_NORMAL, OrderEnum::ZERO, Vector(0._f));
     }
 };

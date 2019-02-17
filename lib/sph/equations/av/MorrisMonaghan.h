@@ -7,6 +7,7 @@
 
 #include "quantities/IMaterial.h"
 #include "quantities/Storage.h"
+#include "sph/equations/DerivativeHelpers.h"
 #include "sph/equations/EquationTerm.h"
 #include "system/Settings.h"
 
@@ -19,51 +20,40 @@ NAMESPACE_SPH_BEGIN
 /// only an extension of the standard scalar artificial viscosity.
 class MorrisMonaghanAV : public IEquationTerm {
 public:
-    class Derivative : public DerivativeTemplate<Derivative> {
+    class Derivative : public AccelerationTemplate<Derivative> {
     private:
-        ArrayView<const Float> alpha, beta, dalpha, cs, rho, m;
+        ArrayView<const Float> alpha, dalpha, cs, rho;
         ArrayView<const Vector> r, v;
-        ArrayView<Vector> dv;
-        ArrayView<Float> du;
+
         const Float eps = 1.e-2_f;
 
     public:
         explicit Derivative(const RunSettings& settings)
-            : DerivativeTemplate<Derivative>(settings) {}
+            : AccelerationTemplate<Derivative>(settings) {}
 
-        virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
-            results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, BufferSource::SHARED);
-        }
+        INLINE void additionalCreate(Accumulated& UNUSED(results)) {}
 
-        INLINE void init(const Storage& input, Accumulated& results) {
+        INLINE void additionalInitialize(const Storage& input, Accumulated& UNUSED(results)) {
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
             tie(alpha, dalpha) = input.getAll<Float>(QuantityId::AV_ALPHA);
-            beta = input.getValue<Float>(QuantityId::AV_BETA);
             cs = input.getValue<Float>(QuantityId::SOUND_SPEED);
             rho = input.getValue<Float>(QuantityId::DENSITY);
-            m = input.getValue<Float>(QuantityId::MASS);
+        }
 
-            dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
-            du = results.getBuffer<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
+        INLINE bool additionalEquals(const Derivative& UNUSED(other)) const {
+            return true;
         }
 
         template <bool Symmetric>
-        INLINE void eval(const Size i, const Size j, const Vector& grad) {
-            const Float Pi = operator()(i, j);
+        INLINE Tuple<Vector, Float> eval(const Size i, const Size j, const Vector& grad) {
+            const Float Pi = evalAv(i, j);
             const Float heating = 0.5_f * Pi * dot(v[i] - v[j], grad);
 
-            dv[i] += m[j] * Pi * grad;
-            du[i] += m[j] * heating;
-
-            if (Symmetric) {
-                dv[j] -= m[i] * Pi * grad;
-                du[j] += m[i] * heating;
-            }
+            return { Pi * grad, heating };
         }
 
-        INLINE Float operator()(const Size i, const Size j) const {
+        INLINE Float evalAv(const Size i, const Size j) const {
             const Float dvdr = dot(v[i] - v[j], r[i] - r[j]);
             if (dvdr >= 0._f) {
                 return 0._f;
@@ -72,7 +62,7 @@ public:
             const Float csbar = 0.5_f * (cs[i] + cs[j]);
             const Float rhobar = 0.5_f * (rho[i] + rho[j]);
             const Float alphabar = 0.5_f * (alpha[i] + alpha[j]);
-            const Float betabar = 0.5_f * (beta[i] + beta[j]);
+            const Float betabar = 2._f * alphabar;
             const Float mu = hbar * dvdr / (getSqrLength(r[i] - r[j]) + eps * sqr(hbar));
             return 1._f / rhobar * (-alphabar * csbar * mu + betabar * sqr(mu));
         }
@@ -83,19 +73,9 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(Storage& storage, ThreadPool& UNUSED(pool)) override {
-        ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
-        ArrayView<Float> alpha = storage.getValue<Float>(QuantityId::AV_ALPHA);
-        ArrayView<Float> beta = storage.getValue<Float>(QuantityId::AV_BETA);
-        // always keep beta = 2*alpha
-        for (Size i = 0; i < alpha.size(); ++i) {
-            beta[i] = 2._f * alpha[i];
-        }
-    }
-
-    virtual void finalize(Storage& storage, ThreadPool& UNUSED(pool)) override {
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& storage) override {
         ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         ArrayView<Float> alpha, dalpha;
         tie(alpha, dalpha) = storage.getAll<Float>(QuantityId::AV_ALPHA);
@@ -119,9 +99,6 @@ public:
     virtual void create(Storage& storage, IMaterial& material) const override {
         storage.insert<Float>(
             QuantityId::AV_ALPHA, OrderEnum::FIRST, material.getParam<Float>(BodySettingsId::AV_ALPHA));
-        /// \todo maybe remove AV_BETA as we are using AV_BETA = 2*AV_ALPHA anyway
-        storage.insert<Float>(
-            QuantityId::AV_BETA, OrderEnum::ZERO, material.getParam<Float>(BodySettingsId::AV_BETA));
 
         storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
         const Interval avRange = material.getParam<Interval>(BodySettingsId::AV_ALPHA_RANGE);

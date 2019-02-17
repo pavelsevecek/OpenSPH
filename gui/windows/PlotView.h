@@ -23,7 +23,7 @@ struct PlotData {
     LockingPtr<IPlot> plot;
 
     /// Color of the plot
-    Color color;
+    Rgba color;
 };
 
 class PlotFrame;
@@ -35,7 +35,7 @@ private:
 
     struct {
         LockingPtr<IPlot> plot;
-        Color color;
+        Rgba color;
     } cached;
 
     bool showLabels;
@@ -54,6 +54,8 @@ public:
         const SharedPtr<Array<PlotData>>& list,
         const Size defaultSelectedIdx,
         const bool showLabels);
+
+    void resize(const Pixel size);
 
     /// \brief Returns the transformation matrix for managed plot.
     AffineMatrix2 getPlotTransformMatrix(const Interval& rangeX, const Interval& rangeY) const;
@@ -94,7 +96,9 @@ public:
 private:
     wxBoxSizer* createToolbar(const Size toolbarHeight);
 
-    void saveImage(const std::string& path, const int fileIndex);
+    void saveImage(const Path& path);
+
+    void saveData(const Path& path);
 };
 
 

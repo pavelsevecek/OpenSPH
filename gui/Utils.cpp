@@ -1,9 +1,62 @@
 #include "gui/Utils.h"
 #include "common/Assert.h"
+#include "io/FileSystem.h"
 #include "objects/utility/StringUtils.h"
 #include <iomanip>
+#include <wx/dcmemory.h>
+#include <wx/filedlg.h>
 
 NAMESPACE_SPH_BEGIN
+
+static std::string getDesc(ArrayView<const FileFormat> formats) {
+    std::string desc;
+    bool isFirst = true;
+    for (const FileFormat& format : formats) {
+        if (!isFirst) {
+            desc += "|";
+        }
+        isFirst = false;
+        desc += format.desc + " (*." + format.ext + ")|*." + format.ext;
+    }
+    return desc;
+}
+
+static Optional<std::pair<Path, int>> doFileDialog(const std::string& title,
+    const std::string& fileMask,
+    std::string& defaultDir,
+    const int flags) {
+    wxFileDialog dialog(nullptr, title, "", defaultDir, fileMask, flags);
+    if (dialog.ShowModal() == wxID_CANCEL) {
+        return NOTHING;
+    }
+    std::string s(dialog.GetPath());
+    Path path(std::move(s));
+    defaultDir = path.parentPath().native();
+    return std::make_pair(path, dialog.GetFilterIndex());
+}
+
+Optional<Path> doOpenFileDialog(const std::string& title, Array<FileFormat>&& formats) {
+    static std::string defaultDir = "";
+    Optional<std::pair<Path, int>> pathAndIndex =
+        doFileDialog(title, getDesc(formats), defaultDir, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (pathAndIndex) {
+        return pathAndIndex->first;
+    } else {
+        return NOTHING;
+    }
+}
+
+Optional<Path> doSaveFileDialog(const std::string& title, Array<FileFormat>&& formats) {
+    static std::string defaultDir = "";
+    Optional<std::pair<Path, int>> pathAndIndex =
+        doFileDialog(title, getDesc(formats), defaultDir, wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    if (pathAndIndex) {
+        const std::string ext = formats[pathAndIndex->second].ext;
+        return pathAndIndex->first.replaceExtension(ext);
+    } else {
+        return NOTHING;
+    }
+}
 
 static Size getSubscriptSize(const std::wstring& text) {
     Size size = 0;
@@ -55,9 +108,7 @@ std::wstring toPrintableString(const float value, const Size precision, const fl
     const float absValue = abs(value);
     std::stringstream ss;
     if (absValue == 0.f || (absValue >= 1.f / decimalThreshold && absValue <= decimalThreshold)) {
-        // for value aroung 1, return the decimal representation
-        // if we don't print the exponential part, we can use more precision here
-        ss << std::setprecision(max(5, int(precision))) << std::fixed << value;
+        ss << value;
     } else {
         ss << std::setprecision(precision) << std::scientific << value;
     }
@@ -95,5 +146,38 @@ std::wstring toPrintableString(const float value, const Size precision, const fl
     return printable;
 }
 
+static Pixel getOriginOffset(wxDC& dc, Flags<TextAlign> align, const std::wstring& text) {
+    wxSize extent = dc.GetTextExtent(text);
+    if (text.find(L"^") != std::string::npos) {
+        // number with superscript is actually a bit shorter, shrink it
+        /// \todo this should be done more correctly
+        extent.x -= 6;
+    }
+    Pixel offset(0, 0);
+    if (align.has(TextAlign::LEFT)) {
+        offset.x -= extent.x;
+    }
+    if (align.has(TextAlign::HORIZONTAL_CENTER)) {
+        offset.x -= extent.x / 2;
+    }
+    if (align.has(TextAlign::TOP)) {
+        offset.y -= extent.y;
+    }
+    if (align.has(TextAlign::VERTICAL_CENTER)) {
+        offset.y -= extent.y / 2;
+    }
+    return offset;
+}
+
+void printLabels(wxDC& dc, ArrayView<const IRenderOutput::Label> labels) {
+    wxFont font = dc.GetFont();
+    for (const IRenderOutput::Label& label : labels) {
+        dc.SetTextForeground(wxColour(label.color));
+        font.SetPointSize(label.fontSize);
+        dc.SetFont(font);
+        const wxPoint origin(label.position + getOriginOffset(dc, label.align, label.text));
+        drawTextWithSubscripts(dc, label.text, origin);
+    }
+}
 
 NAMESPACE_SPH_END

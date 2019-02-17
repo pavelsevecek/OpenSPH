@@ -10,13 +10,13 @@
 
 using namespace Sph;
 
-TYPED_TEST_CASE_2("Balsara shear flow", "[av]", TSolver, SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("Balsara shear flow", "[av]", SymmetricSolver, AsymmetricSolver) {
     // no switch
     EquationHolder term1 = makeTerm<StandardAV>();
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, 1._f).set(BodySettingsId::ENERGY, 1._f);
     Storage storage1 = Tests::getGassStorage(10000, settings);
-    Tests::computeField<TSolver>(storage1, std::move(term1), [](const Vector& r) {
+    Tests::computeField<TestType>(storage1, std::move(term1), [](const Vector& r) {
         // spin-up particles with some differential rotation
         const Vector l(r[X], r[Y], 0._f);
         return cross(Vector(0, 0, 1), l) / (getSqrLength(l) + 1._f);
@@ -26,7 +26,7 @@ TYPED_TEST_CASE_2("Balsara shear flow", "[av]", TSolver, SymmetricSolver, Asymme
     Storage storage2 = Tests::getGassStorage(10000, settings);
     EquationHolder term2 = makeTerm<BalsaraSwitch<StandardAV>>(RunSettings::getDefaults());
     // need to compute twice, first to get velocity divergence and rotation, second to compute AV
-    Tests::computeField<TSolver>(storage2,
+    Tests::computeField<TestType>(storage2,
         std::move(term2),
         [](const Vector& r) {
             const Vector l(r[X], r[Y], 0._f);
@@ -69,19 +69,19 @@ TYPED_TEST_CASE_2("Balsara shear flow", "[av]", TSolver, SymmetricSolver, Asymme
     REQUIRE_SEQUENCE(test, 0, dv1.size());
 }
 
-TYPED_TEST_CASE_2("Balsara divergent flow", "[av]", TSolver, SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("Balsara divergent flow", "[av]", SymmetricSolver, AsymmetricSolver) {
     // no switch
     EquationHolder term1 = makeTerm<StandardAV>();
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, 1._f).set(BodySettingsId::ENERGY, 1._f);
     Storage storage1 = Tests::getGassStorage(10000, settings);
-    Tests::computeField<TSolver>(storage1, std::move(term1), [](const Vector& r) { return -r; });
+    Tests::computeField<TestType>(storage1, std::move(term1), [](const Vector& r) { return -r; });
 
     // with switch
     Storage storage2 = Tests::getGassStorage(10000, settings);
     EquationHolder term2 = makeTerm<BalsaraSwitch<StandardAV>>(RunSettings::getDefaults());
     // need to compute twice, first to get velocity divergence and rotation, second to compute AV
-    Tests::computeField<TSolver>(storage2, std::move(term2), [](const Vector& r) { return -r; }, 2);
+    Tests::computeField<TestType>(storage2, std::move(term2), [](const Vector& r) { return -r; }, 2);
 
     ArrayView<Vector> dv1 = storage1.getD2t<Vector>(QuantityId::POSITION);
     ArrayView<Float> du1 = storage1.getDt<Float>(QuantityId::ENERGY);

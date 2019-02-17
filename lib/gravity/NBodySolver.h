@@ -15,58 +15,61 @@ class ISymmetricFinder;
 class ICollisionHandler;
 class IOverlapHandler;
 class IGravity;
-class CollisionRecord;
+struct CollisionRecord;
 class CollisionStats;
 enum class CollisionResult;
 enum class OverlapEnum;
 
-/// TODO unit tests!
-///  perfect bounce, perfect sticking, merging - just check for asserts, it shows enough problems
-
 /// \brief Solver computing gravitational interaction of particles.
-///
-/// The particles are assumed to be point masses. No hydrodynamics or collisions are considered.
 class NBodySolver : public ISolver {
 private:
     /// Gravity used by the solver
     AutoPtr<IGravity> gravity;
 
-    /// Thread pool for parallelization
-    ThreadPool pool;
+    IScheduler& scheduler;
 
     struct ThreadData {
-        // neighbours for parallelized queries
+        /// Neighbours for parallelized queries
         Array<NeighbourRecord> neighs;
 
+        /// Collisions detected by this thread
         FlatSet<CollisionRecord> collisions;
     };
 
     ThreadLocal<ThreadData> threadData;
 
-    // for single-threaded search (should be parallelized in the future)
+    /// List of neighbours, used for single-threaded search
+    ///
+    /// \note Should be removed in the future.
     Array<NeighbourRecord> neighs;
 
-    // cached array of removed particles, used to avoid invalidating indices during collision handling
+    /// Cached array of removed particles, used to avoid invalidating indices during collision handling.
     FlatSet<Size> removed;
 
-    /*FlatSet<Size> ignored;
-    std::mutex ignoredMutex;*/
-
-    // holds computed collisions
+    /// Holds all detected collisions.
     FlatSet<CollisionRecord> collisions;
 
+    /// Maximum distance to search for impactors, per particle.
     Array<Float> searchRadii;
 
     struct {
+
+        /// Handler used to resolve particle collisions
         AutoPtr<ICollisionHandler> handler;
 
+        /// Finder for searching the neighbours
         AutoPtr<ISymmetricFinder> finder;
+
     } collision;
 
     struct {
+
+        /// Handler used to resolve particle overlaps
         AutoPtr<IOverlapHandler> handler;
 
+        /// Limit ovelap of particle to be classified as "overlap" rather than "collision".
         Float allowedRatio;
+
     } overlap;
 
     struct {
@@ -75,6 +78,7 @@ private:
 
         /// Maximum rotation of a particle in a single (sub)step.
         Float maxAngle;
+
     } rigidBody;
 
     /// Cached views of positions of velocities, so that we don't have to pass it to every function
@@ -83,10 +87,17 @@ private:
 
 public:
     /// \brief Creates the solver, using the gravity implementation specified by settings.
-    explicit NBodySolver(const RunSettings& settings);
+    NBodySolver(IScheduler& scheduler, const RunSettings& settings);
 
     /// \brief Creates the solver by passing the user-defined gravity implementation.
-    NBodySolver(const RunSettings& settings, AutoPtr<IGravity>&& gravity);
+    NBodySolver(IScheduler& scheduler, const RunSettings& settings, AutoPtr<IGravity>&& gravity);
+
+    /// \brief Creates the solver by specifying gravity and handlers for collision and overlaps.
+    NBodySolver(IScheduler& scheduler,
+        const RunSettings& settings,
+        AutoPtr<IGravity>&& gravity,
+        AutoPtr<ICollisionHandler>&& collisionHandler,
+        AutoPtr<IOverlapHandler>&& overlapHandler);
 
     ~NBodySolver();
 

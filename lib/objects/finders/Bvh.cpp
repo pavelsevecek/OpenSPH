@@ -232,6 +232,7 @@ Box Bvh<TBvhObject>::getBoundingBox() const {
     return nodes[0].box;
 }
 
+template class Bvh<BvhTriangle>;
 template class Bvh<BvhSphere>;
 template class Bvh<BvhBox>;
 

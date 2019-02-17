@@ -188,6 +188,25 @@ TEST_CASE("Array Insert", "[array]") {
     REQUIRE_ASSERT(ar.insert(9, 5));
 }
 
+TEST_CASE("Array Insert range", "[array]") {
+    Array<int> ar;
+    Array<int> toInsert{ 3, 5, 7 };
+    ar.insert(0, toInsert.begin(), toInsert.end());
+    REQUIRE(ar == toInsert);
+
+    toInsert = { 1, 2, 3 };
+    ar.insert(1, toInsert.begin(), toInsert.end());
+    REQUIRE(ar == Array<int>({ 3, 1, 2, 3, 5, 7 }));
+
+    toInsert = { 9 };
+    ar.insert(6, toInsert.begin(), toInsert.end());
+    REQUIRE(ar == Array<int>({ 3, 1, 2, 3, 5, 7, 9 }));
+
+    toInsert = {};
+    ar.insert(3, toInsert.begin(), toInsert.end());
+    REQUIRE(ar == Array<int>({ 3, 1, 2, 3, 5, 7, 9 }));
+}
+
 TEST_CASE("Array Remove by index", "[array]") {
     Array<int> ar{ 1, 5, 3, 6, 2, 3 };
     ar.remove(0);
@@ -198,6 +217,36 @@ TEST_CASE("Array Remove by index", "[array]") {
     REQUIRE(ar == Array<int>({ 5, 3, 2 }));
     REQUIRE_ASSERT(ar.remove(4));
     REQUIRE_ASSERT(ar.remove(-1));
+}
+
+TEST_CASE("Array Remove multiple", "[array]") {
+    Array<int> ar{ 0, 1, 2, 3, 4 };
+    ar.remove(Array<Size>{});
+    REQUIRE(ar == Array<int>({ 0, 1, 2, 3, 4 }));
+    ar.remove(Array<Size>{ 0 });
+    REQUIRE(ar == Array<int>({ 1, 2, 3, 4 }));
+    ar.remove(Array<Size>{ 3 });
+    REQUIRE(ar == Array<int>({ 1, 2, 3 }));
+    ar.remove(Array<Size>{ 1 });
+    REQUIRE(ar == Array<int>({ 1, 3 }));
+    ar.remove(Array<Size>{ 1, 2 });
+    REQUIRE(ar == Array<int>());
+
+    ar = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+    ar.remove(Array<Size>{ 0, 3, 4, 5, 7 });
+    REQUIRE(ar == Array<int>({ 1, 2, 6, 8 }));
+
+    ar = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+    ar.remove(Array<Size>{ 2, 4, 6, 7, 8 });
+    REQUIRE(ar == Array<int>({ 0, 1, 3, 5 }));
+
+    ar = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+    ar.remove(Array<Size>{ 0, 1, 2, 6, 7 });
+    REQUIRE(ar == Array<int>({ 3, 4, 5, 8 }));
+
+    ar = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+    ar.remove(Array<Size>{ 0, 1, 2, 3, 4, 5, 6, 7, 8 });
+    REQUIRE(ar == Array<int>());
 }
 
 TEST_CASE("Array clone", "[array]") {
@@ -222,6 +271,7 @@ TEST_CASE("Array iterators", "[array]") {
 
     Size idx = 0;
     for (int i : empty) {
+        (void)i;
         idx++;
     }
     REQUIRE(idx == 0);

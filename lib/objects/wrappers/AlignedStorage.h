@@ -5,10 +5,38 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "common/Assert.h"
 #include "common/Traits.h"
+#include <mm_malloc.h>
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Creates a new object of type T on heap, using aligned allocation.
+template <typename T, typename... TArgs>
+INLINE T* alignedNew(TArgs&&... args) {
+    constexpr Size size = sizeof(T);
+    constexpr Size alignment = alignof(T);
+    void* ptr = _mm_malloc(size, alignment);
+    ASSERT(ptr);
+    return new (ptr) T(std::forward<TArgs>(args)...);
+}
+
+/// \brief Deletes an object previously allocated using \ref alignedNew.
+template <typename T>
+INLINE void alignedDelete(T* ptr) {
+    if (!ptr) {
+        return;
+    }
+
+    ptr->~T();
+    _mm_free(ptr);
+    ptr = nullptr;
+}
+
+template <typename T>
+INLINE bool isAligned(const T& value) {
+    return reinterpret_cast<std::size_t>(std::addressof(value)) % alignof(T) == 0;
+}
 
 /// \brief Simple block of memory on stack with size and alignment given by template type
 
@@ -64,8 +92,8 @@ public:
     }
 };
 
-/// Specialization for l-value references, a simple wrapper of ReferenceWrapper with same interface to allow
-/// generic usage of AlignedStorage for both values and references.
+/// \brief Specialization for l-value references, a simple wrapper of ReferenceWrapper with same interface to
+/// allow generic usage of AlignedStorage for both values and references.
 template <typename Type>
 class AlignedStorage<Type&> {
     using StorageType = ReferenceWrapper<Type>;

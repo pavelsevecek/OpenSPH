@@ -6,52 +6,44 @@ CONFIG -= qt
 INCLUDEPATH += /usr/include/wx-3.0 ../lib/ ..
 DEPENDPATH += ../lib ../test
 PRE_TARGETDEPS += ../lib/liblib.a
-LIBS += `wx-config --libs --gl-libs`
-LIBS += -lGL -lGLU -lGLEW
+LIBS += `wx-config --libs`
 LIBS += ../lib/liblib.a
 
-DEFINES += SPH_USE_EIGEN
+include(../lib/inc.pro)
 
-QMAKE_CXXFLAGS += -Wall -Werror -msse4.1 -std=c++14 `wx-config --libs all --cxxflags --gl-libs`
+QMAKE_CXXFLAGS += `wx-config --cxxflags`
 
-CONFIG(release, debug|profile|assert|release) {
-  message( "SPH GUI --- Building for Release" )
-}
-
-CONFIG(profile, debug|profile|assert|release) {
-  message( "SPH GUI --- Building for Profile" )
-  DEFINES += SPH_PROFILE
-}
-
-CONFIG(assert, debug|profile|assert|release) {
-  message( "SPH GUI --- Building for Assert" )
-  DEFINES += SPH_DEBUG SPH_PROFILE
-  QMAKE_CXXFLAGS += -O2
-}
-
-CONFIG(debug, debug|profile|assert|release) {
-  message( "SPH GUI --- Building for Debug" )
-  DEFINES += SPH_DEBUG SPH_PROFILE
+linux-g++ {
+    # disabling maybe-uninitialized because of Factory::getCamera, either gcc bug or some weird behavior
+    QMAKE_CXXFLAGS += -Wno-maybe-uninitialized
 }
 
 SOURCES += \
+    Config.cpp \
     Controller.cpp \
+    Factory.cpp \
     MainLoop.cpp \
     Settings.cpp \
     Utils.cpp \
-    Factory.cpp \
+    objects/Bitmap.cpp \
+    objects/Camera.cpp \
     objects/Movie.cpp \
     objects/Palette.cpp \
+    objects/RenderContext.cpp \
+    renderers/MeshRenderer.cpp \
     renderers/ParticleRenderer.cpp \
+    renderers/RayTracer.cpp \
+    renderers/Spectrum.cpp \
     windows/GlPane.cpp \
     windows/MainWindow.cpp \
     windows/OrthoPane.cpp \
-    windows/PlotView.cpp \
-    renderers/RayTracer.cpp \
-    renderers/MeshRenderer.cpp
+    windows/PaletteDialog.cpp \
+    windows/ParticleProbe.cpp \
+    windows/PlotView.cpp
 
 HEADERS += \
     ArcBall.h \
+    Config.h \
     Controller.h \
     Factory.h \
     GuiCallbacks.h \
@@ -59,6 +51,7 @@ HEADERS += \
     Renderer.h \
     Settings.h \
     Utils.h \
+    Uvw.h \
     objects/Bitmap.h \
     objects/Camera.h \
     objects/Color.h \
@@ -67,17 +60,19 @@ HEADERS += \
     objects/Movie.h \
     objects/Palette.h \
     objects/Point.h \
+    objects/RenderContext.h \
     objects/SvgContext.h \
+    renderers/Brdf.h \
+    renderers/FrameBuffer.h \
     renderers/IRenderer.h \
+    renderers/MeshRenderer.h \
     renderers/ParticleRenderer.h \
+    renderers/RayTracer.h \
+    renderers/Spectrum.h \
     windows/GlPane.h \
     windows/IGraphicsPane.h \
     windows/MainWindow.h \
     windows/OrthoPane.h \
+    windows/PaletteDialog.h \
     windows/ParticleProbe.h \
-    windows/PlotView.h \
-    renderers/RenderContext.h \
-    renderers/RayTracer.h \
-    renderers/Brdf.h \
-    Uvw.h \
-    renderers/MeshRenderer.h
+    windows/PlotView.h

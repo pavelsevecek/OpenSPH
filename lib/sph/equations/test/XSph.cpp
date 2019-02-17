@@ -13,11 +13,13 @@ TEST_CASE("XSph", "[solvers]") {
     Storage storage = Tests::getGassStorage(1000, BodySettings::getDefaults());
     EquationHolder eqs;
     RunSettings settings;
-    settings.setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT);
+    settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE);
 
-    eqs += makeTerm<PressureForce>() + makeTerm<ContinuityEquation>() + makeTerm<XSph>() +
+    eqs += makeTerm<PressureForce>() + makeTerm<ContinuityEquation>(settings) + makeTerm<XSph>() +
            makeTerm<ConstSmoothingLength>();
-    SymmetricSolver solver(settings, std::move(eqs));
+
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    SymmetricSolver solver(pool, settings, std::move(eqs));
     REQUIRE_NOTHROW(solver.create(storage, storage.getMaterial(0)));
     Statistics stats;
     REQUIRE_NOTHROW(solver.integrate(storage, stats));

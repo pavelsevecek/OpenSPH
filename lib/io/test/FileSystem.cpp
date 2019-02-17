@@ -1,6 +1,9 @@
 #include "io/FileSystem.h"
 #include "catch.hpp"
 #include "io/FileManager.h"
+#include "objects/utility/IteratorAdapters.h"
+#include "system/Platform.h"
+#include "utils/Config.h"
 #include "utils/Utils.h"
 #include <fstream>
 #include <regex>
@@ -238,4 +241,25 @@ TEST_CASE("Create and remove directory", "[filesystem]") {
     REQUIRE_FALSE(FileSystem::pathExists(dummyPath));
     REQUIRE_FALSE(FileSystem::removePath(Path("dummyDir1")));
     REQUIRE(FileSystem::removePath(Path("dummyDir1"), FileSystem::RemovePathFlag::RECURSIVE));
+}
+
+/// \todo move to Platform.cpp
+TEST_CASE("GetExecutablePath", "[filesystem]") {
+    const Expected<Path> path = getExecutablePath();
+    REQUIRE(path);
+    REQUIRE(path.value() == WORKING_DIR);
+}
+
+TEST_CASE("IsPathWritable", "[filesystem]") {
+    REQUIRE(FileSystem::isPathWritable(Path(".")));
+    REQUIRE(FileSystem::isPathWritable(Path("/home/pavel/")));
+    REQUIRE_FALSE(FileSystem::isPathWritable(Path("/usr/lib/")));
+    REQUIRE_FALSE(FileSystem::isPathWritable(Path("/var/")));
+    REQUIRE_FALSE(FileSystem::isPathWritable(Path("/etc/")));
+}
+
+TEST_CASE("GetHomeDirectory", "[filesystem]") {
+    Expected<Path> path = FileSystem::getHomeDirectory();
+    REQUIRE(path);
+    REQUIRE(path.value() == Path("/home/pavel"));
 }

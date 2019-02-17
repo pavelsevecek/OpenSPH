@@ -30,9 +30,9 @@ public:
     virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
         const RunSettings& UNUSED(settings)) override {}
 
-    virtual void initialize(Storage& UNUSED(storage)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
-    virtual void finalize(Storage& storage) override {
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& storage) override {
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
         /// \todo parallelize
@@ -47,8 +47,8 @@ public:
 /// Helper function to create ExternalForce utilizing type deduction. This way, we can use lambda as the
 /// template functor.
 template <typename TFunctor>
-AutoPtr<ExternalForce<TFunctor>> makeExternalForce(TFunctor&& functor) {
-    return makeAuto<ExternalForce<TFunctor>>(std::forward<TFunctor>(functor));
+EquationHolder makeExternalForce(TFunctor&& functor) {
+    return EquationHolder(makeShared<ExternalForce<TFunctor>>(std::forward<TFunctor>(functor)));
 }
 
 /// \brief Centrifugal and Coriolis force
@@ -65,9 +65,9 @@ public:
     virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
         const RunSettings& UNUSED(settings)) override {}
 
-    virtual void initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
-    virtual void finalize(Storage& storage, ThreadPool& UNUSED(pool)) override {
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& storage) override {
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
         /// \todo parallelize

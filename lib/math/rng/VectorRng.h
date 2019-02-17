@@ -10,8 +10,10 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Wrapper for generating random vectors. Takes RNG as template parameter, and can either keep
-/// reference to other RNG object, or create RNG object of its own.
+/// \brief Wrapper for generating random vectors.
+///
+/// Takes RNG as template parameter, and can either keep reference to other RNG object, or create RNG object
+/// of its own.
 template <typename TScalarRng>
 class VectorRng : public Noncopyable {
 private:
@@ -49,7 +51,8 @@ public:
     }
 };
 
-/// Generic generator of random vectors using sampling with given PDF.
+/// \brief Generic generator of random vectors using sampling with given PDF.
+///
 /// PDF does NOT have to be normalized (integral does not have to be 1).
 /// \todo make jacobian work, create few basic coordinate systems
 template <typename TScalarRng>
@@ -91,7 +94,7 @@ public:
 
     Vector operator()() {
         ASSERT(getLength(box.size()) > 0._f);
-        for (Size i = 0; i < 1000; ++i) {
+        for (Size i = 0; i < 10000; ++i) {
             Vector v = vectorRng() * box.size() + box.lower();
             const Float p = vectorRng.getAdditional(4) * maxPdf;
             if (p < pdf(v) * jacobian(v)) {

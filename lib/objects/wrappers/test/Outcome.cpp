@@ -23,11 +23,11 @@ TEST_CASE("Outcome fail", "[outcome]") {
     REQUIRE(!o1);
     REQUIRE_FALSE(o1);
     REQUIRE_FALSE(o1.success());
-    REQUIRE(o1.error() == "error");
+    REQUIRE(o1.error() == "ERROR");
 
     Outcome o2(false);
     REQUIRE(!o2);
-    REQUIRE(o2.error() == "error");
+    REQUIRE(o2.error() == "ERROR");
 
     Outcome o3("error message");
     REQUIRE(!o3);

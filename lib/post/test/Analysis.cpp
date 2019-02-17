@@ -1,24 +1,29 @@
 #include "post/Analysis.h"
 #include "catch.hpp"
+#include "io/FileSystem.h"
 #include "io/Path.h"
 #include "objects/geometry/Domain.h"
 #include "objects/utility/ArrayUtils.h"
 #include "objects/utility/PerElementWrapper.h"
 #include "physics/Constants.h"
+#include "physics/Functions.h"
+#include "post/Point.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
+#include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"
 #include "tests/Approx.h"
+#include "thread/Pool.h"
+#include "utils/Utils.h"
 
 using namespace Sph;
-
 
 TEST_CASE("Components simple", "[post]") {
     Array<Vector> r{ Vector(0, 0, 0, 1), Vector(5, 0, 0, 1), Vector(0, 4, 0, 1), Vector(0, 3, 0, 1) };
     Array<Size> components;
     Storage storage;
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::ZERO, std::move(r));
-    Size numComponents =
-        Post::findComponents(storage, 2._f, Post::ComponentConnectivity::OVERLAP, components);
+    Size numComponents = Post::findComponents(storage, 2._f, Post::ComponentFlag::OVERLAP, components);
     REQUIRE(numComponents == 3);
     REQUIRE(components == Array<Size>({ 0, 1, 2, 2 }));
 }
@@ -27,8 +32,9 @@ TEST_CASE("Component initconds", "[post]") {
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::CUBIC);
     Storage storage;
-    InitialConditions conds(RunSettings::getDefaults());
-    bodySettings.set<int>(BodySettingsId::PARTICLE_COUNT, 1000);
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    InitialConditions conds(pool, RunSettings::getDefaults());
+    bodySettings.set(BodySettingsId::PARTICLE_COUNT, 1000);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0, 0, 0), 1._f), bodySettings);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(-6, 4, 0), 1._f), bodySettings);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(5, 2, 0), 1._f), bodySettings);
@@ -37,8 +43,7 @@ TEST_CASE("Component initconds", "[post]") {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     Array<Size> components;
     RunSettings settings;
-    const Size numComponents =
-        Post::findComponents(storage, 2._f, Post::ComponentConnectivity::OVERLAP, components);
+    const Size numComponents = Post::findComponents(storage, 2._f, Post::ComponentFlag::OVERLAP, components);
     REQUIRE(numComponents == 3);
     REQUIRE(components.size() > 0); // sanity check
 
@@ -73,7 +78,7 @@ TEST_CASE("Component by v_esc", "[post]") {
     const Float m0 = 1._f;
     storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, m0);
     Size numComponents =
-        Post::findComponents(storage, 2._f, Post::ComponentConnectivity::ESCAPE_VELOCITY, components);
+        Post::findComponents(storage, 2._f, Post::ComponentFlag::ESCAPE_VELOCITY, components);
     // all particles still, one component only
     REQUIRE(numComponents == 1);
     REQUIRE(components == Array<Size>({ 0, 0, 0, 0 }));
@@ -82,72 +87,65 @@ TEST_CASE("Component by v_esc", "[post]") {
     auto v_esc = [m0](const Float dr) { return sqrt(4._f * m0 * Constants::gravity / dr); };
     v[0] = Vector(0.8_f * v_esc(3._f), 0._f, 0._f);
     // too low velocity, nothing should change
-    numComponents =
-        Post::findComponents(storage, 2._f, Post::ComponentConnectivity::ESCAPE_VELOCITY, components);
+    numComponents = Post::findComponents(storage, 2._f, Post::ComponentFlag::ESCAPE_VELOCITY, components);
     REQUIRE(numComponents == 1);
 
     v[0] = Vector(1.2_f * v_esc(3._f), 0._f, 0._f);
     // first and last particle are now separated
-    numComponents =
-        Post::findComponents(storage, 2._f, Post::ComponentConnectivity::ESCAPE_VELOCITY, components);
+    numComponents = Post::findComponents(storage, 2._f, Post::ComponentFlag::ESCAPE_VELOCITY, components);
     REQUIRE(numComponents == 2);
     REQUIRE(components == Array<Size>({ 0, 1, 1, 1 }));
 }
 
-
-TEST_CASE("CummulativeSfd", "[post]") {
+static Storage getHistogramStorage() {
     Array<Vector> r(10);
     for (Size i = 0; i < r.size(); ++i) {
         r[i] = Vector(0._f, 0._f, 0._f, i + 1);
     }
     Storage storage;
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::ZERO, std::move(r));
+    return storage;
+}
 
+TEST_CASE("CumulativeSfd", "[post]") {
+    Storage storage = getHistogramStorage();
     Post::HistogramParams params;
-    params.id = Post::HistogramId::RADII;
-    params.source = Post::HistogramParams::Source::PARTICLES;
-    Array<Post::SfdPoint> points = Post::getCummulativeSfd(storage, params);
+    Array<Post::HistPoint> points = Post::getCumulativeHistogram(
+        storage, Post::HistogramId::RADII, Post::HistogramSource::PARTICLES, params);
+
     // clang-format off
-    Array<Post::SfdPoint> expected{ { 10, 1 }, { 9, 2 }, { 8, 3 }, { 7, 4 }, { 6, 5 },
+    static Array<Post::HistPoint> expected{ { 10, 1 }, { 9, 2 }, { 8, 3 }, { 7, 4 }, { 6, 5 },
         { 5, 6 }, { 4, 7 }, { 3, 8 }, { 2, 9 }, { 1, 10 } };
     // clang-format on
     REQUIRE(expected.size() == points.size());
 
-    auto predicate = [](Post::SfdPoint& p1, Post::SfdPoint& p2) { //
-        return p1.value == p2.value && p1.count == p2.count;
-    };
-    REQUIRE(std::equal(points.begin(), points.end(), expected.begin(), predicate));
+    REQUIRE(std::equal(points.begin(), points.end(), expected.begin()));
 }
 
-TEST_CASE("ParsePkdgrav", "[post]") {
-    // hardcoded path to pkdgrav output
-    Path path("/home/pavel/projects/astro/sph/external/sph_0.541_5_45/pkdgrav_run/ss.last.bt");
+TEST_CASE("CumulativeSfd mass cutoff", "[post]") {
+    Storage storage = getHistogramStorage();
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, Array<Float>{ 0, 0, 4, 1, 0, 1, 3, 3, 5, 0 });
+    Post::HistogramParams params;
+    params.massCutoff = 2._f;
+    Array<Post::HistPoint> points = Post::getCumulativeHistogram(
+        storage, Post::HistogramId::RADII, Post::HistogramSource::PARTICLES, params);
 
-    Expected<Storage> storage = Post::parsePkdgravOutput(path);
-    REQUIRE(storage);
-    REQUIRE(storage->getParticleCnt() > 5000);
+    static Array<Post::HistPoint> expected{ { 9, 1 }, { 8, 2 }, { 7, 3 }, { 3, 4 } };
+    REQUIRE(expected.size() == points.size());
 
-    // check that particles are sorted by masses
-    ArrayView<Float> m = storage->getValue<Float>(QuantityId::MASS);
-    Float lastM = LARGE;
-    Float sumM = 0._f;
-    bool sorted = true;
-    for (Size i = 0; i < m.size(); ++i) {
-        sumM += m[i];
-        if (m[i] > lastM) {
-            sorted = false;
-        }
-        lastM = m[i];
-    }
-    REQUIRE(sorted);
+    REQUIRE(std::equal(points.begin(), points.end(), expected.begin()));
+}
 
-    // this particular simulation is the impact into 10km target with rho=2700 km/m^3, so the sum of the
-    // fragments should be +- as massive as the target
-    REQUIRE(sumM == approx(2700 * sphereVolume(5000), 1.e-3_f));
+TEST_CASE("CumulativeSfd empty", "[post]") {
+    // no values due to too strict cutoffs, make sure to return empty histogram without asserts
+    Storage storage = getHistogramStorage();
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, 1._f);
+    Post::HistogramParams params;
+    params.massCutoff = 10._f;
 
-    /*Array<Float>& rho = storage->getValue<Float>(QuantityId::DENSITY);
-    REQUIRE(perElement(rho) < 2800._f);
-    REQUIRE(perElement(rho) > 2600._f);*/
+    Array<Post::HistPoint> points = Post::getCumulativeHistogram(
+        storage, Post::HistogramId::RADII, Post::HistogramSource::PARTICLES, params);
+    REQUIRE(points.empty());
 }
 
 TEST_CASE("KeplerianElements", "[post]") {
@@ -185,4 +183,73 @@ TEST_CASE("FindMoons", "[post]") {
     REQUIRE(status.size() == 2);
     REQUIRE(status[0] == Post::MoonEnum::LARGEST_FRAGMENT);
     REQUIRE(status[1] == Post::MoonEnum::MOON);
+}
+
+TEST_CASE("Inertia Tensor Sphere", "[post]") {
+    const Float r_sphere = 5._f;
+    const Float m_tot = 1234._f;
+    SphericalDomain sphere(Vector(0._f), r_sphere);
+    HexagonalPacking dist;
+    Array<Vector> r = dist.generate(SEQUENTIAL, 10000, sphere);
+    Array<Float> m(r.size());
+    m.fill(m_tot / r.size());
+
+    SymmetricTensor I_sphere = Post::getInertiaTensor(m, r);
+    SymmetricTensor I_expected = Rigid::sphereInertia(m_tot, r_sphere);
+    REQUIRE(I_sphere.diagonal() == approx(I_expected.diagonal(), 2.e-3_f));
+    // the off-diagonal components are generally not zeroes, of course, so just test that they are small
+    // compared to the diagonal elements
+    REQUIRE(norm(I_sphere.offDiagonal()) < 1.e-3_f * norm(I_sphere.diagonal()));
+}
+
+TEST_CASE("Angular Frequency", "[post]") {
+    SphericalDomain sphere(Vector(0._f), 4._f);
+    HexagonalPacking dist;
+    Array<Vector> r = dist.generate(SEQUENTIAL, 10000, sphere);
+    Array<Float> m(r.size());
+    m.fill(7._f);
+
+    Vector omega(4._f, -7._f, 8._f);
+    Array<Vector> v(r.size());
+    for (Size i = 0; i < r.size(); ++i) {
+        v[i] = Vector(-1._f, 2._f, 1._f) + cross(omega, r[i]);
+    }
+
+    const Vector w = Post::getAngularFrequency(m, r, v, Vector(0._f), Vector(0._f));
+    REQUIRE(w == approx(omega, 1.e-3_f));
+}
+
+TEST_CASE("Linear Fit", "[post]") {
+    Array<PlotPoint> points = { { 0, 2 }, { 2, 3 }, { 6, 5 } };
+    Post::LinearFunction func = Post::getLinearFit(points);
+
+    REQUIRE(func.slope() == 0.5_f);
+    REQUIRE(func.offset() == 2);
+    REQUIRE(func.solve(4) == 4);
+}
+
+TEST_CASE("Quadratic Fit perfect", "[post]") {
+    Array<PlotPoint> points = { { 0, 4 }, { 2, 0 }, { 4, 5 } };
+    Post::QuadraticFunction func = Post::getQuadraticFit(points);
+
+    REQUIRE(func.quadratic() == approx(1.125_f));
+    REQUIRE(func.linear() == approx(-4.25_f));
+    REQUIRE(func.constant() == approx(4._f));
+
+    StaticArray<Float, 2> roots = func.solve(5._f);
+    REQUIRE(roots.size() == 2);
+    REQUIRE(roots[0] == approx(-2._f / 9._f));
+    REQUIRE(roots[1] == approx(4._f));
+
+    roots = func.solve(-2._f);
+    REQUIRE(roots.empty());
+}
+
+TEST_CASE("Quadratic Fit overdetermined", "[post]") {
+    Array<PlotPoint> points = { { -3, 2 }, { -1, 0 }, { 0, -1 }, { 1, -3 }, { 3, -5 }, { 4, -2 }, { 8, 1 } };
+    Post::QuadraticFunction func = Post::getQuadraticFit(points);
+
+    REQUIRE(func.quadratic() == approx(0.164284_f, 1.e-6_f));
+    REQUIRE(func.linear() == approx(-0.966283_f, 1.e-6_f));
+    REQUIRE(func.constant() == approx(-1.83329_f, 1.e-6_f));
 }

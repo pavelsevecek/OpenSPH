@@ -7,11 +7,12 @@
 
 #include "common/ForwardDecl.h"
 #include "objects/containers/Array.h"
-#include "objects/utility/Dynamic.h"
 #include "objects/wrappers/AutoPtr.h"
 #include "quantities/QuantityIds.h"
 
 NAMESPACE_SPH_BEGIN
+
+class IScheduler;
 
 enum class CriterionId {
     INITIAL_VALUE, ///< Timestep is not computed, using given initial value
@@ -24,15 +25,25 @@ enum class CriterionId {
 
 std::ostream& operator<<(std::ostream& stream, const CriterionId id);
 
+struct TimeStep {
+    /// Value of the time step in code units (currently SI).
+    Float value;
+
+    /// Criterion applied to compute the time step;
+    CriterionId id;
+};
+
 /// \brief Base class for timestep setters.
 class ITimeStepCriterion : public Polymorphic {
 public:
-    /// Returns the current time step.
+    /// \brief Computes the value of the time step.
+    ///
+    /// \param scheduler Scheduler than can be used for parallelization.
     /// \param storage Storage containing all physical quantities from which the time step is determined.
     /// \param maxStep Maximal allowed time step.
     /// \param stats Used to save statistics of the criterion.
-    /// \returns Tuple, containing computed time step and ID of quantity that determined the value.
-    virtual Tuple<Float, CriterionId> compute(Storage& storage, const Float maxStep, Statistics& stats) = 0;
+    /// \returns Computed time step and ID of criterion that determined the value.
+    virtual TimeStep compute(IScheduler& scheduler, Storage& storage, Float maxStep, Statistics& stats) = 0;
 };
 
 /// \brief Criterion setting time step based on value-to-derivative ratio for time-dependent quantities.
@@ -76,13 +87,14 @@ private:
 public:
     explicit DerivativeCriterion(const RunSettings& settings);
 
-    virtual Tuple<Float, CriterionId> compute(Storage& storage,
-        const Float maxStep,
+    virtual TimeStep compute(IScheduler& scheduler,
+        Storage& storage,
+        Float maxStep,
         Statistics& stats) override;
 
 private:
     template <template <typename> class Tls>
-    Tuple<Float, CriterionId> computeImpl(Storage& storage, const Float maxStep, Statistics& stats);
+    TimeStep computeImpl(IScheduler& scheduler, Storage& storage, Float maxStep, Statistics& stats);
 };
 
 /// \brief Criterion settings time step based on computed acceleration of particles.
@@ -96,35 +108,37 @@ private:
 public:
     explicit AccelerationCriterion(const RunSettings& settings);
 
-    virtual Tuple<Float, CriterionId> compute(Storage& storage,
-        const Float maxStep,
+    virtual TimeStep compute(IScheduler& scheduler,
+        Storage& storage,
+        Float maxStep,
         Statistics& stats) override;
 };
 
 /// \brief Time step based on CFL criterion.
 ///
 /// This criterion should be always used as it is necessary for stability of the integration in time. It can
-/// be made more restrictive or less restrictive by setting Courant value. Setting values larger than 1 is not
-/// recommended.
+/// be made more restrictive or less restrictive by setting Courant number. Setting values larger than 1 is
+/// not recommended.
 class CourantCriterion : public ITimeStepCriterion {
 private:
     Float courant;
-    Size neighLimit;
 
 public:
     explicit CourantCriterion(const RunSettings& settings);
 
     /// Storage must contain at least positions of particles and sound speed, checked by assert.
-    virtual Tuple<Float, CriterionId> compute(Storage& storage,
-        const Float maxStep,
+    virtual TimeStep compute(IScheduler& scheduler,
+        Storage& storage,
+        Float maxStep,
         Statistics& stats) override;
 };
 
 
-/// \brief Helper criterion, wrapping multiple criteria under ITimeStepCriterion interface.
+/// \brief Helper criterion, wrapping multiple criteria under \ref ITimeStepCriterion interface.
 ///
-/// Time step critaria are added automatically based on parameter RunSettingsId::TIMESTEPPING_CRITERION in
-/// settings. Each criterion computes a time step and the minimal time step of these is returned.
+/// Time step critaria can be added automatically based on parameter \ref
+/// RunSettingsId::TIMESTEPPING_CRITERION in settings, or they can be specified explicitly. Each criterion
+/// computes a time step and the minimal time step of these is returned.
 class MultiCriterion : public ITimeStepCriterion {
 private:
     Array<AutoPtr<ITimeStepCriterion>> criteria;
@@ -137,11 +151,10 @@ private:
 public:
     explicit MultiCriterion(const RunSettings& settings);
 
-    explicit MultiCriterion(Array<AutoPtr<ITimeStepCriterion>>&& criteria,
-        const Float maxChange,
-        const Float initial);
+    MultiCriterion(Array<AutoPtr<ITimeStepCriterion>>&& criteria, const Float maxChange, const Float initial);
 
-    virtual Tuple<Float, CriterionId> compute(Storage& storage,
+    virtual TimeStep compute(IScheduler& scheduler,
+        Storage& storage,
         const Float maxStep,
         Statistics& stats) override;
 };

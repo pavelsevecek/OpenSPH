@@ -7,9 +7,6 @@ using namespace Sph;
 
 
 TEST_CASE("Vector construction", "[vector]") {
-    // default construction
-    REQUIRE_NOTHROW(Vector v1);
-
     // construct from single value
     Vector v2(5._f);
     for (int i = 0; i < 3; ++i) {

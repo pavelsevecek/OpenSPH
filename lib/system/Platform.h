@@ -13,6 +13,9 @@ NAMESPACE_SPH_BEGIN
 
 class Path;
 
+/// Returns the absolute path to the currently running executable.
+Expected<Path> getExecutablePath();
+
 /// Sends a mail with given message.
 Outcome sendMail(const std::string& to,
     const std::string& from,
@@ -28,6 +31,8 @@ Outcome showNotification(const std::string& title, const std::string& message);
 /// \param pathToGitRoot Path to where the source code is located
 /// \param prev Number of commits into the history. For 0, the current commit is returned.
 Expected<std::string> getGitCommit(const Path& pathToGitRoot, const Size prev = 0);
+
+Optional<Float> getCpuUsage();
 
 /// Returns true if the program is running with attached debugger.
 bool isDebuggerPresent();

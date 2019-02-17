@@ -1,12 +1,10 @@
-// set SPH_PROFILE macro so that we can test profiling in release build
-#ifndef SPH_PROFILE
-#define SPH_PROFILE
-#endif
 #include "system/Profiler.h"
 #include "catch.hpp"
 #include <thread>
 
 using namespace Sph;
+
+#ifdef SPH_PROFILE
 
 void function1() {
     PROFILE_SCOPE("function1");
@@ -35,3 +33,5 @@ TEST_CASE("Profiler", "[profiler]") {
     REQUIRE(stats[2].name == "function2");
     REQUIRE(stats[2].totalTime / 1000 == 70);
 }
+
+#endif

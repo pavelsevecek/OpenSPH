@@ -5,6 +5,7 @@
 #include "sph/solvers/SymmetricSolver.h"
 #include "system/Statistics.h"
 #include "tests/Approx.h"
+#include "thread/Pool.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;
@@ -12,12 +13,15 @@ using namespace Sph;
 TEST_CASE("InternalFriction", "[friction]") {
     EquationHolder eqs;
     RunSettings settings;
-    settings.setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT);
-    eqs += makeTerm<ViscousStress>() + makeTerm<ContinuityEquation>() + makeTerm<ConstSmoothingLength>();
-    SymmetricSolver solver(settings, std::move(eqs));
+    settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE);
+    eqs +=
+        makeTerm<ViscousStress>() + makeTerm<ContinuityEquation>(settings) + makeTerm<ConstSmoothingLength>();
+
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    SymmetricSolver solver(pool, settings, std::move(eqs));
 
     Storage storage;
-    InitialConditions initial(solver, RunSettings::getDefaults());
+    InitialConditions initial(pool, solver, RunSettings::getDefaults());
     BodySettings body;
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);

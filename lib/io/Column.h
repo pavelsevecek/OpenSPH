@@ -6,6 +6,7 @@
 /// \date 2016-2018
 
 #include "objects/utility/Dynamic.h"
+#include "quantities/Quantity.h"
 #include "quantities/QuantityIds.h"
 #include "quantities/Storage.h"
 #include "system/Statistics.h"
@@ -14,38 +15,58 @@ NAMESPACE_SPH_BEGIN
 
 /// \brief Base class for conversion of quantities into the output data.
 ///
-/// When TextOutput is selected, this represents a single column of values in the file,
-/// hence the name.
-/// Ordinarily, we need to store the quantity values and their derivatives directly,
-/// derived classes ValueColumn and DerivativeColumn can be used for this purpose.
-/// Other implementations can be used to store values that are not directly saved in any quantity,
-/// such as smoothing lenghts (stored as 4th component of the position vectors), or actual
-/// values of stress tensor (quantity contains undamaged values).
-/// The class can also be used to save arbitrary data, such as particle index, current
-/// time of the simulation, etc. This can be useful when using the output files in additional
-/// scripts, for example when creating plots in Gnuplot.
+/// When TextOutput is selected, this represents a single column of values in the file, hence the name.
+/// Ordinarily, we need to store the quantity values and their derivatives directly, derived classes
+/// \ref ValueColumn and \ref DerivativeColumn can be used for this purpose. Other implementations can be used
+/// to store values that are not directly saved in any quantity, such as smoothing lenghts (they are actually
+/// stored as 4th component of the position vectors), or actual values of stress tensor (quantity contains
+/// undamaged values).
+///
+/// The class can also be used to save arbitrary data, such as particle index, current time
+/// of the simulation, etc. This can be useful when using the output files in additional scripts, for example
+/// when creating plots in Gnuplot.
+///
 /// \todo There should also be a conversion from code units to user-selected output units
 class ITextColumn : public Polymorphic {
 public:
-    /// Returns the value of the output column for given particle.
-    virtual Dynamic evaluate(const Storage& storage, const Statistics& stats, const Size particleIdx) const = 0;
+    /// \brief Returns the value of the output column for given particle.
+    ///
+    /// \param storage Storage containing all particle data
+    /// \param stats Holds simulation time as well as additional solver-specific statistics.
+    /// \param particleIdx Index of the particle to evaluate.
+    virtual Dynamic evaluate(const Storage& storage,
+        const Statistics& stats,
+        const Size particleIdx) const = 0;
 
-    /// Reads the value of the column and saves it into the storage, if possible.
+    /// \brief Reads the value of the column and saves it into the storage, if possible.
+    ///
     /// \param storage Particle storage where the value is stored
     /// \param value Accumulated value, must be the same type as this column. Checked by assert.
     /// \param particleIdx Index of accumulated particle; if larger than current size of the storage, the
     ///                    storage is resized accordingly.
     virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const = 0;
 
-    /// Returns a name of the column. The name is printed in the header of the output file.
+    /// \brief Returns a name of the column.
+    ///
+    /// The name is printed in the header of the output file.
     virtual std::string getName() const = 0;
 
-    /// Returns the value type of the column.
+    /// \brief Returns the value type of the column.
     virtual ValueEnum getType() const = 0;
 };
 
 
-/// Returns values of given quantity as stored in storage.
+/// \brief Returns values of given quantity as stored in storage.
+///
+/// This is the most common column. Most columns for quantities can be added using \ref OutputQuantityFlag,
+/// however if additional quantities need to be saved, it can be done using:
+/// \code
+/// TextOutput output(outputPath, "run name", EMPTY_FLAGS);
+/// // add temperature (scalar quantity)
+/// output.addColumn(makeAuto<ValueColumn<Float>>(QuantityId::TEMPERATURE));
+/// // add surface normal (vector quantity)
+/// output.addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::SURFACE_NORMAL));
+/// \endcode
 template <typename TValue>
 class ValueColumn : public ITextColumn {
 private:
@@ -81,8 +102,9 @@ public:
     }
 };
 
-/// Returns first derivatives of given quantity as stored in storage. Quantity must contain derivative,
-/// checked by assert.
+/// \brief Returns first derivatives of given quantity as stored in storage.
+///
+/// Quantity must contain derivative, checked by assert.
 template <typename TValue>
 class DerivativeColumn : public ITextColumn {
 private:
@@ -100,9 +122,13 @@ public:
     }
 
     virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const override {
-        if (!storage.has<TValue>(id, OrderEnum::FIRST)) {
+        if (!storage.has(id)) {
             // lazy initialization
             storage.insert<TValue>(id, OrderEnum::FIRST, TValue(0._f));
+        } else if (storage.getQuantity(id).getOrderEnum() == OrderEnum::ZERO) {
+            // has the quantity, but not derivatives; we need to resize it manually to side-step the check
+            // of equality in Storage::insert.
+            storage.getQuantity(id).setOrder(OrderEnum::FIRST);
         }
         Array<TValue>& array = storage.getDt<TValue>(id);
         array.resize(particleIdx + 1);
@@ -118,8 +144,9 @@ public:
     }
 };
 
-/// Returns second derivatives of given quantity as stored in storage. Quantity must contain second
-/// derivative, checked by assert.
+/// \brief Returns second derivatives of given quantity as stored in storage.
+///
+/// Quantity must contain second derivative, checked by assert.
 template <typename TValue>
 class SecondDerivativeColumn : public ITextColumn {
 private:
@@ -137,9 +164,13 @@ public:
     }
 
     virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const override {
-        if (!storage.has<TValue>(id, OrderEnum::SECOND)) {
+        if (!storage.has(id)) {
             // lazy initialization
             storage.insert<TValue>(id, OrderEnum::SECOND, TValue(0._f));
+        } else if (storage.getQuantity(id).getOrderEnum() < OrderEnum::SECOND) {
+            // has the quantity, but not derivatives; we need to resize it manually to side-step the check
+            // of equality in Storage::insert.
+            storage.getQuantity(id).setOrder(OrderEnum::SECOND);
         }
         Array<TValue>& array = storage.getD2t<TValue>(id);
         array.resize(particleIdx + 1);
@@ -155,7 +186,7 @@ public:
     }
 };
 
-/// Returns smoothing lengths of particles
+/// \brief Returns smoothing lengths of particles
 class SmoothingLengthColumn : public ITextColumn {
 public:
     virtual Dynamic evaluate(const Storage& storage,
@@ -184,8 +215,9 @@ public:
     }
 };
 
-/// Prints actual values of scalar damage, as damage is stored in storage as third roots.
-/// Can be used for both scalar and tensor damage.
+/// \brief Prints actual values of scalar damage.
+///
+/// Needed because damage is stored in storage as third roots. Can be used for both scalar and tensor damage.
 template <typename TValue>
 class DamageColumn : public ITextColumn {
 public:
@@ -211,7 +243,7 @@ public:
     }
 };
 
-/// Helper column printing particle numbers.
+/// \brief Helper column printing particle numbers.
 class ParticleNumberColumn : public ITextColumn {
 public:
     virtual Dynamic evaluate(const Storage& UNUSED(storage),
@@ -233,9 +265,8 @@ public:
     }
 };
 
-/// Helper column printing current run time. This value is the same for every particle.
+/// \brief Helper column printing current run time. This value is the same for every particle.
 class TimeColumn : public ITextColumn {
-
 public:
     virtual Dynamic evaluate(const Storage& UNUSED(storage),
         const Statistics& stats,

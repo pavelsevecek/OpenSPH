@@ -36,11 +36,36 @@ public:
         v[3] = c;
     }
 
-    Float& operator[](const Size idx) {
+    /// \brief Creates a quaternion given a rotation matrix
+    ///
+    /// The matrix must be orthogonal with det(matrix) = 1
+    explicit Quat(const AffineMatrix& m) {
+        ASSERT(m.translation() == Vector(0._f));
+        ASSERT(m.isOrthogonal());
+        const Float w = 0.5_f * sqrt(1.f + m(0, 0) + m(1, 1) + m(2, 2));
+        const Float n = 0.25_f / w;
+        v[X] = (m(2, 1) - m(1, 2)) * n;
+        v[Y] = (m(0, 2) - m(2, 0)) * n;
+        v[Z] = (m(1, 0) - m(0, 1)) * n;
+        v[H] = w;
+    }
+
+    /// \brief Returns the normalized rotational axis.
+    INLINE Vector axis() const {
+        ASSERT(v[H] != 1._f);
+        return v / sqrt(1._f - sqr(v[H]));
+    }
+
+    /// \brief Returns the angle of rotation (in radians).
+    INLINE Float angle() const {
+        return acos(v[H]) * 2._f;
+    }
+
+    INLINE Float& operator[](const Size idx) {
         return v[idx];
     }
 
-    Float operator[](const Size idx) const {
+    INLINE Float operator[](const Size idx) const {
         return v[idx];
     }
 

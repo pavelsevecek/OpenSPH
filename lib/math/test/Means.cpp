@@ -8,9 +8,9 @@ template <typename TMean, typename... TArgs>
 void testMean(const Float expectedMean, const Float eps, TArgs&&... args) {
     TMean mean(std::forward<TArgs>(args)...);
     for (Float f = 1._f; f <= 10._f; f += 1._f) {
-        mean.template accumulate(f);
+        mean.accumulate(f);
     }
-    REQUIRE(mean.template compute() == approx(expectedMean, eps));
+    REQUIRE(mean.compute() == approx(expectedMean, eps));
 }
 
 TEST_CASE("GeneralizedMeans", "[math]") {

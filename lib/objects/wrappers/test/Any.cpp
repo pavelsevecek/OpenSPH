@@ -6,7 +6,10 @@ using namespace Sph;
 
 
 TEST_CASE("Any constructor", "[any]") {
-    REQUIRE_NOTHROW(Any a1);
+    AlignedStorage<Any> a1;
+    REQUIRE_NOTHROW(a1.emplace());
+    REQUIRE_NOTHROW(a1.destroy());
+
     Any a2(5);
     Optional<float> f = anyCast<float>(a2);
     REQUIRE(!f);

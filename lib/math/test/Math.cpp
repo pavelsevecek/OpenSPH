@@ -1,4 +1,4 @@
-#include "math/Math.h"
+#include "math/MathUtils.h"
 #include "catch.hpp"
 #include "tests/Approx.h"
 

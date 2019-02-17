@@ -8,7 +8,8 @@ using namespace Sph;
 
 
 TEST_CASE("AntisymmetricTensor construction", "[antisymmetrictensor]") {
-    REQUIRE_NOTHROW(AntisymmetricTensor t1);
+    AlignedStorage<AntisymmetricTensor> t1;
+    REQUIRE_NOTHROW(t1.emplace());
 
     AntisymmetricTensor t2(Vector(1._f, 2._f, 3._f));
     REQUIRE(t2[0] == Vector(0._f, 1._f, 2._f));

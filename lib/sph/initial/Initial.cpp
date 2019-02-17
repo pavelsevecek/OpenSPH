@@ -1,6 +1,6 @@
 #include "sph/initial/Initial.h"
 #include "math/rng/VectorRng.h"
-#include "objects/finders/KdTree.h"
+#include "objects/finders/NeighbourFinder.h"
 #include "objects/geometry/Domain.h"
 #include "objects/geometry/Sphere.h"
 #include "physics/Eos.h"
@@ -11,6 +11,7 @@
 #include "sph/initial/Distribution.h"
 #include "system/Factory.h"
 #include "system/Profiler.h"
+#include "thread/Scheduler.h"
 #include "timestepping/ISolver.h"
 
 NAMESPACE_SPH_BEGIN
@@ -18,6 +19,20 @@ NAMESPACE_SPH_BEGIN
 BodyView::BodyView(Storage& storage, const Size bodyIndex)
     : storage(storage)
     , bodyIndex(bodyIndex) {}
+
+BodyView& BodyView::displace(const Vector& dr) {
+    // manually clear the h component to make sure we are not modifying smoothing length
+    Vector actDr = dr;
+    actDr[H] = 0.f;
+
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    // Body created using InitialConditions always has a material
+    MaterialView material = storage.getMaterial(bodyIndex);
+    for (Size i : material.sequence()) {
+        r[i] += actDr;
+    }
+    return *this;
+}
 
 BodyView& BodyView::addVelocity(const Vector& velocity) {
     ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
@@ -78,27 +93,22 @@ public:
     }
 };
 
-InitialConditions::InitialConditions(ISolver& solver, const RunSettings& settings)
-    : solver(makeAuto<ForwardingSolver>(solver)) {
-    this->createCommon(settings);
-}
+InitialConditions::InitialConditions(IScheduler& scheduler, ISolver& solver, const RunSettings& settings)
+    : scheduler(scheduler)
+    , solver(makeAuto<ForwardingSolver>(solver))
+    , context(settings) {}
 
-InitialConditions::InitialConditions(const RunSettings& settings)
-    : solver(Factory::getSolver(settings)) {
-    this->createCommon(settings);
-}
+InitialConditions::InitialConditions(IScheduler& scheduler, const RunSettings& settings)
+    : scheduler(scheduler)
+    , solver(Factory::getSolver(scheduler, settings))
+    , context(settings) {}
 
 InitialConditions::~InitialConditions() = default;
 
-void InitialConditions::createCommon(const RunSettings& settings) {
-    context.rng = Factory::getRng(settings);
-    context.eta = settings.get<Float>(RunSettingsId::SPH_KERNEL_ETA);
-}
-
 BodyView InitialConditions::addMonolithicBody(Storage& storage,
     const IDomain& domain,
-    const BodySettings& settings) {
-    AutoPtr<IMaterial> material = Factory::getMaterial(settings);
+    const BodySettings& body) {
+    AutoPtr<IMaterial> material = Factory::getMaterial(body);
     return this->addMonolithicBody(storage, domain, std::move(material));
 }
 
@@ -120,7 +130,7 @@ BodyView InitialConditions::addMonolithicBody(Storage& storage,
     const Size n = mat.getParam<int>(BodySettingsId::PARTICLE_COUNT);
 
     // Generate positions of particles
-    Array<Vector> positions = distribution->generate(n, domain);
+    Array<Vector> positions = distribution->generate(scheduler, n, domain);
     ASSERT(positions.size() > 0);
     body.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(positions));
 
@@ -141,9 +151,9 @@ InitialConditions::BodySetup::BodySetup(AutoPtr<IDomain>&& domain, AutoPtr<IMate
     : domain(std::move(domain))
     , material(std::move(material)) {}
 
-InitialConditions::BodySetup::BodySetup(AutoPtr<IDomain>&& domain, const BodySettings& settings)
+InitialConditions::BodySetup::BodySetup(AutoPtr<IDomain>&& domain, const BodySettings& body)
     : domain(std::move(domain))
-    , material(Factory::getMaterial(settings)) {}
+    , material(Factory::getMaterial(body)) {}
 
 InitialConditions::BodySetup::BodySetup(BodySetup&& other)
     : domain(std::move(other.domain))
@@ -162,7 +172,7 @@ Array<BodyView> InitialConditions::addHeterogeneousBody(Storage& storage,
     const Size n = environment.material->getParam<int>(BodySettingsId::PARTICLE_COUNT);
 
     // Generate positions of ALL particles
-    Array<Vector> positions = distribution->generate(n, *environment.domain);
+    Array<Vector> positions = distribution->generate(scheduler, n, *environment.domain);
     // Create particle storage per body
     Storage environmentStorage(std::move(environment.material));
     Array<Storage> bodyStorages;
@@ -228,7 +238,8 @@ void InitialConditions::addRubblePileBody(Storage& storage,
 
     // generate the particles that will be eventually turned into spheres
     AutoPtr<IDistribution> distribution = Factory::getDistribution(bodySettings);
-    Array<Vector> positions = distribution->generate(n, domain);
+    Array<Vector> positions = distribution->generate(scheduler, n, domain);
+    SharedPtr<IMaterial> material = Factory::getMaterial(bodySettings);
 
     // counter used to exit the loop (when no more spheres can be generated)
     Size bailoutCounter = 0;
@@ -294,9 +305,9 @@ void InitialConditions::addRubblePileBody(Storage& storage,
         spheres.push(sphere);
 
         // create the body
-        Storage body(Factory::getMaterial(bodySettings));
-        body.insert<Vector>(QuantityId::POSITION, OrderEnum::ZERO, std::move(spherePositions));
-        this->setQuantities(body, body.getMaterial(0), sphere.volume());
+        Storage body(material);
+        body.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(spherePositions));
+        this->setQuantities(body, *material, sphere.volume());
 
         // add it to the storage
         storage.merge(std::move(body));
@@ -305,9 +316,11 @@ void InitialConditions::addRubblePileBody(Storage& storage,
         // we are still adding spheres, reset the counter
         bailoutCounter = 0;
     }
+
+    ASSERT(!spheres.empty());
 }
 
-/// Creates array of particles masses, assuming relation m ~ h^3.
+/// \brief Creates array of particles masses, assuming relation m ~ h^3.
 ///
 /// This is equal to totalM / r.size() if all particles in the body have the same smoothing length.
 static Array<Float> getMasses(ArrayView<const Vector> r, const Float totalM) {
@@ -348,15 +361,15 @@ void InitialConditions::setQuantities(Storage& storage, IMaterial& material, con
     material.create(storage, context);
 }
 
-void spaceParticles(ArrayView<Vector> r, const Float radius) {
-    KdTree finder;
-    finder.build(r);
+void repelParticles(ArrayView<Vector> r, const Float radius) {
+    AutoPtr<ISymmetricFinder> finder = Factory::getFinder(RunSettings::getDefaults());
+    finder->build(SEQUENTIAL, r);
     Array<NeighbourRecord> neighs;
     Size moveCnt = -1;
     while (moveCnt != 0) {
         moveCnt = 0;
         for (Size i = 0; i < r.size(); ++i) {
-            finder.findAll(i, 10._f * r[i][H] * radius, neighs);
+            finder->findAll(i, 10._f * r[i][H] * radius, neighs);
             Vector force = Vector(0._f);
             if (neighs.size() <= 1) {
                 continue;
@@ -374,6 +387,22 @@ void spaceParticles(ArrayView<Vector> r, const Float radius) {
             r[i] += force;
         }
     }
+}
+
+Vector moveToCenterOfMassSystem(ArrayView<const Float> m, ArrayView<Vector> r) {
+    ASSERT(m.size() == r.size());
+    Vector r_com(0._f);
+    Float m_tot = 0._f;
+    for (Size i = 0; i < r.size(); ++i) {
+        r_com += m[i] * r[i];
+        m_tot += m[i];
+    }
+    r_com /= m_tot;
+    r_com[H] = 0._f; // Dangerous! Do not modify smoothing length!
+    for (Size i = 0; i < r.size(); ++i) {
+        r[i] -= r_com;
+    }
+    return r_com;
 }
 
 NAMESPACE_SPH_END

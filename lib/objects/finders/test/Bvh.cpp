@@ -91,8 +91,10 @@ TEST_CASE("Bvh many boxes", "[bvh]") {
 
 TEST_CASE("Bvh many spheres", "[bvh]") {
     Array<BvhSphere> objects;
-    VectorRng<UniformRng> rng;
+    // using BenzAsphaugRng to avoid dependency on the current compiler version
+    VectorRng<BenzAsphaugRng> rng(1234);
     for (Size i = 0; i < 10000; ++i) {
+        // spheres with radius up to 0.25, randomly distributed in box [0, 10]
         objects.emplaceBack(10._f * rng(), 0.25_f * rng.getAdditional(3));
     }
     Bvh<BvhSphere> bvh;

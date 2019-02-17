@@ -7,8 +7,10 @@
 #endif
 #endif
 
+#ifdef SPH_USE_EIGEN
 #include <Eigen/IterativeLinearSolvers>
 #include <Eigen/SparseLU>
+#endif
 
 NAMESPACE_SPH_BEGIN
 

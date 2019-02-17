@@ -128,9 +128,11 @@ TEST_CASE("List range-based for empty", "[list]") {
     List<RecordType> list;
     Size counter = 0;
     for (RecordType& e : list) {
+        MARK_USED(e);
         ++counter;
     }
     for (const RecordType& e : asConst(list)) {
+        MARK_USED(e);
         ++counter;
     }
     REQUIRE(counter == 0);

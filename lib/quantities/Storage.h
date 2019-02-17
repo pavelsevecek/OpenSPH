@@ -6,17 +6,21 @@
 /// \date 2016-2018
 
 #include "common/ForwardDecl.h"
-#include "objects/Exceptions.h"
 #include "objects/containers/Array.h"
+#include "objects/containers/FlatMap.h"
+#include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Function.h"
+#include "objects/wrappers/Outcome.h"
 #include "objects/wrappers/SharedPtr.h"
-#include "quantities/Quantity.h"
 #include "quantities/QuantityIds.h"
-#include <map>
 
 NAMESPACE_SPH_BEGIN
 
 class IMaterial;
+class Quantity;
+enum class OrderEnum;
+enum class VisitorEnum;
+
 
 struct StorageElement {
     QuantityId id;
@@ -28,65 +32,45 @@ struct ConstStorageElement {
     const Quantity& quantity;
 };
 
-/// Helper class for iterating over quantities stored in \ref Storage.
+/// \brief Helper class for iterating over quantities stored in \ref Storage.
 class StorageIterator {
 private:
-    using Iterator = std::map<QuantityId, Quantity>::iterator;
+    using ActIterator = Iterator<FlatMap<QuantityId, Quantity>::Element>;
 
-    Iterator iter;
+    ActIterator iter;
 
 public:
-    StorageIterator(const Iterator iterator)
-        : iter(iterator) {}
+    StorageIterator(const ActIterator iterator);
 
-    StorageIterator& operator++() {
-        ++iter;
-        return *this;
-    }
+    StorageIterator& operator++();
 
-    StorageElement operator*() {
-        return { iter->first, iter->second };
-    }
+    StorageElement operator*();
 
-    bool operator==(const StorageIterator& other) const {
-        return iter == other.iter;
-    }
+    bool operator==(const StorageIterator& other) const;
 
-    bool operator!=(const StorageIterator& other) const {
-        return iter != other.iter;
-    }
+    bool operator!=(const StorageIterator& other) const;
 };
 
-/// Helper class for iterating over quantities stored in \ref Storage, const version.
+/// \brief Helper class for iterating over quantities stored in \ref Storage, const version.
 class ConstStorageIterator {
 private:
-    using Iterator = std::map<QuantityId, Quantity>::const_iterator;
+    using ActIterator = Iterator<const FlatMap<QuantityId, Quantity>::Element>;
 
-    Iterator iter;
+    ActIterator iter;
 
 public:
-    ConstStorageIterator(const Iterator iterator)
-        : iter(iterator) {}
+    ConstStorageIterator(const ActIterator iterator);
 
-    ConstStorageIterator& operator++() {
-        ++iter;
-        return *this;
-    }
+    ConstStorageIterator& operator++();
 
-    ConstStorageElement operator*() {
-        return { iter->first, iter->second };
-    }
+    ConstStorageElement operator*();
 
-    bool operator==(const ConstStorageIterator& other) const {
-        return iter == other.iter;
-    }
+    bool operator==(const ConstStorageIterator& other) const;
 
-    bool operator!=(const ConstStorageIterator& other) const {
-        return iter != other.iter;
-    }
+    bool operator!=(const ConstStorageIterator& other) const;
 };
 
-/// Helper class, provides functions \ref begin and \ref end, returning iterators to the first and last
+/// \brief Helper class, provides functions \ref begin and \ref end, returning iterators to the first and last
 /// quantity in \ref Storage, respectively.
 class StorageSequence {
 private:
@@ -106,8 +90,8 @@ public:
     Size size() const;
 };
 
-/// Helper class, provides functions \ref begin and \ref end, returning const iterators to the first and last
-/// quantity in \ref Storage, respectively.
+/// \brief Helper class, provides functions \ref begin and \ref end, returning const iterators to the first
+/// and last quantity in \ref Storage, respectively.
 class ConstStorageSequence {
 private:
     const Storage& storage;
@@ -126,9 +110,12 @@ public:
     Size size() const;
 };
 
+/// \brief Base class for arbitrary data stored in the storage alongside particles
+class IStorageUserData : public Polymorphic {};
+
 /// \brief Container storing all quantities used within the simulations.
 ///
-/// Storage provides a convenient way to store quantities, iterate over specified subset of quantnties, modify
+/// Storage provides a convenient way to store quantities, iterate over specified subset of quantities, modify
 /// quantities etc. Every quantity is a \ref Quantity object and is identified by \ref QuantityId key. The
 /// quantities are stored as key-value pairs; for every \ref QuantityId there can be at most one \ref Quantity
 /// stored.
@@ -137,7 +124,7 @@ public:
 /// one or two derivatives. There is no constraint on quantity order or type for given \ref QuantityId, i.e.
 /// as far as \ref Storage object is concerned, one can create a QuantityId::ENERGY tensor quantity with
 /// second derivatives or integer quantity QuantityId::SOUND_SPEED. Different parts of the code require
-/// certain types for some quantities, though. Particle positions, QuantityId::POSITIONS, are mostly assumed
+/// certain types for some quantities, though. Particle positions, QuantityId::POSITION, are mostly assumed
 /// to be vector quantities of second order. Inconsistency of types will cause an assert when encountered.
 ///
 /// Storage can hold arbitrary number of materials, objects derived from \ref IMaterial. In theory,
@@ -150,15 +137,89 @@ public:
 ///
 /// Storage is not thread-safe. If used in multithreaded context, any calls of member functions must be
 /// synchonized by the caller.
-class Storage : public Noncopyable, public ShareFromThis<Storage> {
+///
+/// The following demostrates how to access the particle data:
+/// \code
+/// // Get particle masses from the storage
+/// ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
+/// std::cout << "Mass of 5th particle = " << m[5] << std::endl;
+///
+/// // Get particle velocities (=derivative of positions) and accelerations (=second derivative of positions)
+/// ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+/// ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
+///
+/// // To get values and all derivatives at once, we can use the getAll function. The function returns an
+/// // array containing all buffers, which can be "decomposed" into individual variables using tie function
+/// // (similarly to std::tie).
+/// ArrayView<Vector> r;
+/// tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION); // return value is "decomposed"
+///
+/// // Lastly, if we want to get multiple values (not derivatives) of the same type, we can use getValues. We
+/// // can also utilize the function tie; make sure to list the variables in the same order as the IDs.
+/// ArrayView<Float> rho, u;
+/// tie(rho, u, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::ENERGY, QuantityId::MASS);
+/// \endcode
+///
+/// When adding a new quantity into the storage, it is necessary to specify the type of the quantity and the
+/// number of derivatives using \ref OrderEnum. Quantity can be either initialized by providing a single
+/// default value (used for all particles), or an array of values; see functions \ref insert. To add arbitrary
+/// quantity, use:
+/// \code
+/// // Fill the array of angular frequencies
+/// Array<Vector> omega(storage.getParticleCnt());
+/// omega.fill(Vector(0, 0, 5)); // initialize it to 5 rad/s parallel to z-axis.
+/// // Add angular frequencies to the storage, evolved as first-order quantity
+/// storage.insert<Vector>(QuantityId::ANGULAR_FREQUENCY, OrderEnum::FIRST, std::move(omega));
+///
+/// // Add moment of inertia (with no derivatives)
+/// const SymmetricTensor I = Rigid::sphereInertia(3, 2); // moment of a sphere with mass 3kg and radius 2m
+/// storage.insert<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA, OrderEnum::ZERO, I);
+/// \endcode
+///
+/// In some cases, it is useful to read or modify all quantities in the storage, without the need to fetch
+/// them manually using \ref getValue and related function. There are two different ways to iterate over
+/// quantities stored in storage. You can use the function \ref getQuantities, which returns a range (pair of
+/// iterators) and thus allows to visit quantities in a for-loop:
+/// \code
+/// for (StorageElement element : storage.getQuantities()) {
+///     std::cout << "Quantity " << element.id << std::endl
+///     std::cout << " - order " << int(element.quantity.getOrderEnum()) << std::endl;
+///     std::cout << " - type  " << int(element.quantity.getValueEnum()) << std::endl;
+/// }
+/// \endcode
+/// This approach can be utilized to access properties of the quantities (as in the example above), clone
+/// quantities, etc. The downside is that we still need to know the value type to actually access the quantity
+/// values. To overcome this problem and access the quantity values in generic (type-agnostic) way, consider
+/// using the function \ref iterate:
+/// \code
+/// // Iterate over all first order quantities in the storage
+/// iterate<VisitorEnum::FIRST_ORDER>(storage, [](QuantityId id, auto& values, auto& derivatives) {
+///     // Values and derivatives are arrays with quantity values. The type of the values can be Float,
+///     // Vector, SymmetricTensor, etc., depending on the actual type of the stored quantity. Therefore, we
+///     // can only use generic code here (functions overload for all quantity types).
+///     std::cout << "Quantity " << id << std::endl;
+///     std::cout << "Particle 0: " << values[0] << ", derivative ", derivatives[0] << std::endl;
+/// });
+///
+/// // Iterates over all arrays in the storage, meaning all quantity values and derivatives.
+/// iterate<VisitorEnum::ALL_BUFFERS>(storage, [](auto& array) {
+///     // Use decltype to determine the type of the array
+///     using Type = std::decay_t<decltype(array)>::Type;
+///
+///     // Set all values and all derivatives to zero (zero vector, zero tensor)
+///     array.fill(Type(0._f));
+/// });
+/// \endcode
+/// Note that arguments of the provided functor differ for each \ref VisitorEnum.
+class Storage : public Noncopyable {
     friend class StorageSequence;
     friend class ConstStorageSequence;
 
 private:
-    /// Stored quantities (array of arrays). All arrays must be the same size at all times.
-    std::map<QuantityId, Quantity> quantities;
+    /// \brief Stored quantities (array of arrays). All arrays must be the same size at all times.
+    FlatMap<QuantityId, Quantity> quantities;
 
-    /// Holds information about a material and particles with this material.
+    /// \brief Holds information about a material and particles with this material.
     struct MatRange {
         /// Actual implementation of the material
         SharedPtr<IMaterial> material;
@@ -171,21 +232,29 @@ private:
 
         MatRange() = default;
 
-        MatRange(SharedPtr<IMaterial>&& material, const Size from, const Size to);
+        MatRange(const SharedPtr<IMaterial>& material, const Size from, const Size to);
     };
 
-    /// Materials of particles in the storage.
+    /// \brief Materials of particles in the storage.
     ///
     /// Particles of the same material are stored consecutively; first material always starts with index 0 and
     /// last material ends with index equal to the number of particles.
     Array<MatRange> mats;
 
-    /// Cached view of material IDs of particles, used for fast access of material properties.
+    /// \brief Cached view of material IDs of particles.
+    ///
+    /// Used for fast access of material properties.
     ArrayView<Size> matIds;
 
-    /// Dependent storages, modified every time the number of particles of this storage is changed (in order
-    /// to keep the number of particles in dependent storages the same).
+    /// \brief Dependent storages, modified when the number of particles of this storage is changed.
+    ///
+    /// Needed in order to keep the number of particles in dependent storages the same.
     Array<WeakPtr<Storage>> dependent;
+
+    /// \brief Arbitrary data set by \ref setUserData.
+    ///
+    /// May be nullptr.
+    SharedPtr<IStorageUserData> userData;
 
 public:
     /// \brief Creates a storage with no material.
@@ -197,7 +266,7 @@ public:
     ///
     /// All particles of the storage will have the same material. To create a heterogeneous storage, it is
     /// necessary to merge another storage object into this one, using \ref merge function.
-    Storage(AutoPtr<IMaterial>&& material);
+    Storage(const SharedPtr<IMaterial>& material);
 
     ~Storage();
 
@@ -208,36 +277,19 @@ public:
     /// \brief Checks if the storage contains quantity with given key.
     ///
     /// Type or order of unit is not specified, any quantity with this key will match.
-    bool has(const QuantityId key) const {
-        return quantities.find(key) != quantities.end();
-    }
+    bool has(const QuantityId key) const;
 
     /// \brief Checks if the storage contains quantity with given key, value type and order.
     template <typename TValue>
-    bool has(const QuantityId key, const OrderEnum order) const {
-        auto iter = quantities.find(key);
-        if (iter == quantities.end()) {
-            return false;
-        }
-        const Quantity& q = iter->second;
-        return q.getOrderEnum() == order && q.getValueEnum() == GetValueEnum<TValue>::type;
-    }
+    bool has(const QuantityId key, const OrderEnum order) const;
 
     /// \brief Retrieves quantity with given key from the storage.
     ///
     /// Quantity must be already stored, checked by assert.
-    Quantity& getQuantity(const QuantityId key) {
-        auto iter = quantities.find(key);
-        ASSERT(iter != quantities.end(), getMetadata(key).quantityName);
-        return iter->second;
-    }
+    Quantity& getQuantity(const QuantityId key);
 
     /// \brief Retrieves quantity with given key from the storage, const version.
-    const Quantity& getQuantity(const QuantityId key) const {
-        auto iter = quantities.find(key);
-        ASSERT(iter != quantities.end());
-        return iter->second;
-    }
+    const Quantity& getQuantity(const QuantityId key) const;
 
     /// \brief Retrieves quantity buffers from the storage, given its key and value type.
     ///
@@ -245,85 +297,35 @@ public:
     /// storage, checked by assert. To check whether the quantity is stored, use has() method.
     /// \return Array of references to Arrays, containing quantity values and all derivatives.
     template <typename TValue>
-    StaticArray<Array<TValue>&, 3> getAll(const QuantityId key) {
-        Quantity& q = this->getQuantity(key);
-        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        return q.getAll<TValue>();
-    }
+    StaticArray<Array<TValue>&, 3> getAll(const QuantityId key);
 
     /// \brief Retrieves quantity buffers from the storage, given its key and value type, const version.
     template <typename TValue>
-    StaticArray<const Array<TValue>&, 3> getAll(const QuantityId key) const {
-        const Quantity& q = this->getQuantity(key);
-        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        return q.getAll<TValue>();
-    }
+    StaticArray<const Array<TValue>&, 3> getAll(const QuantityId key) const;
 
     /// \brief Retrieves a quantity values from the storage, given its key and value type.
     ///
     /// The stored quantity must be of type TValue, checked by assert. Quantity must already exist in the
-    /// storage, checked by assert. Note that values of quantity are returned as stored and need not have
-    /// physical meaning; physical values of quantity might be modified by material (rheology, damage model,
-    /// ...). To get physical values of quantity for use in equations, use \ref getPhysicalValue.
+    /// storage, checked by assert.
     /// \return Array reference containing stored quantity values.
     template <typename TValue>
-    Array<TValue>& getValue(const QuantityId key) {
-        Quantity& q = this->getQuantity(key);
-        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        return q.getValue<TValue>();
-    }
+    Array<TValue>& getValue(const QuantityId key);
 
-    /// Retrieves a quantity values from the storage, given its key and value type, const version.
-    /// \todo test
+    /// \copydoc getValue
     template <typename TValue>
-    const Array<TValue>& getValue(const QuantityId key) const {
-        return const_cast<Storage*>(this)->getValue<TValue>(key);
-    }
-
-    /// Returns the physical values of given quantity.
-    template <typename TValue>
-    Array<TValue>& getPhysicalValue(const QuantityId key) {
-        Quantity& q = this->getQuantity(key);
-        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        return q.getPhysicalValue<TValue>();
-    }
-
-    template <typename TValue>
-    const Array<TValue>& getPhysicalValue(const QuantityId key) const {
-        return const_cast<Storage*>(this)->getPhysicalValue<TValue>(key);
-    }
-
-    /// Returns all buffers, using physical values instead of stored values.
-    template <typename TValue>
-    StaticArray<Array<TValue>&, 3> getPhysicalAll(const QuantityId key) {
-        Quantity& q = this->getQuantity(key);
-        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        return q.getPhysicalAll<TValue>();
-    }
-
-    template <typename TValue>
-    StaticArray<Array<TValue>&, 2> modify(const QuantityId key) {
-        Quantity& q = this->getQuantity(key);
-        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        return q.modify<TValue>();
-    }
+    const Array<TValue>& getValue(const QuantityId key) const;
 
     /// \brief Retrieves a quantity derivative from the storage, given its key and value type.
+    ///
     /// The stored quantity must be of type TValue, checked by assert. Quantity must already exist in the
     /// storage and must be first or second order, checked by assert.
     /// \return Array reference containing quantity derivatives.
     template <typename TValue>
-    Array<TValue>& getDt(const QuantityId key) {
-        Quantity& q = this->getQuantity(key);
-        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        return q.getDt<TValue>();
-    }
+    Array<TValue>& getDt(const QuantityId key);
 
-    /// Retrieves a quantity derivative from the storage, given its key and value type, const version.
+    /// \brief Retrieves a quantity derivative from the storage, given its key and value type, const version.
     template <typename TValue>
-    const Array<TValue>& getDt(const QuantityId key) const {
-        return const_cast<Storage*>(this)->getDt<TValue>(key);
-    }
+    const Array<TValue>& getDt(const QuantityId key) const;
 
     /// \brief Retrieves a quantity second derivative from the storage, given its key and value type.
     ///
@@ -331,17 +333,11 @@ public:
     /// storage and must be second order, checked by assert.
     /// \return Array reference containing quantity second derivatives.
     template <typename TValue>
-    Array<TValue>& getD2t(const QuantityId key) {
-        Quantity& q = this->getQuantity(key);
-        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        return q.getD2t<TValue>();
-    }
+    Array<TValue>& getD2t(const QuantityId key);
 
-    /// Retrieves a quantity second derivative from the storage, given its key and value type, const version.
+    /// \copydoc getD2t
     template <typename TValue>
-    const Array<TValue>& getD2t(const QuantityId key) const {
-        return const_cast<Storage*>(this)->getD2t<TValue>(key);
-    }
+    const Array<TValue>& getD2t(const QuantityId key) const;
 
     /// \brief Retrieves an array of quantities from the key.
     ///
@@ -363,10 +359,12 @@ public:
     /// Quantity is resized and filled with default value. This cannot be used to set number of particles, the
     /// size of the quantity is set to match current particle number.
     /// If a quantity with given key already exists in the storage, function checks that the quantity type is
-    /// the same; if it isn't, InvalidSetup exception is thrown. If the required order of quantity is larger
-    /// than the one currently stored, additional derivatives are created with no assert nor exception,
-    /// otherwise the order is unchanged. Value of the quantity is unchanged, there is no check that the
-    /// current value is the same as the default value given as parameter.
+    /// the same and that all values of the quantity match the provided defaultValue. If not, \ref
+    /// InvalidSetup exception is thrown to ensure the quantity is always set up consistenly, i.e. two terms
+    /// do not create the same quantity with different types or different values.
+    ///
+    /// If the required order of quantity is larger than the one currently stored, additional derivatives are
+    /// created with no assert nor exception, otherwise the order is unchanged.
     /// \tparam TValue Type of the quantity. Can be scalar, vector, tensor or traceless tensor.
     /// \param key Unique key of the quantity.
     /// \param TOrder Order (number of derivatives) associated with the quantity.
@@ -405,7 +403,7 @@ public:
     ///               material of given particle, use \ref getMaterialOfParticle.
     MaterialView getMaterial(const Size matIdx) const;
 
-    /// Returns material view for material of given particle.
+    /// \brief Returns material view for material of given particle.
     MaterialView getMaterialOfParticle(const Size particleIdx) const;
 
     /// \brief Returns the bounding range of given quantity.
@@ -469,6 +467,11 @@ public:
     /// Other values are unchanged.
     void zeroHighestDerivatives();
 
+    enum class IndicesFlag {
+        /// Use if the given array is already sorted (optimization)
+        INDICES_SORTED = 1 << 0,
+    };
+
     /// \brief Duplicates some particles in the storage.
     ///
     /// New particles are added to an unspecified positions in the storage, copying all the quantities and
@@ -479,19 +482,14 @@ public:
     /// \param idxs Indices of the particles to duplicate.
     /// \return Indices of the newly created particles (in the modified storage). Note that the original
     ///         indices passed into the storage are no longer valid after the function is called.
-    Array<Size> duplicate(ArrayView<const Size> idxs);
-
-    enum class RemoveFlag {
-        /// Use if the given array is already sorted (optimization)
-        INDICES_SORTED = 1 << 0,
-    };
+    Array<Size> duplicate(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags = EMPTY_FLAGS);
 
     /// \brief Removes specified particles from the storage.
     ///
     /// If all particles of some material are removed by this, the material is also removed from the storage.
     /// Same particles are also removed from all dependent storages.
-    /// \param idsx Indices of particles to remove. No need to sort the indices.
-    void remove(ArrayView<const Size> idxs, const Flags<RemoveFlag> flags = EMPTY_FLAGS);
+    /// \param idxs Indices of particles to remove. No need to sort the indices.
+    void remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags = EMPTY_FLAGS);
 
     /// \brief Removes all particles with all quantities (including materials) from the storage.
     ///
@@ -539,11 +537,33 @@ public:
     /// The valid state means that all quantities have the same number of particles and materials are stored
     /// consecutively in the storage. This should be handled automatically, the function is mainly for
     /// debugging purposes.
-    bool isValid(const Flags<ValidFlag> flags = ValidFlag::COMPLETE) const;
+    Outcome isValid(const Flags<ValidFlag> flags = ValidFlag::COMPLETE) const;
+
+    /// \brief Stores new user data into the storage.
+    ///
+    /// Previous user data are overriden.
+    void setUserData(SharedPtr<IStorageUserData> newData);
+
+    /// \brief Returns the stored user data.
+    ///
+    /// If no data are stored, the function returns nullptr.
+    SharedPtr<IStorageUserData> getUserData() const;
 
 private:
     /// Updates the cached matIds view.
     void update();
 };
+
+/// \brief Adds or updates a quantity holding particle indices to the storage.
+///
+/// The indices are accessible through quantity QuantityId::PERSISTENT_INDEX. Initially, particle are numbered
+/// from 0 to #particleCnt - 1, but the indices are persistent, meaning they remain unchanged when removing
+/// particles from the storage. When a particle is removed from the storage, its index can be then re-used by
+/// another particle added into the storage.
+///
+/// When merging two storages, indices remain unchanged in the storage where the particles are into, but they
+/// are reset in the storage being merged, as they could be collisions of indices. Same goes to particles
+/// added via \ref duplicate function.
+void setPersistentIndices(Storage& storage);
 
 NAMESPACE_SPH_END

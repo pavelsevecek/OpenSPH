@@ -7,6 +7,7 @@
 
 #include "physics/Eos.h"
 #include "quantities/Storage.h"
+#include "sph/equations/DerivativeHelpers.h"
 #include "sph/equations/EquationTerm.h"
 #include "system/Settings.h"
 
@@ -32,63 +33,44 @@ NAMESPACE_SPH_BEGIN
 /// time) and equal for all particles.
 class StandardAV : public IEquationTerm {
 public:
-    class Derivative : public DerivativeTemplate<Derivative> {
+    class Derivative : public AccelerationTemplate<Derivative> {
     private:
         ArrayView<const Vector> r, v;
-        ArrayView<const Float> rho, cs, m;
-        ArrayView<Float> du;
-        ArrayView<Vector> dv;
+        ArrayView<const Float> rho, cs;
         const Float eps = 1.e-2_f;
         Float alpha, beta;
 
     public:
         explicit Derivative(const RunSettings& settings)
-            : DerivativeTemplate<Derivative>(settings)
+            : AccelerationTemplate<Derivative>(settings)
             , alpha(settings.get<Float>(RunSettingsId::SPH_AV_ALPHA))
             , beta(settings.get<Float>(RunSettingsId::SPH_AV_BETA)) {}
 
-        virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
-            results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, BufferSource::SHARED);
-        }
+        INLINE void additionalCreate(Accumulated& UNUSED(results)) {}
 
-        virtual bool equals(const IDerivative& other) const override {
-            if (!DerivativeTemplate<Derivative>::equals(other)) {
-                return false;
-            }
-            const Derivative* actOther = assert_cast<const Derivative*>(&other);
-            return alpha == actOther->alpha && beta == actOther->beta;
-        }
-
-        INLINE void init(const Storage& input, Accumulated& results) {
+        INLINE void additionalInitialize(const Storage& input, Accumulated& UNUSED(results)) {
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
             // sound speed must be computed by the solver using AV
-            tie(rho, cs, m) =
-                input.getValues<Float>(QuantityId::DENSITY, QuantityId::SOUND_SPEED, QuantityId::MASS);
+            tie(rho, cs) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::SOUND_SPEED);
+        }
 
-            dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
-            du = results.getBuffer<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
+        INLINE bool additionalEquals(const Derivative& other) const {
+            return alpha == other.alpha && beta == other.beta;
         }
 
         template <bool Symmetrize>
-        INLINE void eval(const Size i, const Size j, const Vector& grad) {
-            const Float av = (*this)(i, j);
+        INLINE Tuple<Vector, Float> eval(const Size i, const Size j, const Vector& grad) {
+            const Float av = evalAv(i, j);
             ASSERT(isReal(av) && av >= 0._f);
             const Vector Pi = av * grad;
             const Float heating = 0.5_f * av * dot(v[i] - v[j], grad);
             ASSERT(isReal(heating) && heating >= 0._f);
-            dv[i] -= m[j] * Pi;
-            du[i] += m[j] * heating;
-
-            if (Symmetrize) {
-                dv[j] += m[i] * Pi;
-                du[j] += m[i] * heating;
-            }
+            return { -Pi, heating };
         }
 
         /// Term used for Balsara switch
-        INLINE Float operator()(const Size i, const Size j) const {
+        INLINE Float evalAv(const Size i, const Size j) const {
             const Float dvdr = dot(v[i] - v[j], r[i] - r[j]);
             if (dvdr >= 0._f) {
                 return 0._f;
@@ -105,9 +87,9 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
-    virtual void finalize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
     virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };

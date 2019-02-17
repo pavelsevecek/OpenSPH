@@ -2,7 +2,7 @@
 #include "catch.hpp"
 #include "io/Column.h"
 #include "io/Output.h"
-#include "math/Integrator.h"
+#include "math/Functional.h"
 #include "physics/Eos.h"
 #include "run/IRun.h"
 #include "run/RunCallbacks.h"
@@ -34,7 +34,7 @@ public:
 
         virtual void onTimeStep(const Storage& storage, Statistics& UNUSED(stats)) override {
             ArrayView<const Vector> phi = storage.getValue<Vector>(QuantityId::PHASE_ANGLE);
-            ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+            ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
             ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
             logger.write(stepIdx++, phi[observedIndex], omega[observedIndex], "  ", u[observedIndex]);
         }
@@ -42,6 +42,9 @@ public:
         virtual void onRunStart(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
 
         virtual void onRunEnd(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
+
+        virtual void onRunFailure(const DiagnosticsError& UNUSED(error),
+            const Statistics& UNUSED(stats)) const override {}
 
         virtual bool shouldAbortRun() const override {
             return false;
@@ -88,12 +91,12 @@ public:
             .set(RunSettingsId::SPH_PHASE_ANGLE, true)
             .set(RunSettingsId::SPH_PARTICLE_ROTATION, true);
 
-        AutoPtr<TextOutput> textOutput = makeAuto<TextOutput>(Path("out_%d.txt"), "rot");
+        /*AutoPtr<TextOutput> textOutput = makeAuto<TextOutput>(Path("out_%d.txt"), "rot");
 
         textOutput->addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
         textOutput->addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::ANGULAR_VELOCITY));
 
-        output = std::move(textOutput);
+        output = std::move(textOutput);*/
 
         equations += makeTerm<SolidStressForce>(
             settings); /// \todo FIX ROTATION+ makeTerm<SolidStressTorque>(settings);
@@ -103,7 +106,8 @@ public:
     }
 
     virtual void setUp() override {
-        solver = makeAuto<SymmetricSolver>(settings, equations);
+        scheduler = ThreadPool::getGlobalInstance();
+        solver = makeAuto<SymmetricSolver>(*scheduler, settings, equations);
         IMaterial& material = storage->getMaterial(0);
         solver->create(*storage, material);
 
@@ -111,7 +115,7 @@ public:
         callbacks = makeAuto<Callbacks>(observedIndex);
     }
 
-    virtual void tearDown() override {}
+    virtual void tearDown(const Statistics& UNUSED(stats)) override {}
 };
 } // namespace
 

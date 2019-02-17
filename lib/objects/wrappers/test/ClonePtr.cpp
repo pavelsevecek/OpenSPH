@@ -15,7 +15,7 @@ TEST_CASE("ClonePtr default construct", "[cloneptr]") {
     REQUIRE_FALSE(p1);
     REQUIRE_ASSERT(*p1);
     REQUIRE_ASSERT(p1->value);
-    REQUIRE_ASSERT(p1.clone());
+    REQUIRE_FALSE(p1.clone());
 }
 
 TEST_CASE("ClonePtr ptr construct", "[cloneptr]") {
@@ -45,6 +45,14 @@ TEST_CASE("ClonePtr copy construct", "[cloneptr]") {
         REQUIRE(p2->wasCopyConstructed);
     }
     REQUIRE(RecordType::existingNum() == 0);
+}
+
+TEST_CASE("ClonePtr copy construct nullptr", "[cloneptr]") {
+    RecordType::resetStats();
+    ClonePtr<RecordType> p1;
+    ClonePtr<RecordType> p2(p1);
+    REQUIRE(!p2);
+    REQUIRE(RecordType::constructedNum == 0);
 }
 
 TEST_CASE("ClonePtr move construct", "[cloneptr]") {
@@ -79,6 +87,14 @@ TEST_CASE("ClonePtr copy assign", "[cloneptr]") {
     }
 }
 
+TEST_CASE("ClonePtr copy assign nullptr", "[cloneptr]") {
+    ClonePtr<RecordType> p1(new RecordType(5));
+    ClonePtr<RecordType> p2;
+    p1 = p2;
+    REQUIRE_FALSE(p1);
+    REQUIRE_FALSE(p2);
+}
+
 TEST_CASE("ClonePtr move assign", "[cloneptr]") {
     RecordType::resetStats();
     {
@@ -101,15 +117,15 @@ struct Base : public Polymorphic {
 };
 
 namespace {
-    struct Derived : public Base {
-        static bool destroyed;
-        ~Derived() {
-            destroyed = true;
-        }
-    };
+struct Derived : public Base {
+    static bool destroyed;
+    ~Derived() {
+        destroyed = true;
+    }
+};
 
-    bool Derived::destroyed = false;
-}
+bool Derived::destroyed = false;
+} // namespace
 
 TEST_CASE("ClonePtr cast", "[cloneptr]") {
     {
@@ -154,4 +170,22 @@ TEST_CASE("ClonePtr comparison", "[cloneptr]") {
     REQUIRE_FALSE(nullptr == p1);
     REQUIRE(p1 != nullptr);
     REQUIRE(nullptr != p1);
+}
+
+TEST_CASE("ClonePtr convert to AutoPtr", "[cloneptr]") {
+    ClonePtr<RecordType> p1 = makeClone<RecordType>(5);
+    AutoPtr<RecordType> a1 = p1;
+    REQUIRE(a1);
+    REQUIRE(a1->value == 5);
+    p1->value = 3;
+    REQUIRE(a1->value == 5); // really unique value
+
+    AutoPtr<RecordType> a2 = std::move(p1);
+    REQUIRE(a2);
+    REQUIRE(a2->value == 3);
+    REQUIRE_FALSE(p1);
+    REQUIRE_FALSE(p1.clone());
+
+    AutoPtr<Base> a3 = makeClone<Derived>();
+    REQUIRE(a3);
 }

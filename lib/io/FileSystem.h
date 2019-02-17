@@ -11,16 +11,25 @@ NAMESPACE_SPH_BEGIN
 
 namespace FileSystem {
 
-/// Reads the whole file into the string. Returns an empty string if the file does not exist or cannot be
-/// opened for reading.
+/// \brief Reads the whole file into the string.
+///
+/// Returns an empty string if the file does not exist or cannot be opened for reading.
 /// \param path File to read
 std::string readFile(const Path& path);
 
-/// Checks if a file or directory exists (or more precisely, if a file or directory is accessible).
+/// \brief Checks if a file or directory exists (or more precisely, if a file or directory is accessible).
 bool pathExists(const Path& path);
 
-/// Returns the size of a file. The file must exist and be accessible, checked by assert.
+/// \brief Returns the size of a file.
+///
+/// The file must exist and be accessible, checked by assert.
 Size fileSize(const Path& path);
+
+/// \brief Checks whether the given file is writable.
+bool isPathWritable(const Path& path);
+
+/// \brief Returns the home directory of the current user.
+Expected<Path> getHomeDirectory();
 
 enum class PathType {
     FILE,      ///< Regular file
@@ -29,7 +38,7 @@ enum class PathType {
     OTHER,     ///< Pipe, socket, ...
 };
 
-/// Returns the type of the given path, or error message if the function fails.
+/// \brief Returns the type of the given path, or error message if the function fails.
 Expected<PathType> pathType(const Path& path);
 
 

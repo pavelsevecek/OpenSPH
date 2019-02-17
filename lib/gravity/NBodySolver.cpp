@@ -1,23 +1,37 @@
 #include "gravity/NBodySolver.h"
 #include "gravity/BruteForceGravity.h"
 #include "gravity/Collision.h"
+#include "objects/finders/NeighbourFinder.h"
+#include "quantities/Quantity.h"
 #include "sph/Diagnostics.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
+#include "system/Statistics.h"
 #include "system/Timer.h"
 
 NAMESPACE_SPH_BEGIN
 
-NBodySolver::NBodySolver(const RunSettings& settings)
-    : NBodySolver(settings, Factory::getGravity(settings)) {}
+NBodySolver::NBodySolver(IScheduler& scheduler, const RunSettings& settings)
+    : NBodySolver(scheduler, settings, Factory::getGravity(settings)) {}
 
-NBodySolver::NBodySolver(const RunSettings& settings, AutoPtr<IGravity>&& gravity)
+NBodySolver::NBodySolver(IScheduler& scheduler, const RunSettings& settings, AutoPtr<IGravity>&& gravity)
+    : NBodySolver(scheduler,
+          settings,
+          std::move(gravity),
+          Factory::getCollisionHandler(settings),
+          Factory::getOverlapHandler(settings)) {}
+
+NBodySolver::NBodySolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    AutoPtr<IGravity>&& gravity,
+    AutoPtr<ICollisionHandler>&& collisionHandler,
+    AutoPtr<IOverlapHandler>&& overlapHandler)
     : gravity(std::move(gravity))
-    , pool(settings.get<int>(RunSettingsId::RUN_THREAD_CNT))
-    , threadData(pool) {
-    collision.handler = Factory::getCollisionHandler(settings);
+    , scheduler(scheduler)
+    , threadData(scheduler) {
+    collision.handler = std::move(collisionHandler);
     collision.finder = Factory::getFinder(settings);
-    overlap.handler = Factory::getOverlapHandler(settings);
+    overlap.handler = std::move(overlapHandler);
     overlap.allowedRatio = settings.get<Float>(RunSettingsId::COLLISION_ALLOWED_OVERLAP);
     rigidBody.use = settings.get<bool>(RunSettingsId::NBODY_INERTIA_TENSOR);
     rigidBody.maxAngle = settings.get<Float>(RunSettingsId::NBODY_MAX_ROTATION_ANGLE);
@@ -54,7 +68,7 @@ NBodySolver::~NBodySolver() = default;
 void NBodySolver::rotateLocalFrame(Storage& storage, const Float dt) {
     ArrayView<Tensor> E = storage.getValue<Tensor>(QuantityId::LOCAL_FRAME);
     ArrayView<Vector> L = storage.getValue<Vector>(QuantityId::ANGULAR_MOMENTUM);
-    ArrayView<Vector> w = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+    ArrayView<Vector> w = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
     ArrayView<SymmetricTensor> I = storage.getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
 
     for (Size i = 0; i < L.size(); ++i) {
@@ -102,10 +116,11 @@ void NBodySolver::rotateLocalFrame(Storage& storage, const Float dt) {
 
 void NBodySolver::integrate(Storage& storage, Statistics& stats) {
     Timer timer;
-    gravity->build(storage);
+    gravity->build(scheduler, storage);
 
     ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
-    gravity->evalAll(pool, dv, stats);
+    ASSERT_UNEVAL(std::all_of(dv.begin(), dv.end(), [](Vector& a) { return a == Vector(0._f); }));
+    gravity->evalAll(scheduler, dv, stats);
 
     // null all derivatives of smoothing lengths (particle radii)
     ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
@@ -169,7 +184,6 @@ public:
 
 
 struct CollisionRecord {
-public:
     /// Indices of the collided particles.
     Size i;
     Size j;
@@ -225,11 +239,11 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     // const Float searchRadius = getSearchRadius(r, v, dt);
 
     // tree for finding collisions
-    collision.finder->buildWithRank(r, [this, dt](const Size i, const Size j) {
+    collision.finder->buildWithRank(SEQUENTIAL, r, [this, dt](const Size i, const Size j) {
         return r[i][H] + getLength(v[i]) * dt < r[j][H] + getLength(v[j]) * dt;
     });
 
-    // handler determining collison outcomes
+    // handler determining collision outcomes
     collision.handler->initialize(storage);
     overlap.handler->initialize(storage);
 
@@ -238,29 +252,34 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     searchRadii.resize(r.size());
     searchRadii.fill(0._f);
 
-    threadData.forEach([](ThreadData& data) { data.collisions.clear(); });
+    for (ThreadData& data : threadData) {
+        data.collisions.clear();
+    }
+
     // first pass - find all collisions and sort them by collision time
-    parallelFor(pool, threadData, 0, r.size(), [&](const Size i, ThreadData& data) {
+    parallelFor(scheduler, threadData, 0, r.size(), [&](const Size i, ThreadData& data) {
         if (CollisionRecord col =
                 this->findClosestCollision(i, SearchEnum::FIND_LOWER_RANK, Interval(0._f, dt), data.neighs)) {
             ASSERT(isReal(col));
             data.collisions.insert(col);
         }
     });
-    threadData.forEach([this](ThreadData& data) {
+    for (ThreadData& data : threadData) {
         for (auto& col : data.collisions) {
             collisions.insert(col);
         }
-    });
+    }
 
     CollisionStats cs(stats);
     removed.clear();
 
-    // We have to process the all collision in order, sorted according to collision time, but this is
-    // hardly parallelized. We can however process collisions concurrently, as long as the collided
-    // particles don't intersect the spheres with radius equal to the search radius. Note that this works
-    // as long as the search radius does not increase during collision handling.
-    FlatSet<std::tuple<Size, bool>> invalidIdxs;
+    /// \todo
+    /// We have to process the all collision in order, sorted according to collision time, but this is
+    /// hardly parallelized. We can however process collisions concurrently, as long as the collided
+    /// particles don't intersect the spheres with radius equal to the search radius. Note that this works
+    /// as long as the search radius does not increase during collision handling.
+
+    FlatSet<Size> invalidIdxs;
     while (!collisions.empty()) {
         const CollisionRecord& col = *collisions.begin();
         const Float t_coll = col.collisionTime;
@@ -284,30 +303,32 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
             result = collision.handler->collide(i, j, removed);
             cs.clasify(result);
         }
-        ASSERT(result != CollisionResult::NONE);
 
         // move the positions back to the beginning of the timestep
         r[i] -= v[i] * t_coll;
         r[j] -= v[j] * t_coll;
         ASSERT(isReal(r[i]) && isReal(r[j]));
 
+        if (result == CollisionResult::NONE) {
+            // no collision to process
+            collisions.erase(collisions.begin());
+            continue;
+        }
+
         // remove all collisions containing either i or j
         invalidIdxs.clear();
         for (auto iter = collisions.begin(); iter != collisions.end();) {
             const CollisionRecord& c = *iter;
             if (c.i == i || c.i == j || c.j == i || c.j == j) {
-                invalidIdxs.insert(std::make_tuple(c.i, true));
-                invalidIdxs.insert(std::make_tuple(c.j, false));
+                invalidIdxs.insert(c.i);
+                invalidIdxs.insert(c.j);
                 iter = collisions.erase(iter);
             } else {
                 ++iter;
             }
         }
 
-        for (auto x : invalidIdxs) {
-            Size idx;
-            bool findLowerRank;
-            std::tie(idx, findLowerRank) = x;
+        for (Size idx : invalidIdxs) {
             // here we shouldn't search any removed particle
             if (removed.find(idx) != removed.end()) {
                 continue;
@@ -325,15 +346,10 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
             }
         }
     }
-    // advance all positions to the end of the timestep
-    for (Size i = 0; i < r.size(); ++i) {
-        r[i] += v[i] * dt;
-        ASSERT(isReal(r[i]));
-    }
 
     // apply the removal list
     if (!removed.empty()) {
-        storage.remove(removed, Storage::RemoveFlag::INDICES_SORTED);
+        storage.remove(removed, Storage::IndicesFlag::INDICES_SORTED);
         // remove it also from all dependent storages, since this is a permanent action
         storage.propagate([this](Storage& dependent) { dependent.remove(removed); });
     }
@@ -343,12 +359,11 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
 }
 
 void NBodySolver::create(Storage& storage, IMaterial& UNUSED(material)) const {
-    storage.insert<Vector>(QuantityId::ANGULAR_MOMENTUM, OrderEnum::ZERO, Vector(0._f));
-
     // dependent quantity, computed from angular momentum
-    storage.insert<Vector>(QuantityId::ANGULAR_VELOCITY, OrderEnum::ZERO, Vector(0._f));
+    storage.insert<Vector>(QuantityId::ANGULAR_FREQUENCY, OrderEnum::ZERO, Vector(0._f));
 
     if (rigidBody.use) {
+        storage.insert<Vector>(QuantityId::ANGULAR_MOMENTUM, OrderEnum::ZERO, Vector(0._f));
         storage.insert<SymmetricTensor>(
             QuantityId::MOMENT_OF_INERTIA, OrderEnum::ZERO, SymmetricTensor::null());
         ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);

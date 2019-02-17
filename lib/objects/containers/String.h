@@ -6,6 +6,7 @@
 /// \date 2016-2018
 
 #include "objects/containers/Array.h"
+#include <string.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -119,7 +120,7 @@ public:
 
     /// \addtogroup utility Utility functions
 
-    static constexpr Size npos = std::numeric_limits<Size>::max();
+    static constexpr Size npos = NumericLimits<Size>::max();
 
     Size find(const String& s, const Size pos = 0) const;
 

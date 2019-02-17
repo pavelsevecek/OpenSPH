@@ -1,6 +1,7 @@
 #include "sph/kernel/Interpolation.h"
 #include "catch.hpp"
 #include "objects/geometry/Domain.h"
+#include "quantities/Quantity.h"
 #include "sph/initial/Distribution.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
@@ -55,9 +56,10 @@ TEST_CASE("Interpolate velocity", "[interpolation]") {
         v[i] = field(r[i]);
     }
 
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     Interpolation interpol(storage);
     RandomDistribution dist(1234);
-    Array<Vector> points = dist.generate(1000, SphericalDomain(Vector(0._f), 0.7_f));
+    Array<Vector> points = dist.generate(pool, 1000, SphericalDomain(Vector(0._f), 0.7_f));
     auto test = [&](const Size i) -> Outcome {
         const Vector expected = field(points[i]);
         const Vector actual = interpol.interpolate<Vector>(QuantityId::POSITION, OrderEnum::FIRST, points[i]);

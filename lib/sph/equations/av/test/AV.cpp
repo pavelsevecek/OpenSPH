@@ -1,5 +1,4 @@
 #include "catch.hpp"
-#include "io/LogFile.h"
 #include "objects/utility/PerElementWrapper.h"
 #include "sph/equations/av/Riemann.h"
 #include "sph/equations/av/Standard.h"
@@ -11,8 +10,8 @@
 
 using namespace Sph;
 
-TYPED_TEST_CASE_2("AV divergent", "[av]", T, StandardAV, RiemannAV) {
-    EquationHolder term = makeTerm<T>();
+TEMPLATE_TEST_CASE("AV divergent", "[av]", StandardAV, RiemannAV) {
+    EquationHolder term = makeTerm<TestType>();
     Storage storage = Tests::getGassStorage(10000);
     Tests::computeField<SymmetricSolver>(storage, std::move(term), [](const Vector& r) {
         // some divergent velocity field
@@ -23,8 +22,8 @@ TYPED_TEST_CASE_2("AV divergent", "[av]", T, StandardAV, RiemannAV) {
     REQUIRE(perElement(dv) == Vector(0._f));
 }
 
-TYPED_TEST_CASE_2("AV shockwave", "[av]", T, StandardAV, RiemannAV) {
-    EquationHolder term = makeTerm<T>();
+TEMPLATE_TEST_CASE("AV shockwave", "[av]", StandardAV, RiemannAV) {
+    EquationHolder term = makeTerm<TestType>();
     BodySettings body;
     body.set(BodySettingsId::DENSITY, 1._f).set(BodySettingsId::ENERGY, 1._f);
     Storage storage = Tests::getGassStorage(10000, body);

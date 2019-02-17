@@ -32,6 +32,19 @@ Size FileSystem::fileSize(const Path& path) {
     return ifs.tellg();
 }
 
+bool FileSystem::isPathWritable(const Path& path) {
+    return access(path.native().c_str(), W_OK) == 0;
+}
+
+Expected<Path> FileSystem::getHomeDirectory() {
+    const char* homeDir = getenv("HOME");
+    if (homeDir != nullptr) {
+        return Path(homeDir);
+    } else {
+        return makeUnexpected<Path>("Cannot obtain home directory");
+    }
+}
+
 Expected<FileSystem::PathType> FileSystem::pathType(const Path& path) {
     if (path.empty()) {
         return makeUnexpected<PathType>("Path is empty");

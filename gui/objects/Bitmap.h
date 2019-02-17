@@ -7,36 +7,53 @@
 
 #include "gui/objects/Color.h"
 #include "gui/objects/Point.h"
-#include "io/Path.h"
 #include "objects/containers/Array.h"
-#include <wx/bitmap.h>
-#include <wx/rawbmp.h>
 
 NAMESPACE_SPH_BEGIN
 
+class Path;
+
+template <typename Type>
 class Bitmap : public Noncopyable {
 private:
-    Array<wxColour> values;
-    Point res;
+    Array<Type> values;
+    Pixel res;
 
 public:
     Bitmap()
         : res(0, 0) {}
 
-    explicit Bitmap(const Point res)
-        : res(res) {
+    explicit Bitmap(const Pixel resolution)
+        : res(resolution) {
         values.resize(res.x * res.y);
     }
 
-    wxColour& operator[](const Point p) {
+    Bitmap clone() const {
+        Bitmap cloned;
+        cloned.values = values.clone();
+        cloned.res = res;
+        return cloned;
+    }
+
+    void resize(const Pixel newResolution, const Type& value) {
+        res = newResolution;
+        values.resize(res.x * res.y);
+        this->fill(value);
+    }
+
+    void fill(const Type& value) {
+        values.fill(value);
+    }
+
+    Type& operator[](const Pixel p) {
         return values[map(p)];
     }
 
-    const wxColour& operator[](const Point p) const {
+    const Type& operator[](const Pixel p) const {
         return values[map(p)];
     }
 
-    Point size() const {
+    Pixel size() const {
         return res;
     }
 
@@ -45,73 +62,19 @@ public:
     }
 
 private:
-    Size map(const Point p) const {
+    INLINE Size map(const Pixel p) const {
         return p.y * res.x + p.x;
     }
 };
 
+void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx);
 
-inline void toWxBitmap(const Bitmap& bitmap, wxBitmap& wx) {
-    wx.Create(bitmap.size().x, bitmap.size().y);
-    ASSERT(wx.IsOk());
+Bitmap<Rgba> toBitmap(wxBitmap& wx);
 
-    wxNativePixelData pixels(wx);
-    ASSERT(pixels);
-    wxNativePixelData::Iterator iterator(pixels);
-    ASSERT(iterator.IsOk());
-    static_assert(
-        std::is_same<std::decay_t<decltype(iterator.Red())>, unsigned char>::value, "expected unsigned char");
+void saveToFile(const wxBitmap& wx, const Path& path);
 
-    for (int y = 0; y < bitmap.size().y; ++y) {
-        for (int x = 0; x < bitmap.size().x; ++x) {
-            wxColour color = bitmap[Point(x, y)];
-            iterator.Red() = color.Red();
-            iterator.Green() = color.Green();
-            iterator.Blue() = color.Blue();
+void saveToFile(const Bitmap<Rgba>& bitmap, const Path& path);
 
-            ++iterator;
-        }
-    }
-    ASSERT(wx.IsOk());
-}
-
-inline Bitmap toBitmap(wxBitmap& wx) {
-    Bitmap bitmap(Point(wx.GetWidth(), wx.GetHeight()));
-
-    wxNativePixelData pixels(wx);
-    ASSERT(pixels);
-    wxNativePixelData::Iterator iterator(pixels);
-    ASSERT(iterator.IsOk());
-    static_assert(
-        std::is_same<std::decay_t<decltype(iterator.Red())>, unsigned char>::value, "expected unsigned char");
-
-    for (int y = 0; y < bitmap.size().y; ++y) {
-        for (int x = 0; x < bitmap.size().x; ++x) {
-            bitmap[Point(x, y)] = wxColour(iterator.Red(), iterator.Green(), iterator.Blue());
-            ++iterator;
-        }
-    }
-
-    return bitmap;
-}
-
-inline void saveToFile(const wxBitmap& wx, const Path& path) {
-    wx.SaveFile(path.native().c_str(), wxBITMAP_TYPE_PNG);
-}
-
-inline void saveToFile(const Bitmap& bitmap, const Path& path) {
-    wxBitmap wx;
-    toWxBitmap(bitmap, wx);
-    saveToFile(wx, path);
-}
-
-inline Bitmap loadBitmapFromFile(const Path& path) {
-    wxBitmap wx;
-    if (!wx.LoadFile(path.native().c_str())) {
-        ASSERT(false, "Cannot load bitmap");
-    }
-    ASSERT(wx.IsOk());
-    return toBitmap(wx);
-}
+Bitmap<Rgba> loadBitmapFromFile(const Path& path);
 
 NAMESPACE_SPH_END

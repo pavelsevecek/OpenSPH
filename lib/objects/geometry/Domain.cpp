@@ -2,13 +2,17 @@
 
 NAMESPACE_SPH_BEGIN
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// SphericalDomain implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------
+// SphericalDomain implementation
+//-----------------------------------------------------------------------------------------------------------
 
 SphericalDomain::SphericalDomain(const Vector& center, const Float& radius)
-    : IDomain(center)
+    : center(center)
     , radius(radius) {}
+
+Vector SphericalDomain::getCenter() const {
+    return center;
+}
 
 Float SphericalDomain::getVolume() const {
     return sphereVolume(radius);
@@ -98,15 +102,19 @@ void SphericalDomain::addGhosts(ArrayView<const Vector> vs,
     }
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// EllipsoidalDomain implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------
+// EllipsoidalDomain implementation
+//-----------------------------------------------------------------------------------------------------------
 
 EllipsoidalDomain::EllipsoidalDomain(const Vector& center, const Vector& axes)
-    : IDomain(center)
+    : center(center)
     , radii(axes) {
     effectiveRadius = cbrt(radii[X] * radii[Y] * radii[Z]);
     ASSERT(isReal(effectiveRadius));
+}
+
+Vector EllipsoidalDomain::getCenter() const {
+    return center;
 }
 
 Float EllipsoidalDomain::getVolume() const {
@@ -114,7 +122,7 @@ Float EllipsoidalDomain::getVolume() const {
 }
 
 Box EllipsoidalDomain::getBoundingBox() const {
-    return Box(this->center - radii, this->center + radii);
+    return Box(center - radii, center + radii);
 }
 
 bool EllipsoidalDomain::contains(const Vector& v) const {
@@ -176,21 +184,23 @@ void EllipsoidalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> 
 
 void EllipsoidalDomain::addGhosts(ArrayView<const Vector> UNUSED(vs),
     Array<Ghost>& ghosts,
-    const Float UNUSED_IN_RELEASE(eta),
-    const Float UNUSED_IN_RELEASE(eps)) const {
+    const Float eta,
+    const Float eps) const {
     ASSERT(eps < eta);
     ghosts.clear();
     NOT_IMPLEMENTED;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// BlockDomain implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+//-----------------------------------------------------------------------------------------------------------
+// BlockDomain implementation
+//-----------------------------------------------------------------------------------------------------------
 
 BlockDomain::BlockDomain(const Vector& center, const Vector& edges)
-    : IDomain(center)
-    , box(center - 0.5_f * edges, center + 0.5_f * edges) {}
+    : box(center - 0.5_f * edges, center + 0.5_f * edges) {}
+
+Vector BlockDomain::getCenter() const {
+    return box.center();
+}
 
 Float BlockDomain::getVolume() const {
     return box.volume();
@@ -272,61 +282,54 @@ void BlockDomain::addGhosts(ArrayView<const Vector> vs,
     const Float eps) const {
     ASSERT(eps < eta);
     ghosts.clear();
+
     for (Size i = 0; i < vs.size(); ++i) {
         if (!box.contains(vs[i])) {
             continue;
         }
         const Float h = vs[i][H];
+        const Float limitSqr = sqr(eta * h);
+
         const Vector d1 = max(vs[i] - box.lower(), Vector(eps * h));
         const Vector d2 = max(box.upper() - vs[i], Vector(eps * h));
-        // each face for the box can potentially create a ghost
-        if (d1[X] < eta * h) {
-            Vector v = vs[i] - Vector(2._f * d1[X], 0._f, 0._f);
-            v[H] = h;
-            ghosts.push(Ghost{ v, i });
-        }
-        if (d1[Y] < eta * h) {
-            Vector v = vs[i] - Vector(0._f, 2._f * d1[Y], 0._f);
-            v[H] = h;
-            ghosts.push(Ghost{ v, i });
-        }
-        if (d1[Z] < eta * h) {
-            Vector v = vs[i] - Vector(0._f, 0._f, 2._f * d1[Z]);
-            v[H] = h;
-            ghosts.push(Ghost{ v, i });
-        }
 
-        if (d2[X] < eta * h) {
-            Vector v = vs[i] + Vector(2._f * d2[X], 0._f, 0._f);
-            v[H] = h;
-            ghosts.push(Ghost{ v, i });
-        }
-        if (d2[Y] < eta * h) {
-            Vector v = vs[i] + Vector(0._f, 2._f * d2[Y], 0._f);
-            v[H] = h;
-            ghosts.push(Ghost{ v, i });
-        }
-        if (d2[Z] < eta * h) {
-            Vector v = vs[i] + Vector(0._f, 0._f, 2._f * d2[Z]);
-            v[H] = h;
-            ghosts.push(Ghost{ v, i });
+
+        // each face for the box can potentially create a ghost
+        for (Vector x : { Vector(-d1[X], 0._f, 0._f), Vector(0._f), Vector(d2[X], 0._f, 0._f) }) {
+            for (Vector y : { Vector(0._f, -d1[Y], 0._f), Vector(0._f), Vector(0._f, d2[Y], 0._f) }) {
+                for (Vector z : { Vector(0._f, 0._f, -d1[Z]), Vector(0._f), Vector(0._f, 0._f, d2[Z]) }) {
+                    if (getSqrLength(x) < limitSqr && getSqrLength(y) < limitSqr &&
+                        getSqrLength(z) < limitSqr) {
+                        const Vector offset = x + y + z;
+                        if (offset == Vector(0._f)) {
+                            continue;
+                        }
+                        Vector v = vs[i] + 2._f * offset;
+                        v[H] = h;
+                        ghosts.push(Ghost{ v, i });
+                    }
+                }
+            }
         }
     }
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// CylindricalDomain implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+//-----------------------------------------------------------------------------------------------------------
+// CylindricalDomain implementation
+//-----------------------------------------------------------------------------------------------------------
 
 CylindricalDomain::CylindricalDomain(const Vector& center,
     const Float radius,
     const Float height,
     const bool includeBases)
-    : IDomain(center)
+    : center(center)
     , radius(radius)
     , height(height)
     , includeBases(includeBases) {}
+
+Vector CylindricalDomain::getCenter() const {
+    return center;
+}
 
 Float CylindricalDomain::getVolume() const {
     return PI * sqr(radius) * height;
@@ -433,20 +436,24 @@ void CylindricalDomain::addGhosts(ArrayView<const Vector> vs,
     }
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// HexagonalDomain implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------
+// HexagonalDomain implementation
+//-----------------------------------------------------------------------------------------------------------
 
 
 HexagonalDomain::HexagonalDomain(const Vector& center,
     const Float radius,
     const Float height,
     const bool includeBases)
-    : IDomain(center)
+    : center(center)
     , outerRadius(radius)
     , innerRadius(sqrt(0.75_f) * outerRadius)
     , height(height)
     , includeBases(includeBases) {}
+
+Vector HexagonalDomain::getCenter() const {
+    return center;
+}
 
 Float HexagonalDomain::getVolume() const {
     // 6 equilateral triangles

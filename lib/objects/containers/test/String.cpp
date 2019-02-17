@@ -1,7 +1,7 @@
 #include "objects/containers/String.h"
 #include "catch.hpp"
+#include "objects/utility/IteratorAdapters.h"
 #include "utils/Utils.h"
-
 
 using namespace Sph;
 

@@ -8,7 +8,8 @@ using namespace Sph;
 TEST_CASE("AtomicFloat operations", "[thread]") {
     // just test that the operation are correctly defined (and do not assert nor throw),
     // this does not test atomicity of operators!
-    REQUIRE_NOTHROW(Atomic<Float> f1;);
+    AlignedStorage<Atomic<Float>> f1;
+    REQUIRE_NOTHROW(f1.emplace());
     Atomic<Float> f2 = 2._f;
     REQUIRE(f2 == 2._f);
     f2 += 3._f;
@@ -48,13 +49,13 @@ TEST_CASE("AtomicFloat concurrent addition", "[thread]") {
     Atomic<Float> atomicSum = 0._f;
     Float sum = 0;
     for (Size i = 0; i <= 10000; ++i) {
-        pool.submit(makeTask([&sum, &atomicSum, i] {
+        pool.submit([&sum, &atomicSum, i] {
             sum += Float(i);
             atomicSum += Float(i);
-        }));
+        });
     }
     const Float expected = 50'005'000._f; /// \todo ok for doubles, will this be precise even for floats?
     pool.waitForAll();
     REQUIRE(atomicSum == expected);
-    REQUIRE(sum < expected);
+    REQUIRE(sum <= expected);
 }

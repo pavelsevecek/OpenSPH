@@ -2,14 +2,14 @@
 
 #include "gui/Settings.h"
 #include "io/Path.h"
-#include "objects/containers/FlatMap.h"
 #include "objects/wrappers/Locking.h"
 #include "objects/wrappers/SharedPtr.h"
-#include "quantities/Particle.h"
+#include "system/Settings.h"
 #include <condition_variable>
 #include <thread>
 
-class wxBitmap;
+class wxWindow;
+class wxSizer;
 
 NAMESPACE_SPH_BEGIN
 
@@ -18,21 +18,43 @@ class Movie;
 class Storage;
 class Statistics;
 class Timer;
-class Point;
+struct Pixel;
 class Palette;
 class IRun;
 class IRenderer;
 class ICamera;
 class IColorizer;
+struct DiagnosticsError;
 enum class ColorizerId;
 
+/// \brief Status of the code
+enum class RunStatus {
+    RUNNING,  ///< Simulation in progress
+    PAUSED,   ///< Run is paused, can be continued or stopped
+    STOPPED,  ///< Run has been stopped by the user
+    QUITTING, ///< \ref quit has been called, waiting for threads to finish
+};
 
+
+class IPluginControls : public Polymorphic {
+public:
+    /// \brief Creates the windows required by the plugin.
+    virtual void create(wxWindow* parent, wxSizer* sizer) = 0;
+
+    /// \brief Called when simulation ends, new simulation is started etc.
+    virtual void statusChanges(const RunStatus newStatus) = 0;
+};
+
+/// \brief Main GUI class connection the simulation with UI controls.
 class Controller {
     friend class GuiCallbacks;
 
 private:
     /// Main frame of the application
     RawPtr<MainWindow> window;
+
+    /// Additional application-specific controls
+    AutoPtr<IPluginControls> plugin;
 
     /// Settings of the GUI application
     GuiSettings gui;
@@ -44,17 +66,20 @@ private:
         /// SPH simulation
         AutoPtr<IRun> run;
 
-        /// List of callbacks executed on the next timestep (on run thread).
+        /// Flag read by the simulation; the run is stopped if this is set to zero.
+        std::atomic_bool shouldContinue;
+
+        /// \brief List of callbacks executed on the next timestep (on run thread).
         ///
-        /// Callbacks take current run time as an argument. The list is cleared every timestep, only callbacks
-        /// added between timesteps are executed.
-        using TimeStepCallback = Function<void(const Float runTime, const Float timeStep)>;
+        /// The list is cleared every timestep, only callbacks added between timesteps are executed.
+        using TimeStepCallback = Function<void(const Storage& storage, const Statistics& stats)>;
         Locking<Array<TimeStepCallback>> onTimeStepCallbacks;
     } sph;
 
     /// Object for saving image snapshots of the simulations
     SharedPtr<Movie> movie;
 
+    /// \brief Components used to render particles into the window.
     struct Vis {
         /// Cached positions of particles for visualization.
         Array<Vector> positions;
@@ -62,61 +87,75 @@ private:
         /// Copy of statistics when the colorizer was initialized
         AutoPtr<Statistics> stats;
 
-        /// Rendered used for rendering the view
+        /// \brief Rendered used for rendering the view
+        ///
+        /// Accessed from run thread and render thread, guarded by renderThreadMutex.
         AutoPtr<IRenderer> renderer;
 
-        /// Currently selected colorizer
+        /// \brief Currently selected colorizer
+        ///
+        /// Accessed from run thread and render thread, guarded by renderThreadMutex.
         SharedPtr<IColorizer> colorizer;
 
-        /// Current camera of the view. The object is shared with parent model.
-        SharedPtr<ICamera> camera;
+        /// \brief Current camera of the view.
+        ///
+        /// Accessed from multiple threads, needs to be always guarded by cameraMutex.
+        AutoPtr<ICamera> camera;
+        mutable std::mutex cameraMutex;
 
         /// Currently selected particle.
         Optional<Size> selectedParticle;
 
-        /// CV for waiting till main thread events are processed
-        std::mutex mainThreadMutex;
-        std::condition_variable mainThreadVar;
+        /// \brief Last rendered bitmap.
+        ///
+        /// This object is only accessed from main thread!
+        /// \note AutoPtr just to avoid the include.
+        AutoPtr<wxBitmap> bitmap;
+        mutable std::atomic_bool refreshPending;
+
+        /// Thread used for rendering.
+        std::thread renderThread;
+
+        /// True if some render parameter has changed.
+        std::atomic_bool needsRefresh;
+
+        /// CV for waiting till render thread events are processed
+        std::mutex renderThreadMutex;
+        std::condition_variable renderThreadVar;
 
         /// Timer controlling refreshing rate of the view
         AutoPtr<Timer> timer;
 
+        Vis();
+
         void initialize(const GuiSettings& settings);
 
         bool isInitialized();
+
+        void refresh();
     } vis;
 
-    /// Current status of the code, used for communication between thread
-    enum class Status {
-        RUNNING,  ///< Simulation in progress
-        PAUSED,   ///< Run is paused, can be continued or stopped
-        STOPPED,  ///< Run has been stopped by the user
-        QUITTING, ///< \ref quit has been called, waiting for threads to finish
-    } status = Status::STOPPED;
+    /// Current status used for communication between thread
+    RunStatus status = RunStatus::STOPPED;
 
     /// CV for unpausing run thread
     std::mutex continueMutex;
     std::condition_variable continueVar;
 
 public:
-    /// Initialize the controller.
+    /// \brief Initialize the controller.
+    ///
     /// \param gui Parameters of the application; see \ref GuiSettings.
-    Controller(const GuiSettings& gui);
+    explicit Controller(const GuiSettings& gui, AutoPtr<IPluginControls>&& plugin = nullptr);
 
     ~Controller();
 
-    /// Called every time step.
-    void onTimeStep(const Storage& storage, Statistics& stats);
-
-    /// \todo ugly hack, remove
-    void setRunning();
-
     /// \addtogroup Run queries
 
-    /// Returns true if the user aborted the run.
+    /// \brief Returns true if the user aborted the run.
     bool shouldAbortRun() const;
 
-    /// Returns true if the application is shutting down.
+    /// \brief Returns true if the application is shutting down.
     bool isQuitting() const;
 
 
@@ -126,28 +165,25 @@ public:
     /// \param storage Particle storage containing data for the colorizer
     /// \param forMovie Whether to return list of colorizers for image output or for interactive preview.
     ///                 Some colorizers are skipped when create image files (boundary, ...)
-    /// \param paletteOverrides Sets palettes for specific colorizers. Ordinarilly, default palettes are used
-    ///                         as returned by Factory::getPalette, this map can be used for customization.
-    Array<SharedPtr<IColorizer>> getColorizerList(const Storage& storage,
-        const bool forMovie,
-        const FlatMap<ColorizerId, Palette>& paletteOverrides) const;
+    Array<SharedPtr<IColorizer>> getColorizerList(const Storage& storage, const bool forMovie) const;
 
     /// \brief Renders a bitmap of current view.
     ///
     /// Can only be called from main thread.
-    SharedPtr<wxBitmap> getRenderedBitmap();
+    const wxBitmap& getRenderedBitmap() const;
 
-    /// \brief Returns the camera currently used for the rendering
-    SharedPtr<ICamera> getCurrentCamera() const;
+    /// \brief Returns the camera currently used for the rendering.
+    AutoPtr<ICamera> getCurrentCamera() const;
 
     /// \brief Returns the colorizer currently used for rendering into the window.
     SharedPtr<IColorizer> getCurrentColorizer() const;
 
-    /// Returns the particle under given image position, or NOTHING if such particle exists.
+    /// \brief Returns the particle under given image position, or NOTHING if such particle exists.
+    ///
     /// \param position Position in image coordinates, corresponding to the latest rendered image.
     /// \param toleranceEps Relative addition to effective radius of a particle; particles are considered to
     ///                     be under the point of they are closer than (displayedRadius * (1+toleranceEps)).
-    Optional<Size> getIntersectedParticle(const Point position, const float toleranceEps = 1.f);
+    Optional<Size> getIntersectedParticle(const Pixel position, const float toleranceEps);
 
     Optional<Size> getSelectedParticle() const;
 
@@ -193,11 +229,23 @@ public:
     /// \param particleIdx Particle to selected; if NOTHING, the current selection is cleared.
     void setSelectedParticle(const Optional<Size>& particleIdx);
 
+    /// \brief Modifies the color palette for current colorizer.
+    ///
+    /// Function must be called from main thread.
+    void setPaletteOverride(const Palette palette);
+
     /// \brief If possible, redraws the particles with data from storage.
     ///
     /// This can be done when the run is paused or stopped. Otherwise, it is necessary to wait for the next
     /// time step; function does nothing during the run. Needs to be called from main thread.
     void tryRedraw();
+
+    /// \brief Re-renders the particles with given camera.
+    ///
+    /// Other input data for the render (particles, colors, ...) remain unchanged. Function is non-blocking,
+    /// it only flags the current render as "dirty" and exits, the image is later re-rendered from render
+    /// thread. Can be called from any thread.
+    void refresh(AutoPtr<ICamera>&& camera);
 
     /// \addtogroup Controlling the run
 
@@ -223,8 +271,8 @@ public:
     /// \brief Stops the current simulation.
     ///
     /// If no simulation is running, the function does nothing. Next usage of \ref start will start the
-    /// simulation from the beginning. \param waitForFinish If true, the function will block until the run is
-    /// finished. Otherwise the
+    /// simulation from the beginning.
+    /// \param waitForFinish If true, the function will block until the run is finished. Otherwise the
     ///                      function is nonblocking.
     void stop(bool waitForFinish = false);
 
@@ -242,6 +290,12 @@ public:
     void quit();
 
 private:
+    /// \brief Called every time step.
+    void onTimeStep(const Storage& storage, Statistics& stats);
+
+    /// \brief Called when a problem is reported by the run.
+    void onRunFailure(const DiagnosticsError& error, const Statistics& stats);
+
     SharedPtr<Movie> createMovie(const Storage& storage);
 
     /// \brief Redraws the particles.
@@ -249,7 +303,9 @@ private:
     /// Can be called from any thread. Function blocks until the particles are redrawn.
     void redraw(const Storage& storage, Statistics& stats);
 
-    void run(const Path& path = Path());
+    void startRunThread(const Path& path = Path());
+
+    void startRenderThread();
 };
 
 NAMESPACE_SPH_END

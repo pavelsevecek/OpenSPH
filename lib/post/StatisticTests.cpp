@@ -1,4 +1,5 @@
 #include "post/StatisticTests.h"
+#include <algorithm>
 #include <numeric>
 
 NAMESPACE_SPH_BEGIN

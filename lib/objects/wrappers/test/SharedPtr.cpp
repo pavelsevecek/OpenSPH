@@ -258,3 +258,13 @@ TEST_CASE("ShareFromThis copy", "[sharedptr]") {
     ptr2 = nullptr;
     REQUIRE_ASSERT(ptr2->sharedFromThis());
 }
+
+TEST_CASE("ShareFromThis derived", "[sharedptr]") {
+    class Derived1 : public ShareFromThis<Derived1> {};
+    class Derived2 : public Derived1 {};
+
+    SharedPtr<Derived2> ptr1 = makeShared<Derived2>();
+    SharedPtr<Derived1> ptr2 = ptr1->sharedFromThis();
+    REQUIRE(ptr2);
+    REQUIRE(ptr2.get() == ptr1.get());
+}

@@ -11,85 +11,85 @@
 NAMESPACE_SPH_BEGIN
 
 namespace Detail {
-    class ControlBlockHolder : public Polymorphic {
-    private:
-        std::atomic<int> useCnt;
-        std::atomic<int> weakCnt;
+class ControlBlockHolder : public Polymorphic {
+private:
+    std::atomic<int> useCnt;
+    std::atomic<int> weakCnt;
 
-    public:
-        INLINE ControlBlockHolder() {
-            useCnt = 1;
-            weakCnt = 1;
-        }
+public:
+    INLINE ControlBlockHolder() {
+        useCnt = 1;
+        weakCnt = 1;
+    }
 
-        INLINE int increaseUseCnt() {
-            const int cnt = ++useCnt;
-            ASSERT(cnt > 0);
-            return cnt;
-        }
+    INLINE int increaseUseCnt() {
+        const int cnt = ++useCnt;
+        ASSERT(cnt > 0);
+        return cnt;
+    }
 
-        INLINE int getUseCount() const {
-            return useCnt;
-        }
+    INLINE int getUseCount() const {
+        return useCnt;
+    }
 
-        INLINE int increaseWeakCnt() {
-            const int cnt = ++weakCnt;
-            ASSERT(cnt > 0);
-            return cnt;
-        }
+    INLINE int increaseWeakCnt() {
+        const int cnt = ++weakCnt;
+        ASSERT(cnt > 0);
+        return cnt;
+    }
 
-        INLINE bool increaseUseCntIfNonzero() {
-            while (true) {
-                int cnt = useCnt;
-                if (cnt == 0 || useCnt.compare_exchange_strong(cnt, cnt + 1)) {
-                    return cnt != 0;
-                }
+    INLINE bool increaseUseCntIfNonzero() {
+        while (true) {
+            int cnt = useCnt;
+            if (cnt == 0 || useCnt.compare_exchange_strong(cnt, cnt + 1)) {
+                return cnt != 0;
             }
         }
+    }
 
-        INLINE void decreaseUseCnt() {
-            const int cnt = --useCnt;
-            ASSERT(cnt >= 0);
-            if (cnt == 0) {
-                this->deletePtr();
-            }
+    INLINE void decreaseUseCnt() {
+        const int cnt = --useCnt;
+        ASSERT(cnt >= 0);
+        if (cnt == 0) {
+            this->deletePtr();
         }
+    }
 
-        INLINE void decreaseWeakCnt() {
-            const int cnt = --weakCnt;
-            ASSERT(cnt >= 0);
-            if (cnt == 0) {
-                this->deleteBlock();
-            }
+    INLINE void decreaseWeakCnt() {
+        const int cnt = --weakCnt;
+        ASSERT(cnt >= 0);
+        if (cnt == 0) {
+            this->deleteBlock();
         }
+    }
 
-        virtual void* getPtr() = 0;
+    virtual void* getPtr() = 0;
 
-        virtual void deletePtr() = 0;
+    virtual void deletePtr() = 0;
 
-        INLINE void deleteBlock() {
-            delete this;
-        }
-    };
+    INLINE void deleteBlock() {
+        alignedDelete(this);
+    }
+};
 
-    template <typename T>
-    class ControlBlock : public ControlBlockHolder {
-    private:
-        T* ptr;
+template <typename T>
+class ControlBlock : public ControlBlockHolder {
+private:
+    T* ptr;
 
-    public:
-        ControlBlock(T* ptr)
-            : ptr(ptr) {}
+public:
+    ControlBlock(T* ptr)
+        : ptr(ptr) {}
 
-        INLINE virtual void* getPtr() override {
-            ASSERT(ptr);
-            return ptr;
-        }
+    INLINE virtual void* getPtr() override {
+        ASSERT(ptr);
+        return ptr;
+    }
 
-        virtual void deletePtr() override {
-            delete ptr;
-        }
-    };
+    virtual void deletePtr() override {
+        alignedDelete(ptr);
+    }
+};
 } // namespace Detail
 
 template <typename T>
@@ -119,7 +119,7 @@ public:
     explicit SharedPtr(T* ptr)
         : ptr(ptr) {
         if (ptr) {
-            block = new Detail::ControlBlock<T>(ptr);
+            block = alignedNew<Detail::ControlBlock<T>>(ptr);
         } else {
             block = nullptr;
         }
@@ -239,6 +239,12 @@ public:
         }
     }
 
+    template <typename... TArgs>
+    INLINE decltype(auto) operator()(TArgs&&... args) const {
+        ASSERT(ptr);
+        return (*ptr)(std::forward<TArgs>(args)...);
+    }
+
 private:
     template <typename T2>
     INLINE void copyBlock(const SharedPtr<T2>& other) {
@@ -282,6 +288,11 @@ bool operator==(const SharedPtr<T>& ptr1, const SharedPtr<T>& ptr2) {
 template <typename T>
 bool operator!=(const SharedPtr<T>& ptr1, const SharedPtr<T>& ptr2) {
     return ptr1.get() != ptr2.get();
+}
+
+template <typename T>
+bool operator<(const SharedPtr<T>& ptr1, const SharedPtr<T>& ptr2) {
+    return ptr1.get() < ptr2.get();
 }
 
 template <typename T>
@@ -385,23 +396,21 @@ public:
 
 template <typename T, typename... TArgs>
 INLINE SharedPtr<T> makeShared(TArgs&&... args) {
-    return SharedPtr<T>(new T(std::forward<TArgs>(args)...));
+    return SharedPtr<T>(alignedNew<T>(std::forward<TArgs>(args)...));
 }
 
 template <typename T>
 class ShareFromThis {
-    template <typename T2>
-    friend std::enable_if_t<std::is_base_of<ShareFromThis<T2>, T2>::value, void> setSharedFromThis(
-        const SharedPtr<T2>& ptr);
-
 private:
     WeakPtr<T> ptr;
+
+public:
+    using SHARE_FROM_THIS_TAG = void;
 
     void setWeakPtr(const WeakPtr<T>& weakPtr) {
         ptr = weakPtr;
     }
 
-public:
     SharedPtr<T> sharedFromThis() {
         SharedPtr<T> sharedPtr = ptr.lock();
         ASSERT(sharedPtr);
@@ -413,15 +422,24 @@ public:
     }
 };
 
+/// \todo this is a weird solution, it must be doable with more standard approach
+
+template <typename T, typename TEnabler = void>
+struct IsShareFromThis {
+    static constexpr bool value = false;
+};
 template <typename T>
-std::enable_if_t<std::is_base_of<ShareFromThis<T>, T>::value, void> setSharedFromThis(
-    const SharedPtr<T>& ptr) {
+struct IsShareFromThis<T, typename T::SHARE_FROM_THIS_TAG> {
+    static constexpr bool value = true;
+};
+
+template <typename T>
+std::enable_if_t<IsShareFromThis<T>::value> setSharedFromThis(const SharedPtr<T>& ptr) {
     ptr->setWeakPtr(ptr);
 }
 
 template <typename T>
-std::enable_if_t<!std::is_base_of<ShareFromThis<T>, T>::value, void> setSharedFromThis(
-    const SharedPtr<T>& UNUSED(ptr)) {
+std::enable_if_t<!IsShareFromThis<T>::value> setSharedFromThis(const SharedPtr<T>& UNUSED(ptr)) {
     // do nothing
 }
 

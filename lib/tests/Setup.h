@@ -6,10 +6,13 @@
 /// \date 2016-2018
 
 #include "objects/geometry/Domain.h"
+#include "quantities/IMaterial.h"
 #include "quantities/Storage.h"
+#include "sph/equations/Derivative.h"
 #include "sph/equations/EquationTerm.h"
 #include "system/Settings.h"
 #include "system/Statistics.h"
+#include "thread/Pool.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -48,7 +51,8 @@ void computeField(Storage& storage, EquationHolder&& equations, TLambda&& lambda
         v[i] = lambda(r[i]);
     }
     equations += makeTerm<ConstSmoothingLength>();
-    TSolver solver(RunSettings::getDefaults(), std::move(equations));
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    TSolver solver(pool, RunSettings::getDefaults(), std::move(equations));
     solver.create(storage, storage.getMaterial(0));
     Statistics stats;
     for (Size i = 0; i < repeatCnt; ++i) {
@@ -63,9 +67,9 @@ struct SingleDerivativeMaker : public IEquationTerm {
         derivatives.require(makeAuto<TDerivative>(settings));
     }
 
-    virtual void initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
-    virtual void finalize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
     virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };

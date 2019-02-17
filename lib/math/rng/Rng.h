@@ -16,6 +16,10 @@ NAMESPACE_SPH_BEGIN
 class UniformRng : public Noncopyable {
 private:
     std::mt19937_64 mt;
+
+    /// \note While std::mt19937_64 will always generate the same sequence of numbers (given the same seed, of
+    /// cource), the std::uniform_real_distribution might produce different result for different compilers, or
+    /// even for different versions of the compiler.
     std::uniform_real_distribution<Float> dist;
 
 public:

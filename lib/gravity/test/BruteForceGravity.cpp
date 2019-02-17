@@ -1,6 +1,7 @@
 #include "gravity/BruteForceGravity.h"
 #include "catch.hpp"
 #include "gravity/SphericalGravity.h"
+#include "quantities/Quantity.h"
 #include "sph/equations/Potentials.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
@@ -20,15 +21,16 @@ TEST_CASE("BruteForceGravity single-thread", "[gravity]") {
     Statistics stats;
 
     // compute analytical acceleraion
-    analytic.build(storage);
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    analytic.build(pool, storage);
     Array<Vector> a = storage.getD2t<Vector>(QuantityId::POSITION).clone();
-    analytic.evalAll(a, stats);
+    analytic.evalAll(pool, a, stats);
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<Vector> d2v = storage.getD2t<Vector>(QuantityId::POSITION);
     storage.zeroHighestDerivatives(); // clear derivatives computed by analytic
-    gravity.build(storage);
-    gravity.evalAll(d2v, stats);
+    gravity.build(pool, storage);
+    gravity.evalAll(pool, d2v, stats);
 
     auto test = [&](const Size i) -> Outcome {
         // around origin the relative comparison is very imprecise, just skip
@@ -52,13 +54,13 @@ TEST_CASE("BruteForceGravity parallel", "[gravity]") {
     settings.set(BodySettingsId::DENSITY, rho0);
     Storage storage = Tests::getGassStorage(1000, settings, r0);
 
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     BruteForceGravity gravity;
-    gravity.build(storage);
+    gravity.build(pool, storage);
     Array<Vector> dv1 = storage.getD2t<Vector>(QuantityId::POSITION).clone();
     Statistics stats;
-    gravity.evalAll(dv1, stats);
+    gravity.evalAll(pool, dv1, stats);
 
-    ThreadPool pool;
     Array<Vector> dv2(dv1.size());
     dv2.fill(Vector(0._f));
     // evaluate gravity using parallel implementation
@@ -81,10 +83,11 @@ TEST_CASE("BruteForceGravity symmetrization", "[gravity]") {
         Array<Vector>({ Vector(0.f, 0.f, 0.f, 1.f), Vector(2._f, 0.f, 0.f, 5._f) }));
     storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, 1.e10_f);
 
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     BruteForceGravity gravity;
-    gravity.build(storage);
+    gravity.build(pool, storage);
     Statistics stats;
     ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
-    gravity.evalAll(dv, stats);
+    gravity.evalAll(pool, dv, stats);
     REQUIRE(dv[0] == -dv[1]);
 }

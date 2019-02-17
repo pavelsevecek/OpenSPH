@@ -1,5 +1,6 @@
 #include "quantities/Storage.h"
 #include "catch.hpp"
+#include "objects/Exceptions.h"
 #include "physics/Eos.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Iterate.h"
@@ -42,7 +43,7 @@ TEST_CASE("Storage insert with material", "[storage]") {
 TEST_CASE("Storage insert existing by value", "[storage]") {
     Storage storage;
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, Array<Float>{ 1._f });
-    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, 2._f);
+    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, 1._f);
     REQUIRE(storage.getQuantityCnt() == 1);
     REQUIRE(storage.getQuantity(QuantityId::DENSITY).getOrderEnum() == OrderEnum::FIRST);
     REQUIRE(storage.getValue<Float>(QuantityId::DENSITY)[0] == 1._f);
@@ -51,6 +52,8 @@ TEST_CASE("Storage insert existing by value", "[storage]") {
     REQUIRE(storage.getQuantityCnt() == 1);
     REQUIRE(storage.getQuantity(QuantityId::DENSITY).getOrderEnum() == OrderEnum::SECOND);
     REQUIRE(storage.getParticleCnt() == 1);
+
+    REQUIRE_THROWS_AS(storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 2._f), InvalidSetup);
 }
 
 TEST_CASE("Storage insert existing by array", "[storage]") {
@@ -64,22 +67,6 @@ TEST_CASE("Storage insert existing by array", "[storage]") {
     REQUIRE(storage.getValue<Float>(QuantityId::DENSITY)[0] == 5._f);
 
     REQUIRE_ASSERT(storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, Array<Float>{ 1._f, 3._f }));
-}
-
-TEST_CASE("Storage modify", "[storage]") {
-    Storage storage;
-    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, makeArray(1._f, 2._f));
-    REQUIRE_ASSERT(storage.modify<Float>(QuantityId::POSITION));
-    ArrayView<Float> rho, rho_mod;
-    tie(rho, rho_mod) = storage.modify<Float>(QuantityId::DENSITY);
-    REQUIRE(rho == rho_mod);
-    REQUIRE(rho_mod[0] == 1._f);
-    REQUIRE(rho_mod[1] == 2._f);
-    rho_mod[0] = 5._f;
-    rho_mod[1] = 6._f;
-    tie(rho, rho_mod) = storage.modify<Float>(QuantityId::DENSITY);
-    REQUIRE(rho == makeArray(1._f, 2._f));
-    REQUIRE(rho_mod == makeArray(5._f, 6._f));
 }
 
 TEST_CASE("Storage resize", "[storage]") {
@@ -265,7 +252,7 @@ TEST_CASE("Storage merge", "[storage]") {
     REQUIRE(storage1.getQuantityCnt() == 1);
     REQUIRE(storage1.getParticleCnt() == 4);
 
-    ArrayView<Float> rho = storage1.getValue<Float>(QuantityId::DENSITY);
+    ArrayView<const Float> rho = storage1.getValue<Float>(QuantityId::DENSITY);
     REQUIRE(rho == makeArray(0._f, 1._f, 2._f, 3._f));
 
     // merge into empty
@@ -312,7 +299,7 @@ TEST_CASE("Storage material", "[storage]") {
         OrderEnum::SECOND,
         makeArray(Vector(1._f, 0._f, 0._f), Vector(-2._f, 1._f, 1._f)));
 
-    settings.set<Float>(BodySettingsId::ADIABATIC_INDEX, 13._f);
+    settings.set(BodySettingsId::ADIABATIC_INDEX, 13._f);
     Storage other(Factory::getMaterial(settings));
     other.insert<Vector>(QuantityId::POSITION,
         OrderEnum::SECOND,
@@ -455,4 +442,50 @@ TEST_CASE("Storage isValid", "[storage]") {
 
     storage2.getDt<Float>(QuantityId::FLAG).resize(2);
     REQUIRE_FALSE(storage2.isValid()); // derivatives have different size
+}
+
+TEST_CASE("Storage persistent indices", "[storage]") {
+    Storage storage1;
+    storage1.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 0, 1, 2, 3 });
+    REQUIRE_FALSE(storage1.has(QuantityId::PERSISTENT_INDEX));
+
+    setPersistentIndices(storage1);
+    REQUIRE(storage1.has(QuantityId::PERSISTENT_INDEX));
+    ArrayView<const Size> idxs = storage1.getValue<Size>(QuantityId::PERSISTENT_INDEX);
+    REQUIRE(idxs == Array<Size>({ 0, 1, 2, 3 }));
+    storage1.remove(Array<Size>{ 1 });
+    idxs = storage1.getValue<Size>(QuantityId::PERSISTENT_INDEX);
+    REQUIRE(idxs == Array<Size>({ 0, 2, 3 }));
+
+    Storage storage2;
+    storage2.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 4, 5, 6 });
+    setPersistentIndices(storage2);
+
+    storage1.merge(std::move(storage2));
+    idxs = storage1.getValue<Size>(QuantityId::PERSISTENT_INDEX);
+    REQUIRE(idxs == Array<Size>({ 0, 2, 3, 4, 5, 6 }));
+}
+
+TEST_CASE("Storage duplicate", "[storage]") {
+    Storage storage1(getDefaultMaterial());
+    storage1.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 1, 2, 3 });
+    Storage storage2(getDefaultMaterial());
+    storage2.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 4, 5, 6, 7 });
+    storage1.merge(std::move(storage2));
+
+    REQUIRE(storage1.getMaterialCnt() == 2);
+    REQUIRE(storage1.has(QuantityId::MATERIAL_ID));
+    Array<Size> createdIdxs =
+        storage1.duplicate(Array<Size>{ 0, 2, 3, 5 }, Storage::IndicesFlag::INDICES_SORTED);
+    REQUIRE(createdIdxs == Array<Size>({ 9, 10, 3, 4 }));
+    REQUIRE(storage1.isValid());
+
+    Array<Size>& flag = storage1.getValue<Size>(QuantityId::FLAG);
+    REQUIRE(flag == Array<Size>({ 1, 2, 3, 1, 3, 4, 5, 6, 7, 4, 6 }));
+
+    Array<Size>& ids = storage1.getValue<Size>(QuantityId::MATERIAL_ID);
+    REQUIRE(ids == Array<Size>({ 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1 }));
+
+    REQUIRE(storage1.getMaterial(0).sequence() == IndexSequence(0, 5));
+    REQUIRE(storage1.getMaterial(1).sequence() == IndexSequence(5, 11));
 }

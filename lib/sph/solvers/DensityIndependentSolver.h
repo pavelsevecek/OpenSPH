@@ -5,16 +5,23 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz
 /// \date 2016-2018
 
+#include "objects/Exceptions.h"
 #include "objects/finders/NeighbourFinder.h"
+#include "sph/Materials.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/equations/av/Standard.h"
-#include "sph/kernel/KernelFactory.h"
+#include "sph/kernel/Kernel.h"
 #include "sph/solvers/SymmetricSolver.h"
+#include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
 
 class DensityIndependentPressureForce : public IEquationTerm {
 private:
+    // Not using AccelerationTemplate, because 1) we use ENERGY_PER_PARTICLE rather than ENERGY, and 2)
+    // interface IAcceleration is needed by EnergyConservingSolver, this term is exclusively for
+    // DensityIndependentSolver.
+
     class Derivative : public DerivativeTemplate<Derivative> {
     private:
         ArrayView<const Float> q, U, m;
@@ -27,11 +34,11 @@ private:
         explicit Derivative(const RunSettings& settings)
             : DerivativeTemplate<Derivative>(settings) {}
 
-        virtual void create(Accumulated& results) override {
+        INLINE void additionalCreate(Accumulated& results) {
             results.insert<Float>(QuantityId::ENERGY_PER_PARTICLE, OrderEnum::FIRST, BufferSource::SHARED);
         }
 
-        INLINE void init(const Storage& input, Accumulated& results) {
+        INLINE void additionalInitialize(const Storage& input, Accumulated& results) {
             tie(m, q, U) = input.getValues<Float>(
                 QuantityId::MASS, QuantityId::ENERGY_DENSITY, QuantityId::ENERGY_PER_PARTICLE);
             ArrayView<const Vector> dummy;
@@ -43,6 +50,11 @@ private:
             /// DISPH would need to be generalized for particles with different gamma.
             gamma = input.getMaterial(0)->getParam<Float>(BodySettingsId::ADIABATIC_INDEX);
             ASSERT(gamma > 1._f);
+        }
+
+        INLINE bool additionalEquals(const Derivative& UNUSED(other)) const {
+            // gamma is material property, not property of the derivative itself
+            return true;
         }
 
         template <bool Symmetric>
@@ -67,9 +79,9 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
-    virtual void finalize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
     virtual void create(Storage& storage, IMaterial& material) const override {
         // energy density = specific energy * density
@@ -134,8 +146,8 @@ private:
     Array<Float> q;
 
 public:
-    explicit DensityIndependentSolver(const RunSettings& settings)
-        : SymmetricSolver(settings, getEquations(settings)) {
+    explicit DensityIndependentSolver(IScheduler& scheduler, const RunSettings& settings)
+        : SymmetricSolver(scheduler, settings, getEquations(settings)) {
         energyKernel = Factory::getKernel<DIMENSIONS>(settings);
     }
 
@@ -173,9 +185,9 @@ private:
                 q[i] += U[j] * energyKernel.value(r[i] - r[j], r[i][H]);
             }
         };
-        finder->build(r);
+        finder->build(scheduler, r);
         /// \todo this should also be self-consistently solved with smoothing length (as SummationSolver)
-        parallelFor(pool, threadData, 0, r.size(), granularity, functor);
+        parallelFor(scheduler, threadData, 0, r.size(), granularity, functor);
 
         // save computed values
         std::swap(storage.getValue<Float>(QuantityId::ENERGY_DENSITY), q);

@@ -1,7 +1,7 @@
 #include "post/MarchingCubes.h"
 #include "objects/finders/NeighbourFinder.h"
 #include "quantities/Storage.h"
-#include "sph/kernel/KernelFactory.h"
+#include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
 #include "thread/ThreadLocal.h"
@@ -295,9 +295,9 @@ const int MC_TRIANGLES[256][16] =
 const Size IDXS1[12] = { 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3 };
 const Size IDXS2[12] = { 1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7 };
 
-/// Parallelized version of Box::iterateWithIndices
+/// \brief Parallelized version of \ref Box::iterateWithIndices
 template <typename TFunctor>
-void iterateWithIndices(const Box& box, const Vector& step, TFunctor&& functor) {
+void iterateWithIndices(IScheduler& scheduler, const Box& box, const Vector& step, TFunctor&& functor) {
     ASSERT(box != Box::EMPTY());
 
     auto task = [&step, &box, &functor](const Size k) {
@@ -311,11 +311,14 @@ void iterateWithIndices(const Box& box, const Vector& step, TFunctor&& functor) 
             }
         }
     };
-    parallelFor(ThreadPool::getGlobalInstance(), 0, box.size()[Z] / step[Z] + 1, task);
+    parallelFor(scheduler, 0, box.size()[Z] / step[Z] + 1, task);
 }
 
-MarchingCubes::MarchingCubes(const Float surfaceLevel, const SharedPtr<IScalarField>& field)
-    : surfaceLevel(surfaceLevel)
+MarchingCubes::MarchingCubes(IScheduler& scheduler,
+    const Float surfaceLevel,
+    const SharedPtr<IScalarField>& field)
+    : scheduler(scheduler)
+    , surfaceLevel(surfaceLevel)
     , field(field) {}
 
 void MarchingCubes::addComponent(const Box& box, const Float gridResolution) {
@@ -333,14 +336,15 @@ void MarchingCubes::addComponent(const Box& box, const Float gridResolution) {
         return idxs[X] + (cnts[X] + 1) * idxs[Y] + (cnts[X] + 1) * (cnts[Y] + 1) * idxs[Z];
     };
     cached.phi.resize((cnts[X] + 1) * (cnts[Y] + 1) * (cnts[Z] + 1));
-    iterateWithIndices(box, dr, [this, &mapping](const Indices& idxs, const Vector& v) { //
+    iterateWithIndices(scheduler, box, dr, [this, &mapping](const Indices& idxs, const Vector& v) { //
         cached.phi[mapping(idxs)] = (*field)(v);
     });
 
     // for each non-empty grid, find all intersecting triangles
     Box boxWithoutLast(box.lower(), box.upper() - dr);
-    ThreadLocal<Array<Triangle>> tri(ThreadPool::getGlobalInstance());
-    iterateWithIndices(boxWithoutLast, dr, [this, &dr, &mapping, &tri](const Indices& idxs, const Vector& v) {
+    ThreadLocal<Array<Triangle>> tri(scheduler);
+
+    auto intersect = [this, &dr, &mapping, &tri](const Indices& idxs, const Vector& v) {
         Cell cell;
         bool allBelow = true, allAbove = true;
         Size i = 0;
@@ -361,11 +365,14 @@ void MarchingCubes::addComponent(const Box& box, const Float gridResolution) {
         }
 
         if (!allBelow && !allAbove) {
-            this->intersectCell(cell, tri.get());
+            this->intersectCell(cell, tri.local());
         }
-    });
+    };
+    iterateWithIndices(scheduler, boxWithoutLast, dr, intersect);
 
-    tri.forEach([this](Array<Triangle>& triTl) { triangles.pushAll(triTl); });
+    for (Array<Triangle>& triTl : tri) {
+        triangles.pushAll(triTl);
+    }
 }
 
 void MarchingCubes::intersectCell(Cell& cell, Array<Triangle>& tri) {
@@ -426,8 +433,9 @@ INLINE Vector MarchingCubes::interpolate(const Vector& v1,
     return v1 + mu * (v2 - v1);
 }
 
+namespace {
 
-struct NumberDensityField : public IScalarField {
+class ColorField : public IScalarField {
 private:
     LutKernel<3> kernel;
     AutoPtr<IBasicFinder> finder;
@@ -435,61 +443,58 @@ private:
     ArrayView<const Vector> r;
     ArrayView<const Float> m, rho;
     ArrayView<const Size> flag;
-    ArrayView<const SymmetricTensor> aniso;
+    Float maxH = 0._f;
 
     ThreadLocal<Array<NeighbourRecord>> neighs;
 
 public:
-    Float maxH = 0._f;
-
     /// \brief Creates the number density field.
     ///
     /// This implementation uses anisotropic kernel to reduce the perturbations of the boundary, see
     /// https://www.cc.gatech.edu/~turk/my_papers/sph_surfaces.pdf.
     /// \param storage Storage containing particle masses, densities and flags used to distinguish different
     ///                bodies (we don't want to blend together their surfaces)
+    /// \param scheduler Scheduler used for parallelization.
     /// \param r Particle positions, generally different than the ones stored in the storage.
     /// \param aniso Particle anisotropy matrix, for isotropic distribution equals to I/h
     /// \param kernel SPH kernel used for particle smoothing
     /// \param finder Neighbour finder
-    NumberDensityField(const Storage& storage,
+    ColorField(const Storage& storage,
+        IScheduler& scheduler,
         const ArrayView<const Vector> r,
-        const ArrayView<const SymmetricTensor> aniso,
+        const Float maxH,
         LutKernel<3>&& kernel,
         AutoPtr<IBasicFinder>&& finder)
         : kernel(std::move(kernel))
         , finder(std::move(finder))
         , r(r)
-        , aniso(aniso)
-        , neighs(ThreadPool::getGlobalInstance()) {
+        , maxH(maxH)
+        , neighs(scheduler) {
         tie(m, rho) = storage.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
         flag = storage.getValue<Size>(QuantityId::FLAG);
 
         // we have to re-build the tree since we are using different positions (in general)
-        this->finder->build(r);
+        this->finder->build(scheduler, r);
     }
 
     virtual Float operator()(const Vector& pos) override {
         ASSERT(maxH > 0._f);
-        Array<NeighbourRecord>& neighsTl = neighs.get();
+        Array<NeighbourRecord>& neighsTl = neighs.local();
         /// \todo for now let's just search some random multiple of smoothing length, we should use the
         /// largest singular value here
-        finder->findAll(pos, 4._f * maxH * kernel.radius(), neighsTl);
+        finder->findAll(pos, maxH * kernel.radius(), neighsTl);
         Float phi = 0._f;
 
         // find average h of neighbours and the flag of the closest particle
         Size closestFlag = 0;
         Float flagDistSqr = INFTY;
-        Float avgH = 0._f;
         for (NeighbourRecord& n : neighsTl) {
             const Size j = n.index;
-            avgH += r[j][H];
             if (n.distanceSqr < flagDistSqr) {
                 closestFlag = flag[j];
                 flagDistSqr = n.distanceSqr;
             }
         }
-        avgH /= neighsTl.size();
 
         // interpolate values of neighbours
         for (NeighbourRecord& n : neighsTl) {
@@ -497,13 +502,57 @@ public:
             if (flag[j] != closestFlag) {
                 continue;
             }
-            // phi += m[j] / rho[j] * kernel.value(pos - r[j], avgH);
-            phi += m[j] / rho[j] * aniso[j].determinant() *
-                   kernel.valueImpl(getSqrLength(aniso[j] * (pos - r[j])));
+            phi += m[j] / rho[j] * kernel.value(pos - r[j], r[j][H]);
         }
         return phi;
     }
 };
+
+
+class FallbackField : public IScalarField {
+private:
+    LutKernel<3> kernel;
+    AutoPtr<IBasicFinder> finder;
+
+    ArrayView<const Vector> r;
+    Float maxH = 0._f;
+
+    ThreadLocal<Array<NeighbourRecord>> neighs;
+
+public:
+    FallbackField(IScheduler& scheduler,
+        const ArrayView<const Vector> r,
+        const Float maxH,
+        LutKernel<3>&& kernel,
+        AutoPtr<IBasicFinder>&& finder)
+        : kernel(std::move(kernel))
+        , finder(std::move(finder))
+        , r(r)
+        , maxH(maxH)
+        , neighs(scheduler) {
+
+        // we have to re-build the tree since we are using different positions (in general)
+        this->finder->build(scheduler, r);
+    }
+
+    virtual Float operator()(const Vector& pos) override {
+        ASSERT(maxH > 0._f);
+        Array<NeighbourRecord>& neighsTl = neighs.local();
+        /// \todo for now let's just search some random multiple of smoothing length, we should use the
+        /// largest singular value here
+        finder->findAll(pos, maxH * kernel.radius(), neighsTl);
+        Float phi = 0._f;
+
+        // interpolate values of neighbours
+        for (NeighbourRecord& n : neighsTl) {
+            const Size j = n.index;
+            phi += sphereVolume(0.5_f * r[j][H]) * kernel.value(pos - r[j], r[j][H]);
+        }
+        return phi;
+    }
+};
+
+} // namespace
 
 INLINE Float weight(const Vector& r1, const Vector& r2) {
     const Float lengthSqr = getSqrLength(r1 - r2);
@@ -515,7 +564,11 @@ INLINE Float weight(const Vector& r1, const Vector& r2) {
     }
 }
 
-Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolution, const Float surfaceLevel) {
+Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
+    const Storage& storage,
+    const Float gridResolution,
+    const Float surfaceLevel) {
+
     // (according to http://www.cc.gatech.edu/~turk/my_papers/sph_surfaces.pdf)
     const Float lambda = 0.9_f;
     const Float kr = 4._f;
@@ -530,14 +583,14 @@ Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolutio
     LutKernel<3> kernel = Factory::getKernel<3>(settings);
     AutoPtr<IBasicFinder> finder = Factory::getFinder(settings);
 
-    finder->build(r);
+    finder->build(scheduler, r);
 
     Array<Vector> r_bar(r.size());
     Array<SymmetricTensor> C(r.size()); // covariance matrix
 
-    ThreadLocal<Array<NeighbourRecord>> neighsData(ThreadPool::getGlobalInstance());
-    parallelFor(0, r.size(), [&](const Size i) {
-        Array<NeighbourRecord>& neighs = neighsData.get();
+    ThreadLocal<Array<NeighbourRecord>> neighsData(scheduler);
+    parallelFor(scheduler, 0, r.size(), [&](const Size i) {
+        Array<NeighbourRecord>& neighs = neighsData.local();
         finder->findAll(i, 2._f * r[i][H], neighs);
         // 1. compute the mean particle positions and the denoised (bar) positions
         Vector wr(0._f);
@@ -589,7 +642,7 @@ Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolutio
 
         // C[i] = SymmetricTensor::identity();
         // C[i] = C[i].inverse();
-        C[i] = C[i] / (root<3>(C[i].determinant()) * r[i][H]);
+        // C[i] = C[i] / (root<3>(C[i].determinant()) * r[i][H]);
     });
 
     /// \todo we skip the anisotropy correction for now
@@ -600,15 +653,19 @@ Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolutio
         /*if (neighCnt[i] < 10) {
             continue; // don't mesh separated particles
         }*/
-        const Vector dr = Vector(r_bar[i][H] * kernel.radius());
-        box.extend(r_bar[i] + dr);
-        box.extend(r_bar[i] - dr);
+        const Vector dr = Vector(r[i][H] * kernel.radius());
+        box.extend(r[i] + dr);
+        box.extend(r[i] - dr);
         maxH = max(maxH, r_bar[i][H]);
     }
-    SharedPtr<NumberDensityField> field =
-        makeShared<NumberDensityField>(storage, r_bar, C, std::move(kernel), std::move(finder));
-    field->maxH = maxH;
-    MarchingCubes mc(surfaceLevel, field);
+    SharedPtr<IScalarField> field;
+
+    if (storage.has(QuantityId::MASS) && storage.has(QuantityId::DENSITY) && storage.has(QuantityId::FLAG)) {
+        field = makeShared<ColorField>(storage, scheduler, r, maxH, std::move(kernel), std::move(finder));
+    } else {
+        field = makeShared<FallbackField>(scheduler, r, maxH, std::move(kernel), std::move(finder));
+    }
+    MarchingCubes mc(scheduler, surfaceLevel, field);
 
     // 6. find the surface using marching cubes
     mc.addComponent(box, gridResolution);

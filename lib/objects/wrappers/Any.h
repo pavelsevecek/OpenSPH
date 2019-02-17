@@ -7,6 +7,7 @@
 
 #include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Optional.h"
+#include <typeinfo>
 
 NAMESPACE_SPH_BEGIN
 
@@ -78,7 +79,7 @@ public:
     }
 
     template <typename Type>
-    bool operator!=(Type&& value) {
+    bool operator!=(Type&& value) const {
         return !(*this == std::forward<Type>(value));
     }
 };

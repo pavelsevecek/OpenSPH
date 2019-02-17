@@ -4,6 +4,7 @@
 #include "objects/geometry/Domain.h"
 #include "objects/utility/ArrayUtils.h"
 #include "physics/Rheology.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "sph/Materials.h"
 #include "sph/initial/Distribution.h"
@@ -11,17 +12,18 @@
 #include "system/ArrayStats.h"
 #include "system/Settings.h"
 #include "tests/Approx.h"
+#include "thread/Pool.h"
 
 using namespace Sph;
 
-
 TEST_CASE("Distribute flaws", "[damage]") {
-    ScalarGradyKippModel model(2._f);
+    ScalarGradyKippModel model;
     BodySettings bodySettings;
     Storage storage(getDefaultMaterial());
     HexagonalPacking distribution;
     SphericalDomain domain(Vector(0._f), 1._f);
-    Array<Vector> r = distribution.generate(9000, domain);
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    Array<Vector> r = distribution.generate(pool, 9000, domain);
     const int N = r.size();
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(r));
     const Float rho0 = bodySettings.get<Float>(BodySettingsId::DENSITY);
@@ -58,18 +60,19 @@ TEST_CASE("Distribute flaws", "[damage]") {
 
 TEST_CASE("Fracture growth", "[damage]") {
     /// \todo some better test, for now just testing that integrate will work without asserts
-    ScalarGradyKippModel damage(2._f);
+    ScalarGradyKippModel damage;
     Storage storage;
-    InitialConditions conds(RunSettings::getDefaults());
-    conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), BodySettings::getDefaults());
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    InitialConditions conds(pool, RunSettings::getDefaults());
+    BodySettings body;
+    body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
+    conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), body);
 
     MaterialInitialContext context;
     context.rng = makeAuto<RngWrapper<BenzAsphaugRng>>(1234);
     MaterialView material = storage.getMaterial(0);
     damage.setFlaws(storage, material, context);
-    auto flags = DamageFlag::PRESSURE | DamageFlag::STRESS_TENSOR | DamageFlag::REDUCTION_FACTOR;
-    REQUIRE_NOTHROW(damage.reduce(storage, flags, material));
-    REQUIRE_NOTHROW(damage.integrate(storage, material));
+    REQUIRE_NOTHROW(damage.integrate(pool, storage, material));
 
     /// \todo check that if the strain if below eps_min, damage wont increase
 }

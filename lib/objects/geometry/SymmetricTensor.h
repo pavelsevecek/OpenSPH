@@ -307,6 +307,12 @@ INLINE Float minElement(const SymmetricTensor& t) {
     return min(minElement(t.diagonal()), minElement(t.offDiagonal()));
 }
 
+/// Returns the maximal element of the tensor.
+template <>
+INLINE Float maxElement(const SymmetricTensor& t) {
+    return max(maxElement(t.diagonal()), maxElement(t.offDiagonal()));
+}
+
 /// Component-wise minimum of two tensors.
 template <>
 INLINE SymmetricTensor min(const SymmetricTensor& t1, const SymmetricTensor& t2) {

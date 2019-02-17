@@ -12,6 +12,8 @@
 
 NAMESPACE_SPH_BEGIN
 
+class IScheduler;
+
 /// \brief Holds information about a neighbour particles
 struct NeighbourRecord {
     /// Index of particle in the storage
@@ -40,6 +42,13 @@ protected:
     ArrayView<const Vector> values;
 
 public:
+    /// \brief Constructs the struct with an array of vectors.
+    ///
+    /// Must be called before \ref findAll is called or if the referenced array is invalidated.
+    /// \param scheduler Scheduler that can be used for parallelization.
+    /// \param points View of the array of points in space.
+    void build(IScheduler& scheduler, ArrayView<const Vector> points);
+
     /// \brief Finds all neighbours within given radius from the point given by index.
     ///
     /// Point view passed in \ref build must not be invalidated, in particular the number of particles must
@@ -57,33 +66,13 @@ public:
     /// The position may not correspond to any point.
     virtual Size findAll(const Vector& pos, const Float radius, Array<NeighbourRecord>& neighbours) const = 0;
 
-    /// \brief Constructs the struct with an array of vectors.
-    ///
-    /// Must be called before \ref findAll is called and before \ref rebuild is called.
-    void build(ArrayView<const Vector> points) {
-        values = points;
-        this->buildImpl(values);
-    }
-
-    /// \brief Updates the structure when the positions change.
-    ///
-    /// Must be called before \ref findAll is called.
-    void rebuild() {
-        this->rebuildImpl(values);
-    }
-
 protected:
     /// \brief Builds finder from set of vectors.
     ///
     /// This must be called before \ref findAll, can be called more than once.
+    /// \param scheduler Scheduler that can be used for parallelization.
     /// \param points View of the array of points in space.
-    virtual void buildImpl(ArrayView<const Vector> points) = 0;
-
-    /// \brief Rebuilds the finder.
-    ///
-    /// Can be called only if \ref build has been called at least once, it can be therefore a 'lightweight'
-    /// implementation of \ref build, without allocations etc.
-    virtual void rebuildImpl(ArrayView<const Vector> points) = 0;
+    virtual void buildImpl(IScheduler& scheduler, ArrayView<const Vector> points) = 0;
 };
 
 enum class FinderFlag {
@@ -93,6 +82,16 @@ enum class FinderFlag {
     /// The rank of particles is not created. 'Dummy' option that can be used to improve readability.
     SKIP_RANK = 0,
 };
+
+/// \brief Generates the ranks of particles, according to generic predicate.
+template <typename TCompare>
+static Order makeRank(const Size size, TCompare&& comp) {
+    Order tmp(size);
+    // sort using the given comparator
+    tmp.shuffle(comp);
+    // invert to get the rank
+    return tmp.getInverted();
+}
 
 /// \brief Extension of IBasicFinder, allowing to search only particles with lower rank in smoothing length.
 ///
@@ -108,31 +107,16 @@ protected:
 
 public:
     /// \brief Constructs the struct with an array of vectors.
-    void build(ArrayView<const Vector> points, const Flags<FinderFlag> flags = FinderFlag::MAKE_RANK) {
-        values = points;
-        if (flags.has(FinderFlag::MAKE_RANK)) {
-            rank = makeRankH(values);
-        } else {
-            rank = Order();
-        }
-        this->buildImpl(values);
-    }
+    void build(IScheduler& scheduler,
+        ArrayView<const Vector> points,
+        Flags<FinderFlag> flags = FinderFlag::MAKE_RANK);
 
+    /// \brief Constructs the struct with custom predicate for ordering particles.
     template <typename TCompare>
-    void buildWithRank(ArrayView<const Vector> points, TCompare&& comp) {
+    void buildWithRank(IScheduler& scheduler, ArrayView<const Vector> points, TCompare&& comp) {
         values = points;
         rank = makeRank(values.size(), comp);
-        this->buildImpl(values);
-    }
-
-    /// \brief Updates the structure when the position change.
-    void rebuild(const Flags<FinderFlag> flags = FinderFlag::MAKE_RANK) {
-        if (flags.has(FinderFlag::MAKE_RANK)) {
-            rank = makeRankH(values);
-        } else {
-            rank = Order();
-        }
-        this->rebuildImpl(values);
+        this->buildImpl(scheduler, values);
     }
 
     /// \brief Finds all points within radius that have a lower rank in smoothing length.
@@ -148,23 +132,6 @@ public:
     virtual Size findLowerRank(const Size index,
         const Float radius,
         Array<NeighbourRecord>& neighbours) const = 0;
-
-private:
-    /// \brief Generates the rank of particles, according to their smoothing lengths.
-    template <typename TCompare>
-    static Order makeRank(const Size size, TCompare&& comp) {
-        Order tmp(size);
-        // sort by smoothing length
-        tmp.shuffle(comp);
-        // invert to get rank in H
-        return tmp.getInverted();
-    }
-
-    static Order makeRankH(ArrayView<const Vector> values) {
-        return makeRank(values.size(), [values](const Size i1, const Size i2) { //
-            return values[i1][H] < values[i2][H];
-        });
-    }
 };
 
 /// \brief Helper template, allowing to define all three functions with a single function.

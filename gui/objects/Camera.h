@@ -7,21 +7,24 @@
 
 #include "gui/objects/Point.h"
 #include "math/AffineMatrix.h"
+#include "objects/wrappers/ClonePtr.h"
 #include "objects/wrappers/Optional.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// Represents a particle projected onto image plane
+class Storage;
+
+/// \brief Represents a particle projected onto image plane
 struct ProjectedPoint {
 
     /// Point in image coordinates
-    Point point;
+    Coords coords;
 
     /// Projected radius of the particle
     float radius;
 };
 
-/// Ray given by origin and target point
+/// \brief Ray given by origin and target point
 struct CameraRay {
     Vector origin;
     Vector target;
@@ -30,16 +33,41 @@ struct CameraRay {
 /// \brief Interface defining a camera or view, used by a renderer.
 class ICamera : public Polymorphic {
 public:
+    /// \brief Initializes the camera, using the provided particle storage.
+    ///
+    /// Called every time step. Useful if camera co-moves with the particles, the field of view changes during
+    /// the simulation, etc. If the camera does not depend on particle positions or any quantity, function can
+    /// be empty.
+    virtual void initialize(const Storage& storage) = 0;
+
     /// \brief Returns projected position of particle on the image.
     ///
     /// If the particle is outside of the image region or is clipped by the projection, returns NOTHING.
     virtual Optional<ProjectedPoint> project(const Vector& r) const = 0;
 
-    /// \brief Returns a ray in particle coordinates corresponding to given point in the image plane.
-    virtual CameraRay unproject(const Point point) const = 0;
+    /// \brief Returns a ray in particle coordinates corresponding to given coordinates in the image plane.
+    virtual CameraRay unproject(const Coords& coords) const = 0;
 
     /// \brief Returns the direction of the camera.
     virtual Vector getDirection() const = 0;
+
+    /// \brief Returns the clipping distance from plane passing through origin, perpendicular to camera
+    /// direction.
+    ///
+    /// If no clipping is used, the function returns NOTHING. Useful to view a section through a body rather
+    /// than its surface.
+    virtual Optional<float> getCutoff() const = 0;
+
+    /// \brief Returns the field of view of the camera.
+    ///
+    /// Note that the meaning of this value may be specific for given camera or it might be undefined, in
+    /// which case the function returns NOTHING.
+    virtual Optional<float> getFov() const = 0;
+
+    /// \brief Modifies the clipping distance of the camera.
+    ///
+    /// The clipping can be disabled by passing NOTHING.
+    virtual void setCutoff(const Optional<float> newCutoff) = 0;
 
     /// \param Applies zoom to the camera.
     ///
@@ -47,7 +75,7 @@ public:
     /// differently.
     /// \param fixedPoint Point that remains fixed after the zoom (for magnitude != 1, there is exactly one)
     /// \param magnitude Relative zoom amount, value <1 means zooming out, value >1 means zooming in.
-    virtual void zoom(const Point fixedPoint, const float magnitude) = 0;
+    virtual void zoom(const Pixel fixedPoint, const float magnitude) = 0;
 
     /// \brief Transforms the current view by given matrix.
     ///
@@ -56,25 +84,37 @@ public:
     virtual void transform(const AffineMatrix& matrix) = 0;
 
     /// \brief Moves the camera by relative offset
-    virtual void pan(const Point offset) = 0;
+    virtual void pan(const Pixel offset) = 0;
+
+    /// \brief Changes the image size.
+    virtual void resize(const Pixel newSize) = 0;
+
+    /// \todo revert to ClonePtr!
+    virtual AutoPtr<ICamera> clone() const = 0;
 };
 
 
 struct OrthoCameraData {
     /// Field of view (zoom)
-    float fov;
+    Optional<float> fov = NOTHING;
+
+    /// Cutoff distance of the camera.
+    Optional<float> cutoff = NOTHING;
 
     /// Z-offset of the camera
-    float zoffset;
+    float zoffset = 0.f;
 
     /// Vectors defining camera plane
-    Vector u, v;
+    Vector u = Vector(1._f, 0._f, 0._f);
+
+    Vector v = Vector(0._f, 1._f, 0._f);
 };
 
+/// \brief Orthographic camera.
 class OrthoCamera : public ICamera {
 private:
-    Point imageSize;
-    Point center;
+    Pixel imageSize;
+    Pixel center;
 
     OrthoCameraData data;
 
@@ -84,69 +124,87 @@ private:
     } cached;
 
 public:
-    OrthoCamera(const Point imageSize, const Point center, OrthoCameraData data)
-        : imageSize(imageSize)
-        , center(center)
-        , data(data) {
-        cached.u = data.u;
-        cached.v = data.v;
-        cached.w = cross(data.u, data.v);
-    }
+    OrthoCamera(const Pixel imageSize, const Pixel center, OrthoCameraData data);
 
-    virtual Optional<ProjectedPoint> project(const Vector& r) const override {
-        const int x = center.x + dot(r, cached.u) * data.fov;
-        const int y = center.y + dot(r, cached.v) * data.fov;
-        const Point point(x, imageSize.y - y - 1);
-        return { { point, data.fov * float(r[H]) } };
-    }
+    virtual void initialize(const Storage& storage) override;
 
-    virtual CameraRay unproject(const Point point) const override {
-        const float x = (point.x - center.x) / data.fov;
-        const float y = ((imageSize.y - point.y - 1) - center.y) / data.fov;
-        CameraRay ray;
-        ray.origin = cached.u * x + cached.v * y + cached.w * data.zoffset;
-        ray.target = ray.origin + cached.w;
-        return ray;
-    }
+    virtual Optional<ProjectedPoint> project(const Vector& r) const override;
 
-    virtual Vector getDirection() const override {
-        return cached.w;
-    }
+    virtual CameraRay unproject(const Coords& coords) const override;
 
-    virtual void zoom(const Point fixedPoint, const float magnitude) override {
-        ASSERT(magnitude > 0.f);
-        center += (fixedPoint - center) * (1.f - magnitude);
-        data.fov *= magnitude;
-    }
+    virtual Vector getDirection() const override;
 
-    virtual void transform(const AffineMatrix& matrix) override {
-        cached.u = matrix * data.u;
-        cached.v = matrix * data.v;
-        cached.w = cross(cached.u, cached.v);
-    }
+    virtual Optional<float> getCutoff() const override;
 
-    virtual void pan(const Point offset) override {
-        center += offset;
+    virtual Optional<float> getFov() const override;
+
+    virtual void setCutoff(const Optional<float> newCutoff) override;
+
+    virtual void zoom(const Pixel fixedPoint, const float magnitude) override;
+
+    virtual void transform(const AffineMatrix& matrix) override;
+
+    virtual void pan(const Pixel offset) override;
+
+    virtual void resize(const Pixel newSize) override;
+
+    virtual AutoPtr<ICamera> clone() const override {
+        return makeAuto<OrthoCamera>(*this);
     }
+};
+
+class ITracker : public Polymorphic {
+public:
+    virtual Vector position(const Storage& storage) const = 0;
+};
+
+class ConstTracker : public ITracker {
+private:
+    Vector pos;
+
+public:
+    explicit ConstTracker(const Vector& pos)
+        : pos(pos) {}
+
+    virtual Vector position(const Storage& UNUSED(storage)) const override {
+        return pos;
+    }
+};
+
+class ParticleTracker : public ITracker {
+private:
+    Size index;
+
+public:
+    explicit ParticleTracker(const Size index)
+        : index(index) {}
+
+    virtual Vector position(const Storage& storage) const override;
 };
 
 struct PerspectiveCameraData {
     /// Field of view (angle)
-    float fov;
+    Float fov = PI / 3._f;
 
     /// Camera position in space
-    Vector position;
+    Vector position = Vector(0._f, 0._f, -1._f);
 
     /// Look-at point in space
-    Vector target;
+    Vector target = Vector(0._f);
 
     /// Up vector of the camera (direction)
-    Vector up;
+    Vector up = Vector(0._f, 1._f, 0._f);
+
+    /// Defines the clipping planes of the camera.
+    Interval clipping = Interval(0._f, INFTY);
+
+    ClonePtr<ITracker> tracker = nullptr;
 };
 
+/// \brief Perspective camera
 class PerspectiveCamera : public ICamera {
 private:
-    Point imageSize;
+    Pixel imageSize;
     PerspectiveCameraData data;
 
     struct {
@@ -161,90 +219,40 @@ private:
 
         /// Last matrix set by \ref transform.
         AffineMatrix matrix = AffineMatrix::identity();
+
     } cached;
 
 public:
-    PerspectiveCamera(const Point imageSize, const PerspectiveCameraData& data)
-        : imageSize(imageSize)
-        , data(data) {
-        this->update();
-    }
+    PerspectiveCamera(const Pixel imageSize, const PerspectiveCameraData& data);
 
-    virtual Optional<ProjectedPoint> project(const Vector& r) const override {
-        const Vector dr = r - data.position;
-        const Float proj = dot(dr, cached.dir);
-        if (proj <= 0._f) {
-            // point on the other side of the camera view
-            return NOTHING;
-        }
-        const Vector r0 = dr / proj;
-        // convert [-1, 1] to [0, imageSize]
-        Vector left0;
-        Float leftLength;
-        tieToTuple(left0, leftLength) = getNormalizedWithLength(cached.left);
-        Vector up0;
-        Float upLength;
-        tieToTuple(up0, upLength) = getNormalizedWithLength(cached.up);
-        const Float leftRel = dot(left0, r0) / leftLength;
-        // ASSERT(leftRel >= -1._f && leftRel <= 1._f);
-        const Float upRel = dot(up0, r0) / upLength;
-        // ASSERT(upRel >= -1._f && upRel <= 1._f);
-        const int x = 0.5_f * (1._f + leftRel) * imageSize.x;
-        const int y = 0.5_f * (1._f + upRel) * imageSize.y;
-        const Float hAtUnitDist = r[H] / proj;
-        const Float h = hAtUnitDist / leftLength * imageSize.x;
+    virtual void initialize(const Storage& storage) override;
 
-        // if (x >= -h && x < imageSize.x + h && y >= -h && y < imageSize.y )
-        return ProjectedPoint{ { x, imageSize.y - y - 1 }, max(float(h), 1.f) };
-    }
+    virtual Optional<ProjectedPoint> project(const Vector& r) const override;
 
-    virtual CameraRay unproject(const Point point) const override {
-        const Float x = 2._f * Float(point.x) / imageSize.x - 1._f;
-        const Float y = 2._f * Float(point.y) / imageSize.y - 1._f;
-        CameraRay ray;
-        ray.origin = data.position;
-        ray.target = ray.origin + cached.dir + cached.left * x - cached.up * y;
-        return ray;
-    }
+    virtual CameraRay unproject(const Coords& coords) const override;
 
-    virtual Vector getDirection() const override {
-        return cached.dir;
-    }
+    virtual Vector getDirection() const override;
 
-    virtual void zoom(const Point UNUSED(fixedPoint), const float magnitude) override {
-        ASSERT(magnitude > 0.f);
-        data.fov *= 0.1_f * magnitude;
-        this->transform(cached.matrix);
-    }
+    virtual Optional<float> getCutoff() const override;
 
-    virtual void transform(const AffineMatrix& matrix) override {
-        // reset the previous transform
-        this->update();
+    virtual Optional<float> getFov() const override;
 
-        cached.dir = matrix * cached.dir;
-        cached.up = matrix * cached.up;
-        cached.left = matrix * cached.left;
-        cached.matrix = matrix;
-    }
+    virtual void setCutoff(const Optional<float> newCutoff) override;
 
-    virtual void pan(const Point offset) override {
-        const Float x = Float(offset.x) / imageSize.x;
-        const Float y = Float(offset.y) / imageSize.y;
-        const Vector worldOffset = getLength(data.target - data.position) * (cached.left * x + cached.up * y);
-        data.position -= worldOffset;
-        data.target -= worldOffset;
+    virtual void zoom(const Pixel UNUSED(fixedPoint), const float magnitude) override;
+
+    virtual void transform(const AffineMatrix& matrix) override;
+
+    virtual void pan(const Pixel offset) override;
+
+    virtual void resize(const Pixel newSize) override;
+
+    virtual AutoPtr<ICamera> clone() const override {
+        return makeAuto<PerspectiveCamera>(*this);
     }
 
 private:
-    void update() {
-        cached.dir = getNormalized(data.target - data.position);
-
-        const Float aspect = Float(imageSize.x) / Float(imageSize.y);
-        ASSERT(aspect >= 1._f); // not really required, using for simplicity
-        const Float tgfov = tan(0.5_f * data.fov);
-        cached.up = tgfov / aspect * getNormalized(data.up);
-        cached.left = tgfov * getNormalized(cross(cached.up, cached.dir));
-    }
+    void update();
 };
 
 NAMESPACE_SPH_END

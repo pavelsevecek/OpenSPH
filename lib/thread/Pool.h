@@ -6,9 +6,9 @@
 /// \date 2016-2018
 
 #include "objects/containers/Array.h"
-#include "objects/wrappers/AutoPtr.h"
+#include "objects/wrappers/Function.h"
 #include "objects/wrappers/Optional.h"
-#include "thread/IScheduler.h"
+#include "thread/Scheduler.h"
 #include <atomic>
 #include <condition_variable>
 #include <queue>
@@ -16,14 +16,66 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// \brief Thread pool capable of executing tasks concurrently
+/// \brief Task to be executed by one of available threads.
+class Task : public ITask, public ShareFromThis<Task> {
+private:
+    std::condition_variable waitVar;
+    std::mutex waitMutex;
+
+    /// Number of child tasks + 1 for itself
+    std::atomic<int> tasksLeft{ 1 };
+
+    Function<void()> callable = nullptr;
+
+    SharedPtr<Task> parent = nullptr;
+
+    std::exception_ptr caughtException = nullptr;
+
+public:
+    explicit Task(const Function<void()>& callable);
+
+    ~Task();
+
+    virtual void wait() override;
+
+    virtual bool completed() const override;
+
+    /// \brief Assigns a task that spawned this task.
+    ///
+    /// Can be nullptr if this is the root task.
+    void setParent(SharedPtr<Task> parent);
+
+    /// \brief Saves exception into the task.
+    ///
+    /// The exception propagates into the top-most task.
+    void setException(std::exception_ptr exception);
+
+    /// \brief Returns true if this is the top-most task.
+    bool isRoot() const;
+
+    SharedPtr<Task> getParent() const;
+
+    /// \brief Returns the currently execute task, or nullptr if no task is currently executed on this thread.
+    static SharedPtr<Task> getCurrent();
+
+    void runAndNotify();
+
+private:
+    void addReference();
+
+    void removeReference();
+};
+
+/// \brief Thread pool capable of executing tasks concurrently.
 class ThreadPool : public IScheduler {
+    friend class Task;
+
 private:
     /// Threads managed by this pool
     Array<AutoPtr<std::thread>> threads;
 
     /// Queue of waiting tasks.
-    std::queue<AutoPtr<ITask>> tasks;
+    std::queue<SharedPtr<Task>> tasks;
 
     /// Used for synchronization of the task queue
     std::condition_variable taskVar;
@@ -39,12 +91,9 @@ private:
     /// Number of unprocessed tasks (either currently processing or waiting).
     std::atomic<int> tasksLeft;
 
-    /// Last caught exception in one of worker threads.
-    std::exception_ptr caughtException = nullptr;
-
     /// Global instance of the ThreadPool.
     /// \note This is not a singleton, another instances can be created if needed.
-    static ThreadPool* globalInstance;
+    static SharedPtr<ThreadPool> globalInstance;
 
 public:
     /// Initialize thread pool given the number of threads to use. By default, all available threads are used.
@@ -55,22 +104,22 @@ public:
     /// \brief Submits a task into the thread pool.
     ///
     /// The task will be executed asynchronously once tasks submitted before it are completed.
-    virtual void submit(AutoPtr<ITask>&& task) override;
-
-    /// Blocks until all submitted tasks has been finished.
-    virtual void waitForAll() override;
+    virtual SharedPtr<ITask> submit(const Function<void()>& task) override;
 
     /// \brief Returns the index of this thread, or NOTHING if this thread was not invoked by the thread pool.
     ///
     /// The index is within [0, numThreads-1].
-    Optional<Size> getThreadIdx() const;
+    virtual Optional<Size> getThreadIdx() const override;
 
     /// \brief Returns the number of threads used by this thread pool.
     ///
     /// Note that this number is constant during the lifetime of thread pool.
-    Size getThreadCnt() const {
-        return threads.size();
-    }
+    virtual Size getThreadCnt() const override;
+
+    virtual Size getRecommendedGranularity(const Size from, const Size to) const override;
+
+    /// \brief Blocks until all submitted tasks has been finished.
+    void waitForAll();
 
     /// \brief Returns the number of unfinished tasks.
     ///
@@ -79,70 +128,15 @@ public:
         return tasksLeft;
     }
 
-    /// \brief Returns a value of granulariry for (to - from) tasks that is expected to perform well with
-    /// current thread count.
-    Size getRecommendedGranularity(const Size from, const Size to) const {
-        ASSERT(to > from);
-        return min<Size>(1000, max<Size>((to - from) / this->getThreadCnt(), 1));
-    }
-
-    /// Returns the global instance of the thread pool. Other instances can be constructed if needed.
-    static ThreadPool& getGlobalInstance();
+    /// \brief Returns the global instance of the thread pool.
+    ///
+    /// Other instances can be constructed if needed.
+    static SharedPtr<ThreadPool> getGlobalInstance();
 
 private:
-    AutoPtr<ITask> getNextTask();
+    SharedPtr<Task> getNextTask(const bool wait);
+
+    void processTask(const bool wait);
 };
-
-/// \brief Executes a functor concurrently from all available threads.
-///
-/// Syntax mimics typical usage of for loop; functor is executed with index as parameter, starting at 'from'
-/// and ending one before 'to', so that total number of executions is (to-from). The function blocks until
-/// parallel for is completed.
-/// \param pool Thread pool, the functor will be executed on threads managed by this pool.
-/// \param from First processed index.
-/// \param to One-past-last processed index.
-/// \param functor Functor executed (to-from) times in different threads; takes an index as an argument.
-template <typename TFunctor>
-INLINE void parallelFor(ThreadPool& pool, const Size from, const Size to, TFunctor&& functor) {
-    const Size granularity = pool.getRecommendedGranularity(from, to);
-    parallelFor(pool, from, to, granularity, std::forward<TFunctor>(functor));
-}
-
-/// \brief Executes a functor concurrently with given granularity.
-///
-/// \param pool Thread pool, the functor will be executed on threads managed by this pool.
-/// \param from First processed index.
-/// \param to One-past-last processed index.
-/// \param granularity Number of indices processed by the functor at once. It shall be a positive number less
-///                    than or equal to (to-from).
-/// \param functor Functor executed concurrently, takes two parameters as arguments, defining range of
-///                assigned indices.
-template <typename TFunctor>
-INLINE void parallelFor(ThreadPool& pool,
-    const Size from,
-    const Size to,
-    const Size granularity,
-    TFunctor&& functor) {
-    ASSERT(to > from);
-    for (Size i = from; i < to; i += granularity) {
-        const Size n1 = i;
-        const Size n2 = min(i + granularity, to);
-        pool.submit(makeTask([n1, n2, &functor] {
-            for (Size n = n1; n < n2; ++n) {
-                functor(n);
-            }
-        }));
-    }
-    pool.waitForAll();
-}
-
-/// \brief Executes a functor concurrently, using an empirical formula for granularity.
-///
-/// This overload uses the global instance of the thread pool
-template <typename TFunctor>
-INLINE void parallelFor(const Size from, const Size to, TFunctor&& functor) {
-    ThreadPool& pool = ThreadPool::getGlobalInstance();
-    parallelFor(pool, from, to, std::forward<TFunctor>(functor));
-}
 
 NAMESPACE_SPH_END

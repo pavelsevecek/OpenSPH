@@ -16,8 +16,9 @@ struct NothingType {};
 const NothingType NOTHING;
 
 
-/// Wrapper of type value of which may or may not be present. Similar to std::optional comming in c++17.
-/// http://en.cppreference.com/w/cpp/utility/optional
+/// \brief Wrapper of type value of which may or may not be present.
+///
+/// Similar to std::optional introduced in c++17. See http://en.cppreference.com/w/cpp/utility/optional
 template <typename Type>
 class Optional {
 private:
@@ -35,24 +36,30 @@ private:
     }
 
 public:
+    /// \brief Creates an uninitialized value.
     Optional() = default;
 
-    /// Copy constuctor from stored value. Initialize the optional value.
+    /// \brief Copy constuctor from stored value.
+    ///
+    /// Initializes the optional value.
     template <typename T, typename = std::enable_if_t<std::is_copy_assignable<T>::value>>
     Optional(const T& t) {
         storage.emplace(t);
         used = true;
     }
 
-    /// Move constuctor from stored value. Initialize the optional value.
+    /// \brief Move constuctor from stored value.
+    ///
+    /// Initializes the optional value.
     Optional(Type&& t) {
         // intentionally using forward instead of move
         storage.emplace(std::forward<Type>(t));
         used = true;
     }
 
-    /// Copy constructor from other optional. Copies the state and if the passed optional is initialized,
-    /// copies the value as well.
+    /// \brief Copy constructor from other optional.
+    ///
+    /// Copies the state and if the passed optional is initialized, copies the value as well.
     Optional(const Optional& other) {
         used = other.used;
         if (used) {
@@ -60,8 +67,10 @@ public:
         }
     }
 
-    /// Move constructor from other optional. Copies the state and if the passed optional is initialized,
-    /// copies the value as well. Also un-initializes moved optional.
+    /// \brief Move constructor from other optional.
+    ///
+    /// Copies the state and if the passed optional is initialized, copies the value as well. Also
+    /// un-initializes moved optional.
     Optional(Optional&& other) {
         used = other.used;
         if (used) {
@@ -70,18 +79,18 @@ public:
         other.used = false;
     }
 
-    /// Construct uninitialized
+    /// \brief Construct uninitialized value.
     Optional(const NothingType&) {
         used = false;
     }
 
-    /// Destructor
     ~Optional() {
         destroy();
     }
 
-    /// Constructs the uninitialized object from a list of arguments. If the object was previously
-    /// initialized, the stored value is destroyed.
+    /// \brief Constructs the uninitialized object from a list of arguments.
+    ///
+    /// If the object was previously initialized, the stored value is destroyed.
     template <typename... TArgs>
     void emplace(TArgs&&... args) {
         if (used) {
@@ -91,8 +100,7 @@ public:
         used = true;
     }
 
-
-    /// Copy operator
+    /// \brief Copies the value on right-hand side, initializing the optional if necessary.
     template <typename T, typename = std::enable_if_t<std::is_assignable<Type, T>::value>>
     Optional& operator=(const T& t) {
         if (!used) {
@@ -104,7 +112,7 @@ public:
         return *this;
     }
 
-    /// Move operator
+    /// \brief Moves the value on right-hand side, initializing the optional if necessary.
     Optional& operator=(Type&& t) {
         if (!used) {
             storage.emplace(std::forward<Type>(t));
@@ -115,6 +123,9 @@ public:
         return *this;
     }
 
+    /// \brief Copies the value of another optional object.
+    ///
+    /// If the right-hand side object was previously uninitialized, the value in this object is destroyed.
     Optional& operator=(const Optional& other) {
         if (!other) {
             destroy();
@@ -129,6 +140,9 @@ public:
         return *this;
     }
 
+    /// \brief Moves the value of another optional object
+    ///
+    /// If the right-hand side object was previously uninitialized, the value in this object is destroyed.
     Optional& operator=(Optional&& other) {
         if (!other.used) {
             destroy();
@@ -143,7 +157,7 @@ public:
         return *this;
     }
 
-    /// Assing 'nothing'.
+    /// \brief Destroys the stored value, provided the object has been initialized.
     Optional& operator=(const NothingType&) {
         if (used) {
             destroy();
@@ -152,16 +166,24 @@ public:
         return *this;
     }
 
+    /// \brief Returns the reference to the stored value.
+    ///
+    /// Object must be already initialized.
     INLINE Type& value() {
         ASSERT(used);
         return storage;
     }
 
+    /// \brief Returns the const reference to the stored value.
+    ///
+    /// Object must be already initialized.
     INLINE const Type& value() const {
         ASSERT(used);
         return storage;
     }
 
+    /// \brief Returns the stored value if the object has been initialized, otherwise returns provided
+    /// parameter.
     template <typename TOther>
     INLINE Type valueOr(const TOther& other) const {
         if (used) {
@@ -171,20 +193,28 @@ public:
         }
     }
 
+    /// \brief Used to access members of the stored value.
+    ///
+    /// The value must be initialized.
     INLINE const RawType* operator->() const {
         ASSERT(used);
         return std::addressof(value());
     }
 
+    /// \brief Used to access members of the stored value.
+    ///
+    /// The value must be initialized.
     INLINE RawType* operator->() {
         ASSERT(used);
         return std::addressof(value());
     }
 
+    /// \brief Checks if the object has been initialized.
     INLINE explicit operator bool() const {
         return used;
     }
 
+    /// \brief Returns true if the object is uninitialized.
     INLINE bool operator!() const {
         return !used;
     }

@@ -1,8 +1,10 @@
 #include "sph/solvers/StaticSolver.h"
 #include "objects/finders/NeighbourFinder.h"
 #include "physics/Eos.h"
+#include "sph/Materials.h"
+#include "sph/equations/DerivativeHelpers.h"
 #include "sph/equations/EquationTerm.h"
-#include "sph/kernel/KernelFactory.h"
+#include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
@@ -21,12 +23,12 @@ public:
     DisplacementGradient(const RunSettings& settings)
         : DerivativeTemplate<DisplacementGradient>(settings) {}
 
-    virtual void create(Accumulated& results) override {
+    INLINE void additionalCreate(Accumulated& results) {
         results.insert<Float>(QuantityId::PRESSURE, OrderEnum::ZERO, BufferSource::UNIQUE);
         results.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO, BufferSource::UNIQUE);
     }
 
-    INLINE void init(const Storage& input, Accumulated& results) {
+    INLINE void additionalInitialize(const Storage& input, Accumulated& results) {
         u = input.getValue<Vector>(QuantityId::DISPLACEMENT);
         tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
 
@@ -37,6 +39,10 @@ public:
         IMaterial& material = input.getMaterial(0);
         lambda = material.getParam<Float>(BodySettingsId::ELASTIC_MODULUS);
         mu = material.getParam<Float>(BodySettingsId::SHEAR_MODULUS);
+    }
+
+    INLINE bool additionalEquals(const DisplacementGradient& UNUSED(other)) const {
+        return true;
     }
 
     template <bool Symmetrize>
@@ -62,9 +68,9 @@ public:
         derivatives.require(makeAuto<DisplacementGradient>(settings));
     }
 
-    virtual void initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
-    virtual void finalize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
     virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
         storage.insert<Float>(QuantityId::PRESSURE, OrderEnum::ZERO, 0._f);
@@ -76,20 +82,28 @@ public:
 
 #ifdef SPH_USE_EIGEN
 
-StaticSolver::StaticSolver(const RunSettings& settings, const EquationHolder& equations)
-    : equationSolver(settings, equations + makeTerm<DisplacementTerm>() + makeTerm<ConstSmoothingLength>()) {
+static EquationHolder getEquations(const EquationHolder& additional) {
+    return additional + makeTerm<DisplacementTerm>() + makeTerm<ConstSmoothingLength>();
+}
+
+StaticSolver::StaticSolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    const EquationHolder& equations)
+    : scheduler(scheduler)
+    , equationSolver(scheduler, settings, getEquations(equations)) {
     kernel = Factory::getKernel<3>(settings);
     finder = Factory::getFinder(settings);
     boundaryThreshold = 18;
     // settings.get<int>(RunSettingsId::BOUNDARY_THRESHOLD);
 }
 
+StaticSolver::~StaticSolver() = default;
 
 Outcome StaticSolver::solve(Storage& storage, Statistics& stats) {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
 
     // build the neighbour finding structure
-    finder->build(r);
+    finder->build(scheduler, r);
 
     // compute right-hand side of equations by solving equations for acceleration
     storage.zeroHighestDerivatives();

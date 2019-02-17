@@ -6,17 +6,14 @@
 /// \date 2016-2018
 
 #include "common/Globals.h"
+#include "gui/Settings.h"
 #include "gui/renderers/IRenderer.h"
 #include "io/Output.h"
 #include <condition_variable>
 
-
 NAMESPACE_SPH_BEGIN
 
-
 class IRenderer;
-enum class GuiSettingsId;
-using GuiSettings = Settings<GuiSettingsId>;
 
 /// \brief Object managing periodic rendering of images and saving them to given paths.
 ///
@@ -43,9 +40,6 @@ private:
     /// Renderer
     AutoPtr<IRenderer> renderer;
 
-    /// Camera
-    AutoPtr<ICamera> camera;
-
     /// Colorizers to render and save to disk
     Array<SharedPtr<IColorizer>> colorizers;
 
@@ -57,9 +51,8 @@ private:
 public:
     Movie(const GuiSettings& settings,
         AutoPtr<IRenderer>&& renderer,
-        AutoPtr<ICamera>&& camera,
         Array<SharedPtr<IColorizer>>&& colorizers,
-        const RenderParams& params);
+        RenderParams&& params);
 
     ~Movie();
 
@@ -71,6 +64,11 @@ public:
     ///
     /// Can be called from any thread; the function is blocking, waits until all images are saved.
     void onTimeStep(const Storage& storage, Statistics& stats);
+
+    /// \brief Manually saves the images.
+    void save(const Storage& storage, Statistics& stats);
+
+    void setCamera(AutoPtr<ICamera>&& camera);
 
     /// \brief Creates the animations from generated images.
     void finalize();

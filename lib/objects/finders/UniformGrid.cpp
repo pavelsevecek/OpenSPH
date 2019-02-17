@@ -10,7 +10,7 @@ UniformGridFinder::UniformGridFinder(const Float relativeCellCnt)
 
 UniformGridFinder::~UniformGridFinder() = default;
 
-void UniformGridFinder::buildImpl(ArrayView<const Vector> points) {
+void UniformGridFinder::buildImpl(IScheduler& UNUSED(scheduler), ArrayView<const Vector> points) {
     PROFILE_SCOPE("VoxelFinder::buildImpl");
     // number of voxels, free parameter
     const Size lutSize = Size(relativeCellCnt * root<3>(points.size())) + 1;
@@ -21,10 +21,6 @@ void UniformGridFinder::buildImpl(ArrayView<const Vector> points) {
     if (SPH_LIKELY(!points.empty())) {
         lut.update(points);
     }
-}
-
-void UniformGridFinder::rebuildImpl(ArrayView<const Vector> points) {
-    buildImpl(points);
 }
 
 template <bool FindAll>

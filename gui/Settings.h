@@ -1,45 +1,122 @@
 #pragma once
 
+#include "common/ForwardDecl.h"
+#include "gui/objects/Color.h"
+#include "gui/objects/Point.h"
+#include "objects/geometry/Vector.h"
+#include "objects/utility/EnumMap.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// \todo currently mixing rendered geometry (spheres, mesh from marching cubes, iso-surface) with renderer
-/// (wx, opengl, raytracer, ...)
 enum class RendererEnum {
+    /// No particle visualization
     NONE,
 
     /// 2D section showing particles as points
     PARTICLE,
 
-    /// Reconstructed surface of bodies
+    /// Surfaces of bodies are meshed using Marching cubes and drawed as triangles.
     MESH,
 
+    /// Raytracer that computes intersections with implicit surface.
     RAYTRACER,
 
-    /// 3D visualization of simulation using OpenGL
-    OPENGL
 };
+static RegisterEnum<RendererEnum> sRenderer({
+    { RendererEnum::NONE, "none", "No particle visualization" },
+    { RendererEnum::PARTICLE, "particle", "Particles are visualized as circles. No shading." },
+    { RendererEnum::MESH,
+        "mesh",
+        "Surfaces of bodies are meshed using Marching cubes and drawed as triangles." },
+    { RendererEnum::RAYTRACER, "raytracer", "Use raytracing to find intersections with implicit surface." },
+});
 
 enum class CameraEnum {
     ORTHO,
     PERSPECTIVE,
 };
+static RegisterEnum<CameraEnum> sCamera({
+    { CameraEnum::ORTHO, "ortho", "Orthographic projection" },
+    { CameraEnum::PERSPECTIVE, "perspective", "Perspective projection" },
+});
 
 enum class OrthoEnum { XY, XZ, YZ };
+/// \todo replace with up and dir
+static RegisterEnum<OrthoEnum> sOrtho({
+    { OrthoEnum::XY, "xy", "XY plane" },
+    { OrthoEnum::XZ, "xz", "XZ plane" },
+    { OrthoEnum::YZ, "yz", "YZ plane" },
+});
 
 enum class PlotEnum {
+    /// Evolution of the total internal energy in time
     INTERNAL_ENERGY = 1 << 0,
+
+    /// Evolution of the total kinetic energy in time
     KINETIC_ENERGY = 1 << 1,
+
+    /// Evolution of the total energy (sum of total kinetic energy and total internal energy) in time
+    /// \todo Currently does not contain potential energy!
     TOTAL_ENERGY = 1 << 2,
+
+    /// Evolution of the total momentum in time
     TOTAL_MOMENTUM = 1 << 3,
+
+    /// Evolution of the total angular momentum in time
     TOTAL_ANGULAR_MOMENTUM = 1 << 4,
-    SIZE_FREQUENCY_DISTRIBUTION = 1 << 5,
-    SELECTED_PARTICLE = 1 << 6,
+
+    /// Size-frequency distribution of particle radii in given time instant. Only makes sense for NBody
+    /// solver that merges particles on collision, otherwise the SFD would be trivial.
+    PARTICLE_SFD = 1 << 5,
+
+    /// Size-frequency distribution of particle components, i.e. groups of particles in mutual contact.
+    /// Useful for both NBody solvers and SPH solvers. Note that construcing the SFD has non-negligible
+    /// overhead, so it is recommended to specify plot period significantly larger than the time step.
+    CURRENT_SFD = 1 << 6,
+
+    /// Size-frequency distribution that would be realized if we merged all particles that are currently
+    /// gravitationally bounded. It allows to roughly predict the final SFD after reaccumulation. Useful for
+    /// both NBody solvers and SPH solvers.
+    PREDICTED_SFD = 1 << 7,
+
+    /// Differential histogram of rotational periods (in hours) in given time instant.
+    PERIOD_HISTOGRAM = 1 << 8,
+
+    /// Evolution of the rotational period (in hours) of the largest remnant (fragment). Only makes sense for
+    /// NBody solver that merges particles on collisions, othewise the largest remannt is undefined.
+    LARGEST_REMNANT_ROTATION = 1 << 9,
+
+    /// Evolution of the selected quantity for the selected particle in time.
+    SELECTED_PARTICLE = 1 << 10,
 
     ALL = INTERNAL_ENERGY | KINETIC_ENERGY | TOTAL_ENERGY | TOTAL_MOMENTUM | TOTAL_ANGULAR_MOMENTUM |
-          SIZE_FREQUENCY_DISTRIBUTION | SELECTED_PARTICLE,
+          PARTICLE_SFD | CURRENT_SFD | PREDICTED_SFD | PERIOD_HISTOGRAM | LARGEST_REMNANT_ROTATION |
+          SELECTED_PARTICLE,
 };
+static RegisterEnum<PlotEnum> sPlot({
+    { PlotEnum::INTERNAL_ENERGY, "internal_energy", "Plots the total internal energy." },
+    { PlotEnum::KINETIC_ENERGY, "kinetic_energy", "Plots the total kinetic energy." },
+    { PlotEnum::TOTAL_ENERGY, "total_energy", "Plots the sum of the internal and kinetic energy." },
+    { PlotEnum::TOTAL_MOMENTUM, "total_momentum", "Plots the total momentum." },
+    { PlotEnum::TOTAL_ANGULAR_MOMENTUM, "total_angular_momentum", "Plots the total angular momentum." },
+    { PlotEnum::PARTICLE_SFD,
+        "particle_sfd",
+        "Current cumulative size-frequency distribution of bodies in the simulation." },
+    { PlotEnum::PREDICTED_SFD,
+        "predicted_sfd",
+        "Size-frequency distribution that would be realized if we merged all particles that are currently "
+        "gravitationally bounded. It allows to roughly predict the final SFD after reaccumulation. Useful "
+        "for both NBody solvers and SPH solvers." },
+    { PlotEnum::CURRENT_SFD,
+        "current_sfd",
+        "Size-frequency distribution of particle components, i.e. groups of particles in mutual contact. "
+        "Useful for both NBody solvers and SPH solvers. Note that construcing the SFD has non-negligible "
+        "overhead, so it is recommended to specify plot period significantly larger than the time step." },
+    { PlotEnum::SELECTED_PARTICLE,
+        "selected_particle",
+        "Plots the current quantity of the selected particle." },
+});
 
 /// \todo generic ortho projection (x,y,z) -> (u,v)
 
@@ -52,7 +129,7 @@ enum class GuiSettingsId {
     /// Center point of the view
     ORTHO_VIEW_CENTER,
 
-    /// View field of view (zoom)
+    /// View field of view (zoom). Special value 0 means the field of view is computed from the bounding box.
     ORTHO_FOV,
 
     /// Z-offset of the camera (from origin)
@@ -67,6 +144,12 @@ enum class GuiSettingsId {
 
     PERSPECTIVE_UP,
 
+    PERSPECTIVE_CLIP_NEAR,
+
+    PERSPECTIVE_CLIP_FAR,
+
+    PERSPECTIVE_TRACKED_PARTICLE,
+
     VIEW_WIDTH,
 
     VIEW_HEIGHT,
@@ -76,6 +159,12 @@ enum class GuiSettingsId {
     /// Size of the grid cell in simulation units (not window units); if zero, no grid is drawn
     VIEW_GRID_SIZE,
 
+    BACKGROUND_COLOR,
+
+    FORCE_GRAYSCALE,
+
+    RENDER_GHOST_PARTICLES,
+
     /// Displayed radius of particle in units of smoothing length
     PARTICLE_RADIUS,
 
@@ -84,7 +173,7 @@ enum class GuiSettingsId {
 
     ORTHO_PROJECTION,
 
-    /// Size of the grid used in MarchingCubes (in code units, not h)
+    /// Size of the grid used in MarchingCubes (in code units, not h).
     SURFACE_RESOLUTION,
 
     /// Value of iso-surface being constructed; lower value means larget bodies
@@ -99,6 +188,10 @@ enum class GuiSettingsId {
     /// Ambient color for surface renderer
     SURFACE_AMBIENT,
 
+    RAYTRACE_SUBSAMPLING,
+
+    RAYTRACE_ITERATION_LIMIT,
+
     RAYTRACE_HDRI,
 
     RAYTRACE_TEXTURE_PRIMARY,
@@ -112,13 +205,11 @@ enum class GuiSettingsId {
 
     WINDOW_HEIGHT,
 
-    RENDER_WIDTH,
-
-    RENDER_HEIGHT,
-
     PLOT_INTEGRALS,
 
     PLOT_INITIAL_PERIOD,
+
+    PLOT_OVERPLOT_SFD,
 
     IMAGES_RENDERER,
 
@@ -143,45 +234,28 @@ enum class GuiSettingsId {
     /// specified times, as time step of the run is generally different than this value.
     IMAGES_TIMESTEP,
 
-    PALETTE_DENSITY,
-
-    PALETTE_MASS,
-
-    PALETTE_VELOCITY,
-
-    PALETTE_ACCELERATION,
-
-    PALETTE_PRESSURE,
-
-    PALETTE_ENERGY,
-
-    PALETTE_STRESS,
-
-    PALETTE_DAMAGE,
-
-    PALETTE_DIVV,
-
-    PALETTE_GRADV,
-
-    PALETTE_ROTV,
-
-    PALETTE_DENSITY_PERTURB,
-
-    PALETTE_RADIUS,
-
-    PALETTE_ANGULAR_VELOCITY,
-
-    PALETTE_MOMENT_OF_INERTIA,
-
-    PALETTE_STRAIN_RATE_CORRECTION_TENSOR,
-
-    PALETTE_VELOCITY_SECOND_DERIVATIVES,
-
-    PALETTE_ACTIVATION_STRAIN,
-
-    PALETTE_TOTAL_ENERGY,
 };
 
-using GuiSettings = Settings<GuiSettingsId>;
+class GuiSettings : public Settings<GuiSettingsId> {
+public:
+    using Settings<GuiSettingsId>::Settings;
+
+    template <typename TValue>
+    INLINE TValue get(const GuiSettingsId id) const {
+        return Settings<GuiSettingsId>::get<TValue>(id);
+    }
+};
+
+template <>
+INLINE Pixel GuiSettings::get<Pixel>(const GuiSettingsId id) const {
+    const Interval i = this->get<Interval>(id);
+    return Pixel(i.lower(), i.upper());
+}
+
+template <>
+INLINE Rgba GuiSettings::get<Rgba>(const GuiSettingsId id) const {
+    const Vector v = this->get<Vector>(id);
+    return Rgba(v[X], v[Y], v[Z]);
+}
 
 NAMESPACE_SPH_END

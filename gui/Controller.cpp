@@ -1,6 +1,8 @@
 #include "gui/Controller.h"
+#include "gui/Config.h"
 #include "gui/Factory.h"
 #include "gui/MainLoop.h"
+#include "gui/Utils.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/objects/Movie.h"
@@ -12,12 +14,17 @@
 #include "system/Statistics.h"
 #include "system/Timer.h"
 #include "thread/CheckFunction.h"
+#include "thread/Pool.h"
 #include <wx/app.h>
+#include <wx/dcmemory.h>
 #include <wx/msgdlg.h>
 
 NAMESPACE_SPH_BEGIN
 
-Controller::Controller(const GuiSettings& settings) {
+static wxWindow* sWindow = nullptr;
+
+Controller::Controller(const GuiSettings& settings, AutoPtr<IPluginControls>&& plugin)
+    : plugin(std::move(plugin)) {
     CHECK_FUNCTION(CheckFunction::ONCE);
 
     // copy settings
@@ -27,23 +34,39 @@ Controller::Controller(const GuiSettings& settings) {
     vis.initialize(gui);
 
     // create main frame of the application
-    window = new MainWindow(this, gui);
+    window = alignedNew<MainWindow>(this, gui, this->plugin.get());
     window->SetAutoLayout(true);
     window->Show();
+
+    sWindow = window.get();
+
+    this->startRenderThread();
 }
 
 Controller::~Controller() = default;
 
+Controller::Vis::Vis() {
+    bitmap = makeAuto<wxBitmap>();
+    needsRefresh = false;
+    refreshPending = false;
+}
+
 void Controller::Vis::initialize(const GuiSettings& gui) {
-    renderer = Factory::getRenderer(gui);
+    /// \todo add Factory::getScheduler and use it here!
+    renderer = Factory::getRenderer(*ThreadPool::getGlobalInstance(), gui);
     colorizer = Factory::getColorizer(gui, ColorizerId::VELOCITY);
     timer = makeAuto<Timer>(gui.get<int>(GuiSettingsId::VIEW_MAX_FRAMERATE), TimerFlags::START_EXPIRED);
-    const Point size(gui.get<int>(GuiSettingsId::RENDER_WIDTH), gui.get<int>(GuiSettingsId::RENDER_HEIGHT));
+    const Pixel size(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
     camera = Factory::getCamera(gui, size);
 }
 
 bool Controller::Vis::isInitialized() {
     return renderer && stats && colorizer && camera;
+}
+
+void Controller::Vis::refresh() {
+    needsRefresh = true;
+    renderThreadVar.notify_one();
 }
 
 void Controller::start(AutoPtr<IRun>&& run) {
@@ -52,73 +75,86 @@ void Controller::start(AutoPtr<IRun>&& run) {
     this->stop(true);
 
     // update the status
-    status = Status::RUNNING;
+    status = RunStatus::RUNNING;
 
     // create and start the run
     sph.run = std::move(run);
-    this->run();
+    this->startRunThread();
 }
 
 void Controller::restart() {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     switch (status) {
-    case Status::RUNNING:
-    case Status::QUITTING:
+    case RunStatus::RUNNING:
+    case RunStatus::QUITTING:
         // already running or shutting down, do nothing
         return;
-    case Status::PAUSED:
+    case RunStatus::PAUSED:
         // unpause
         continueVar.notify_one();
         break;
-    case Status::STOPPED:
+    case RunStatus::STOPPED:
         // wait till previous run finishes
         if (sph.thread.joinable()) {
             sph.thread.join();
         }
         // start new simulation
-        this->run();
+        this->startRunThread();
 
         // notify the window
         window->runStarted();
     }
-    status = Status::RUNNING;
+    status = RunStatus::RUNNING;
 }
 
 void Controller::pause() {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    status = Status::PAUSED;
+    status = RunStatus::PAUSED;
 }
 
 void Controller::stop(const bool waitForFinish) {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD); // just to make sure there is no race condition on status
-    status = Status::STOPPED;
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+
+    sph.shouldContinue = false;
+
     // notify continue CV to unpause run (if it's paused), otherwise we would get deadlock
     continueVar.notify_one();
 
     if (waitForFinish && sph.thread.joinable()) {
         sph.thread.join();
+        ASSERT(status == RunStatus::STOPPED);
     }
 }
 
 void Controller::saveState(const Path& path) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    ASSERT(path.extension() == Path("ssf"));
-    auto dump = [this, path](const Float time, const Float step) {
-        SharedPtr<Storage> storage = sph.run->getStorage();
-        BinaryOutput output(path);
-        Statistics stats;
-        stats.set(StatisticsId::RUN_TIME, time);
-        stats.set(StatisticsId::TIMESTEP_VALUE, step);
-        output.dump(*storage, stats);
+    auto dump = [path](const Storage& storage, const Statistics& stats) {
+        AutoPtr<IOutput> output;
+        if (path.extension() == Path("ssf")) {
+            /// \todo run type!
+            output = makeAuto<BinaryOutput>(path);
+        } else if (path.extension() == Path("scf")) {
+            output = makeAuto<CompressedOutput>(path, CompressionEnum::RLE, RunTypeEnum::SPH);
+        } else {
+            ASSERT(path.extension() == Path("txt"));
+            Flags<OutputQuantityFlag> flags =
+                OutputQuantityFlag::INDEX | OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY;
+            output = makeAuto<TextOutput>(path, "unnamed", flags);
+        }
+
+        output->dump(storage, stats);
     };
 
-    if (status == Status::RUNNING) {
+    if (status == RunStatus::RUNNING) {
         // cannot directly access the storage during the run, execute it on the time step
         sph.onTimeStepCallbacks->push(dump);
     } else {
         // if not running, we can safely save the storage from main thread
         /// \todo somehow remember the time of the last simulation?
-        dump(0._f, 0.1_f);
+        Statistics stats;
+        stats.set(StatisticsId::RUN_TIME, 0._f);
+        stats.set(StatisticsId::TIMESTEP_VALUE, 0.1_f);
+        dump(*sph.run->getStorage(), stats);
     }
 }
 
@@ -128,21 +164,21 @@ void Controller::loadState(const Path& path) {
     this->stop(true);
 
     // update the status
-    status = Status::RUNNING;
+    status = RunStatus::RUNNING;
 
     // start the run from file
-    this->run(path);
+    this->startRunThread(path);
 }
 
 void Controller::quit() {
-    if (status == Status::QUITTING) {
+    if (status == RunStatus::QUITTING) {
         // already quitting
         return;
     }
     CHECK_FUNCTION(CheckFunction::ONCE | CheckFunction::MAIN_THREAD);
 
     // set status so that other threads know to quit
-    status = Status::QUITTING;
+    status = RunStatus::QUITTING;
 
     // unpause run
     continueVar.notify_one();
@@ -166,7 +202,7 @@ void Controller::quit() {
 
 void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
     ASSERT(std::this_thread::get_id() == sph.thread.get_id());
-    if (status == Status::QUITTING) {
+    if (status == RunStatus::QUITTING) {
         return;
     }
 
@@ -181,31 +217,37 @@ void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
     ASSERT(movie);
     movie->onTimeStep(storage, stats);
 
+    // executed all waiting callbacks (before redrawing as it is used to change renderers)
+    if (!sph.onTimeStepCallbacks->empty()) {
+        auto onTimeStepProxy = sph.onTimeStepCallbacks.lock();
+        for (auto& func : onTimeStepProxy.get()) {
+            func(storage, stats);
+        }
+        onTimeStepProxy->clear();
+    }
+
     // update the data for rendering
     if (vis.timer->isExpired()) {
         this->redraw(storage, stats);
         vis.timer->restart();
 
-        // update particle probe - has to be done after we redraw the image as it initializes the colorizer
-        executeOnMainThread([this] { this->setSelectedParticle(vis.selectedParticle); });
-    }
-
-    // executed all waiting callbacks
-    if (!sph.onTimeStepCallbacks->empty()) {
-        const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
-        const Float step = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
-        auto onTimeStepProxy = sph.onTimeStepCallbacks.lock();
-        for (auto& func : onTimeStepProxy.get()) {
-            func(time, step);
-        }
-        onTimeStepProxy->clear();
+        executeOnMainThread([this] {
+            // update particle probe - has to be done after we redraw the image as it initializes
+            // the colorizer
+            this->setSelectedParticle(vis.selectedParticle);
+        });
     }
 
     // pause if we are supposed to
-    if (status == Status::PAUSED) {
+    if (status == RunStatus::PAUSED) {
         std::unique_lock<std::mutex> lock(continueMutex);
         continueVar.wait(lock);
     }
+}
+
+void Controller::onRunFailure(const DiagnosticsError& error, const Statistics& stats) {
+    ASSERT(std::this_thread::get_id() == sph.thread.get_id());
+    window->onRunFailure(error, stats);
 }
 
 GuiSettings& Controller::getParams() {
@@ -213,14 +255,14 @@ GuiSettings& Controller::getParams() {
 }
 
 void Controller::setParams(const GuiSettings& settings) {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    // CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     gui = settings;
     // reset camera
-    const Point size(gui.get<int>(GuiSettingsId::RENDER_WIDTH), gui.get<int>(GuiSettingsId::RENDER_HEIGHT));
+    const Pixel size(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
+    std::unique_lock<std::mutex> cameraLock(vis.cameraMutex);
     vis.camera = Factory::getCamera(gui, size);
     // reset renderer with new params
-    /// \todo this needs to be generic
-    this->setRenderer(makeAuto<ParticleRenderer>(gui));
+    this->setRenderer(Factory::getRenderer(*ThreadPool::getGlobalInstance(), gui));
 }
 
 void Controller::update(const Storage& storage) {
@@ -228,7 +270,7 @@ void Controller::update(const Storage& storage) {
     /// \todo can we do this safely from run thread?
     executeOnMainThread([this, &storage] { //
         window->runStarted();
-        window->setColorizerList(this->getColorizerList(storage, false, {}));
+        window->setColorizerList(this->getColorizerList(storage, false));
     });
 
     // draw initial positions of particles
@@ -239,25 +281,25 @@ void Controller::update(const Storage& storage) {
 
     // set up animation object
     movie = this->createMovie(storage);
-}
 
-void Controller::setRunning() {
-    status = Status::RUNNING;
+    sph.shouldContinue = true;
 }
 
 bool Controller::shouldAbortRun() const {
-    return status == Status::STOPPED || status == Status::QUITTING;
+    return !sph.shouldContinue;
 }
 
 bool Controller::isQuitting() const {
-    return status == Status::QUITTING;
+    return status == RunStatus::QUITTING;
 }
 
-Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage,
-    const bool forMovie,
-    const FlatMap<ColorizerId, Palette>& overrides) const {
+Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage, const bool forMovie) const {
     // Available colorizers for display and movie are currently hardcoded
     Array<ColorizerId> colorizerIds;
+    Array<QuantityId> quantityColorizerIds;
+
+    /// \todo custom colorizer lists
+
     colorizerIds.push(ColorizerId::COROTATING_VELOCITY);
     if (storage.has(QuantityId::DENSITY)) {
         colorizerIds.push(ColorizerId::DENSITY_PERTURBATION);
@@ -273,6 +315,8 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         colorizerIds.push(ColorizerId::BEAUTY);
     }
 
+    colorizerIds.push(ColorizerId::BOUND_COMPONENT_ID);
+
     if (!forMovie) {
         if (storage.has(QuantityId::MASS)) {
             colorizerIds.push(ColorizerId::SUMMED_DENSITY);
@@ -283,39 +327,67 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         colorizerIds.push(ColorizerId::MOVEMENT_DIRECTION);
         colorizerIds.push(ColorizerId::ACCELERATION);
         colorizerIds.push(ColorizerId::RADIUS);
-        colorizerIds.push(ColorizerId::ID);
-        colorizerIds.push(ColorizerId::UVW);
+        colorizerIds.push(ColorizerId::PARTICLE_ID);
+        colorizerIds.push(ColorizerId::COMPONENT_ID);
+        colorizerIds.push(ColorizerId::MARKER);
+
+        if (storage.has(QuantityId::ENERGY)) {
+            colorizerIds.push(ColorizerId::TEMPERATURE);
+        }
+
+        if (storage.getUserData()) {
+            colorizerIds.push(ColorizerId::AGGREGATE_ID);
+        }
+
+        colorizerIds.push(ColorizerId::FLAG);
+
+        if (storage.has(QuantityId(GuiQuantityId::UVW))) {
+            colorizerIds.push(ColorizerId::UVW);
+        }
 
         if (storage.has(QuantityId::NEIGHBOUR_CNT)) {
             colorizerIds.push(ColorizerId::BOUNDARY);
         }
     }
 
-    Array<QuantityId> quantityColorizerIds{
+    quantityColorizerIds.pushAll(Array<QuantityId>{
         QuantityId::PRESSURE,
         QuantityId::ENERGY,
         QuantityId::DEVIATORIC_STRESS,
         QuantityId::DAMAGE,
         QuantityId::VELOCITY_DIVERGENCE,
-        QuantityId::VELOCITY_GRADIENT,
-        QuantityId::VELOCITY_LAPLACIAN,
-        QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE,
         QuantityId::FRICTION,
-    };
+    });
+
     if (!forMovie) {
         quantityColorizerIds.push(QuantityId::DENSITY);
         quantityColorizerIds.push(QuantityId::MASS);
         quantityColorizerIds.push(QuantityId::AV_ALPHA);
         quantityColorizerIds.push(QuantityId::AV_BALSARA);
-        quantityColorizerIds.push(QuantityId::ANGULAR_VELOCITY);
+        quantityColorizerIds.push(QuantityId::AV_STRESS);
+        quantityColorizerIds.push(QuantityId::ANGULAR_FREQUENCY);
         quantityColorizerIds.push(QuantityId::MOMENT_OF_INERTIA);
         quantityColorizerIds.push(QuantityId::STRAIN_RATE_CORRECTION_TENSOR);
         quantityColorizerIds.push(QuantityId::EPS_MIN);
+        quantityColorizerIds.push(QuantityId::NEIGHBOUR_CNT);
+        quantityColorizerIds.push(QuantityId::VELOCITY_GRADIENT);
+        quantityColorizerIds.push(QuantityId::VELOCITY_LAPLACIAN);
+        quantityColorizerIds.push(QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE);
     }
 
     Array<SharedPtr<IColorizer>> colorizers;
     // add velocity (always present)
-    colorizers.push(Factory::getColorizer(gui, ColorizerId::VELOCITY));
+    if (vis.colorizer) {
+        IColorizer& colorizer = *vis.colorizer; // clang complains when dereferencing ptr inside typeid
+        if (typeid(colorizer) == typeid(VelocityColorizer)) {
+            // hack to avoid creating two velocity colorizers (they would have to somehow share the palette
+            // ...)
+            colorizers.push(vis.colorizer);
+        }
+    }
+    if (colorizers.empty()) {
+        colorizers.push(Factory::getColorizer(gui, ColorizerId::VELOCITY));
+    }
 
     // add all quantity colorizers (sorted by the key)
     std::sort(quantityColorizerIds.begin(), quantityColorizerIds.end());
@@ -328,32 +400,16 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
     // add all auxiliary colorizers (sorted by the key)
     std::sort(colorizerIds.begin(), colorizerIds.end());
     for (ColorizerId id : colorizerIds) {
-        colorizers.push(Factory::getColorizer(gui, id, overrides));
+        colorizers.push(Factory::getColorizer(gui, id));
     }
+
     return colorizers;
 }
 
-SharedPtr<wxBitmap> Controller::getRenderedBitmap() {
+const wxBitmap& Controller::getRenderedBitmap() const {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    RenderParams params;
-    params.particles.scale = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
-    params.size = Point(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
-    params.selectedParticle = vis.selectedParticle;
-
-    SharedPtr<wxBitmap> bitmap;
-    if (!vis.isInitialized()) {
-        // not initialized yet, return empty bitmap
-        bitmap = makeShared<wxBitmap>(wxNullBitmap);
-    } else {
-        bitmap = vis.renderer->render(*vis.camera, params, *vis.stats);
-        ASSERT(bitmap->IsOk());
-    }
-    return bitmap;
-}
-
-SharedPtr<ICamera> Controller::getCurrentCamera() const {
-    ASSERT(vis.camera != nullptr);
-    return vis.camera;
+    vis.refreshPending = false;
+    return *vis.bitmap;
 }
 
 SharedPtr<IColorizer> Controller::getCurrentColorizer() const {
@@ -361,7 +417,12 @@ SharedPtr<IColorizer> Controller::getCurrentColorizer() const {
     return vis.colorizer;
 }
 
-Optional<Size> Controller::getIntersectedParticle(const Point position, const float toleranceEps) {
+AutoPtr<ICamera> Controller::getCurrentCamera() const {
+    std::unique_lock<std::mutex> cameraLock(vis.cameraMutex);
+    return vis.camera->clone();
+}
+
+Optional<Size> Controller::getIntersectedParticle(const Pixel position, const float toleranceEps) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
 
     if (!vis.colorizer->isInitialized()) {
@@ -369,8 +430,13 @@ Optional<Size> Controller::getIntersectedParticle(const Point position, const fl
         return NOTHING;
     }
 
+    std::unique_lock<std::mutex> cameraLock(vis.cameraMutex);
+    AutoPtr<ICamera> camera = vis.camera->clone();
+    cameraLock.unlock();
+
     const float radius = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
-    const CameraRay ray = vis.camera->unproject(position);
+    const CameraRay ray = camera->unproject(Coords(position));
+    const float cutoff = camera->getCutoff().valueOr(0.f);
     const Vector dir = getNormalized(ray.target - ray.origin);
 
     struct {
@@ -379,14 +445,13 @@ Optional<Size> Controller::getIntersectedParticle(const Point position, const fl
         bool wasHitOutside = true;
     } first;
 
-    const Float cutoff = gui.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
     for (Size i = 0; i < vis.positions.size(); ++i) {
-        Optional<ProjectedPoint> p = vis.camera->project(vis.positions[i]);
+        Optional<ProjectedPoint> p = camera->project(vis.positions[i]);
         if (!p) {
             // particle not visible by the camera
             continue;
         }
-        if (cutoff != 0._f && abs(dot(vis.camera->getDirection(), vis.positions[i])) > cutoff) {
+        if (cutoff != 0._f && abs(dot(camera->getDirection(), vis.positions[i])) > cutoff) {
             // particle cut off by projection
             /// \todo This is really weird, we are duplicating code of ParticleRenderer in a function that
             /// really makes only sense with ParticleRenderer. Needs refactoring.
@@ -422,19 +487,32 @@ void Controller::setColorizer(const SharedPtr<IColorizer>& newColorizer) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     vis.colorizer = newColorizer;
     this->tryRedraw();
+
+    // update particle probe with the new colorizer
+    this->setSelectedParticle(vis.selectedParticle);
 }
 
 void Controller::setRenderer(AutoPtr<IRenderer>&& newRenderer) {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    vis.renderer = std::move(newRenderer);
-    if (status != Status::RUNNING) {
+    // CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+
+    auto func = [this, renderer = std::move(newRenderer)](
+                    const Storage& storage, const Statistics& UNUSED(stats)) mutable {
         ASSERT(sph.run);
-        SharedPtr<Storage> storage = sph.run->getStorage();
-        if (storage) {
-            vis.colorizer->initialize(*storage, RefEnum::STRONG);
-            vis.renderer->initialize(*storage, *vis.colorizer, *vis.camera);
-        }
-        window->Refresh();
+        std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
+        vis.renderer = std::move(renderer);
+        vis.colorizer->initialize(storage, RefEnum::STRONG);
+        vis.renderer->initialize(storage, *vis.colorizer, *vis.camera);
+        vis.refresh();
+    };
+
+    vis.renderer->cancelRender();
+    if (status != RunStatus::RUNNING) {
+        // if no simulation is running, it's safe to switch renderers and access storage directly
+        Statistics dummy;
+        func(*sph.run->getStorage(), dummy);
+    } else {
+        // if running, we have to switch renderers on next timestep
+        sph.onTimeStepCallbacks->push(std::move(func));
     }
 }
 
@@ -444,7 +522,7 @@ void Controller::setSelectedParticle(const Optional<Size>& particleIdx) {
 
     /// \todo if the colorizer is not initialized, we should selected the particle after the next timestep
     if (particleIdx && vis.colorizer->isInitialized()) {
-        const Color color = vis.colorizer->evalColor(particleIdx.value());
+        const Rgba color = vis.colorizer->evalColor(particleIdx.value());
         Optional<Particle> particle = vis.colorizer->getParticle(particleIdx.value());
         if (particle) {
             // add position to the particle data
@@ -453,7 +531,16 @@ void Controller::setSelectedParticle(const Optional<Size>& particleIdx) {
             return;
         }
     }
+
     window->deselectParticle();
+}
+
+void Controller::setPaletteOverride(const Palette palette) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+
+    Config::setPalette(vis.colorizer->name(), palette);
+    vis.colorizer->setPalette(palette);
+    this->tryRedraw();
 }
 
 Optional<Size> Controller::getSelectedParticle() const {
@@ -469,81 +556,96 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
 
     Array<SharedPtr<IColorizer>> colorizers;
     GuiSettings guiClone = gui;
-    guiClone.set(GuiSettingsId::RENDERER, gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER));
-    AutoPtr<IRenderer> renderer = Factory::getRenderer(guiClone);
+    guiClone.set(GuiSettingsId::RENDERER, gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER))
+        .set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 1);
+    AutoPtr<IRenderer> renderer = Factory::getRenderer(*ThreadPool::getGlobalInstance(), guiClone);
     // limit colorizer list for slower renderers
     switch (gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER)) {
     case RendererEnum::PARTICLE:
-        colorizers = this->getColorizerList(storage, true, {});
+        colorizers = this->getColorizerList(storage, true);
         break;
     case RendererEnum::MESH:
         colorizers = { Factory::getColorizer(gui, ColorizerId::VELOCITY) };
         break;
     case RendererEnum::RAYTRACER:
-        colorizers = { Factory::getColorizer(gui, ColorizerId::BEAUTY) };
+        colorizers = { Factory::getColorizer(gui, ColorizerId::VELOCITY) };
         break;
     default:
         STOP;
     }
-    const Point size(gui.get<int>(GuiSettingsId::IMAGES_WIDTH), gui.get<int>(GuiSettingsId::IMAGES_HEIGHT));
-    AutoPtr<ICamera> camera = Factory::getCamera(gui, size);
-    return makeShared<Movie>(gui, std::move(renderer), std::move(camera), std::move(colorizers), params);
+    const Pixel size(gui.get<int>(GuiSettingsId::IMAGES_WIDTH), gui.get<int>(GuiSettingsId::IMAGES_HEIGHT));
+    params.camera = Factory::getCamera(gui, size);
+    return makeShared<Movie>(gui, std::move(renderer), std::move(colorizers), std::move(params));
 }
 
 void Controller::redraw(const Storage& storage, Statistics& stats) {
     CHECK_FUNCTION(CheckFunction::NON_REENRANT);
-    auto functor = [&storage, &stats, this] { //
-        CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
 
-        // this lock makes sure we don't execute notify_one before getting to wait
-        std::unique_lock<std::mutex> lock(vis.mainThreadMutex);
-        vis.stats = makeAuto<Statistics>(stats);
-        vis.positions = copyable(storage.getValue<Vector>(QuantityId::POSITION));
+    vis.renderer->cancelRender();
+    std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
 
-        // initialize the currently selected colorizer
-        ASSERT(vis.isInitialized());
-        vis.colorizer->initialize(storage, RefEnum::STRONG);
+    vis.stats = makeAuto<Statistics>(stats);
+    vis.positions = copyable(storage.getValue<Vector>(QuantityId::POSITION));
 
-        // update the renderer with new data
-        vis.renderer->initialize(storage, *vis.colorizer, *vis.camera);
+    // initialize the currently selected colorizer
+    ASSERT(vis.isInitialized());
+    vis.colorizer->initialize(storage, RefEnum::STRONG);
 
-        // repaint the window
-        window->Refresh();
-        vis.mainThreadVar.notify_one();
-    };
-    if (isMainThread()) {
-        functor();
-    } else {
-        std::unique_lock<std::mutex> lock(vis.mainThreadMutex);
-        executeOnMainThread(functor);
-        vis.mainThreadVar.wait(lock);
-    }
+    // setup camera
+    ASSERT(vis.camera);
+    vis.cameraMutex.lock();
+    vis.camera->initialize(storage);
+    AutoPtr<ICamera> camera = vis.camera->clone();
+    vis.cameraMutex.unlock();
+
+    // update the renderer with new data
+    vis.renderer->initialize(storage, *vis.colorizer, *camera);
+
+    // notify the render thread that new data are available
+    vis.refresh();
 }
 
 void Controller::tryRedraw() {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    if (status != Status::RUNNING && vis.timer->isExpired()) {
+    if (status != RunStatus::RUNNING) {
         // we can safely access the storage
         ASSERT(sph.run);
         SharedPtr<Storage> storage = sph.run->getStorage();
         if (!storage) {
             return;
         }
+
+        vis.renderer->cancelRender();
+        std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
         vis.colorizer->initialize(*storage, RefEnum::STRONG);
-        vis.renderer->initialize(*storage, *vis.colorizer, *vis.camera);
+
+        vis.cameraMutex.lock();
+        AutoPtr<ICamera> camera = vis.camera->clone();
+        vis.cameraMutex.unlock();
+        vis.renderer->initialize(*storage, *vis.colorizer, *camera);
         vis.timer->restart();
-        window->Refresh();
+        vis.refresh();
     }
 }
 
-void Controller::run(const Path& path) {
+void Controller::refresh(AutoPtr<ICamera>&& camera) {
+    // invalidate camera, render will be restarted on next timestep
+    vis.renderer->cancelRender();
+    std::unique_lock<std::mutex> lock(vis.cameraMutex);
+    vis.camera = std::move(camera);
+    vis.refresh();
+}
+
+void Controller::startRunThread(const Path& path) {
     sph.thread = std::thread([this, path] {
+        sph.shouldContinue = true;
+
         try {
             // create storage and set up initial conditions
             sph.run->setUp();
         } catch (std::exception& e) {
-            executeOnMainThread([&e] { //
-                wxMessageBox(std::string("Invalid run setup: \n") + e.what(), "Fail", wxOK | wxCENTRE);
+            executeOnMainThread([desc = std::string(e.what())] { //
+                wxMessageBox(std::string("Invalid run setup: \n") + desc, "Fail", wxOK | wxCENTRE);
             });
             return;
         }
@@ -552,9 +654,10 @@ void Controller::run(const Path& path) {
 
         // if we want to resume run from state file, load the storage
         if (!path.empty()) {
-            BinaryOutput io;
+            ASSERT(path.extension() == Path("ssf"));
+            BinaryInput input;
             Statistics stats;
-            Outcome result = io.load(path, *storage, stats);
+            Outcome result = input.load(path, *storage, stats);
             if (!result) {
                 executeOnMainThread([result] {
                     wxMessageBox("Cannot resume the run: " + result.error(), "Error", wxOK | wxCENTRE);
@@ -570,7 +673,65 @@ void Controller::run(const Path& path) {
         sph.run->run();
 
         // set status to finished
-        status = Status::STOPPED;
+        status = RunStatus::STOPPED;
+    });
+}
+
+void Controller::startRenderThread() {
+    class RenderOutput : public IRenderOutput {
+    private:
+        Vis& vis;
+        RawPtr<MainWindow> window;
+
+    public:
+        RenderOutput(Vis& vis, RawPtr<MainWindow> window)
+            : vis(vis)
+            , window(window) {}
+
+        virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels) override {
+            if (vis.refreshPending) {
+                return;
+            }
+
+            auto callback = [this, bitmap = bitmap.clone(), labels = std::move(labels)] {
+                toWxBitmap(bitmap, *vis.bitmap);
+                wxMemoryDC dc(*vis.bitmap);
+                printLabels(dc, labels);
+                dc.SelectObject(wxNullBitmap);
+                window->Refresh();
+                vis.refreshPending = true;
+            };
+
+            executeOnMainThread(std::move(callback));
+        }
+    };
+
+    vis.renderThread = std::thread([this] {
+        RenderOutput output(vis, window);
+        while (status != RunStatus::QUITTING) {
+
+            // wait till render data are available
+            std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
+            vis.renderThreadVar.wait(renderLock, [this] { return vis.needsRefresh.load(); });
+            vis.needsRefresh = false;
+            ASSERT(vis.isInitialized());
+
+            const wxSize canvasSize = window->getCanvasSize();
+            RenderParams params;
+            params.size = Pixel(canvasSize.x, canvasSize.y);
+            params.particles.scale = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
+            params.particles.selected = vis.selectedParticle;
+            params.particles.grayScale = gui.get<bool>(GuiSettingsId::FORCE_GRAYSCALE);
+            params.surface.level = gui.get<Float>(GuiSettingsId::SURFACE_LEVEL);
+            params.surface.ambientLight = gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
+            params.surface.sunLight = gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY);
+
+            vis.cameraMutex.lock();
+            params.camera = vis.camera->clone();
+            vis.cameraMutex.unlock();
+
+            vis.renderer->render(params, *vis.stats, output);
+        }
     });
 }
 

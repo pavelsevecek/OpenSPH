@@ -5,11 +5,11 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "common/ForwardDecl.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "physics/Constants.h"
-#include "sph/Materials.h"
-#include "sph/equations/Derivative.h"
-#include "system/Profiler.h"
+#include "quantities/Storage.h"
+#include <typeinfo>
 
 NAMESPACE_SPH_BEGIN
 
@@ -32,50 +32,18 @@ public:
     /// Called at the beginning of every time step. Note that derivatives need not be zeroed out manually,
     /// this is already done by timestepping (for derivatives of quantities) and solver (for accumulated
     /// values).
-    virtual void initialize(Storage& storage, ThreadPool& pool) = 0;
+    virtual void initialize(IScheduler& scheduler, Storage& storage) = 0;
 
     /// \brief Computes all the derivatives and/or quantity values based on accumulated derivatives.
     ///
     /// Called every time step after derivatives are evaluated and saved to storage.
-    virtual void finalize(Storage& storage, ThreadPool& pool) = 0;
+    virtual void finalize(IScheduler& scheduler, Storage& storage) = 0;
 
     /// \brief Creates all quantities needed by the term using given material.
     ///
     /// Called once for every body in the simulation.
     virtual void create(Storage& storage, IMaterial& material) const = 0;
 };
-
-
-/// \brief Discretization of pressure term in standard SPH formulation.
-class StandardForceDiscr {
-    ArrayView<const Float> rho;
-
-public:
-    void initialize(const Storage& input) {
-        rho = input.getValue<Float>(QuantityId::DENSITY);
-    }
-
-    template <typename T>
-    INLINE T eval(const Size i, const Size j, const T& vi, const T& vj) {
-        return vi / sqr(rho[i]) + vj / sqr(rho[j]);
-    }
-};
-
-/// \brief Discretization of pressure term in code SPH5
-class BenzAsphaugForceDiscr {
-    ArrayView<const Float> rho;
-
-public:
-    void initialize(const Storage& input) {
-        rho = input.getValue<Float>(QuantityId::DENSITY);
-    }
-
-    template <typename T>
-    INLINE T eval(const Size i, const Size j, const T& vi, const T& vj) {
-        return (vi + vj) / (rho[i] * rho[j]);
-    }
-};
-
 
 /// \brief Evolutionary equation for the (scalar) smoothing length
 ///
@@ -111,9 +79,9 @@ public:
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(Storage& storage, ThreadPool& pool) override;
+    virtual void initialize(IScheduler& scheduler, Storage& storage) override;
 
-    virtual void finalize(Storage& storage, ThreadPool& pool) override;
+    virtual void finalize(IScheduler& scheduler, Storage& storage) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 
@@ -145,9 +113,9 @@ class PressureForce : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(Storage& storage, ThreadPool& pool) override;
+    virtual void initialize(IScheduler& scheduler, Storage& storage) override;
 
-    virtual void finalize(Storage& storage, ThreadPool& pool) override;
+    virtual void finalize(IScheduler& scheduler, Storage& storage) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 };
@@ -186,9 +154,9 @@ public:
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(Storage& storage, ThreadPool& pool) override;
+    virtual void initialize(IScheduler& scheduler, Storage& storage) override;
 
-    virtual void finalize(Storage& storage, ThreadPool& pool) override;
+    virtual void finalize(IScheduler& scheduler, Storage& storage) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 };
@@ -200,9 +168,9 @@ class NavierStokesForce : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(Storage& storage, ThreadPool& pool) override;
+    virtual void initialize(IScheduler& scheduler, Storage& storage) override;
 
-    virtual void finalize(Storage& storage, ThreadPool& pool) override;
+    virtual void finalize(IScheduler& scheduler, Storage& storage) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 };
@@ -226,12 +194,17 @@ public:
 /// summation (see \ref SummationSolver) or SPH formulation without solving the density (see \ref
 /// DensityIndependentSolver).
 class ContinuityEquation : public IEquationTerm {
+private:
+    bool useUndamaged;
+
 public:
+    explicit ContinuityEquation(const RunSettings& settings);
+
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(Storage& storage, ThreadPool& pool) override;
+    virtual void initialize(IScheduler& scheduler, Storage& storage) override;
 
-    virtual void finalize(Storage& storage, ThreadPool& pool) override;
+    virtual void finalize(IScheduler& scheduler, Storage& storage) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 };
@@ -250,15 +223,15 @@ class ConstSmoothingLength : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(Storage& storage, ThreadPool& pool) override;
+    virtual void initialize(IScheduler& scheduler, Storage& storage) override;
 
-    virtual void finalize(Storage& storage, ThreadPool& pool) override;
+    virtual void finalize(IScheduler& scheduler, Storage& storage) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 };
 
 
-/// \brief Container holding equation terms
+/// \brief Container holding equation terms.
 ///
 /// Holds an array of equation terms. The object also defines operators for adding more equation
 /// terms and functions \ref initialize, \ref finalize and \ref create, calling corresponding
@@ -311,18 +284,16 @@ public:
     }
 
     /// Calls \ref EquationTerm::initialize for all stored equation terms.
-    void initialize(Storage& storage, ThreadPool& pool) {
-        PROFILE_SCOPE("EquationHolder::initialize");
+    void initialize(IScheduler& scheduler, Storage& storage) {
         for (auto& t : terms) {
-            t->initialize(storage, pool);
+            t->initialize(scheduler, storage);
         }
     }
 
     /// Calls \ref EquationTerm::finalize for all stored equation terms.
-    void finalize(Storage& storage, ThreadPool& pool) {
-        PROFILE_SCOPE("EquationHolder::finalize");
+    void finalize(IScheduler& scheduler, Storage& storage) {
         for (auto& t : terms) {
-            t->finalize(storage, pool);
+            t->finalize(scheduler, storage);
         }
     }
 

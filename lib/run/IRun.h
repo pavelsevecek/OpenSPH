@@ -15,9 +15,11 @@
 NAMESPACE_SPH_BEGIN
 
 class IRunCallbacks;
-class ILogFile;
+class ILogWriter;
+class IScheduler;
 class IOutput;
 class ITrigger;
+class IDiagnostic;
 
 /// \brief Defines the interface for a run.
 ///
@@ -48,8 +50,14 @@ protected:
     /// Logging
     SharedPtr<ILogger> logger;
 
+    /// Writes statistics into logger every timestep
+    AutoPtr<ILogWriter> logWriter;
+
     /// Stores all SPH particles
     SharedPtr<Storage> storage;
+
+    /// Scheduler used for parallelization.
+    SharedPtr<IScheduler> scheduler;
 
     /// Timestepping
     AutoPtr<ITimeStepping> timeStepping;
@@ -59,6 +67,9 @@ protected:
 
     /// Triggers
     List<AutoPtr<ITrigger>> triggers;
+
+    /// Diagnostics
+    Array<AutoPtr<IDiagnostic>> diagnostics;
 
 public:
     IRun();
@@ -71,18 +82,21 @@ public:
     /// \brief Starts the run.
     ///
     /// Function assumes that \ref setUp has been called (at least once).
+    /// \todo remove the virtual
     virtual void run();
 
     virtual SharedPtr<Storage> getStorage() const;
 
 protected:
-    /// Called after the run, saves all necessary data, logs run statistics, etc. Is called at the end of
-    /// \ref run function.
-    virtual void tearDown() = 0;
+    /// \brief Called after the run
+    ///
+    /// Used to save the necessary data, log run statistics, etc. Is called at the end of \ref run function.
+    /// \param stats Run statistics at the end of the run.
+    virtual void tearDown(const Statistics& stats) = 0;
 
     void setNullToDefaults();
 
-    void tearDownInternal();
+    void tearDownInternal(Statistics& stats);
 };
 
 NAMESPACE_SPH_END
