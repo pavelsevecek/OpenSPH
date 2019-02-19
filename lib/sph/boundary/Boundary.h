@@ -204,14 +204,16 @@ public:
 };
 
 /// \brief Boundary condition moving all particles passed through the domain to the other side of the domain.
-class PeriodicDomain : public IBoundaryCondition {
+class PeriodicBoundary : public IBoundaryCondition {
 private:
     Box domain;
 
     AutoPtr<IBoundaryCondition> additional;
 
 public:
-    PeriodicDomain(const Box& domain, AutoPtr<IBoundaryCondition>&& additional);
+    PeriodicBoundary(const Box& domain, AutoPtr<IBoundaryCondition>&& additional)
+        : domain(domain)
+        , additional(std::move(additional)) {}
 
     virtual void initialize(Storage& storage) override {
         ArrayView<Vector> positions = storage.getValue<Vector>(QuantityId::POSITION);

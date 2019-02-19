@@ -42,8 +42,6 @@ Outcome sendMail(const std::string& to,
     return SUCCESS;
 }
 
-/// Shows a notification using 'notify-send' command. The function is non-blocking, the notification
-/// disappears on timeout or when user hides it.
 Outcome showNotification(const std::string& title, const std::string& message) {
     std::string command = "notify-send \"" + title + "\" \"" + message + "\"";
     if (system(command.c_str())) {
@@ -53,8 +51,16 @@ Outcome showNotification(const std::string& title, const std::string& message) {
     }
 }
 
-/// Returns current git commit hash as string. If the git repository is not found or command fails, returns
-/// empty string.
+Outcome sendPushNotification(const std::string& key, const std::string& title, const std::string& message) {
+    std::string command = "curl --data 'key=" + key + "&title=" + title + "&msg=" + message +
+                          "' https://api.simplepush.io/send > /dev/null 2> /dev/null";
+    if (system(command.c_str())) {
+        return SUCCESS;
+    } else {
+        return "Command failed";
+    }
+}
+
 Expected<std::string> getGitCommit(const Path& pathToGitRoot, const Size prev) {
     if (!FileSystem::pathExists(pathToGitRoot)) {
         return makeUnexpected<std::string>("Invalid path");

@@ -8,7 +8,9 @@
 #include "objects/Exceptions.h"
 #include "objects/utility/StringUtils.h"
 #include "timestepping/ISolver.h"
+#include <wx/dcclient.h>
 #include <wx/msgdlg.h>
+#include <wx/panel.h>
 #include <wx/sizer.h>
 #include <wx/slider.h>
 #include <wx/stattext.h>
@@ -35,11 +37,29 @@ static AutoPtr<IInput> getInput(const Path& path) {
     throw InvalidSetup("Unknown file type: " + path.native());
 }
 
+static Size getFileCount(const Path& pathMask) {
+    OutputFile of(pathMask);
+    if (!of.hasWildcard()) {
+        return FileSystem::pathExists(pathMask) ? 1 : 0;
+    }
+    Size cnt = 0;
+    Statistics stats;
+    while (true) {
+        Path path = of.getNextPath(stats);
+        if (FileSystem::pathExists(path)) {
+            ++cnt;
+        } else {
+            break;
+        }
+    }
+    return cnt;
+}
+
 void RunPlayer::setUp() {
     logger = makeAuto<StdOutLogger>();
 
     files = OutputFile(fileMask);
-    fileCnt = this->getFileCount(fileMask);
+    fileCnt = getFileCount(fileMask);
 
     if (fileCnt > 1) {
         logger->write("Loading sequence of ", fileCnt, " files");
@@ -73,24 +93,6 @@ void RunPlayer::setUp() {
         virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
     };
     solver = makeAuto<PlayerSolver>();
-}
-
-Size RunPlayer::getFileCount(const Path& pathMask) const {
-    OutputFile of(pathMask);
-    if (!of.hasWildcard()) {
-        return FileSystem::pathExists(pathMask) ? 1 : 0;
-    }
-    Size cnt = 0;
-    Statistics stats;
-    while (true) {
-        Path path = of.getNextPath(stats);
-        if (FileSystem::pathExists(path)) {
-            ++cnt;
-        } else {
-            break;
-        }
-    }
-    return cnt;
 }
 
 void RunPlayer::run() {
@@ -142,12 +144,47 @@ void RunPlayer::run() {
 
 void RunPlayer::tearDown(const Statistics& UNUSED(stats)) {}
 
-class PlayerPlugin : public IPluginControls {
+class TimeLinePanel : public wxPanel {
+private:
+    int fileCnt;
+
 public:
+    TimeLinePanel(wxWindow* parent, const Size fileCnt)
+        : wxPanel(parent, wxID_ANY)
+        , fileCnt(int(fileCnt)) {
+
+        this->SetMinSize(wxSize(parent->GetSize().x, 100));
+        Connect(wxEVT_PAINT, wxPaintEventHandler(TimeLinePanel::onPaint));
+    }
+
+private:
+    void onPaint(wxPaintEvent& UNUSED(evt)) {
+        wxPaintDC dc(this);
+        const wxSize size = dc.GetSize();
+        dc.SetBrush(*wxBLACK_BRUSH);
+        dc.DrawRectangle(wxPoint(0, 0), size);
+
+        for (int i = 0; i < fileCnt; ++i) {
+            const int x = i * size.x / (fileCnt - 1);
+            dc.DrawLine(wxPoint(x, 0), wxPoint(x, size.y));
+        }
+    }
+};
+
+class TimeLinePlugin : public IPluginControls {
+private:
+    Size fileCnt;
+
+public:
+    TimeLinePlugin(const Size fileCnt)
+        : fileCnt(fileCnt) {}
+
     virtual void create(wxWindow* parent, wxSizer* sizer) override {
-        wxSlider* slider = new wxSlider(parent, wxID_ANY, 0, 0, 100);
+        /*wxSlider* slider = new wxSlider(parent, wxID_ANY, 0, 0, 100);
         slider->SetSize(wxSize(800, 100));
-        sizer->Add(slider);
+        sizer->Add(slider);*/
+        TimeLinePanel* panel = alignedNew<TimeLinePanel>(parent, fileCnt);
+        sizer->Add(panel);
     }
 
     virtual void statusChanges(const RunStatus UNUSED(newStatus)) override {}
@@ -263,7 +300,7 @@ bool App::OnInit() {
         gui.saveToFile(Path("gui.sph"));
     }*/
 
-    controller = makeAuto<Controller>(gui, makeAuto<PlayerPlugin>());
+    controller = makeAuto<Controller>(gui, makeAuto<TimeLinePlugin>(10));
 
     AutoPtr<RunPlayer> run = makeAuto<RunPlayer>(fileMask);
     run->setController(controller.get());

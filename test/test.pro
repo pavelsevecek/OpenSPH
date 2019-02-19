@@ -148,7 +148,8 @@ SOURCES += \
     ../lib/gravity/test/CachedGravity.cpp \
     ../lib/run/test/IRun.cpp \
     ../lib/run/test/Collision.cpp \
-    ../lib/system/test/Crashpad.cpp
+    ../lib/system/test/Crashpad.cpp \
+    ../lib/objects/finders/test/PeriodicFinder.cpp
 
 HEADERS += \
     utils/Utils.h \

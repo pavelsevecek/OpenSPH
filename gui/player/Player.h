@@ -40,8 +40,6 @@ public:
 
 protected:
     virtual void tearDown(const Statistics& stats) override;
-
-    Size getFileCount(const Path& pathMask) const;
 };
 
 class App : public wxApp {

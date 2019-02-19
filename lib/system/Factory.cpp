@@ -382,6 +382,10 @@ AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& se
         const Box box = domain->getBoundingBox();
         return makeAuto<Projection1D>(Interval(box.lower()[X], box.upper()[X]));
     }
+    case BoundaryEnum::PERIODIC: {
+        const Box box = domain->getBoundingBox();
+        return makeAuto<PeriodicBoundary>(box, nullptr);
+    }
     default:
         NOT_IMPLEMENTED;
     }
