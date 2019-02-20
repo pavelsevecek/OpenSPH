@@ -174,23 +174,21 @@ MainWindow::MainWindow(Controller* parent, const GuiSettings& settings, RawPtr<I
     mainSizer->Add(visBarSizer);
     mainSizer->AddSpacer(5);
 
+    wxBoxSizer* middleSizer = new wxBoxSizer(wxVERTICAL);
     pane = alignedNew<OrthoPane>(this, parent, settings);
-    mainSizer->Add(pane.get(), 4);
+    middleSizer->Add(pane.get(), 4);
+
+    /// \todo generalize window setup
+    if (plugin) {
+        plugin->create(this, middleSizer);
+    }
+    mainSizer->Add(middleSizer);
     mainSizer->AddSpacer(5);
 
     wxBoxSizer* sidebarSizer = createPlotBar();
     mainSizer->Add(sidebarSizer);
     sizer->Add(mainSizer);
 
-    /// \todo generalize window setup
-    if (plugin) {
-        plugin->create(this, sizer);
-    } else {
-        // status bar
-        sizer->AddSpacer(5);
-        wxBoxSizer* statusSizer = createStatusBar();
-        sizer->Add(statusSizer);
-    }
 
     this->SetSizer(sizer);
     this->Layout();
@@ -250,7 +248,7 @@ wxBoxSizer* MainWindow::createToolBar() {
         saveToFile(bitmap, path.value());
     });
 
-    toolbar->AddSpacer(480);
+    toolbar->AddSpacer(504);
 
     quantityBox = new wxComboBox(this, wxID_ANY, "");
     quantityBox->SetWindowStyle(wxCB_SIMPLE | wxCB_READONLY);

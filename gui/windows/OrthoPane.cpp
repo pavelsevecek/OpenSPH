@@ -16,8 +16,8 @@ NAMESPACE_SPH_BEGIN
 OrthoPane::OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings& UNUSED(gui))
     : IGraphicsPane(parent)
     , controller(controller) {
-    /// \todo weird hack, but seems to correctly expand the pane
-    this->SetMinSize(wxSize(10000, 10000));
+    /// \todo auto-expand
+    this->SetMinSize(wxSize(1024, 900));
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(OrthoPane::onPaint));
     this->Connect(wxEVT_MOTION, wxMouseEventHandler(OrthoPane::onMouseMotion));
     this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(OrthoPane::onMouseWheel));

@@ -7,6 +7,7 @@
 #include "io/Logger.h"
 #include "objects/Exceptions.h"
 #include "objects/utility/StringUtils.h"
+#include "thread/CheckFunction.h"
 #include "timestepping/ISolver.h"
 #include <wx/dcclient.h>
 #include <wx/msgdlg.h>
@@ -146,48 +147,108 @@ void RunPlayer::tearDown(const Statistics& UNUSED(stats)) {}
 
 class TimeLinePanel : public wxPanel {
 private:
+    Path fileMask;
+    Function<void(Path)> onFrameChanged;
+
     int fileCnt;
+    int currentFrame = 0; /// \todo somehow propagate this from the simulation
+    int mouseFrame = 0;
 
 public:
-    TimeLinePanel(wxWindow* parent, const Size fileCnt)
+    TimeLinePanel(wxWindow* parent, const Path inputFile, Function<void(Path)> onFrameChanged)
         : wxPanel(parent, wxID_ANY)
+        , onFrameChanged(onFrameChanged)
         , fileCnt(int(fileCnt)) {
 
-        this->SetMinSize(wxSize(parent->GetSize().x, 100));
-        Connect(wxEVT_PAINT, wxPaintEventHandler(TimeLinePanel::onPaint));
+        OutputFile outputFile(inputFile);
+        if (outputFile.hasWildcard()) {
+            // already a mask
+            fileMask = inputFile;
+        } else {
+            Optional<OutputFile> deducedFile = OutputFile::getMaskFromPath(inputFile);
+            ASSERT(deducedFile); /// \todo message box
+            fileMask = deducedFile->getMask();
+            currentFrame = OutputFile::getDumpIdx(inputFile).valueOr(0);
+        }
+        fileCnt = getFileCount(fileMask);
+
+        this->SetMinSize(wxSize(1024, 60));
+        this->Connect(wxEVT_PAINT, wxPaintEventHandler(TimeLinePanel::onPaint));
+        this->Connect(wxEVT_MOTION, wxMouseEventHandler(TimeLinePanel::onMouseMotion));
+        this->Connect(wxEVT_LEFT_UP, wxMouseEventHandler(TimeLinePanel::onLeftClick));
     }
 
 private:
+    int positionToFrame(const wxPoint position) const {
+        wxSize size = this->GetSize();
+        return int(roundf(float(position.x) * (fileCnt - 1) / size.x));
+    }
+
     void onPaint(wxPaintEvent& UNUSED(evt)) {
         wxPaintDC dc(this);
         const wxSize size = dc.GetSize();
-        dc.SetBrush(*wxBLACK_BRUSH);
+        /// \todo deduplicate
+        Rgba backgroundColor = Rgba(this->GetParent()->GetBackgroundColour());
+        wxBrush brush;
+        brush.SetColour(wxColour(backgroundColor.darken(0.2_f)));
+        dc.SetBrush(brush);
         dc.DrawRectangle(wxPoint(0, 0), size);
 
+        wxPen pen = *wxBLACK_PEN;
         for (int i = 0; i < fileCnt; ++i) {
+            if (i == currentFrame) {
+                pen.SetColour(wxColour(255, 80, 0));
+            } else if (i == mouseFrame) {
+                pen.SetColour(wxColour(128, 128, 128));
+            } else {
+                pen.SetColour(*wxBLACK);
+            }
+            dc.SetPen(pen);
             const int x = i * size.x / (fileCnt - 1);
             dc.DrawLine(wxPoint(x, 0), wxPoint(x, size.y));
         }
+    }
+
+    void onMouseMotion(wxMouseEvent& evt) {
+        mouseFrame = positionToFrame(evt.GetPosition());
+        this->Refresh();
+    }
+
+    void onLeftClick(wxMouseEvent& evt) {
+        currentFrame = positionToFrame(evt.GetPosition());
+
+        OutputFile newFile(fileMask, currentFrame);
+        Statistics stats;
+        onFrameChanged(newFile.getNextPath(stats));
     }
 };
 
 class TimeLinePlugin : public IPluginControls {
 private:
-    Size fileCnt;
+    Path fileMask;
+    Function<void(Path)> onFrameChanged;
+
+    TimeLinePanel* panel;
 
 public:
-    TimeLinePlugin(const Size fileCnt)
-        : fileCnt(fileCnt) {}
+    TimeLinePlugin(const Path& fileMask, Function<void(Path)> onFrameChanged)
+        : fileMask(fileMask)
+        , onFrameChanged(onFrameChanged) {}
 
     virtual void create(wxWindow* parent, wxSizer* sizer) override {
         /*wxSlider* slider = new wxSlider(parent, wxID_ANY, 0, 0, 100);
         slider->SetSize(wxSize(800, 100));
         sizer->Add(slider);*/
-        TimeLinePanel* panel = alignedNew<TimeLinePanel>(parent, fileCnt);
+        panel = alignedNew<TimeLinePanel>(parent, fileMask, onFrameChanged);
+        sizer->AddSpacer(5);
         sizer->Add(panel);
+        sizer->AddSpacer(5);
     }
 
-    virtual void statusChanges(const RunStatus UNUSED(newStatus)) override {}
+    virtual void statusChanges(const RunStatus UNUSED(newStatus)) override {
+        CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+        panel->Refresh();
+    }
 };
 
 bool App::OnInit() {
@@ -226,7 +287,7 @@ bool App::OnInit() {
         .set(GuiSettingsId::VIEW_HEIGHT, 768)
         .set(GuiSettingsId::IMAGES_WIDTH, 1024)
         .set(GuiSettingsId::IMAGES_HEIGHT, 768)
-        .set(GuiSettingsId::WINDOW_WIDTH, 1600)
+        .set(GuiSettingsId::WINDOW_WIDTH, 1630)
         .set(GuiSettingsId::WINDOW_HEIGHT, 768)
         .set(GuiSettingsId::WINDOW_TITLE,
             std::string("OpenSPH viewer - ") + path.native() + " (build: " + __DATE__ + ")")
@@ -300,7 +361,13 @@ bool App::OnInit() {
         gui.saveToFile(Path("gui.sph"));
     }*/
 
-    controller = makeAuto<Controller>(gui, makeAuto<TimeLinePlugin>(10));
+    /// \todo this is ridiculous, but it will do for now
+    auto callback = [this](const Path& newPath) {
+        AutoPtr<RunPlayer> newRun = makeAuto<RunPlayer>(newPath);
+        newRun->setController(controller.get());
+        controller->start(std::move(newRun));
+    };
+    controller = makeAuto<Controller>(gui, makeAuto<TimeLinePlugin>(fileMask, callback));
 
     AutoPtr<RunPlayer> run = makeAuto<RunPlayer>(fileMask);
     run->setController(controller.get());

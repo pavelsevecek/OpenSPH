@@ -271,6 +271,8 @@ void Controller::update(const Storage& storage) {
     executeOnMainThread([this, &storage] { //
         window->runStarted();
         window->setColorizerList(this->getColorizerList(storage, false));
+        /// \todo probably not the best place for this
+        plugin->statusChanges(status);
     });
 
     // draw initial positions of particles
