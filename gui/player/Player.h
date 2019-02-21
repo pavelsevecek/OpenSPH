@@ -26,8 +26,10 @@ private:
 
     Float loadedTime;
 
+    Function<void(int)> onNewFrame;
+
 public:
-    RunPlayer(const Path& fileMask);
+    RunPlayer(const Path& fileMask, Function<void(int)> onNewFrame);
 
     void setController(RawPtr<Controller> newController) {
         controller = newController;

@@ -20,8 +20,9 @@ IMPLEMENT_APP(Sph::App);
 
 NAMESPACE_SPH_BEGIN
 
-RunPlayer::RunPlayer(const Path& fileMask)
-    : fileMask(fileMask) {}
+RunPlayer::RunPlayer(const Path& fileMask, Function<void(int)> onNewFrame)
+    : fileMask(fileMask)
+    , onNewFrame(onNewFrame) {}
 
 /// \todo possibly move to Factory
 static AutoPtr<IInput> getInput(const Path& path) {
@@ -123,6 +124,9 @@ void RunPlayer::run() {
                 });
             }
             logger->write("Loaded ", path.native(), " in ", loadTimer.elapsed(TimerUnit::MILLISECOND), " ms");
+            if (onNewFrame) {
+                onNewFrame(i + 1); // we started from i=0, but that was already a second frame
+            }
             // setupUvws(*storage);
 
             const Size elapsed = stepTimer.elapsed(TimerUnit::MILLISECOND);
@@ -166,16 +170,26 @@ public:
             fileMask = inputFile;
         } else {
             Optional<OutputFile> deducedFile = OutputFile::getMaskFromPath(inputFile);
-            ASSERT(deducedFile); /// \todo message box
-            fileMask = deducedFile->getMask();
-            currentFrame = OutputFile::getDumpIdx(inputFile).valueOr(0);
+            if (!deducedFile) {
+                // just a single file, not part of a sequence (e.g. frag_final.ssf)
+                fileMask = inputFile;
+            } else {
+                fileMask = deducedFile->getMask();
+                currentFrame = OutputFile::getDumpIdx(inputFile).valueOr(0);
+            }
         }
         fileCnt = getFileCount(fileMask);
 
-        this->SetMinSize(wxSize(1024, 60));
+        this->SetMinSize(wxSize(1024, 50));
         this->Connect(wxEVT_PAINT, wxPaintEventHandler(TimeLinePanel::onPaint));
         this->Connect(wxEVT_MOTION, wxMouseEventHandler(TimeLinePanel::onMouseMotion));
         this->Connect(wxEVT_LEFT_UP, wxMouseEventHandler(TimeLinePanel::onLeftClick));
+        this->Connect(wxEVT_KEY_UP, wxKeyEventHandler(TimeLinePanel::onKeyUp));
+    }
+
+    void setFrame(const int newFrame) {
+        currentFrame = newFrame;
+        this->Refresh();
     }
 
 private:
@@ -189,23 +203,53 @@ private:
         const wxSize size = dc.GetSize();
         /// \todo deduplicate
         Rgba backgroundColor = Rgba(this->GetParent()->GetBackgroundColour());
-        wxBrush brush;
-        brush.SetColour(wxColour(backgroundColor.darken(0.2_f)));
-        dc.SetBrush(brush);
-        dc.DrawRectangle(wxPoint(0, 0), size);
-
         wxPen pen = *wxBLACK_PEN;
+        pen.SetWidth(2);
+        wxBrush brush;
+        wxColour fillColor(backgroundColor.darken(0.3f));
+        brush.SetColour(fillColor);
+        pen.SetColour(fillColor);
+
+        dc.SetBrush(brush);
+        dc.SetPen(pen);
+        dc.DrawRectangle(wxPoint(0, 0), size);
+        dc.SetTextForeground(wxColour(255, 255, 255));
+        wxFont font = dc.GetFont();
+        font.MakeSmaller();
+        dc.SetFont(font);
+
+
+        if (fileCnt == 1) {
+            // nothing to draw
+            return;
+        }
+
+        const int step = max((fileCnt / 100) * 5, 1);
         for (int i = 0; i < fileCnt; ++i) {
+            bool keyframe = (i % step == 0);
+            bool doFull = keyframe;
             if (i == currentFrame) {
                 pen.SetColour(wxColour(255, 80, 0));
+                doFull = true;
             } else if (i == mouseFrame) {
                 pen.SetColour(wxColour(128, 128, 128));
+                doFull = true;
             } else {
-                pen.SetColour(*wxBLACK);
+                // pen.SetColour(wxColour(20, 20, 20));
+                pen.SetColour(wxColour(backgroundColor));
             }
             dc.SetPen(pen);
             const int x = i * size.x / (fileCnt - 1);
-            dc.DrawLine(wxPoint(x, 0), wxPoint(x, size.y));
+            if (doFull) {
+                dc.DrawLine(wxPoint(x, 0), wxPoint(x, size.y));
+            } else {
+                dc.DrawLine(wxPoint(x, 0), wxPoint(x, 5));
+                dc.DrawLine(wxPoint(x, size.y - 5), wxPoint(x, size.y));
+            }
+
+            if (keyframe) {
+                dc.DrawText(std::to_string(i), wxPoint(x + 3, size.y - 20));
+            }
         }
     }
 
@@ -216,7 +260,25 @@ private:
 
     void onLeftClick(wxMouseEvent& evt) {
         currentFrame = positionToFrame(evt.GetPosition());
+        reload();
+    }
 
+    void onKeyUp(wxKeyEvent& evt) {
+        switch (evt.GetKeyCode()) {
+        case WXK_LEFT:
+            currentFrame = max(currentFrame - 1, 0);
+            reload();
+            break;
+        case WXK_RIGHT:
+            currentFrame = min(currentFrame + 1, fileCnt - 1);
+            reload();
+            break;
+        default:
+            break;
+        }
+    }
+
+    void reload() {
         OutputFile newFile(fileMask, currentFrame);
         Statistics stats;
         onFrameChanged(newFile.getNextPath(stats));
@@ -248,6 +310,10 @@ public:
     virtual void statusChanges(const RunStatus UNUSED(newStatus)) override {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         panel->Refresh();
+    }
+
+    void setFrame(const int newFrame) {
+        panel->setFrame(newFrame);
     }
 };
 
@@ -330,7 +396,9 @@ bool App::OnInit() {
         .set(GuiSettingsId::PALETTE_ENERGY, Interval(100._f, 5.e4_f))
         .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
         .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))*/
-        .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::KINETIC_ENERGY)
+        .set(GuiSettingsId::PLOT_INTEGRALS,
+            PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY | PlotEnum::TOTAL_MOMENTUM |
+                PlotEnum::TOTAL_ANGULAR_MOMENTUM)
         .set(GuiSettingsId::PLOT_OVERPLOT_SFD, std::string("/home/pavel/Dropbox/family.dat_hc"));
 
     if (runType == RunTypeEnum::NBODY) {
@@ -363,15 +431,19 @@ bool App::OnInit() {
 
     /// \todo this is ridiculous, but it will do for now
     auto callback = [this](const Path& newPath) {
-        AutoPtr<RunPlayer> newRun = makeAuto<RunPlayer>(newPath);
+        AutoPtr<RunPlayer> newRun = makeAuto<RunPlayer>(newPath, nullptr);
         newRun->setController(controller.get());
         controller->start(std::move(newRun));
     };
-    controller = makeAuto<Controller>(gui, makeAuto<TimeLinePlugin>(fileMask, callback));
 
-    AutoPtr<RunPlayer> run = makeAuto<RunPlayer>(fileMask);
+    AutoPtr<TimeLinePlugin> plugin = makeAuto<TimeLinePlugin>(fileMask, callback);
+    auto onNewFrame = [plugin = plugin.get()](int newFrame) { plugin->setFrame(newFrame); };
+    controller = makeAuto<Controller>(gui, std::move(plugin));
+
+    AutoPtr<RunPlayer> run = makeAuto<RunPlayer>(fileMask, onNewFrame);
     run->setController(controller.get());
     controller->start(std::move(run));
+
     return true;
 }
 

@@ -272,7 +272,9 @@ void Controller::update(const Storage& storage) {
         window->runStarted();
         window->setColorizerList(this->getColorizerList(storage, false));
         /// \todo probably not the best place for this
-        plugin->statusChanges(status);
+        if (plugin) {
+            plugin->statusChanges(status);
+        }
     });
 
     // draw initial positions of particles

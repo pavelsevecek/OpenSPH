@@ -104,7 +104,7 @@ void PlotView::onPaint(wxPaintEvent& UNUSED(evt)) {
     // draw background
     Rgba backgroundColor = Rgba(this->GetParent()->GetBackgroundColour());
     wxBrush brush;
-    brush.SetColour(wxColour(backgroundColor.darken(0.2_f)));
+    brush.SetColour(wxColour(backgroundColor.darken(0.3f)));
     dc.SetBrush(brush);
     dc.DrawRectangle(wxPoint(0, 0), canvasSize);
 
