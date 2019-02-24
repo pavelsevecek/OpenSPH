@@ -1017,13 +1017,57 @@ private:
     ArrayRef<const Float> m;
     ArrayRef<const Vector> r, v;
 
+    Optional<Size> highlightIdx;
+
+    /// \todo hacked optimization to avoid rebuilding the colorizer if only highlight idx changed. Should be
+    /// done more generally and with lower memory footprint
+    struct {
+        Array<Vector> r;
+    } cached;
+
 public:
-    explicit ComponentIdColorizer(const GuiSettings& gui, const Flags<Post::ComponentFlag> connectivity)
+    explicit ComponentIdColorizer(const GuiSettings& gui,
+        const Flags<Post::ComponentFlag> connectivity,
+        const Optional<Size> highlightIdx = NOTHING)
         : IdColorizerTemplate<ComponentIdColorizer>(gui)
-        , connectivity(connectivity) {}
+        , connectivity(connectivity)
+        , highlightIdx(highlightIdx) {}
+
+    void setHighlightIdx(const Optional<Size> newHighlightIdx) {
+        if (newHighlightIdx) {
+            highlightIdx = min(newHighlightIdx.value(), components.size() - 1);
+        } else {
+            highlightIdx = NOTHING;
+        }
+    }
+
+    Optional<Size> getHighlightIdx() const {
+        return highlightIdx;
+    }
+
+    void setConnectivity(const Flags<Post::ComponentFlag> newConnectivity) {
+        connectivity = newConnectivity;
+        cached.r.clear();
+    }
+
+    Flags<Post::ComponentFlag> getConnectivity() const {
+        return connectivity;
+    }
 
     INLINE Optional<Size> evalId(const Size idx) const {
         return components[idx];
+    }
+
+    virtual Rgba evalColor(const Size idx) const override {
+        if (highlightIdx) {
+            if (highlightIdx.value() == components[idx]) {
+                return Rgba(1.f, 0.65, 0.f);
+            } else {
+                return Rgba::gray(0.3f);
+            }
+        } else {
+            return IdColorizerTemplate<ComponentIdColorizer>::evalColor(idx);
+        }
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
@@ -1037,15 +1081,25 @@ public:
                 indices.push(i);
             }
         }
-        const Vector omega = Post::getAngularFrequency(m, r, v, indices);
-        particle.addValue(QuantityId::ANGULAR_FREQUENCY, getLength(omega));
+        if (indices.size() > 1) {
+            const Vector omega = Post::getAngularFrequency(m, r, v, indices);
+            particle.addValue(QuantityId::ANGULAR_FREQUENCY, getLength(omega));
+        }
         return particle;
     }
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
+        const Array<Vector>& current = storage.getValue<Vector>(QuantityId::POSITION);
+        if (current == cached.r) {
+            // optimization, very poorly done
+            return;
+        }
+
         m = makeArrayRef(storage.getValue<Float>(QuantityId::MASS), ref);
         r = makeArrayRef(storage.getValue<Vector>(QuantityId::POSITION), ref);
         v = makeArrayRef(storage.getDt<Vector>(QuantityId::POSITION), ref);
+
+        cached.r = current.clone();
 
         Post::findComponents(storage, 2._f, connectivity, components);
     }

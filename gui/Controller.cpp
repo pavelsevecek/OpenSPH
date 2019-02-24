@@ -267,7 +267,6 @@ void Controller::setParams(const GuiSettings& settings) {
 
 void Controller::update(const Storage& storage) {
     // fill the combobox with available colorizer
-    /// \todo can we do this safely from run thread?
     executeOnMainThread([this, &storage] { //
         window->runStarted();
         window->setColorizerList(this->getColorizerList(storage, false));
@@ -275,6 +274,8 @@ void Controller::update(const Storage& storage) {
         if (plugin) {
             plugin->statusChanges(status);
         }
+
+        /// \todo wait till completed!!!
     });
 
     // draw initial positions of particles
@@ -318,8 +319,6 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         colorizerIds.push(ColorizerId::TOTAL_ENERGY);
         colorizerIds.push(ColorizerId::BEAUTY);
     }
-
-    colorizerIds.push(ColorizerId::BOUND_COMPONENT_ID);
 
     if (!forMovie) {
         if (storage.has(QuantityId::MASS)) {

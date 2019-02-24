@@ -286,12 +286,39 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
         drawPalette(context, origin, Pixel(30, 201), background.inverse(), palette);
     }
 
-    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
-    const Flags<TextAlign> flags = TextAlign::RIGHT | TextAlign::BOTTOM;
-    context.setColor(background.inverse(), ColorFlag::TEXT);
-    context.drawText(Coords(0, 0), flags, "t = " + getFormattedTime(1.e3_f * time));
-    context.drawText(
-        Coords(0, 16), flags, L"fov = " + toPrintableString(params.camera->getFov().value(), 1, 1000));
+    const Coords keyStart(5, 2);
+    const float time = stats.get<Float>(StatisticsId::RUN_TIME);
+    Flags<TextAlign> flags = TextAlign::RIGHT | TextAlign::BOTTOM;
+    context.setColor(background.inverse(), ColorFlag::TEXT | ColorFlag::LINE);
+    context.drawText(keyStart, flags, "t = " + getFormattedTime(1.e3_f * time));
+
+    const float fov = params.camera->getFov().value();
+    // context.drawText(keyStart + Coords(0, 16), flags, L"fov = " + toPrintableString(fov, 1, 1000));
+    const float dFov_dPx = fov / context.size().x;
+    const float minimalScaleFov = dFov_dPx * 16;
+    float actScaleFov = pow(10.f, ceil(log10(minimalScaleFov)));
+    const float scaleSize = actScaleFov / dFov_dPx;
+    const Coords lineStart = keyStart + Coords(75, 30);
+    context.drawLine(lineStart + Coords(-scaleSize / 2, 0), lineStart + Coords(scaleSize / 2, 0));
+    context.drawLine(lineStart + Coords(-scaleSize / 2, -4), lineStart + Coords(-scaleSize / 2, 4));
+    context.drawLine(lineStart + Coords(scaleSize / 2 + 1, -4), lineStart + Coords(scaleSize / 2 + 1, 4));
+
+    flags = TextAlign::HORIZONTAL_CENTER | TextAlign::BOTTOM;
+    /// \todo finally implement the units!
+    std::wstring units = L" m";
+    if (actScaleFov > Constants::au) {
+        actScaleFov /= Constants::au;
+        units = L" au";
+    } else if (actScaleFov > 1.e3f) {
+        actScaleFov /= 1.e3f;
+        units = L" km";
+    }
+    std::wstring scaleText = toPrintableString(actScaleFov, 0, 10);
+    if (scaleText.find(L'\u00D7') != std::wstring::npos) {
+        // convert 1x10^n  -> 10^n
+        scaleText = scaleText.substr(3);
+    }
+    context.drawText(lineStart + Coords(0, 6), flags, scaleText + units);
 
     output.update(bitmap, context.getLabels());
 }

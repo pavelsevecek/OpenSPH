@@ -48,7 +48,7 @@ private:
         Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(App::processEvents));
 
         GuiSettings gui;
-        gui.set(GuiSettingsId::ORTHO_FOV, 1.e5_f)
+        gui.set(GuiSettingsId::ORTHO_FOV, 0._f)
             .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(1024, 768, 0))
             .set(GuiSettingsId::VIEW_WIDTH, 1024)
             .set(GuiSettingsId::VIEW_HEIGHT, 768)
@@ -62,7 +62,7 @@ private:
             .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(Constants::au, 0._f, 0._f))
             .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
-            .set(GuiSettingsId::IMAGES_SAVE, true)
+            .set(GuiSettingsId::IMAGES_SAVE, false)
             .set(GuiSettingsId::IMAGES_TIMESTEP, 4.e4_f)
             /*.set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))
             .set(GuiSettingsId::PALETTE_VELOCITY, Interval(0.01_f, 1.e2_f))

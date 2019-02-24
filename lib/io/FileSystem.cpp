@@ -45,6 +45,12 @@ Expected<Path> FileSystem::getHomeDirectory() {
     }
 }
 
+Path FileSystem::getAbsolutePath(const Path& relativePath) {
+    char realPath[PATH_MAX];
+    realpath(relativePath.native().c_str(), realPath);
+    return Path(realPath);
+}
+
 Expected<FileSystem::PathType> FileSystem::pathType(const Path& path) {
     if (path.empty()) {
         return makeUnexpected<PathType>("Path is empty");

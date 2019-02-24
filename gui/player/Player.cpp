@@ -3,12 +3,14 @@
 #include "gui/Settings.h"
 #include "gui/Utils.h"
 #include "gui/Uvw.h"
+#include "io/Column.h"
 #include "io/FileSystem.h"
 #include "io/Logger.h"
 #include "objects/Exceptions.h"
 #include "objects/utility/StringUtils.h"
 #include "thread/CheckFunction.h"
 #include "timestepping/ISolver.h"
+#include "timestepping/TimeStepping.h"
 #include <wx/dcclient.h>
 #include <wx/msgdlg.h>
 #include <wx/panel.h>
@@ -24,12 +26,39 @@ RunPlayer::RunPlayer(const Path& fileMask, Function<void(int)> onNewFrame)
     : fileMask(fileMask)
     , onNewFrame(onNewFrame) {}
 
+class TabInput : public IInput {
+private:
+    TextInput input;
+
+public:
+    TabInput()
+        : input(OutputQuantityFlag::MASS | OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY) {}
+
+    virtual Outcome load(const Path& path, Storage& storage, Statistics& stats) override {
+        Outcome result = input.load(path, storage, stats);
+        if (!result) {
+            return result;
+        }
+
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        for (Size i = 0; i < r.size(); ++i) {
+            r[i][H] = 1.e-2_f;
+        }
+
+        ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+        std::cout << v[0] << " - " << v[1] << std::endl;
+        return SUCCESS;
+    }
+};
+
 /// \todo possibly move to Factory
 static AutoPtr<IInput> getInput(const Path& path) {
     if (path.extension() == Path("ssf")) {
         return makeAuto<BinaryInput>();
     } else if (path.extension() == Path("scf")) {
         return makeAuto<CompressedInput>();
+    } else if (path.extension() == Path("tab")) {
+        return makeAuto<TabInput>();
     } else {
         std::string str = path.native();
         if (str.substr(str.size() - 3) == ".bt") {
@@ -39,7 +68,8 @@ static AutoPtr<IInput> getInput(const Path& path) {
     throw InvalidSetup("Unknown file type: " + path.native());
 }
 
-static Size getFileCount(const Path& pathMask) {
+/*static Size getFileCount(const Path& pathMask) {
+    /// \todo instead of using OutputFile, find all files in the sequence and save to narray!
     OutputFile of(pathMask);
     if (!of.hasWildcard()) {
         return FileSystem::pathExists(pathMask) ? 1 : 0;
@@ -55,21 +85,60 @@ static Size getFileCount(const Path& pathMask) {
         }
     }
     return cnt;
+}*/
+static std::map<int, Path> getSequenceFiles(const Path& inputPath) {
+    Path fileMask;
+    std::map<int, Path> fileMap;
+    OutputFile outputFile(inputPath);
+    if (outputFile.hasWildcard()) {
+        // already a mask
+        fileMask = inputPath;
+    } else {
+        Optional<OutputFile> deducedFile = OutputFile::getMaskFromPath(inputPath);
+        if (!deducedFile) {
+            // just a single file, not part of a sequence (e.g. frag_final.ssf)
+            fileMap.insert(std::make_pair(0, inputPath));
+            return fileMap;
+        }
+        fileMask = deducedFile->getMask();
+    }
+
+    const Path dir = fileMask.parentPath();
+    Array<Path> files = FileSystem::getFilesInDirectory(dir);
+
+    for (Path& file : files) {
+        const Optional<OutputFile> deducedMask = OutputFile::getMaskFromPath(dir / file);
+        if (deducedMask && deducedMask->getMask() == fileMask) {
+            const Optional<Size> index = OutputFile::getDumpIdx(dir / file);
+            ASSERT(index);
+            fileMap[index.value()] = dir / file;
+        }
+    }
+
+    ASSERT(!fileMap.empty());
+    return fileMap;
 }
 
 void RunPlayer::setUp() {
     logger = makeAuto<StdOutLogger>();
 
-    files = OutputFile(fileMask);
-    fileCnt = getFileCount(fileMask);
-
-    if (fileCnt > 1) {
-        logger->write("Loading sequence of ", fileCnt, " files");
+    fileMap.clear();
+    OutputFile of(fileMask);
+    if (of.hasWildcard()) {
+        //  frame sequence
+        fileMap = getSequenceFiles(fileMask);
+        if (fileMap.size() > 1) {
+            logger->write("Loading sequence of ", fileMap.size(), " files");
+        }
+    } else {
+        // single frame
+        const Optional<Size> frame = OutputFile::getDumpIdx(fileMask);
+        fileMap.insert(std::make_pair(frame.valueOr(0), fileMask));
     }
 
     Statistics stats;
     stats.set(StatisticsId::RUN_TIME, 0._f);
-    const Path firstPath = files.getNextPath(stats);
+    const Path firstPath = of.hasWildcard() ? fileMap.begin()->second : fileMask;
     if (!FileSystem::pathExists(firstPath)) {
         throw InvalidSetup("Cannot locate file " + firstPath.native());
     }
@@ -82,7 +151,8 @@ void RunPlayer::setUp() {
     } else {
         loadedTime = stats.get<Float>(StatisticsId::RUN_TIME);
     }
-    logger->write("Loaded ", storage->getParticleCnt(), " particles");
+    logger->write(
+        "Loaded file ", firstPath.fileName().native(), " with ", storage->getParticleCnt(), " particles");
 
     // setupUvws(*storage);
 
@@ -95,6 +165,16 @@ void RunPlayer::setUp() {
         virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
     };
     solver = makeAuto<PlayerSolver>();
+
+    // dummy timestepping, otherwise we would erase highest derivatives
+    struct PlayerTimestepping : public ITimeStepping {
+        using ITimeStepping::ITimeStepping;
+
+        virtual void stepImpl(IScheduler& UNUSED(scheduler),
+            ISolver& UNUSED(solver),
+            Statistics& UNUSED(stats)) override {}
+    };
+    timeStepping = makeAuto<PlayerTimestepping>(storage, settings);
 }
 
 void RunPlayer::run() {
@@ -107,14 +187,18 @@ void RunPlayer::run() {
     callbacks->onRunStart(*storage, stats);
 
     const Size stepMilliseconds = Size(1000._f / fps);
-    for (Size i = 0; i < fileCnt; ++i) {
+    Size i = 0;
+    for (auto frameAndPath : fileMap) {
         Timer stepTimer;
-        stats.set(StatisticsId::RELATIVE_PROGRESS, Float(i) / fileCnt);
+        stats.set(StatisticsId::RELATIVE_PROGRESS, Float(i) / fileMap.size());
         callbacks->onTimeStep(*storage, stats);
+        if (onNewFrame) {
+            onNewFrame(frameAndPath.first);
+        }
 
-        if (i != fileCnt - 1) {
+        if (i != fileMap.size() - 1) {
             storage = makeShared<Storage>();
-            const Path path = files.getNextPath(stats);
+            const Path path = frameAndPath.second;
             Timer loadTimer;
             AutoPtr<IInput> io = getInput(path);
             const Outcome result = io->load(path, *storage, stats);
@@ -123,10 +207,11 @@ void RunPlayer::run() {
                     wxMessageBox("Cannot load the run state file " + path.native(), "Error", wxOK);
                 });
             }
-            logger->write("Loaded ", path.native(), " in ", loadTimer.elapsed(TimerUnit::MILLISECOND), " ms");
-            if (onNewFrame) {
-                onNewFrame(i + 1); // we started from i=0, but that was already a second frame
-            }
+            logger->write("Loaded ",
+                path.fileName().native(),
+                " in ",
+                loadTimer.elapsed(TimerUnit::MILLISECOND),
+                " ms");
             // setupUvws(*storage);
 
             const Size elapsed = stepTimer.elapsed(TimerUnit::MILLISECOND);
@@ -135,11 +220,12 @@ void RunPlayer::run() {
             }
         }
 
+        ++i;
         if (callbacks->shouldAbortRun()) {
             break;
         }
     }
-    if (fileCnt > 1) {
+    if (fileMap.size() > 1) {
         logger->write("File sequence finished");
     } else {
         logger->write("File finished");
@@ -151,34 +237,22 @@ void RunPlayer::tearDown(const Statistics& UNUSED(stats)) {}
 
 class TimeLinePanel : public wxPanel {
 private:
-    Path fileMask;
     Function<void(Path)> onFrameChanged;
 
-    int fileCnt;
-    int currentFrame = 0; /// \todo somehow propagate this from the simulation
+    std::map<int, Path> fileMap;
+    int currentFrame = 0;
     int mouseFrame = 0;
 
 public:
     TimeLinePanel(wxWindow* parent, const Path inputFile, Function<void(Path)> onFrameChanged)
         : wxPanel(parent, wxID_ANY)
-        , onFrameChanged(onFrameChanged)
-        , fileCnt(int(fileCnt)) {
+        , onFrameChanged(onFrameChanged) {
 
-        OutputFile outputFile(inputFile);
-        if (outputFile.hasWildcard()) {
-            // already a mask
-            fileMask = inputFile;
-        } else {
-            Optional<OutputFile> deducedFile = OutputFile::getMaskFromPath(inputFile);
-            if (!deducedFile) {
-                // just a single file, not part of a sequence (e.g. frag_final.ssf)
-                fileMask = inputFile;
-            } else {
-                fileMask = deducedFile->getMask();
-                currentFrame = OutputFile::getDumpIdx(inputFile).valueOr(0);
-            }
+        fileMap = getSequenceFiles(inputFile);
+        OutputFile of(inputFile);
+        if (!of.hasWildcard()) {
+            currentFrame = OutputFile::getDumpIdx(inputFile).valueOr(0);
         }
-        fileCnt = getFileCount(fileMask);
 
         this->SetMinSize(wxSize(1024, 50));
         this->Connect(wxEVT_PAINT, wxPaintEventHandler(TimeLinePanel::onPaint));
@@ -195,7 +269,25 @@ public:
 private:
     int positionToFrame(const wxPoint position) const {
         wxSize size = this->GetSize();
-        return int(roundf(float(position.x) * (fileCnt - 1) / size.x));
+        const int firstFrame = fileMap.begin()->first;
+        const int lastFrame = fileMap.rbegin()->first;
+        const int frame = firstFrame + int(roundf(float(position.x) * (lastFrame - firstFrame) / size.x));
+        const auto upperIter = fileMap.upper_bound(frame);
+        if (upperIter == fileMap.begin()) {
+            return upperIter->first;
+        } else {
+            auto lowerIter = upperIter;
+            --lowerIter;
+
+            if (upperIter == fileMap.end()) {
+                return lowerIter->first;
+            } else {
+                // return the closer frame
+                const int lowerDist = frame - lowerIter->first;
+                const int upperDist = upperIter->first - frame;
+                return (upperDist < lowerDist) ? upperIter->first : lowerIter->first;
+            }
+        }
     }
 
     void onPaint(wxPaintEvent& UNUSED(evt)) {
@@ -218,20 +310,31 @@ private:
         font.MakeSmaller();
         dc.SetFont(font);
 
-
+        const int fileCnt = fileMap.size();
         if (fileCnt == 1) {
             // nothing to draw
             return;
         }
 
-        const int step = max((fileCnt / 100) * 5, 1);
-        for (int i = 0; i < fileCnt; ++i) {
+        // ad hoc stepping
+        int step = 1;
+        if (fileCnt > 60) {
+            step = int(fileCnt / 60) * 5;
+        } else if (fileCnt > 30) {
+            step = 2;
+        }
+
+        const int firstFrame = fileMap.begin()->first;
+        const int lastFrame = fileMap.rbegin()->first;
+        int i = 0;
+        for (auto frameAndPath : fileMap) {
+            const int frame = frameAndPath.first;
             bool keyframe = (i % step == 0);
             bool doFull = keyframe;
-            if (i == currentFrame) {
+            if (frame == currentFrame) {
                 pen.SetColour(wxColour(255, 80, 0));
                 doFull = true;
-            } else if (i == mouseFrame) {
+            } else if (frame == mouseFrame) {
                 pen.SetColour(wxColour(128, 128, 128));
                 doFull = true;
             } else {
@@ -239,7 +342,7 @@ private:
                 pen.SetColour(wxColour(backgroundColor));
             }
             dc.SetPen(pen);
-            const int x = i * size.x / (fileCnt - 1);
+            const int x = (frame - firstFrame) * size.x / (lastFrame - firstFrame);
             if (doFull) {
                 dc.DrawLine(wxPoint(x, 0), wxPoint(x, size.y));
             } else {
@@ -248,8 +351,13 @@ private:
             }
 
             if (keyframe) {
-                dc.DrawText(std::to_string(i), wxPoint(x + 3, size.y - 20));
+                const std::string text = std::to_string(frame);
+                const wxSize extent = dc.GetTextExtent(text);
+                if (x + extent.x + 3 < size.x) {
+                    dc.DrawText(text, wxPoint(x + 3, size.y - 20));
+                }
             }
+            ++i;
         }
     }
 
@@ -265,23 +373,33 @@ private:
 
     void onKeyUp(wxKeyEvent& evt) {
         switch (evt.GetKeyCode()) {
-        case WXK_LEFT:
-            currentFrame = max(currentFrame - 1, 0);
-            reload();
+        case WXK_LEFT: {
+            auto iter = fileMap.find(currentFrame);
+            ASSERT(iter != fileMap.end());
+            if (iter != fileMap.begin()) {
+                --iter;
+                currentFrame = iter->first;
+                reload();
+            }
             break;
-        case WXK_RIGHT:
-            currentFrame = min(currentFrame + 1, fileCnt - 1);
-            reload();
+        }
+        case WXK_RIGHT: {
+            auto iter = fileMap.find(currentFrame);
+            ASSERT(iter != fileMap.end());
+            ++iter;
+            if (iter != fileMap.end()) {
+                currentFrame = iter->first;
+                reload();
+            }
             break;
+        }
         default:
             break;
         }
     }
 
     void reload() {
-        OutputFile newFile(fileMask, currentFrame);
-        Statistics stats;
-        onFrameChanged(newFile.getNextPath(stats));
+        onFrameChanged(fileMap[currentFrame]);
     }
 };
 
@@ -323,9 +441,12 @@ bool App::OnInit() {
     Path fileMask;
     if (wxTheApp->argc == 1) {
         Optional<Path> selectedFile = doOpenFileDialog("Open file",
-            { { "SPH state files", "ssf" },
+            {
+                { "SPH state files", "ssf" },
                 { "SPH compressed files", "scf" },
-                { "Pkdgrav output files", "bt" } });
+                { "Pkdgrav output files", "bt" },
+                { "Text .tab files", "tab" },
+            });
         if (!selectedFile) {
             return false;
         }
@@ -333,6 +454,7 @@ bool App::OnInit() {
 
     } else {
         fileMask = Path(std::string(wxTheApp->argv[1]));
+        fileMask = FileSystem::getAbsolutePath(fileMask);
     }
 
     RunTypeEnum runType = RunTypeEnum::SPH;
@@ -376,7 +498,7 @@ bool App::OnInit() {
         .set(GuiSettingsId::BACKGROUND_COLOR, Vector(0._f))
         .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
         .set(GuiSettingsId::ORTHO_CUTOFF, 0._f) // 10000._f)
-        .set(GuiSettingsId::ORTHO_ZOFFSET, -1.e7_f)
+        .set(GuiSettingsId::ORTHO_ZOFFSET, -1.e6_f)
         .set(GuiSettingsId::VIEW_GRID_SIZE, 0._f)
         .set(GuiSettingsId::RENDERER, RendererEnum::PARTICLE)
         .set(GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY, std::string(""))
@@ -396,9 +518,9 @@ bool App::OnInit() {
         .set(GuiSettingsId::PALETTE_ENERGY, Interval(100._f, 5.e4_f))
         .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
         .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))*/
-        .set(GuiSettingsId::PLOT_INTEGRALS,
-            PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY | PlotEnum::TOTAL_MOMENTUM |
-                PlotEnum::TOTAL_ANGULAR_MOMENTUM)
+        .set(GuiSettingsId::PLOT_INTEGRALS, EMPTY_FLAGS)
+        /*PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY | PlotEnum::TOTAL_MOMENTUM |
+            PlotEnum::TOTAL_ANGULAR_MOMENTUM*/
         .set(GuiSettingsId::PLOT_OVERPLOT_SFD, std::string("/home/pavel/Dropbox/family.dat_hc"));
 
     if (runType == RunTypeEnum::NBODY) {

@@ -9,6 +9,7 @@
 #include "gui/MainLoop.h"
 #include "io/Output.h"
 #include "run/IRun.h"
+#include <map>
 #include <wx/app.h>
 
 NAMESPACE_SPH_BEGIN
@@ -19,10 +20,9 @@ private:
 
     Path fileMask;
 
-    OutputFile files;
-    Size fileCnt;
+    std::map<int, Path> fileMap;
 
-    Float fps = 10._f;
+    Float fps = 100._f;
 
     Float loadedTime;
 

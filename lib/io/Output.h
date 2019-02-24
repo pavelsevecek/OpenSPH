@@ -65,7 +65,7 @@ public:
     /// The dump index of the returned object is set to 0. Note that this function currently does not work for
     /// masks containing the time wildcard.
     /// \return Output file on success, otherwise NOTHING.
-    static Optional<OutputFile> getMaskFromPath(const Path& path);
+    static Optional<OutputFile> getMaskFromPath(const Path& path, const Size firstDumpIdx = 0);
 };
 
 /// \brief Interface for saving quantities of SPH particles to a file.

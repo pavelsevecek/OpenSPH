@@ -60,6 +60,10 @@ AffineMatrix2 PlotView::getPlotTransformMatrix(const Interval& rangeX, const Int
 }
 
 void PlotView::updatePlot(const Size index) {
+    if (index >= list->size()) {
+        return;
+    }
+
     PlotData& data = (*list)[index];
     cached.color = data.color;
 
@@ -107,6 +111,10 @@ void PlotView::onPaint(wxPaintEvent& UNUSED(evt)) {
     brush.SetColour(wxColour(backgroundColor.darken(0.3f)));
     dc.SetBrush(brush);
     dc.DrawRectangle(wxPoint(0, 0), canvasSize);
+
+    if (!cached.plot) {
+        return;
+    }
 
     auto proxy = cached.plot.lock();
     this->drawCaption(dc, *proxy);

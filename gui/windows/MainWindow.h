@@ -12,6 +12,7 @@ class wxBoxSizer;
 class wxGauge;
 class wxCheckBox;
 class wxTextCtrl;
+class wxPanel;
 
 NAMESPACE_SPH_BEGIN
 
@@ -60,6 +61,8 @@ private:
     wxComboBox* quantityBox;
     Size selectedIdx = 0;
     wxGauge* gauge;
+    wxPanel* quantityPanel;
+    wxSizer* quantityPanelSizer;
 
     /// Colorizers corresponding to the items in combobox
     Array<SharedPtr<IColorizer>> colorizerList;
@@ -95,6 +98,12 @@ private:
 
     /// Panel on the bottom, with run log and error reporting
     wxBoxSizer* createStatusBar();
+
+    void setColorizer(const Size idx);
+
+    void replaceQuantityBar(const Size idx);
+
+    void addComponentIdBar(wxWindow* parent, wxSizer* sizer, SharedPtr<IColorizer> colorizer);
 
     void updateCutoff(const double cutoff);
 

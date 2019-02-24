@@ -248,16 +248,15 @@ wxBoxSizer* MainWindow::createToolBar() {
         saveToFile(bitmap, path.value());
     });
 
-    toolbar->AddSpacer(504);
+    toolbar->AddSpacer(434);
 
-    quantityBox = new wxComboBox(this, wxID_ANY, "");
+    quantityBox = new wxComboBox(this, wxID_ANY, "", wxDefaultPosition, wxSize(200, -1));
     quantityBox->SetWindowStyle(wxCB_SIMPLE | wxCB_READONLY);
     quantityBox->SetSelection(0);
     quantityBox->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         const int idx = quantityBox->GetSelection();
-        controller->setColorizer(colorizerList[idx]);
-        selectedIdx = idx;
+        this->setColorizer(idx);
     });
     toolbar->Add(quantityBox);
 
@@ -282,12 +281,14 @@ wxBoxSizer* MainWindow::createToolBar() {
     return toolbar;
 }
 
+const wxSize buttonSize(250, 35);
+const wxSize textSize(120, -1);
+const wxSize spinnerSizer(145, -1);
+
 wxBoxSizer* MainWindow::createVisBar() {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     wxBoxSizer* visbarSizer = new wxBoxSizer(wxVERTICAL);
 
-    const wxSize buttonSize(250, 35);
-    const wxSize textSize(120, -1);
     wxRadioButton* particleButton =
         new wxRadioButton(this, wxID_ANY, "Particles", wxDefaultPosition, buttonSize, wxRB_GROUP);
     visbarSizer->Add(particleButton);
@@ -298,7 +299,7 @@ wxBoxSizer* MainWindow::createVisBar() {
     cutoffSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
     const Float cutoff = gui.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
     wxSpinCtrlDouble* cutoffSpinner =
-        new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, wxSize(145, -1));
+        new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, spinnerSizer);
     cutoffSpinner->SetRange(0., 1000000.);
     cutoffSpinner->SetValue(cutoff);
     cutoffSpinner->SetDigits(3);
@@ -324,11 +325,11 @@ wxBoxSizer* MainWindow::createVisBar() {
     text = new wxStaticText(this, wxID_ANY, "Particle radius", wxDefaultPosition, textSize);
     particleSizeSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
     wxSpinCtrlDouble* particleSizeSpinner =
-        new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, wxSize(145, -1));
+        new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, spinnerSizer);
     const Float radius = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
     particleSizeSpinner->SetValue(radius);
     particleSizeSpinner->SetDigits(3);
-    particleSizeSpinner->SetRange(0.001, 1.);
+    particleSizeSpinner->SetRange(0.001, 1000.);
     particleSizeSpinner->SetIncrement(0.001);
     particleSizeSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent& evt) {
         GuiSettings& gui = controller->getParams();
@@ -365,7 +366,7 @@ wxBoxSizer* MainWindow::createVisBar() {
     levelSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
     const Float level = gui.get<Float>(GuiSettingsId::SURFACE_LEVEL);
     wxSpinCtrlDouble* levelSpinner =
-        new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, wxSize(145, -1));
+        new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, spinnerSizer);
     levelSpinner->SetRange(0., 10.);
     levelSpinner->SetValue(level);
     levelSpinner->SetDigits(3);
@@ -443,6 +444,11 @@ wxBoxSizer* MainWindow::createVisBar() {
         controller->setRenderer(makeAuto<RayTracer>(scheduler, gui));
         enableControls(2);
     });
+
+    visbarSizer->AddSpacer(16);
+    quantityPanel = new wxPanel(this, wxID_ANY, wxDefaultPosition, textSize);
+    visbarSizer->Add(quantityPanel);
+    quantityPanelSizer = visbarSizer;
 
     return visbarSizer;
 }
@@ -724,6 +730,103 @@ wxBoxSizer* MainWindow::createStatusBar() {
     statusSizer->Add(errors);
     return statusSizer;
 }
+
+void MainWindow::setColorizer(const Size idx) {
+    // do this even if idx==selectedIdx, we might change the colorizerList (weird behavior, but it will do for
+    // now)
+    controller->setColorizer(colorizerList[idx]);
+    if (idx == selectedIdx) {
+        return;
+    }
+    this->replaceQuantityBar(idx);
+    selectedIdx = idx;
+}
+
+void MainWindow::addComponentIdBar(wxWindow* parent, wxSizer* sizer, SharedPtr<IColorizer> colorizer) {
+    sizer->AddSpacer(5);
+    RawPtr<ComponentIdColorizer> componentId = dynamicCast<ComponentIdColorizer>(colorizer.get());
+
+    wxRadioButton* overlapButton = new wxRadioButton(
+        parent, wxID_ANY, "Connected particles", wxDefaultPosition, wxSize(-1, 25), wxRB_GROUP);
+    sizer->Add(overlapButton);
+
+    wxRadioButton* boundButton =
+        new wxRadioButton(parent, wxID_ANY, "Bound particles", wxDefaultPosition, wxSize(-1, 25), 0);
+    sizer->Add(boundButton);
+
+    sizer->AddSpacer(15);
+    wxCheckBox* highlightBox = new wxCheckBox(parent, wxID_ANY, "Highlight component");
+    highlightBox->SetValue(bool(componentId->getHighlightIdx()));
+    sizer->Add(highlightBox);
+
+    wxBoxSizer* highlightSizer = new wxBoxSizer(wxHORIZONTAL);
+    highlightSizer->AddSpacer(30);
+    wxStaticText* text =
+        new wxStaticText(parent, wxID_ANY, "Index", wxDefaultPosition, wxSize(textSize.x - 30, -1));
+    highlightSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
+    wxSpinCtrl* highlightIndex = new wxSpinCtrl(parent, wxID_ANY, "", wxDefaultPosition, spinnerSizer);
+    highlightIndex->SetValue(componentId->getHighlightIdx().valueOr(0));
+    highlightIndex->Enable(highlightBox->GetValue());
+    highlightSizer->Add(highlightIndex);
+    sizer->Add(highlightSizer);
+
+    overlapButton->Bind(wxEVT_RADIOBUTTON, [this, componentId, colorizer](wxCommandEvent& UNUSED(evt)) {
+        componentId->setConnectivity(Post::ComponentFlag::SORT_BY_MASS | Post::ComponentFlag::OVERLAP);
+        controller->setColorizer(colorizer);
+    });
+    boundButton->Bind(wxEVT_RADIOBUTTON, [this, componentId, colorizer](wxCommandEvent& UNUSED(evt)) {
+        componentId->setConnectivity(
+            Post::ComponentFlag::SORT_BY_MASS | Post::ComponentFlag::ESCAPE_VELOCITY);
+        controller->setColorizer(colorizer);
+    });
+    highlightBox->Bind(wxEVT_CHECKBOX, [this, colorizer, componentId, highlightIndex](wxCommandEvent& evt) {
+        const bool value = evt.IsChecked();
+
+        ASSERT(componentId);
+        if (value) {
+            componentId->setHighlightIdx(highlightIndex->GetValue());
+        } else {
+            componentId->setHighlightIdx(NOTHING);
+        }
+        highlightIndex->Enable(value);
+        /// \todo this causes rebuild of colorizer, which is very inefficient, there should be some concept of
+        /// validity that would tell whether it is necessary or not to rebuild it
+        controller->setColorizer(colorizer);
+    });
+    highlightIndex->Bind(wxEVT_SPINCTRL, [this, componentId, colorizer](wxSpinEvent& evt) {
+        // this is already executed on main thread, but we query it anyway to avoid spinner getting stuck
+        executeOnMainThread([this, componentId, colorizer, evt] {
+            const int index = evt.GetValue();
+            componentId->setHighlightIdx(index);
+            /// \todo also unnecessary
+            controller->setColorizer(colorizer);
+        });
+    });
+}
+
+void MainWindow::replaceQuantityBar(const Size idx) {
+    quantityPanel->Destroy();
+
+    quantityPanel = new wxPanel(this, wxID_ANY);
+    // so far only needed for component id, so it is hacked like this
+    SharedPtr<IColorizer> newColorizer = colorizerList[idx];
+    /// \todo implemnet SharedPtr dynamicCast
+    if (typeid(*newColorizer) == typeid(ComponentIdColorizer)) {
+        wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+        sizer->Add(new wxStaticText(quantityPanel, wxID_ANY, newColorizer->name()));
+        wxBoxSizer* offsetSizer = new wxBoxSizer(wxHORIZONTAL);
+        offsetSizer->AddSpacer(25);
+        sizer->Add(offsetSizer);
+        wxBoxSizer* actSizer = new wxBoxSizer(wxVERTICAL);
+        addComponentIdBar(quantityPanel, actSizer, newColorizer);
+        offsetSizer->Add(actSizer);
+        quantityPanel->SetSizerAndFit(sizer);
+    }
+
+    quantityPanelSizer->Add(quantityPanel);
+    this->Layout();
+}
+
 
 void MainWindow::setProgress(const float progress) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);

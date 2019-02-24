@@ -33,6 +33,9 @@ constexpr Float speedOfLight = 299792458._f; // ms^-1
 /// Astronomical unit (exactly)
 constexpr Float au = 149597870700._f; // m
 
+/// Parsec
+constexpr Float pc = 3.0856776e16_f; // m
+
 /// Number of seconds in year
 constexpr Float year = 3.154e7_f; // s
 
