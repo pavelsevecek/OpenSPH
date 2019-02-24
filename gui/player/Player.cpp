@@ -45,8 +45,6 @@ public:
             r[i][H] = 1.e-2_f;
         }
 
-        ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
-        std::cout << v[0] << " - " << v[1] << std::endl;
         return SUCCESS;
     }
 };
