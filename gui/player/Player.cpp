@@ -429,7 +429,7 @@ public:
     }
 
     void setFrame(const int newFrame) {
-        panel->setFrame(newFrame);
+        executeOnMainThread([this, newFrame] { panel->setFrame(newFrame); });
     }
 };
 
@@ -488,12 +488,11 @@ bool App::OnInit() {
         //.set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(-3.e6_f, 4.e6_f, 0._f))
         //.set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 2.e6_f, -4.e6_f))
         //.set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f, 0._f, 0._f))
-        .set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(-4.e4, -3.8e4_f, 0._f))
-        .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(-4.e4, -3.8e4_f, 8.e5_f))
+        .set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f))
+        .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(-20, -19, 40))
         //.set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f, -1.e6_f, 0._f))
-
+        .set(GuiSettingsId::BACKGROUND_COLOR, Rgba::black())
         .set(GuiSettingsId::PERSPECTIVE_CLIP_NEAR, EPS)
-        .set(GuiSettingsId::BACKGROUND_COLOR, Vector(0._f))
         .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
         .set(GuiSettingsId::ORTHO_CUTOFF, 0._f) // 10000._f)
         .set(GuiSettingsId::ORTHO_ZOFFSET, -1.e6_f)

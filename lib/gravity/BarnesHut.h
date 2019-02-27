@@ -10,6 +10,7 @@
 #include "objects/containers/List.h"
 #include "objects/finders/KdTree.h"
 #include "objects/geometry/Multipole.h"
+#include "physics/Constants.h"
 #include "sph/kernel/GravityKernel.h"
 #include <atomic>
 
@@ -58,6 +59,11 @@ protected:
 
     /// Order of multipole approximation
     MultipoleOrder order;
+
+    /// Gravitational constant in the selected unit system. In SI, this is simply \ref Constants::gravity.
+    ///
+    /// \todo generalize
+    Float gravityConstant = Constants::gravity;
 
     /// Maximum depth at which the nodes evaluation is parallelized.
     ///

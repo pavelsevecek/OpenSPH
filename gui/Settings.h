@@ -163,6 +163,10 @@ enum class GuiSettingsId {
 
     FORCE_GRAYSCALE,
 
+    ANTIALIASED,
+
+    SMOOTH_PARTICLES,
+
     RENDER_GHOST_PARTICLES,
 
     /// Displayed radius of particle in units of smoothing length
@@ -244,6 +248,12 @@ public:
     INLINE TValue get(const GuiSettingsId id) const {
         return Settings<GuiSettingsId>::get<TValue>(id);
     }
+
+    template <typename TValue>
+    INLINE GuiSettings& set(const GuiSettingsId id, const TValue& value) {
+        Settings<GuiSettingsId>::set(id, value);
+        return *this;
+    }
 };
 
 template <>
@@ -255,7 +265,13 @@ INLINE Pixel GuiSettings::get<Pixel>(const GuiSettingsId id) const {
 template <>
 INLINE Rgba GuiSettings::get<Rgba>(const GuiSettingsId id) const {
     const Vector v = this->get<Vector>(id);
-    return Rgba(v[X], v[Y], v[Z]);
+    return Rgba(v[X], v[Y], v[Z], v[H]);
+}
+
+template <>
+INLINE GuiSettings& GuiSettings::set<Rgba>(const GuiSettingsId id, const Rgba& color) {
+    this->set(id, Vector(color.r(), color.g(), color.b(), color.a()));
+    return *this;
 }
 
 NAMESPACE_SPH_END

@@ -135,6 +135,43 @@ static void drawGrid(IRenderContext& context, const ICamera& camera, const float
     }
 }
 
+static void drawKey(IRenderContext& context,
+    const Statistics& stats,
+    const float fov,
+    const Rgba& background) {
+    const Coords keyStart(5, 2);
+    const float time = stats.get<Float>(StatisticsId::RUN_TIME);
+    Flags<TextAlign> flags = TextAlign::RIGHT | TextAlign::BOTTOM;
+    context.setColor(background.inverse(), ColorFlag::TEXT | ColorFlag::LINE);
+    context.drawText(keyStart, flags, "t = " + getFormattedTime(1.e3_f * time));
+
+    const float dFov_dPx = fov / context.size().x;
+    const float minimalScaleFov = dFov_dPx * 16;
+    float actScaleFov = pow(10.f, ceil(log10(minimalScaleFov)));
+    const float scaleSize = actScaleFov / dFov_dPx;
+    const Coords lineStart = keyStart + Coords(75, 30);
+    context.drawLine(lineStart + Coords(-scaleSize / 2, 0), lineStart + Coords(scaleSize / 2, 0));
+    context.drawLine(lineStart + Coords(-scaleSize / 2, -4), lineStart + Coords(-scaleSize / 2, 4));
+    context.drawLine(lineStart + Coords(scaleSize / 2 + 1, -4), lineStart + Coords(scaleSize / 2 + 1, 4));
+
+    flags = TextAlign::HORIZONTAL_CENTER | TextAlign::BOTTOM;
+    /// \todo finally implement the units!
+    std::wstring units = L" m";
+    if (actScaleFov > Constants::au) {
+        actScaleFov /= Constants::au;
+        units = L" au";
+    } else if (actScaleFov > 1.e3f) {
+        actScaleFov /= 1.e3f;
+        units = L" km";
+    }
+    std::wstring scaleText = toPrintableString(actScaleFov, 0, 10);
+    if (scaleText.find(L'\u00D7') != std::wstring::npos) {
+        // convert 1x10^n  -> 10^n
+        scaleText = scaleText.substr(3);
+    }
+    context.drawText(lineStart + Coords(0, 6), flags, scaleText + units);
+}
+
 ParticleRenderer::ParticleRenderer(const GuiSettings& settings) {
     grid = settings.get<Float>(GuiSettingsId::VIEW_GRID_SIZE);
     background = settings.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
@@ -213,23 +250,36 @@ void ParticleRenderer::initialize(const Storage& storage,
     cached.palette = colorizer.getPalette();
 }
 
+static AutoPtr<PreviewRenderContext> getContext(const RenderParams& params, Bitmap<Rgba>& bitmap) {
+    if (params.particles.doAntialiasing) {
+        if (params.particles.smoothed) {
+            CubicSpline<2> kernel;
+            return makeAuto<SmoothedRenderContext>(bitmap, kernel, params.particles.scale);
+        } else {
+            return makeAuto<AntiAliasedRenderContext>(bitmap);
+        }
+    } else {
+        return makeAuto<PreviewRenderContext>(bitmap);
+    }
+}
+
 void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const {
     MEASURE_SCOPE("ParticleRenderer::render");
     Bitmap<Rgba> bitmap(params.size);
-    PreviewRenderContext context(bitmap);
+    AutoPtr<PreviewRenderContext> context = getContext(params, bitmap);
 
     // fill with the background color
-    context.fill(background);
+    context->fill(background);
 
     // black frame
-    context.setColor(Rgba::black(), ColorFlag::LINE);
-    context.drawLine(Coords(0, 0), Coords(params.size.x - 1, 0));
-    context.drawLine(Coords(params.size.x - 1, 0), Coords(params.size.x - 1, params.size.y - 1));
-    context.drawLine(Coords(params.size.x - 1, params.size.y - 1), Coords(0, params.size.y - 1));
-    context.drawLine(Coords(0, params.size.y - 1), Coords(0, 0));
+    context->setColor(Rgba::black(), ColorFlag::LINE);
+    context->drawLine(Coords(0, 0), Coords(params.size.x - 1, 0));
+    context->drawLine(Coords(params.size.x - 1, 0), Coords(params.size.x - 1, params.size.y - 1));
+    context->drawLine(Coords(params.size.x - 1, params.size.y - 1), Coords(0, params.size.y - 1));
+    context->drawLine(Coords(0, params.size.y - 1), Coords(0, 0));
 
     if (grid > 0.f) {
-        drawGrid(context, *params.camera, grid);
+        drawGrid(*context, *params.camera, grid);
     }
 
     struct {
@@ -238,15 +288,15 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
         bool used = false;
     } dir;
 
-    context.setColor(Rgba::black(), ColorFlag::LINE);
+    context->setColor(Rgba::black(), ColorFlag::LINE);
 
     shouldContinue = true;
     // draw particles
     for (Size i = 0; i < cached.positions.size() /* && shouldContinue*/; ++i) {
         if (params.particles.selected && cached.idxs[i] == params.particles.selected.value()) {
             // highlight the selected particle
-            context.setColor(Rgba::red(), ColorFlag::FILL);
-            context.setColor(Rgba::white(), ColorFlag::LINE);
+            context->setColor(Rgba::red(), ColorFlag::FILL);
+            context->setColor(Rgba::white(), ColorFlag::LINE);
 
             if (!cached.vectors.empty()) {
                 dir.used = true;
@@ -258,69 +308,37 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
             if (params.particles.grayScale) {
                 color = Rgba(color.intensity());
             }
-            context.setColor(color, ColorFlag::FILL | ColorFlag::LINE);
+            context->setColor(color, ColorFlag::FILL | ColorFlag::LINE);
             if (cached.idxs[i] == Size(-1)) {
                 // ghost
-                context.setColor(Rgba::gray(0.7_f), ColorFlag::LINE);
+                context->setColor(Rgba::gray(0.7_f), ColorFlag::LINE);
             }
         }
 
         const Optional<ProjectedPoint> p = params.camera->project(cached.positions[i]);
         ASSERT(p); // cached values must be visible by the camera
         const Float size = p->radius * params.particles.scale;
-        context.drawCircle(p->coords, size);
+        context->drawCircle(p->coords, size);
     }
     // after all particles are drawn, draw the velocity vector over
     if (dir.used) {
-        drawVector(context, *params.camera, dir.r, dir.v, params.vectors.length);
+        drawVector(*context, *params.camera, dir.r, dir.v, params.vectors.length);
     }
 
     if (cached.palette) {
-        const Pixel origin(context.size().x - 50, 231);
+        const Pixel origin(context->size().x - 50, 231);
         Palette palette;
         if (params.particles.grayScale) {
             palette = cached.palette->transform([](const Rgba& color) { return Rgba(color.intensity()); });
         } else {
             palette = cached.palette.value();
         }
-        drawPalette(context, origin, Pixel(30, 201), background.inverse(), palette);
+        drawPalette(*context, origin, Pixel(30, 201), background.inverse(), palette);
     }
 
-    const Coords keyStart(5, 2);
-    const float time = stats.get<Float>(StatisticsId::RUN_TIME);
-    Flags<TextAlign> flags = TextAlign::RIGHT | TextAlign::BOTTOM;
-    context.setColor(background.inverse(), ColorFlag::TEXT | ColorFlag::LINE);
-    context.drawText(keyStart, flags, "t = " + getFormattedTime(1.e3_f * time));
+    drawKey(*context, stats, params.camera->getFov().value(), background);
 
-    const float fov = params.camera->getFov().value();
-    // context.drawText(keyStart + Coords(0, 16), flags, L"fov = " + toPrintableString(fov, 1, 1000));
-    const float dFov_dPx = fov / context.size().x;
-    const float minimalScaleFov = dFov_dPx * 16;
-    float actScaleFov = pow(10.f, ceil(log10(minimalScaleFov)));
-    const float scaleSize = actScaleFov / dFov_dPx;
-    const Coords lineStart = keyStart + Coords(75, 30);
-    context.drawLine(lineStart + Coords(-scaleSize / 2, 0), lineStart + Coords(scaleSize / 2, 0));
-    context.drawLine(lineStart + Coords(-scaleSize / 2, -4), lineStart + Coords(-scaleSize / 2, 4));
-    context.drawLine(lineStart + Coords(scaleSize / 2 + 1, -4), lineStart + Coords(scaleSize / 2 + 1, 4));
-
-    flags = TextAlign::HORIZONTAL_CENTER | TextAlign::BOTTOM;
-    /// \todo finally implement the units!
-    std::wstring units = L" m";
-    if (actScaleFov > Constants::au) {
-        actScaleFov /= Constants::au;
-        units = L" au";
-    } else if (actScaleFov > 1.e3f) {
-        actScaleFov /= 1.e3f;
-        units = L" km";
-    }
-    std::wstring scaleText = toPrintableString(actScaleFov, 0, 10);
-    if (scaleText.find(L'\u00D7') != std::wstring::npos) {
-        // convert 1x10^n  -> 10^n
-        scaleText = scaleText.substr(3);
-    }
-    context.drawText(lineStart + Coords(0, 6), flags, scaleText + units);
-
-    output.update(bitmap, context.getLabels());
+    output.update(bitmap, context->getLabels());
 }
 
 void ParticleRenderer::cancelRender() {

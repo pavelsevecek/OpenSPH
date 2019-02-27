@@ -4,6 +4,7 @@
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Color.h"
 #include "gui/renderers/IRenderer.h"
+#include "sph/kernel/Kernel.h"
 #include <wx/dc.h>
 
 NAMESPACE_SPH_BEGIN
@@ -114,13 +115,16 @@ private:
     }
 };
 
+/// \todo do not derive from PreviewRenderContext, rather some RenderContextBase; AA context is NOT a preview
+/// render context!
 class AntiAliasedRenderContext : public PreviewRenderContext {
 public:
-    using PreviewRenderContext::PreviewRenderContext;
+    AntiAliasedRenderContext(Bitmap<Rgba>& bitmap)
+        : PreviewRenderContext(bitmap) {}
 
     virtual void drawCircle(const Coords center, const float radius) override;
 
-private:
+protected:
     void drawSafe(const Pixel p, const Rgba c) {
         if (p.x >= 0 && p.y >= 0 && p.x < bitmap.size().x && p.y < bitmap.size().y) {
             bitmap[Pixel(p)] = c.over(bitmap[Pixel(p)]);
@@ -129,7 +133,24 @@ private:
 };
 
 
-/// Render context drawing directly into wxDC. Must be used only in main thread!!
+class SmoothedRenderContext : public AntiAliasedRenderContext {
+private:
+    LutKernel<2> kernel;
+    float particleScale;
+
+public:
+    SmoothedRenderContext(Bitmap<Rgba>& bitmap, const LutKernel<2>& kernel, const float particleScale)
+        : AntiAliasedRenderContext(bitmap)
+        , kernel(kernel)
+        , particleScale(particleScale) {}
+
+    virtual void drawCircle(const Coords center, const float radius) override;
+};
+
+
+/// \brief Render context drawing directly into wxDC.
+///
+/// Must be used only in main thread!!
 class WxRenderContext : public IRenderContext {
 private:
     wxDC& dc;

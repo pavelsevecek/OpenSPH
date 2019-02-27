@@ -352,6 +352,34 @@ wxBoxSizer* MainWindow::createVisBar() {
     grayscaleSizer->Add(grayscaleBox);
     visbarSizer->Add(grayscaleSizer);
 
+    wxBoxSizer* aaSizer = new wxBoxSizer(wxHORIZONTAL);
+    aaSizer->AddSpacer(25);
+    wxCheckBox* aaBox = new wxCheckBox(this, wxID_ANY, "Anti-aliasing");
+    aaSizer->Add(aaBox);
+    visbarSizer->Add(aaSizer);
+
+    wxBoxSizer* smoothSizer = new wxBoxSizer(wxHORIZONTAL);
+    smoothSizer->AddSpacer(25);
+    wxCheckBox* smoothBox = new wxCheckBox(this, wxID_ANY, "Smooth particles");
+    smoothBox->Enable(false);
+    smoothSizer->Add(smoothBox);
+    visbarSizer->Add(smoothSizer);
+
+    aaBox->Bind(wxEVT_CHECKBOX, [this, smoothBox](wxCommandEvent& evt) {
+        const bool value = evt.IsChecked();
+        GuiSettings& gui = controller->getParams();
+        gui.set(GuiSettingsId::ANTIALIASED, value);
+        smoothBox->Enable(value);
+        controller->tryRedraw();
+    });
+    smoothBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
+        const bool value = evt.IsChecked();
+        GuiSettings& gui = controller->getParams();
+        gui.set(GuiSettingsId::SMOOTH_PARTICLES, value);
+        controller->tryRedraw();
+    });
+
+
     wxRadioButton* meshButton =
         new wxRadioButton(this, wxID_ANY, "Surface mesh", wxDefaultPosition, buttonSize, 0);
     visbarSizer->Add(meshButton);
@@ -421,6 +449,9 @@ wxBoxSizer* MainWindow::createVisBar() {
     auto enableControls = [=](int renderIdx) {
         cutoffSpinner->Enable(renderIdx == 0);
         particleSizeSpinner->Enable(renderIdx == 0);
+        grayscaleBox->Enable(renderIdx == 0);
+        aaBox->Enable(renderIdx == 0);
+        smoothBox->Enable(renderIdx == 0);
         levelSpinner->Enable(renderIdx == 2);
         sunlightSpinner->Enable(renderIdx == 2);
         ambientSpinner->Enable(renderIdx == 2);

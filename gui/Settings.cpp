@@ -74,11 +74,16 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Optional bitmap used as a texture for the secondary body (impactor). Applicable for raytracer." },
     { GuiSettingsId::RENDER_GHOST_PARTICLES, "render_ghost_particles", true,
         "If true, ghost particles will be displayed as transparent circles, otherwise they are hidden." },
-    { GuiSettingsId::BACKGROUND_COLOR,      "background_color",     Vector(0._f),
+    { GuiSettingsId::BACKGROUND_COLOR,      "background_color",     Vector(0._f, 0._f, 0._f, 1._f),
         "Background color of the rendered image." },
     { GuiSettingsId::FORCE_GRAYSCALE,       "force_grayscale",      false,
         "Palette used for particle colorization is converted to grayscale. Useful for checking how the "
         "image will look when printed on blank-and-white printer. "},
+    { GuiSettingsId::ANTIALIASED,           "antialiased",          false,
+        "Draw particles with antialiasing. Improves quality of the image, but may slow down the rendering." },
+    { GuiSettingsId::SMOOTH_PARTICLES,      "smooth_particles",     false,
+        "If true, rendered particles will be smoothed using cubic spline kernel. Useful to visualize the actual "
+        "extend of particles."},
 
     /// Window settings
     { GuiSettingsId::WINDOW_TITLE,          "window.title",         std::string("OpenSPH"),
