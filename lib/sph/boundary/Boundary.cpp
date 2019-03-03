@@ -82,6 +82,15 @@ void GhostParticles::initialize(Storage& storage) {
         }
     }
 
+    // set flag to some special value to separate the bodies
+    if (storage.has(QuantityId::FLAG)) {
+        ArrayView<Size> flag = storage.getValue<Size>(QuantityId::FLAG);
+        for (Size i = 0; i < ghosts.size(); ++i) {
+            const Size ghostIdx = ghostIdxs[i];
+            flag[ghostIdx] = Size(-1);
+        }
+    }
+
     ASSERT(storage.isValid());
 
     particleCnt = storage.getParticleCnt();

@@ -529,7 +529,10 @@ enum class DomainEnum {
     BLOCK,
 
     /// Cylindrical domain aligned with z axis
-    CYLINDER
+    CYLINDER,
+
+    /// Half-space z>0
+    HALF_SPACE,
 };
 
 /// List of forces to compute by the solver. This does not include numerical terms, see

@@ -344,6 +344,8 @@ AutoPtr<IDomain> Factory::getDomain(const RunSettings& settings) {
         return makeAuto<SphericalDomain>(center, settings.get<Float>(RunSettingsId::DOMAIN_RADIUS));
     case DomainEnum::ELLIPSOIDAL:
         return makeAuto<EllipsoidalDomain>(center, settings.get<Vector>(RunSettingsId::DOMAIN_SIZE));
+    case DomainEnum::HALF_SPACE:
+        return makeAuto<HalfSpaceDomain>();
     default:
         NOT_IMPLEMENTED;
     }

@@ -76,7 +76,7 @@ public:
     /// \param vs Array containing vectors creating ghosts.
     /// \param ghosts Output parameter containing created ghosts, stored as pairs (position of ghost and
     ///        index of source vector). Array must be cleared by the function!
-    /// \param radius Dimensionless distance to the boundary necessary for creating a ghost. A ghost is
+    /// \param eta Dimensionless distance to the boundary necessary for creating a ghost. A ghost is
     ///        created for vector v if it is closer than radius * v[H]. Vector must be inside, outside
     ///        vectors are ignored.
     /// \param eps Minimal dimensionless distance of ghost from the source vector. When vector is too
@@ -85,7 +85,7 @@ public:
     ///        eps * v[H] from the vector. Must be strictly lower than radius, checked by assert.
     virtual void addGhosts(ArrayView<const Vector> vs,
         Array<Ghost>& ghosts,
-        const Float radius = 2._f,
+        const Float eta = 2._f,
         const Float eps = 0.05_f) const = 0;
 
     /// \todo function for transforming block [0, 1]^d into the domain?
@@ -300,6 +300,33 @@ private:
     }
 };
 
+/// \brief Domain representing a half-space, given by z>0.
+///
+/// The domain has an infinite volume and thus cannot be used to generate particles. It is useful for
+/// compositing with another domain or for specifying boundary conditions.
+class HalfSpaceDomain : public IDomain {
+public:
+    virtual Vector getCenter() const override;
+
+    virtual Float getVolume() const override;
+
+    virtual Box getBoundingBox() const override;
+
+    virtual bool contains(const Vector& v) const override;
+
+    virtual void getSubset(ArrayView<const Vector> vs,
+        Array<Size>& output,
+        const SubsetType type) const override;
+
+    virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const override;
+
+    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override;
+
+    virtual void addGhosts(ArrayView<const Vector> vs,
+        Array<Ghost>& ghosts,
+        const Float eta,
+        const Float eps) const override;
+};
 /// \brief Transform another domain by given transformation matrix
 ///
 /// \todo TESTS

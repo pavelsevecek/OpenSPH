@@ -557,5 +557,86 @@ void HexagonalDomain::addGhosts(ArrayView<const Vector> vs,
     }
 }
 
+Vector HalfSpaceDomain::getCenter() const {
+    // z == 0, x and y are arbitrary
+    return Vector(0._f);
+}
+
+Float HalfSpaceDomain::getVolume() const {
+    return INFTY;
+}
+
+Box HalfSpaceDomain::getBoundingBox() const {
+    return Box(Vector(-INFTY, -INFTY, 0._f), Vector(INFTY));
+}
+
+bool HalfSpaceDomain::contains(const Vector& v) const {
+    return v[Z] > 0._f;
+}
+
+void HalfSpaceDomain::getSubset(ArrayView<const Vector> vs,
+    Array<Size>& output,
+    const SubsetType type) const {
+    switch (type) {
+    case SubsetType::OUTSIDE:
+        for (Size i = 0; i < vs.size(); ++i) {
+            if (!this->contains(vs[i])) {
+                output.push(i);
+            }
+        }
+        break;
+    case SubsetType::INSIDE:
+        for (Size i = 0; i < vs.size(); ++i) {
+            if (this->contains(vs[i])) {
+                output.push(i);
+            }
+        }
+    }
+}
+
+void HalfSpaceDomain::getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const {
+    distances.clear();
+    for (const Vector& v : vs) {
+        distances.push(v[Z]);
+    }
+}
+
+void HalfSpaceDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices) const {
+    if (indices) {
+        for (Size i : indices.value()) {
+            if (!this->contains(vs[i])) {
+                vs[i][Z] = 0._f;
+            }
+        }
+    } else {
+        for (Size i = 0; i < vs.size(); ++i) {
+            if (!this->contains(vs[i])) {
+                vs[i][Z] = 0._f;
+            }
+        }
+    }
+}
+
+void HalfSpaceDomain::addGhosts(ArrayView<const Vector> vs,
+    Array<Ghost>& ghosts,
+    const Float eta,
+    const Float eps) const {
+    ASSERT(eps < eta);
+    ghosts.clear();
+    for (Size i = 0; i < vs.size(); ++i) {
+        if (!this->contains(vs[i])) {
+            continue;
+        }
+
+        const Float dist = vs[i][Z];
+        ASSERT(dist > 0._f);
+        if (dist < vs[i][H] * eta) {
+            Vector g = vs[i];
+            g[Z] -= 2._f * dist;
+            ghosts.push(Ghost{ g, i });
+        }
+    }
+}
+
 
 NAMESPACE_SPH_END
