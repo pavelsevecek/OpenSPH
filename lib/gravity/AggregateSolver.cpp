@@ -134,7 +134,7 @@ public:
         for (Size i : idxs) {
             const Vector dr = r[i] - r_com;
             L += m[i] * cross(dr, v[i] - v_com);
-            I += m[i] * (SymmetricTensor::identity() * getSqrLength(dr) - outer(dr, dr));
+            I += m[i] * (SymmetricTensor::identity() * getSqrLength(dr) - symmetricOuter(dr, dr));
             M += m[i] * cross(dr, dv[i] - dv_com);
         }
 
@@ -252,7 +252,7 @@ private:
         for (Size i : idxs) {
             const Vector dr = r[i] - r_com;
             L += m[i] * cross(dr, v[i] - v_com);
-            I += m[i] * (SymmetricTensor::identity() * getSqrLength(dr) - outer(dr, dr));
+            I += m[i] * (SymmetricTensor::identity() * getSqrLength(dr) - symmetricOuter(dr, dr));
         }
 
         Integrals value;

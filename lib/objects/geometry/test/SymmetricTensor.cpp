@@ -81,8 +81,8 @@ TEST_CASE("SymmetricTensor algebra", "[symmetrictensor]") {
     // outer product
     SymmetricTensor rhs(
         Vector(-5._f, -8.5_f, 16._f), Vector(-8.5_f, 12._f, -5._f), Vector(16._f, -5._f, -12._f));
-    REQUIRE(outer(Vector(5._f, -3._f, -2._f), Vector(-1._f, -4._f, 6._f)) == rhs);
-    REQUIRE(outer(Vector(-1._f, -4._f, 6._f), Vector(5._f, -3._f, -2._f)) == rhs);
+    REQUIRE(symmetricOuter(Vector(5._f, -3._f, -2._f), Vector(-1._f, -4._f, 6._f)) == rhs);
+    REQUIRE(symmetricOuter(Vector(-1._f, -4._f, 6._f), Vector(5._f, -3._f, -2._f)) == rhs);
 }
 
 TEST_CASE("SymmetricTensor eigendecomposition", "[symmetrictensor]") {

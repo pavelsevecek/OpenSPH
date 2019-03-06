@@ -40,12 +40,12 @@ Float DynamicFinder::updateFinder(ArrayView<const Vector> points) {
     for (Vector p : points) {
         box.extend(p);
         dipole += p;
-        quadrupole += outer(p, p);
+        quadrupole += symmetricOuter(p, p);
     }
 
     // use PAT on tensors
     dipole -= points.size() * box.center();
-    quadrupole -= points.size() * outer(box.center(), box.center());
+    quadrupole -= points.size() * symmetricOuter(box.center(), box.center());
 
     // compute final metric using empirical expression (no science here)
     const Float size = getLength(box.size()) * points.size();

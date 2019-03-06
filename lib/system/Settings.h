@@ -583,6 +583,9 @@ enum class SolverEnum {
     /// Density is obtained by direct summation over nearest SPH particles.
     SUMMATION_SOLVER,
 
+    /// Special solver used to simulate deformations of perfectly elastic bodies
+    ELASTIC_DEFORMATION_SOLVER,
+
     /// Density independent solver by Saitoh & Makino (2013).
     DENSITY_INDEPENDENT,
 

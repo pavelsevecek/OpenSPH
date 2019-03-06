@@ -68,7 +68,7 @@ INLINE SymmetricTensor sphereInertia(const Float m, const Float r) {
 /// \param m Total mass of the body
 /// \param a Translation vector with respect to the center of mass
 INLINE SymmetricTensor parallelAxisTheorem(const SymmetricTensor& I, const Float m, const Vector& a) {
-    return I + m * (SymmetricTensor::identity() * getSqrLength(a) - outer(a, a));
+    return I + m * (SymmetricTensor::identity() * getSqrLength(a) - symmetricOuter(a, a));
 }
 
 } // namespace Rigid

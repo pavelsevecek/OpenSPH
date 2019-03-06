@@ -441,7 +441,7 @@ SymmetricTensor Post::getInertiaTensor(ArrayView<const Float> m,
 
     auto functor = [&I, r, m, &r0](Size i) {
         const Vector dr = r[i] - r0;
-        I += m[i] * (SymmetricTensor::identity() * getSqrLength(dr) - outer(dr, dr));
+        I += m[i] * (SymmetricTensor::identity() * getSqrLength(dr) - symmetricOuter(dr, dr));
     };
     if (idxs) {
         for (Size i : idxs) {

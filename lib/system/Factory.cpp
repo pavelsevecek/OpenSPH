@@ -25,6 +25,7 @@
 #include "sph/kernel/GravityKernel.h"
 #include "sph/solvers/AsymmetricSolver.h"
 #include "sph/solvers/DensityIndependentSolver.h"
+#include "sph/solvers/ElasticDeformationSolver.h"
 #include "sph/solvers/EnergyConservingSolver.h"
 #include "sph/solvers/GravitySolver.h"
 #include "sph/solvers/StandardSets.h"
@@ -235,6 +236,9 @@ AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler, const RunSettings& se
         return getActualSolver<AsymmetricSolver>(scheduler, settings, std::move(eqs));
     case SolverEnum::ENERGY_CONSERVING_SOLVER:
         return getActualSolver<EnergyConservingSolver>(scheduler, settings, std::move(eqs));
+    case SolverEnum::ELASTIC_DEFORMATION_SOLVER:
+        throwIfGravity();
+        return makeAuto<ElasticDeformationSolver>(scheduler, settings);
     case SolverEnum::SUMMATION_SOLVER:
         throwIfGravity();
         return makeAuto<SummationSolver>(scheduler, settings);

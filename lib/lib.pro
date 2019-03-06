@@ -86,7 +86,8 @@ SOURCES += \
     timestepping/TimeStepCriterion.cpp \
     timestepping/TimeStepping.cpp \
     run/CompositeRun.cpp \
-    io/LogWriter.cpp
+    io/LogWriter.cpp \
+    sph/solvers/ElasticDeformationSolver.cpp
 
 HEADERS += \
     Sph.h \
@@ -291,4 +292,5 @@ HEADERS += \
     timestepping/TimeStepCriterion.h \
     timestepping/TimeStepping.h \
     io/LogWriter.h \
-    objects/finders/PeriodicFinder.h
+    objects/finders/PeriodicFinder.h \
+    sph/solvers/ElasticDeformationSolver.h
