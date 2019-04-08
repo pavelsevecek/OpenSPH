@@ -352,6 +352,13 @@ wxBoxSizer* MainWindow::createVisBar() {
     grayscaleSizer->Add(grayscaleBox);
     visbarSizer->Add(grayscaleSizer);
 
+    wxBoxSizer* keySizer = new wxBoxSizer(wxHORIZONTAL);
+    keySizer->AddSpacer(25);
+    wxCheckBox* keyBox = new wxCheckBox(this, wxID_ANY, "Show key");
+    keyBox->SetValue(true);
+    keySizer->Add(keyBox);
+    visbarSizer->Add(keySizer);
+
     wxBoxSizer* aaSizer = new wxBoxSizer(wxHORIZONTAL);
     aaSizer->AddSpacer(25);
     wxCheckBox* aaBox = new wxCheckBox(this, wxID_ANY, "Anti-aliasing");
@@ -365,6 +372,12 @@ wxBoxSizer* MainWindow::createVisBar() {
     smoothSizer->Add(smoothBox);
     visbarSizer->Add(smoothSizer);
 
+    keyBox->Bind(wxEVT_CHECKBOX, [this, smoothBox](wxCommandEvent& evt) {
+        const bool value = evt.IsChecked();
+        GuiSettings& gui = controller->getParams();
+        gui.set(GuiSettingsId::SHOW_KEY, value);
+        controller->tryRedraw();
+    });
     aaBox->Bind(wxEVT_CHECKBOX, [this, smoothBox](wxCommandEvent& evt) {
         const bool value = evt.IsChecked();
         GuiSettings& gui = controller->getParams();
@@ -450,6 +463,7 @@ wxBoxSizer* MainWindow::createVisBar() {
         cutoffSpinner->Enable(renderIdx == 0);
         particleSizeSpinner->Enable(renderIdx == 0);
         grayscaleBox->Enable(renderIdx == 0);
+        keyBox->Enable(renderIdx == 0);
         aaBox->Enable(renderIdx == 0);
         smoothBox->Enable(renderIdx == 0);
         levelSpinner->Enable(renderIdx == 2);

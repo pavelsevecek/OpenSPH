@@ -161,6 +161,8 @@ enum class GuiSettingsId {
 
     BACKGROUND_COLOR,
 
+    SHOW_KEY,
+
     FORCE_GRAYSCALE,
 
     ANTIALIASED,

@@ -738,6 +738,7 @@ void Controller::startRenderThread() {
             params.particles.grayScale = gui.get<bool>(GuiSettingsId::FORCE_GRAYSCALE);
             params.particles.doAntialiasing = gui.get<bool>(GuiSettingsId::ANTIALIASED);
             params.particles.smoothed = gui.get<bool>(GuiSettingsId::SMOOTH_PARTICLES);
+            params.particles.showKey = gui.get<bool>(GuiSettingsId::SHOW_KEY);
             params.surface.level = gui.get<Float>(GuiSettingsId::SURFACE_LEVEL);
             params.surface.ambientLight = gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
             params.surface.sunLight = gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY);

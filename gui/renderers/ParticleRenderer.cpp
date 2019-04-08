@@ -271,13 +271,6 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
     // fill with the background color
     context->fill(background);
 
-    // black frame
-    context->setColor(Rgba::black(), ColorFlag::LINE);
-    context->drawLine(Coords(0, 0), Coords(params.size.x - 1, 0));
-    context->drawLine(Coords(params.size.x - 1, 0), Coords(params.size.x - 1, params.size.y - 1));
-    context->drawLine(Coords(params.size.x - 1, params.size.y - 1), Coords(0, params.size.y - 1));
-    context->drawLine(Coords(0, params.size.y - 1), Coords(0, 0));
-
     if (grid > 0.f) {
         drawGrid(*context, *params.camera, grid);
     }
@@ -325,18 +318,28 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
         drawVector(*context, *params.camera, dir.r, dir.v, params.vectors.length);
     }
 
-    if (cached.palette) {
-        const Pixel origin(context->size().x - 50, 231);
-        Palette palette;
-        if (params.particles.grayScale) {
-            palette = cached.palette->transform([](const Rgba& color) { return Rgba(color.intensity()); });
-        } else {
-            palette = cached.palette.value();
+    if (params.particles.showKey) {
+        drawKey(*context, stats, params.camera->getFov().value(), background);
+
+        if (cached.palette) {
+            const Pixel origin(context->size().x - 50, 231);
+            Palette palette;
+            if (params.particles.grayScale) {
+                palette =
+                    cached.palette->transform([](const Rgba& color) { return Rgba(color.intensity()); });
+            } else {
+                palette = cached.palette.value();
+            }
+            drawPalette(*context, origin, Pixel(30, 201), background.inverse(), palette);
         }
-        drawPalette(*context, origin, Pixel(30, 201), background.inverse(), palette);
     }
 
-    drawKey(*context, stats, params.camera->getFov().value(), background);
+    // lastly black frame to draw on top of other stuff
+    context->setColor(Rgba::black(), ColorFlag::LINE);
+    context->drawLine(Coords(0, 0), Coords(params.size.x - 1, 0));
+    context->drawLine(Coords(params.size.x - 1, 0), Coords(params.size.x - 1, params.size.y - 1));
+    context->drawLine(Coords(params.size.x - 1, params.size.y - 1), Coords(0, params.size.y - 1));
+    context->drawLine(Coords(0, params.size.y - 1), Coords(0, 0));
 
     output.update(bitmap, context->getLabels());
 }
