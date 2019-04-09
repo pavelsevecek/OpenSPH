@@ -148,13 +148,16 @@ void AntiAliasedRenderContext::drawCircle(const Coords center, const float radiu
         return;
     }
     const Pixel p(center);
-    for (int y = p.y - radius - 1; y <= p.y + radius + 1; ++y) {
-        for (int x = p.x - radius - 1; x <= p.x + radius + 1; ++x) {
-            const float distSqr = sqr(x - p.x) + sqr(y - p.y);
-            if (distSqr <= sqr(radius + 1)) {
+    if (radius <= 1.f) {
+        Rgba color = colors.fill;
+        color.a() = sqr(radius);
+        drawSafe(p, color);
+    } else {
+        for (int y = p.y - radius - 1; y <= p.y + radius + 1; ++y) {
+            for (int x = p.x - radius - 1; x <= p.x + radius + 1; ++x) {
+                const float distSqr = sqr(x - center.x) + sqr(y - center.y);
                 Rgba color = colors.fill;
-                /// \todo  rework -- this somehow needs to take into account the ACTUAL position, not p
-                color.a() = clamp(sqr(radius) - distSqr, 0.f, 1.f);
+                color.a() = clamp(radius - sqrt(distSqr), 0.f, 1.f);
                 drawSafe(Pixel(x, y), color);
             }
         }
