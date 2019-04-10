@@ -40,8 +40,8 @@ clang_release:
 examples:
   stage: build
   script:
-    - mkdir examples
-    - cd examples
+    - mkdir examples_build
+    - cd examples_build
     - qmake -spec linux-clang CONFIG+=devel ../example.pro
     - make
 
