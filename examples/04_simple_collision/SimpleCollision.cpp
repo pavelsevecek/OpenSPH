@@ -37,10 +37,6 @@ public:
 
         // Set the maximal time step to 0.1s.
         settings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.1_f);
-
-        // Set up some progress logging; print to standard output
-        logger = makeShared<StdOutLogger>();
-        triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
     }
 
     virtual void tearDown(const Statistics& stats) override {

@@ -11,15 +11,15 @@ public:
         storage = makeShared<Storage>();
 
         // Here we use the Presets::Collision for simple collision setup
-        Presets::CollisionParams params;
-        params.targetRadius = 1.e5_f;            // R_pb = 100km
-        params.targetParticleCnt = 10000;        // N_pb = 10000
-        params.impactorRadius = 5.e4_f;          // R_imp = 50km
-        params.impactAngle = 15._f * DEG_TO_RAD; // phi_imp = 15deg
-        params.impactSpeed = 1.e3_f;             // v_imp = 1km/s
-        params.optimizeImpactor = true;
+        CollisionParams params;
+        params.geometry
+            .set(CollisionGeometrySettingsId::TARGET_RADIUS, 1.e5_f)        // R_pb = 100km
+            .set(CollisionGeometrySettingsId::TARGET_PARTICLE_COUNT, 10000) // N_pb = 10000
+            .set(CollisionGeometrySettingsId::IMPACTOR_RADIUS, 5.e4_f)      // R_imp = 50km
+            .set(CollisionGeometrySettingsId::IMPACT_ANGLE, 15._f)          // phi_imp = 15deg
+            .set(CollisionGeometrySettingsId::IMPACT_SPEED, 1.e3_f);        // v_imp = 1km/s
 
-        Presets::Collision ic(*scheduler, settings, params);
+        CollisionInitialConditions ic(*scheduler, settings, params);
         ic.addTarget(*storage);
         ic.addImpactor(*storage);
 
@@ -31,10 +31,6 @@ public:
         Statistics stats;
         stats.set(StatisticsId::RUN_TIME, 0._f);
         io.dump(*storage, stats);
-
-        // Add common logging
-        logger = makeShared<StdOutLogger>();
-        triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
     }
 
     virtual void tearDown(const Statistics& stats) override {
@@ -118,10 +114,6 @@ public:
 
         // Run for 2 days
         settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 2._f * 60._f * 60._f * 24._f));
-
-        // Add common logging
-        logger = makeShared<StdOutLogger>();
-        triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
     }
 
     virtual void tearDown(const Statistics& stats) override {
