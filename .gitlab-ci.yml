@@ -42,7 +42,7 @@ examples:
   script:
     - mkdir examples_build
     - cd examples_build
-    - qmake -spec linux-clang CONFIG+=devel ../example.pro
+    - qmake -spec linux-clang CONFIG+=devel ../examples.pro
     - make
 
 test_debug:
