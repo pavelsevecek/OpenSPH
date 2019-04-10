@@ -37,6 +37,14 @@ clang_release:
     - qmake -spec linux-clang CONFIG+=release ../sph.pro
     - make
 
+examples:
+  stage: build
+  script:
+    - mkdir examples
+    - cd examples
+    - qmake -spec linux-clang CONFIG+=devel ../example.pro
+    - make
+
 test_debug:
   stage: test
   script:
