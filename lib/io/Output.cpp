@@ -483,7 +483,7 @@ Path BinaryOutput::dump(const Storage& storage, const Statistics& stats) {
     // file format identifier
     const Size materialCnt = storage.getMaterialCnt();
     const Size quantityCnt = storage.getQuantityCnt() - int(storage.has(QuantityId::MATERIAL_ID));
-    const Float timeStep = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
+    const Float timeStep = stats.getOr<Float>(StatisticsId::TIMESTEP_VALUE, 0.1_f);
     serializer.write(
         "SPH", time, storage.getParticleCnt(), quantityCnt, materialCnt, timeStep, BinaryIoVersion::LATEST);
     // write run type

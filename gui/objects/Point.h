@@ -49,6 +49,12 @@ struct BasicPoint {
         return static_cast<TDerived&>(*this);
     }
 
+    TDerived& operator/=(const float factor) {
+        x /= factor;
+        y /= factor;
+        return static_cast<TDerived&>(*this);
+    }
+
     TDerived operator+(const TDerived& other) const {
         TDerived result(static_cast<const TDerived&>(*this));
         result += other;
@@ -64,6 +70,12 @@ struct BasicPoint {
     TDerived operator*(const float factor) const {
         TDerived result(static_cast<const TDerived&>(*this));
         result *= factor;
+        return result;
+    }
+
+    TDerived operator/(const float factor) const {
+        TDerived result(static_cast<const TDerived&>(*this));
+        result /= factor;
         return result;
     }
 
@@ -94,6 +106,9 @@ struct Coords : public BasicPoint<float, Coords> {
 
     explicit Coords(const Pixel p)
         : BasicPoint<float, Coords>(p.x, p.y) {}
+
+    using BasicPoint<float, Coords>::operator*;
+    using BasicPoint<float, Coords>::operator/;
 
     Coords operator*(const Coords& other) const {
         Coords res = *this;

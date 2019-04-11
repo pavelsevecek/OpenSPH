@@ -6,7 +6,7 @@ NAMESPACE_SPH_BEGIN
 static auto DEFAULT_QUANTITY_IDS = OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY |
                                    OutputQuantityFlag::SMOOTHING_LENGTH | OutputQuantityFlag::MASS |
                                    OutputQuantityFlag::DENSITY | OutputQuantityFlag::PRESSURE |
-                                   OutputQuantityFlag::ENERGY | OutputQuantityFlag::DEVIATORIC_STRESS;
+                                   OutputQuantityFlag::ENERGY;
 
 
 static RegisterEnum<OutputQuantityFlag> sQuantity({

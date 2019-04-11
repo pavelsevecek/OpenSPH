@@ -19,28 +19,15 @@ enum class CollisionGeometrySettingsId {
     /// on selected distribution.
     TARGET_PARTICLE_COUNT,
 
-    /// Minimal number of particles per body.
-    MIN_PARTICLE_COUNT,
-
-    /// Number of impactor particles. If zero, the number of particles is automatically computed based on the
-    /// number of target particles and the ratio of target radius to projectile radius.
-    IMPACTOR_PARTICLE_COUNT_OVERRIDE,
-
-    /// If true, positions and velocities of particles are modified so that center of mass is at origin and
-    /// has zero velocity.
-    CENTER_OF_MASS_FRAME,
+    /// Angular frequency of the target around z-axis in units rev/day.
+    TARGET_SPIN_RATE,
 
     /// Radius of the projectile in meters
     IMPACTOR_RADIUS,
 
-    /// Impact speed in m/s
-    IMPACT_SPEED,
-
-    /// Impact angle in degrees, i.e. angle between velocity vector and normal at the impact point.
-    IMPACT_ANGLE,
-
-    /// Angular frequency of the target around z-axis in units rev/day.
-    TARGET_SPIN_RATE,
+    /// Number of impactor particles. If zero, the number of particles is automatically computed based on the
+    /// number of target particles and the ratio of target radius to projectile radius.
+    IMPACTOR_PARTICLE_COUNT_OVERRIDE,
 
     /// Initial distance of the impactor from the impact point. This value is in units of smoothing length h.
     /// Should not be lower than kernel.radius() * eta.
@@ -49,7 +36,20 @@ enum class CollisionGeometrySettingsId {
     /// If true, derivatives in impactor will be computed with lower precision. This significantly improves
     /// the performance of the code. The option is intended mainly for cratering impacts and should be always
     /// false when simulating collision of bodies of comparable sizes.
-    OPTIMIZE_IMPACTOR
+    OPTIMIZE_IMPACTOR,
+
+    /// Impact speed in m/s
+    IMPACT_SPEED,
+
+    /// Impact angle in degrees, i.e. angle between velocity vector and normal at the impact point.
+    IMPACT_ANGLE,
+
+    /// Minimal number of particles per body.
+    MIN_PARTICLE_COUNT,
+
+    /// If true, positions and velocities of particles are modified so that center of mass is at origin and
+    /// has zero velocity.
+    CENTER_OF_MASS_FRAME,
 };
 
 using CollisionGeometrySettings = Settings<CollisionGeometrySettingsId>;

@@ -36,7 +36,9 @@ Another optional dependencies of the code are:
 
 The compilation should be as easy as
 ```bash
-qmake CONFIG+=version sph.pro
+mkdir build_version
+cd build_version
+qmake CONFIG+=version ../sph.pro
 make
 ```
 where *version* can be one of:
@@ -44,6 +46,7 @@ where *version* can be one of:
 - *debug* - debugging build with no optimizations (SLOW)
 - *assert* - build with all optimizations and additional sanity checks
 - *profile* - full-speed build that measures durations of various segments of the code and print run statistics
+Use different build directory for each version.
 
 ## Running a basic impact simulation
 The code can be executed with default settings, in which case it will use the following:

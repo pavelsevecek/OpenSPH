@@ -93,15 +93,33 @@ public:
     }
 };
 
-InitialConditions::InitialConditions(IScheduler& scheduler, ISolver& solver, const RunSettings& settings)
+/// Helper function to avoid nullptr setup
+static Function<void(Storage&)> getRealSetup(Function<void(Storage&)> setup) {
+    if (setup) {
+        return setup;
+    } else {
+        return [](Storage& UNUSED(body)) {
+            // do nothing
+        };
+    }
+}
+
+InitialConditions::InitialConditions(IScheduler& scheduler,
+    ISolver& solver,
+    const RunSettings& settings,
+    Function<void(Storage&)> additionalSetup)
     : scheduler(scheduler)
     , solver(makeAuto<ForwardingSolver>(solver))
-    , context(settings) {}
+    , context(settings)
+    , additionalSetup(getRealSetup(additionalSetup)) {}
 
-InitialConditions::InitialConditions(IScheduler& scheduler, const RunSettings& settings)
+InitialConditions::InitialConditions(IScheduler& scheduler,
+    const RunSettings& settings,
+    Function<void(Storage&)> additionalSetup)
     : scheduler(scheduler)
     , solver(Factory::getSolver(scheduler, settings))
-    , context(settings) {}
+    , context(settings)
+    , additionalSetup(getRealSetup(additionalSetup)) {}
 
 InitialConditions::~InitialConditions() = default;
 
@@ -359,6 +377,9 @@ void InitialConditions::setQuantities(Storage& storage, IMaterial& material, con
 
     // Initialize material (we need density and energy for EoS)
     material.create(storage, context);
+
+    // Other user-defined quantities
+    additionalSetup(storage);
 }
 
 void repelParticles(ArrayView<Vector> r, const Float radius) {

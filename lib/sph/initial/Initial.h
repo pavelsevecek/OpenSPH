@@ -9,6 +9,7 @@
 #include "objects/containers/ArrayView.h"
 #include "objects/geometry/Vector.h"
 #include "objects/wrappers/AutoPtr.h"
+#include "objects/wrappers/Function.h"
 #include "quantities/IMaterial.h"
 
 NAMESPACE_SPH_BEGIN
@@ -111,11 +112,14 @@ private:
     /// correctly.
     AutoPtr<ISolver> solver;
 
-    /// Counter incremented every time a body is added, used for setting up FLAG quantity
-    Size bodyIndex = 0;
-
     /// Shared data when creating bodies
     MaterialInitialContext context;
+
+    /// Called on every created body.
+    Function<void(Storage&)> additionalSetup;
+
+    /// Counter incremented every time a body is added, used for setting up FLAG quantity
+    Size bodyIndex = 0;
 
 public:
     /// \brief Constructs object by taking a reference to a solver using in the simulation.
@@ -124,7 +128,12 @@ public:
     /// \param solver Solver used to create all the necessary quantities. Also must exist for the duration
     ///               of this object as it is stored by reference.
     /// \param settings Run settings used to initialize \ref MaterialInitialContext.
-    InitialConditions(IScheduler& scheduler, ISolver& solver, const RunSettings& settings);
+    /// \param additionalSetup Optional functor used to add additional quantities or material parameters to
+    ///                        created bodies.
+    InitialConditions(IScheduler& scheduler,
+        ISolver& solver,
+        const RunSettings& settings,
+        Function<void(Storage&)> additionalSetup = nullptr);
 
     /// \brief Constructor creating solver from values in settings.
     ///
@@ -133,7 +142,9 @@ public:
     /// quantities. Mostly, this will throw an exception or assert, but in case the custom solver uses the
     /// same quantities as the default one, but it initializes them to different values, this error would go
     /// unnoticed.
-    InitialConditions(IScheduler& scheduler, const RunSettings& settings);
+    InitialConditions(IScheduler& scheduler,
+        const RunSettings& settings,
+        Function<void(Storage&)> additionalSetup = nullptr);
 
     ~InitialConditions();
 
