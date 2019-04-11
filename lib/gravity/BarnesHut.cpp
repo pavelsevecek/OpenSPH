@@ -2,7 +2,6 @@
 #include "gravity/Moments.h"
 #include "objects/geometry/Sphere.h"
 #include "objects/utility/ArrayUtils.h"
-#include "physics/Constants.h"
 #include "quantities/Storage.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
@@ -44,7 +43,7 @@ void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
     m.resize(r.size());
     ArrayView<const Float> masses = storage.getValue<Float>(QuantityId::MASS);
     for (Size i = 0; i < m.size(); ++i) {
-        m[i] = Constants::gravity * masses[i];
+        m[i] = gravityConstant * masses[i];
     }
 
     // build K-d Tree; no need for rank as we are never searching neighbours
@@ -446,7 +445,7 @@ void BarnesHut::buildInner(BarnesHutNode& node, BarnesHutNode& left, BarnesHutNo
 
 MultipoleExpansion<3> BarnesHut::getMoments() const {
     // masses are premultiplied by gravitational constants, so we have to divide
-    return kdTree.getNode(0).moments.multiply(1._f / Constants::gravity);
+    return kdTree.getNode(0).moments.multiply(1._f / gravityConstant);
 }
 
 RawPtr<const IBasicFinder> BarnesHut::getFinder() const {

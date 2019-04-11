@@ -10,8 +10,9 @@ public:
 
         storage = makeShared<Storage>();
 
-        // Here we use the Presets::Collision for simple collision setup
+        // Here we use the CollisionParams for simple collision setup
         CollisionParams params;
+
         params.geometry
             .set(CollisionGeometrySettingsId::TARGET_RADIUS, 1.e5_f)        // R_pb = 100km
             .set(CollisionGeometrySettingsId::TARGET_PARTICLE_COUNT, 10000) // N_pb = 10000

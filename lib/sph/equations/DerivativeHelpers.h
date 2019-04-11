@@ -376,7 +376,7 @@ struct GradientTraits {
     using Type = SymmetricTensor;
 
     INLINE static SymmetricTensor eval(const Vector& v, const Vector& grad) {
-        return outer(v, grad);
+        return symmetricOuter(v, grad);
     }
 };
 

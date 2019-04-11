@@ -12,6 +12,9 @@ NAMESPACE_SPH_BEGIN
 
 struct Svd;
 
+/// \brief Symmetric tensor of 2nd order.
+///
+/// Internally, data are stored in two vectors, representing the diagonal and the off-diagonal components.
 class SymmetricTensor {
 private:
     Vector diag; // diagonal part
@@ -24,19 +27,20 @@ public:
         : diag(other.diag)
         , off(other.off) {}
 
-    /// Construct tensor given its diagonal vector and a vector of off-diagonal elements (sorted top-bottom
-    /// and left-right).
+    /// \brief Construct tensor given its diagonal vector and a vector of off-diagonal elements (sorted
+    /// top-bottom and left-right).
     INLINE SymmetricTensor(const Vector& diag, const Vector& off)
         : diag(diag)
         , off(off) {}
 
-    /// Initialize all components of the tensor to given value.
+    /// \brief Initialize all components of the tensor to given value.
     INLINE explicit SymmetricTensor(const Float value)
         : diag(value)
         , off(value) {}
 
-    /// Construct tensor given three vectors as rows. Matrix represented by the vectors MUST be symmetric,
-    /// checked by assert.
+    /// \brief Construct tensor given three vectors as rows.
+    ///
+    /// Matrix represented by the vectors MUST be symmetric, checked by assert.
     INLINE SymmetricTensor(const Vector& v0, const Vector& v1, const Vector& v2) {
         ASSERT(v0[1] == v1[0], v0[1], v1[0]);
         ASSERT(v0[2] == v2[0], v0[2], v2[0]);
@@ -351,8 +355,10 @@ INLINE Float ddot(const SymmetricTensor& t1, const SymmetricTensor& t2) {
     return dot(t1.diagonal(), t2.diagonal()) + 2._f * dot(t1.offDiagonal(), t2.offDiagonal());
 }
 
-/// SYMMETRIZED outer product of two vectors (simple outer product is not necessarily symmetric matrix).
-INLINE SymmetricTensor outer(const Vector& v1, const Vector& v2) {
+/// \brief SYMMETRIZED outer product of two vectors.
+///
+/// Note that simple outer product is not necessarily symmetric matrix.
+INLINE SymmetricTensor symmetricOuter(const Vector& v1, const Vector& v2) {
     /// \todo optimize
     return SymmetricTensor(v1 * v2,
         0.5_f * Vector(v1[0] * v2[1] + v1[1] * v2[0],

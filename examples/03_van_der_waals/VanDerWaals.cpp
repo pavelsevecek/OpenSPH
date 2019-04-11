@@ -26,12 +26,12 @@ public:
         const Float T = 2._f * (u + a / v) / (3._f * R);
 
         // now compute the pressure
-        const Float p = R * T / (v - b) - a / sqr(v);
+        const Float p = max(R * T / (v - b) - a / sqr(v), EPS);
+        ASSERT(isReal(p));
 
-        const Float M = NAN; // todo
-
-        // last, compute the sound speed
-        const Float cs = sqrt(gamma * R * v * p / (M * (v - b)) - a / M * (gamma / (v - b) - 2 / v));
+        /// \todo correct sound speed
+        const Float cs = sqrt(gamma * p / rho);
+        ASSERT(isReal(cs));
 
         return { p, cs };
     }
@@ -51,12 +51,17 @@ public:
 class VanDerWallsSimulation : public IRun {
 public:
     virtual void setUp() override {
-        // Same as in "Hello Asteroid"
+        settings.set(RunSettingsId::RUN_NAME, std::string("Van der Waals"));
+
+        // We simulate a gass, so the only force in the system is due to pressure gradient
+        settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE);
+
         storage = makeShared<Storage>();
         InitialConditions ic(*scheduler, settings);
         SphericalDomain domain(Vector(0._f), 1.e3_f);
         BodySettings body;
         body.set(BodySettingsId::PARTICLE_COUNT, 10000);
+        body.set(BodySettingsId::DENSITY, 2._f); // 2 kg/m^3
 
         // Prepare our custom EoS
         AutoPtr<VanDerWaalsEos> eos = makeAuto<VanDerWaalsEos>(1.38_f, 0.032_f, 1.4_f);

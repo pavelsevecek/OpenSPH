@@ -142,6 +142,22 @@ Vector getAngularFrequency(ArrayView<const Float> m,
     ArrayView<const Vector> v,
     ArrayView<const Size> idxs = nullptr);
 
+/// \brief Computes the sphericity coefficient of a body.
+///
+/// Sphericity is defined as the ratio of the surface area of a sphere (with the same volume as the given
+/// body) to the surface area of the body (\cite Wadell_1935). This value is equal to 1 for sphere (and only
+/// for sphere); the lower the value, the more the body is "aspheric". The sphericity is useful for
+/// quantification of "roundness"; the ratio of semi-axes, for example, can be easily 1 even for cube,
+/// definitely not a round body.
+///
+/// Note that the sphericity depends on resolution, small-scale topograpy will always cause the sphericity to
+/// decrease! When comparing sphericities, it is necessary to use the same resolution for the compared bodies.
+/// \param scheduler Scheduler potentially used for parallelization.
+/// \param storage Storage containing particle positions, optionally also masses and densities.
+/// \param resolution Relative resolution used to compute the sphericity.
+/// \return Wadell's sphericity value for the body.
+Float getSphericity(IScheduler& scheduler, const Storage& strorage, const Float resolution = 0.05_f);
+
 
 /// \brief Object holding Keplerian orbital elements of a body
 ///

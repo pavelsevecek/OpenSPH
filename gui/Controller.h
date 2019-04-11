@@ -142,6 +142,9 @@ private:
     std::mutex continueMutex;
     std::condition_variable continueVar;
 
+    std::mutex updateMutex;
+    std::condition_variable updateVar;
+
 public:
     /// \brief Initialize the controller.
     ///

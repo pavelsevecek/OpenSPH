@@ -77,6 +77,7 @@ public:
         BodySettings body;
         ic.addMonolithicBody(*storage, domain, body);
 
+        settings.set(RunSettingsId::RUN_NAME, std::string("Death star"));
         settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1._f));
     }
 

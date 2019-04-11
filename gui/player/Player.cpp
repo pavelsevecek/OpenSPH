@@ -3,12 +3,17 @@
 #include "gui/Settings.h"
 #include "gui/Utils.h"
 #include "gui/Uvw.h"
+#include "io/Column.h"
 #include "io/FileSystem.h"
 #include "io/Logger.h"
 #include "objects/Exceptions.h"
 #include "objects/utility/StringUtils.h"
+#include "thread/CheckFunction.h"
 #include "timestepping/ISolver.h"
+#include "timestepping/TimeStepping.h"
+#include <wx/dcclient.h>
 #include <wx/msgdlg.h>
+#include <wx/panel.h>
 #include <wx/sizer.h>
 #include <wx/slider.h>
 #include <wx/stattext.h>
@@ -17,8 +22,32 @@ IMPLEMENT_APP(Sph::App);
 
 NAMESPACE_SPH_BEGIN
 
-RunPlayer::RunPlayer(const Path& fileMask)
-    : fileMask(fileMask) {}
+RunPlayer::RunPlayer(const Path& fileMask, Function<void(int)> onNewFrame)
+    : fileMask(fileMask)
+    , onNewFrame(onNewFrame) {}
+
+class TabInput : public IInput {
+private:
+    TextInput input;
+
+public:
+    TabInput()
+        : input(OutputQuantityFlag::MASS | OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY) {}
+
+    virtual Outcome load(const Path& path, Storage& storage, Statistics& stats) override {
+        Outcome result = input.load(path, storage, stats);
+        if (!result) {
+            return result;
+        }
+
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        for (Size i = 0; i < r.size(); ++i) {
+            r[i][H] = 1.e-2_f;
+        }
+
+        return SUCCESS;
+    }
+};
 
 /// \todo possibly move to Factory
 static AutoPtr<IInput> getInput(const Path& path) {
@@ -26,6 +55,8 @@ static AutoPtr<IInput> getInput(const Path& path) {
         return makeAuto<BinaryInput>();
     } else if (path.extension() == Path("scf")) {
         return makeAuto<CompressedInput>();
+    } else if (path.extension() == Path("tab")) {
+        return makeAuto<TabInput>();
     } else {
         std::string str = path.native();
         if (str.substr(str.size() - 3) == ".bt") {
@@ -35,47 +66,8 @@ static AutoPtr<IInput> getInput(const Path& path) {
     throw InvalidSetup("Unknown file type: " + path.native());
 }
 
-void RunPlayer::setUp() {
-    logger = makeAuto<StdOutLogger>();
-
-    files = OutputFile(fileMask);
-    fileCnt = this->getFileCount(fileMask);
-
-    if (fileCnt > 1) {
-        logger->write("Loading sequence of ", fileCnt, " files");
-    }
-
-    Statistics stats;
-    stats.set(StatisticsId::RUN_TIME, 0._f);
-    const Path firstPath = files.getNextPath(stats);
-    if (!FileSystem::pathExists(firstPath)) {
-        throw InvalidSetup("Cannot locate file " + firstPath.native());
-    }
-
-    storage = makeShared<Storage>();
-    AutoPtr<IInput> input = getInput(firstPath);
-    Outcome result = input->load(firstPath, *storage, stats);
-    if (!result) {
-        throw InvalidSetup("Cannot load the run state file " + firstPath.native());
-    } else {
-        loadedTime = stats.get<Float>(StatisticsId::RUN_TIME);
-    }
-    logger->write("Loaded ", storage->getParticleCnt(), " particles");
-
-    // setupUvws(*storage);
-
-    callbacks = makeAuto<GuiCallbacks>(*controller);
-
-    // dummy solver, used to avoid calling create on stuff
-    struct PlayerSolver : public ISolver {
-        virtual void integrate(Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
-
-        virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
-    };
-    solver = makeAuto<PlayerSolver>();
-}
-
-Size RunPlayer::getFileCount(const Path& pathMask) const {
+/*static Size getFileCount(const Path& pathMask) {
+    /// \todo instead of using OutputFile, find all files in the sequence and save to narray!
     OutputFile of(pathMask);
     if (!of.hasWildcard()) {
         return FileSystem::pathExists(pathMask) ? 1 : 0;
@@ -91,6 +83,96 @@ Size RunPlayer::getFileCount(const Path& pathMask) const {
         }
     }
     return cnt;
+}*/
+static std::map<int, Path> getSequenceFiles(const Path& inputPath) {
+    Path fileMask;
+    std::map<int, Path> fileMap;
+    OutputFile outputFile(inputPath);
+    if (outputFile.hasWildcard()) {
+        // already a mask
+        fileMask = inputPath;
+    } else {
+        Optional<OutputFile> deducedFile = OutputFile::getMaskFromPath(inputPath);
+        if (!deducedFile) {
+            // just a single file, not part of a sequence (e.g. frag_final.ssf)
+            fileMap.insert(std::make_pair(0, inputPath));
+            return fileMap;
+        }
+        fileMask = deducedFile->getMask();
+    }
+
+    const Path dir = fileMask.parentPath();
+    Array<Path> files = FileSystem::getFilesInDirectory(dir);
+
+    for (Path& file : files) {
+        const Optional<OutputFile> deducedMask = OutputFile::getMaskFromPath(dir / file);
+        if (deducedMask && deducedMask->getMask() == fileMask) {
+            const Optional<Size> index = OutputFile::getDumpIdx(dir / file);
+            ASSERT(index);
+            fileMap[index.value()] = dir / file;
+        }
+    }
+
+    ASSERT(!fileMap.empty());
+    return fileMap;
+}
+
+void RunPlayer::setUp() {
+    logger = makeAuto<StdOutLogger>();
+
+    fileMap.clear();
+    OutputFile of(fileMask);
+    if (of.hasWildcard()) {
+        //  frame sequence
+        fileMap = getSequenceFiles(fileMask);
+        if (fileMap.size() > 1) {
+            logger->write("Loading sequence of ", fileMap.size(), " files");
+        }
+    } else {
+        // single frame
+        const Optional<Size> frame = OutputFile::getDumpIdx(fileMask);
+        fileMap.insert(std::make_pair(frame.valueOr(0), fileMask));
+    }
+
+    Statistics stats;
+    stats.set(StatisticsId::RUN_TIME, 0._f);
+    const Path firstPath = of.hasWildcard() ? fileMap.begin()->second : fileMask;
+    if (!FileSystem::pathExists(firstPath)) {
+        throw InvalidSetup("Cannot locate file " + firstPath.native());
+    }
+
+    storage = makeShared<Storage>();
+    AutoPtr<IInput> input = getInput(firstPath);
+    Outcome result = input->load(firstPath, *storage, stats);
+    if (!result) {
+        throw InvalidSetup("Cannot load the run state file " + firstPath.native());
+    } else {
+        loadedTime = stats.get<Float>(StatisticsId::RUN_TIME);
+    }
+    logger->write(
+        "Loaded file ", firstPath.fileName().native(), " with ", storage->getParticleCnt(), " particles");
+
+    // setupUvws(*storage);
+
+    callbacks = makeAuto<GuiCallbacks>(*controller);
+
+    // dummy solver, used to avoid calling create on stuff
+    struct PlayerSolver : public ISolver {
+        virtual void integrate(Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
+
+        virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
+    };
+    solver = makeAuto<PlayerSolver>();
+
+    // dummy timestepping, otherwise we would erase highest derivatives
+    struct PlayerTimestepping : public ITimeStepping {
+        using ITimeStepping::ITimeStepping;
+
+        virtual void stepImpl(IScheduler& UNUSED(scheduler),
+            ISolver& UNUSED(solver),
+            Statistics& UNUSED(stats)) override {}
+    };
+    timeStepping = makeAuto<PlayerTimestepping>(storage, settings);
 }
 
 void RunPlayer::run() {
@@ -103,14 +185,18 @@ void RunPlayer::run() {
     callbacks->onRunStart(*storage, stats);
 
     const Size stepMilliseconds = Size(1000._f / fps);
-    for (Size i = 0; i < fileCnt; ++i) {
+    Size i = 0;
+    for (auto frameAndPath : fileMap) {
         Timer stepTimer;
-        stats.set(StatisticsId::RELATIVE_PROGRESS, Float(i) / fileCnt);
+        stats.set(StatisticsId::RELATIVE_PROGRESS, Float(i) / fileMap.size());
         callbacks->onTimeStep(*storage, stats);
+        if (onNewFrame) {
+            onNewFrame(frameAndPath.first);
+        }
 
-        if (i != fileCnt - 1) {
+        if (i != fileMap.size() - 1) {
             storage = makeShared<Storage>();
-            const Path path = files.getNextPath(stats);
+            const Path path = frameAndPath.second;
             Timer loadTimer;
             AutoPtr<IInput> io = getInput(path);
             const Outcome result = io->load(path, *storage, stats);
@@ -119,7 +205,11 @@ void RunPlayer::run() {
                     wxMessageBox("Cannot load the run state file " + path.native(), "Error", wxOK);
                 });
             }
-            logger->write("Loaded ", path.native(), " in ", loadTimer.elapsed(TimerUnit::MILLISECOND), " ms");
+            logger->write("Loaded ",
+                path.fileName().native(),
+                " in ",
+                loadTimer.elapsed(TimerUnit::MILLISECOND),
+                " ms");
             // setupUvws(*storage);
 
             const Size elapsed = stepTimer.elapsed(TimerUnit::MILLISECOND);
@@ -128,11 +218,12 @@ void RunPlayer::run() {
             }
         }
 
+        ++i;
         if (callbacks->shouldAbortRun()) {
             break;
         }
     }
-    if (fileCnt > 1) {
+    if (fileMap.size() > 1) {
         logger->write("File sequence finished");
     } else {
         logger->write("File finished");
@@ -142,15 +233,204 @@ void RunPlayer::run() {
 
 void RunPlayer::tearDown(const Statistics& UNUSED(stats)) {}
 
-class PlayerPlugin : public IPluginControls {
+class TimeLinePanel : public wxPanel {
+private:
+    Function<void(Path)> onFrameChanged;
+
+    std::map<int, Path> fileMap;
+    int currentFrame = 0;
+    int mouseFrame = 0;
+
 public:
-    virtual void create(wxWindow* parent, wxSizer* sizer) override {
-        wxSlider* slider = new wxSlider(parent, wxID_ANY, 0, 0, 100);
-        slider->SetSize(wxSize(800, 100));
-        sizer->Add(slider);
+    TimeLinePanel(wxWindow* parent, const Path inputFile, Function<void(Path)> onFrameChanged)
+        : wxPanel(parent, wxID_ANY)
+        , onFrameChanged(onFrameChanged) {
+
+        fileMap = getSequenceFiles(inputFile);
+        OutputFile of(inputFile);
+        if (!of.hasWildcard()) {
+            currentFrame = OutputFile::getDumpIdx(inputFile).valueOr(0);
+        }
+
+        this->SetMinSize(wxSize(1024, 50));
+        this->Connect(wxEVT_PAINT, wxPaintEventHandler(TimeLinePanel::onPaint));
+        this->Connect(wxEVT_MOTION, wxMouseEventHandler(TimeLinePanel::onMouseMotion));
+        this->Connect(wxEVT_LEFT_UP, wxMouseEventHandler(TimeLinePanel::onLeftClick));
+        this->Connect(wxEVT_KEY_UP, wxKeyEventHandler(TimeLinePanel::onKeyUp));
     }
 
-    virtual void statusChanges(const RunStatus UNUSED(newStatus)) override {}
+    void setFrame(const int newFrame) {
+        currentFrame = newFrame;
+        this->Refresh();
+    }
+
+private:
+    int positionToFrame(const wxPoint position) const {
+        wxSize size = this->GetSize();
+        const int firstFrame = fileMap.begin()->first;
+        const int lastFrame = fileMap.rbegin()->first;
+        const int frame = firstFrame + int(roundf(float(position.x) * (lastFrame - firstFrame) / size.x));
+        const auto upperIter = fileMap.upper_bound(frame);
+        if (upperIter == fileMap.begin()) {
+            return upperIter->first;
+        } else {
+            auto lowerIter = upperIter;
+            --lowerIter;
+
+            if (upperIter == fileMap.end()) {
+                return lowerIter->first;
+            } else {
+                // return the closer frame
+                const int lowerDist = frame - lowerIter->first;
+                const int upperDist = upperIter->first - frame;
+                return (upperDist < lowerDist) ? upperIter->first : lowerIter->first;
+            }
+        }
+    }
+
+    void onPaint(wxPaintEvent& UNUSED(evt)) {
+        wxPaintDC dc(this);
+        const wxSize size = dc.GetSize();
+        /// \todo deduplicate
+        Rgba backgroundColor = Rgba(this->GetParent()->GetBackgroundColour());
+        wxPen pen = *wxBLACK_PEN;
+        pen.SetWidth(2);
+        wxBrush brush;
+        wxColour fillColor(backgroundColor.darken(0.3f));
+        brush.SetColour(fillColor);
+        pen.SetColour(fillColor);
+
+        dc.SetBrush(brush);
+        dc.SetPen(pen);
+        dc.DrawRectangle(wxPoint(0, 0), size);
+        dc.SetTextForeground(wxColour(255, 255, 255));
+        wxFont font = dc.GetFont();
+        font.MakeSmaller();
+        dc.SetFont(font);
+
+        const int fileCnt = fileMap.size();
+        if (fileCnt == 1) {
+            // nothing to draw
+            return;
+        }
+
+        // ad hoc stepping
+        int step = 1;
+        if (fileCnt > 60) {
+            step = int(fileCnt / 60) * 5;
+        } else if (fileCnt > 30) {
+            step = 2;
+        }
+
+        const int firstFrame = fileMap.begin()->first;
+        const int lastFrame = fileMap.rbegin()->first;
+        int i = 0;
+        for (auto frameAndPath : fileMap) {
+            const int frame = frameAndPath.first;
+            bool keyframe = (i % step == 0);
+            bool doFull = keyframe;
+            if (frame == currentFrame) {
+                pen.SetColour(wxColour(255, 80, 0));
+                doFull = true;
+            } else if (frame == mouseFrame) {
+                pen.SetColour(wxColour(128, 128, 128));
+                doFull = true;
+            } else {
+                // pen.SetColour(wxColour(20, 20, 20));
+                pen.SetColour(wxColour(backgroundColor));
+            }
+            dc.SetPen(pen);
+            const int x = (frame - firstFrame) * size.x / (lastFrame - firstFrame);
+            if (doFull) {
+                dc.DrawLine(wxPoint(x, 0), wxPoint(x, size.y));
+            } else {
+                dc.DrawLine(wxPoint(x, 0), wxPoint(x, 5));
+                dc.DrawLine(wxPoint(x, size.y - 5), wxPoint(x, size.y));
+            }
+
+            if (keyframe) {
+                const std::string text = std::to_string(frame);
+                const wxSize extent = dc.GetTextExtent(text);
+                if (x + extent.x + 3 < size.x) {
+                    dc.DrawText(text, wxPoint(x + 3, size.y - 20));
+                }
+            }
+            ++i;
+        }
+    }
+
+    void onMouseMotion(wxMouseEvent& evt) {
+        mouseFrame = positionToFrame(evt.GetPosition());
+        this->Refresh();
+    }
+
+    void onLeftClick(wxMouseEvent& evt) {
+        currentFrame = positionToFrame(evt.GetPosition());
+        reload();
+    }
+
+    void onKeyUp(wxKeyEvent& evt) {
+        switch (evt.GetKeyCode()) {
+        case WXK_LEFT: {
+            auto iter = fileMap.find(currentFrame);
+            ASSERT(iter != fileMap.end());
+            if (iter != fileMap.begin()) {
+                --iter;
+                currentFrame = iter->first;
+                reload();
+            }
+            break;
+        }
+        case WXK_RIGHT: {
+            auto iter = fileMap.find(currentFrame);
+            ASSERT(iter != fileMap.end());
+            ++iter;
+            if (iter != fileMap.end()) {
+                currentFrame = iter->first;
+                reload();
+            }
+            break;
+        }
+        default:
+            break;
+        }
+    }
+
+    void reload() {
+        onFrameChanged(fileMap[currentFrame]);
+    }
+};
+
+class TimeLinePlugin : public IPluginControls {
+private:
+    Path fileMask;
+    Function<void(Path)> onFrameChanged;
+
+    TimeLinePanel* panel;
+
+public:
+    TimeLinePlugin(const Path& fileMask, Function<void(Path)> onFrameChanged)
+        : fileMask(fileMask)
+        , onFrameChanged(onFrameChanged) {}
+
+    virtual void create(wxWindow* parent, wxSizer* sizer) override {
+        /*wxSlider* slider = new wxSlider(parent, wxID_ANY, 0, 0, 100);
+        slider->SetSize(wxSize(800, 100));
+        sizer->Add(slider);*/
+        panel = alignedNew<TimeLinePanel>(parent, fileMask, onFrameChanged);
+        sizer->AddSpacer(5);
+        sizer->Add(panel);
+        sizer->AddSpacer(5);
+    }
+
+    virtual void statusChanges(const RunStatus UNUSED(newStatus)) override {
+        CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+        panel->Refresh();
+    }
+
+    void setFrame(const int newFrame) {
+        executeOnMainThread([this, newFrame] { panel->setFrame(newFrame); });
+    }
 };
 
 bool App::OnInit() {
@@ -159,9 +439,12 @@ bool App::OnInit() {
     Path fileMask;
     if (wxTheApp->argc == 1) {
         Optional<Path> selectedFile = doOpenFileDialog("Open file",
-            { { "SPH state files", "ssf" },
+            {
+                { "SPH state files", "ssf" },
                 { "SPH compressed files", "scf" },
-                { "Pkdgrav output files", "bt" } });
+                { "Pkdgrav output files", "bt" },
+                { "Text .tab files", "tab" },
+            });
         if (!selectedFile) {
             return false;
         }
@@ -169,6 +452,7 @@ bool App::OnInit() {
 
     } else {
         fileMask = Path(std::string(wxTheApp->argv[1]));
+        fileMask = FileSystem::getAbsolutePath(fileMask);
     }
 
     RunTypeEnum runType = RunTypeEnum::SPH;
@@ -189,7 +473,7 @@ bool App::OnInit() {
         .set(GuiSettingsId::VIEW_HEIGHT, 768)
         .set(GuiSettingsId::IMAGES_WIDTH, 1024)
         .set(GuiSettingsId::IMAGES_HEIGHT, 768)
-        .set(GuiSettingsId::WINDOW_WIDTH, 1600)
+        .set(GuiSettingsId::WINDOW_WIDTH, 1630)
         .set(GuiSettingsId::WINDOW_HEIGHT, 768)
         .set(GuiSettingsId::WINDOW_TITLE,
             std::string("OpenSPH viewer - ") + path.native() + " (build: " + __DATE__ + ")")
@@ -204,15 +488,14 @@ bool App::OnInit() {
         //.set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(-3.e6_f, 4.e6_f, 0._f))
         //.set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 2.e6_f, -4.e6_f))
         //.set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f, 0._f, 0._f))
-        .set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(-4.e4, -3.8e4_f, 0._f))
-        .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(-4.e4, -3.8e4_f, 8.e5_f))
+        .set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f))
+        .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(-20, -19, 40))
         //.set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f, -1.e6_f, 0._f))
-
+        .set(GuiSettingsId::BACKGROUND_COLOR, Rgba::black())
         .set(GuiSettingsId::PERSPECTIVE_CLIP_NEAR, EPS)
-        .set(GuiSettingsId::BACKGROUND_COLOR, Vector(0._f))
         .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
         .set(GuiSettingsId::ORTHO_CUTOFF, 0._f) // 10000._f)
-        .set(GuiSettingsId::ORTHO_ZOFFSET, -1.e7_f)
+        .set(GuiSettingsId::ORTHO_ZOFFSET, -1.e6_f)
         .set(GuiSettingsId::VIEW_GRID_SIZE, 0._f)
         .set(GuiSettingsId::RENDERER, RendererEnum::PARTICLE)
         .set(GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY, std::string(""))
@@ -232,7 +515,9 @@ bool App::OnInit() {
         .set(GuiSettingsId::PALETTE_ENERGY, Interval(100._f, 5.e4_f))
         .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
         .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))*/
-        .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::KINETIC_ENERGY)
+        .set(GuiSettingsId::PLOT_INTEGRALS, EMPTY_FLAGS)
+        /*PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY | PlotEnum::TOTAL_MOMENTUM |
+            PlotEnum::TOTAL_ANGULAR_MOMENTUM*/
         .set(GuiSettingsId::PLOT_OVERPLOT_SFD, std::string("/home/pavel/Dropbox/family.dat_hc"));
 
     if (runType == RunTypeEnum::NBODY) {
@@ -263,11 +548,21 @@ bool App::OnInit() {
         gui.saveToFile(Path("gui.sph"));
     }*/
 
-    controller = makeAuto<Controller>(gui, makeAuto<PlayerPlugin>());
+    /// \todo this is ridiculous, but it will do for now
+    auto callback = [this](const Path& newPath) {
+        AutoPtr<RunPlayer> newRun = makeAuto<RunPlayer>(newPath, nullptr);
+        newRun->setController(controller.get());
+        controller->start(std::move(newRun));
+    };
 
-    AutoPtr<RunPlayer> run = makeAuto<RunPlayer>(fileMask);
+    AutoPtr<TimeLinePlugin> plugin = makeAuto<TimeLinePlugin>(fileMask, callback);
+    auto onNewFrame = [plugin = plugin.get()](int newFrame) { plugin->setFrame(newFrame); };
+    controller = makeAuto<Controller>(gui, std::move(plugin));
+
+    AutoPtr<RunPlayer> run = makeAuto<RunPlayer>(fileMask, onNewFrame);
     run->setController(controller.get());
     controller->start(std::move(run));
+
     return true;
 }
 

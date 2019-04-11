@@ -3,6 +3,7 @@
 #include "objects/utility/StringUtils.h"
 #include "system/Platform.h"
 #include <fstream>
+#include <iostream>
 
 NAMESPACE_SPH_BEGIN
 
@@ -77,6 +78,7 @@ void Config::load() {
     try {
         paletteMap.clear();
         const Path path = getConfigPath();
+        std::cout << "Loading palettes from " << path.native() << std::endl;
         std::ifstream ifs(path.native());
         std::string line;
         while (std::getline(ifs, line)) {

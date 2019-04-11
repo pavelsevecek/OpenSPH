@@ -58,3 +58,19 @@ test_release:
     - make
     - cd test
     - ./test -d yes [gravity],[nbody],[equationterm],[solvers],[impact],[timestepping],[quantity],[storage],[material],[damage],[eos],[yielding],[run],[post],[finders]
+
+examples:
+  stage: test
+  script:
+    - mkdir examples_build
+    - cd examples_build
+    - qmake -spec linux-clang CONFIG+=devel ../examples.pro
+    - make
+    - cd examples
+    - 01_hello_asteroid/01_hello_asteroid
+    - 02_death_star/02_death_star
+    - 03_van_der_waals/03_van_der_waals
+    - 04_simple_collision/04_simple_collision
+    - 05_fragmentation_reaccumulation/05_fragmentation_reaccumulation
+    - 06_heat_diffusion/06_heat_diffusion
+

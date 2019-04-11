@@ -15,28 +15,23 @@ NAMESPACE_SPH_BEGIN
 // clang-format off
 template <>
 AutoPtr<CollisionGeometrySettings> CollisionGeometrySettings::instance(new CollisionGeometrySettings{
-    { CollisionGeometrySettingsId::TARGET_RADIUS,          "target_radius",            1.e4_f,
+    { CollisionGeometrySettingsId::TARGET_RADIUS,          "target.radius",            1.e4_f,
         "Radius of the target in meters." },
-    { CollisionGeometrySettingsId::TARGET_PARTICLE_COUNT,  "target_particle_cnt",    100000,
+    { CollisionGeometrySettingsId::TARGET_PARTICLE_COUNT,  "target.particle_cnt",      100000,
         "Approximate number of particles of the target. Number of impactor particles is inferred from "
         "the ratio of the target and impactor size." },
-    { CollisionGeometrySettingsId::TARGET_SPIN_RATE,       "target_angular_frequency",         0._f,
+    { CollisionGeometrySettingsId::TARGET_SPIN_RATE,       "target.spin_rate",         0._f,
         "Initial angular frequency of the target around its z-axis in units rev/day." },
-    { CollisionGeometrySettingsId::MIN_PARTICLE_COUNT,     "min_particle_cnt",         100,
-        "Minimal number of particles of the impactor, used to avoid creating unresolved impactor."},
-    { CollisionGeometrySettingsId::CENTER_OF_MASS_FRAME,   "center_of_mass_frame",     false,
-        "If true, colliding bodies are moved to the center-of-mass system, otherwise the target is located "
-        "at origin and has zero velocity." },
-    { CollisionGeometrySettingsId::IMPACTOR_RADIUS,        "impactor_radius",          1.e3_f,
+    { CollisionGeometrySettingsId::IMPACTOR_RADIUS,        "impactor.radius",          1.e3_f,
         "Radius of the impactor in meters." },
-    { CollisionGeometrySettingsId::IMPACTOR_PARTICLE_COUNT_OVERRIDE, "impactor_particle_count_override", 0,
+    { CollisionGeometrySettingsId::IMPACTOR_PARTICLE_COUNT_OVERRIDE, "impactor.particle_count_override", 0,
         "Number of impactor particles. If zero, the number of particles is automatically computed based on the "
         "number of target particles and the ratio of target radius to projectile radius."},
-    { CollisionGeometrySettingsId::OPTIMIZE_IMPACTOR,      "optimize_impactor",        true,
+    { CollisionGeometrySettingsId::OPTIMIZE_IMPACTOR,      "impactor.optimize",        true,
         "If true, some quantities of the impactor particles are not taken into account when computing the required "
         "time step. Otherwise, the time step might be unnecessarily too low, as the quantities in the impactor change "
         "rapidly. Note that this does not affect CFL criterion. "},
-    { CollisionGeometrySettingsId::IMPACTOR_OFFSET,        "impactor_offset",          4._f,
+    { CollisionGeometrySettingsId::IMPACTOR_OFFSET,        "impactor.offset",          4._f,
         "Initial distance of the impactor from the target in units of smoothing length. The impactor should "
         "not be in contact with the target at the start of the simulation, so the value should be always larger "
         "than the radius of the selected kernel." },
@@ -46,6 +41,11 @@ AutoPtr<CollisionGeometrySettings> CollisionGeometrySettings::instance(new Colli
     { CollisionGeometrySettingsId::IMPACT_ANGLE,           "impact_angle",             45._f,
         "Impact angle, i.e. angle between normal at the point of impact and the velocity vector of the impactor. "
         "It can be negative to simulate retrograde impact. The angle is in degrees. "},
+    { CollisionGeometrySettingsId::MIN_PARTICLE_COUNT,     "min_particle_cnt",         100,
+        "Minimal number of particles of the impactor, used to avoid creating unresolved impactor."},
+    { CollisionGeometrySettingsId::CENTER_OF_MASS_FRAME,   "center_of_mass_frame",     false,
+        "If true, colliding bodies are moved to the center-of-mass system, otherwise the target is located "
+        "at origin and has zero velocity." },
 });
 // clang-format on
 
@@ -148,9 +148,11 @@ void CollisionInitialConditions::setImpactorParams(BodySettings overrides) {
     BodySettings impactorBody = EMPTY_SETTINGS;
     if (setup.geometry.get<bool>(CollisionGeometrySettingsId::OPTIMIZE_IMPACTOR)) {
         // check that we don't use it for similar bodies
-        const Float targetRadius = setup.geometry.get<Float>(CollisionGeometrySettingsId::TARGET_RADIUS);
-        const Float impactorRadius = setup.geometry.get<Float>(CollisionGeometrySettingsId::IMPACTOR_RADIUS);
-        ASSERT(impactorRadius < 0.5_f * targetRadius);
+        // const Float targetRadius = setup.geometry.get<Float>(CollisionGeometrySettingsId::TARGET_RADIUS);
+        // const Float impactorRadius =
+        // setup.geometry.get<Float>(CollisionGeometrySettingsId::IMPACTOR_RADIUS);
+        /// \todo write to error logger instead!
+        /// ASSERT(impactorRadius < 0.5_f * targetRadius);
         impactorBody.set(BodySettingsId::STRESS_TENSOR_MIN, LARGE).set(BodySettingsId::DAMAGE_MIN, LARGE);
     }
 
@@ -162,7 +164,7 @@ void CollisionInitialConditions::setImpactorParams(BodySettings overrides) {
 CollisionInitialConditions::CollisionInitialConditions(IScheduler& scheduler,
     const RunSettings& settings,
     const CollisionParams& params)
-    : ic(scheduler, settings)
+    : ic(scheduler, settings, params.additionalBodySetup)
     , setup(params) {
     // sanitize logger
     if (!setup.logger) {

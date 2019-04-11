@@ -22,7 +22,7 @@ static RunSettings getSphSettings(const Interval timeRange,
     settings.set(RunSettingsId::RUN_NAME, std::string("Impact"))
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
+        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 10._f)
         .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.2_f)
         .set(RunSettingsId::RUN_TIME_RANGE, timeRange)
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, timeRange.size() / dumpCnt)
@@ -159,6 +159,7 @@ void StabilizationRunPhase::setUp() {
     solver = makeAuto<StabilizationSolver>(*scheduler, settings);
     logger = Factory::getLogger(settings);
 
+    collisionParams.logger = logger;
     collision = makeShared<CollisionInitialConditions>(*scheduler, settings, collisionParams);
 
     if (!resumePath.empty()) {
@@ -330,7 +331,7 @@ static RunSettings getReaccSettings(const PhaseParams phaseParams) {
         .set(RunSettingsId::RUN_TYPE, RunTypeEnum::NBODY)
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::LEAP_FROG)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1.e3_f)
+        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 10._f)
         .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::ACCELERATION)
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
         .set(RunSettingsId::RUN_TIME_RANGE, phaseParams.reacc.range)

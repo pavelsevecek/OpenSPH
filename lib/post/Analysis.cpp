@@ -6,8 +6,10 @@
 #include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Box.h"
 #include "objects/utility/IteratorAdapters.h"
+#include "post/MarchingCubes.h"
 #include "post/Point.h"
 #include "quantities/Storage.h"
+#include "sph/initial/MeshDomain.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
 #include "thread/Scheduler.h"
@@ -439,7 +441,7 @@ SymmetricTensor Post::getInertiaTensor(ArrayView<const Float> m,
 
     auto functor = [&I, r, m, &r0](Size i) {
         const Vector dr = r[i] - r0;
-        I += m[i] * (SymmetricTensor::identity() * getSqrLength(dr) - outer(dr, dr));
+        I += m[i] * (SymmetricTensor::identity() * getSqrLength(dr) - symmetricOuter(dr, dr));
     };
     if (idxs) {
         for (Size i : idxs) {
@@ -516,6 +518,29 @@ Vector Post::getAngularFrequency(ArrayView<const Float> m,
     const Vector r_com = getCenterOfMass(m, r, idxs);
     const Vector v_com = getCenterOfMass(m, v, idxs);
     return getAngularFrequency(m, r, v, r_com, v_com, idxs);
+}
+
+Float Post::getSphericity(IScheduler& scheduler, const Storage& storage, const Float resolution) {
+    Box boundingBox;
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    for (Size i = 0; i < r.size(); ++i) {
+        boundingBox.extend(r[i]);
+    }
+
+    Array<Triangle> mesh =
+        getSurfaceMesh(scheduler, storage, resolution * maxElement(boundingBox.size()), 0.15_f);
+    Float area = 0._f;
+    for (const Triangle& triangle : mesh) {
+        area += triangle.area();
+    }
+    ASSERT(area > 0._f);
+
+    MeshDomain domain(std::move(mesh));
+    const Float volume = domain.getVolume();
+    ASSERT(volume > 0._f);
+
+    // https://en.wikipedia.org/wiki/Sphericity
+    return pow(PI * sqr(6._f * volume), 1._f / 3._f) / area;
 }
 
 

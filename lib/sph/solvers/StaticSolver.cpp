@@ -48,7 +48,7 @@ public:
     template <bool Symmetrize>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
         /// \todo determine actual discretization of this equation
-        const SymmetricTensor epsilon = outer(u[j] - u[i], grad);
+        const SymmetricTensor epsilon = symmetricOuter(u[j] - u[i], grad);
         const SymmetricTensor sigma =
             lambda * epsilon.trace() * SymmetricTensor::identity() + 2._f * mu * epsilon;
         const Float tr3 = sigma.trace() / 3._f;

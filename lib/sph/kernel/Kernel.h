@@ -41,12 +41,17 @@ private:
 };
 
 
-/// A look-up table approximation of the kernel. Can be constructed from any SPH kernel.
+/// \brief A look-up table approximation of the kernel.
+///
+/// Can be constructed from any SPH kernel. Use this class exclusively for any high-performance computations,
+/// it is always faster than using kernel functions directly (except for trivial kerneles, such as \ref
+/// TriangleKernel). The precision difference is about 1.e-6.
 template <Size D>
 class LutKernel : public Kernel<LutKernel<D>, D> {
 private:
     static constexpr Size NEntries = 40000;
 
+    /// \todo replace with StaticArray?
     Float values[NEntries];
     Float grads[NEntries];
 
@@ -65,8 +70,23 @@ public:
         }
     }
 
-    /// Constructs LUT kernel given an exact SPH kernel.
-    template <typename TKernel>
+    LutKernel(const LutKernel& other) {
+        *this = other;
+    }
+
+    LutKernel& operator=(const LutKernel& other) {
+        rad = other.rad;
+        qSqrToIdx = other.qSqrToIdx;
+        for (Size i = 0; i < NEntries; ++i) {
+            values[i] = other.values[i];
+            grads[i] = other.grads[i];
+        }
+        return *this;
+    }
+
+    /// \brief Constructs LUT kernel given an exact SPH kernel.
+    template <typename TKernel,
+        typename = std::enable_if_t<!std::is_same<std::decay_t<TKernel>, LutKernel<D>>::value>>
     LutKernel(TKernel&& source) {
         rad = source.radius();
 

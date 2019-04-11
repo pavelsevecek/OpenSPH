@@ -13,6 +13,7 @@
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"
 #include "tests/Approx.h"
+#include "tests/Setup.h"
 #include "thread/Pool.h"
 #include "utils/Utils.h"
 
@@ -217,6 +218,20 @@ TEST_CASE("Angular Frequency", "[post]") {
 
     const Vector w = Post::getAngularFrequency(m, r, v, Vector(0._f), Vector(0._f));
     REQUIRE(w == approx(omega, 1.e-3_f));
+}
+
+static void testSphericity(const IDomain& domain, const Float expected) {
+    const Storage storage = Tests::getGassStorage(10000, BodySettings::getDefaults(), domain);
+    const Float sphericity = Post::getSphericity(SEQUENTIAL, storage);
+    REQUIRE(sphericity == approx(expected, 0.025_f));
+}
+
+TEST_CASE("Sphericity sphere", "[post]") {
+    testSphericity(SphericalDomain(Vector(1._f, 0._f, 2._f), 1.5_f), 1._f);
+}
+
+TEST_CASE("Sphericity cube", "[post]") {
+    testSphericity(BlockDomain(Vector(1._f, 0._f, -1._f), Vector(2._f)), Sph::cbrt(PI / 6._f));
 }
 
 TEST_CASE("Linear Fit", "[post]") {

@@ -41,6 +41,13 @@ public:
         return getNormalized(cross(v12, v02));
     }
 
+    INLINE Float area() const {
+        ASSERT(this->isValid());
+        const Vector v12 = v[2] - v[1];
+        const Vector v02 = v[2] - v[0];
+        return 0.5_f * getLength(cross(v12, v02));
+    }
+
     INLINE Box getBBox() const {
         Box box;
         for (Size i = 0; i < 3; ++i) {

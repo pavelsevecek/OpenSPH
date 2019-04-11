@@ -529,7 +529,10 @@ enum class DomainEnum {
     BLOCK,
 
     /// Cylindrical domain aligned with z axis
-    CYLINDER
+    CYLINDER,
+
+    /// Half-space z>0
+    HALF_SPACE,
 };
 
 /// List of forces to compute by the solver. This does not include numerical terms, see
@@ -579,6 +582,9 @@ enum class SolverEnum {
 
     /// Density is obtained by direct summation over nearest SPH particles.
     SUMMATION_SOLVER,
+
+    /// Special solver used to simulate deformations of perfectly elastic bodies
+    ELASTIC_DEFORMATION_SOLVER,
 
     /// Density independent solver by Saitoh & Makino (2013).
     DENSITY_INDEPENDENT,

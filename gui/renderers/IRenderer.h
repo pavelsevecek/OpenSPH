@@ -71,6 +71,19 @@ struct RenderParams {
         /// \brief If true, the palette is converted to grayscale.
         bool grayScale = false;
 
+        /// \brief If true, the particles will be drawn with antialiasing.
+        ///
+        /// This will generally improve quality, but may slow down the rendering.
+        bool doAntialiasing = false;
+
+        /// \brief If true, particles will be smoothed using cubic spline.
+        ///
+        /// Only used if doAntialiasing is true.
+        bool smoothed = false;
+
+        /// \brief If true, a color palette and a distance scale is included in the image.
+        bool showKey = true;
+
     } particles;
 
     /// \brief Parameters of rendered vectors

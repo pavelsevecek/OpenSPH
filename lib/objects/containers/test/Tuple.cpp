@@ -250,25 +250,21 @@ TEST_CASE("ForEach", "[tuple]") {
     /// \todo test other overloads
 }
 
-TEST_CASE("ForEachIf" "[tuple]") {
-    Tuple<int, float, int64_t> t (1, 2.f, 5);
+TEST_CASE("ForEachIf", "[tuple]") {
+    Tuple<int, float, int64_t> t(1, 2.f, 5);
     int sum = 0;
     forEachIf<std::is_integral>(t, [&sum](auto& value) { sum += value; });
     REQUIRE(sum == 6);
 
     int i = 3;
-    Tuple<int, const int, int&> t2 (1, 2, i);
-    forEachIf<std::is_copy_assignable>(t2, [](auto& value) {
-        value = 5;
-    });
+    Tuple<int, const int, int&> t2(1, 2, i);
+    forEachIf<std::is_copy_assignable>(t2, [](auto& value) { value = 5; });
     REQUIRE(t2.get<0>() == 5);
     REQUIRE(t2.get<1>() == 2);
     REQUIRE(t2.get<2>() == 5);
 
     Tuple<RecordType, int, RecordType> t3(5, 6, 7);
-    forEachIf<IsRecordType>(t3, [](auto& r){
-        r.value = 1;
-    });
+    forEachIf<IsRecordType>(t3, [](auto& r) { r.value = 1; });
     REQUIRE(t3.get<0>().value == 1);
     REQUIRE(t3.get<2>().value == 1);
 }
@@ -280,7 +276,7 @@ TEST_CASE("Append Tuple", "[tuple]") {
     REQUIRE(t1.get<0>().wasMoveConstructed);
 
     RecordType r2(11);
-    auto t2 = append(t1, RecordType(9), r2);
+    auto t2 = Sph::append(t1, RecordType(9), r2);
     static_assert(t2.size() == 4, "static test failed");
     REQUIRE(t2.get<0>().value == 5);
     REQUIRE(t2.get<1>().value == 7);
@@ -297,7 +293,7 @@ TEST_CASE("Append Tuple", "[tuple]") {
     REQUIRE(r1.value == 42);
     REQUIRE(r2.value == 43);
 
-    auto t3 = append(std::move(t2), RecordType(14));
+    auto t3 = Sph::append(std::move(t2), RecordType(14));
     REQUIRE(t3.get<0>().wasMoveConstructed);
     REQUIRE(!t3.get<1>().wasMoveConstructed);
     REQUIRE(!t3.get<1>().wasCopyConstructed);

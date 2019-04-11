@@ -144,14 +144,18 @@ public:
 class Hde : public IRun {
 public:
     virtual void setUp() override {
+        settings.set(RunSettingsId::RUN_NAME, std::string("Heat diffusion"));
+
+        // No need for output, we do that ourselvers here
+        settings.set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::NONE);
 
         // Create the material and set up the parameters
         AutoPtr<CustomMaterial> material = makeAuto<CustomMaterial>();
-        material->parameters[CustomMaterialId::INITIAL_TEMPERATURE] = 250._f;
-        material->parameters[CustomMaterialId::CONDUCTIVITY] = 1._f;
-        material->parameters[CustomMaterialId::DENSITY] = 2500._f;
-        material->parameters[CustomMaterialId::CAPACITY] = 680._f;
-        material->parameters[CustomMaterialId::ALBEDO] = 0.1_f;
+        material->parameters.insert(CustomMaterialId::INITIAL_TEMPERATURE, 250._f);
+        material->parameters.insert(CustomMaterialId::CONDUCTIVITY, 1._f);
+        material->parameters.insert(CustomMaterialId::DENSITY, 2500._f);
+        material->parameters.insert(CustomMaterialId::CAPACITY, 680._f);
+        material->parameters.insert(CustomMaterialId::ALBEDO, 0.1_f);
 
         // Create the storage, passing our custom material
         storage = makeShared<Storage>(std::move(material));

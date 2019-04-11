@@ -1,3 +1,5 @@
+# builds only unit tests
+
 TEMPLATE = subdirs
 
 CONFIG += ordered

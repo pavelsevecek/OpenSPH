@@ -9,6 +9,7 @@
 #include "gui/MainLoop.h"
 #include "io/Output.h"
 #include "run/IRun.h"
+#include <map>
 #include <wx/app.h>
 
 NAMESPACE_SPH_BEGIN
@@ -19,15 +20,16 @@ private:
 
     Path fileMask;
 
-    OutputFile files;
-    Size fileCnt;
+    std::map<int, Path> fileMap;
 
-    Float fps = 10._f;
+    Float fps = 100._f;
 
     Float loadedTime;
 
+    Function<void(int)> onNewFrame;
+
 public:
-    RunPlayer(const Path& fileMask);
+    RunPlayer(const Path& fileMask, Function<void(int)> onNewFrame);
 
     void setController(RawPtr<Controller> newController) {
         controller = newController;
@@ -40,8 +42,6 @@ public:
 
 protected:
     virtual void tearDown(const Statistics& stats) override;
-
-    Size getFileCount(const Path& pathMask) const;
 };
 
 class App : public wxApp {

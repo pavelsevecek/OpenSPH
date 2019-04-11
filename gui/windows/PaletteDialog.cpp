@@ -138,7 +138,8 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
     rangeSizer->Add(new wxStaticText(this, wxID_ANY, "From: ", wxDefaultPosition, wxSize(-1, height)));
     wxSpinCtrlDouble* lowerSpinner =
         new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, wxSize(100, height));
-    const int range = 1000 * initialPalette.getInterval().size();
+    const Float range = 1000._f * initialPalette.getInterval().size();
+    ASSERT(range > 0._f);
     lowerSpinner->SetRange(-range, range);
     const int lowerDigits = max(0, 2 - int(log10(abs(initialPalette.getInterval().lower()) + EPS)));
     lowerSpinner->SetDigits(lowerDigits);

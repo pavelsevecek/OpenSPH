@@ -63,7 +63,7 @@ Optional<Size> OutputFile::getDumpIdx(const Path& path) {
     return NOTHING;
 }
 
-Optional<OutputFile> OutputFile::getMaskFromPath(const Path& path) {
+Optional<OutputFile> OutputFile::getMaskFromPath(const Path& path, const Size firstDumpIdx) {
     /// \todo could be deduplicated a bit
     const std::string s = path.fileName().native();
     for (int i = 0; i < int(s.size()) - 3; ++i) {
@@ -74,7 +74,7 @@ Optional<OutputFile> OutputFile::getMaskFromPath(const Path& path) {
             }
             std::string mask = s.substr(0, i) + "%d" + s.substr(i + 4);
             // prepend the original parent path
-            return OutputFile(path.parentPath() / Path(mask));
+            return OutputFile(path.parentPath() / Path(mask), firstDumpIdx);
         }
     }
     return NOTHING;
@@ -483,7 +483,7 @@ Path BinaryOutput::dump(const Storage& storage, const Statistics& stats) {
     // file format identifier
     const Size materialCnt = storage.getMaterialCnt();
     const Size quantityCnt = storage.getQuantityCnt() - int(storage.has(QuantityId::MATERIAL_ID));
-    const Float timeStep = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
+    const Float timeStep = stats.getOr<Float>(StatisticsId::TIMESTEP_VALUE, 0.1_f);
     serializer.write(
         "SPH", time, storage.getParticleCnt(), quantityCnt, materialCnt, timeStep, BinaryIoVersion::LATEST);
     // write run type

@@ -613,7 +613,7 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
             const Size j = n.index;
             const Float w = weight(r[i], r[j]); /// \todo can be probably cached
             // Eq. (9)
-            cov += w * outer(r[j] - r_mean, r[j] - r_mean);
+            cov += w * symmetricOuter(r[j] - r_mean, r[j] - r_mean);
         }
         C[i] = cov / wsum;
 

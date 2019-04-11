@@ -147,12 +147,39 @@ void AntiAliasedRenderContext::drawCircle(const Coords center, const float radiu
         center.y > bitmap.size().y + radius) {
         return;
     }
-    for (float y = center.y - radius - 1; y <= center.y + radius + 1; ++y) {
-        for (float x = center.x - radius - 1; x <= center.x + radius + 1; ++x) {
-            const float distSqr = sqr(x - center.x) + sqr(y - center.y);
-            if (distSqr <= sqr(radius + 1)) {
+    const Pixel p(center);
+    if (radius <= 1.f) {
+        Rgba color = colors.fill;
+        color.a() = sqr(radius);
+        drawSafe(p, color);
+    } else {
+        for (int y = p.y - radius - 1; y <= p.y + radius + 1; ++y) {
+            for (int x = p.x - radius - 1; x <= p.x + radius + 1; ++x) {
+                const float distSqr = sqr(x - center.x) + sqr(y - center.y);
                 Rgba color = colors.fill;
                 color.a() = clamp(radius - sqrt(distSqr), 0.f, 1.f);
+                drawSafe(Pixel(x, y), color);
+            }
+        }
+    }
+}
+
+void SmoothedRenderContext::drawCircle(const Coords center, const float radius) {
+    if (center.x < -radius || center.x > bitmap.size().x + radius || center.y < -radius ||
+        center.y > bitmap.size().y + radius) {
+        return;
+    }
+    const Pixel p(center);
+    const float maxRadius = radius * kernel.radius();
+    const float normalization = 1.f / kernel.valueImpl(0); // sqr(25.f / particleScale);
+    for (int y = p.y - maxRadius - 1; y <= p.y + maxRadius + 1; ++y) {
+        for (int x = p.x - maxRadius - 1; x <= p.x + maxRadius + 1; ++x) {
+            const float distSqr = sqr(x - center.x) + sqr(y - center.y);
+            if (distSqr <= sqr(maxRadius + 1)) {
+                Rgba color = colors.fill;
+
+                const float alpha = kernel.valueImpl(distSqr / sqr(radius)) * normalization;
+                color.a() = clamp(alpha, 0.f, 1.f);
                 drawSafe(Pixel(x, y), color);
             }
         }

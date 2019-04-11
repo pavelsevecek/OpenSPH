@@ -31,6 +31,11 @@ bool isPathWritable(const Path& path);
 /// \brief Returns the home directory of the current user.
 Expected<Path> getHomeDirectory();
 
+/// \brief Returns the absolute path to the file.
+///
+/// Function also resolves all symlinks in the path.
+Path getAbsolutePath(const Path& relativePath);
+
 enum class PathType {
     FILE,      ///< Regular file
     DIRECTORY, ///< Directory

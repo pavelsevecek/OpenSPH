@@ -17,6 +17,7 @@ RayTracer::RayTracer(IScheduler& scheduler, const GuiSettings& settings)
     fixed.subsampling = settings.get<int>(GuiSettingsId::RAYTRACE_SUBSAMPLING);
     fixed.iterationLimit = settings.get<int>(GuiSettingsId::RAYTRACE_ITERATION_LIMIT);
 
+    fixed.enviro.color = settings.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
     std::string hdriPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_HDRI);
     if (!hdriPath.empty()) {
         fixed.enviro.hdri = Texture(Path(hdriPath), TextureFiltering::BILINEAR);

@@ -267,11 +267,18 @@ void Controller::setParams(const GuiSettings& settings) {
 
 void Controller::update(const Storage& storage) {
     // fill the combobox with available colorizer
-    /// \todo can we do this safely from run thread?
+    std::unique_lock<std::mutex> lock(updateMutex);
     executeOnMainThread([this, &storage] { //
+        std::unique_lock<std::mutex> lock(updateMutex);
         window->runStarted();
         window->setColorizerList(this->getColorizerList(storage, false));
+        /// \todo probably not the best place for this
+        if (plugin) {
+            plugin->statusChanges(status);
+        }
+        updateVar.notify_one();
     });
+    updateVar.wait(lock);
 
     // draw initial positions of particles
     /// \todo generalize stats
@@ -315,8 +322,6 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         colorizerIds.push(ColorizerId::BEAUTY);
     }
 
-    colorizerIds.push(ColorizerId::BOUND_COMPONENT_ID);
-
     if (!forMovie) {
         if (storage.has(QuantityId::MASS)) {
             colorizerIds.push(ColorizerId::SUMMED_DENSITY);
@@ -331,7 +336,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         colorizerIds.push(ColorizerId::COMPONENT_ID);
         colorizerIds.push(ColorizerId::MARKER);
 
-        if (storage.has(QuantityId::ENERGY)) {
+        if (storage.has(QuantityId::ENERGY) && storage.getMaterialCnt() > 0) {
             colorizerIds.push(ColorizerId::TEMPERATURE);
         }
 
@@ -575,6 +580,15 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
     }
     const Pixel size(gui.get<int>(GuiSettingsId::IMAGES_WIDTH), gui.get<int>(GuiSettingsId::IMAGES_HEIGHT));
     params.camera = Factory::getCamera(gui, size);
+
+    /// \todo deduplicate - create (fill) params from settings
+    params.particles.grayScale = gui.get<bool>(GuiSettingsId::FORCE_GRAYSCALE);
+    params.particles.doAntialiasing = gui.get<bool>(GuiSettingsId::ANTIALIASED);
+    params.particles.smoothed = gui.get<bool>(GuiSettingsId::SMOOTH_PARTICLES);
+    params.surface.level = gui.get<Float>(GuiSettingsId::SURFACE_LEVEL);
+    params.surface.ambientLight = gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
+    params.surface.sunLight = gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY);
+
     return makeShared<Movie>(gui, std::move(renderer), std::move(colorizers), std::move(params));
 }
 
@@ -722,6 +736,9 @@ void Controller::startRenderThread() {
             params.particles.scale = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
             params.particles.selected = vis.selectedParticle;
             params.particles.grayScale = gui.get<bool>(GuiSettingsId::FORCE_GRAYSCALE);
+            params.particles.doAntialiasing = gui.get<bool>(GuiSettingsId::ANTIALIASED);
+            params.particles.smoothed = gui.get<bool>(GuiSettingsId::SMOOTH_PARTICLES);
+            params.particles.showKey = gui.get<bool>(GuiSettingsId::SHOW_KEY);
             params.surface.level = gui.get<Float>(GuiSettingsId::SURFACE_LEVEL);
             params.surface.ambientLight = gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
             params.surface.sunLight = gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY);

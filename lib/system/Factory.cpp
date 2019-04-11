@@ -25,6 +25,7 @@
 #include "sph/kernel/GravityKernel.h"
 #include "sph/solvers/AsymmetricSolver.h"
 #include "sph/solvers/DensityIndependentSolver.h"
+#include "sph/solvers/ElasticDeformationSolver.h"
 #include "sph/solvers/EnergyConservingSolver.h"
 #include "sph/solvers/GravitySolver.h"
 #include "sph/solvers/StandardSets.h"
@@ -235,6 +236,9 @@ AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler, const RunSettings& se
         return getActualSolver<AsymmetricSolver>(scheduler, settings, std::move(eqs));
     case SolverEnum::ENERGY_CONSERVING_SOLVER:
         return getActualSolver<EnergyConservingSolver>(scheduler, settings, std::move(eqs));
+    case SolverEnum::ELASTIC_DEFORMATION_SOLVER:
+        throwIfGravity();
+        return makeAuto<ElasticDeformationSolver>(scheduler, settings);
     case SolverEnum::SUMMATION_SOLVER:
         throwIfGravity();
         return makeAuto<SummationSolver>(scheduler, settings);
@@ -344,6 +348,8 @@ AutoPtr<IDomain> Factory::getDomain(const RunSettings& settings) {
         return makeAuto<SphericalDomain>(center, settings.get<Float>(RunSettingsId::DOMAIN_RADIUS));
     case DomainEnum::ELLIPSOIDAL:
         return makeAuto<EllipsoidalDomain>(center, settings.get<Vector>(RunSettingsId::DOMAIN_SIZE));
+    case DomainEnum::HALF_SPACE:
+        return makeAuto<HalfSpaceDomain>();
     default:
         NOT_IMPLEMENTED;
     }
@@ -381,6 +387,10 @@ AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& se
         ASSERT(domain != nullptr);
         const Box box = domain->getBoundingBox();
         return makeAuto<Projection1D>(Interval(box.lower()[X], box.upper()[X]));
+    }
+    case BoundaryEnum::PERIODIC: {
+        const Box box = domain->getBoundingBox();
+        return makeAuto<PeriodicBoundary>(box, nullptr);
     }
     default:
         NOT_IMPLEMENTED;

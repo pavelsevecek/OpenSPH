@@ -29,6 +29,9 @@ public:
         // Add the body to the main particle storage
         ic.addMonolithicBody(*storage, domain, body);
 
+        // Name the simulation
+        settings.set(RunSettingsId::RUN_NAME, std::string("Hello asteroid"));
+
         // Last thing - set up the duration of the simulation to 1 second
         settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1._f));
     }

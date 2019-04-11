@@ -41,13 +41,13 @@ void CorrectionTensor::evalNeighs(const Size i, ArrayView<const Size> neighs, Ar
                 // condition must match the one in velocity template!
                 continue;
             }
-            SymmetricTensor t = outer(r[j] - r[i], grads[k]); // symmetric in i,j ?
+            SymmetricTensor t = symmetricOuter(r[j] - r[i], grads[k]); // symmetric in i,j ?
             C[i] += m[j] / rho[j] * t;
         }
     } else {
         for (Size k = 0; k < neighs.size(); ++k) {
             const Size j = neighs[k];
-            SymmetricTensor t = outer(r[j] - r[i], grads[k]);
+            SymmetricTensor t = symmetricOuter(r[j] - r[i], grads[k]);
             C[i] += m[j] / rho[j] * t;
         }
     }
