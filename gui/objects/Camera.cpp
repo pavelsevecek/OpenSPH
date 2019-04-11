@@ -86,8 +86,8 @@ Optional<float> OrthoCamera::getCutoff() const {
     return data.cutoff;
 }
 
-Optional<float> OrthoCamera::getFov() const {
-    return imageSize.y / data.fov.value();
+Optional<float> OrthoCamera::getWorldToPixel() const {
+    return data.fov.value();
 }
 
 void OrthoCamera::setCutoff(const Optional<float> newCutoff) {
@@ -191,8 +191,8 @@ Optional<float> PerspectiveCamera::getCutoff() const {
     return NOTHING;
 }
 
-Optional<float> PerspectiveCamera::getFov() const {
-    return data.fov;
+Optional<float> PerspectiveCamera::getWorldToPixel() const {
+    return NOTHING;
 }
 
 void PerspectiveCamera::setCutoff(const Optional<float> UNUSED(newCutoff)) {}

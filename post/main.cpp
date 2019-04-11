@@ -284,7 +284,7 @@ void ssfToStats(const Path& fileDir) {
         }
     }
 
-    Post::LinearFunction func = Post::computeLinearRegression(points);
+    Post::LinearFunction func = Post::getLinearFit(points);
 
     CollisionGeometrySettings geometry;
     geometry.loadFromFile(firstDir / Path("collision.sph"));

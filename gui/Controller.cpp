@@ -336,7 +336,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         colorizerIds.push(ColorizerId::COMPONENT_ID);
         colorizerIds.push(ColorizerId::MARKER);
 
-        if (storage.has(QuantityId::ENERGY)) {
+        if (storage.has(QuantityId::ENERGY) && storage.getMaterialCnt() > 0) {
             colorizerIds.push(ColorizerId::TEMPERATURE);
         }
 

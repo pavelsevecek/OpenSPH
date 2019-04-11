@@ -58,11 +58,8 @@ public:
     /// than its surface.
     virtual Optional<float> getCutoff() const = 0;
 
-    /// \brief Returns the field of view of the camera.
-    ///
-    /// Note that the meaning of this value may be specific for given camera or it might be undefined, in
-    /// which case the function returns NOTHING.
-    virtual Optional<float> getFov() const = 0;
+    /// \brief Returns the world-to-pixel ratio.
+    virtual Optional<float> getWorldToPixel() const = 0;
 
     /// \brief Modifies the clipping distance of the camera.
     ///
@@ -136,7 +133,7 @@ public:
 
     virtual Optional<float> getCutoff() const override;
 
-    virtual Optional<float> getFov() const override;
+    virtual Optional<float> getWorldToPixel() const override;
 
     virtual void setCutoff(const Optional<float> newCutoff) override;
 
@@ -235,7 +232,7 @@ public:
 
     virtual Optional<float> getCutoff() const override;
 
-    virtual Optional<float> getFov() const override;
+    virtual Optional<float> getWorldToPixel() const override;
 
     virtual void setCutoff(const Optional<float> newCutoff) override;
 
