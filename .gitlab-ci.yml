@@ -64,7 +64,7 @@ examples:
   script:
     - mkdir examples_build
     - cd examples_build
-    - qmake -spec linux-clang CONFIG+=devel ../examples.pro
+    - qmake -spec linux-clang CONFIG+=release ../examples.pro
     - make
     - cd examples
     - 01_hello_asteroid/01_hello_asteroid
