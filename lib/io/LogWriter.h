@@ -44,7 +44,7 @@ private:
 public:
     StandardLogWriter(const SharedPtr<ILogger>& logger, const RunSettings& settings);
 
-    virtual void write(const Storage& storage, const Statistics& stats);
+    virtual void write(const Storage& storage, const Statistics& stats) override;
 };
 
 /// \brief Writer logging selected integrals of motion.

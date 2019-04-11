@@ -2,6 +2,26 @@
 
 using namespace Sph;
 
+/// Custom writer of simulation log
+class LogWriter : public ILogWriter {
+private:
+    std::string runName;
+
+public:
+    LogWriter(const RunSettings& settings)
+        : ILogWriter(makeAuto<StdOutLogger>(), 1._f) {
+        runName = settings.get<std::string>(RunSettingsId::RUN_NAME);
+    }
+
+    virtual void write(const Storage& UNUSED(storage), const Statistics& stats) override {
+        // Timestep number and current run time
+        const int index = stats.get<int>(StatisticsId::INDEX);
+        const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
+
+        logger->write(runName, " #", index, "  time = ", time);
+    }
+};
+
 // First phase - sets up the colliding bodies and runs the SPH simulation of the fragmentation.
 class Fragmentation : public IRun {
 public:
@@ -32,6 +52,9 @@ public:
         Statistics stats;
         stats.set(StatisticsId::RUN_TIME, 0._f);
         io.dump(*storage, stats);
+
+        // Setup custom logging
+        logWriter = makeAuto<LogWriter>(settings);
     }
 
     virtual void tearDown(const Statistics& stats) override {
@@ -120,6 +143,9 @@ public:
 
         // Run for 1 day
         settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 60._f * 60._f * 24._f));
+
+        // Setup custom logging
+        logWriter = makeAuto<LogWriter>(settings);
     }
 
     virtual void tearDown(const Statistics& stats) override {

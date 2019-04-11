@@ -63,6 +63,9 @@ void OrthoCamera::initialize(const Storage& storage) {
 }
 
 Optional<ProjectedPoint> OrthoCamera::project(const Vector& r) const {
+    if (!data.fov) {
+        return NOTHING;
+    }
     const float x = center.x + dot(r, cached.u) * data.fov.value();
     const float y = center.y + dot(r, cached.v) * data.fov.value();
     const Coords point(x, imageSize.y - y - 1);
@@ -70,6 +73,9 @@ Optional<ProjectedPoint> OrthoCamera::project(const Vector& r) const {
 }
 
 CameraRay OrthoCamera::unproject(const Coords& coords) const {
+    if (!data.fov) {
+        return CameraRay{ Vector(0._f), cached.w };
+    }
     const float rx = (coords.x - center.x) / data.fov.value();
     const float ry = ((imageSize.y - coords.y - 1) - center.y) / data.fov.value();
     CameraRay ray;
@@ -96,6 +102,11 @@ void OrthoCamera::setCutoff(const Optional<float> newCutoff) {
 
 void OrthoCamera::zoom(const Pixel fixedPoint, const float magnitude) {
     ASSERT(magnitude > 0.f);
+    if (!data.fov) {
+        // this can be called before run starts
+        return;
+    }
+
     center += (fixedPoint - center) * (1.f - magnitude);
     data.fov.value() *= magnitude;
 }

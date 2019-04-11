@@ -728,7 +728,11 @@ void Controller::startRenderThread() {
             std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
             vis.renderThreadVar.wait(renderLock, [this] { return vis.needsRefresh.load(); });
             vis.needsRefresh = false;
-            ASSERT(vis.isInitialized());
+
+            if (!vis.isInitialized()) {
+                // no simulation running, go back to sleep
+                continue;
+            }
 
             const wxSize canvasSize = window->getCanvasSize();
             RenderParams params;
