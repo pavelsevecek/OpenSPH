@@ -24,8 +24,8 @@ public:
         ic.addTarget(*storage);
         ic.addImpactor(*storage);
 
-        // Run for 500s.
-        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 500._f));
+        // Run for 200s.
+        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 200._f));
 
         // Save the initial (pre-impact) configuration
         BinaryOutput io(Path("start.ssf"));
@@ -113,8 +113,13 @@ public:
         settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::ACCELERATION);
         settings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 10._f);
 
-        // Run for 2 days
-        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 2._f * 60._f * 60._f * 24._f));
+        // Set output quantities
+        settings.set(RunSettingsId::RUN_OUTPUT_QUANTITIES,
+            OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY | OutputQuantityFlag::MASS |
+                OutputQuantityFlag::INDEX | OutputQuantityFlag::SMOOTHING_LENGTH);
+
+        // Run for 1 day
+        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 60._f * 60._f * 24._f));
     }
 
     virtual void tearDown(const Statistics& stats) override {
