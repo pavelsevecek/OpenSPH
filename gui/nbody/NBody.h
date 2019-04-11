@@ -49,7 +49,6 @@ private:
 
         GuiSettings gui;
         gui.set(GuiSettingsId::ORTHO_FOV, 0._f)
-            .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(1024, 768, 0))
             .set(GuiSettingsId::VIEW_WIDTH, 1024)
             .set(GuiSettingsId::VIEW_HEIGHT, 768)
             .set(GuiSettingsId::IMAGES_WIDTH, 1024)
@@ -58,10 +57,9 @@ private:
             .set(GuiSettingsId::WINDOW_HEIGHT, 768)
             .set(GuiSettingsId::PARTICLE_RADIUS, 1._f)
             .set(GuiSettingsId::CAMERA, CameraEnum::ORTHO)
-            .set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f))
-            .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(Constants::au, 0._f, 0._f))
-            .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
-            .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
+            .set(GuiSettingsId::CAMERA_TARGET, Vector(0._f))
+            .set(GuiSettingsId::CAMERA_POSITION, Vector(Constants::au, 0._f, 0._f))
+            .set(GuiSettingsId::CAMERA_CUTOFF, 0._f)
             .set(GuiSettingsId::IMAGES_SAVE, false)
             .set(GuiSettingsId::IMAGES_TIMESTEP, 4.e4_f)
             /*.set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))

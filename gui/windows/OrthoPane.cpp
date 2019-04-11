@@ -39,8 +39,8 @@ OrthoPane::OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings
 OrthoPane::~OrthoPane() = default;
 
 void OrthoPane::resetView() {
-    dragging.initialMatrix = AffineMatrix::identity();
-    camera->transform(AffineMatrix::identity());
+    orbit.matrix = AffineMatrix::identity();
+    camera->reset();
 }
 
 void OrthoPane::onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) {
@@ -63,29 +63,53 @@ void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     Pixel position(evt.GetPosition());
     if (evt.Dragging()) {
-        Pixel offset = Pixel(position.x - dragging.position.x, -(position.y - dragging.position.y));
+        Pixel offset = Pixel(position.x - dragging.lastPosition.x, -(position.y - dragging.lastPosition.y));
         if (evt.RightIsDown()) {
             // right button, rotate view
-            AffineMatrix matrix = arcBall.drag(position, Vector(0._f));
-            camera->transform(dragging.initialMatrix * matrix);
+            Vector pivot = Vector(0._f);
+            if (Optional<Particle> particle = controller->getSelectedParticle()) {
+                pivot = particle->getValue(QuantityId::POSITION);
+            }
+            Optional<ProjectedPoint> projectedPivot = camera->project(pivot);
+            ASSERT(projectedPivot);
+            AffineMatrix matrix = arcBall.drag(position, Pixel(projectedPivot->coords));
+            // remove the previous transform
+            camera->orbit(orbit.pivot, orbit.matrix.inverse());
+            // apply the new transform
+            camera->orbit(pivot, matrix);
+
+            orbit.matrix = matrix;
+            orbit.pivot = pivot;
+
         } else {
             // left button (or middle), pan
             camera->pan(offset);
         }
         controller->refresh(camera->clone());
     }
-    dragging.position = position;
+    dragging.lastPosition = position;
 }
 
 void OrthoPane::onRightDown(wxMouseEvent& evt) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    arcBall.click(Pixel(evt.GetPosition()));
+    const Pixel position(evt.GetPosition());
+    Vector pivot = Vector(0._f);
+    if (Optional<Particle> particle = controller->getSelectedParticle()) {
+        pivot = particle->getValue(QuantityId::POSITION);
+    }
+    Optional<ProjectedPoint> projectedPivot = camera->project(pivot);
+    ASSERT(projectedPivot);
+    /// \todo deduplicate
+    arcBall.click(position, Pixel(projectedPivot->coords));
+
+    dragging.lastPosition = position;
+    orbit.matrix = AffineMatrix::identity();
 }
 
-void OrthoPane::onRightUp(wxMouseEvent& evt) {
+void OrthoPane::onRightUp(wxMouseEvent& UNUSED(evt)) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    AffineMatrix matrix = arcBall.drag(Pixel(evt.GetPosition()), Vector(0._f));
-    dragging.initialMatrix = dragging.initialMatrix * matrix;
+    /*AffineMatrix matrix = arcBall.drag(Pixel(evt.GetPosition()));
+    orbit.matrix = matrix;*/
 }
 
 void OrthoPane::onDoubleClick(wxMouseEvent& evt) {
@@ -126,7 +150,7 @@ void OrthoPane::onMouseWheel(wxMouseEvent& evt) {
     const float spin = evt.GetWheelRotation();
     const float amount = (spin > 0.f) ? 1.2f : 1.f / 1.2f;
     Pixel fixedPoint(evt.GetPosition());
-    camera->zoom(Pixel(fixedPoint.x, this->GetSize().y - fixedPoint.y - 1), amount);
+    camera->zoom(fixedPoint, amount);
     controller->refresh(camera->clone());
 }
 

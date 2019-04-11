@@ -9,22 +9,24 @@ NAMESPACE_SPH_BEGIN
 /// OrthoCamera
 /// ----------------------------------------------------------------------------------------------------------
 
-OrthoCamera::OrthoCamera(const Pixel imageSize, const Pixel center, OrthoCameraData data)
-    : imageSize(imageSize)
-    , center(center)
-    , data(data) {
-    cached.u = data.u;
-    cached.v = data.v;
-    cached.w = cross(data.u, data.v);
+OrthoCamera::OrthoCamera(const CameraData& data)
+    : data(data) {
+    cached.imageSize = data.imageSize;
+    cached.position = data.position;
+    cached.cutoff = data.ortho.cutoff;
+
+    this->reset();
+
+    if (data.ortho.fov) {
+        cached.worldToPixel = data.imageSize.y / data.ortho.fov.value();
+    }
 }
 
 void OrthoCamera::initialize(const Storage& storage) {
-    if (data.fov) {
+    if (cached.worldToPixel) {
         // fov either specified explicitly or already computed
         return;
     }
-
-
     /// \todo also auto-center?
 
     // handle case without mass in storage
@@ -55,25 +57,24 @@ void OrthoCamera::initialize(const Storage& storage) {
     // find median distance
     const Size mid = r.size() / 2;
     std::nth_element(distances.begin(), distances.begin() + mid, distances.end());
-    // factor 5 is ad hoc
-    const Float fov = 5._f * distances[mid];
-    ASSERT(fov > EPS);
 
-    data.fov = imageSize.y / fov;
+    // factor 5 is ad hoc
+    const float fov = 5._f * distances[mid];
+    cached.worldToPixel = cached.imageSize.y / fov;
+    ASSERT(fov > EPS);
 }
 
 Optional<ProjectedPoint> OrthoCamera::project(const Vector& r) const {
-    const float x = center.x + dot(r, cached.u) * data.fov.value();
-    const float y = center.y + dot(r, cached.v) * data.fov.value();
-    const Coords point(x, imageSize.y - y - 1);
-    return { { point, data.fov.value() * float(r[H]) } };
+    const float x = dot(r - cached.position, cached.u) * cached.worldToPixel.value();
+    const float y = dot(r - cached.position, cached.v) * cached.worldToPixel.value();
+    const Coords point = Coords(0.5f * cached.imageSize.x + x, 0.5f * cached.imageSize.y - y);
+    return { { point, float(r[H]) * cached.worldToPixel.value() } };
 }
 
 CameraRay OrthoCamera::unproject(const Coords& coords) const {
-    const float rx = (coords.x - center.x) / data.fov.value();
-    const float ry = ((imageSize.y - coords.y - 1) - center.y) / data.fov.value();
+    const Coords r = (coords - Coords(cached.imageSize * 0.5f)) / cached.worldToPixel.value();
     CameraRay ray;
-    ray.origin = cached.u * rx + cached.v * ry + cached.w * data.zoffset;
+    ray.origin = cached.position + cached.u * r.x - cached.v * r.y;
     ray.target = ray.origin + cached.w;
     return ray;
 }
@@ -83,37 +84,51 @@ Vector OrthoCamera::getDirection() const {
 }
 
 Optional<float> OrthoCamera::getCutoff() const {
-    return data.cutoff;
+    return cached.cutoff;
 }
 
-Optional<float> OrthoCamera::getFov() const {
-    return imageSize.y / data.fov.value();
+Optional<float> OrthoCamera::getWorldToPixel() const {
+    return cached.worldToPixel.value();
 }
 
 void OrthoCamera::setCutoff(const Optional<float> newCutoff) {
-    data.cutoff = newCutoff;
+    cached.cutoff = newCutoff;
 }
 
 void OrthoCamera::zoom(const Pixel fixedPoint, const float magnitude) {
     ASSERT(magnitude > 0.f);
-    center += (fixedPoint - center) * (1.f - magnitude);
-    data.fov.value() *= magnitude;
+
+    const Vector fixed1 = this->unproject(Coords(fixedPoint)).origin;
+    cached.worldToPixel.value() *= magnitude;
+    const Vector fixed2 = this->unproject(Coords(fixedPoint)).origin;
+    cached.position += fixed1 - fixed2;
 }
 
-void OrthoCamera::transform(const AffineMatrix& matrix) {
-    cached.u = matrix * data.u;
-    cached.v = matrix * data.v;
+void OrthoCamera::orbit(const Vector& pivot, const AffineMatrix& matrix) {
+    // rotate camera directions
+    cached.u = matrix * cached.u;
+    cached.v = matrix * cached.v;
     cached.w = cross(cached.u, cached.v);
+
+    // orbit the camera position
+    cached.position = pivot + matrix * (cached.position - pivot);
+}
+
+void OrthoCamera::reset() {
+    cached.w = getNormalized(data.target - data.position);
+    cached.v = getNormalized(data.up - dot(data.up, cached.w) * cached.w);
+    ASSERT(almostEqual(dot(cached.w, cached.v), 0._f));
+
+    cached.u = cross(cached.v, cached.w);
+    ASSERT(getSqrLength(cached.u) == 1._f);
 }
 
 void OrthoCamera::pan(const Pixel offset) {
-    center += offset;
+    cached.position -= (cached.u * offset.x + cached.v * offset.y) / cached.worldToPixel.value();
 }
 
 void OrthoCamera::resize(const Pixel newSize) {
-    const Coords scaling = Coords(newSize) / Coords(imageSize);
-    imageSize = newSize;
-    center = Pixel(Coords(center) * scaling);
+    cached.imageSize = newSize;
 }
 
 /// ----------------------------------------------------------------------------------------------------------
@@ -128,29 +143,29 @@ Vector ParticleTracker::position(const Storage& storage) const {
     }
 }
 
-PerspectiveCamera::PerspectiveCamera(const Pixel imageSize, const PerspectiveCameraData& data)
-    : imageSize(imageSize)
-    , data(data) {
-    ASSERT(data.clipping.lower() > 0._f && data.clipping.size() > EPS);
+PerspectiveCamera::PerspectiveCamera(const CameraData& data)
+    : data(data) {
+    ASSERT(data.perspective.clipping.lower() > 0._f && data.perspective.clipping.size() > EPS);
 
-    this->update();
+    this->reset();
 }
 
 void PerspectiveCamera::initialize(const Storage& storage) {
     /// \todo auto-view, like OrthoCamera ?
 
-    if (data.tracker) {
+    /*if (data.tracker) {
         const Vector newTarget = data.tracker->position(storage);
         data.position += newTarget - data.target;
         data.target = newTarget;
         this->update();
-    }
+    }*/
+    (void)storage;
 }
 
 Optional<ProjectedPoint> PerspectiveCamera::project(const Vector& r) const {
     const Vector dr = r - data.position;
     const Float proj = dot(dr, cached.dir);
-    if (!data.clipping.contains(proj)) {
+    if (!data.perspective.clipping.contains(proj)) {
         // point clipped by the clipping planes
         return NOTHING;
     }
@@ -164,18 +179,18 @@ Optional<ProjectedPoint> PerspectiveCamera::project(const Vector& r) const {
     tieToTuple(up0, upLength) = getNormalizedWithLength(cached.up);
     const float leftRel = dot(left0, r0) / leftLength;
     const float upRel = dot(up0, r0) / upLength;
-    const float x = 0.5f * (1.f + leftRel) * imageSize.x;
-    const float y = 0.5f * (1.f + upRel) * imageSize.y;
+    const float x = 0.5f * (1.f + leftRel) * data.imageSize.x;
+    const float y = 0.5f * (1.f + upRel) * data.imageSize.y;
     const float hAtUnitDist = r[H] / proj;
-    const float h = hAtUnitDist / leftLength * imageSize.x;
+    const float h = hAtUnitDist / leftLength * data.imageSize.x;
 
     // if (x >= -h && x < imageSize.x + h && y >= -h && y < imageSize.y )
-    return ProjectedPoint{ { x, imageSize.y - y - 1 }, max(float(h), 1.f) };
+    return ProjectedPoint{ { x, data.imageSize.y - y - 1 }, max(float(h), 1.f) };
 }
 
 CameraRay PerspectiveCamera::unproject(const Coords& coords) const {
-    const float rx = 2.f * coords.x / imageSize.x - 1.f;
-    const float ry = 2.f * coords.y / imageSize.y - 1.f;
+    const float rx = 2.f * coords.x / data.imageSize.x - 1.f;
+    const float ry = 2.f * coords.y / data.imageSize.y - 1.f;
     CameraRay ray;
     ray.origin = data.position;
     ray.target = ray.origin + cached.dir + cached.left * rx - cached.up * ry;
@@ -191,21 +206,22 @@ Optional<float> PerspectiveCamera::getCutoff() const {
     return NOTHING;
 }
 
-Optional<float> PerspectiveCamera::getFov() const {
-    return data.fov;
+Optional<float> PerspectiveCamera::getWorldToPixel() const {
+    // it depends on position, so we return NOTHING for simplicity
+    return NOTHING;
 }
 
 void PerspectiveCamera::setCutoff(const Optional<float> UNUSED(newCutoff)) {}
 
 void PerspectiveCamera::zoom(const Pixel UNUSED(fixedPoint), const float magnitude) {
     ASSERT(magnitude > 0.f);
-    data.fov *= 1._f + 0.01_f * magnitude;
-    this->transform(cached.matrix);
+    data.perspective.fov *= 1._f + 0.01_f * magnitude;
+    this->orbit(data.position, cached.matrix);
 }
 
-void PerspectiveCamera::transform(const AffineMatrix& matrix) {
+void PerspectiveCamera::orbit(const Vector& UNUSED(pivot), const AffineMatrix& matrix) {
     // reset the previous transform
-    this->update();
+    // this->reset();
 
     cached.dir = matrix * cached.dir;
     cached.up = matrix * cached.up;
@@ -213,20 +229,7 @@ void PerspectiveCamera::transform(const AffineMatrix& matrix) {
     cached.matrix = matrix;
 }
 
-void PerspectiveCamera::pan(const Pixel offset) {
-    const Float x = Float(offset.x) / imageSize.x;
-    const Float y = Float(offset.y) / imageSize.y;
-    const Vector worldOffset = getLength(data.target - data.position) * (cached.left * x + cached.up * y);
-    data.position -= worldOffset;
-    data.target -= worldOffset;
-}
-
-void PerspectiveCamera::resize(const Pixel newSize) {
-    imageSize = newSize;
-    this->update();
-}
-
-void PerspectiveCamera::update() {
+void PerspectiveCamera::reset() {
     cached.dir = getNormalized(data.target - data.position);
 
     // make sure the up vector is perpendicular
@@ -234,11 +237,24 @@ void PerspectiveCamera::update() {
     up = getNormalized(up - dot(up, cached.dir) * cached.dir);
     ASSERT(abs(dot(up, cached.dir)) < EPS);
 
-    const Float aspect = Float(imageSize.x) / Float(imageSize.y);
-    ASSERT(aspect >= 1._f); // not really required, using for simplicity
-    const Float tgfov = tan(0.5_f * data.fov);
+    const float aspect = float(data.imageSize.x) / float(data.imageSize.y);
+    ASSERT(aspect >= 1.f); // not really required, using for simplicity
+    const float tgfov = tan(0.5f * data.perspective.fov);
     cached.up = tgfov / aspect * up;
     cached.left = tgfov * getNormalized(cross(cached.up, cached.dir));
+}
+
+void PerspectiveCamera::pan(const Pixel offset) {
+    const float x = float(offset.x) / data.imageSize.x;
+    const float y = float(offset.y) / data.imageSize.y;
+    const Vector worldOffset = getLength(data.target - data.position) * (cached.left * x + cached.up * y);
+    data.position -= worldOffset;
+    data.target -= worldOffset;
+}
+
+void PerspectiveCamera::resize(const Pixel newSize) {
+    data.imageSize = newSize;
+    this->reset();
 }
 
 NAMESPACE_SPH_END

@@ -38,18 +38,18 @@ public:
     }
 
     /// \brief Called on mouse click, starting the rotation
-    void click(const Pixel point) {
-        start = this->mapToSphere(point);
+    void click(const Pixel point, const Pixel pivot) {
+        start = this->mapToSphere(point, pivot);
     }
 
     /// \brief Called when mouse moves, rotating the object.
     ///
     /// \param point Current mouse position in image space.
-    /// \param pivot Center of rotation.
+    /// \param pivot Center of rotation in image space.
     /// \return New rotation matrix of the object
-    AffineMatrix drag(const Pixel point, const Vector& pivot) {
+    AffineMatrix drag(const Pixel point, const Pixel pivot) {
         ASSERT(isReal(start));
-        const Vector end = this->mapToSphere(point);
+        const Vector end = this->mapToSphere(point, pivot);
         const Vector perp = cross(start, end);
         if (getSqrLength(perp) > EPS) {
             Quat q;
@@ -58,21 +58,18 @@ public:
             q[2] = perp[2];
             q[3] = dot(start, end);
 
-            AffineMatrix result = AffineMatrix::identity();
-            result.translate(pivot);
-            result = result * q.convert();
-            result.translate(-pivot);
-            return result;
+            return q.convert();
         } else {
             return AffineMatrix::identity();
         }
     }
 
 private:
-    Vector mapToSphere(const Pixel point) {
+    Vector mapToSphere(const Pixel point, const Pixel pivot) {
         // rescale to <-1, 1> and invert y
         ASSERT(size.x > 0 && size.y > 0);
-        const Vector p(2.f * float(point.x) / size.x - 1.f, 1.f - 2.f * float(point.y) / size.y, 0._f);
+        /*const Vector p(
+            2.f * float(point.x - pivot.x) / size.x, 2.f * float(pivot.y - point.y) / size.y, 0._f);
 
         const Float lengthSqr = getSqrLength(p);
         if (lengthSqr > 1.f) {
@@ -80,7 +77,14 @@ private:
             return p / length;
         } else {
             return Vector(p[X], p[Y], sqrt(1.f - lengthSqr));
-        }
+        }*/
+        const Float phi = 2._f * PI * Float(point.x - pivot.x) / size.x;
+        const Float theta = PI * Float(pivot.y - point.y) / size.y;
+
+        /*const Float s = sin(theta);
+        const Float c = cos(theta);*/
+        (void)theta;
+        return Vector(0.f, sin(phi), 0.f);
     }
 };
 

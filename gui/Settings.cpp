@@ -6,35 +6,7 @@ NAMESPACE_SPH_BEGIN
 // clang-format off
 template<>
 AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings<GuiSettingsId> {
-    /// Camera pameters
-    { GuiSettingsId::CAMERA,                "camera",               CameraEnum::ORTHO,
-        "Specifies the projection of the particles to the image. Can be one of the following:\n" + EnumMap::getDesc<CameraEnum>() },
-    { GuiSettingsId::PARTICLE_RADIUS,       "particle_radius",      0.5_f,
-        "Multiplier of the particle radius for drawing." },
-    { GuiSettingsId::ORTHO_CUTOFF,          "ortho.cutoff",         0.1_f,
-        "Cut-off distance from center plane. Particles further away are not drawn. Used by particle renderer." },
-    { GuiSettingsId::ORTHO_ZOFFSET,         "ortho.zoffset",        0._f,
-        "Distance of the orthographic camera from the center plane. Used by raytracer to get the ray origin. "},
-    { GuiSettingsId::ORTHO_PROJECTION,      "ortho.projection",     OrthoEnum::XY,
-        "Obsolete" },
-    { GuiSettingsId::PERSPECTIVE_FOV,       "perspective.fov",      PI / 3._f,
-        "Field of view of the perspective camera (in radians)." },
-    { GuiSettingsId::PERSPECTIVE_POSITION,  "perspective.position", Vector(0._f, 0._f, 1._f),
-        "Position of the perspective camera in space." },
-    { GuiSettingsId::PERSPECTIVE_TARGET,    "perspective.target",   Vector(0._f),
-        "Look-at point of the perspective camera. Actual distance from the camera does not matter." },
-    { GuiSettingsId::PERSPECTIVE_UP,        "perspective.up",       Vector(0._f, 1._f, 0._f),
-        "Up-vector of the perspective camera. Does not have to be normalized." },
-    { GuiSettingsId::PERSPECTIVE_CLIP_NEAR, "perspective.clip.near", EPS,
-        "Nearest distance that can be projected by the perspective camera" },
-    { GuiSettingsId::PERSPECTIVE_CLIP_FAR,  "perspective.clip.far",  INFTY,
-        "Farthest distance that can be projected by the perspective camera" },
-    { GuiSettingsId::PERSPECTIVE_TRACKED_PARTICLE, "perspective.tracked_particle",  -1,
-        "Index of the particle tracked by the camera. -1 means no tracking is used. " },
 
-    /// Particle visualization
-    { GuiSettingsId::RENDERER,              "renderer",             RendererEnum::PARTICLE,
-        "Selected renderer for particle visualization. Can be one of the following:\n" + EnumMap::getDesc<RendererEnum>() },
     { GuiSettingsId::VIEW_WIDTH,            "view.width",           800,
         "Width of the rendered image (in pixels)." },
     { GuiSettingsId::VIEW_HEIGHT,           "view.height",          600,
@@ -44,6 +16,53 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "the performance of the simulation." },
     { GuiSettingsId::VIEW_GRID_SIZE,        "view.grid_size",       0._f,
         "Step of the grid drawn into the bitmap. If zero, no grid is drawn." },
+
+    /// Window settings
+    { GuiSettingsId::WINDOW_TITLE,          "window.title",         std::string("OpenSPH"),
+        "Title of the main window of the application." },
+    { GuiSettingsId::WINDOW_WIDTH,          "window.width",         1110,
+        "Width of the main window." },
+    { GuiSettingsId::WINDOW_HEIGHT,         "window.height",        600,
+        "Height of the main window." },
+
+    /// Camera pameters
+    { GuiSettingsId::CAMERA,                "camera.type",          CameraEnum::ORTHO,
+        "Specifies the projection of the particles to the image. Can be one of the following:\n" + EnumMap::getDesc<CameraEnum>() },
+    { GuiSettingsId::CAMERA_POSITION,       "camera.position",      Vector(0._f, 0._f, 1._f),
+        "Position of the camera in space." },
+    { GuiSettingsId::CAMERA_TARGET,         "camera.target",        Vector(0._f),
+        "Look-at point of the camera. Actual distance from the camera does not matter." },
+    { GuiSettingsId::CAMERA_UP,             "camera.up",            Vector(0._f, 1._f, 0._f),
+        "Up-vector of the camera. Does not have to be normalized." },
+    { GuiSettingsId::CAMERA_CUTOFF,         "camera.cutoff",         0.1_f,
+        "Cut-off distance from center plane. Particles further away are not drawn. Used by particle redr." },
+    { GuiSettingsId::ORTHO_FOV,             "camera.ortho.fov",      0._f,
+        "Field of view of the orthographic camera. Specified as distance (not an angle). Value 0 means the "
+        "field of view is computed automatically to fit all particles inside the view."},
+    { GuiSettingsId::PERSPECTIVE_FOV,       "camera.perspective.fov",       PI / 3._f,
+        "Field of view of the perspective camera (in radians)." },
+    { GuiSettingsId::PERSPECTIVE_CLIP_NEAR, "camera.perspective.clip.near", EPS,
+        "Nearest distance that can be projected by the perspective camera" },
+    { GuiSettingsId::PERSPECTIVE_CLIP_FAR,  "camera.perspective.clip.far",  INFTY,
+        "Farthest distance that can be projected by the perspective camera" },
+    { GuiSettingsId::PERSPECTIVE_TRACKED_PARTICLE, "camera.perspective.tracked_particle",  -1,
+        "Index of the particle tracked by the camera. -1 means no tracking is used. " },
+
+    /// Particle visualization
+    { GuiSettingsId::RENDERER,              "renderer.type",        RendererEnum::PARTICLE,
+        "Selected renderer for particle visualization. Can be one of the following:\n" + EnumMap::getDesc<RendererEnum>() },
+    { GuiSettingsId::PARTICLE_RADIUS,       "particle.radius",      0.5_f,
+        "Multiplier of the particle radius for drawing." },
+    { GuiSettingsId::FORCE_GRAYSCALE,       "particle.force_grayscale",      false,
+        "Palette used for particle colorization is converted to grayscale. Useful for checking how the "
+        "image will look when printed on blank-and-white printer. "},
+    { GuiSettingsId::ANTIALIASED,           "particle.antialiased",          false,
+        "Draw particles with antialiasing. Improves quality of the image, but may slow down the rendering." },
+    { GuiSettingsId::SMOOTH_PARTICLES,      "particle.smooth",       false,
+        "If true, rendered particles will be smoothed using cubic spline kernel. Useful to visualize the actual "
+        "extend of particles."},
+    { GuiSettingsId::RENDER_GHOST_PARTICLES, "particle.render_ghost_particles", true,
+        "If true, ghost particles will be displayed as transparent circles, otherwise they are hidden." },
     { GuiSettingsId::SURFACE_RESOLUTION,    "surface.resolution",   100._f,  // m
         "Resolution of the meshed surface (in world units). Lower values means the mesh is more detailed, "
         "but construction takes (significantly) more time and memory." },
@@ -56,11 +75,6 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Relative intensity of the sun, used for shading in mesh renderer in raytracer." },
     { GuiSettingsId::SURFACE_AMBIENT,       "surface.ambient",      0.3_f,
         "Relative intensity of an ambient light, illuminating all shaded points." },
-    { GuiSettingsId::ORTHO_VIEW_CENTER,     "ortho.center",          Vector(0._f),
-        "Center point of the orthographic camera." },
-    { GuiSettingsId::ORTHO_FOV,             "ortho.fov",             0._f,
-        "Field of view of the orthographic camera. Specified as distance (not an angle). Value 0 means the "
-        "field of view is computed automatically to fit all particles inside the view."},
     { GuiSettingsId::RAYTRACE_SUBSAMPLING,  "raytrace.subsampling", 1,
         "Specifies a number of subsampled iterations of the progressive renderer. Larger values speed up the "
         "start-up of the render at a cost of lower resolution of the render." },
@@ -72,28 +86,12 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Optional bitmap used as a texture for the primary body (target). Applicable for raytracer." },
     { GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY,    "raytrace.texture_secondary",   std::string(""),
         "Optional bitmap used as a texture for the secondary body (impactor). Applicable for raytracer." },
-    { GuiSettingsId::RENDER_GHOST_PARTICLES, "render_ghost_particles", true,
-        "If true, ghost particles will be displayed as transparent circles, otherwise they are hidden." },
     { GuiSettingsId::BACKGROUND_COLOR,      "background_color",     Vector(0._f, 0._f, 0._f, 1._f),
         "Background color of the rendered image." },
     { GuiSettingsId::SHOW_KEY,              "show_key",             true,
         "Include a color pallete and a distance scale in the rendered image." },
-    { GuiSettingsId::FORCE_GRAYSCALE,       "force_grayscale",      false,
-        "Palette used for particle colorization is converted to grayscale. Useful for checking how the "
-        "image will look when printed on blank-and-white printer. "},
-    { GuiSettingsId::ANTIALIASED,           "antialiased",          false,
-        "Draw particles with antialiasing. Improves quality of the image, but may slow down the rendering." },
-    { GuiSettingsId::SMOOTH_PARTICLES,      "smooth_particles",     false,
-        "If true, rendered particles will be smoothed using cubic spline kernel. Useful to visualize the actual "
-        "extend of particles."},
 
-    /// Window settings
-    { GuiSettingsId::WINDOW_TITLE,          "window.title",         std::string("OpenSPH"),
-        "Title of the main window of the application." },
-    { GuiSettingsId::WINDOW_WIDTH,          "window.width",         1110,
-        "Width of the main window." },
-    { GuiSettingsId::WINDOW_HEIGHT,         "window.height",        600,
-        "Height of the main window." },
+    /// Plots
     { GuiSettingsId::PLOT_INTEGRALS,        "plot.integrals",       PlotEnum::ALL,
         "Integrals to compute and plot during the simulation. Can be one or more values of the following:\n"
         + EnumMap::getDesc<PlotEnum>() },
@@ -104,7 +102,7 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "N(>D) and D [km]. If empty, no SFD is drawn."},
 
     /// Saved animation frames
-    { GuiSettingsId::IMAGES_RENDERER,       "images.renderer",      RendererEnum::PARTICLE,
+    { GuiSettingsId::IMAGES_RENDERER,       "images.renderer.type", RendererEnum::PARTICLE,
         "Type of the renderer used when creating snapshot images. Values are the same as for 'renderer' entry." },
     { GuiSettingsId::IMAGES_SAVE,           "images.save",          false,
         "If true, snapshot images are periodically saved to disk." },

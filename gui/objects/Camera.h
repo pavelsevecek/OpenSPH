@@ -40,6 +40,9 @@ public:
     /// be empty.
     virtual void initialize(const Storage& storage) = 0;
 
+    /// \addtogroup Projection
+    /// @{
+
     /// \brief Returns projected position of particle on the image.
     ///
     /// If the particle is outside of the image region or is clipped by the projection, returns NOTHING.
@@ -58,16 +61,17 @@ public:
     /// than its surface.
     virtual Optional<float> getCutoff() const = 0;
 
-    /// \brief Returns the field of view of the camera.
-    ///
-    /// Note that the meaning of this value may be specific for given camera or it might be undefined, in
-    /// which case the function returns NOTHING.
-    virtual Optional<float> getFov() const = 0;
+    /// \brief Returns the factor converting world units to screen-space units.
+    virtual Optional<float> getWorldToPixel() const = 0;
 
     /// \brief Modifies the clipping distance of the camera.
     ///
     /// The clipping can be disabled by passing NOTHING.
     virtual void setCutoff(const Optional<float> newCutoff) = 0;
+
+    /// @}
+    /// \addtogroup Transforms
+    /// @{
 
     /// \param Applies zoom to the camera.
     ///
@@ -77,54 +81,84 @@ public:
     /// \param magnitude Relative zoom amount, value <1 means zooming out, value >1 means zooming in.
     virtual void zoom(const Pixel fixedPoint, const float magnitude) = 0;
 
-    /// \brief Transforms the current view by given matrix.
-    ///
-    /// This replaces previous transformation matrix, i.e. subsequent calls do not accumulate.
-    /// \param matrix Transform matrix applied to the camera.
-    virtual void transform(const AffineMatrix& matrix) = 0;
-
-    /// \brief Moves the camera by relative offset
+    /// \brief Moves the camera by relative offset in pixels.
     virtual void pan(const Pixel offset) = 0;
+
+    /// \brief Orbits the camera around given pivot point (in world coordinates).
+    ///
+    /// \param pivot Position around which the camera rotates
+    /// \param matrix Orthogonal transform matrix applied to the camera.
+    virtual void orbit(const Vector& pivot, const AffineMatrix& matrix) = 0;
+
+    /// \brief Resets all camera transforms to its "factory settings".
+    virtual void reset() = 0;
 
     /// \brief Changes the image size.
     virtual void resize(const Pixel newSize) = 0;
+
+    /// @}
 
     /// \todo revert to ClonePtr!
     virtual AutoPtr<ICamera> clone() const = 0;
 };
 
 
-struct OrthoCameraData {
-    /// Field of view (zoom)
-    Optional<float> fov = NOTHING;
+struct CameraData {
+    Pixel imageSize;
 
-    /// Cutoff distance of the camera.
-    Optional<float> cutoff = NOTHING;
+    /// Position of the camera in space
+    Vector position = Vector(0._f);
 
-    /// Z-offset of the camera
-    float zoffset = 0.f;
+    /// Look-at point in space
+    Vector target = Vector(0._f, 0._f, -1._f);
 
-    /// Vectors defining camera plane
-    Vector u = Vector(1._f, 0._f, 0._f);
+    /// Up vector of the camera (direction)
+    Vector up = Vector(0._f, 1._f, 0._f);
 
-    Vector v = Vector(0._f, 1._f, 0._f);
+    struct {
+
+        /// \brief Field of view (zoom) in world units.
+        ///
+        /// NOTHING means the value is computed automatically.
+        Optional<float> fov = NOTHING;
+
+        Optional<float> cutoff = NOTHING;
+
+    } ortho;
+
+    struct {
+
+        /// Field of view (angle) in radians.
+        Float fov = PI / 3._f;
+
+        /// Defines the clipping planes of the camera.
+        Interval clipping = Interval(EPS, INFTY);
+
+    } perspective;
 };
 
 /// \brief Orthographic camera.
 class OrthoCamera : public ICamera {
 private:
-    Pixel imageSize;
-    Pixel center;
-
-    OrthoCameraData data;
+    CameraData data;
 
     /// Cached transformed values
     struct {
+        Pixel imageSize;
+
+        Vector position;
+
+        /// Base vectors of the transform
         Vector u, v, w;
+
+        Optional<float> worldToPixel;
+
+        Optional<float> cutoff;
+
     } cached;
 
 public:
-    OrthoCamera(const Pixel imageSize, const Pixel center, OrthoCameraData data);
+    explicit OrthoCamera(const CameraData& data);
 
     virtual void initialize(const Storage& storage) override;
 
@@ -136,13 +170,15 @@ public:
 
     virtual Optional<float> getCutoff() const override;
 
-    virtual Optional<float> getFov() const override;
+    virtual Optional<float> getWorldToPixel() const override;
 
     virtual void setCutoff(const Optional<float> newCutoff) override;
 
     virtual void zoom(const Pixel fixedPoint, const float magnitude) override;
 
-    virtual void transform(const AffineMatrix& matrix) override;
+    virtual void orbit(const Vector& pivot, const AffineMatrix& matrix) override;
+
+    virtual void reset() override;
 
     virtual void pan(const Pixel offset) override;
 
@@ -182,30 +218,10 @@ public:
     virtual Vector position(const Storage& storage) const override;
 };
 
-struct PerspectiveCameraData {
-    /// Field of view (angle)
-    Float fov = PI / 3._f;
-
-    /// Camera position in space
-    Vector position = Vector(0._f, 0._f, -1._f);
-
-    /// Look-at point in space
-    Vector target = Vector(0._f);
-
-    /// Up vector of the camera (direction)
-    Vector up = Vector(0._f, 1._f, 0._f);
-
-    /// Defines the clipping planes of the camera.
-    Interval clipping = Interval(0._f, INFTY);
-
-    ClonePtr<ITracker> tracker = nullptr;
-};
-
 /// \brief Perspective camera
 class PerspectiveCamera : public ICamera {
 private:
-    Pixel imageSize;
-    PerspectiveCameraData data;
+    CameraData data;
 
     struct {
         /// Unit direction of the camera
@@ -223,7 +239,7 @@ private:
     } cached;
 
 public:
-    PerspectiveCamera(const Pixel imageSize, const PerspectiveCameraData& data);
+    PerspectiveCamera(const CameraData& data);
 
     virtual void initialize(const Storage& storage) override;
 
@@ -235,13 +251,15 @@ public:
 
     virtual Optional<float> getCutoff() const override;
 
-    virtual Optional<float> getFov() const override;
+    virtual Optional<float> getWorldToPixel() const override;
 
     virtual void setCutoff(const Optional<float> newCutoff) override;
 
     virtual void zoom(const Pixel UNUSED(fixedPoint), const float magnitude) override;
 
-    virtual void transform(const AffineMatrix& matrix) override;
+    virtual void orbit(const Vector& pivot, const AffineMatrix& matrix) override;
+
+    virtual void reset() override;
 
     virtual void pan(const Pixel offset) override;
 
@@ -250,9 +268,6 @@ public:
     virtual AutoPtr<ICamera> clone() const override {
         return makeAuto<PerspectiveCamera>(*this);
     }
-
-private:
-    void update();
 };
 
 NAMESPACE_SPH_END

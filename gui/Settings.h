@@ -41,14 +41,6 @@ static RegisterEnum<CameraEnum> sCamera({
     { CameraEnum::PERSPECTIVE, "perspective", "Perspective projection" },
 });
 
-enum class OrthoEnum { XY, XZ, YZ };
-/// \todo replace with up and dir
-static RegisterEnum<OrthoEnum> sOrtho({
-    { OrthoEnum::XY, "xy", "XY plane" },
-    { OrthoEnum::XZ, "xz", "XZ plane" },
-    { OrthoEnum::YZ, "yz", "YZ plane" },
-});
-
 enum class PlotEnum {
     /// Evolution of the total internal energy in time
     INTERNAL_ENERGY = 1 << 0,
@@ -121,34 +113,6 @@ static RegisterEnum<PlotEnum> sPlot({
 /// \todo generic ortho projection (x,y,z) -> (u,v)
 
 enum class GuiSettingsId {
-    /// Selected renderer
-    RENDERER,
-
-    CAMERA,
-
-    /// Center point of the view
-    ORTHO_VIEW_CENTER,
-
-    /// View field of view (zoom). Special value 0 means the field of view is computed from the bounding box.
-    ORTHO_FOV,
-
-    /// Z-offset of the camera (from origin)
-    /// \todo replace this and ORTHO_VIEW_CENTER with camera position
-    ORTHO_ZOFFSET,
-
-    PERSPECTIVE_FOV,
-
-    PERSPECTIVE_POSITION,
-
-    PERSPECTIVE_TARGET,
-
-    PERSPECTIVE_UP,
-
-    PERSPECTIVE_CLIP_NEAR,
-
-    PERSPECTIVE_CLIP_FAR,
-
-    PERSPECTIVE_TRACKED_PARTICLE,
 
     VIEW_WIDTH,
 
@@ -159,9 +123,47 @@ enum class GuiSettingsId {
     /// Size of the grid cell in simulation units (not window units); if zero, no grid is drawn
     VIEW_GRID_SIZE,
 
+    /// Title of the window appearing on taskbar
+    WINDOW_TITLE,
+
+    WINDOW_WIDTH,
+
+    WINDOW_HEIGHT,
+
+    /// Type of the particle projection
+    CAMERA,
+
+    CAMERA_POSITION,
+
+    CAMERA_TARGET,
+
+    CAMERA_UP,
+
+    /// View field of view (zoom). Special value 0 means the field of view is computed from the bounding box.
+    ORTHO_FOV,
+
+    /// Max z-coordinate of particle to be displayed by ortho renderer
+    CAMERA_CUTOFF,
+
+    ORTHO_PROJECTION,
+
+    PERSPECTIVE_FOV,
+
+    PERSPECTIVE_CLIP_NEAR,
+
+    PERSPECTIVE_CLIP_FAR,
+
+    PERSPECTIVE_TRACKED_PARTICLE,
+
+    /// Selected renderer
+    RENDERER,
+
     BACKGROUND_COLOR,
 
     SHOW_KEY,
+
+    /// Displayed radius of particle in units of smoothing length
+    PARTICLE_RADIUS,
 
     FORCE_GRAYSCALE,
 
@@ -170,14 +172,6 @@ enum class GuiSettingsId {
     SMOOTH_PARTICLES,
 
     RENDER_GHOST_PARTICLES,
-
-    /// Displayed radius of particle in units of smoothing length
-    PARTICLE_RADIUS,
-
-    /// Max z-coordinate of particle to be displayed by ortho renderer
-    ORTHO_CUTOFF,
-
-    ORTHO_PROJECTION,
 
     /// Size of the grid used in MarchingCubes (in code units, not h).
     SURFACE_RESOLUTION,
@@ -203,13 +197,6 @@ enum class GuiSettingsId {
     RAYTRACE_TEXTURE_PRIMARY,
 
     RAYTRACE_TEXTURE_SECONDARY,
-
-    /// Title of the window appearing on taskbar
-    WINDOW_TITLE,
-
-    WINDOW_WIDTH,
-
-    WINDOW_HEIGHT,
 
     PLOT_INTEGRALS,
 

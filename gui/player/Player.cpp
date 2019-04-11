@@ -152,8 +152,6 @@ void RunPlayer::setUp() {
     logger->write(
         "Loaded file ", firstPath.fileName().native(), " with ", storage->getParticleCnt(), " particles");
 
-    // setupUvws(*storage);
-
     callbacks = makeAuto<GuiCallbacks>(*controller);
 
     // dummy solver, used to avoid calling create on stuff
@@ -210,7 +208,6 @@ void RunPlayer::run() {
                 " in ",
                 loadTimer.elapsed(TimerUnit::MILLISECOND),
                 " ms");
-            // setupUvws(*storage);
 
             const Size elapsed = stepTimer.elapsed(TimerUnit::MILLISECOND);
             if (elapsed < stepMilliseconds) {
@@ -468,7 +465,6 @@ bool App::OnInit() {
 
     GuiSettings gui;
     gui.set(GuiSettingsId::ORTHO_FOV, 0._f)
-        .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(768, 768, 0))
         .set(GuiSettingsId::VIEW_WIDTH, 1024)
         .set(GuiSettingsId::VIEW_HEIGHT, 768)
         .set(GuiSettingsId::IMAGES_WIDTH, 1024)
@@ -488,18 +484,18 @@ bool App::OnInit() {
         //.set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(-3.e6_f, 4.e6_f, 0._f))
         //.set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 2.e6_f, -4.e6_f))
         //.set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f, 0._f, 0._f))
-        .set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f))
-        .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(-20, -19, 40))
+        .set(GuiSettingsId::CAMERA_TARGET, Vector(0._f))
+        .set(GuiSettingsId::CAMERA_POSITION, Vector(0._f, 0._f, -1.e6_f))
         //.set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f, -1.e6_f, 0._f))
         .set(GuiSettingsId::BACKGROUND_COLOR, Rgba::black())
         .set(GuiSettingsId::PERSPECTIVE_CLIP_NEAR, EPS)
-        .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
-        .set(GuiSettingsId::ORTHO_CUTOFF, 0._f) // 10000._f)
-        .set(GuiSettingsId::ORTHO_ZOFFSET, -1.e6_f)
+        .set(GuiSettingsId::CAMERA_CUTOFF, 0._f) // 10000._f)
         .set(GuiSettingsId::VIEW_GRID_SIZE, 0._f)
         .set(GuiSettingsId::RENDERER, RendererEnum::PARTICLE)
-        .set(GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY, std::string(""))
-        .set(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY, std::string(""))
+        .set(GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY,
+            std::string("/home/pavel/projects/astro/sph/external/surface.jpg"))
+        .set(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY,
+            std::string("/home/pavel/projects/astro/sph/external/surface2.jpg"))
         .set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 3)
         .set(GuiSettingsId::RAYTRACE_ITERATION_LIMIT, 50)
         .set(GuiSettingsId::IMAGES_WIDTH, 800)
@@ -532,7 +528,7 @@ bool App::OnInit() {
     if (fileMask.native().substr(fileMask.native().size() - 3) == ".bt") {
         // pkdgrav file, override some options
         gui.set(GuiSettingsId::ORTHO_FOV, 1.e6_f)
-            .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
+            .set(GuiSettingsId::CAMERA_CUTOFF, 0._f)
             .set(GuiSettingsId::PARTICLE_RADIUS, 1._f);
     }
 

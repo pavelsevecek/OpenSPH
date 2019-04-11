@@ -548,8 +548,13 @@ void Controller::setPaletteOverride(const Palette palette) {
     this->tryRedraw();
 }
 
-Optional<Size> Controller::getSelectedParticle() const {
-    return vis.selectedParticle;
+Optional<Particle> Controller::getSelectedParticle() const {
+    if (vis.selectedParticle) {
+        const Size index = vis.selectedParticle.value();
+        return Particle(QuantityId::POSITION, vis.positions[index], index);
+    } else {
+        return NOTHING;
+    }
 }
 
 SharedPtr<Movie> Controller::createMovie(const Storage& storage) {

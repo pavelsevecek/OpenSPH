@@ -2,12 +2,15 @@
 #include "gravity/AggregateSolver.h"
 #include "gui/GuiCallbacks.h"
 #include "gui/Settings.h"
+#include "io/Column.h"
 #include "io/FileSystem.h"
 #include "io/LogWriter.h"
 #include "io/Logger.h"
 #include "math/rng/VectorRng.h"
 #include "objects/geometry/Domain.h"
 #include "quantities/IMaterial.h"
+#include "quantities/Quantity.h"
+#include "sph/Materials.h"
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"
 #include "sph/initial/Presets.h"
@@ -28,15 +31,15 @@ NBody::NBody() {
         .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::ACCELERATION)
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 1._f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1.e10_f))
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 1.e20_f)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.1_f)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
-        .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::POINT_PARTICLES)
-        .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.5_f)
+        .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SPH_KERNEL)
+        .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
-        .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::MERGE_OR_BOUNCE)
+        .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::ELASTIC_BOUNCE)
         .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::PASS_OR_MERGE)
-        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.8_f)
+        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 1._f)
         .set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 1._f)
         .set(RunSettingsId::COLLISION_ALLOWED_OVERLAP, 0.01_f)
         .set(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, 10000._f)
@@ -68,10 +71,44 @@ Float getBoundingRadius(ArrayView<Vector> r) {
 
 Float startingRadius;
 
+class TabInput : public IInput {
+private:
+    TextInput input;
+
+public:
+    TabInput()
+        : input(OutputQuantityFlag::MASS | OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY) {}
+
+    virtual Outcome load(const Path& path, Storage& storage, Statistics& stats) override {
+        Storage loaded;
+        Outcome result = input.load(path, loaded, stats);
+        if (!result) {
+            return result;
+        }
+
+        storage = Storage(getDefaultMaterial());
+        storage.insert<Vector>(
+            QuantityId::POSITION, OrderEnum::SECOND, loaded.getValue<Vector>(QuantityId::POSITION).clone());
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        for (Size i = 0; i < r.size(); ++i) {
+            r[i][H] = 1.e-3_f;
+        }
+
+        storage.getDt<Vector>(QuantityId::POSITION) = loaded.getDt<Vector>(QuantityId::POSITION).clone();
+
+        storage.insert<Float>(
+            QuantityId::MASS, OrderEnum::ZERO, loaded.getValue<Float>(QuantityId::MASS).clone());
+
+
+        return SUCCESS;
+    }
+};
+
+
 void NBody::setUp() {
     // we don't need any material, so just pass some dummy
     storage = makeShared<Storage>(makeAuto<NullMaterial>(EMPTY_SETTINGS));
-    solver = makeAuto<AggregateSolver>(*scheduler, settings);
+    solver = makeAuto<NBodySolver>(*scheduler, settings);
 
     if (wxTheApp->argc > 1) {
         std::string arg(wxTheApp->argv[1]);
@@ -80,47 +117,58 @@ void NBody::setUp() {
             wxMessageBox("Cannot locate file " + path.native(), "Error", wxOK);
             return;
         }
-        BinaryInput input;
+        TabInput input;
         Statistics stats;
         Outcome result = input.load(path, *storage, stats);
         if (!result) {
-            wxMessageBox("Cannot load the run state file " + path.native(), "Error", wxOK);
+            executeOnMainThread(
+                [path] { wxMessageBox("Cannot load the run state file " + path.native(), "Error", wxOK); });
             return;
         }
-        // const Float t0 = stats.get<Float>(StatisticsId::RUN_TIME);
-        // const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
-        // const Interval origRange = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
-        // settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(t0, origRange.upper()));
-        // settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, dt);
 
-        // convert radii from SPH to nbody
-        ArrayView<const Float> m = storage->getValue<Float>(QuantityId::MASS);
-        ArrayView<const Float> rho = storage->getValue<Float>(QuantityId::DENSITY);
-        ArrayView<Vector> r_nbody = storage->getValue<Vector>(QuantityId::POSITION);
-        ASSERT(r_nbody.size() == rho.size());
-        for (Size i = 0; i < r_nbody.size(); ++i) {
-            r_nbody[i][H] = cbrt(3._f * m[i] / (4._f * PI * rho[i]));
-        }
+        solver->create(*storage, storage->getMaterial(0));
 
-        // to COM
-        ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
-        ArrayView<Vector> v = storage->getDt<Vector>(QuantityId::POSITION);
-        Vector r_com(0._f);
-        Vector v_com(0._f);
-        Float totalMass = 0._f;
-        for (Size i = 0; i < v.size(); ++i) {
-            r_com += m[i] * r[i];
-            v_com += m[i] * v[i];
-            totalMass += m[i];
-        }
-        r_com /= totalMass;
-        r_com[H] = 0._f;
-        v_com /= totalMass;
-        v_com[H] = 0._f;
-        for (Size i = 0; i < v.size(); ++i) {
-            r[i] -= r_com;
-            v[i] -= v_com;
-        }
+        /*  BinaryInput input;
+          Statistics stats;
+          Outcome result = input.load(path, *storage, stats);
+          if (!result) {
+              wxMessageBox("Cannot load the run state file " + path.native(), "Error", wxOK);
+              return;
+          }
+          // const Float t0 = stats.get<Float>(StatisticsId::RUN_TIME);
+          // const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
+          // const Interval origRange = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
+          // settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(t0, origRange.upper()));
+          // settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, dt);
+
+          // convert radii from SPH to nbody
+          ArrayView<const Float> m = storage->getValue<Float>(QuantityId::MASS);
+          ArrayView<const Float> rho = storage->getValue<Float>(QuantityId::DENSITY);
+          ArrayView<Vector> r_nbody = storage->getValue<Vector>(QuantityId::POSITION);
+          ASSERT(r_nbody.size() == rho.size());
+          for (Size i = 0; i < r_nbody.size(); ++i) {
+              r_nbody[i][H] = cbrt(3._f * m[i] / (4._f * PI * rho[i]));
+          }
+
+          // to COM
+          ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
+          ArrayView<Vector> v = storage->getDt<Vector>(QuantityId::POSITION);
+          Vector r_com(0._f);
+          Vector v_com(0._f);
+          Float totalMass = 0._f;
+          for (Size i = 0; i < v.size(); ++i) {
+              r_com += m[i] * r[i];
+              v_com += m[i] * v[i];
+              totalMass += m[i];
+          }
+          r_com /= totalMass;
+          r_com[H] = 0._f;
+          v_com /= totalMass;
+          v_com[H] = 0._f;
+          for (Size i = 0; i < v.size(); ++i) {
+              r[i] -= r_com;
+              v[i] -= v_com;
+          }*/
 
 
     } else {
@@ -139,7 +187,7 @@ void NBody::setUp() {
     callbacks = makeAuto<GuiCallbacks>(*controller);
 
     logger = Factory::getLogger(settings);
-    output = makeAuto<BinaryOutput>(Path("reacc_%d.ssf"));
+    output = makeAuto<CompressedOutput>(Path("reacc_%d.scf"), CompressionEnum::NONE, RunTypeEnum::NBODY);
 
     logger->write("Particles: ", storage->getParticleCnt());
 }

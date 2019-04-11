@@ -109,6 +109,7 @@ int ssfToSfd(const Post::HistogramSource source, const Path& filePath, const Pat
     }
 
     Post::HistogramParams params;
+    params.velocityCutoff = 3.e3_f;
     Array<Post::HistPoint> sfd =
         Post::getCumulativeHistogram(storage, Post::HistogramId::EQUIVALENT_MASS_RADII, source, params);
     FileLogger logSfd(sfdPath, FileLogger::Options::KEEP_OPENED);
@@ -269,32 +270,63 @@ static Pair<Float> getLr(const Path& filePath, const Path& settingsPath) {
 
 // prints total ejected mass and period of the LR
 void ssfToStats(const Path& fileDir) {
-    // Array<int> ds = { 359, 395, 425, 452, 476 };
-    Array<int> ds = { 8865, 10683, 10683, 12032, 12032, 13773, 13773, 17353 };
+    Array<int> ds = { 359, 395, 425, 452, 476 };
+    // Array<int> ds = { 8865, 10683, 12032, 13773, 17353 };
+    // Array<int> ds = { 11170, 11617, 12032, 12420, 12786, 13132, 13773 };
     Float q, Q;
-    Array<PlotPoint> points;
+    Array<PlotPoint> points(ds.size());
     Path firstDir;
-    for (int d : ds) {
-        const Path dir(replaceFirst(fileDir.native(), "%d", std::to_string(d)));
-        tie(q, Q) = getLr(dir / Path("frag_final.ssf"), dir / Path("collision.sph"));
-        points.push(PlotPoint{ log10(Q), q });
 
+    std::mutex mutex;
+    parallelFor(*ThreadPool::getGlobalInstance(), 0, ds.size(), [&](Size i) {
+        // for (int d : ds) {
+        const int d = ds[i];
+        // std::cout << "Processing d = " << d << std::endl;
+        const Path dir(replaceFirst(fileDir.native(), "%d", std::to_string(d)));
+        tie(q, Q) = getLr(dir / Path("reacc_final.ssf"), dir / Path("collision.sph"));
+
+        points[i] = PlotPoint{ log10(Q), q };
+
+        std::unique_lock<std::mutex> lock(mutex);
         if (firstDir.empty()) {
             firstDir = dir;
         }
-    }
+    });
 
-    Post::LinearFunction func = Post::computeLinearRegression(points);
 
     CollisionGeometrySettings geometry;
     geometry.loadFromFile(firstDir / Path("collision.sph"));
-    /*std::cout << params.targetRadius << "  " << 2._f * PI / (3600._f * params.targetRotation) << "  ";
-    for (PlotPoint p : points) {
-        std::cout << "(" << p.x << ", " << p.y << "); ";
-    }
-    std::cout << func.solve(0.5f) << std::endl;*/
     const Float spinRate = geometry.get<Float>(CollisionGeometrySettingsId::TARGET_SPIN_RATE);
-    std::cout << 24._f / spinRate << "   " << func.solve(0.5f) << std::endl;
+    const Float period = 24._f / spinRate;
+
+    std::ofstream ofs(std::to_string(round(period * 100.f) / 100.f) + ".txt");
+    for (PlotPoint p : points) {
+        ofs << p.x << " " << p.y << std::endl;
+    }
+
+    std::cout << period << "  ";
+
+    if (true) {
+        points.remove(0);
+        Post::QuadraticFunction func = Post::getQuadraticFit(points);
+        Pair<Float> roots = func.solve(0.5f);
+        const Interval range(points.front().x, points.back().x);
+        // select the root in the interval
+        if (roots.size() != 2 ||
+            roots[1] > 6) { // || (range.contains(roots[0]) && range.contains(roots[1]))) {
+            Post::LinearFunction linear = Post::getLinearFit(points);
+            Float root = linear.solve(0.5f);
+            std::cout << root << std::endl;
+        } else {
+            std::cout << (roots[1] < 5 ? roots[1] : roots[0]) << std::endl;
+        }
+    } else {
+        Post::LinearFunction func = Post::getLinearFit(points);
+        Float root = func.solve(0.5f);
+        std::cout << root << std::endl;
+    }
+    /*
+    std::cout << 24._f / spinRate << "   " << func.solve(0.5f) << std::endl;*/
 
 
     /*ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
@@ -720,6 +752,9 @@ void extractLr(const Path& inputPath, const Path& outputPath) {
         storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, 1._f);
     }
 
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    const Float m_tot = std::accumulate(m.begin(), m.end(), 0._f);
+
     Array<Size> components;
     const Size componentCnt =
         Post::findComponents(storage, 1.5_f, Post::ComponentFlag::SORT_BY_MASS, components);
@@ -736,8 +771,10 @@ void extractLr(const Path& inputPath, const Path& outputPath) {
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    m = storage.getValue<Float>(QuantityId::MASS);
+    const Float m_lr = std::accumulate(m.begin(), m.end(), 0._f);
     moveToCenterOfMassSystem(m, r);
+    moveToCenterOfMassSystem(m, v);
 
     BinaryOutput output(outputPath);
     output.dump(storage, stats);
@@ -772,6 +809,12 @@ void extractLr(const Path& inputPath, const Path& outputPath) {
     ASSERT(a > 0._f && b > 0._f && c > 0._f, a, b, c);
     std::cout << "a/b = " << a / b << std::endl;
     std::cout << "b/c = " << b / c << std::endl;
+
+
+    std::cout << "M_ej/M_tot = " << (m_tot - m_lr) / m_tot << std::endl;
+
+    /*FileLogger logger(Path("ratios.txt"), FileLogger::Options::APPEND);
+    logger.write(stats.get<Float>(StatisticsId::RUN_TIME), "  ", a / b, "  ", b / c);*/
 }
 
 void printHelp() {

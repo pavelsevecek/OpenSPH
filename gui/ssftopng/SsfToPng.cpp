@@ -5,7 +5,6 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/objects/Movie.h"
-#include "thread/Tbb.h"
 #include <iostream>
 
 IMPLEMENT_APP(SsfToPngApp);
@@ -31,8 +30,8 @@ bool SsfToPngApp::OnInit() {
         .set(GuiSettingsId::PARTICLE_RADIUS, 0.35_f)
         .set(GuiSettingsId::SURFACE_RESOLUTION, 1.e2_f)
         .set(GuiSettingsId::SURFACE_LEVEL, 0.25_f)
-        .set(GuiSettingsId::SURFACE_SUN_INTENSITY, 0.92_f)
-        .set(GuiSettingsId::SURFACE_AMBIENT, 0.05_f)
+        .set(GuiSettingsId::SURFACE_SUN_INTENSITY, 0._f)
+        .set(GuiSettingsId::SURFACE_AMBIENT, 0.9_f)
         .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-0.4f, -0.1f, 0.6f)))
         .set(GuiSettingsId::RENDERER, RendererEnum::RAYTRACER)
         .set(GuiSettingsId::RAYTRACE_ITERATION_LIMIT, 5)
@@ -92,7 +91,10 @@ bool SsfToPngApp::OnInit() {
 #else
 
     gui.set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f))
-        .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 0._f, -6.5e5_f));
+        .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 0._f, -6.5e5_f))
+        .set(GuiSettingsId::BACKGROUND_COLOR, Vector(0._f))
+        .set(GuiSettingsId::SURFACE_SUN_INTENSITY, 0._f)
+        .set(GuiSettingsId::SURFACE_AMBIENT, 0.9_f);
 
     const Path dir(std::string(wxTheApp->argv[1]));
     for (Path path : FileSystem::iterateDirectory(dir)) {
@@ -106,14 +108,16 @@ bool SsfToPngApp::OnInit() {
         std::cout << "Processing " << ssf.native() << std::endl;
         gui.set(GuiSettingsId::IMAGES_NAME, png.native());
 
-        AutoPtr<IRenderer> renderer = Factory::getRenderer(*Tbb::getGlobalInstance(), gui);
+        AutoPtr<IRenderer> renderer = Factory::getRenderer(*ThreadPool::getGlobalInstance(), gui);
 
         Array<SharedPtr<IColorizer>> colorizers;
-        colorizers.push(Factory::getColorizer(gui, ColorizerId(QuantityId::MASS)));
+        colorizers.push(Factory::getColorizer(gui, ColorizerId::VELOCITY));
 
         RenderParams params;
         params.size = Pixel(800, 800);
         params.camera = Factory::getCamera(gui, params.size);
+        /*params.surface.ambientLight = gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
+        params.surface.sunLight = gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY);*/
 
         Movie movie(gui, std::move(renderer), std::move(colorizers), std::move(params));
 

@@ -264,7 +264,7 @@ wxBoxSizer* MainWindow::createToolBar() {
     resetView->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
         pane->resetView();
         AutoPtr<ICamera> camera = controller->getCurrentCamera();
-        camera->transform(AffineMatrix::identity());
+        camera->reset();
         controller->refresh(std::move(camera));
     });
     toolbar->Add(resetView);
@@ -297,7 +297,7 @@ wxBoxSizer* MainWindow::createVisBar() {
     cutoffSizer->AddSpacer(25);
     wxStaticText* text = new wxStaticText(this, wxID_ANY, "Cutoff", wxDefaultPosition, textSize);
     cutoffSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
-    const Float cutoff = gui.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
+    const Float cutoff = gui.get<Float>(GuiSettingsId::CAMERA_CUTOFF);
     wxSpinCtrlDouble* cutoffSpinner =
         new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, spinnerSizer);
     cutoffSpinner->SetRange(0., 1000000.);
@@ -924,7 +924,12 @@ void MainWindow::onTimeStep(const Storage& storage, const Statistics& stats) {
     pane->onTimeStep(storage, stats);
 
     if (selectedParticlePlot) {
-        selectedParticlePlot->selectParticle(controller->getSelectedParticle());
+        const Optional<Particle> particle = controller->getSelectedParticle();
+        if (particle) {
+            selectedParticlePlot->selectParticle(particle->getIndex());
+        } else {
+            selectedParticlePlot->selectParticle(NOTHING);
+        }
 
         /// \todo we should only touch colorizer from main thread!
         SharedPtr<IColorizer> colorizer = controller->getCurrentColorizer();

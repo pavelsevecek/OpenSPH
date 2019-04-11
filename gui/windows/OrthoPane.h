@@ -22,11 +22,16 @@ private:
 
     struct {
         /// Cached last mouse position when dragging the window
-        Pixel position;
+        Pixel lastPosition;
 
-        /// Camera rotation matrix when dragging started.
-        AffineMatrix initialMatrix = AffineMatrix::identity();
     } dragging;
+
+    struct {
+        Vector pivot = Vector(0._f);
+
+        /// Current transform applied on camera while orbiting.
+        AffineMatrix matrix = AffineMatrix::identity();
+    } orbit;
 
     struct {
         Optional<Size> lastIdx;

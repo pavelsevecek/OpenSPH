@@ -18,6 +18,7 @@ class Movie;
 class Storage;
 class Statistics;
 class Timer;
+class Particle;
 struct Pixel;
 class Palette;
 class IRun;
@@ -154,6 +155,7 @@ public:
     ~Controller();
 
     /// \addtogroup Run queries
+    /// @{
 
     /// \brief Returns true if the user aborted the run.
     bool shouldAbortRun() const;
@@ -161,8 +163,9 @@ public:
     /// \brief Returns true if the application is shutting down.
     bool isQuitting() const;
 
-
+    /// @}
     /// \addtogroup Display queries
+    /// @{
 
     /// Returns a list of quantities that can be displayed.
     /// \param storage Particle storage containing data for the colorizer
@@ -188,13 +191,15 @@ public:
     ///                     be under the point of they are closer than (displayedRadius * (1+toleranceEps)).
     Optional<Size> getIntersectedParticle(const Pixel position, const float toleranceEps);
 
-    Optional<Size> getSelectedParticle() const;
+    /// \brief Returns the currently selected particle, if there is one.
+    Optional<Particle> getSelectedParticle() const;
 
     /// Returns the settings object.
     GuiSettings& getParams();
 
-
+    /// @}
     /// \addtogroup Display setters
+    /// @{
 
     /// \brief Updates the colorizer list, reset the camera and the renderer, etc.
     ///
@@ -250,7 +255,9 @@ public:
     /// thread. Can be called from any thread.
     void refresh(AutoPtr<ICamera>&& camera);
 
+    /// @}
     /// \addtogroup Controlling the run
+    /// @{
 
     /// \brief Sets up and starts a new simulation.
     ///
@@ -291,6 +298,8 @@ public:
 
     /// Closes down the model, clears all allocated resources. Must be called only once.
     void quit();
+
+    /// @}
 
 private:
     /// \brief Called every time step.

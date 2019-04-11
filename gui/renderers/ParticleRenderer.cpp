@@ -137,7 +137,7 @@ static void drawGrid(IRenderContext& context, const ICamera& camera, const float
 
 static void drawKey(IRenderContext& context,
     const Statistics& stats,
-    const float fov,
+    const float worldToPixel,
     const Rgba& background) {
     const Coords keyStart(5, 2);
     const float time = stats.get<Float>(StatisticsId::RUN_TIME);
@@ -145,7 +145,7 @@ static void drawKey(IRenderContext& context,
     context.setColor(background.inverse(), ColorFlag::TEXT | ColorFlag::LINE);
     context.drawText(keyStart, flags, "t = " + getFormattedTime(1.e3_f * time));
 
-    const float dFov_dPx = fov / context.size().x;
+    const float dFov_dPx = 1.f / worldToPixel;
     const float minimalScaleFov = dFov_dPx * 16;
     float actScaleFov = pow(10.f, ceil(log10(minimalScaleFov)));
     const float scaleSize = actScaleFov / dFov_dPx;
@@ -319,7 +319,9 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
     }
 
     if (params.particles.showKey) {
-        drawKey(*context, stats, params.camera->getFov().value(), background);
+        if (Optional<float> wtp = params.camera->getWorldToPixel()) {
+            drawKey(*context, stats, wtp.value(), background);
+        }
 
         if (cached.palette) {
             const Pixel origin(context->size().x - 50, 231);

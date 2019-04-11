@@ -32,7 +32,6 @@ private:
 
         GuiSettings gui;
         gui.set(GuiSettingsId::ORTHO_FOV, 1.5e5_f)
-            .set(GuiSettingsId::ORTHO_VIEW_CENTER, /*Vector(0, 300, 0)) // */ 0.5_f * Vector(1024, 768, 0))
             .set(GuiSettingsId::VIEW_WIDTH, 1024)
             .set(GuiSettingsId::VIEW_HEIGHT, 768)
             .set(GuiSettingsId::IMAGES_WIDTH, 1024)
@@ -51,10 +50,8 @@ private:
             .set(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY,
                 std::string("/home/pavel/projects/astro/sph/external/surface2.jpg"))
             .set(GuiSettingsId::CAMERA, CameraEnum::ORTHO)
-            .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
-            .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
-            .set(GuiSettingsId::ORTHO_ZOFFSET, -1.e8_f)
-            .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 0._f, -7.e3_f))
+            .set(GuiSettingsId::CAMERA_CUTOFF, 0._f)
+            .set(GuiSettingsId::CAMERA_POSITION, Vector(0._f, 0._f, -7.e3_f))
             .set(GuiSettingsId::IMAGES_SAVE, false)
             .set(GuiSettingsId::IMAGES_NAME, std::string("stab_%e_%d.png"))
             .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("stab_%e.avi"))
