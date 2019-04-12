@@ -115,9 +115,9 @@ void IntegralsLogWriter::write(const Storage& storage, const Statistics& stats) 
 }
 
 
-NullLogFile::NullLogFile()
+NullLogWriter::NullLogWriter()
     : ILogWriter(makeShared<NullLogger>(), LARGE) {}
 
-void NullLogFile::write(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) {}
+void NullLogWriter::write(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) {}
 
 NAMESPACE_SPH_END

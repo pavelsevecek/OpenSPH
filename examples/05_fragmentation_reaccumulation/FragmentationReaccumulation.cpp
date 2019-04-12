@@ -44,8 +44,8 @@ public:
         ic.addTarget(*storage);
         ic.addImpactor(*storage);
 
-        // Run for 200s.
-        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 200._f));
+        // Run for 100s.
+        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 100._f));
 
         // Save the initial (pre-impact) configuration
         BinaryOutput io(Path("start.ssf"));
@@ -142,8 +142,8 @@ public:
             OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY | OutputQuantityFlag::MASS |
                 OutputQuantityFlag::INDEX | OutputQuantityFlag::SMOOTHING_LENGTH);
 
-        // Run for 1 day
-        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 60._f * 60._f * 24._f));
+        // Run for 6 hours
+        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 60._f * 60._f * 6._f));
 
         // Setup custom logging
         logWriter = makeAuto<LogWriter>(settings);

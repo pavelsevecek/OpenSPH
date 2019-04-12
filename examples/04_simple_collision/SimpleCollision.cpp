@@ -31,8 +31,8 @@ public:
 
         settings.set(RunSettingsId::RUN_NAME, std::string("Simple collision"));
 
-        // Let's run the simulation for 50 seconds
-        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 50._f));
+        // Let's run the simulation for 10 seconds
+        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 10._f));
 
         // Limit the time step by CFL criterion
         settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT);

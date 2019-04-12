@@ -172,6 +172,9 @@ public:
 
         // Create our custom progress logger
         triggers.pushBack(makeAuto<ProgressLogger>());
+
+        // Since we use custom trigger for logging, disable the default log writer
+        logWriter = makeAuto<NullLogWriter>();
     }
 
     virtual void tearDown(const Statistics& UNUSED(stats)) override {}
