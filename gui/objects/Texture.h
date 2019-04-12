@@ -7,10 +7,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-enum class GuiQuantityId {
-    UVW = 1000,
-};
-
 enum TextureFiltering {
     NEAREST_NEIGHBOUR,
     BILINEAR,
@@ -88,26 +84,5 @@ private:
                Rgba(bitmap[Pixel(u2, v2)]) * a * b;
     }
 };
-
-inline void setupUvws(Storage& storage) {
-    if (storage.has(QuantityId(GuiQuantityId::UVW))) {
-        // already done
-        return;
-    }
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    Array<Vector> uvws(r.size());
-    for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
-        MaterialView mat = storage.getMaterial(matId);
-        const Vector center = mat->getParam<Vector>(BodySettingsId::BODY_CENTER);
-        for (Size i : mat.sequence()) {
-            const Vector xyz = r[i] - center;
-            SphericalCoords spherical = cartensianToSpherical(Vector(xyz[X], xyz[Z], xyz[Y]));
-            uvws[i] = Vector(spherical.phi / (2._f * PI) + 0.5_f, spherical.theta / PI, 0._f);
-            ASSERT(uvws[i][X] >= 0._f && uvws[i][X] <= 1._f, uvws[i][X]);
-            ASSERT(uvws[i][Y] >= 0._f && uvws[i][Y] <= 1._f, uvws[i][Y]);
-        }
-    }
-    storage.insert<Vector>(QuantityId(GuiQuantityId::UVW), OrderEnum::ZERO, std::move(uvws));
-}
 
 NAMESPACE_SPH_END

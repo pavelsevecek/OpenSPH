@@ -346,7 +346,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
 
         colorizerIds.push(ColorizerId::FLAG);
 
-        if (storage.has(QuantityId(GuiQuantityId::UVW))) {
+        if (storage.has(QuantityId::UVW)) {
             colorizerIds.push(ColorizerId::UVW);
         }
 

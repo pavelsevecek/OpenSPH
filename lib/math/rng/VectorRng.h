@@ -3,7 +3,7 @@
 /// \file VectorRng.h
 /// \brief Objects for generating random vectors.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "math/rng/Rng.h" // not really needed, but it doesn't make sense to use VectorRng without some Rng object
 #include "objects/wrappers/Function.h"

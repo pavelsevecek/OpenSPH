@@ -3,7 +3,7 @@
 /// \file GravityKernel.h
 /// \brief Smoothing kernels for including gravity into SPH
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz))
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "sph/kernel/Kernel.h"
 

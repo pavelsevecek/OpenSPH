@@ -3,7 +3,7 @@
 /// \file TimeStepping.h
 /// \brief Algorithms for temporal evolution of the physical model.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "common/ForwardDecl.h"
 #include "objects/containers/Array.h"

@@ -2,7 +2,7 @@
 #include "gui/GuiCallbacks.h"
 #include "gui/Settings.h"
 #include "gui/Utils.h"
-#include "gui/Uvw.h"
+#include "gui/objects/Texture.h"
 #include "io/Column.h"
 #include "io/FileSystem.h"
 #include "io/Logger.h"

@@ -3,13 +3,13 @@
 /// \file Colorizer.h
 /// \brief Object converting quantity values of particles into colors.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "gravity/AggregateSolver.h"
 #include "gui/Settings.h"
-#include "gui/Uvw.h"
 #include "gui/objects/Palette.h"
 #include "gui/objects/Point.h"
+#include "gui/objects/Texture.h"
 #include "gui/renderers/Spectrum.h"
 #include "objects/containers/ArrayRef.h"
 #include "objects/finders/NeighbourFinder.h"
@@ -774,7 +774,7 @@ private:
 
 public:
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
-        uvws = makeArrayRef(storage.getValue<Vector>(QuantityId(GuiQuantityId::UVW)), ref);
+        uvws = makeArrayRef(storage.getValue<Vector>(QuantityId::UVW), ref);
     }
 
     virtual bool isInitialized() const override {

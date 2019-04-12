@@ -1,7 +1,9 @@
 #include "gui/objects/Bitmap.h"
 #include "io/FileSystem.h"
 #include "io/Path.h"
+#include "objects/Exceptions.h"
 #include <wx/bitmap.h>
+#include <wx/log.h>
 #include <wx/rawbmp.h>
 
 NAMESPACE_SPH_BEGIN
@@ -64,11 +66,15 @@ void saveToFile(const Bitmap<Rgba>& bitmap, const Path& path) {
 }
 
 Bitmap<Rgba> loadBitmapFromFile(const Path& path) {
+    wxLogNull logNullGuard; // we have custom error reporting
     wxBitmap wx;
     if (!wx.LoadFile(path.native().c_str())) {
-        ASSERT(false, "Cannot load bitmap");
+        throw IoError("Cannot load bitmap '" + path.native() + "'");
     }
-    ASSERT(wx.IsOk());
+
+    if (!wx.IsOk()) {
+        throw IoError("Bitmap '" + path.native() + "' failed to load correctly");
+    }
     return toBitmap(wx);
 }
 

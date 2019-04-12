@@ -3,7 +3,7 @@
 /// \file BarnesHut.h
 /// \brief Barnes-Hut algorithm for computation of gravitational acceleration
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "common/ForwardDecl.h"
 #include "gravity/IGravity.h"

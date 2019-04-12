@@ -3,7 +3,7 @@
 /// \file Settings.h
 /// \brief Generic storage and input/output routines of settings.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/geometry/TracelessTensor.h"
 #include "objects/utility/EnumMap.h"
@@ -1051,6 +1051,9 @@ enum class RunSettingsId {
 
     /// Distance to the boundary in units of smoothing length under which the particles are frozen.
     DOMAIN_FROZEN_DIST,
+
+    /// If true, the mapping coordinates will be computed and saved for all bodies in the simulation.
+    GENERATE_UVWS,
 };
 
 

@@ -3,7 +3,7 @@
 /// \file Vector.h
 /// \brief Basic vector algebra. Computations are accelerated using SIMD.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "common/Globals.h"
 #include "objects/containers/Tuple.h"

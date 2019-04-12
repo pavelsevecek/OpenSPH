@@ -3,7 +3,7 @@
 /// \file NBody.h
 /// \brief Gravitational and collisional solver of N bodies
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "gui/Controller.h"
 #include "gui/MainLoop.h"

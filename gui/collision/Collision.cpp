@@ -1,7 +1,7 @@
 #include "gui/collision/Collision.h"
 #include "gui/GuiCallbacks.h"
 #include "gui/Settings.h"
-#include "gui/Uvw.h"
+#include "gui/objects/Texture.h"
 #include "io/FileSystem.h"
 #include "io/LogWriter.h"
 #include "objects/geometry/Domain.h"

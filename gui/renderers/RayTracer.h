@@ -1,8 +1,8 @@
 #pragma once
 
 #include "gui/Settings.h"
-#include "gui/Uvw.h"
 #include "gui/objects/Color.h"
+#include "gui/objects/Texture.h"
 #include "gui/renderers/Brdf.h"
 #include "gui/renderers/IRenderer.h"
 #include "objects/finders/Bvh.h"

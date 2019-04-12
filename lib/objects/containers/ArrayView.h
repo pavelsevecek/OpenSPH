@@ -3,7 +3,7 @@
 /// \file ArrayView.h
 /// \brief Simple non-owning view of a container
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/utility/Iterator.h"
 

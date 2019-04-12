@@ -519,7 +519,13 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::DOMAIN_HEIGHT,                 "domain.height",            1._f,
         "Height of the computational domain. Used by cylindrical domain." },
     { RunSettingsId::DOMAIN_SIZE,                   "domain.size",              Vector(1._f),
-        "Dimensions of the computational domain. Used by block and ellipsoidal domain." }
+        "Dimensions of the computational domain. Used by block and ellipsoidal domain." },
+
+    /// Miscellaneous
+    { RunSettingsId::GENERATE_UVWS,     "misc.generate_uvws",   false,
+        "If true, the mapping coordinates will be generated and saved for all bodies in the simulation. "
+        "Useful to visualize the simulation results with surface textures." },
+
 });
 
 static RegisterEnum<DistributionEnum> sDistribution({

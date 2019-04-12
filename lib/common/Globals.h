@@ -3,7 +3,7 @@
 /// \file Globals.h
 /// \brief Global parameters of the code
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/Object.h"
 

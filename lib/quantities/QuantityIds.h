@@ -3,7 +3,7 @@
 /// \file QuantityIds.h
 /// \brief Quantity identifiers
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "physics/Units.h"
 #include "quantities/QuantityHelpers.h"
@@ -218,6 +218,13 @@ enum class QuantityId {
 
     ///@}
 
+    /// \name Miscellaneous
+    ///@{
+
+    /// Texture mapping coordinates,
+    UVW = 1000,
+
+    ///@}
 
     // TEMPORARY QUANTITIES, TO BE REMOVED
 

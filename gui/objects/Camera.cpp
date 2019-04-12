@@ -93,7 +93,7 @@ Optional<float> OrthoCamera::getCutoff() const {
 }
 
 Optional<float> OrthoCamera::getWorldToPixel() const {
-    return data.fov.value();
+    return data.fov;
 }
 
 void OrthoCamera::setCutoff(const Optional<float> newCutoff) {

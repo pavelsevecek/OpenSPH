@@ -3,7 +3,7 @@
 /// \file Present.h
 /// \brief Problem-specific initial conditions
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "io/Path.h"
 #include "objects/wrappers/Function.h"
@@ -101,13 +101,6 @@ struct CollisionParams {
     ///
     /// If not specified, particles are spaced homogeneously.
     Function<Float(const Vector& r)> concentration;
-
-    /// \brief Generic callback executed for both bodies added into the simulation.
-    ///
-    /// While quantities and material parameters needed for the simulation are set up automatically using
-    /// values from \ref BodySettings, this callback can be used to add additional auxiliary quantities, for
-    /// example UVW coordinates of particles. If unused, no additional setup is performed.
-    Function<void(Storage&)> additionalBodySetup;
 
     /// \brief Size distribution of the pebbles forming the rubble-pile target body.
     ///

@@ -47,8 +47,8 @@ void RayTracer::initialize(const Storage& storage,
     cached.r = storage.getValue<Vector>(QuantityId::POSITION).clone();
     const Size particleCnt = cached.r.size();
 
-    if (storage.has(QuantityId(GuiQuantityId::UVW))) {
-        cached.uvws = storage.getValue<Vector>(QuantityId(GuiQuantityId::UVW)).clone();
+    if (storage.has(QuantityId::UVW)) {
+        cached.uvws = storage.getValue<Vector>(QuantityId::UVW).clone();
     } else {
         cached.uvws.clear();
     }

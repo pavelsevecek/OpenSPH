@@ -3,7 +3,7 @@
 /// \file Any.h
 /// \brief Object that can store value of any type
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Optional.h"

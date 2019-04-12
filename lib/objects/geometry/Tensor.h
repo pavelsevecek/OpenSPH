@@ -3,7 +3,7 @@
 /// \file Tensor.h
 /// \brief Generic tensor of the 2nd order
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/geometry/SymmetricTensor.h"
 

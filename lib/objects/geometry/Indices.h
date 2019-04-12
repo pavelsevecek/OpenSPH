@@ -3,7 +3,7 @@
 /// \file Indices.h
 /// \brief Vectorized computations with integral numbers
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/Object.h"
 #include "objects/geometry/Vector.h"

@@ -93,33 +93,38 @@ public:
     }
 };
 
-/// Helper function to avoid nullptr setup
-static Function<void(Storage&)> getRealSetup(Function<void(Storage&)> setup) {
-    if (setup) {
-        return setup;
-    } else {
-        return [](Storage& UNUSED(body)) {
-            // do nothing
-        };
+/// \brief Generates mapping coordinates and saves then as QuantityId::UVW quantity.
+static void setUvws(Storage& storage, const Vector& center) {
+    ASSERT(!storage.has(QuantityId::UVW));
+    ASSERT(storage.getMaterialCnt() == 1);
+
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    Array<Vector> uvws(r.size());
+
+    for (Size i = 0; i < r.size(); ++i) {
+        const Vector xyz = r[i] - center;
+        SphericalCoords spherical = cartensianToSpherical(Vector(xyz[X], xyz[Z], xyz[Y]));
+        uvws[i] = Vector(spherical.phi / (2._f * PI) + 0.5_f, spherical.theta / PI, 0._f);
+        ASSERT(uvws[i][X] >= 0._f && uvws[i][X] <= 1._f, uvws[i][X]);
+        ASSERT(uvws[i][Y] >= 0._f && uvws[i][Y] <= 1._f, uvws[i][Y]);
     }
+
+    storage.insert<Vector>(QuantityId::UVW, OrderEnum::ZERO, std::move(uvws));
 }
 
-InitialConditions::InitialConditions(IScheduler& scheduler,
-    ISolver& solver,
-    const RunSettings& settings,
-    Function<void(Storage&)> additionalSetup)
+InitialConditions::InitialConditions(IScheduler& scheduler, ISolver& solver, const RunSettings& settings)
     : scheduler(scheduler)
     , solver(makeAuto<ForwardingSolver>(solver))
-    , context(settings)
-    , additionalSetup(getRealSetup(additionalSetup)) {}
+    , context(settings) {
+    config.doUvws = settings.get<bool>(RunSettingsId::GENERATE_UVWS);
+}
 
-InitialConditions::InitialConditions(IScheduler& scheduler,
-    const RunSettings& settings,
-    Function<void(Storage&)> additionalSetup)
+InitialConditions::InitialConditions(IScheduler& scheduler, const RunSettings& settings)
     : scheduler(scheduler)
     , solver(Factory::getSolver(scheduler, settings))
-    , context(settings)
-    , additionalSetup(getRealSetup(additionalSetup)) {}
+    , context(settings) {
+    config.doUvws = settings.get<bool>(RunSettingsId::GENERATE_UVWS);
+}
 
 InitialConditions::~InitialConditions() = default;
 
@@ -152,7 +157,7 @@ BodyView InitialConditions::addMonolithicBody(Storage& storage,
     ASSERT(positions.size() > 0);
     body.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(positions));
 
-    this->setQuantities(body, mat, domain.getVolume());
+    this->setQuantities(body, mat, domain.getCenter(), domain.getVolume());
     storage.merge(std::move(body));
     const Size particleCnt = storage.getParticleCnt();
 
@@ -192,7 +197,7 @@ Array<BodyView> InitialConditions::addHeterogeneousBody(Storage& storage,
     // Generate positions of ALL particles
     Array<Vector> positions = distribution->generate(scheduler, n, *environment.domain);
     // Create particle storage per body
-    Storage environmentStorage(std::move(environment.material));
+    Storage enviroStorage(std::move(environment.material));
     Array<Storage> bodyStorages;
     for (BodySetup& body : bodies) {
         bodyStorages.push(Storage(std::move(body.material)));
@@ -219,21 +224,23 @@ Array<BodyView> InitialConditions::addHeterogeneousBody(Storage& storage,
     Array<BodyView> views;
 
     // Initialize storages
-    Float environmentVolume = environment.domain->getVolume();
+    Float environVolume = environment.domain->getVolume();
     for (Size i = 0; i < bodyStorages.size(); ++i) {
         bodyStorages[i].insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(pos_bodies[i]));
         const Float volume = bodies[i].domain->getVolume();
-        setQuantities(bodyStorages[i], bodyStorages[i].getMaterial(0), volume);
+        const Vector center = bodies[i].domain->getCenter();
+        this->setQuantities(bodyStorages[i], bodyStorages[i].getMaterial(0), center, volume);
         views.emplaceBack(BodyView(storage, bodyIndex++));
-        environmentVolume -= volume;
+        environVolume -= volume;
     }
-    ASSERT(environmentVolume >= 0._f);
-    environmentStorage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(pos_env));
-    setQuantities(environmentStorage, environmentStorage.getMaterial(0), environmentVolume);
+    ASSERT(environVolume >= 0._f);
+    enviroStorage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(pos_env));
+    const Vector environCenter = environment.domain->getCenter();
+    this->setQuantities(enviroStorage, enviroStorage.getMaterial(0), environCenter, environVolume);
     views.emplaceBack(BodyView(storage, bodyIndex++));
 
     // merge all storages
-    storage.merge(std::move(environmentStorage));
+    storage.merge(std::move(enviroStorage));
     for (Storage& body : bodyStorages) {
         storage.merge(std::move(body));
     }
@@ -325,7 +332,7 @@ void InitialConditions::addRubblePileBody(Storage& storage,
         // create the body
         Storage body(material);
         body.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(spherePositions));
-        this->setQuantities(body, *material, sphere.volume());
+        this->setQuantities(body, *material, sphere.center(), sphere.volume());
 
         // add it to the storage
         storage.merge(std::move(body));
@@ -356,7 +363,10 @@ static Array<Float> getMasses(ArrayView<const Vector> r, const Float totalM) {
     return m;
 }
 
-void InitialConditions::setQuantities(Storage& storage, IMaterial& material, const Float volume) {
+void InitialConditions::setQuantities(Storage& storage,
+    IMaterial& material,
+    const Vector& center,
+    const Float volume) {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
         r[i][H] *= context.eta;
@@ -378,8 +388,9 @@ void InitialConditions::setQuantities(Storage& storage, IMaterial& material, con
     // Initialize material (we need density and energy for EoS)
     material.create(storage, context);
 
-    // Other user-defined quantities
-    additionalSetup(storage);
+    if (config.doUvws) {
+        setUvws(storage, center);
+    }
 }
 
 void repelParticles(ArrayView<Vector> r, const Float radius) {

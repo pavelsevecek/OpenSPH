@@ -3,7 +3,7 @@
 /// \file Sphere.h
 /// \brief Object representing a three-dimensional sphere
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/geometry/Box.h"
 

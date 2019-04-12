@@ -485,9 +485,18 @@ wxBoxSizer* MainWindow::createVisBar() {
     });
     surfaceButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-        IScheduler& scheduler = *ThreadPool::getGlobalInstance();
-        controller->setRenderer(makeAuto<RayTracer>(scheduler, gui));
-        enableControls(2);
+        try {
+            IScheduler& scheduler = *ThreadPool::getGlobalInstance();
+            controller->setRenderer(makeAuto<RayTracer>(scheduler, gui));
+            enableControls(2);
+        } catch (std::exception& e) {
+            wxMessageBox(std::string("Cannot initialize raytracer.\n\n") + e.what(), "Error", wxOK);
+
+            // switch to particle renderer (fallback option)
+            particleButton->SetValue(true);
+            controller->setRenderer(makeAuto<ParticleRenderer>(gui));
+            enableControls(0);
+        }
     });
 
     visbarSizer->AddSpacer(16);

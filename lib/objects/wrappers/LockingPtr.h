@@ -3,7 +3,7 @@
 /// \file LockingPtr.h
 /// \brief Smart pointer associated with a mutex
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/wrappers/AlignedStorage.h"
 #include "objects/wrappers/SharedPtr.h"

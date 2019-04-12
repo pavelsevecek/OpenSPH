@@ -122,19 +122,20 @@ public:
         }
 
         // Here we need to select a non-default solver - instead of SPH solver, use N-body solver
-        settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::MERGE_OR_BOUNCE);
-        settings.set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::PASS_OR_MERGE);
-        settings.set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SOLID_SPHERES);
+        settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::MERGE_OR_BOUNCE)
+            .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::PASS_OR_MERGE)
+            .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SOLID_SPHERES);
+
         solver = makeAuto<NBodySolver>(*scheduler, settings);
 
         // Use the leaf-frog integrator
         settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::LEAP_FROG);
 
-        // Limit the time step by accelerations. Note that by default, the time step is also limited by CFL
-        // criterion, which requires sound speed computed for every particle. Here, we do not store the sound
-        // speed, so the code would report a runtime error if we used the CFL criterion.
-        settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::ACCELERATION);
-        settings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 10._f);
+        // Limit the time step by accelerations. By default, the time step is also limited by CFL criterion,
+        // which requires sound speed computed for every particle. Here, we do not store the sound speed, so
+        // the code would report a runtime error if we used the CFL criterion.
+        settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::ACCELERATION)
+            .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 10._f);
 
         // Set output quantities
         settings.set(RunSettingsId::RUN_OUTPUT_QUANTITIES,

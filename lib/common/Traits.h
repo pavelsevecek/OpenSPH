@@ -3,7 +3,7 @@
 /// \file Traits.h
 /// \brief Few non-standard type traits.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "common/Globals.h"
 #include <type_traits>

@@ -164,7 +164,7 @@ void CollisionInitialConditions::setImpactorParams(BodySettings overrides) {
 CollisionInitialConditions::CollisionInitialConditions(IScheduler& scheduler,
     const RunSettings& settings,
     const CollisionParams& params)
-    : ic(scheduler, settings, params.additionalBodySetup)
+    : ic(scheduler, settings)
     , setup(params) {
     // sanitize logger
     if (!setup.logger) {

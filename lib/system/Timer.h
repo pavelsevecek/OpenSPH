@@ -3,7 +3,7 @@
 /// \file Timer.h
 /// \brief Measuring time intervals and executing periodic events.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Flags.h"

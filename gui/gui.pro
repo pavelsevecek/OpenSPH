@@ -51,7 +51,6 @@ HEADERS += \
     Renderer.h \
     Settings.h \
     Utils.h \
-    Uvw.h \
     objects/Bitmap.h \
     objects/Camera.h \
     objects/Color.h \
@@ -75,4 +74,5 @@ HEADERS += \
     windows/OrthoPane.h \
     windows/PaletteDialog.h \
     windows/ParticleProbe.h \
-    windows/PlotView.h
+    windows/PlotView.h \
+    objects/Texture.h

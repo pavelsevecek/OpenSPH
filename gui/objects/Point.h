@@ -3,7 +3,7 @@
 /// \file Point.h
 /// \brief Simple 2D vector with integer coordinates. Provides conversion from and to wxPoint.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "math/MathUtils.h"
 #include "objects/Object.h"

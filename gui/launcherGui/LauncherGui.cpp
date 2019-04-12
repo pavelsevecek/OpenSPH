@@ -1,6 +1,6 @@
 #include "gui/launcherGui/LauncherGui.h"
 #include "gui/GuiCallbacks.h"
-#include "gui/Uvw.h"
+#include "gui/objects/Texture.h"
 #include "io/FileSystem.h"
 #include "io/Output.h"
 #include "physics/Constants.h"
@@ -71,7 +71,6 @@ bool App::OnInit() {
     controller = makeAuto<Controller>(gui);
 
     CollisionParams cp;
-    cp.additionalBodySetup = [](Storage& body) { setupUvws(body); };
 
     PhaseParams phaseParams;
     phaseParams.stab.range = Interval(0._f, 5000._f);

@@ -3,7 +3,7 @@
 /// \file Function.h
 /// \brief Generic wrappers of lambdas, functors and other callables
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "common/Traits.h"
 #include "objects/wrappers/SharedPtr.h"

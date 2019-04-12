@@ -3,7 +3,7 @@
 /// \file Session.h
 /// \brief Benchmark
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "bench/Common.h"
 #include "bench/Stats.h"

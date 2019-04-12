@@ -3,13 +3,12 @@
 /// \file Initial.h
 /// \brief Generating initial conditions of SPH particles
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "common/ForwardDecl.h"
 #include "objects/containers/ArrayView.h"
 #include "objects/geometry/Vector.h"
 #include "objects/wrappers/AutoPtr.h"
-#include "objects/wrappers/Function.h"
 #include "quantities/IMaterial.h"
 
 NAMESPACE_SPH_BEGIN
@@ -115,8 +114,12 @@ private:
     /// Shared data when creating bodies
     MaterialInitialContext context;
 
-    /// Called on every created body.
-    Function<void(Storage&)> additionalSetup;
+    struct {
+
+        /// If true, texture mapping coordinates are generated using spherical mapping.
+        bool doUvws;
+
+    } config;
 
     /// Counter incremented every time a body is added, used for setting up FLAG quantity
     Size bodyIndex = 0;
@@ -128,12 +131,7 @@ public:
     /// \param solver Solver used to create all the necessary quantities. Also must exist for the duration
     ///               of this object as it is stored by reference.
     /// \param settings Run settings used to initialize \ref MaterialInitialContext.
-    /// \param additionalSetup Optional functor used to add additional quantities or material parameters to
-    ///                        created bodies.
-    InitialConditions(IScheduler& scheduler,
-        ISolver& solver,
-        const RunSettings& settings,
-        Function<void(Storage&)> additionalSetup = nullptr);
+    InitialConditions(IScheduler& scheduler, ISolver& solver, const RunSettings& settings);
 
     /// \brief Constructor creating solver from values in settings.
     ///
@@ -142,9 +140,7 @@ public:
     /// quantities. Mostly, this will throw an exception or assert, but in case the custom solver uses the
     /// same quantities as the default one, but it initializes them to different values, this error would go
     /// unnoticed.
-    InitialConditions(IScheduler& scheduler,
-        const RunSettings& settings,
-        Function<void(Storage&)> additionalSetup = nullptr);
+    InitialConditions(IScheduler& scheduler, const RunSettings& settings);
 
     ~InitialConditions();
 
@@ -234,7 +230,8 @@ public:
         const BodySettings& bodySettings);
 
 private:
-    void setQuantities(Storage& storage, IMaterial& material, const Float volume);
+    /// \brief Sets up necessary quantities in the body.
+    void setQuantities(Storage& storage, IMaterial& material, const Vector& center, const Float volume);
 };
 
 /// \brief Displaces particles so that no two particles overlap.
