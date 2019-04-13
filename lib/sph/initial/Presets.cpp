@@ -30,7 +30,8 @@ AutoPtr<CollisionGeometrySettings> CollisionGeometrySettings::instance(new Colli
     { CollisionGeometrySettingsId::OPTIMIZE_IMPACTOR,      "impactor.optimize",        true,
         "If true, some quantities of the impactor particles are not taken into account when computing the required "
         "time step. Otherwise, the time step might be unnecessarily too low, as the quantities in the impactor change "
-        "rapidly. Note that this does not affect CFL criterion. "},
+        "rapidly. Note that this does not affect CFL criterion. It should be always set to false for collisions"
+        "of similar-sized bodies."},
     { CollisionGeometrySettingsId::IMPACTOR_OFFSET,        "impactor.offset",          4._f,
         "Initial distance of the impactor from the target in units of smoothing length. The impactor should "
         "not be in contact with the target at the start of the simulation, so the value should be always larger "

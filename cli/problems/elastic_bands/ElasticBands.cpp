@@ -116,7 +116,7 @@ public:
             .displace(Vector(0.06_f, 0._f, 0._f))
             .addVelocity(Vector(-80._f, 0._f, 0._f));
 
-        logWriter = makeAuto<NullLogFile>();
+        logWriter = makeAuto<NullLogWriter>();
 
         /// \todo change to logfile
         triggers.pushBack(makeAuto<ProgressLog>(2.e-4_f));
