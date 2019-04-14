@@ -2,10 +2,13 @@
 #include "catch.hpp"
 #include "system/Statistics.h"
 #include "tests/Setup.h"
+#include "utils/Utils.h"
 
 using namespace Sph;
 
 TEST_CASE("DensityIndependentSolver", "[solvers]") {
+    SKIP_TEST;
+
     RunSettings settings;
     settings.set(RunSettingsId::SPH_SUM_ONLY_UNDAMAGED, false);
 

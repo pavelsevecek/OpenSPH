@@ -109,6 +109,12 @@ TEST_CASE("TextOutput create from settings", "[output]") {
     settings.set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::TEXT_FILE);
     settings.set(RunSettingsId::RUN_OUTPUT_PATH, std::string(""));
     settings.set(RunSettingsId::RUN_OUTPUT_NAME, path.native());
+
+    Flags<OutputQuantityFlag> flags = OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY |
+                                      OutputQuantityFlag::DENSITY | OutputQuantityFlag::PRESSURE |
+                                      OutputQuantityFlag::ENERGY | OutputQuantityFlag::DEVIATORIC_STRESS;
+    settings.set(RunSettingsId::RUN_OUTPUT_QUANTITIES, flags);
+
     AutoPtr<IOutput> output = Factory::getOutput(settings);
 
     Storage storage = Tests::getSolidStorage(100);
@@ -118,15 +124,15 @@ TEST_CASE("TextOutput create from settings", "[output]") {
     output->dump(storage, stats);
 
     Storage loaded;
-    TextInput input(settings.getFlags<OutputQuantityFlag>(RunSettingsId::RUN_OUTPUT_QUANTITIES));
+    TextInput input(flags);
     REQUIRE(input.load(path, loaded, stats));
     REQUIRE(loaded.getParticleCnt() == storage.getParticleCnt());
-    // check that the basic quantities are saved
     REQUIRE(loaded.has(QuantityId::POSITION));
     REQUIRE(loaded.has(QuantityId::DENSITY));
     REQUIRE(loaded.has(QuantityId::PRESSURE));
     REQUIRE(loaded.has(QuantityId::ENERGY));
     REQUIRE(loaded.has(QuantityId::DEVIATORIC_STRESS));
+    REQUIRE(loaded.getQuantity(QuantityId::POSITION).getOrderEnum() == OrderEnum::FIRST);
 }
 
 TEST_CASE("BinaryOutput dump&accumulate simple", "[output]") {

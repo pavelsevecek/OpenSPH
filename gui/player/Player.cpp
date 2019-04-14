@@ -4,7 +4,6 @@
 #include "gui/Utils.h"
 #include "gui/objects/Texture.h"
 #include "gui/player/TimeLine.h"
-#include "gui/windows/SettingsDialog.h"
 #include "io/Column.h"
 #include "io/Logger.h"
 #include "objects/Exceptions.h"

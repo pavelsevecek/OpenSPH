@@ -1,4 +1,5 @@
 #include "catch.hpp"
+#include "io/FileManager.h"
 #include "objects/finders/BruteForceFinder.h"
 #include "objects/finders/KdTree.h"
 #include "objects/finders/LinkedList.h"
@@ -357,6 +358,8 @@ TEST_CASE("KdTree empty leaf bug", "[finders]") {
         .set(CollisionGeometrySettingsId::IMPACTOR_RADIUS, 1.3e4_f)
         .set(CollisionGeometrySettingsId::IMPACT_ANGLE, 0._f)
         .set(CollisionGeometrySettingsId::IMPACT_SPEED, 5.e3_f);
+    RandomPathManager manager;
+    params.outputPath = manager.getPath();
 
     Storage storage;
     CollisionInitialConditions collision(SEQUENTIAL, settings, params);

@@ -214,7 +214,9 @@ Expected<Path> TextOutput::dump(const Storage& storage, const Statistics& stats)
         std::ofstream ofs(fileName.native());
         // print description
         ofs << "# Run: " << runName << std::endl;
-        ofs << "# SPH dump, time = " << stats.get<Float>(StatisticsId::RUN_TIME) << std::endl;
+        if (stats.has(StatisticsId::RUN_TIME)) {
+            ofs << "# SPH dump, time = " << stats.get<Float>(StatisticsId::RUN_TIME) << std::endl;
+        }
         ofs << "# ";
         for (auto& column : columns) {
             printHeader(ofs, column->getName(), column->getType());
@@ -236,8 +238,7 @@ Expected<Path> TextOutput::dump(const Storage& storage, const Statistics& stats)
         ofs.close();
         return fileName;
     } catch (std::exception& e) {
-        return makeUnexpected<Path>(
-            "Cannot save output file " + fileName.native() + ": " + dirResult.error());
+        return makeUnexpected<Path>("Cannot save output file " + fileName.native() + ": " + e.what());
     }
 }
 

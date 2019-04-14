@@ -196,7 +196,6 @@ void DensityIndependentSolver::integrate(Storage& storage, Statistics& UNUSED(st
 }
 
 void DensityIndependentSolver::create(Storage& storage, IMaterial& material) const {
-    ASSERT(!storage.has(QuantityId::DENSITY));
     const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, rho0);
 
