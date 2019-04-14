@@ -691,8 +691,15 @@ void Controller::startRunThread(const Path& path) {
         // setup image output, generate colorizers, etc.
         this->update(*storage);
 
-        // run the simulation
-        sph.run->run();
+        try {
+            // run the simulation
+            sph.run->run();
+        } catch (std::exception& e) {
+            executeOnMainThread([desc = std::string(e.what())] { //
+                wxMessageBox(
+                    std::string("Error encountered during the run: \n") + desc, "Fail", wxOK | wxCENTRE);
+            });
+        }
 
         // set status to finished
         status = RunStatus::STOPPED;

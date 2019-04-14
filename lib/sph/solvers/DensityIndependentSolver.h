@@ -35,11 +35,6 @@ private:
 
     SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>> kernel;
 
-    struct {
-        // Float alpha;
-
-    } config;
-
     struct ThreadData {
         /// Cached array of neighbours, to avoid allocation every step
         Array<NeighbourRecord> neighs;
