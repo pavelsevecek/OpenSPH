@@ -87,9 +87,9 @@ TEMPLATE_TEST_CASE("Impact standard SPH", "[impact]]", SymmetricSolver, Asymmetr
     // Check that first two steps of impact work as expected.
 
     RunSettings settings;
-    settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
+    settings.set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD);
-    settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
+    settings.set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
     settings.set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::STANDARD);
     // this is not default, but required to match SPH5 behavior
     settings.set(RunSettingsId::SPH_CONTINUITY_USING_UNDAMAGED, true);
@@ -101,9 +101,9 @@ TEMPLATE_TEST_CASE("Impact standard SPH", "[impact]]", SymmetricSolver, Asymmetr
 
 TEMPLATE_TEST_CASE("Impact B&A SPH", "[impact]]", SymmetricSolver, AsymmetricSolver) {
     RunSettings settings;
-    settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
+    settings.set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD);
-    settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
+    settings.set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
     settings.set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::BENZ_ASPHAUG);
     // this is not default, but required to match SPH5 behavior
     settings.set(RunSettingsId::SPH_CONTINUITY_USING_UNDAMAGED, true);

@@ -16,7 +16,7 @@
 #define REQUIRE_ASSERT(func)                                                                                 \
     {                                                                                                        \
         Sph::Assert::ScopedAssertExceptionEnabler enabler;                                                   \
-        REQUIRE_THROWS((void)(func));                                                                        \
+        REQUIRE_THROWS_AS((void)(func), Sph::Assert::Exception);                                             \
     }
 #else
 #define REQUIRE_ASSERT(func)

@@ -21,9 +21,9 @@ public:
             .set(RunSettingsId::RUN_OUTPUT_PATH, std::string("collision"))
             .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("collision_%d.ssf"))
             .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 500._f))
-            .set(RunSettingsId::SOLVER_FORCES,
+            .set(RunSettingsId::SPH_SOLVER_FORCES,
                 ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY)
-            .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
+            .set(RunSettingsId::SPH_SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
             .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
             .set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::STANDARD)
             .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
@@ -33,7 +33,7 @@ public:
             .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
             .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.2_f)
             .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
-            .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
+            .set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
             .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true)
             .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
             .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SPH_KERNEL)

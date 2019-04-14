@@ -37,7 +37,10 @@ void CompositeRun::run() {
         // make the handoff, using the storage of the previous run
         try {
             next->handoff(std::move(*storage));
-        } catch (std::exception&) {
+        } catch (std::exception& e) {
+            if (onError) {
+                onError(e.what());
+            }
             return;
         }
 

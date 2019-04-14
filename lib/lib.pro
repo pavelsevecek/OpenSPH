@@ -87,7 +87,8 @@ SOURCES += \
     timestepping/TimeStepping.cpp \
     run/CompositeRun.cpp \
     io/LogWriter.cpp \
-    sph/solvers/ElasticDeformationSolver.cpp
+    sph/solvers/ElasticDeformationSolver.cpp \
+    sph/solvers/DensityIndependentSolver.cpp
 
 HEADERS += \
     Sph.h \

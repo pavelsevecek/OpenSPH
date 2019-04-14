@@ -135,6 +135,11 @@ void Controller::saveState(const Path& path) {
             output = makeAuto<BinaryOutput>(path);
         } else if (path.extension() == Path("scf")) {
             output = makeAuto<CompressedOutput>(path, CompressionEnum::RLE, RunTypeEnum::SPH);
+        } else if (path.extension() == Path("vtu")) {
+            Flags<OutputQuantityFlag> flags = OutputQuantityFlag::VELOCITY | OutputQuantityFlag::DENSITY |
+                                              OutputQuantityFlag::ENERGY | OutputQuantityFlag::DAMAGE |
+                                              OutputQuantityFlag::SMOOTHING_LENGTH;
+            output = makeAuto<VtkOutput>(path, flags);
         } else {
             ASSERT(path.extension() == Path("txt"));
             Flags<OutputQuantityFlag> flags =
@@ -274,7 +279,7 @@ void Controller::update(const Storage& storage) {
         window->setColorizerList(this->getColorizerList(storage, false));
         /// \todo probably not the best place for this
         if (plugin) {
-            plugin->statusChanges(status);
+            plugin->statusChanges(sph.path, status);
         }
         updateVar.notify_one();
     });
@@ -678,6 +683,9 @@ void Controller::startRunThread(const Path& path) {
                 });
                 return;
             }
+            sph.path = path;
+        } else {
+            sph.path = Path();
         }
 
         // setup image output, generate colorizers, etc.

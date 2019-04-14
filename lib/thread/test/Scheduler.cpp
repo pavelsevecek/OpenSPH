@@ -75,7 +75,31 @@ TEMPLATE_TEST_CASE("ThreadLocal parallelFor", "[thread]", ThreadPool, Tbb) {
     }
     REQUIRE_THREAD_SAFE(areAllMatching(sum, [](const Size v) { return v == 1; }));
 }
+
+TEMPLATE_TEST_CASE("ThreadLocal accumulate", "[thread]", ThreadPool, Tbb) {
+    TestType& scheduler = *TestType::getGlobalInstance();
+    ThreadLocal<int64_t> sumTl(scheduler, 0._f);
+    parallelFor(scheduler, sumTl, 0, 10000, 10, [](Size i, int64_t& value) { value += i; });
+    const int64_t sum = sumTl.accumulate(12);
+    const int64_t expectedSum = 49995012;
+    REQUIRE_THREAD_SAFE(sum == expectedSum);
+
+    const int64_t sum2 = sumTl.accumulate(25, [](int64_t i1, int64_t i2) { return i1 - i2; });
+    const int64_t expectedSum2 = -49994975;
+    REQUIRE_THREAD_SAFE(sum2 == expectedSum2);
+}
+
+TEMPLATE_TEST_CASE("Nested parallelFor", "[thread]", ThreadPool, Tbb) {
+    TestType& scheduler = *TestType::getGlobalInstance();
+    std::atomic<uint64_t> sum{ 0 };
+    parallelFor(scheduler, 0, 1000, 1, [&sum, &scheduler](Size i) {
+        parallelFor(scheduler, 0, 1000, 1, [&sum, i](Size j) { sum += i * j; });
+    });
+
+    REQUIRE_THREAD_SAFE(sum == 249500250000);
+}
 #endif
+
 
 TEST_CASE("Concurrent parallelFor", "[thread]") {
     /// \todo the same for TBBs !!
@@ -94,18 +118,3 @@ TEST_CASE("Concurrent parallelFor", "[thread]") {
     REQUIRE_THREAD_SAFE(sum1 == expectedSum);
     REQUIRE_THREAD_SAFE(sum2 == expectedSum);
 }
-
-#ifdef SPH_USE_TBB
-TEMPLATE_TEST_CASE("ThreadLocal accumulate", "[thread]", ThreadPool, Tbb) {
-    TestType& scheduler = *TestType::getGlobalInstance();
-    ThreadLocal<int64_t> sumTl(scheduler, 0._f);
-    parallelFor(scheduler, sumTl, 0, 10000, 10, [](Size i, int64_t& value) { value += i; });
-    const int64_t sum = sumTl.accumulate(12);
-    const int64_t expectedSum = 49995012;
-    REQUIRE_THREAD_SAFE(sum == expectedSum);
-
-    const int64_t sum2 = sumTl.accumulate(25, [](int64_t i1, int64_t i2) { return i1 - i2; });
-    const int64_t expectedSum2 = -49994975;
-    REQUIRE_THREAD_SAFE(sum2 == expectedSum2);
-}
-#endif

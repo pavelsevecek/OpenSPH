@@ -284,6 +284,10 @@ static RegisterEnum<IoEnum> sIo({
         "Compressed binary output file, containing only few selected quantities. This is the most convenient "
         "format for storing full simulation in high resolution in time. Cannot be used to continue "
         "simulation." },
+    { IoEnum::VTK_FILE,
+        "vtk_file",
+        "File format used by Visualization Toolkit (VTK). Useful to view the results in Paraview and other "
+        "visualization tools." },
     { IoEnum::PKDGRAV_INPUT, "pkdgrav_input", "Generate a pkdgrav input file." },
 });
 
@@ -320,7 +324,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::RUN_OUTPUT_PATH,               "run.output.path",          std::string("out"),
         "Directory where the output files are saved. Can be either absolute or relative path." },
     { RunSettingsId::RUN_OUTPUT_QUANTITIES, "run.output.quantitites", DEFAULT_QUANTITY_IDS,
-        "List of quantities to write to text output. Applicable only for text output, binary output always stores "
+        "List of quantities to write to output file. Applicable for text and VTK outputs, binary output always stores "
         "all quantitites. Can be one or more values from:\n" + EnumMap::getDesc<OutputQuantityFlag>() },
     { RunSettingsId::RUN_THREAD_CNT,                "run.thread.cnt",           0,
         "Number of threads used by the simulation. 0 means all available threads are used." },
@@ -346,20 +350,22 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
         "Time period (in run time) of running diagnostics of the run. 0 means the diagnostics are run every time step." },
 
     /// SPH solvers
-    { RunSettingsId::SOLVER_TYPE,                   "solver.type",                      SolverEnum::SYMMETRIC_SOLVER,
+    { RunSettingsId::SPH_SOLVER_TYPE,               "sph.solver.type",                  SolverEnum::SYMMETRIC_SOLVER,
         "Selected solver for computing derivatives of physical quantities. Can be one of the following:\n" + EnumMap::getDesc<SolverEnum>() },
-    { RunSettingsId::SOLVER_FORCES,                 "solver.forces",                   ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS,
+    { RunSettingsId::SPH_SOLVER_FORCES,             "sph.solver.forces",                ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS,
         "Forces included in the physical model of the simulation. Can be one or more values from: \n" + EnumMap::getDesc<ForceEnum>() },
-    { RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH,     "solver.adaptive_smoothing_length", SmoothingLengthEnum::CONTINUITY_EQUATION,
+    { RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, "sph.adaptive_smoothing_length",    SmoothingLengthEnum::CONTINUITY_EQUATION,
         "Specifies how smoothing length is evolved in the simulation. Can be one or more values from: \n" + EnumMap::getDesc<SmoothingLengthEnum>() },
-    { RunSettingsId::SUMMATION_DENSITY_DELTA,       "solver.summation.density_delta",   1.e-3_f,
+    { RunSettingsId::SPH_SUMMATION_DENSITY_DELTA,   "sph.summation.density_delta",      1.e-3_f,
         "Used by summation solver. Specifies the relative difference between densities in subsequenct iterations "
         "for which the iterative algorithm is terminated. Lower value means more precise evaluation of density "
         "at a cost of higher computation time. " },
-    { RunSettingsId::SUMMATION_MAX_ITERATIONS,      "solver.summation.max_iterations",  5,
+    { RunSettingsId::SPH_SUMMATION_MAX_ITERATIONS,  "sph.summation.max_iterations",  5,
         "Used by summation solver. Specifies the maximum number of iterations for density computation." },
-    { RunSettingsId::XSPH_EPSILON,                  "solver.xsph.epsilon",              1._f,
+    { RunSettingsId::SPH_XSPH_EPSILON,              "sph.xsph.epsilon",              1._f,
         "Epsilon parameter of XSph modification." },
+    { RunSettingsId::SPH_DI_ALPHA,                  "sph.di.alpha", 1._f,
+        "Alpha parameter of the density-independent SPH solver." },
 
     /// Global SPH parameters
     { RunSettingsId::SPH_KERNEL,                    "sph.kernel",               KernelEnum::CUBIC_SPLINE,

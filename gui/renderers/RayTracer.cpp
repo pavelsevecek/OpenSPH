@@ -85,6 +85,7 @@ void RayTracer::initialize(const Storage& storage,
     for (Size i = 0; i < particleCnt; ++i) {
         cached.colors[i] = colorizer.evalColor(i);
     }
+    cached.doEmission = typeid(colorizer) == typeid(BeautyColorizer);
 
     Array<BvhSphere> spheres;
     spheres.reserve(particleCnt);
@@ -103,40 +104,6 @@ void RayTracer::initialize(const Storage& storage,
 
     shouldContinue = true;
 }
-
-/*
-INLINE Float weight(const Vector& r1, const Vector& r2) {
-    const Float lengthSqr = getSqrLength(r1 - r2);
-    // Eq. (11)
-    if (lengthSqr < sqr(2._f * r1[H])) {
-        return 1._f - pow<3>(sqrt(lengthSqr) / (2._f * r1[H]));
-    } else {
-        return 0._f;
-    }
-}
-
-Array<Vector> RayTracer::denoisePositions(ArrayView<const Vector> r) const {
-    ASSERT(finder);
-    Array<Vector> r_bar(r.size());
-    Array<NeighbourRecord> neighs;
-    const Float lambda = 1._f;
-    for (Size i = 0; i < r.size(); ++i) {
-        finder->findAll(i, 2._f * r[i][H], neighs);
-
-        Vector wr(0._f);
-        Float wsum = 0._f;
-        for (NeighbourRecord& n : neighs) {
-            const Size j = n.index;
-            const Float w = weight(r[i], r[j]);
-            wr += w * r[j];
-            wsum += w;
-        }
-        ASSERT(wsum > 0._f);
-        r_bar[i] = (1._f - lambda) * r[i] + lambda * wr / wsum;
-        r_bar[i][H] = r[i][H];
-    }
-    return r_bar;
-}*/
 
 void RayTracer::render(const RenderParams& params, Statistics& UNUSED(stats), IRenderOutput& output) const {
     shouldContinue = true;

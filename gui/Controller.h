@@ -42,7 +42,7 @@ public:
     virtual void create(wxWindow* parent, wxSizer* sizer) = 0;
 
     /// \brief Called when simulation ends, new simulation is started etc.
-    virtual void statusChanges(const RunStatus newStatus) = 0;
+    virtual void statusChanges(const Path& path, RunStatus newStatus) = 0;
 };
 
 /// \brief Main GUI class connection the simulation with UI controls.
@@ -65,6 +65,9 @@ private:
 
         /// SPH simulation
         AutoPtr<IRun> run;
+
+        /// Path to the loaded file, if used.
+        Path path;
 
         /// Flag read by the simulation; the run is stopped if this is set to zero.
         std::atomic_bool shouldContinue;

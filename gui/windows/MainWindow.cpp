@@ -214,10 +214,14 @@ wxBoxSizer* MainWindow::createToolBar() {
     button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { controller->stop(); });
 
     button = new wxButton(this, wxID_ANY, "Save");
+    button->SetToolTip("Saves the current state of the simulation to file.");
     toolbar->Add(button);
     button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
         static Array<FileFormat> fileFormats = {
-            { "SPH state file", "ssf" }, { "SPH compressed file", "scf" }, { "Text file", "txt" }
+            { "SPH state file", "ssf" },
+            { "SPH compressed file", "scf" },
+            { "VTK unstructured grid", "vtu" },
+            { "Text file", "txt" },
         };
         Optional<Path> path = doSaveFileDialog("Save state file", fileFormats.clone());
         if (!path) {
@@ -227,6 +231,7 @@ wxBoxSizer* MainWindow::createToolBar() {
     });
 
     button = new wxButton(this, wxID_ANY, "Load");
+    button->SetToolTip("Loads previously saved simulation state from file.");
     toolbar->Add(button);
     button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
         static Array<FileFormat> fileFormats = { { "SPH state file", "ssf" } };
@@ -238,6 +243,7 @@ wxBoxSizer* MainWindow::createToolBar() {
     });
 
     button = new wxButton(this, wxID_ANY, "Snap");
+    button->SetToolTip("Saves the currently rendered image.");
     toolbar->Add(button);
     button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
         Optional<Path> path = doSaveFileDialog("Save image", { { "PNG image", "png" } });
@@ -251,6 +257,9 @@ wxBoxSizer* MainWindow::createToolBar() {
     toolbar->AddSpacer(434);
 
     quantityBox = new wxComboBox(this, wxID_ANY, "", wxDefaultPosition, wxSize(200, -1));
+    quantityBox->SetToolTip(
+        "Selects which quantity to visualize using associated color scale. Quantity values can be also "
+        "obtained by left-clicking on a particle.");
     quantityBox->SetWindowStyle(wxCB_SIMPLE | wxCB_READONLY);
     quantityBox->SetSelection(0);
     quantityBox->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& UNUSED(evt)) {
@@ -261,6 +270,7 @@ wxBoxSizer* MainWindow::createToolBar() {
     toolbar->Add(quantityBox);
 
     wxButton* resetView = new wxButton(this, wxID_ANY, "Reset view");
+    resetView->SetToolTip("Resets the camera rotation.");
     resetView->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
         pane->resetView();
         AutoPtr<ICamera> camera = controller->getCurrentCamera();
@@ -270,10 +280,12 @@ wxBoxSizer* MainWindow::createToolBar() {
     toolbar->Add(resetView);
 
     wxButton* refresh = new wxButton(this, wxID_ANY, "Refresh");
+    refresh->SetToolTip("Updates the particle order and repaints the current view");
     refresh->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { controller->tryRedraw(); });
     toolbar->Add(refresh);
 
     gauge = new wxGauge(this, wxID_ANY, 1000);
+    gauge->SetToolTip("Shows the relative progress of the simulation");
     gauge->SetValue(0);
     gauge->SetMinSize(wxSize(300, -1));
     toolbar->AddSpacer(10);
@@ -291,6 +303,7 @@ wxBoxSizer* MainWindow::createVisBar() {
 
     wxRadioButton* particleButton =
         new wxRadioButton(this, wxID_ANY, "Particles", wxDefaultPosition, buttonSize, wxRB_GROUP);
+    particleButton->SetToolTip("Render individual particles with optional smoothing.");
     visbarSizer->Add(particleButton);
 
     wxBoxSizer* cutoffSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -300,6 +313,9 @@ wxBoxSizer* MainWindow::createVisBar() {
     const Float cutoff = gui.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
     wxSpinCtrlDouble* cutoffSpinner =
         new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, spinnerSizer);
+    cutoffSpinner->SetToolTip(
+        "Specifies the cutoff distance for rendering particles. When set to a positive number, only "
+        "particles in a layer of specified thickness are rendered. Zero means all particles are rendered.");
     cutoffSpinner->SetRange(0., 1000000.);
     cutoffSpinner->SetValue(cutoff);
     cutoffSpinner->SetDigits(3);
@@ -326,6 +342,9 @@ wxBoxSizer* MainWindow::createVisBar() {
     particleSizeSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
     wxSpinCtrlDouble* particleSizeSpinner =
         new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, spinnerSizer);
+    particleSizeSpinner->SetToolTip(
+        "Multiplier of a particle radius. Must be set to 1 to get the actual size of particles in N-body "
+        "simulations.");
     const Float radius = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
     particleSizeSpinner->SetValue(radius);
     particleSizeSpinner->SetDigits(3);
@@ -343,6 +362,9 @@ wxBoxSizer* MainWindow::createVisBar() {
     wxBoxSizer* grayscaleSizer = new wxBoxSizer(wxHORIZONTAL);
     grayscaleSizer->AddSpacer(25);
     wxCheckBox* grayscaleBox = new wxCheckBox(this, wxID_ANY, "Force grayscale");
+    grayscaleBox->SetToolTip(
+        "Draws the particles in grayscale, useful to see how the image would look if printed using "
+        "black-and-white printer.");
     grayscaleBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
         const bool value = evt.IsChecked();
         GuiSettings& gui = controller->getParams();
@@ -355,6 +377,8 @@ wxBoxSizer* MainWindow::createVisBar() {
     wxBoxSizer* keySizer = new wxBoxSizer(wxHORIZONTAL);
     keySizer->AddSpacer(25);
     wxCheckBox* keyBox = new wxCheckBox(this, wxID_ANY, "Show key");
+    keyBox->SetToolTip(
+        "If checked, the color palette and the length scale are included in the rendered image.");
     keyBox->SetValue(true);
     keySizer->Add(keyBox);
     visbarSizer->Add(keySizer);
@@ -362,12 +386,18 @@ wxBoxSizer* MainWindow::createVisBar() {
     wxBoxSizer* aaSizer = new wxBoxSizer(wxHORIZONTAL);
     aaSizer->AddSpacer(25);
     wxCheckBox* aaBox = new wxCheckBox(this, wxID_ANY, "Anti-aliasing");
+    aaBox->SetToolTip(
+        "If checked, particles are drawn with anti-aliasing, creating smoother image, but it also takes "
+        "longer to render it.");
     aaSizer->Add(aaBox);
     visbarSizer->Add(aaSizer);
 
     wxBoxSizer* smoothSizer = new wxBoxSizer(wxHORIZONTAL);
     smoothSizer->AddSpacer(25);
     wxCheckBox* smoothBox = new wxCheckBox(this, wxID_ANY, "Smooth particles");
+    smoothBox->SetToolTip(
+        "If checked, particles are drawn semi-transparently. The transparency of a particle follows "
+        "smoothing kernel, imitating actual smoothing of SPH particles.");
     smoothBox->Enable(false);
     smoothSizer->Add(smoothBox);
     visbarSizer->Add(smoothSizer);

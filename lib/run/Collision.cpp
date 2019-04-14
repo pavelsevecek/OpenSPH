@@ -29,8 +29,9 @@ static RunSettings getSphSettings(const Interval timeRange,
         .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
         .set(RunSettingsId::RUN_OUTPUT_PATH, outputPath.native())
         .set(RunSettingsId::RUN_OUTPUT_NAME, fileMask)
-        .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
-        .set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY)
+        .set(RunSettingsId::SPH_SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
+        .set(RunSettingsId::SPH_SOLVER_FORCES,
+            ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY)
         .set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::STANDARD)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
@@ -45,7 +46,7 @@ static RunSettings getSphSettings(const Interval timeRange,
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
         .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.1_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 1000)
-        .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
+        .set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true)
         .set(RunSettingsId::RUN_DIAGNOSTICS_INTERVAL, 1._f);
     return settings;
@@ -519,10 +520,6 @@ CollisionRun::CollisionRun(const Path& path,
     }
 
     callbacks = runCallbacks;
-}
-
-void CollisionRun::setOnNextPhase(Function<void(const IRunPhase&)> newOnPhasePhase) {
-    onNextPhase = newOnPhasePhase;
 }
 
 NAMESPACE_SPH_END

@@ -20,7 +20,8 @@ TEST_CASE("Storage empty", "[storage]") {
 
 TEST_CASE("Storage insert no material", "[storage]") {
     Storage storage;
-    REQUIRE_ASSERT(storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 1._f));
+    REQUIRE_THROWS_AS(
+        storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 1._f), InvalidStorageAccess);
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, makeArray(1._f, 2._f));
     REQUIRE(storage.getQuantityCnt() == 1);
     REQUIRE(storage.getQuantity(QuantityId::DENSITY).getOrderEnum() == OrderEnum::FIRST);
@@ -53,7 +54,8 @@ TEST_CASE("Storage insert existing by value", "[storage]") {
     REQUIRE(storage.getQuantity(QuantityId::DENSITY).getOrderEnum() == OrderEnum::SECOND);
     REQUIRE(storage.getParticleCnt() == 1);
 
-    REQUIRE_THROWS_AS(storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 2._f), InvalidSetup);
+    REQUIRE_THROWS_AS(
+        storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 2._f), InvalidStorageAccess);
 }
 
 TEST_CASE("Storage insert existing by array", "[storage]") {
@@ -66,7 +68,9 @@ TEST_CASE("Storage insert existing by array", "[storage]") {
     REQUIRE(storage.getQuantity(QuantityId::DENSITY).getOrderEnum() == OrderEnum::SECOND);
     REQUIRE(storage.getValue<Float>(QuantityId::DENSITY)[0] == 5._f);
 
-    REQUIRE_ASSERT(storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, Array<Float>{ 1._f, 3._f }));
+    REQUIRE_THROWS_AS(
+        storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, Array<Float>{ 1._f, 3._f }),
+        InvalidStorageAccess);
 }
 
 TEST_CASE("Storage resize", "[storage]") {

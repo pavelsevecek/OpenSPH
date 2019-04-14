@@ -50,10 +50,11 @@ where *version* can be one of:
 - *debug* - debugging build with no optimizations (SLOW)
 - *assert* - build with all optimizations and additional sanity checks
 - *profile* - full-speed build that measures durations of various segments of the code and print run statistics
+
 Use different build directory for each version!
 
 By default, OpenSPH uses a custom thread pool for parallelization. It is possible to use Intel TBB library 
-instead by adding use_tbb flag:
+instead, by adding use_tbb flag:
 ```bash
 qmake CONFIG+=version CONFIG+=use_tbb ../sph.pro
 ```
@@ -86,7 +87,7 @@ Default simulation uses the following:
 ## Documentation
 See [documentation](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/docs/index.html)
 
-## Examples of the code usage
+## Examples of code usage
 See [examples](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/docs/Examples.html)
 
 ## Bug reports, ideas, question

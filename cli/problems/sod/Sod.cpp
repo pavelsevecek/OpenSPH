@@ -60,8 +60,8 @@ public:
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f)
             .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.5_f)
             .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
-            .set(RunSettingsId::SOLVER_TYPE, SolverEnum::SYMMETRIC_SOLVER)
-            .set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE);
+            .set(RunSettingsId::SPH_SOLVER_TYPE, SolverEnum::SYMMETRIC_SOLVER)
+            .set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE);
     }
 
     virtual void setUp() override {
@@ -140,7 +140,7 @@ public:
 
         // 5) compute energy per particle and energy density if we are using DISPH
         /// \todo this should be somehow computed automatically
-        if (settings.get<SolverEnum>(RunSettingsId::SOLVER_TYPE) == SolverEnum::DENSITY_INDEPENDENT) {
+        /*if (settings.get<SolverEnum>(RunSettingsId::SOLVER_TYPE) == SolverEnum::DENSITY_INDEPENDENT) {
             ArrayView<Float> q, e;
             tie(q, e) =
                 storage->getValues<Float>(QuantityId::ENERGY_DENSITY, QuantityId::ENERGY_PER_PARTICLE);
@@ -150,7 +150,7 @@ public:
                 q[i] = rho[i] * u[i];
                 e[i] = m[i] * u[i];
             }
-        }
+        }*/
     }
 
 protected:

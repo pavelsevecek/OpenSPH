@@ -52,11 +52,11 @@ enum class QuantityId {
     /// \name Density-independent SPH formulation
     ///@{
 
-    /// Energy density (energy per unit volume)
-    ENERGY_DENSITY = 8,
+    /// The "Y" quantity defined by \cite Hosono_2016, used to compute equation of motion and energy in DISPH.
+    GENERALIZED_ENERGY = 8,
 
-    /// Internal energy per particle (analogy of particle masses in DISPH)
-    ENERGY_PER_PARTICLE = 9,
+    /// \todo
+    GENERALIZED_PRESSURE = 9,
 
     ///@}
 

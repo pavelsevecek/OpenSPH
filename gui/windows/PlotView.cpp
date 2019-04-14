@@ -22,9 +22,9 @@ PlotView::PlotView(wxWindow* parent,
     , list(list)
     , showLabels(showLabels) {
     this->SetMaxSize(size);
-    Connect(wxEVT_PAINT, wxPaintEventHandler(PlotView::onPaint));
-    Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(PlotView::onRightUp));
-    Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(PlotView::onDoubleClick));
+    this->Connect(wxEVT_PAINT, wxPaintEventHandler(PlotView::onPaint));
+    this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(PlotView::onRightUp));
+    this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(PlotView::onDoubleClick));
 
     this->updatePlot(defaultSelectedIdx);
 }

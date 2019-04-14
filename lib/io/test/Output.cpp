@@ -51,6 +51,16 @@ TEST_CASE("TextOutput dump", "[output]") {
     REQUIRE(FileSystem::pathExists(Path("tmp1_0001.txt")));
 }
 
+TEST_CASE("TextOutput dump invalid", "[output]") {
+    Storage storage;
+    storage.insert<Vector>(
+        QuantityId::POSITION, OrderEnum::SECOND, makeArray(Vector(0._f), Vector(1._f), Vector(2._f)));
+
+    TextOutput output(Path("tmp2_%d.txt"), "Output", OutputQuantityFlag::DENSITY);
+    Statistics stats;
+    REQUIRE_FALSE(output.dump(storage, stats));
+}
+
 template <typename TValue>
 static bool almostEqual(const Array<TValue>& b1, const Array<TValue>& b2, const Float eps = EPS) {
     struct Element {

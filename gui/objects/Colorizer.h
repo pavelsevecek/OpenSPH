@@ -570,7 +570,7 @@ public:
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
         const Float value = evalScalar(idx).value();
-        return Particle(QuantityId::ENERGY_PER_PARTICLE, value, idx);
+        return Particle(QuantityId::ENERGY, value, idx);
     }
 
     virtual Optional<Palette> getPalette() const override {

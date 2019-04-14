@@ -183,7 +183,7 @@ TextOutput::TextOutput(const OutputFile& fileMask,
 
 TextOutput::~TextOutput() = default;
 
-Path TextOutput::dump(const Storage& storage, const Statistics& stats) {
+Expected<Path> TextOutput::dump(const Storage& storage, const Statistics& stats) {
     if (options.has(Options::DUMP_ALL)) {
         columns.clear();
         // add some 'extraordinary' quantities and position (we want those to be one of the first, not after
@@ -203,30 +203,42 @@ Path TextOutput::dump(const Storage& storage, const Statistics& stats) {
 
     ASSERT(!columns.empty(), "No column added to TextOutput");
     const Path fileName = paths.getNextPath(stats);
-    FileSystem::createDirectory(fileName.parentPath());
-    std::ofstream ofs(fileName.native());
-    // print description
-    ofs << "# Run: " << runName << std::endl;
-    ofs << "# SPH dump, time = " << stats.get<Float>(StatisticsId::RUN_TIME) << std::endl;
-    ofs << "# ";
-    for (auto& column : columns) {
-        printHeader(ofs, column->getName(), column->getType());
+
+    Outcome dirResult = FileSystem::createDirectory(fileName.parentPath());
+    if (!dirResult) {
+        return makeUnexpected<Path>(
+            "Cannot create directory " + fileName.parentPath().native() + ": " + dirResult.error());
     }
-    ofs << std::endl;
-    // print data lines, starting with second-order quantities
-    for (Size i = 0; i < storage.getParticleCnt(); ++i) {
+
+    try {
+        std::ofstream ofs(fileName.native());
+        // print description
+        ofs << "# Run: " << runName << std::endl;
+        ofs << "# SPH dump, time = " << stats.get<Float>(StatisticsId::RUN_TIME) << std::endl;
+        ofs << "# ";
         for (auto& column : columns) {
-            // write one extra space to be sure numbers won't merge
-            if (options.has(Options::SCIENTIFIC)) {
-                ofs << std::scientific << std::setprecision(PRECISION) << column->evaluate(storage, stats, i);
-            } else {
-                ofs << std::setprecision(PRECISION) << column->evaluate(storage, stats, i);
-            }
+            printHeader(ofs, column->getName(), column->getType());
         }
         ofs << std::endl;
+        // print data lines, starting with second-order quantities
+        for (Size i = 0; i < storage.getParticleCnt(); ++i) {
+            for (auto& column : columns) {
+                // write one extra space to be sure numbers won't merge
+                if (options.has(Options::SCIENTIFIC)) {
+                    ofs << std::scientific << std::setprecision(PRECISION)
+                        << column->evaluate(storage, stats, i);
+                } else {
+                    ofs << std::setprecision(PRECISION) << column->evaluate(storage, stats, i);
+                }
+            }
+            ofs << std::endl;
+        }
+        ofs.close();
+        return fileName;
+    } catch (std::exception& e) {
+        return makeUnexpected<Path>(
+            "Cannot save output file " + fileName.native() + ": " + dirResult.error());
     }
-    ofs.close();
-    return fileName;
 }
 
 TextOutput& TextOutput::addColumn(AutoPtr<ITextColumn>&& column) {
@@ -317,9 +329,12 @@ TextInput& TextInput::addColumn(AutoPtr<ITextColumn>&& column) {
 /// GnuplotOutput
 /// ----------------------------------------------------------------------------------------------------------
 
-Path GnuplotOutput::dump(const Storage& storage, const Statistics& stats) {
-    const Path path = TextOutput::dump(storage, stats);
-    const Path pathWithoutExt = Path(path).removeExtension();
+Expected<Path> GnuplotOutput::dump(const Storage& storage, const Statistics& stats) {
+    const Expected<Path> path = TextOutput::dump(storage, stats);
+    if (!path) {
+        return path;
+    }
+    const Path pathWithoutExt = Path(path.value()).removeExtension();
     const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
     const std::string command = "gnuplot -e \"filename='" + pathWithoutExt.native() +
                                 "'; time=" + std::to_string(time) + "\" " + scriptPath;
@@ -473,9 +488,13 @@ BinaryOutput::BinaryOutput(const OutputFile& fileMask, const RunTypeEnum runType
     : IOutput(fileMask)
     , runTypeId(runTypeId) {}
 
-Path BinaryOutput::dump(const Storage& storage, const Statistics& stats) {
+Expected<Path> BinaryOutput::dump(const Storage& storage, const Statistics& stats) {
     const Path fileName = paths.getNextPath(stats);
-    FileSystem::createDirectory(fileName.parentPath());
+    Outcome dirResult = FileSystem::createDirectory(fileName.parentPath());
+    if (!dirResult) {
+        return makeUnexpected<Path>(
+            "Cannot create directory " + fileName.parentPath().native() + ": " + dirResult.error());
+    }
 
     const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
 
@@ -857,9 +876,13 @@ static void decompressQuantity(Deserializer<false>& deserializer,
     }
 }
 
-Path CompressedOutput::dump(const Storage& storage, const Statistics& stats) {
+Expected<Path> CompressedOutput::dump(const Storage& storage, const Statistics& stats) {
     const Path fileName = paths.getNextPath(stats);
-    FileSystem::createDirectory(fileName.parentPath());
+    Outcome dirResult = FileSystem::createDirectory(fileName.parentPath());
+    if (!dirResult) {
+        return makeUnexpected<Path>(
+            "Cannot create directory " + fileName.parentPath().native() + ": " + dirResult.error());
+    }
 
     const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
 
@@ -947,6 +970,95 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
 }
 
 /// ----------------------------------------------------------------------------------------------------------
+/// VtkOutput
+/// ----------------------------------------------------------------------------------------------------------
+
+static void writeDataArray(std::ofstream& of,
+    const Storage& storage,
+    const Statistics& stats,
+    const ITextColumn& column) {
+    switch (column.getType()) {
+    case ValueEnum::VECTOR:
+        of << R"(      <DataArray type="Float32" Name=")" << column.getName()
+           << R"(" NumberOfComponents="3" format="ascii">)";
+        break;
+    case ValueEnum::SCALAR:
+        of << R"(      <DataArray type="Float32" Name=")" << column.getName() << R"(" format="ascii">)";
+        break;
+    default:
+        NOT_IMPLEMENTED;
+    }
+
+    of << "\n";
+    for (Size i = 0; i < storage.getParticleCnt(); ++i) {
+        of << column.evaluate(storage, stats, i) << "\n";
+    }
+
+    of << R"(      </DataArray>)"
+       << "\n";
+}
+
+VtkOutput::VtkOutput(const OutputFile& fileMask, const Flags<OutputQuantityFlag> flags)
+    : IOutput(fileMask)
+    , flags(flags) {
+    // Positions are stored in <Points> block, other quantities in <PointData>; remove the position flag to
+    // avoid storing positions twice
+    this->flags.unset(OutputQuantityFlag::POSITION);
+}
+
+Expected<Path> VtkOutput::dump(const Storage& storage, const Statistics& stats) {
+    const Path fileName = paths.getNextPath(stats);
+    Outcome dirResult = FileSystem::createDirectory(fileName.parentPath());
+    if (!dirResult) {
+        return makeUnexpected<Path>(
+            "Cannot create directory " + fileName.parentPath().native() + ": " + dirResult.error());
+    }
+
+    try {
+        std::ofstream of(fileName.native());
+        of << R"(<VTKFile type="UnstructuredGrid" version="0.1" byte_order="LittleEndian">
+  <UnstructuredGrid>
+    <Piece NumberOfPoints=")"
+           << storage.getParticleCnt() << R"(" NumberOfCells="0">
+      <Points>
+        <DataArray name="Position" type="Float32" NumberOfComponents="3" format="ascii">)"
+           << "\n";
+        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        for (Size i = 0; i < r.size(); ++i) {
+            of << r[i] << "\n";
+        }
+        of << R"(        </DataArray>
+      </Points>
+      <PointData  Vectors="vector">)"
+           << "\n";
+
+        Array<AutoPtr<ITextColumn>> columns;
+        addColumns(flags, columns);
+
+        for (auto& column : columns) {
+            writeDataArray(of, storage, stats, *column);
+        }
+
+        of << R"(      </PointData>
+      <Cells>
+        <DataArray type="Int32" Name="connectivity" format="ascii">
+        </DataArray>
+        <DataArray type="Int32" Name="offsets" format="ascii">
+        </DataArray>
+        <DataArray type="UInt8" Name="types" format="ascii">
+        </DataArray>
+      </Cells>
+    </Piece>
+  </UnstructuredGrid>
+</VTKFile>)";
+
+        return fileName;
+    } catch (std::exception& e) {
+        return makeUnexpected<Path>("Cannot save file " + fileName.native() + ": " + e.what());
+    }
+}
+
+/// ----------------------------------------------------------------------------------------------------------
 /// PkdgravOutput/Input
 /// ----------------------------------------------------------------------------------------------------------
 
@@ -956,7 +1068,7 @@ PkdgravOutput::PkdgravOutput(const OutputFile& fileMask, PkdgravParams&& params)
     ASSERT(almostEqual(this->params.conversion.velocity, 2.97853e4_f, 1.e-4_f));
 }
 
-Path PkdgravOutput::dump(const Storage& storage, const Statistics& stats) {
+Expected<Path> PkdgravOutput::dump(const Storage& storage, const Statistics& stats) {
     const Path fileName = paths.getNextPath(stats);
     FileSystem::createDirectory(fileName.parentPath());
 

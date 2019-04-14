@@ -237,9 +237,12 @@ void ParticleRenderer::initialize(const Storage& storage,
         const Vector r2 = cached.positions[j];
         return dot(dir, r1) > dot(dir, r2);
     });
+    /// \todo could be changed to AOS to sort only once
     cached.positions = order.apply(cached.positions);
     cached.idxs = order.apply(cached.idxs);
     cached.colors = order.apply(cached.colors);
+
+    cached.cameraDir = dir;
 
     if (hasVectorData) {
         cached.vectors = order.apply(cached.vectors);
@@ -285,7 +288,9 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
 
     shouldContinue = true;
     // draw particles
-    for (Size i = 0; i < cached.positions.size() /* && shouldContinue*/; ++i) {
+    const bool reverseOrder = dot(cached.cameraDir, params.camera->getDirection()) < 0._f;
+    for (Size k = 0; k < cached.positions.size(); ++k) {
+        const Size i = reverseOrder ? cached.positions.size() - k - 1 : k;
         if (params.particles.selected && cached.idxs[i] == params.particles.selected.value()) {
             // highlight the selected particle
             context->setColor(Rgba::red(), ColorFlag::FILL);

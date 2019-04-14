@@ -50,6 +50,9 @@ private:
         /// Color palette or NOTHING if no palette is drawn
         Optional<Palette> palette;
 
+        /// Camera direction for which the cached values have been sorted.
+        Vector cameraDir;
+
     } cached;
 
     mutable std::atomic_bool shouldContinue;

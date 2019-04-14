@@ -94,7 +94,7 @@ bool App::OnInit() {
         collision = makeAuto<CollisionRun>(cp, phaseParams, callbacks);
     }
 
-    collision->setOnNextPhase([gui, cp, run = collision.get(), this](const IRunPhase& next) {
+    collision->onNextPhase = [gui, cp, run = collision.get(), this](const IRunPhase& next) {
         GuiSettings newGui = gui;
 
         if (typeid(next) == typeid(ReaccumulationRunPhase)) {
@@ -109,7 +109,11 @@ bool App::OnInit() {
         }
 
         controller->update(*next.getStorage());
-    });
+    };
+
+    collision->onError = [](const std::string& error) {
+        executeOnMainThread([error] { wxMessageBox("Error encountered during simulation.\n\n" + error); });
+    };
 
     controller->start(std::move(collision));
     return true;

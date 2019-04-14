@@ -7,6 +7,7 @@
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "math/rng/Rng.h"
+#include "objects/Exceptions.h"
 #include "objects/finders/BruteForceFinder.h"
 #include "objects/finders/DynamicFinder.h"
 #include "objects/finders/KdTree.h"
@@ -21,6 +22,7 @@
 #include "sph/equations/av/Balsara.h"
 #include "sph/equations/av/MorrisMonaghan.h"
 #include "sph/equations/av/Riemann.h"
+#include "sph/equations/av/Standard.h"
 #include "sph/initial/Distribution.h"
 #include "sph/kernel/GravityKernel.h"
 #include "sph/solvers/AsymmetricSolver.h"
@@ -212,7 +214,7 @@ template <typename TSolver>
 static AutoPtr<ISolver> getActualSolver(IScheduler& scheduler,
     const RunSettings& settings,
     EquationHolder&& eqs) {
-    const Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
+    const Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES);
     if (forces.has(ForceEnum::GRAVITY)) {
         return makeAuto<GravitySolver<TSolver>>(scheduler, settings, std::move(eqs));
     } else {
@@ -222,9 +224,9 @@ static AutoPtr<ISolver> getActualSolver(IScheduler& scheduler,
 
 AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler, const RunSettings& settings) {
     EquationHolder eqs = getStandardEquations(settings);
-    const SolverEnum id = settings.get<SolverEnum>(RunSettingsId::SOLVER_TYPE);
+    const SolverEnum id = settings.get<SolverEnum>(RunSettingsId::SPH_SOLVER_TYPE);
     auto throwIfGravity = [&settings] {
-        const Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
+        const Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES);
         if (forces.has(ForceEnum::GRAVITY)) {
             throw InvalidSetup("Using solver incompatible with gravity.");
         }
@@ -458,6 +460,11 @@ AutoPtr<IOutput> Factory::getOutput(const RunSettings& settings) {
     case IoEnum::COMPRESSED_FILE: {
         const RunTypeEnum runType = settings.get<RunTypeEnum>(RunSettingsId::RUN_TYPE);
         return makeAuto<CompressedOutput>(file, CompressionEnum::NONE /*TODO*/, runType);
+    }
+    case IoEnum::VTK_FILE: {
+        const Flags<OutputQuantityFlag> flags =
+            settings.getFlags<OutputQuantityFlag>(RunSettingsId::RUN_OUTPUT_QUANTITIES);
+        return makeAuto<VtkOutput>(file, flags);
     }
     case IoEnum::PKDGRAV_INPUT: {
         PkdgravParams pkd;

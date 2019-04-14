@@ -94,6 +94,9 @@ private:
         /// Particle indices
         Array<Size> flags;
 
+        /// If true, the colors are used for emission, otherwise for diffuse reflectance.
+        bool doEmission;
+
     } cached;
 
     mutable std::atomic_bool shouldContinue;

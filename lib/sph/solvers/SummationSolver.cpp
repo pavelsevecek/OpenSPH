@@ -10,7 +10,7 @@
 NAMESPACE_SPH_BEGIN
 
 static EquationHolder getEquations(const RunSettings& settings) {
-    Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
+    Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES);
     EquationHolder equations;
     if (forces.has(ForceEnum::PRESSURE)) {
         equations += makeTerm<PressureForce>();
@@ -32,12 +32,12 @@ SummationSolver::SummationSolver(IScheduler& scheduler,
     const EquationHolder& additionalEquations)
     : SymmetricSolver(scheduler, settings, getEquations(settings) + additionalEquations) {
     eta = settings.get<Float>(RunSettingsId::SPH_KERNEL_ETA);
-    targetDensityDifference = settings.get<Float>(RunSettingsId::SUMMATION_DENSITY_DELTA);
+    targetDensityDifference = settings.get<Float>(RunSettingsId::SPH_SUMMATION_DENSITY_DELTA);
     densityKernel = Factory::getKernel<DIMENSIONS>(settings);
     Flags<SmoothingLengthEnum> flags =
-        settings.getFlags<SmoothingLengthEnum>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH);
+        settings.getFlags<SmoothingLengthEnum>(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH);
     adaptiveH = !flags.has(SmoothingLengthEnum::CONST);
-    maxIteration = adaptiveH ? settings.get<int>(RunSettingsId::SUMMATION_MAX_ITERATIONS) : 1;
+    maxIteration = adaptiveH ? settings.get<int>(RunSettingsId::SPH_SUMMATION_MAX_ITERATIONS) : 1;
 }
 
 void SummationSolver::create(Storage& storage, IMaterial& material) const {

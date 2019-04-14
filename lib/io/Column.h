@@ -15,7 +15,7 @@ NAMESPACE_SPH_BEGIN
 
 /// \brief Base class for conversion of quantities into the output data.
 ///
-/// When TextOutput is selected, this represents a single column of values in the file, hence the name.
+/// When \ref TextOutput is selected, this represents a single column of values in the file, hence the name.
 /// Ordinarily, we need to store the quantity values and their derivatives directly, derived classes
 /// \ref ValueColumn and \ref DerivativeColumn can be used for this purpose. Other implementations can be used
 /// to store values that are not directly saved in any quantity, such as smoothing lenghts (they are actually
@@ -34,6 +34,7 @@ public:
     /// \param storage Storage containing all particle data
     /// \param stats Holds simulation time as well as additional solver-specific statistics.
     /// \param particleIdx Index of the particle to evaluate.
+    /// \throws Exception if value cannot be evaluated, i.e. invalid particle index, quantity not stored, etc.
     virtual Dynamic evaluate(const Storage& storage,
         const Statistics& stats,
         const Size particleIdx) const = 0;
@@ -44,6 +45,7 @@ public:
     /// \param value Accumulated value, must be the same type as this column. Checked by assert.
     /// \param particleIdx Index of accumulated particle; if larger than current size of the storage, the
     ///                    storage is resized accordingly.
+    /// \throws Exception if value cannot be accumulated.
     virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const = 0;
 
     /// \brief Returns a name of the column.
@@ -79,8 +81,12 @@ public:
     virtual Dynamic evaluate(const Storage& storage,
         const Statistics& UNUSED(stats),
         const Size particleIdx) const override {
-        ArrayView<const TValue> value = storage.getValue<TValue>(id);
-        return value[particleIdx];
+        ArrayView<const TValue> values = storage.getValue<TValue>(id);
+        if (particleIdx >= values.size()) {
+            throw Exception("Cannot evaluate value of particle " + std::to_string(particleIdx) +
+                            ", storage only contains " + std::to_string(values.size()) + " particles");
+        }
+        return values[particleIdx];
     }
 
     virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const override {
@@ -117,8 +123,12 @@ public:
     virtual Dynamic evaluate(const Storage& storage,
         const Statistics& UNUSED(stats),
         const Size particleIdx) const override {
-        ArrayView<const TValue> value = storage.getDt<TValue>(id);
-        return value[particleIdx];
+        ArrayView<const TValue> values = storage.getDt<TValue>(id);
+        if (particleIdx >= values.size()) {
+            throw Exception("Cannot evaluate derivative of particle " + std::to_string(particleIdx) +
+                            ", storage only contains " + std::to_string(values.size()) + " particles");
+        }
+        return values[particleIdx];
     }
 
     virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const override {
@@ -159,8 +169,12 @@ public:
     virtual Dynamic evaluate(const Storage& storage,
         const Statistics& UNUSED(stats),
         const Size particleIdx) const override {
-        ArrayView<const TValue> value = storage.getAll<TValue>(id)[2];
-        return value[particleIdx];
+        ArrayView<const TValue> values = storage.getD2t<TValue>(id);
+        if (particleIdx >= values.size()) {
+            throw Exception("Cannot evaluate 2nd derivative of particle " + std::to_string(particleIdx) +
+                            ", storage only contains " + values.size() + " particles");
+        }
+        return values[particleIdx];
     }
 
     virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const override {
@@ -192,8 +206,12 @@ public:
     virtual Dynamic evaluate(const Storage& storage,
         const Statistics& UNUSED(stats),
         const Size particleIdx) const override {
-        ArrayView<const Vector> value = storage.getValue<Vector>(QuantityId::POSITION);
-        return value[particleIdx][H];
+        ArrayView<const Vector> values = storage.getValue<Vector>(QuantityId::POSITION);
+        if (particleIdx >= values.size()) {
+            throw Exception("Cannot evaluate smoothing length of particle " + std::to_string(particleIdx) +
+                            ", storage only contains " + std::to_string(values.size()) + " particles");
+        }
+        return values[particleIdx][H];
     }
 
     virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const override {
@@ -224,8 +242,12 @@ public:
     virtual Dynamic evaluate(const Storage& storage,
         const Statistics& UNUSED(stats),
         const Size particleIdx) const override {
-        ArrayView<const TValue> value = storage.getValue<TValue>(QuantityId::DAMAGE);
-        return pow<3>(value[particleIdx]);
+        ArrayView<const TValue> values = storage.getValue<TValue>(QuantityId::DAMAGE);
+        if (particleIdx >= values.size()) {
+            throw Exception("Cannot evaluate damage of particle " + std::to_string(particleIdx) +
+                            ", storage only contains " + values.size() + " particles");
+        }
+        return pow<3>(values[particleIdx]);
     }
 
     virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const override {

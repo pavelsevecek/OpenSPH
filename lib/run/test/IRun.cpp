@@ -1,8 +1,8 @@
+#include "run/IRun.h"
 #include "catch.hpp"
 #include "io/Output.h"
 #include "objects/geometry/Domain.h"
 #include "quantities/Storage.h"
-#include "run/IRun.h"
 #include "run/RunCallbacks.h"
 #include "sph/initial/Initial.h"
 #include "system/Statistics.h"
@@ -53,7 +53,7 @@ public:
         : IOutput(Path("%d"))
         , outputTimes(outputTimes) {}
 
-    virtual Path dump(const Storage& UNUSED(storage), const Statistics& stats) override {
+    virtual Expected<Path> dump(const Storage& UNUSED(storage), const Statistics& stats) override {
         outputTimes.push(stats.get<Float>(StatisticsId::RUN_TIME));
         return Path();
     }

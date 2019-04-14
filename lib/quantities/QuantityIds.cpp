@@ -44,10 +44,10 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Deviatoric stress", L"S", ValueEnum::TRACELESS_TENSOR);
     case QuantityId::SPECIFIC_ENTROPY:
         return QuantityMetadata("Specific entropy", L"s", ValueEnum::SCALAR);
-    case QuantityId::ENERGY_DENSITY:
-        return QuantityMetadata("Energy density", L"q", ValueEnum::SCALAR);
-    case QuantityId::ENERGY_PER_PARTICLE:
-        return QuantityMetadata("Energy per particle", L"U", ValueEnum::SCALAR);
+    case QuantityId::GENERALIZED_ENERGY:
+        return QuantityMetadata("Generalized energy", L"Y", ValueEnum::SCALAR);
+    case QuantityId::GENERALIZED_PRESSURE:
+        return QuantityMetadata("Generalized pressure", L"p^alpha", ValueEnum::SCALAR);
     case QuantityId::DAMAGE:
         return QuantityMetadata("Damage", L"D", ValueEnum::SCALAR);
     case QuantityId::EPS_MIN:

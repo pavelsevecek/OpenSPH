@@ -36,7 +36,7 @@ private:
         explicit Derivative(const RunSettings& settings)
             : DerivativeTemplate<Derivative>(settings)
             , kernel(Factory::getKernel<DIMENSIONS>(settings)) {
-            epsilon = settings.get<Float>(RunSettingsId::XSPH_EPSILON);
+            epsilon = settings.get<Float>(RunSettingsId::SPH_XSPH_EPSILON);
         }
 
         INLINE void additionalCreate(Accumulated& results) {

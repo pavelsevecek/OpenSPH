@@ -13,7 +13,7 @@ using namespace Sph;
 TEST_CASE("InternalFriction", "[friction]") {
     EquationHolder eqs;
     RunSettings settings;
-    settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE);
+    settings.set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE);
     eqs +=
         makeTerm<ViscousStress>() + makeTerm<ContinuityEquation>(settings) + makeTerm<ConstSmoothingLength>();
 

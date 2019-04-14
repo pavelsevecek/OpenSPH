@@ -33,15 +33,19 @@ protected:
     /// \brief First phase to be run, following phases are obtained using \ref IRunPhase::getNextPhase.
     SharedPtr<IRunPhase> first;
 
+public:
     /// \brief Generic callback executed after each phase.
     Function<void(const IRunPhase&)> onNextPhase = nullptr;
 
-public:
+    /// \brief Generic callback used for error reporting.
+    ///
+    /// \todo generalize
+    Function<void(const std::string&)> onError = nullptr;
+
     CompositeRun() = default;
 
-    CompositeRun(SharedPtr<IRunPhase> first, Function<void(const IRunPhase&)> onNextPhase)
-        : first(std::move(first))
-        , onNextPhase(onNextPhase) {}
+    CompositeRun(SharedPtr<IRunPhase> first)
+        : first(std::move(first)) {}
 
     virtual void setUp() override;
 

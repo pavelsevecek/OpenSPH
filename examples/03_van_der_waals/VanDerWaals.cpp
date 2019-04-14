@@ -54,7 +54,7 @@ public:
         settings.set(RunSettingsId::RUN_NAME, std::string("Van der Waals"));
 
         // We simulate a gass, so the only force in the system is due to pressure gradient
-        settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE);
+        settings.set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE);
 
         storage = makeShared<Storage>();
         InitialConditions ic(*scheduler, settings);

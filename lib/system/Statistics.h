@@ -136,6 +136,9 @@ enum class StatisticsId {
     /// Wallclock duration of evaluation of SPH derivatives
     SPH_EVAL_TIME,
 
+    /// Wallclock duration of gravity tree building
+    GRAVITY_BUILD_TIME,
+
     /// Number of nodes in used gravity tree
     GRAVITY_NODE_COUNT,
 

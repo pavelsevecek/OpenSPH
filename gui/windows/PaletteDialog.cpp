@@ -173,22 +173,6 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
     mainSizer->Add(rangeSizer, 0, wxALIGN_CENTER_HORIZONTAL);
     mainSizer->AddSpacer(5);
 
-
-    /*wxBoxSizer* transformSizer = wxBoxSizer(wxHORIZONTAL);
-    wxSpinCtrlDouble* brightnessSpinner =
-        new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, wxSize(100, height));
-    brightnessSpinner->SetDigits(2);
-    brightnessSpinner->SetRange(0.01, 100.);
-    brightnessSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this, brightnessSpinner](wxSpinDoubleEvent& UNUSED(evt)) {
-        const double value = brightnessSpinner->GetValue();
-            const Interval newRange(value, selected.getInterval().upper());
-            selected.setInterval(newRange);
-            canvas->setPalette(selected);
-            setPaletteCallback(selected);
-    });
-    transformSizer->Add(brightnessSpinner);
-    mainSizer->Add(transformSizer);*/
-
     wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
     wxButton* okButton = new wxButton(this, wxID_ANY, "OK");
     okButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
@@ -242,14 +226,31 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
     this->setDefaultPaletteList();
 }
 
+static FlatMap<ColorizerId, std::string> PALETTE_ID_LIST = {
+    { ColorizerId::VELOCITY, "Velocity" },
+    { ColorizerId::MOVEMENT_DIRECTION, "Direction" },
+    { ColorizerId::DENSITY_PERTURBATION, "Delta density" },
+    { ColorizerId::TOTAL_ENERGY, "Total energy" },
+    { ColorizerId::TEMPERATURE, "Temperature" },
+    { ColorizerId::YIELD_REDUCTION, "Yield reduction" },
+    { ColorizerId(QuantityId::PRESSURE), "Pressure" },
+    { ColorizerId(QuantityId::ENERGY), "Specific energy" },
+    { ColorizerId(QuantityId::DEVIATORIC_STRESS), "Deviatoric stress" },
+    { ColorizerId(QuantityId::DENSITY), "Density" },
+    { ColorizerId(QuantityId::DAMAGE), "Damage" },
+    { ColorizerId(QuantityId::VELOCITY_DIVERGENCE), "Velocity divergence" },
+    { ColorizerId(QuantityId::ANGULAR_FREQUENCY), "Angular frequency" },
+    { ColorizerId(QuantityId::STRAIN_RATE_CORRECTION_TENSOR), "Correction tensor" },
+};
+
 void PaletteDialog::setDefaultPaletteList() {
     paletteMap = {
         { "(default)", initial },
-        { "Grayscale", Factory::getPalette(ColorizerId(QuantityId::DAMAGE)) },
         { "Blackbody", getBlackBodyPalette(Interval(300, 12000)) },
-        { "Hot and cold", Factory::getPalette(ColorizerId::DENSITY_PERTURBATION) },
-        { "Velocity", Factory::getPalette(ColorizerId::VELOCITY) },
     };
+    for (auto& pair : PALETTE_ID_LIST) {
+        paletteMap.insert(pair.value, Factory::getPalette(pair.key));
+    }
 
     wxArrayString items;
     for (FlatMap<std::string, Palette>::Element& e : paletteMap) {

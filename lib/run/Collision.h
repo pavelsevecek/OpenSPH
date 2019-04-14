@@ -182,9 +182,6 @@ public:
     explicit CollisionRun(const Path& path,
         const PhaseParams& phaseParams,
         SharedPtr<IRunCallbacks> runCallbacks);
-
-    /// \brief Sets an arbitrary callback executed when a phase ends.
-    void setOnNextPhase(Function<void(const IRunPhase&)> newOnPhasePhase);
 };
 
 NAMESPACE_SPH_END

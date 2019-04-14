@@ -14,7 +14,8 @@ include(../../lib/inc.pro)
 QMAKE_CXXFLAGS += `wx-config --cxxflags`
 
 HEADERS += \
-    Player.h
+    Player.h \
+    TimeLine.h
 
 SOURCES += \
     Player.cpp

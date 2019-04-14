@@ -78,6 +78,23 @@ Size ConstStorageSequence::size() const {
     return storage.getQuantityCnt();
 }
 
+InvalidStorageAccess::InvalidStorageAccess(const QuantityId id)
+    : Exception("Invalid storage access to quantity " + getMetadata(id).quantityName) {}
+
+InvalidStorageAccess::InvalidStorageAccess(const std::string& message)
+    : Exception("Invalid storage access. " + message) {}
+
+static void checkResult(const bool result, const QuantityId id) {
+    if (!result) {
+        throw InvalidStorageAccess(id);
+    }
+}
+
+static void checkResult(const bool result, const std::string& message) {
+    if (!result) {
+        throw InvalidStorageAccess(message);
+    }
+}
 
 Storage::MatRange::MatRange(const SharedPtr<IMaterial>& material, const Size from, const Size to)
     : material(material)
@@ -130,23 +147,22 @@ template bool Storage::has<SymmetricTensor>(const QuantityId, const OrderEnum) c
 template bool Storage::has<TracelessTensor>(const QuantityId, const OrderEnum) const;
 template bool Storage::has<Tensor>(const QuantityId, const OrderEnum) const;
 
-
 Quantity& Storage::getQuantity(const QuantityId key) {
     Optional<Quantity&> quantity = quantities.tryGet(key);
-    ASSERT(quantity, getMetadata(key).quantityName);
+    checkResult(bool(quantity), key);
     return quantity.value();
 }
 
 const Quantity& Storage::getQuantity(const QuantityId key) const {
     Optional<const Quantity&> quantity = quantities.tryGet(key);
-    ASSERT(quantity, getMetadata(key).quantityName);
+    checkResult(bool(quantity), key);
     return quantity.value();
 }
 
 template <typename TValue>
 StaticArray<Array<TValue>&, 3> Storage::getAll(const QuantityId key) {
     Quantity& q = this->getQuantity(key);
-    ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+    checkResult(q.getValueEnum() == GetValueEnum<TValue>::type, key);
     return q.getAll<TValue>();
 }
 
@@ -160,7 +176,7 @@ template StaticArray<Array<Tensor>&, 3> Storage::getAll(const QuantityId);
 template <typename TValue>
 StaticArray<const Array<TValue>&, 3> Storage::getAll(const QuantityId key) const {
     const Quantity& q = this->getQuantity(key);
-    ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+    checkResult(q.getValueEnum() == GetValueEnum<TValue>::type, key);
     return q.getAll<TValue>();
 }
 
@@ -174,7 +190,7 @@ template StaticArray<const Array<Tensor>&, 3> Storage::getAll(const QuantityId) 
 template <typename TValue>
 Array<TValue>& Storage::getValue(const QuantityId key) {
     Quantity& q = this->getQuantity(key);
-    ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+    checkResult(q.getValueEnum() == GetValueEnum<TValue>::type, key);
     return q.getValue<TValue>();
 }
 
@@ -200,7 +216,7 @@ template const Array<Tensor>& Storage::getValue(const QuantityId) const;
 template <typename TValue>
 Array<TValue>& Storage::getDt(const QuantityId key) {
     Quantity& q = this->getQuantity(key);
-    ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+    checkResult(q.getValueEnum() == GetValueEnum<TValue>::type, key);
     return q.getDt<TValue>();
 }
 
@@ -226,7 +242,7 @@ template const Array<Tensor>& Storage::getDt(const QuantityId) const;
 template <typename TValue>
 Array<TValue>& Storage::getD2t(const QuantityId key) {
     Quantity& q = this->getQuantity(key);
-    ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+    checkResult(q.getValueEnum() == GetValueEnum<TValue>::type, key);
     return q.getD2t<TValue>();
 }
 
@@ -254,21 +270,22 @@ template <typename TValue>
 Quantity& Storage::insert(const QuantityId key, const OrderEnum order, const TValue& defaultValue) {
     if (this->has(key)) {
         Quantity& q = this->getQuantity(key);
-        if (q.getValueEnum() != GetValueEnum<TValue>::type) {
-            throw InvalidSetup("Inserting quantity already stored with different type");
-        }
+        checkResult(q.getValueEnum() == GetValueEnum<TValue>::type,
+            "Inserting quantity already stored with different type");
+
         Array<TValue>& values = q.getValue<TValue>();
-        if (!std::all_of(values.begin(), values.end(), [&defaultValue](const TValue& value) { //
+        const bool equalsToDefault =
+            std::all_of(values.begin(), values.end(), [&defaultValue](const TValue& value) { //
                 return value == defaultValue;
-            })) {
-            throw InvalidSetup("Re-creating quantity with different values.");
-        }
+            });
+        checkResult(equalsToDefault, "Re-creating quantity with different values.");
+
         if (q.getOrderEnum() < order) {
             q.setOrder(order);
         }
     } else {
         const Size particleCnt = getParticleCnt();
-        ASSERT(particleCnt);
+        checkResult(particleCnt > 0, "Cannot insert quantity with default value to an empty storage.");
         quantities.insert(key, Quantity(order, defaultValue, particleCnt));
     }
     return quantities[key];
@@ -284,11 +301,13 @@ template Quantity& Storage::insert(const QuantityId, const OrderEnum, const Tens
 template <typename TValue>
 Quantity& Storage::insert(const QuantityId key, const OrderEnum order, Array<TValue>&& values) {
     if (this->has(key)) {
-        ASSERT(values.size() == this->getParticleCnt());
+        checkResult(values.size() == this->getParticleCnt(),
+            "Size of input array must match number of particles in the storage.");
+
         Quantity& q = this->getQuantity(key);
-        if (q.getValueEnum() != GetValueEnum<TValue>::type) {
-            throw InvalidSetup("Inserting quantity already stored with different type");
-        }
+        checkResult(q.getValueEnum() == GetValueEnum<TValue>::type,
+            "Inserting quantity already stored with different type");
+
         if (q.getOrderEnum() < order) {
             q.setOrder(order);
         }
@@ -301,7 +320,8 @@ Quantity& Storage::insert(const QuantityId key, const OrderEnum order, Array<TVa
         Quantity q(order, std::move(values));
         const Size size = q.size();
         quantities.insert(key, std::move(q));
-        ASSERT(quantities.empty() || size == getParticleCnt()); // size must match sizes of other quantities
+        checkResult(quantities.empty() || size == getParticleCnt(),
+            "Size of input array must match number of particles in the storage.");
 
         if (this->getQuantityCnt() == 1 && this->getMaterialCnt() > 0) {
             // this is the first inserted quantity, initialize the 'internal' matId quantity
