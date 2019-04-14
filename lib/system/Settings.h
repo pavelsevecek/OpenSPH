@@ -282,6 +282,7 @@ public:
         return entry->value.template get<TValue>();
     }
 
+    /// \copydoc get
     template <typename TValue>
     TValue get(const TEnum idx, std::enable_if_t<std::is_enum<std::decay_t<TValue>>::value, int> = 0) const {
         Optional<const Entry&> entry = entries.tryGet(idx);
@@ -728,6 +729,10 @@ enum class IoEnum {
     /// format for storing full simulation in high resolution in time.
     COMPRESSED_FILE,
 
+    /// File format used by Visualization Toolkit (VTK). Useful to view the results in Paraview and other
+    /// visualization tools.
+    VTK_FILE,
+
     /// Pkdgrav input file.
     PKDGRAV_INPUT,
 };
@@ -815,6 +820,23 @@ enum class RunSettingsId {
     /// time step.
     RUN_DIAGNOSTICS_INTERVAL,
 
+    /// Selected solver for computing derivatives of physical variables.
+    SPH_SOLVER_TYPE,
+
+    /// List of forces to compute by the solver.
+    SPH_SOLVER_FORCES,
+
+    /// Solution for evolutions of the smoothing length
+    SPH_ADAPTIVE_SMOOTHING_LENGTH,
+
+    /// Maximum number of iterations for self-consistent density computation of summation solver.
+    SPH_SUMMATION_MAX_ITERATIONS,
+
+    /// Target relative difference of density in successive iterations. Density computation in summation
+    /// solver is ended when the density changes by less than the delta or the iteration number exceeds
+    /// SOLVER_SUMMATION_MAX_ITERATIONS.
+    SPH_SUMMATION_DENSITY_DELTA,
+
     /// Index of SPH Kernel, see KernelEnum
     SPH_KERNEL,
 
@@ -885,7 +907,7 @@ enum class RunSettingsId {
 
     /// Epsilon-factor of XSPH correction (Monaghan, 1992). Value 0 turns off the correction, epsilon
     /// shouldn't be larger than 1.
-    XSPH_EPSILON,
+    SPH_XSPH_EPSILON,
 
     /// Delta-coefficient of the delta-SPH modification, see Marrone et al. 2011
     SPH_DENSITY_DIFFUSION_DELTA,
@@ -907,6 +929,9 @@ enum class RunSettingsId {
     /// lead to (slower) convergence to correct (stable) configuration, but it may cause body dissintegration
     /// if the initial conditions are to far from the stable solution.
     SPH_STABILIZATION_DAMPING,
+
+    /// Alpha parameter of the density-independent solver.
+    SPH_DI_ALPHA,
 
     /// If true, all particles have also a moment of inertia, representing a non-homogeneous mass
     /// distribution. Otherwise, particles are spherical with inertia tensor I = 2/5 mr^2
@@ -964,26 +989,6 @@ enum class RunSettingsId {
     /// breakup frequency. If zero, particles are always merged, values larger than 1 can be used to avoid
     /// fast rotators in the simulation.
     COLLISION_ROTATION_MERGE_LIMIT,
-
-    /// Selected solver for computing derivatives of physical variables.
-    SOLVER_TYPE,
-
-    /// List of forces to compute by the solver.
-    SOLVER_FORCES,
-
-    /// Solution for evolutions of the smoothing length
-    ADAPTIVE_SMOOTHING_LENGTH,
-
-    /// Number of spatial dimensions of the problem.
-    SOLVER_DIMENSIONS,
-
-    /// Maximum number of iterations for self-consistent density computation of summation solver.
-    SUMMATION_MAX_ITERATIONS,
-
-    /// Target relative difference of density in successive iterations. Density computation in summation
-    /// solver is ended when the density changes by less than the delta or the iteration number exceeds
-    /// SOLVER_SUMMATION_MAX_ITERATIONS.
-    SUMMATION_DENSITY_DELTA,
 
     /// Selected timestepping integrator
     TIMESTEPPING_INTEGRATOR,
