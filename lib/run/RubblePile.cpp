@@ -27,7 +27,7 @@ RubblePileRunPhase::RubblePileRunPhase(const CollisionParams& collisionParams, c
         .set(RunSettingsId::COLLISION_ALLOWED_OVERLAP, 0.01_f)
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SOLID_SPHERES)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
-        .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
+        .set(RunSettingsId::FINDER_LEAF_SIZE, 20)
         .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 10._f)
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::LEAP_FROG)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-2_f)

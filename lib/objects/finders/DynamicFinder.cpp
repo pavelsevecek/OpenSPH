@@ -7,7 +7,7 @@
 NAMESPACE_SPH_BEGIN
 
 DynamicFinder::DynamicFinder(const RunSettings& settings) {
-    compactThreshold = settings.get<Float>(RunSettingsId::SPH_FINDER_COMPACT_THRESHOLD);
+    compactThreshold = settings.get<Float>(RunSettingsId::FINDER_COMPACT_THRESHOLD);
 }
 
 void DynamicFinder::buildImpl(IScheduler& scheduler, ArrayView<const Vector> points) {
@@ -60,7 +60,7 @@ Float DynamicFinder::updateFinder(ArrayView<const Vector> points) {
         }
     } else {
         if (!actual || dynamic_cast<KdTree<KdNode>*>(&*actual)) {
-            actual = makeAuto<KdTree<KdNode>>();
+            actual = makeAuto<KdTree<KdNode>>(20, 50);
         }
     }
     ASSERT(actual != nullptr);

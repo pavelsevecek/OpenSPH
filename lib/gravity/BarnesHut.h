@@ -60,15 +60,15 @@ protected:
     /// Order of multipole approximation
     MultipoleOrder order;
 
+    /// \brief Maximum depth at which the nodes evaluation is parallelized.
+    ///
+    /// Child nodes are then evaluated serially on the same thread.
+    Size maxDepth;
+
     /// Gravitational constant in the selected unit system. In SI, this is simply \ref Constants::gravity.
     ///
     /// \todo generalize
     Float gravityConstant = Constants::gravity;
-
-    /// Maximum depth at which the nodes evaluation is parallelized.
-    ///
-    /// Child nodes are then evaluated serially on the same thread.
-    Size maxDepth = 50;
 
 public:
     /// \brief Constructs the Barnes-Hut gravity assuming point-like particles (with zero radius).
@@ -76,17 +76,24 @@ public:
     /// \param theta Opening angle; lower value means higher precision, but slower computation
     /// \param order Order of multipole approximation
     /// \param leafSize Maximum number of particles in a leaf
-    BarnesHut(const Float theta, const MultipoleOrder order, const Size leafSize = 20);
+    /// \param maxDepth Maximum parallel depth for tree contruction and evaluation
+    BarnesHut(const Float theta,
+        const MultipoleOrder order,
+        const Size leafSize = 25,
+        const Size maxDepth = 50);
 
     /// \brief Constructs the Barnes-Hut gravity with given smoothing kernel
     ///
     /// \param theta Opening angle; lower value means higher precision, but slower computation
     /// \param order Order of multipole approximation
+    /// \param kernel Precomputed gravity smoothing kernel
     /// \param leafSize Maximum number of particles in a leaf
+    /// \param maxDepth Maximum parallel depth for tree contruction and evaluation
     BarnesHut(const Float theta,
         const MultipoleOrder order,
         GravityLutKernel&& kernel,
-        const Size leafSize = 20);
+        const Size leafSize = 25,
+        const Size maxDepth = 50);
 
     /// Masses of particles must be strictly positive, otherwise center of mass would be undefined.
     virtual void build(IScheduler& pool, const Storage& storage) override;

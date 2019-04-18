@@ -151,8 +151,11 @@ AutoPtr<ISymmetricFinder> Factory::getFinder(const RunSettings& settings) {
     switch (id) {
     case FinderEnum::BRUTE_FORCE:
         return makeAuto<BruteForceFinder>();
-    case FinderEnum::KD_TREE:
-        return makeAuto<KdTree<KdNode>>();
+    case FinderEnum::KD_TREE: {
+        const Size leafSize = settings.get<int>(RunSettingsId::FINDER_LEAF_SIZE);
+        const Size maxDepth = settings.get<int>(RunSettingsId::FINDER_MAX_PARALLEL_DEPTH);
+        return makeAuto<KdTree<KdNode>>(leafSize, maxDepth);
+    }
     case FinderEnum::OCTREE:
         NOT_IMPLEMENTED;
         // return makeAuto<Octree>();
@@ -166,14 +169,21 @@ AutoPtr<ISymmetricFinder> Factory::getFinder(const RunSettings& settings) {
 }
 
 SharedPtr<IScheduler> Factory::getScheduler(const RunSettings& settings) {
-    if (settings.get<int>(RunSettingsId::RUN_THREAD_CNT) == 1) {
+    const Size threadCnt = settings.get<int>(RunSettingsId::RUN_THREAD_CNT);
+    if (threadCnt == 1) {
         // optimization - use directly SequentialScheduler instead of thread pool with 1 thread
         return SequentialScheduler::getGlobalInstance();
     } else {
 #ifdef SPH_USE_TBB
         return Tbb::getGlobalInstance();
 #else
-        return ThreadPool::getGlobalInstance();
+        if (threadCnt == 0) {
+            // maximal number of thread, we can use the global instance
+            return ThreadPool::getGlobalInstance();
+        } else {
+            // user wants specific number of threads, we need to create a new thread pool
+            return makeShared<ThreadPool>(threadCnt);
+        }
 #endif
     }
 }
@@ -282,8 +292,9 @@ AutoPtr<IGravity> Factory::getGravity(const RunSettings& settings) {
         const Float theta = settings.get<Float>(RunSettingsId::GRAVITY_OPENING_ANGLE);
         const MultipoleOrder order =
             MultipoleOrder(settings.get<int>(RunSettingsId::GRAVITY_MULTIPOLE_ORDER));
-        const int leafSize = settings.get<int>(RunSettingsId::GRAVITY_LEAF_SIZE);
-        gravity = makeAuto<BarnesHut>(theta, order, std::move(kernel), leafSize);
+        const Size leafSize = settings.get<int>(RunSettingsId::FINDER_LEAF_SIZE);
+        const Size maxDepth = settings.get<int>(RunSettingsId::FINDER_MAX_PARALLEL_DEPTH);
+        gravity = makeAuto<BarnesHut>(theta, order, std::move(kernel), leafSize, maxDepth);
         break;
     }
     default:

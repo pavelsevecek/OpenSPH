@@ -9,6 +9,8 @@ enum class KdChild {
 
 template <typename TNode, typename TMetric>
 void KdTree<TNode, TMetric>::buildImpl(IScheduler& scheduler, ArrayView<const Vector> points) {
+    VERBOSE_LOG
+
     static_assert(sizeof(LeafNode<TNode>) == sizeof(InnerNode<TNode>), "Sizes of nodes must match");
 
     // clean the current tree
@@ -24,11 +26,11 @@ void KdTree<TNode, TMetric>::buildImpl(IScheduler& scheduler, ArrayView<const Ve
         return;
     }
 
-    const Size nodeCnt = max(2 * points.size() / leafSize + 1, currentCnt);
+    const Size nodeCnt = max(2 * points.size() / config.leafSize + 1, currentCnt);
     nodes.resize(nodeCnt);
 
     SharedPtr<ITask> rootTask = scheduler.submit([this, &scheduler, points] {
-        this->buildTree(scheduler, ROOT_PARENT_NODE, KdChild(-1), 0, points.size(), entireBox, 0);
+        this->buildTree(scheduler, ROOT_PARENT_NODE, KdChild(-1), 0, points.size(), entireBox, 0, 0);
     });
     rootTask->wait();
 
@@ -45,7 +47,8 @@ void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
     const Size from,
     const Size to,
     const Box& box,
-    const Size slidingCnt) {
+    const Size slidingCnt,
+    const Size depth) {
 
     Box box1, box2;
     Vector boxSize = box.size();
@@ -56,7 +59,7 @@ void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
     bool slidingMidpoint = false;
     bool degeneratedBox = false;
 
-    if (to - from <= leafSize) {
+    if (to - from <= config.leafSize) {
         // enough points to fit inside one leaf
         this->addLeaf(parent, child, from, to);
         return;
@@ -145,10 +148,10 @@ void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
 
         // recurse to left and right subtree
         const Size nextSlidingCnt = slidingMidpoint ? slidingCnt + 1 : 0;
-        auto processRightSubTree = [this, &scheduler, index, to, n1, box2, nextSlidingCnt] {
-            this->buildTree(scheduler, index, KdChild::RIGHT, n1, to, box2, nextSlidingCnt);
+        auto processRightSubTree = [this, &scheduler, index, to, n1, box2, nextSlidingCnt, depth] {
+            this->buildTree(scheduler, index, KdChild::RIGHT, n1, to, box2, nextSlidingCnt, depth + 1);
         };
-        if (to - from >= 16) {
+        if (depth < config.maxParallelDepth) {
             // ad hoc decision - split the build only for few topmost nodes, there is no point in splitting
             // the work for child node in the bottom, it would only overburden the ThreadPool.
             scheduler.submit(processRightSubTree);
@@ -156,7 +159,7 @@ void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
             // otherwise simply process both subtrees in the same thread
             processRightSubTree();
         }
-        this->buildTree(scheduler, index, KdChild::LEFT, from, n1, box1, nextSlidingCnt);
+        this->buildTree(scheduler, index, KdChild::LEFT, from, n1, box1, nextSlidingCnt, depth + 1);
     }
 }
 
@@ -463,7 +466,7 @@ void iterateTree(KdTree<TNode, TMetric>& tree,
     IScheduler& scheduler,
     const TFunctor& functor,
     const Size nodeIdx,
-    const Size depth) {
+    const Size depthLimit) {
     TNode& node = tree.getNode(nodeIdx);
     if (Dir == IterateDirection::TOP_DOWN) {
         if (node.isLeaf()) {
@@ -479,15 +482,16 @@ void iterateTree(KdTree<TNode, TMetric>& tree,
     if (!node.isLeaf()) {
         InnerNode<TNode>& inner = reinterpret_cast<InnerNode<TNode>&>(node);
 
-        auto iterateRightSubtree = [&tree, &scheduler, &functor, &inner, depth] {
-            iterateTree<Dir>(tree, scheduler, functor, inner.right, depth + 1);
+        const Size newDepth = depthLimit == 0 ? 0 : depthLimit - 1;
+        auto iterateRightSubtree = [&tree, &scheduler, &functor, &inner, newDepth] {
+            iterateTree<Dir>(tree, scheduler, functor, inner.right, newDepth);
         };
-        if (depth <= ceil(log2(scheduler.getThreadCnt()))) {
+        if (newDepth > 0) {
             task = scheduler.submit(iterateRightSubtree);
         } else {
             iterateRightSubtree();
         }
-        iterateTree<Dir>(tree, scheduler, functor, inner.left, depth + 1);
+        iterateTree<Dir>(tree, scheduler, functor, inner.left, newDepth);
     }
     if (task) {
         task->wait();
@@ -508,11 +512,11 @@ void iterateTree(const KdTree<TNode, TMetric>& tree,
     IScheduler& scheduler,
     const TFunctor& functor,
     const Size nodeIdx,
-    const Size depth) {
+    const Size depthLimit) {
     // use non-const overload using const_cast, but call the functor with const reference
     auto actFunctor = [&functor](TNode& node, TNode* left, TNode* right)
                           INL { return functor(asConst(node), left, right); };
-    iterateTree<Dir>(const_cast<KdTree<TNode, TMetric>&>(tree), scheduler, actFunctor, nodeIdx, depth);
+    iterateTree<Dir>(const_cast<KdTree<TNode, TMetric>&>(tree), scheduler, actFunctor, nodeIdx, depthLimit);
 }
 
 NAMESPACE_SPH_END

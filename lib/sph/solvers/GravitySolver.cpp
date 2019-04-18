@@ -52,6 +52,8 @@ GravitySolver<TSphSolver>::~GravitySolver() = default;
 
 template <typename TSphSolver>
 void GravitySolver<TSphSolver>::loop(Storage& storage, Statistics& stats) {
+    VERBOSE_LOG
+
     // first, do asymmetric evaluation of gravity:
 
     // build gravity tree

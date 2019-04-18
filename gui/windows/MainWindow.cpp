@@ -504,7 +504,8 @@ wxBoxSizer* MainWindow::createVisBar() {
 
     particleButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-        controller->setRenderer(makeAuto<ParticleRenderer>(gui));
+        IScheduler& scheduler = *ThreadPool::getGlobalInstance();
+        controller->setRenderer(makeAuto<ParticleRenderer>(scheduler, gui));
         enableControls(0);
     });
     meshButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
@@ -524,7 +525,8 @@ wxBoxSizer* MainWindow::createVisBar() {
 
             // switch to particle renderer (fallback option)
             particleButton->SetValue(true);
-            controller->setRenderer(makeAuto<ParticleRenderer>(gui));
+            IScheduler& scheduler = *ThreadPool::getGlobalInstance();
+            controller->setRenderer(makeAuto<ParticleRenderer>(scheduler, gui));
             enableControls(0);
         }
     });

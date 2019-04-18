@@ -33,7 +33,7 @@ NBody::NBody() {
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::POINT_PARTICLES)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.5_f)
-        .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
+        .set(RunSettingsId::FINDER_LEAF_SIZE, 20)
         .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::MERGE_OR_BOUNCE)
         .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::PASS_OR_MERGE)
         .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.8_f)

@@ -207,7 +207,8 @@ static void stepPairSecondOrder(Storage& storage1,
 //-----------------------------------------------------------------------------------------------------------
 
 void EulerExplicit::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
-    // MEASURE_SCOPE("EulerExplicit::step");
+    VERBOSE_LOG
+
     // clear derivatives from previous timestep
     storage->zeroHighestDerivatives();
 
@@ -290,6 +291,8 @@ void PredictorCorrector::makeCorrections(IScheduler& scheduler) {
 }
 
 void PredictorCorrector::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
+    VERBOSE_LOG
+
     // make predictions
     this->makePredictions(scheduler);
 
@@ -316,6 +319,8 @@ void PredictorCorrector::stepImpl(IScheduler& scheduler, ISolver& solver, Statis
 //-----------------------------------------------------------------------------------------------------------
 
 void LeapFrog::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
+    VERBOSE_LOG
+
     // move positions by half a timestep (drift)
     const Float dt = timeStep;
     solver.collide(*storage, stats, 0.5_f * dt);

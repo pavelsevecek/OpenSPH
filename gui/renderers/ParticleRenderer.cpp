@@ -172,7 +172,8 @@ static void drawKey(IRenderContext& context,
     context.drawText(lineStart + Coords(0, 6), flags, scaleText + units);
 }
 
-ParticleRenderer::ParticleRenderer(const GuiSettings& settings) {
+ParticleRenderer::ParticleRenderer(IScheduler& scheduler, const GuiSettings& settings)
+    : scheduler(scheduler) {
     grid = settings.get<Float>(GuiSettingsId::VIEW_GRID_SIZE);
     background = settings.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
     renderGhosts = settings.get<bool>(GuiSettingsId::RENDER_GHOST_PARTICLES);

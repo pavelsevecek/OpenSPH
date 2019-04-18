@@ -19,8 +19,8 @@ NAMESPACE_SPH_BEGIN
 /// InitialConditions.
 class BodyView {
 private:
-    /// Reference to the storage.
-    Storage& storage;
+    /// Pointer to the storage.
+    RawPtr<Storage> storage;
 
     /// Index of this body.
     Size bodyIndex;

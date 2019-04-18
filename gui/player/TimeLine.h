@@ -39,7 +39,14 @@ inline std::map<int, Path> getSequenceFiles(const Path& inputPath) {
         }
     }
 
-    ASSERT(!fileMap.empty());
+    if (fileMap.empty()) {
+        if (outputFile.hasWildcard()) {
+            throw Exception("File sequence " + inputPath.native() + " has zero files");
+        } else {
+            throw Exception("Cannot open file " + inputPath.native());
+        }
+    }
+
     return fileMap;
 }
 
@@ -72,15 +79,23 @@ public:
     }
 
     void update(const Path& inputFile) {
-        fileMap = getSequenceFiles(inputFile);
-        OutputFile of(inputFile);
-        if (!of.hasWildcard()) {
-            currentFrame = OutputFile::getDumpIdx(inputFile).valueOr(0);
+        try {
+            fileMap = getSequenceFiles(inputFile);
+            OutputFile of(inputFile);
+            if (!of.hasWildcard()) {
+                currentFrame = OutputFile::getDumpIdx(inputFile).valueOr(0);
+            }
+        } catch (Exception& UNUSED(e)) {
+            // we already show one message box in Run, silence the error here
+            fileMap.clear();
         }
     }
 
 private:
     int positionToFrame(const wxPoint position) const {
+        if (fileMap.empty()) {
+            return 0;
+        }
         wxSize size = this->GetSize();
         const int firstFrame = fileMap.begin()->first;
         const int lastFrame = fileMap.rbegin()->first;
@@ -104,6 +119,11 @@ private:
     }
 
     void onPaint(wxPaintEvent& UNUSED(evt)) {
+        if (fileMap.empty()) {
+            // nothing to do
+            return;
+        }
+
         wxPaintDC dc(this);
         const wxSize size = dc.GetSize();
         /// \todo deduplicate

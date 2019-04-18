@@ -24,6 +24,8 @@ void drawPalette(IRenderContext& context,
 
 class ParticleRenderer : public IRenderer {
 private:
+    IScheduler& scheduler;
+
     /// Grid size
     float grid;
 
@@ -58,7 +60,7 @@ private:
     mutable std::atomic_bool shouldContinue;
 
 public:
-    explicit ParticleRenderer(const GuiSettings& settings);
+    explicit ParticleRenderer(IScheduler& scheduler, const GuiSettings& settings);
 
     virtual void initialize(const Storage& storage,
         const IColorizer& colorizer,

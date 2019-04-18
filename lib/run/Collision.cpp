@@ -17,7 +17,8 @@ NAMESPACE_SPH_BEGIN
 static RunSettings getSphSettings(const Interval timeRange,
     const Size dumpCnt,
     const Path& outputPath,
-    const std::string& fileMask) {
+    const std::string& fileMask,
+    const std::string& verboseName) {
     RunSettings settings;
     settings.set(RunSettingsId::RUN_NAME, std::string("Impact"))
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
@@ -29,6 +30,7 @@ static RunSettings getSphSettings(const Interval timeRange,
         .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
         .set(RunSettingsId::RUN_OUTPUT_PATH, outputPath.native())
         .set(RunSettingsId::RUN_OUTPUT_NAME, fileMask)
+        .set(RunSettingsId::RUN_VERBOSE_NAME, verboseName)
         .set(RunSettingsId::SPH_SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
         .set(RunSettingsId::SPH_SOLVER_FORCES,
             ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY)
@@ -43,7 +45,7 @@ static RunSettings getSphSettings(const Interval timeRange,
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SPH_KERNEL)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
         .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 5._f)
-        .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
+        .set(RunSettingsId::FINDER_LEAF_SIZE, 20)
         .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.1_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 1000)
         .set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
@@ -134,7 +136,7 @@ StabilizationRunPhase::StabilizationRunPhase(const Path& resumePath, const Phase
 void StabilizationRunPhase::create(const PhaseParams phaseParams) {
     const Path stabPath = phaseParams.outputPath / Path("stabilization.sph");
 
-    settings = getSphSettings(phaseParams.stab.range, 1, phaseParams.outputPath, "stab_%d.ssf");
+    settings = getSphSettings(phaseParams.stab.range, 1, phaseParams.outputPath, "stab_%d.ssf", "stab.log");
     settings.set(RunSettingsId::RUN_NAME, std::string("Stabilization"))
         .set(RunSettingsId::RUN_TYPE, RunTypeEnum::STABILIZATION)
         .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::NONE);
@@ -243,7 +245,7 @@ void FragmentationRunPhase::create(const PhaseParams phaseParams) {
     const Path fragPath = phaseParams.outputPath / Path("fragmentation.sph");
 
     settings = getSphSettings(
-        phaseParams.frag.range, phaseParams.frag.dumpCnt, phaseParams.outputPath, "frag_%d.ssf");
+        phaseParams.frag.range, phaseParams.frag.dumpCnt, phaseParams.outputPath, "frag_%d.ssf", "frag.log");
     settings.set(RunSettingsId::RUN_NAME, std::string("Fragmentation"))
         .set(RunSettingsId::RUN_TYPE, RunTypeEnum::SPH);
 
@@ -340,11 +342,12 @@ static RunSettings getReaccSettings(const PhaseParams phaseParams) {
         .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
         .set(RunSettingsId::RUN_OUTPUT_PATH, phaseParams.outputPath.native())
         .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("reacc_%d.ssf"))
+        .set(RunSettingsId::RUN_VERBOSE_NAME, std::string("reacc.log"))
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SOLID_SPHERES)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
-        .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
+        .set(RunSettingsId::FINDER_LEAF_SIZE, 20)
         .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::MERGE_OR_BOUNCE)
         .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::PASS_OR_MERGE)
         .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.5_f)

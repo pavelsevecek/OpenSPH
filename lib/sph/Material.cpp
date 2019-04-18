@@ -1,3 +1,4 @@
+#include "io/Logger.h"
 #include "physics/Eos.h"
 #include "physics/Rheology.h"
 #include "quantities/Quantity.h"
@@ -26,6 +27,8 @@ const IEos& EosMaterial::getEos() const {
 }
 
 void EosMaterial::create(Storage& storage, const MaterialInitialContext& UNUSED(context)) {
+    VERBOSE_LOG
+
     const Float rho0 = this->getParam<Float>(BodySettingsId::DENSITY);
     const Float u0 = this->getParam<Float>(BodySettingsId::ENERGY);
     const Size n = storage.getParticleCnt();
@@ -38,6 +41,8 @@ void EosMaterial::create(Storage& storage, const MaterialInitialContext& UNUSED(
 }
 
 void EosMaterial::initialize(IScheduler& scheduler, Storage& storage, const IndexSequence sequence) {
+    VERBOSE_LOG
+
     ArrayView<Float> rho, u, p, cs;
     tie(rho, u, p, cs) = storage.getValues<Float>(
         QuantityId::DENSITY, QuantityId::ENERGY, QuantityId::PRESSURE, QuantityId::SOUND_SPEED);
@@ -56,16 +61,22 @@ SolidMaterial::SolidMaterial(const BodySettings& body)
     : SolidMaterial(body, Factory::getEos(body), Factory::getRheology(body)) {}
 
 void SolidMaterial::create(Storage& storage, const MaterialInitialContext& context) {
+    VERBOSE_LOG
+
     EosMaterial::create(storage, context);
     rheology->create(storage, *this, context);
 }
 
 void SolidMaterial::initialize(IScheduler& scheduler, Storage& storage, const IndexSequence sequence) {
+    VERBOSE_LOG
+
     EosMaterial::initialize(scheduler, storage, sequence);
     rheology->initialize(scheduler, storage, MaterialView(this, sequence));
 }
 
 void SolidMaterial::finalize(IScheduler& scheduler, Storage& storage, const IndexSequence sequence) {
+    VERBOSE_LOG
+
     EosMaterial::finalize(scheduler, storage, sequence);
     rheology->integrate(scheduler, storage, MaterialView(this, sequence));
 }

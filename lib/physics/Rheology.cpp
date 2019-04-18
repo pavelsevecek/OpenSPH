@@ -1,4 +1,5 @@
 #include "physics/Rheology.h"
+#include "io/Logger.h"
 #include "physics/Damage.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Quantity.h"
@@ -24,6 +25,8 @@ VonMisesRheology::~VonMisesRheology() = default;
 void VonMisesRheology::create(Storage& storage,
     IMaterial& material,
     const MaterialInitialContext& context) const {
+    VERBOSE_LOG
+
     ASSERT(storage.getMaterialCnt() == 1);
     storage.insert<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO, 1._f);
 
@@ -31,6 +34,8 @@ void VonMisesRheology::create(Storage& storage,
 }
 
 void VonMisesRheology::initialize(IScheduler& scheduler, Storage& storage, const MaterialView material) {
+    VERBOSE_LOG
+
     ArrayView<Float> u = storage.getValue<Float>(QuantityId::ENERGY);
     ArrayView<Float> reducing = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
     ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
@@ -78,6 +83,7 @@ void VonMisesRheology::initialize(IScheduler& scheduler, Storage& storage, const
 }
 
 void VonMisesRheology::integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) {
+    VERBOSE_LOG
     damage->integrate(scheduler, storage, material);
 }
 
@@ -98,12 +104,15 @@ DruckerPragerRheology::~DruckerPragerRheology() = default;
 void DruckerPragerRheology::create(Storage& storage,
     IMaterial& material,
     const MaterialInitialContext& context) const {
+    VERBOSE_LOG
     ASSERT(storage.getMaterialCnt() == 1);
     storage.insert<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO, 1._f);
     damage->setFlaws(storage, material, context);
 }
 
 void DruckerPragerRheology::initialize(IScheduler& scheduler, Storage& storage, const MaterialView material) {
+    VERBOSE_LOG
+
     ArrayView<Float> u = storage.getValue<Float>(QuantityId::ENERGY);
     ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
     ArrayView<TracelessTensor> S = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
@@ -160,6 +169,7 @@ void DruckerPragerRheology::initialize(IScheduler& scheduler, Storage& storage, 
 }
 
 void DruckerPragerRheology::integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) {
+    VERBOSE_LOG
     damage->integrate(scheduler, storage, material);
 }
 

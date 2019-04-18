@@ -76,7 +76,7 @@ AutoPtr<IRenderer> Factory::getRenderer(IScheduler& scheduler, const GuiSettings
         };
         return makeAuto<NullRenderer>();
     case RendererEnum::PARTICLE:
-        return makeAuto<ParticleRenderer>(settings);
+        return makeAuto<ParticleRenderer>(scheduler, settings);
     case RendererEnum::MESH:
         return makeAuto<MeshRenderer>(scheduler, settings);
     case RendererEnum::RAYTRACER:
@@ -104,12 +104,9 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const Color
         return makeAuto<CorotatingVelocityColorizer>(getPalette(ColorizerId::VELOCITY));
     case ColorizerId::DENSITY_PERTURBATION:
         return makeAuto<DensityPerturbationColorizer>(getPalette(id));
-    case ColorizerId::SUMMED_DENSITY: {
-        RunSettings dummy(EMPTY_SETTINGS);
-        dummy.set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE);
-        dummy.set(RunSettingsId::SPH_KERNEL, KernelEnum::CUBIC_SPLINE);
-        return makeAuto<SummedDensityColorizer>(dummy, getPalette(ColorizerId(QuantityId::DENSITY)));
-    }
+    case ColorizerId::SUMMED_DENSITY:
+        return makeAuto<SummedDensityColorizer>(
+            RunSettings::getDefaults(), getPalette(ColorizerId(QuantityId::DENSITY)));
     case ColorizerId::TOTAL_ENERGY:
         return makeAuto<EnergyColorizer>(getPalette(id));
     case ColorizerId::TEMPERATURE:

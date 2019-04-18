@@ -1,6 +1,7 @@
 #include "io/Output.h"
 #include "io/Column.h"
 #include "io/FileSystem.h"
+#include "io/Logger.h"
 #include "io/Serializer.h"
 #include "objects/finders/Order.h"
 #include "quantities/IMaterial.h"
@@ -490,6 +491,8 @@ BinaryOutput::BinaryOutput(const OutputFile& fileMask, const RunTypeEnum runType
     , runTypeId(runTypeId) {}
 
 Expected<Path> BinaryOutput::dump(const Storage& storage, const Statistics& stats) {
+    VERBOSE_LOG
+
     const Path fileName = paths.getNextPath(stats);
     Outcome dirResult = FileSystem::createDirectory(fileName.parentPath());
     if (!dirResult) {
@@ -878,6 +881,8 @@ static void decompressQuantity(Deserializer<false>& deserializer,
 }
 
 Expected<Path> CompressedOutput::dump(const Storage& storage, const Statistics& stats) {
+    VERBOSE_LOG
+
     const Path fileName = paths.getNextPath(stats);
     Outcome dirResult = FileSystem::createDirectory(fileName.parentPath());
     if (!dirResult) {
@@ -979,12 +984,23 @@ static void writeDataArray(std::ofstream& of,
     const Statistics& stats,
     const ITextColumn& column) {
     switch (column.getType()) {
+    case ValueEnum::SCALAR:
+        of << R"(      <DataArray type="Float32" Name=")" << column.getName() << R"(" format="ascii">)";
+        break;
     case ValueEnum::VECTOR:
         of << R"(      <DataArray type="Float32" Name=")" << column.getName()
            << R"(" NumberOfComponents="3" format="ascii">)";
         break;
-    case ValueEnum::SCALAR:
-        of << R"(      <DataArray type="Float32" Name=")" << column.getName() << R"(" format="ascii">)";
+    case ValueEnum::INDEX:
+        of << R"(      <DataArray type="Int32" Name=")" << column.getName() << R"(" format="ascii">)";
+        break;
+    case ValueEnum::SYMMETRIC_TENSOR:
+        of << R"(      <DataArray type="Float32" Name=")" << column.getName()
+           << R"(" NumberOfComponents="6" format="ascii">)";
+        break;
+    case ValueEnum::TRACELESS_TENSOR:
+        of << R"(      <DataArray type="Float32" Name=")" << column.getName()
+           << R"(" NumberOfComponents="5" format="ascii">)";
         break;
     default:
         NOT_IMPLEMENTED;
@@ -1008,6 +1024,8 @@ VtkOutput::VtkOutput(const OutputFile& fileMask, const Flags<OutputQuantityFlag>
 }
 
 Expected<Path> VtkOutput::dump(const Storage& storage, const Statistics& stats) {
+    VERBOSE_LOG
+
     const Path fileName = paths.getNextPath(stats);
     Outcome dirResult = FileSystem::createDirectory(fileName.parentPath());
     if (!dirResult) {

@@ -7,10 +7,11 @@
 using namespace Sph;
 
 TEST_CASE("Settings set/get", "[settings]") {
-    BodySettings settings;
+    BodySettings settings = EMPTY_SETTINGS;
     settings.set(BodySettingsId::DENSITY, 100._f);
     settings.set(BodySettingsId::PARTICLE_COUNT, 50);
     settings.set(BodySettingsId::DENSITY_RANGE, Interval(1._f, 2._f));
+    settings.set(BodySettingsId::EOS, EosEnum::ANEOS);
 
     Float rho = settings.get<Float>(BodySettingsId::DENSITY);
     REQUIRE(rho == 100._f);
@@ -21,7 +22,48 @@ TEST_CASE("Settings set/get", "[settings]") {
     Interval range = settings.get<Interval>(BodySettingsId::DENSITY_RANGE);
     REQUIRE(range == Interval(1._f, 2._f));
 
-    REQUIRE_ASSERT(settings.get<int>(BodySettingsId::DENSITY_RANGE));
+    EosEnum eos = settings.get<EosEnum>(BodySettingsId::EOS);
+    REQUIRE(eos == EosEnum::ANEOS);
+}
+
+TEST_CASE("Settings set modify", "[settings]") {
+    BodySettings settings;
+    settings.set(BodySettingsId::DENSITY, 1000._f);
+    REQUIRE(settings.get<Float>(BodySettingsId::DENSITY) == 1000._f);
+
+    settings.set(BodySettingsId::EOS, EosEnum::MIE_GRUNEISEN);
+    REQUIRE(settings.get<EosEnum>(BodySettingsId::EOS) == EosEnum::MIE_GRUNEISEN);
+}
+
+TEST_CASE("Settings set flags", "[settings]") {
+    RunSettings settings;
+    settings.set(RunSettingsId::TIMESTEPPING_CRITERION,
+        TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::ACCELERATION);
+    REQUIRE_NOTHROW(settings.get<TimeStepCriterionEnum>(RunSettingsId::TIMESTEPPING_CRITERION));
+    Flags<TimeStepCriterionEnum> flags =
+        settings.getFlags<TimeStepCriterionEnum>(RunSettingsId::TIMESTEPPING_CRITERION);
+    REQUIRE(flags.hasAll(TimeStepCriterionEnum::COURANT, TimeStepCriterionEnum::ACCELERATION));
+
+    settings.set(RunSettingsId::TIMESTEPPING_CRITERION, EMPTY_FLAGS);
+    flags = settings.getFlags<TimeStepCriterionEnum>(RunSettingsId::TIMESTEPPING_CRITERION);
+    REQUIRE_FALSE(flags.hasAny(TimeStepCriterionEnum::COURANT, TimeStepCriterionEnum::ACCELERATION));
+}
+
+TEST_CASE("Settings set invalid", "[settings]") {
+    BodySettings settings = EMPTY_SETTINGS;
+    settings.set(BodySettingsId::DENSITY_RANGE, Interval(1._f, 2._f));
+    REQUIRE_THROWS_AS(settings.set(BodySettingsId::DENSITY_RANGE, 2._f), InvalidSettingsAccess);
+
+    settings.set(BodySettingsId::EOS, EosEnum::IDEAL_GAS);
+    REQUIRE_THROWS_AS(
+        settings.set(BodySettingsId::EOS, DistributionEnum::DIEHL_ET_AL), InvalidSettingsAccess);
+}
+
+TEST_CASE("Settings get invalid", "[settings]") {
+    BodySettings settings = EMPTY_SETTINGS;
+    settings.set(BodySettingsId::DENSITY_RANGE, Interval(1._f, 2._f));
+    REQUIRE_THROWS_AS(settings.get<Float>(BodySettingsId::DENSITY), InvalidSettingsAccess);
+    REQUIRE_THROWS_AS(settings.get<int>(BodySettingsId::DENSITY_RANGE), InvalidSettingsAccess);
 }
 
 TEST_CASE("Settings has", "[settings]") {
@@ -85,8 +127,9 @@ TEST_CASE("Settings enums", "[settings]") {
     Flags<TimeStepCriterionEnum> flags =
         settings.getFlags<TimeStepCriterionEnum>(RunSettingsId::TIMESTEPPING_CRITERION);
     REQUIRE(flags == (TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::ACCELERATION));
-    REQUIRE_ASSERT(settings.get<int>(RunSettingsId::RUN_OUTPUT_TYPE));
-    REQUIRE_ASSERT(settings.get<SmoothingLengthEnum>(RunSettingsId::RUN_OUTPUT_TYPE));
+    REQUIRE_THROWS_AS(settings.get<int>(RunSettingsId::RUN_OUTPUT_TYPE), InvalidSettingsAccess);
+    REQUIRE_THROWS_AS(
+        settings.get<SmoothingLengthEnum>(RunSettingsId::RUN_OUTPUT_TYPE), InvalidSettingsAccess);
 }
 
 TEST_CASE("Settings save/load basic", "[settings]") {
@@ -148,6 +191,14 @@ TEST_CASE("Settings addEntries", "[settings]") {
             CollisionHandlerEnum::PERFECT_MERGING);
     REQUIRE(settings.get<OverlapEnum>(RunSettingsId::COLLISION_OVERLAP) == OverlapEnum::INTERNAL_BOUNCE);
     REQUIRE(settings.size() == 3);
+
+    REQUIRE_NOTHROW(overrides.set(RunSettingsId::COLLISION_OVERLAP, 5._f));
+    REQUIRE_THROWS_AS(settings.addEntries(overrides), InvalidSettingsAccess);
+}
+
+TEST_CASE("Settings getEntryName", "[settings]") {
+    REQUIRE(RunSettings::getEntryName(RunSettingsId::RUN_OUTPUT_TYPE) == "run.output.type");
+    REQUIRE(RunSettings::getEntryName(RunSettingsId(-1)) == "unknown parameter");
 }
 
 template <typename T>

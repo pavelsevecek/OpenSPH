@@ -20,6 +20,8 @@ ScalarGradyKippModel::ScalarGradyKippModel(const ExplicitFlaws options)
 void ScalarGradyKippModel::setFlaws(Storage& storage,
     IMaterial& material,
     const MaterialInitialContext& context) const {
+    VERBOSE_LOG
+
     ASSERT(storage.getMaterialCnt() == 1);
     storage.insert<Float>(
         QuantityId::DAMAGE, OrderEnum::FIRST, material.getParam<Float>(BodySettingsId::DAMAGE));
@@ -100,6 +102,8 @@ void ScalarGradyKippModel::setFlaws(Storage& storage,
 }
 
 void ScalarGradyKippModel::integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) {
+    VERBOSE_LOG
+
     ArrayView<TracelessTensor> s, ds;
     s = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     ds = storage.getDt<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);

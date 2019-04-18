@@ -14,10 +14,11 @@ static_assert(sizeof(InnerNode<BarnesHutNode>) == sizeof(LeafNode<BarnesHutNode>
 static_assert(alignof(InnerNode<BarnesHutNode>) == alignof(LeafNode<BarnesHutNode>),
     "Invalid alignment of BarnesHut nodes");
 
-BarnesHut::BarnesHut(const Float theta, const MultipoleOrder order, const Size leafSize)
-    : kdTree(leafSize)
+BarnesHut::BarnesHut(const Float theta, const MultipoleOrder order, const Size leafSize, const Size maxDepth)
+    : kdTree(leafSize, maxDepth)
     , thetaInv(1.f / theta)
-    , order(order) {
+    , order(order)
+    , maxDepth(maxDepth) {
     // use default-constructed kernel; it works, because by default LutKernel has zero radius and functions
     // valueImpl and gradImpl are never called.
     // Check by assert to make sure this trick will work
@@ -28,15 +29,19 @@ BarnesHut::BarnesHut(const Float theta, const MultipoleOrder order, const Size l
 BarnesHut::BarnesHut(const Float theta,
     const MultipoleOrder order,
     GravityLutKernel&& kernel,
-    const Size leafSize)
-    : kdTree(leafSize)
+    const Size leafSize,
+    const Size maxDepth)
+    : kdTree(leafSize, maxDepth)
     , kernel(std::move(kernel))
     , thetaInv(1.f / theta)
-    , order(order) {
+    , order(order)
+    , maxDepth(maxDepth) {
     ASSERT(theta > 0._f, theta);
 }
 
 void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
+    VERBOSE_LOG
+
     // save source data
     r = storage.getValue<Vector>(QuantityId::POSITION);
 
@@ -65,10 +70,12 @@ void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
         return true;
     };
     /// \todo sequential needed because TBB cannot wait on child tasks yet
-    iterateTree<IterateDirection::BOTTOM_UP>(kdTree, SEQUENTIAL, functor);
+    iterateTree<IterateDirection::BOTTOM_UP>(kdTree, SEQUENTIAL, functor, 0, maxDepth);
 }
 
 void BarnesHut::evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const {
+    VERBOSE_LOG
+
     TreeWalkState data;
     TreeWalkResult result;
     SharedPtr<ITask> rootTask = scheduler.submit([this, &scheduler, dv, &data, &result] { //
@@ -254,8 +261,8 @@ void BarnesHut::evalNode(IScheduler& scheduler,
         auto task = makeShared<NodeTask>(*this, scheduler, dv, inner.left, std::move(childData), result);
         if (childData.depth < maxDepth) {
             // Ad-hoc decision (see also KdTree.cpp where we do the same trick);
-            // only split the build in the topmost nodes, process the bottom nodes in the same thread to avoid
-            // high scheduling overhead of ThreadPool (TBBs deal with this quite well)
+            // only split the treewalk in the topmost nodes, process the bottom nodes in the same thread to
+            // avoid high scheduling overhead of ThreadPool (TBBs deal with this quite well)
             //
             // The expression above can be modified to get optimal performance.
             scheduler.submit(std::move(task));

@@ -83,7 +83,7 @@ HexagonalPacking::HexagonalPacking(const Flags<Options> f)
 Array<Vector> HexagonalPacking::generate(IScheduler& UNUSED(scheduler),
     const Size n,
     const IDomain& domain) const {
-    PROFILE_SCOPE("HexagonalPacking::generate")
+    VERBOSE_LOG
     ASSERT(n > 0);
     const Float volume = domain.getVolume();
     const Float particleDensity = Float(n) / volume;
@@ -213,6 +213,8 @@ public:
 /// \return Functor representing the renormalized density
 template <typename TDensity>
 static auto renormalizeDensity(const IDomain& domain, Size& n, const Size error, TDensity& density) {
+    VERBOSE_LOG
+
     Float multiplier = 1._f;
     auto actDensity = [&domain, &density, &multiplier](const Vector& v) {
         if (domain.contains(v)) {
@@ -272,6 +274,8 @@ static Storage generateInitial(const IDomain& domain, const Size N, TDensity&& d
 Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
     const Size expectedN,
     const IDomain& domain) const {
+    VERBOSE_LOG
+
     Size N = expectedN;
     auto actDensity = renormalizeDensity(domain, N, params.maxDifference, params.particleDensity);
     ASSERT(abs(int(N) - int(expectedN)) <= params.maxDifference);
@@ -292,6 +296,8 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
 
     Array<Vector> deltas(N);
     for (Size k = 0; k < params.numOfIters; ++k) {
+        VerboseLogGuard guard("DiehlDistribution::generate - iteration " + std::to_string(k));
+
         // gradually decrease the strength of particle dislocation
         const Float converg = 1._f / sqrt(Float(k + 1));
 

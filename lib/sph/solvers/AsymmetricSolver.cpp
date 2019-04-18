@@ -7,7 +7,6 @@
 #include "sph/equations/HelperTerms.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
-#include "system/Profiler.h"
 #include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
@@ -22,8 +21,9 @@ IAsymmetricSolver::IAsymmetricSolver(IScheduler& scheduler,
     equations += eqs;
 }
 
-
 void IAsymmetricSolver::integrate(Storage& storage, Statistics& stats) {
+    VERBOSE_LOG
+
     // initialize all materials (compute pressure, apply yielding and damage, ...)
     for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
         PROFILE_SCOPE("IAsymmetricSolver initialize materials")
@@ -64,7 +64,7 @@ Float IAsymmetricSolver::getSearchRadius(const Storage& storage) const {
 }
 
 const IBasicFinder& IAsymmetricSolver::getFinder(ArrayView<const Vector> r) {
-    PROFILE_SCOPE("AsymmetricSolver::getFinder");
+    VERBOSE_LOG
     finder->build(scheduler, r);
     return *finder;
 }
@@ -91,7 +91,7 @@ AsymmetricSolver::~AsymmetricSolver() = default;
 
 
 void AsymmetricSolver::beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
-    PROFILE_SCOPE("AsymmetricSolver::beforeLoop ");
+    VERBOSE_LOG
 
     // initialize boundary conditions first, as they may change the number of particles (ghosts)
     bc->initialize(storage);
@@ -104,6 +104,7 @@ void AsymmetricSolver::beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
 }
 
 void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
+    VERBOSE_LOG
 
     // (re)build neighbour-finding structure; this needs to be done after all equations
     // are initialized in case some of them modify smoothing lengths
@@ -143,7 +144,7 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
 }
 
 void AsymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {
-    PROFILE_SCOPE("AsymmetricSolver::afterLoop");
+    VERBOSE_LOG
 
     // store the computed values into the storage
     Accumulated& accumulated = derivatives.getAccumulated();

@@ -78,22 +78,24 @@ public:
     }
 
     /// \brief Adds a new element into the map or sets new value of element with the same key.
-    INLINE void insert(const TKey& key, const TValue& value) {
+    INLINE TValue& insert(const TKey& key, const TValue& value) {
         Element* element = this->find(key);
         if (!element) {
-            this->add(key, value);
+            return this->add(key, value);
         } else {
             element->value = value;
+            return element->value;
         }
     }
 
     /// \copydoc insert
-    INLINE void insert(const TKey& key, TValue&& value) {
+    INLINE TValue& insert(const TKey& key, TValue&& value) {
         Element* element = this->find(key);
         if (!element) {
-            this->add(key, std::move(value));
+            return this->add(key, std::move(value));
         } else {
             element->value = std::move(value);
+            return element->value;
         }
     }
 
@@ -246,7 +248,7 @@ private:
 
     /// Adds new element into the map, assuming no element with the same key exists.
     template <typename T>
-    INLINE void add(const TKey& key, T&& value) {
+    INLINE TValue& add(const TKey& key, T&& value) {
         Size from = 0;
         Size to = data.size();
         Size mid = Size(-1);
@@ -264,6 +266,7 @@ private:
         data.resize(data.size() + 1);
         std::move_backward(data.begin() + from, data.end() - 1, data.end());
         data[from] = Element{ key, std::forward<T>(value) };
+        return data[from].value;
     }
 };
 

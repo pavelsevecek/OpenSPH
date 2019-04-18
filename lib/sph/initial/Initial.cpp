@@ -17,7 +17,7 @@
 NAMESPACE_SPH_BEGIN
 
 BodyView::BodyView(Storage& storage, const Size bodyIndex)
-    : storage(storage)
+    : storage(&storage)
     , bodyIndex(bodyIndex) {}
 
 BodyView& BodyView::displace(const Vector& dr) {
@@ -25,9 +25,9 @@ BodyView& BodyView::displace(const Vector& dr) {
     Vector actDr = dr;
     actDr[H] = 0.f;
 
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
     // Body created using InitialConditions always has a material
-    MaterialView material = storage.getMaterial(bodyIndex);
+    MaterialView material = storage->getMaterial(bodyIndex);
     for (Size i : material.sequence()) {
         r[i] += actDr;
     }
@@ -35,9 +35,9 @@ BodyView& BodyView::displace(const Vector& dr) {
 }
 
 BodyView& BodyView::addVelocity(const Vector& velocity) {
-    ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+    ArrayView<Vector> v = storage->getDt<Vector>(QuantityId::POSITION);
     // Body created using InitialConditions always has a material
-    MaterialView material = storage.getMaterial(bodyIndex);
+    MaterialView material = storage->getMaterial(bodyIndex);
     for (Size i : material.sequence()) {
         v[i] += velocity;
     }
@@ -46,8 +46,8 @@ BodyView& BodyView::addVelocity(const Vector& velocity) {
 
 BodyView& BodyView::addRotation(const Vector& omega, const Vector& origin) {
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-    MaterialView material = storage.getMaterial(bodyIndex);
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
+    MaterialView material = storage->getMaterial(bodyIndex);
     for (Size i : material.sequence()) {
         v[i] += cross(omega, r[i] - origin);
     }
@@ -59,7 +59,7 @@ Vector BodyView::getOrigin(const RotationOrigin origin) const {
     case RotationOrigin::FRAME_ORIGIN:
         return Vector(0._f);
     case RotationOrigin::CENTER_OF_MASS:
-        return CenterOfMass(bodyIndex).evaluate(storage);
+        return CenterOfMass(bodyIndex).evaluate(*storage);
     default:
         NOT_IMPLEMENTED;
     }

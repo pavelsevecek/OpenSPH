@@ -147,7 +147,10 @@ void Controller::saveState(const Path& path) {
             output = makeAuto<TextOutput>(path, "unnamed", flags);
         }
 
-        output->dump(storage, stats);
+        Expected<Path> result = output->dump(storage, stats);
+        if (!result) {
+            wxMessageBox("Cannot save the file.\n\n" + result.error(), "Fail", wxOK | wxCENTRE);
+        }
     };
 
     if (status == RunStatus::RUNNING) {

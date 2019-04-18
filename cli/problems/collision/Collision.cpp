@@ -39,7 +39,7 @@ public:
             .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SPH_KERNEL)
             .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
             .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 1._f)
-            .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
+            .set(RunSettingsId::FINDER_LEAF_SIZE, 20)
             .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f));
     }
 

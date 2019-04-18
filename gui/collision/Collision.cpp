@@ -52,7 +52,7 @@ AsteroidCollision::AsteroidCollision() {
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SPH_KERNEL)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
-        .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
+        .set(RunSettingsId::FINDER_LEAF_SIZE, 20)
         .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 5._f)
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
         .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.2_f)

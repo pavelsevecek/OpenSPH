@@ -10,6 +10,7 @@
 #include "objects/containers/Array.h"
 #include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Flags.h"
+#include "system/Timer.h"
 #include <iomanip>
 
 NAMESPACE_SPH_BEGIN
@@ -190,7 +191,9 @@ public:
     virtual void writeString(const std::string& s) override;
 };
 
-/// Class holding multiple loggers and writing messages to all of them. The objects is the owner of loggers.
+/// \brief Class holding multiple loggers and writing messages to all of them.
+///
+/// The objects is the owner of loggers.
 class MultiLogger : public ILogger {
 private:
     Array<AutoPtr<ILogger>> loggers;
@@ -211,8 +214,33 @@ public:
     }
 };
 
+/// \brief Helper logger that does not write anything.
 class NullLogger : public ILogger {
+public:
     virtual void writeString(const std::string& UNUSED(s)) override {}
 };
+
+/// \brief RAII guard writing called functions and their durations to a special verbose logger.
+class VerboseLogGuard : public Noncopyable {
+private:
+    Timer timer;
+
+public:
+    /// \brief Creates a guard, should be at the very beginning of a function/scope.
+    VerboseLogGuard(const std::string& functionName);
+
+    ~VerboseLogGuard();
+};
+
+/// \brief Creates a verbose logger for the calling thread.
+///
+/// Provided logger is stored and subsequently used by all \ref VerboseLogGuard created by the same thread.
+/// Different threads can have separate verbose loggers. This is convenient as there is no need to pass a
+/// logger instance to all relevant functions, while avoiding a global logger which has to be synchronized,
+/// etc. Verbose logging can be disabled by passing nullptr into the function.
+void setVerboseLogger(AutoPtr<ILogger>&& logger);
+
+/// \brief Helper macro, creating \brief VerboseLogGuard with name of the current function.
+#define VERBOSE_LOG VerboseLogGuard __verboseLogGuard(__PRETTY_FUNCTION__);
 
 NAMESPACE_SPH_END

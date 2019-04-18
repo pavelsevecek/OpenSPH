@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2019
 
+#include "objects/Exceptions.h"
 #include "objects/geometry/TracelessTensor.h"
 #include "objects/utility/EnumMap.h"
 #include "objects/wrappers/ClonePtr.h"
@@ -18,6 +19,9 @@
 NAMESPACE_SPH_BEGIN
 
 class Path;
+
+template <typename TEnum>
+class Settings;
 
 template <typename TEnum>
 class SettingsIterator;
@@ -61,6 +65,21 @@ struct EnumWrapper {
     }
 };
 
+/// \brief Exception thrown on invalid access to entries of a \ref Settings object.
+class InvalidSettingsAccess : public Exception {
+public:
+    template <typename TEnum>
+    explicit InvalidSettingsAccess(const TEnum key)
+        : Exception("Error accessing parameter " + Settings<TEnum>::getEntryName(key)) {}
+};
+
+template <typename TEnum>
+INLINE void checkSettingsAccess(const bool result, const TEnum key) {
+    if (!result) {
+        throw InvalidSettingsAccess(key);
+    }
+}
+
 /// \brief Generic object containing various settings and parameters of the run.
 ///
 /// Settings is a storage containing pairs key-value objects, where key is one of predefined enums. The value
@@ -69,7 +88,7 @@ struct EnumWrapper {
 /// TracelessTensor.
 ///
 /// The template cannot be used directly as it is missing default values of parameters; instead
-/// specializations for specific enums should be used. The code defines two specializations:
+/// specializations for specific enums should be used. The code defines two base specializations:
 ///     - \ref BodySettings (specialization with enum \ref BodySettingsId)
 ///     - \ref RunSettings (specialization with enum \ref RunSettingsId)
 ///
@@ -146,6 +165,16 @@ private:
             , name(name)
             , value(EnumWrapper(T(flags.value())))
             , desc(desc) {}
+
+        template <typename T>
+        INLINE bool hasType(std::enable_if_t<!std::is_enum<T>::value, int> = 0) const {
+            return value.has<T>();
+        }
+
+        template <typename T>
+        INLINE bool hasType(std::enable_if_t<std::is_enum<T>::value, int> = 0) const {
+            return value.has<EnumWrapper>() && value.get<EnumWrapper>().typeHash == typeid(T).hash_code();
+        }
     };
 
     FlatMap<TEnum, Entry> entries;
@@ -182,16 +211,19 @@ public:
     /// \param idx Key identifying the value. This key can be used to retrive the value later.
     /// \param value Value being stored into settings.
     /// \returns Reference to the settings object, allowing to queue multiple set functions.
+    /// \throws InvalidSettingsAccess if settings value of different type than the one currently stored.
     template <typename TValue>
     Settings& set(const TEnum idx,
         TValue&& value,
         std::enable_if_t<!std::is_enum<std::decay_t<TValue>>::value, int> = 0) {
-        // either the values is new or the type is the same as the previous value
-        ASSERT(!entries.contains(idx) || entries[idx].value.template has<std::decay_t<TValue>>());
-        if (!entries.contains(idx)) {
-            entries.insert(idx, Entry{});
+        Optional<Entry&> entry = entries.tryGet(idx);
+        if (!entry) {
+            Entry& newEntry = entries.insert(idx, Entry{});
+            newEntry.value = std::forward<TValue>(value);
+        } else {
+            checkSettingsAccess(entry->template hasType<std::decay_t<TValue>>(), idx);
+            entry->value = std::forward<TValue>(value);
         }
-        entries[idx].value = std::forward<TValue>(value);
         return *this;
     }
 
@@ -200,64 +232,68 @@ public:
     Settings& set(const TEnum idx,
         TValue&& value,
         std::enable_if_t<std::is_enum<std::decay_t<TValue>>::value, int> = 0) {
-        // either the values is new or the type is the same as the previous value
-        ASSERT(!entries.contains(idx) || entries[idx].value.template has<EnumWrapper>());
-        if (!entries.contains(idx)) {
-            entries.insert(idx, Entry{});
+        Optional<Entry&> entry = entries.tryGet(idx);
+        if (!entry) {
+            Entry& newEntry = entries.insert(idx, Entry{});
+            newEntry.value = EnumWrapper(value);
+        } else {
+            checkSettingsAccess(entry->template hasType<std::decay_t<TValue>>(), idx);
+            entry->value = EnumWrapper(value);
         }
-        entries[idx].value = EnumWrapper(value);
         return *this;
     }
 
     /// \brief Saves flags into the settings.
     ///
-    /// This is internally saved as integer. There is no type-checking, flags can be freely converted to the
-    /// underlying enum or even int using function \ref setFlags and \ref getFlags.
+    /// Flags are not considered as a different type, they are internally saved as enum wrapper.
+    /// \returns Reference to the settings object.
+    /// \throws InvalidSettingsAccess if settings value of different type than the one currently stored.
     template <typename TValue, typename = std::enable_if_t<std::is_enum<TValue>::value>>
     Settings& set(const TEnum idx, const Flags<TValue> flags) {
-        ASSERT(!entries.contains(idx) || entries[idx].value.template has<EnumWrapper>());
-        if (!entries.contains(idx)) {
-            entries.insert(idx, Entry{});
-        }
-        entries[idx].value = EnumWrapper(TValue(flags.value()));
-        return *this;
+        return this->set(idx, EnumWrapper(TValue(flags.value())));
     }
 
     /// \brief Clear flags of given parameter in settings.
+    ///
+    /// This function can be used only if the value is already stored in the settings.
+    /// \returns Reference to the settings object.
+    /// \throws InvalidSettingsAccess if the value is not stored or has a different type.
     Settings& set(const TEnum idx, EmptyFlags) {
-        // can be used only if the value is already there and we know the type
-        EnumWrapper currentValue = entries[idx].value.template get<EnumWrapper>();
-        if (!entries.contains(idx)) {
-            entries.insert(idx, Entry{});
-        }
-        entries[idx].value = EnumWrapper(0, currentValue.typeHash);
+        Optional<Entry&> entry = entries.tryGet(idx);
+        checkSettingsAccess(entry && entry->value.template has<EnumWrapper>(), idx);
+        entry->value.template get<EnumWrapper>().value = 0;
         return *this;
     }
 
-    /// \brief todo
+    /// \brief Special setter for value of type EnumWrapper.
+    ///
+    /// While usually the enum can be stored directly, this overload is useful for deserialization, etc.
+    /// \returns Reference to the settings object.
+    /// \throws InvalidSettingsAccess if settings value of different type than the one currently stored.
     Settings& set(const TEnum idx, const EnumWrapper ew) {
-#ifdef SPH_DEBUG
-        if (entries.contains(idx)) {
-            const EnumWrapper current = entries[idx].value.template get<EnumWrapper>();
-            ASSERT(current.typeHash == ew.typeHash, current.typeHash, ew.typeHash);
+        Optional<Entry&> entry = entries.tryGet(idx);
+        if (entry) {
+            Optional<EnumWrapper> current = entry->value.template tryGet<EnumWrapper>();
+            checkSettingsAccess(current && current->typeHash == ew.typeHash, idx);
         }
-#endif
-        if (!entries.contains(idx)) {
-            entries.insert(idx, Entry{});
-        }
-        entries[idx].value = ew;
+        this->set(idx, ew, 0); // zero needed to call the other overload
         return *this;
     }
 
     /// \brief Adds entries from different \ref Settings object into this one, overriding current entries.
     ///
     /// Entries not stored in the given settings are kept unchanged.
+    /// \throws InvalidSettingsAccess if the settings share entries that differ in type.
     void addEntries(const Settings& settings) {
         for (const typename SettingsIterator<TEnum>::IteratorValue& iv : settings) {
-            if (!entries.contains(iv.id)) {
-                entries.insert(iv.id, getDefaults().entries[iv.id]);
+            Optional<Entry&> entry = entries.tryGet(iv.id);
+            if (!entry) {
+                Entry& newEntry = entries.insert(iv.id, getDefaults().entries[iv.id]);
+                newEntry.value = iv.value;
+            } else {
+                checkSettingsAccess(entry->value.getTypeIdx() == iv.value.getTypeIdx(), iv.id);
+                entry->value = iv.value;
             }
-            entries[iv.id].value = iv.value;
         }
     }
 
@@ -270,15 +306,17 @@ public:
 
     /// \brief Returns a value of given type from the settings.
     ///
-    /// Value must be stored in settings and must have corresponding type, checked by assert.
+    /// Value must be stored in settings and must have corresponding type.
     /// \tparam TValue Type of the value we wish to return. This type must match the type of the saved
     ///                quantity.
     /// \param idx Key of the value.
     /// \returns Value correponsing to given key.
+    /// \throws InvalidSettingsAccess if value is not stored in the settings or has a different type.
     template <typename TValue>
     TValue get(const TEnum idx, std::enable_if_t<!std::is_enum<std::decay_t<TValue>>::value, int> = 0) const {
         Optional<const Entry&> entry = entries.tryGet(idx);
-        ASSERT(entry, int(idx));
+        checkSettingsAccess(entry && entry->value.template has<TValue>(), idx);
+
         return entry->value.template get<TValue>();
     }
 
@@ -286,9 +324,10 @@ public:
     template <typename TValue>
     TValue get(const TEnum idx, std::enable_if_t<std::is_enum<std::decay_t<TValue>>::value, int> = 0) const {
         Optional<const Entry&> entry = entries.tryGet(idx);
-        ASSERT(entry, int(idx));
-        EnumWrapper wrapper = entry->value.template get<EnumWrapper>();
-        ASSERT(wrapper.typeHash == typeid(TValue).hash_code());
+        checkSettingsAccess(entry && entry->value.template has<EnumWrapper>(), idx);
+
+        const EnumWrapper wrapper = entry->value.template get<EnumWrapper>();
+        checkSettingsAccess(wrapper.typeHash == typeid(TValue).hash_code(), idx);
         return TValue(wrapper.value);
     }
 
@@ -302,6 +341,20 @@ public:
         return Flags<TValue>::fromValue(std::underlying_type_t<TValue>(value));
     }
 
+    /// \brief Returns the human-readable name of the entry with given index.
+    ///
+    /// If the index does not correspond to any parameter, returns string "unknown parameter".
+    static std::string getEntryName(const TEnum idx) {
+        const Settings& settings = getDefaults();
+        Optional<const Entry&> entry = settings.entries.tryGet(idx);
+        if (entry) {
+            return entry->name;
+        } else {
+            // idx might be invalid if loaded from older config file
+            return "unknown parameter";
+        }
+    }
+
     /// \brief Checks if the given entry is stored in the settings.
     bool has(const TEnum idx) const {
         return entries.contains(idx);
@@ -309,11 +362,11 @@ public:
 
     /// \brief Checks if the given entry has specified type.
     ///
-    /// Entry must be in settings, checked by assert.
+    /// \throws InvalidSettingsAccess if the entry is not in settings.
     template <typename TValue>
     bool hasType(const TEnum idx) const {
         Optional<const Entry&> entry = entries.tryGet(idx);
-        ASSERT(entry, int(idx));
+        checkSettingsAccess(bool(entry), idx);
         return entry->value.template has<TValue>();
     }
 
@@ -798,6 +851,12 @@ enum class RunSettingsId {
     /// Path of a file where the log is printed, used only when selected logger is LoggerEnum::FILE
     RUN_LOGGER_FILE,
 
+    /// Enables verbose log of a simulation.
+    RUN_VERBOSE_ENABLE,
+
+    /// Path of a file where the verbose log is printed.
+    RUN_VERBOSE_NAME,
+
     /// Starting time and ending time of the run. Run does not necessarily have to start at t = 0.
     RUN_TIME_RANGE,
 
@@ -842,11 +901,6 @@ enum class RunSettingsId {
 
     /// Structure for searching nearest neighbours of particles
     SPH_FINDER,
-
-    /// Used by DynamicFinder. Maximum relative distance between center of mass and geometric center of the
-    /// bounding box for which VoxelFinder is used. For larger offsets of center of mass, K-d tree is used
-    /// instead.
-    SPH_FINDER_COMPACT_THRESHOLD,
 
     /// Specifies a discretization of SPH equations; see \ref DiscretizationEnum.
     SPH_DISCRETIZATION,
@@ -946,9 +1000,6 @@ enum class RunSettingsId {
     /// Opening angle Theta for multipole approximation of gravity
     GRAVITY_OPENING_ANGLE,
 
-    /// Maximum number of particles in a leaf node.
-    GRAVITY_LEAF_SIZE,
-
     /// Order of multipole expansion
     GRAVITY_MULTIPOLE_ORDER,
 
@@ -1032,6 +1083,19 @@ enum class RunSettingsId {
     /// Global rotation of the coordinate system around axis (0, 0, 1) passing through origin. If non-zero,
     /// causes non-intertial acceleration.
     FRAME_ANGULAR_FREQUENCY,
+
+    /// Maximum number of particles in a leaf node.
+    FINDER_LEAF_SIZE,
+
+    /// Used by DynamicFinder. Maximum relative distance between center of mass and geometric center of the
+    /// bounding box for which VoxelFinder is used. For larger offsets of center of mass, K-d tree is used
+    /// instead.
+    FINDER_COMPACT_THRESHOLD,
+
+    /// Maximal in a a tree depth to be processed in parallel. While a larger value implies better
+    /// distribution of work between threads, it also comes up with performance penalty due to scheduling
+    /// overhead.
+    FINDER_MAX_PARALLEL_DEPTH,
 
     /// Computational domain, enforced by boundary conditions
     DOMAIN_TYPE,
