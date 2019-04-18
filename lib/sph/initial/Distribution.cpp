@@ -147,7 +147,7 @@ Array<Vector> HexagonalPacking::generate(IScheduler& UNUSED(scheduler),
 }
 
 //-----------------------------------------------------------------------------------------------------------
-// DiehlEtAlDistribution implementation
+// DiehlDistribution implementation
 //-----------------------------------------------------------------------------------------------------------
 
 DiehlDistribution::DiehlDistribution(const DiehlParams& params)

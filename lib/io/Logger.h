@@ -232,12 +232,10 @@ public:
     ~VerboseLogGuard();
 };
 
-/// \brief Creates a verbose logger for the calling thread.
+/// \brief Creates a global verbose logger.
 ///
-/// Provided logger is stored and subsequently used by all \ref VerboseLogGuard created by the same thread.
-/// Different threads can have separate verbose loggers. This is convenient as there is no need to pass a
-/// logger instance to all relevant functions, while avoiding a global logger which has to be synchronized,
-/// etc. Verbose logging can be disabled by passing nullptr into the function.
+/// Provided logger is stored and subsequently used by all \ref VerboseLogGuard objects. There can be only one
+/// logger at the same time. Verbose logging can be disabled by passing nullptr into the function.
 void setVerboseLogger(AutoPtr<ILogger>&& logger);
 
 /// \brief Helper macro, creating \brief VerboseLogGuard with name of the current function.

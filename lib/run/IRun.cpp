@@ -141,15 +141,6 @@ void IRun::run() {
             makeAuto<DiagnosticsTrigger>(diagnostics, callbacks.get(), logger, diagnosticsInterval));
     }
 
-    // setup verbose logger
-    if (settings.get<bool>(RunSettingsId::RUN_VERBOSE_ENABLE)) {
-        Path outputDir = Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_PATH));
-        Path file = Path(settings.get<std::string>(RunSettingsId::RUN_VERBOSE_NAME));
-        setVerboseLogger(makeAuto<FileLogger>(outputDir / file, FileLogger::Options::ADD_TIMESTAMP));
-    } else {
-        setVerboseLogger(nullptr);
-    }
-
     Float nextOutput = timeRange.lower();
     logger->write(
         "Running ", settings.get<std::string>(RunSettingsId::RUN_NAME), " for ", timeRange.size(), " s");

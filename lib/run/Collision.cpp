@@ -155,6 +155,14 @@ void StabilizationRunPhase::create(const PhaseParams phaseParams) {
     } else {
         logger->write("No stabilization settings found, defaults saved to file '", stabPath.native(), "'");
     }
+
+    if (settings.get<bool>(RunSettingsId::RUN_VERBOSE_ENABLE)) {
+        Path file = Path(settings.get<std::string>(RunSettingsId::RUN_VERBOSE_NAME));
+        setVerboseLogger(
+            makeAuto<FileLogger>(phaseParams.outputPath / file, FileLogger::Options::ADD_TIMESTAMP));
+    } else {
+        setVerboseLogger(nullptr);
+    }
 }
 
 void StabilizationRunPhase::setUp() {
@@ -262,6 +270,14 @@ void FragmentationRunPhase::create(const PhaseParams phaseParams) {
         logger->write("Loaded fragmentation settings from file '", fragPath.native(), "'");
     } else {
         logger->write("No fragmentation settings found, defaults saved to file '", fragPath.native(), "'");
+    }
+
+    if (settings.get<bool>(RunSettingsId::RUN_VERBOSE_ENABLE)) {
+        Path file = Path(settings.get<std::string>(RunSettingsId::RUN_VERBOSE_NAME));
+        setVerboseLogger(
+            makeAuto<FileLogger>(phaseParams.outputPath / file, FileLogger::Options::ADD_TIMESTAMP));
+    } else {
+        setVerboseLogger(nullptr);
     }
 }
 
@@ -391,6 +407,14 @@ void ReaccumulationRunPhase::create(const PhaseParams phaseParams) {
         logger->write("Loaded reaccumulation settings from file '", reaccPath.native(), "'");
     } else {
         logger->write("No reaccumulation settings found, defaults saved to file '", reaccPath.native(), "'");
+    }
+
+    if (settings.get<bool>(RunSettingsId::RUN_VERBOSE_ENABLE)) {
+        Path file = Path(settings.get<std::string>(RunSettingsId::RUN_VERBOSE_NAME));
+        setVerboseLogger(
+            makeAuto<FileLogger>(phaseParams.outputPath / file, FileLogger::Options::ADD_TIMESTAMP));
+    } else {
+        setVerboseLogger(nullptr);
     }
 }
 

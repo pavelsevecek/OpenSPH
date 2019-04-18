@@ -79,10 +79,10 @@ struct VerboseLogThreadContext {
     int indent = 0;
 };
 
-static thread_local VerboseLogThreadContext logThreadContext;
+static VerboseLogThreadContext context;
 
 VerboseLogGuard::VerboseLogGuard(const std::string& functionName) {
-    if (!logThreadContext.logger) {
+    if (!context.logger) {
         // quick exit in case no logger is used
         return;
     }
@@ -100,29 +100,28 @@ VerboseLogGuard::VerboseLogGuard(const std::string& functionName) {
     printedName = replaceFirst(printedName, "int ", "");
     printedName = replaceFirst(printedName, "auto ", "");
 
-    const std::string prefix =
-        std::string(4 * logThreadContext.indent, ' ') + std::to_string(logThreadContext.indent);
-    logThreadContext.logger->writeString(prefix + "-" + printedName + "\n");
-    logThreadContext.indent++;
+    const std::string prefix = std::string(4 * context.indent, ' ') + std::to_string(context.indent);
+    context.logger->writeString(prefix + "-" + printedName + "\n");
+    context.indent++;
 }
 
 VerboseLogGuard::~VerboseLogGuard() {
-    if (!logThreadContext.logger) {
+    if (!context.logger) {
         // quick exit in case no logger is used
         return;
     }
 
-    --logThreadContext.indent;
-    const std::string prefix = std::string(4 * logThreadContext.indent, ' ');
-    logThreadContext.logger->writeString(
+    --context.indent;
+    const std::string prefix = std::string(4 * context.indent, ' ');
+    context.logger->writeString(
         prefix + "  took " + std::to_string(int(timer.elapsed(TimerUnit::MILLISECOND))) + "ms\n");
-    ASSERT(logThreadContext.indent >= 0);
+    ASSERT(context.indent >= 0);
 }
 
 void setVerboseLogger(AutoPtr<ILogger>&& logger) {
-    ASSERT(logThreadContext.indent == 0);
-    logThreadContext.logger = std::move(logger);
-    logThreadContext.indent = 0;
+    ASSERT(context.indent == 0);
+    context.logger = std::move(logger);
+    context.indent = 0;
 }
 
 
