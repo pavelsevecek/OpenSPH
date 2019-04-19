@@ -28,24 +28,9 @@ public:
     virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView sequence) = 0;
 };
 
-
-enum class ExplicitFlaws {
-    /// Distribute flaws uniformly (to random particles), see Benz & Asphaug (1994) \cite Benz_Asphaug_1994,
-    /// Sec. 3.3.1
-    UNIFORM,
-
-    /// Explicitly assigned flaws by user, used mainly for testing purposes. Values must be set in quantity
-    ASSIGNED,
-};
-
 /// Scalar damage describing fragmentation of the body according to Grady-Kipp model (Grady and Kipp, 1980)
 class ScalarGradyKippModel : public IFractureModel {
-private:
-    ExplicitFlaws options;
-
 public:
-    explicit ScalarGradyKippModel(const ExplicitFlaws options = ExplicitFlaws::UNIFORM);
-
     virtual void setFlaws(Storage& storage,
         IMaterial& material,
         const MaterialInitialContext& context) const override;

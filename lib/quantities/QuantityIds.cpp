@@ -58,8 +58,6 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Explicit crack growth", L"???", ValueEnum::SCALAR);
     case QuantityId::N_FLAWS:
         return QuantityMetadata("Number of flaws", L"N_flaws", ValueEnum::INDEX);
-    case QuantityId::FLAW_ACTIVATION_IDX:
-        return QuantityMetadata("Flaw activation idx", L"Act", ValueEnum::INDEX);
     case QuantityId::STRESS_REDUCING:
         return QuantityMetadata("Yielding reduce", L"Red", ValueEnum::SCALAR);
     case QuantityId::VELOCITY_GRADIENT:

@@ -78,11 +78,6 @@ enum class QuantityId {
     /// Number of explicit flaws per particle
     N_FLAWS = 14,
 
-    /// Explicitly specified activation 'index' between 0 and N_particles. Lower value mean lower activation
-    /// strain rate of a flaw. Used only for testing purposes, by default activation strain rates are
-    /// automatically computed from Weibull distribution.
-    FLAW_ACTIVATION_IDX = 15,
-
     /// Total stress reduction factor due to damage and yielding. Is always scalar.
     STRESS_REDUCING = 16,
 

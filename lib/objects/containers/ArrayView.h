@@ -106,7 +106,7 @@ public:
         return this->actSize == 0;
     }
 
-    /// Returns a subset of the arrayview.
+    /// \brief Returns a subset of the arrayview.
     INLINE ArrayView subset(const TCounter start, const TCounter length) const {
         ASSERT(start + length <= size());
         return ArrayView(data + start, length);
@@ -120,7 +120,7 @@ public:
         return data != nullptr;
     }
 
-    /// Comparison operator, comparings arrayviews element-by-element.
+    /// \brief Comparison operator, comparing arrayviews element-by-element.
     bool operator==(const ArrayView& other) const {
         if (actSize != other.actSize) {
             return false;
@@ -133,12 +133,14 @@ public:
         return true;
     }
 
-    /// Inequality operator
+    /// \brief Inequality operator
     bool operator!=(const ArrayView& other) const {
         return !(*this == other);
     }
 
-    /// Prints content of arrayview to stream. Stored values must have overloaded << operator.
+    /// \brief Prints content of arrayview to stream.
+    ///
+    /// Stored values must have overloaded << operator.
     friend std::ostream& operator<<(std::ostream& stream, const ArrayView& array) {
         for (const T& t : array) {
             stream << t << std::endl;

@@ -657,10 +657,16 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
         "Elastic modulus of the material." },
     { BodySettingsId::RAYLEIGH_SOUND_SPEED,    "material.rayleigh_speed",      0.4_f,
         "Speed of crack propagation, in units of local sound speed." },
-    { BodySettingsId::WEIBULL_COEFFICIENT,     "material.weibull_coefficient", 4.e35_f,
+    { BodySettingsId::WEIBULL_COEFFICIENT,     "material.weibull.coefficient", 4.e35_f,
         "Coefficient k of Weibull distribution." },
-    { BodySettingsId::WEIBULL_EXPONENT,        "material.weibull_exponent",    9._f,
+    { BodySettingsId::WEIBULL_EXPONENT,        "material.weibull.exponent",    9._f,
         "Coefficienet m of Weibull distribution." },
+    { BodySettingsId::WEIBULL_SAMPLE_DISTRIBUTIONS, "material.weibull.sample_distributions", true,
+        "If true, flaw counts and activation thresholds are samples from Poisson and exponential distribution, "
+        "respectively. Otherwise, flaws and activation thresholds are accumulated for each particle until all "
+        "particles have at least one flaw, as in Benz and Asphaug (1994). The latter is needed for reproducibility "
+        "of older results and compatibility with SPH5, otherwise the distribution sampling should be used, "
+        "especially for simulation with large (N > 1e7) number of particles." },
     { BodySettingsId::BULK_VISCOSITY,          "material.bulk_viscosity",      1.e20_f,
         "Bulk viscosity of the material. Applicable is internal friction is used." },
     { BodySettingsId::SHEAR_VISCOSITY,         "material.shear_viscosity",     1.e20_f,

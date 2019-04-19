@@ -1,6 +1,7 @@
 #include "math/rng/Rng.h"
 #include "catch.hpp"
 #include "math/MathUtils.h"
+#include "post/Analysis.h"
 #include "tests/Approx.h"
 
 using namespace Sph;
@@ -57,4 +58,89 @@ TEST_CASE("BenzAsphaugRng", "[rng]") {
     REQUIRE(rng() == approx(0.281886548, eps));
     REQUIRE(rng() == approx(0.525000393, eps));
     REQUIRE(rng() == approx(0.314126790, eps));
+}
+
+template <typename TExpected>
+static void testDistribution(Array<Float>& values,
+    const Float eps,
+    const bool discrete,
+    const TExpected& distribution) {
+    Array<Post::HistPoint> points;
+    Float sum = 0._f;
+    if (discrete) {
+        points.resize(Size(*std::max_element(values.begin(), values.end())) + 1);
+        for (Size i = 0; i < points.size(); ++i) {
+            points[i].count = 0;
+            points[i].value = i;
+        }
+        for (Float value : values) {
+            const Size i = Size(value);
+            points[i].count++;
+        }
+        sum = values.size();
+
+    } else {
+        Post::HistogramParams params;
+        // for smooth functions, we can use small number of bins to boost accuracy
+        params.binCnt = 100;
+
+        points = Post::getDifferentialHistogram(values, params);
+        const Float dx = points[1].value - points[0].value;
+        for (Post::HistPoint p : points) {
+            sum += p.count * dx;
+        }
+    }
+
+    Float actual = 0._f, expected = 0._f;
+    for (Post::HistPoint p : points) {
+        actual = Float(p.count) / sum;
+        expected = distribution(p.value);
+
+        if (actual != approx(expected, eps)) {
+            break;
+        }
+    }
+    // will print the offending values if test fails
+    REQUIRE(actual == approx(expected, eps));
+}
+
+TEST_CASE("Sample normal distribution", "[rng]") {
+    UniformRng rng;
+    Array<Float> values;
+    Float mu = 5._f;
+    Float sigma = 1.5_f;
+
+    for (Size i = 0; i < 10000000; ++i) {
+        values.push(sampleNormalDistribution(rng, mu, sigma));
+    }
+
+    testDistribution(values, 1.e-3_f, false, [mu, sigma](const Float x) {
+        return 1._f / sqrt(2._f * PI * sqr(sigma)) * exp(-sqr(x - mu) / (2._f * sqr(sigma)));
+    });
+}
+
+TEST_CASE("Sample exponential distribution", "[rng]") {
+    UniformRng rng;
+    Array<Float> values;
+    Float lambda = 2.8_f;
+
+    for (Size i = 0; i < 10000000; ++i) {
+        values.push(sampleExponentialDistribution(rng, lambda));
+    }
+
+    testDistribution(values, 2.e-3_f, false, [lambda](const Float x) { return lambda * exp(-lambda * x); });
+}
+
+TEST_CASE("Sample Poisson distribution", "[rng]") {
+    UniformRng rng;
+    Array<Float> values;
+    Float lambda = 15._f;
+
+    for (Size i = 0; i < 1000000; ++i) {
+        values.push(samplePoissonDistribution(rng, lambda));
+    }
+
+    testDistribution(values, 0.01_f, true, [lambda](const Float x) {
+        return pow(lambda, x) * exp(-lambda) / std::tgamma(x + 1);
+    });
 }

@@ -113,4 +113,52 @@ AutoPtr<RngWrapper<TRng>> makeRng(TArgs&&... args) {
     return makeAuto<RngWrapper<TRng>>(std::forward<TArgs>(args)...);
 }
 
+/// \brief Generates a random number from normal distribution, using Box-Muller algorithm.
+///
+/// Could be optimized (it discards the second independent value), but it's the algorith easiest to implement.
+template <typename TRng>
+INLINE Float sampleNormalDistribution(TRng& rng, const Float mu, const Float sigma) {
+    static const Float epsilon = std::numeric_limits<Float>::min();
+
+    Float u1, u2;
+    do {
+        u1 = rng();
+        u2 = rng();
+    } while (u1 <= epsilon);
+
+    const Float z1 = sqrt(-2._f * log(u1)) * cos(2._f * PI * u2);
+    ASSERT(isReal(z1));
+    return z1 * sigma + mu;
+}
+
+/// \brief Generates a random number from exponential distribution.
+///
+/// Uses inverse transform sampling.
+template <typename TRng>
+INLINE Float sampleExponentialDistribution(TRng& rng, const Float lambda) {
+    static const Float epsilon = std::numeric_limits<Float>::min();
+
+    Float u;
+    do {
+        u = rng();
+    } while (u <= epsilon);
+    return -log(rng()) / lambda;
+}
+
+/// \brief Generates a random integer from Poisson distribution.
+///
+/// Uses the Knuth's algorithm.
+template <typename TRng>
+INLINE Size samplePoissonDistribution(TRng& rng, const Float lambda) {
+    const Float l = exp(-lambda);
+    Size k = 0;
+    Float p = 1;
+    do {
+        k = k + 1;
+        const Float u = rng();
+        p = p * u;
+    } while (p > l);
+    return k - 1;
+}
+
 NAMESPACE_SPH_END

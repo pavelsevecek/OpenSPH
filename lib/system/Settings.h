@@ -1323,6 +1323,8 @@ enum class BodySettingsId {
 
     WEIBULL_EXPONENT = 49,
 
+    WEIBULL_SAMPLE_DISTRIBUTIONS = 66,
+
     BULK_VISCOSITY = 50,
 
     SHEAR_VISCOSITY = 51,
