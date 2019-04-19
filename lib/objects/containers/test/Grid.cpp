@@ -2,6 +2,7 @@
 #include "catch.hpp"
 #include "utils/RecordType.h"
 #include "utils/Utils.h"
+#include <iostream>
 
 using namespace Sph;
 
