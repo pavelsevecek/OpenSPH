@@ -17,7 +17,7 @@ Expected<Path> getExecutablePath() {
     char result[PATH_MAX];
     ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
     if (count != -1) {
-        Path path(result);
+        Path path(std::string(result, count));
         return path.parentPath();
     } else {
         return makeUnexpected<Path>("Unknown error");

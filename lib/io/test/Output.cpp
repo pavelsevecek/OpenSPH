@@ -381,6 +381,7 @@ TEST_CASE("CompressedOutput no compression", "[output]") {
 }
 
 TEST_CASE("CompressedOutput RLE", "[output]") {
+    SKIP_TEST;
     testCompression(CompressionEnum::RLE);
 }
 

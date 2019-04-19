@@ -30,6 +30,10 @@ public:
     INLINE Atomic(const Atomic& other)
         : Atomic(other.value.load()) {}
 
+    INLINE Type get() const {
+        return value;
+    }
+
     INLINE Atomic& operator=(const Type f) {
         value.store(f);
         return *this;
