@@ -60,6 +60,9 @@ TEST_CASE("SparseGrid iterate", "[grid]") {
         Indices expectedIdxs;
         tieToTuple(expectedValue, expectedIdxs) = expected[visitedCnt];
         REQUIRE(value == expectedValue);
+        if (!all(idxs == expectedIdxs)) {
+            std::cout << "Fail for " << idxs << " == " << expectedIdxs << std::endl;
+        }
         REQUIRE(all(idxs == expectedIdxs));
         visitedCnt++;
     });

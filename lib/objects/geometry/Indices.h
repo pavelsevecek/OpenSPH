@@ -139,13 +139,4 @@ INLINE bool all(const Indices& i) {
     return i[0] && i[1] && i[2];
 }
 
-/*/// Returns a content of array of vectors, where each component is given by index.
-INLINE auto getByMultiIndex(ArrayView<Vector> values, const Indices& idxs) {
-    return tieIndices(values[idxs[0]][0], values[idxs[1]][1], values[idxs[2]][2]);
-}
-
-INLINE auto getByMultiIndex(ArrayView<Indices> values, const Indices& idxs) {
-    return tieIndices(values[idxs[0]][0], values[idxs[1]][1], values[idxs[2]][2]);
-}*/
-
 NAMESPACE_SPH_END

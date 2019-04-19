@@ -168,7 +168,7 @@ TEST_CASE("SymmetricTensor trace", "[symmetrictensor]") {
     REQUIRE(SymmetricTensor::identity().trace() == 3);
     REQUIRE(SymmetricTensor::null().trace() == 0);
 
-    REQUIRE((t - SymmetricTensor::identity() * t.trace() / 3._f).trace() == 0);
+    REQUIRE((t - SymmetricTensor::identity() * t.trace() / 3._f).trace() == approx(0._f));
 }
 
 TEST_CASE("SymmetricTensor abs", "[symmetrictensor]") {
