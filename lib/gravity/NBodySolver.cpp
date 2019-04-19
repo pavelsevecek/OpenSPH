@@ -1,6 +1,7 @@
 #include "gravity/NBodySolver.h"
 #include "gravity/BruteForceGravity.h"
 #include "gravity/Collision.h"
+#include "io/Logger.h"
 #include "objects/finders/NeighbourFinder.h"
 #include "quantities/Quantity.h"
 #include "sph/Diagnostics.h"
@@ -115,6 +116,8 @@ void NBodySolver::rotateLocalFrame(Storage& storage, const Float dt) {
 }
 
 void NBodySolver::integrate(Storage& storage, Statistics& stats) {
+    VERBOSE_LOG;
+
     Timer timer;
     gravity->build(scheduler, storage);
 
@@ -129,12 +132,6 @@ void NBodySolver::integrate(Storage& storage, Statistics& stats) {
         dv[i][H] = 0._f;
     }
     stats.set(StatisticsId::GRAVITY_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
-
-    /*if (useInertiaTensor) {
-        integrateOmega(storage);
-    } else {
-        // do nothing, for spherical particles the omega is constant
-    }*/
 }
 
 class CollisionStats {
@@ -227,6 +224,8 @@ struct CollisionRecord {
 };
 
 void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
+    VERBOSE_LOG
+
     Timer timer;
     if (rigidBody.use) {
         rotateLocalFrame(storage, dt);
@@ -359,6 +358,8 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
 }
 
 void NBodySolver::create(Storage& storage, IMaterial& UNUSED(material)) const {
+    VERBOSE_LOG
+
     // dependent quantity, computed from angular momentum
     storage.insert<Vector>(QuantityId::ANGULAR_FREQUENCY, OrderEnum::ZERO, Vector(0._f));
 
