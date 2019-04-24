@@ -643,8 +643,13 @@ static Expected<Storage> loadMaterial(const Size matIdx,
             DeserializerDispatcher<true>{ deserializer }(entry);
             // little hack: EnumWrapper is loaded with typeHash 0 (as it cannot be serialized, so we have to
             // set it to correct value, otherwise it would trigger asserts in set function.
-            setTypeHash(body, paramId, entry);
-            body.set(paramId, entry);
+            try {
+                setTypeHash(body, paramId, entry);
+                body.set(paramId, entry);
+            } catch (Exception& UNUSED(e)) {
+                // can be a parameter from newer version, silence the exception for backwards compatibility
+                /// \todo report as some warning
+            }
         });
     }
 
