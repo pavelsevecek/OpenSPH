@@ -1,20 +1,16 @@
 # OpenSPH
 
-<table>
-<tr><td>Interactive visualization during the simulation</td></tr>
-<tr><td>Node-based setup of the simulation</td></tr>
+Interactive visualization during the simulation
+Node-based setup of the simulation
 
 <img src="http://sirrah.troja.mff.cuni.cz/~sevecek/sph/components.png" width="450">
 <img src="http://sirrah.troja.mff.cuni.cz/~sevecek/sph/editor.png" width="450">
 
 
-
 Visualization and analysis of saved simulations
-
-<img src="http://sirrah.troja.mff.cuni.cz/~sevecek/sph/sequence.png" width="450">
-
 Customizable UI
 
+<img src="http://sirrah.troja.mff.cuni.cz/~sevecek/sph/sequence.png" width="450">
 <img src="http://sirrah.troja.mff.cuni.cz/~sevecek/sph/adjustui.png" width="450">
 
 ## About
