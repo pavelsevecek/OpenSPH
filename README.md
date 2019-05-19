@@ -1,8 +1,11 @@
 # OpenSPH
 
-|Interactive visualization during the simulation                                       | Node-based setup of the simulation |
-|                                                                                      |                                    |
-|<img src="http://sirrah.troja.mff.cuni.cz/~sevecek/sph/components.png" width="450">   | <img src="http://sirrah.troja.mff.cuni.cz/~sevecek/sph/editor.png" width="450"> |
+<table>
+<tr><td>Interactive visualization during the simulation</td></tr>
+<tr><td>Node-based setup of the simulation</td></tr>
+
+<img src="http://sirrah.troja.mff.cuni.cz/~sevecek/sph/components.png" width="450">
+<img src="http://sirrah.troja.mff.cuni.cz/~sevecek/sph/editor.png" width="450">
 
 
 
