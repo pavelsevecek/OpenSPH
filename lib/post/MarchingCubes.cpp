@@ -3,6 +3,7 @@
 #include "quantities/Storage.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
+#include "system/Profiler.h"
 #include "system/Settings.h"
 #include "thread/ThreadLocal.h"
 
@@ -295,12 +296,17 @@ const int MC_TRIANGLES[256][16] =
 const Size IDXS1[12] = { 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3 };
 const Size IDXS2[12] = { 1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7 };
 
-/// \brief Parallelized version of \ref Box::iterateWithIndices
 template <typename TFunctor>
-void iterateWithIndices(IScheduler& scheduler, const Box& box, const Vector& step, TFunctor&& functor) {
+bool MarchingCubes::iterateWithIndices(const Box& box, const Vector& step, TFunctor&& functor) {
+    MEASURE_SCOPE("MC - evaluating field");
     ASSERT(box != Box::EMPTY());
 
-    auto task = [&step, &box, &functor](const Size k) {
+    Size reportCnt = max(Size(box.size()[Z] / step[Z]), 1u);
+    Size reportStep = max(reportCnt / 100, 1u);
+    std::atomic_int counter{ 0 };
+    std::atomic_bool shouldContinue{ true };
+    auto task = [this, &step, &box, &functor, reportStep, reportCnt, &counter, &shouldContinue](
+                    const Size k) {
         const Float z = box.lower()[Z] + k * step[Z];
         Size i = 0;
         Size j = 0;
@@ -310,18 +316,27 @@ void iterateWithIndices(IScheduler& scheduler, const Box& box, const Vector& ste
                 functor(Indices(i, j, k), Vector(x, y, z));
             }
         }
+
+        if (progressCallback && (++counter % reportStep == 0)) {
+            shouldContinue = shouldContinue && progressCallback(Float(counter) / Float(reportCnt));
+        }
     };
     parallelFor(scheduler, 0, box.size()[Z] / step[Z] + 1, task);
+    return shouldContinue;
 }
 
 MarchingCubes::MarchingCubes(IScheduler& scheduler,
     const Float surfaceLevel,
-    const SharedPtr<IScalarField>& field)
+    const SharedPtr<IScalarField>& field,
+    Function<bool(Float progress)> progressCallback)
     : scheduler(scheduler)
     , surfaceLevel(surfaceLevel)
-    , field(field) {}
+    , field(field)
+    , progressCallback(progressCallback) {}
 
 void MarchingCubes::addComponent(const Box& box, const Float gridResolution) {
+    MEASURE_SCOPE("MC addComponent");
+
     const Vector dr = min(Vector(gridResolution), box.size() * (1._f - EPS));
     cached.phi.clear();
     // multiply by (1 + EPS) to handle case where box size is divisible by dr
@@ -336,9 +351,13 @@ void MarchingCubes::addComponent(const Box& box, const Float gridResolution) {
         return idxs[X] + (cnts[X] + 1) * idxs[Y] + (cnts[X] + 1) * (cnts[Y] + 1) * idxs[Z];
     };
     cached.phi.resize((cnts[X] + 1) * (cnts[Y] + 1) * (cnts[Z] + 1));
-    iterateWithIndices(scheduler, box, dr, [this, &mapping](const Indices& idxs, const Vector& v) { //
-        cached.phi[mapping(idxs)] = (*field)(v);
-    });
+    bool shouldContinue =
+        this->iterateWithIndices(box, dr, [this, &mapping](const Indices& idxs, const Vector& v) { //
+            cached.phi[mapping(idxs)] = (*field)(v);
+        });
+    if (!shouldContinue) {
+        return;
+    }
 
     // for each non-empty grid, find all intersecting triangles
     Box boxWithoutLast(box.lower(), box.upper() - dr);
@@ -368,7 +387,10 @@ void MarchingCubes::addComponent(const Box& box, const Float gridResolution) {
             this->intersectCell(cell, tri.local());
         }
     };
-    iterateWithIndices(scheduler, boxWithoutLast, dr, intersect);
+    shouldContinue = this->iterateWithIndices(boxWithoutLast, dr, intersect);
+    if (!shouldContinue) {
+        return;
+    }
 
     for (Array<Triangle>& triTl : tri) {
         triangles.pushAll(triTl);
@@ -567,7 +589,9 @@ INLINE Float weight(const Vector& r1, const Vector& r2) {
 Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
     const Storage& storage,
     const Float gridResolution,
-    const Float surfaceLevel) {
+    const Float surfaceLevel,
+    Function<bool(Float progress)> progressCallback) {
+    MEASURE_SCOPE("getSurfaceMesh");
 
     // (according to http://www.cc.gatech.edu/~turk/my_papers/sph_surfaces.pdf)
     const Float lambda = 0.9_f;
@@ -665,7 +689,7 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
     } else {
         field = makeShared<FallbackField>(scheduler, r, maxH, std::move(kernel), std::move(finder));
     }
-    MarchingCubes mc(scheduler, surfaceLevel, field);
+    MarchingCubes mc(scheduler, surfaceLevel, field, progressCallback);
 
     // 6. find the surface using marching cubes
     mc.addComponent(box, gridResolution);

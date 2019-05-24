@@ -38,7 +38,7 @@ public:
     }
 
     ~AutoPtr() {
-        alignedDelete(ptr);
+        this->reset();
     }
 
     INLINE AutoPtr& operator=(const AutoPtr& other) = delete;
@@ -48,6 +48,11 @@ public:
         reset();
         ptr = other.ptr;
         other.ptr = nullptr;
+        return *this;
+    }
+
+    INLINE AutoPtr& operator=(std::nullptr_t) {
+        this->reset();
         return *this;
     }
 

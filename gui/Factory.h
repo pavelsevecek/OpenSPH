@@ -14,6 +14,7 @@ struct Pixel;
 class Interval;
 class IBrdf;
 class IScheduler;
+class Project;
 enum class ColorizerId;
 
 namespace Factory {
@@ -26,7 +27,7 @@ namespace Factory {
 
     AutoPtr<IBrdf> getBrdf(const GuiSettings& settings);
 
-    AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const ColorizerId id);
+    AutoPtr<IColorizer> getColorizer(const Project& project, const ColorizerId id);
 
     Palette getPalette(const ColorizerId id);
 

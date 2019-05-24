@@ -7,24 +7,29 @@ SUBDIRS = lib \
           cli/batch \
           cli/problems \
           gui \
-          gui/collision \
           gui/launcherGui \
-          gui/nbody \
-          gui/rubblepile \
-          gui/player \
           test \
           bench \
-          post
+          post \
+          examples/01_hello_asteroid \
+          examples/02_death_star \
+          examples/03_van_der_waals \
+          examples/04_simple_collision \
+          examples/05_fragmentation_reaccumulation \
+          examples/06_heat_diffusion
+
 
 run.depends = lib
 launcher.depends = lib
 batch.depends = lib
 problems.depends = lib
 gui.depends = lib
-collision.depends = lib gui
-player.depends = lib gui
-nbody.depends = lib gui
 launcherGui.depends = lib gui
-rubblepile.depends = lib gui
 test.depends = lib
 bench.depends = lib
+01_hello_asteroid.depends = lib
+02_death_star.depends = lib
+03_van_der_waals.depends = lib
+04_simple_collision = lib
+05_fragmentation_reaccumulation = lib
+06_heat_diffusion = lib

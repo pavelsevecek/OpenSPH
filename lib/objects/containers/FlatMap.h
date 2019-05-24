@@ -1,7 +1,7 @@
 #pragma once
 
 /// \file FlatMap.h
-/// \brief Key-value associative container
+/// \brief Key-value associative container implemented as a sorted array
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2019
 
@@ -20,17 +20,11 @@ INLINE constexpr bool compare(const TKey& key1, const TKey& key2) {
     return key1 < key2;
 }
 
-/// Hint used to optimize the map queries
-enum class MapOptimization {
-    LARGE, ///< Optimize the map for large numbers of elements (generally larger than 10)
-    SMALL, ///< Optimize the map for small numbers of elements (generally smaller than 10)
-};
-
 /// \brief Container of key-value pairs.
 ///
 /// Elements are stored in an array sorted according to key. The value look-up is O(log(N)), while inserting
 /// or deletion of elements is currently O(N).
-template <typename TKey, typename TValue, MapOptimization Optimize = MapOptimization::LARGE>
+template <typename TKey, typename TValue>
 class FlatMap : public Noncopyable {
 public:
     /// Element of the container.
@@ -204,42 +198,21 @@ public:
 private:
     /// Returns a pointer to the element with given key or nullptr if no such element exists.
     INLINE Element* find(const TKey& key) {
-        if (Optimize == MapOptimization::LARGE) {
-            Size from = 0;
-            Size to = data.size();
-            Size mid = Size(-1);
+        Size from = 0;
+        Size to = data.size();
+        Size mid = Size(-1);
 
-            while (from < to && from != mid) {
-                mid = (from + to) / 2;
-                if (compare(data[mid].key, key)) {
-                    from = mid + 1;
-                } else if (data[mid].key == key) {
-                    return &data[mid];
-                } else {
-                    to = mid;
-                }
-            }
-            return nullptr;
-        } else {
-            if (data.empty()) {
-                return nullptr;
-            }
-            const Size mid = data.size() / 2;
+        while (from < to && from != mid) {
+            mid = (from + to) / 2;
             if (compare(data[mid].key, key)) {
-                for (Size i = mid + 1; i < data.size(); ++i) {
-                    if (data[i].key == key) {
-                        return &data[i];
-                    }
-                }
+                from = mid + 1;
+            } else if (data[mid].key == key) {
+                return &data[mid];
             } else {
-                for (Size i = 0; i <= mid; ++i) {
-                    if (data[i].key == key) {
-                        return &data[i];
-                    }
-                }
+                to = mid;
             }
-            return nullptr;
         }
+        return nullptr;
     }
 
     INLINE const Element* find(const TKey& key) const {
@@ -270,9 +243,5 @@ private:
     }
 };
 
-
-/// Alias for the map optimized for small number of elements
-template <typename TKey, typename TValue>
-using SmallMap = FlatMap<TKey, TValue, MapOptimization::SMALL>;
 
 NAMESPACE_SPH_END

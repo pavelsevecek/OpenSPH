@@ -15,7 +15,6 @@ NAMESPACE_SPH_BEGIN
 /// evolved using energy equation.
 class SummationSolver : public SymmetricSolver {
 private:
-    Float eta;
     Size maxIteration;
     Float targetDensityDifference;
     bool adaptiveH;

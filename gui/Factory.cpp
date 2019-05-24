@@ -1,5 +1,5 @@
 #include "gui/Factory.h"
-#include "gui/Config.h"
+#include "gui/Project.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/renderers/Brdf.h"
@@ -134,7 +134,9 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const Color
     case ColorizerId::AGGREGATE_ID:
         return makeAuto<AggregateIdColorizer>(settings);
     case ColorizerId::FLAG:
-        return makeAuto<FlagColorizer>(settings);
+        return makeAuto<IndexColorizer>(QuantityId::FLAG, settings);
+    case ColorizerId::MATERIAL_ID:
+        return makeAuto<IndexColorizer>(QuantityId::MATERIAL_ID, settings);
     case ColorizerId::BEAUTY:
         return makeAuto<BeautyColorizer>();
     case ColorizerId::MARKER:
@@ -161,10 +163,10 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const Color
     }
 }
 
-AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings, const ColorizerId id) {
-    AutoPtr<IColorizer> colorizer = Sph::getColorizer(settings, id);
+AutoPtr<IColorizer> Factory::getColorizer(const Project& project, const ColorizerId id) {
+    AutoPtr<IColorizer> colorizer = Sph::getColorizer(project.getGuiSettings(), id);
     Optional<Palette> palette = colorizer->getPalette();
-    if (palette && Config::getPalette(colorizer->name(), palette.value())) {
+    if (palette && project.getPalette(colorizer->name(), palette.value())) {
         colorizer->setPalette(palette.value());
     }
     return colorizer;

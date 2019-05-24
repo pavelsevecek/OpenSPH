@@ -10,8 +10,7 @@ using namespace Sph;
 
 TEST_CASE("Pairing", "[diagnostics]") {
     Storage storage;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    InitialConditions conds(pool, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
     BodySettings settings;
     settings.set(BodySettingsId::PARTICLE_COUNT, 100);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 3._f), settings);

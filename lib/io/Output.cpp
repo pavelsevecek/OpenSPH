@@ -10,9 +10,9 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// ----------------------------------------------------------------------------------------------------------
-/// OutputFile
-/// ----------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------
+// OutputFile
+// ----------------------------------------------------------------------------------------------------------
 
 OutputFile::OutputFile(const Path& pathMask, const Size firstDumpIdx)
     : pathMask(pathMask) {
@@ -95,9 +95,9 @@ IOutput::IOutput(const OutputFile& fileMask)
     ASSERT(!fileMask.getMask().empty());
 }
 
-/// ----------------------------------------------------------------------------------------------------------
-/// TextOutput/Input
-/// ----------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------
+// TextOutput/Input
+// ----------------------------------------------------------------------------------------------------------
 
 static void printHeader(std::ostream& ofs, const std::string& name, const ValueEnum type) {
     switch (type) {
@@ -327,9 +327,9 @@ TextInput& TextInput::addColumn(AutoPtr<ITextColumn>&& column) {
     return *this;
 }
 
-/// ----------------------------------------------------------------------------------------------------------
-/// GnuplotOutput
-/// ----------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------
+// GnuplotOutput
+// ----------------------------------------------------------------------------------------------------------
 
 Expected<Path> GnuplotOutput::dump(const Storage& storage, const Statistics& stats) {
     const Expected<Path> path = TextOutput::dump(storage, stats);
@@ -345,9 +345,9 @@ Expected<Path> GnuplotOutput::dump(const Storage& storage, const Statistics& sta
     return path;
 }
 
-/// ----------------------------------------------------------------------------------------------------------
-/// BinaryOutput/Input
-/// ----------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------
+// BinaryOutput/Input
+// ----------------------------------------------------------------------------------------------------------
 
 namespace {
 
@@ -500,7 +500,7 @@ Expected<Path> BinaryOutput::dump(const Storage& storage, const Statistics& stat
             "Cannot create directory " + fileName.parentPath().native() + ": " + dirResult.error());
     }
 
-    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
+    const Float time = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
 
     Serializer<true> serializer(fileName);
     // file format identifier
@@ -794,9 +794,9 @@ Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) const {
     return std::move(info);
 }
 
-/// ----------------------------------------------------------------------------------------------------------
-/// CompressedOutput/Input
-/// ----------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------
+// CompressedOutput/Input
+// ----------------------------------------------------------------------------------------------------------
 
 CompressedOutput::CompressedOutput(const OutputFile& fileMask,
     const CompressionEnum compression,
@@ -930,7 +930,9 @@ Expected<Path> CompressedOutput::dump(const Storage& storage, const Statistics& 
 }
 
 Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& stats) {
-    storage.removeAll();
+    // create any material
+    storage = Storage(Factory::getMaterial(BodySettings::getDefaults()));
+
     Deserializer<false> deserializer(path);
     std::string identifier;
     Float time;
@@ -980,9 +982,9 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
     return SUCCESS;
 }
 
-/// ----------------------------------------------------------------------------------------------------------
-/// VtkOutput
-/// ----------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------
+// VtkOutput
+// ----------------------------------------------------------------------------------------------------------
 
 static void writeDataArray(std::ofstream& of,
     const Storage& storage,
@@ -1082,9 +1084,9 @@ Expected<Path> VtkOutput::dump(const Storage& storage, const Statistics& stats) 
     }
 }
 
-/// ----------------------------------------------------------------------------------------------------------
-/// PkdgravOutput/Input
-/// ----------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------
+// PkdgravOutput/Input
+// ----------------------------------------------------------------------------------------------------------
 
 PkdgravOutput::PkdgravOutput(const OutputFile& fileMask, PkdgravParams&& params)
     : IOutput(fileMask)
@@ -1218,6 +1220,32 @@ Outcome PkdgravInput::load(const Path& path, Storage& storage, Statistics& stats
     m = order.apply(m);
     rho = order.apply(rho);
     omega = order.apply(omega);
+
+    return SUCCESS;
+}
+
+// ----------------------------------------------------------------------------------------------------------
+// TabInput
+// ----------------------------------------------------------------------------------------------------------
+
+TabInput::TabInput() {
+    input = makeAuto<TextInput>(
+        OutputQuantityFlag::MASS | OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY);
+}
+
+TabInput::~TabInput() = default;
+
+Outcome TabInput::load(const Path& path, Storage& storage, Statistics& stats) {
+    Outcome result = input->load(path, storage, stats);
+    if (!result) {
+        return result;
+    }
+
+    storage.getQuantity(QuantityId::POSITION).setOrder(OrderEnum::SECOND);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    for (Size i = 0; i < r.size(); ++i) {
+        r[i][H] = 1.e-5_f;
+    }
 
     return SUCCESS;
 }

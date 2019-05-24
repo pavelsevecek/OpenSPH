@@ -15,6 +15,7 @@ struct EmptyFlags {};
 
 const EmptyFlags EMPTY_FLAGS;
 
+/// \brief Wrapper of an integral value providing functions for reading and modifying individual bits.
 template <typename TEnum>
 class Flags {
 private:
@@ -22,78 +23,88 @@ private:
     TValue data = TValue(0);
 
 public:
-    /// Constructs empty flags.
+    /// \brief Constructs empty flags.
     constexpr Flags() = default;
 
-    /// Constucts flags by copying other object.
+    /// \brief Constucts flags by copying other object.
     constexpr Flags(const Flags& other)
         : data(other.data) {}
 
-    /// Constructs object given a list of flags. Every parameter must be a power of 2, checked by assert.
+    /// \brief Constructs object given a list of flags.
+    ///
+    /// Every parameter must be a power of 2, checked by assert.
     template <typename... TArgs>
     constexpr Flags(const TEnum flag, const TArgs... others)
         : data(construct(flag, others...)) {}
 
-    /// Tag to construct empty flags; use global constant EMPTY_FLAGS to construct empty Flags object.
+    /// \brief Constructs empty flags.
+    ///
+    /// Use global constant EMPTY_FLAGS to construct empty Flags object.
     constexpr Flags(const EmptyFlags) {}
 
-    /// Constructs object from underlying value. Useful when using flags as a parameter in settings. Does not
-    /// check if the input value can be represented by TEnum flags, use sparingly.
+    /// \brief Constructs object from underlying value.
+    ///
+    /// Useful when using flags as a parameter in settings. Does not check if the input value can be
+    /// represented by TEnum flags, use sparingly.
     constexpr static Flags fromValue(const TValue value) {
         Flags flags;
         flags.data = value;
         return flags;
     }
 
-    /// Copies other Flags object.
+    /// \brief Copies other Flags object.
     Flags& operator=(const Flags& other) {
         data = other.data;
         return *this;
     }
 
-    /// Assigns a single flag, all previous flags are deleted. The flag must be a power of 2.
+    /// \brief Assigns a single flag, all previous flags are deleted.
+    ///
+    /// The flag must be a power of 2.
     Flags& operator=(const TEnum flag) {
         ASSERT(isPower2(TValue(flag)));
         data = TValue(flag);
         return *this;
     }
 
-    /// Deletes all flags.
+    /// \brief Deletes all flags.
     Flags& operator=(const EmptyFlags) {
         data = TValue(0);
         return *this;
     }
 
-    /// Checks if the object has a given flag.
+    /// \brief Checks if the object has a given flag.
     INLINE constexpr bool has(const TEnum flag) const {
         return (data & TValue(flag)) != 0;
     }
 
-    /// Checks if the object has any of given flags.
+    /// \brief Checks if the object has any of given flags.
     template <typename... TArgs>
     INLINE constexpr bool hasAny(const TEnum flag, const TArgs... others) const {
         return has(flag) || hasAny(others...);
     }
 
-    /// Checks if the object has all of given flags.
+    /// \brief Checks if the object has all of given flags.
     template <typename... TArgs>
     INLINE constexpr bool hasAll(const TEnum flag, const TArgs... others) const {
         return has(flag) && hasAll(others...);
     }
 
-    /// Adds a single flag into the object. All previously stored flags are kept unchanged.
+    /// \brief Adds a single flag into the object. All previously stored flags are kept unchanged.
     INLINE void set(const TEnum flag) {
         ASSERT(isPower2(TValue(flag)));
         data |= TValue(flag);
     }
 
-    /// Removed a single flag. If the flag is not stored, function does nothing.
+    /// \brief Removed a single flag.
+    ///
+    /// If the flag is not stored, function does nothing.
     INLINE void unset(const TEnum flag) {
         ASSERT(isPower2(TValue(flag)));
         data &= ~TValue(flag);
     }
 
-    /// Sets or removes given flag based given boolean value.
+    /// \brief Sets or removes given flag based given boolean value.
     INLINE void setIf(const TEnum flag, const bool use) {
         ASSERT(isPower2(TValue(flag)));
         if (use) {
@@ -103,12 +114,12 @@ public:
         }
     }
 
-    /// Returns the underlying value.
+    /// \brief Returns the underlying value.
     INLINE TValue value() const {
         return data;
     }
 
-    /// Returns a Flags object by adding a single flag to currently stored values.
+    /// \brief Returns a Flags object by adding a single flag to currently stored values.
     INLINE constexpr Flags operator|(const TEnum flag) const {
         ASSERT(isPower2(TValue(flag)));
         Flags<TEnum> flags(*this);
@@ -116,7 +127,7 @@ public:
         return flags;
     }
 
-    /// Checks for equality with other Flags object.
+    /// \brief Checks for equality with other Flags object.
     INLINE bool operator==(const Flags& other) const {
         return data == other.data;
     }
@@ -146,5 +157,16 @@ template <typename TEnum, typename = std::enable_if_t<IsEnumClass<TEnum>::value>
 INLINE constexpr Flags<TEnum> operator|(const TEnum flag1, const TEnum flag2) {
     return Flags<TEnum>(flag1, flag2);
 }
+
+template <typename T>
+struct FlagsTraits {
+    static constexpr bool isFlags = false;
+};
+
+template <typename T>
+struct FlagsTraits<Flags<T>> {
+    static constexpr bool isFlags = true;
+    using Type = T;
+};
 
 NAMESPACE_SPH_END

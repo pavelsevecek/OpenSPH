@@ -80,12 +80,17 @@ public:
         SPH5_COMPATIBILITY = 1 << 2
     };
 
-    HexagonalPacking(const Flags<Options> flags = Options::CENTER);
-
-    virtual Array<Vector> generate(IScheduler& scheduler, const Size n, const IDomain& domain) const override;
-
 private:
     Flags<Options> flags;
+
+    Function<bool(Float)> progressCallback;
+
+public:
+    HexagonalPacking(const Flags<Options> flags = Options::CENTER);
+
+    HexagonalPacking(const Flags<Options> flags, Function<bool(Float)> progressCallback);
+
+    virtual Array<Vector> generate(IScheduler& scheduler, const Size n, const IDomain& domain) const override;
 };
 
 /// \brief Parameters of \ref DiehlDistribution.
@@ -118,6 +123,13 @@ struct DiehlParams {
     ///
     /// Keep default, only for testing.
     Float small = 0.1_f;
+
+    /// \brief Optional callback executed once every iteration.
+    ///
+    /// The generator passes the iteration number and the current particle distribution as parameters. Functor
+    /// may return false to cancel the iterative algorithm prematurely and return the current particle
+    /// distribution.
+    Function<bool(Size iter, ArrayView<const Vector> r)> onIteration = nullptr;
 };
 
 /// \brief Distribution with given particle density.

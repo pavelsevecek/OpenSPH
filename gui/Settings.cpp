@@ -39,9 +39,11 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Width of the rendered image (in pixels)." },
     { GuiSettingsId::VIEW_HEIGHT,           "view.height",          600,
         "Height of the rendered image (in pixels)." },
-    { GuiSettingsId::VIEW_MAX_FRAMERATE,    "view.max_framerate",   100, // ms
+    { GuiSettingsId::VIEW_MAX_FRAMERATE,    "view.max_framerate",   10, // ms
         "Minimal refresh period of the drawed bitmap. Used to avoid visualization unnecessarily affecting "
         "the performance of the simulation." },
+    { GuiSettingsId::REFRESH_ON_TIMESTEP,   "view.refresh_on_timestep",  true,
+        "If true, the image is automatically refreshed every timestep, otherwise manual refresh is needed." },
     { GuiSettingsId::VIEW_GRID_SIZE,        "view.grid_size",       0._f,
         "Step of the grid drawn into the bitmap. If zero, no grid is drawn." },
     { GuiSettingsId::SURFACE_RESOLUTION,    "surface.resolution",   100._f,  // m
@@ -137,5 +139,6 @@ const Settings<GuiSettingsId>& Settings<GuiSettingsId>::getDefaults() {
 
 // Explicit instantiation
 template class Settings<GuiSettingsId>;
+template class SettingsIterator<GuiSettingsId>;
 
 NAMESPACE_SPH_END

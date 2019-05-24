@@ -2,7 +2,6 @@
 #include "catch.hpp"
 #include "utils/RecordType.h"
 #include "utils/Utils.h"
-#include <iostream>
 
 using namespace Sph;
 
@@ -61,9 +60,6 @@ TEST_CASE("SparseGrid iterate", "[grid]") {
         Indices expectedIdxs;
         tieToTuple(expectedValue, expectedIdxs) = expected[visitedCnt];
         REQUIRE(value == expectedValue);
-        if (!all(idxs == expectedIdxs)) {
-            std::cout << "Fail for " << idxs << " == " << expectedIdxs << std::endl;
-        }
         REQUIRE(all(idxs == expectedIdxs));
         visitedCnt++;
     });

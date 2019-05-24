@@ -527,6 +527,23 @@ public:
     virtual Outcome load(const Path& path, Storage& storage, Statistics& stats) override;
 };
 
+/// \brief Simple text input file, having particle masses, positions and velocities on separate lines.
+///
+/// This format is commonly used by N-body simulations.
+class TabInput : public IInput {
+private:
+    // AutoPtr to avoid instantiation, ITextColumn is forward-declared only
+    AutoPtr<TextInput> input;
+
+public:
+    TabInput();
+
+    ~TabInput();
+
+    virtual Outcome load(const Path& path, Storage& storage, Statistics& stats) override;
+};
+
+
 class NullOutput : public IOutput {
 public:
     NullOutput()
@@ -536,5 +553,6 @@ public:
         return Path();
     }
 };
+
 
 NAMESPACE_SPH_END

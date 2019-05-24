@@ -1,4 +1,5 @@
 #include "Sph.h"
+#include <iostream>
 
 using namespace Sph;
 
@@ -137,7 +138,7 @@ public:
 
 class Hde : public IRun {
 public:
-    virtual void setUp() override {
+    virtual void setUp(SharedPtr<Storage> storage) override {
         settings.set(RunSettingsId::RUN_NAME, std::string("Heat diffusion"));
 
         // No need for output, we do that ourselvers here
@@ -152,7 +153,7 @@ public:
         material->albedo = 0.1_f;
 
         // Create the storage, passing our custom material
-        storage = makeShared<Storage>(std::move(material));
+        *storage = Storage(std::move(material));
 
         // Set the solver and create the quantities
         solver = makeAuto<HdeSolver>();
@@ -160,9 +161,9 @@ public:
 
         // Set up the integrator with contant time step, for simplicity
         settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)
-            .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE)
+            .set(RunSettingsId::TIMESTEPPING_CRITERION, EMPTY_FLAGS)
             .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.5_f)
-            .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 60._f * 60._f * 12._f));
+            .set(RunSettingsId::RUN_END_TIME, 60._f * 60._f * 12._f);
 
         // Create our custom progress logger
         triggers.pushBack(makeAuto<ProgressLogger>());
@@ -171,12 +172,17 @@ public:
         logWriter = makeAuto<NullLogWriter>();
     }
 
-    virtual void tearDown(const Statistics& UNUSED(stats)) override {}
+    virtual void tearDown(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {}
 };
 
 int main() {
-    Hde simulation;
-    simulation.setUp();
-    simulation.run();
+    try {
+        Hde simulation;
+        Storage storage;
+        simulation.run(storage);
+    } catch (Exception& e) {
+        std::cout << "Error during simulation: " << e.what() << std::endl;
+        return -1;
+    }
     return 0;
 }

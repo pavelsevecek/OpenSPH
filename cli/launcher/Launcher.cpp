@@ -1,8 +1,12 @@
 /// \brief Executable running a single impact simulation, using command-line parameters
 
-
 #include "Sph.h"
-#include "run/Collision.h"
+#include "run/Node.h"
+#include "run/workers/InitialConditionWorkers.h"
+#include "run/workers/IoWorkers.h"
+#include "run/workers/MaterialWorkers.h"
+#include "run/workers/ParticleWorkers.h"
+#include "run/workers/SimulationWorkers.h"
 
 using namespace Sph;
 
@@ -33,10 +37,12 @@ static void printBanner(ILogger& logger) {
     logger.write("*******************************************************************************");
     logger.write("*********************************** OpenSPH ***********************************");
     logger.write("*******************************************************************************");
+}
+
+static void printNoConfigsMsg(ILogger& logger, const Path& outputDir) {
     logger.write("");
-    logger.write("No command-line arguments specified and no configuration files found. Program  ");
-    logger.write("will generate default configuration files and save them to the current working ");
-    logger.write("directory.");
+    logger.write("No configuration files found, the program will generate default configuration ");
+    logger.write("files and save them to directory '" + outputDir.native() + "'");
     logger.write("");
     logger.write("To start a simulation, re-run this program; it will load the generated files. ");
     logger.write("You can also specify parameters of the simulation as command-line arguments.  ");
@@ -45,171 +51,338 @@ static void printBanner(ILogger& logger) {
     logger.write("");
 }
 
+template <typename TEnum>
+static Settings<TEnum> loadSettings(const Path& path,
+    const Settings<TEnum>& defaults,
+    ILogger& logger,
+    bool& doDryRun) {
+    Settings<TEnum> settings = defaults;
+    const bool result = settings.tryLoadFileOrSaveCurrent(path);
+    if (result) {
+        logger.write("Loaded configuration file '" + path.native() + "'");
 
-/// \todo move to settings?
-template <typename TValue = Float>
-static Optional<TValue> tryGet(const CollisionGeometrySettings& settings,
-    const CollisionGeometrySettingsId idx) {
-    if (settings.has(idx)) {
-        return settings.get<TValue>(idx);
+        // at least one configuration file exists, run the simulation
+        doDryRun = false;
     } else {
-        return NOTHING;
+        logger.write("No file '" + path.native() + "' found, it has been created with default parameters");
     }
+    return settings;
 }
 
+struct RunParams {
+    Optional<Float> targetRadius;
+    Optional<Float> targetPeriod;
+    Optional<Float> impactorRadius;
+    Optional<Float> impactAngle;
+    Optional<Float> impactSpeed;
+    Optional<int> particleCnt;
 
-/// \brief Returns the name of the created output directory.
-static std::string getRunName(const CollisionGeometrySettings& settings) {
-    std::stringstream ss;
-    ss << "sph_";
-    if (Optional<Float> targetRadius = tryGet(settings, CollisionGeometrySettingsId::TARGET_RADIUS)) {
-        ss << round(targetRadius.value()) << "m_";
-    }
-    if (Optional<Float> impactorRadius = tryGet(settings, CollisionGeometrySettingsId::IMPACTOR_RADIUS)) {
-        ss << round(impactorRadius.value()) << "m_";
-    }
-    if (Optional<Float> targetSpinRate = tryGet(settings, CollisionGeometrySettingsId::TARGET_SPIN_RATE)) {
-        ss << round(60._f * 24._f / targetSpinRate.value()) << "min_";
-    }
-    if (Optional<Float> impactSpeed = tryGet(settings, CollisionGeometrySettingsId::IMPACT_SPEED)) {
-        ss << round(impactSpeed.value() / 1.e3_f) << "kms_";
-    }
-    if (Optional<Float> impactAngle = tryGet(settings, CollisionGeometrySettingsId::IMPACT_ANGLE)) {
-        ss << round(impactAngle.value()) << "deg_";
-    }
-    if (Optional<int> particleCnt =
-            tryGet<int>(settings, CollisionGeometrySettingsId::TARGET_PARTICLE_COUNT)) {
-        ss << particleCnt.value() << "p_";
-    }
+    Optional<Float> stabTime;
+    Optional<Float> fragTime;
+    Optional<Float> reacTime;
 
-    std::string name = ss.str();
-    // drop the last "_";
-    name.pop_back();
-    return name;
-}
+    Optional<std::string> resumePath;
+    Optional<std::string> outputPath;
 
-static bool doDryRun(Path directory) {
-    if (directory.empty()) {
-        directory = Path(".");
-    }
-    if (FileSystem::pathExists(directory)) {
-        const Expected<FileSystem::PathType> type = FileSystem::pathType(directory);
-        if (!type || type.value() != FileSystem::PathType::DIRECTORY) {
-            return true;
+
+    /// \brief Returns the name of the created output directory.
+    std::string getOutputPath() const {
+        if (outputPath) {
+            return outputPath.value();
         }
-        Array<Path> files = FileSystem::getFilesInDirectory(directory);
-        const Size configCount = std::count_if(
-            files.begin(), files.end(), [](const Path& path) { return path.extension() == Path("sph"); });
-        return configCount == 0;
+
+        std::stringstream ss;
+        ss << "sph_";
+        if (targetRadius) {
+            ss << round(targetRadius.value()) << "m_";
+        }
+        if (impactorRadius) {
+            ss << round(impactorRadius.value()) << "m_";
+        }
+        if (targetPeriod) {
+            ss << round(60._f * targetPeriod.value()) << "min_";
+        }
+        if (impactSpeed) {
+            ss << round(impactSpeed.value() / 1.e3_f) << "kms_";
+        }
+        if (impactAngle) {
+            ss << round(impactAngle.value()) << "deg_";
+        }
+        if (particleCnt) {
+            ss << particleCnt.value() << "p_";
+        }
+
+        std::string name = ss.str();
+        // drop the last "_";
+        name.pop_back();
+        return name;
+    }
+};
+
+class RunFactory {
+private:
+    StringLogger logger;
+    RunParams params;
+    Path outputDir;
+    bool doDryRun;
+    std::string paramsMsg;
+
+public:
+    RunFactory(const RunParams& params)
+        : params(params) {
+        doDryRun = true;
+        outputDir = Path(params.getOutputPath());
+    }
+
+    SharedPtr<WorkerNode> makeSimulation() {
+        if (params.resumePath) {
+            BinaryInput input;
+            Expected<BinaryInput::Info> info = input.getInfo(Path(params.resumePath.value()));
+            if (!info) {
+                throw Exception("Cannot resume simulation from file '" + params.resumePath.value() + "'.\n" +
+                                info.error());
+            }
+
+            logger.write("Resuming simulation from file '" + params.resumePath.value() + "'");
+            if (info->runType == RunTypeEnum::SPH) {
+                return resumeFragmentation();
+            } else if (info->runType == RunTypeEnum::NBODY) {
+                return resumeReaccumulation();
+            } else {
+                throw Exception("Cannot resume from this file.");
+            }
+
+        } else {
+            logger.write("Starting new simulation");
+            return makeNewSimulation();
+        }
+    }
+
+    bool isDryRun() const {
+        return doDryRun;
+    }
+
+    std::string getBannerMsg() const {
+        return logger.toString() + "\n" + paramsMsg;
+    }
+
+    Path getOutputDir() const {
+        return outputDir;
+    }
+
+private:
+    Float defaultSphTime(const Optional<Float> runTime, const Optional<Float> radius, const Float mult) {
+        // by default, use 1h for 100km body
+        return runTime.valueOr(mult * 3600._f * radius.valueOr(5.e4_f) / 5.e4_f);
+    }
+
+    void overrideRunTime(RunSettings& settings, const Float endTime) {
+        settings.set(RunSettingsId::RUN_END_TIME, endTime)
+            .set(RunSettingsId::RUN_OUTPUT_INTERVAL, endTime / 10._f);
+    }
+
+    SharedPtr<WorkerNode> makeCollisionSetup() {
+        // target IC
+        BodySettings targetDefaults;
+        targetDefaults.set(BodySettingsId::BODY_RADIUS, params.targetRadius.valueOr(50.e3_f))
+            .set(BodySettingsId::PARTICLE_COUNT, params.particleCnt.valueOr(10000));
+        if (params.targetPeriod) {
+            targetDefaults.set(BodySettingsId::BODY_SPIN_RATE, 24._f / params.targetPeriod.value());
+        }
+        BodySettings targetBody =
+            loadSettings<BodySettingsId>(outputDir / Path("target.cnf"), targetDefaults, logger, doDryRun);
+        SharedPtr<WorkerNode> targetIc = makeNode<MonolithicBodyIc>("target body", targetBody);
+
+        // impactor IC
+        BodySettings impactorDefaults;
+        impactorDefaults.set(BodySettingsId::BODY_RADIUS, params.targetRadius.valueOr(10.e3_f))
+            .set(BodySettingsId::DAMAGE_MIN, LARGE)
+            .set(BodySettingsId::STRESS_TENSOR_MIN, LARGE);
+        impactorDefaults.unset(BodySettingsId::PARTICLE_COUNT); // never used
+        BodySettings impactorBody = loadSettings<BodySettingsId>(
+            outputDir / Path("impactor.cnf"), impactorDefaults, logger, doDryRun);
+        SharedPtr<WorkerNode> impactorIc = makeNode<ImpactorIc>("impactor body", impactorBody);
+        targetIc->connect(impactorIc, "target");
+
+        // target stabilization
+        RunSettings stabDefaults = SphStabilizationWorker::getDefaultSettings("stabilization");
+        stabDefaults.set(RunSettingsId::RUN_OUTPUT_PATH, outputDir.native());
+        overrideRunTime(stabDefaults, defaultSphTime(params.stabTime, params.targetRadius, 0.2_f));
+
+        RunSettings stabRun =
+            loadSettings<RunSettingsId>(outputDir / Path("stab.cnf"), stabDefaults, logger, doDryRun);
+        SharedPtr<WorkerNode> stabTarget = makeNode<SphStabilizationWorker>("stabilization", stabRun);
+        targetIc->connect(stabTarget, "particles");
+
+        // collision setup
+        CollisionGeometrySettings geometryDefaults;
+        geometryDefaults.set(CollisionGeometrySettingsId::IMPACT_SPEED, params.impactSpeed.valueOr(5.e3_f))
+            .set(CollisionGeometrySettingsId::IMPACT_ANGLE, params.impactAngle.valueOr(45._f));
+        CollisionGeometrySettings geometry = loadSettings<CollisionGeometrySettingsId>(
+            outputDir / Path("geometry.cnf"), geometryDefaults, logger, doDryRun);
+        SharedPtr<WorkerNode> setup = makeNode<CollisionGeometrySetup>("geometry", geometry);
+        stabTarget->connect(setup, "target");
+        impactorIc->connect(setup, "impactor");
+
+        printRunSettings(targetBody, impactorBody, geometry);
+
+        return setup;
+    }
+
+    SharedPtr<WorkerNode> makeFragmentation() {
+        RunSettings fragDefaults = SphWorker::getDefaultSettings("fragmentation");
+        fragDefaults.set(RunSettingsId::RUN_OUTPUT_PATH, outputDir.native());
+        overrideRunTime(fragDefaults, defaultSphTime(params.fragTime, params.targetRadius, 1._f));
+        RunSettings fragRun =
+            loadSettings<RunSettingsId>(outputDir / Path("frag.cnf"), fragDefaults, logger, doDryRun);
+        SharedPtr<WorkerNode> frag = makeNode<SphWorker>("fragmentation", fragRun);
+        return frag;
+    }
+
+    SharedPtr<WorkerNode> makeReaccumulation() {
+        RunSettings reacDefaults = NBodyWorker::getDefaultSettings("reaccumulation");
+        reacDefaults.set(RunSettingsId::RUN_OUTPUT_PATH, outputDir.native());
+        overrideRunTime(reacDefaults, params.reacTime.valueOr(3600._f * 24._f * 10._f));
+        RunSettings reacRun =
+            loadSettings<RunSettingsId>(outputDir / Path("reac.cnf"), reacDefaults, logger, doDryRun);
+        SharedPtr<WorkerNode> reac = makeNode<NBodyWorker>("reaccumulation", reacRun);
+        return reac;
+    }
+
+    SharedPtr<WorkerNode> makeNewSimulation() {
+        SharedPtr<WorkerNode> setup = makeCollisionSetup();
+        SharedPtr<WorkerNode> frag = makeFragmentation();
+        setup->connect(frag, "particles");
+
+        SharedPtr<WorkerNode> handoff = makeNode<SmoothedToSolidHandoff>("handoff"); // has no parameters
+        frag->connect(handoff, "particles");
+
+        SharedPtr<WorkerNode> reac = makeReaccumulation();
+        handoff->connect(reac, "particles");
+        return reac;
+    }
+
+    SharedPtr<WorkerNode> resumeFragmentation() {
+        SharedPtr<WorkerNode> loadFile =
+            makeNode<LoadFileWorker>("load file", Path(params.resumePath.value()));
+
+        SharedPtr<WorkerNode> frag = makeFragmentation();
+        loadFile->connect(frag, "particles");
+
+        SharedPtr<WorkerNode> handoff = makeNode<SmoothedToSolidHandoff>("handoff");
+        frag->connect(handoff, "particles");
+
+        SharedPtr<WorkerNode> reac = makeReaccumulation();
+        handoff->connect(reac, "particles");
+        return reac;
+    }
+
+    SharedPtr<WorkerNode> resumeReaccumulation() {
+        SharedPtr<WorkerNode> loadFile =
+            makeNode<LoadFileWorker>("load file", Path(params.resumePath.value()));
+
+        SharedPtr<WorkerNode> reac = makeReaccumulation();
+        loadFile->connect(reac, "particles");
+        return reac;
+    }
+
+    void printRunSettings(const BodySettings& targetBody,
+        const BodySettings& impactorBody,
+        const CollisionGeometrySettings& geometry) {
+        const Float targetRadius = targetBody.get<Float>(BodySettingsId::BODY_RADIUS);
+        const Float impactorRadius = impactorBody.get<Float>(BodySettingsId::BODY_RADIUS);
+        const Float impactSpeed = geometry.get<Float>(CollisionGeometrySettingsId::IMPACT_SPEED);
+        const Float impactAngle = geometry.get<Float>(CollisionGeometrySettingsId::IMPACT_ANGLE);
+        const Float spinRate = targetBody.get<Float>(BodySettingsId::BODY_SPIN_RATE);
+        const Size particleCnt = targetBody.get<int>(BodySettingsId::PARTICLE_COUNT);
+        const Float rho = targetBody.get<Float>(BodySettingsId::DENSITY);
+        const Float Q_D = evalBenzAsphaugScalingLaw(2._f * targetRadius, rho);
+        const Float impactEnergy = getImpactEnergy(targetRadius, impactorRadius, impactSpeed) / Q_D;
+
+        StringLogger logger;
+        logger.setScientific(false);
+        logger.setPrecision(4);
+        logger.write();
+        logger.write("Run parameters");
+        logger.write("-------------------------------------");
+        logger.write("  Target radius (R_pb):     ", 1.e-3_f * targetRadius, " km");
+        logger.write("  Impactor radius (r_imp):  ", 1.e-3_f * impactorRadius, " km");
+        logger.write("  Impact speed (v_imp):     ", 1.e-3_f * impactSpeed, " km/s");
+        logger.write("  Impact angle (phi_imp):   ", impactAngle, "°");
+        logger.write("  Impact energy (Q/Q*_D):   ", impactEnergy);
+        logger.write("  Target period (P_pb):     ", 24._f / spinRate, spinRate == 0._f ? "" : "h");
+        logger.write("  Particle count (N):       ", particleCnt);
+        logger.write("-------------------------------------");
+        logger.write();
+        logger.setScientific(true);
+        logger.setPrecision(PRECISION);
+
+        paramsMsg = logger.toString();
+    }
+};
+
+static void run(const ArgParser& parser, ILogger& logger) {
+    RunParams params;
+    params.targetRadius = parser.tryGetArg<Float>("tr");
+    params.targetPeriod = parser.tryGetArg<Float>("tp");
+    if (params.impactSpeed = parser.tryGetArg<Float>("v")) {
+        params.impactSpeed.value() *= 1.e3_f; // km/s -> m/s
+    }
+    params.impactAngle = parser.tryGetArg<Float>("phi");
+    params.impactorRadius = parser.tryGetArg<Float>("ir");
+    params.particleCnt = parser.tryGetArg<int>("n");
+
+    if (Optional<Float> impactEnergy = parser.tryGetArg<Float>("q")) {
+        // we have to specify also -tr and -v, as output directory is determined fom the computed
+        // impactorRadius. We cannot use values loaded from config files, as it would create circular
+        // dependency: we need impactor radius to get output path, we need output path to load config
+        // files, we need config files to get impactor radius ...
+        const Float density = BodySettings::getDefaults().get<Float>(BodySettingsId::DENSITY);
+        const Optional<Float> targetRadius = parser.tryGetArg<Float>("tr");
+        const Optional<Float> impactSpeed = parser.tryGetArg<Float>("v");
+        if (!targetRadius || !impactSpeed) {
+            throw ArgError(
+                "To specify impact energy (-q), you also need to specify the target radius (-tr) and "
+                "impact speed (-v)");
+        }
+        params.impactorRadius = getImpactorRadius(
+            targetRadius.value(), impactSpeed.value() * 1.e3_f, impactEnergy.value(), density);
+    }
+
+    params.outputPath = parser.tryGetArg<std::string>("o");
+    params.resumePath = parser.tryGetArg<std::string>("i");
+
+    params.stabTime = parser.tryGetArg<Float>("st");
+    params.fragTime = parser.tryGetArg<Float>("ft");
+    params.reacTime = parser.tryGetArg<Float>("rt");
+
+    RunFactory factory(params);
+    SharedPtr<WorkerNode> node = factory.makeSimulation();
+
+    printBanner(logger);
+    if (!factory.isDryRun()) {
+        logger.write(factory.getBannerMsg());
+
+        NullWorkerCallbacks callbacks;
+        node->run(EMPTY_SETTINGS, callbacks);
     } else {
-        return true;
+        printNoConfigsMsg(logger, factory.getOutputDir());
     }
 }
 
 int main(int argc, char* argv[]) {
     StdOutLogger logger;
-    ArgParser parser(params);
+
     try {
+        ArgParser parser(params);
         parser.parse(argc, argv);
-    } catch (std::exception& e) {
-        logger.write(e.what());
+
+        run(parser, logger);
+
+        return 0;
+
+    } catch (Exception& e) {
+        logger.write("Run failed: ", e.what());
         return -1;
     }
-
-    CollisionParams cp;
-    PhaseParams pp;
-    try {
-        // set all parsed values as overrides; also make sure to properly convert all units!
-        parser.tryStore(cp.geometry, "tr", CollisionGeometrySettingsId::TARGET_RADIUS);
-        parser.tryStore(cp.geometry, "tp", CollisionGeometrySettingsId::TARGET_SPIN_RATE, [](Float value) {
-            // convert from P[h] to f[1/day]
-            return 24._f / value;
-        });
-        parser.tryStore(cp.geometry, "v", CollisionGeometrySettingsId::IMPACT_SPEED, [](Float value) {
-            return value * 1.e3_f; // km/s -> m/s
-        });
-        parser.tryStore(cp.geometry, "phi", CollisionGeometrySettingsId::IMPACT_ANGLE);
-        parser.tryStore(cp.geometry, "ir", CollisionGeometrySettingsId::IMPACTOR_RADIUS);
-
-        // using specified impact energy, compute the necessary impact radius
-        if (Optional<Float> impactEnergy = parser.tryGetArg<Float>("q")) {
-            // we have to specify also -tr and -v, as output directory is determined fom the computed
-            // impactorRadius. We cannot use values loaded from config files, as it would create circular
-            // dependency: we need impactor radius to get output path, we need output path to load config
-            // files, we need config files to get impactor radius ...
-            const Float density = BodySettings::getDefaults().get<Float>(BodySettingsId::DENSITY);
-            const Optional<Float> targetRadius = parser.tryGetArg<Float>("tr");
-            const Optional<Float> impactSpeed = parser.tryGetArg<Float>("v");
-            if (!targetRadius || !impactSpeed) {
-                throw ArgError(
-                    "To specify impact energy (-q), you also need to specify the target radius (-tr) and "
-                    "impact speed (-v)");
-            }
-            const Float impactorRadius = getImpactorRadius(
-                targetRadius.value(), impactSpeed.value() * 1.e3_f, impactEnergy.value(), density);
-            cp.geometry.set(CollisionGeometrySettingsId::IMPACTOR_RADIUS, impactorRadius);
-        }
-
-        parser.tryStore(cp.geometry, "n", CollisionGeometrySettingsId::TARGET_PARTICLE_COUNT);
-
-        if (Optional<std::string> outputPath = parser.tryGetArg<std::string>("o")) {
-            cp.outputPath = Path(outputPath.value());
-        } else {
-            const std::string runName = getRunName(cp.geometry);
-            if (runName != "sph") {
-                // only use if some parameters are specified in the filename
-                cp.outputPath = Path(runName);
-            }
-        }
-        pp.outputPath = cp.outputPath;
-
-        Path resumePath;
-        if (Optional<std::string> inputPath = parser.tryGetArg<std::string>("i")) {
-            resumePath = Path(inputPath.value());
-        }
-
-        cp.logger = makeAuto<StdOutLogger>();
-
-        // by default, use 1h for 100km body
-        const Float runTime = 3600._f * parser.tryGetArg<Float>("tr").valueOr(5.e4_f) / 5.e4_f;
-        pp.stab.range = Interval(0._f, 0.2_f * runTime);
-        pp.frag.range = Interval(0._f, runTime);
-        pp.reacc.range = Interval(0._f, 3600._f * 24._f * 10._f); // 10 days
-        if (Optional<Float> stabTime = parser.tryGetArg<Float>("st")) {
-            pp.stab.overrides.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, stabTime.value()));
-        }
-        if (Optional<Float> fragTime = parser.tryGetArg<Float>("ft")) {
-            pp.frag.overrides.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, fragTime.value()));
-        }
-        if (Optional<Float> reacTime = parser.tryGetArg<Float>("rt")) {
-            pp.reacc.overrides.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, reacTime.value()));
-        }
-
-        if (parser.empty() && doDryRun(cp.outputPath)) {
-            // first run with no pararameters - just output the config files
-            pp.dryRun = true;
-            printBanner(logger);
-            logger.write("Saving configuration files:");
-        } else if (resumePath.empty()) {
-            logger.write("Starting new run ", cp.outputPath);
-        } else {
-            logger.write("Resuming run from file ", resumePath.native());
-        }
-        logger.write("");
-
-        AutoPtr<CollisionRun> run;
-        if (resumePath.empty()) {
-            run = makeAuto<CollisionRun>(cp, pp, makeShared<NullCallbacks>());
-        } else {
-            run = makeAuto<CollisionRun>(resumePath, pp, makeShared<NullCallbacks>());
-        }
-        run->setUp();
-        run->run();
-
-    } catch (std::exception& e) {
-        logger.write(e.what());
-        return -1;
-    }
-
-    return 0;
 }

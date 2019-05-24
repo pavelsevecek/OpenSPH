@@ -14,12 +14,33 @@
 
 NAMESPACE_SPH_BEGIN
 
-class IRunCallbacks;
 class ILogWriter;
 class IScheduler;
 class IOutput;
 class ITrigger;
 class IDiagnostic;
+
+
+/// \brief Callbacks executed by the simulation to provide feedback to the user.
+///
+/// All functions are called from the same thread that called \ref IRun::run.
+class IRunCallbacks : public Polymorphic {
+public:
+    /// \brief Called right before the run starts, i.e. after initial conditions are set up.
+    virtual void onSetUp(const Storage& storage, Statistics& stats) = 0;
+
+    /// \brief Called every timestep.
+    ///
+    /// This is a blocking call, run is paused until the function returns. This allows to safely access the
+    /// storage and run statistics. Note that accessing the storage from different thread during run is
+    /// generally unsafe, as the storage can be resized during the run.
+    virtual void onTimeStep(const Storage& storage, Statistics& stats) = 0;
+
+    /// \brief Returns whether current run should be aborted or not.
+    ///
+    /// Can be called any time.
+    virtual bool shouldAbortRun() const = 0;
+};
 
 /// \brief Defines the interface for a run.
 ///
@@ -44,17 +65,11 @@ protected:
     /// Data output
     AutoPtr<IOutput> output;
 
-    /// GUI callbacks
-    SharedPtr<IRunCallbacks> callbacks;
-
     /// Logging
     SharedPtr<ILogger> logger;
 
     /// Writes statistics into logger every timestep
     AutoPtr<ILogWriter> logWriter;
-
-    /// Stores all SPH particles
-    SharedPtr<Storage> storage;
 
     /// Scheduler used for parallelization.
     SharedPtr<IScheduler> scheduler;
@@ -76,27 +91,32 @@ public:
 
     ~IRun();
 
-    /// Prepares the run, sets all initial conditions, creates logger, output, ...
-    virtual void setUp() = 0;
-
-    /// \brief Starts the run.
+    /// \brief Runs the simulation.
     ///
-    /// Function assumes that \ref setUp has been called (at least once).
-    /// \todo remove the virtual
-    virtual void run();
+    /// The provided storage can either be filled with initial conditions specified by the \ref IRun
+    /// implementation, or it can use particles already stored in the storage. The function is blocking and
+    /// returns after the simulation ends. The storage then contains the particle state at the end of the
+    /// simulation.
+    Statistics run(Storage& storage);
 
-    virtual SharedPtr<Storage> getStorage() const;
+    /// \copydoc run
+    ///
+    /// \param callbacks Interface used to obtain particle data during the simulation, etc.
+    Statistics run(Storage& storage, IRunCallbacks& callbacks);
 
 protected:
+    /// \brief Prepares the run, creates logger, output, ...
+    virtual void setUp(SharedPtr<Storage> storage) = 0;
+
     /// \brief Called after the run
     ///
     /// Used to save the necessary data, log run statistics, etc. Is called at the end of \ref run function.
     /// \param stats Run statistics at the end of the run.
-    virtual void tearDown(const Statistics& stats) = 0;
+    virtual void tearDown(const Storage& storage, const Statistics& stats) = 0;
 
-    void setNullToDefaults();
+    void setNullToDefaults(SharedPtr<Storage> storage);
 
-    void tearDownInternal(Statistics& stats);
+    void tearDownInternal(const Storage& storage, const Statistics& stats);
 };
 
 NAMESPACE_SPH_END

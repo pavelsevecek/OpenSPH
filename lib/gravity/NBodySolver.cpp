@@ -327,21 +327,23 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
             }
         }
 
-        for (Size idx : invalidIdxs) {
-            // here we shouldn't search any removed particle
-            if (removed.find(idx) != removed.end()) {
-                continue;
-            }
-            const Interval interval(t_coll, dt);
-            if (CollisionRecord c =
-                    this->findClosestCollision(idx, SearchEnum::USE_RADII, interval, neighs)) {
-                ASSERT(isReal(c));
-                ASSERT(removed.find(c.i) == removed.end() && removed.find(c.j) == removed.end());
-                if ((c.i == i && c.j == j) || (c.j == i && c.i == j)) {
-                    // don't process the same pair twice in a row
+        const Interval interval(t_coll + EPS, dt);
+        if (!interval.empty()) {
+            for (Size idx : invalidIdxs) {
+                // here we shouldn't search any removed particle
+                if (removed.find(idx) != removed.end()) {
                     continue;
                 }
-                collisions.insert(c);
+                if (CollisionRecord c =
+                        this->findClosestCollision(idx, SearchEnum::USE_RADII, interval, neighs)) {
+                    ASSERT(isReal(c));
+                    ASSERT(removed.find(c.i) == removed.end() && removed.find(c.j) == removed.end());
+                    if ((c.i == i && c.j == j) || (c.j == i && c.i == j)) {
+                        // don't process the same pair twice in a row
+                        continue;
+                    }
+                    collisions.insert(c);
+                }
             }
         }
     }

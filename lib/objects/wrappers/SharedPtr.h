@@ -231,6 +231,16 @@ public:
         ptr = nullptr;
     }
 
+    INLINE T* release() {
+        if (block) {
+            block->deleteBlock();
+            block = nullptr;
+            return ptr;
+        } else {
+            return nullptr;
+        }
+    }
+
     INLINE Size getUseCount() {
         if (!block) {
             return 0;

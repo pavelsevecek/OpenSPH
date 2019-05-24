@@ -8,7 +8,7 @@
 #include "common/ForwardDecl.h"
 #include "objects/containers/ArrayView.h"
 #include "objects/geometry/Vector.h"
-#include "objects/wrappers/AutoPtr.h"
+#include "objects/wrappers/Function.h"
 #include "quantities/IMaterial.h"
 
 NAMESPACE_SPH_BEGIN
@@ -96,95 +96,73 @@ struct PowerLawSfd {
 };
 
 
-/// \brief Object for adding one or more bodies with given material into Storage
+/// \brief Object for adding one or more bodies with given material into a \ref Storage.
 ///
 /// All particles created in one run should be created using the same InitialConditions object. If multiple
 /// objects are used, quantity QuantityId::FLAG must be manually updated to be unique for each body in the
 /// simulation.
+/// For every body added into the storage, it is further necessary to call \ref ISolver::create before
+/// starting the simulation. This creates additional solver-dependent quantities.
 class InitialConditions : public Noncopyable {
 private:
-    /// Scheduler that can be used to parallelize the generation of the initial conditions.
-    IScheduler& scheduler;
-
-    /// Solver used for creating necessary quantities. Does not necessarily have to be the same the solver
-    /// used for the actual run, although it is recommended to make sure all the quantities are set up
-    /// correctly.
-    AutoPtr<ISolver> solver;
-
     /// Shared data when creating bodies
     MaterialInitialContext context;
-
-    struct {
-
-        /// If true, texture mapping coordinates are generated using spherical mapping.
-        bool doUvws;
-
-    } config;
 
     /// Counter incremented every time a body is added, used for setting up FLAG quantity
     Size bodyIndex = 0;
 
 public:
-    /// \brief Constructs object by taking a reference to a solver using in the simulation.
+    /// \brief Creates new initial conditions.
     ///
-    /// \param scheduler Scheduler used for parallelization.
-    /// \param solver Solver used to create all the necessary quantities. Also must exist for the duration
-    ///               of this object as it is stored by reference.
     /// \param settings Run settings used to initialize \ref MaterialInitialContext.
-    InitialConditions(IScheduler& scheduler, ISolver& solver, const RunSettings& settings);
-
-    /// \brief Constructor creating solver from values in settings.
-    ///
-    /// \attention When using this overload, the solver used for the run should also be created from settings
-    /// (which is done by default). Using different solver may result in incorrect initialization of
-    /// quantities. Mostly, this will throw an exception or assert, but in case the custom solver uses the
-    /// same quantities as the default one, but it initializes them to different values, this error would go
-    /// unnoticed.
-    InitialConditions(IScheduler& scheduler, const RunSettings& settings);
+    InitialConditions(const RunSettings& settings);
 
     ~InitialConditions();
 
     /// \brief Creates a monolithic body by filling given domain with particles.
     ///
-    /// Particles are created on positions given by distribution in bodySettings. Beside positions of
+    /// Particles are created on positions given by distribution in body settings. Beside positions of
     /// particles, the function initialize particle masses, pressure and sound speed, assuming both the
-    /// pressure and sound speed are computed from equation of state. The function also calls
-    /// \ref ISolver::create to initialze quantities needed by used solver, either a solver given in
-    /// constructor or a default one based on RunSettings parameters.
+    /// pressure and sound speed are computed from equation of state.
+    /// \param storage Particle storage to which the new body is added
+    /// \param body Parameters of the body
+    BodyView addMonolithicBody(Storage& storage, const BodySettings& body);
+
+    /// \brief Creates a monolithic body by filling given domain with particles.
+    ///
+    /// Particles are created on positions given by distribution in body settings. Beside positions of
+    /// particles, the function initialize particle masses, pressure and sound speed, assuming both the
+    /// pressure and sound speed are computed from equation of state.
     /// \param storage Particle storage to which the new body is added
     /// \param domain Spatial domain where the particles are placed. The domain should not overlap a body
     ///               already added into the storage as that would lead to incorrect density estimating in
     ///               overlapping regions.
     /// \param body Parameters of the body
-    /// \todo generalize for entropy solver
     BodyView addMonolithicBody(Storage& storage, const IDomain& domain, const BodySettings& body);
 
     /// Adds a body by explicitly specifying its material.
     /// \copydoc addBody
-    BodyView addMonolithicBody(Storage& storage, const IDomain& domain, AutoPtr<IMaterial>&& material);
+    BodyView addMonolithicBody(Storage& storage, const IDomain& domain, SharedPtr<IMaterial> material);
 
     BodyView addMonolithicBody(Storage& storage,
         const IDomain& domain,
-        AutoPtr<IMaterial>&& material,
-        AutoPtr<IDistribution>&& distribution);
+        SharedPtr<IMaterial> material,
+        const IDistribution& distribution);
 
 
     /// \brief Holds data needed to create a single body in \ref addHeterogeneousBody function.
     struct BodySetup {
-        AutoPtr<IDomain> domain;
-        AutoPtr<IMaterial> material;
+        SharedPtr<IDomain> domain;
+        SharedPtr<IMaterial> material;
 
         /// Creates a body with undefined domain and material
         BodySetup();
 
         /// Creates a body by specifying its domain and material
-        BodySetup(AutoPtr<IDomain>&& domain, AutoPtr<IMaterial>&& material);
+        BodySetup(SharedPtr<IDomain> domain, SharedPtr<IMaterial> material);
 
         /// Creates a body by specifying its domain; material is created from parameters in settings
-        BodySetup(AutoPtr<IDomain>&& domain, const BodySettings& body);
-
-        /// Move constructor
-        BodySetup(BodySetup&& other);
+        BodySetup(SharedPtr<IDomain> domain, const BodySettings& body);
 
         ~BodySetup();
     };
@@ -205,8 +183,8 @@ public:
     ///         corresponds to the environment, the rest are the bodies inside the environment in the
     ///         order they were passed in \ref bodies.
     Array<BodyView> addHeterogeneousBody(Storage& storage,
-        BodySetup&& environment,
-        ArrayView<BodySetup> bodies);
+        const BodySetup& environment,
+        ArrayView<const BodySetup> bodies);
 
     /// \brief Creates a rubble-pile body, composing of monolithic spheres.
     ///

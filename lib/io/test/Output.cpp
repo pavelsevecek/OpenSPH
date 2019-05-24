@@ -13,6 +13,7 @@
 #include "tests/Approx.h"
 #include "tests/Setup.h"
 #include "thread/Pool.h"
+#include "timestepping/ISolver.h"
 #include "utils/Config.h"
 #include "utils/Utils.h"
 #include <fstream>
@@ -179,17 +180,15 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     Storage storage;
     RunSettings settings;
     settings.set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::BENZ_ASPHAUG);
-    /*settings.set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, false);
-    settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);*/
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    InitialConditions conds(pool, settings);
+
+    InitialConditions conds(settings);
     BodySettings body;
     // for exact number of particles
     body.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::RANDOM);
     body.set(BodySettingsId::PARTICLE_COUNT, 10);
     body.set(BodySettingsId::EOS, EosEnum::TILLOTSON);
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
-    body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum ::ELASTIC);
+    body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::ELASTIC);
     body.set(BodySettingsId::DENSITY_RANGE, Interval(4._f, 6._f));
     body.set(BodySettingsId::DENSITY_MIN, 3._f);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 2._f), body);
@@ -204,6 +203,11 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     body.set(BodySettingsId::EOS, EosEnum::MURNAGHAN);
     body.set(BodySettingsId::DENSITY, 100._f);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 0.5_f), body);
+
+    AutoPtr<ISolver> solver = Factory::getSolver(*ThreadPool::getGlobalInstance(), settings);
+    for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
+        solver->create(storage, storage.getMaterial(i));
+    }
 
     RandomPathManager manager;
     Path path = manager.getPath("out");

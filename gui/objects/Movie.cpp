@@ -63,7 +63,7 @@ public:
 };
 
 void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
-    if (stats.get<Float>(StatisticsId::RUN_TIME) < nextOutput || !enabled) {
+    if (!enabled || stats.get<Float>(StatisticsId::RUN_TIME) < nextOutput) {
         return;
     }
 

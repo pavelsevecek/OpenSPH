@@ -33,9 +33,7 @@ public:
     /// You can use INFTY and -INFTY to create one-sided or unbounded intervals.
     INLINE Interval(const Float& lower, const Float& upper)
         : minBound(lower)
-        , maxBound(upper) {
-        ASSERT(lower <= upper);
-    }
+        , maxBound(upper) {}
 
     /// \brief Extends the interval to contain given value.
     ///

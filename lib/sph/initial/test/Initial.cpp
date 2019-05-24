@@ -7,6 +7,7 @@
 #include "physics/Integrals.h"
 #include "quantities/Iterate.h"
 #include "quantities/Storage.h"
+#include "system/Factory.h"
 #include "system/Settings.h"
 #include "tests/Approx.h"
 #include "thread/Pool.h"
@@ -20,9 +21,11 @@ TEST_CASE("Initial addBody", "[initial]") {
     bodySettings.set(BodySettingsId::PARTICLE_COUNT, 100);
     BlockDomain domain(Vector(0._f), Vector(1._f));
     Storage storage;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    InitialConditions conds(pool, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
     conds.addMonolithicBody(storage, domain, bodySettings);
+    AutoPtr<ISolver> solver =
+        Factory::getSolver(*ThreadPool::getGlobalInstance(), RunSettings::getDefaults());
+    solver->create(storage, storage.getMaterial(0));
 
     const Size size = storage.getValue<Vector>(QuantityId::POSITION).size();
     REQUIRE(size >= 80);
@@ -56,34 +59,9 @@ TEST_CASE("Initial addBody", "[initial]") {
     REQUIRE(totalM == approx(2700._f * domain.getVolume()));
 }
 
-TEST_CASE("Initial custom solver", "[initial]") {
-    struct Solver : public ISolver {
-        mutable Size createCalled = 0;
-
-        virtual void integrate(Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
-
-        virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {
-            createCalled++;
-        }
-    };
-    Storage storage;
-    Solver solver;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    InitialConditions initial(pool, solver, RunSettings::getDefaults());
-    REQUIRE(solver.createCalled == 0);
-    BodySettings body;
-    body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
-    body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
-    initial.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), body);
-    REQUIRE(solver.createCalled == 1);
-    initial.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 2._f), body);
-    REQUIRE(solver.createCalled == 2);
-}
-
 TEST_CASE("Initial velocity", "[initial]") {
     Storage storage;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    InitialConditions conds(pool, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::DENSITY, 1._f);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), bodySettings)
@@ -108,8 +86,7 @@ TEST_CASE("Initial velocity", "[initial]") {
 
 TEST_CASE("Initial rotation", "[initial]") {
     Storage storage;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    InitialConditions conds(pool, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), BodySettings::getDefaults())
         .addRotation(Vector(1._f, 3._f, -2._f), BodyView::RotationOrigin::FRAME_ORIGIN);
     ArrayView<Vector> r, v, dv;
@@ -141,14 +118,13 @@ TEST_CASE("Initial addHeterogeneousBody single", "[initial]") {
     bodySettings.set(BodySettingsId::PARTICLE_COUNT, 1000);
     AutoPtr<BlockDomain> domain = makeAuto<BlockDomain>(Vector(0._f), Vector(1._f));
     Storage storage1;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    InitialConditions conds1(pool, RunSettings::getDefaults());
+    InitialConditions conds1(RunSettings::getDefaults());
 
     InitialConditions::BodySetup body1(std::move(domain), bodySettings);
     conds1.addHeterogeneousBody(storage1, std::move(body1), {}); // this should be equal to addBody
 
     Storage storage2;
-    InitialConditions conds2(pool, RunSettings::getDefaults());
+    InitialConditions conds2(RunSettings::getDefaults());
     BlockDomain domain2(Vector(0._f), Vector(1._f));
     conds2.addMonolithicBody(storage2, domain2, bodySettings);
     REQUIRE(storage1.getQuantityCnt() == storage2.getQuantityCnt());
@@ -172,9 +148,8 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
     // random to make sure we generate exactly 1000
     bodySettings.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::RANDOM);
     RunSettings settings;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     Storage storage;
-    InitialConditions conds(pool, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
 
     AutoPtr<BlockDomain> domain = makeAuto<BlockDomain>(Vector(0._f), Vector(10._f)); // [-5, 5]
     InitialConditions::BodySetup environment(std::move(domain), bodySettings);
@@ -224,8 +199,7 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
 }
 
 TEST_CASE("Initial addRubblePileBody", "[initial]") {
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    InitialConditions ic(pool, RunSettings::getDefaults());
+    InitialConditions ic(RunSettings::getDefaults());
 
     BodySettings body;
     body.set(BodySettingsId::PARTICLE_COUNT, 10000);
@@ -245,9 +219,8 @@ TEST_CASE("Initial addRubblePileBody", "[initial]") {
 }
 
 TEST_CASE("Initial moveToCenterOfMassSystem", "[initial]") {
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     RunSettings settings;
-    InitialConditions ic(pool, settings);
+    InitialConditions ic(settings);
 
     BodySettings body;
     body.set(BodySettingsId::CENTER_PARTICLES, true);

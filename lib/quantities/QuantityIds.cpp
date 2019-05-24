@@ -91,13 +91,13 @@ QuantityMetadata getMetadata(const QuantityId key) {
     case QuantityId::FLAG:
         return QuantityMetadata("Flag", L"flag", ValueEnum::INDEX);
     case QuantityId::MATERIAL_ID:
-        return QuantityMetadata("MaterialId", L"matID", ValueEnum::INDEX);
+        return QuantityMetadata("Material ID", L"matID", ValueEnum::INDEX);
     case QuantityId::XSPH_VELOCITIES:
         return QuantityMetadata("XSPH correction", L"xsph", ValueEnum::VECTOR);
     case QuantityId::GRAD_H:
         return QuantityMetadata("Grad-h terms", L"\u03A9" /*Omega*/, ValueEnum::SCALAR);
-    case QuantityId::GRAVITY_POTENTIAL:
-        return QuantityMetadata("Grav. potential", L"\u03A6" /*Phi*/, ValueEnum::SCALAR);
+    case QuantityId::AGGREGATE_ID:
+        return QuantityMetadata("Aggregate ID", L"i", ValueEnum::INDEX);
     case QuantityId::ANGULAR_FREQUENCY:
         return QuantityMetadata("Angular frequency", L"\u03C9" /*omega*/, ValueEnum::VECTOR);
     case QuantityId::ANGULAR_MOMENTUM:

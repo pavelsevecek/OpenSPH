@@ -6,7 +6,7 @@ CONFIG -= qt
 INCLUDEPATH += /usr/include/wx-3.0 ../lib/ ..
 DEPENDPATH += ../lib ../test
 PRE_TARGETDEPS += ../lib/liblib.a
-LIBS += `wx-config --libs`
+LIBS += `wx-config --libs` -lwx_gtk2u_propgrid-3.0 -lwx_gtk2u_aui-3.0
 LIBS += ../lib/liblib.a
 
 include(../lib/inc.pro)
@@ -19,10 +19,10 @@ linux-g++ {
 }
 
 SOURCES += \
-    Config.cpp \
     Controller.cpp \
     Factory.cpp \
     MainLoop.cpp \
+    Project.cpp \
     Settings.cpp \
     Utils.cpp \
     objects/Bitmap.cpp \
@@ -30,24 +30,27 @@ SOURCES += \
     objects/Movie.cpp \
     objects/Palette.cpp \
     objects/RenderContext.cpp \
+    objects/RenderWorkers.cpp \
+    renderers/IRenderer.cpp \
     renderers/MeshRenderer.cpp \
     renderers/ParticleRenderer.cpp \
     renderers/RayTracer.cpp \
     renderers/Spectrum.cpp \
-    windows/GlPane.cpp \
-    windows/MainWindow.cpp \
     windows/OrthoPane.cpp \
     windows/PaletteDialog.cpp \
     windows/ParticleProbe.cpp \
-    windows/PlotView.cpp
+    windows/PlotView.cpp \
+    windows/RunPage.cpp \
+    windows/NodePage.cpp \
+    windows/MainWindow.cpp \
+    windows/TimeLine.cpp
 
 HEADERS += \
     ArcBall.h \
-    Config.h \
     Controller.h \
     Factory.h \
-    GuiCallbacks.h \
     MainLoop.h \
+    Project.h \
     Renderer.h \
     Settings.h \
     Utils.h \
@@ -60,6 +63,7 @@ HEADERS += \
     objects/Palette.h \
     objects/Point.h \
     objects/RenderContext.h \
+    objects/RenderWorkers.h \
     objects/SvgContext.h \
     renderers/Brdf.h \
     renderers/FrameBuffer.h \
@@ -68,11 +72,15 @@ HEADERS += \
     renderers/ParticleRenderer.h \
     renderers/RayTracer.h \
     renderers/Spectrum.h \
-    windows/GlPane.h \
     windows/IGraphicsPane.h \
-    windows/MainWindow.h \
+    windows/Icons.data.h \
     windows/OrthoPane.h \
     windows/PaletteDialog.h \
     windows/ParticleProbe.h \
     windows/PlotView.h \
-    objects/Texture.h
+    objects/Texture.h \
+    windows/RunPage.h \
+    windows/NodePage.h \
+    windows/MainWindow.h \
+    windows/TimeLine.h \
+    windows/ProgressPanel.h

@@ -82,7 +82,6 @@ TEST_CASE("Settings hasType", "[settings]") {
     REQUIRE(settings.hasType<std::string>(RunSettingsId::RUN_NAME));
 }
 
-
 TEST_CASE("Settings unset", "[settings]") {
     RunSettings settings;
     const Size size = settings.size();
@@ -168,12 +167,16 @@ TEST_CASE("Settings save/load flags", "[settings]") {
     RunSettings settings;
     settings.set(RunSettingsId::TIMESTEPPING_CRITERION,
         TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::ACCELERATION);
-    settings.saveToFile(path);
+    settings.set(RunSettingsId::SPH_SOLVER_FORCES, EMPTY_FLAGS);
+    REQUIRE(settings.saveToFile(path));
+
     RunSettings loadedSettings;
     REQUIRE(loadedSettings.loadFromFile(path));
-    Flags<TimeStepCriterionEnum> flags =
+    Flags<TimeStepCriterionEnum> criteria =
         loadedSettings.getFlags<TimeStepCriterionEnum>(RunSettingsId::TIMESTEPPING_CRITERION);
-    REQUIRE(flags == (TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::ACCELERATION));
+    REQUIRE(criteria == (TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::ACCELERATION));
+    Flags<ForceEnum> forces = loadedSettings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES);
+    REQUIRE(forces == EMPTY_FLAGS);
 }
 
 TEST_CASE("Settings addEntries", "[settings]") {

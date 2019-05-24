@@ -273,13 +273,6 @@ Quantity& Storage::insert(const QuantityId key, const OrderEnum order, const TVa
         checkStorageAccess(q.getValueEnum() == GetValueEnum<TValue>::type,
             "Inserting quantity already stored with different type");
 
-        Array<TValue>& values = q.getValue<TValue>();
-        const bool equalsToDefault =
-            std::all_of(values.begin(), values.end(), [&defaultValue](const TValue& value) { //
-                return value == defaultValue;
-            });
-        checkStorageAccess(equalsToDefault, "Re-creating quantity with different values.");
-
         if (q.getOrderEnum() < order) {
             q.setOrder(order);
         }
@@ -380,6 +373,15 @@ MaterialView Storage::getMaterialOfParticle(const Size particleIdx) const {
     return this->getMaterial(matIds[particleIdx]);
 }
 
+void Storage::setMaterial(const Size matIdx, const SharedPtr<IMaterial>& material) {
+    if (matIdx >= mats.size()) {
+        throw InvalidStorageAccess("No material with index " + std::to_string(matIdx));
+    }
+
+    /// \todo merge material ranes if they have the same material
+    mats[matIdx].material = material;
+}
+
 bool Storage::isHomogeneous(const BodySettingsId param) const {
     if (mats.empty()) {
         return true;
@@ -447,6 +449,25 @@ Size Storage::getParticleCnt() const {
     }
 }
 
+bool Storage::empty() const {
+    return this->getParticleCnt() == 0;
+}
+
+void Storage::addMissingBuffers(const Storage& source) {
+    const Size cnt = this->getParticleCnt();
+    for (ConstStorageElement element : source.getQuantities()) {
+        // add the quantity if it's missing
+        if (!this->has(element.id)) {
+            quantities.insert(element.id, element.quantity.createZeros(cnt));
+        }
+
+        // if it has lower order, initialize the other buffers as well
+        if (quantities[element.id].getOrderEnum() < element.quantity.getOrderEnum()) {
+            quantities[element.id].setOrder(element.quantity.getOrderEnum());
+        }
+    }
+}
+
 void Storage::merge(Storage&& other) {
     ASSERT(!userData && !other.userData, "Merging storages with user data is currently not supported");
 
@@ -457,10 +478,19 @@ void Storage::merge(Storage&& other) {
     }
 
     // must have the same quantities
-    ASSERT(this->getQuantityCnt() == other.getQuantityCnt());
+    this->addMissingBuffers(other);
+    other.addMissingBuffers(*this);
 
-    // either both have materials or neither
-    ASSERT(bool(this->getMaterialCnt()) == bool(this->getMaterialCnt()));
+    ASSERT(this->isValid() && other.isValid());
+
+
+    // make sure that either both have materials or neither
+    if (bool(this->getMaterialCnt()) != bool(other.getMaterialCnt())) {
+        Storage* withoutMat = bool(this->getMaterialCnt()) ? &other : this;
+        const BodySettings& body = BodySettings::getDefaults();
+        withoutMat->mats.emplaceBack(makeShared<NullMaterial>(body), 0, other.getParticleCnt());
+        withoutMat->insert<Size>(QuantityId::MATERIAL_ID, OrderEnum::ZERO, 0);
+    }
 
     // update material intervals and cached matIds before merge
     const Size partCnt = this->getParticleCnt();
@@ -514,6 +544,9 @@ void Storage::merge(Storage&& other) {
 
     // cache the view
     this->update();
+
+    // since we moved the buffers away, remove all particles from other to keep it in consistent state
+    other.removeAll();
 
     // sanity check
     ASSERT(this->isValid());
@@ -711,29 +744,6 @@ Array<Size> Storage::duplicate(ArrayView<const Size> idxs, const Flags<IndicesFl
 void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags) {
     ASSERT(!userData, "Removing particles from storages with user data is currently not supported");
 
-    Size particlesRemoved = 0;
-    for (Size matId = 0; matId < mats.size();) {
-        MatRange& mat = mats[matId];
-        mat.from -= particlesRemoved;
-        mat.to -= particlesRemoved;
-        for (Size i : idxs) {
-            if (matIds[i] == matId) {
-                mat.to--;
-                particlesRemoved++;
-            }
-        }
-
-        if (mat.from == mat.to) {
-            // no particles with this material left, remove
-            for (Size i : IndexSequence(mat.to, this->getParticleCnt())) {
-                matIds[i]--;
-            }
-            mats.remove(matId);
-        } else {
-            ++matId;
-        }
-    }
-
     ArrayView<const Size> sortedIdxs;
     Array<Size> sortedHolder;
     if (flags.has(IndicesFlag::INDICES_SORTED)) {
@@ -747,8 +757,38 @@ void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags)
 
     iterate<VisitorEnum::ALL_BUFFERS>(*this, [&sortedIdxs](auto& buffer) { buffer.remove(sortedIdxs); });
 
+    // update material ids
     this->update();
-    ASSERT(this->isValid());
+
+    // regenerate material ranges
+    if (this->has(QuantityId::MATERIAL_ID)) {
+        Array<Size> matsToRemove;
+        for (Size matId = 0; matId < mats.size(); ++matId) {
+            Iterator<Size> from, to;
+            std::tie(from, to) = std::equal_range(matIds.begin(), matIds.end(), matId);
+            if (from != matIds.end() && *from == matId) {
+                // at least one particle from the material remained
+                mats[matId].from = Size(std::distance(matIds.begin(), from));
+                mats[matId].to = Size(std::distance(matIds.begin(), to));
+            } else {
+                // defer the removal to avoid changing indices
+                matsToRemove.push(matId);
+            }
+        }
+        mats.remove(matsToRemove);
+
+    } else {
+        ASSERT(mats.empty());
+    }
+
+    // in case some materials have been removed, we need to re-assign matIds
+    for (Size matId = 0; matId < mats.size(); ++matId) {
+        for (Size i = mats[matId].from; i < mats[matId].to; ++i) {
+            matIds[i] = matId;
+        }
+    }
+
+    ASSERT(this->isValid(), this->isValid().error());
 }
 
 void Storage::removeAll() {

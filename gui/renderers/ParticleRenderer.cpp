@@ -138,12 +138,17 @@ static void drawGrid(IRenderContext& context, const ICamera& camera, const float
 static void drawKey(IRenderContext& context,
     const Statistics& stats,
     const float wtp,
+    const float UNUSED(fps),
     const Rgba& background) {
     const Coords keyStart(5, 2);
-    const float time = stats.get<Float>(StatisticsId::RUN_TIME);
     Flags<TextAlign> flags = TextAlign::RIGHT | TextAlign::BOTTOM;
+
     context.setColor(background.inverse(), ColorFlag::TEXT | ColorFlag::LINE);
-    context.drawText(keyStart, flags, "t = " + getFormattedTime(1.e3_f * time));
+    if (stats.has(StatisticsId::RUN_TIME)) {
+        const float time = stats.get<Float>(StatisticsId::RUN_TIME);
+        context.drawText(keyStart, flags, "t = " + getFormattedTime(1.e3_f * time));
+    }
+    // context.drawText(keyStart + Coords(0, 50), flags, "fps = " + std::to_string(int(fps)));
 
     const float dFov_dPx = 1.f / wtp;
     const float minimalScaleFov = dFov_dPx * 16;
@@ -175,7 +180,6 @@ static void drawKey(IRenderContext& context,
 ParticleRenderer::ParticleRenderer(IScheduler& scheduler, const GuiSettings& settings)
     : scheduler(scheduler) {
     grid = settings.get<Float>(GuiSettingsId::VIEW_GRID_SIZE);
-    background = settings.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
     renderGhosts = settings.get<bool>(GuiSettingsId::RENDER_GHOST_PARTICLES);
     shouldContinue = true;
 }
@@ -194,7 +198,7 @@ void ParticleRenderer::initialize(const Storage& storage,
     cached.colors.clear();
     cached.vectors.clear();
 
-    bool hasVectorData = false;
+    bool hasVectorData = bool(colorizer.evalVector(0));
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
         const Optional<ProjectedPoint> p = camera.project(r[i]);
@@ -205,11 +209,10 @@ void ParticleRenderer::initialize(const Storage& storage,
             const Rgba color = colorizer.evalColor(i);
             cached.colors.push(color);
 
-            if (Optional<Vector> v = colorizer.evalVector(i)) {
+            if (hasVectorData) {
+                Optional<Vector> v = colorizer.evalVector(i);
+                ASSERT(v);
                 cached.vectors.push(v.value());
-                hasVectorData = true;
-            } else {
-                cached.vectors.push(Vector(0._f));
             }
         }
     }
@@ -224,7 +227,10 @@ void ParticleRenderer::initialize(const Storage& storage,
                     cached.idxs.push(Size(-1));
                     cached.positions.push(pos);
                     cached.colors.push(Rgba::transparent());
-                    cached.vectors.push(Vector(0._f));
+
+                    if (hasVectorData) {
+                        cached.vectors.push(Vector(0._f));
+                    }
                 }
             }
         }
@@ -269,11 +275,12 @@ static AutoPtr<PreviewRenderContext> getContext(const RenderParams& params, Bitm
 
 void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const {
     MEASURE_SCOPE("ParticleRenderer::render");
+
     Bitmap<Rgba> bitmap(params.size);
     AutoPtr<PreviewRenderContext> context = getContext(params, bitmap);
 
     // fill with the background color
-    context->fill(background);
+    context->fill(params.background);
 
     if (grid > 0.f) {
         drawGrid(*context, *params.camera, grid);
@@ -325,10 +332,6 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
     }
 
     if (params.particles.showKey) {
-        if (Optional<float> wtp = params.camera->getWorldToPixel()) {
-            drawKey(*context, stats, wtp.value(), background);
-        }
-
         if (cached.palette) {
             const Pixel origin(context->size().x - 50, 231);
             Palette palette;
@@ -338,7 +341,13 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
             } else {
                 palette = cached.palette.value();
             }
-            drawPalette(*context, origin, Pixel(30, 201), background.inverse(), palette);
+            drawPalette(*context, origin, Pixel(30, 201), params.background.inverse(), palette);
+        }
+
+        if (Optional<float> wtp = params.camera->getWorldToPixel()) {
+            const float fps = 1000.f / lastRenderTimer.elapsed(TimerUnit::MILLISECOND);
+            lastRenderTimer.restart();
+            drawKey(*context, stats, wtp.value(), fps, params.background);
         }
     }
 

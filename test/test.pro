@@ -5,8 +5,6 @@ CONFIG -= qt
 
 LIBS += ../lib/liblib.a
 
-include(../lib/inc.pro)
-
 CONFIG(devel) {
     DEFINES += SPH_CONFIG_SET
 }
@@ -15,6 +13,9 @@ INCLUDEPATH += ../lib /usr/include/catch2
 DEPENDPATH += . ../lib
 LIBS += ../lib/liblib.a
 PRE_TARGETDEPS += ../lib/liblib.a
+
+include(../lib/inc.pro)
+
 
 SOURCES += \
     ../lib/common/test/Traits.cpp \
@@ -97,6 +98,8 @@ SOURCES += \
     ../lib/quantities/test/Quantity.cpp \
     ../lib/quantities/test/QuantityHelpers.cpp \
     ../lib/quantities/test/Storage.cpp \
+    ../lib/run/test/Config.cpp \
+    ../lib/run/test/Workers.cpp \
     ../lib/sph/boundary/test/Boundary.cpp \
     ../lib/sph/equations/av/test/AV.cpp \
     ../lib/sph/equations/av/test/Balsara.cpp \
@@ -108,7 +111,6 @@ SOURCES += \
     ../lib/sph/equations/test/Friction.cpp \
     ../lib/sph/equations/test/Heat.cpp \
     ../lib/sph/equations/test/Potentials.cpp \
-    ../lib/sph/equations/test/Rotation.cpp \
     ../lib/sph/equations/test/XSph.cpp \
     ../lib/sph/initial/test/Distribution.cpp \
     ../lib/sph/initial/test/Initial.cpp \
@@ -147,9 +149,9 @@ SOURCES += \
     ../lib/sph/solvers/test/EnergyConservingSolver.cpp \
     ../lib/gravity/test/CachedGravity.cpp \
     ../lib/run/test/IRun.cpp \
-    ../lib/run/test/Collision.cpp \
     ../lib/system/test/Crashpad.cpp \
-    ../lib/objects/finders/test/PeriodicFinder.cpp
+    ../lib/objects/finders/test/PeriodicFinder.cpp \
+    ../lib/run/test/Node.cpp
 
 HEADERS += \
     utils/Utils.h \

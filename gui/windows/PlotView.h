@@ -26,7 +26,12 @@ struct PlotData {
     Rgba color;
 };
 
-class PlotFrame;
+class PlotPage;
+
+struct TicsParams {
+    Size minCnt = 6;
+    Size digits = 3;
+};
 
 class PlotView : public wxPanel {
 private:
@@ -38,7 +43,7 @@ private:
         Rgba color;
     } cached;
 
-    bool showLabels;
+    Optional<TicsParams> ticsParams;
 
 public:
     /// Include zero in x-range
@@ -53,7 +58,7 @@ public:
         const wxSize padding,
         const SharedPtr<Array<PlotData>>& list,
         const Size defaultSelectedIdx,
-        const bool showLabels);
+        Optional<TicsParams> ticsParams);
 
     void resize(const Pixel size);
 
@@ -83,7 +88,7 @@ private:
 };
 
 
-class PlotFrame : public wxFrame {
+class PlotPage : public wxPanel {
 private:
     LockingPtr<IPlot> plot;
     wxSize padding;
@@ -91,7 +96,7 @@ private:
     PlotView* plotView;
 
 public:
-    PlotFrame(wxWindow* parent, const wxSize size, const wxSize padding, const LockingPtr<IPlot>& plot);
+    PlotPage(wxWindow* parent, const wxSize size, const wxSize padding, const LockingPtr<IPlot>& plot);
 
 private:
     wxBoxSizer* createToolbar(const Size toolbarHeight);

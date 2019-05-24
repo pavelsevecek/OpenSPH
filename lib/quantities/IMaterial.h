@@ -8,6 +8,7 @@
 #include "math/rng/Rng.h"
 #include "objects/containers/FlatMap.h"
 #include "objects/utility/IteratorAdapters.h"
+#include "objects/wrappers/SharedPtr.h"
 #include "quantities/QuantityIds.h"
 #include "system/Settings.h"
 
@@ -89,11 +90,13 @@ struct MaterialInitialContext {
     /// \brief Random number generator
     AutoPtr<IRng> rng;
 
-    /// \brief Multiplier of smoothing length of all particles
-    Float eta = 1._f;
+    SharedPtr<IScheduler> scheduler;
 
     /// \brief Kernel radius in units of smoothing length.
     Float kernelRadius = 2._f;
+
+    /// If true, texture mapping coordinates are generated using spherical mapping.
+    bool generateUvws = false;
 
     MaterialInitialContext() = default;
 
@@ -124,8 +127,9 @@ public:
         : params(settings) {}
 
     template <typename TValue>
-    INLINE void setParam(const BodySettingsId paramIdx, TValue&& value) {
+    INLINE IMaterial& setParam(const BodySettingsId paramIdx, TValue&& value) {
         params.set(paramIdx, std::forward<TValue>(value));
+        return *this;
     }
 
     /// \brief Returns a parameter associated with given particle.

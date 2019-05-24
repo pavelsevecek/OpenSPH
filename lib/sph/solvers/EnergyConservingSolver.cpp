@@ -3,9 +3,9 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// ----------------------------------------------------------------------------------------------------------
-/// Energy partitioners
-/// ----------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------
+// Energy partitioners
+// ----------------------------------------------------------------------------------------------------------
 
 class Equipartitioner : public IEnergyPartitioner {
 public:
@@ -117,9 +117,9 @@ public:
     }
 };
 
-/// ----------------------------------------------------------------------------------------------------------
-/// EnergyConservingSolver implementation
-/// ----------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------
+// EnergyConservingSolver implementation
+// ----------------------------------------------------------------------------------------------------------
 
 EnergyConservingSolver::EnergyConservingSolver(IScheduler& scheduler,
     const RunSettings& settings,
@@ -132,6 +132,16 @@ EnergyConservingSolver::EnergyConservingSolver(IScheduler& scheduler,
         makeAuto<BlendingPartitioner<SmoothlyDiminishingPartitioner, MonotonicDiminishingPartitioner>>();
 
     eqs.setDerivatives(derivatives, settings);
+}
+
+EnergyConservingSolver::EnergyConservingSolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    const EquationHolder& eqs,
+    AutoPtr<IBoundaryCondition>&& bc)
+    : EnergyConservingSolver(scheduler, settings, eqs) {
+    if (bc != nullptr) {
+        throw InvalidSetup("ECS does not support boundary conditions yet");
+    }
 }
 
 void EnergyConservingSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
@@ -188,7 +198,6 @@ void EnergyConservingSolver::beforeLoop(Storage& storage, Statistics& UNUSED(sta
 }
 
 void EnergyConservingSolver::afterLoop(Storage& storage, Statistics& stats) {
-
     MEASURE_SCOPE("EnergyConservingSolver::afterLoop");
 
     Accumulated& accumulated = derivatives.getAccumulated();

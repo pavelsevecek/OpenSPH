@@ -3,7 +3,7 @@
 #include "objects/containers/Array.h"
 #include "objects/geometry/Box.h"
 #include "objects/geometry/Triangle.h"
-#include "objects/wrappers/SharedPtr.h"
+#include "objects/wrappers/Function.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -55,6 +55,11 @@ private:
         Array<Float> phi;
     } cached;
 
+    /// \brief Optional callback for reporting the relative progress
+    ///
+    /// Function may also return false to terminate the generation and return empty array of tringles.
+    Function<bool(Float progress)> progressCallback = nullptr;
+
 public:
     /// \brief Constructs the object using given scalar field.
     ///
@@ -62,7 +67,10 @@ public:
     /// \param surfaceLevel Defines of the boundary of SPH particle as implicit function \f$ {\rm Boundary} =
     ///                     \Phi(\vec r) - {\rm surfaceLevel}\f$, where \f$\Phi\f$ is the scalar field.
     /// \param field Scalar field used to generate the surface.
-    MarchingCubes(IScheduler& scheduler, const Float surfaceLevel, const SharedPtr<IScalarField>& field);
+    MarchingCubes(IScheduler& scheduler,
+        const Float surfaceLevel,
+        const SharedPtr<IScalarField>& field,
+        Function<bool(Float progress)> progressCallback = nullptr);
 
     /// \brief Adds a triangle mesh representing the boundary of particles.
     ///
@@ -90,6 +98,12 @@ private:
 
     /// Find the interpolated vertex position based on the surface level
     Vector interpolate(const Vector& v1, const Float p1, const Vector& v2, const Float p2) const;
+
+    /// \brief Parallelized version of \ref Box::iterateWithIndices
+    ///
+    /// Returns false if user cancelled the operation.
+    template <typename TFunctor>
+    bool iterateWithIndices(const Box& box, const Vector& step, TFunctor&& functor);
 };
 
 
@@ -105,7 +119,8 @@ private:
 Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
     const Storage& storage,
     const Float gridResolution,
-    const Float surfaceLevel);
+    const Float surfaceLevel,
+    Function<bool(Float progress)> progressCallback = nullptr);
 
 
 NAMESPACE_SPH_END

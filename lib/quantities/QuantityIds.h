@@ -92,9 +92,8 @@ enum class QuantityId {
     /// \name N-body & Solid sphere physics
     ///@{
 
-    /// Gravitational potential; not needed for solution, but needs to be included to the total energy of the
-    /// system, otherwise the energy will not be conserved.
-    GRAVITY_POTENTIAL = 19,
+    /// Index of the aggregate containing this particle.
+    AGGREGATE_ID = 19,
 
     /// Angular frequency of particles. Note that SPH particles in standard formulation have no angular
     /// frequency, this quantity is used by solid sphere solvers or by SPH modifications that include particle
@@ -114,6 +113,7 @@ enum class QuantityId {
 
     /// Local coordinates of a particle; moment of inertia is typically expressed in these coordinates.
     LOCAL_FRAME = 24,
+
 
     ///@}
 

@@ -1,13 +1,13 @@
 #include "Sph.h"
+#include <iostream>
 
 using namespace Sph;
 
 // Runs a single impact simulation.
 class Collision : public IRun {
 public:
-    virtual void setUp() override {
-        storage = makeShared<Storage>();
-        InitialConditions ic(*scheduler, settings);
+    virtual void setUp(SharedPtr<Storage> storage) override {
+        InitialConditions ic(settings);
 
         BodySettings body;
         body.set(BodySettingsId::PARTICLE_COUNT, 10000);
@@ -32,7 +32,7 @@ public:
         settings.set(RunSettingsId::RUN_NAME, std::string("Simple collision"));
 
         // Let's run the simulation for 10 seconds
-        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 10._f));
+        settings.set(RunSettingsId::RUN_END_TIME, 10._f);
 
         // Limit the time step by CFL criterion
         settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT);
@@ -41,15 +41,20 @@ public:
         settings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.1_f);
     }
 
-    virtual void tearDown(const Statistics& stats) override {
+    virtual void tearDown(const Storage& storage, const Statistics& stats) override {
         BinaryOutput io(Path("output.ssf"));
-        io.dump(*storage, stats);
+        io.dump(storage, stats);
     }
 };
 
 int main() {
-    Collision simulation;
-    simulation.setUp();
-    simulation.run();
+    try {
+        Collision simulation;
+        Storage storage;
+        simulation.run(storage);
+    } catch (Exception& e) {
+        std::cout << "Error during simulation: " << e.what() << std::endl;
+        return -1;
+    }
     return 0;
 }

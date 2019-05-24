@@ -6,6 +6,7 @@
 /// \date 2016-2019
 
 #include "objects/containers/Array.h"
+#include "objects/wrappers/Optional.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -83,6 +84,10 @@ public:
 
     Iterator<const T> find(const T& value) const {
         return const_cast<FlatSet*>(this)->find(value);
+    }
+
+    bool contains(const T& value) {
+        return this->find(value) != this->end();
     }
 
     Iterator<T> erase(Iterator<T> pos) {

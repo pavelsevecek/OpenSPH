@@ -141,3 +141,11 @@ TEST_CASE("Box split", "[box]") {
     REQUIRE_ASSERT(box.split(4, 2._f));
     REQUIRE_ASSERT(Box().split(X, 0._f));
 }
+
+TEST_CASE("Box intersect", "[box]") {
+    Box box(Vector(0._f), Vector(2._f));
+    REQUIRE(box.intersect(Box(Vector(1._f), Vector(3._f))) == Box(Vector(1._f), Vector(2._f)));
+    REQUIRE(box.intersect(Box(Vector(0._f, 1._f, -1._f), Vector(1._f, 3._f, 1._f))) ==
+            Box(Vector(0._f, 1._f, 0._f), Vector(1._f, 2._f, 1._f)));
+    REQUIRE(box.intersect(Box(Vector(3._f), Vector(4._f))) == Box::EMPTY());
+}

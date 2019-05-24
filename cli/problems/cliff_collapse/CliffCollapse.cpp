@@ -20,7 +20,7 @@ public:
             .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
             .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-8_f)
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
-            .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 200._f))
+            .set(RunSettingsId::RUN_END_TIME, 200._f)
             .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
             .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 20._f)
             .set(RunSettingsId::RUN_OUTPUT_PATH, std::string("cliff_collapse"))
@@ -34,7 +34,6 @@ public:
             .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
             .set(RunSettingsId::SPH_AV_BETA, 3._f)
             .set(RunSettingsId::SPH_KERNEL, KernelEnum::CUBIC_SPLINE)
-            .set(RunSettingsId::SPH_KERNEL_ETA, 1.3_f)
             .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
             .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.2_f)
             .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
@@ -48,7 +47,7 @@ public:
             .set(RunSettingsId::DOMAIN_SIZE, Vector(6.01_f, 6.01_f, 3.01_f) * SCALE);
     }
 
-    virtual void setUp() override {
+    virtual void setUp(SharedPtr<Storage> storage) override {
         Size N = 10000;
 
         BodySettings body;
@@ -83,11 +82,11 @@ public:
 
         solver = makeAuto<AsymmetricSolver>(*scheduler, settings, eqs, std::move(bc));
 
-        storage = makeShared<Storage>();
         const Vector dimension = Vector(1._f, 3.2_f, 3._f) * SCALE;
         BlockDomain block(0.5_f * Vector(dimension[X], dimension[Y], 0._f), dimension);
-        InitialConditions ic(*scheduler, settings);
+        InitialConditions ic(settings);
         ic.addMonolithicBody(*storage, block, body);
+        solver->create(*storage, storage->getMaterial(0));
 
         logWriter = makeAuto<NullLogWriter>();
 
@@ -96,7 +95,7 @@ public:
     }
 
 protected:
-    virtual void tearDown(const Statistics& UNUSED(stats)) override {}
+    virtual void tearDown(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {}
 };
 
 TEST_CASE("Cliff Collapse", "[rheology]") {
@@ -108,8 +107,9 @@ TEST_CASE("Cliff Collapse", "[rheology]") {
     }
 
     CliffCollapse run;
-    run.setUp();
-    run.run();
+
+    Storage storage;
+    run.run(storage);
 
     for (Path file : filesToCheck) {
         REQUIRE(areFilesApproxEqual(file, REFERENCE_DIR / file.fileName()) == SUCCESS);

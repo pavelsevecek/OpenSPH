@@ -21,13 +21,14 @@ TEST_CASE("InternalFriction", "[friction]") {
     SymmetricSolver solver(pool, settings, std::move(eqs));
 
     Storage storage;
-    InitialConditions initial(pool, solver, RunSettings::getDefaults());
+    InitialConditions initial(RunSettings::getDefaults());
     BodySettings body;
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
     body.set(BodySettingsId::EOS, EosEnum::NONE);
     body.set(BodySettingsId::PARTICLE_COUNT, 10000);
     initial.addMonolithicBody(storage, BlockDomain(Vector(0._f), Vector(2._f, 2._f, 1._f)), body);
+    solver.create(storage, storage.getMaterial(0));
 
     /// \todo this is normally createdb by rheology, but we actually don't need any rheology here. Better
     /// solution?

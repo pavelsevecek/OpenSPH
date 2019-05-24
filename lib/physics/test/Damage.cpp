@@ -15,6 +15,7 @@
 #include "system/Settings.h"
 #include "tests/Approx.h"
 #include "thread/Pool.h"
+#include "timestepping/ISolver.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;
@@ -74,27 +75,28 @@ TEST_CASE("Fracture growth", "[damage]") {
     /// \todo some better test, for now just testing that integrate will work without asserts
     ScalarGradyKippModel damage;
     Storage storage;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    InitialConditions conds(pool, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
     BodySettings body;
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), body);
+    ThreadPool& scheduler = *ThreadPool::getGlobalInstance();
+    AutoPtr<ISolver> solver = Factory::getSolver(scheduler, RunSettings::getDefaults());
+    solver->create(storage, storage.getMaterial(0));
 
     MaterialInitialContext context;
     context.rng = makeAuto<RngWrapper<BenzAsphaugRng>>(1234);
     MaterialView material = storage.getMaterial(0);
     damage.setFlaws(storage, material, context);
-    REQUIRE_NOTHROW(damage.integrate(pool, storage, material));
+    REQUIRE_NOTHROW(damage.integrate(scheduler, storage, material));
 
     /// \todo check that if the strain if below eps_min, damage wont increase
 }
 
 static void testEquivalence(const Size npart, const Size maxdiff) {
     Storage storage;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     RunSettings settings;
     settings.set(RunSettingsId::RUN_RNG, RngEnum::UNIFORM);
-    InitialConditions ic(pool, settings);
+    InitialConditions ic(settings);
     BodySettings body;
     body.set(BodySettingsId::PARTICLE_COUNT, int(npart))
         .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)

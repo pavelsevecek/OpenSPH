@@ -4,6 +4,18 @@
 
 using namespace Sph;
 
+TEST_CASE("Sphere constructor", "[sphere]") {
+    REQUIRE_NOTHROW(Sphere(Vector(0._f), 1._f));
+    REQUIRE_ASSERT(Sphere(Vector(0._f), -1._f));
+}
+
+TEST_CASE("Sphere contains", "[sphere]") {
+    Sphere sphere(Vector(1._f, 0._f, 0._f), 2._f);
+    REQUIRE(sphere.contains(Vector(1._f, 0._f, 0._f)));
+    REQUIRE(sphere.contains(Vector(2.999_f, 0._f, 0._f)));
+    REQUIRE(sphere.contains(Vector(1._f, 1.999_f, 0._f)));
+    REQUIRE_FALSE(sphere.contains(Vector(-1.1_f, 0._f, 0._f)));
+}
 
 TEST_CASE("Sphere intersectsSphere", "[sphere]") {
     Sphere sphere(Vector(0._f), 1._f);

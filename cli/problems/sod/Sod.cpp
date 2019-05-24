@@ -43,7 +43,7 @@ public:
     Sod() {
         // Global settings of the problem
         this->settings.set(RunSettingsId::RUN_NAME, std::string("Sod Shock Tube Problem"))
-            .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 0.5_f))
+            .set(RunSettingsId::RUN_END_TIME, 0.5_f)
             .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.02_f)
             .set(RunSettingsId::RUN_OUTPUT_PATH, std::string(""))
             .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("sod_%d.ssf"))
@@ -54,7 +54,6 @@ public:
             .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)
             .set(RunSettingsId::SPH_AV_ALPHA, 1.0_f)
             .set(RunSettingsId::SPH_AV_BETA, 2.0_f)
-            .set(RunSettingsId::SPH_KERNEL_ETA, 1.5_f)
             .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
             .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-5_f)
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f)
@@ -64,8 +63,7 @@ public:
             .set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE);
     }
 
-    virtual void setUp() override {
-        storage = makeShared<Storage>();
+    virtual void setUp(SharedPtr<Storage> storage) override {
 
         // Number of SPH particles
         const int N = 400;
@@ -84,7 +82,7 @@ public:
             .set(BodySettingsId::ENERGY, 2.5_f)
             .set(BodySettingsId::ENERGY_MIN, 0.1_f);
 
-        InitialConditions initialConditions(*scheduler, this->settings);
+        InitialConditions initialConditions(this->settings);
         initialConditions.addMonolithicBody(*storage, SphericalDomain(Vector(0.5_f), 0.5_f), body);
 
         Path outputDir("sod/" + this->settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
@@ -95,8 +93,8 @@ public:
             GnuplotOutput::Options::SCIENTIFIC);
 
         // 1) setup initial positions, with different spacing in each region
-        const Float eta = this->settings.get<Float>(RunSettingsId::SPH_KERNEL_ETA);
-        this->storage->getValue<Vector>(QuantityId::POSITION) = sodDistribution(N, 1._f / N, eta);
+        const Float eta = body.get<Float>(BodySettingsId::SMOOTHING_LENGTH_ETA);
+        storage->getValue<Vector>(QuantityId::POSITION) = sodDistribution(N, 1._f / N, eta);
 
         // 2) setup initial pressure and masses of particles
         ArrayView<Vector> r;
@@ -154,14 +152,15 @@ public:
     }
 
 protected:
-    virtual void tearDown(const Statistics& UNUSED(stats)) override {}
+    virtual void tearDown(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {}
 };
 
 TEST_CASE("Sod", "[sod]") {
     Sod run;
-    run.setUp();
+
     if (false) {
         // currently doesn't work, there is no easy way to run 1D simulation
-        run.run();
+        Storage storage;
+        run.run(storage);
     }
 }

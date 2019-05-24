@@ -5,6 +5,7 @@
 #include "quantities/Storage.h"
 #include "sph/Materials.h"
 #include "system/Factory.h"
+#include "thread/CheckFunction.h"
 #include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
@@ -38,6 +39,8 @@ void EosMaterial::create(Storage& storage, const MaterialInitialContext& UNUSED(
     }
     storage.insert<Float>(QuantityId::PRESSURE, OrderEnum::ZERO, std::move(p));
     storage.insert<Float>(QuantityId::SOUND_SPEED, OrderEnum::ZERO, std::move(cs));
+    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, rho0);
+    storage.insert<Float>(QuantityId::ENERGY, OrderEnum::ZERO, u0);
 }
 
 void EosMaterial::initialize(IScheduler& scheduler, Storage& storage, const IndexSequence sequence) {
@@ -81,8 +84,56 @@ void SolidMaterial::finalize(IScheduler& scheduler, Storage& storage, const Inde
     rheology->integrate(scheduler, storage, MaterialView(this, sequence));
 }
 
-AutoPtr<IMaterial> getDefaultMaterial() {
-    return Factory::getMaterial(BodySettings::getDefaults());
+AutoPtr<IMaterial> getMaterial(const MaterialEnum type) {
+    CHECK_FUNCTION(CheckFunction::NO_THROW);
+
+    BodySettings settings;
+    switch (type) {
+    case MaterialEnum::BASALT:
+        // this is the default, so we don't have to do anything
+        break;
+    case MaterialEnum::ICE:
+        settings.set(BodySettingsId::TILLOTSON_SMALL_A, 0.3_f)
+            .set(BodySettingsId::TILLOTSON_SMALL_B, 0.1_f)
+            .set(BodySettingsId::TILLOTSON_SUBLIMATION, 1.e7_f)
+            .set(BodySettingsId::DENSITY, 917._f)
+            .set(BodySettingsId::BULK_MODULUS, 9.47e9_f)
+            .set(BodySettingsId::TILLOTSON_NONLINEAR_B, 9.47e9_f)
+            .set(BodySettingsId::TILLOTSON_ENERGY_IV, 7.73e5_f)
+            .set(BodySettingsId::TILLOTSON_ENERGY_CV, 3.04e6_f)
+            .set(BodySettingsId::TILLOTSON_ALPHA, 10._f)
+            .set(BodySettingsId::TILLOTSON_BETA, 5._f);
+        break;
+    case MaterialEnum::IRON:
+        settings.set(BodySettingsId::TILLOTSON_SMALL_A, 0.5_f)
+            .set(BodySettingsId::TILLOTSON_SMALL_B, 1.5_f)
+            .set(BodySettingsId::TILLOTSON_SUBLIMATION, 9.5e6_f)
+            .set(BodySettingsId::DENSITY, 7860._f)
+            .set(BodySettingsId::BULK_MODULUS, 1.28e11_f)
+            .set(BodySettingsId::TILLOTSON_NONLINEAR_B, 1.05e11_f)
+            .set(BodySettingsId::TILLOTSON_ENERGY_IV, 1.42e10_f)
+            .set(BodySettingsId::TILLOTSON_ENERGY_CV, 8.45e10_f)
+            .set(BodySettingsId::TILLOTSON_ALPHA, 5._f)
+            .set(BodySettingsId::TILLOTSON_BETA, 5._f)
+            .set(BodySettingsId::HEAT_CAPACITY, 449._f);
+        break;
+    case MaterialEnum::OLIVINE:
+        settings.set(BodySettingsId::TILLOTSON_SMALL_A, 0.5_f)
+            .set(BodySettingsId::TILLOTSON_SMALL_B, 1.4_f)
+            .set(BodySettingsId::TILLOTSON_SUBLIMATION, 5.5e8_f)
+            .set(BodySettingsId::DENSITY, 3500._f)
+            .set(BodySettingsId::BULK_MODULUS, 1.31e11_f)
+            .set(BodySettingsId::TILLOTSON_NONLINEAR_B, 4.9e10_f)
+            .set(BodySettingsId::TILLOTSON_ENERGY_IV, 4.5e6_f)
+            .set(BodySettingsId::TILLOTSON_ENERGY_CV, 1.5e7_f)
+            .set(BodySettingsId::TILLOTSON_ALPHA, 5._f)
+            .set(BodySettingsId::TILLOTSON_BETA, 5._f);
+        break;
+    default:
+        NOT_IMPLEMENTED;
+    }
+
+    return Factory::getMaterial(settings);
 }
 
 NAMESPACE_SPH_END

@@ -40,6 +40,8 @@ RayTracer::RayTracer(IScheduler& scheduler, const GuiSettings& settings)
 
 RayTracer::~RayTracer() = default;
 
+constexpr Size BLEND_ALL_FLAG = 0x80;
+
 void RayTracer::initialize(const Storage& storage,
     const IColorizer& colorizer,
     const ICamera& UNUSED(camera)) {
@@ -54,11 +56,15 @@ void RayTracer::initialize(const Storage& storage,
     }
 
     cached.flags.resize(particleCnt);
-    if (storage.has(QuantityId::FLAG)) {
+    if (storage.has(QuantityId::FLAG) && storage.has(QuantityId::STRESS_REDUCING)) {
         ArrayView<const Size> idxs = storage.getValue<Size>(QuantityId::FLAG);
-        // assign separate flag to fully damaged particles so that they do not blend with other particles
+        ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
+        // avoid blending particles of different bodies, except if they are fully damaged
         for (Size i = 0; i < particleCnt; ++i) {
             cached.flags[i] = idxs[i];
+            if (reduce[i] == 0._f) {
+                cached.flags[i] |= BLEND_ALL_FLAG;
+            }
         }
     } else {
         cached.flags.fill(0);
@@ -177,7 +183,9 @@ ArrayView<const Size> RayTracer::getNeighbourList(ThreadData& data, const Size i
         // find the actual list of neighbours
         data.neighs.clear();
         for (NeighbourRecord& n : neighs) {
-            if (cached.flags[index] == cached.flags[n.index]) {
+            const Size flag1 = cached.flags[index];
+            const Size flag2 = cached.flags[n.index];
+            if ((flag1 & BLEND_ALL_FLAG) || (flag2 & BLEND_ALL_FLAG) || (flag1 == flag2)) {
                 data.neighs.push(n.index);
             }
         }
@@ -260,8 +268,13 @@ Rgba RayTracer::shade(ThreadData& data,
     const Vector& dir) const {
     Rgba color = Rgba::white();
     if (!fixed.textures.empty() && !cached.uvws.empty()) {
+        Size textureIdx = cached.flags[index] & ~BLEND_ALL_FLAG;
+        ASSERT(textureIdx <= 10); // just sanity check, increase if necessary
+        if (textureIdx >= fixed.textures.size()) {
+            textureIdx = 0;
+        }
         const Vector uvw = this->evalUvws(data.neighs, hit);
-        color = fixed.textures[cached.flags[index]].eval(uvw) * 2._f;
+        color = fixed.textures[textureIdx].eval(uvw) * 2._f;
     }
 
     // evaluate color before checking for occlusion as that invalidates the neighbour list

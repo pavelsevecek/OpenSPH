@@ -151,8 +151,9 @@ enum class ColorizerId {
     BOUND_COMPONENT_ID = -18,  ///< Color assigned to each group of gravitationally bound particles
     AGGREGATE_ID = -19,        ///< Color assigned to each aggregate
     FLAG = -20,                ///< Particles of different bodies are colored differently
-    BEAUTY = -21,              ///< Attempts to show the real-world look
-    MARKER = -22, ///< Simple colorizer assigning given color to all particles, creating particle "mask".
+    MATERIAL_ID = -21,         ///< Particles with different materials are colored differently
+    BEAUTY = -22,              ///< Attempts to show the real-world look
+    MARKER = -23, ///< Simple colorizer assigning given color to all particles, creating particle "mask".
 };
 
 /// \brief Default colorizer simply converting quantity value to color using defined palette.
@@ -335,12 +336,19 @@ public:
         v = makeArrayRef(storage.getDt<Vector>(QuantityId::POSITION), ref);
         matIds = makeArrayRef(storage.getValue<Size>(QuantityId::MATERIAL_ID), ref);
 
-        /// \todo this works correctly only for bodies with no initial velocity
+        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+        ArrayView<const Vector> rv = r;
+        ArrayView<const Vector> vv = v;
         data.resize(storage.getMaterialCnt());
+
         for (Size i = 0; i < data.size(); ++i) {
             MaterialView mat = storage.getMaterial(i);
-            data[i].center = mat->getParam<Vector>(BodySettingsId::BODY_CENTER);
-            data[i].omega = mat->getParam<Vector>(BodySettingsId::BODY_SPIN_RATE);
+            const Size from = *mat.sequence().begin();
+            const Size to = *mat.sequence().end();
+            const Size size = to - from;
+            data[i].center = Post::getCenterOfMass(m.subset(from, size), rv.subset(from, size));
+            data[i].omega =
+                Post::getAngularFrequency(m.subset(from, size), rv.subset(from, size), vv.subset(from, size));
         }
     }
 
@@ -376,7 +384,7 @@ public:
 private:
     Vector getCorotatingVelocity(const Size idx) const {
         const BodyMetadata& body = data[matIds[idx]];
-        return v[idx] - cross(body.omega, r[idx]);
+        return v[idx] - cross(body.omega, r[idx] - body.center);
     }
 };
 
@@ -1121,21 +1129,25 @@ public:
 
 class AggregateIdColorizer : public IdColorizerTemplate<AggregateIdColorizer> {
 private:
-    RawPtr<IAggregateObserver> aggregates;
+    ArrayView<const Size> ids;
 
 public:
     using IdColorizerTemplate<AggregateIdColorizer>::IdColorizerTemplate;
 
     INLINE Optional<Size> evalId(const Size idx) const {
-        return aggregates->getAggregateId(idx);
+        if (ids[idx] != Size(-1)) {
+            return ids[idx];
+        } else {
+            return NOTHING;
+        }
     }
 
     virtual void initialize(const Storage& storage, const RefEnum UNUSED(ref)) override {
-        aggregates = dynamicCast<IAggregateObserver>(storage.getUserData().get());
+        ids = storage.getValue<Size>(QuantityId::AGGREGATE_ID);
     }
 
     virtual bool isInitialized() const override {
-        return aggregates != nullptr;
+        return ids != nullptr;
     }
 
     virtual std::string name() const override {
@@ -1144,27 +1156,30 @@ public:
 };
 
 
-class FlagColorizer : public IdColorizerTemplate<FlagColorizer> {
+class IndexColorizer : public IdColorizerTemplate<IndexColorizer> {
 private:
-    ArrayRef<const Size> flags;
+    QuantityId id;
+    ArrayRef<const Size> idxs;
 
 public:
-    using IdColorizerTemplate<FlagColorizer>::IdColorizerTemplate;
+    IndexColorizer(const QuantityId id, const GuiSettings& gui)
+        : IdColorizerTemplate<IndexColorizer>(gui)
+        , id(id) {}
 
     INLINE Optional<Size> evalId(const Size idx) const {
-        return flags[idx];
+        return idxs[idx];
     }
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
-        flags = makeArrayRef(storage.getValue<Size>(QuantityId::FLAG), ref);
+        idxs = makeArrayRef(storage.getValue<Size>(id), ref);
     }
 
     virtual bool isInitialized() const override {
-        return !flags.empty();
+        return !idxs.empty();
     }
 
     virtual std::string name() const override {
-        return "Flags";
+        return getMetadata(id).quantityName;
     }
 };
 

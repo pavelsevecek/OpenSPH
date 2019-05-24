@@ -49,9 +49,10 @@ public:
     ///
     /// This overrides any previously stored value.
     template <typename TValue>
-    void set(const StatisticsId idx, TValue&& value) {
+    Statistics& set(const StatisticsId idx, TValue&& value) {
         using StoreType = ConvertToSize<TValue>;
         entries.insert(idx, StoreType(std::forward<TValue>(value)));
+        return *this;
     }
 
     /// \brief Increments an integer statistic by given amount

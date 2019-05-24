@@ -18,6 +18,7 @@ class Bitmap;
 class ICamera;
 class IColorizer;
 class Statistics;
+class GuiSettings;
 
 enum class TextAlign {
     LEFT = 1 << 0,
@@ -55,6 +56,9 @@ struct RenderParams {
 
     /// \brief Camera used for rendering.
     AutoPtr<ICamera> camera;
+
+    /// \brief Background color of the rendered image.
+    Rgba background = Rgba::black();
 
     /// \brief Parameters of the particle renderer
     struct {
@@ -107,6 +111,11 @@ struct RenderParams {
         Float sunLight = 0.7f;
 
     } surface;
+
+    /// \brief Sets up parameters using values stored in settings.
+    ///
+    /// This does NOT initialize camera and resolution of the render.
+    void initialize(const GuiSettings& gui);
 };
 
 /// \brief Interface used to implement renderers.

@@ -13,7 +13,7 @@ using namespace Sph;
 TEST_CASE("Regenerate largest remnant", "[handoff]") {
     RunSettings settings;
     BodySettings body;
-    InitialConditions ic(SEQUENTIAL, settings);
+    InitialConditions ic(settings);
 
     Storage sph;
     // so that we have the exact number of particles
@@ -76,7 +76,7 @@ TEST_CASE("Regenerate largest remnant", "[handoff]") {
 TEST_CASE("Handoff conserves angular momentum", "[handoff]") {
     RunSettings settings;
     BodySettings body;
-    InitialConditions ic(SEQUENTIAL, settings);
+    InitialConditions ic(settings);
 
     Storage sph;
     body.set(BodySettingsId::PARTICLE_COUNT, 15000);

@@ -43,3 +43,22 @@ TEST_CASE("String lineBreak", "[string]") {
     REQUIRE(
         setLineBreak("- option1: test test test test", 22) == "- option1: test test\n           test test");
 }
+
+TEST_CASE("String capitalize", "[string]") {
+    REQUIRE(capitalize("test") == "Test");
+    REQUIRE(capitalize("  test ") == "  Test ");
+    REQUIRE(capitalize("TEST") == "TEST");
+    REQUIRE(capitalize("apples and oranges") == "Apples and Oranges");
+    REQUIRE(capitalize("red, green or blue") == "Red, Green or Blue");
+    REQUIRE(capitalize("sevecek et al") == "Sevecek et al");
+    REQUIRE(capitalize("symbols!?") == "Symbols!?");
+}
+
+TEST_CASE("Unique name manager", "[string]") {
+    UniqueNameManager mgr;
+    REQUIRE(mgr.getName("name") == "name");
+    REQUIRE(mgr.getName("name") == "name 1");
+    REQUIRE(mgr.getName("name") == "name 2");
+    REQUIRE(mgr.getName("test") == "test");
+    REQUIRE(mgr.getName("test") == "test 1");
+}

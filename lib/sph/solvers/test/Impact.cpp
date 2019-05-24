@@ -10,7 +10,6 @@
 #include "tests/Setup.h"
 #include "timestepping/TimeStepping.h"
 #include "utils/Utils.h"
-#include <iostream>
 
 using namespace Sph;
 
@@ -19,7 +18,7 @@ static void runImpact(EquationHolder eqs, const RunSettings& settings) {
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     TSolver solver(pool, settings, std::move(eqs));
     SharedPtr<Storage> storage = makeShared<Storage>();
-    InitialConditions initial(pool, solver, settings);
+    InitialConditions initial(settings);
     BodySettings body;
     body.set(BodySettingsId::PARTICLE_COUNT, 1000);
     body.set(BodySettingsId::ENERGY, 0._f);
@@ -32,6 +31,9 @@ static void runImpact(EquationHolder eqs, const RunSettings& settings) {
     // bodies overlap a bit, that's OK
     initial.addMonolithicBody(*storage, SphericalDomain(Vector(1._f, 0._f, 0._f), 0.1_f), body)
         .addVelocity(Vector(-5._f, 0._f, 0._f));
+    for (Size i = 0; i < storage->getMaterialCnt(); ++i) {
+        solver.create(*storage, storage->getMaterial(i));
+    }
 
     EulerExplicit timestepping(storage, settings);
     Statistics stats;

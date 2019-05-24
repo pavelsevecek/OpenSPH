@@ -32,7 +32,7 @@ TEST_CASE("Storage insert no material", "[storage]") {
 }
 
 TEST_CASE("Storage insert with material", "[storage]") {
-    Storage storage(getDefaultMaterial());
+    Storage storage(getMaterial(MaterialEnum::BASALT));
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, makeArray(1._f, 2._f));
     REQUIRE(storage.getQuantityCnt() == 2);
     REQUIRE(storage.has(QuantityId::MATERIAL_ID));
@@ -54,8 +54,7 @@ TEST_CASE("Storage insert existing by value", "[storage]") {
     REQUIRE(storage.getQuantity(QuantityId::DENSITY).getOrderEnum() == OrderEnum::SECOND);
     REQUIRE(storage.getParticleCnt() == 1);
 
-    REQUIRE_THROWS_AS(
-        storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 2._f), InvalidStorageAccess);
+    REQUIRE_NOTHROW(storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 2._f));
 }
 
 TEST_CASE("Storage insert existing by array", "[storage]") {
@@ -124,9 +123,9 @@ TEST_CASE("Storage resize keep empty", "[storage]") {
 }
 
 TEST_CASE("Storage resize heterogeneous", "[storage]") {
-    Storage storage1(getDefaultMaterial());
+    Storage storage1(getMaterial(MaterialEnum::BASALT));
     storage1.insert<Float>(QuantityId::DENSITY, OrderEnum::SECOND, Array<Float>{ 1._f, 2._f });
-    Storage storage2(getDefaultMaterial());
+    Storage storage2(getMaterial(MaterialEnum::BASALT));
     storage2.insert<Float>(QuantityId::DENSITY, OrderEnum::SECOND, Array<Float>{ 1._f, 2._f });
 
     storage1.merge(std::move(storage2));
@@ -327,15 +326,22 @@ TEST_CASE("Storage material", "[storage]") {
 TEST_CASE("Storage material merge", "[storage]") {
     Storage storage1; // no material
     storage1.insert<Float>(QuantityId::FLAG, OrderEnum::ZERO, Array<Float>{ 0, 1, 2 });
-    Storage storage2(getDefaultMaterial());
+    Storage storage2(getMaterial(MaterialEnum::BASALT));
     storage2.insert<Float>(QuantityId::FLAG, OrderEnum::ZERO, Array<Float>{ 3, 4, 5 });
 
-    REQUIRE_ASSERT(storage1.merge(std::move(storage2)));
-    REQUIRE_ASSERT(storage2.merge(std::move(storage1)));
+    REQUIRE_NOTHROW(storage1.merge(std::move(storage2)));
+    REQUIRE(storage1.getMaterialCnt() == 2);
+    REQUIRE(typeid(storage1.getMaterial(0).material()) == typeid(NullMaterial));
+    REQUIRE(typeid(storage1.getMaterial(1).material()) == typeid(SolidMaterial));
+    REQUIRE(storage1.isValid());
+    REQUIRE(storage2.isValid());
 
-    Storage storage3(getDefaultMaterial());
+    storage2 = Storage(getMaterial(MaterialEnum::BASALT));
+    storage2.insert<Float>(QuantityId::FLAG, OrderEnum::ZERO, Array<Float>{ 3, 4, 5 });
+
+    Storage storage3(getMaterial(MaterialEnum::BASALT));
     storage3.insert<Float>(QuantityId::FLAG, OrderEnum::ZERO, Array<Float>{ 6, 7, 8 });
-    Storage storage4(getDefaultMaterial());
+    Storage storage4(getMaterial(MaterialEnum::BASALT));
     storage4.insert<Float>(QuantityId::FLAG, OrderEnum::ZERO, Array<Float>{ 9, 10 });
     storage2.merge(std::move(storage3));
     storage2.merge(std::move(storage4));
@@ -355,7 +361,7 @@ TEST_CASE("Storage material merge", "[storage]") {
 }
 
 TEST_CASE("Storage merge to empty", "[storage]") {
-    Storage storage(getDefaultMaterial());
+    Storage storage(getMaterial(MaterialEnum::BASALT));
     storage.insert<Float>(QuantityId::FLAG, OrderEnum::ZERO, Array<Float>{ 0, 0 });
 
     Storage empty;
@@ -365,10 +371,10 @@ TEST_CASE("Storage merge to empty", "[storage]") {
 }
 
 TEST_CASE("Storage remove", "[storage]") {
-    Storage storage1(getDefaultMaterial());
+    Storage storage1(getMaterial(MaterialEnum::BASALT));
     storage1.getMaterial(0)->setParam(BodySettingsId::PARTICLE_COUNT, 5);
     storage1.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 0, 1, 2 });
-    Storage storage2(getDefaultMaterial());
+    Storage storage2(getMaterial(MaterialEnum::BASALT));
     storage2.getMaterial(0)->setParam(BodySettingsId::PARTICLE_COUNT, 7);
     storage2.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 3, 4, 5 });
     storage1.merge(std::move(storage2));
@@ -429,7 +435,7 @@ TEST_CASE("Storage addDependent", "[storage]") {
 }
 
 TEST_CASE("Storage isValid", "[storage]") {
-    Storage storage1(getDefaultMaterial());
+    Storage storage1(getMaterial(MaterialEnum::BASALT));
     REQUIRE(storage1.isValid());
 
     storage1.insert<Float>(QuantityId::FLAG, OrderEnum::ZERO, Array<Float>{ 0 });
@@ -471,9 +477,9 @@ TEST_CASE("Storage persistent indices", "[storage]") {
 }
 
 TEST_CASE("Storage duplicate", "[storage]") {
-    Storage storage1(getDefaultMaterial());
+    Storage storage1(getMaterial(MaterialEnum::BASALT));
     storage1.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 1, 2, 3 });
-    Storage storage2(getDefaultMaterial());
+    Storage storage2(getMaterial(MaterialEnum::BASALT));
     storage2.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 4, 5, 6, 7 });
     storage1.merge(std::move(storage2));
 

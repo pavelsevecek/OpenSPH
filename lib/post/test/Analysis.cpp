@@ -33,8 +33,7 @@ TEST_CASE("Component initconds", "[post]") {
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::CUBIC);
     Storage storage;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    InitialConditions conds(pool, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
     bodySettings.set(BodySettingsId::PARTICLE_COUNT, 1000);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0, 0, 0), 1._f), bodySettings);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(-6, 4, 0), 1._f), bodySettings);

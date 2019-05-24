@@ -100,7 +100,8 @@ private:
         wxPaintDC dc(this);
         FlippedRenderContext context(makeAuto<WxRenderContext>(dc));
         context.setFontSize(9);
-        drawPalette(context, Pixel(40, 310), Pixel(40, 300), Rgba::white(), palette);
+        Rgba background(dc.GetBackground().GetColour());
+        drawPalette(context, Pixel(40, 310), Pixel(40, 300), background.inverse(), palette);
     }
 };
 

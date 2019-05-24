@@ -110,6 +110,20 @@ TEST_CASE("AutoPtr release", "[autoptr]") {
     delete r;
 }
 
+TEST_CASE("AutoPtr reset", "[autoptr]") {
+    AutoPtr<RecordType> p(new RecordType(4));
+    RecordType::resetStats();
+    p.reset();
+    REQUIRE(RecordType::destructedNum == 1);
+    REQUIRE(p == nullptr);
+    p = AutoPtr<RecordType>(new RecordType(5));
+    REQUIRE(RecordType::destructedNum == 1);
+    REQUIRE(p != nullptr);
+    p = nullptr;
+    REQUIRE(RecordType::destructedNum == 2);
+    REQUIRE(p == nullptr);
+}
+
 TEST_CASE("makeAuto", "[autoptr]") {
     AutoPtr<RecordType> p1 = makeAuto<RecordType>(6);
     REQUIRE(p1);

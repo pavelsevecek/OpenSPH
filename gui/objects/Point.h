@@ -82,6 +82,16 @@ struct BasicPoint {
     bool operator==(const TDerived& other) const {
         return x == other.x && y == other.y;
     }
+
+    friend std::ostream& operator<<(std::ostream& stream, const BasicPoint& p) {
+        stream << p.x << " " << p.y;
+        return stream;
+    }
+
+    friend std::istream& operator>>(std::istream& stream, BasicPoint& p) {
+        stream >> p.x >> p.y;
+        return stream;
+    }
 };
 
 struct Pixel : public BasicPoint<int, Pixel> {

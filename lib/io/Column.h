@@ -34,7 +34,7 @@ public:
     /// \param storage Storage containing all particle data
     /// \param stats Holds simulation time as well as additional solver-specific statistics.
     /// \param particleIdx Index of the particle to evaluate.
-    /// \throws Exception if value cannot be evaluated, i.e. invalid particle index, quantity not stored, etc.
+    /// \throw Exception if value cannot be evaluated, i.e. invalid particle index, quantity not stored, etc.
     virtual Dynamic evaluate(const Storage& storage,
         const Statistics& stats,
         const Size particleIdx) const = 0;
@@ -45,7 +45,7 @@ public:
     /// \param value Accumulated value, must be the same type as this column. Checked by assert.
     /// \param particleIdx Index of accumulated particle; if larger than current size of the storage, the
     ///                    storage is resized accordingly.
-    /// \throws Exception if value cannot be accumulated.
+    /// \throw Exception if value cannot be accumulated.
     virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const = 0;
 
     /// \brief Returns a name of the column.

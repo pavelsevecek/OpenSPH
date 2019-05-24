@@ -18,7 +18,7 @@ static void integrate(SharedPtr<Storage> storage, ISolver& solver, const Float d
     RunSettings settings;
     settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, dt)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, dt)
-        .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
+        .set(RunSettingsId::TIMESTEPPING_CRITERION, EMPTY_FLAGS);
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     TTimestepping timestepping(storage, settings);

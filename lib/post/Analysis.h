@@ -117,6 +117,10 @@ enum class MoonEnum {
 /// \return Array of the same size of storage, marking each body in the storage; see MoonEnum.
 Array<MoonEnum> findMoons(const Storage& storage, const Float radius = 1._f, const Float limit = 0._f);
 
+/// \brief Computes the center of mass.
+Vector getCenterOfMass(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    ArrayView<const Size> idxs = nullptr);
 
 /// \brief Computes the total inertia tensor of particles with respect to given center.
 SymmetricTensor getInertiaTensor(ArrayView<const Float> m,

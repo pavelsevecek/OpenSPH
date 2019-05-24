@@ -100,8 +100,10 @@ void MeshRenderer::render(const RenderParams& params, Statistics& stats, IRender
         context.drawTriangle(p1->coords, p2->coords, p3->coords);
     }
 
-    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
-    context.drawText(Coords(0, 0), TextAlign::RIGHT | TextAlign::BOTTOM, getFormattedTime(time * 1000));
+    if (stats.has(StatisticsId::RUN_TIME)) {
+        const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
+        context.drawText(Coords(0, 0), TextAlign::RIGHT | TextAlign::BOTTOM, getFormattedTime(time * 1000));
+    }
 
     output.update(bitmap, context.getLabels());
 }

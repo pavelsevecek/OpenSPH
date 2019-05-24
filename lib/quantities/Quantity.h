@@ -151,15 +151,13 @@ public:
         }
     }
 
-    /// \brief Clones the quantity, optionally selecting arrays to clone.
     Holder clone(const Flags<VisitorEnum> flags) const;
 
-    /// \brief Swaps arrays in two quantities, optionally selecting arrays to swap.
+
+    Holder createZeros(const Size particleCnt) const;
+
     void swap(Holder& other, Flags<VisitorEnum> flags);
 
-    /// \brief Changes the order of the quantity.
-    ///
-    /// The new order must be greater than the current one.
     void setOrder(const OrderEnum newOrder);
 
 private:
@@ -252,8 +250,16 @@ public:
 
     /// \brief Clones all buffers contained by the quantity, or optionally only selected ones.
     Quantity clone(const Flags<VisitorEnum> flags) const {
-        Holder cloned = forValue(data, [flags](auto& holder) -> Holder { return holder.clone(flags); });
-        return cloned;
+        return forValue(data, [flags](auto& holder) -> Holder { return holder.clone(flags); });
+    }
+
+    /// \brief Creates a new quantity with the same type and order as this one.
+    ///
+    /// It creates specified number of particles and initializes them to zeros.
+    Quantity createZeros(const Size particleCnt) const {
+        return forValue(data, [particleCnt](auto& holder) -> Holder { //
+            return holder.createZeros(particleCnt);
+        });
     }
 
     /// \brief Swap quantity (or selected part of it) with other quantity.

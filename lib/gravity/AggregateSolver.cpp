@@ -1,14 +1,21 @@
 #include "gravity/AggregateSolver.h"
 #include "gravity/Collision.h"
 #include "gravity/IGravity.h"
+#include "io/Logger.h"
 #include "post/Analysis.h"
+#include "quantities/Quantity.h"
 #include "quantities/Storage.h"
+#include "sph/Materials.h"
 #include "system/Factory.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
 #include <mutex>
 
 NAMESPACE_SPH_BEGIN
+
+const Vector MAX_SPIN = Vector(0.1_f);
+
+const Float MAX_STRAIN = 1._f;
 
 /// \brief Aggregate of particles, moving as a rigid body according to Euler's equations.
 ///
@@ -30,31 +37,29 @@ public:
     /// Needed due to resize
     Aggregate() = default;
 
-    explicit Aggregate(Storage& storage, const Size particleIdx)
+    /// Single particle
+    Aggregate(Storage& storage, const Size particleIdx)
         : storage(addressOf(storage)) {
         idxs.insert(particleIdx);
         persistentId = particleIdx;
     }
 
-    void merge(const Aggregate& other) {
-        ASSERT(contains(getId()));
-        ASSERT(other.contains(other.getId()));
-
-        Size n1 = size();
-        Size n2 = other.size();
-
-        // preserve ID of the aggregate containing more particles
-        if (other.size() > this->size()) {
-            persistentId = other.persistentId;
+    explicit Aggregate(Storage& storage, IndexSequence seq)
+        : storage(addressOf(storage)) {
+        for (Size i : seq) {
+            idxs.insert(i);
         }
+        persistentId = *seq.begin();
+    }
 
-        // add all particles of the other aggregate
-        ASSERT(!other.idxs.empty());
-        for (Size idx : other.idxs) {
-            ASSERT(!contains(idx), idx);
-            idxs.insert(idx);
-        }
-        ASSERT(size() == n1 + n2);
+    void add(const Size idx) {
+        ASSERT(!idxs.contains(idx));
+        idxs.insert(idx);
+        //        this->fixVelocities();
+    }
+
+    void remove(const Size idx) {
+        idxs.erase(idxs.find(idx));
     }
 
     void clear() {
@@ -69,44 +74,54 @@ public:
         return persistentId;
     }
 
-    /// Called at the beginning of time step
-    ///
-    /// Assigns particle velocities using COM velocity and bulk rotation
-    void initialize() {
+    /// Modifies velocities according to saved angular frequency
+    void spin() {
+        if (this->size() == 1) {
+            return;
+        }
 
-        ArrayView<Vector> a = storage->getValue<Vector>(QuantityId::PHASE_ANGLE);
+        ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
+        ArrayView<Vector> v = storage->getDt<Vector>(QuantityId::POSITION);
+        ArrayView<Vector> alpha = storage->getValue<Vector>(QuantityId::PHASE_ANGLE);
+        ArrayView<const Vector> w = storage->getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
 
-        ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
         ArrayView<const Float> m = storage->getValue<Float>(QuantityId::MASS);
-
-        /// \todo compute COM once and cache?
         Float m_ag = 0._f;
         Vector r_com(0._f);
+        Vector v_com(0._f);
         for (Size i : idxs) {
             r_com += m[i] * r[i];
+            v_com += m[i] * v[i];
             m_ag += m[i];
         }
         r_com /= m_ag;
+        v_com /= m_ag;
+        ASSERT(isReal(r_com) && getLength(r_com) < LARGE, r_com);
+
+        const Vector omega = clamp(w[persistentId], -MAX_SPIN, MAX_SPIN);
+        AffineMatrix rotationMatrix = AffineMatrix::identity();
+
+        if (alpha[persistentId] != Vector(0._f)) {
+            Vector dir;
+            Float angle;
+            tieToTuple(dir, angle) = getNormalizedWithLength(alpha[persistentId]);
+            alpha[persistentId] = Vector(0._f);
+            rotationMatrix = AffineMatrix::rotateAxis(dir, angle);
+        }
 
         for (Size i : idxs) {
-            r[i] += cross(a[i], r[i] - r_com);
-            a[i] = Vector(0._f);
+            ASSERT(alpha[i] == Vector(0._f));
+            Float h = r[i][H];
+            r[i] = r_com + rotationMatrix * (r[i] - r_com);
+            v[i] += cross(omega, r[i] - r_com);
+            r[i][H] = h;
+            v[i][H] = 0._f;
         }
     }
 
-    /// Velocities back to COM + rotation
-    void finalize() {
-        /*for (Size i : idxs) {
-            v[i] = v_com;
-            dv[i] = dv_com;
-        } */
-    }
-
-    /// Called after accelerations are computed
-    ///
-    /// \todo better name
+    /// Saves angular frequency, sets velocities to COM movement
     void integrate() {
+        ASSERT(this->size() > 0);
         if (this->size() == 1) {
             return;
         }
@@ -138,39 +153,48 @@ public:
             M += m[i] * cross(dr, dv[i] - dv_com);
         }
 
-        // compute local frame
-        const AffineMatrix Em = eigenDecomposition(I).vectors;
-
-        Vector M_loc = Em.transpose() * M;
-
         ArrayView<Vector> w, dw;
         tie(w, dw) = storage->getAll<Vector>(QuantityId::ANGULAR_FREQUENCY);
 
-        // we save the angular accelerations into the first particle in the aggregate
-        const Size index = idxs[0];
-        /*if (w[i] == Vector(0._f)) {
-            continue;
-        }*/
-        SymmetricTensor Iinv = I.inverse();
-        // convert the angular frequency to the local frame;
-        // note the E is always orthogonal, so we can use transpose instead of inverse
-        ASSERT(Em.isOrthogonal());
-        const Vector w_loc = Em.transpose() * w[index];
 
-        // compute the change of angular velocity using Euler's equations
-        const Vector dw_loc = Iinv * (M_loc - cross(w_loc, I * w_loc));
+        const bool singular = I.determinant() == 0._f;
+        Vector omega = Vector(0._f);
+        if (!singular) {
 
-        // now dw[i] is also in local space, convert to inertial space
-        // (note that dw_in = dw_loc as omega x omega is obviously zero)
-        dw[index] = Em * dw_loc;
+            omega = I.inverse() * L;
+
+            // const Vector w_loc = Em.transpose() * w[index];
+
+            // compute the change of angular velocity using Euler's equations
+            // dw[index] = I_inv * (M - cross(w[index], I * w[index]));
+        }
 
 
         /*const SymmetricTensor I = Post::getInertiaTensor(m, r, r_com);
         (void)I;*/
 
+        ArrayView<Vector> alpha, dalpha;
+        tie(alpha, dalpha) = storage->getAll<Vector>(QuantityId::PHASE_ANGLE);
+
         for (Size i : idxs) {
             v[i] = v_com;
             dv[i] = dv_com;
+            w[i] = omega;
+
+            ASSERT(alpha[i] == Vector(0._f));
+        }
+        alpha[persistentId] = Vector(0._f);
+        dalpha[persistentId] = w[persistentId];
+    }
+
+    // replaces unordered motion with bulk velocity + rotation
+    void fixVelocities() {
+        const Integrals ag = this->getIntegrals();
+        ArrayView<Vector> r, v, dv;
+        tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
+        for (Size i : idxs) {
+            v[i] = ag.v_com + cross(ag.omega, r[i] - ag.r_com);
+            v[i][H] = 0._f;
         }
     }
 
@@ -198,15 +222,22 @@ public:
         return v_com;
     }
 
-    void setVelocity(const Vector& newV) {
-        ArrayView<Vector> v = storage->getDt<Vector>(QuantityId::POSITION);
+    void displace(const Vector& offset) {
+        ASSERT(offset[H] == 0._f);
+
+        ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
         for (Size i : idxs) {
-            v[i] = newV;
+            r[i] += offset;
         }
     }
 
+
     Size size() const {
         return idxs.size();
+    }
+
+    bool empty() const {
+        return idxs.empty();
     }
 
     auto begin() const {
@@ -224,11 +255,10 @@ private:
         Vector v_com;
         Vector omega;
         SymmetricTensor I;
-        SymmetricTensor L;
+        Vector L;
     };
 
     Integrals getIntegrals() const {
-        ASSERT(this->size() > 1);
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
         ArrayView<const Float> m = storage->getValue<Float>(QuantityId::MASS);
@@ -236,14 +266,11 @@ private:
         Float m_ag = 0._f;
         Vector r_com(0._f);
         Vector v_com(0._f);
-        Vector dv_com(0._f);
         for (Size i : idxs) {
-            dv_com += m[i] * dv[i];
             v_com += m[i] * v[i];
             r_com += m[i] * r[i];
             m_ag += m[i];
         }
-        dv_com /= m_ag;
         v_com /= m_ag;
         r_com /= m_ag;
 
@@ -256,7 +283,17 @@ private:
         }
 
         Integrals value;
-        value.omega = I.inverse() * L;
+        value.m = m_ag;
+        value.r_com = r_com;
+        value.v_com = v_com;
+        value.I = I;
+        value.L = L;
+
+        if (I.determinant() != 0._f) {
+            value.omega = clamp(I.inverse() * L, -MAX_SPIN, MAX_SPIN);
+        } else {
+            value.omega = Vector(0._f);
+        }
         return value;
     }
 };
@@ -279,13 +316,41 @@ private:
     mutable std::mutex mutex;
 
 public:
-    explicit AggregateHolder(Storage& storage) {
-        // create an aggregate for each particle
+    AggregateHolder(Storage& storage, const AggregateEnum source) {
+        // create an aggregate for each particle, even if its empty, so we can add particles to it later
+        // without reallocations
         const Size n = storage.getParticleCnt();
-        aggregates.reserve(n); // so that it doesn't reallocate and invalidate pointers
-        for (Size i = 0; i < n; ++i) {
-            Aggregate& ag = aggregates.emplaceBack(storage, i);
-            particleToAggregate.emplaceBack(addressOf(ag));
+        aggregates.resize(n);
+
+        switch (source) {
+        case AggregateEnum::PARTICLES: {
+            for (Size i = 0; i < n; ++i) {
+                aggregates[i] = Aggregate(storage, i);
+                particleToAggregate.emplaceBack(addressOf(aggregates[i]));
+            }
+            break;
+        }
+        case AggregateEnum::MATERIALS: {
+            for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
+                MaterialView mat = storage.getMaterial(matId);
+                IndexSequence seq = mat.sequence();
+                // need to create all aggregates to storage pointer to storage
+                for (Size i : seq) {
+                    aggregates[i] = Aggregate(storage, i);
+                    aggregates[i].clear();
+                }
+
+                const Size idx = *seq.begin();
+                aggregates[idx] = Aggregate(storage, seq);
+
+                for (Size i = 0; i < seq.size(); ++i) {
+                    particleToAggregate.emplaceBack(addressOf(aggregates[idx]));
+                }
+            }
+            break;
+        }
+        default:
+            NOT_IMPLEMENTED;
         }
     }
 
@@ -304,39 +369,97 @@ public:
     }
 
     /// \brief Merges two aggregates.
-    void merge(Aggregate& ag1, Aggregate& ag2) {
-        CHECK_FUNCTION(CheckFunction::NON_REENRANT);
-        std::unique_lock<std::mutex> lock(mutex);
+    /*merge(Aggregate& ag1, Aggregate& ag2) {
+         CHECK_FUNCTION(CheckFunction::NON_REENRANT);
+         std::unique_lock<std::mutex> lock(mutex);
 
-        // add particles of ag2 to ag1
-        ag1.merge(ag2);
-        ASSERT(ag1.contains(ag1.getId()));
-        // relink pointers of ag2 particles to ag1
-        for (Size i : ag2) {
-            particleToAggregate[i] = addressOf(ag1);
+         if (ag1.size() > ag1.size()) {
+             ag1.merge(ag2);
+         } else {
+             ag2.merge(ag1);
+         }
+         // ASSERT(ag1.contains(ag1.getId()));
+         // relink pointers of ag2 particles to ag1
+         for (Size i : ag2) {
+             particleToAggregate[i] = addressOf(ag1);
+         }
+
+         // remove all particles from ag2; we actually keep the aggregate in the holder (with zero particles)
+         // for simplicity, otherwise we would have to shift the aggregates in the array, invalidating the
+         // pointers held in particleToAggregate.
+         ag2.clear();
+         ASSERT(ag2.size() == 0);
+     }*/
+
+    void merge(Aggregate& ag1, Aggregate& ag2) {
+        if (ag1.size() < ag2.size()) {
+            this->merge(ag2, ag1);
+            return;
         }
 
-        // remove all particles from ag2; we actually keep the aggregate in the holder (with zero particles)
-        // for simplicity, otherwise we would have to shift the aggregates in the array, invalidating the
-        // pointers held in particleToAggregate.
-        ag2.clear();
-        ASSERT(ag2.size() == 0);
+        ASSERT(ag1.size() >= ag2.size());
+        // accumulate single particle
+        if (ag2.size() == 1) {
+            const Size id = ag2.getId();
+            ag1.add(id);
+            particleToAggregate[id] = &ag1;
+            ag2.clear();
+        } else {
+
+            // break the aggregate
+            this->disband(ag2);
+        }
+
+        ag1.fixVelocities();
+    }
+
+    void separate(Aggregate& ag, const Size idx) {
+
+        if (ag.getId() == idx) {
+            return; /// \todo ?? how to do this
+        }
+
+        aggregates[idx].add(idx);
+        particleToAggregate[idx] = addressOf(aggregates[idx]);
+        ag.remove(idx);
+        ag.fixVelocities();
+    }
+
+    void disband(Aggregate& ag) {
+        const Size mainId = ag.getId();
+        for (Size i : ag) {
+            // put the particle back to its original aggregate
+            if (i != mainId) {
+                aggregates[i].add(i);
+                particleToAggregate[i] = addressOf(aggregates[i]);
+            }
+        }
+
+        ag.clear();
+        ag.add(mainId);
+    }
+
+    void spin() {
+        // std::unique_lock<std::mutex> lock(mutex);
+        for (Aggregate& ag : aggregates) {
+            if (!ag.empty()) {
+                ag.spin();
+            }
+        }
     }
 
     /// \brief Integrates all aggregates
     void integrate() {
         // std::unique_lock<std::mutex> lock(mutex);
+
         for (Aggregate& ag : aggregates) {
-            ag.integrate();
+            if (!ag.empty()) {
+                ag.integrate();
+            }
         }
     }
 
-    /// \brief Locks the object using an upgradeable lock. Has to be called
-    /*UpgradeableLock lock() {
-        return UpgradeableLock(mutex);
-    }*/
-
-    virtual Optional<Size> getAggregateId(const Size particleIdx) const override {
+    Optional<Size> getAggregateId(const Size particleIdx) const {
         std::unique_lock<std::mutex> lock(mutex);
         const Aggregate& ag = getAggregate(particleIdx);
         if (ag.size() > 1) {
@@ -360,9 +483,6 @@ public:
 
 class AggregateCollisionHandler : public ICollisionHandler {
 private:
-    ArrayView<const Vector> r;
-    ArrayView<const Vector> v;
-    ArrayView<const Float> m;
     Float bounceLimit;
 
     struct {
@@ -371,6 +491,9 @@ private:
     } restitution;
 
     RawPtr<AggregateHolder> holder;
+    ArrayView<const Vector> r;
+    ArrayView<Vector> v;
+    ArrayView<const Float> m;
 
 public:
     explicit AggregateCollisionHandler(const RunSettings& settings) {
@@ -399,22 +522,43 @@ public:
             return CollisionResult::NONE;
         }
 
+        const Vector v_com = weightedAverage(v[i], m[i], v[j], m[j]);
+        const Vector dr = getNormalized(r[i] - r[j]);
+        v[i] = this->reflect(v[i], v_com, -dr);
+        v[j] = this->reflect(v[j], v_com, dr);
+        v[i][H] = v[j][H] = 0._f;
+
+        /*if (getSqrLength(v[i] - ag_i.velocity()) > sqr(MAX_STRAIN)) {
+            holder->separate(ag_i, i);
+        }
+
+        if (getSqrLength(v[j] - ag_j.velocity()) > sqr(MAX_STRAIN)) {
+            holder->separate(ag_j, j);
+        }*/
+
+        // particle are moved back after collision handling, so we need to make sure they have correct
+        // velocities to not move them away from the aggregate
+        ag_i.fixVelocities();
+        ag_j.fixVelocities();
+
+        /*
+                if (ag_i.size() > ag_j.size()) {
+                    holder->disband(ag_j);
+                } else {
+                    holder->disband(ag_i);
+                }*/
+
         // if the particles are gravitationally bound, add them to the aggregate, otherwise bounce
         if (areParticlesBound(m[i] + m[j], r[i][H] + r[j][H], v[i] - v[j], bounceLimit)) {
             // add to aggregate
             holder->merge(ag_i, ag_j);
-            ag_i.integrate();
-            return CollisionResult::NONE;
-        } else {
-            const Float m_i = ag_i.mass();
-            const Vector v_i = ag_i.velocity();
-            const Float m_j = ag_j.mass();
-            const Vector v_j = ag_j.velocity();
 
-            const Vector dr = getNormalized(r[i] - r[j]);
-            const Vector v_com = weightedAverage(v_i, m_i, v_j, m_j);
-            ag_i.setVelocity(this->reflect(v_i, v_com, -dr));
-            ag_j.setVelocity(this->reflect(v_j, v_com, dr));
+            return CollisionResult::NONE;
+
+
+        } else {
+            holder->separate(ag_i, i);
+            holder->separate(ag_j, j);
 
             return CollisionResult::BOUNCE;
         }
@@ -422,7 +566,7 @@ public:
 
 private:
     /// \todo copied from bounce handler, deduplicate!!
-    INLINE Vector reflect(const Vector& v, const Vector& v_com, const Vector& dir) {
+    INLINE Vector reflect(const Vector& v, const Vector& v_com, const Vector& dir) const {
         ASSERT(almostEqual(getSqrLength(dir), 1._f), dir);
         const Vector v_rel = v - v_com;
         const Float proj = dot(v_rel, dir);
@@ -437,11 +581,22 @@ private:
 class AggregateOverlapHandler : public IOverlapHandler {
 private:
     RawPtr<AggregateHolder> holder;
+    ArrayView<const Float> m;
+    ArrayView<Vector> r;
+
+    AggregateCollisionHandler handler;
 
 public:
+    explicit AggregateOverlapHandler(const RunSettings& settings)
+        : handler(settings) {}
+
     virtual void initialize(Storage& storage) override {
         holder = dynamicCast<AggregateHolder>(storage.getUserData().get());
         ASSERT(holder);
+
+        handler.initialize(storage);
+        m = storage.getValue<Float>(QuantityId::MASS);
+        r = storage.getValue<Vector>(QuantityId::POSITION);
     }
 
     virtual bool overlaps(const Size i, const Size j) const override {
@@ -455,7 +610,7 @@ public:
         return true;
     }
 
-    virtual void handle(const Size i, const Size j, FlatSet<Size>& UNUSED(toRemove)) override {
+    virtual void handle(const Size i, const Size j, FlatSet<Size>& toRemove) override {
         // this function SHOULD be called by one thread only, so we do not need to lock here
         CHECK_FUNCTION(CheckFunction::NON_REENRANT);
 
@@ -464,10 +619,28 @@ public:
 
         // even though we previously checked for this in function overlaps, the particles might have been
         // assinged to the same aggregate during collision processing, so we have to check again
-        if (addressOf(ag_i) != addressOf(ag_j)) {
-            holder->merge(ag_i, ag_j);
-            ag_i.integrate();
+        if (addressOf(ag_i) == addressOf(ag_j)) {
+            return;
         }
+
+        Vector dir;
+        Float dist;
+        tieToTuple(dir, dist) = getNormalizedWithLength(r[i] - r[j]);
+        dir[H] = 0._f; // don't mess up radii
+
+        if (dist > r[i][H] + r[j][H]) {
+            // not a real overlap
+            return;
+        }
+
+        const Float m1 = ag_i.mass(); /// \todo precompute
+        const Float m2 = ag_j.mass();
+        const Float x1 = (r[i][H] + r[j][H] - dist) / (1._f + m1 / m2);
+        const Float x2 = m1 / m2 * x1;
+        ag_i.displace(dir * x1);
+        ag_j.displace(-dir * x2);
+
+        handler.collide(i, j, toRemove);
     }
 };
 
@@ -476,33 +649,41 @@ AggregateSolver::AggregateSolver(IScheduler& scheduler, const RunSettings& setti
           settings,
           Factory::getGravity(settings),
           makeAuto<AggregateCollisionHandler>(settings),
-          makeAuto<AggregateOverlapHandler>()) {}
+          makeAuto<AggregateOverlapHandler>(settings)) {}
+// makeAuto<RepelHandler<AggregateCollisionHandler>>(settings)) {}
 
-//  //RepelHandler<ElasticBounceHandler>>(settings)) {}
 
 AggregateSolver::~AggregateSolver() = default;
 
 void AggregateSolver::integrate(Storage& storage, Statistics& stats) {
-    createLazy(storage);
+    holder->spin();
     NBodySolver::integrate(storage, stats);
     holder->integrate();
 
+    // storage IDs and aggregate stats
+    ArrayView<Size> aggregateIds = storage.getValue<Size>(QuantityId::AGGREGATE_ID);
+    for (Size i = 0; i < aggregateIds.size(); ++i) {
+        aggregateIds[i] = holder->getAggregateId(i).valueOr(Size(-1));
+    }
     stats.set(StatisticsId::AGGREGATE_COUNT, int(holder->count()));
 }
 
 void AggregateSolver::collide(Storage& storage, Statistics& stats, const Float dt) {
-    createLazy(storage);
+    holder->spin();
     NBodySolver::collide(storage, stats, dt);
     holder->integrate();
 }
 
-void AggregateSolver::createLazy(Storage& storage) {
-    if (storage.getUserData()) {
-        // already initialized
-        return;
-    }
+void AggregateSolver::create(Storage& storage, IMaterial& material) const {
+    NBodySolver::create(storage, material);
 
-    holder = makeShared<AggregateHolder>(storage);
+    storage.insert<Vector>(QuantityId::ANGULAR_FREQUENCY, OrderEnum::FIRST, Vector(0._f));
+    storage.insert<Vector>(QuantityId::PHASE_ANGLE, OrderEnum::FIRST, Vector(0._f));
+    storage.insert<Size>(QuantityId::AGGREGATE_ID, OrderEnum::ZERO, Size(-1));
+}
+
+void AggregateSolver::createAggregateData(Storage& storage, const AggregateEnum source) {
+    holder = makeShared<AggregateHolder>(storage, source);
     storage.setUserData(holder);
 }
 

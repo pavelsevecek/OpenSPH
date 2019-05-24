@@ -90,9 +90,9 @@ INLINE bool areParticlesBound(const Float m_sum, const Float h_sum, const Vector
     return vRelSqr * limit < vEscSqr;
 }
 
-/// ----------------------------------------------------------------------------------------------------------
-/// Collision Handlers
-/// ----------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------
+// Collision Handlers
+// ----------------------------------------------------------------------------------------------------------
 
 /// \brief Helper handler always returning CollisionResult::NONE.
 ///
@@ -367,9 +367,9 @@ public:
 };
 
 
-/// ----------------------------------------------------------------------------------------------------------
-/// Overlap Handlers
-/// ----------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------
+// Overlap Handlers
+// ----------------------------------------------------------------------------------------------------------
 
 /// \brief Handler simply ignoring overlaps.
 class NullOverlapHandler : public IOverlapHandler {
@@ -445,8 +445,9 @@ public:
         Vector dir;
         Float dist;
         tieToTuple(dir, dist) = getNormalizedWithLength(r[i] - r[j]);
-        dir[H] = 0._f;                    // don't mess up radii
-        ASSERT(dist < r[i][H] + r[j][H]); // can be only used for overlapping particles
+        dir[H] = 0._f; // don't mess up radii
+        // can be only used for overlapping particles
+        ASSERT(dist < r[i][H] + r[j][H], dist, r[i][H] + r[i][H]);
         const Float x1 = (r[i][H] + r[j][H] - dist) / (1._f + m[i] / m[j]);
         const Float x2 = m[i] / m[j] * x1;
         r[i] += dir * x1;
@@ -564,58 +565,5 @@ public:
         handler.collide(i, j, toRemove);
     }
 };
-
-/// \brief Auxiliary collision handler, distinguising the collision behavior based on impact energy
-///
-/// \todo generalize scaling law?
-/*class ThresholdHandler : public ICollisionHandler {
-private:
-    AutoPtr<ICollisionHandler> slow;
-    AutoPtr<ICollisionHandler> fast;
-    Float thresholdSqr;
-
-    ArrayRef<Float> m;
-    ArrayRef<Vector> r, v;
-
-public:
-    ThresholdHandler(const Float threshold,
-        AutoPtr<ICollisionHandler>&& slow,
-        AutoPtr<ICollisionHandler>&& fast)
-        : slow(std::move(slow))
-        , fast(std::move(fast))
-        , thresholdSqr(sqr(threshold)) {}
-
-    virtual void initialize(Storage& storage) override {
-        slow->initialize(storage);
-        fast->initialize(storage);
-
-        ArrayRef<Vector> dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-        m = storage.getValue<Float>(QuantityId::MASS);
-    }
-
-    virtual CollisionResult collide(const Size i, const Size j, Array<Size>& toRemove) override {
-        const Float dv2 = getSqrLength(v[i] - v[j]);
-        // determine the target and the impactor
-        Float M_targ, m_imp, D_targ;
-        if (m[i] >= m[j]) {
-            M_targ = m[i];
-            D_targ = 2._f * r[i][H];
-            m_imp = m[j];
-        } else {
-            M_targ = m[j];
-            D_targ = 2._f * r[j][H];
-            m_imp = m[i];
-        }
-        const Float Q = 0.5_f * m_imp * dv2 / M_targ;
-        /// \todo generalize energy
-        const Float Q_D = evalBenzAsphaugScalingLaw(D_targ, 2700._f);
-        if (Q / Q_D > thresholdSqr) {
-            return fast->collide(i, j, toRemove);
-        } else {
-            return slow->collide(i, j, toRemove);
-        }
-    }
-};*/
 
 NAMESPACE_SPH_END

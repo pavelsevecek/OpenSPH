@@ -1,6 +1,7 @@
 #include "gui/windows/PlotView.h"
 #include "gui/Utils.h"
 #include "gui/objects/SvgContext.h"
+#include "gui/windows/MainWindow.h"
 #include "io/Logger.h"
 #include "io/Path.h"
 #include <wx/button.h>
@@ -9,6 +10,8 @@
 #include <wx/menu.h>
 #include <wx/sizer.h>
 
+#include <wx/aui/auibook.h>
+
 NAMESPACE_SPH_BEGIN
 
 PlotView::PlotView(wxWindow* parent,
@@ -16,11 +19,11 @@ PlotView::PlotView(wxWindow* parent,
     const wxSize padding,
     const SharedPtr<Array<PlotData>>& list,
     const Size defaultSelectedIdx,
-    const bool showLabels)
+    const Optional<TicsParams> ticsParams)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, size)
     , padding(padding)
     , list(list)
-    , showLabels(showLabels) {
+    , ticsParams(ticsParams) {
     this->SetMaxSize(size);
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(PlotView::onPaint));
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(PlotView::onRightUp));
@@ -89,8 +92,16 @@ void PlotView::onRightUp(wxMouseEvent& UNUSED(evt)) {
 }
 
 void PlotView::onDoubleClick(wxMouseEvent& UNUSED(evt)) {
-    PlotFrame* frame = new PlotFrame(this->GetParent(), wxSize(800, 600), wxSize(25, 25), cached.plot);
-    frame->Show();
+    wxAuiNotebook* notebook = findNotebook(); /// \todo detach dependency via callback?
+    ASSERT(notebook);
+
+    PlotPage* page = new PlotPage(notebook, wxSize(800, 600), wxSize(25, 25), cached.plot);
+
+    const Size index = notebook->GetPageCount();
+    // needs to be called before, AddPage calls onPaint, which locks the mutex
+    const std::string caption = cached.plot->getCaption();
+    notebook->AddPage(page, caption);
+    notebook->SetSelection(index);
 }
 
 void PlotView::onMenu(wxCommandEvent& evt) {
@@ -151,14 +162,14 @@ void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) 
         // draw y-axis
         const Float dcX = padding.x + x0 * (size.x - 2 * padding.x);
         dc.DrawLine(dcX, size.y - padding.y, dcX, padding.y);
-        if (showLabels) {
-            Array<Float> tics = getLinearTics(rangeY, 6);
-            ASSERT(tics.size() >= 6);
+        if (ticsParams) {
+            Array<Float> tics = getLinearTics(rangeY, ticsParams->minCnt);
+            ASSERT(tics.size() >= ticsParams->minCnt);
             for (const Float tic : tics) {
                 const PlotPoint plotPoint(0, tic);
                 const PlotPoint imagePoint = matrix.transformPoint(plotPoint);
                 dc.DrawLine(imagePoint.x - 2, imagePoint.y, imagePoint.x + 2, imagePoint.y);
-                const std::wstring text = toPrintableString(tic, 3);
+                const std::wstring text = toPrintableString(tic, ticsParams->digits);
                 const wxSize extent = dc.GetTextExtent(text);
                 const Float labelX = (imagePoint.x > size.x / 2._f) ? imagePoint.x - extent.x : imagePoint.x;
                 drawTextWithSubscripts(dc, text, wxPoint(labelX, imagePoint.y - extent.y / 2));
@@ -171,13 +182,13 @@ void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) 
         // draw x-axis
         const Float dcY = size.y - padding.y - y0 * (size.y - 2 * padding.y);
         dc.DrawLine(padding.x, dcY, size.x - padding.x, dcY);
-        if (showLabels) {
-            Array<Float> tics = getLinearTics(rangeX, 6);
+        if (ticsParams) {
+            Array<Float> tics = getLinearTics(rangeX, ticsParams->minCnt);
             for (const Float tic : tics) {
                 const PlotPoint plotPoint(tic, 0);
                 const PlotPoint imagePoint = matrix.transformPoint(plotPoint);
                 dc.DrawLine(imagePoint.x, imagePoint.y - 2, imagePoint.x, imagePoint.y + 2);
-                const std::wstring text = toPrintableString(tic, 3);
+                const std::wstring text = toPrintableString(tic, ticsParams->digits);
                 const wxSize extent = dc.GetTextExtent(text);
                 const Float labelY = (imagePoint.y < size.y / 2._f) ? imagePoint.y : imagePoint.y - extent.y;
                 drawTextWithSubscripts(dc, text, wxPoint(imagePoint.x - extent.x / 2, labelY));
@@ -197,13 +208,13 @@ void PlotView::drawCaption(wxDC& dc, IPlot& lockedPlot) {
     dc.DrawText(label, dc.GetSize().x - labelSize.x, 0);
 }
 
-PlotFrame::PlotFrame(wxWindow* parent, const wxSize size, const wxSize padding, const LockingPtr<IPlot>& plot)
-    : wxFrame(parent, wxID_ANY, "Plot")
+PlotPage::PlotPage(wxWindow* parent, const wxSize size, const wxSize padding, const LockingPtr<IPlot>& plot)
+    : wxPanel(parent, wxID_ANY)
     , plot(plot)
     , padding(padding) {
     this->SetMinSize(size);
     SharedPtr<Array<PlotData>> data = makeShared<Array<PlotData>>();
-    data->push(PlotData{ plot, Rgba(0.7f, 0.7f, 0.7f) });
+    data->push(PlotData{ plot, Rgba(0.1f, 0.1f, 0.9f) });
 
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     const Size toolbarHeight = 20;
@@ -211,7 +222,7 @@ PlotFrame::PlotFrame(wxWindow* parent, const wxSize size, const wxSize padding, 
     sizer->Add(toolbarSizer);
 
     wxSize viewSize(size.x, size.y - toolbarHeight);
-    plotView = new PlotView(this, viewSize, padding, data, 0, true);
+    plotView = new PlotView(this, viewSize, padding, data, 0, TicsParams{});
     sizer->Add(plotView);
     this->SetSizerAndFit(sizer);
 
@@ -221,7 +232,7 @@ PlotFrame::PlotFrame(wxWindow* parent, const wxSize size, const wxSize padding, 
     });
 }
 
-wxBoxSizer* PlotFrame::createToolbar(const Size UNUSED(toolbarHeight)) {
+wxBoxSizer* PlotPage::createToolbar(const Size UNUSED(toolbarHeight)) {
     wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
 
     wxButton* savePlotButton = new wxButton(this, wxID_ANY, "Save Plot");
@@ -265,7 +276,7 @@ wxBoxSizer* PlotFrame::createToolbar(const Size UNUSED(toolbarHeight)) {
     return sizer;
 }
 
-void PlotFrame::saveImage(const Path& path) {
+void PlotPage::saveImage(const Path& path) {
     if (path.extension() == Path("png")) {
         wxBitmap bitmap(800, 600, wxBITMAP_SCREEN_DEPTH);
         wxMemoryDC dc(bitmap);
@@ -349,7 +360,7 @@ public:
     }
 };
 
-void PlotFrame::saveData(const Path& path) {
+void PlotPage::saveData(const Path& path) {
     ASSERT(path.extension() == Path("txt"));
     auto proxy = plot.lock();
     TextContext context(path);

@@ -188,7 +188,8 @@ SharedPtr<IScheduler> Factory::getScheduler(const RunSettings& settings) {
     }
 }
 
-AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& body) {
+AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& body,
+    Function<bool(Float)> progressCallback) {
     const DistributionEnum id = body.get<DistributionEnum>(BodySettingsId::INITIAL_DISTRIBUTION);
     const bool center = body.get<bool>(BodySettingsId::CENTER_PARTICLES);
     const bool sort = body.get<bool>(BodySettingsId::PARTICLE_SORTING);
@@ -199,7 +200,7 @@ AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& body) {
         flags.setIf(HexagonalPacking::Options::CENTER, center || sph5mode);
         flags.setIf(HexagonalPacking::Options::SORTED, sort);
         flags.setIf(HexagonalPacking::Options::SPH5_COMPATIBILITY, sph5mode);
-        return makeAuto<HexagonalPacking>(flags);
+        return makeAuto<HexagonalPacking>(flags, progressCallback);
     }
     case DistributionEnum::CUBIC:
         return makeAuto<CubicPacking>();
@@ -209,7 +210,7 @@ AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& body) {
     case DistributionEnum::DIEHL_ET_AL: {
         DiehlParams diehl;
         diehl.particleDensity = [](const Vector&) { return 1._f; };
-        diehl.strength = body.get<Float>(BodySettingsId::DIELH_STRENGTH);
+        diehl.strength = body.get<Float>(BodySettingsId::DIEHL_STRENGTH);
         diehl.maxDifference = body.get<int>(BodySettingsId::DIEHL_MAX_DIFFERENCE);
         return makeAuto<DiehlDistribution>(diehl);
     }
@@ -220,19 +221,34 @@ AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& body) {
     }
 }
 
+struct NullBoundaryCondition : public IBoundaryCondition {
+    virtual void initialize(Storage& UNUSED(storage)) override {}
+    virtual void finalize(Storage& UNUSED(storage)) override {}
+};
+
 template <typename TSolver>
 static AutoPtr<ISolver> getActualSolver(IScheduler& scheduler,
     const RunSettings& settings,
-    EquationHolder&& eqs) {
+    EquationHolder&& eqs,
+    AutoPtr<IBoundaryCondition>&& bc) {
     const Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES);
     if (forces.has(ForceEnum::GRAVITY)) {
+        if (typeid(*bc) != typeid(NullBoundaryCondition)) {
+            throw InvalidSetup("Gravity currently cannot be used with boundary conditions");
+        }
         return makeAuto<GravitySolver<TSolver>>(scheduler, settings, std::move(eqs));
     } else {
-        return makeAuto<TSolver>(scheduler, settings, std::move(eqs));
+        return makeAuto<TSolver>(scheduler, settings, std::move(eqs), std::move(bc));
     }
 }
 
 AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler, const RunSettings& settings) {
+    return getSolver(scheduler, settings, makeAuto<NullBoundaryCondition>());
+}
+
+AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    AutoPtr<IBoundaryCondition>&& bc) {
     EquationHolder eqs = getStandardEquations(settings);
     const SolverEnum id = settings.get<SolverEnum>(RunSettingsId::SPH_SOLVER_TYPE);
     auto throwIfGravity = [&settings] {
@@ -243,11 +259,11 @@ AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler, const RunSettings& se
     };
     switch (id) {
     case SolverEnum::SYMMETRIC_SOLVER:
-        return getActualSolver<SymmetricSolver>(scheduler, settings, std::move(eqs));
+        return getActualSolver<SymmetricSolver>(scheduler, settings, std::move(eqs), std::move(bc));
     case SolverEnum::ASYMMETRIC_SOLVER:
-        return getActualSolver<AsymmetricSolver>(scheduler, settings, std::move(eqs));
+        return getActualSolver<AsymmetricSolver>(scheduler, settings, std::move(eqs), std::move(bc));
     case SolverEnum::ENERGY_CONSERVING_SOLVER:
-        return getActualSolver<EnergyConservingSolver>(scheduler, settings, std::move(eqs));
+        return getActualSolver<EnergyConservingSolver>(scheduler, settings, std::move(eqs), std::move(bc));
     case SolverEnum::ELASTIC_DEFORMATION_SOLVER:
         throwIfGravity();
         return makeAuto<ElasticDeformationSolver>(scheduler, settings);
@@ -368,17 +384,34 @@ AutoPtr<IDomain> Factory::getDomain(const RunSettings& settings) {
     }
 }
 
-AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& settings) {
-    const BoundaryEnum id = settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY);
-    AutoPtr<IDomain> domain = getDomain(settings);
+AutoPtr<IDomain> Factory::getDomain(const BodySettings& settings) {
+    const DomainEnum id = settings.get<DomainEnum>(BodySettingsId::BODY_SHAPE_TYPE);
+    const Vector center = settings.get<Vector>(BodySettingsId::BODY_CENTER);
+    switch (id) {
+    case DomainEnum::SPHERICAL:
+        return makeAuto<SphericalDomain>(center, settings.get<Float>(BodySettingsId::BODY_RADIUS));
+    case DomainEnum::BLOCK:
+        return makeAuto<BlockDomain>(center, settings.get<Vector>(BodySettingsId::BODY_DIMENSIONS));
+    case DomainEnum::CYLINDER:
+        return makeAuto<CylindricalDomain>(center,
+            settings.get<Float>(BodySettingsId::BODY_RADIUS),
+            settings.get<Float>(BodySettingsId::BODY_HEIGHT),
+            true);
+    case DomainEnum::ELLIPSOIDAL:
+        return makeAuto<EllipsoidalDomain>(center, settings.get<Vector>(BodySettingsId::BODY_DIMENSIONS));
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& settings,
+    SharedPtr<IDomain> domain) {
+    const BoundaryEnum id =
+        domain ? settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY) : BoundaryEnum::NONE;
+
     switch (id) {
     case BoundaryEnum::NONE:
-        struct NoBoundaryCondition : public IBoundaryCondition {
-            virtual void initialize(Storage& UNUSED(storage)) override {}
-            virtual void finalize(Storage& UNUSED(storage)) override {}
-        };
-
-        return makeAuto<NoBoundaryCondition>();
+        return makeAuto<NullBoundaryCondition>();
     case BoundaryEnum::GHOST_PARTICLES:
         ASSERT(domain != nullptr);
         return makeAuto<GhostParticles>(std::move(domain), settings);
@@ -408,6 +441,10 @@ AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& se
     default:
         NOT_IMPLEMENTED;
     }
+}
+
+AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& settings) {
+    return getBoundaryConditions(settings, Factory::getDomain(settings));
 }
 
 AutoPtr<IMaterial> Factory::getMaterial(const BodySettings& body) {
@@ -485,6 +522,22 @@ AutoPtr<IOutput> Factory::getOutput(const RunSettings& settings) {
     default:
         NOT_IMPLEMENTED;
     }
+}
+
+AutoPtr<IInput> Factory::getInput(const Path& path) {
+    const std::string ext = path.extension().native();
+    if (ext == "ssf") {
+        return makeAuto<BinaryInput>();
+    } else if (ext == "scf") {
+        return makeAuto<CompressedInput>();
+    } else if (ext == "tab") {
+        return makeAuto<TabInput>();
+    } else {
+        if (ext.size() > 3 && ext.substr(ext.size() - 3) == ".bt") {
+            return makeAuto<PkdgravInput>();
+        }
+    }
+    throw InvalidSetup("Unknown file type: " + path.native());
 }
 
 AutoPtr<IRng> Factory::getRng(const RunSettings& settings) {

@@ -370,14 +370,10 @@ public:
     /// \brief Creates a quantity in the storage, given its key, value type and order.
     ///
     /// Quantity is resized and filled with default value. This cannot be used to set number of particles, the
-    /// size of the quantity is set to match current particle number.
-    /// If a quantity with given key already exists in the storage, function checks that the quantity type is
-    /// the same and that all values of the quantity match the provided defaultValue. If not, \ref
-    /// InvalidSetup exception is thrown to ensure the quantity is always set up consistenly, i.e. two terms
-    /// do not create the same quantity with different types or different values.
-    ///
-    /// If the required order of quantity is larger than the one currently stored, additional derivatives are
-    /// created with no assert nor exception, otherwise the order is unchanged.
+    /// size of the quantity is set to match current particle number. If the quantity is already stored in the
+    /// storage, function only checks that the type of the quantity matches, but otherwise keeps the
+    /// previously stored values. If the required order of quantity is larger than the one currently stored,
+    /// additional derivatives are created with no assert nor exception, otherwise the order is unchanged.
     /// \tparam TValue Type of the quantity. Can be scalar, vector, tensor or traceless tensor.
     /// \param key Unique key of the quantity.
     /// \param TOrder Order (number of derivatives) associated with the quantity.
@@ -418,6 +414,11 @@ public:
 
     /// \brief Returns material view for material of given particle.
     MaterialView getMaterialOfParticle(const Size particleIdx) const;
+
+    /// \brief Modifies material with given index.
+    ///
+    /// The new material cannot be nullptr.
+    void setMaterial(const Size matIdx, const SharedPtr<IMaterial>& material);
 
     /// \brief Returns the bounding range of given quantity.
     ///
@@ -461,6 +462,9 @@ public:
     ///
     /// The number of particle is always the same for all quantities.
     Size getParticleCnt() const;
+
+    /// \brief Checks if the storage is empty, i.e. without particles.
+    bool empty() const;
 
     /// \brief Merges another storage into this object.
     ///
@@ -563,7 +567,12 @@ public:
     SharedPtr<IStorageUserData> getUserData() const;
 
 private:
-    /// Updates the cached matIds view.
+    /// \brief Inserts all quantities contained in source storage that are not present in this storage.
+    ///
+    /// All added quantities are initialized to zero.
+    void addMissingBuffers(const Storage& source);
+
+    /// \brief Updates the cached matIds view.
     void update();
 };
 

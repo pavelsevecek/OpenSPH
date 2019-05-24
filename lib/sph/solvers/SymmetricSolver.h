@@ -66,12 +66,19 @@ protected:
     LutKernel<DIMENSIONS> kernel;
 
 public:
-    /// \brief Creates the symmetric solver, given the list of equations to solve
+    /// \brief Creates a symmetric solver, given the list of equations to solve
     ///
     /// Constructor may throw if the list of equations is not consistent with the solver.
     /// \param scheduler Scheduler used for parallelization.
     /// \param settings Settings containing parameter of the solver (SPH kernel used, etc.)
     /// \param eqs List of equations to solve.
+    /// \param bc Boundary conditions used during the simulation.
+    SymmetricSolver(IScheduler& scheduler,
+        const RunSettings& settings,
+        const EquationHolder& eqs,
+        AutoPtr<IBoundaryCondition>&& bc);
+
+    /// \brief Creates a symmetric solver, using boundary conditions specified in settings.
     SymmetricSolver(IScheduler& scheduler, const RunSettings& settings, const EquationHolder& eqs);
 
     ~SymmetricSolver();

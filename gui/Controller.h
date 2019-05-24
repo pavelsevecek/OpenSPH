@@ -4,6 +4,8 @@
 #include "io/Path.h"
 #include "objects/wrappers/Locking.h"
 #include "objects/wrappers/SharedPtr.h"
+#include "run/IRun.h"
+#include "run/Node.h"
 #include "system/Settings.h"
 #include <condition_variable>
 #include <thread>
@@ -13,18 +15,18 @@ class wxSizer;
 
 NAMESPACE_SPH_BEGIN
 
-class MainWindow;
+class RunPage;
 class Movie;
 class Storage;
 class Statistics;
 class Timer;
 struct Pixel;
 class Palette;
-class IRun;
+class WorkerNode;
+class Project;
 class IRenderer;
 class ICamera;
 class IColorizer;
-struct DiagnosticsError;
 enum class ColorizerId;
 
 /// \brief Status of the code
@@ -36,35 +38,25 @@ enum class RunStatus {
 };
 
 
-class IPluginControls : public Polymorphic {
-public:
-    /// \brief Creates the windows required by the plugin.
-    virtual void create(wxWindow* parent, wxSizer* sizer) = 0;
-
-    /// \brief Called when simulation ends, new simulation is started etc.
-    virtual void statusChanges(const Path& path, RunStatus newStatus) = 0;
-};
-
 /// \brief Main GUI class connection the simulation with UI controls.
-class Controller {
-    friend class GuiCallbacks;
-
+class Controller : public IWorkerCallbacks {
 private:
-    /// Main frame of the application
-    RawPtr<MainWindow> window;
+    /// Run page
+    RawPtr<RunPage> page;
 
-    /// Additional application-specific controls
-    AutoPtr<IPluginControls> plugin;
-
-    /// Settings of the GUI application
-    GuiSettings gui;
+    /// Parent project
+    Project& project;
 
     struct {
         /// Thread running the simulation
         std::thread thread;
 
-        /// SPH simulation
-        AutoPtr<IRun> run;
+        /// Root node of the simulation
+        SharedPtr<WorkerNode> run;
+
+        RunSettings globals;
+
+        RawPtr<const Storage> storage;
 
         /// Path to the loaded file, if used.
         Path path;
@@ -77,6 +69,7 @@ private:
         /// The list is cleared every timestep, only callbacks added between timesteps are executed.
         using TimeStepCallback = Function<void(const Storage& storage, const Statistics& stats)>;
         Locking<Array<TimeStepCallback>> onTimeStepCallbacks;
+
     } sph;
 
     /// Object for saving image snapshots of the simulations
@@ -131,7 +124,7 @@ private:
 
         Vis();
 
-        void initialize(const GuiSettings& settings);
+        void initialize(const Project& project);
 
         bool isInitialized();
 
@@ -150,20 +143,16 @@ private:
 
 public:
     /// \brief Initialize the controller.
-    ///
-    /// \param gui Parameters of the application; see \ref GuiSettings.
-    explicit Controller(const GuiSettings& gui, AutoPtr<IPluginControls>&& plugin = nullptr);
+    Controller(wxWindow* parent, Project& project);
 
     ~Controller();
 
+    RawPtr<RunPage> getPage() const;
+
     /// \addtogroup Run queries
 
-    /// \brief Returns true if the user aborted the run.
-    bool shouldAbortRun() const;
-
-    /// \brief Returns true if the application is shutting down.
-    bool isQuitting() const;
-
+    /// \brief Returns true if a simulation is running.
+    bool isRunning() const;
 
     /// \addtogroup Display queries
 
@@ -193,6 +182,8 @@ public:
 
     Optional<Size> getSelectedParticle() const;
 
+    const Storage& getStorage() const;
+
     /// Returns the settings object.
     GuiSettings& getParams();
 
@@ -205,12 +196,7 @@ public:
     /// simulation (for example handoff in composite run). This also creates a new image sequence, so it is
     /// necesary to set up new image path or filename mask prior to calling \ref update, otherwise the
     /// previously generated images will be overwritten.
-    void update(const Storage& storage);
-
-    /// \brief Updates the UI parameters of the controller.
-    ///
-    /// Note that not all parameters can be updated once the controller is constructed.
-    void setParams(const GuiSettings& settings);
+    void update(const Storage& storage, const Statistics& stats);
 
     /// \brief Sets a new colorizer to be displayed
     ///
@@ -260,7 +246,9 @@ public:
     /// Must be called before any other run-related functions can be called. If a simulation is currently
     /// running, it waits until the simulation stops and then starts the new simulation.
     /// \param run New simulation to start
-    void start(AutoPtr<IRun>&& run);
+    void start(SharedPtr<WorkerNode> run, const RunSettings& globals);
+
+    void open(const Path& path, const bool sequence = false);
 
     /// \brief Starts the simulation with current setup.
     ///
@@ -280,36 +268,41 @@ public:
     /// simulation from the beginning.
     /// \param waitForFinish If true, the function will block until the run is finished. Otherwise the
     ///                      function is nonblocking.
-    void stop(bool waitForFinish = false);
+    void stop(const bool waitForFinish = false);
 
     /// \brief Saves the state of the current run to the disk.
     ///
     /// \param path Path to the file where the run state is saved (as binary data).
     void saveState(const Path& path);
 
-    /// \brief Restarts the run, using given state file as initial conditions.
-    ///
-    /// \param path Path to the state file.
-    void loadState(const Path& path);
-
     /// Closes down the model, clears all allocated resources. Must be called only once.
-    void quit();
+    void quit(const bool waitForFinish = false);
+
 
 private:
+    virtual void onStart(const IWorker& worker) override;
+
+    virtual void onEnd(const Storage& storage, const Statistics& stats) override;
+
+    virtual void onSetUp(const Storage& storage, Statistics& stats) override;
+
     /// \brief Called every time step.
-    void onTimeStep(const Storage& storage, Statistics& stats);
+    virtual void onTimeStep(const Storage& storage, Statistics& stats) override;
 
-    /// \brief Called when a problem is reported by the run.
-    void onRunFailure(const DiagnosticsError& error, const Statistics& stats);
+    /// \brief Returns true if the user aborted the run.
+    virtual bool shouldAbortRun() const override;
 
-    SharedPtr<Movie> createMovie(const Storage& storage);
+    SharedPtr<Movie> createMovie(const Storage& storage) const;
 
     /// \brief Redraws the particles.
     ///
     /// Can be called from any thread. Function blocks until the particles are redrawn.
-    void redraw(const Storage& storage, Statistics& stats);
+    void redraw(const Storage& storage, const Statistics& stats);
 
-    void startRunThread(const Path& path = Path());
+    // main thread call if page exists
+    void safePageCall(Function<void(RunPage*)> func);
+
+    void startRunThread();
 
     void startRenderThread();
 };

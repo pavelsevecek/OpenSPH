@@ -9,7 +9,10 @@
 NAMESPACE_SPH_BEGIN
 
 void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx) {
-    wx.Create(bitmap.size().x, bitmap.size().y, 32);
+    const Pixel size = bitmap.size();
+    if (!wx.IsOk() || wx.GetSize() != wxSize(size.x, size.y)) {
+        wx.Create(size.x, size.y, 32);
+    }
     ASSERT(wx.IsOk());
 
     wxAlphaPixelData pixels(wx);

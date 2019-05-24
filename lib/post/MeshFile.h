@@ -3,6 +3,7 @@
 #include "io/Path.h"
 #include "objects/finders/Order.h"
 #include "objects/geometry/Triangle.h"
+#include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Expected.h"
 #include "objects/wrappers/Outcome.h"
 
@@ -64,5 +65,8 @@ public:
 
     virtual Expected<Array<Triangle>> load(const Path& path) override;
 };
+
+/// \brief Deduces mesh type from extension of given path.
+AutoPtr<IMeshFile> getMeshFile(const Path& path);
 
 NAMESPACE_SPH_END

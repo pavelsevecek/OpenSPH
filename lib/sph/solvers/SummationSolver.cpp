@@ -31,7 +31,7 @@ SummationSolver::SummationSolver(IScheduler& scheduler,
     const RunSettings& settings,
     const EquationHolder& additionalEquations)
     : SymmetricSolver(scheduler, settings, getEquations(settings) + additionalEquations) {
-    eta = settings.get<Float>(RunSettingsId::SPH_KERNEL_ETA);
+
     targetDensityDifference = settings.get<Float>(RunSettingsId::SPH_SUMMATION_DENSITY_DELTA);
     densityKernel = Factory::getKernel<DIMENSIONS>(settings);
     Flags<SmoothingLengthEnum> flags =
@@ -63,8 +63,14 @@ void SummationSolver::beforeLoop(Storage& storage, Statistics& stats) {
         h[i] = r[i][H];
     }
 
+    Float eta = 0._f;
+    for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
+        // all eta's should be the same, but let's use max to be sure
+        eta = max(eta, storage.getMaterial(matId)->getParam<Float>(BodySettingsId::SMOOTHING_LENGTH_ETA));
+    }
+
     Atomic<Float> totalDiff = 0._f; /// \todo use thread local for summing?
-    auto functor = [this, r, m, &totalDiff](const Size i, ThreadData& data) {
+    auto functor = [this, r, m, eta, &totalDiff](const Size i, ThreadData& data) {
         /// \todo do we have to recompute neighbours in every iteration?
         // find all neighbours
         finder->findAll(i, h[i] * kernel.radius(), data.neighs);

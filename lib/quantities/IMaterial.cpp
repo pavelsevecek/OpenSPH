@@ -9,8 +9,9 @@ const Float IMaterial::DEFAULT_MINIMAL = 0._f;
 
 MaterialInitialContext::MaterialInitialContext(const RunSettings& settings) {
     rng = Factory::getRng(settings);
-    eta = settings.get<Float>(RunSettingsId::SPH_KERNEL_ETA);
+    scheduler = Factory::getScheduler(settings);
     kernelRadius = Factory::getKernel<3>(settings).radius();
+    generateUvws = settings.get<bool>(RunSettingsId::GENERATE_UVWS);
 }
 
 void IMaterial::setRange(const QuantityId id, const Interval& range, const Float minimal) {

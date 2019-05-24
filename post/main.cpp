@@ -14,7 +14,7 @@
 #include "post/StatisticTests.h"
 #include "quantities/Quantity.h"
 #include "quantities/Storage.h"
-#include "run/Collision.h"
+#include "sph/initial/Initial.h"
 #include "system/Factory.h"
 #include "system/Process.h"
 #include "system/Statistics.h"
@@ -233,78 +233,6 @@ void ssfToVelDir(const Path& filePath, const Path& outPath) {
     for (Post::HistPoint& p : hist) {
         logSfd.write(p.value, "  ", p.count);
     }
-}
-
-static Pair<Float> getLr(const Path& filePath, const Path& settingsPath) {
-    BinaryInput input;
-    Storage storage;
-    Statistics stats;
-    Outcome outcome = input.load(filePath, storage, stats);
-    if (!outcome) {
-        std::cout << "Cannot load particle data, " << outcome.error() << std::endl;
-        throw;
-    }
-
-    CollisionGeometrySettings geometry;
-    Outcome loaded = geometry.loadFromFile(settingsPath);
-    if (!loaded) {
-        std::cout << "Cannot load settings, " << loaded.error() << std::endl;
-        throw;
-    }
-
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-
-    Array<Size> idxs = Post::findLargestComponent(storage, 1._f, Post::ComponentFlag::ESCAPE_VELOCITY);
-    Float m_comp = 0._f;
-    for (Size i : idxs) {
-        m_comp += m[i];
-    }
-
-    const Float targetRadius = geometry.get<Float>(CollisionGeometrySettingsId::TARGET_RADIUS);
-    const Float impactorRadius = geometry.get<Float>(CollisionGeometrySettingsId::IMPACTOR_RADIUS);
-    const Float impactSpeed = geometry.get<Float>(CollisionGeometrySettingsId::IMPACT_SPEED);
-    const Float m_tot = 2700._f * sphereVolume(targetRadius);
-    return { m_comp / m_tot, getImpactEnergy(targetRadius, impactorRadius, impactSpeed) };
-}
-
-// prints total ejected mass and period of the LR
-void ssfToStats(const Path& fileDir) {
-    // Array<int> ds = { 359, 395, 425, 452, 476 };
-    Array<int> ds = { 8865, 10683, 10683, 12032, 12032, 13773, 13773, 17353 };
-    Float q, Q;
-    Array<PlotPoint> points;
-    Path firstDir;
-    for (int d : ds) {
-        const Path dir(replaceFirst(fileDir.native(), "%d", std::to_string(d)));
-        tie(q, Q) = getLr(dir / Path("frag_final.ssf"), dir / Path("collision.sph"));
-        points.push(PlotPoint{ log10(Q), q });
-
-        if (firstDir.empty()) {
-            firstDir = dir;
-        }
-    }
-
-    Post::LinearFunction func = Post::getLinearFit(points);
-
-    CollisionGeometrySettings geometry;
-    geometry.loadFromFile(firstDir / Path("collision.sph"));
-    /*std::cout << params.targetRadius << "  " << 2._f * PI / (3600._f * params.targetRotation) << "  ";
-    for (PlotPoint p : points) {
-        std::cout << "(" << p.x << ", " << p.y << "); ";
-    }
-    std::cout << func.solve(0.5f) << std::endl;*/
-    const Float spinRate = geometry.get<Float>(CollisionGeometrySettingsId::TARGET_SPIN_RATE);
-    std::cout << 24._f / spinRate << "   " << func.solve(0.5f) << std::endl;
-
-
-    /*ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-    ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
-
-    const Size largestIdx = std::distance(m.begin(), std::max_element(m.begin(), m.end()));
-    const Float m_sum = std::accumulate(m.begin(), m.end(), 0._f);
-
-    std::cout << (m_sum - m[largestIdx]) / m_sum << "   "
-              << 2._f * PI / (3600._f * getLength(omega[largestIdx])) << std::endl;*/
 }
 
 struct HarrisAsteroid {
@@ -839,8 +767,6 @@ int main(int argc, char** argv) {
                 return 0;
             }
             ssfToVelDir(Path(argv[2]), Path(argv[3]));
-        } else if (mode == "stats") {
-            ssfToStats(Path(argv[2]));
         } else if (mode == "harris") {
             processHarrisFile();
         } else if (mode == "swift") {

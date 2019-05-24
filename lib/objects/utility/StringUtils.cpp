@@ -198,5 +198,60 @@ Array<std::string> split(const std::string& s, const char delimiter) {
     return parts;
 }
 
+Pair<std::string> splitByFirst(const std::string& s, const char delimiter) {
+    const std::size_t n = s.find(delimiter);
+    if (n == std::string::npos) {
+        return {};
+    } else {
+        Pair<std::string> parts;
+        parts[0] = s.substr(0, n);
+        parts[1] = s.substr(n + 1);
+        return parts;
+    }
+}
+
+static Array<std::string> capitalizationBlacklist{ "and", "or", "of", "for", "to", "et", "al" };
+
+static bool shouldCapitalize(const std::string& s) {
+    for (const std::string& b : capitalizationBlacklist) {
+        if (s.size() < b.size()) {
+            continue;
+        }
+        if (s.substr(0, b.size()) == b && (s.size() == b.size() || s[b.size()] == ' ')) {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::string capitalize(const std::string& input) {
+    std::string result = input;
+    for (Size i = 0; i < result.size(); ++i) {
+        if (i == 0 || (result[i - 1] == ' ' && shouldCapitalize(result.substr(i)))) {
+            result[i] = toupper(result[i]);
+        }
+    }
+    return result;
+}
+
+UniqueNameManager::UniqueNameManager(ArrayView<const std::string> initial) {
+    for (const std::string& name : initial) {
+        names.insert(name);
+    }
+}
+
+std::string UniqueNameManager::getName(const std::string& name) {
+    std::string tested = name;
+
+    for (Size postfix = 1; postfix < 999; ++postfix) {
+        if (names.find(tested) == names.end()) {
+            names.insert(tested);
+            return tested;
+        } else {
+            tested = name + " " + std::to_string(postfix);
+        }
+    }
+    return name; /// \todo what to return?
+}
 
 NAMESPACE_SPH_END

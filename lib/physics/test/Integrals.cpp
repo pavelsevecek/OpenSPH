@@ -11,8 +11,7 @@ using namespace Sph;
 
 TEST_CASE("Total mass", "[integrals]") {
     Storage storage;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    InitialConditions conds(pool, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, 10._f);
     settings.set(BodySettingsId::PARTICLE_COUNT, 100);
@@ -56,8 +55,7 @@ TEST_CASE("Total Momentum Simple", "[integrals]") {
 
 TEST_CASE("Total Momentum Body", "[integrals]") {
     Storage storage;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    InitialConditions conds(pool, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
     BodySettings settings;
     const Float rho0 = 5._f;
     settings.set(BodySettingsId::DENSITY, rho0);
@@ -104,8 +102,7 @@ TEST_CASE("Total Energy Simple", "[integrals]") {
 
 TEST_CASE("Total Energy Body", "[integrals]") {
     Storage storage;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    InitialConditions conds(pool, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
     BodySettings settings;
     const Float rho0 = 5._f;
     settings.set(BodySettingsId::DENSITY, rho0);
@@ -123,8 +120,7 @@ TEST_CASE("Total Energy Body", "[integrals]") {
 
 TEST_CASE("Center of Mass", "[integrals]") {
     Storage storage;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    InitialConditions conds(pool, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, 1000._f);
     const Vector r1(-1._f, 5._f, -2._f);

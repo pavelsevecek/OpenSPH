@@ -80,7 +80,7 @@ template <typename TTimestepping, typename... TArgs>
 static void testHomogeneousField(TArgs&&... args) {
     HomogeneousField solver;
 
-    SharedPtr<Storage> storage = makeShared<Storage>(getDefaultMaterial());
+    SharedPtr<Storage> storage = makeShared<Storage>(getMaterial(MaterialEnum::BASALT));
     storage->insert<Vector>(
         QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>{ Vector(0._f, 0._f, 0._f) });
 
@@ -111,7 +111,7 @@ template <typename TTimestepping, typename... TArgs>
 static void testHarmonicOscillator(TArgs&&... args) {
     HarmonicOscillator solver;
 
-    SharedPtr<Storage> storage = makeShared<Storage>(getDefaultMaterial());
+    SharedPtr<Storage> storage = makeShared<Storage>(getMaterial(MaterialEnum::BASALT));
     storage->insert<Vector>(
         QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
 
@@ -142,7 +142,7 @@ template <typename TTimestepping, typename... TArgs>
 static void testGyroscopicMotion(TArgs&&... args) {
     LorentzForce solver;
 
-    SharedPtr<Storage> storage = makeShared<Storage>(getDefaultMaterial());
+    SharedPtr<Storage> storage = makeShared<Storage>(getMaterial(MaterialEnum::BASALT));
     storage->insert<Vector>(
         QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
 
@@ -206,7 +206,7 @@ struct ClampSolver : public ISolver {
 
 template <typename TTimestepping>
 static void testClamping(RunSettings settings) {
-    SharedPtr<Storage> storage = makeShared<Storage>(getDefaultMaterial());
+    SharedPtr<Storage> storage = makeShared<Storage>(getMaterial(MaterialEnum::BASALT));
     storage->insert<Vector>(
         QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
     storage->insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, 5._f);
@@ -215,7 +215,7 @@ static void testClamping(RunSettings settings) {
     material.setRange(QuantityId::ENERGY, range, 0._f);
 
     settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1._f);
-    settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
+    settings.set(RunSettingsId::TIMESTEPPING_CRITERION, EMPTY_FLAGS);
     TTimestepping timestepping(storage, settings);
     Statistics stats;
     ClampSolver solver1(ClampSolver::Direction::INCREASING, range);
@@ -269,7 +269,7 @@ static void testAddingParticles(const RunSettings& settings, TestContext context
 template <typename TTimestepping>
 static void testAll(RunSettings settings, TestContext context = {}) {
     settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, timeStep);
-    settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
+    settings.set(RunSettingsId::TIMESTEPPING_CRITERION, EMPTY_FLAGS);
     testHomogeneousField<TTimestepping>(settings);
     testHarmonicOscillator<TTimestepping>(settings);
     testGyroscopicMotion<TTimestepping>(settings);

@@ -9,6 +9,7 @@
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Palette.h"
 #include "gui/renderers/IRenderer.h"
+#include "system/Timer.h"
 #include <atomic>
 
 NAMESPACE_SPH_BEGIN
@@ -28,9 +29,6 @@ private:
 
     /// Grid size
     float grid;
-
-    /// Background color
-    Rgba background;
 
     /// Show ghost particles
     bool renderGhosts;
@@ -58,6 +56,8 @@ private:
     } cached;
 
     mutable std::atomic_bool shouldContinue;
+
+    mutable Timer lastRenderTimer;
 
 public:
     explicit ParticleRenderer(IScheduler& scheduler, const GuiSettings& settings);

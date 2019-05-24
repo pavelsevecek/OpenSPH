@@ -65,7 +65,7 @@ class GhostParticles : public IBoundaryCondition {
 private:
     Array<Ghost> ghosts;
     Array<Size> ghostIdxs;
-    AutoPtr<IDomain> domain;
+    SharedPtr<IDomain> domain;
 
     /// Cached array to avoid frequent (de)allocations
     struct {
@@ -90,10 +90,10 @@ public:
     /// \param domain Selected computational domain; particles close to the boundary will spawn ghosts.
     /// \param searchRadius Radius of a single particle, in units of smoothing length.
     /// \param minimalDist Minimal allowed distance between a particle and its ghost.
-    GhostParticles(AutoPtr<IDomain>&& domain, const Float searchRadius, const Float minimalDist);
+    GhostParticles(SharedPtr<IDomain> domain, const Float searchRadius, const Float minimalDist);
 
     /// \brief Creates new boundary conditions, using parameters specified in settings.
-    GhostParticles(AutoPtr<IDomain>&& domain, const RunSettings& settings);
+    GhostParticles(SharedPtr<IDomain> domain, const RunSettings& settings);
 
     /// \brief Specifies a functor that overrides the default velocity assinged to each ghost.
     ///
@@ -153,7 +153,7 @@ public:
 /// total mometum or energy.
 class FrozenParticles : public IBoundaryCondition {
 protected:
-    AutoPtr<IDomain> domain;
+    SharedPtr<IDomain> domain;
     Float radius;
 
     std::set<Size> frozen;
@@ -173,7 +173,7 @@ public:
     ///
     /// \param domain Domain defining the boundary
     /// \param radius Search radius (in units of smoothing length) up to which the particles will be frozen.
-    FrozenParticles(AutoPtr<IDomain>&& domain, const Float radius);
+    FrozenParticles(SharedPtr<IDomain> domain, const Float radius);
 
     /// \brief Adds body ID particles of which shall be frozen by boundary conditions.
     void freeze(const Size flag);
@@ -196,7 +196,7 @@ public:
 /// passing through athmosphere.
 class WindTunnel : public FrozenParticles {
 public:
-    WindTunnel(AutoPtr<IDomain>&& domain, const Float radius);
+    WindTunnel(SharedPtr<IDomain> domain, const Float radius);
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
 

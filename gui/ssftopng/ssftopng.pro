@@ -11,6 +11,7 @@ LIBS += ../../lib/liblib.a # must be used after libgui
 LIBS += `wx-config --libs --gl-libs`
 
 include(../../lib/inc.pro)
+
 QMAKE_CXXFLAGS += `wx-config --cxxflags`
 
 SOURCES += \
