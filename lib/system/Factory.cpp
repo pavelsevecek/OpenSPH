@@ -233,7 +233,8 @@ static AutoPtr<ISolver> getActualSolver(IScheduler& scheduler,
     AutoPtr<IBoundaryCondition>&& bc) {
     const Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES);
     if (forces.has(ForceEnum::GRAVITY)) {
-        if (typeid(*bc) != typeid(NullBoundaryCondition)) {
+        IBoundaryCondition& bcRef = *bc; // needed to silence a warning
+        if (typeid(bcRef) != typeid(NullBoundaryCondition)) {
             throw InvalidSetup("Gravity currently cannot be used with boundary conditions");
         }
         return makeAuto<GravitySolver<TSolver>>(scheduler, settings, std::move(eqs));

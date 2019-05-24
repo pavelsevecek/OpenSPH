@@ -133,11 +133,6 @@ private:
     NodeWindow* nodeWindow;
 
     struct {
-        wxPropertyGrid* grid;
-
-    } controls;
-
-    struct {
         /// Translation of the panel.
         Pixel offset = Pixel(0, 0);
 

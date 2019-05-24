@@ -129,7 +129,7 @@ void DensityIndependentSolver::integrate(Storage& storage, Statistics& UNUSED(st
     const Float radius = kernel.radius() * r[0][H]; /// \todo do correctly
 
     // step 4: compute y by summing up neighbours
-    auto pressureFunc = [this, Y, r, p, &y, &rho, radius](const Size i, ThreadData& data) {
+    auto pressureFunc = [this, Y, r, p, &y, radius](const Size i, ThreadData& data) {
         // find neighbours
         finder->findAll(i, radius, data.neighs);
 
@@ -146,7 +146,7 @@ void DensityIndependentSolver::integrate(Storage& storage, Statistics& UNUSED(st
     parallelFor(scheduler, threadData, 0, r.size(), pressureFunc);
 
     // step 5: using computed y, evaluate equation of motion and energy equation
-    auto equationFunc = [this, Y, &y, r, radius](const Size i, ThreadData& data) {
+    auto equationFunc = [this, Y, r, radius](const Size i, ThreadData& data) {
         // find neighbours
         finder->findAll(i, radius, data.neighs);
 

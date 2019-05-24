@@ -25,8 +25,6 @@ void drawPalette(IRenderContext& context,
 
 class ParticleRenderer : public IRenderer {
 private:
-    IScheduler& scheduler;
-
     /// Grid size
     float grid;
 

@@ -391,7 +391,7 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
 
     particleBox->SetSizer(boxSizer);
 
-    keyBox->Bind(wxEVT_CHECKBOX, [this, smoothBox](wxCommandEvent& evt) {
+    keyBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
         const bool value = evt.IsChecked();
         GuiSettings& gui = controller->getParams();
         gui.set(GuiSettingsId::SHOW_KEY, value);
@@ -1039,8 +1039,8 @@ void RunPage::replaceQuantityBar(const Size idx) {
     quantityPanel = new wxPanel(this, wxID_ANY);
     // so far only needed for component id, so it is hacked like this
     SharedPtr<IColorizer> newColorizer = colorizerList[idx];
-    /// \todo implemnet SharedPtr dynamicCast
-    if (typeid(*newColorizer) == typeid(ComponentIdColorizer)) {
+    /// \todo implement SharedPtr dynamicCast
+    if (dynamicCast<ComponentIdColorizer>(newColorizer.get())) {
         wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
         sizer->Add(new wxStaticText(quantityPanel, wxID_ANY, newColorizer->name()));
         wxBoxSizer* offsetSizer = new wxBoxSizer(wxHORIZONTAL);

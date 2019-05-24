@@ -108,7 +108,7 @@ MainWindow::MainWindow(const Path& openPath)
         }
     });
 
-    notebook->Bind(wxEVT_AUINOTEBOOK_PAGE_CHANGED, [this, bar](wxAuiNotebookEvent& evt) {
+    notebook->Bind(wxEVT_AUINOTEBOOK_PAGE_CHANGED, [this](wxAuiNotebookEvent& evt) {
         const int pageId = evt.GetSelection();
         this->enableMenus(pageId);
     });

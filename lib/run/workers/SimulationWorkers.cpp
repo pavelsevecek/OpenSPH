@@ -124,7 +124,7 @@ public:
         }
     }
 
-    virtual void tearDown(const Storage& storage, const Statistics& stats) {
+    virtual void tearDown(const Storage& storage, const Statistics& stats) override {
         // last dump after simulation ends
         output->dump(storage, stats);
     }
@@ -233,7 +233,7 @@ public:
         }
     }
 
-    virtual void tearDown(const Storage& storage, const Statistics& stats) {
+    virtual void tearDown(const Storage& storage, const Statistics& stats) override {
         // last dump after simulation ends
         output->dump(storage, stats);
     }

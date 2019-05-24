@@ -325,7 +325,8 @@ static void run(const ArgParser& parser, ILogger& logger) {
     RunParams params;
     params.targetRadius = parser.tryGetArg<Float>("tr");
     params.targetPeriod = parser.tryGetArg<Float>("tp");
-    if (params.impactSpeed = parser.tryGetArg<Float>("v")) {
+    params.impactSpeed = parser.tryGetArg<Float>("v");
+    if (params.impactSpeed) {
         params.impactSpeed.value() *= 1.e3_f; // km/s -> m/s
     }
     params.impactAngle = parser.tryGetArg<Float>("phi");

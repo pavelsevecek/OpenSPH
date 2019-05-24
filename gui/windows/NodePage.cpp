@@ -128,7 +128,7 @@ void NodeManager::cloneTree(WorkerNode& node) {
     });
 
     // second, connect cloned nodes to get the same hierarchy
-    node.enumerate([this, offset, &nodeMap](SharedPtr<WorkerNode> node, Size UNUSED(depth)) {
+    node.enumerate([&nodeMap](SharedPtr<WorkerNode> node, Size UNUSED(depth)) {
         for (Size i = 0; i < node->getSlotCnt(); ++i) {
             SlotData slot = node->getSlot(i);
             if (slot.provider != nullptr) {
@@ -141,7 +141,7 @@ void NodeManager::cloneTree(WorkerNode& node) {
 void NodeManager::layoutNodes(WorkerNode& node, const Pixel position) {
     UnorderedMap<SharedPtr<WorkerNode>, Size> depthMap;
 
-    node.enumerate([this, &depthMap](SharedPtr<WorkerNode> node, Size depth) { //
+    node.enumerate([&depthMap](SharedPtr<WorkerNode> node, Size depth) { //
         depthMap.insert(node, depth);
     });
 

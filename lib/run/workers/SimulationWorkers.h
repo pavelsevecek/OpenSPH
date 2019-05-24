@@ -32,7 +32,7 @@ public:
 
     virtual VirtualSettings getSettings() override;
 
-    virtual AutoPtr<IRun> getRun(const RunSettings& overrides) const;
+    virtual AutoPtr<IRun> getRun(const RunSettings& overrides) const override;
 };
 
 class SphStabilizationWorker : public SphWorker {
@@ -45,7 +45,7 @@ public:
 
     virtual VirtualSettings getSettings() override;
 
-    virtual AutoPtr<IRun> getRun(const RunSettings& overrides) const;
+    virtual AutoPtr<IRun> getRun(const RunSettings& overrides) const override;
 };
 
 class NBodyWorker : public IRunWorker {

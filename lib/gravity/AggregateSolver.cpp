@@ -15,8 +15,6 @@ NAMESPACE_SPH_BEGIN
 
 const Vector MAX_SPIN = Vector(0.1_f);
 
-const Float MAX_STRAIN = 1._f;
-
 /// \brief Aggregate of particles, moving as a rigid body according to Euler's equations.
 ///
 /// \todo

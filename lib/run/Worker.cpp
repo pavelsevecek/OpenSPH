@@ -61,6 +61,10 @@ SharedPtr<TValue> WorkerContext::tryGetValue() const {
     }
 }
 
+template SharedPtr<ParticleData> WorkerContext::tryGetValue() const;
+template SharedPtr<IDomain> WorkerContext::tryGetValue() const;
+template SharedPtr<IMaterial> WorkerContext::tryGetValue() const;
+
 WorkerContext WorkerContext::clone() const {
     if (SharedPtr<ParticleData> particleData = this->tryGetValue<ParticleData>()) {
         SharedPtr<ParticleData> clonedData = makeShared<ParticleData>();

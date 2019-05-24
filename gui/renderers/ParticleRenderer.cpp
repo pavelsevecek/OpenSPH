@@ -177,8 +177,7 @@ static void drawKey(IRenderContext& context,
     context.drawText(lineStart + Coords(0, 6), flags, scaleText + units);
 }
 
-ParticleRenderer::ParticleRenderer(IScheduler& scheduler, const GuiSettings& settings)
-    : scheduler(scheduler) {
+ParticleRenderer::ParticleRenderer(IScheduler& UNUSED(scheduler), const GuiSettings& settings) {
     grid = settings.get<Float>(GuiSettingsId::VIEW_GRID_SIZE);
     renderGhosts = settings.get<bool>(GuiSettingsId::RENDER_GHOST_PARTICLES);
     shouldContinue = true;
@@ -264,7 +263,7 @@ static AutoPtr<PreviewRenderContext> getContext(const RenderParams& params, Bitm
     if (params.particles.doAntialiasing) {
         if (params.particles.smoothed) {
             CubicSpline<2> kernel;
-            return makeAuto<SmoothedRenderContext>(bitmap, kernel, params.particles.scale);
+            return makeAuto<SmoothedRenderContext>(bitmap, kernel);
         } else {
             return makeAuto<AntiAliasedRenderContext>(bitmap);
         }
