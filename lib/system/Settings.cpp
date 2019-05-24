@@ -482,7 +482,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
         "Integrator performing evolution in time. Can be one of the following:\n" + EnumMap::getDesc<TimesteppingEnum>() },
     { RunSettingsId::TIMESTEPPING_COURANT_NUMBER,   "timestep.courant_number",         0.2_f,
         "Courant number limiting the time step value. Needed for numerical stability of the integrator. Always keep <= 1!" },
-    { RunSettingsId::TIMESTEPPING_MAX_TIMESTEP,     "timestep.max_step",        0.1_f,
+    { RunSettingsId::TIMESTEPPING_MAX_TIMESTEP,     "timestep.max_step",        10._f,
         "Maximal allowed value of the time step." },
     { RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, "timestep.initial",         0.03_f,
         "Initial time step of the simulation. "},

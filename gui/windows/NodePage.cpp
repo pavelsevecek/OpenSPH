@@ -867,7 +867,9 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
     wxMenu menu;
     VisNode* vis = nodeMgr->getSelectedNode(position);
     if (vis != nullptr) {
-        menu.Append(0, "Evaluate");
+        if (vis->node->provides() == WorkerType::PARTICLES) {
+            menu.Append(0, "Evaluate"); // there is no visible result of other types
+        }
         menu.Append(1, "Clone");
         menu.Append(2, "Clone tree");
         menu.Append(3, "Layout");

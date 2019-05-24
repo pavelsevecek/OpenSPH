@@ -331,8 +331,11 @@ TEST_CASE("Storage material merge", "[storage]") {
 
     REQUIRE_NOTHROW(storage1.merge(std::move(storage2)));
     REQUIRE(storage1.getMaterialCnt() == 2);
-    REQUIRE(typeid(storage1.getMaterial(0).material()) == typeid(NullMaterial));
-    REQUIRE(typeid(storage1.getMaterial(1).material()) == typeid(SolidMaterial));
+
+    IMaterial& mtl1 = storage1.getMaterial(0).material();
+    IMaterial& mtl2 = storage1.getMaterial(0).material();
+    REQUIRE(typeid(mtl1) == typeid(NullMaterial));
+    REQUIRE(typeid(mtl2) == typeid(SolidMaterial));
     REQUIRE(storage1.isValid());
     REQUIRE(storage2.isValid());
 

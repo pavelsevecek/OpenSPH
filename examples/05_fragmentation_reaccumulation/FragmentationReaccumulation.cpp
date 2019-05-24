@@ -59,6 +59,9 @@ public:
         BodyView impactor = ic.addMonolithicBody(*storage, impactorBody);
         impactor.addVelocity(Vector(-1.e3_f, 0._f, 0._f));
 
+        // Limit time step by CFL criterion
+        settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT);
+
         // Run for 100s.
         settings.set(RunSettingsId::RUN_END_TIME, 100._f);
 

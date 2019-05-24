@@ -212,7 +212,7 @@ static FlatMap<PaletteKey, PaletteDesc> paletteDescs = {
     { QuantityId::AV_STRESS, { Interval(0._f, 1.e8_f), PaletteScale::LINEAR } },
     { QuantityId::ANGULAR_FREQUENCY, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
     { QuantityId::MOMENT_OF_INERTIA, { Interval(0._f, 1.e10_f), PaletteScale::LINEAR } },
-    { QuantityId::STRAIN_RATE_CORRECTION_TENSOR, { Interval(0.5_f, 5._f), PaletteScale::LINEAR } },
+    { QuantityId::STRAIN_RATE_CORRECTION_TENSOR, { Interval(0._f, 5._f), PaletteScale::LINEAR } },
     { QuantityId::EPS_MIN, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
     { QuantityId::NEIGHBOUR_CNT, { Interval(50._f, 150._f), PaletteScale::LINEAR } },
     { ColorizerId::VELOCITY, { Interval(0.1_f, 100._f), PaletteScale::LOGARITHMIC } },
@@ -308,13 +308,17 @@ Palette Factory::getPalette(const ColorizerId id) {
                                { 0.75f * dx, Rgba(0.8f, 0.8f, 0.8f) },
                                { dx, Rgba(1.0f, 0.6f, 0.f) } },
                 scale);
-        case QuantityId::STRAIN_RATE_CORRECTION_TENSOR:
-            ASSERT(x0 > 0._f);
-            return Palette({ { x0, Rgba(0.f, 0.f, 0.5f) },
-                               { x0 + 0.01f, Rgba(0.1f, 0.1f, 0.1f) },
-                               { x0 + 0.6f * dx, Rgba(0.9f, 0.9f, 0.9f) },
-                               { x0 + dx, Rgba(0.6f, 0.0f, 0.0f) } },
+        case QuantityId::STRAIN_RATE_CORRECTION_TENSOR: {
+            // sqrt(3) is an important value, as it corresponds to identity tensor
+            const float actDx = max(dx, sqrt(3.f) + 0.2f);
+            const float eps = 0.05f;
+            return Palette({ { 0._f, Rgba(0.f, 0.0f, 0.5f) },
+                               { sqrt(3.f) - eps, Rgba(0.9f, 0.9f, 0.9f) },
+                               { sqrt(3.f), Rgba(1.f, 1.f, 0.f) },
+                               { sqrt(3.f) + eps, Rgba(0.9f, 0.9f, 0.9f) },
+                               { actDx, Rgba(0.5f, 0.0f, 0.0f) } },
                 scale);
+        }
         case QuantityId::AV_BALSARA:
             return Palette({ { x0, Rgba(0.1f, 0.1f, 0.1f) }, { x0 + dx, Rgba(0.9f, 0.9f, 0.9f) } }, scale);
         case QuantityId::EPS_MIN:

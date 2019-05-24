@@ -92,7 +92,7 @@ TEST_CASE("Fracture growth", "[damage]") {
     /// \todo check that if the strain if below eps_min, damage wont increase
 }
 
-static void testEquivalence(const Size npart, const Size maxdiff) {
+static void testEquivalence(const Size npart, const int maxdiff) {
     Storage storage;
     RunSettings settings;
     settings.set(RunSettingsId::RUN_RNG, RngEnum::UNIFORM);
