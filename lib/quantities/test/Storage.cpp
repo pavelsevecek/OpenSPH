@@ -333,7 +333,7 @@ TEST_CASE("Storage material merge", "[storage]") {
     REQUIRE(storage1.getMaterialCnt() == 2);
 
     IMaterial& mtl1 = storage1.getMaterial(0).material();
-    IMaterial& mtl2 = storage1.getMaterial(0).material();
+    IMaterial& mtl2 = storage1.getMaterial(1).material();
     REQUIRE(typeid(mtl1) == typeid(NullMaterial));
     REQUIRE(typeid(mtl2) == typeid(SolidMaterial));
     REQUIRE(storage1.isValid());
