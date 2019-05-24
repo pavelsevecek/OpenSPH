@@ -29,8 +29,8 @@ git checkout devel
 ```
 
 ## Compilation 
-The code uses many c++14 features and will migrate to c++17 when it gets implemented 
-by mainstream compilers. The compilation has been tested on gcc 6.3.1 and clang 4.0.0.
+The code uses many c++14 features, so a reasonably new version of a C++ compiler is necessary.
+The compilation has been tested on gcc 6.3.1 and clang 4.0.0.
 Prerequisities of the code are:
 
 - git (to get the code from the repository, skip if you already have the code)
@@ -66,8 +66,9 @@ instead, by adding use_tbb flag:
 qmake CONFIG+=version CONFIG+=use_tbb ../sph.pro
 ```
 
-The project sph.pro builds command-line and GUI version of simulation launcher and also the tool for viewing
-simulation results (player).
+The project sph.pro builds command-line launcher and the GUI application that allows to set up and run 
+simulations, as well as view previously saved results.
+
 To further build the code examples, run:
 ```bash
 cd build_version
@@ -76,10 +77,11 @@ make
 ```
 
 ## Running a basic impact simulation
-A simulation can be started using a command-line launcher, located in cli/launcher directory, 
-or with GUI, using gui/launcherGui executable. When a launcher is started for the first time,
-it generates configuration files (with extension .sph), which can be then modified to set up
-the simulation as needed.
+A simulation can be started using a command-line launcher, located in cli/launcher directory.
+When a launcher is started for the first time, it generates configuration files 
+(with extension .cnf), which can be then modified to set up the simulation as needed.
+Simulation can be also set up in the graphical application, using a node-based editor.
+See category 'presets' on the right side of the editor for some basic simulations.
 
 Default simulation uses the following:
 - Equation of motion consists of a stress tensor divergence (SolidStressForce) and an artifial viscosity term (StandardAV)
