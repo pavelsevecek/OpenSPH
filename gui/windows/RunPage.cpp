@@ -14,6 +14,7 @@
 #include "gui/windows/PlotView.h"
 #include "gui/windows/ProgressPanel.h"
 #include "gui/windows/TimeLine.h"
+#include "gui/windows/Widgets.h"
 #include "io/FileSystem.h"
 #include "io/LogWriter.h"
 #include "io/Logger.h"
@@ -255,45 +256,7 @@ RunPage::~RunPage() {
     manager = nullptr;
 }
 
-/*wxPanel* RunPage::createToolBar() {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    wxPanel* toolbarPanel = new wxPanel(this);
-    wxBoxSizer* toolbarSizer = new wxBoxSizer(wxHORIZONTAL);
 
-    wxButton* button = new wxButton(toolbarPanel, wxID_ANY, "Start");
-    button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { controller->restart(); });
-    toolbarSizer->Add(button);
-
-    button = new wxButton(toolbarPanel, wxID_ANY, "Pause");
-    toolbarSizer->Add(button);
-    button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { controller->pause(); });
-
-    button = new wxButton(toolbarPanel, wxID_ANY, "Stop");
-    toolbarSizer->Add(button);
-    button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { controller->stop(); });
-
-    button = new wxButton(toolbarPanel, wxID_ANY, "Save");
-    button->SetToolTip("Saves the current state of the simulation to file.");
-    toolbarSizer->Add(button);
-    button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
-        static Array<FileFormat> fileFormats = {
-            { "SPH state file", "ssf" },
-            { "SPH compressed file", "scf" },
-            { "VTK unstructured grid", "vtu" },
-            { "Text file", "txt" },
-        };
-        Optional<Path> path = doSaveFileDialog("Save state file", fileFormats.clone());
-        if (!path) {
-            return;
-        }
-        controller->saveState(path.value());
-    });
-
-
-    toolbarPanel->SetSizerAndFit(toolbarSizer);
-    return toolbarPanel;
-}
-*/
 const wxSize buttonSize(250, -1);
 const wxSize spinnerSize(100, -1);
 const int boxPadding = 10;
@@ -308,19 +271,14 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     wxStaticText* text = new wxStaticText(particleBox, wxID_ANY, "Cutoff [km]");
     cutoffSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
     const Float cutoff = gui.get<Float>(GuiSettingsId::ORTHO_CUTOFF) * 1.e-3_f;
-    wxSpinCtrlDouble* cutoffSpinner =
-        new wxSpinCtrlDouble(particleBox, wxID_ANY, "", wxDefaultPosition, spinnerSize);
-    cutoffSpinner->SetToolTip(
+
+    FloatTextCtrl* cutoffCtrl = new FloatTextCtrl(particleBox, cutoff, Interval(0, LARGE));
+    cutoffCtrl->onValueChanged = [this](const Float value) { this->updateCutoff(value * 1.e3_f); };
+    cutoffCtrl->SetToolTip(
         "Specifies the cutoff distance in kilometers for rendering particles. When set to a positive number, "
         "only particles in a layer of specified thickness are rendered. Zero means all particles are "
         "rendered.");
-    cutoffSpinner->SetRange(0., 1000000.);
-    cutoffSpinner->SetValue(cutoff);
-    cutoffSpinner->SetDigits(3);
-    cutoffSpinner->SetIncrement(1);
-    cutoffSpinner->Bind(wxEVT_SPINCTRLDOUBLE,
-        [this](wxSpinDoubleEvent& evt) { this->updateCutoff(evt.GetValue() * 1.e3_f); });
-    cutoffSizer->Add(cutoffSpinner, 1, wxALIGN_CENTER_VERTICAL);
+    cutoffSizer->Add(cutoffCtrl, 1, wxALIGN_CENTER_VERTICAL);
     cutoffSizer->AddSpacer(boxPadding);
     boxSizer->Add(cutoffSizer);
 
@@ -328,22 +286,17 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     particleSizeSizer->AddSpacer(boxPadding);
     text = new wxStaticText(particleBox, wxID_ANY, "Particle radius");
     particleSizeSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
-    wxSpinCtrlDouble* particleSizeSpinner =
-        new wxSpinCtrlDouble(particleBox, wxID_ANY, "", wxDefaultPosition, spinnerSize);
-    particleSizeSpinner->SetToolTip(
+    const Float radius = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
+    FloatTextCtrl* particleSizeCtrl = new FloatTextCtrl(particleBox, radius, Interval(1.e-3_f, 1.e3_f));
+    particleSizeCtrl->SetToolTip(
         "Multiplier of a particle radius. Must be set to 1 to get the actual size of particles in N-body "
         "simulations.");
-    const Float radius = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
-    particleSizeSpinner->SetValue(radius);
-    particleSizeSpinner->SetDigits(3);
-    particleSizeSpinner->SetRange(0.001, 1000.);
-    particleSizeSpinner->SetIncrement(0.001);
-    particleSizeSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent& evt) {
+    particleSizeCtrl->onValueChanged = [this](const Float value) {
         GuiSettings& gui = controller->getParams();
-        gui.set(GuiSettingsId::PARTICLE_RADIUS, evt.GetValue());
+        gui.set(GuiSettingsId::PARTICLE_RADIUS, value);
         controller->tryRedraw();
-    });
-    particleSizeSizer->Add(particleSizeSpinner, 1, wxALIGN_CENTER_VERTICAL);
+    };
+    particleSizeSizer->Add(particleSizeCtrl, 1, wxALIGN_CENTER_VERTICAL);
     particleSizeSizer->AddSpacer(boxPadding);
     boxSizer->Add(particleSizeSizer);
 
@@ -422,18 +375,13 @@ wxWindow* RunPage::createRaytracerBox(wxPanel* parent) {
     wxStaticText* text = new wxStaticText(raytraceBox, wxID_ANY, "Surface level");
     levelSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
     const Float level = gui.get<Float>(GuiSettingsId::SURFACE_LEVEL);
-    wxSpinCtrlDouble* levelSpinner =
-        new wxSpinCtrlDouble(raytraceBox, wxID_ANY, "", wxDefaultPosition, spinnerSize);
-    levelSpinner->SetRange(0., 10.);
-    levelSpinner->SetValue(level);
-    levelSpinner->SetDigits(3);
-    levelSpinner->SetIncrement(0.001);
-    levelSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent& evt) {
+    FloatTextCtrl* levelCtrl = new FloatTextCtrl(raytraceBox, level, Interval(0._f, 10._f));
+    levelCtrl->onValueChanged = [this](const Float value) {
         GuiSettings& gui = controller->getParams();
-        gui.set(GuiSettingsId::SURFACE_LEVEL, evt.GetValue());
+        gui.set(GuiSettingsId::SURFACE_LEVEL, value);
         controller->tryRedraw();
-    });
-    levelSizer->Add(levelSpinner, 1, wxALIGN_CENTER_VERTICAL);
+    };
+    levelSizer->Add(levelCtrl, 1, wxALIGN_CENTER_VERTICAL);
     levelSizer->AddSpacer(boxPadding);
     boxSizer->Add(levelSizer);
 
@@ -442,18 +390,13 @@ wxWindow* RunPage::createRaytracerBox(wxPanel* parent) {
     text = new wxStaticText(raytraceBox, wxID_ANY, "Sunlight");
     sunlightSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
     const Float sunlight = gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY);
-    wxSpinCtrlDouble* sunlightSpinner =
-        new wxSpinCtrlDouble(raytraceBox, wxID_ANY, "", wxDefaultPosition, spinnerSize);
-    sunlightSpinner->SetRange(0., 10.);
-    sunlightSpinner->SetValue(sunlight);
-    sunlightSpinner->SetDigits(3);
-    sunlightSpinner->SetIncrement(0.001);
-    sunlightSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent& evt) {
+    FloatTextCtrl* sunlightCtrl = new FloatTextCtrl(raytraceBox, sunlight, Interval(0._f, 100._f));
+    sunlightCtrl->onValueChanged = [this](const Float value) {
         GuiSettings& gui = controller->getParams();
-        gui.set(GuiSettingsId::SURFACE_SUN_INTENSITY, evt.GetValue());
+        gui.set(GuiSettingsId::SURFACE_SUN_INTENSITY, value);
         controller->tryRedraw();
-    });
-    sunlightSizer->Add(sunlightSpinner, 1, wxALIGN_CENTER_VERTICAL);
+    };
+    sunlightSizer->Add(sunlightCtrl, 1, wxALIGN_CENTER_VERTICAL);
     sunlightSizer->AddSpacer(boxPadding);
     boxSizer->Add(sunlightSizer);
 
@@ -462,18 +405,13 @@ wxWindow* RunPage::createRaytracerBox(wxPanel* parent) {
     text = new wxStaticText(raytraceBox, wxID_ANY, "Ambient");
     ambientSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
     const Float ambient = gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
-    wxSpinCtrlDouble* ambientSpinner =
-        new wxSpinCtrlDouble(raytraceBox, wxID_ANY, "", wxDefaultPosition, spinnerSize);
-    ambientSpinner->SetRange(0., 10.);
-    ambientSpinner->SetValue(ambient);
-    ambientSpinner->SetDigits(3);
-    ambientSpinner->SetIncrement(0.001);
-    ambientSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent& evt) {
+    FloatTextCtrl* ambientCtrl = new FloatTextCtrl(raytraceBox, ambient, Interval(0._f, 100._f));
+    ambientCtrl->onValueChanged = [this](const Float value) {
         GuiSettings& gui = controller->getParams();
-        gui.set(GuiSettingsId::SURFACE_AMBIENT, evt.GetValue());
+        gui.set(GuiSettingsId::SURFACE_AMBIENT, value);
         controller->tryRedraw();
-    });
-    ambientSizer->Add(ambientSpinner, 1, wxALIGN_CENTER_VERTICAL);
+    };
+    ambientSizer->Add(ambientCtrl, 1, wxALIGN_CENTER_VERTICAL);
     ambientSizer->AddSpacer(boxPadding);
     boxSizer->Add(ambientSizer);
 

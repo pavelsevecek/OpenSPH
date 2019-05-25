@@ -43,7 +43,8 @@ SOURCES += \
     windows/RunPage.cpp \
     windows/NodePage.cpp \
     windows/MainWindow.cpp \
-    windows/TimeLine.cpp
+    windows/TimeLine.cpp \
+    windows/Widgets.cpp
 
 HEADERS += \
     ArcBall.h \
@@ -83,4 +84,5 @@ HEADERS += \
     windows/NodePage.h \
     windows/MainWindow.h \
     windows/TimeLine.h \
-    windows/ProgressPanel.h
+    windows/ProgressPanel.h \
+    windows/Widgets.h
