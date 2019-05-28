@@ -10,6 +10,7 @@
 #include "run/workers/GeometryWorkers.h"
 #include "run/workers/IoWorkers.h"
 #include "run/workers/ParticleWorkers.h"
+#include <wx/aboutdlg.h>
 #include <wx/aui/auibook.h>
 #include <wx/menu.h>
 #include <wx/msgdlg.h>
@@ -95,6 +96,27 @@ MainWindow::MainWindow(const Path& openPath)
 
     wxMenu* helpMenu = new wxMenu();
     bar->Append(helpMenu, "&Help");
+    helpMenu->Append(0, "&About");
+    helpMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [](wxCommandEvent& evt) { //
+        switch (evt.GetId()) {
+        case 0: {
+            wxAboutDialogInfo info;
+            info.SetName("OpenSPH");
+            info.SetVersion("0.2.1");
+#ifdef SPH_USE_TBB
+            info.SetDescription("Parallelized by TBB");
+#else
+            info.SetDescription("Parallelized by built-in thread pool");
+#endif
+            info.SetCopyright("Pavel Sevecek <sevecek@sirrah.troja.mff.cuni.cz>");
+
+            wxAboutBox(info);
+            break;
+        }
+        default:
+            NOT_IMPLEMENTED;
+        }
+    });
 
     this->SetMenuBar(bar);
 

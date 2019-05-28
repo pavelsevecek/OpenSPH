@@ -180,6 +180,11 @@ VirtualSettings SphWorker::getSettings() {
     addGenericCategory(connector, instName);
     addTimeSteppingCategory(connector, settings, isResumed);
 
+    auto treeEnabler = [this] {
+        return settings.get<FinderEnum>(RunSettingsId::SPH_FINDER) == FinderEnum::KD_TREE ||
+               settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES).has(ForceEnum::GRAVITY);
+    };
+
     VirtualSettings::Category& solverCat = connector.addCategory("SPH solver");
     solverCat.connect<Flags<ForceEnum>>("Forces", settings, RunSettingsId::SPH_SOLVER_FORCES)
         .connect<EnumWrapper>("Artificial viscosity", settings, RunSettingsId::SPH_AV_TYPE)
@@ -187,9 +192,13 @@ VirtualSettings SphWorker::getSettings() {
         .connect<bool>("Apply artificial stress", settings, RunSettingsId::SPH_AV_USE_STRESS)
         .connect<Float>("Artificial viscosity alpha", settings, RunSettingsId::SPH_AV_ALPHA)
         .connect<Float>("Artificial viscosity beta", settings, RunSettingsId::SPH_AV_BETA)
+        .connect<EnumWrapper>("Solver type", settings, RunSettingsId::SPH_SOLVER_TYPE)
         .connect<EnumWrapper>("SPH discretization", settings, RunSettingsId::SPH_DISCRETIZATION)
         .connect<bool>("Apply correction tensor", settings, RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR)
         .connect<bool>("Sum only undamaged particles", settings, RunSettingsId::SPH_SUM_ONLY_UNDAMAGED)
+        .connect<EnumWrapper>("Neighbour finder", settings, RunSettingsId::SPH_FINDER)
+        .connect<int>("Max leaf size", settings, RunSettingsId::FINDER_LEAF_SIZE, treeEnabler)
+        .connect<int>("Max parallel depth", settings, RunSettingsId::FINDER_MAX_PARALLEL_DEPTH, treeEnabler)
         .connect<EnumWrapper>("Boundary condition", settings, RunSettingsId::DOMAIN_BOUNDARY);
 
     addGravityCategory(connector, settings);
