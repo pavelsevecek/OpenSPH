@@ -94,7 +94,7 @@ void Controller::open(const Path& path, const bool sequence) {
     if (sequence) {
         this->start(makeNode<FileSequenceWorker>("loader", path), EMPTY_SETTINGS);
     } else {
-        this->start(makeNode<LoadFileWorker>("loader", path), EMPTY_SETTINGS);
+        this->start(makeNode<LoadFileWorker>(path), EMPTY_SETTINGS);
     }
 }
 

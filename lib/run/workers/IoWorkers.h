@@ -10,12 +10,16 @@ private:
     Path path;
 
 public:
-    LoadFileWorker(const std::string& name, const Path& path = Path("file.ssf"))
-        : IParticleWorker(name)
+    LoadFileWorker(const Path& path = Path("file.ssf"))
+        : IParticleWorker("")
         , path(path.native()) {}
 
     virtual std::string instanceName() const override {
-        return "Load '" + path.fileName().native() + "'";
+        if (instName.empty()) {
+            return "Load '" + path.fileName().native() + "'";
+        } else {
+            return instName;
+        }
     }
 
     virtual std::string className() const override {

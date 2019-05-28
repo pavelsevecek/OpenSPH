@@ -263,8 +263,7 @@ private:
     }
 
     SharedPtr<WorkerNode> resumeFragmentation() {
-        SharedPtr<WorkerNode> loadFile =
-            makeNode<LoadFileWorker>("load file", Path(params.resumePath.value()));
+        SharedPtr<WorkerNode> loadFile = makeNode<LoadFileWorker>(Path(params.resumePath.value()));
 
         SharedPtr<WorkerNode> frag = makeFragmentation();
         loadFile->connect(frag, "particles");
@@ -278,8 +277,7 @@ private:
     }
 
     SharedPtr<WorkerNode> resumeReaccumulation() {
-        SharedPtr<WorkerNode> loadFile =
-            makeNode<LoadFileWorker>("load file", Path(params.resumePath.value()));
+        SharedPtr<WorkerNode> loadFile = makeNode<LoadFileWorker>(Path(params.resumePath.value()));
 
         SharedPtr<WorkerNode> reac = makeReaccumulation();
         loadFile->connect(reac, "particles");

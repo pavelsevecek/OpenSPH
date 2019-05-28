@@ -932,13 +932,13 @@ public:
 };
 
 /// \todo possibly move elsewhere
-static uint64_t getHash(const Size value) {
+static uint64_t getHash(const Size value, const Size seed) {
     // https://stackoverflow.com/questions/8317508/hash-function-for-a-string
     constexpr int A = 54059;
     constexpr int B = 76963;
     constexpr int FIRST = 37;
 
-    uint64_t hash = FIRST;
+    uint64_t hash = FIRST + seed;
     uint8_t* ptr = (uint8_t*)&value;
     for (uint i = 0; i < sizeof(uint64_t); ++i) {
         hash = (hash * A) ^ (*ptr++ * B);
@@ -946,8 +946,8 @@ static uint64_t getHash(const Size value) {
     return hash;
 }
 
-static Rgba getRandomizedColor(const Size idx) {
-    uint64_t hash = getHash(idx);
+static Rgba getRandomizedColor(const Size idx, const Size seed = 0) {
+    const uint64_t hash = getHash(idx, seed);
     const uint8_t r = (hash & 0x00000000FFFF);
     const uint8_t g = (hash & 0x0000FFFF0000) >> 16;
     const uint8_t b = (hash & 0xFFFF00000000) >> 32;
@@ -958,10 +958,15 @@ template <typename TDerived>
 class IdColorizerTemplate : public IColorizer {
 private:
     Rgba backgroundColor;
+    Size seed = 1;
 
 public:
     explicit IdColorizerTemplate(const GuiSettings& gui) {
         backgroundColor = gui.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
+    }
+
+    void setSeed(const Size newSeed) {
+        seed = newSeed;
     }
 
     virtual Rgba evalColor(const Size idx) const override {
@@ -969,14 +974,15 @@ public:
         if (!id) {
             return Rgba::gray();
         }
-        const Rgba color = getRandomizedColor(id.value());
-        if (backgroundColor.intensity() < 0.5f) {
+        const Rgba color = getRandomizedColor(id.value(), seed);
+        /*if (backgroundColor.intensity() < 0.5f) {
             // dark background, brighten the particle color
-            return color.brighten(0.4f);
+            return color.brighten(0.2f);
         } else {
             // light background, darken the particle color
-            return color.darken(0.4f);
-        }
+            return color.darken(0.2f);
+        }*/
+        return color;
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {

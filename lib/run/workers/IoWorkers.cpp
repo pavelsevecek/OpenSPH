@@ -17,6 +17,7 @@ NAMESPACE_SPH_BEGIN
 
 VirtualSettings LoadFileWorker::getSettings() {
     VirtualSettings connector;
+    addGenericCategory(connector, instName);
 
     VirtualSettings::Category& cat = connector.addCategory("Input");
     cat.connect("File", "file", path);
@@ -49,8 +50,8 @@ void LoadFileWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& 
     }
 }
 
-static WorkerRegistrar sRegisterLoadFile("load file", "I/O", [](const std::string& name) {
-    return makeAuto<LoadFileWorker>(name);
+static WorkerRegistrar sRegisterLoadFile("load file", "I/O", [](const std::string& UNUSED(name)) {
+    return makeAuto<LoadFileWorker>();
 });
 
 // ----------------------------------------------------------------------------------------------------------

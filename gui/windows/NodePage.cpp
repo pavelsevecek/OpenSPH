@@ -81,6 +81,7 @@ void NodeManager::addNodes(WorkerNode& node, const Pixel position) {
 }
 
 SharedPtr<WorkerNode> NodeManager::cloneNode(WorkerNode& node) {
+    CHECK_FUNCTION(CheckFunction::NO_THROW);
     RawPtr<IWorkerDesc> desc = getWorkerDesc(node.className());
     ASSERT(desc);
 

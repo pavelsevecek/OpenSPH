@@ -443,6 +443,9 @@ void EmplaceComponentsAsFlagsWorker::evaluate(const RunSettings& UNUSED(global),
     Post::findComponents(fragments, factor, Post::ComponentFlag::SORT_BY_MASS, components);
 
     Storage original = std::move(this->getInput<ParticleData>("original")->storage);
+    if (!original.has(QuantityId::FLAG)) {
+        original.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, 0);
+    }
     ArrayView<Size> flags = original.getValue<Size>(QuantityId::FLAG);
     if (flags.size() != components.size()) {
         throw InvalidSetup("Inputs have different numbers of particles");

@@ -292,7 +292,6 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
         "Multiplier of a particle radius. Must be set to 1 to get the actual size of particles in N-body "
         "simulations.");
     particleSizeCtrl->onValueChanged = [this](const Float value) {
-        GuiSettings& gui = controller->getParams();
         gui.set(GuiSettingsId::PARTICLE_RADIUS, value);
         controller->tryRedraw();
     };
@@ -307,9 +306,9 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     grayscaleBox->SetToolTip(
         "Draws the particles in grayscale, useful to see how the image would look if printed using "
         "black-and-white printer.");
+    grayscaleBox->SetValue(gui.get<bool>(GuiSettingsId::FORCE_GRAYSCALE));
     grayscaleBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
         const bool value = evt.IsChecked();
-        GuiSettings& gui = controller->getParams();
         gui.set(GuiSettingsId::FORCE_GRAYSCALE, value);
         controller->tryRedraw();
     });
@@ -321,13 +320,14 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     wxCheckBox* keyBox = new wxCheckBox(particleBox, wxID_ANY, "Show key");
     keyBox->SetToolTip(
         "If checked, the color palette and the length scale are included in the rendered image.");
-    keyBox->SetValue(true);
+    keyBox->SetValue(gui.get<bool>(GuiSettingsId::SHOW_KEY));
     keySizer->Add(keyBox);
     boxSizer->Add(keySizer);
 
     wxBoxSizer* aaSizer = new wxBoxSizer(wxHORIZONTAL);
     aaSizer->AddSpacer(boxPadding);
     wxCheckBox* aaBox = new wxCheckBox(particleBox, wxID_ANY, "Anti-aliasing");
+    aaBox->SetValue(gui.get<bool>(GuiSettingsId::ANTIALIASED));
     aaBox->SetToolTip(
         "If checked, particles are drawn with anti-aliasing, creating smoother image, but it also takes "
         "longer to render it.");
@@ -346,20 +346,17 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
 
     keyBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
         const bool value = evt.IsChecked();
-        GuiSettings& gui = controller->getParams();
         gui.set(GuiSettingsId::SHOW_KEY, value);
         controller->tryRedraw();
     });
     aaBox->Bind(wxEVT_CHECKBOX, [this, smoothBox](wxCommandEvent& evt) {
         const bool value = evt.IsChecked();
-        GuiSettings& gui = controller->getParams();
         gui.set(GuiSettingsId::ANTIALIASED, value);
         smoothBox->Enable(value);
         controller->tryRedraw();
     });
     smoothBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
         const bool value = evt.IsChecked();
-        GuiSettings& gui = controller->getParams();
         gui.set(GuiSettingsId::SMOOTH_PARTICLES, value);
         controller->tryRedraw();
     });
@@ -546,14 +543,14 @@ wxPanel* RunPage::createVisBar() {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         IScheduler& scheduler = *ThreadPool::getGlobalInstance();
         controller->setRenderer(makeAuto<MeshRenderer>(scheduler, gui));
-        enableControls(1);
+        enableControls(2);
     });
     surfaceButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         try {
             IScheduler& scheduler = *ThreadPool::getGlobalInstance();
             controller->setRenderer(makeAuto<RayTracer>(scheduler, gui));
-            enableControls(2);
+            enableControls(1);
         } catch (std::exception& e) {
             wxMessageBox(std::string("Cannot initialize raytracer.\n\n") + e.what(), "Error", wxOK);
 
@@ -914,6 +911,13 @@ void RunPage::addComponentIdBar(wxWindow* parent, wxSizer* sizer, SharedPtr<ICol
     sizer->AddSpacer(5);
     RawPtr<ComponentIdColorizer> componentId = dynamicCast<ComponentIdColorizer>(colorizer.get());
 
+    wxBoxSizer* seedSizer = new wxBoxSizer(wxHORIZONTAL);
+    seedSizer->Add(new wxStaticText(parent, wxID_ANY, "Seed"), 0, wxALIGN_CENTER_VERTICAL);
+    wxSpinCtrl* seedSpinner = new wxSpinCtrl(parent, wxID_ANY, "", wxDefaultPosition, spinnerSize);
+    seedSizer->Add(seedSpinner, 0, wxALIGN_CENTER_VERTICAL);
+    sizer->Add(seedSizer);
+    sizer->AddSpacer(15);
+
     wxRadioButton* overlapButton = new wxRadioButton(
         parent, wxID_ANY, "Connected particles", wxDefaultPosition, wxSize(-1, 25), wxRB_GROUP);
     sizer->Add(overlapButton);
@@ -946,6 +950,12 @@ void RunPage::addComponentIdBar(wxWindow* parent, wxSizer* sizer, SharedPtr<ICol
             Post::ComponentFlag::SORT_BY_MASS | Post::ComponentFlag::ESCAPE_VELOCITY);
         controller->setColorizer(colorizer);
     });
+    seedSpinner->Bind(wxEVT_SPINCTRL, [this, componentId, colorizer](wxSpinEvent& evt) {
+        const int seed = evt.GetValue();
+        componentId->setSeed(seed);
+        controller->setColorizer(colorizer);
+    });
+
     highlightBox->Bind(wxEVT_CHECKBOX, [this, colorizer, componentId, highlightIndex](wxCommandEvent& evt) {
         const bool value = evt.IsChecked();
 
