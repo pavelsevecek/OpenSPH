@@ -45,9 +45,6 @@ private:
 
     RenderParams params;
 
-    std::condition_variable waitVar;
-    std::mutex waitMutex;
-
 public:
     Movie(const GuiSettings& settings,
         AutoPtr<IRenderer>&& renderer,

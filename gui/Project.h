@@ -19,8 +19,20 @@ private:
     GuiSettings gui;
     FlatMap<std::string, Palette> palettes;
 
-public:
     Project();
+
+public:
+    static Project& getInstance() {
+        static Project project;
+        return project;
+    }
+
+    Project clone() const {
+        Project cloned;
+        cloned.gui = gui;
+        cloned.palettes = palettes.clone();
+        return cloned;
+    }
 
     void setPalette(const std::string& name, const Palette& palette) {
         palettes.insert(name, palette);

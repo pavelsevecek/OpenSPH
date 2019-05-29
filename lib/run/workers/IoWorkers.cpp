@@ -77,7 +77,7 @@ VirtualSettings FileSequenceWorker::getSettings() {
 }
 
 /// \todo deduplicate with timeline
-static FlatMap<Size, Path> getFileSequence(const Path& firstFile) {
+FlatMap<Size, Path> getFileSequence(const Path& firstFile) {
     if (!FileSystem::pathExists(firstFile)) {
         throw InvalidSetup("File '" + firstFile.native() + "' does not exist.");
     }

@@ -187,9 +187,11 @@ Optional<ProjectedPoint> PerspectiveCamera::project(const Vector& r) const {
 CameraRay PerspectiveCamera::unproject(const Coords& coords) const {
     const float rx = 2.f * coords.x / imageSize.x - 1.f;
     const float ry = 2.f * coords.y / imageSize.y - 1.f;
+    const Vector dir = cached.dir + cached.left * rx - cached.up * ry;
     CameraRay ray;
-    ray.origin = data.position;
-    ray.target = ray.origin + cached.dir + cached.left * rx - cached.up * ry;
+    /// \todo implement far clipping plane (max ray param)
+    ray.origin = data.position + data.clipping.lower() * dir;
+    ray.target = ray.origin + dir;
     return ray;
 }
 

@@ -35,9 +35,6 @@ private:
 
     FlatMap<RunPage*, RunData> runs;
 
-    /// \todo do the other way around - project should hold window
-    Project project;
-
     Path projectPath;
     bool savedFlag = true;
 

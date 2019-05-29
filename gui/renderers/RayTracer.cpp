@@ -12,7 +12,7 @@ RayTracer::RayTracer(IScheduler& scheduler, const GuiSettings& settings)
     : scheduler(scheduler)
     , threadData(scheduler) {
     kernel = CubicSpline<3>();
-    fixed.dirToSun = settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION);
+    fixed.dirToSun = getNormalized(settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION));
     fixed.brdf = Factory::getBrdf(settings);
     fixed.subsampling = settings.get<int>(GuiSettingsId::RAYTRACE_SUBSAMPLING);
     fixed.iterationLimit = settings.get<int>(GuiSettingsId::RAYTRACE_ITERATION_LIMIT);

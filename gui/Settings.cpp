@@ -49,7 +49,7 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
     { GuiSettingsId::SURFACE_RESOLUTION,    "surface.resolution",   100._f,  // m
         "Resolution of the meshed surface (in world units). Lower values means the mesh is more detailed, "
         "but construction takes (significantly) more time and memory." },
-    { GuiSettingsId::SURFACE_LEVEL,         "surface.level",        0.3_f,
+    { GuiSettingsId::SURFACE_LEVEL,         "surface.level",        0.13_f,
         "Surface level for mesh renderer and raytracer. Specifies the value of the constructed/intersected "
         "iso-surface of color field." },
     { GuiSettingsId::SURFACE_SUN_POSITION,  "surface.sun_position", Vector(0.f, 0.f, 1.f),

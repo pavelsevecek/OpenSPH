@@ -22,8 +22,8 @@
 
 NAMESPACE_SPH_BEGIN
 
-Controller::Controller(wxWindow* parent, Project& project)
-    : project(project) {
+Controller::Controller(wxWindow* parent)
+    : project(Project::getInstance()) {
 
     // create objects for drawing particles
     vis.initialize(project);

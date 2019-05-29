@@ -143,7 +143,7 @@ private:
 
 public:
     /// \brief Initialize the controller.
-    Controller(wxWindow* parent, Project& project);
+    Controller(wxWindow* parent);
 
     ~Controller();
 

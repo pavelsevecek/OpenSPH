@@ -475,13 +475,24 @@ wxPanel* RunPage::createVisBar() {
     colorSizer->Add(new wxStaticText(visbarPanel, wxID_ANY, "Background: "), 10, wxALIGN_CENTER_VERTICAL);
     wxColourPickerCtrl* picker = new wxColourPickerCtrl(visbarPanel, wxID_ANY);
     picker->SetColour(wxColour(controller->getParams().get<Rgba>(GuiSettingsId::BACKGROUND_COLOR)));
+    colorSizer->Add(picker, 1, wxALIGN_CENTER_VERTICAL, 5);
+    wxCheckBox* transparentBox = new wxCheckBox(visbarPanel, wxID_ANY, "Transparent");
     picker->Bind(wxEVT_COLOURPICKER_CHANGED, [this](wxColourPickerEvent& evt) {
-        wxColour color = evt.GetColour();
         GuiSettings& gui = controller->getParams();
-        gui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(color));
+        Rgba newColor(evt.GetColour());
+        const Rgba currentColor = gui.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
+        newColor.a() = currentColor.a();
+        gui.set(GuiSettingsId::BACKGROUND_COLOR, newColor);
         controller->tryRedraw();
     });
-    colorSizer->Add(picker, 1, wxALIGN_CENTER_VERTICAL, 5);
+    transparentBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
+        GuiSettings& gui = controller->getParams();
+        Rgba color = gui.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
+        color.a() = evt.IsChecked() ? 0.f : 1.f;
+        gui.set(GuiSettingsId::BACKGROUND_COLOR, color);
+        controller->tryRedraw();
+    });
+    colorSizer->Add(transparentBox, 1, wxALIGN_CENTER_VERTICAL, 5);
     visbarSizer->Add(colorSizer);
     visbarSizer->AddSpacer(10);
 
@@ -767,8 +778,6 @@ static void printStat(wxTextCtrl* text,
     const std::string units = "") {
     if (stats.has(id)) {
         *text << desc << stats.get<TValue>(id) << units << "\n";
-    } else {
-        *text << desc << "N/A\n";
     }
 }
 

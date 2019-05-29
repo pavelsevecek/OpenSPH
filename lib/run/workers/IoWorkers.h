@@ -35,6 +35,8 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
+FlatMap<Size, Path> getFileSequence(const Path& firstFile);
+
 class FileSequenceWorker : public IParticleWorker {
 private:
     Path firstFile;

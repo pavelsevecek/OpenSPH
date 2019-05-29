@@ -161,6 +161,7 @@ MainWindow::MainWindow(const Path& openPath)
         }
     }
 
+    Project& project = Project::getInstance();
     project.getGuiSettings().accessor = [this](GuiSettingsId UNUSED(id)) { markSaved(false); };
 }
 
@@ -177,6 +178,7 @@ void MainWindow::save() {
 
     Config config;
     // get project data (gui, palettes, ...)
+    Project& project = Project::getInstance();
     project.save(config);
 
     // get node data
@@ -190,7 +192,7 @@ void MainWindow::save() {
 void MainWindow::open(const Path& openPath) {
     BusyCursor wait(this);
 
-    AutoPtr<Controller> controller = makeAuto<Controller>(notebook, project);
+    AutoPtr<Controller> controller = makeAuto<Controller>(notebook);
     controller->open(openPath);
 
     const Size index = notebook->GetPageCount();
@@ -239,6 +241,7 @@ void MainWindow::load(const Path& openPath) {
     }
 
     try {
+        Project& project = Project::getInstance();
         project.load(config);
         nodePage->load(config);
     } catch (Exception& e) {
@@ -501,6 +504,7 @@ wxMenu* MainWindow::createRunMenu() {
             Array<AutoPtr<IPlot>> multiplot;
             multiplot.emplaceBack(makeAuto<SfdPlot>(flag, 0._f));
 
+            Project& project = Project::getInstance();
             Array<Post::HistPoint> overplotSfd = getOverplotSfd(project.getGuiSettings());
             if (!overplotSfd.empty()) {
                 multiplot.emplaceBack(
@@ -532,7 +536,7 @@ wxMenu* MainWindow::createRunMenu() {
 }
 
 void MainWindow::addPage(SharedPtr<WorkerNode> node, const RunSettings& globals, const std::string pageName) {
-    AutoPtr<Controller> controller = makeAuto<Controller>(notebook, project);
+    AutoPtr<Controller> controller = makeAuto<Controller>(notebook);
     controller->start(node, globals);
 
     const Size index = notebook->GetPageCount();
