@@ -6,10 +6,12 @@
 #include "gui/windows/PlotView.h"
 #include "gui/windows/RunPage.h"
 #include "io/FileSystem.h"
+#include "objects/utility/IteratorAdapters.h"
 #include "post/Plot.h"
 #include "run/workers/GeometryWorkers.h"
 #include "run/workers/IoWorkers.h"
 #include "run/workers/ParticleWorkers.h"
+#include <fstream>
 #include <wx/aboutdlg.h>
 #include <wx/aui/auibook.h>
 #include <wx/menu.h>
@@ -103,11 +105,22 @@ MainWindow::MainWindow(const Path& openPath)
             wxAboutDialogInfo info;
             info.SetName("OpenSPH");
             info.SetVersion("0.2.1");
-#ifdef SPH_USE_TBB
-            info.SetDescription("Parallelized by TBB");
+
+            std::string desc;
+#ifdef SPH_DEBUG
+            desc += "Debug build\n";
 #else
-            info.SetDescription("Parallelized by built-in thread pool");
+            desc += "Release build\n";
 #endif
+#ifdef SPH_PROFILE
+            desc += "Profiling enabled\n";
+#endif
+#ifdef SPH_USE_TBB
+            desc += "Parallelized by TBB";
+#else
+            desc += "Parallelized by built-in thread pool";
+#endif
+            info.SetDescription(desc);
             info.SetCopyright("Pavel Sevecek <sevecek@sirrah.troja.mff.cuni.cz>");
 
             wxAboutBox(info);
@@ -182,7 +195,9 @@ void MainWindow::open(const Path& openPath) {
 
     const Size index = notebook->GetPageCount();
     RunPage* page = &*controller->getPage();
-    notebook->AddPage(page, openPath.fileName().native());
+
+    const Path displayedPath = openPath.parentPath().fileName() / openPath.fileName();
+    notebook->AddPage(page, displayedPath.native());
     notebook->SetSelection(index);
 
     RunData data;
@@ -343,6 +358,63 @@ wxMenu* MainWindow::createResultMenu() {
     return fileMenu;
 }
 
+
+/// \brief Helper object used for drawing multiple plots into the same device.
+class MultiPlot : public IPlot {
+private:
+    Array<AutoPtr<IPlot>> plots;
+
+public:
+    explicit MultiPlot(Array<AutoPtr<IPlot>>&& plots)
+        : plots(std::move(plots)) {}
+
+    virtual std::string getCaption() const override {
+        return plots[0]->getCaption(); /// ??
+    }
+
+    virtual void onTimeStep(const Storage& storage, const Statistics& stats) override {
+        ranges.x = ranges.y = Interval();
+        for (auto& plot : plots) {
+            plot->onTimeStep(storage, stats);
+            ranges.x.extend(plot->rangeX());
+            ranges.y.extend(plot->rangeY());
+        }
+    }
+
+    virtual void clear() override {
+        ranges.x = ranges.y = Interval();
+        for (auto& plot : plots) {
+            plot->clear();
+        }
+    }
+
+    virtual void plot(IDrawingContext& dc) const override {
+        for (auto plotAndIndex : iterateWithIndex(plots)) {
+            dc.setStyle(plotAndIndex.index());
+            plotAndIndex.value()->plot(dc);
+        }
+    }
+};
+
+static Array<Post::HistPoint> getOverplotSfd(const GuiSettings& gui) {
+    const Path overplotPath(gui.get<std::string>(GuiSettingsId::PLOT_OVERPLOT_SFD));
+    if (overplotPath.empty() || !FileSystem::pathExists(overplotPath)) {
+        return {};
+    }
+    Array<Post::HistPoint> overplotSfd;
+    std::ifstream is(overplotPath.native());
+    while (true) {
+        float value, count;
+        is >> value >> count;
+        if (!is) {
+            break;
+        }
+        value *= 0.5 /*D->R*/ * 1000 /*km->m*/; // super-specific, should be generalized somehow
+        overplotSfd.emplaceBack(Post::HistPoint{ value, Size(round(count)) });
+    };
+    return overplotSfd;
+}
+
 wxMenu* MainWindow::createRunMenu() {
     wxMenu* runMenu = new wxMenu();
     wxMenu* analysisMenu = new wxMenu();
@@ -426,7 +498,15 @@ wxMenu* MainWindow::createRunMenu() {
             Post::ComponentFlag flag =
                 evt.GetId() == 0 ? Post::ComponentFlag::OVERLAP : Post::ComponentFlag::ESCAPE_VELOCITY;
 
-            plot = makeLocking<SfdPlot>(flag, 0._f);
+            Array<AutoPtr<IPlot>> multiplot;
+            multiplot.emplaceBack(makeAuto<SfdPlot>(flag, 0._f));
+
+            Array<Post::HistPoint> overplotSfd = getOverplotSfd(project.getGuiSettings());
+            if (!overplotSfd.empty()) {
+                multiplot.emplaceBack(
+                    makeAuto<DataPlot>(overplotSfd, AxisScaleEnum::LOG_X | AxisScaleEnum::LOG_Y, "Overplot"));
+            }
+            plot = makeLocking<MultiPlot>(std::move(multiplot));
             break;
         }
         case 2:

@@ -582,62 +582,6 @@ void RunPage::updateCutoff(const double cutoff) {
     controller->tryRedraw();
 }
 
-/// \brief Helper object used for drawing multiple plots into the same device.
-class MultiPlot : public IPlot {
-private:
-    Array<AutoPtr<IPlot>> plots;
-
-public:
-    explicit MultiPlot(Array<AutoPtr<IPlot>>&& plots)
-        : plots(std::move(plots)) {}
-
-    virtual std::string getCaption() const override {
-        return plots[0]->getCaption(); /// ??
-    }
-
-    virtual void onTimeStep(const Storage& storage, const Statistics& stats) override {
-        ranges.x = ranges.y = Interval();
-        for (auto& plot : plots) {
-            plot->onTimeStep(storage, stats);
-            ranges.x.extend(plot->rangeX());
-            ranges.y.extend(plot->rangeY());
-        }
-    }
-
-    virtual void clear() override {
-        ranges.x = ranges.y = Interval();
-        for (auto& plot : plots) {
-            plot->clear();
-        }
-    }
-
-    virtual void plot(IDrawingContext& dc) const override {
-        for (auto plotAndIndex : iterateWithIndex(plots)) {
-            dc.setStyle(plotAndIndex.index());
-            plotAndIndex.value()->plot(dc);
-        }
-    }
-};
-
-static Array<Post::HistPoint> getOverplotSfd(const GuiSettings& gui) {
-    const Path overplotPath(gui.get<std::string>(GuiSettingsId::PLOT_OVERPLOT_SFD));
-    if (overplotPath.empty() || !FileSystem::pathExists(overplotPath)) {
-        return {};
-    }
-    Array<Post::HistPoint> overplotSfd;
-    std::ifstream is(overplotPath.native());
-    while (true) {
-        float value, count;
-        is >> value >> count;
-        if (!is) {
-            break;
-        }
-        value *= 0.5 /*D->R*/ * 1000 /*km->m*/; // super-specific, should be generalized somehow
-        overplotSfd.emplaceBack(Post::HistPoint{ value, Size(round(count)) });
-    };
-    return overplotSfd;
-}
-
 wxPanel* RunPage::createPlotBar() {
     wxPanel* sidebarPanel = new wxPanel(this);
     wxBoxSizer* sidebarSizer = new wxBoxSizer(wxVERTICAL);
@@ -657,8 +601,6 @@ wxPanel* RunPage::createPlotBar() {
     PlotData data;
     IntegralWrapper integral;
     Flags<PlotEnum> flags = gui.getFlags<PlotEnum>(GuiSettingsId::PLOT_INTEGRALS);
-
-    Array<Post::HistPoint> overplotSfd = getOverplotSfd(gui);
 
     /// \todo this plots should really be set somewhere outside of main window, they are problem-specific
     if (flags.has(PlotEnum::TOTAL_ENERGY)) {
