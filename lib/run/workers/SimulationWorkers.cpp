@@ -110,9 +110,10 @@ private:
     SharedPtr<IDomain> domain;
 
 public:
-    explicit SphRun(const RunSettings& settings, SharedPtr<IDomain> domain)
+    explicit SphRun(const RunSettings& run, SharedPtr<IDomain> domain)
         : domain(domain) {
-        this->settings = settings;
+        settings = run;
+        scheduler = Factory::getScheduler(settings);
     }
 
     virtual void setUp(SharedPtr<Storage> storage) override {
@@ -230,8 +231,9 @@ static WorkerRegistrar sRegisterSph("SPH run", "simulations", [](const std::stri
 
 class SphStabilizationRun : public IRun {
 public:
-    explicit SphStabilizationRun(const RunSettings& settings) {
-        this->settings = settings;
+    explicit SphStabilizationRun(const RunSettings& run) {
+        settings = run;
+        scheduler = Factory::getScheduler(settings);
     }
 
     virtual void setUp(SharedPtr<Storage> storage) override {
@@ -274,8 +276,9 @@ static WorkerRegistrar sRegisterSphStab("SPH stabilization",
 
 class NBodyRun : public IRun {
 public:
-    NBodyRun(const RunSettings& settings) {
-        this->settings = settings;
+    NBodyRun(const RunSettings& run) {
+        settings = run;
+        scheduler = Factory::getScheduler(settings);
     }
 
     virtual void setUp(SharedPtr<Storage> storage) override {

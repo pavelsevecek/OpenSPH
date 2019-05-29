@@ -184,7 +184,7 @@ void EnergyConservingSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
 
         derivatives.eval(i, neighList[i], gradList[i]);
     };
-    parallelFor(scheduler, threadData, 0, r.size(), granularity, evalDerivatives);
+    parallelFor(scheduler, threadData, 0, r.size(), evalDerivatives);
 }
 
 void EnergyConservingSolver::beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
@@ -241,7 +241,7 @@ void EnergyConservingSolver::afterLoop(Storage& storage, Statistics& stats) {
         }
         ASSERT(isReal(du[i]));
     };
-    parallelFor(scheduler, threadData, 0, r.size(), granularity, evalAccelerations);
+    parallelFor(scheduler, threadData, 0, r.size(), evalAccelerations);
 }
 
 void EnergyConservingSolver::sanityCheck(const Storage& UNUSED(storage)) const {}

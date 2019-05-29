@@ -46,10 +46,6 @@ protected:
     /// Scheduler to parallelize the solver.
     IScheduler& scheduler;
 
-    /// Selected granularity of the parallel processing. The more particles in simulation, the higher the
-    /// value should be to utilize the solver optimally.
-    Size granularity;
-
     /// Thread-local structure caching all buffers needed to compute derivatives.
     ThreadLocal<ThreadData> threadData;
 

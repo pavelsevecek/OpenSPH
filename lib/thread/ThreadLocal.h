@@ -148,7 +148,7 @@ INLINE void parallelFor(IScheduler& scheduler,
     const Size from,
     const Size to,
     TFunctor&& functor) {
-    const Size granularity = scheduler.getRecommendedGranularity(from, to);
+    const Size granularity = scheduler.getRecommendedGranularity();
     parallelFor(scheduler, storage, from, to, granularity, std::forward<TFunctor>(functor));
 }
 

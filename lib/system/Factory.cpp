@@ -170,20 +170,29 @@ AutoPtr<ISymmetricFinder> Factory::getFinder(const RunSettings& settings) {
 
 SharedPtr<IScheduler> Factory::getScheduler(const RunSettings& settings) {
     const Size threadCnt = settings.get<int>(RunSettingsId::RUN_THREAD_CNT);
+    const Size granularity = settings.get<int>(RunSettingsId::RUN_THREAD_GRANULARITY);
     if (threadCnt == 1) {
         // optimization - use directly SequentialScheduler instead of thread pool with 1 thread
         return SequentialScheduler::getGlobalInstance();
     } else {
 #ifdef SPH_USE_TBB
-        return Tbb::getGlobalInstance();
+        SharedPtr<Tbb> scheduler = Tbb::getGlobalInstance();
+        scheduler->setGranularity(granularity);
+        return scheduler;
 #else
-        if (threadCnt == 0) {
-            // maximal number of thread, we can use the global instance
-            return ThreadPool::getGlobalInstance();
-        } else {
-            // user wants specific number of threads, we need to create a new thread pool
-            return makeShared<ThreadPool>(threadCnt);
+        static WeakPtr<ThreadPool> weakGlobal = ThreadPool::getGlobalInstance();
+        if (SharedPtr<ThreadPool> global = weakGlobal.lock()) {
+            if (global->getThreadCnt() == threadCnt) {
+                // scheduler is already used by some component and has the same thread count, we can reuse the
+                // instance instead of creating a new one
+                global->setGranularity(granularity);
+                return global;
+            }
         }
+
+        SharedPtr<ThreadPool> newPool = makeShared<ThreadPool>(threadCnt, granularity);
+        weakGlobal = newPool;
+        return newPool;
 #endif
     }
 }

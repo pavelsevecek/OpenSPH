@@ -27,10 +27,6 @@ protected:
     /// Scheduler used to parallelize the solver.
     IScheduler& scheduler;
 
-    /// Selected granularity of the parallel processing. The more particles in simulation, the higher the
-    /// value should be to utilize the solver optimally.
-    Size granularity;
-
     /// Holds all equation terms evaluated by the solver.
     EquationHolder equations;
 

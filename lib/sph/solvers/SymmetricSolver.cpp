@@ -28,7 +28,6 @@ SymmetricSolver::SymmetricSolver(IScheduler& scheduler,
     // to h_i, and we thus never "miss" a particle.
     finder = Factory::getFinder(settings);
 
-    granularity = settings.get<int>(RunSettingsId::RUN_THREAD_GRANULARITY);
     equations += eqs;
 
     // add term counting number of neighbours
@@ -130,7 +129,7 @@ void SymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
         data.derivatives.evalSymmetric(i, data.idxs, data.grads);
     };
     PROFILE_SCOPE("GenericSolver main loop");
-    parallelFor(scheduler, threadData, 0, r.size(), granularity, functor);
+    parallelFor(scheduler, threadData, 0, r.size(), functor);
 }
 
 void SymmetricSolver::beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {

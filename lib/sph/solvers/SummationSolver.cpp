@@ -92,7 +92,7 @@ void SummationSolver::beforeLoop(Storage& storage, Statistics& stats) {
     finder->build(scheduler, r);
     Size iterationIdx = 0;
     for (; iterationIdx < maxIteration; ++iterationIdx) {
-        parallelFor(scheduler, threadData, 0, r.size(), granularity, functor);
+        parallelFor(scheduler, threadData, 0, r.size(), functor);
         const Float diff = totalDiff / r.size();
         if (diff < targetDensityDifference) {
             break;

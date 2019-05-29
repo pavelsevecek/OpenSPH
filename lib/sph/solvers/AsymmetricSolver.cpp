@@ -17,7 +17,6 @@ IAsymmetricSolver::IAsymmetricSolver(IScheduler& scheduler,
     : scheduler(scheduler) {
     kernel = Factory::getKernel<DIMENSIONS>(settings);
     finder = Factory::getFinder(settings);
-    granularity = settings.get<int>(RunSettingsId::RUN_THREAD_GRANULARITY);
     equations += eqs;
 }
 
@@ -140,7 +139,7 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
         neighs[i] = data.idxs.size();
     };
     PROFILE_SCOPE("AsymmetricSolver::loop");
-    parallelFor(scheduler, threadData, 0, r.size(), granularity, functor);
+    parallelFor(scheduler, threadData, 0, r.size(), functor);
 }
 
 void AsymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {

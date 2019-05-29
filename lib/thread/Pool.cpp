@@ -117,8 +117,9 @@ void Task::removeReference() {
     }
 }
 
-ThreadPool::ThreadPool(const Size numThreads)
-    : threads(numThreads == 0 ? std::thread::hardware_concurrency() : numThreads) {
+ThreadPool::ThreadPool(const Size numThreads, const Size granularity)
+    : threads(numThreads == 0 ? std::thread::hardware_concurrency() : numThreads)
+    , granularity(granularity) {
     ASSERT(!threads.empty());
     auto loop = [this](const Size index) {
         // setup the thread
@@ -191,9 +192,8 @@ void ThreadPool::waitForAll() {
     ASSERT(tasks.empty() && tasksLeft == 0);
 }
 
-Size ThreadPool::getRecommendedGranularity(const Size from, const Size to) const {
-    ASSERT(to > from);
-    return min<Size>(1000, max<Size>((to - from) / this->getThreadCnt(), 1));
+Size ThreadPool::getRecommendedGranularity() const {
+    return granularity;
 }
 
 Optional<Size> ThreadPool::getThreadIdx() const {

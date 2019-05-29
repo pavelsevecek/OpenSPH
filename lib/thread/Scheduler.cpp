@@ -31,10 +31,8 @@ Size SequentialScheduler::getThreadCnt() const {
     return 1;
 }
 
-Size SequentialScheduler::getRecommendedGranularity(const Size from, const Size to) const {
-    // just in case someone actually uses this in parallelFor, let's avoid the splitting by returning maximal
-    // granularity
-    return to - from;
+Size SequentialScheduler::getRecommendedGranularity() const {
+    return 1;
 }
 
 SharedPtr<SequentialScheduler> SequentialScheduler::getGlobalInstance() {

@@ -21,9 +21,11 @@ private:
     static SharedPtr<Tbb> globalInstance;
 
 public:
-    Tbb(const Size numThreads = 0);
+    Tbb(const Size numThreads = 0, const Size granularity = 1000);
 
     ~Tbb();
+
+    void setGranularity(const Size newGranularity);
 
     virtual SharedPtr<ITask> submit(const Function<void()>& task) override;
 
@@ -31,7 +33,7 @@ public:
 
     virtual Size getThreadCnt() const override;
 
-    virtual Size getRecommendedGranularity(const Size from, const Size to) const override;
+    virtual Size getRecommendedGranularity() const override;
 
     virtual void parallelFor(const Size from,
         const Size to,
