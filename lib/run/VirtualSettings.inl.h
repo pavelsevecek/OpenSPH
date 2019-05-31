@@ -55,17 +55,15 @@ private:
     Function<bool()> enabler = nullptr;
 
 public:
-    ValueEntry(TValue& ref, const std::string& name, const Float mult, const std::string& tooltip)
+    ValueEntry(TValue& ref,
+        const std::string& name,
+        const Float mult,
+        Function<bool()> enabler,
+        const std::string& tooltip)
         : ref(ref)
         , name(name)
         , tooltip(tooltip)
-        , units(mult) {}
-
-    ValueEntry(TValue& ref, const std::string& name, Function<bool()> enabler, const std::string& tooltip)
-        : ref(ref)
-        , name(name)
-        , tooltip(tooltip)
-        , units(1.f)
+        , units(mult)
         , enabler(enabler) {}
 
     virtual bool enabled() const override {
@@ -100,15 +98,20 @@ private:
     TValue& ref;
     std::string name;
     std::string tooltip;
-    Function<bool()> enabler = nullptr;
+    Function<bool()> enabler;
 
     using TEnum = typename FlagsTraits<TValue>::Type;
 
 public:
-    ValueEntry(TValue& ref, const std::string& name, const Float UNUSED(mult), const std::string& tooltip)
+    ValueEntry(TValue& ref,
+        const std::string& name,
+        const Float UNUSED(mult),
+        Function<bool()> enabler,
+        const std::string& tooltip)
         : ref(ref)
         , name(name)
-        , tooltip(tooltip) {}
+        , tooltip(tooltip)
+        , enabler(enabler) {}
 
     virtual bool enabled() const override {
         return enabler ? enabler() : true;
@@ -144,8 +147,7 @@ inline VirtualSettings::Category& VirtualSettings::Category::connect(const std::
     TValue& value,
     const Float mult,
     const std::string& tooltip) {
-
-    entries.insert(key, makeAuto<Detail::ValueEntry<TValue>>(value, name, mult, tooltip));
+    return this->connect(name, key, value, mult, nullptr, tooltip);
     return *this;
 }
 
@@ -155,7 +157,17 @@ inline VirtualSettings::Category& VirtualSettings::Category::connect(const std::
     TValue& value,
     Function<bool()> enabler,
     const std::string& tooltip) {
-    entries.insert(key, makeAuto<Detail::ValueEntry<TValue>>(value, name, enabler, tooltip));
+    return this->connect(name, key, value, 1.f, enabler, tooltip);
+}
+
+template <typename TValue>
+inline VirtualSettings::Category& VirtualSettings::Category::connect(const std::string& name,
+    const std::string& key,
+    TValue& value,
+    const Float mult,
+    Function<bool()> enabler,
+    const std::string& tooltip) {
+    entries.insert(key, makeAuto<Detail::ValueEntry<TValue>>(value, name, mult, enabler, tooltip));
     return *this;
 }
 
@@ -164,9 +176,7 @@ inline VirtualSettings::Category& VirtualSettings::Category::connect(const std::
     const std::string& key,
     TValue& value,
     const std::string& tooltip) {
-
-    entries.insert(key, makeAuto<Detail::ValueEntry<TValue>>(value, name, 1._f, tooltip));
-    return *this;
+    return this->connect(name, key, value, 1.f, nullptr, tooltip);
 }
 
 namespace Detail {

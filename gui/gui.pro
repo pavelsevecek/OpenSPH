@@ -6,12 +6,10 @@ CONFIG -= qt
 INCLUDEPATH += /usr/include/wx-3.0 ../lib/ ..
 DEPENDPATH += ../lib ../test
 PRE_TARGETDEPS += ../lib/liblib.a
-LIBS += `wx-config --libs` -lwx_gtk2u_propgrid-3.0 -lwx_gtk2u_aui-3.0
 LIBS += ../lib/liblib.a
 
-include(../lib/inc.pro)
-
-QMAKE_CXXFLAGS += `wx-config --cxxflags`
+include(../lib/sharedLib.pro)
+include(sharedGui.pro)
 
 linux-g++ {
     # disabling maybe-uninitialized because of Factory::getCamera, either gcc bug or some weird behavior

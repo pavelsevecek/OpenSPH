@@ -83,6 +83,14 @@ public:
         Category& connect(const std::string& name,
             const std::string& key,
             TValue& value,
+            const Float mult,
+            Function<bool()> enabler,
+            const std::string& tooltip = "");
+
+        template <typename TValue>
+        Category& connect(const std::string& name,
+            const std::string& key,
+            TValue& value,
             const std::string& tooltip);
 
         /// \brief Connects to value in \ref Settings object

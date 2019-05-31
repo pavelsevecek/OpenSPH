@@ -100,7 +100,7 @@ SharedPtr<ConfigNode> Config::tryGetNode(const std::string& name) {
 
 void Config::read(std::stringstream& source) {
     nodes.clear();
-    while (!source.eof()) {
+    while (source && !source.eof()) {
         SharedPtr<ConfigNode> node = makeShared<ConfigNode>();
         std::string name;
         std::getline(source, name, '[');

@@ -23,7 +23,7 @@ namespace Factory {
     /// \param size Resolution of produced image
     AutoPtr<ICamera> getCamera(const GuiSettings& settings, const Pixel size);
 
-    AutoPtr<IRenderer> getRenderer(IScheduler& scheduler, const GuiSettings& settings);
+    AutoPtr<IRenderer> getRenderer(const GuiSettings& settings);
 
     AutoPtr<IBrdf> getBrdf(const GuiSettings& settings);
 

@@ -107,6 +107,12 @@ private:
         /// This object is only accessed from main thread!
         /// \note AutoPtr just to avoid the include.
         AutoPtr<wxBitmap> bitmap;
+
+        /// True if the image is redrawn on the next timestep. The flag is unused if REFRESH_ON_TIMESTEP is
+        /// true, as the image is redrawn on every timestep.
+        std::atomic_bool redrawOnNextTimeStep;
+
+        /// Flag used to avoid queuing multiple renders
         mutable std::atomic_bool refreshPending;
 
         /// Thread used for rendering.
@@ -230,7 +236,14 @@ public:
     ///
     /// This can be done when the run is paused or stopped. Otherwise, it is necessary to wait for the next
     /// time step; function does nothing during the run. Needs to be called from main thread.
-    void tryRedraw();
+    /// \return true if the image has been redrawn.
+    bool tryRedraw();
+
+    /// \brief Redraws the image on the following timestep.
+    ///
+    /// This function is only needed if parameter REFRESH_ON_TIMESTEP is false, otherwise the image is redrawn
+    /// every time.
+    void redrawOnNextTimeStep();
 
     /// \brief Re-renders the particles with given camera.
     ///

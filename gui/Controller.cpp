@@ -47,12 +47,13 @@ Controller::Vis::Vis() {
     bitmap = makeAuto<wxBitmap>();
     needsRefresh = false;
     refreshPending = false;
+    redrawOnNextTimeStep = false;
 }
 
 void Controller::Vis::initialize(const Project& project) {
     const GuiSettings& gui = project.getGuiSettings();
-    /// \todo add Factory::getScheduler and use it here!
-    renderer = Factory::getRenderer(*ThreadPool::getGlobalInstance(), gui);
+
+    renderer = Factory::getRenderer(gui);
     colorizer = Factory::getColorizer(project, ColorizerId::VELOCITY);
     timer = makeAuto<Timer>(gui.get<int>(GuiSettingsId::VIEW_MAX_FRAMERATE), TimerFlags::START_EXPIRED);
     const Pixel size(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
@@ -274,9 +275,11 @@ void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
 
     // update the data for rendering
     const GuiSettings& gui = project.getGuiSettings();
-    if (gui.get<bool>(GuiSettingsId::REFRESH_ON_TIMESTEP) && vis.timer->isExpired()) {
+    const bool doRedraw = vis.redrawOnNextTimeStep || gui.get<bool>(GuiSettingsId::REFRESH_ON_TIMESTEP);
+    if (doRedraw && vis.timer->isExpired()) {
         this->redraw(storage, stats);
         vis.timer->restart();
+        vis.redrawOnNextTimeStep = false;
 
         executeOnMainThread([this] {
             // update particle probe - has to be done after we redraw the image as it initializes
@@ -525,7 +528,9 @@ Optional<Size> Controller::getIntersectedParticle(const Pixel position, const fl
 void Controller::setColorizer(const SharedPtr<IColorizer>& newColorizer) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     vis.colorizer = newColorizer;
-    this->tryRedraw();
+    if (!this->tryRedraw()) {
+        this->redrawOnNextTimeStep();
+    }
 
     // update particle probe with the new colorizer
     this->setSelectedParticle(vis.selectedParticle);
@@ -603,7 +608,7 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) const {
     guiClone.accessor = nullptr;
     guiClone.set(GuiSettingsId::RENDERER, gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER))
         .set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 1);
-    AutoPtr<IRenderer> renderer = Factory::getRenderer(*ThreadPool::getGlobalInstance(), guiClone);
+    AutoPtr<IRenderer> renderer = Factory::getRenderer(guiClone);
     // limit colorizer list for slower renderers
     switch (gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER)) {
     case RendererEnum::PARTICLE:
@@ -633,7 +638,7 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) const {
 }
 
 void Controller::redraw(const Storage& storage, const Statistics& stats) {
-    CHECK_FUNCTION(CheckFunction::NON_REENRANT | CheckFunction::NO_THROW);
+    CHECK_FUNCTION(CheckFunction::NO_THROW);
 
     vis.renderer->cancelRender();
     std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
@@ -660,14 +665,9 @@ void Controller::redraw(const Storage& storage, const Statistics& stats) {
     vis.refresh();
 }
 
-void Controller::tryRedraw() {
+bool Controller::tryRedraw() {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
     if (status != RunStatus::RUNNING && sph.storage && !sph.storage->empty()) {
-        // we can safely access the storage
-        /*if (!sph.storage) {
-            return;
-        }*/
-
         vis.renderer->cancelRender();
         std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
         vis.colorizer->initialize(*sph.storage, RefEnum::STRONG);
@@ -679,7 +679,17 @@ void Controller::tryRedraw() {
         vis.renderer->initialize(*sph.storage, *vis.colorizer, *camera);
         vis.timer->restart();
         vis.refresh();
+
+        return true;
+    } else {
+        vis.renderer->cancelRender();
+        vis.refresh();
+        return false;
     }
+}
+
+void Controller::redrawOnNextTimeStep() {
+    vis.redrawOnNextTimeStep = true;
 }
 
 void Controller::refresh(AutoPtr<ICamera>&& camera) {

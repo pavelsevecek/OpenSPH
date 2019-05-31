@@ -25,6 +25,65 @@ wxAuiNotebook* findNotebook() {
     return dynamic_cast<wxAuiNotebook*>(wxWindow::FindWindowById(NOTEBOOK_ID));
 }
 
+
+static Expected<Path> getRecentSessionCache() {
+    Expected<Path> home = FileSystem::getHomeDirectory();
+    if (home) {
+        return home.value() / Path(".config/opensph/recent.csv");
+    } else {
+        return home;
+    }
+}
+
+static Array<Path> getRecentSessions() {
+    if (Expected<Path> recentCache = getRecentSessionCache()) {
+        try {
+            std::ifstream ifs(recentCache->native());
+            std::string line;
+            if (std::getline(ifs, line)) {
+                Array<std::string> strings = split(line, ',');
+                Array<Path> paths;
+                for (std::string& s : strings) {
+                    paths.emplaceBack(s);
+                }
+                return paths;
+            }
+        } catch (std::exception& UNUSED(e)) {
+            // do nothing
+        }
+    }
+    return {};
+}
+
+constexpr Size MAX_CACHE_SIZE = 8;
+
+static void addToRecentSessions(const Path& sessionPath) {
+    ASSERT(!sessionPath.empty());
+    Array<Path> sessions = getRecentSessions();
+    if (std::find(sessions.begin(), sessions.end(), sessionPath) != sessions.end()) {
+        // already in the list
+        /// \todo move to top?
+        return;
+    }
+    sessions.insert(0, sessionPath);
+    if (sessions.size() > MAX_CACHE_SIZE) {
+        sessions.pop();
+    }
+
+    if (Expected<Path> recentCache = getRecentSessionCache()) {
+        try {
+            std::ofstream ofs(recentCache->native());
+            for (Size i = 0; i < sessions.size(); ++i) {
+                ofs << sessions[i].native();
+                if (i != sessions.size() - 1) {
+                    ofs << ",";
+                }
+            }
+        } catch (std::exception& UNUSED(e)) {
+        }
+    }
+}
+
 class NodeManagerCallbacks : public INodeManagerCallbacks {
 private:
     MainWindow* window;
@@ -225,16 +284,19 @@ void MainWindow::load(const Path& openPath) {
         pathToLoad = openPath;
     }
 
+    if (!FileSystem::pathExists(pathToLoad)) {
+        wxMessageBox("File '" + pathToLoad.native() + "' does not exist.");
+        return;
+    }
+
     const bool removed = this->removeAll();
     if (!removed) {
         return;
     }
 
-    this->setProjectPath(pathToLoad);
-
     Config config;
     try {
-        config.load(projectPath);
+        config.load(pathToLoad);
     } catch (Exception& e) {
         wxMessageBox(std::string("Cannot load: ") + e.what(), "Error", wxOK);
         return;
@@ -248,6 +310,9 @@ void MainWindow::load(const Path& openPath) {
         wxMessageBox(std::string("Cannot load: ") + e.what(), "Error", wxOK);
         return;
     }
+
+    this->setProjectPath(pathToLoad);
+    addToRecentSessions(pathToLoad);
 }
 
 void MainWindow::setProjectPath(const Path& newPath) {
@@ -282,9 +347,22 @@ wxMenu* MainWindow::createProjectMenu() {
     projectMenu->Append(1, "&Save session\tCtrl+S");
     projectMenu->Append(2, "&Save session as");
     projectMenu->Append(3, "&Open session\tCtrl+O");
+
+    wxMenu* recentMenu = new wxMenu();
+    projectMenu->AppendSubMenu(recentMenu, "&Recent");
     projectMenu->Append(4, "&Shared properties");
     projectMenu->Append(5, "&Undo\tCtrl+Z");
     projectMenu->Append(6, "&Quit");
+
+    SharedPtr<Array<Path>> recentSessions = makeShared<Array<Path>>();
+    *recentSessions = getRecentSessions();
+    for (Size i = 0; i < recentSessions->size(); ++i) {
+        recentMenu->Append(i, (*recentSessions)[i].native());
+    }
+
+    // wx handlers need to be copyable, we thus cannot capture Array
+    recentMenu->Bind(wxEVT_COMMAND_MENU_SELECTED,
+        [this, recentSessions](wxCommandEvent& evt) { this->load((*recentSessions)[evt.GetId()]); });
 
     projectMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& evt) { //
         switch (evt.GetId()) {
@@ -344,11 +422,18 @@ wxMenu* MainWindow::createResultMenu() {
             break;
         }
         case 1: {
-            RunPage* page = dynamic_cast<RunPage*>(notebook->GetCurrentPage());
-            if (!page) {
-                return;
+            wxWindow* page = notebook->GetCurrentPage();
+            if (dynamic_cast<NodeWindow*>(page)) {
+                // node page should not be closeable
+                break;
             }
-            if (page->close()) {
+
+            bool canClose = true;
+            if (RunPage* runPage = dynamic_cast<RunPage*>(page)) {
+                canClose = runPage->close();
+            }
+
+            if (canClose) {
                 notebook->DeletePage(notebook->GetPageIndex(page));
             }
             break;

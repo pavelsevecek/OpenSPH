@@ -134,6 +134,7 @@ void RayTracer::refine(const RenderParams& params, const Size iteration, FrameBu
         threadData,
         0,
         Size(bitmap.size().y),
+        1,
         [this, &bitmap, &params, level, first](Size y, ThreadData& data) {
             if (!shouldContinue && !first) {
                 return;

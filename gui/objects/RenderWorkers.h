@@ -60,4 +60,46 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
+class VdbWorker : public IParticleWorker {
+private:
+    Vector gridStart = Vector(-1.e5_f);
+    Vector gridEnd = Vector(1.e5_f);
+    int dimPower = 10;
+    Float surfaceLevel = 0.13_f;
+
+    struct {
+        bool enabled = false;
+        Path firstFile = Path("out_0000.ssf");
+    } sequence;
+
+    Path path = Path("grid.vdb");
+
+public:
+    VdbWorker(const std::string& name)
+        : IParticleWorker(name) {}
+
+    virtual std::string className() const override {
+        return "save VDB grid";
+    }
+
+    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+        return { { "particles", WorkerType::PARTICLES } };
+    }
+
+    virtual UnorderedMap<std::string, WorkerType> requires() const override {
+        if (sequence.enabled) {
+            return {};
+        } else {
+            return { { "particles", WorkerType::PARTICLES } };
+        }
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+
+private:
+    void generate(Storage& storage, const RunSettings& global, const Path& outputPath);
+};
+
 NAMESPACE_SPH_END

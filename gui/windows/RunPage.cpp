@@ -443,7 +443,14 @@ wxPanel* RunPage::createVisBar() {
 
     wxButton* refresh = new wxButton(visbarPanel, wxID_ANY, "Refresh");
     refresh->SetToolTip("Updates the particle order and repaints the current view");
-    refresh->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { controller->tryRedraw(); });
+    refresh->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
+        if (!controller->tryRedraw()) {
+            /// \todo allowing refreshing without camera parameter?
+            AutoPtr<ICamera> camera = controller->getCurrentCamera();
+            controller->refresh(std::move(camera));
+            controller->redrawOnNextTimeStep();
+        }
+    });
     buttonSizer->Add(refresh);
 
     wxButton* snap = new wxButton(visbarPanel, wxID_ANY, "Save image");
