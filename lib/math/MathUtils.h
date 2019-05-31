@@ -7,9 +7,9 @@
 
 #include "common/Assert.h"
 #include "math/MathBasic.h"
+#include <cmath>
 #include <cstring>
 #include <limits>
-#include <math.h>
 #include <utility>
 
 NAMESPACE_SPH_BEGIN

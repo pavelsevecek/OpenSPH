@@ -6,7 +6,7 @@
 /// \date 2016-2019
 
 #include "objects/containers/StaticArray.h"
-#include <math.h>
+#include <cmath>
 
 NAMESPACE_SPH_BEGIN
 
