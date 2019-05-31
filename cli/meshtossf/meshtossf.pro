@@ -10,7 +10,7 @@ PRE_TARGETDEPS += ../../lib/liblib.a
 
 LIBS += ../../lib/liblib.a
 
-include(../../lib/inc.pro)
+include(../../lib/sharedLib.pro)
 
 SOURCES += \
     MeshToSsf.cpp

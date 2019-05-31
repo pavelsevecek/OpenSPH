@@ -13,7 +13,7 @@ LIBS += ../../lib/liblib.a /home/pavel/projects/astro/sph/external/openvdb/openv
 # -llog4cplus
 QMAKE_LFLAGS += -ltbb -lIlmImf -lHalf -lblosc -lboost_iostreams -lboost_system -lboost_thread -lz -L/home/pavel/projects/astro/sph/external/openvdb/openvdb/libopenvdb.a
 
-include(../../lib/inc.pro)
+include(../../lib/sharedLib.pro)
 
 SOURCES += \
     SsfToVdb.cpp
