@@ -12,6 +12,10 @@ LIBS += ../../lib/liblib.a # must be used after libgui
 include(../../lib/sharedLib.pro)
 include(../sharedGui.pro)
 
+TARGET = opensph
+target.path = /usr/bin/
+INSTALLS += target
+
 SOURCES += \
     LauncherGui.cpp
 
