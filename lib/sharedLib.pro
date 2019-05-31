@@ -9,7 +9,7 @@ linux-g++ {
 CONFIG(use_tbb) {
     DEFINES += SPH_USE_TBB
     INCLUDEPATH += /usr/include/tbb
-    LIBS += -ltbb -ltbb_debug -ltbbmalloc -ltbbmalloc_debug
+    LIBS += -ltbb -ltbb_debug -ltbbmalloc
 }
 
 CONFIG(use_eigen) {
