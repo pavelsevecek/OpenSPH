@@ -8,6 +8,7 @@ SOURCES += \
     common/Assert.cpp \
     gravity/AggregateSolver.cpp \
     gravity/BarnesHut.cpp \
+    gravity/Galaxy.cpp \
     gravity/NBodySolver.cpp \
     io/FileManager.cpp \
     io/FileSystem.cpp \
@@ -108,6 +109,7 @@ HEADERS += \
     gravity/BruteForceGravity.h \
     gravity/CachedGravity.h \
     gravity/Collision.h \
+    gravity/Galaxy.h \
     gravity/IGravity.h \
     gravity/Moments.h \
     gravity/NBodySolver.h \

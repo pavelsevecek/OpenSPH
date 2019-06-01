@@ -25,6 +25,8 @@ namespace Factory {
 
     AutoPtr<IRenderer> getRenderer(const GuiSettings& settings);
 
+    AutoPtr<IRenderer> getRenderer(SharedPtr<IScheduler> scheduler, const GuiSettings& settings);
+
     AutoPtr<IBrdf> getBrdf(const GuiSettings& settings);
 
     AutoPtr<IColorizer> getColorizer(const Project& project, const ColorizerId id);

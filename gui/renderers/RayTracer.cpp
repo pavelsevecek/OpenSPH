@@ -8,9 +8,20 @@
 
 NAMESPACE_SPH_BEGIN
 
-RayTracer::RayTracer(IScheduler& scheduler, const GuiSettings& settings)
+struct Seeder {
+    int seed = 1337;
+
+    operator int() {
+        return seed++;
+    }
+};
+
+RayTracer::ThreadData::ThreadData(Seeder& seeder)
+    : rng(seeder) {}
+
+RayTracer::RayTracer(SharedPtr<IScheduler> scheduler, const GuiSettings& settings)
     : scheduler(scheduler)
-    , threadData(scheduler) {
+    , threadData(*scheduler, Seeder{}) {
     kernel = CubicSpline<3>();
     fixed.dirToSun = getNormalized(settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION));
     fixed.brdf = Factory::getBrdf(settings);
@@ -87,11 +98,14 @@ void RayTracer::initialize(const Storage& storage,
         }
     }
 
+    cached.doEmission = typeid(colorizer) == typeid(BeautyColorizer);
     cached.colors.resize(particleCnt);
     for (Size i = 0; i < particleCnt; ++i) {
         cached.colors[i] = colorizer.evalColor(i);
+        if (cached.doEmission) {
+            cached.colors[i] = cached.colors[i] * colorizer.evalScalar(i).value();
+        }
     }
-    cached.doEmission = typeid(colorizer) == typeid(BeautyColorizer);
 
     Array<BvhSphere> spheres;
     spheres.reserve(particleCnt);
@@ -102,7 +116,7 @@ void RayTracer::initialize(const Storage& storage,
     bvh.build(std::move(spheres));
 
     finder = Factory::getFinder(RunSettings::getDefaults());
-    finder->build(scheduler, cached.r);
+    finder->build(*scheduler, cached.r);
 
     for (ThreadData& data : threadData) {
         data.previousIdx = Size(-1);
@@ -117,7 +131,24 @@ void RayTracer::render(const RenderParams& params, Statistics& UNUSED(stats), IR
     FrameBuffer fb(params.size);
     for (Size iteration = 0; iteration < fixed.iterationLimit && shouldContinue; ++iteration) {
         this->refine(params, iteration, fb);
-        output.update(fb.bitmap(), {});
+        output.update(fb.bitmap(), {}, iteration == fixed.iterationLimit - 1);
+    }
+}
+
+INLINE float sampleTent(const float x) {
+    if (x < 0.5f) {
+        return sqrt(2.f * x) - 1.f;
+    } else {
+        return 1.f - sqrt(1.f - 2.f * (x - 0.5f));
+    }
+}
+
+INLINE Coords sampleTent2d(const Size level, const float halfWidth, UniformRng& rng) {
+    if (level == 1) {
+        return Coords(0.5f + sampleTent(rng()) * halfWidth, 0.5f + sampleTent(rng()) * halfWidth);
+    } else {
+        // center of the pixel
+        return Coords(0.5f, 0.5f);
     }
 }
 
@@ -130,7 +161,7 @@ void RayTracer::refine(const RenderParams& params, const Size iteration, FrameBu
     Bitmap<Rgba> bitmap(actSize);
 
     const bool first = (iteration == 0);
-    parallelFor(scheduler,
+    parallelFor(*scheduler,
         threadData,
         0,
         Size(bitmap.size().y),
@@ -140,10 +171,9 @@ void RayTracer::refine(const RenderParams& params, const Size iteration, FrameBu
                 return;
             }
             for (Size x = 0; x < Size(bitmap.size().x); ++x) {
-                /// \todo generalize
-                const float rx = x * level + (level == 1 ? data.rng() : 0.5f);
-                const float ry = y * level + (level == 1 ? data.rng() : 0.5f);
-                CameraRay cameraRay = params.camera->unproject(Coords(rx, ry));
+                const Coords pixel = Coords(x * level, y * level) +
+                                     sampleTent2d(level, params.surface.filterWidth / 2.f, data.rng);
+                CameraRay cameraRay = params.camera->unproject(pixel);
                 const Vector dir = getNormalized(cameraRay.target - cameraRay.origin);
                 const Ray ray(cameraRay.origin, dir);
 
@@ -267,7 +297,7 @@ Rgba RayTracer::shade(ThreadData& data,
     const Size index,
     const Vector& hit,
     const Vector& dir) const {
-    Rgba color = Rgba::white();
+    Rgba diffuse = Rgba::white();
     if (!fixed.textures.empty() && !cached.uvws.empty()) {
         Size textureIdx = cached.flags[index] & ~BLEND_ALL_FLAG;
         ASSERT(textureIdx <= 10); // just sanity check, increase if necessary
@@ -275,11 +305,18 @@ Rgba RayTracer::shade(ThreadData& data,
             textureIdx = 0;
         }
         const Vector uvw = this->evalUvws(data.neighs, hit);
-        color = fixed.textures[textureIdx].eval(uvw) * 2._f;
+        diffuse = fixed.textures[textureIdx].eval(uvw);
     }
 
     // evaluate color before checking for occlusion as that invalidates the neighbour list
-    const Rgba colorizerValue = this->evalColor(data.neighs, hit) * color;
+    const Rgba colorizerValue = this->evalColor(data.neighs, hit);
+
+    Rgba emission = Rgba::black();
+    if (cached.doEmission) {
+        emission = colorizerValue * params.surface.emission;
+    } else {
+        diffuse = diffuse * colorizerValue;
+    }
 
     // compute normal = gradient of the field
     const Vector n = this->evalGradient(data.neighs, hit);
@@ -287,8 +324,8 @@ Rgba RayTracer::shade(ThreadData& data,
     const Vector n_norm = getNormalized(n);
     const Float cosPhi = dot(n_norm, fixed.dirToSun);
     if (cosPhi <= 0._f) {
-        // not illuminated
-        return colorizerValue * params.surface.ambientLight;
+        // not illuminated -> just ambient light + emission
+        return diffuse * params.surface.ambientLight + emission;
     }
 
     // check for occlusion
@@ -296,14 +333,14 @@ Rgba RayTracer::shade(ThreadData& data,
         Ray rayToSun(hit - 1.e-3_f * fixed.dirToSun, -fixed.dirToSun);
         if (this->intersect(data, rayToSun, params.surface.level, true)) {
             // casted shadow
-            return colorizerValue * params.surface.ambientLight;
+            return diffuse * params.surface.ambientLight + emission;
         }
     }
 
     // evaluate BRDF
     const Float f = fixed.brdf->transport(n_norm, -dir, fixed.dirToSun);
 
-    return colorizerValue * (PI * f * cosPhi * params.surface.sunLight + params.surface.ambientLight);
+    return diffuse * (PI * f * cosPhi * params.surface.sunLight + params.surface.ambientLight) + emission;
 }
 
 Float RayTracer::evalField(ArrayView<const Size> neighs, const Vector& pos1) const {

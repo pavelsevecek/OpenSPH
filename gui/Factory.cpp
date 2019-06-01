@@ -67,7 +67,10 @@ AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Pixel siz
 
 AutoPtr<IRenderer> Factory::getRenderer(const GuiSettings& settings) {
     SharedPtr<IScheduler> scheduler = getScheduler(RunSettings::getDefaults());
+    return getRenderer(scheduler, settings);
+}
 
+AutoPtr<IRenderer> Factory::getRenderer(SharedPtr<IScheduler> scheduler, const GuiSettings& settings) {
     RendererEnum id = settings.get<RendererEnum>(GuiSettingsId::RENDERER);
     switch (id) {
     case RendererEnum::NONE:
@@ -78,11 +81,11 @@ AutoPtr<IRenderer> Factory::getRenderer(const GuiSettings& settings) {
         };
         return makeAuto<NullRenderer>();
     case RendererEnum::PARTICLE:
-        return makeAuto<ParticleRenderer>(*scheduler, settings);
+        return makeAuto<ParticleRenderer>(settings);
     case RendererEnum::MESH:
-        return makeAuto<MeshRenderer>(*scheduler, settings);
+        return makeAuto<MeshRenderer>(scheduler, settings);
     case RendererEnum::RAYTRACER:
-        return makeAuto<RayTracer>(*scheduler, settings);
+        return makeAuto<RayTracer>(scheduler, settings);
     default:
         NOT_IMPLEMENTED;
     }

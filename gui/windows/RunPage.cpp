@@ -365,7 +365,7 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
 }
 
 wxWindow* RunPage::createRaytracerBox(wxPanel* parent) {
-    wxStaticBox* raytraceBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 120));
+    wxStaticBox* raytraceBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 160));
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* levelSizer = new wxBoxSizer(wxHORIZONTAL);
     levelSizer->AddSpacer(boxPadding);
@@ -411,6 +411,21 @@ wxWindow* RunPage::createRaytracerBox(wxPanel* parent) {
     ambientSizer->Add(ambientCtrl, 1, wxALIGN_CENTER_VERTICAL);
     ambientSizer->AddSpacer(boxPadding);
     boxSizer->Add(ambientSizer);
+
+    wxBoxSizer* emissionSizer = new wxBoxSizer(wxHORIZONTAL);
+    emissionSizer->AddSpacer(boxPadding);
+    text = new wxStaticText(raytraceBox, wxID_ANY, "Emission");
+    emissionSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
+    const Float emission = gui.get<Float>(GuiSettingsId::SURFACE_EMISSION);
+    FloatTextCtrl* emissionCtrl = new FloatTextCtrl(raytraceBox, emission, Interval(0._f, 100._f));
+    emissionCtrl->onValueChanged = [this](const Float value) {
+        GuiSettings& gui = controller->getParams();
+        gui.set(GuiSettingsId::SURFACE_EMISSION, value);
+        controller->tryRedraw();
+    };
+    emissionSizer->Add(emissionCtrl, 1, wxALIGN_CENTER_VERTICAL);
+    emissionSizer->AddSpacer(boxPadding);
+    boxSizer->Add(emissionSizer);
 
     raytraceBox->SetSizer(boxSizer);
     return raytraceBox;
@@ -553,20 +568,19 @@ wxPanel* RunPage::createVisBar() {
 
     particleButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-        IScheduler& scheduler = *ThreadPool::getGlobalInstance();
-        controller->setRenderer(makeAuto<ParticleRenderer>(scheduler, gui));
+        controller->setRenderer(makeAuto<ParticleRenderer>(gui));
         enableControls(0);
     });
     meshButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-        IScheduler& scheduler = *ThreadPool::getGlobalInstance();
+        SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
         controller->setRenderer(makeAuto<MeshRenderer>(scheduler, gui));
         enableControls(2);
     });
     surfaceButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         try {
-            IScheduler& scheduler = *ThreadPool::getGlobalInstance();
+            SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
             controller->setRenderer(makeAuto<RayTracer>(scheduler, gui));
             enableControls(1);
         } catch (std::exception& e) {
@@ -574,8 +588,7 @@ wxPanel* RunPage::createVisBar() {
 
             // switch to particle renderer (fallback option)
             particleButton->SetValue(true);
-            IScheduler& scheduler = *ThreadPool::getGlobalInstance();
-            controller->setRenderer(makeAuto<ParticleRenderer>(scheduler, gui));
+            controller->setRenderer(makeAuto<ParticleRenderer>(gui));
             enableControls(0);
         }
     });

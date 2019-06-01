@@ -58,9 +58,11 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Relative intensity of the sun, used for shading in mesh renderer in raytracer." },
     { GuiSettingsId::SURFACE_AMBIENT,       "surface.ambient",      0.3_f,
         "Relative intensity of an ambient light, illuminating all shaded points." },
-    { GuiSettingsId::ORTHO_VIEW_CENTER,     "ortho.center",          Vector(0._f),
+    { GuiSettingsId::SURFACE_EMISSION,      "surface.emission",     1._f,
+        "Emission multiplier used by raytracer. Note that emission is only enabled for Beauty quantity." },
+    { GuiSettingsId::ORTHO_VIEW_CENTER,     "ortho.center",         Vector(0._f),
         "Center point of the orthographic camera." },
-    { GuiSettingsId::ORTHO_FOV,             "ortho.fov",             0._f,
+    { GuiSettingsId::ORTHO_FOV,             "ortho.fov",            0._f,
         "Field of view of the orthographic camera. Specified as distance (not an angle). Value 0 means the "
         "field of view is computed automatically to fit all particles inside the view."},
     { GuiSettingsId::RAYTRACE_SUBSAMPLING,  "raytrace.subsampling", 1,
@@ -115,6 +117,8 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
     { GuiSettingsId::IMAGES_NAME,           "images.name",          std::string("img_%e_%d.png"),
         "File mask of the created images. Can contain wildcard %d, replaced with the counter of an image, "
         "and %e, replaced with the name of the renderer quantity." },
+    { GuiSettingsId::IMAGES_FIRST_INDEX,    "images.first_index",   0,
+        "Index of the first generated image."},
     { GuiSettingsId::IMAGES_MAKE_MOVIE,     "images.make_movie",    false,
         "If true, an animation is made from the saved images automatically at the end of the simulation. "
         "Requires ffmpeg to be installed." },

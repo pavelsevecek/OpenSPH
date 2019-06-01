@@ -34,7 +34,7 @@ public:
     /// The point must NOT correspond to any particle, as this case could formally lead to infinite
     /// acceleration if no smoothing kernel is used.
     /// \param r0 Point where the gravity is evaluated.
-    virtual Vector eval(const Vector& r0, Statistics& stats) const = 0;
+    virtual Vector eval(const Vector& r0) const = 0;
 
     /// \brief Computes the total potential energy of the particles.
     ///

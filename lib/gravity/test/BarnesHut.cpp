@@ -140,7 +140,7 @@ static void testSimpleAcceleration(const MultipoleOrder order, const Float eps) 
     bh.build(pool, storage);
 
     Statistics stats;
-    Vector a = bh.eval(Vector(-10, 10, 0, 1), stats) / Constants::gravity;
+    Vector a = bh.eval(Vector(-10, 10, 0, 1)) / Constants::gravity;
     Vector expected(0.020169998934707004, -0.007912678499211458, 0);
     REQUIRE(a != expected); // it shouldn't be exactly equal, sanity check
     REQUIRE(a == approx(expected, eps));
@@ -202,6 +202,34 @@ TEST_CASE("BarnesHut storage acceleration", "[gravity]") {
     testStorageAcceleration(MultipoleOrder::QUADRUPOLE, 3.e-3_f);
     testStorageAcceleration(
         MultipoleOrder::OCTUPOLE, 3.e-3_f); /// \todo fix this imprecission, should be 1.e-4
+}
+
+static void testEquality(const MultipoleOrder order, const Float eps) {
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    Storage storage = getGravityStorage();
+    Statistics stats;
+
+    BarnesHut bh(0.25_f, order, SolidSphereKernel(), 10);
+    bh.build(pool, storage);
+
+    ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
+    bh.evalAll(pool, dv, stats);
+
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    auto test = [&](const Size i) -> Outcome {
+        const Vector a = bh.eval(r[i]);
+        if (dv[i] != approx(a, eps)) {
+            return makeFailed("Acceleration inequality:\n", dv[i], " == ", a);
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, r.size());
+}
+
+TEST_CASE("BarnesHut eval evalAll equality", "[gravity]") {
+    testEquality(MultipoleOrder::MONOPOLE, 0.01_f);
+    testEquality(MultipoleOrder::QUADRUPOLE, 0.01_f);
+    testEquality(MultipoleOrder::OCTUPOLE, 0.01_f);
 }
 
 TEST_CASE("BarnesHut opening angle convergence", "[gravity]") {

@@ -741,7 +741,9 @@ void Controller::startRenderThread() {
             : vis(vis)
             , page(page) {}
 
-        virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels) override {
+        virtual void update(const Bitmap<Rgba>& bitmap,
+            Array<Label>&& labels,
+            const bool UNUSED(isFinal)) override {
             ASSERT(!bitmap.empty());
             if (vis.refreshPending) {
                 return;

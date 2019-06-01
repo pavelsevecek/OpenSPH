@@ -709,16 +709,16 @@ private:
     ArrayRef<const Float> u;
     Palette palette;
 
+    const float u_red = 3.e5_f;
+    const float u_yellow = 5.e6_f;
+    const float u_glow = 0.5_f * u_red;
+
 public:
     BeautyColorizer() {
-        const float u_iv = 3.e5_f;
-        const float u_cv = 5.e6_f;
-        palette = Palette({ { 0.1f * u_iv, Rgba(0.5f, 0.5f, 0.5) },
-                              { 0.5f * u_iv, Rgba(0.5f, 0.5f, 0.5f) },
-                              /*{ u_iv, Color(1.5f, 0.f, 0.f) },
-                              { u_cv, Color(2.f, 2.f, 0.95) } },*/
-                              { u_iv, Rgba(0.8f, 0.f, 0.f) },
-                              { u_cv, Rgba(1.f, 1.f, 0.6) } },
+        palette = Palette({ { 0.1f * u_red, Rgba(0.5f, 0.5f, 0.5) },
+                              { u_glow, Rgba(0.5f, 0.5f, 0.5f) },
+                              { u_red, Rgba(0.8f, 0.f, 0.f) },
+                              { u_yellow, Rgba(1.f, 1.f, 0.6) } },
             PaletteScale::LOGARITHMIC);
     }
 
@@ -733,6 +733,10 @@ public:
     virtual Rgba evalColor(const Size idx) const override {
         ASSERT(this->isInitialized());
         return palette(u[idx]);
+    }
+
+    virtual Optional<Float> evalScalar(const Size idx) const override {
+        return max(0._f, (u[idx] - u_glow) / u_red);
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {

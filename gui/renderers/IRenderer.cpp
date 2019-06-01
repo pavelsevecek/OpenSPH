@@ -13,6 +13,7 @@ void RenderParams::initialize(const GuiSettings& gui) {
     surface.level = gui.get<Float>(GuiSettingsId::SURFACE_LEVEL);
     surface.ambientLight = gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
     surface.sunLight = gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY);
+    surface.emission = gui.get<Float>(GuiSettingsId::SURFACE_EMISSION);
 }
 
 NAMESPACE_SPH_END

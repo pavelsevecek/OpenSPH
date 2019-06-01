@@ -58,7 +58,7 @@ private:
     mutable Timer lastRenderTimer;
 
 public:
-    explicit ParticleRenderer(IScheduler& scheduler, const GuiSettings& settings);
+    explicit ParticleRenderer(const GuiSettings& settings);
 
     virtual void initialize(const Storage& storage,
         const IColorizer& colorizer,

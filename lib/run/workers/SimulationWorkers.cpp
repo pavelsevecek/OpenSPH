@@ -186,6 +186,10 @@ VirtualSettings SphWorker::getSettings() {
                settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES).has(ForceEnum::GRAVITY);
     };
 
+    auto stressEnabler = [this] {
+        return settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES).has(ForceEnum::SOLID_STRESS);
+    };
+
     VirtualSettings::Category& solverCat = connector.addCategory("SPH solver");
     solverCat.connect<Flags<ForceEnum>>("Forces", settings, RunSettingsId::SPH_SOLVER_FORCES)
         .connect<EnumWrapper>("Artificial viscosity", settings, RunSettingsId::SPH_AV_TYPE)
@@ -195,7 +199,10 @@ VirtualSettings SphWorker::getSettings() {
         .connect<Float>("Artificial viscosity beta", settings, RunSettingsId::SPH_AV_BETA)
         .connect<EnumWrapper>("Solver type", settings, RunSettingsId::SPH_SOLVER_TYPE)
         .connect<EnumWrapper>("SPH discretization", settings, RunSettingsId::SPH_DISCRETIZATION)
-        .connect<bool>("Apply correction tensor", settings, RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR)
+        .connect<bool>("Apply correction tensor",
+            settings,
+            RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR,
+            stressEnabler)
         .connect<bool>("Sum only undamaged particles", settings, RunSettingsId::SPH_SUM_ONLY_UNDAMAGED)
         .connect<EnumWrapper>("Neighbour finder", settings, RunSettingsId::SPH_FINDER)
         .connect<int>("Max leaf size", settings, RunSettingsId::FINDER_LEAF_SIZE, treeEnabler)
@@ -218,6 +225,10 @@ AutoPtr<IRun> SphWorker::getRun(const RunSettings& overrides) const {
     }
 
     RunSettings run = overrideSettings(settings, overrides, isResumed);
+    if (!run.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES).has(ForceEnum::SOLID_STRESS)) {
+        run.set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, false);
+    }
+
     return makeAuto<SphRun>(run, domain);
 }
 

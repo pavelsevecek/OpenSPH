@@ -28,7 +28,8 @@ Movie::Movie(const GuiSettings& settings,
     outputStep = settings.get<Float>(GuiSettingsId::IMAGES_TIMESTEP);
     const Path directory(settings.get<std::string>(GuiSettingsId::IMAGES_PATH));
     const Path name(settings.get<std::string>(GuiSettingsId::IMAGES_NAME));
-    paths = OutputFile(directory / name);
+    const Size firstIndex(settings.get<int>(GuiSettingsId::IMAGES_FIRST_INDEX));
+    paths = OutputFile(directory / name, firstIndex);
 
     const Path animationName(settings.get<std::string>(GuiSettingsId::IMAGES_MOVIE_NAME));
     animationPath = directory / animationName;
@@ -64,7 +65,12 @@ public:
         currentPath = path;
     }
 
-    virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels) override {
+    virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels, const bool isFinal) override {
+        if (!isFinal) {
+            // no need for save intermediate results on disk
+            return;
+        }
+
         if (isMainThread()) {
             this->updateMainThread(bitmap, std::move(labels));
         } else {

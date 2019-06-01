@@ -177,7 +177,7 @@ static void drawKey(IRenderContext& context,
     context.drawText(lineStart + Coords(0, 6), flags, scaleText + units);
 }
 
-ParticleRenderer::ParticleRenderer(IScheduler& UNUSED(scheduler), const GuiSettings& settings) {
+ParticleRenderer::ParticleRenderer(const GuiSettings& settings) {
     grid = settings.get<Float>(GuiSettingsId::VIEW_GRID_SIZE);
     renderGhosts = settings.get<bool>(GuiSettingsId::RENDER_GHOST_PARTICLES);
     shouldContinue = true;
@@ -357,7 +357,7 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
     context->drawLine(Coords(params.size.x - 1, params.size.y - 1), Coords(0, params.size.y - 1));
     context->drawLine(Coords(0, params.size.y - 1), Coords(0, 0));
 
-    output.update(bitmap, context->getLabels());
+    output.update(bitmap, context->getLabels(), true);
 }
 
 void ParticleRenderer::cancelRender() {

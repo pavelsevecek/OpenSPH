@@ -1355,6 +1355,8 @@ void NodeWindow::reset() {
 }
 
 void NodeWindow::save(Config& config) {
+    grid->CommitChangesFromEditor();
+
     nodeMgr->save(config);
     nodeEditor->save(config);
 }

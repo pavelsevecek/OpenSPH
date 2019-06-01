@@ -13,6 +13,7 @@
 NAMESPACE_SPH_BEGIN
 
 class FrameBuffer;
+class Seeder;
 class IBrdf;
 
 class RayTracer : public IRenderer {
@@ -60,7 +61,7 @@ private:
 
     } fixed;
 
-    IScheduler& scheduler;
+    SharedPtr<IScheduler> scheduler;
 
     struct ThreadData {
         /// Neighbour indices of the current particle
@@ -74,6 +75,8 @@ private:
 
         /// Random-number generator for this thread.
         UniformRng rng;
+
+        ThreadData(Seeder& seeder);
     };
 
     mutable ThreadLocal<ThreadData> threadData;
@@ -102,7 +105,7 @@ private:
     mutable std::atomic_bool shouldContinue;
 
 public:
-    explicit RayTracer(IScheduler& scheduler, const GuiSettings& settings);
+    RayTracer(SharedPtr<IScheduler> scheduler, const GuiSettings& settings);
 
     ~RayTracer();
 

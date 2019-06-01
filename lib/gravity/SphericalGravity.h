@@ -44,7 +44,7 @@ public:
         });
     }
 
-    virtual Vector eval(const Vector& r0, Statistics& UNUSED(stats)) const override {
+    virtual Vector eval(const Vector& r0) const override {
         Analytic::StaticSphere sphere(INFTY, rho0);
         return sphere.getAcceleration(r0 - center);
     }

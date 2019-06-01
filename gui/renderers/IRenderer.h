@@ -41,7 +41,7 @@ public:
     };
 
     /// May be called once after render finishes or multiple times for progressive renderers.
-    virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels) = 0;
+    virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels, const bool isFinal) = 0;
 };
 
 
@@ -105,10 +105,16 @@ struct RenderParams {
         float level = 0.15f;
 
         /// \brief Intensity of the ambient light, illuminating every point unconditionally.
-        Float ambientLight = 0.3f;
+        float ambientLight = 0.3f;
 
         /// \brief Intensity of the sunlight.
-        Float sunLight = 0.7f;
+        float sunLight = 0.7f;
+
+        /// \brief Emission multiplier
+        float emission = 1.f;
+
+        /// \brief Width of the image reconstruction filter
+        float filterWidth = 2.f;
 
     } surface;
 

@@ -9,7 +9,8 @@ enum class ColorizerFlag {
     VELOCITY = 1 << 0,
     ENERGY = 1 << 1,
     BOUND_COMPONENT_ID = 1 << 2,
-    BEAUTY = 1 << 3,
+    MASS = 1 << 3,
+    BEAUTY = 1 << 4,
 };
 
 enum class AnimationType {

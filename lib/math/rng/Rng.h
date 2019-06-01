@@ -161,4 +161,36 @@ INLINE Size samplePoissonDistribution(TRng& rng, const Float lambda) {
     return k - 1;
 }
 
+/// \brief Generates a random position on a unit sphere
+template <typename TRng>
+INLINE Vector sampleUnitSphere(TRng& rng) {
+    const Float phi = rng() * 2._f * PI;
+    const Float z = rng() * 2._f - 1._f;
+    const Float u = sqrt(1._f - sqr(z));
+
+    return Vector(u * cos(phi), u * sin(phi), z);
+}
+
+
+/// \brief Generates a random number from a generic distribution, using rejection sampling.
+///
+/// Note that this function may be very inefficient and should be used only if the distribution cannot be
+/// sampled with an explicit method.
+/// \param rng Random number generator
+/// \param range Minimal and maximal generated value
+/// \param upperBound Upper bound for the values returned by the functor
+/// \param func Probability distribution function. Does not have to be normalized.
+template <typename TRng, typename TFunc>
+INLINE Float sampleDistribution(TRng& rng, const Interval& range, const Float upperBound, const TFunc& func) {
+    while (true) {
+        const Float x = range.lower() + rng() * range.size();
+        const Float y = rng() * upperBound;
+        const Float pdf = func(x);
+        ASSERT(pdf >= 0._f && pdf < upperBound, pdf);
+        if (y < pdf) {
+            return x;
+        }
+    }
+}
+
 NAMESPACE_SPH_END

@@ -172,6 +172,8 @@ enum class GuiSettingsId {
     /// Intentity of the sun
     SURFACE_SUN_INTENSITY,
 
+    SURFACE_EMISSION,
+
     /// Ambient color for surface renderer
     SURFACE_AMBIENT,
 
@@ -212,6 +214,8 @@ enum class GuiSettingsId {
 
     /// Mask of the image names, having %d where the output number will be placed.
     IMAGES_NAME,
+
+    IMAGES_FIRST_INDEX,
 
     IMAGES_MAKE_MOVIE,
 

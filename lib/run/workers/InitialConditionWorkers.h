@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gravity/Galaxy.h"
 #include "run/workers/MaterialWorkers.h"
 
 NAMESPACE_SPH_BEGIN
@@ -141,5 +142,24 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
+class GalaxyIc : public IParticleWorker {
+private:
+    GalaxySettings settings;
+
+public:
+    GalaxyIc(const std::string& name, const GalaxySettings& overrides = EMPTY_SETTINGS);
+
+    virtual std::string className() const override {
+        return "galaxy ICs";
+    }
+
+    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+        return {};
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+};
 
 NAMESPACE_SPH_END

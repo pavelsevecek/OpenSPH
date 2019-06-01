@@ -30,6 +30,7 @@ static RegisterEnum<ColorizerFlag> sColorizers({
     { ColorizerFlag::VELOCITY, "velocity", "Particle velocities" },
     { ColorizerFlag::ENERGY, "energy", "Specific internal energy" },
     { ColorizerFlag::BOUND_COMPONENT_ID, "bound components", "Components" },
+    { ColorizerFlag::MASS, "mass", "Mass" },
     { ColorizerFlag::BEAUTY, "beauty", "Beauty" },
 });
 
@@ -62,11 +63,17 @@ VirtualSettings AnimationWorker::getSettings() {
         .connect<bool>("Transparent background", "transparent", transparentBackground)
         .connect<Float>("Particle radius", gui, GuiSettingsId::PARTICLE_RADIUS, particleEnabler)
         .connect<bool>("Antialiasing", gui, GuiSettingsId::ANTIALIASED, particleEnabler)
-        .connect<Float>("Sunlight intensity", gui, GuiSettingsId::SURFACE_SUN_INTENSITY, raytracerEnabler)
         .connect<Vector>("Sun position", gui, GuiSettingsId::SURFACE_SUN_POSITION, raytracerEnabler)
+        .connect<Float>("Sunlight intensity", gui, GuiSettingsId::SURFACE_SUN_INTENSITY, raytracerEnabler)
         .connect<Float>("Ambient intensity", gui, GuiSettingsId::SURFACE_AMBIENT, raytracerEnabler)
+        .connect<Float>("Emission", gui, GuiSettingsId::SURFACE_EMISSION, raytracerEnabler)
         .connect<Float>("Surface level", gui, GuiSettingsId::SURFACE_LEVEL, raytracerEnabler)
         .connect<int>("Interation count", gui, GuiSettingsId::RAYTRACE_ITERATION_LIMIT, raytracerEnabler);
+
+    VirtualSettings::Category& textureCat = connector.addCategory("Texture paths");
+    textureCat.connect<std::string>("Body 1", gui, GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY, raytracerEnabler)
+        .connect<std::string>("Body 2", gui, GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY, raytracerEnabler)
+        .connect<std::string>("Background", gui, GuiSettingsId::RAYTRACE_HDRI, raytracerEnabler);
 
     VirtualSettings::Category& cameraCat = connector.addCategory("Camera");
     cameraCat.connect<EnumWrapper>("Camera type", gui, GuiSettingsId::CAMERA)
@@ -91,10 +98,11 @@ VirtualSettings AnimationWorker::getSettings() {
     return connector;
 }
 
-void AnimationWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
+void AnimationWorker::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     gui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f));
 
-    AutoPtr<IRenderer> renderer = Factory::getRenderer(gui);
+    SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
+    AutoPtr<IRenderer> renderer = Factory::getRenderer(scheduler, gui);
 
     RenderParams params;
     params.size = { gui.get<int>(GuiSettingsId::IMAGES_WIDTH), gui.get<int>(GuiSettingsId::IMAGES_HEIGHT) };
@@ -113,8 +121,18 @@ void AnimationWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks&
     if (colorizers.has(ColorizerFlag::BOUND_COMPONENT_ID)) {
         colorizerArray.push(Factory::getColorizer(project, ColorizerId::BOUND_COMPONENT_ID));
     }
+    if (colorizers.has(ColorizerFlag::MASS)) {
+        colorizerArray.push(Factory::getColorizer(project, ColorizerId(QuantityId::MASS)));
+    }
     if (colorizers.has(ColorizerFlag::BEAUTY)) {
         colorizerArray.push(Factory::getColorizer(project, ColorizerId::BEAUTY));
+    }
+
+    if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE) {
+        Optional<Size> firstIndex = OutputFile::getDumpIdx(sequence.firstFile);
+        if (firstIndex) {
+            gui.set(GuiSettingsId::IMAGES_FIRST_INDEX, int(firstIndex.value()));
+        }
     }
 
     Movie movie(gui, std::move(renderer), std::move(colorizerArray), std::move(params));

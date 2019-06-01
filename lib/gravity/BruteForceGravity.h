@@ -49,7 +49,7 @@ public:
         });
     }
 
-    virtual Vector eval(const Vector& r0, Statistics& UNUSED(stats)) const override {
+    virtual Vector eval(const Vector& r0) const override {
         struct NoSymmetrization {
             const GravityLutKernel& kernel;
 
@@ -82,12 +82,19 @@ private:
     INLINE Vector evalImpl(const TKernel& actKernel, const Vector& r0, const Size idx) const {
         ASSERT(r && m);
         Vector a(0._f);
-        // do 2 for loops to avoid the if
-        for (Size i = 0; i < idx; ++i) {
-            a += m[i] * actKernel.grad(r[i], r0);
-        }
-        for (Size i = idx + 1; i < r.size(); ++i) {
-            a += m[i] * actKernel.grad(r[i], r0);
+
+        if (idx != Size(-1)) {
+            // do 2 for loops to avoid the if
+            for (Size i = 0; i < idx; ++i) {
+                a += m[i] * actKernel.grad(r[i], r0);
+            }
+            for (Size i = idx + 1; i < r.size(); ++i) {
+                a += m[i] * actKernel.grad(r[i], r0);
+            }
+        } else {
+            for (Size i = 0; i < r.size(); ++i) {
+                a += m[i] * actKernel.grad(r[i], r0);
+            }
         }
         return Constants::gravity * a;
     }

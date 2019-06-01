@@ -100,7 +100,7 @@ public:
 
     virtual void evalAll(IScheduler& pool, ArrayView<Vector> dv, Statistics& stats) const override;
 
-    virtual Vector eval(const Vector& r0, Statistics& stats) const override;
+    virtual Vector eval(const Vector& r0) const override;
 
     virtual Float evalEnergy(IScheduler& scheduler, Statistics& stats) const override;
 
@@ -113,7 +113,7 @@ public:
 
 protected:
     /// Evaluates the gravity at a single point in space.
-    Vector evalImpl(const Vector& r0, const Size idx, Statistics& stats) const;
+    Vector evalImpl(const Vector& r0, const Size idx) const;
 
     /// Helper task for parallelization of treewalk
     class NodeTask;

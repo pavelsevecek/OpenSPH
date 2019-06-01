@@ -467,4 +467,42 @@ static WorkerRegistrar sRegisterNBodyIc("N-body ICs", "initial conditions", [](c
     return makeAuto<NBodyIc>(name);
 });
 
+
+// ----------------------------------------------------------------------------------------------------------
+// GalaxyICs
+// ----------------------------------------------------------------------------------------------------------
+
+GalaxyIc::GalaxyIc(const std::string& name, const GalaxySettings& overrides)
+    : IParticleWorker(name) {
+    settings.addEntries(overrides);
+}
+
+VirtualSettings GalaxyIc::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+
+    VirtualSettings::Category& diskCat = connector.addCategory("Disk");
+    diskCat.connect<int>("Disk particle count", settings, GalaxySettingsId::DISK_PARTICLE_COUNT);
+
+    VirtualSettings::Category& haloCat = connector.addCategory("Halo");
+    haloCat.connect<int>("Halo particle count", settings, GalaxySettingsId::HALO_PARTICLE_COUNT);
+
+    VirtualSettings::Category& bulgeCat = connector.addCategory("Bulge");
+    bulgeCat.connect<int>("Bulge particle count", settings, GalaxySettingsId::BULGE_PARTICLE_COUNT);
+
+    return connector;
+}
+
+void GalaxyIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+    Storage storage = Galaxy::generateIc(settings);
+
+    result = makeShared<ParticleData>();
+    result->storage = std::move(storage);
+}
+
+
+static WorkerRegistrar sRegisterGalaxyIc("galaxy ICs", "initial conditions", [](const std::string& name) {
+    return makeAuto<GalaxyIc>(name);
+});
+
 NAMESPACE_SPH_END
