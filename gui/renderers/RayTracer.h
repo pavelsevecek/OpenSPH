@@ -13,7 +13,7 @@
 NAMESPACE_SPH_BEGIN
 
 class FrameBuffer;
-class Seeder;
+struct Seeder;
 class IBrdf;
 
 class RayTracer : public IRenderer {

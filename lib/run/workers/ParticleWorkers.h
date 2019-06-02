@@ -33,6 +33,8 @@ public:
 class MergeParticlesWorker : public IParticleWorker {
 private:
     Vector offset = Vector(0._f);
+    bool moveToCom = false;
+    bool uniqueFlags = false;
 
 public:
     MergeParticlesWorker(const std::string& name)
@@ -44,6 +46,35 @@ public:
 
     virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
         return { { "particles A", WorkerType::PARTICLES }, { "particles B", WorkerType::PARTICLES } };
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
+};
+
+
+class TransformParticlesWorker : public IParticleWorker {
+private:
+    struct {
+        Vector offset = Vector(0._f);
+        Vector angles = Vector(0._f);
+    } positions;
+
+    struct {
+        Vector offset = Vector(0._f);
+    } velocities;
+
+public:
+    TransformParticlesWorker(const std::string& name)
+        : IParticleWorker(name) {}
+
+    virtual std::string className() const override {
+        return "transform";
+    }
+
+    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+        return { { "particles", WorkerType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override;

@@ -65,8 +65,9 @@ protected:
     /// Child nodes are then evaluated serially on the same thread.
     Size maxDepth;
 
-    /// Gravitational constant in the selected unit system. In SI, this is simply \ref Constants::gravity.
+    /// \brief Gravitational constant in the selected unit system.
     ///
+    /// In SI, this is simply \ref Constants::gravity.
     /// \todo generalize
     Float gravityConstant = Constants::gravity;
 
@@ -80,7 +81,8 @@ public:
     BarnesHut(const Float theta,
         const MultipoleOrder order,
         const Size leafSize = 25,
-        const Size maxDepth = 50);
+        const Size maxDepth = 50,
+        const Float gravityConstant = Constants::gravity);
 
     /// \brief Constructs the Barnes-Hut gravity with given smoothing kernel
     ///
@@ -93,7 +95,8 @@ public:
         const MultipoleOrder order,
         GravityLutKernel&& kernel,
         const Size leafSize = 25,
-        const Size maxDepth = 50);
+        const Size maxDepth = 50,
+        const Float gravityConstant = Constants::gravity);
 
     /// Masses of particles must be strictly positive, otherwise center of mass would be undefined.
     virtual void build(IScheduler& pool, const Storage& storage) override;

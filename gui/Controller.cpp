@@ -797,6 +797,7 @@ void Controller::startRenderThread() {
             const wxSize canvasSize = page->getCanvasSize();
             RenderParams params;
             params.size = Pixel(canvasSize.x, canvasSize.y);
+            params.particles.selected = vis.selectedParticle;
 
             // initialize all parameters from GUI settings
             params.initialize(project.getGuiSettings());

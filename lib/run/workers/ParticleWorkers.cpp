@@ -66,13 +66,15 @@ VirtualSettings MergeParticlesWorker::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
-    VirtualSettings::Category& cat = connector.addCategory("Misc");
+    VirtualSettings::Category& cat = connector.addCategory("Merging");
     cat.connect("Offset [km]", "offset", offset, 1.e3_f);
+    cat.connect("Move to COM", "com", moveToCom);
+    cat.connect("Make flags unique", "unique_flags", uniqueFlags);
 
     return connector;
 }
 
-void MergeParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void MergeParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
     SharedPtr<ParticleData> input1 = this->getInput<ParticleData>("particles A");
     SharedPtr<ParticleData> input2 = this->getInput<ParticleData>("particles B");
 
@@ -82,17 +84,86 @@ void MergeParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunCallb
         r[i] += offset;
     }
 
+    if (uniqueFlags) {
+        ArrayView<Size> flags1 = input1->storage.getValue<Size>(QuantityId::FLAG);
+        ArrayView<Size> flags2 = input2->storage.getValue<Size>(QuantityId::FLAG);
+
+        const Size flagOffset = Size(*std::max_element(flags1.begin(), flags1.end())) + 1;
+        for (Size i = 0; i < flags2.size(); ++i) {
+            flags2[i] += flagOffset;
+        }
+    }
+
     input1->storage.merge(std::move(input2->storage));
 
-    result = makeShared<ParticleData>();
-    result->storage = std::move(input1->storage);
-    result->stats = std::move(input1->stats);
+    if (moveToCom) {
+        ArrayView<Vector> v, dv;
+        tie(r, v, dv) = input1->storage.getAll<Vector>(QuantityId::POSITION);
+        ArrayView<const Float> m = input1->storage.getValue<Float>(QuantityId::MASS);
+        moveToCenterOfMassSystem(m, r);
+        moveToCenterOfMassSystem(m, v);
+    }
+
+    result = input1;
+    callbacks.onSetUp(result->storage, result->stats);
 }
 
 
 static WorkerRegistrar sRegisterParticleMerge("merge", "particle operators", [](const std::string& name) {
     return makeAuto<MergeParticlesWorker>(name);
 });
+
+
+//-----------------------------------------------------------------------------------------------------------
+// TransformParticlesWorker
+//-----------------------------------------------------------------------------------------------------------
+
+VirtualSettings TransformParticlesWorker::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+
+    VirtualSettings::Category& posCat = connector.addCategory("Positions");
+    posCat.connect("Translate [km]", "offset", positions.offset, 1.e3_f);
+    posCat.connect("Yaw angle [deg]", "yaw", positions.angles[0], DEG_TO_RAD);
+    posCat.connect("Pitch angle [deg]", "pitch", positions.angles[1], DEG_TO_RAD);
+    posCat.connect("Roll angle [deg]", "roll", positions.angles[2], DEG_TO_RAD);
+
+    VirtualSettings::Category& velCat = connector.addCategory("Velocities");
+    velCat.connect("Add velocity [km/s]", "velocity", velocities.offset, 1.e3_f);
+
+    return connector;
+}
+
+void TransformParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
+    result = this->getInput<ParticleData>("particles");
+
+    AffineMatrix positionTm = AffineMatrix::rotateX(positions.angles[0]) *
+                              AffineMatrix::rotateY(positions.angles[1]) *
+                              AffineMatrix::rotateZ(positions.angles[2]);
+    positionTm.translate(positions.offset);
+
+    AffineMatrix velocityTm = AffineMatrix::identity();
+    velocityTm.translate(velocities.offset);
+
+    ArrayView<Vector> r = result->storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Vector> v = result->storage.getDt<Vector>(QuantityId::POSITION);
+
+    for (Size i = 0; i < r.size(); ++i) {
+        const Float h = r[i][H];
+        r[i] = positionTm * r[i];
+        r[i][H] = h;
+
+        v[i] = velocityTm * v[i];
+        v[i][H] = 0._f;
+    }
+
+    callbacks.onSetUp(result->storage, result->stats);
+}
+
+
+static WorkerRegistrar sRegisterParticleTransform("transform",
+    "particle operators",
+    [](const std::string& name) { return makeAuto<TransformParticlesWorker>(name); });
 
 //-----------------------------------------------------------------------------------------------------------
 // ChangeMaterialWorker

@@ -14,11 +14,16 @@ static_assert(sizeof(InnerNode<BarnesHutNode>) == sizeof(LeafNode<BarnesHutNode>
 static_assert(alignof(InnerNode<BarnesHutNode>) == alignof(LeafNode<BarnesHutNode>),
     "Invalid alignment of BarnesHut nodes");
 
-BarnesHut::BarnesHut(const Float theta, const MultipoleOrder order, const Size leafSize, const Size maxDepth)
+BarnesHut::BarnesHut(const Float theta,
+    const MultipoleOrder order,
+    const Size leafSize,
+    const Size maxDepth,
+    const Float gravityConstant)
     : kdTree(leafSize, maxDepth)
     , thetaInv(1.f / theta)
     , order(order)
-    , maxDepth(maxDepth) {
+    , maxDepth(maxDepth)
+    , gravityConstant(gravityConstant) {
     // use default-constructed kernel; it works, because by default LutKernel has zero radius and functions
     // valueImpl and gradImpl are never called.
     // Check by assert to make sure this trick will work
@@ -30,12 +35,14 @@ BarnesHut::BarnesHut(const Float theta,
     const MultipoleOrder order,
     GravityLutKernel&& kernel,
     const Size leafSize,
-    const Size maxDepth)
+    const Size maxDepth,
+    const Float gravityConstant)
     : kdTree(leafSize, maxDepth)
     , kernel(std::move(kernel))
     , thetaInv(1.f / theta)
     , order(order)
-    , maxDepth(maxDepth) {
+    , maxDepth(maxDepth)
+    , gravityConstant(gravityConstant) {
     ASSERT(theta > 0._f, theta);
 }
 

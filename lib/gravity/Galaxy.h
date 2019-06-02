@@ -6,6 +6,7 @@
 NAMESPACE_SPH_BEGIN
 
 class IGravity;
+class UniformRng;
 
 enum class GalaxySettingsId {
     DISK_PARTICLE_COUNT,
@@ -40,13 +41,13 @@ enum class PartEnum {
     BULGE,
 };
 
-Storage generateDisk(const GalaxySettings& settings);
+Storage generateDisk(UniformRng& rng, const GalaxySettings& settings);
 
-Storage generateHalo(const GalaxySettings& settings);
+Storage generateHalo(UniformRng& rng, const GalaxySettings& settings);
 
-Storage generateBulge(const GalaxySettings& settings);
+Storage generateBulge(UniformRng& rng, const GalaxySettings& settings);
 
-Storage generateIc(const GalaxySettings& settings);
+Storage generateIc(const RunSettings& globals, const GalaxySettings& settings);
 
 } // namespace Galaxy
 

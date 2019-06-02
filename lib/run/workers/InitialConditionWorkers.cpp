@@ -472,6 +472,8 @@ static WorkerRegistrar sRegisterNBodyIc("N-body ICs", "initial conditions", [](c
 // GalaxyICs
 // ----------------------------------------------------------------------------------------------------------
 
+extern template class Settings<GalaxySettingsId>;
+
 GalaxyIc::GalaxyIc(const std::string& name, const GalaxySettings& overrides)
     : IParticleWorker(name) {
     settings.addEntries(overrides);
@@ -482,22 +484,41 @@ VirtualSettings GalaxyIc::getSettings() {
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& diskCat = connector.addCategory("Disk");
-    diskCat.connect<int>("Disk particle count", settings, GalaxySettingsId::DISK_PARTICLE_COUNT);
+    diskCat.connect<int>("Disk particle count", settings, GalaxySettingsId::DISK_PARTICLE_COUNT)
+        .connect<Float>("Disk radial scale", settings, GalaxySettingsId::DISK_RADIAL_SCALE)
+        .connect<Float>("Disk radial cutoff", settings, GalaxySettingsId::DISK_RADIAL_CUTOFF)
+        .connect<Float>("Disk vertical scale", settings, GalaxySettingsId::DISK_VERTICAL_SCALE)
+        .connect<Float>("Disk vertical cutoff", settings, GalaxySettingsId::DISK_VERTICAL_CUTOFF)
+        .connect<Float>("Disk mass", settings, GalaxySettingsId::DISK_MASS)
+        .connect<Float>("Toomre Q parameter", settings, GalaxySettingsId::DISK_TOOMRE_Q);
 
     VirtualSettings::Category& haloCat = connector.addCategory("Halo");
-    haloCat.connect<int>("Halo particle count", settings, GalaxySettingsId::HALO_PARTICLE_COUNT);
+    haloCat.connect<int>("Halo particle count", settings, GalaxySettingsId::HALO_PARTICLE_COUNT)
+        .connect<Float>("Halo scale length", settings, GalaxySettingsId::HALO_SCALE_LENGTH)
+        .connect<Float>("Halo cutoff", settings, GalaxySettingsId::HALO_CUTOFF)
+        .connect<Float>("Halo gamma", settings, GalaxySettingsId::HALO_GAMMA)
+        .connect<Float>("Halo mass", settings, GalaxySettingsId::HALO_MASS);
 
     VirtualSettings::Category& bulgeCat = connector.addCategory("Bulge");
-    bulgeCat.connect<int>("Bulge particle count", settings, GalaxySettingsId::BULGE_PARTICLE_COUNT);
+    bulgeCat.connect<int>("Bulge particle count", settings, GalaxySettingsId::BULGE_PARTICLE_COUNT)
+        .connect<Float>("Bulge scale length", settings, GalaxySettingsId::BULGE_SCALE_LENGTH)
+        .connect<Float>("Bulge cutoff", settings, GalaxySettingsId::BULGE_CUTOFF)
+        .connect<Float>("Bulge mass", settings, GalaxySettingsId::BULGE_MASS);
+
+    VirtualSettings::Category& particleCat = connector.addCategory("Particles");
+    particleCat.connect<Float>("Particle radius", settings, GalaxySettingsId::PARTICLE_RADIUS);
 
     return connector;
 }
 
-void GalaxyIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
-    Storage storage = Galaxy::generateIc(settings);
+void GalaxyIc::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) {
+    Storage storage = Galaxy::generateIc(global, settings);
 
     result = makeShared<ParticleData>();
     result->storage = std::move(storage);
+
+    /// \todo generalize units
+    result->overrides.set(RunSettingsId::GRAVITY_CONSTANT, 1._f);
 }
 
 

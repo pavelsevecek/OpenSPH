@@ -306,9 +306,8 @@ public:
             solver = makeAuto<NBodySolver>(*scheduler, settings);
         }
 
-        for (Size matId = 0; matId < storage->getMaterialCnt(); ++matId) {
-            solver->create(*storage, storage->getMaterial(matId));
-        }
+        NullMaterial mtl(BodySettings::getDefaults());
+        solver->create(*storage, mtl);
     }
 
     virtual void tearDown(const Storage& storage, const Statistics& stats) override {

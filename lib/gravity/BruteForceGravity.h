@@ -23,16 +23,19 @@ private:
     ArrayView<const Float> m;
 
     GravityLutKernel kernel;
+    Float gravityConstant = Constants::gravity;
 
 public:
     /// \brief Default-construced gravity, assuming point-like particles
-    BruteForceGravity() {
+    BruteForceGravity(const Float gravityContant = Constants::gravity)
+        : gravityConstant(gravityContant) {
         ASSERT(kernel.radius() == 0._f);
     }
 
     /// \brief Constructs gravity using smoothing kernel
-    BruteForceGravity(GravityLutKernel&& kernel)
-        : kernel(std::move(kernel)) {}
+    BruteForceGravity(GravityLutKernel&& kernel, const Float gravityContant = Constants::gravity)
+        : kernel(std::move(kernel))
+        , gravityConstant(gravityContant) {}
 
     virtual void build(IScheduler& UNUSED(scheduler), const Storage& storage) override {
         r = storage.getValue<Vector>(QuantityId::POSITION);
@@ -70,7 +73,7 @@ public:
                 }
             }
         });
-        return 0.5_f * Constants::gravity * energy.accumulate();
+        return 0.5_f * gravityConstant * energy.accumulate();
     }
 
     virtual RawPtr<const IBasicFinder> getFinder() const override {
@@ -96,7 +99,7 @@ private:
                 a += m[i] * actKernel.grad(r[i], r0);
             }
         }
-        return Constants::gravity * a;
+        return gravityConstant * a;
     }
 };
 

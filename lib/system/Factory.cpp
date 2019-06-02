@@ -320,7 +320,8 @@ AutoPtr<IGravity> Factory::getGravity(const RunSettings& settings) {
             MultipoleOrder(settings.get<int>(RunSettingsId::GRAVITY_MULTIPOLE_ORDER));
         const Size leafSize = settings.get<int>(RunSettingsId::FINDER_LEAF_SIZE);
         const Size maxDepth = settings.get<int>(RunSettingsId::FINDER_MAX_PARALLEL_DEPTH);
-        gravity = makeAuto<BarnesHut>(theta, order, std::move(kernel), leafSize, maxDepth);
+        const Float constant = settings.get<Float>(RunSettingsId::GRAVITY_CONSTANT);
+        gravity = makeAuto<BarnesHut>(theta, order, std::move(kernel), leafSize, maxDepth, constant);
         break;
     }
     default:

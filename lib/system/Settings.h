@@ -1017,6 +1017,9 @@ enum class RunSettingsId {
     /// Gravity smoothing kernel
     GRAVITY_KERNEL,
 
+    /// Gravitational constant. To be generalized.
+    GRAVITY_CONSTANT,
+
     /// Period of gravity evaluation. If zero, gravity is computed every time step, for any positive value,
     /// gravitational acceleration is cached for each particle and used each time step until next
     /// recomputation.

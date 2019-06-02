@@ -1,5 +1,6 @@
 #include "gravity/Galaxy.h"
 #include "gravity/BarnesHut.h"
+#include "gravity/BruteForceGravity.h"
 #include "gravity/Moments.h"
 #include "math/rng/Rng.h"
 #include "quantities/IMaterial.h"
@@ -35,6 +36,10 @@ AutoPtr<Settings<GalaxySettingsId>> Settings<GalaxySettingsId>::instance (new Se
 });
 // clang-format on
 
+// Explicit instantiation
+template class Settings<GalaxySettingsId>;
+template class SettingsIterator<GalaxySettingsId>;
+
 /// Mostly uses methods described in https://github.com/nmuldavin/NBodyIntegrator
 
 /// Surface probability distribution of a disk
@@ -63,8 +68,8 @@ INLINE Float maxHaloPdf(const Float r0, const Float g0) {
     return haloPdf(sqrt(x2), r0, g0);
 }
 
-/// Probability distribution function for velocities in halo
-INLINE Float haloVelocityPdf(const Float v, const Float sigma_r) {
+/// Probability distribution function for velocities in halo and bulge.
+INLINE Float velocityPdf(const Float v, const Float sigma_r) {
     return sqr(v) * exp(-0.5_f * sqr(v) / sigma_r);
 }
 
@@ -73,41 +78,18 @@ INLINE Float bulgePdf(const Float r, const Float a) {
     return r / (sqr(a) * pow<3>(1._f + r / a));
 }
 
-static Array<Float> computeEpicyclicFrequencies(IGravity& gravity,
-    IScheduler& scheduler,
-    Storage& storage,
-    const IndexSequence sequence,
-    const Float dr) {
-    Array<Vector> dv1(storage.getParticleCnt());
-    Array<Vector> dv2(storage.getParticleCnt());
+static Float getEpicyclicFrequency(IGravity& gravity, const Vector& r, const Vector& dv1, const Float dr) {
+    const Float radius = sqrt(sqr(r[X]) + sqr(r[Y])) + EPS;
+    const Vector dv2 = gravity.eval(r * (1._f + dr));
 
-    Statistics stats;
-    gravity.evalAll(scheduler, dv1, stats);
+    const Float a1_rad = (dv1[X] * r[X] + dv1[Y] * r[Y]) / radius;
+    const Float a2_rad = (dv2[X] * r[X] + dv2[Y] * r[Y]) / radius;
 
-    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
-    Array<Vector> r_orig = r.clone();
-
-    for (Size i : sequence) {
-        r[i] = r[i] * (1._f + dr);
-    }
-    gravity.evalAll(scheduler, dv2, stats);
-    r = std::move(r_orig);
-
-    Array<Float> kappa(r.size());
-    for (Size i : sequence) {
-        const Float radius = sqrt(sqr(r[i][X]) + sqr(r[i][Y])) + EPS;
-
-        const Float a1_rad = (dv1[i][X] * r[i][X] + dv1[i][Y] * r[i][Y]) / radius;
-        const Float a2_rad = (dv2[i][X] * r[i][X] + dv2[i][Y] * r[i][Y]) / radius;
-
-        const Float k2 = (3._f / radius) * a1_rad + (a2_rad - a1_rad) / dr;
-        kappa[i] = sqrt(abs(k2));
-    }
-
-    return kappa;
+    const Float k2 = (3._f / radius) * a1_rad + (a2_rad - a1_rad) / dr;
+    return sqrt(abs(k2));
 }
 
-Storage Galaxy::generateDisk(const GalaxySettings& settings) {
+Storage Galaxy::generateDisk(UniformRng& rng, const GalaxySettings& settings) {
     MEASURE_SCOPE("Galaxy::generateDisk");
 
     Array<Vector> positions;
@@ -120,11 +102,6 @@ Storage Galaxy::generateDisk(const GalaxySettings& settings) {
 
     const Interval radialRange(0._f, r_cutoff);
     const Interval verticalRange(-z_cutoff, z_cutoff);
-
-
-    /*min = 0.0, max = diskcut;                       //  setting max and min radii
-    topbound = findtopbound(surfacedist, min, max); //  finding topbound*/
-    UniformRng rng;
 
     // radial PDF is maximal at r = r0
     const Float maxSurfacePdf = diskSurfacePdf(r0, r0);
@@ -150,14 +127,14 @@ Storage Galaxy::generateDisk(const GalaxySettings& settings) {
     const Float m_disk = settings.get<Float>(GalaxySettingsId::DISK_MASS);
     const Float m = m_disk / n_disk;
 
-    Storage storage; //(makeShared<NullMaterial>()
+    Storage storage(makeShared<NullMaterial>(BodySettings::getDefaults()));
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(positions));
     storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, m);
     storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Size(PartEnum::DISK));
     return storage;
 }
 
-Storage Galaxy::generateHalo(const GalaxySettings& settings) {
+Storage Galaxy::generateHalo(UniformRng& rng, const GalaxySettings& settings) {
     MEASURE_SCOPE("Galaxy::generateHalo");
 
     const Size n_halo = settings.get<int>(GalaxySettingsId::HALO_PARTICLE_COUNT);
@@ -168,7 +145,6 @@ Storage Galaxy::generateHalo(const GalaxySettings& settings) {
     const Interval range(0._f, cutoff);
 
     const Float maxPdf = maxHaloPdf(r0, g0);
-    UniformRng rng;
 
     Array<Vector> positions;
     for (Size i = 0; i < n_halo; ++i) {
@@ -184,14 +160,14 @@ Storage Galaxy::generateHalo(const GalaxySettings& settings) {
     const Float m_halo = settings.get<Float>(GalaxySettingsId::HALO_MASS);
     const Float m = m_halo / n_halo;
 
-    Storage storage;
+    Storage storage(makeShared<NullMaterial>(BodySettings::getDefaults()));
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(positions));
     storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, m);
     storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Size(PartEnum::HALO));
     return storage;
 }
 
-Storage Galaxy::generateBulge(const GalaxySettings& settings) {
+Storage Galaxy::generateBulge(UniformRng& rng, const GalaxySettings& settings) {
     MEASURE_SCOPE("Galaxy::generateBulge");
 
     const Size n_bulge = settings.get<int>(GalaxySettingsId::HALO_PARTICLE_COUNT);
@@ -202,7 +178,6 @@ Storage Galaxy::generateBulge(const GalaxySettings& settings) {
 
     // PDF is maximal at x=a/2
     const Float maxPdf = bulgePdf(0.5_f * a, a);
-    UniformRng rng;
 
     Array<Vector> positions;
     for (Size i = 0; i < n_bulge; ++i) {
@@ -216,7 +191,7 @@ Storage Galaxy::generateBulge(const GalaxySettings& settings) {
     const Float m_bulge = settings.get<Float>(GalaxySettingsId::BULGE_MASS);
     const Float m = m_bulge / n_bulge;
 
-    Storage storage;
+    Storage storage(makeShared<NullMaterial>(BodySettings::getDefaults()));
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(positions));
     storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, m);
     storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Size(PartEnum::BULGE));
@@ -277,7 +252,10 @@ static IndexSequence getPartSequence(const Storage& storage, const Galaxy::PartE
         Size(std::distance(flag.begin(), iterFrom)), Size(std::distance(flag.begin(), iterTo)));
 }
 
-static void computeDiskVelocities(const GalaxySettings& settings, Storage& storage) {
+static void computeDiskVelocities(IScheduler& scheduler,
+    UniformRng& rng,
+    const GalaxySettings& settings,
+    Storage& storage) {
     MEASURE_SCOPE("computeDiskVelocities");
 
     const Float r0 = settings.get<Float>(GalaxySettingsId::DISK_RADIAL_SCALE);
@@ -295,18 +273,20 @@ static void computeDiskVelocities(const GalaxySettings& settings, Storage& stora
 
     const IndexSequence sequence = getPartSequence(storage, Galaxy::PartEnum::DISK);
 
-    BarnesHut gravity(0.5_f, MultipoleOrder::OCTUPOLE, SolidSphereKernel{});
-    SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
-    gravity.build(*scheduler, storage);
-
-    Array<Float> kappas = computeEpicyclicFrequencies(gravity, *scheduler, storage, sequence, 0.05_f * dr);
+    BarnesHut gravity(0.5_f, MultipoleOrder::OCTUPOLE, SolidSphereKernel{}, 25, 50, 1._f);
+    // BruteForceGravity gravity(SolidSphereKernel{}, 1._f);
+    gravity.build(scheduler, storage);
+    Statistics stats;
+    std::fill(dv.begin(), dv.end(), Vector(0._f));
+    gravity.evalAll(scheduler, dv, stats);
 
     Float sigma = 0._f;
     Size count = 0;
     for (Size i : sequence) {
         const Float radius = sqrt(sqr(r[i][X]) + sqr(r[i][Y]));
         if (abs(radius - r_ref) < dr) {
-            sigma += 3.36_f * diskSurfaceDensity(radius, r0, m_disk) / kappas[i];
+            const Float kappa = getEpicyclicFrequency(gravity, r[i], dv[i], 0.05_f * dr);
+            sigma += 3.36_f * diskSurfaceDensity(radius, r0, m_disk) / kappa;
             count++;
         }
     }
@@ -317,10 +297,6 @@ static void computeDiskVelocities(const GalaxySettings& settings, Storage& stora
     const Float A = sqr(sigma) / diskSurfaceDensity(r_ref, r0, m_disk);
     ASSERT(A >= 0._f, A);
 
-    Statistics stats;
-    gravity.evalAll(*scheduler, dv, stats);
-
-    UniformRng rng;
     for (Size i : sequence) {
         const Float radius = sqrt(sqr(r[i][X]) + sqr(r[i][Y]));
         const Float vz2 = PI * z0 * diskSurfaceDensity(sqrt(sqr(radius) + 2._f * sqr(as)), r0, m_disk);
@@ -332,14 +308,13 @@ static void computeDiskVelocities(const GalaxySettings& settings, Storage& stora
         ASSERT(vr2 > 0._f);
 
         const Vector a = dv[i];
-        const Float ar = (a[X] * r[i][X] * a[Y] * r[i][Y]) / radius;
+        const Float ar = (a[X] * r[i][X] + a[Y] * r[i][Y]) / radius;
         ASSERT(isReal(ar));
 
         const Float omega = sqrt(abs(ar) / radius);
         ASSERT(isReal(omega));
 
-        // const Float kappa = Galaxy::getEpicyclicFrequency(gravity, r[i], dr);
-        const Float kappa = kappas[i]; /// \todo dr instead of 0.05 * dr ?
+        const Float kappa = getEpicyclicFrequency(gravity, r[i], dv[i], dr);
         ASSERT(isReal(kappa));
 
         //  circular velocity
@@ -359,21 +334,18 @@ static void computeDiskVelocities(const GalaxySettings& settings, Storage& stora
     }
 }
 
-static void computeHaloVelocities(const GalaxySettings& settings,
+template <typename TFunc>
+static void computeSphericalVelocities(UniformRng& rng,
     ArrayView<const Pair<Float>> massDist,
-    Storage& storage) {
-    MEASURE_SCOPE("computeHaloVelocities");
-
+    const Galaxy::PartEnum partId,
+    Storage& storage,
+    const TFunc& func) {
     const Float dr = massDist[1][0] - massDist[0][0];
-    const Float r0 = settings.get<Float>(GalaxySettingsId::HALO_SCALE_LENGTH);
-    const Float g0 = settings.get<Float>(GalaxySettingsId::HALO_GAMMA);
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
 
-    UniformRng rng;
-    const IndexSequence sequence = getPartSequence(storage, Galaxy::PartEnum::HALO);
-
+    const IndexSequence sequence = getPartSequence(storage, partId);
     for (Size i : sequence) {
         const Float radius = getLength(r[i]);
         const Size firstBin = Size(radius / dr);
@@ -382,72 +354,65 @@ static void computeHaloVelocities(const GalaxySettings& settings,
 
         Float vr2 = 0._f;
         for (Size binIdx = firstBin; binIdx < massDist.size(); ++binIdx) {
-            vr2 += haloPdf(massDist[binIdx][0], r0, g0) * dr * massDist[binIdx][1];
+            vr2 += func(massDist[binIdx][0]) * dr * massDist[binIdx][1];
         }
-        vr2 /= haloPdf(radius, r0, g0) / sqr(radius);
+        vr2 /= func(radius) / sqr(radius);
 
         const Interval range(0._f, 0.95_f * v_esc);
-        const Float maxPdf = vr2 / E;
+        const Float maxPdf = velocityPdf(sqrt(2._f * vr2), vr2);
 
         const Float u = sampleDistribution(rng, range, maxPdf, [vr2](const Float x) { //
-            return haloVelocityPdf(x, vr2);
+            return velocityPdf(x, vr2);
         });
 
         v[i] = sampleUnitSphere(rng) * u;
     }
 }
 
-static void computeBulgeVelocities(const GalaxySettings& settings,
+static void computeHaloVelocities(UniformRng& rng,
+    const GalaxySettings& settings,
+    ArrayView<const Pair<Float>> massDist,
+    Storage& storage) {
+    MEASURE_SCOPE("computeHaloVelocities");
+
+    const Float r0 = settings.get<Float>(GalaxySettingsId::HALO_SCALE_LENGTH);
+    const Float g0 = settings.get<Float>(GalaxySettingsId::HALO_GAMMA);
+
+    computeSphericalVelocities(rng, massDist, Galaxy::PartEnum::HALO, storage, [r0, g0](const Float x) { //
+        return haloPdf(x, r0, g0);
+    });
+}
+
+static void computeBulgeVelocities(UniformRng& rng,
+    const GalaxySettings& settings,
     ArrayView<const Pair<Float>> massDist,
     Storage& storage) {
     MEASURE_SCOPE("computeBulgeVelocities");
 
     const Float a = settings.get<Float>(GalaxySettingsId::BULGE_SCALE_LENGTH);
-    const Float dr = massDist[1][0] - massDist[0][0];
 
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
-
-    UniformRng rng;
-    const IndexSequence sequence = getPartSequence(storage, Galaxy::PartEnum::BULGE);
-    for (Size i : sequence) {
-        const Float radius = getLength(r[i]);
-
-        const Size firstBin = Size(radius / dr);
-        const Float v_esc = sqrt(2._f * massDist[firstBin][1] / radius);
-
-        Float vr2 = 0._f;
-        for (Size binIdx = firstBin; binIdx < massDist.size(); ++binIdx) {
-            vr2 += bulgePdf(massDist[binIdx][0], a) * dr * massDist[binIdx][1];
-        }
-        vr2 /= bulgePdf(radius, a) / sqr(radius);
-
-        (void)v_esc;
-        /*const Interval range(0._f, 0.95_f * v_esc);
-        const Float maxPdf = vr2 / E;*/
-
-        /*const Float u = sampleDistribution(rng, range, 1f * maxPdf, [a](const Float x) { //
-            return bulgePdf(x, a);
-        });*/
-        const Float u = 0._f; /// \todo !!
-
-        v[i] = sampleUnitSphere(rng) * u;
-    }
+    computeSphericalVelocities(rng, massDist, Galaxy::PartEnum::BULGE, storage, [a](const Float x) { //
+        return bulgePdf(x, a);
+    });
 }
 
-Storage Galaxy::generateIc(const GalaxySettings& settings) {
+Storage Galaxy::generateIc(const RunSettings& globals, const GalaxySettings& settings) {
+    const int seed = globals.get<int>(RunSettingsId::RUN_RNG_SEED);
+    UniformRng rng(seed);
+
     Storage storage;
-    storage.merge(generateDisk(settings));
-    storage.merge(generateHalo(settings));
-    storage.merge(generateBulge(settings));
+    storage.merge(generateDisk(rng, settings));
+    storage.merge(generateHalo(rng, settings));
+    storage.merge(generateBulge(rng, settings));
 
     ArrayView<const Size> flag = storage.getValue<Size>(QuantityId::FLAG);
     ASSERT(std::is_sorted(flag.begin(), flag.end()));
 
     Array<Pair<Float>> massDist = computeCumulativeMass(settings, storage);
-    computeDiskVelocities(settings, storage);
-    computeHaloVelocities(settings, massDist, storage);
-    computeBulgeVelocities(settings, massDist, storage);
+    SharedPtr<IScheduler> scheduler = Factory::getScheduler(globals);
+    computeDiskVelocities(*scheduler, rng, settings, storage);
+    computeHaloVelocities(rng, settings, massDist, storage);
+    computeBulgeVelocities(rng, settings, massDist, storage);
 
     return storage;
 }

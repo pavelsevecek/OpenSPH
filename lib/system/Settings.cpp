@@ -447,6 +447,8 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
         "Maximum order of gravitational moments. Use 0 for monopole, 2 for quadrupole, etc. " },
     { RunSettingsId::GRAVITY_KERNEL,                "gravity.kernel",           GravityKernelEnum::SPH_KERNEL,
         "Smoothing kernel of gravity. Can be one of the following:\n" + EnumMap::getDesc<GravityKernelEnum>() },
+    { RunSettingsId::GRAVITY_CONSTANT,              "gravity.constant",         Constants::gravity,
+        "todo" },
     { RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD,  "gravity.recomputation_period", 0._f,
         "Period of gravity evaluation. If zero, gravity is computed every time step, for any positive value, "
         "gravitational acceleration is cached for each particle and used each time step until the next "
