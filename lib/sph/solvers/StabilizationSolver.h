@@ -53,8 +53,8 @@ public:
         delta = settings.get<Float>(RunSettingsId::SPH_STABILIZATION_DAMPING);
     }
 
-    StabilizationSolver(IScheduler& scheduler, const RunSettings& settings)
-        : StabilizationSolver(settings, Factory::getSolver(scheduler, settings)) {}
+    StabilizationSolver(IScheduler& scheduler, const RunSettings& settings, AutoPtr<IBoundaryCondition>&& bc)
+        : StabilizationSolver(settings, Factory::getSolver(scheduler, settings, std::move(bc))) {}
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
         solver->integrate(storage, stats);

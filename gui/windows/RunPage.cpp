@@ -322,6 +322,11 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
         "If checked, the color palette and the length scale are included in the rendered image.");
     keyBox->SetValue(gui.get<bool>(GuiSettingsId::SHOW_KEY));
     keySizer->Add(keyBox);
+    keySizer->AddSpacer(33);
+    wxCheckBox* ghostBox = new wxCheckBox(particleBox, wxID_ANY, "Show ghosts");
+    ghostBox->SetValue(gui.get<bool>(GuiSettingsId::RENDER_GHOST_PARTICLES));
+    keySizer->Add(ghostBox);
+
     boxSizer->Add(keySizer);
 
     wxBoxSizer* aaSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -347,6 +352,11 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     keyBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
         const bool value = evt.IsChecked();
         gui.set(GuiSettingsId::SHOW_KEY, value);
+        controller->tryRedraw();
+    });
+    ghostBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
+        const bool value = evt.IsChecked();
+        gui.set(GuiSettingsId::RENDER_GHOST_PARTICLES, value);
         controller->tryRedraw();
     });
     aaBox->Bind(wxEVT_CHECKBOX, [this, smoothBox](wxCommandEvent& evt) {
@@ -604,6 +614,7 @@ wxPanel* RunPage::createVisBar() {
 
 void RunPage::updateCutoff(const double cutoff) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    gui.set(GuiSettingsId::ORTHO_CUTOFF, Float(cutoff));
     // Note that we have to get camera from pane, not controller, as pane camera is always the one being
     // modified and fed to controller. Using controller's camera would cause cutoff to be later overriden by
     // the camera from pane.

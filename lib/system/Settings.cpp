@@ -130,7 +130,7 @@ static RegisterEnum<ForceEnum> sForce({
     { ForceEnum::INERTIAL,
         "inertial",
         "Centrifugal force and Coriolis force given by angular frequency of the coordinate frame." },
-    { ForceEnum::GRAVITY, "gravity", "Self-gravity of particles" },
+    { ForceEnum::SELF_GRAVITY, "gravity", "Self-gravity of particles" },
 });
 
 static RegisterEnum<ArtificialViscosityEnum> sArtificialViscosity({
@@ -519,6 +519,8 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
         "Used to perform the simulation in rotating (non-inertial) frame. Specifies a global rotation of the coordinate "
         "system around axis (0, 0, 1) passing through origin. If the solver includes inertial forces, rotating frame "
         "introduces centrifugal and Coriolis force." },
+    { RunSettingsId::FRAME_CONSTANT_ACCELERATION,   "frame.constant_acceleration",  Vector(0._f),
+        "Used to implement homogeneous gravity field. Applied only if solver forces include EXTERNAL_POTENTIAL." },
 
     /// Computational domain and boundary conditions
     { RunSettingsId::DOMAIN_TYPE,                   "domain.type",              DomainEnum::NONE,

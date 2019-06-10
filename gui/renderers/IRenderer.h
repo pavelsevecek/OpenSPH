@@ -85,6 +85,9 @@ struct RenderParams {
         /// Only used if doAntialiasing is true.
         bool smoothed = false;
 
+        /// \brief If true, ghost particles (if present) will be rendered as empty circles.
+        bool renderGhosts = true;
+
         /// \brief If true, a color palette and a distance scale is included in the image.
         bool showKey = true;
 

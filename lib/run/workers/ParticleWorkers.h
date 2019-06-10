@@ -33,6 +33,7 @@ public:
 class MergeParticlesWorker : public IParticleWorker {
 private:
     Vector offset = Vector(0._f);
+    Vector velocity = Vector(0._f);
     bool moveToCom = false;
     bool uniqueFlags = false;
 
@@ -82,9 +83,15 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
+enum class ChangeMaterialSubset {
+    ALL,
+    MATERIAL_ID,
+    INSIDE_DOMAIN,
+};
+
 class ChangeMaterialWorker : public IParticleWorker {
 private:
-    bool changeAll = true;
+    EnumWrapper type = EnumWrapper(ChangeMaterialSubset::ALL);
     int matId = 0;
 
 public:
@@ -95,8 +102,21 @@ public:
         return "change material";
     }
 
+    virtual UnorderedMap<std::string, WorkerType> requires() const override {
+        UnorderedMap<std::string, WorkerType> map{
+            { "particles", WorkerType::PARTICLES },
+            { "material", WorkerType::MATERIAL },
+        };
+        if (ChangeMaterialSubset(type) == ChangeMaterialSubset::INSIDE_DOMAIN) {
+            map.insert("domain", WorkerType::GEOMETRY);
+        }
+        return map;
+    }
+
     virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES }, { "material", WorkerType::MATERIAL } };
+        return { { "particles", WorkerType::PARTICLES },
+            { "material", WorkerType::MATERIAL },
+            { "domain", WorkerType::GEOMETRY } };
     }
 
     virtual VirtualSettings getSettings() override;

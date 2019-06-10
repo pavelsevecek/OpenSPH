@@ -60,6 +60,7 @@ static void addTimeSteppingCategory(VirtualSettings& connector, RunSettings& set
     rangeCat.connect("Use start time of input", "is_resumed", resumeRun);
     rangeCat.connect<Float>("Maximal timestep [s]", settings, RunSettingsId::TIMESTEPPING_MAX_TIMESTEP)
         .connect<Float>("Initial timestep [s]", settings, RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP)
+        .connect<EnumWrapper>("Integrator", settings, RunSettingsId::TIMESTEPPING_INTEGRATOR)
         .connect<Flags<TimeStepCriterionEnum>>(
             "Time step criteria", settings, RunSettingsId::TIMESTEPPING_CRITERION)
         .connect<Float>(
@@ -106,7 +107,7 @@ static void addLoggerCategory(VirtualSettings& connector, RunSettings& settings)
 
 
 class SphRun : public IRun {
-private:
+protected:
     SharedPtr<IDomain> domain;
 
 public:
@@ -156,7 +157,7 @@ RunSettings SphWorker::getDefaultSettings(const std::string& name) {
         .set(RunSettingsId::RUN_VERBOSE_NAME, getIdentifier(name) + ".log")
         .set(RunSettingsId::SPH_SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
         .set(RunSettingsId::SPH_SOLVER_FORCES,
-            ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY)
+            ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::SELF_GRAVITY)
         .set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::STANDARD)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
@@ -183,7 +184,7 @@ VirtualSettings SphWorker::getSettings() {
 
     auto treeEnabler = [this] {
         return settings.get<FinderEnum>(RunSettingsId::SPH_FINDER) == FinderEnum::KD_TREE ||
-               settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES).has(ForceEnum::GRAVITY);
+               settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES).has(ForceEnum::SELF_GRAVITY);
     };
 
     auto stressEnabler = [this] {
@@ -192,6 +193,7 @@ VirtualSettings SphWorker::getSettings() {
 
     VirtualSettings::Category& solverCat = connector.addCategory("SPH solver");
     solverCat.connect<Flags<ForceEnum>>("Forces", settings, RunSettingsId::SPH_SOLVER_FORCES)
+        .connect<Vector>("Constant acceleration", settings, RunSettingsId::FRAME_CONSTANT_ACCELERATION)
         .connect<EnumWrapper>("Artificial viscosity", settings, RunSettingsId::SPH_AV_TYPE)
         .connect<bool>("Apply Balsara switch", settings, RunSettingsId::SPH_AV_USE_BALSARA)
         .connect<bool>("Apply artificial stress", settings, RunSettingsId::SPH_AV_USE_STRESS)
@@ -240,24 +242,17 @@ static WorkerRegistrar sRegisterSph("SPH run", "simulations", [](const std::stri
 // SphStabilizationWorker
 // ----------------------------------------------------------------------------------------------------------
 
-class SphStabilizationRun : public IRun {
+class SphStabilizationRun : public SphRun {
 public:
-    explicit SphStabilizationRun(const RunSettings& run) {
-        settings = run;
-        scheduler = Factory::getScheduler(settings);
-    }
+    using SphRun::SphRun;
 
     virtual void setUp(SharedPtr<Storage> storage) override {
-        solver = makeAuto<StabilizationSolver>(*scheduler, settings);
+        AutoPtr<IBoundaryCondition> bc = Factory::getBoundaryConditions(settings, domain);
+        solver = makeAuto<StabilizationSolver>(*scheduler, settings, std::move(bc));
 
         for (Size matId = 0; matId < storage->getMaterialCnt(); ++matId) {
             solver->create(*storage, storage->getMaterial(matId));
         }
-    }
-
-    virtual void tearDown(const Storage& storage, const Statistics& stats) override {
-        // last dump after simulation ends
-        output->dump(storage, stats);
     }
 };
 
@@ -272,7 +267,12 @@ VirtualSettings SphStabilizationWorker::getSettings() {
 
 AutoPtr<IRun> SphStabilizationWorker::getRun(const RunSettings& overrides) const {
     RunSettings run = overrideSettings(settings, overrides, isResumed);
-    return makeAuto<SphStabilizationRun>(run);
+    const BoundaryEnum boundary = settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY);
+    SharedPtr<IDomain> domain;
+    if (boundary != BoundaryEnum::NONE) {
+        domain = this->getInput<IDomain>("boundary");
+    }
+    return makeAuto<SphStabilizationRun>(run, domain);
 }
 
 static WorkerRegistrar sRegisterSphStab("SPH stabilization",

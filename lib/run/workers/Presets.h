@@ -14,6 +14,9 @@ SharedPtr<WorkerNode> makeSimpleCollision(UniqueNameManager& nameMgr, const Size
 SharedPtr<WorkerNode> makeFragmentationAndReaccumulation(UniqueNameManager& nameMgr,
     const Size particleCnt = 10000);
 
+/// \brief Creates a node tree for simulation of cratering.
+SharedPtr<WorkerNode> makeCratering(UniqueNameManager& nameMgr, const Size particleCnt = 10000);
+
 } // namespace Presets
 
 NAMESPACE_SPH_END

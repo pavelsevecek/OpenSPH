@@ -179,7 +179,6 @@ static void drawKey(IRenderContext& context,
 
 ParticleRenderer::ParticleRenderer(const GuiSettings& settings) {
     grid = settings.get<Float>(GuiSettingsId::VIEW_GRID_SIZE);
-    renderGhosts = settings.get<bool>(GuiSettingsId::RENDER_GHOST_PARTICLES);
     shouldContinue = true;
 }
 
@@ -216,20 +215,18 @@ void ParticleRenderer::initialize(const Storage& storage,
         }
     }
 
-    if (renderGhosts) {
-        SharedPtr<IStorageUserData> data = storage.getUserData();
-        if (RawPtr<GhostParticlesData> ghosts = dynamicCast<GhostParticlesData>(data.get())) {
-            for (Size i = 0; i < ghosts->size(); ++i) {
-                const Vector pos = ghosts->getGhost(i).position;
-                const Optional<ProjectedPoint> p = camera.project(pos);
-                if (p && !isCutOff(camera, pos)) {
-                    cached.idxs.push(Size(-1));
-                    cached.positions.push(pos);
-                    cached.colors.push(Rgba::transparent());
+    SharedPtr<IStorageUserData> data = storage.getUserData();
+    if (RawPtr<GhostParticlesData> ghosts = dynamicCast<GhostParticlesData>(data.get())) {
+        for (Size i = 0; i < ghosts->size(); ++i) {
+            const Vector pos = ghosts->getGhost(i).position;
+            const Optional<ProjectedPoint> p = camera.project(pos);
+            if (p && !isCutOff(camera, pos)) {
+                cached.idxs.push(Size(-1));
+                cached.positions.push(pos);
+                cached.colors.push(Rgba::transparent());
 
-                    if (hasVectorData) {
-                        cached.vectors.push(Vector(0._f));
-                    }
+                if (hasVectorData) {
+                    cached.vectors.push(Vector(0._f));
                 }
             }
         }
@@ -298,6 +295,9 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
     const bool reverseOrder = dot(cached.cameraDir, params.camera->getDirection()) < 0._f;
     for (Size k = 0; k < cached.positions.size(); ++k) {
         const Size i = reverseOrder ? cached.positions.size() - k - 1 : k;
+        if (!params.particles.renderGhosts && cached.idxs[i] == Size(-1)) {
+            continue;
+        }
         if (params.particles.selected && cached.idxs[i] == params.particles.selected.value()) {
             // highlight the selected particle
             context->setColor(Rgba::red(), ColorFlag::FILL);

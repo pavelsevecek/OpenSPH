@@ -241,7 +241,7 @@ static AutoPtr<ISolver> getActualSolver(IScheduler& scheduler,
     EquationHolder&& eqs,
     AutoPtr<IBoundaryCondition>&& bc) {
     const Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES);
-    if (forces.has(ForceEnum::GRAVITY)) {
+    if (forces.has(ForceEnum::SELF_GRAVITY)) {
         IBoundaryCondition& bcRef = *bc; // needed to silence a warning
         if (typeid(bcRef) != typeid(NullBoundaryCondition)) {
             throw InvalidSetup("Gravity currently cannot be used with boundary conditions");
@@ -263,7 +263,7 @@ AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler,
     const SolverEnum id = settings.get<SolverEnum>(RunSettingsId::SPH_SOLVER_TYPE);
     auto throwIfGravity = [&settings] {
         const Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES);
-        if (forces.has(ForceEnum::GRAVITY)) {
+        if (forces.has(ForceEnum::SELF_GRAVITY)) {
             throw InvalidSetup("Using solver incompatible with gravity.");
         }
     };

@@ -68,6 +68,7 @@ VirtualSettings MergeParticlesWorker::getSettings() {
 
     VirtualSettings::Category& cat = connector.addCategory("Merging");
     cat.connect("Offset [km]", "offset", offset, 1.e3_f);
+    cat.connect("Add velocity [km/s]", "velocity", velocity, 1.e3_f);
     cat.connect("Move to COM", "com", moveToCom);
     cat.connect("Make flags unique", "unique_flags", uniqueFlags);
 
@@ -78,10 +79,12 @@ void MergeParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunCallb
     SharedPtr<ParticleData> input1 = this->getInput<ParticleData>("particles A");
     SharedPtr<ParticleData> input2 = this->getInput<ParticleData>("particles B");
 
-    ArrayView<Vector> r = input2->storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Vector> r, v, dv;
+    tie(r, v, dv) = input2->storage.getAll<Vector>(QuantityId::POSITION);
     offset[H] = 0._f; // can contain garbage
     for (Size i = 0; i < r.size(); ++i) {
         r[i] += offset;
+        v[i] += velocity;
     }
 
     if (uniqueFlags) {
@@ -169,13 +172,21 @@ static WorkerRegistrar sRegisterParticleTransform("transform",
 // ChangeMaterialWorker
 //-----------------------------------------------------------------------------------------------------------
 
+static RegisterEnum<ChangeMaterialSubset> sSubsetType({
+    { ChangeMaterialSubset::ALL, "all", "Change material of all particles." },
+    { ChangeMaterialSubset::MATERIAL_ID,
+        "material_id",
+        "Change material of particles with specific material ID." },
+    { ChangeMaterialSubset::INSIDE_DOMAIN, "inside_domain", "Change material of particles in given domain." },
+});
+
 VirtualSettings ChangeMaterialWorker::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& cat = connector.addCategory("Change material");
-    cat.connect("Change all", "change_all", changeAll).connect("Material ID", "mat_id", matId, [this] {
-        return !changeAll;
+    cat.connect("Subset", "subset", type).connect("Material ID", "mat_id", matId, [this] {
+        return ChangeMaterialSubset(type) == ChangeMaterialSubset::MATERIAL_ID;
     });
 
     return connector;
@@ -185,12 +196,37 @@ void ChangeMaterialWorker::evaluate(const RunSettings& UNUSED(global), IRunCallb
     SharedPtr<ParticleData> input = this->getInput<ParticleData>("particles");
     SharedPtr<IMaterial> material = this->getInput<IMaterial>("material");
 
-    if (changeAll) {
+    switch (ChangeMaterialSubset(type)) {
+    case ChangeMaterialSubset::ALL:
         for (Size i = 0; i < input->storage.getMaterialCnt(); ++i) {
             input->storage.setMaterial(i, material);
         }
-    } else {
+        break;
+    case ChangeMaterialSubset::MATERIAL_ID:
         input->storage.setMaterial(matId, material);
+        break;
+    case ChangeMaterialSubset::INSIDE_DOMAIN: {
+        SharedPtr<IDomain> domain = this->getInput<IDomain>("domain");
+        ArrayView<const Vector> r = input->storage.getValue<Vector>(QuantityId::POSITION);
+        Array<Size> toChange, toKeep;
+        for (Size i = 0; i < r.size(); ++i) {
+            if (domain->contains(r[i])) {
+                toChange.push(i);
+            } else {
+                toKeep.push(i);
+            }
+        }
+
+        Storage changed = input->storage.clone(VisitorEnum::ALL_BUFFERS);
+        changed.remove(toKeep, Storage::IndicesFlag::INDICES_SORTED);
+        input->storage.remove(toChange, Storage::IndicesFlag::INDICES_SORTED);
+
+        for (Size i = 0; i < changed.getMaterialCnt(); ++i) {
+            changed.setMaterial(i, material);
+        }
+        input->storage.merge(std::move(changed));
+        break;
+    }
     }
 
     result = input;

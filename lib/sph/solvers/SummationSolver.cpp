@@ -22,7 +22,7 @@ static EquationHolder getEquations(const RunSettings& settings) {
 
     // we evolve density and smoothing length ourselves (outside the equation framework)
 
-    ASSERT(!forces.has(ForceEnum::GRAVITY), "Summation solver cannot be currently used with gravity");
+    ASSERT(!forces.has(ForceEnum::SELF_GRAVITY), "Summation solver cannot be currently used with gravity");
 
     return equations;
 }

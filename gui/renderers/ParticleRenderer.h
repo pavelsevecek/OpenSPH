@@ -28,9 +28,6 @@ private:
     /// Grid size
     float grid;
 
-    /// Show ghost particles
-    bool renderGhosts;
-
     /// Cached values of visible particles, used for faster drawing.
     struct {
         /// Positions of particles

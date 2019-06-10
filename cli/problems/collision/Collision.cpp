@@ -22,7 +22,7 @@ public:
             .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("collision_%d.ssf"))
             .set(RunSettingsId::RUN_END_TIME, 500._f)
             .set(RunSettingsId::SPH_SOLVER_FORCES,
-                ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY)
+                ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::SELF_GRAVITY)
             .set(RunSettingsId::SPH_SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
             .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
             .set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::STANDARD)

@@ -10,6 +10,7 @@ void RenderParams::initialize(const GuiSettings& gui) {
     particles.doAntialiasing = gui.get<bool>(GuiSettingsId::ANTIALIASED);
     particles.smoothed = gui.get<bool>(GuiSettingsId::SMOOTH_PARTICLES);
     particles.showKey = gui.get<bool>(GuiSettingsId::SHOW_KEY);
+    particles.renderGhosts = gui.get<bool>(GuiSettingsId::RENDER_GHOST_PARTICLES);
     surface.level = gui.get<Float>(GuiSettingsId::SURFACE_LEVEL);
     surface.ambientLight = gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
     surface.sunLight = gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY);

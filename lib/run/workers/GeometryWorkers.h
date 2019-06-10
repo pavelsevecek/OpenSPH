@@ -22,6 +22,7 @@ public:
 
 class BlockWorker : public IGeometryWorker {
 private:
+    Vector center = Vector(0._f);
     Vector dimensions = Vector(1.e5_f);
 
 public:

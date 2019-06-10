@@ -48,12 +48,13 @@ VirtualSettings BlockWorker::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& geoCat = connector.addCategory("geometry");
+    geoCat.connect("center [km]", "center", center, 1.e3_f);
     geoCat.connect("dimensions [km]", "dimensions", dimensions, 1.e3_f);
     return connector;
 }
 
 void BlockWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
-    result = makeAuto<BlockDomain>(Vector(0._f), dimensions);
+    result = makeAuto<BlockDomain>(center, dimensions);
 }
 
 static WorkerRegistrar sRegisterBlock("block", "geometry", [](const std::string& name) {

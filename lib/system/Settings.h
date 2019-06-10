@@ -613,7 +613,7 @@ enum class ForceEnum {
     INERTIAL = 1 << 4,
 
     /// Use gravitational force in the model
-    GRAVITY = 1 << 5,
+    SELF_GRAVITY = 1 << 5,
 };
 
 enum class ArtificialViscosityEnum {
@@ -1097,6 +1097,8 @@ enum class RunSettingsId {
     /// Global rotation of the coordinate system around axis (0, 0, 1) passing through origin. If non-zero,
     /// causes non-intertial acceleration.
     FRAME_ANGULAR_FREQUENCY,
+
+    FRAME_CONSTANT_ACCELERATION,
 
     /// Maximum number of particles in a leaf node.
     FINDER_LEAF_SIZE,

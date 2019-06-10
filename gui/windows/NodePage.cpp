@@ -1249,6 +1249,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
     wxTreeItemId presetsId = workerView->AppendItem(rootId, "presets");
     wxTreeItemId collisionsId = workerView->AppendItem(presetsId, "simple collision");
     wxTreeItemId fragAndReaccId = workerView->AppendItem(presetsId, "fragmentation & reaccumulation");
+    wxTreeItemId crateringId = workerView->AppendItem(presetsId, "cratering");
 
 
     workerView->Bind(wxEVT_TREE_ITEM_ACTIVATED, [=](wxTreeEvent& evt) {
@@ -1259,6 +1260,9 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             nodeMgr->addNodes(*node, Pixel(800, 200));
         } else if (id == collisionsId) {
             auto node = Presets::makeSimpleCollision(nameMgr);
+            nodeMgr->addNodes(*node, Pixel(800, 200));
+        } else if (id == crateringId) {
+            auto node = Presets::makeCratering(nameMgr);
             nodeMgr->addNodes(*node, Pixel(800, 200));
         }
         WorkerTreeData* data = dynamic_cast<WorkerTreeData*>(workerView->GetItemData(id));

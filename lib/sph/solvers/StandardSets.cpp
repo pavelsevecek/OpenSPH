@@ -33,6 +33,11 @@ EquationHolder getStandardEquations(const RunSettings& settings, const EquationH
         equations += makeTerm<InertialForce>(omega);
     }
 
+    const Vector g = settings.get<Vector>(RunSettingsId::FRAME_CONSTANT_ACCELERATION);
+    if (g != Vector(0._f)) {
+        equations += makeExternalForce([g](const Vector& UNUSED(r)) { return g; });
+    }
+
     equations += makeTerm<ContinuityEquation>(settings);
 
     // artificial viscosity
