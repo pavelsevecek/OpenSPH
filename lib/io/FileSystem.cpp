@@ -7,6 +7,7 @@
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 #endif
 
 NAMESPACE_SPH_BEGIN

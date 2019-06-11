@@ -13,10 +13,10 @@ std::ostream& operator<<(std::ostream& stream, const Console& mod) {
 #ifdef SPH_MSVC
     MARK_USED(mod);
 #else
-    if (mod.bg != Background::UNCHANGED) {
+    if (mod.bg != Console::Background::UNCHANGED) {
         stream << "\033[" << int(mod.bg) << "m";
     }
-    if (mod.fg != Foreground::UNCHANGED) {
+    if (mod.fg != Console::Foreground::UNCHANGED) {
         stream << "\033[" << int(mod.fg) << "m";
     }
     stream << "\e[" << int(mod.series) << "m";

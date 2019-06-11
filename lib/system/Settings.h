@@ -1396,11 +1396,14 @@ enum class BodySettingsId {
 };
 
 using RunSettings = Settings<RunSettingsId>;
-// template <>
-// AutoPtr<RunSettings> RunSettings::instance;
 
 using BodySettings = Settings<BodySettingsId>;
-// template <>
-// AutoPtr<BodySettings> BodySettings::instance;
+
+#ifndef SPH_MSVC
+template <>
+AutoPtr<RunSettings> RunSettings::instance;
+template <>
+AutoPtr<BodySettings> BodySettings::instance;
+#endif
 
 NAMESPACE_SPH_END

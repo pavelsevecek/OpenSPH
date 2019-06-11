@@ -944,7 +944,7 @@ static uint64_t getHash(const Size value, const Size seed) {
 
     uint64_t hash = FIRST + seed;
     uint8_t* ptr = (uint8_t*)&value;
-    for (int i = 0; i < sizeof(uint64_t); ++i) {
+    for (int i = 0; i < int(sizeof(uint64_t)); ++i) {
         hash = (hash * A) ^ (*ptr++ * B);
     }
     return hash;

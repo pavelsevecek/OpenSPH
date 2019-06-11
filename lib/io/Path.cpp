@@ -1,6 +1,8 @@
 #include "io/Path.h"
 #ifdef SPH_MSVC
 #include <algorithm>
+#else
+#include <unistd.h>
 #endif
 
 NAMESPACE_SPH_BEGIN

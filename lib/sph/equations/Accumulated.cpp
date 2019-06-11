@@ -43,7 +43,7 @@ void Accumulated::initialize(const Size size) {
                 values.fill(T(0._f));
             } else {
                 // check that the array is really cleared
-                ASSERT(std::count(values.begin(), values.end(), T(0._f)) == values.size());
+                ASSERT(Size(std::count(values.begin(), values.end(), T(0._f))) == values.size());
             }
         });
     }

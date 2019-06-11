@@ -42,16 +42,16 @@ struct TestVisitor {
 
 TEST_CASE("Dispatch", "[quantityhelpers]") {
     int a;
-    dispatch(ValueEnum::SCALAR, TestVisitor(), a);
+    dispatchAllTypes(ValueEnum::SCALAR, TestVisitor(), a);
     REQUIRE(a == 1);
-    dispatch(ValueEnum::VECTOR, TestVisitor(), a);
+    dispatchAllTypes(ValueEnum::VECTOR, TestVisitor(), a);
     REQUIRE(a == 2);
-    dispatch(ValueEnum::TENSOR, TestVisitor(), a);
+    dispatchAllTypes(ValueEnum::TENSOR, TestVisitor(), a);
     REQUIRE(a == 3);
-    dispatch(ValueEnum::SYMMETRIC_TENSOR, TestVisitor(), a);
+    dispatchAllTypes(ValueEnum::SYMMETRIC_TENSOR, TestVisitor(), a);
     REQUIRE(a == 4);
-    dispatch(ValueEnum::TRACELESS_TENSOR, TestVisitor(), a);
+    dispatchAllTypes(ValueEnum::TRACELESS_TENSOR, TestVisitor(), a);
     REQUIRE(a == 5);
-    dispatch(ValueEnum::INDEX, TestVisitor(), a);
+    dispatchAllTypes(ValueEnum::INDEX, TestVisitor(), a);
     REQUIRE(a == 6);
 }
