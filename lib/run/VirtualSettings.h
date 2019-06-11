@@ -135,6 +135,20 @@ public:
     /// \throw InvalidSetup if no entry with given key exists.
     void set(const std::string& key, const IVirtualEntry::Value& value);
 
+    /// \brief Overload allowing to use an ID associated with a \ref Settings entry.
+    ///
+    /// This is useful if the virtual entry is connected to an entry in a \ref Settings object. This way, an
+    /// enum value can be used instead of string, ensuring the value is valid (string may contain typos) and
+    /// can be easily renamed if necessary.
+    ///
+    /// Note that there is no check that the virtual entry is really connected to a "real" entry with given
+    /// ID, virtual entry is (intentionally) a black box here.
+    /// \param id ID of the connected entry
+    /// \param value New value of the entry
+    /// \throw InvalidSetup if the ID is invalid or no entry with given ID exists.
+    template <typename TEnum, typename = std::enable_if_t<std::is_enum<TEnum>::value>>
+    void set(const TEnum id, const IVirtualEntry::Value& value);
+
     /// \brief Returns a value of an entry.
     ///
     /// \param key Identifier of the entry

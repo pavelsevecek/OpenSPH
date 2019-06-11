@@ -47,15 +47,6 @@ public:
     virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
 };
 
-class MohrCoulombModel : public IFractureModel {
-public:
-    virtual void setFlaws(Storage& storage,
-        IMaterial& material,
-        const MaterialInitialContext& context) const override;
-
-    virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
-};
-
 class NullFracture : public IFractureModel {
 public:
     virtual void setFlaws(Storage& storage,

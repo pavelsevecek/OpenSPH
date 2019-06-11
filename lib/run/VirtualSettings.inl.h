@@ -314,10 +314,13 @@ VirtualSettings::Category& VirtualSettings::Category::connect(const std::string&
     const Float mult,
     const std::string& tooltip) {
 
-    const std::string key = Settings<TEnum>::getEntryName(id);
+    const Optional<std::string> key = Settings<TEnum>::getEntryName(id);
+    if (!key) {
+        throw InvalidSetup("No settings entry with id " + std::to_string(int(id)));
+    }
     AutoPtr<IVirtualEntry> entry =
         makeAuto<Detail::SettingsEntry<TValue, TEnum>>(settings, id, name, mult, enabler, tooltip);
-    entries.insert(key, std::move(entry));
+    entries.insert(key.value(), std::move(entry));
 
     return *this;
 }
@@ -345,6 +348,16 @@ VirtualSettings::Category& VirtualSettings::Category::connect(const std::string&
     const TEnum id,
     const std::string& tooltip) {
     return this->connect<TValue>(name, settings, id, nullptr, 1.f, tooltip);
+}
+
+template <typename TEnum, typename>
+void VirtualSettings::set(const TEnum id, const IVirtualEntry::Value& value) {
+    const Optional<std::string> key = Settings<TEnum>::getEntryName(id);
+    if (!key) {
+        throw InvalidSetup("No entry with ID " + std::to_string(int(id)));
+    }
+
+    this->set(key.value(), value);
 }
 
 NAMESPACE_SPH_END

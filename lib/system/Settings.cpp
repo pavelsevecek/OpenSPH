@@ -626,10 +626,12 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
         "Coefficient of friction for undamaged material. Used by Drucker-Prager rheology." },
     { BodySettingsId::DRY_FRICTION,         "rheology.dry_friction",        0.8_f,
         "Coefficient of friction for fully damaged material. Used by Drucker-Prager rheology." },
-    { BodySettingsId::BRITTLE_DUCTILE_TRANSITION_PRESSURE, "rheology.brittle_ductile_transition_pressure", 1.23e9_f },  // Modeling damage and deformation in impact simulations
-    { BodySettingsId::BRITTLE_PLASTIC_TRANSITION_PRESSURE, "rheology.brittle_plastic_transition_pressure", 2.35e9_f },  // Collions et al. (2004)
-    { BodySettingsId::MOHR_COULOMB_STRESS,  "rheology.mohr_coulomb_stress", 0._f },
-    { BodySettingsId::FRICTION_ANGLE,       "rheology.friction_angle",      0._f },
+    { BodySettingsId::USE_ACOUSTIC_FLUDIZATION, "rheology.acoustic_fludization", false,
+        "Whether to use the model of acoustic fludization." },
+    { BodySettingsId::OSCILLATION_DECAY_TIME,   "rheology.oscillation",          100._f,
+        "Characteristic decay time of the acoustic oscillations in the material." },
+    { BodySettingsId::FLUIDIZATION_VISCOSITY,   "rheology.fludization_viscosity", 8.8e4_f, // Ivanov and Turtle, 2001
+        "Effective kinematic viscosity of acoustic fludization." },
 
     /// Material properties
     { BodySettingsId::DENSITY,                 "material.density",             2700._f,

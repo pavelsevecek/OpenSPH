@@ -26,6 +26,11 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
         const YieldingEnum id = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
         return (!enabler || enabler()) && id == YieldingEnum::DRUCKER_PRAGER;
     };
+    auto enablerAf = [this, enabler] {
+        const YieldingEnum id = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
+        const bool use = body.get<bool>(BodySettingsId::USE_ACOUSTIC_FLUDIZATION);
+        return (!enabler || enabler()) && use && id == YieldingEnum::DRUCKER_PRAGER;
+    };
 
     category.connect<EnumWrapper>("EoS", body, BodySettingsId::EOS, enabler)
         .connect<Float>("Density [kg/m^3]", body, BodySettingsId::DENSITY, enabler)
@@ -43,6 +48,9 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
         .connect<Float>("Internal friction []", body, BodySettingsId::INTERNAL_FRICTION, enablerDp)
         .connect<Float>("Cohesion [Pa]", body, BodySettingsId::COHESION, enablerDp)
         .connect<Float>("Dry friction []", body, BodySettingsId::DRY_FRICTION, enablerDp)
+        .connect<bool>("Use acoustic fludization", body, BodySettingsId::USE_ACOUSTIC_FLUDIZATION, enablerDp)
+        .connect<Float>("Oscillation decay time [s]", body, BodySettingsId::OSCILLATION_DECAY_TIME, enablerAf)
+        .connect<Float>("Fludization viscosity", body, BodySettingsId::FLUIDIZATION_VISCOSITY, enablerAf)
         .connect<EnumWrapper>("Fragmentation", body, BodySettingsId::RHEOLOGY_DAMAGE, enabler);
 }
 
