@@ -33,7 +33,7 @@ Particle::Particle(const Storage& storage, const Size idx)
         data.insert(i.id, InternalQuantityData{});
 
         ParticleVisitor visitor{ data };
-        dispatch(i.quantity.getValueEnum(), visitor, i.id, i.quantity, idx);
+        dispatchAllTypes(i.quantity.getValueEnum(), visitor, i.id, i.quantity, idx);
     }
 }
 

@@ -16,12 +16,6 @@ class Path;
 /// Returns the absolute path to the currently running executable.
 Expected<Path> getExecutablePath();
 
-/// \brief Sends a mail with given message.
-Outcome sendMail(const std::string& to,
-    const std::string& from,
-    const std::string& subject,
-    const std::string& message);
-
 /// \brief Shows a notification using 'notify-send' command.
 ///
 /// The function is non-blocking, the notification disappears on timeout or when user hides it.

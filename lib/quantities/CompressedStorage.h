@@ -12,9 +12,9 @@ public:
     CompressedVector() = default;
 
     CompressedVector(const Vector& v) {
-        data[X] = v[X];
-        data[Y] = v[Y];
-        data[Z] = v[Z];
+        data[X] = float(v[X]);
+        data[Y] = float(v[Y]);
+        data[Z] = float(v[Z]);
     }
 
     explicit operator Vector() const {
@@ -43,7 +43,7 @@ public:
         for (Size i = 0; i < r.size(); ++i) {
             positions[i] = r[i];
             velocities[i] = v[i];
-            radii[i] = r[i][H];
+            radii[i] = float(r[i][H]);
         }
     }
 

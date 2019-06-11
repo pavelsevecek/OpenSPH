@@ -6,6 +6,7 @@
 #include "objects/finders/Order.h"
 #include "quantities/IMaterial.h"
 #include "system/Factory.h"
+#include <cctype>
 #include <fstream>
 
 NAMESPACE_SPH_BEGIN
@@ -198,7 +199,7 @@ Expected<Path> TextOutput::dump(const Storage& storage, const Statistics& stats)
                 // already added
                 continue;
             }
-            dispatch(e.quantity.getValueEnum(), DumpAllVisitor{}, e.id, columns);
+            dispatchAllTypes(e.quantity.getValueEnum(), DumpAllVisitor{}, e.id, columns);
         }
     }
 
@@ -577,7 +578,7 @@ Expected<Path> BinaryOutput::dump(const Storage& storage, const Statistics& stat
             if (i.id != QuantityId::MATERIAL_ID) {
                 const Quantity& q = i.quantity;
                 StoreBuffersVisitor visitor;
-                dispatch(q.getValueEnum(), visitor, q, serializer, sequence);
+                dispatchAllTypes(q.getValueEnum(), visitor, q, serializer, sequence);
             }
         }
     }
@@ -753,7 +754,7 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
             deserializer.read(from, to);
             LoadBuffersVisitor visitor;
             for (Size i = 0; i < quantityCnt; ++i) {
-                dispatch(valueTypes[i],
+                dispatchAllTypes(valueTypes[i],
                     visitor,
                     bodyStorage,
                     deserializer,

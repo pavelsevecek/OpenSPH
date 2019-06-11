@@ -158,8 +158,6 @@ HEADERS += \
     objects/finders/DynamicFinder.h \
     objects/finders/KdTree.h \
     objects/finders/KdTree.inl.h \
-    objects/finders/LinkedList.h \
-    objects/finders/Linkedlist.h \
     objects/finders/NeighbourFinder.h \
     objects/finders/Octree.h \
     objects/finders/Order.h \

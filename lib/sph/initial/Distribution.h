@@ -106,7 +106,7 @@ struct DiehlParams {
     /// \brief Allowed difference between the expected and actual number of particles.
     ///
     /// Lower value generates number of particles closer to required value, but takes longer to compute.
-    Float maxDifference = 10;
+    Size maxDifference = 10;
 
     /// \brief Number of iterations.
     ///

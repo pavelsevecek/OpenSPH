@@ -45,7 +45,7 @@ INLINE T sqrtInv(const T& f) {
     int i;
     // cast to float
     float x2 = float(f) * 0.5f;
-    float y = f;
+    float y = float(f);
     memcpy(&i, &y, sizeof(float));
     i = 0x5f3759df - (i >> 1);
     memcpy(&y, &i, sizeof(float));
@@ -77,7 +77,7 @@ INLINE constexpr bool isPower2(const Size n) noexcept {
 template <typename T>
 INLINE T sqrt(const T f) {
     ASSERT(f >= 0._f, f);
-    return std::sqrt(f);
+    return T(std::sqrt(f));
 }
 
 /// Returns a cubed root of a value.

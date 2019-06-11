@@ -111,7 +111,7 @@ public:
         if (!element) {
             return false;
         } else {
-            const Size index = element - &data[0];
+            const Size index = Size(element - &data[0]);
             data.remove(index);
             return true;
         }

@@ -94,7 +94,6 @@ SharedPtr<WorkerNode> Presets::makeCratering(UniqueNameManager& nameMgr, const S
     const Vector domainSize(1.e5_f, 3.e4_f, 1.e5_f);
     SharedPtr<WorkerNode> domain = makeNode<BlockWorker>(nameMgr.getName("target domain"));
 
-
     SharedPtr<WorkerNode> targetIc = makeNode<MonolithicBodyIc>(nameMgr.getName("target body"));
     VirtualSettings targetSettings = targetIc->getSettings();
     targetSettings.set("useMaterialSlot", true);

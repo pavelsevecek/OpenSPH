@@ -22,17 +22,29 @@ NAMESPACE_SPH_BEGIN
 #define SPH_GCC
 #endif
 #endif
+#ifdef _WIN32
+#define SPH_MSVC
+#endif
 
 /// Force inline for gcc
 #ifdef SPH_DEBUG
 #define INLINE inline
 #define INL
 #else
+#ifdef SPH_MSVC
+#define INLINE __forceinline
+#define INL
+#else
 #define INLINE __attribute__((always_inline)) inline
 #define INL __attribute__((always_inline))
 #endif
+#endif
 
+#ifdef SPH_MSVC
+#define NO_INLINE __declspec(noinline)
+#else
 #define NO_INLINE __attribute__((noinline))
+#endif
 
 #define UNUSED(x)
 
@@ -41,7 +53,6 @@ NAMESPACE_SPH_BEGIN
 /// \note sizeof is used to make sure x is not evaluated.
 #define MARK_USED(x) (void)sizeof(x)
 
-#define SPH_CPP17
 
 #ifdef SPH_CPP17
 #define SPH_FALLTHROUGH [[fallthrough]];
@@ -51,9 +62,20 @@ NAMESPACE_SPH_BEGIN
 
 #define DEPRECATED __attribute__((deprecated))
 
+#ifdef SPH_MSVC
+#define SPH_MAY_ALIAS
+#else
+#define SPH_MAY_ALIAS __attribute__((__may_alias__))
+#endif
+
 /// Branch prediction hints
+#ifdef SPH_MSVC
+#define SPH_LIKELY(x) x
+#define SPH_UNLIKELY(x) x
+#else
 #define SPH_LIKELY(x) __builtin_expect(bool(x), 1)
 #define SPH_UNLIKELY(x) __builtin_expect(bool(x), 0)
+#endif
 
 
 /// \brief Object with deleted copy constructor and copy operator

@@ -10,6 +10,9 @@
 
 NAMESPACE_SPH_BEGIN
 
+#ifdef SPH_MSVC
+#else
+
 ITimeStepping::ITimeStepping(const SharedPtr<Storage>& storage,
     const RunSettings& settings,
     AutoPtr<ITimeStepCriterion>&& criterion)
@@ -381,8 +384,8 @@ RungeKutta::~RungeKutta() = default;
 void RungeKutta::integrateAndAdvance(ISolver& solver,
     Statistics& stats,
     Storage& k,
-    const float m,
-    const float n) {
+    const Float m,
+    const Float n) {
     solver.integrate(k, stats);
     iteratePair<VisitorEnum::FIRST_ORDER>(
         k, *storage, [&](const QuantityId UNUSED(id), auto& kv, auto& kdv, auto& v, auto&) {
@@ -587,5 +590,6 @@ void BulirschStoer::stepImpl(IScheduler& UNUSED(scheduler), ISolver& solver, Sta
     (void)solver;
     (void)stats;
 }
+#endif
 
 NAMESPACE_SPH_END

@@ -715,10 +715,10 @@ private:
 
 public:
     BeautyColorizer() {
-        palette = Palette({ { 0.1f * u_red, Rgba(0.5f, 0.5f, 0.5) },
+        palette = Palette({ { 0.1f * u_red, Rgba(0.5f, 0.5f, 0.5f) },
                               { u_glow, Rgba(0.5f, 0.5f, 0.5f) },
                               { u_red, Rgba(0.8f, 0.f, 0.f) },
-                              { u_yellow, Rgba(1.f, 1.f, 0.6) } },
+                              { u_yellow, Rgba(1.f, 1.f, 0.6f) } },
             PaletteScale::LOGARITHMIC);
     }
 
@@ -944,7 +944,7 @@ static uint64_t getHash(const Size value, const Size seed) {
 
     uint64_t hash = FIRST + seed;
     uint8_t* ptr = (uint8_t*)&value;
-    for (uint i = 0; i < sizeof(uint64_t); ++i) {
+    for (int i = 0; i < sizeof(uint64_t); ++i) {
         hash = (hash * A) ^ (*ptr++ * B);
     }
     return hash;
@@ -1079,7 +1079,7 @@ public:
     virtual Rgba evalColor(const Size idx) const override {
         if (highlightIdx) {
             if (highlightIdx.value() == components[idx]) {
-                return Rgba(1.f, 0.65, 0.f);
+                return Rgba(1.f, 0.65f, 0.f);
             } else {
                 return Rgba::gray(0.3f);
             }

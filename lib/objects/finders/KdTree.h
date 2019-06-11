@@ -205,7 +205,7 @@ private:
 
     void addLeaf(const Size parent, const KdChild child, const Size from, const Size to);
 
-    Size addInner(const Size parent, const KdChild child, const Float splitPosition, const Size splitIdx);
+    Size addInner(const Size parent, const KdChild child, const float splitPosition, const Size splitIdx);
 
     bool isSingular(const Size from, const Size to, const Size splitIdx) const;
 

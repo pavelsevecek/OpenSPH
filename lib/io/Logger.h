@@ -113,16 +113,7 @@ struct Console {
     Console(const Series series)
         : series(series) {}
 
-    friend std::ostream& operator<<(std::ostream& stream, const Console& mod) {
-        if (mod.bg != Background::UNCHANGED) {
-            stream << "\033[" << int(mod.bg) << "m";
-        }
-        if (mod.fg != Foreground::UNCHANGED) {
-            stream << "\033[" << int(mod.fg) << "m";
-        }
-        stream << "\e[" << int(mod.series) << "m";
-        return stream;
-    }
+    friend std::ostream& operator<<(std::ostream& stream, const Console& mod);
 };
 
 struct ScopedConsole {
@@ -239,6 +230,10 @@ public:
 void setVerboseLogger(AutoPtr<ILogger>&& logger);
 
 /// \brief Helper macro, creating \brief VerboseLogGuard with name of the current function.
+#ifdef SPH_MSVC
+#define VERBOSE_LOG VerboseLogGuard __verboseLogGuard(__FUNCTION__);
+#else
 #define VERBOSE_LOG VerboseLogGuard __verboseLogGuard(__PRETTY_FUNCTION__);
+#endif
 
 NAMESPACE_SPH_END

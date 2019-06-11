@@ -170,13 +170,6 @@ public:
     INLINE constexpr Tuple(Tuple<Ts...>&& other)
         : Impl(std::move(other)) {}
 
-    /// Assign l-value reference of tuple. If rhs contains r-value references, their values are moved,
-    /// otherwise values are copied.
-    INLINE Tuple& operator=(Tuple& other) {
-        this->copyAssign(other, Sequence());
-        return *this;
-    }
-
     /// Assign conts l-value reference of tuple. All values are copied.
     INLINE Tuple& operator=(const Tuple& other) {
         this->copyAssign(other, Sequence());
@@ -187,14 +180,6 @@ public:
     /// otherwise values are moved.
     INLINE Tuple& operator=(Tuple&& other) {
         this->copyAssign(std::move(other), Sequence());
-        return *this;
-    }
-
-    /// Assigns tuple of generally different types. Same rules as above apply.
-    template <typename... Ts>
-    INLINE Tuple& operator=(Tuple<Ts...>& other) {
-        static_assert(sizeof...(Ts) == sizeof...(TArgs), "Cannot assign tuples of different sizes");
-        this->copyAssign(other, Sequence());
         return *this;
     }
 
@@ -225,7 +210,7 @@ public:
 
     /// Returns an element of the tuple by index, const version.
     template <std::size_t TIndex>
-    INLINE constexpr decltype(auto) get() const & {
+    INLINE constexpr decltype(auto) get() const& {
         static_assert(unsigned(TIndex) < sizeof...(TArgs), "Index out of bounds.");
         return Impl::template get<TIndex>();
     }
@@ -250,7 +235,7 @@ public:
 
     /// Returns an element of the tuple by type, const version.
     template <typename Type>
-    INLINE constexpr decltype(auto) get() const & {
+    INLINE constexpr decltype(auto) get() const& {
         constexpr std::size_t index = getTypeIndex<Type, TArgs...>;
         static_assert(index != -1, "Type not stored in tuple");
         return Impl::template get<index>();

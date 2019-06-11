@@ -60,17 +60,17 @@ public:
 
 #ifdef SPH_DEBUG
     INLINE Iterator operator+(const TCounter n) const {
-        return Iterator(data + n, begin, end);
+        return Iterator(data + int64_t(n), begin, end);
     }
     INLINE Iterator operator-(const TCounter n) const {
-        return Iterator(data - n, begin, end);
+        return Iterator(data - int64_t(n), begin, end);
     }
 #else
     INLINE Iterator operator+(const TCounter n) const {
-        return Iterator(data + n);
+        return Iterator(data + int64_t(n));
     }
     INLINE Iterator operator-(const TCounter n) const {
-        return Iterator(data - n);
+        return Iterator(data - int64_t(n));
     }
 #endif
     INLINE void operator+=(const TCounter n) {
@@ -97,9 +97,9 @@ public:
         operator--();
         return tmp;
     }
-    INLINE Size operator-(const Iterator& iter) const {
+    INLINE SignedSize operator-(const Iterator& iter) const {
         ASSERT(data >= iter.data);
-        return data - iter.data;
+        return SignedSize(data - iter.data);
     }
     INLINE bool operator<(const Iterator& iter) const {
         return data < iter.data;
@@ -129,7 +129,7 @@ public:
 
     using iterator_category = std::random_access_iterator_tag;
     using value_type = T;
-    using difference_type = Size;
+    using difference_type = SignedSize;
     using pointer = T*;
     using reference = T&;
 };

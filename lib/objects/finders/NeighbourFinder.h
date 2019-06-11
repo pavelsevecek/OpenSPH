@@ -151,7 +151,7 @@ public:
         Array<NeighbourRecord>& neighbours) const override {
         neighbours.clear();
         if (SPH_UNLIKELY(values.empty())) {
-            return 0._f;
+            return 0;
         }
         // the index here is irrelevant, so let's use something that would cause assert in case we messed
         // something up

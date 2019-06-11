@@ -84,7 +84,7 @@ void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
         }
 
         // split around center of the box
-        Float splitPosition = box.center()[splitIdx];
+        Float splitPosition = float(box.center()[splitIdx]);
         std::make_signed_t<Size> n1 = from, n2 = to - 1; // use ints for easier for loop ending with 0
 
         if (slidingCnt <= 5 && !degeneratedBox) {
@@ -144,7 +144,7 @@ void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
         ASSERT(this->checkBoxes(from, to, n1, box1, box2));
 
         // add inner node and connect it to the parent
-        const Size index = this->addInner(parent, child, splitPosition, splitIdx);
+        const Size index = this->addInner(parent, child, float(splitPosition), splitIdx);
 
         // recurse to left and right subtree
         const Size nextSlidingCnt = slidingMidpoint ? slidingCnt + 1 : 0;
@@ -213,7 +213,7 @@ void KdTree<TNode, TMetric>::addLeaf(const Size parent, const KdChild child, con
 template <typename TNode, typename TMetric>
 Size KdTree<TNode, TMetric>::addInner(const Size parent,
     const KdChild child,
-    const Float splitPosition,
+    const float splitPosition,
     const Size splitIdx) {
     static_assert(int(KdNode::Type::X) == 0 && int(KdNode::Type::Y) == 1 && int(KdNode::Type::Z) == 2,
         "Invalid values of KdNode::Type enum");

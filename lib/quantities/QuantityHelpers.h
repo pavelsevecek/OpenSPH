@@ -73,7 +73,7 @@ struct GetTypeFromEnum<ValueEnum::INDEX> {
 ///
 /// This provides a way to run generic code with different types. Return whatever TVisitor::visit returns.
 template <typename TVisitor, typename... TArgs>
-decltype(auto) dispatch(const ValueEnum value, TVisitor&& visitor, TArgs&&... args) {
+decltype(auto) dispatchAllTypes(const ValueEnum value, TVisitor&& visitor, TArgs&&... args) {
     switch (value) {
     case ValueEnum::SCALAR:
         return visitor.template visit<Float>(std::forward<TArgs>(args)...);
@@ -87,6 +87,27 @@ decltype(auto) dispatch(const ValueEnum value, TVisitor&& visitor, TArgs&&... ar
         return visitor.template visit<TracelessTensor>(std::forward<TArgs>(args)...);
     case ValueEnum::INDEX:
         return visitor.template visit<Size>(std::forward<TArgs>(args)...);
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+/// Similar to \ref dispatchAllTypes, but does not instantiate visitor for index.
+///
+/// \todo in the future, deduplicate using if constexpr
+template <typename TVisitor, typename... TArgs>
+decltype(auto) dispatchNoIndex(const ValueEnum value, TVisitor&& visitor, TArgs&&... args) {
+    switch (value) {
+    case ValueEnum::SCALAR:
+        return visitor.template visit<Float>(std::forward<TArgs>(args)...);
+    case ValueEnum::VECTOR:
+        return visitor.template visit<Vector>(std::forward<TArgs>(args)...);
+    case ValueEnum::TENSOR:
+        return visitor.template visit<Tensor>(std::forward<TArgs>(args)...);
+    case ValueEnum::SYMMETRIC_TENSOR:
+        return visitor.template visit<SymmetricTensor>(std::forward<TArgs>(args)...);
+    case ValueEnum::TRACELESS_TENSOR:
+        return visitor.template visit<TracelessTensor>(std::forward<TArgs>(args)...);
     default:
         NOT_IMPLEMENTED;
     }

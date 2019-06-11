@@ -5,7 +5,9 @@
 #include "objects/wrappers/Expected.h"
 #include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Outcome.h"
+#ifndef SPH_MSVC
 #include <dirent.h>
+#endif
 
 NAMESPACE_SPH_BEGIN
 
@@ -115,8 +117,11 @@ class DirectoryIterator {
 
 private:
     /// \todo possibly hide through pimpl
+#ifdef SPH_MSVC
+#else
     DIR* dir;
     dirent* entry = nullptr;
+#endif
 
 public:
     /// Moves to the next file in the directory
@@ -132,10 +137,13 @@ public:
     bool operator!=(const DirectoryIterator& other) const;
 
 private:
+#ifdef SPH_MSVC
+#else
     /// Creates an iterator for given directory entry.
     ///
     /// Can be nullptr, representing the one-past-last item in the directory (end iterator).
     DirectoryIterator(DIR* dir);
+#endif
 };
 
 /// \brief Object providing begin and end directory iterator for given directory path.
@@ -145,7 +153,10 @@ private:
 /// The enumeration skips directories '.' and '..'.
 class DirectoryAdapter : public Noncopyable {
 private:
+#ifdef SPH_MSVC
+#else
     DIR* dir;
+#endif
 
 public:
     /// \brief Creates the directory adapter for given path.

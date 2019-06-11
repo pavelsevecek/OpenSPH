@@ -3,13 +3,18 @@
 #include "objects/containers/Array.h"
 #include "system/Platform.h"
 #include <assert.h>
-#include <execinfo.h>
 #include <mutex>
+#ifndef SPH_MSVC
+#include <execinfo.h>
 #include <signal.h>
+#endif
 
 NAMESPACE_SPH_BEGIN
 
 static Array<std::string> getStackTrace() {
+#ifdef SPH_MSVC
+    return {};
+#else
     constexpr Size TRACE_SIZE = 10;
     void* buffer[TRACE_SIZE];
     const Size nptrs = backtrace(buffer, TRACE_SIZE);
@@ -25,6 +30,16 @@ static Array<std::string> getStackTrace() {
     }
     free(strings);
     return trace;
+#endif
+}
+
+static void breakToDebugger() {
+#ifdef SPH_MSVC
+#else
+    if (isDebuggerPresent()) {
+        raise(SIGTRAP);
+    }
+#endif
 }
 
 bool Assert::throwAssertException = false;
@@ -81,9 +96,7 @@ void Assert::fireParams(const char* message,
                 "==============");
         }
 
-        if (isDebuggerPresent()) {
-            raise(SIGTRAP);
-        }
+        breakToDebugger();
 
         assert(false);
     } else {
@@ -97,9 +110,7 @@ void Assert::todo(const char* message, const char* func, const int line) {
     logger.write("Missing implementation at ", func, " on line ", line);
     logger.write(message);
     logger.write("===========================================================");
-    if (isDebuggerPresent()) {
-        raise(SIGTRAP);
-    }
+    breakToDebugger();
 }
 
 NAMESPACE_SPH_END

@@ -148,7 +148,7 @@ Storage Galaxy::generateHalo(UniformRng& rng, const GalaxySettings& settings) {
 
     Array<Vector> positions;
     for (Size i = 0; i < n_halo; ++i) {
-        const Float r = sampleDistribution(rng, range, maxPdf, [r0, g0](const Size x) { //
+        const Float r = sampleDistribution(rng, range, maxPdf, [r0, g0](const Float x) { //
             return haloPdf(x, r0, g0);
         });
 
@@ -228,7 +228,7 @@ static Array<Pair<Float>> computeCumulativeMass(const GalaxySettings& settings, 
     differentialDist.fill(0._f);
     for (Size i = 0; i < r.size(); ++i) {
         const Float radius = getLength(r[i]);
-        const Size binIdx = radius * MASS_BINS / haloCutoff;
+        const Size binIdx = Size(radius * MASS_BINS / haloCutoff);
         ASSERT(binIdx < MASS_BINS);
 
         differentialDist[min(binIdx, MASS_BINS - 1)] += m[i];

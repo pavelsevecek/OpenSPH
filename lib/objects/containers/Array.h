@@ -6,8 +6,8 @@
 /// \date 2016-2019
 
 #include "math/MathBasic.h"
+#include "objects/containers/Alloc.h"
 #include "objects/containers/ArrayView.h"
-#include <mm_malloc.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -66,9 +66,9 @@ public:
     /// Allocate only enough elements to store the list. Elements are constructed using copy constructor of
     /// stored type.
     Array(std::initializer_list<StorageType> list) {
-        actSize = list.size();
+        actSize = TCounter(list.size());
         maxSize = actSize;
-        data = (StorageType*)_mm_malloc(maxSize * sizeof(StorageType), alignof(StorageType));
+        data = (StorageType*)alignedMalloc(maxSize * sizeof(StorageType), alignof(StorageType));
         TCounter i = 0;
         for (auto& l : list) {
             new (data + i) StorageType(l);
@@ -487,7 +487,7 @@ private:
             maxSize = actSize;
         }
         // allocate maxSize elements
-        data = (StorageType*)_mm_malloc(maxSize * sizeof(StorageType), alignof(StorageType));
+        data = (StorageType*)alignedMalloc(maxSize * sizeof(StorageType), alignof(StorageType));
     }
 };
 

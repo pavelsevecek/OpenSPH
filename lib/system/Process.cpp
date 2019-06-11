@@ -1,7 +1,10 @@
 #include "system/Process.h"
 #include "io/FileSystem.h"
+#ifdef SPH_MSVC
+#else
 #include <sys/types.h>
 #include <sys/wait.h>
+#endif
 
 NAMESPACE_SPH_BEGIN
 
@@ -22,6 +25,11 @@ Process::Process(const Path& path, Array<std::string>&& args) {
     if (!FileSystem::pathExists(path)) {
         throw ProcessException("Path " + path.native() + " does not exist");
     }
+
+#ifdef SPH_MSVC
+    MARK_USED(args);
+    NOT_IMPLEMENTED;
+#else
     pid_t pid = fork();
     if (pid == -1) {
         throw ProcessException("Process fork failed");
@@ -45,14 +53,19 @@ Process::Process(const Path& path, Array<std::string>&& args) {
         // parent process, save the child pid
         childPid = pid;
     }
+#endif
 }
 
 void Process::wait() {
+#ifdef SPH_MSVC
+    NOT_IMPLEMENTED;
+#else
     int status;
     pid_t pid;
     do {
         pid = waitpid(childPid, &status, 0);
     } while (pid != childPid && status != -1);
+#endif
 }
 
 NAMESPACE_SPH_END

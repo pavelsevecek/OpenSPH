@@ -245,7 +245,7 @@ static auto renormalizeDensity(const IDomain& domain, Size& n, const Size error,
             break;
         }
     }
-    n = particleCnt;
+    n = Size(particleCnt);
     // create a different functor that captures multiplier by value, so we can return it from the function
     return [&domain, &density, multiplier](const Vector& v) {
         if (domain.contains(v)) {
@@ -287,7 +287,7 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
 
     Size N = expectedN;
     auto actDensity = renormalizeDensity(domain, N, params.maxDifference, params.particleDensity);
-    ASSERT(abs(int(N) - int(expectedN)) <= params.maxDifference);
+    ASSERT(abs(int(N) - int(expectedN)) <= int(params.maxDifference));
 
     // generate initial particle positions
     Storage storage = generateInitial(domain, N, actDensity);

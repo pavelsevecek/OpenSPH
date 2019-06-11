@@ -130,8 +130,8 @@ FixedParticles::FixedParticles(const RunSettings& settings, Params&& params)
     // works fine.
     BlockDomain boundingDomain(box.center(), box.size());
     /// \todo generalize, we assume that kernel radius = 2 and don't take eta into account
-    Array<Vector> dummies = params.distribution->generate(
-        SEQUENTIAL, box.volume() / pow<3>(0.5_f * params.thickness), boundingDomain);
+    const Size count = Size(box.volume() / pow<3>(0.5_f * params.thickness));
+    Array<Vector> dummies = params.distribution->generate(SEQUENTIAL, count, boundingDomain);
     // remove all particles inside the actual domain or too far away
     /*Array<Float> distances;
     params.domain->getDistanceToBoundary(dummies, distances);*/

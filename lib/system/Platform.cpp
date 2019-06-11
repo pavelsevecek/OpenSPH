@@ -4,16 +4,23 @@
 #include "objects/wrappers/Finally.h"
 #include <fcntl.h>
 
+#ifdef SPH_MSVC
+#include <ctime>
+#else
 #include <libgen.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/times.h>
 #include <sys/vtimes.h>
 #include <unistd.h>
+#endif
 
 NAMESPACE_SPH_BEGIN
 
 Expected<Path> getExecutablePath() {
+#ifdef SPH_MSVC
+    NOT_IMPLEMENTED;
+#else
     char result[PATH_MAX];
     ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
     if (count != -1) {
@@ -22,24 +29,7 @@ Expected<Path> getExecutablePath() {
     } else {
         return makeUnexpected<Path>("Unknown error");
     }
-}
-
-Outcome sendMail(const std::string& to,
-    const std::string& from,
-    const std::string& subject,
-    const std::string& message) {
-    NOT_IMPLEMENTED; // somehow doesn't work
-    FILE* mailpipe = popen("/usr/bin/sendmail -t", "w");
-    if (mailpipe == nullptr) {
-        return "Cannot invoke sendmail";
-    }
-    fprintf(mailpipe, "To: %s\n", to.c_str());
-    fprintf(mailpipe, "From: %s\n", from.c_str());
-    fprintf(mailpipe, "Subject: %s\n\n", subject.c_str());
-    fwrite(message.c_str(), 1, message.size(), mailpipe);
-    fwrite(".\n", 1, 2, mailpipe);
-    pclose(mailpipe);
-    return SUCCESS;
+#endif
 }
 
 Outcome showNotification(const std::string& title, const std::string& message) {
@@ -65,6 +55,11 @@ Expected<std::string> getGitCommit(const Path& pathToGitRoot, const Size prev) {
     if (!FileSystem::pathExists(pathToGitRoot)) {
         return makeUnexpected<std::string>("Invalid path");
     }
+
+#ifdef SPH_MSVC
+    MARK_USED(prev);
+    NOT_IMPLEMENTED;
+#else
     StaticArray<char, 128> buffer;
     std::string command = "cd " + pathToGitRoot.native() + " && git rev-parse HEAD~" + std::to_string(prev);
     std::string result;
@@ -92,8 +87,11 @@ Expected<std::string> getGitCommit(const Path& pathToGitRoot, const Size prev) {
     } else {
         return result;
     }
+#endif
 }
 
+#ifdef SPH_MSVC
+#else
 class CpuUsage {
 private:
     clock_t lastCpu;
@@ -141,13 +139,22 @@ public:
         return usage;
     }
 };
+#endif
 
 Optional<Float> getCpuUsage() {
+#ifdef SPH_MSVC
+    NOT_IMPLEMENTED;
+#else
     static CpuUsage cpu;
     return cpu.getUsage();
+#endif
 }
 
 bool isDebuggerPresent() {
+#ifdef SPH_MSVC
+    NOT_IMPLEMENTED;
+#else
+
     char buf[1024];
     bool debuggerPresent = false;
 
@@ -169,6 +176,7 @@ bool isDebuggerPresent() {
         }
     }
     return debuggerPresent;
+#endif
 }
 
 NAMESPACE_SPH_END

@@ -18,7 +18,10 @@ NAMESPACE_SPH_BEGIN
 /// is not blocked in the destructor.
 class Process {
 private:
+#ifdef SPH_MSVC
+#else
     pid_t childPid = -1;
+#endif
 
 public:
     /// \brief Creates a null process handle.

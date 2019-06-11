@@ -1,4 +1,7 @@
 #include "io/Path.h"
+#ifdef SPH_MSVC
+#include <algorithm>
+#endif
 
 NAMESPACE_SPH_BEGIN
 
@@ -164,6 +167,9 @@ Path& Path::makeRelative() {
 }
 
 Path Path::currentPath() {
+#ifdef SPH_MSVC
+    NOT_IMPLEMENTED;
+#else
     constexpr Size bufferCnt = 1024;
     char buffer[bufferCnt];
     if (getcwd(buffer, sizeof(buffer))) {
@@ -172,6 +178,7 @@ Path Path::currentPath() {
     } else {
         return Path();
     }
+#endif
 }
 
 Path Path::operator/(const Path& other) const {

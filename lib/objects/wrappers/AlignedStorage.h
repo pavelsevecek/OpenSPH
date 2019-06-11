@@ -7,7 +7,7 @@
 
 #include "common/Assert.h"
 #include "common/Traits.h"
-#include <mm_malloc.h>
+#include "objects/containers/Alloc.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -16,7 +16,7 @@ template <typename T, typename... TArgs>
 INLINE T* alignedNew(TArgs&&... args) {
     constexpr Size size = sizeof(T);
     constexpr Size alignment = alignof(T);
-    void* ptr = _mm_malloc(size, alignment);
+    void* ptr = alignedMalloc(size, alignment);
     ASSERT(ptr);
     return new (ptr) T(std::forward<TArgs>(args)...);
 }
@@ -48,14 +48,16 @@ INLINE bool isAligned(const T& value) {
 /// automatically! This object does NO checks when the stored value is accessed, or whether it is
 /// constructed multiple times. This is left to the user.
 
+#ifdef SPH_GCC
 // dereferencing type-punned pointer will break strict-aliasing rules
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 /// \todo It's weird that GCC issues this warning as we are using __may_alias__ attribute. Perhaps a bug?
+#endif
 
 template <typename Type>
 class AlignedStorage {
 private:
-    struct __attribute__((__may_alias__)) Holder {
+    struct SPH_MAY_ALIAS Holder {
         alignas(Type) char storage[sizeof(Type)];
     } holder;
 

@@ -38,7 +38,7 @@ private:
     const IDomain& domain;
     TRng rng;
 
-    static constexpr uint chunk = 100;
+    static constexpr int chunk = 100;
 
 public:
     /// \brief Constructs an integrator given the domain of integration.

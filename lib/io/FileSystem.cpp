@@ -2,11 +2,11 @@
 #include "objects/containers/StaticArray.h"
 #include <fstream>
 #include <sstream>
+#ifdef SPH_MSVC
+#else
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#ifdef SPH_USE_STD_EXPERIMENTAL
-#include <experimental/filesystem>
 #endif
 
 NAMESPACE_SPH_BEGIN
@@ -29,11 +29,16 @@ bool FileSystem::pathExists(const Path& path) {
 Size FileSystem::fileSize(const Path& path) {
     std::ifstream ifs(path.native(), std::ifstream::ate | std::ifstream::binary);
     ASSERT(ifs);
-    return ifs.tellg();
+    return Size(ifs.tellg());
 }
 
 bool FileSystem::isPathWritable(const Path& path) {
+#ifdef SPH_MSVC
+    MARK_USED(path);
+    NOT_IMPLEMENTED;
+#else
     return access(path.native().c_str(), W_OK) == 0;
+#endif
 }
 
 Expected<Path> FileSystem::getHomeDirectory() {
@@ -46,15 +51,24 @@ Expected<Path> FileSystem::getHomeDirectory() {
 }
 
 Path FileSystem::getAbsolutePath(const Path& relativePath) {
+#ifdef SPH_MSVC
+    MARK_USED(relativePath);
+    NOT_IMPLEMENTED;
+#else
     char realPath[PATH_MAX];
     realpath(relativePath.native().c_str(), realPath);
     return Path(realPath);
+#endif
 }
 
 Expected<FileSystem::PathType> FileSystem::pathType(const Path& path) {
     if (path.empty()) {
         return makeUnexpected<PathType>("Path is empty");
     }
+
+#ifdef SPH_MSVC
+    NOT_IMPLEMENTED;
+#else
     struct stat buffer;
     if (stat(path.native().c_str(), &buffer) != 0) {
         /// \todo possibly get the actual error, like in other functions
@@ -70,11 +84,16 @@ Expected<FileSystem::PathType> FileSystem::pathType(const Path& path) {
         return PathType::SYMLINK;
     }
     return PathType::OTHER;
+#endif
 }
 
 
 static Outcome createSingleDirectory(const Path& path, const Flags<FileSystem::CreateDirectoryFlag> flags) {
     ASSERT(!path.empty());
+#ifdef SPH_MSVC
+    MARK_USED(flags);
+    NOT_IMPLEMENTED;
+#else
     const bool result = mkdir(path.native().c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
     if (!result) {
         switch (errno) {
@@ -109,6 +128,7 @@ static Outcome createSingleDirectory(const Path& path, const Flags<FileSystem::C
         }
     }
     return SUCCESS;
+#endif
 }
 
 Outcome FileSystem::createDirectory(const Path& path, const Flags<CreateDirectoryFlag> flags) {
@@ -264,9 +284,15 @@ Outcome FileSystem::copyDirectory(const Path& from, const Path& to) {
 
 void FileSystem::setWorkingDirectory(const Path& path) {
     ASSERT(pathType(path).valueOr(PathType::OTHER) == PathType::DIRECTORY);
+#ifdef SPH_MSVC
+    NOT_IMPLEMENTED;
+#else
     chdir(path.native().c_str());
+#endif
 }
 
+#ifdef SPH_MSVC
+#else
 FileSystem::DirectoryIterator::DirectoryIterator(DIR* dir)
     : dir(dir) {
     if (dir) {
@@ -274,8 +300,12 @@ FileSystem::DirectoryIterator::DirectoryIterator(DIR* dir)
         this->operator++();
     }
 }
+#endif
 
 FileSystem::DirectoryIterator& FileSystem::DirectoryIterator::operator++() {
+#ifdef SPH_MSVC
+    NOT_IMPLEMENTED;
+#else
     if (!dir) {
         return *this;
     }
@@ -283,48 +313,84 @@ FileSystem::DirectoryIterator& FileSystem::DirectoryIterator::operator++() {
         entry = readdir(dir);
     } while (entry && (**this == Path(".") || **this == Path("..")));
     return *this;
+#endif
 }
 
 Path FileSystem::DirectoryIterator::operator*() const {
+#ifdef SPH_MSVC
+    NOT_IMPLEMENTED;
+#else
     ASSERT(entry);
     return Path(entry->d_name);
+#endif
 }
 
 bool FileSystem::DirectoryIterator::operator==(const DirectoryIterator& other) const {
+#ifdef SPH_MSVC
+    MARK_USED(other);
+    NOT_IMPLEMENTED;
+#else
     return (!entry && !other.entry) || entry == other.entry;
+#endif
 }
 
 bool FileSystem::DirectoryIterator::operator!=(const DirectoryIterator& other) const {
+#ifdef SPH_MSVC
+    MARK_USED(other);
+    NOT_IMPLEMENTED;
+#else
     // returns false if both are nullptr to end the loop for nonexisting dirs
     return (entry || other.entry) && entry != other.entry;
+#endif
 }
 
 FileSystem::DirectoryAdapter::DirectoryAdapter(const Path& directory) {
     ASSERT(pathType(directory).valueOr(PathType::OTHER) == PathType::DIRECTORY);
+#ifdef SPH_MSVC
+    NOT_IMPLEMENTED;
+#else
     if (!pathExists(directory)) {
         dir = nullptr;
         return;
     }
     dir = opendir(directory.native().c_str());
+#endif
 }
 
 FileSystem::DirectoryAdapter::~DirectoryAdapter() {
+#ifdef SPH_MSVC
+#else
     if (dir) {
         closedir(dir);
     }
+#endif
 }
 
 FileSystem::DirectoryAdapter::DirectoryAdapter(DirectoryAdapter&& other)
+#ifdef SPH_MSVC
+{
+    MARK_USED(other);
+    NOT_IMPLEMENTED;
+#else
     : dir(other.dir) {
     other.dir = nullptr;
+#endif
 }
 
 FileSystem::DirectoryIterator FileSystem::DirectoryAdapter::begin() const {
+#ifdef SPH_MSVC
+    NOT_IMPLEMENTED;
+#else
     return DirectoryIterator(dir);
+#endif
 }
 
 FileSystem::DirectoryIterator FileSystem::DirectoryAdapter::end() const {
+#ifdef SPH_MSVC
+    NOT_IMPLEMENTED;
+#else
     return DirectoryIterator(nullptr);
+#endif
 }
 
 FileSystem::DirectoryAdapter FileSystem::iterateDirectory(const Path& directory) {
@@ -340,16 +406,29 @@ Array<Path> FileSystem::getFilesInDirectory(const Path& directory) {
 }
 
 FileSystem::FileLock::FileLock(const Path& path) {
+#ifdef SPH_MSVC
+    MARK_USED(path);
+    NOT_IMPLEMENTED;
+#else
     handle = open(path.native().c_str(), O_RDONLY);
     TODO("check that the file exists and was correctly opened");
+#endif
 }
 
 void FileSystem::FileLock::lock() {
+#ifdef SPH_MSVC
+    NOT_IMPLEMENTED;
+#else
     flock(handle, LOCK_EX | LOCK_NB);
+#endif
 }
 
 void FileSystem::FileLock::unlock() {
+#ifdef SPH_MSVC
+    NOT_IMPLEMENTED;
+#else
     flock(handle, LOCK_UN | LOCK_NB);
+#endif
 }
 
 bool FileSystem::isFileLocked(const Path& UNUSED(path)) {
