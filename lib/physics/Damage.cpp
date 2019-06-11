@@ -228,26 +228,6 @@ void TensorGradyKippModel::integrate(IScheduler& UNUSED(scheduler),
     NOT_IMPLEMENTED;
 }
 
-void MohrCoulombModel::setFlaws(Storage& storage,
-    IMaterial& UNUSED(material),
-    const MaterialInitialContext& UNUSED(context)) const {
-    /// \todo correct values
-    storage.insert<Float>(QuantityId::MOHR_COULOMB_STRESS, OrderEnum::ZERO, 0._f);
-    storage.insert<Float>(QuantityId::FRICTION_ANGLE, OrderEnum::ZERO, 0._f);
-}
-
-void MohrCoulombModel::integrate(IScheduler& UNUSED(scheduler),
-    Storage& UNUSED(storage),
-    const MaterialView UNUSED(material)) {
-    NOT_IMPLEMENTED;
-    /*for (Size i = 0; i < p.size(); ++i) {
-        const SymmetricTensor sigma = SymmetricTensor(s_dmg[i]) - p[i] * SymmetricTensor::identity();
-        Float sig1, sig2, sig3;
-        tie(sig1, sig2, sig3) = findEigenvalues(sigma);
-        const Float sigMax = max(sig1, sig2, sig3);
-    }*/
-}
-
 void NullFracture::setFlaws(Storage& UNUSED(storage),
     IMaterial& UNUSED(material),
     const MaterialInitialContext& UNUSED(context)) const {}

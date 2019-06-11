@@ -73,11 +73,11 @@ SharedPtr<WorkerNode> NodeManager::addNode(AutoPtr<IWorker>&& worker) {
     return this->addNode(std::move(worker), Pixel(size.x / 2, size.y / 2) - editor->offset());
 }
 
-void NodeManager::addNodes(WorkerNode& node, const Pixel position) {
+void NodeManager::addNodes(WorkerNode& node) {
     node.enumerate([this](SharedPtr<WorkerNode> node, Size UNUSED(depth)) {
         nodes.insert(node, VisNode(node.get(), Pixel(0, 0)));
     });
-    this->layoutNodes(node, position);
+    this->layoutNodes(node, Pixel(800, 200) - editor->offset());
 }
 
 SharedPtr<WorkerNode> NodeManager::cloneNode(WorkerNode& node) {
@@ -1257,13 +1257,13 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         UniqueNameManager nameMgr = nodeMgr->makeUniqueNameManager();
         if (id == fragAndReaccId) {
             auto node = Presets::makeFragmentationAndReaccumulation(nameMgr);
-            nodeMgr->addNodes(*node, Pixel(800, 200));
+            nodeMgr->addNodes(*node);
         } else if (id == collisionsId) {
             auto node = Presets::makeSimpleCollision(nameMgr);
-            nodeMgr->addNodes(*node, Pixel(800, 200));
+            nodeMgr->addNodes(*node);
         } else if (id == crateringId) {
             auto node = Presets::makeCratering(nameMgr);
-            nodeMgr->addNodes(*node, Pixel(800, 200));
+            nodeMgr->addNodes(*node);
         }
         WorkerTreeData* data = dynamic_cast<WorkerTreeData*>(workerView->GetItemData(id));
         if (data) {

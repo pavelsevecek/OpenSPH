@@ -215,6 +215,7 @@ static FlatMap<PaletteKey, PaletteDesc> paletteDescs = {
     { QuantityId::VELOCITY_GRADIENT, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
     { QuantityId::VELOCITY_ROTATION, { Interval(0._f, 4._f), PaletteScale::LINEAR } },
     { QuantityId::SOUND_SPEED, { Interval(0._f, 5.e3_f), PaletteScale::LINEAR } },
+    { QuantityId::VIBRATIONAL_VELOCITY, { Interval(0._f, 5.e3_f), PaletteScale::LINEAR } },
     { QuantityId::AV_STRESS, { Interval(0._f, 1.e8_f), PaletteScale::LINEAR } },
     { QuantityId::ANGULAR_FREQUENCY, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
     { QuantityId::MOMENT_OF_INERTIA, { Interval(0._f, 1.e10_f), PaletteScale::LINEAR } },

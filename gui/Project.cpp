@@ -89,9 +89,13 @@ INLINE auto configToSettingsValue(const EnumWrapper& original, const int& value)
 void Project::saveGui(Config& config) {
     SharedPtr<ConfigNode> guiNode = config.addNode("gui");
     for (const auto& entry : gui) {
-        const std::string key = GuiSettings::getEntryName(entry.id);
-        forValue(entry.value,
-            [&guiNode, &key](const auto& value) { guiNode->set(key, settingsToConfigValue(value)); });
+        const Optional<std::string> key = GuiSettings::getEntryName(entry.id);
+        if (!key) {
+            throw ConfigException("No settings entry with id " + std::to_string(int(entry.id)));
+        }
+        forValue(entry.value, [&guiNode, &key](const auto& value) { //
+            guiNode->set(key.value(), settingsToConfigValue(value));
+        });
     }
 }
 
@@ -113,12 +117,16 @@ void Project::savePalettes(Config& config) {
 void Project::loadGui(Config& config) {
     SharedPtr<ConfigNode> guiNode = config.getNode("gui");
     for (const auto& entry : gui) {
-        const std::string key = GuiSettings::getEntryName(entry.id);
+        const Optional<std::string> key = GuiSettings::getEntryName(entry.id);
+        if (!key) {
+            throw ConfigException("No settings entry with id " + std::to_string(int(entry.id)));
+        }
+
         forValue(entry.value, [this, &guiNode, &key, &entry](auto& value) {
             using Type = decltype(settingsToConfigValue(value));
 
             try {
-                const Type loadedValue = guiNode->get<Type>(key);
+                const Type loadedValue = guiNode->get<Type>(key.value());
                 gui.set(entry.id, configToSettingsValue(value, loadedValue));
             } catch (ConfigException& UNUSED(e)) {
                 /// \todo log the error somewhere - we don't want to bail out here to allow laoding older

@@ -76,7 +76,8 @@ class InvalidSettingsAccess : public Exception {
 public:
     template <typename TEnum>
     explicit InvalidSettingsAccess(const TEnum key)
-        : Exception("Error accessing parameter " + Settings<TEnum>::getEntryName(key)) {}
+        : Exception("Error accessing parameter '" +
+                    Settings<TEnum>::getEntryName(key).valueOr("unknown parameter") + "'") {}
 };
 
 template <typename TEnum>
@@ -349,15 +350,15 @@ public:
 
     /// \brief Returns the human-readable name of the entry with given index.
     ///
-    /// If the index does not correspond to any parameter, returns string "unknown parameter".
-    static std::string getEntryName(const TEnum idx) {
+    /// If the index does not correspond to any parameter, returns string NOTHING.
+    static Optional<std::string> getEntryName(const TEnum idx) {
         const Settings& settings = getDefaults();
         Optional<const Entry&> entry = settings.entries.tryGet(idx);
         if (entry) {
             return entry->name;
         } else {
             // idx might be invalid if loaded from older config file
-            return "unknown parameter";
+            return NOTHING;
         }
     }
 
@@ -1325,17 +1326,14 @@ enum class BodySettingsId {
     /// Coefficient of friction for fully damaged material
     DRY_FRICTION = 42,
 
-    /// \todo
-    BRITTLE_DUCTILE_TRANSITION_PRESSURE = 43,
+    /// Whether to use the acoustic fludization model.
+    USE_ACOUSTIC_FLUDIZATION = 43,
 
-    /// \todo
-    BRITTLE_PLASTIC_TRANSITION_PRESSURE = 44,
+    /// Characteristic decay time of acoustic oscillations in the material
+    OSCILLATION_DECAY_TIME = 44,
 
-    /// \todo
-    MOHR_COULOMB_STRESS = 45,
-
-    /// \todo
-    FRICTION_ANGLE = 46,
+    /// Effective viscosity of acoustic fludizations
+    FLUIDIZATION_VISCOSITY = 45,
 
     /// Speed of crack growth, in units of local sound speed.
     RAYLEIGH_SOUND_SPEED = 47,

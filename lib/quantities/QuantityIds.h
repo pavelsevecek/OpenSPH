@@ -87,6 +87,9 @@ enum class QuantityId {
     /// \todo
     FRICTION_ANGLE = 18,
 
+    /// Vibrational particle velocity, used by the block model of acoustic fluidization.
+    VIBRATIONAL_VELOCITY = 47,
+
     ///@}
 
     /// \name N-body & Solid sphere physics

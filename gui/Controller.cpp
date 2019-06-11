@@ -193,7 +193,11 @@ void Controller::quit(const bool waitForFinish) {
             sph.thread.join();
         }
 
-        vis.renderThreadVar.notify_one();
+        {
+            std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
+            vis.renderThreadVar.notify_one();
+        }
+
         if (vis.renderThread.joinable()) {
             vis.renderThread.join();
         }
@@ -406,6 +410,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         quantityColorizerIds.push(QuantityId::AV_BALSARA);
         quantityColorizerIds.push(QuantityId::AV_STRESS);
         quantityColorizerIds.push(QuantityId::SOUND_SPEED);
+        quantityColorizerIds.push(QuantityId::VIBRATIONAL_VELOCITY);
         quantityColorizerIds.push(QuantityId::ANGULAR_FREQUENCY);
         quantityColorizerIds.push(QuantityId::MOMENT_OF_INERTIA);
         quantityColorizerIds.push(QuantityId::STRAIN_RATE_CORRECTION_TENSOR);

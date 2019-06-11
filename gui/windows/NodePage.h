@@ -79,7 +79,7 @@ public:
 
     SharedPtr<WorkerNode> addNode(AutoPtr<IWorker>&& worker, const Pixel position);
 
-    void addNodes(WorkerNode& node, const Pixel position);
+    void addNodes(WorkerNode& node);
 
     SharedPtr<WorkerNode> cloneNode(WorkerNode& node);
 
