@@ -201,7 +201,7 @@ TEST_CASE("Settings addEntries", "[settings]") {
 
 TEST_CASE("Settings getEntryName", "[settings]") {
     REQUIRE(RunSettings::getEntryName(RunSettingsId::RUN_OUTPUT_TYPE).value() == "run.output.type");
-    REQUIRE(RunSettings::getEntryName(RunSettingsId(-1)).value() == "unknown parameter");
+    REQUIRE_FALSE(RunSettings::getEntryName(RunSettingsId(-1)));
 }
 
 template <typename T>
