@@ -81,80 +81,19 @@ static void stepSecondOrder(Storage& storage, IScheduler& scheduler, const TFunc
     iterate<VisitorEnum::SECOND_ORDER>(storage, process);
 }
 
-/// \brief Little template magic to invoke given functor with set of parameters specific to given Visitor.
-///
-/// For ALL_BUFFERS, this passes all values and derivatives of both storages to the functor - 6 parameters in
-/// total. For HIGHEST_DERIVATIVES, all values and derivatives of the first storage are passed, but only
-/// highest derivatives of the second storage, so have 4 parameters. All parameters of the second storage are
-/// passed as const.
-/// \todo It would be easier to simply pass the second storage as const, but currently we don't have \ref
-/// iteratePair with const storages implemented ...
-template <typename T, VisitorEnum Visitor>
-struct Invoker;
-
-template <typename T>
-struct Invoker<T, VisitorEnum::ALL_BUFFERS> {
-    template <typename TFunc>
-    void operator()(T& px, const T& pdx, const T& cx, const T& cdx, const Size i, const TFunc& stepper) {
-        stepper(px[i], pdx[i], cx[i], cdx[i]);
-    }
-
-    template <typename TFunc>
-    void operator()(T& pr,
-        T& pv,
-        const T& pdv,
-        const T& cr,
-        const T& cv,
-        const T& cdv,
-        const Size i,
-        const TFunc& stepper) {
-        stepper(pr[i], pv[i], pdv[i], cr[i], cv[i], cdv[i]);
-    }
-};
-
-template <typename T>
-struct Invoker<T, VisitorEnum::HIGHEST_DERIVATIVES> {
-    template <typename TFunc>
-    void operator()(T& px,
-        const T& pdx,
-        const T& UNUSED(cx),
-        const T& cdx,
-        const Size i,
-        const TFunc& stepper) {
-        stepper(px[i], pdx[i], cdx[i]);
-    }
-
-    template <typename TFunc>
-    void operator()(T& pr,
-        T& pv,
-        const T& pdv,
-        const T& UNUSED(cr),
-        const T& UNUSED(cv),
-        const T& cdv,
-        const Size i,
-        const TFunc& stepper) {
-        stepper(pr[i], pv[i], pdv[i], cdv[i]);
-    }
-};
-
-template <VisitorEnum Visitor, typename TFunc>
-static void stepPairFirstOrder(Storage& storage1,
+template <typename TFunc>
+static void stepFirstOrder(Storage& storage1,
     Storage& storage2,
     IScheduler& scheduler,
     const TFunc& stepper) {
-    static_assert(Visitor == VisitorEnum::ALL_BUFFERS || Visitor == VisitorEnum::HIGHEST_DERIVATIVES,
-        "Currently works for all buffers OR highest derivatives only, can be generalized if needed");
 
     auto processPair = [&](QuantityId id, auto& px, auto& pdx, const auto& cx, const auto& cdx) {
         ASSERT(px.size() == pdx.size());
         ASSERT(cdx.size() == px.size());
-        ASSERT(Visitor == VisitorEnum::ALL_BUFFERS ? (cx.size() == cdx.size()) : cx.empty());
-
-        using T = std::decay_t<decltype(px)>;
-        Invoker<T, Visitor> invoker;
+        ASSERT(cx.empty());
 
         parallelFor(scheduler, 0, px.size(), [&](const Size i) {
-            invoker(px, asConst(pdx), cx, cdx, i, stepper);
+            stepper(px[i], pdx[i], cdx[i]);
 
             const Interval range = storage1.getMaterialOfParticle(i)->range(id);
             if (range != Interval::unbounded()) {
@@ -166,13 +105,36 @@ static void stepPairFirstOrder(Storage& storage1,
     iteratePair<VisitorEnum::FIRST_ORDER>(storage1, storage2, processPair);
 }
 
-template <VisitorEnum Visitor, typename TFunc>
-static void stepPairSecondOrder(Storage& storage1,
+/// \todo remove code duplication using if constexpr
+template <typename TFunc>
+static void stepPairFirstOrder(Storage& storage1,
     Storage& storage2,
     IScheduler& scheduler,
     const TFunc& stepper) {
-    static_assert(Visitor == VisitorEnum::ALL_BUFFERS || Visitor == VisitorEnum::HIGHEST_DERIVATIVES,
-        "Currently works for all buffers OR highest derivatives only, can be generalized if needed");
+
+    auto processPair = [&](QuantityId id, auto& px, auto& pdx, const auto& cx, const auto& cdx) {
+        ASSERT(px.size() == pdx.size());
+        ASSERT(cdx.size() == px.size());
+        ASSERT(cx.size() == cdx.size());
+
+        parallelFor(scheduler, 0, px.size(), [&](const Size i) {
+            stepper(px[i], pdx[i], cx[i], cdx[i]);
+
+            const Interval range = storage1.getMaterialOfParticle(i)->range(id);
+            if (range != Interval::unbounded()) {
+                tie(px[i], pdx[i]) = clampWithDerivative(px[i], pdx[i], range);
+            }
+        });
+    };
+
+    iteratePair<VisitorEnum::FIRST_ORDER>(storage1, storage2, processPair);
+}
+
+template <typename TFunc>
+static void stepSecondOrder(Storage& storage1,
+    Storage& storage2,
+    IScheduler& scheduler,
+    const TFunc& stepper) {
 
     auto processPair = [&](QuantityId id,
                            auto& pr,
@@ -183,14 +145,42 @@ static void stepPairSecondOrder(Storage& storage1,
                            const auto& cdv) {
         ASSERT(pr.size() == pv.size() && pr.size() == pdv.size());
         ASSERT(cdv.size() == pr.size());
-        ASSERT(Visitor == VisitorEnum::ALL_BUFFERS ? (cr.size() == cdv.size()) : cr.empty());
-        ASSERT(Visitor == VisitorEnum::ALL_BUFFERS ? (cv.size() == cdv.size()) : cv.empty());
-
-        using T = std::decay_t<decltype(pr)>;
-        Invoker<T, Visitor> invoker;
+        ASSERT(cr.empty());
+        ASSERT(cv.empty());
 
         parallelFor(scheduler, 0, pr.size(), [&](const Size i) {
-            invoker(pr, pv, pdv, cr, cv, cdv, i, stepper);
+            stepper(pr[i], pv[i], pdv[i], cdv[i]);
+
+            const Interval range = storage1.getMaterialOfParticle(i)->range(id);
+            if (range != Interval::unbounded()) {
+                tie(pr[i], pv[i]) = clampWithDerivative(pr[i], pv[i], range);
+            }
+        });
+    };
+
+    iteratePair<VisitorEnum::SECOND_ORDER>(storage1, storage2, processPair);
+}
+
+template <typename TFunc>
+static void stepPairSecondOrder(Storage& storage1,
+    Storage& storage2,
+    IScheduler& scheduler,
+    const TFunc& stepper) {
+
+    auto processPair = [&](QuantityId id,
+                           auto& pr,
+                           auto& pv,
+                           const auto& pdv,
+                           const auto& cr,
+                           const auto& cv,
+                           const auto& cdv) {
+        ASSERT(pr.size() == pv.size() && pr.size() == pdv.size());
+        ASSERT(cdv.size() == pr.size());
+        ASSERT(cr.size() == cdv.size());
+        ASSERT(cv.size() == cdv.size());
+
+        parallelFor(scheduler, 0, pr.size(), [&](const Size i) {
+            stepper(pr[i], pv[i], pdv[i], cr[i], cv[i], cdv[i]);
 
             const Interval range = storage1.getMaterialOfParticle(i)->range(id);
             if (range != Interval::unbounded()) {
@@ -276,7 +266,7 @@ void PredictorCorrector::makeCorrections(IScheduler& scheduler) {
     constexpr Float a = 1._f / 3._f;
     constexpr Float b = 0.5_f;
 
-    stepPairSecondOrder<VisitorEnum::HIGHEST_DERIVATIVES>(*storage,
+    stepSecondOrder(*storage,
         *predictions,
         scheduler,
         [a, b, dt, dt2](auto& pr, auto& pv, const auto& pdv, const auto& cdv) {
@@ -284,10 +274,9 @@ void PredictorCorrector::makeCorrections(IScheduler& scheduler) {
             pv -= b * (cdv - pdv) * dt;
         });
 
-    stepPairFirstOrder<VisitorEnum::HIGHEST_DERIVATIVES>(
-        *storage, *predictions, scheduler, [dt](auto& px, const auto& pdx, const auto& cdx) {
-            px -= 0.5_f * (cdx - pdx) * dt;
-        });
+    stepFirstOrder(*storage, *predictions, scheduler, [dt](auto& px, const auto& pdx, const auto& cdx) {
+        px -= 0.5_f * (cdx - pdx) * dt;
+    });
 }
 
 void PredictorCorrector::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
@@ -461,7 +450,7 @@ void ModifiedMidpointMethod::stepImpl(IScheduler& scheduler, ISolver& solver, St
 
     solver.collide(*storage, stats, h);
     // do first (half)step using current derivatives, save values to mid
-    stepPairSecondOrder<VisitorEnum::ALL_BUFFERS>(*mid,
+    stepPairSecondOrder(*mid,
         *storage,
         scheduler,
         [h](auto& pr, auto& pv, const auto&, const auto& cr, const auto& cv, const auto& cdv) INL {
@@ -469,7 +458,7 @@ void ModifiedMidpointMethod::stepImpl(IScheduler& scheduler, ISolver& solver, St
             pr = cr + h * cv;
             ASSERT(isReal(pv) && isReal(pr));
         });
-    stepPairFirstOrder<VisitorEnum::ALL_BUFFERS>(*mid,
+    stepPairFirstOrder(*mid,
         *storage,
         scheduler,
         [h](auto& px, const auto& UNUSED(pdx), const auto& cx, const auto& cdx) INL { //
@@ -486,7 +475,7 @@ void ModifiedMidpointMethod::stepImpl(IScheduler& scheduler, ISolver& solver, St
     // do (n-1) steps, keeping mid half-step ahead of the storage
     for (Size iter = 0; iter < n - 1; ++iter) {
         solver.collide(*storage, stats, 2._f * h);
-        stepPairSecondOrder<VisitorEnum::ALL_BUFFERS>(*storage,
+        stepPairSecondOrder(*storage,
             *mid,
             scheduler,
             [h](auto& pr,
@@ -499,7 +488,7 @@ void ModifiedMidpointMethod::stepImpl(IScheduler& scheduler, ISolver& solver, St
                 pr += 2._f * h * cv;
                 ASSERT(isReal(pv) && isReal(pr));
             });
-        stepPairFirstOrder<VisitorEnum::ALL_BUFFERS>(*storage,
+        stepPairFirstOrder(*storage,
             *mid,
             scheduler,
             [h](auto& px, const auto& UNUSED(pdx), const auto& UNUSED(cx), const auto& cdx) INL { //
@@ -513,7 +502,7 @@ void ModifiedMidpointMethod::stepImpl(IScheduler& scheduler, ISolver& solver, St
 
     // last step
     solver.collide(*storage, stats, h);
-    stepPairSecondOrder<VisitorEnum::ALL_BUFFERS>(*storage,
+    stepPairSecondOrder(*storage,
         *mid,
         scheduler,
         [h](auto& pr, auto& pv, const auto& UNUSED(pdv), auto& cr, const auto& cv, const auto& cdv) INL {
@@ -521,7 +510,7 @@ void ModifiedMidpointMethod::stepImpl(IScheduler& scheduler, ISolver& solver, St
             pr = 0.5_f * (pr + cr + h * cv);
             ASSERT(isReal(pv) && isReal(pr));
         });
-    stepPairFirstOrder<VisitorEnum::ALL_BUFFERS>(*storage,
+    stepPairFirstOrder(*storage,
         *mid,
         scheduler,
         [h](auto& px, const auto& UNUSED(pdx), const auto& cx, const auto& cdx) INL {
