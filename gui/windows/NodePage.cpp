@@ -7,6 +7,7 @@
 #include "run/workers/IoWorkers.h"
 #include "run/workers/Presets.h"
 #include "thread/CheckFunction.h"
+#include <wx/dcbuffer.h>
 #include <wx/dcclient.h>
 #include <wx/dirdlg.h>
 #include <wx/graphics.h>
@@ -484,6 +485,10 @@ NodeEditor::NodeEditor(NodeWindow* parent, SharedPtr<INodeManagerCallbacks> call
     this->Connect(wxEVT_LEFT_UP, wxMouseEventHandler(NodeEditor::onLeftUp));
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(NodeEditor::onRightUp));
     this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(NodeEditor::onDoubleClick));
+
+#ifdef SPH_MSVC
+    this->SetDoubleBuffered(true);
+#endif
 }
 
 static void drawCenteredText(wxGraphicsContext* gc,
@@ -629,7 +634,7 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
     gc->SetBrush(brush);
     gc->SetPen(getNodePen(vis.node->provides(), isLightTheme));
 
-    const wxFont font = wxSystemSettings::GetFont(wxSYS_SYSTEM_FONT);
+    const wxFont font = wxNORMAL_FONT->Larger(); // wxSystemSettings::GetFont(wxSYS_SYSTEM_FONT);
     const Rgba lineColor(getLineColor(background));
     gc->SetFont(font, wxColour(lineColor));
 
@@ -1382,6 +1387,7 @@ void NodeWindow::updateProperties() {
         AddParamsProc proc(grid, propertyEntryMap);
         settings.enumerate(proc);
     } catch (Exception& e) {
+        MARK_USED(e);
         ASSERT(false, e.what());
     }
     this->updateEnabled(grid);

@@ -5,6 +5,7 @@
 #include <fcntl.h>
 
 #ifdef SPH_MSVC
+#include <Windows.h>
 #include <ctime>
 #else
 #include <libgen.h>
@@ -152,7 +153,7 @@ Optional<Float> getCpuUsage() {
 
 bool isDebuggerPresent() {
 #ifdef SPH_MSVC
-    NOT_IMPLEMENTED;
+    return IsDebuggerPresent() != FALSE;
 #else
 
     char buf[1024];

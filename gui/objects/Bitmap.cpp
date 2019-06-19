@@ -18,11 +18,13 @@ void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx) {
     wxAlphaPixelData pixels(wx);
     ASSERT(pixels);
     wxAlphaPixelData::Iterator iterator(pixels);
-    ASSERT(iterator.IsOk());
     static_assert(
         std::is_same<std::decay_t<decltype(iterator.Red())>, unsigned char>::value, "expected unsigned char");
 
     for (int y = 0; y < bitmap.size().y; ++y) {
+        iterator.MoveTo(pixels, 0, y);
+        ASSERT(iterator.IsOk());
+
         for (int x = 0; x < bitmap.size().x; ++x) {
             const Rgba rgba = bitmap[Pixel(x, y)];
             wxColour color(rgba);

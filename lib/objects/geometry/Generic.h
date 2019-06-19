@@ -44,6 +44,14 @@ INLINE bool isReal(const T& value) {
     return !std::isnan(value) && !std::isinf(value);
 }
 
+/// \brief Specialization for Size.
+///
+/// Size can never be nan or inf, but we define it anyway to allowing using isReal in templated functions.
+template <>
+INLINE bool isReal(const Size& UNUSED(value)) {
+    return true;
+}
+
 /// \brief Compares two objects of the same time component-wise.
 ///
 /// Returns object containing components 0 or 1, depending whether components of the first objects are smaller

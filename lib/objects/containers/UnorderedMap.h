@@ -75,7 +75,7 @@ public:
     INLINE void remove(const TKey& key) {
         Element* element = this->find(key);
         ASSERT(element);
-        const Size index = element - &data[0];
+        const Size index = Size(element - &data[0]);
         data.remove(index);
     }
 

@@ -74,7 +74,7 @@ std::string trim(const std::string& s) {
             break;
         }
     }
-    Size i2 = s.size();
+    Size i2 = Size(s.size());
     for (; i2 > 0; --i2) {
         if (s[i2 - 1] != ' ') {
             break;

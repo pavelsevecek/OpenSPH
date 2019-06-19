@@ -41,12 +41,12 @@ float Palette::paletteToLinear(const float value) const {
     case PaletteScale::LINEAR:
         return value;
     case PaletteScale::LOGARITHMIC:
-        return exp10(value);
+        return pow(10.f, value);
     case PaletteScale::HYBRID:
         if (value > 1.f) {
-            return exp10(value - 1.f);
+            return pow(10.f, value - 1.f);
         } else if (value < -1.f) {
-            return -exp10(-value - 1.f);
+            return -pow(10.f, -value - 1.f);
         } else {
             return value;
         }
@@ -142,12 +142,12 @@ float Palette::relativeToPalette(const float value) const {
     case PaletteScale::LINEAR:
         return interpol;
     case PaletteScale::LOGARITHMIC:
-        return exp10(interpol);
+        return pow(10.f, interpol);
     case PaletteScale::HYBRID:
         if (interpol > 1.f) {
-            return exp10(interpol - 1.f);
+            return pow(10.f, interpol - 1.f);
         } else if (interpol < -1.f) {
-            return -exp10(-interpol - 1.f);
+            return -pow(10.f, -interpol - 1.f);
         } else {
             return interpol;
         }

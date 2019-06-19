@@ -10,9 +10,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-#ifdef SPH_MSVC
-#else
-
 ITimeStepping::ITimeStepping(const SharedPtr<Storage>& storage,
     const RunSettings& settings,
     AutoPtr<ITimeStepCriterion>&& criterion)
@@ -41,6 +38,126 @@ void ITimeStepping::step(IScheduler& scheduler, ISolver& solver, Statistics& sta
     stats.set(StatisticsId::TIMESTEP_CRITERION, criterionId);
     stats.set(StatisticsId::TIMESTEP_ELAPSED, int(timer.elapsed(TimerUnit::MILLISECOND)));
 }
+
+
+#ifdef SPH_MSVC
+
+template <typename TFunc>
+static void stepFirstOrder(Storage& storage, IScheduler& scheduler, const TFunc& stepper) {
+
+    // note that derivatives are not advanced in time, but cannot be const as they might be clamped
+    auto process = [&](const QuantityId id, auto& x, auto& dx) {
+        ASSERT(x.size() == dx.size());
+
+        parallelFor(scheduler, 0, x.size(), [&](const Size i) INL {
+            stepper(x[i], asConst(dx[i]));
+            const Interval range = storage.getMaterialOfParticle(i)->range(id);
+            if (range != Interval::unbounded()) {
+                tie(x[i], dx[i]) = clampWithDerivative(x[i], dx[i], range);
+            }
+        });
+    };
+
+    iterate<VisitorEnum::FIRST_ORDER>(storage, process);
+}
+
+template <typename TFunc>
+static void stepSecondOrder(Storage& storage, IScheduler& scheduler, const TFunc& stepper) {
+
+    auto process = [&](const QuantityId id, auto& r, auto& v, const auto& dv) {
+        ASSERT(r.size() == v.size() && r.size() == dv.size());
+
+        parallelFor(scheduler, 0, r.size(), [&](const Size i) INL {
+            stepper(r[i], v[i], dv[i]);
+            /// \todo optimize gettings range of materials (same in derivativecriterion for minimals)
+            const Interval range = storage.getMaterialOfParticle(i)->range(id);
+            if (range != Interval::unbounded()) {
+                tie(r[i], v[i]) = clampWithDerivative(r[i], v[i], range);
+            }
+        });
+    };
+
+    iterate<VisitorEnum::SECOND_ORDER>(storage, process);
+}
+
+void EulerExplicit::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
+    VERBOSE_LOG
+
+    // clear derivatives from previous timestep
+    storage->zeroHighestDerivatives();
+
+    // compute derivatives
+    solver.integrate(*storage, stats);
+
+    PROFILE_SCOPE("EulerExplicit::step")
+    const Float dt = timeStep;
+
+    // advance velocities
+    stepSecondOrder(*storage, scheduler, [dt](auto& UNUSED(r), auto& v, const auto& dv) INL { //
+        v += dv * dt;
+    });
+    // find positions and velocities after collision (at the beginning of the time step
+    solver.collide(*storage, stats, timeStep);
+    // advance positions
+    stepSecondOrder(*storage, scheduler, [dt](auto& r, auto& v, const auto& UNUSED(dv)) INL { //
+        r += v * dt;
+    });
+
+    // simply advance first order quanties
+    stepFirstOrder(*storage, scheduler, [dt](auto& x, const auto& dx) INL { //
+        x += dx * dt;
+    });
+
+    ASSERT(storage->isValid());
+}
+
+PredictorCorrector::PredictorCorrector(const SharedPtr<Storage>& storage, const RunSettings& settings)
+    : ITimeStepping(storage, settings) {
+    ASSERT(storage->getQuantityCnt() > 0); // quantities must already been emplaced
+
+    // we need to keep a copy of the highest derivatives (predictions)
+    predictions = makeShared<Storage>(storage->clone(VisitorEnum::HIGHEST_DERIVATIVES));
+    storage->addDependent(predictions);
+
+    // clear derivatives before using them in step method
+    storage->zeroHighestDerivatives();
+}
+
+PredictorCorrector::~PredictorCorrector() = default;
+
+void PredictorCorrector::stepImpl(IScheduler& UNUSED(scheduler), ISolver& solver, Statistics& stats) {
+    solver.integrate(*storage, stats);
+}
+
+void LeapFrog::stepImpl(IScheduler& UNUSED(scheduler), ISolver& solver, Statistics& stats) {
+    solver.integrate(*storage, stats);
+}
+
+RungeKutta::RungeKutta(const SharedPtr<Storage>& storage, const RunSettings& settings)
+    : ITimeStepping(storage, settings) {}
+
+RungeKutta::~RungeKutta() = default;
+
+void RungeKutta::stepImpl(IScheduler& UNUSED(scheduler), ISolver& solver, Statistics& stats) {
+    solver.integrate(*storage, stats);
+}
+
+ModifiedMidpointMethod::ModifiedMidpointMethod(const SharedPtr<Storage>& storage, const RunSettings& settings)
+    : ITimeStepping(storage, settings) {}
+
+void ModifiedMidpointMethod::stepImpl(IScheduler& UNUSED(scheduler), ISolver& solver, Statistics& stats) {
+    solver.integrate(*storage, stats);
+}
+
+BulirschStoer::BulirschStoer(const SharedPtr<Storage>& storage, const RunSettings& settings)
+    : ITimeStepping(storage, settings) {}
+
+void BulirschStoer::stepImpl(IScheduler& UNUSED(scheduler), ISolver& solver, Statistics& stats) {
+    solver.integrate(*storage, stats);
+}
+
+#else
+
 
 //-----------------------------------------------------------------------------------------------------------
 // Helper functions for stepping

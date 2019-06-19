@@ -321,7 +321,7 @@ bool MarchingCubes::iterateWithIndices(const Box& box, const Vector& step, TFunc
             shouldContinue = shouldContinue && progressCallback(Float(counter) / Float(reportCnt));
         }
     };
-    parallelFor(scheduler, 0, box.size()[Z] / step[Z] + 1, task);
+    parallelFor(scheduler, 0, Size(box.size()[Z] / step[Z] + 1), task);
     return shouldContinue;
 }
 

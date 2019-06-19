@@ -35,6 +35,9 @@ static Array<std::string> getStackTrace() {
 
 static void breakToDebugger() {
 #ifdef SPH_MSVC
+    if (isDebuggerPresent()) {
+        __debugbreak();
+    }
 #else
     if (isDebuggerPresent()) {
         raise(SIGTRAP);

@@ -170,7 +170,8 @@ static Pixel getOriginOffset(wxDC& dc, Flags<TextAlign> align, const std::wstrin
 }
 
 void printLabels(wxDC& dc, ArrayView<const IRenderOutput::Label> labels) {
-    wxFont font = dc.GetFont();
+    wxFont font = wxSystemSettings::GetFont(wxSYS_ANSI_VAR_FONT);
+
     for (const IRenderOutput::Label& label : labels) {
         dc.SetTextForeground(wxColour(label.color));
         font.SetPointSize(label.fontSize);

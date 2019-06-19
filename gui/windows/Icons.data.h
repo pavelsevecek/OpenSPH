@@ -1,9 +1,11 @@
 #pragma once
 
+#ifdef SPH_GCC
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wwrite-strings"
+#endif
 
-static char* playData[] = {
+static const char* playData[] = {
     /* columns rows colors chars-per-pixel */
     "32 32 2 1 ",
     "  c gray",
@@ -43,7 +45,7 @@ static char* playData[] = {
     "................................"
 };
 
-static char* stopData[] = {
+static const char* stopData[] = {
     /* columns rows colors chars-per-pixel */
     "32 32 2 1 ",
     "  c gray",
@@ -83,7 +85,7 @@ static char* stopData[] = {
     "................................"
 };
 
-static char* pauseData[] = {
+static const char* pauseData[] = {
     /* columns rows colors chars-per-pixel */
     "32 32 2 1 ",
     "  c gray",
@@ -123,7 +125,7 @@ static char* pauseData[] = {
     "................................"
 };
 
-static char* nextData[] = {
+static const char* nextData[] = {
     /* columns rows colors chars-per-pixel */
     "32 32 2 1 ",
     "  c gray",
@@ -163,5 +165,6 @@ static char* nextData[] = {
     "................................"
 };
 
-
+#ifdef SPH_GCC
 #pragma GCC diagnostic pop
+#endif

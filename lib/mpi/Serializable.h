@@ -61,20 +61,20 @@ public:
         : value(value) {}
 
     virtual void serialize(Array<uint8_t>& buffer) const override {
-        buffer.resize(value.size());
+        buffer.resize(Size(value.size()));
         memcpy(&buffer[0], value.data(), value.size());
     }
 
     virtual void deserialize(ArrayView<uint8_t> buffer) override {
         // assuming null-terminated string
         const char* data = reinterpret_cast<const char*>(&buffer[0]);
-        const Size length = strlen(data);
+        const Size length = Size(strlen(data));
         value.resize(length);
         memcpy(&value[0], &buffer[0], length);
     }
 
     virtual Size handle() const override {
-        return typeid(std::string).hash_code();
+        return Size(typeid(std::string).hash_code() & 0xFFFFFFFF);
     }
 };
 

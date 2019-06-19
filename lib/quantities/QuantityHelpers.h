@@ -109,7 +109,8 @@ decltype(auto) dispatchNoIndex(const ValueEnum value, TVisitor&& visitor, TArgs&
     case ValueEnum::TRACELESS_TENSOR:
         return visitor.template visit<TracelessTensor>(std::forward<TArgs>(args)...);
     default:
-        NOT_IMPLEMENTED;
+        break;
+        //        NOT_IMPLEMENTED;
     }
 }
 

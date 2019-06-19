@@ -249,8 +249,8 @@ Palette Factory::getPalette(const ColorizerId id) {
     const PaletteDesc desc = paletteDescs[id];
     const Interval range = desc.range;
     const PaletteScale scale = desc.scale;
-    const float x0 = Float(range.lower());
-    const float dx = Float(range.size());
+    const float x0 = float(range.lower());
+    const float dx = float(range.size());
     if (int(id) >= 0) {
         QuantityId quantity = QuantityId(id);
         switch (quantity) {
@@ -292,7 +292,7 @@ Palette Factory::getPalette(const ColorizerId id) {
         case QuantityId::MASS:
             return Palette({ { x0, Rgba(0.1f, 0.1f, 0.1f) }, { x0 + dx, Rgba(0.9f, 0.9f, 0.9f) } }, scale);
         case QuantityId::VELOCITY_DIVERGENCE:
-            ASSERT(x0 < 0._f);
+            ASSERT(x0 < 0.f);
             return Palette({ { x0, Rgba(0.3f, 0.3f, 0.8f) },
                                { 0.1f * x0, Rgba(0.f, 0.f, 0.2f) },
                                { 0.f, Rgba(0.2f, 0.2f, 0.2f) },
@@ -300,16 +300,16 @@ Palette Factory::getPalette(const ColorizerId id) {
                                { x0 + dx, Rgba(1.0f, 0.6f, 0.f) } },
                 scale);
         case QuantityId::VELOCITY_GRADIENT:
-            ASSERT(x0 == 0._f);
-            return Palette({ { 0._f, Rgba(0.3f, 0.3f, 0.8f) },
+            ASSERT(x0 == 0.f);
+            return Palette({ { 0.f, Rgba(0.3f, 0.3f, 0.8f) },
                                { 0.01f * dx, Rgba(0.f, 0.f, 0.2f) },
                                { 0.05f * dx, Rgba(0.2f, 0.2f, 0.2f) },
                                { 0.2f * dx, Rgba(0.8f, 0.8f, 0.8f) },
                                { dx, Rgba(1.0f, 0.6f, 0.f) } },
                 scale);
         case QuantityId::ANGULAR_FREQUENCY:
-            ASSERT(x0 == 0._f);
-            return Palette({ { 0._f, Rgba(0.3f, 0.3f, 0.8f) },
+            ASSERT(x0 == 0.f);
+            return Palette({ { 0.f, Rgba(0.3f, 0.3f, 0.8f) },
                                { 0.25f * dx, Rgba(0.f, 0.f, 0.2f) },
                                { 0.5f * dx, Rgba(0.2f, 0.2f, 0.2f) },
                                { 0.75f * dx, Rgba(0.8f, 0.8f, 0.8f) },
@@ -319,7 +319,7 @@ Palette Factory::getPalette(const ColorizerId id) {
             // sqrt(3) is an important value, as it corresponds to identity tensor
             const float actDx = max(dx, sqrt(3.f) + 0.2f);
             const float eps = 0.05f;
-            return Palette({ { 0._f, Rgba(0.f, 0.0f, 0.5f) },
+            return Palette({ { 0.f, Rgba(0.f, 0.0f, 0.5f) },
                                { sqrt(3.f) - eps, Rgba(0.9f, 0.9f, 0.9f) },
                                { sqrt(3.f), Rgba(1.f, 1.f, 0.f) },
                                { sqrt(3.f) + eps, Rgba(0.9f, 0.9f, 0.9f) },
@@ -357,16 +357,17 @@ Palette Factory::getPalette(const ColorizerId id) {
                                { x0 + 0.1f * dx, Rgba(1.0f, 0.0f, 0.2f) },
                                { x0 + dx, Rgba(1.0f, 1.0f, 0.2f) } },
                 scale);
-        case ColorizerId::MOVEMENT_DIRECTION:
-            ASSERT(range == Interval(0.f, 2.f * PI)); // in radians
+        case ColorizerId::MOVEMENT_DIRECTION: {
+            const float pi = float(PI);
             return Palette({ { 0.f, Rgba(0.1f, 0.1f, 1.f) },
-                               { PI / 3.f, Rgba(1.f, 0.1f, 1.f) },
-                               { 2.f * PI / 3.f, Rgba(1.f, 0.1f, 0.1f) },
-                               { 3.f * PI / 3.f, Rgba(1.f, 1.f, 0.1f) },
-                               { 4.f * PI / 3.f, Rgba(0.1f, 1.f, 0.1f) },
-                               { 5.f * PI / 3.f, Rgba(0.1f, 1.f, 1.f) },
-                               { 2.f * PI, Rgba(0.1f, 0.1f, 1.f) } },
+                               { pi / 3.f, Rgba(1.f, 0.1f, 1.f) },
+                               { 2.f * pi / 3.f, Rgba(1.f, 0.1f, 0.1f) },
+                               { 3.f * pi / 3.f, Rgba(1.f, 1.f, 0.1f) },
+                               { 4.f * pi / 3.f, Rgba(0.1f, 1.f, 0.1f) },
+                               { 5.f * pi / 3.f, Rgba(0.1f, 1.f, 1.f) },
+                               { 2.f * pi, Rgba(0.1f, 0.1f, 1.f) } },
                 scale);
+        }
         case ColorizerId::DENSITY_PERTURBATION:
             return Palette({ { x0, Rgba(0.1f, 0.1f, 1.f) },
                                { x0 + 0.5f * dx, Rgba(0.7f, 0.7f, 0.7f) },
@@ -387,7 +388,7 @@ Palette Factory::getPalette(const ColorizerId id) {
                                { x0 + dx, Rgba(1.f, 1.f, 0.f) } },
                 scale);
         case ColorizerId::YIELD_REDUCTION:
-            return Palette({ { 0._f, Rgba(0.1f, 0.1f, 0.1f) }, { 1._f, Rgba(0.9f, 0.9f, 0.9f) } }, scale);
+            return Palette({ { 0.f, Rgba(0.1f, 0.1f, 0.1f) }, { 1.f, Rgba(0.9f, 0.9f, 0.9f) } }, scale);
         case ColorizerId::DAMAGE_ACTIVATION:
             return Palette({ { x0, Rgba(0.1f, 0.1f, 1.f) },
                                { x0 + 0.5f * dx, Rgba(0.7f, 0.7f, 0.7f) },

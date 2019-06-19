@@ -141,11 +141,10 @@ MainWindow::MainWindow(const Path& openPath)
 
     wxMenu* runMenu = this->createRunMenu();
     bar->Append(runMenu, "&Simulation");
-    bar->EnableTop(bar->GetMenuCount() - 1, false);
+    // bar->EnableTop(bar->GetMenuCount() - 1, false);
 
     wxMenu* resultMenu = this->createResultMenu();
     bar->Append(resultMenu, "&Result");
-    // bar->EnableTop(bar->GetMenuCount() - 1, false);
 
     wxMenu* viewMenu = new wxMenu();
     viewMenu->Append(NodeWindow::ID_PROPERTIES, "&Node properties");
@@ -157,10 +156,10 @@ MainWindow::MainWindow(const Path& openPath)
 
     wxMenu* helpMenu = new wxMenu();
     bar->Append(helpMenu, "&Help");
-    helpMenu->Append(0, "&About");
+    helpMenu->Append(90, "&About");
     helpMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [](wxCommandEvent& evt) { //
         switch (evt.GetId()) {
-        case 0: {
+        case 90: {
             wxAboutDialogInfo info;
             info.SetName("OpenSPH");
             info.SetVersion("0.2.1");
@@ -406,12 +405,12 @@ wxMenu* MainWindow::createProjectMenu() {
 wxMenu* MainWindow::createResultMenu() {
 
     wxMenu* fileMenu = new wxMenu();
-    fileMenu->Append(0, "&Open\tCtrl+O");
-    fileMenu->Append(1, "&Close current\tCtrl+W");
+    fileMenu->Append(10, "&Open\tCtrl+O");
+    fileMenu->Append(11, "&Close current\tCtrl+W");
 
     fileMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& evt) { //
         switch (evt.GetId()) {
-        case 0: {
+        case 10: {
             Optional<Path> path = doOpenFileDialog("Open file",
                 { { "SPH state file", "ssf" },
                     { "SPH compressed file", "scf" },
@@ -421,7 +420,7 @@ wxMenu* MainWindow::createResultMenu() {
             }
             break;
         }
-        case 1: {
+        case 11: {
             wxWindow* page = notebook->GetCurrentPage();
             if (dynamic_cast<NodeWindow*>(page)) {
                 // node page should not be closeable
@@ -506,18 +505,18 @@ static Array<Post::HistPoint> getOverplotSfd(const GuiSettings& gui) {
 wxMenu* MainWindow::createRunMenu() {
     wxMenu* runMenu = new wxMenu();
     wxMenu* analysisMenu = new wxMenu();
-    runMenu->Append(0, "&Restart");
-    runMenu->Append(1, "&Pause");
-    runMenu->Append(2, "&Stop");
-    runMenu->Append(3, "&Save state");
-    runMenu->Append(4, "Create &node from state");
+    runMenu->Append(20, "&Restart");
+    runMenu->Append(21, "&Pause");
+    runMenu->Append(22, "&Stop");
+    runMenu->Append(23, "&Save state");
+    runMenu->Append(24, "Create &node from state");
     runMenu->AppendSubMenu(analysisMenu, "&Analysis");
-    runMenu->Append(5, "&Close current\tCtrl+W");
-    runMenu->Append(6, "Close all");
+    runMenu->Append(25, "&Close current\tCtrl+W");
+    runMenu->Append(26, "Close all");
 
-    analysisMenu->Append(0, "Current SFD");
-    analysisMenu->Append(1, "Predicted SFD");
-    analysisMenu->Append(2, "Velocity histogram");
+    analysisMenu->Append(30, "Current SFD");
+    analysisMenu->Append(31, "Predicted SFD");
+    analysisMenu->Append(32, "Velocity histogram");
 
     runMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& evt) { //
         RunPage* page = dynamic_cast<RunPage*>(notebook->GetCurrentPage());
@@ -527,16 +526,16 @@ wxMenu* MainWindow::createRunMenu() {
         RawPtr<Controller> controller = runs[page].controller.get();
 
         switch (evt.GetId()) {
-        case 0:
+        case 20:
             controller->restart();
             break;
-        case 1:
+        case 21:
             controller->pause();
             break;
-        case 2:
+        case 22:
             controller->stop();
             break;
-        case 3: {
+        case 23: {
             static Array<FileFormat> fileFormats = {
                 { "SPH state file", "ssf" },
                 { "SPH compressed file", "scf" },
@@ -550,7 +549,7 @@ wxMenu* MainWindow::createRunMenu() {
             controller->saveState(path.value());
             break;
         }
-        case 4: {
+        case 24: {
             const Storage& storage = controller->getStorage();
             const std::string text("cached " + notebook->GetPageText(notebook->GetSelection()));
             AutoPtr<CachedParticlesWorker> worker = makeAuto<CachedParticlesWorker>(text, storage);
@@ -558,12 +557,12 @@ wxMenu* MainWindow::createRunMenu() {
             notebook->SetSelection(notebook->GetPageIndex(nodePage));
             break;
         }
-        case 5:
+        case 25:
             if (page->close()) {
                 notebook->DeletePage(notebook->GetPageIndex(page));
             }
             break;
-        case 6:
+        case 26:
             this->removeAll();
             break;
         default:
@@ -581,8 +580,8 @@ wxMenu* MainWindow::createRunMenu() {
 
         LockingPtr<IPlot> plot;
         switch (evt.GetId()) {
-        case 0:
-        case 1: {
+        case 30:
+        case 31: {
             Post::ComponentFlag flag =
                 evt.GetId() == 0 ? Post::ComponentFlag::OVERLAP : Post::ComponentFlag::ESCAPE_VELOCITY;
 
@@ -598,7 +597,7 @@ wxMenu* MainWindow::createRunMenu() {
             plot = makeLocking<MultiPlot>(std::move(multiplot));
             break;
         }
-        case 2:
+        case 32:
             plot = makeLocking<HistogramPlot>(Post::HistogramId::VELOCITIES, NOTHING, "Velocity");
             break;
         default:

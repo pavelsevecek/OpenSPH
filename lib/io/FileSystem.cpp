@@ -3,7 +3,9 @@
 #include <fstream>
 #include <sstream>
 #ifdef SPH_MSVC
+#include <windows.h>
 #else
+#include <dirent.h>
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -53,8 +55,10 @@ Expected<Path> FileSystem::getHomeDirectory() {
 
 Path FileSystem::getAbsolutePath(const Path& relativePath) {
 #ifdef SPH_MSVC
-    MARK_USED(relativePath);
-    NOT_IMPLEMENTED;
+    constexpr Size BUFFER_SIZE = 1024;
+    char buffer[BUFFER_SIZE];
+    GetFullPathNameA(relativePath.native().c_str(), BUFFER_SIZE, buffer, nullptr);
+    return Path(buffer);
 #else
     char realPath[PATH_MAX];
     realpath(relativePath.native().c_str(), realPath);
@@ -68,7 +72,14 @@ Expected<FileSystem::PathType> FileSystem::pathType(const Path& path) {
     }
 
 #ifdef SPH_MSVC
-    NOT_IMPLEMENTED;
+    const DWORD attributes = GetFileAttributesA(path.native().c_str());
+    if (attributes & FILE_ATTRIBUTE_DIRECTORY) {
+        return PathType::DIRECTORY;
+    }
+    if (attributes & FILE_ATTRIBUTE_REPARSE_POINT) {
+        return PathType::SYMLINK;
+    }
+    return PathType::FILE;
 #else
     struct stat buffer;
     if (stat(path.native().c_str(), &buffer) != 0) {
@@ -286,112 +297,151 @@ Outcome FileSystem::copyDirectory(const Path& from, const Path& to) {
 void FileSystem::setWorkingDirectory(const Path& path) {
     ASSERT(pathType(path).valueOr(PathType::OTHER) == PathType::DIRECTORY);
 #ifdef SPH_MSVC
-    NOT_IMPLEMENTED;
+    SetCurrentDirectoryA(path.native().c_str());
 #else
     chdir(path.native().c_str());
 #endif
 }
 
+
 #ifdef SPH_MSVC
-#else
-FileSystem::DirectoryIterator::DirectoryIterator(DIR* dir)
-    : dir(dir) {
-    if (dir) {
-        // find first file
-        this->operator++();
+class FileSystem::PlatformDirectoryData {
+private:
+    HANDLE handle;
+    WIN32_FIND_DATAA data;
+
+public:
+    PlatformDirectoryData(const Path& directory) {
+        const Path fileMask = directory / Path("*");
+        handle = FindFirstFileA(fileMask.native().c_str(), &data);
+        if (handle == INVALID_HANDLE_VALUE) {
+            handle = nullptr;
+        }
     }
-}
+
+    PlatformDirectoryData() {
+        handle = nullptr;
+    }
+
+    ~PlatformDirectoryData() {
+        if (handle) {
+            FindClose(handle);
+        }
+    }
+
+    void nextFile() {
+        if (handle) {
+            const bool success = FindNextFileA(handle, &data) != FALSE;
+            if (!success) {
+                FindClose(handle);
+                handle = nullptr;
+            }
+        }
+    }
+
+    Path getFile() const {
+        ASSERT(handle);
+        return Path(data.cFileName);
+    }
+
+    bool operator==(const PlatformDirectoryData& other) const {
+        // if both of the handles are nullptr, report as equal so that the loop ends
+        // (end() is nullptr always, the other one only when it gets to the end).
+        return !handle && !other.handle;
+    }
+};
+
+
+#else
+
+class FileSystem::PlatformDirectoryData {
+private:
+    DIR* dir;
+    dirent* entry = nullptr;
+
+public:
+    PlatformDirectoryData(const Path& directory) {
+        if (pathExists(directory)) {
+            dir = opendir(directory.native().c_str());
+        } else {
+            dir = nullptr;
+        }
+    }
+
+    PlatformDirectoryData() {
+        dir = nullptr;
+    }
+
+    ~PlatformDirectoryData() {
+        if (dir) {
+            closedir(dir);
+        }
+    }
+
+    void nextFile() {
+        if (!dir) {
+            return *this;
+        }
+        do {
+            entry = readdir(dir);
+        } while (entry && (this->getFile() == Path(".") || this->getFile() == Path("..")));
+    }
+
+    Path getFile() const {
+        ASSERT(entry);
+        return Path(entry->d_name);
+    }
+
+    bool operator==(const PlatformDirectoryData& other) const {
+        return (!entry && !other.entry) || entry == other.entry;
+    }
+};
+
 #endif
 
-FileSystem::DirectoryIterator& FileSystem::DirectoryIterator::operator++() {
-#ifdef SPH_MSVC
-    NOT_IMPLEMENTED;
-#else
-    if (!dir) {
-        return *this;
-    }
-    do {
-        entry = readdir(dir);
-    } while (entry && (**this == Path(".") || **this == Path("..")));
-    return *this;
+FileSystem::DirectoryIterator::DirectoryIterator(SharedPtr<PlatformDirectoryData> data)
+    : data(data) {
+#ifndef SPH_MSVC
+    // find first file
+    data->nextFile();
 #endif
+}
+
+FileSystem::DirectoryIterator::~DirectoryIterator() = default;
+
+FileSystem::DirectoryIterator& FileSystem::DirectoryIterator::operator++() {
+    data->nextFile();
+    return *this;
 }
 
 Path FileSystem::DirectoryIterator::operator*() const {
-#ifdef SPH_MSVC
-    NOT_IMPLEMENTED;
-#else
-    ASSERT(entry);
-    return Path(entry->d_name);
-#endif
+    return data->getFile();
 }
 
 bool FileSystem::DirectoryIterator::operator==(const DirectoryIterator& other) const {
-#ifdef SPH_MSVC
-    MARK_USED(other);
-    NOT_IMPLEMENTED;
-#else
-    return (!entry && !other.entry) || entry == other.entry;
-#endif
+    return *data == *other.data;
 }
 
 bool FileSystem::DirectoryIterator::operator!=(const DirectoryIterator& other) const {
-#ifdef SPH_MSVC
-    MARK_USED(other);
-    NOT_IMPLEMENTED;
-#else
-    // returns false if both are nullptr to end the loop for nonexisting dirs
-    return (entry || other.entry) && entry != other.entry;
-#endif
+    return !(*this == other);
 }
+
 
 FileSystem::DirectoryAdapter::DirectoryAdapter(const Path& directory) {
     ASSERT(pathType(directory).valueOr(PathType::OTHER) == PathType::DIRECTORY);
-#ifdef SPH_MSVC
-    NOT_IMPLEMENTED;
-#else
-    if (!pathExists(directory)) {
-        dir = nullptr;
-        return;
-    }
-    dir = opendir(directory.native().c_str());
-#endif
+    data = makeAuto<PlatformDirectoryData>(directory);
 }
 
-FileSystem::DirectoryAdapter::~DirectoryAdapter() {
-#ifdef SPH_MSVC
-#else
-    if (dir) {
-        closedir(dir);
-    }
-#endif
-}
+FileSystem::DirectoryAdapter::DirectoryAdapter(DirectoryAdapter&& other) = default;
 
-FileSystem::DirectoryAdapter::DirectoryAdapter(DirectoryAdapter&& other)
-#ifdef SPH_MSVC
-{
-    MARK_USED(other);
-    NOT_IMPLEMENTED;
-#else
-    : dir(other.dir) {
-    other.dir = nullptr;
-#endif
-}
+FileSystem::DirectoryAdapter::~DirectoryAdapter() = default;
 
 FileSystem::DirectoryIterator FileSystem::DirectoryAdapter::begin() const {
-#ifdef SPH_MSVC
-    NOT_IMPLEMENTED;
-#else
-    return DirectoryIterator(dir);
-#endif
+    return DirectoryIterator(data);
 }
 
 FileSystem::DirectoryIterator FileSystem::DirectoryAdapter::end() const {
-#ifdef SPH_MSVC
-    NOT_IMPLEMENTED;
-#else
-    return DirectoryIterator(nullptr);
-#endif
+    return DirectoryIterator(makeShared<PlatformDirectoryData>());
 }
 
 FileSystem::DirectoryAdapter FileSystem::iterateDirectory(const Path& directory) {

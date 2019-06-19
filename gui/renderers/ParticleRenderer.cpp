@@ -163,7 +163,7 @@ static void drawKey(IRenderContext& context,
     /// \todo finally implement the units!
     std::wstring units = L" m";
     if (actScaleFov > Constants::au) {
-        actScaleFov /= Constants::au;
+        actScaleFov /= float(Constants::au);
         units = L" au";
     } else if (actScaleFov > 1.e3f) {
         actScaleFov /= 1.e3f;

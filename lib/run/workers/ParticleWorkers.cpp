@@ -592,7 +592,7 @@ void SubsampleWorker::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(
     const Size particleCnt = input->storage.getParticleCnt();
     const Size targetCnt = clamp(Size((1._f - fraction) * particleCnt), 0u, particleCnt - 1);
     while (generated.size() < targetCnt) {
-        generated.insert(rng() * particleCnt);
+        generated.insert(Size(rng() * particleCnt));
     }
     Array<Size> toRemove;
     for (Size i : generated) {

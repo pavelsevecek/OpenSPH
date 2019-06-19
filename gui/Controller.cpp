@@ -488,7 +488,7 @@ Optional<Size> Controller::getIntersectedParticle(const Pixel position, const fl
     const Vector dir = getNormalized(ray.target - ray.origin);
 
     struct {
-        float t = -INFTY;
+        float t = -LARGE;
         Size idx = -1;
         bool wasHitOutside = true;
     } first;
@@ -764,21 +764,21 @@ void Controller::startRenderThread() {
                                 page = page,
                                 bitmap = std::move(newBitmap),
                                 labels = std::move(labels)]() mutable {
-                if (!page) {
-                    // page has already closed, nothing to render
-                    return;
-                }
-                vis.refreshPending = true;
-                vis.bitmap = std::move(bitmap);
+                    if (!page) {
+                        // page has already closed, nothing to render
+                        return;
+                    }
+                    vis.refreshPending = true;
+                    vis.bitmap = std::move(bitmap);
 
-                if (!labels.empty()) {
-                    wxMemoryDC dc(*vis.bitmap);
-                    printLabels(dc, labels);
-                    dc.SelectObject(wxNullBitmap);
-                }
+                    if (!labels.empty()) {
+                        wxMemoryDC dc(*vis.bitmap);
+                        printLabels(dc, labels);
+                        dc.SelectObject(wxNullBitmap);
+                    }
 
-                page->refresh();
-            };
+                    page->refresh();
+                };
 
             executeOnMainThread(std::move(callback));
         }

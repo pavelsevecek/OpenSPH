@@ -5,9 +5,7 @@
 #include "objects/wrappers/Expected.h"
 #include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Outcome.h"
-#ifndef SPH_MSVC
-#include <dirent.h>
-#endif
+#include "objects/wrappers/SharedPtr.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -111,19 +109,18 @@ public:
     }
 };
 
+class PlatformDirectoryData;
+
 /// Iterator allowing to enumerate files and subdirectories in given directory.
 class DirectoryIterator {
     friend class DirectoryAdapter;
 
 private:
-    /// \todo possibly hide through pimpl
-#ifdef SPH_MSVC
-#else
-    DIR* dir;
-    dirent* entry = nullptr;
-#endif
+    SharedPtr<PlatformDirectoryData> data;
 
 public:
+    ~DirectoryIterator();
+
     /// Moves to the next file in the directory
     DirectoryIterator& operator++();
 
@@ -137,13 +134,7 @@ public:
     bool operator!=(const DirectoryIterator& other) const;
 
 private:
-#ifdef SPH_MSVC
-#else
-    /// Creates an iterator for given directory entry.
-    ///
-    /// Can be nullptr, representing the one-past-last item in the directory (end iterator).
-    DirectoryIterator(DIR* dir);
-#endif
+    DirectoryIterator(SharedPtr<PlatformDirectoryData> data);
 };
 
 /// \brief Object providing begin and end directory iterator for given directory path.
@@ -153,10 +144,7 @@ private:
 /// The enumeration skips directories '.' and '..'.
 class DirectoryAdapter : public Noncopyable {
 private:
-#ifdef SPH_MSVC
-#else
-    DIR* dir;
-#endif
+    SharedPtr<PlatformDirectoryData> data;
 
 public:
     /// \brief Creates the directory adapter for given path.
