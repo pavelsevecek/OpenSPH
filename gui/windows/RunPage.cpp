@@ -26,8 +26,8 @@
 #include <wx/app.h>
 #include <wx/button.h>
 #include <wx/checkbox.h>
+#include <wx/choice.h>
 #include <wx/clrpicker.h>
-#include <wx/combobox.h>
 #include <wx/gauge.h>
 #include <wx/msgdlg.h>
 #include <wx/radiobut.h>
@@ -206,12 +206,12 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
     manager = makeAuto<wxAuiManager>(this);
 
     wxPanel* visBar = createVisBar();
-    pane = alignedNew<OrthoPane>(this, parent, settings);
+    pane = new OrthoPane(this, parent, settings);
     wxPanel* plotBar = createPlotBar();
     statsBar = createStatsBar();
 
-    timelineBar = alignedNew<TimeLine>(this, Path(), makeShared<TimeLineCallbacks>(parent));
-    progressBar = alignedNew<ProgressPanel>(this);
+    timelineBar = new TimeLine(this, Path(), makeShared<TimeLineCallbacks>(parent));
+    progressBar = new ProgressPanel(this);
 
     wxAuiPaneInfo info;
 
@@ -531,13 +531,13 @@ wxPanel* RunPage::createVisBar() {
     wxBoxSizer* quantitySizer = new wxBoxSizer(wxHORIZONTAL);
 
     quantitySizer->Add(new wxStaticText(visbarPanel, wxID_ANY, "Quantity: "), 10, wxALIGN_CENTER_VERTICAL);
-    quantityBox = new wxComboBox(visbarPanel, wxID_ANY, "", wxDefaultPosition, wxSize(200, -1));
+    quantityBox = new wxChoice(visbarPanel, wxID_ANY, wxDefaultPosition, wxSize(200, -1));
     quantityBox->SetToolTip(
         "Selects which quantity to visualize using associated color scale. Quantity values can be also "
         "obtained by left-clicking on a particle.");
-    quantityBox->SetWindowStyle(wxCB_SIMPLE | wxCB_READONLY);
+    // quantityBox->SetWindowStyle(wxCB_SIMPLE | wxCB_READONLY);
     quantityBox->SetSelection(0);
-    quantityBox->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& UNUSED(evt)) {
+    quantityBox->Bind(wxEVT_CHOICE, [this](wxCommandEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         const int idx = quantityBox->GetSelection();
         this->setColorizer(idx);

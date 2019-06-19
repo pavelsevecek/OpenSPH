@@ -11,6 +11,23 @@
 
 NAMESPACE_SPH_BEGIN
 
+#ifdef SPH_MSVC
+/// \todo fix
+template <typename T, typename... TArgs>
+INLINE T* alignedNew(TArgs&&... args) {
+    return new T(std::forward<TArgs>(args)...);
+}
+
+template <typename T>
+INLINE void alignedDelete(T* ptr) {
+    if (!ptr) {
+        return;
+    }
+    delete ptr;
+}
+
+#else
+
 /// \brief Creates a new object of type T on heap, using aligned allocation.
 template <typename T, typename... TArgs>
 INLINE T* alignedNew(TArgs&&... args) {
@@ -32,6 +49,7 @@ INLINE void alignedDelete(T* ptr) {
     _mm_free(ptr);
     ptr = nullptr;
 }
+#endif
 
 template <typename T>
 INLINE bool isAligned(const T& value) {

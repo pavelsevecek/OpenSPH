@@ -367,8 +367,15 @@ public:
 #else
 
 // also align to 32 to have the same memory layout
+#ifdef SPH_MSVC
+// there is currently some problem with over-alignment and wxWidgets, needs investigation
+#define ALIGN32
+#else
+#define ALIGN32 alignas(32)
+#endif
+
 template <>
-class alignas(32) BasicVector<double> {
+class ALIGN32 BasicVector<double> {
 private:
     __m128d data[2];
 
@@ -533,7 +540,9 @@ public:
 
 #endif
 
+#ifndef SPH_MSVC
 static_assert(alignof(BasicVector<double>) == 32, "Incorrect alignment of Vector");
+#endif
 
 
 using Vector = BasicVector<Float>;

@@ -7,7 +7,7 @@
 #include "system/Timer.h"
 #include <wx/panel.h>
 
-class wxComboBox;
+class wxChoice;
 class wxBoxSizer;
 class wxGauge;
 class wxCheckBox;
@@ -69,7 +69,7 @@ private:
     wxDialog* waitingDialog = nullptr;
 
     /// Additional wx controls
-    wxComboBox* quantityBox;
+    wxChoice* quantityBox;
     Size selectedIdx = 0;
     wxPanel* quantityPanel;
     wxSizer* quantityPanelSizer;
