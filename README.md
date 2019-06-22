@@ -76,6 +76,12 @@ qmake CONFIG+=version ../examples.pro
 make
 ```
 
+## Windows binaries
+Building the code on Windows is currently a bit difficult.
+Consider using pre-built executables, uploaded to a 
+<a href="https://www.dropbox.com/sh/qx4tdiai9epurzb/AAC7dx6mLyuWxFWjQQDYy22ua?dl=0">Dropbox</a>
+folder.
+
 ## Running a basic impact simulation
 A simulation can be started using a command-line launcher, located in cli/launcher directory.
 When a launcher is started for the first time, it generates configuration files 
