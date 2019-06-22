@@ -140,12 +140,14 @@ VirtualSettings TransformParticlesWorker::getSettings() {
 void TransformParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
     result = this->getInput<ParticleData>("particles");
 
-    AffineMatrix positionTm = AffineMatrix::rotateX(positions.angles[0]) *
-                              AffineMatrix::rotateY(positions.angles[1]) *
-                              AffineMatrix::rotateZ(positions.angles[2]);
+    AffineMatrix rotator = AffineMatrix::rotateX(positions.angles[0]) *
+                           AffineMatrix::rotateY(positions.angles[1]) *
+                           AffineMatrix::rotateZ(positions.angles[2]);
+
+    AffineMatrix positionTm = rotator;
     positionTm.translate(positions.offset);
 
-    AffineMatrix velocityTm = AffineMatrix::identity();
+    AffineMatrix velocityTm = rotator; // correct for orthogonal matrices
     velocityTm.translate(velocities.offset);
 
     ArrayView<Vector> r = result->storage.getValue<Vector>(QuantityId::POSITION);

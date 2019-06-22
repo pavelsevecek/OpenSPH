@@ -1247,9 +1247,10 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         }
     }
     wxTreeItemId presetsId = workerView->AppendItem(rootId, "presets");
-    wxTreeItemId collisionsId = workerView->AppendItem(presetsId, "simple collision");
+    wxTreeItemId collisionsId = workerView->AppendItem(presetsId, "asteroid collision");
     wxTreeItemId fragAndReaccId = workerView->AppendItem(presetsId, "fragmentation & reaccumulation");
     wxTreeItemId crateringId = workerView->AppendItem(presetsId, "cratering");
+    wxTreeItemId galaxyId = workerView->AppendItem(presetsId, "galaxy collision");
 
 
     workerView->Bind(wxEVT_TREE_ITEM_ACTIVATED, [=](wxTreeEvent& evt) {
@@ -1259,10 +1260,13 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             auto node = Presets::makeFragmentationAndReaccumulation(nameMgr);
             nodeMgr->addNodes(*node);
         } else if (id == collisionsId) {
-            auto node = Presets::makeSimpleCollision(nameMgr);
+            auto node = Presets::makeAsteroidCollision(nameMgr);
             nodeMgr->addNodes(*node);
         } else if (id == crateringId) {
             auto node = Presets::makeCratering(nameMgr);
+            nodeMgr->addNodes(*node);
+        } else if (id == galaxyId) {
+            auto node = Presets::makeGalaxyCollision(nameMgr);
             nodeMgr->addNodes(*node);
         }
         WorkerTreeData* data = dynamic_cast<WorkerTreeData*>(workerView->GetItemData(id));

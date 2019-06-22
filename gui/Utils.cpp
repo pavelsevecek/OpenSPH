@@ -8,9 +8,16 @@
 
 NAMESPACE_SPH_BEGIN
 
-static std::string getDesc(ArrayView<const FileFormat> formats) {
+static std::string getDesc(ArrayView<const FileFormat> formats, const bool doAll) {
     std::string desc;
     bool isFirst = true;
+    if (doAll && formats.size() > 1) {
+        desc += "All supported formats|";
+        for (const FileFormat& format : formats) {
+            desc += "*." + format.ext + ";";
+        }
+        isFirst = false;
+    }
     for (const FileFormat& format : formats) {
         if (!isFirst) {
             desc += "|";
@@ -38,7 +45,7 @@ static Optional<std::pair<Path, int>> doFileDialog(const std::string& title,
 Optional<Path> doOpenFileDialog(const std::string& title, Array<FileFormat>&& formats) {
     static std::string defaultDir = "";
     Optional<std::pair<Path, int>> pathAndIndex =
-        doFileDialog(title, getDesc(formats), defaultDir, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+        doFileDialog(title, getDesc(formats, true), defaultDir, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     if (pathAndIndex) {
         return pathAndIndex->first;
     } else {
@@ -49,7 +56,7 @@ Optional<Path> doOpenFileDialog(const std::string& title, Array<FileFormat>&& fo
 Optional<Path> doSaveFileDialog(const std::string& title, Array<FileFormat>&& formats) {
     static std::string defaultDir = "";
     Optional<std::pair<Path, int>> pathAndIndex =
-        doFileDialog(title, getDesc(formats), defaultDir, wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+        doFileDialog(title, getDesc(formats, false), defaultDir, wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (pathAndIndex) {
         const std::string ext = formats[pathAndIndex->second].ext;
         return pathAndIndex->first.replaceExtension(ext);

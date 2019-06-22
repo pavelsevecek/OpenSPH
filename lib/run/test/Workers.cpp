@@ -104,7 +104,7 @@ TEMPLATE_TEST_CASE("Resumed run", "[worker]", SphWorker, SphStabilizationWorker,
 
 TEST_CASE("Simple collision run", "[worker]") {
     UniqueNameManager mgr;
-    SharedPtr<WorkerNode> node = Presets::makeSimpleCollision(mgr, 100);
+    SharedPtr<WorkerNode> node = Presets::makeAsteroidCollision(mgr, 100);
 
     // just test that everything runs without exceptions/asserts
     RunSettings overrides = EMPTY_SETTINGS;

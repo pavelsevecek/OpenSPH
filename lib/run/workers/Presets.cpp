@@ -10,7 +10,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-SharedPtr<WorkerNode> Presets::makeSimpleCollision(UniqueNameManager& nameMgr, const Size particleCnt) {
+SharedPtr<WorkerNode> Presets::makeAsteroidCollision(UniqueNameManager& nameMgr, const Size particleCnt) {
     SharedPtr<WorkerNode> targetMaterial =
         makeNode<MaterialWorker>(nameMgr.getName("material"), EMPTY_SETTINGS);
     SharedPtr<WorkerNode> impactorMaterial =
@@ -149,6 +149,41 @@ SharedPtr<WorkerNode> Presets::makeCratering(UniqueNameManager& nameMgr, const S
     domain->connect(cratering, "boundary");
 
     return cratering;
+}
+
+SharedPtr<WorkerNode> Presets::makeGalaxyCollision(UniqueNameManager& nameMgr,
+    const Size UNUSED(particleCnt)) {
+    SharedPtr<WorkerNode> galaxyIc = makeNode<GalaxyIc>(nameMgr.getName("galaxy"));
+    VirtualSettings galaxySettings = galaxyIc->getSettings();
+    galaxySettings.set(GalaxySettingsId::PARTICLE_RADIUS, 0.001_f);
+
+    SharedPtr<WorkerNode> merger = makeNode<MergeParticlesWorker>(nameMgr.getName("merge"));
+    VirtualSettings mergerSettings = merger->getSettings();
+    mergerSettings.set("offset", Vector(0.01_f, 0._f, 0._f));
+    mergerSettings.set("velocity", Vector(0._f, 0.0005_f, 0._f));
+    mergerSettings.set("com", true);
+    mergerSettings.set("unique_flags", true);
+
+    SharedPtr<WorkerNode> rotator = makeNode<TransformParticlesWorker>(nameMgr.getName("rotator"));
+    VirtualSettings rotatorSettings = rotator->getSettings();
+    rotatorSettings.set("yaw", 90._f); // 90deg
+
+    galaxyIc->connect(merger, "particles A");
+    galaxyIc->connect(rotator, "particles");
+    rotator->connect(merger, "particles B");
+
+
+    RunSettings settings = EMPTY_SETTINGS;
+    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::ELASTIC_BOUNCE)
+        .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::REPEL)
+        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 1._f)
+        .set(RunSettingsId::RUN_END_TIME, 30._f)
+        .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 1._f)
+        .set(RunSettingsId::GRAVITY_CONSTANT,
+            1._f); // should be already provided by GalaxyIc, but doesnt hurt settings explicitly
+    SharedPtr<WorkerNode> run = makeNode<NBodyWorker>(nameMgr.getName("N-body simulation"), settings);
+    merger->connect(run, "particles");
+    return run;
 }
 
 NAMESPACE_SPH_END
