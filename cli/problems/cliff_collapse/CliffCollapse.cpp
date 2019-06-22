@@ -45,6 +45,8 @@ public:
             .set(RunSettingsId::DOMAIN_TYPE, DomainEnum::BLOCK)
             .set(RunSettingsId::DOMAIN_CENTER, Vector(3._f, 3._f, 0._f) * SCALE)
             .set(RunSettingsId::DOMAIN_SIZE, Vector(6.01_f, 6.01_f, 3.01_f) * SCALE);
+
+        scheduler = Factory::getScheduler(settings);
     }
 
     virtual void setUp(SharedPtr<Storage> storage) override {

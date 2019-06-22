@@ -36,6 +36,8 @@ public:
             .set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
             .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, false)
             .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f));
+
+        scheduler = Factory::getScheduler(settings);
     }
 
     class SubtractDomain : public IDomain {

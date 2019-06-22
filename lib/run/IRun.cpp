@@ -43,7 +43,7 @@ IRun::IRun() {
 #endif
 
     // setup the default scheduler, this can be overriden in \ref setUp if needed
-    scheduler = ThreadPool::getGlobalInstance();
+    scheduler = Factory::getScheduler(settings);
 }
 
 IRun::~IRun() = default;

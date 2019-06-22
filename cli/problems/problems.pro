@@ -17,6 +17,7 @@ SOURCES += \
     elastic_bands/ElasticBands.cpp \
     cliff_collapse/CliffCollapse.cpp \
     collision/Collision.cpp \
+    galaxy/Galaxy.cpp \
     Common.cpp
 
 HEADERS += \  

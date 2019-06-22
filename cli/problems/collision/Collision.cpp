@@ -40,6 +40,8 @@ public:
             .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 1._f)
             .set(RunSettingsId::FINDER_LEAF_SIZE, 20)
             .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f));
+
+        scheduler = Factory::getScheduler(settings);
     }
 
     virtual void setUp(SharedPtr<Storage> storage) override {
