@@ -17,7 +17,7 @@ public:
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
             .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
             .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
-            .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 50._f)
+            .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 1000._f)
             .set(RunSettingsId::RUN_OUTPUT_PATH, std::string("collision"))
             .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("collision_%d.ssf"))
             .set(RunSettingsId::RUN_END_TIME, 500._f)
@@ -81,24 +81,23 @@ public:
     }
 
 protected:
-    virtual void tearDown(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {}
+    virtual void tearDown(const Storage& storage, const Statistics& stats) override {
+        output->dump(storage, stats);
+    }
 };
 
 TEST_CASE("Collision", "[collision]") {
-    Array<Path> filesToCheck = { Path("collision/collision_0004.ssf"), Path("collision/collision_0009.ssf") };
+    Array<Path> filesToCheck = { Path("collision/collision_0000.ssf"), Path("collision/collision_0001.ssf") };
 
     for (Path file : filesToCheck) {
         FileSystem::removePath(file);
     }
 
-    // parameters lose some precision after writing to .sph (ascii) file, so we never want to load them if we
-    // wish to get *precisely* the same result (to the bit).
-    FileSystem::removePath(Path("collision/target.sph"));
-    FileSystem::removePath(Path("collision/impactor.sph"));
-
-    Collision run;
-    Storage storage;
-    run.run(storage);
+    measureRun(Path("collision/stats"), [] {
+        Collision run;
+        Storage storage;
+        run.run(storage);
+    });
 
     for (Path file : filesToCheck) {
         REQUIRE(areFilesApproxEqual(file, REFERENCE_DIR / file.fileName()) == SUCCESS);

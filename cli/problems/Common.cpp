@@ -64,4 +64,12 @@ Outcome areFilesApproxEqual(const Path& path1, const Path& path2) {
     }
 }
 
+void measureRun(const Path& file, Function<void()> run) {
+    Timer timer;
+    run();
+    const int64_t duration = timer.elapsed(TimerUnit::SECOND);
+    FileLogger logger(file, FileLogger::Options::APPEND);
+    logger.write("\"", __DATE__, "\"  ", duration);
+}
+
 NAMESPACE_SPH_END

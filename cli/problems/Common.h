@@ -14,6 +14,8 @@ Outcome areFilesIdentical(const Path& path1, const Path& path2);
 /// \brief Checks if two .ssf files are *almost* equal (may have eps-differences in quantities).
 Outcome areFilesApproxEqual(const Path& path1, const Path& path2);
 
+void measureRun(const Path& file, Function<void()> run);
+
 class ProgressLog : public PeriodicTrigger {
 public:
     ProgressLog(const Float period)

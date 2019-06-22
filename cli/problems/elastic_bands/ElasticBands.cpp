@@ -16,7 +16,7 @@ public:
             .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-8_f)
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
             .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
-            .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 4.e-4_f)
+            .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 1._f)
             .set(RunSettingsId::RUN_OUTPUT_PATH, std::string("elastic_bands"))
             .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("bands_%d.ssf"))
             .set(RunSettingsId::RUN_END_TIME, 4.e-3_f)
@@ -120,19 +120,23 @@ public:
     }
 
 protected:
-    virtual void tearDown(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {}
+    virtual void tearDown(const Storage& storage, const Statistics& stats) override {
+        output->dump(storage, stats);
+    }
 };
 
 TEST_CASE("Elastic Bands", "[elastic]") {
-    Array<Path> filesToCheck = { Path("elastic_bands/bands_0004.ssf"), Path("elastic_bands/bands_0009.ssf") };
+    Array<Path> filesToCheck = { Path("elastic_bands/bands_0000.ssf"), Path("elastic_bands/bands_0001.ssf") };
 
     for (Path file : filesToCheck) {
         FileSystem::removePath(file);
     }
 
-    ElasticBands run;
-    Storage storage;
-    run.run(storage);
+    measureRun(Path("elastic_bands/stats"), [] {
+        ElasticBands run;
+        Storage storage;
+        run.run(storage);
+    });
 
     for (Path file : filesToCheck) {
         REQUIRE(areFilesApproxEqual(file, REFERENCE_DIR / file.fileName()) == SUCCESS);

@@ -22,7 +22,7 @@ public:
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
             .set(RunSettingsId::RUN_END_TIME, 200._f)
             .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
-            .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 20._f)
+            .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 2000._f)
             .set(RunSettingsId::RUN_OUTPUT_PATH, std::string("cliff_collapse"))
             .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("cliff_%d.ssf"))
             .set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS)
@@ -95,21 +95,24 @@ public:
     }
 
 protected:
-    virtual void tearDown(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {}
+    virtual void tearDown(const Storage& storage, const Statistics& stats) override {
+        output->dump(storage, stats);
+    }
 };
 
 TEST_CASE("Cliff Collapse", "[rheology]") {
-    Array<Path> filesToCheck = { Path("cliff_collapse/cliff_0004.ssf"),
-        Path("cliff_collapse/cliff_0009.ssf") };
+    Array<Path> filesToCheck = { Path("cliff_collapse/cliff_0000.ssf"),
+        Path("cliff_collapse/cliff_0001.ssf") };
 
     for (Path file : filesToCheck) {
         FileSystem::removePath(file);
     }
 
-    CliffCollapse run;
-
-    Storage storage;
-    run.run(storage);
+    measureRun(Path("cliff_collapse/stats"), [] {
+        CliffCollapse run;
+        Storage storage;
+        run.run(storage);
+    });
 
     for (Path file : filesToCheck) {
         REQUIRE(areFilesApproxEqual(file, REFERENCE_DIR / file.fileName()) == SUCCESS);
