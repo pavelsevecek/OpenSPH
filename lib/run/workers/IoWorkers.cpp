@@ -185,7 +185,11 @@ VirtualSettings SaveFileWorker::getSettings() {
     VirtualSettings::Category& outputCat = connector.addCategory("Output");
     outputCat.connect<Path>("File", settings, RunSettingsId::RUN_OUTPUT_NAME)
         .connect<EnumWrapper>("Format", settings, RunSettingsId::RUN_OUTPUT_TYPE)
-        .connect<Flags<OutputQuantityFlag>>("Quantities", settings, RunSettingsId::RUN_OUTPUT_QUANTITIES);
+        .connect<Flags<OutputQuantityFlag>>(
+            "Quantities", settings, RunSettingsId::RUN_OUTPUT_QUANTITIES, [this] {
+                const IoEnum type = settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
+                return type == IoEnum::TEXT_FILE || type == IoEnum::VTK_FILE;
+            });
 
     return connector;
 }

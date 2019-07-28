@@ -38,8 +38,8 @@ protected:
 /// \brief Creates a single differentiated body.
 class DifferentiatedBodyIc : public IParticleWorker {
 private:
-    BodySettings coreBody;
-    BodySettings mantleBody;
+    BodySettings mainBody;
+    int layerCnt = 1;
 
 public:
     explicit DifferentiatedBodyIc(const std::string& name);
@@ -49,10 +49,15 @@ public:
     }
 
     virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "mantle shape", WorkerType::GEOMETRY },
-            { "core shape", WorkerType::GEOMETRY },
-            { "mantle material", WorkerType::MATERIAL },
-            { "core material", WorkerType::MATERIAL } };
+        UnorderedMap<std::string, WorkerType> slots = {
+            { "base shape", WorkerType::GEOMETRY },
+            { "base material", WorkerType::MATERIAL },
+        };
+        for (int i = 0; i < layerCnt; ++i) {
+            slots.insert("shape " + std::to_string(i + 1), WorkerType::GEOMETRY);
+            slots.insert("material " + std::to_string(i + 1), WorkerType::MATERIAL);
+        }
+        return slots;
     }
 
     virtual VirtualSettings getSettings() override;

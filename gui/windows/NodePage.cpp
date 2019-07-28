@@ -403,6 +403,9 @@ void NodeManager::load(Config& config) {
             }
 
             SharedPtr<WorkerNode> node = this->addNode(desc->create(name), input.get<Pixel>("position"));
+            VirtualSettings settings = node->getSettings();
+            settings.enumerate(LoadProc(input));
+
             for (Size i = 0; i < node->getSlotCnt(); ++i) {
                 const std::string slotName = node->getSlot(i).name;
                 Optional<std::string> connectedName = input.tryGet<std::string>(slotName);
@@ -410,9 +413,6 @@ void NodeManager::load(Config& config) {
                     allToConnect.push(makeTuple(node, slotName, connectedName.value()));
                 }
             }
-
-            VirtualSettings settings = node->getSettings();
-            settings.enumerate(LoadProc(input));
         });
 
         for (auto& toConnect : allToConnect) {
@@ -429,6 +429,53 @@ void NodeManager::load(Config& config) {
 
 void NodeManager::startRun(WorkerNode& node) {
     callbacks->startRun(node, globals);
+}
+
+class BatchRunWorker : public IParticleWorker {
+private:
+    Size runCnt;
+
+public:
+    BatchRunWorker(const std::string& name, const Size runCnt)
+        : IParticleWorker(name)
+        , runCnt(runCnt) {}
+
+    virtual std::string className() const override {
+        return "batch run";
+    }
+
+    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+        UnorderedMap<std::string, WorkerType> map;
+        for (Size i = 0; i < runCnt; ++i) {
+            map.insert("worker " + std::to_string(i), WorkerType::PARTICLES);
+        }
+        return map;
+    }
+
+    virtual VirtualSettings getSettings() override {
+        NOT_IMPLEMENTED;
+    }
+
+    virtual void evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) override {
+        // only used for run the dependencies, the worker itself is empty
+    }
+};
+
+void NodeManager::startAll() {
+    Array<SharedPtr<WorkerNode>> inputs;
+    for (auto& element : nodes) {
+        SharedPtr<WorkerNode> node = element.key;
+        if (node->getDependentCnt() == 0) {
+            inputs.push(node);
+        }
+    }
+
+    SharedPtr<WorkerNode> root = makeNode<BatchRunWorker>("batch", inputs.size());
+    for (Size i = 0; i < inputs.size(); ++i) {
+        inputs[i]->connect(root, "worker " + std::to_string(i));
+    }
+
+    callbacks->startRun(*root, globals);
 }
 
 VirtualSettings NodeManager::getGlobalSettings() {
@@ -867,19 +914,21 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
 
     wxMenu menu;
     VisNode* vis = nodeMgr->getSelectedNode(position);
+    if (vis != nullptr && vis->node->provides() == WorkerType::PARTICLES) {
+        menu.Append(0, "Evaluate"); // there is no visible result of other types
+    }
+
+    menu.Append(1, "Evaluate all");
+
     if (vis != nullptr) {
-        if (vis->node->provides() == WorkerType::PARTICLES) {
-            menu.Append(0, "Evaluate"); // there is no visible result of other types
-        }
-        menu.Append(1, "Clone");
-        menu.Append(2, "Clone tree");
-        menu.Append(3, "Layout");
-        menu.Append(4, "Delete");
-        menu.Append(5, "Delete tree");
+        menu.Append(2, "Clone");
+        menu.Append(3, "Clone tree");
+        menu.Append(4, "Layout");
+        menu.Append(5, "Delete");
+        menu.Append(6, "Delete tree");
     }
     menu.Append(7, "Delete all");
-    /*menu.Append(5, "Save");
-    menu.Append(6, "Load");*/
+
     menu.Bind(wxEVT_COMMAND_MENU_SELECTED, [this, vis](wxCommandEvent& evt) {
         const Size index = evt.GetId();
         switch (index) {
@@ -891,18 +940,21 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
             }
             break;
         case 1:
-            nodeMgr->cloneNode(*vis->node);
+            nodeMgr->startAll();
             break;
         case 2:
-            nodeMgr->cloneTree(*vis->node);
+            nodeMgr->cloneNode(*vis->node);
             break;
         case 3:
-            nodeMgr->layoutNodes(*vis->node, vis->position);
+            nodeMgr->cloneTree(*vis->node);
             break;
         case 4:
-            nodeMgr->deleteNode(*vis->node);
+            nodeMgr->layoutNodes(*vis->node, vis->position);
             break;
         case 5:
+            nodeMgr->deleteNode(*vis->node);
+            break;
+        case 6:
             nodeMgr->deleteTree(*vis->node);
             break;
         case 7:

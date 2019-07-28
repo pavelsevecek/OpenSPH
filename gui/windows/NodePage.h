@@ -107,6 +107,8 @@ public:
 
     void startRun(WorkerNode& node);
 
+    void startAll();
+
     void addToUndo(Function<void()> func) {
         undoStack.push(func);
     }

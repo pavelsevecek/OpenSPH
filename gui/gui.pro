@@ -34,6 +34,7 @@ SOURCES += \
     renderers/ParticleRenderer.cpp \
     renderers/RayTracer.cpp \
     renderers/Spectrum.cpp \
+    windows/GridPage.cpp \
     windows/OrthoPane.cpp \
     windows/PaletteDialog.cpp \
     windows/ParticleProbe.cpp \
@@ -71,6 +72,7 @@ HEADERS += \
     renderers/ParticleRenderer.h \
     renderers/RayTracer.h \
     renderers/Spectrum.h \
+    windows/GridPage.h \
     windows/IGraphicsPane.h \
     windows/Icons.data.h \
     windows/OrthoPane.h \

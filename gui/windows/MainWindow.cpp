@@ -2,6 +2,7 @@
 #include "gui/Controller.h"
 #include "gui/Settings.h"
 #include "gui/Utils.h"
+#include "gui/windows/GridPage.h"
 #include "gui/windows/NodePage.h"
 #include "gui/windows/PlotView.h"
 #include "gui/windows/RunPage.h"
@@ -312,7 +313,7 @@ void MainWindow::load(const Path& openPath) {
     }
 
     this->setProjectPath(pathToLoad);
-    addToRecentSessions(pathToLoad);
+    addToRecentSessions(FileSystem::getAbsolutePath(pathToLoad));
 }
 
 void MainWindow::setProjectPath(const Path& newPath) {
@@ -518,6 +519,7 @@ wxMenu* MainWindow::createRunMenu() {
     analysisMenu->Append(0, "Current SFD");
     analysisMenu->Append(1, "Predicted SFD");
     analysisMenu->Append(2, "Velocity histogram");
+    analysisMenu->Append(3, "Fragment parameters");
 
     runMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& evt) { //
         RunPage* page = dynamic_cast<RunPage*>(notebook->GetCurrentPage());
@@ -579,6 +581,17 @@ wxMenu* MainWindow::createRunMenu() {
         }
         RawPtr<Controller> controller = runs[page].controller.get();
 
+        if (evt.GetId() == 3) {
+            GridPage* gridPage = new GridPage(notebook, wxSize(800, 600), wxSize(25, 25));
+            gridPage->update(controller->getStorage());
+
+            const Size index = notebook->GetPageCount();
+            notebook->AddPage(gridPage, "Fragments");
+            notebook->SetSelection(index);
+            return;
+        }
+
+        // plot options below
         LockingPtr<IPlot> plot;
         switch (evt.GetId()) {
         case 0:

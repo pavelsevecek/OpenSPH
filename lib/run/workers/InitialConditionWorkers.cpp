@@ -191,27 +191,34 @@ DifferentiatedBodyIc::DifferentiatedBodyIc(const std::string& name)
 VirtualSettings DifferentiatedBodyIc::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
+    VirtualSettings::Category& layersCat = connector.addCategory("Layers");
+    layersCat.connect("Layer count", "layer_cnt", layerCnt);
     VirtualSettings::Category& particleCat = connector.addCategory("Particles");
-    particleCat.connect<int>("Particle count", mantleBody, BodySettingsId::PARTICLE_COUNT)
-        .connect<EnumWrapper>("Distribution", mantleBody, BodySettingsId::INITIAL_DISTRIBUTION);
+    particleCat.connect<int>("Particle count", mainBody, BodySettingsId::PARTICLE_COUNT)
+        .connect<EnumWrapper>("Distribution", mainBody, BodySettingsId::INITIAL_DISTRIBUTION);
 
     return connector;
 }
 
 void DifferentiatedBodyIc::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) {
     InitialConditions::BodySetup mantle;
-    mantle.domain = this->getInput<IDomain>("mantle shape");
-    mantle.material = this->getInput<IMaterial>("mantle material");
+    mantle.domain = this->getInput<IDomain>("base shape");
+    mantle.material = this->getInput<IMaterial>("base material");
     mantle.material->setParam(
-        BodySettingsId::PARTICLE_COUNT, mantleBody.get<int>(BodySettingsId::PARTICLE_COUNT));
+        BodySettingsId::PARTICLE_COUNT, mainBody.get<int>(BodySettingsId::PARTICLE_COUNT));
+    mantle.material->setParam(BodySettingsId::INITIAL_DISTRIBUTION,
+        mainBody.get<DistributionEnum>(BodySettingsId::INITIAL_DISTRIBUTION));
 
-    InitialConditions::BodySetup core;
-    core.domain = this->getInput<IDomain>("core shape");
-    core.material = this->getInput<IMaterial>("core material");
+    Array<InitialConditions::BodySetup> layers;
+    for (int i = layerCnt - 1; i >= 0; --i) {
+        InitialConditions::BodySetup& layer = layers.emplaceBack();
+        layer.domain = this->getInput<IDomain>("shape " + std::to_string(i + 1));
+        layer.material = this->getInput<IMaterial>("material " + std::to_string(i + 1));
+    }
 
     result = makeShared<ParticleData>();
     InitialConditions ic(global);
-    ic.addHeterogeneousBody(result->storage, mantle, makeArray(core));
+    ic.addHeterogeneousBody(result->storage, mantle, std::move(layers));
 }
 
 static WorkerRegistrar sRegisterDifferentiated("create differentiated body",
