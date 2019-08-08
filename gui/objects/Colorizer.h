@@ -3,13 +3,13 @@
 /// \file Colorizer.h
 /// \brief Object converting quantity values of particles into colors.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "gravity/AggregateSolver.h"
 #include "gui/Settings.h"
-#include "gui/Uvw.h"
 #include "gui/objects/Palette.h"
 #include "gui/objects/Point.h"
+#include "gui/objects/Texture.h"
 #include "gui/renderers/Spectrum.h"
 #include "objects/containers/ArrayRef.h"
 #include "objects/finders/NeighbourFinder.h"
@@ -151,8 +151,9 @@ enum class ColorizerId {
     BOUND_COMPONENT_ID = -18,  ///< Color assigned to each group of gravitationally bound particles
     AGGREGATE_ID = -19,        ///< Color assigned to each aggregate
     FLAG = -20,                ///< Particles of different bodies are colored differently
-    BEAUTY = -21,              ///< Attempts to show the real-world look
-    MARKER = -22, ///< Simple colorizer assigning given color to all particles, creating particle "mask".
+    MATERIAL_ID = -21,         ///< Particles with different materials are colored differently
+    BEAUTY = -22,              ///< Attempts to show the real-world look
+    MARKER = -23, ///< Simple colorizer assigning given color to all particles, creating particle "mask".
 };
 
 /// \brief Default colorizer simply converting quantity value to color using defined palette.
@@ -335,12 +336,19 @@ public:
         v = makeArrayRef(storage.getDt<Vector>(QuantityId::POSITION), ref);
         matIds = makeArrayRef(storage.getValue<Size>(QuantityId::MATERIAL_ID), ref);
 
-        /// \todo this works correctly only for bodies with no initial velocity
+        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+        ArrayView<const Vector> rv = r;
+        ArrayView<const Vector> vv = v;
         data.resize(storage.getMaterialCnt());
+
         for (Size i = 0; i < data.size(); ++i) {
             MaterialView mat = storage.getMaterial(i);
-            data[i].center = mat->getParam<Vector>(BodySettingsId::BODY_CENTER);
-            data[i].omega = mat->getParam<Vector>(BodySettingsId::BODY_SPIN_RATE);
+            const Size from = *mat.sequence().begin();
+            const Size to = *mat.sequence().end();
+            const Size size = to - from;
+            data[i].center = Post::getCenterOfMass(m.subset(from, size), rv.subset(from, size));
+            data[i].omega =
+                Post::getAngularFrequency(m.subset(from, size), rv.subset(from, size), vv.subset(from, size));
         }
     }
 
@@ -376,7 +384,7 @@ public:
 private:
     Vector getCorotatingVelocity(const Size idx) const {
         const BodyMetadata& body = data[matIds[idx]];
-        return v[idx] - cross(body.omega, r[idx]);
+        return v[idx] - cross(body.omega, r[idx] - body.center);
     }
 };
 
@@ -570,7 +578,7 @@ public:
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
         const Float value = evalScalar(idx).value();
-        return Particle(QuantityId::ENERGY_PER_PARTICLE, value, idx);
+        return Particle(QuantityId::ENERGY, value, idx);
     }
 
     virtual Optional<Palette> getPalette() const override {
@@ -701,16 +709,16 @@ private:
     ArrayRef<const Float> u;
     Palette palette;
 
+    const float u_red = 3.e5_f;
+    const float u_yellow = 5.e6_f;
+    const float u_glow = 0.5_f * u_red;
+
 public:
     BeautyColorizer() {
-        const float u_iv = 3.e5_f;
-        const float u_cv = 5.e6_f;
-        palette = Palette({ { 0.1f * u_iv, Rgba(0.5f, 0.5f, 0.5) },
-                              { 0.5f * u_iv, Rgba(0.5f, 0.5f, 0.5f) },
-                              /*{ u_iv, Color(1.5f, 0.f, 0.f) },
-                              { u_cv, Color(2.f, 2.f, 0.95) } },*/
-                              { u_iv, Rgba(0.8f, 0.f, 0.f) },
-                              { u_cv, Rgba(1.f, 1.f, 0.6) } },
+        palette = Palette({ { 0.1f * u_red, Rgba(0.5f, 0.5f, 0.5) },
+                              { u_glow, Rgba(0.5f, 0.5f, 0.5f) },
+                              { u_red, Rgba(0.8f, 0.f, 0.f) },
+                              { u_yellow, Rgba(1.f, 1.f, 0.6) } },
             PaletteScale::LOGARITHMIC);
     }
 
@@ -725,6 +733,10 @@ public:
     virtual Rgba evalColor(const Size idx) const override {
         ASSERT(this->isInitialized());
         return palette(u[idx]);
+    }
+
+    virtual Optional<Float> evalScalar(const Size idx) const override {
+        return max(0._f, (u[idx] - u_glow) / u_red);
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
@@ -774,7 +786,7 @@ private:
 
 public:
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
-        uvws = makeArrayRef(storage.getValue<Vector>(QuantityId(GuiQuantityId::UVW)), ref);
+        uvws = makeArrayRef(storage.getValue<Vector>(QuantityId::UVW), ref);
     }
 
     virtual bool isInitialized() const override {
@@ -924,13 +936,13 @@ public:
 };
 
 /// \todo possibly move elsewhere
-static uint64_t getHash(const Size value) {
+static uint64_t getHash(const Size value, const Size seed) {
     // https://stackoverflow.com/questions/8317508/hash-function-for-a-string
     constexpr int A = 54059;
     constexpr int B = 76963;
     constexpr int FIRST = 37;
 
-    uint64_t hash = FIRST;
+    uint64_t hash = FIRST + seed;
     uint8_t* ptr = (uint8_t*)&value;
     for (uint i = 0; i < sizeof(uint64_t); ++i) {
         hash = (hash * A) ^ (*ptr++ * B);
@@ -938,8 +950,8 @@ static uint64_t getHash(const Size value) {
     return hash;
 }
 
-static Rgba getRandomizedColor(const Size idx) {
-    uint64_t hash = getHash(idx);
+static Rgba getRandomizedColor(const Size idx, const Size seed = 0) {
+    const uint64_t hash = getHash(idx, seed);
     const uint8_t r = (hash & 0x00000000FFFF);
     const uint8_t g = (hash & 0x0000FFFF0000) >> 16;
     const uint8_t b = (hash & 0xFFFF00000000) >> 32;
@@ -950,10 +962,15 @@ template <typename TDerived>
 class IdColorizerTemplate : public IColorizer {
 private:
     Rgba backgroundColor;
+    Size seed = 1;
 
 public:
     explicit IdColorizerTemplate(const GuiSettings& gui) {
         backgroundColor = gui.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
+    }
+
+    void setSeed(const Size newSeed) {
+        seed = newSeed;
     }
 
     virtual Rgba evalColor(const Size idx) const override {
@@ -961,14 +978,15 @@ public:
         if (!id) {
             return Rgba::gray();
         }
-        const Rgba color = getRandomizedColor(id.value());
-        if (backgroundColor.intensity() < 0.5f) {
+        const Rgba color = getRandomizedColor(id.value(), seed);
+        /*if (backgroundColor.intensity() < 0.5f) {
             // dark background, brighten the particle color
-            return color.brighten(0.4f);
+            return color.brighten(0.2f);
         } else {
             // light background, darken the particle color
-            return color.darken(0.4f);
-        }
+            return color.darken(0.2f);
+        }*/
+        return color;
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
@@ -1121,21 +1139,25 @@ public:
 
 class AggregateIdColorizer : public IdColorizerTemplate<AggregateIdColorizer> {
 private:
-    RawPtr<IAggregateObserver> aggregates;
+    ArrayView<const Size> ids;
 
 public:
     using IdColorizerTemplate<AggregateIdColorizer>::IdColorizerTemplate;
 
     INLINE Optional<Size> evalId(const Size idx) const {
-        return aggregates->getAggregateId(idx);
+        if (ids[idx] != Size(-1)) {
+            return ids[idx];
+        } else {
+            return NOTHING;
+        }
     }
 
     virtual void initialize(const Storage& storage, const RefEnum UNUSED(ref)) override {
-        aggregates = dynamicCast<IAggregateObserver>(storage.getUserData().get());
+        ids = storage.getValue<Size>(QuantityId::AGGREGATE_ID);
     }
 
     virtual bool isInitialized() const override {
-        return aggregates != nullptr;
+        return ids != nullptr;
     }
 
     virtual std::string name() const override {
@@ -1144,27 +1166,30 @@ public:
 };
 
 
-class FlagColorizer : public IdColorizerTemplate<FlagColorizer> {
+class IndexColorizer : public IdColorizerTemplate<IndexColorizer> {
 private:
-    ArrayRef<const Size> flags;
+    QuantityId id;
+    ArrayRef<const Size> idxs;
 
 public:
-    using IdColorizerTemplate<FlagColorizer>::IdColorizerTemplate;
+    IndexColorizer(const QuantityId id, const GuiSettings& gui)
+        : IdColorizerTemplate<IndexColorizer>(gui)
+        , id(id) {}
 
     INLINE Optional<Size> evalId(const Size idx) const {
-        return flags[idx];
+        return idxs[idx];
     }
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
-        flags = makeArrayRef(storage.getValue<Size>(QuantityId::FLAG), ref);
+        idxs = makeArrayRef(storage.getValue<Size>(id), ref);
     }
 
     virtual bool isInitialized() const override {
-        return !flags.empty();
+        return !idxs.empty();
     }
 
     virtual std::string name() const override {
-        return "Flags";
+        return getMetadata(id).quantityName;
     }
 };
 

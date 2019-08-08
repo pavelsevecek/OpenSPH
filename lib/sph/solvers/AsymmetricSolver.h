@@ -3,7 +3,7 @@
 /// \file AsymmetricSolver.h
 /// \brief SPH solver with asymmetric particle evaluation
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "sph/equations/Derivative.h"
 #include "sph/equations/EquationTerm.h"
@@ -26,10 +26,6 @@ private:
 protected:
     /// Scheduler used to parallelize the solver.
     IScheduler& scheduler;
-
-    /// Selected granularity of the parallel processing. The more particles in simulation, the higher the
-    /// value should be to utilize the solver optimally.
-    Size granularity;
 
     /// Holds all equation terms evaluated by the solver.
     EquationHolder equations;

@@ -1,9 +1,8 @@
+#include "run/IRun.h"
 #include "catch.hpp"
 #include "io/Output.h"
 #include "objects/geometry/Domain.h"
 #include "quantities/Storage.h"
-#include "run/IRun.h"
-#include "run/RunCallbacks.h"
 #include "sph/initial/Initial.h"
 #include "system/Statistics.h"
 #include "tests/Approx.h"
@@ -14,30 +13,16 @@
 using namespace Sph;
 
 class DummyCallbacks : public IRunCallbacks {
-private:
-    Size& stepIdx;
-    Size abortAfterStep;
-    bool& runEnded;
-
 public:
-    DummyCallbacks(Size& stepIdx, bool& runEnded, const Size abortAfterStep = 1000)
-        : stepIdx(stepIdx)
-        , abortAfterStep(abortAfterStep)
-        , runEnded(runEnded) {}
+    Size stepIdx = 0;
+    Size abortAfterStep = 1000;
 
+
+    virtual void onSetUp(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
 
     virtual void onTimeStep(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {
         stepIdx++;
     }
-
-    virtual void onRunStart(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
-
-    virtual void onRunEnd(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {
-        runEnded = true;
-    }
-
-    virtual void onRunFailure(const DiagnosticsError& UNUSED(error),
-        const Statistics& UNUSED(stats)) const override {}
 
     virtual bool shouldAbortRun() const override {
         return (stepIdx >= abortAfterStep);
@@ -53,7 +38,7 @@ public:
         : IOutput(Path("%d"))
         , outputTimes(outputTimes) {}
 
-    virtual Path dump(const Storage& UNUSED(storage), const Statistics& stats) override {
+    virtual Expected<Path> dump(const Storage& UNUSED(storage), const Statistics& stats) override {
         outputTimes.push(stats.get<Float>(StatisticsId::RUN_TIME));
         return Path();
     }
@@ -64,46 +49,40 @@ namespace {
 class TestRun : public IRun {
 public:
     Array<Float> outputTimes; // times where output was called
-    Size stepIdx;             // current timestep index
-    bool runEnded;            // set to true by DummyCallbacks when run ends
-    Size terminateAfterOutput;
+    bool runEnded = false;
 
-
-    TestRun(const Size terminateAfterOutput = 1000)
-        : terminateAfterOutput(terminateAfterOutput) {
+    TestRun() {
         settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.1_f + EPS);
-        settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
-        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1._f));
+        settings.set(RunSettingsId::TIMESTEPPING_CRITERION, EMPTY_FLAGS);
+        settings.set(RunSettingsId::RUN_END_TIME, 1._f);
         settings.set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.21_f);
         settings.set(RunSettingsId::RUN_LOGGER, LoggerEnum::NONE);
     }
 
-    virtual void setUp() override {
-        storage = makeShared<Storage>();
-        scheduler = ThreadPool::getGlobalInstance();
-        InitialConditions conds(*scheduler, settings);
+    virtual void setUp(SharedPtr<Storage> storage) override {
+        InitialConditions conds(settings);
         BodySettings bodySettings;
         bodySettings.set(BodySettingsId::PARTICLE_COUNT, 10);
         conds.addMonolithicBody(*storage, SphericalDomain(Vector(0._f), 1._f), bodySettings);
-        stepIdx = 0;
-        runEnded = false;
 
         /// \todo insert custom timestepping and custom logger and test they are properly called
-        this->callbacks = makeAuto<DummyCallbacks>(stepIdx, runEnded, terminateAfterOutput);
         outputTimes.clear();
         this->output = makeAuto<DummyOutput>(outputTimes);
     }
 
 protected:
-    virtual void tearDown(const Statistics& UNUSED(stats)) override {}
+    virtual void tearDown(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {
+        runEnded = true;
+    }
 };
 } // namespace
 
 TEST_CASE("Simple run", "[run]") {
     TestRun run;
-    REQUIRE_NOTHROW(run.setUp());
-    REQUIRE_NOTHROW(run.run());
-    REQUIRE(run.stepIdx == 10);
+    Storage storage;
+    DummyCallbacks callbacks;
+    REQUIRE_NOTHROW(run.run(storage, callbacks));
+    REQUIRE(callbacks.stepIdx == 10);
     REQUIRE(run.runEnded);
     REQUIRE(run.outputTimes.size() == 5);
     Size i = 0;
@@ -119,20 +98,23 @@ TEST_CASE("Simple run", "[run]") {
 }
 
 TEST_CASE("Run abort", "[run]") {
-    TestRun run(6); // abort after 6th step
-    REQUIRE_NOTHROW(run.setUp());
-    REQUIRE_NOTHROW(run.run());
-    REQUIRE(run.stepIdx == 6);
+    TestRun run;
+    DummyCallbacks callbacks;
+    callbacks.abortAfterStep = 6; // abort after 6th step
+    Storage storage;
+    REQUIRE_NOTHROW(run.run(storage, callbacks));
+    REQUIRE(callbacks.stepIdx == 6);
     REQUIRE(run.runEnded);
 }
 
 TEST_CASE("Run twice", "[run]") {
     TestRun run;
-    REQUIRE_NOTHROW(run.setUp());
-    REQUIRE_NOTHROW(run.run());
+    DummyCallbacks callbacks;
+    Storage storage;
+    REQUIRE_NOTHROW(run.run(storage, callbacks));
     REQUIRE(run.outputTimes.size() == 5);
-    REQUIRE_NOTHROW(run.setUp());
-    REQUIRE_NOTHROW(run.run());
+
+    REQUIRE_NOTHROW(run.run(storage, callbacks));
     REQUIRE(run.outputTimes.size() == 5);
     Size i = 0;
     for (Float t : run.outputTimes) {
@@ -143,12 +125,4 @@ TEST_CASE("Run twice", "[run]") {
         }
         i++;
     }
-}
-
-TEST_CASE("Run without setup", "[run]") {
-    TestRun run;
-    REQUIRE_ASSERT(run.run());
-    run.setUp();
-    REQUIRE_NOTHROW(run.run());
-    /// \todo check this with assert REQUIRE_ASSERT(run.run());
 }

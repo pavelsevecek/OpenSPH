@@ -3,7 +3,7 @@
 /// \file RawPtr.h
 /// \brief Simple non-owning wrapper of pointer
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "common/Assert.h"
 

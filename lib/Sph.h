@@ -1,7 +1,7 @@
 /// \file Sph.h
 /// \brief Includes common headers
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "gravity/NBodySolver.h"
 #include "io/Column.h"
@@ -17,12 +17,11 @@
 #include "quantities/QuantityIds.h"
 #include "quantities/Storage.h"
 #include "run/IRun.h"
-#include "run/RunCallbacks.h"
 #include "sph/Materials.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/initial/Distribution.h"
-#include "sph/initial/Presets.h"
+#include "sph/initial/Initial.h"
 #include "sph/kernel/Kernel.h"
 #include "sph/solvers/AsymmetricSolver.h"
 #include "sph/solvers/StandardSets.h"

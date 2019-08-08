@@ -8,11 +8,22 @@
 
 NAMESPACE_SPH_BEGIN
 
-RayTracer::RayTracer(IScheduler& scheduler, const GuiSettings& settings)
+struct Seeder {
+    int seed = 1337;
+
+    operator int() {
+        return seed++;
+    }
+};
+
+RayTracer::ThreadData::ThreadData(Seeder& seeder)
+    : rng(seeder) {}
+
+RayTracer::RayTracer(SharedPtr<IScheduler> scheduler, const GuiSettings& settings)
     : scheduler(scheduler)
-    , threadData(scheduler) {
+    , threadData(*scheduler, Seeder{}) {
     kernel = CubicSpline<3>();
-    fixed.dirToSun = settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION);
+    fixed.dirToSun = getNormalized(settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION));
     fixed.brdf = Factory::getBrdf(settings);
     fixed.subsampling = settings.get<int>(GuiSettingsId::RAYTRACE_SUBSAMPLING);
     fixed.iterationLimit = settings.get<int>(GuiSettingsId::RAYTRACE_ITERATION_LIMIT);
@@ -40,6 +51,8 @@ RayTracer::RayTracer(IScheduler& scheduler, const GuiSettings& settings)
 
 RayTracer::~RayTracer() = default;
 
+constexpr Size BLEND_ALL_FLAG = 0x80;
+
 void RayTracer::initialize(const Storage& storage,
     const IColorizer& colorizer,
     const ICamera& UNUSED(camera)) {
@@ -47,18 +60,22 @@ void RayTracer::initialize(const Storage& storage,
     cached.r = storage.getValue<Vector>(QuantityId::POSITION).clone();
     const Size particleCnt = cached.r.size();
 
-    if (storage.has(QuantityId(GuiQuantityId::UVW))) {
-        cached.uvws = storage.getValue<Vector>(QuantityId(GuiQuantityId::UVW)).clone();
+    if (storage.has(QuantityId::UVW)) {
+        cached.uvws = storage.getValue<Vector>(QuantityId::UVW).clone();
     } else {
         cached.uvws.clear();
     }
 
     cached.flags.resize(particleCnt);
-    if (storage.has(QuantityId::FLAG)) {
+    if (storage.has(QuantityId::FLAG) && storage.has(QuantityId::STRESS_REDUCING)) {
         ArrayView<const Size> idxs = storage.getValue<Size>(QuantityId::FLAG);
-        // assign separate flag to fully damaged particles so that they do not blend with other particles
+        ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
+        // avoid blending particles of different bodies, except if they are fully damaged
         for (Size i = 0; i < particleCnt; ++i) {
             cached.flags[i] = idxs[i];
+            if (reduce[i] == 0._f) {
+                cached.flags[i] |= BLEND_ALL_FLAG;
+            }
         }
     } else {
         cached.flags.fill(0);
@@ -81,9 +98,13 @@ void RayTracer::initialize(const Storage& storage,
         }
     }
 
+    cached.doEmission = typeid(colorizer) == typeid(BeautyColorizer);
     cached.colors.resize(particleCnt);
     for (Size i = 0; i < particleCnt; ++i) {
         cached.colors[i] = colorizer.evalColor(i);
+        if (cached.doEmission) {
+            cached.colors[i] = cached.colors[i] * colorizer.evalScalar(i).value();
+        }
     }
 
     Array<BvhSphere> spheres;
@@ -95,7 +116,7 @@ void RayTracer::initialize(const Storage& storage,
     bvh.build(std::move(spheres));
 
     finder = Factory::getFinder(RunSettings::getDefaults());
-    finder->build(scheduler, cached.r);
+    finder->build(*scheduler, cached.r);
 
     for (ThreadData& data : threadData) {
         data.previousIdx = Size(-1);
@@ -104,47 +125,30 @@ void RayTracer::initialize(const Storage& storage,
     shouldContinue = true;
 }
 
-/*
-INLINE Float weight(const Vector& r1, const Vector& r2) {
-    const Float lengthSqr = getSqrLength(r1 - r2);
-    // Eq. (11)
-    if (lengthSqr < sqr(2._f * r1[H])) {
-        return 1._f - pow<3>(sqrt(lengthSqr) / (2._f * r1[H]));
-    } else {
-        return 0._f;
-    }
-}
-
-Array<Vector> RayTracer::denoisePositions(ArrayView<const Vector> r) const {
-    ASSERT(finder);
-    Array<Vector> r_bar(r.size());
-    Array<NeighbourRecord> neighs;
-    const Float lambda = 1._f;
-    for (Size i = 0; i < r.size(); ++i) {
-        finder->findAll(i, 2._f * r[i][H], neighs);
-
-        Vector wr(0._f);
-        Float wsum = 0._f;
-        for (NeighbourRecord& n : neighs) {
-            const Size j = n.index;
-            const Float w = weight(r[i], r[j]);
-            wr += w * r[j];
-            wsum += w;
-        }
-        ASSERT(wsum > 0._f);
-        r_bar[i] = (1._f - lambda) * r[i] + lambda * wr / wsum;
-        r_bar[i][H] = r[i][H];
-    }
-    return r_bar;
-}*/
-
 void RayTracer::render(const RenderParams& params, Statistics& UNUSED(stats), IRenderOutput& output) const {
     shouldContinue = true;
     ASSERT(finder && bvh.getBoundingBox().volume() > 0._f);
     FrameBuffer fb(params.size);
     for (Size iteration = 0; iteration < fixed.iterationLimit && shouldContinue; ++iteration) {
         this->refine(params, iteration, fb);
-        output.update(fb.bitmap(), {});
+        output.update(fb.bitmap(), {}, iteration == fixed.iterationLimit - 1);
+    }
+}
+
+INLINE float sampleTent(const float x) {
+    if (x < 0.5f) {
+        return sqrt(2.f * x) - 1.f;
+    } else {
+        return 1.f - sqrt(1.f - 2.f * (x - 0.5f));
+    }
+}
+
+INLINE Coords sampleTent2d(const Size level, const float halfWidth, UniformRng& rng) {
+    if (level == 1) {
+        return Coords(0.5f + sampleTent(rng()) * halfWidth, 0.5f + sampleTent(rng()) * halfWidth);
+    } else {
+        // center of the pixel
+        return Coords(0.5f, 0.5f);
     }
 }
 
@@ -157,19 +161,19 @@ void RayTracer::refine(const RenderParams& params, const Size iteration, FrameBu
     Bitmap<Rgba> bitmap(actSize);
 
     const bool first = (iteration == 0);
-    parallelFor(scheduler,
+    parallelFor(*scheduler,
         threadData,
         0,
         Size(bitmap.size().y),
+        1,
         [this, &bitmap, &params, level, first](Size y, ThreadData& data) {
             if (!shouldContinue && !first) {
                 return;
             }
             for (Size x = 0; x < Size(bitmap.size().x); ++x) {
-                /// \todo generalize
-                const float rx = x * level + (level == 1 ? data.rng() : 0.5f);
-                const float ry = y * level + (level == 1 ? data.rng() : 0.5f);
-                CameraRay cameraRay = params.camera->unproject(Coords(rx, ry));
+                const Coords pixel = Coords(x * level, y * level) +
+                                     sampleTent2d(level, params.surface.filterWidth / 2.f, data.rng);
+                CameraRay cameraRay = params.camera->unproject(pixel);
                 const Vector dir = getNormalized(cameraRay.target - cameraRay.origin);
                 const Ray ray(cameraRay.origin, dir);
 
@@ -210,7 +214,9 @@ ArrayView<const Size> RayTracer::getNeighbourList(ThreadData& data, const Size i
         // find the actual list of neighbours
         data.neighs.clear();
         for (NeighbourRecord& n : neighs) {
-            if (cached.flags[index] == cached.flags[n.index]) {
+            const Size flag1 = cached.flags[index];
+            const Size flag2 = cached.flags[n.index];
+            if ((flag1 & BLEND_ALL_FLAG) || (flag2 & BLEND_ALL_FLAG) || (flag1 == flag2)) {
                 data.neighs.push(n.index);
             }
         }
@@ -291,14 +297,26 @@ Rgba RayTracer::shade(ThreadData& data,
     const Size index,
     const Vector& hit,
     const Vector& dir) const {
-    Rgba color = Rgba::white();
+    Rgba diffuse = Rgba::white();
     if (!fixed.textures.empty() && !cached.uvws.empty()) {
+        Size textureIdx = cached.flags[index] & ~BLEND_ALL_FLAG;
+        ASSERT(textureIdx <= 10); // just sanity check, increase if necessary
+        if (textureIdx >= fixed.textures.size()) {
+            textureIdx = 0;
+        }
         const Vector uvw = this->evalUvws(data.neighs, hit);
-        color = fixed.textures[cached.flags[index]].eval(uvw) * 2._f;
+        diffuse = fixed.textures[textureIdx].eval(uvw);
     }
 
     // evaluate color before checking for occlusion as that invalidates the neighbour list
-    const Rgba colorizerValue = this->evalColor(data.neighs, hit) * color;
+    const Rgba colorizerValue = this->evalColor(data.neighs, hit);
+
+    Rgba emission = Rgba::black();
+    if (cached.doEmission) {
+        emission = colorizerValue * params.surface.emission;
+    } else {
+        diffuse = diffuse * colorizerValue;
+    }
 
     // compute normal = gradient of the field
     const Vector n = this->evalGradient(data.neighs, hit);
@@ -306,8 +324,8 @@ Rgba RayTracer::shade(ThreadData& data,
     const Vector n_norm = getNormalized(n);
     const Float cosPhi = dot(n_norm, fixed.dirToSun);
     if (cosPhi <= 0._f) {
-        // not illuminated
-        return colorizerValue * params.surface.ambientLight;
+        // not illuminated -> just ambient light + emission
+        return diffuse * params.surface.ambientLight + emission;
     }
 
     // check for occlusion
@@ -315,14 +333,14 @@ Rgba RayTracer::shade(ThreadData& data,
         Ray rayToSun(hit - 1.e-3_f * fixed.dirToSun, -fixed.dirToSun);
         if (this->intersect(data, rayToSun, params.surface.level, true)) {
             // casted shadow
-            return colorizerValue * params.surface.ambientLight;
+            return diffuse * params.surface.ambientLight + emission;
         }
     }
 
     // evaluate BRDF
     const Float f = fixed.brdf->transport(n_norm, -dir, fixed.dirToSun);
 
-    return colorizerValue * (PI * f * cosPhi * params.surface.sunLight + params.surface.ambientLight);
+    return diffuse * (PI * f * cosPhi * params.surface.sunLight + params.surface.ambientLight) + emission;
 }
 
 Float RayTracer::evalField(ArrayView<const Size> neighs, const Vector& pos1) const {

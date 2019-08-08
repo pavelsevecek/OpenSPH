@@ -3,7 +3,7 @@
 /// \file SymmetricSolver.h
 /// \brief Basic SPH solver, evaluating all interactions symmetrically
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "sph/equations/Derivative.h"
 #include "sph/equations/EquationTerm.h"
@@ -46,10 +46,6 @@ protected:
     /// Scheduler to parallelize the solver.
     IScheduler& scheduler;
 
-    /// Selected granularity of the parallel processing. The more particles in simulation, the higher the
-    /// value should be to utilize the solver optimally.
-    Size granularity;
-
     /// Thread-local structure caching all buffers needed to compute derivatives.
     ThreadLocal<ThreadData> threadData;
 
@@ -66,12 +62,19 @@ protected:
     LutKernel<DIMENSIONS> kernel;
 
 public:
-    /// \brief Creates the symmetric solver, given the list of equations to solve
+    /// \brief Creates a symmetric solver, given the list of equations to solve
     ///
     /// Constructor may throw if the list of equations is not consistent with the solver.
     /// \param scheduler Scheduler used for parallelization.
     /// \param settings Settings containing parameter of the solver (SPH kernel used, etc.)
     /// \param eqs List of equations to solve.
+    /// \param bc Boundary conditions used during the simulation.
+    SymmetricSolver(IScheduler& scheduler,
+        const RunSettings& settings,
+        const EquationHolder& eqs,
+        AutoPtr<IBoundaryCondition>&& bc);
+
+    /// \brief Creates a symmetric solver, using boundary conditions specified in settings.
     SymmetricSolver(IScheduler& scheduler, const RunSettings& settings, const EquationHolder& eqs);
 
     ~SymmetricSolver();

@@ -3,9 +3,9 @@
 /// \file Factory.h
 /// \brief Creating code components based on values from settings.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
-#include "objects/wrappers/SharedPtr.h"
+#include "objects/wrappers/Function.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
@@ -27,6 +27,7 @@ class IBoundaryCondition;
 class IMaterial;
 class ILogger;
 class IOutput;
+class IInput;
 class IScheduler;
 class IRng;
 class IEquationTerm;
@@ -47,9 +48,16 @@ AutoPtr<ILogger> getLogger(const RunSettings& settings);
 
 AutoPtr<IOutput> getOutput(const RunSettings& settings);
 
+// deduces format from path extension
+AutoPtr<IInput> getInput(const Path& path);
+
 AutoPtr<IRng> getRng(const RunSettings& settings);
 
 AutoPtr<ISolver> getSolver(IScheduler& scheduler, const RunSettings& settings);
+
+AutoPtr<ISolver> getSolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    AutoPtr<IBoundaryCondition>&& bc);
 
 template <Size D>
 LutKernel<D> getKernel(const RunSettings& settings);
@@ -68,7 +76,12 @@ AutoPtr<ICollisionHandler> getCollisionHandler(const RunSettings& settings);
 
 AutoPtr<IOverlapHandler> getOverlapHandler(const RunSettings& settings);
 
+/// \todo split IDomain into IComputationalDomain and IShape (or IBodyShape)
 AutoPtr<IDomain> getDomain(const RunSettings& settings);
+
+AutoPtr<IDomain> getDomain(const BodySettings& settings);
+
+AutoPtr<IBoundaryCondition> getBoundaryConditions(const RunSettings& settings, SharedPtr<IDomain> domain);
 
 AutoPtr<IBoundaryCondition> getBoundaryConditions(const RunSettings& settings);
 
@@ -81,7 +94,8 @@ SharedPtr<IScheduler> getScheduler(const RunSettings& settings);
 
 AutoPtr<IMaterial> getMaterial(const BodySettings& settings);
 
-AutoPtr<IDistribution> getDistribution(const BodySettings& settings);
+AutoPtr<IDistribution> getDistribution(const BodySettings& settings,
+    Function<bool(Float)> progressCallback = nullptr);
 
 AutoPtr<IEos> getEos(const BodySettings& settings);
 

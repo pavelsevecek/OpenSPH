@@ -1,9 +1,9 @@
 before_script:  
-  - echo "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main" >> /etc/apt/sources.list.d/llvm.list
-  - wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+#- echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-4.0 main" >> /etc/apt/sources.list.d/llvm.list
+#- wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
   - apt-get update -qy
-  - apt-get install -y clang-4.0 qt5-default libwxgtk3.0-dev wx3.0-headers wx-common
-  - ln -s /usr/bin/clang++-4.0 /usr/bin/clang++
+  - apt-get install -y clang qt5-default libwxgtk3.0-dev wx3.0-headers wx-common
+    #- ln -s /usr/bin/clang++-4.0 /usr/bin/clang++
  
 gcc_debug:
   stage: build
@@ -46,7 +46,8 @@ test_debug:
     - qmake -spec linux-g++ DEFINES+="SPH_CONFIG_SET" CONFIG+=debug ../test.pro
     - make
     - cd test
-    - ./test -d yes [gravity],[nbody],[equationterm],[solvers],[impact],[timestepping],[quantity],[storage],[material],[damage],[eos],[yielding],[run],[post],[finders]
+    - ./test -d yes exclude:[output] exclude:[filesystem] exclude:[path] exclude:[thread] exclude:[grid]
+
 
 test_release:
   stage: test
@@ -57,7 +58,7 @@ test_release:
     - qmake -spec linux-g++ DEFINES+="SPH_CONFIG_SET" CONFIG+=release ../test.pro
     - make
     - cd test
-    - ./test -d yes [gravity],[nbody],[equationterm],[solvers],[impact],[timestepping],[quantity],[storage],[material],[damage],[eos],[yielding],[run],[post],[finders]
+    - ./test -d yes exclude:[output] exclude:[filesystem] exclude:[path] exclude:[thread] exclude:[grid]
 
 examples:
   stage: test

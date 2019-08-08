@@ -3,7 +3,7 @@
 /// \file Indices.h
 /// \brief Vectorized computations with integral numbers
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/Object.h"
 #include "objects/geometry/Vector.h"
@@ -138,14 +138,5 @@ INLINE Indices min(const Indices i1, const Indices i2) {
 INLINE bool all(const Indices& i) {
     return i[0] && i[1] && i[2];
 }
-
-/*/// Returns a content of array of vectors, where each component is given by index.
-INLINE auto getByMultiIndex(ArrayView<Vector> values, const Indices& idxs) {
-    return tieIndices(values[idxs[0]][0], values[idxs[1]][1], values[idxs[2]][2]);
-}
-
-INLINE auto getByMultiIndex(ArrayView<Indices> values, const Indices& idxs) {
-    return tieIndices(values[idxs[0]][0], values[idxs[1]][1], values[idxs[2]][2]);
-}*/
 
 NAMESPACE_SPH_END

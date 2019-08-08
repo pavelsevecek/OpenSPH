@@ -17,7 +17,7 @@
 NAMESPACE_SPH_BEGIN
 
 BodyView::BodyView(Storage& storage, const Size bodyIndex)
-    : storage(storage)
+    : storage(&storage)
     , bodyIndex(bodyIndex) {}
 
 BodyView& BodyView::displace(const Vector& dr) {
@@ -25,9 +25,9 @@ BodyView& BodyView::displace(const Vector& dr) {
     Vector actDr = dr;
     actDr[H] = 0.f;
 
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
     // Body created using InitialConditions always has a material
-    MaterialView material = storage.getMaterial(bodyIndex);
+    MaterialView material = storage->getMaterial(bodyIndex);
     for (Size i : material.sequence()) {
         r[i] += actDr;
     }
@@ -35,9 +35,9 @@ BodyView& BodyView::displace(const Vector& dr) {
 }
 
 BodyView& BodyView::addVelocity(const Vector& velocity) {
-    ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+    ArrayView<Vector> v = storage->getDt<Vector>(QuantityId::POSITION);
     // Body created using InitialConditions always has a material
-    MaterialView material = storage.getMaterial(bodyIndex);
+    MaterialView material = storage->getMaterial(bodyIndex);
     for (Size i : material.sequence()) {
         v[i] += velocity;
     }
@@ -46,8 +46,8 @@ BodyView& BodyView::addVelocity(const Vector& velocity) {
 
 BodyView& BodyView::addRotation(const Vector& omega, const Vector& origin) {
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-    MaterialView material = storage.getMaterial(bodyIndex);
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
+    MaterialView material = storage->getMaterial(bodyIndex);
     for (Size i : material.sequence()) {
         v[i] += cross(omega, r[i] - origin);
     }
@@ -59,7 +59,7 @@ Vector BodyView::getOrigin(const RotationOrigin origin) const {
     case RotationOrigin::FRAME_ORIGIN:
         return Vector(0._f);
     case RotationOrigin::CENTER_OF_MASS:
-        return CenterOfMass(bodyIndex).evaluate(storage);
+        return CenterOfMass(bodyIndex).evaluate(*storage);
     default:
         NOT_IMPLEMENTED;
     }
@@ -70,58 +70,34 @@ BodyView& BodyView::addRotation(const Vector& omega, const RotationOrigin origin
 }
 
 
-/// Solver taking a reference of another solver and forwarding all function, used to convert owning AutoPtr to
-/// non-owning pointer.
-class ForwardingSolver : public ISolver {
-private:
-    ISolver& solver;
+/// \brief Generates mapping coordinates and saves then as QuantityId::UVW quantity.
+static void setUvws(Storage& storage, const Vector& center) {
+    ASSERT(!storage.has(QuantityId::UVW));
+    ASSERT(storage.getMaterialCnt() == 1);
 
-public:
-    ForwardingSolver(ISolver& solver)
-        : solver(solver) {}
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    Array<Vector> uvws(r.size());
 
-    virtual void integrate(Storage& storage, Statistics& stats) override {
-        solver.integrate(storage, stats);
+    for (Size i = 0; i < r.size(); ++i) {
+        const Vector xyz = r[i] - center;
+        SphericalCoords spherical = cartensianToSpherical(Vector(xyz[X], xyz[Z], xyz[Y]));
+        uvws[i] = Vector(spherical.phi / (2._f * PI) + 0.5_f, spherical.theta / PI, 0._f);
+        ASSERT(uvws[i][X] >= 0._f && uvws[i][X] <= 1._f, uvws[i][X]);
+        ASSERT(uvws[i][Y] >= 0._f && uvws[i][Y] <= 1._f, uvws[i][Y]);
     }
 
-    virtual void collide(Storage& storage, Statistics& stats, const Float dt) override {
-        solver.collide(storage, stats, dt);
-    }
-
-    virtual void create(Storage& storage, IMaterial& material) const override {
-        solver.create(storage, material);
-    }
-};
-
-/// Helper function to avoid nullptr setup
-static Function<void(Storage&)> getRealSetup(Function<void(Storage&)> setup) {
-    if (setup) {
-        return setup;
-    } else {
-        return [](Storage& UNUSED(body)) {
-            // do nothing
-        };
-    }
+    storage.insert<Vector>(QuantityId::UVW, OrderEnum::ZERO, std::move(uvws));
 }
 
-InitialConditions::InitialConditions(IScheduler& scheduler,
-    ISolver& solver,
-    const RunSettings& settings,
-    Function<void(Storage&)> additionalSetup)
-    : scheduler(scheduler)
-    , solver(makeAuto<ForwardingSolver>(solver))
-    , context(settings)
-    , additionalSetup(getRealSetup(additionalSetup)) {}
-
-InitialConditions::InitialConditions(IScheduler& scheduler,
-    const RunSettings& settings,
-    Function<void(Storage&)> additionalSetup)
-    : scheduler(scheduler)
-    , solver(Factory::getSolver(scheduler, settings))
-    , context(settings)
-    , additionalSetup(getRealSetup(additionalSetup)) {}
+InitialConditions::InitialConditions(const RunSettings& settings)
+    : context(settings) {}
 
 InitialConditions::~InitialConditions() = default;
+
+BodyView InitialConditions::addMonolithicBody(Storage& storage, const BodySettings& body) {
+    AutoPtr<IDomain> domain = Factory::getDomain(body);
+    return this->addMonolithicBody(storage, *domain, body);
+}
 
 BodyView InitialConditions::addMonolithicBody(Storage& storage,
     const IDomain& domain,
@@ -132,27 +108,26 @@ BodyView InitialConditions::addMonolithicBody(Storage& storage,
 
 BodyView InitialConditions::addMonolithicBody(Storage& storage,
     const IDomain& domain,
-    AutoPtr<IMaterial>&& material) {
+    SharedPtr<IMaterial> material) {
     AutoPtr<IDistribution> distribution = Factory::getDistribution(material->getParams());
-    return this->addMonolithicBody(storage, domain, std::move(material), std::move(distribution));
+    return this->addMonolithicBody(storage, domain, std::move(material), *distribution);
 }
 
 BodyView InitialConditions::addMonolithicBody(Storage& storage,
     const IDomain& domain,
-    AutoPtr<IMaterial>&& material,
-    AutoPtr<IDistribution>&& distribution) {
-    IMaterial& mat = *material; // get reference before moving the pointer
-    Storage body(std::move(material));
+    SharedPtr<IMaterial> material,
+    const IDistribution& distribution) {
+    Storage body(material);
 
     PROFILE_SCOPE("InitialConditions::addBody");
-    const Size n = mat.getParam<int>(BodySettingsId::PARTICLE_COUNT);
+    const Size n = material->getParam<int>(BodySettingsId::PARTICLE_COUNT);
 
     // Generate positions of particles
-    Array<Vector> positions = distribution->generate(scheduler, n, domain);
+    Array<Vector> positions = distribution.generate(*context.scheduler, n, domain);
     ASSERT(positions.size() > 0);
     body.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(positions));
 
-    this->setQuantities(body, mat, domain.getVolume());
+    this->setQuantities(body, *material, domain.getCenter(), domain.getVolume());
     storage.merge(std::move(body));
     const Size particleCnt = storage.getParticleCnt();
 
@@ -165,17 +140,13 @@ BodyView InitialConditions::addMonolithicBody(Storage& storage,
     return BodyView(storage, bodyIndex++);
 }
 
-InitialConditions::BodySetup::BodySetup(AutoPtr<IDomain>&& domain, AutoPtr<IMaterial>&& material)
-    : domain(std::move(domain))
-    , material(std::move(material)) {}
+InitialConditions::BodySetup::BodySetup(SharedPtr<IDomain> domain, SharedPtr<IMaterial> material)
+    : domain(domain)
+    , material(material) {}
 
-InitialConditions::BodySetup::BodySetup(AutoPtr<IDomain>&& domain, const BodySettings& body)
-    : domain(std::move(domain))
+InitialConditions::BodySetup::BodySetup(SharedPtr<IDomain> domain, const BodySettings& body)
+    : domain(domain)
     , material(Factory::getMaterial(body)) {}
-
-InitialConditions::BodySetup::BodySetup(BodySetup&& other)
-    : domain(std::move(other.domain))
-    , material(std::move(other.material)) {}
 
 InitialConditions::BodySetup::BodySetup() = default;
 
@@ -183,19 +154,18 @@ InitialConditions::BodySetup::~BodySetup() = default;
 
 
 Array<BodyView> InitialConditions::addHeterogeneousBody(Storage& storage,
-    BodySetup&& environment,
-    ArrayView<BodySetup> bodies) {
-    PROFILE_SCOPE("InitialConditions::addHeterogeneousBody");
+    const BodySetup& environment,
+    ArrayView<const BodySetup> bodies) {
     AutoPtr<IDistribution> distribution = Factory::getDistribution(environment.material->getParams());
     const Size n = environment.material->getParam<int>(BodySettingsId::PARTICLE_COUNT);
 
     // Generate positions of ALL particles
-    Array<Vector> positions = distribution->generate(scheduler, n, *environment.domain);
+    Array<Vector> positions = distribution->generate(*context.scheduler, n, *environment.domain);
     // Create particle storage per body
-    Storage environmentStorage(std::move(environment.material));
+    Storage enviroStorage(environment.material);
     Array<Storage> bodyStorages;
-    for (BodySetup& body : bodies) {
-        bodyStorages.push(Storage(std::move(body.material)));
+    for (const BodySetup& body : bodies) {
+        bodyStorages.push(Storage(body.material));
     }
     // Assign particles to bodies
     Array<Vector> pos_env;
@@ -219,21 +189,23 @@ Array<BodyView> InitialConditions::addHeterogeneousBody(Storage& storage,
     Array<BodyView> views;
 
     // Initialize storages
-    Float environmentVolume = environment.domain->getVolume();
+    Float environVolume = environment.domain->getVolume();
     for (Size i = 0; i < bodyStorages.size(); ++i) {
         bodyStorages[i].insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(pos_bodies[i]));
         const Float volume = bodies[i].domain->getVolume();
-        setQuantities(bodyStorages[i], bodyStorages[i].getMaterial(0), volume);
+        const Vector center = bodies[i].domain->getCenter();
+        this->setQuantities(bodyStorages[i], bodyStorages[i].getMaterial(0), center, volume);
         views.emplaceBack(BodyView(storage, bodyIndex++));
-        environmentVolume -= volume;
+        environVolume -= volume;
     }
-    ASSERT(environmentVolume >= 0._f);
-    environmentStorage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(pos_env));
-    setQuantities(environmentStorage, environmentStorage.getMaterial(0), environmentVolume);
+    ASSERT(environVolume >= 0._f);
+    enviroStorage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(pos_env));
+    const Vector environCenter = environment.domain->getCenter();
+    this->setQuantities(enviroStorage, enviroStorage.getMaterial(0), environCenter, environVolume);
     views.emplaceBack(BodyView(storage, bodyIndex++));
 
     // merge all storages
-    storage.merge(std::move(environmentStorage));
+    storage.merge(std::move(enviroStorage));
     for (Storage& body : bodyStorages) {
         storage.merge(std::move(body));
     }
@@ -256,7 +228,7 @@ void InitialConditions::addRubblePileBody(Storage& storage,
 
     // generate the particles that will be eventually turned into spheres
     AutoPtr<IDistribution> distribution = Factory::getDistribution(bodySettings);
-    Array<Vector> positions = distribution->generate(scheduler, n, domain);
+    Array<Vector> positions = distribution->generate(*context.scheduler, n, domain);
     SharedPtr<IMaterial> material = Factory::getMaterial(bodySettings);
 
     // counter used to exit the loop (when no more spheres can be generated)
@@ -325,7 +297,7 @@ void InitialConditions::addRubblePileBody(Storage& storage,
         // create the body
         Storage body(material);
         body.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(spherePositions));
-        this->setQuantities(body, *material, sphere.volume());
+        this->setQuantities(body, *material, sphere.center(), sphere.volume());
 
         // add it to the storage
         storage.merge(std::move(body));
@@ -356,10 +328,14 @@ static Array<Float> getMasses(ArrayView<const Vector> r, const Float totalM) {
     return m;
 }
 
-void InitialConditions::setQuantities(Storage& storage, IMaterial& material, const Float volume) {
+void InitialConditions::setQuantities(Storage& storage,
+    IMaterial& material,
+    const Vector& center,
+    const Float volume) {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    const Float eta = material.getParam<Float>(BodySettingsId::SMOOTHING_LENGTH_ETA);
     for (Size i = 0; i < r.size(); ++i) {
-        r[i][H] *= context.eta;
+        r[i][H] *= eta;
     }
 
     const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
@@ -372,14 +348,13 @@ void InitialConditions::setQuantities(Storage& storage, IMaterial& material, con
     // Mark particles of this body
     storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, bodyIndex);
 
-    // Initialize all quantities needed by the solver
-    solver->create(storage, material);
-
     // Initialize material (we need density and energy for EoS)
     material.create(storage, context);
 
-    // Other user-defined quantities
-    additionalSetup(storage);
+    // Generate mapping coordinates for textures
+    if (context.generateUvws) {
+        setUvws(storage, center);
+    }
 }
 
 void repelParticles(ArrayView<Vector> r, const Float radius) {

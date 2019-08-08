@@ -23,9 +23,11 @@ void CorrectionTensor::initialize(const Storage& input, Accumulated& results) {
     r = input.getValue<Vector>(QuantityId::POSITION);
     tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
 
-    if (sumOnlyUndamaged) {
+    if (sumOnlyUndamaged && input.has(QuantityId::STRESS_REDUCING)) {
         idxs = input.getValue<Size>(QuantityId::FLAG);
         reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
+    } else {
+        reduce = nullptr;
     }
 
     C = results.getBuffer<SymmetricTensor>(QuantityId::STRAIN_RATE_CORRECTION_TENSOR, OrderEnum::ZERO);
@@ -34,7 +36,7 @@ void CorrectionTensor::initialize(const Storage& input, Accumulated& results) {
 void CorrectionTensor::evalNeighs(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
     ASSERT(neighs.size() == grads.size());
     C[i] = SymmetricTensor::null();
-    if (sumOnlyUndamaged) {
+    if (reduce) {
         for (Size k = 0; k < neighs.size(); ++k) {
             const Size j = neighs[k];
             if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {

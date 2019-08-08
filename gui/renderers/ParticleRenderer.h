@@ -3,12 +3,13 @@
 /// \file ParticleRenderer.h
 /// \brief Renderer drawing individual particles as dots
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "gui/Settings.h"
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Palette.h"
 #include "gui/renderers/IRenderer.h"
+#include "system/Timer.h"
 #include <atomic>
 
 NAMESPACE_SPH_BEGIN
@@ -27,12 +28,6 @@ private:
     /// Grid size
     float grid;
 
-    /// Background color
-    Rgba background;
-
-    /// Show ghost particles
-    bool renderGhosts;
-
     /// Cached values of visible particles, used for faster drawing.
     struct {
         /// Positions of particles
@@ -50,9 +45,14 @@ private:
         /// Color palette or NOTHING if no palette is drawn
         Optional<Palette> palette;
 
+        /// Camera direction for which the cached values have been sorted.
+        Vector cameraDir;
+
     } cached;
 
     mutable std::atomic_bool shouldContinue;
+
+    mutable Timer lastRenderTimer;
 
 public:
     explicit ParticleRenderer(const GuiSettings& settings);

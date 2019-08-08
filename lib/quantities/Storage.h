@@ -3,9 +3,10 @@
 /// \file Storage.h
 /// \brief Container for storing particle quantities and materials.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "common/ForwardDecl.h"
+#include "objects/Exceptions.h"
 #include "objects/containers/Array.h"
 #include "objects/containers/FlatMap.h"
 #include "objects/wrappers/Flags.h"
@@ -79,14 +80,16 @@ private:
 public:
     StorageSequence(Storage& storage);
 
-    /// Returns iterator pointing to the beginning of the quantity storage. Dereferencing the iterator yields
-    /// \ref StorageElement, holding the \ref QuantityId and the reference to the \ref Quantity.
+    /// \brief Returns iterator pointing to the beginning of the quantity storage.
+    ///
+    /// Dereferencing the iterator yields \ref StorageElement, holding the \ref QuantityId and the reference
+    /// to the \ref Quantity.
     StorageIterator begin();
 
-    /// Returns iterator pointing to the one-past-the-end element of the quantity storage.
+    /// \brief Returns iterator pointing to the one-past-the-end element of the quantity storage.
     StorageIterator end();
 
-    /// Returns the number of quantities.
+    /// \brief Returns the number of quantities.
     Size size() const;
 };
 
@@ -99,8 +102,10 @@ private:
 public:
     ConstStorageSequence(const Storage& storage);
 
-    /// Returns iterator pointing to the beginning of the quantity storage. Dereferencing the iterator yields
-    /// \ref StorageElement, holding the \ref QuantityId and the reference to the \ref Quantity.
+    /// \brief Returns iterator pointing to the beginning of the quantity storage.
+    ///
+    /// Dereferencing the iterator yields \ref ConstStorageElement, holding the \ref QuantityId and the
+    /// reference to the \ref Quantity.
     ConstStorageIterator begin();
 
     /// Returns iterator pointing to the one-past-the-end element of the quantity storage.
@@ -112,6 +117,14 @@ public:
 
 /// \brief Base class for arbitrary data stored in the storage alongside particles
 class IStorageUserData : public Polymorphic {};
+
+/// \brief Exception thrown when accessing missing quantities, casting to different types, etc.
+class InvalidStorageAccess : public Exception {
+public:
+    explicit InvalidStorageAccess(const QuantityId id);
+
+    explicit InvalidStorageAccess(const std::string& message);
+};
 
 /// \brief Container storing all quantities used within the simulations.
 ///
@@ -357,14 +370,10 @@ public:
     /// \brief Creates a quantity in the storage, given its key, value type and order.
     ///
     /// Quantity is resized and filled with default value. This cannot be used to set number of particles, the
-    /// size of the quantity is set to match current particle number.
-    /// If a quantity with given key already exists in the storage, function checks that the quantity type is
-    /// the same and that all values of the quantity match the provided defaultValue. If not, \ref
-    /// InvalidSetup exception is thrown to ensure the quantity is always set up consistenly, i.e. two terms
-    /// do not create the same quantity with different types or different values.
-    ///
-    /// If the required order of quantity is larger than the one currently stored, additional derivatives are
-    /// created with no assert nor exception, otherwise the order is unchanged.
+    /// size of the quantity is set to match current particle number. If the quantity is already stored in the
+    /// storage, function only checks that the type of the quantity matches, but otherwise keeps the
+    /// previously stored values. If the required order of quantity is larger than the one currently stored,
+    /// additional derivatives are created with no assert nor exception, otherwise the order is unchanged.
     /// \tparam TValue Type of the quantity. Can be scalar, vector, tensor or traceless tensor.
     /// \param key Unique key of the quantity.
     /// \param TOrder Order (number of derivatives) associated with the quantity.
@@ -405,6 +414,11 @@ public:
 
     /// \brief Returns material view for material of given particle.
     MaterialView getMaterialOfParticle(const Size particleIdx) const;
+
+    /// \brief Modifies material with given index.
+    ///
+    /// The new material cannot be nullptr.
+    void setMaterial(const Size matIdx, const SharedPtr<IMaterial>& material);
 
     /// \brief Returns the bounding range of given quantity.
     ///
@@ -448,6 +462,9 @@ public:
     ///
     /// The number of particle is always the same for all quantities.
     Size getParticleCnt() const;
+
+    /// \brief Checks if the storage is empty, i.e. without particles.
+    bool empty() const;
 
     /// \brief Merges another storage into this object.
     ///
@@ -550,7 +567,12 @@ public:
     SharedPtr<IStorageUserData> getUserData() const;
 
 private:
-    /// Updates the cached matIds view.
+    /// \brief Inserts all quantities contained in source storage that are not present in this storage.
+    ///
+    /// All added quantities are initialized to zero.
+    void addMissingBuffers(const Storage& source);
+
+    /// \brief Updates the cached matIds view.
     void update();
 };
 

@@ -14,6 +14,7 @@ struct Pixel;
 class Interval;
 class IBrdf;
 class IScheduler;
+class Project;
 enum class ColorizerId;
 
 namespace Factory {
@@ -22,11 +23,13 @@ namespace Factory {
     /// \param size Resolution of produced image
     AutoPtr<ICamera> getCamera(const GuiSettings& settings, const Pixel size);
 
-    AutoPtr<IRenderer> getRenderer(IScheduler& scheduler, const GuiSettings& settings);
+    AutoPtr<IRenderer> getRenderer(const GuiSettings& settings);
+
+    AutoPtr<IRenderer> getRenderer(SharedPtr<IScheduler> scheduler, const GuiSettings& settings);
 
     AutoPtr<IBrdf> getBrdf(const GuiSettings& settings);
 
-    AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const ColorizerId id);
+    AutoPtr<IColorizer> getColorizer(const Project& project, const ColorizerId id);
 
     Palette getPalette(const ColorizerId id);
 

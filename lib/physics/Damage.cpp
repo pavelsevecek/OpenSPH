@@ -14,12 +14,11 @@ NAMESPACE_SPH_BEGIN
 // ScalarGradyKippModel implementation
 //-----------------------------------------------------------------------------------------------------------
 
-ScalarGradyKippModel::ScalarGradyKippModel(const ExplicitFlaws options)
-    : options(options) {}
-
 void ScalarGradyKippModel::setFlaws(Storage& storage,
     IMaterial& material,
     const MaterialInitialContext& context) const {
+    VERBOSE_LOG
+
     ASSERT(storage.getMaterialCnt() == 1);
     storage.insert<Float>(
         QuantityId::DAMAGE, OrderEnum::FIRST, material.getParam<Float>(BodySettingsId::DAMAGE));
@@ -40,10 +39,7 @@ void ScalarGradyKippModel::setFlaws(Storage& storage,
         QuantityId::EXPLICIT_GROWTH);
     ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityId::N_FLAWS);
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    ArrayView<Size> activationIdx;
-    if (options == ExplicitFlaws::ASSIGNED) {
-        activationIdx = storage.getValue<Size>(QuantityId::FLAW_ACTIVATION_IDX);
-    }
+
     const Float mu = material.getParam<Float>(BodySettingsId::SHEAR_MODULUS);
     const Float A = material.getParam<Float>(BodySettingsId::BULK_MODULUS);
     // here all particles have the same material
@@ -68,38 +64,70 @@ void ScalarGradyKippModel::setFlaws(Storage& storage,
     ASSERT(V > 0.f);
     const Float k_weibull = material.getParam<Float>(BodySettingsId::WEIBULL_COEFFICIENT);
     const Float m_weibull = material.getParam<Float>(BodySettingsId::WEIBULL_EXPONENT);
+    const bool sampleDistribution = material.getParam<bool>(BodySettingsId::WEIBULL_SAMPLE_DISTRIBUTIONS);
+
     // cannot use pow on k_weibull*V, leads to float overflow for larger V
     const Float denom = 1._f / (std::pow(k_weibull, 1._f / m_weibull) * std::pow(V, 1.f / m_weibull));
     ASSERT(isReal(denom) && denom > 0.f);
     Array<Float> eps_max(size);
-    Size flawedCnt = 0, p = 1;
-    while (flawedCnt < size) {
-        const Size i = Size(context.rng() * size);
-        if (options == ExplicitFlaws::ASSIGNED) {
-            p = activationIdx[i];
+
+    if (sampleDistribution) {
+        // estimate of the highest iteration
+        const Float p_max = size * log(size);
+        const Float mult = exp(p_max / size) - 1._f;
+        for (Size i = 0; i < size; ++i) {
+            const Float x = context.rng();
+
+            // sample with exponential distribution
+            const Float p1 = -Float(size) * log(1._f - x);
+            const Float p2 = Float(size) * log(1._f + x * mult);
+
+            eps_min[i] = denom * std::pow(p1, 1._f / m_weibull);
+            eps_max[i] = denom * std::pow(max(p1, p2), 1._f / m_weibull);
+            ASSERT(eps_min[i] > 0 && eps_min[i] <= eps_max[i], eps_min[i], eps_max[i]);
+
+            // sample with Poisson distribution
+            const Float mu = log(size);
+            n_flaws[i] = max<int>(1, samplePoissonDistribution(*context.rng, mu));
+
+            // ensure that m_zero >= 1
+            // n_flaws[i] = max(n_flaws[i], Size(ceil(eps_max[i] / eps_min[i])));
+            eps_max[i] = min(eps_max[i], n_flaws[i] * eps_min[i]);
+            ASSERT(n_flaws[i] >= eps_max[i] / eps_min[i]);
         }
-        const Float eps = denom * std::pow(Float(p), 1._f / m_weibull);
-        ASSERT(isReal(eps) && eps > 0.f);
-        if (n_flaws[i] == 0) {
-            flawedCnt++;
-            eps_min[i] = eps;
+    } else {
+        Size flawedCnt = 0, p = 1;
+        while (flawedCnt < size) {
+            const Size i = Size(context.rng() * size);
+            const Float eps = denom * std::pow(Float(p), 1._f / m_weibull);
+            ASSERT(isReal(eps) && eps > 0.f);
+            if (n_flaws[i] == 0) {
+                flawedCnt++;
+                eps_min[i] = eps;
+            }
+            eps_max[i] = eps;
+            ASSERT(eps_max[i] >= eps_min[i]);
+            p++;
+            n_flaws[i]++;
         }
-        eps_max[i] = eps;
-        p++;
-        n_flaws[i]++;
     }
     for (Size i = 0; i < size; ++i) {
         if (n_flaws[i] == 1) {
+            // special case to avoid division by zero below
             m_zero[i] = 1._f;
         } else {
             const Float ratio = eps_max[i] / eps_min[i];
-            ASSERT(isReal(ratio));
+            ASSERT(ratio >= 1._f, eps_min[i], eps_max[i]);
+
             m_zero[i] = log(n_flaws[i]) / log(ratio);
+            ASSERT(m_zero[i] >= 1._f, m_zero[i], n_flaws[i], eps_min[i], eps_max[i]);
         }
     }
 }
 
 void ScalarGradyKippModel::integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) {
+    VERBOSE_LOG
+
     ArrayView<TracelessTensor> s, ds;
     s = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     ds = storage.getDt<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
@@ -198,26 +226,6 @@ void TensorGradyKippModel::integrate(IScheduler& UNUSED(scheduler),
     Storage& UNUSED(storage),
     const MaterialView UNUSED(material)) {
     NOT_IMPLEMENTED;
-}
-
-void MohrCoulombModel::setFlaws(Storage& storage,
-    IMaterial& UNUSED(material),
-    const MaterialInitialContext& UNUSED(context)) const {
-    /// \todo correct values
-    storage.insert<Float>(QuantityId::MOHR_COULOMB_STRESS, OrderEnum::ZERO, 0._f);
-    storage.insert<Float>(QuantityId::FRICTION_ANGLE, OrderEnum::ZERO, 0._f);
-}
-
-void MohrCoulombModel::integrate(IScheduler& UNUSED(scheduler),
-    Storage& UNUSED(storage),
-    const MaterialView UNUSED(material)) {
-    NOT_IMPLEMENTED;
-    /*for (Size i = 0; i < p.size(); ++i) {
-        const SymmetricTensor sigma = SymmetricTensor(s_dmg[i]) - p[i] * SymmetricTensor::identity();
-        Float sig1, sig2, sig3;
-        tie(sig1, sig2, sig3) = findEigenvalues(sigma);
-        const Float sigMax = max(sig1, sig2, sig3);
-    }*/
 }
 
 void NullFracture::setFlaws(Storage& UNUSED(storage),

@@ -3,7 +3,7 @@
 /// \file Analysis.h
 /// \brief Various function for interpretation of the results of a simulation
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/finders/NeighbourFinder.h"
 #include "objects/wrappers/Expected.h"
@@ -117,6 +117,10 @@ enum class MoonEnum {
 /// \return Array of the same size of storage, marking each body in the storage; see MoonEnum.
 Array<MoonEnum> findMoons(const Storage& storage, const Float radius = 1._f, const Float limit = 0._f);
 
+/// \brief Computes the center of mass.
+Vector getCenterOfMass(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    ArrayView<const Size> idxs = nullptr);
 
 /// \brief Computes the total inertia tensor of particles with respect to given center.
 SymmetricTensor getInertiaTensor(ArrayView<const Float> m,

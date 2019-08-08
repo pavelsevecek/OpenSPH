@@ -1,5 +1,6 @@
 #include "thread/AtomicFloat.h"
 #include "catch.hpp"
+#include "tests/Approx.h"
 #include "thread/Pool.h"
 
 using namespace Sph;
@@ -29,7 +30,7 @@ TEST_CASE("AtomicFloat operations", "[thread]") {
     f3 = f2 * 3._f;
     REQUIRE(f3 == 9._f);
     f3 = f2 / 3._f;
-    REQUIRE(f3 == 1._f);
+    REQUIRE(f3.get() == approx(1._f));
 }
 
 TEST_CASE("AtomicFloat comparison", "[thread]") {

@@ -3,8 +3,9 @@
 /// \file Settings.h
 /// \brief Generic storage and input/output routines of settings.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
+#include "objects/Exceptions.h"
 #include "objects/geometry/TracelessTensor.h"
 #include "objects/utility/EnumMap.h"
 #include "objects/wrappers/ClonePtr.h"
@@ -18,6 +19,9 @@
 NAMESPACE_SPH_BEGIN
 
 class Path;
+
+template <typename TEnum>
+class Settings;
 
 template <typename TEnum>
 class SettingsIterator;
@@ -51,6 +55,12 @@ struct EnumWrapper {
         return value;
     }
 
+    template <typename T, typename = std::enable_if_t<std::is_enum<T>::value>>
+    explicit operator T() const {
+        ASSERT(typeid(T).hash_code() == typeHash);
+        return T(value);
+    }
+
     bool operator==(const EnumWrapper& other) const {
         return value == other.value && typeHash == other.typeHash;
     }
@@ -61,6 +71,22 @@ struct EnumWrapper {
     }
 };
 
+/// \brief Exception thrown on invalid access to entries of a \ref Settings object.
+class InvalidSettingsAccess : public Exception {
+public:
+    template <typename TEnum>
+    explicit InvalidSettingsAccess(const TEnum key)
+        : Exception("Error accessing parameter '" +
+                    Settings<TEnum>::getEntryName(key).valueOr("unknown parameter") + "'") {}
+};
+
+template <typename TEnum>
+INLINE void checkSettingsAccess(const bool result, const TEnum key) {
+    if (!result) {
+        throw InvalidSettingsAccess(key);
+    }
+}
+
 /// \brief Generic object containing various settings and parameters of the run.
 ///
 /// Settings is a storage containing pairs key-value objects, where key is one of predefined enums. The value
@@ -69,7 +95,7 @@ struct EnumWrapper {
 /// TracelessTensor.
 ///
 /// The template cannot be used directly as it is missing default values of parameters; instead
-/// specializations for specific enums should be used. The code defines two specializations:
+/// specializations for specific enums should be used. The code defines two base specializations:
 ///     - \ref BodySettings (specialization with enum \ref BodySettingsId)
 ///     - \ref RunSettings (specialization with enum \ref RunSettingsId)
 ///
@@ -146,6 +172,16 @@ private:
             , name(name)
             , value(EnumWrapper(T(flags.value())))
             , desc(desc) {}
+
+        template <typename T>
+        INLINE bool hasType(std::enable_if_t<!std::is_enum<T>::value, int> = 0) const {
+            return value.has<T>();
+        }
+
+        template <typename T>
+        INLINE bool hasType(std::enable_if_t<std::is_enum<T>::value, int> = 0) const {
+            return value.has<EnumWrapper>() && value.get<EnumWrapper>().typeHash == typeid(T).hash_code();
+        }
     };
 
     FlatMap<TEnum, Entry> entries;
@@ -182,16 +218,19 @@ public:
     /// \param idx Key identifying the value. This key can be used to retrive the value later.
     /// \param value Value being stored into settings.
     /// \returns Reference to the settings object, allowing to queue multiple set functions.
+    /// \throw InvalidSettingsAccess if settings value of different type than the one currently stored.
     template <typename TValue>
     Settings& set(const TEnum idx,
         TValue&& value,
         std::enable_if_t<!std::is_enum<std::decay_t<TValue>>::value, int> = 0) {
-        // either the values is new or the type is the same as the previous value
-        ASSERT(!entries.contains(idx) || entries[idx].value.template has<std::decay_t<TValue>>());
-        if (!entries.contains(idx)) {
-            entries.insert(idx, Entry{});
+        Optional<Entry&> entry = entries.tryGet(idx);
+        if (!entry) {
+            Entry& newEntry = entries.insert(idx, Entry{});
+            newEntry.value = std::forward<TValue>(value);
+        } else {
+            checkSettingsAccess(entry->template hasType<std::decay_t<TValue>>(), idx);
+            entry->value = std::forward<TValue>(value);
         }
-        entries[idx].value = std::forward<TValue>(value);
         return *this;
     }
 
@@ -200,64 +239,68 @@ public:
     Settings& set(const TEnum idx,
         TValue&& value,
         std::enable_if_t<std::is_enum<std::decay_t<TValue>>::value, int> = 0) {
-        // either the values is new or the type is the same as the previous value
-        ASSERT(!entries.contains(idx) || entries[idx].value.template has<EnumWrapper>());
-        if (!entries.contains(idx)) {
-            entries.insert(idx, Entry{});
+        Optional<Entry&> entry = entries.tryGet(idx);
+        if (!entry) {
+            Entry& newEntry = entries.insert(idx, Entry{});
+            newEntry.value = EnumWrapper(value);
+        } else {
+            checkSettingsAccess(entry->template hasType<std::decay_t<TValue>>(), idx);
+            entry->value = EnumWrapper(value);
         }
-        entries[idx].value = EnumWrapper(value);
         return *this;
     }
 
     /// \brief Saves flags into the settings.
     ///
-    /// This is internally saved as integer. There is no type-checking, flags can be freely converted to the
-    /// underlying enum or even int using function \ref setFlags and \ref getFlags.
+    /// Flags are not considered as a different type, they are internally saved as enum wrapper.
+    /// \returns Reference to the settings object.
+    /// \throw InvalidSettingsAccess if settings value of different type than the one currently stored.
     template <typename TValue, typename = std::enable_if_t<std::is_enum<TValue>::value>>
     Settings& set(const TEnum idx, const Flags<TValue> flags) {
-        ASSERT(!entries.contains(idx) || entries[idx].value.template has<EnumWrapper>());
-        if (!entries.contains(idx)) {
-            entries.insert(idx, Entry{});
-        }
-        entries[idx].value = EnumWrapper(TValue(flags.value()));
-        return *this;
+        return this->set(idx, EnumWrapper(TValue(flags.value())));
     }
 
     /// \brief Clear flags of given parameter in settings.
+    ///
+    /// This function can be used only if the value is already stored in the settings.
+    /// \returns Reference to the settings object.
+    /// \throw InvalidSettingsAccess if the value is not stored or has a different type.
     Settings& set(const TEnum idx, EmptyFlags) {
-        // can be used only if the value is already there and we know the type
-        EnumWrapper currentValue = entries[idx].value.template get<EnumWrapper>();
-        if (!entries.contains(idx)) {
-            entries.insert(idx, Entry{});
-        }
-        entries[idx].value = EnumWrapper(0, currentValue.typeHash);
+        Optional<Entry&> entry = entries.tryGet(idx);
+        checkSettingsAccess(entry && entry->value.template has<EnumWrapper>(), idx);
+        entry->value.template get<EnumWrapper>().value = 0;
         return *this;
     }
 
-    /// \brief todo
+    /// \brief Special setter for value of type EnumWrapper.
+    ///
+    /// While usually the enum can be stored directly, this overload is useful for deserialization, etc.
+    /// \returns Reference to the settings object.
+    /// \throw InvalidSettingsAccess if settings value of different type than the one currently stored.
     Settings& set(const TEnum idx, const EnumWrapper ew) {
-#ifdef SPH_DEBUG
-        if (entries.contains(idx)) {
-            const EnumWrapper current = entries[idx].value.template get<EnumWrapper>();
-            ASSERT(current.typeHash == ew.typeHash, current.typeHash, ew.typeHash);
+        Optional<Entry&> entry = entries.tryGet(idx);
+        if (entry) {
+            Optional<EnumWrapper> current = entry->value.template tryGet<EnumWrapper>();
+            checkSettingsAccess(current && current->typeHash == ew.typeHash, idx);
         }
-#endif
-        if (!entries.contains(idx)) {
-            entries.insert(idx, Entry{});
-        }
-        entries[idx].value = ew;
+        this->set(idx, ew, 0); // zero needed to call the other overload
         return *this;
     }
 
     /// \brief Adds entries from different \ref Settings object into this one, overriding current entries.
     ///
     /// Entries not stored in the given settings are kept unchanged.
+    /// \throw InvalidSettingsAccess if the settings share entries that differ in type.
     void addEntries(const Settings& settings) {
         for (const typename SettingsIterator<TEnum>::IteratorValue& iv : settings) {
-            if (!entries.contains(iv.id)) {
-                entries.insert(iv.id, getDefaults().entries[iv.id]);
+            Optional<Entry&> entry = entries.tryGet(iv.id);
+            if (!entry) {
+                Entry& newEntry = entries.insert(iv.id, getDefaults().entries[iv.id]);
+                newEntry.value = iv.value;
+            } else {
+                checkSettingsAccess(entry->value.getTypeIdx() == iv.value.getTypeIdx(), iv.id);
+                entry->value = iv.value;
             }
-            entries[iv.id].value = iv.value;
         }
     }
 
@@ -270,24 +313,28 @@ public:
 
     /// \brief Returns a value of given type from the settings.
     ///
-    /// Value must be stored in settings and must have corresponding type, checked by assert.
+    /// Value must be stored in settings and must have corresponding type.
     /// \tparam TValue Type of the value we wish to return. This type must match the type of the saved
     ///                quantity.
     /// \param idx Key of the value.
     /// \returns Value correponsing to given key.
+    /// \throw InvalidSettingsAccess if value is not stored in the settings or has a different type.
     template <typename TValue>
     TValue get(const TEnum idx, std::enable_if_t<!std::is_enum<std::decay_t<TValue>>::value, int> = 0) const {
         Optional<const Entry&> entry = entries.tryGet(idx);
-        ASSERT(entry, int(idx));
+        checkSettingsAccess(entry && entry->value.template has<TValue>(), idx);
+
         return entry->value.template get<TValue>();
     }
 
+    /// \copydoc get
     template <typename TValue>
     TValue get(const TEnum idx, std::enable_if_t<std::is_enum<std::decay_t<TValue>>::value, int> = 0) const {
         Optional<const Entry&> entry = entries.tryGet(idx);
-        ASSERT(entry, int(idx));
-        EnumWrapper wrapper = entry->value.template get<EnumWrapper>();
-        ASSERT(wrapper.typeHash == typeid(TValue).hash_code());
+        checkSettingsAccess(entry && entry->value.template has<EnumWrapper>(), idx);
+
+        const EnumWrapper wrapper = entry->value.template get<EnumWrapper>();
+        checkSettingsAccess(wrapper.typeHash == typeid(TValue).hash_code(), idx);
         return TValue(wrapper.value);
     }
 
@@ -301,6 +348,20 @@ public:
         return Flags<TValue>::fromValue(std::underlying_type_t<TValue>(value));
     }
 
+    /// \brief Returns the human-readable name of the entry with given index.
+    ///
+    /// If the index does not correspond to any parameter, returns string NOTHING.
+    static Optional<std::string> getEntryName(const TEnum idx) {
+        const Settings& settings = getDefaults();
+        Optional<const Entry&> entry = settings.entries.tryGet(idx);
+        if (entry) {
+            return entry->name;
+        } else {
+            // idx might be invalid if loaded from older config file
+            return NOTHING;
+        }
+    }
+
     /// \brief Checks if the given entry is stored in the settings.
     bool has(const TEnum idx) const {
         return entries.contains(idx);
@@ -308,11 +369,11 @@ public:
 
     /// \brief Checks if the given entry has specified type.
     ///
-    /// Entry must be in settings, checked by assert.
+    /// \throw InvalidSettingsAccess if the entry is not in settings.
     template <typename TValue>
     bool hasType(const TEnum idx) const {
         Optional<const Entry&> entry = entries.tryGet(idx);
-        ASSERT(entry, int(idx));
+        checkSettingsAccess(bool(entry), idx);
         return entry->value.template has<TValue>();
     }
 
@@ -344,15 +405,15 @@ public:
     /// specify settings as command-line parameters, for example.
     /// \param path Path to the configuration file.
     /// \param overrides Set of overrides applied on the current values or after the settings are loaded.
-    /// \return True if the settings have been successfully loaded, false if the configuration file did not
+    /// \returns True if the settings have been successfully loaded, false if the configuration file did not
     ///         exist, in which case the function attempted to create the file using current values (with
-    ///         applied overrides). If loading of the file failed (invalid content, unknown parameters, ...),
-    ///         an error is returned.
+    ///         applied overrides).
+    /// \throw Exception if loading of the file failed (invalid content, unknown parameters, ...).
     ///
     /// \note Function returns a valid result (false) even if the configuration file cannot be created, for
     ///       example if the directory access is denied. This does not prohibit the simulation in any way, the
     ///       settings object is in valid state.
-    Expected<bool> tryLoadFileOrSaveCurrent(const Path& path, const Settings& overrides = EMPTY_SETTINGS);
+    bool tryLoadFileOrSaveCurrent(const Path& path, const Settings& overrides = EMPTY_SETTINGS);
 
     /// \brief Iterator to the first entry of the settings storage.
     SettingsIterator<TEnum> begin() const;
@@ -456,9 +517,6 @@ enum class TimesteppingEnum {
 };
 
 enum class TimeStepCriterionEnum {
-    /// Constant time step, determined by initial value
-    NONE = 0,
-
     /// Time step determined using CFL condition
     COURANT = 1 << 1,
 
@@ -556,7 +614,7 @@ enum class ForceEnum {
     INERTIAL = 1 << 4,
 
     /// Use gravitational force in the model
-    GRAVITY = 1 << 5,
+    SELF_GRAVITY = 1 << 5,
 };
 
 enum class ArtificialViscosityEnum {
@@ -728,6 +786,10 @@ enum class IoEnum {
     /// format for storing full simulation in high resolution in time.
     COMPRESSED_FILE,
 
+    /// File format used by Visualization Toolkit (VTK). Useful to view the results in Paraview and other
+    /// visualization tools.
+    VTK_FILE,
+
     /// Pkdgrav input file.
     PKDGRAV_INPUT,
 };
@@ -793,8 +855,19 @@ enum class RunSettingsId {
     /// Path of a file where the log is printed, used only when selected logger is LoggerEnum::FILE
     RUN_LOGGER_FILE,
 
-    /// Starting time and ending time of the run. Run does not necessarily have to start at t = 0.
-    RUN_TIME_RANGE,
+    /// Enables verbose log of a simulation.
+    RUN_VERBOSE_ENABLE,
+
+    /// Path of a file where the verbose log is printed.
+    RUN_VERBOSE_NAME,
+
+    /// Starting time of the simulation in seconds. This is usually 0, although it can be set to a non-zero
+    /// for simulations resumed from saved state.
+    RUN_START_TIME,
+
+    /// End time of the simulation in seconds. For new simulations (not resumed from saved state), this
+    /// corresponds to the total duration of the simulation.
+    RUN_END_TIME,
 
     /// Maximum number of timesteps after which run ends. 0 means run duration is not limited by number of
     /// timesteps. Note that if adaptive timestepping is used, run can end at different times for
@@ -815,16 +888,28 @@ enum class RunSettingsId {
     /// time step.
     RUN_DIAGNOSTICS_INTERVAL,
 
+    /// Selected solver for computing derivatives of physical variables.
+    SPH_SOLVER_TYPE,
+
+    /// List of forces to compute by the solver.
+    SPH_SOLVER_FORCES,
+
+    /// Solution for evolutions of the smoothing length
+    SPH_ADAPTIVE_SMOOTHING_LENGTH,
+
+    /// Maximum number of iterations for self-consistent density computation of summation solver.
+    SPH_SUMMATION_MAX_ITERATIONS,
+
+    /// Target relative difference of density in successive iterations. Density computation in summation
+    /// solver is ended when the density changes by less than the delta or the iteration number exceeds
+    /// SOLVER_SUMMATION_MAX_ITERATIONS.
+    SPH_SUMMATION_DENSITY_DELTA,
+
     /// Index of SPH Kernel, see KernelEnum
     SPH_KERNEL,
 
     /// Structure for searching nearest neighbours of particles
     SPH_FINDER,
-
-    /// Used by DynamicFinder. Maximum relative distance between center of mass and geometric center of the
-    /// bounding box for which VoxelFinder is used. For larger offsets of center of mass, K-d tree is used
-    /// instead.
-    SPH_FINDER_COMPACT_THRESHOLD,
 
     /// Specifies a discretization of SPH equations; see \ref DiscretizationEnum.
     SPH_DISCRETIZATION,
@@ -846,14 +931,8 @@ enum class RunSettingsId {
     /// (instabilities, rapid growth of total energy, etc.).
     SPH_CONTINUITY_USING_UNDAMAGED,
 
-    /// Add equations evolving particle angular velocity
-    SPH_PARTICLE_ROTATION,
-
     /// Evolve particle phase angle
     SPH_PHASE_ANGLE,
-
-    /// Eta-factor between smoothing length and particle concentration (h = eta * n^(-1/d) )
-    SPH_KERNEL_ETA,
 
     /// Minimum and maximum number of neighbours SPH solver tries to enforce. Note that the solver cannot
     /// guarantee the actual number of neighbours will be within the range.
@@ -885,7 +964,7 @@ enum class RunSettingsId {
 
     /// Epsilon-factor of XSPH correction (Monaghan, 1992). Value 0 turns off the correction, epsilon
     /// shouldn't be larger than 1.
-    XSPH_EPSILON,
+    SPH_XSPH_EPSILON,
 
     /// Delta-coefficient of the delta-SPH modification, see Marrone et al. 2011
     SPH_DENSITY_DIFFUSION_DELTA,
@@ -902,11 +981,15 @@ enum class RunSettingsId {
     /// Multiplicative factor of the artificial stress term (= strength of the viscosity)
     SPH_AV_STRESS_FACTOR,
 
-    /// Damping coefficient of particle velocities in stabilization phase. Higher values damp the
-    /// oscillation/instabilities faster, but may converge to incorrect (unstable) configuration. Lower values
-    /// lead to (slower) convergence to correct (stable) configuration, but it may cause body dissintegration
-    /// if the initial conditions are to far from the stable solution.
+    /// Damping coefficient of particle velocities, mainly intended for setting up initial conditions. Higher
+    /// values damp the oscillation/instabilities faster, but may converge to incorrect (unstable)
+    /// configuration. Lower values lead to (slower) convergence to correct (stable) configuration, but it may
+    /// cause body dissintegration if the initial conditions are to far from the stable solution. Zero
+    /// disables the damping.
     SPH_STABILIZATION_DAMPING,
+
+    /// Alpha parameter of the density-independent solver.
+    SPH_DI_ALPHA,
 
     /// If true, all particles have also a moment of inertia, representing a non-homogeneous mass
     /// distribution. Otherwise, particles are spherical with inertia tensor I = 2/5 mr^2
@@ -915,20 +998,28 @@ enum class RunSettingsId {
     /// \todo
     NBODY_MAX_ROTATION_ANGLE,
 
+    /// If true, colliding particles form aggregates, which then move and rotate as rigid bodies. There are no
+    /// collisions between particles belonging to the same aggregate, only collisions of different aggregates
+    /// need to be handled. Note that enabling aggregates overrides handlers of collisions and overlaps.
+    NBODY_AGGREGATES_ENABLE,
+
+    /// Specifies the initial aggregates used in the simulation. See \ref AggregateEnum.
+    NBODY_AGGREGATES_SOURCE,
+
     /// Algorithm to compute gravitational acceleration
     GRAVITY_SOLVER,
 
     /// Opening angle Theta for multipole approximation of gravity
     GRAVITY_OPENING_ANGLE,
 
-    /// Maximum number of particles in a leaf node.
-    GRAVITY_LEAF_SIZE,
-
     /// Order of multipole expansion
     GRAVITY_MULTIPOLE_ORDER,
 
     /// Gravity smoothing kernel
     GRAVITY_KERNEL,
+
+    /// Gravitational constant. To be generalized.
+    GRAVITY_CONSTANT,
 
     /// Period of gravity evaluation. If zero, gravity is computed every time step, for any positive value,
     /// gravitational acceleration is cached for each particle and used each time step until next
@@ -964,26 +1055,6 @@ enum class RunSettingsId {
     /// breakup frequency. If zero, particles are always merged, values larger than 1 can be used to avoid
     /// fast rotators in the simulation.
     COLLISION_ROTATION_MERGE_LIMIT,
-
-    /// Selected solver for computing derivatives of physical variables.
-    SOLVER_TYPE,
-
-    /// List of forces to compute by the solver.
-    SOLVER_FORCES,
-
-    /// Solution for evolutions of the smoothing length
-    ADAPTIVE_SMOOTHING_LENGTH,
-
-    /// Number of spatial dimensions of the problem.
-    SOLVER_DIMENSIONS,
-
-    /// Maximum number of iterations for self-consistent density computation of summation solver.
-    SUMMATION_MAX_ITERATIONS,
-
-    /// Target relative difference of density in successive iterations. Density computation in summation
-    /// solver is ended when the density changes by less than the delta or the iteration number exceeds
-    /// SOLVER_SUMMATION_MAX_ITERATIONS.
-    SUMMATION_DENSITY_DELTA,
 
     /// Selected timestepping integrator
     TIMESTEPPING_INTEGRATOR,
@@ -1028,6 +1099,21 @@ enum class RunSettingsId {
     /// causes non-intertial acceleration.
     FRAME_ANGULAR_FREQUENCY,
 
+    FRAME_CONSTANT_ACCELERATION,
+
+    /// Maximum number of particles in a leaf node.
+    FINDER_LEAF_SIZE,
+
+    /// Used by DynamicFinder. Maximum relative distance between center of mass and geometric center of the
+    /// bounding box for which VoxelFinder is used. For larger offsets of center of mass, K-d tree is used
+    /// instead.
+    FINDER_COMPACT_THRESHOLD,
+
+    /// Maximal in a a tree depth to be processed in parallel. While a larger value implies better
+    /// distribution of work between threads, it also comes up with performance penalty due to scheduling
+    /// overhead.
+    FINDER_MAX_PARALLEL_DEPTH,
+
     /// Computational domain, enforced by boundary conditions
     DOMAIN_TYPE,
 
@@ -1051,6 +1137,9 @@ enum class RunSettingsId {
 
     /// Distance to the boundary in units of smoothing length under which the particles are frozen.
     DOMAIN_FROZEN_DIST,
+
+    /// If true, the mapping coordinates will be computed and saved for all bodies in the simulation.
+    GENERATE_UVWS,
 };
 
 
@@ -1121,11 +1210,16 @@ enum class BodySettingsId {
     DISTRIBUTE_MODE_SPH5 = 4,
 
     /// Strength parameter of the Diehl's distribution.
-    DIELH_STRENGTH = 5,
+    DIEHL_STRENGTH = 5,
 
     /// Maximum allowed difference between the expected number of particles and the actual number of generated
     /// particles. Higher value speed up the generation of particle positions.
     DIEHL_MAX_DIFFERENCE = 6,
+
+    DIEHL_ITERATION_COUNT = 71,
+
+    /// Eta-factor between smoothing length and particle concentration (h = eta * n^(-1/d) )
+    SMOOTHING_LENGTH_ETA = 72,
 
     /// Density at zero pressure
     DENSITY = 7,
@@ -1232,17 +1326,14 @@ enum class BodySettingsId {
     /// Coefficient of friction for fully damaged material
     DRY_FRICTION = 42,
 
-    /// \todo
-    BRITTLE_DUCTILE_TRANSITION_PRESSURE = 43,
+    /// Whether to use the acoustic fludization model.
+    USE_ACOUSTIC_FLUDIZATION = 43,
 
-    /// \todo
-    BRITTLE_PLASTIC_TRANSITION_PRESSURE = 44,
+    /// Characteristic decay time of acoustic oscillations in the material
+    OSCILLATION_DECAY_TIME = 44,
 
-    /// \todo
-    MOHR_COULOMB_STRESS = 45,
-
-    /// \todo
-    FRICTION_ANGLE = 46,
+    /// Effective viscosity of acoustic fludizations
+    FLUIDIZATION_VISCOSITY = 45,
 
     /// Speed of crack growth, in units of local sound speed.
     RAYLEIGH_SOUND_SPEED = 47,
@@ -1250,6 +1341,8 @@ enum class BodySettingsId {
     WEIBULL_COEFFICIENT = 48,
 
     WEIBULL_EXPONENT = 49,
+
+    WEIBULL_SAMPLE_DISTRIBUTIONS = 66,
 
     BULK_VISCOSITY = 50,
 
@@ -1279,21 +1372,24 @@ enum class BodySettingsId {
     /// Lower and upper bound of the alpha coefficient, used only for time-dependent artificial viscosity.
     AV_ALPHA_RANGE = 58,
 
-    /// Center point of the body. Currently used only by \ref StabilizationSolver.
-    BODY_CENTER = 61,
-
-    /// Velocity of the body. `Currently used only by \ref StabilizationSolver.
-    BODY_VELOCITY = 62,
-
-    /// Angular frequency of the body with a respect to position given by BODY_CENTER. Currently used only by
-    /// \ref StabilizationSolver.
-    BODY_SPIN_RATE = 63,
-
     /// Bulk (macro)porosity of the body
     BULK_POROSITY = 64,
 
     /// Heat capacity at constant pressure,
-    HEAT_CAPACITY = 65,
+    HEAT_CAPACITY = 67,
+
+    BODY_SHAPE_TYPE = 59,
+
+    /// Center point of the body. Currently used only by \ref StabilizationSolver.
+    BODY_CENTER = 61,
+
+    BODY_RADIUS = 68,
+
+    BODY_DIMENSIONS = 69,
+
+    BODY_HEIGHT = 73,
+
+    BODY_SPIN_RATE = 70,
 
     /// Arbitrary string identifying this material
     IDENTIFIER = 99,

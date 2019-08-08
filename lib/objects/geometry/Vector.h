@@ -3,7 +3,7 @@
 /// \file Vector.h
 /// \brief Basic vector algebra. Computations are accelerated using SIMD.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "common/Globals.h"
 #include "objects/containers/Tuple.h"
@@ -779,7 +779,7 @@ INLINE Vector cos(const Vector& v) {
     return Vector(cos(v[X]), cos(v[Y]), cos(v[Z]));
 }
 
-/// \brief Construct a vector from spherical coordinates.
+/// \brief Constructs a vector from spherical coordinates.
 ///
 /// The angle has generally different type to allow using units with dimensions.
 /// \param r Radius coordinate
@@ -789,6 +789,11 @@ INLINE Vector sphericalToCartesian(const Float r, const Float theta, const Float
     const Float s = sin(theta);
     const Float c = cos(theta);
     return r * Vector(s * cos(phi), s * sin(phi), c);
+}
+
+/// \brief Constructs a vector from cylindrical coordinates.
+INLINE Vector cylindricalToCartesian(const Float r, const Float phi, const Float z) {
+    return Vector(r * cos(phi), r * sin(phi), z);
 }
 
 struct SphericalCoords {

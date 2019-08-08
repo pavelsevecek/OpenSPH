@@ -155,6 +155,18 @@ TEST_CASE("SharedPtr reset", "[sharedptr]") {
     REQUIRE(!s1);
 }
 
+TEST_CASE("SharedPtr release", "[sharedptr]") {
+    RecordType* ptr;
+    {
+        SharedPtr<RecordType> s1(new RecordType(4));
+        RecordType::resetStats();
+        ptr = s1.release();
+    }
+    REQUIRE(RecordType::destructedNum == 0);
+    REQUIRE(ptr->value == 4);
+    delete ptr;
+}
+
 TEST_CASE("makeShared", "[sharedptr]") {
     SharedPtr<RecordType> s1 = makeShared<RecordType>(5);
     REQUIRE(s1->wasValueConstructed);

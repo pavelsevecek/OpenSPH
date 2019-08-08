@@ -3,7 +3,7 @@
 /// \file IRenderer.h
 /// \brief Interface for renderers
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "gui/objects/Color.h"
 #include "gui/objects/Point.h"
@@ -18,6 +18,7 @@ class Bitmap;
 class ICamera;
 class IColorizer;
 class Statistics;
+class GuiSettings;
 
 enum class TextAlign {
     LEFT = 1 << 0,
@@ -40,7 +41,7 @@ public:
     };
 
     /// May be called once after render finishes or multiple times for progressive renderers.
-    virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels) = 0;
+    virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels, const bool isFinal) = 0;
 };
 
 
@@ -55,6 +56,9 @@ struct RenderParams {
 
     /// \brief Camera used for rendering.
     AutoPtr<ICamera> camera;
+
+    /// \brief Background color of the rendered image.
+    Rgba background = Rgba::black();
 
     /// \brief Parameters of the particle renderer
     struct {
@@ -81,6 +85,9 @@ struct RenderParams {
         /// Only used if doAntialiasing is true.
         bool smoothed = false;
 
+        /// \brief If true, ghost particles (if present) will be rendered as empty circles.
+        bool renderGhosts = true;
+
         /// \brief If true, a color palette and a distance scale is included in the image.
         bool showKey = true;
 
@@ -101,12 +108,23 @@ struct RenderParams {
         float level = 0.15f;
 
         /// \brief Intensity of the ambient light, illuminating every point unconditionally.
-        Float ambientLight = 0.3f;
+        float ambientLight = 0.3f;
 
         /// \brief Intensity of the sunlight.
-        Float sunLight = 0.7f;
+        float sunLight = 0.7f;
+
+        /// \brief Emission multiplier
+        float emission = 1.f;
+
+        /// \brief Width of the image reconstruction filter
+        float filterWidth = 2.f;
 
     } surface;
+
+    /// \brief Sets up parameters using values stored in settings.
+    ///
+    /// This does NOT initialize camera and resolution of the render.
+    void initialize(const GuiSettings& gui);
 };
 
 /// \brief Interface used to implement renderers.

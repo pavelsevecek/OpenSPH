@@ -10,7 +10,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-MeshRenderer::MeshRenderer(IScheduler& scheduler, const GuiSettings& gui)
+MeshRenderer::MeshRenderer(SharedPtr<IScheduler> scheduler, const GuiSettings& gui)
     : scheduler(scheduler) {
     surfaceLevel = gui.get<Float>(GuiSettingsId::SURFACE_LEVEL);
     surfaceResolution = gui.get<Float>(GuiSettingsId::SURFACE_RESOLUTION);
@@ -39,9 +39,9 @@ void MeshRenderer::initialize(const Storage& storage,
     const Float actResolution = clamp(surfaceResolution, 0.001_f * dim, 0.1_f * dim);
 
     // get the surface as triangles
-    cached.triangles = getSurfaceMesh(scheduler, storage, actResolution, surfaceLevel);
+    cached.triangles = getSurfaceMesh(*scheduler, storage, actResolution, surfaceLevel);
 
-    finder->build(scheduler, r);
+    finder->build(*scheduler, r);
     Array<NeighbourRecord> neighs;
 
     for (Triangle& t : cached.triangles) {
@@ -100,10 +100,12 @@ void MeshRenderer::render(const RenderParams& params, Statistics& stats, IRender
         context.drawTriangle(p1->coords, p2->coords, p3->coords);
     }
 
-    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
-    context.drawText(Coords(0, 0), TextAlign::RIGHT | TextAlign::BOTTOM, getFormattedTime(time * 1000));
+    if (stats.has(StatisticsId::RUN_TIME)) {
+        const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
+        context.drawText(Coords(0, 0), TextAlign::RIGHT | TextAlign::BOTTOM, getFormattedTime(time * 1000));
+    }
 
-    output.update(bitmap, context.getLabels());
+    output.update(bitmap, context.getLabels(), true);
 }
 
 NAMESPACE_SPH_END

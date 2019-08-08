@@ -3,7 +3,7 @@
 /// \file ArrayUtils.h
 /// \brief Utilities to simplify working with arrays
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "math/MathUtils.h"
 #include "objects/containers/ArrayView.h"

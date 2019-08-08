@@ -3,8 +3,9 @@
 /// \file KdTree.h
 /// \brief K-d tree for efficient search of neighbouring particles.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz))
-/// \date 2016-2018
+/// \date 2016-2019
 
+#include "io/Logger.h"
 #include "objects/finders/NeighbourFinder.h"
 #include "objects/geometry/Box.h"
 #include "objects/utility/IteratorAdapters.h"
@@ -134,13 +135,20 @@ enum class KdChild;
 template <typename TNode, typename TMetric = EuclideanMetric>
 class KdTree : public FinderTemplate<KdTree<TNode, TMetric>> {
 private:
-    const Size leafSize;
+    struct {
+        /// Maximal number of particles in the leaf node
+        Size leafSize;
+
+        /// Maximal depth for which the build is parallelized
+        Size maxParallelDepth;
+    } config;
 
     Box entireBox;
 
     Array<Size> idxs;
 
     /// Holds all nodes, either \ref InnerNode or \ref LeafNode (depending on the value of \ref type).
+
     Array<InnerNode<TNode>> nodes;
     std::atomic_int nodeCounter;
     std::shared_timed_mutex nodesMutex;
@@ -148,9 +156,10 @@ private:
     static constexpr Size ROOT_PARENT_NODE = -1;
 
 public:
-    explicit KdTree(const Size leafSize = 20)
-        : leafSize(leafSize) {
+    explicit KdTree(const Size leafSize = 25, const Size maxParallelDepth = 50) {
         ASSERT(leafSize >= 1);
+        config.leafSize = leafSize;
+        config.maxParallelDepth = maxParallelDepth;
     }
 
     template <bool FindAll>
@@ -191,7 +200,8 @@ private:
         const Size from,
         const Size to,
         const Box& box,
-        const Size slidingCnt);
+        const Size slidingCnt,
+        const Size depth);
 
     void addLeaf(const Size parent, const KdChild child, const Size from, const Size to);
 
@@ -217,12 +227,13 @@ enum class IterateDirection {
 /// \param scheduler Scheduler used for sequential or parallelized task execution
 /// \param functor Functor executed for every node
 /// \param nodeIdx Index of the first processed node; use 0 for root node
+/// \param depthLimit Maximal depth processed in parallel.
 template <IterateDirection Dir, typename TNode, typename TMetric, typename TFunctor>
 void iterateTree(KdTree<TNode, TMetric>& tree,
     IScheduler& scheduler,
     const TFunctor& functor,
     const Size nodeIdx = 0,
-    const Size depth = 0);
+    const Size depthLimit = Size(-1));
 
 /// \copydoc iterateTree
 template <IterateDirection Dir, typename TNode, typename TMetric, typename TFunctor>
@@ -230,7 +241,7 @@ void iterateTree(const KdTree<TNode, TMetric>& tree,
     IScheduler& scheduler,
     const TFunctor& functor,
     const Size nodeIdx = 0,
-    const Size depth = 0);
+    const Size depthLimit = Size(-1));
 
 NAMESPACE_SPH_END
 

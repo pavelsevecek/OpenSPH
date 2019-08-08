@@ -3,7 +3,7 @@
 /// \file TimeFormat.h
 /// \brief Date and time routines
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "common/Globals.h"
 #include "math/MathUtils.h"

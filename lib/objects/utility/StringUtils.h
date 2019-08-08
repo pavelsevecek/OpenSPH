@@ -1,7 +1,9 @@
 #pragma once
 
 #include "objects/containers/Array.h"
+#include "objects/containers/StaticArray.h"
 #include "objects/wrappers/Optional.h"
+#include <set>
 #include <string>
 
 NAMESPACE_SPH_BEGIN
@@ -27,5 +29,23 @@ std::string setLineBreak(const std::string& s, const Size lineWidth);
 
 /// Splits a string into an array of string using given delimiter.
 Array<std::string> split(const std::string& s, const char delimiter);
+
+/// Splits a string into two parts, using first occurence of given delimiter.
+Pair<std::string> splitByFirst(const std::string& s, const char delimiter);
+
+/// Capitalizes first letters of all words in the string, except for words like 'and', 'or', etc.
+std::string capitalize(const std::string& s);
+
+class UniqueNameManager {
+private:
+    std::set<std::string> names;
+
+public:
+    UniqueNameManager() = default;
+
+    explicit UniqueNameManager(ArrayView<const std::string> initial);
+
+    std::string getName(const std::string& name);
+};
 
 NAMESPACE_SPH_END

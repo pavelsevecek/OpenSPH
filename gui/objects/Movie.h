@@ -3,7 +3,7 @@
 /// \file Movie.h
 /// \brief Periodically saves rendered images to disk
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "common/Globals.h"
 #include "gui/Settings.h"
@@ -44,9 +44,6 @@ private:
     Array<SharedPtr<IColorizer>> colorizers;
 
     RenderParams params;
-
-    std::condition_variable waitVar;
-    std::mutex waitMutex;
 
 public:
     Movie(const GuiSettings& settings,

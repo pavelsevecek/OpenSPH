@@ -3,7 +3,7 @@
 /// \file Scheduler.h
 /// \brief Interface for executing tasks (potentially) asynchronously.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "common/ForwardDecl.h"
 #include "objects/wrappers/Function.h"
@@ -41,9 +41,8 @@ public:
     /// Note that this number is constant during the lifetime of the scheduler.
     virtual Size getThreadCnt() const = 0;
 
-    /// \brief Returns a value of granularity for (to - from) tasks that is expected to perform well with
-    /// the current thread count.
-    virtual Size getRecommendedGranularity(const Size from, const Size to) const = 0;
+    /// \brief Returns a value of granularity that is expected to perform well with the current thread count.
+    virtual Size getRecommendedGranularity() const = 0;
 
     /// \brief Processes the given range concurrently.
     ///
@@ -72,7 +71,7 @@ public:
 
     virtual Size getThreadCnt() const override;
 
-    virtual Size getRecommendedGranularity(const Size from, const Size to) const override;
+    virtual Size getRecommendedGranularity() const override;
 
     static SharedPtr<SequentialScheduler> getGlobalInstance();
 };
@@ -96,7 +95,7 @@ extern SequentialScheduler SEQUENTIAL;
 /// \param functor Functor executed (to-from) times in different threads; takes an index as an argument.
 template <typename TFunctor>
 INLINE void parallelFor(IScheduler& scheduler, const Size from, const Size to, TFunctor&& functor) {
-    const Size granularity = scheduler.getRecommendedGranularity(from, to);
+    const Size granularity = scheduler.getRecommendedGranularity();
     parallelFor(scheduler, from, to, granularity, std::forward<TFunctor>(functor));
 }
 

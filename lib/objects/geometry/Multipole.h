@@ -617,7 +617,7 @@ struct TracelessMultipoleComponentImpl<I, J, Z, Z> {
 };
 
 
-INLINE constexpr Size factorial(const Size n) {
+inline constexpr Size factorial(const Size n) {
     return n <= 1 ? 1 : n * factorial(n - 1);
 }
 static_assert(factorial(1) == 1, "static test failed");
@@ -625,7 +625,7 @@ static_assert(factorial(2) == 2, "static test failed");
 static_assert(factorial(3) == 6, "static test failed");
 static_assert(factorial(4) == 24, "static test failed");
 
-INLINE constexpr Size doubleFactorial(const Size n) {
+inline constexpr Size doubleFactorial(const Size n) {
     return n <= 1 ? 1 : n * doubleFactorial(n - 2);
 }
 static_assert(doubleFactorial(1) == 1, "static test failed");

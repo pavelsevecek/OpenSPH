@@ -1,4 +1,5 @@
 #include "Sph.h"
+#include <iostream>
 
 using namespace Sph;
 
@@ -8,28 +9,23 @@ using namespace Sph;
 // 2) Create a custom material by deriving from IMaterial and store the parameters manually.
 // Here we show how to implement the second solution.
 
-enum class CustomMaterialId {
+struct CustomMaterial : public NullMaterial {
+
     // Initial temperature of the material
-    INITIAL_TEMPERATURE,
+    Float temperature;
 
     // Thermal conductivity
-    CONDUCTIVITY,
+    Float conductivity;
 
     // Density (yes, there is BodySettingsId::DENSITY, but we duplicate it to have all parameters
     // at one place).
-    DENSITY,
+    Float density;
 
     // Specific heat capacity
-    CAPACITY,
+    Float heatCapacity;
 
-    // Albedo of the surcae
-    ALBEDO,
-};
-
-struct CustomMaterial : public NullMaterial {
-
-    // Map storing our custom material parameters.
-    FlatMap<CustomMaterialId, Float> parameters;
+    // Albedo of the surface
+    Float albedo;
 
     CustomMaterial()
         : NullMaterial(BodySettings::getDefaults()) {}
@@ -64,7 +60,7 @@ public:
 
         // Initialize the temperature in the storage
         Array<Float> T(n);
-        T.fill(customMaterial.parameters[CustomMaterialId::INITIAL_TEMPERATURE]);
+        T.fill(customMaterial.temperature);
         storage.insert<Float>(QuantityId::TEMPERATURE, OrderEnum::FIRST, std::move(T));
     }
 
@@ -81,20 +77,19 @@ public:
         for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
 
             // This object holds a reference to the material and a list of particles with that material.
-            MaterialView mat = storage.getMaterial(matId);
+            MaterialView materialView = storage.getMaterial(matId);
 
-            // Cast to access our parameter map
-            FlatMap<CustomMaterialId, Float>& parameters =
-                static_cast<CustomMaterial&>(mat.material()).parameters;
+            // Cast to access our custom parameters
+            CustomMaterial& material = static_cast<CustomMaterial&>(materialView.material());
 
             // Iterate over all the particles with this material
-            for (Size i : mat.sequence()) {
+            for (Size i : materialView.sequence()) {
 
                 if (i == 0) {
                     // First element: we need to apply the boundary condition on the surface.
                     // Set the temperature gradient based on the illumination and the surface temperature.
-                    const Float A = parameters[CustomMaterialId::ALBEDO];
-                    const Float K = parameters[CustomMaterialId::CONDUCTIVITY];
+                    const Float A = material.albedo;
+                    const Float K = material.conductivity;
                     const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
                     const Float incidentFlux = (1._f - A) * Phi * max(cos(omega * t), 0._f);
                     const Float emissionFlux = Constants::stefanBoltzmann * pow<4>(T[0]);
@@ -105,9 +100,9 @@ public:
                     T[n - 1] = T[n - 2];
                 } else {
                     // Compute the temporal derivative using the laplacian
-                    const Float K = parameters[CustomMaterialId::CONDUCTIVITY];
-                    const Float rho = parameters[CustomMaterialId::DENSITY];
-                    const Float C = parameters[CustomMaterialId::CAPACITY];
+                    const Float K = material.conductivity;
+                    const Float rho = material.density;
+                    const Float C = material.heatCapacity;
                     dT[i] = K / (rho * C) * (T[i + 1] + T[i - 1] - 2._f * T[i]) / sqr(dz);
 
                     // Note that it is enough to set the temporal derivative. We do not have to integrate the
@@ -143,7 +138,7 @@ public:
 
 class Hde : public IRun {
 public:
-    virtual void setUp() override {
+    virtual void setUp(SharedPtr<Storage> storage) override {
         settings.set(RunSettingsId::RUN_NAME, std::string("Heat diffusion"));
 
         // No need for output, we do that ourselvers here
@@ -151,35 +146,43 @@ public:
 
         // Create the material and set up the parameters
         AutoPtr<CustomMaterial> material = makeAuto<CustomMaterial>();
-        material->parameters.insert(CustomMaterialId::INITIAL_TEMPERATURE, 250._f);
-        material->parameters.insert(CustomMaterialId::CONDUCTIVITY, 1._f);
-        material->parameters.insert(CustomMaterialId::DENSITY, 2500._f);
-        material->parameters.insert(CustomMaterialId::CAPACITY, 680._f);
-        material->parameters.insert(CustomMaterialId::ALBEDO, 0.1_f);
+        material->temperature = 250._f;
+        material->conductivity = 1._f;
+        material->density = 2500._f;
+        material->heatCapacity = 680._f;
+        material->albedo = 0.1_f;
 
         // Create the storage, passing our custom material
-        storage = makeShared<Storage>(std::move(material));
+        *storage = Storage(std::move(material));
 
         // Set the solver and create the quantities
         solver = makeAuto<HdeSolver>();
         solver->create(*storage, storage->getMaterial(0));
 
-        // Set up the integrator
-        settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT);
-        settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
-        settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.5_f);
-        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 60._f * 60._f * 12._f));
+        // Set up the integrator with contant time step, for simplicity
+        settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)
+            .set(RunSettingsId::TIMESTEPPING_CRITERION, EMPTY_FLAGS)
+            .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.5_f)
+            .set(RunSettingsId::RUN_END_TIME, 60._f * 60._f * 12._f);
 
         // Create our custom progress logger
         triggers.pushBack(makeAuto<ProgressLogger>());
+
+        // Since we use custom trigger for logging, disable the default log writer
+        logWriter = makeAuto<NullLogWriter>();
     }
 
-    virtual void tearDown(const Statistics& UNUSED(stats)) override {}
+    virtual void tearDown(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {}
 };
 
 int main() {
-    Hde simulation;
-    simulation.setUp();
-    simulation.run();
+    try {
+        Hde simulation;
+        Storage storage;
+        simulation.run(storage);
+    } catch (Exception& e) {
+        std::cout << "Error during simulation: " << e.what() << std::endl;
+        return -1;
+    }
     return 0;
 }

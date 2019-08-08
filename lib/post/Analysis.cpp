@@ -433,6 +433,29 @@ Array<Post::Tumbler> Post::findTumblers(const Storage& storage, const Float limi
     return tumblers;
 }
 
+Vector Post::getCenterOfMass(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    ArrayView<const Size> idxs) {
+    Vector r_com(0._f);
+    Float m_tot = 0._f;
+    auto functor = [&m_tot, &r_com, m, r](Size i) {
+        r_com += m[i] * r[i];
+        m_tot += m[i];
+    };
+    if (idxs) {
+        for (Size i : idxs) {
+            functor(i);
+        }
+    } else {
+        for (Size i = 0; i < r.size(); ++i) {
+            functor(i);
+        }
+    }
+    r_com /= m_tot;
+    r_com[H] = 0._f;
+    return r_com;
+}
+
 SymmetricTensor Post::getInertiaTensor(ArrayView<const Float> m,
     ArrayView<const Vector> r,
     const Vector& r0,
@@ -453,27 +476,6 @@ SymmetricTensor Post::getInertiaTensor(ArrayView<const Float> m,
         }
     }
     return I;
-}
-
-static Vector getCenterOfMass(ArrayView<const Float> m,
-    ArrayView<const Vector> r,
-    ArrayView<const Size> idxs) {
-    Vector r_com(0._f);
-    Float m_tot = 0._f;
-    auto functor = [&m_tot, &r_com, m, r](Size i) {
-        r_com += m[i] * r[i];
-        m_tot += m[i];
-    };
-    if (idxs) {
-        for (Size i : idxs) {
-            functor(i);
-        }
-    } else {
-        for (Size i = 0; i < r.size(); ++i) {
-            functor(i);
-        }
-    }
-    return r_com / m_tot;
 }
 
 SymmetricTensor Post::getInertiaTensor(ArrayView<const Float> m,

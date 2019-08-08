@@ -31,7 +31,7 @@ TEMPLATE_TEST_CASE("StandardSets quantities B&A", "[solvers]", SymmetricSolver, 
     RunSettings settings;
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     settings.set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::BENZ_ASPHAUG);
-    settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION);
+    settings.set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION);
     TestType solver(pool, settings, getStandardEquations(settings));
 
     BodySettings body;
@@ -67,7 +67,7 @@ TEMPLATE_TEST_CASE("StandardSets quantities B&A", "[solvers]", SymmetricSolver, 
 TEMPLATE_TEST_CASE("StandardSets quantities standard", "[solvers]", SymmetricSolver, AsymmetricSolver) {
     RunSettings settings;
     settings.set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::STANDARD);
-    settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION);
+    settings.set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION);
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     TestType solver(pool, settings, getStandardEquations(settings));
@@ -97,9 +97,9 @@ TEMPLATE_TEST_CASE("StandardSets quantities standard", "[solvers]", SymmetricSol
 
 TEMPLATE_TEST_CASE("StandardSets gass", "[solvers]", SymmetricSolver, AsymmetricSolver) {
     RunSettings settings;
-    settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE);
+    settings.set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE);
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::NONE);
-    settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
+    settings.set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
     BodySettings body;
     body.set(BodySettingsId::DENSITY, 1._f)
         .set(BodySettingsId::ENERGY, 1._f)
@@ -119,11 +119,11 @@ TEMPLATE_TEST_CASE("StandardSets gass", "[solvers]", SymmetricSolver, Asymmetric
     storage = Tests::getGassStorage(100, body, 1._f);
     testSolver<TestType>(storage, settings);
 
-    settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION);
+    settings.set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION);
     storage = Tests::getGassStorage(100, body, 1._f);
     testSolver<TestType>(storage, settings);
 
-    settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH,
+    settings.set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH,
         SmoothingLengthEnum::CONTINUITY_EQUATION | SmoothingLengthEnum::SOUND_SPEED_ENFORCING);
     storage = Tests::getGassStorage(100, body, 1._f);
     testSolver<TestType>(storage, settings);
@@ -131,8 +131,8 @@ TEMPLATE_TEST_CASE("StandardSets gass", "[solvers]", SymmetricSolver, Asymmetric
 
 TEMPLATE_TEST_CASE("StandardSets solid", "[solvers]", SymmetricSolver, AsymmetricSolver) {
     RunSettings settings;
-    settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
-    settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
+    settings.set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
+    settings.set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::NONE);
     BodySettings body;
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
@@ -155,7 +155,7 @@ TEMPLATE_TEST_CASE("StandardSets solid", "[solvers]", SymmetricSolver, Asymmetri
     storage = Tests::getSolidStorage(100, body, 1._f);
     testSolver<TestType>(storage, settings);
 
-    settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH,
+    settings.set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH,
         SmoothingLengthEnum::CONTINUITY_EQUATION | SmoothingLengthEnum::SOUND_SPEED_ENFORCING);
     storage = Tests::getSolidStorage(100, body, 1._f);
     testSolver<TestType>(storage, settings);
@@ -166,8 +166,8 @@ TEMPLATE_TEST_CASE("StandardSets constant smoothing length", "[solvers]", Symmet
 
     SharedPtr<Storage> storage = makeShared<Storage>(Tests::getSolidStorage(10000));
     RunSettings settings;
-    settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
-    settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
+    settings.set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
+    settings.set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     TestType solver(pool, settings, getStandardEquations(settings));

@@ -13,9 +13,11 @@ NAMESPACE_SPH_BEGIN
 
 SymmetricSolver::SymmetricSolver(IScheduler& scheduler,
     const RunSettings& settings,
-    const EquationHolder& eqs)
+    const EquationHolder& eqs,
+    AutoPtr<IBoundaryCondition>&& bc)
     : scheduler(scheduler)
-    , threadData(scheduler) {
+    , threadData(scheduler)
+    , bc(std::move(bc)) {
     /// \todo we have to somehow enforce either conservation of smoothing length or some EquationTerm that
     /// will evolve it. Or maybe just move smoothing length to separate quantity to get rid of these
     /// issues?
@@ -25,9 +27,7 @@ SymmetricSolver::SymmetricSolver(IScheduler& scheduler,
     // smaller h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal
     // to h_i, and we thus never "miss" a particle.
     finder = Factory::getFinder(settings);
-    bc = Factory::getBoundaryConditions(settings);
 
-    granularity = settings.get<int>(RunSettingsId::RUN_THREAD_GRANULARITY);
     equations += eqs;
 
     // add term counting number of neighbours
@@ -43,6 +43,11 @@ SymmetricSolver::SymmetricSolver(IScheduler& scheduler,
         }
     }
 }
+
+SymmetricSolver::SymmetricSolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    const EquationHolder& eqs)
+    : SymmetricSolver(scheduler, settings, eqs, Factory::getBoundaryConditions(settings)) {}
 
 SymmetricSolver::~SymmetricSolver() = default;
 
@@ -124,7 +129,7 @@ void SymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
         data.derivatives.evalSymmetric(i, data.idxs, data.grads);
     };
     PROFILE_SCOPE("GenericSolver main loop");
-    parallelFor(scheduler, threadData, 0, r.size(), granularity, functor);
+    parallelFor(scheduler, threadData, 0, r.size(), functor);
 }
 
 void SymmetricSolver::beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {

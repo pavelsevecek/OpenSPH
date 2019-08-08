@@ -1,5 +1,5 @@
 #include "Sph.h"
-#include "run/Collision.h"
+//#include "run/Presets.h"
 
 using namespace Sph;
 
@@ -16,8 +16,8 @@ std::string getRunName(const Float targetRadius,
 }
 
 int main(int, char** argv) {
-
-    CollisionParams cp;
+    (void)argv;
+    /*CollisionParams cp;
 
     // fixed parameters
     cp.geometry.set(CollisionGeometrySettingsId::TARGET_PARTICLE_COUNT, 250000);
@@ -75,13 +75,14 @@ int main(int, char** argv) {
                         CollisionRun run(cp, pp, makeShared<NullCallbacks>());
                         run.setUp();
                         run.run();
+                      //  runCollision(Path{});
                     });
                 }
             }
         }
     }
 
-    pool.waitForAll();
+    pool.waitForAll();*/
 
     return 0;
 }

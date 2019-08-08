@@ -45,8 +45,7 @@ TEST_CASE("MarchingCubes sphere", "[marchingcubes]") {
 
 TEST_CASE("MarchingCubes storage", "[marchingcubes]") {
     Storage storage;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    InitialConditions initial(pool, RunSettings::getDefaults());
+    InitialConditions initial(RunSettings::getDefaults());
     BodySettings body;
     body.set(BodySettingsId::PARTICLE_COUNT, 10000);
     initial.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), body);
@@ -56,7 +55,7 @@ TEST_CASE("MarchingCubes storage", "[marchingcubes]") {
     initial.addMonolithicBody(
         storage, SphericalDomain(sphericalToCartesian(1._f, PI / 4._f, -PI / 4._f), 0.2_f), body);
 
-
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     Array<Triangle> triangles = getSurfaceMesh(pool, storage, 0.05_f, 0.2_f);
 
     PlyFile file;

@@ -135,6 +135,13 @@ public:
         return preserveAlpha(max(BasicVector<float>(1.f) - data, BasicVector<float>(0.f)));
     }
 
+    /// \brief Computes a linear interpolation of two color.
+    ///
+    /// For amount 0, function returns this color, for amount 1 it returns the other color.
+    Rgba blend(const Rgba& other, const float amount) const {
+        return Rgba(lerp(data, other.data, amount));
+    }
+
     static Rgba red() {
         return Rgba(1.f, 0.f, 0.f);
     }

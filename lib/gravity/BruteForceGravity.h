@@ -3,7 +3,7 @@
 /// \file BruteForceGravity.h
 /// \brief Simple gravity solver evaluating all particle pairs
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "gravity/IGravity.h"
 #include "physics/Constants.h"
@@ -23,16 +23,19 @@ private:
     ArrayView<const Float> m;
 
     GravityLutKernel kernel;
+    Float gravityConstant = Constants::gravity;
 
 public:
     /// \brief Default-construced gravity, assuming point-like particles
-    BruteForceGravity() {
+    BruteForceGravity(const Float gravityContant = Constants::gravity)
+        : gravityConstant(gravityContant) {
         ASSERT(kernel.radius() == 0._f);
     }
 
     /// \brief Constructs gravity using smoothing kernel
-    BruteForceGravity(GravityLutKernel&& kernel)
-        : kernel(std::move(kernel)) {}
+    BruteForceGravity(GravityLutKernel&& kernel, const Float gravityContant = Constants::gravity)
+        : kernel(std::move(kernel))
+        , gravityConstant(gravityContant) {}
 
     virtual void build(IScheduler& UNUSED(scheduler), const Storage& storage) override {
         r = storage.getValue<Vector>(QuantityId::POSITION);
@@ -49,7 +52,7 @@ public:
         });
     }
 
-    virtual Vector eval(const Vector& r0, Statistics& UNUSED(stats)) const override {
+    virtual Vector eval(const Vector& r0) const override {
         struct NoSymmetrization {
             const GravityLutKernel& kernel;
 
@@ -70,7 +73,7 @@ public:
                 }
             }
         });
-        return 0.5_f * Constants::gravity * energy.accumulate();
+        return 0.5_f * gravityConstant * energy.accumulate();
     }
 
     virtual RawPtr<const IBasicFinder> getFinder() const override {
@@ -82,14 +85,21 @@ private:
     INLINE Vector evalImpl(const TKernel& actKernel, const Vector& r0, const Size idx) const {
         ASSERT(r && m);
         Vector a(0._f);
-        // do 2 for loops to avoid the if
-        for (Size i = 0; i < idx; ++i) {
-            a += m[i] * actKernel.grad(r[i], r0);
+
+        if (idx != Size(-1)) {
+            // do 2 for loops to avoid the if
+            for (Size i = 0; i < idx; ++i) {
+                a += m[i] * actKernel.grad(r[i], r0);
+            }
+            for (Size i = idx + 1; i < r.size(); ++i) {
+                a += m[i] * actKernel.grad(r[i], r0);
+            }
+        } else {
+            for (Size i = 0; i < r.size(); ++i) {
+                a += m[i] * actKernel.grad(r[i], r0);
+            }
         }
-        for (Size i = idx + 1; i < r.size(); ++i) {
-            a += m[i] * actKernel.grad(r[i], r0);
-        }
-        return Constants::gravity * a;
+        return gravityConstant * a;
     }
 };
 

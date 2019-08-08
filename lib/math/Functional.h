@@ -3,7 +3,7 @@
 /// \file Functional.h
 /// \author Basic routines for integrating arbitrary functions in N dimensions, finding roots, etc.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "math/rng/Rng.h"
 #include "objects/geometry/Domain.h"
@@ -35,22 +35,21 @@ INLINE Float integrate(const Interval range, const TFunctor& functor) {
 template <typename TRng = UniformRng, typename TInternal = double>
 class Integrator : public Noncopyable {
 private:
-    Float radius;
+    const IDomain& domain;
     TRng rng;
-    AutoPtr<IDomain> domain;
 
     static constexpr uint chunk = 100;
 
 public:
     /// \brief Constructs an integrator given the domain of integration.
-    Integrator(AutoPtr<IDomain>&& domain)
-        : domain(std::move(domain)) {}
+    Integrator(const IDomain& domain)
+        : domain(domain) {}
+
+    Integrator(IDomain&& domain) = delete;
 
     /// \brief Integrates a function.
     ///
     /// \param f Functor with a Vector parameter, returning the integral as a scalar value
-    /// \param targetError Precision of the integral. Note that half error means approximately four times the
-    ///                    computation time.
     template <typename TFunctor>
     Float integrate(TFunctor&& f, const Float targetError = 0.001_f) {
         double sum = 0.;
@@ -59,7 +58,7 @@ public:
         Size n = 0;
         StaticArray<Vector, chunk> buffer;
         Array<Size> inside;
-        Box box = domain->getBoundingBox();
+        Box box = domain.getBoundingBox();
         while (true) {
             for (Size i = 0; i < chunk; ++i) {
                 // dimensionless vector
@@ -69,7 +68,7 @@ public:
                 buffer[i] = v;
             }
             inside.clear();
-            domain->getSubset(buffer, inside, SubsetType::INSIDE);
+            domain.getSubset(buffer, inside, SubsetType::INSIDE);
             for (Size i : inside) {
                 const double x = (double)f(buffer[i]);
                 sum += x;
@@ -78,7 +77,7 @@ public:
             }
             const double m = double(n);
             if (m * sumSqr - sum * sum < m * m * errorSqr * sumSqr) {
-                return Float(sum / m) * domain->getVolume();
+                return Float(sum / m) * domain.getVolume();
             }
         }
     }

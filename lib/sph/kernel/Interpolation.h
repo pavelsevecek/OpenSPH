@@ -3,7 +3,7 @@
 /// \file Interpolation.h
 /// \brief Computes interpolated values of quantities between SPH particles
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/finders/NeighbourFinder.h"
 #include "objects/wrappers/SharedPtr.h"

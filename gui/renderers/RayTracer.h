@@ -1,8 +1,8 @@
 #pragma once
 
 #include "gui/Settings.h"
-#include "gui/Uvw.h"
 #include "gui/objects/Color.h"
+#include "gui/objects/Texture.h"
 #include "gui/renderers/Brdf.h"
 #include "gui/renderers/IRenderer.h"
 #include "objects/finders/Bvh.h"
@@ -13,6 +13,7 @@
 NAMESPACE_SPH_BEGIN
 
 class FrameBuffer;
+struct Seeder;
 class IBrdf;
 
 class RayTracer : public IRenderer {
@@ -60,7 +61,7 @@ private:
 
     } fixed;
 
-    IScheduler& scheduler;
+    SharedPtr<IScheduler> scheduler;
 
     struct ThreadData {
         /// Neighbour indices of the current particle
@@ -74,6 +75,8 @@ private:
 
         /// Random-number generator for this thread.
         UniformRng rng;
+
+        ThreadData(Seeder& seeder);
     };
 
     mutable ThreadLocal<ThreadData> threadData;
@@ -94,12 +97,15 @@ private:
         /// Particle indices
         Array<Size> flags;
 
+        /// If true, the colors are used for emission, otherwise for diffuse reflectance.
+        bool doEmission;
+
     } cached;
 
     mutable std::atomic_bool shouldContinue;
 
 public:
-    explicit RayTracer(IScheduler& scheduler, const GuiSettings& settings);
+    RayTracer(SharedPtr<IScheduler> scheduler, const GuiSettings& settings);
 
     ~RayTracer();
 

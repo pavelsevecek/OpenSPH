@@ -138,12 +138,17 @@ static void drawGrid(IRenderContext& context, const ICamera& camera, const float
 static void drawKey(IRenderContext& context,
     const Statistics& stats,
     const float wtp,
+    const float UNUSED(fps),
     const Rgba& background) {
     const Coords keyStart(5, 2);
-    const float time = stats.get<Float>(StatisticsId::RUN_TIME);
     Flags<TextAlign> flags = TextAlign::RIGHT | TextAlign::BOTTOM;
+
     context.setColor(background.inverse(), ColorFlag::TEXT | ColorFlag::LINE);
-    context.drawText(keyStart, flags, "t = " + getFormattedTime(1.e3_f * time));
+    if (stats.has(StatisticsId::RUN_TIME)) {
+        const float time = stats.get<Float>(StatisticsId::RUN_TIME);
+        context.drawText(keyStart, flags, "t = " + getFormattedTime(1.e3_f * time));
+    }
+    // context.drawText(keyStart + Coords(0, 50), flags, "fps = " + std::to_string(int(fps)));
 
     const float dFov_dPx = 1.f / wtp;
     const float minimalScaleFov = dFov_dPx * 16;
@@ -174,8 +179,6 @@ static void drawKey(IRenderContext& context,
 
 ParticleRenderer::ParticleRenderer(const GuiSettings& settings) {
     grid = settings.get<Float>(GuiSettingsId::VIEW_GRID_SIZE);
-    background = settings.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
-    renderGhosts = settings.get<bool>(GuiSettingsId::RENDER_GHOST_PARTICLES);
     shouldContinue = true;
 }
 
@@ -193,7 +196,7 @@ void ParticleRenderer::initialize(const Storage& storage,
     cached.colors.clear();
     cached.vectors.clear();
 
-    bool hasVectorData = false;
+    bool hasVectorData = bool(colorizer.evalVector(0));
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
         const Optional<ProjectedPoint> p = camera.project(r[i]);
@@ -204,25 +207,25 @@ void ParticleRenderer::initialize(const Storage& storage,
             const Rgba color = colorizer.evalColor(i);
             cached.colors.push(color);
 
-            if (Optional<Vector> v = colorizer.evalVector(i)) {
+            if (hasVectorData) {
+                Optional<Vector> v = colorizer.evalVector(i);
+                ASSERT(v);
                 cached.vectors.push(v.value());
-                hasVectorData = true;
-            } else {
-                cached.vectors.push(Vector(0._f));
             }
         }
     }
 
-    if (renderGhosts) {
-        SharedPtr<IStorageUserData> data = storage.getUserData();
-        if (RawPtr<GhostParticlesData> ghosts = dynamicCast<GhostParticlesData>(data.get())) {
-            for (Size i = 0; i < ghosts->size(); ++i) {
-                const Vector pos = ghosts->getGhost(i).position;
-                const Optional<ProjectedPoint> p = camera.project(pos);
-                if (p && !isCutOff(camera, pos)) {
-                    cached.idxs.push(Size(-1));
-                    cached.positions.push(pos);
-                    cached.colors.push(Rgba::transparent());
+    SharedPtr<IStorageUserData> data = storage.getUserData();
+    if (RawPtr<GhostParticlesData> ghosts = dynamicCast<GhostParticlesData>(data.get())) {
+        for (Size i = 0; i < ghosts->size(); ++i) {
+            const Vector pos = ghosts->getGhost(i).position;
+            const Optional<ProjectedPoint> p = camera.project(pos);
+            if (p && !isCutOff(camera, pos)) {
+                cached.idxs.push(Size(-1));
+                cached.positions.push(pos);
+                cached.colors.push(Rgba::transparent());
+
+                if (hasVectorData) {
                     cached.vectors.push(Vector(0._f));
                 }
             }
@@ -237,9 +240,12 @@ void ParticleRenderer::initialize(const Storage& storage,
         const Vector r2 = cached.positions[j];
         return dot(dir, r1) > dot(dir, r2);
     });
+    /// \todo could be changed to AOS to sort only once
     cached.positions = order.apply(cached.positions);
     cached.idxs = order.apply(cached.idxs);
     cached.colors = order.apply(cached.colors);
+
+    cached.cameraDir = dir;
 
     if (hasVectorData) {
         cached.vectors = order.apply(cached.vectors);
@@ -254,7 +260,7 @@ static AutoPtr<PreviewRenderContext> getContext(const RenderParams& params, Bitm
     if (params.particles.doAntialiasing) {
         if (params.particles.smoothed) {
             CubicSpline<2> kernel;
-            return makeAuto<SmoothedRenderContext>(bitmap, kernel, params.particles.scale);
+            return makeAuto<SmoothedRenderContext>(bitmap, kernel);
         } else {
             return makeAuto<AntiAliasedRenderContext>(bitmap);
         }
@@ -265,11 +271,12 @@ static AutoPtr<PreviewRenderContext> getContext(const RenderParams& params, Bitm
 
 void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const {
     MEASURE_SCOPE("ParticleRenderer::render");
+
     Bitmap<Rgba> bitmap(params.size);
     AutoPtr<PreviewRenderContext> context = getContext(params, bitmap);
 
     // fill with the background color
-    context->fill(background);
+    context->fill(params.background);
 
     if (grid > 0.f) {
         drawGrid(*context, *params.camera, grid);
@@ -285,7 +292,12 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
 
     shouldContinue = true;
     // draw particles
-    for (Size i = 0; i < cached.positions.size() /* && shouldContinue*/; ++i) {
+    const bool reverseOrder = dot(cached.cameraDir, params.camera->getDirection()) < 0._f;
+    for (Size k = 0; k < cached.positions.size(); ++k) {
+        const Size i = reverseOrder ? cached.positions.size() - k - 1 : k;
+        if (!params.particles.renderGhosts && cached.idxs[i] == Size(-1)) {
+            continue;
+        }
         if (params.particles.selected && cached.idxs[i] == params.particles.selected.value()) {
             // highlight the selected particle
             context->setColor(Rgba::red(), ColorFlag::FILL);
@@ -319,10 +331,6 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
     }
 
     if (params.particles.showKey) {
-        if (Optional<float> wtp = params.camera->getWorldToPixel()) {
-            drawKey(*context, stats, wtp.value(), background);
-        }
-
         if (cached.palette) {
             const Pixel origin(context->size().x - 50, 231);
             Palette palette;
@@ -332,7 +340,13 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
             } else {
                 palette = cached.palette.value();
             }
-            drawPalette(*context, origin, Pixel(30, 201), background.inverse(), palette);
+            drawPalette(*context, origin, Pixel(30, 201), params.background.inverse(), palette);
+        }
+
+        if (Optional<float> wtp = params.camera->getWorldToPixel()) {
+            const float fps = 1000.f / lastRenderTimer.elapsed(TimerUnit::MILLISECOND);
+            lastRenderTimer.restart();
+            drawKey(*context, stats, wtp.value(), fps, params.background);
         }
     }
 
@@ -343,7 +357,7 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
     context->drawLine(Coords(params.size.x - 1, params.size.y - 1), Coords(0, params.size.y - 1));
     context->drawLine(Coords(0, params.size.y - 1), Coords(0, 0));
 
-    output.update(bitmap, context->getLabels());
+    output.update(bitmap, context->getLabels(), true);
 }
 
 void ParticleRenderer::cancelRender() {

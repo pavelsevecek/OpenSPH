@@ -4,9 +4,9 @@
 #include "io/Output.h"
 #include "physics/Integrals.h"
 #include "quantities/IMaterial.h"
-#include "run/RunCallbacks.h"
 #include "run/Trigger.h"
 #include "sph/Diagnostics.h"
+#include "sph/boundary/Boundary.h"
 #include "system/Factory.h"
 #include "system/Statistics.h"
 #include "system/Timer.h"
@@ -43,7 +43,7 @@ IRun::IRun() {
 #endif
 
     // setup the default scheduler, this can be overriden in \ref setUp if needed
-    scheduler = ThreadPool::getGlobalInstance();
+    scheduler = Factory::getScheduler(settings);
 }
 
 IRun::~IRun() = default;
@@ -113,7 +113,6 @@ public:
             const DiagnosticsReport result = diag->check(storage, stats);
             if (!result) {
                 logger->write(result.error().description);
-                callbacks->onRunFailure(result.error(), stats);
                 passed = false;
             }
         }
@@ -124,22 +123,46 @@ public:
     }
 };
 
-void IRun::run() {
-    ASSERT(storage);
-    // fetch parameters of run from settings
-    const Float outputInterval = settings.get<Float>(RunSettingsId::RUN_OUTPUT_INTERVAL);
-    const Interval timeRange = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
+
+class NullCallbacks : public IRunCallbacks {
+public:
+    virtual void onSetUp(const Storage&, Statistics&) override {}
+
+    virtual void onTimeStep(const Storage&, Statistics&) override {}
+
+    virtual bool shouldAbortRun() const override {
+        return false;
+    }
+};
+
+Statistics IRun::run(Storage& input) {
+    NullCallbacks callbacks;
+    return this->run(input, callbacks);
+}
+
+Statistics IRun::run(Storage& input, IRunCallbacks& callbacks) {
+    // setup verbose logging (before setUp to log IC's as well)
+    if (settings.get<bool>(RunSettingsId::RUN_VERBOSE_ENABLE)) {
+        const Path file(settings.get<std::string>(RunSettingsId::RUN_VERBOSE_NAME));
+        const Path outputPath(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_PATH));
+        setVerboseLogger(makeAuto<FileLogger>(outputPath / file, FileLogger::Options::ADD_TIMESTAMP));
+    } else {
+        setVerboseLogger(nullptr);
+    }
+
+    // move the data to shared storage, needed for Timestepping
+    SharedPtr<Storage> storage = makeShared<Storage>(std::move(input));
+
+    // make initial conditions
+    this->setUp(storage);
 
     // set uninitilized variables
-    setNullToDefaults();
+    setNullToDefaults(storage);
 
-    // add internal triggers
-    /// \todo fix! triggers.pushBack(makeAuto<EtaTrigger>());
-    const Float diagnosticsInterval = settings.get<Float>(RunSettingsId::RUN_DIAGNOSTICS_INTERVAL);
-    if (!diagnostics.empty()) {
-        triggers.pushBack(
-            makeAuto<DiagnosticsTrigger>(diagnostics, callbacks.get(), logger, diagnosticsInterval));
-    }
+    // fetch parameters of run from settings
+    const Float outputInterval = settings.get<Float>(RunSettingsId::RUN_OUTPUT_INTERVAL);
+    const Interval timeRange(
+        settings.get<Float>(RunSettingsId::RUN_START_TIME), settings.get<Float>(RunSettingsId::RUN_END_TIME));
 
     Float nextOutput = timeRange.lower();
     logger->write(
@@ -147,11 +170,13 @@ void IRun::run() {
     Timer runTimer;
     EndingCondition condition(settings.get<Float>(RunSettingsId::RUN_WALLCLOCK_TIME),
         settings.get<int>(RunSettingsId::RUN_TIMESTEP_CNT));
-    Statistics stats;
     const Float initialDt = settings.get<Float>(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP);
+
+    Statistics stats;
+    stats.set(StatisticsId::RUN_TIME, timeRange.lower());
     stats.set(StatisticsId::TIMESTEP_VALUE, initialDt);
 
-    callbacks->onRunStart(*storage, stats);
+    callbacks.onSetUp(*storage, stats);
     Outcome result = SUCCESS;
 
     // run main loop
@@ -161,7 +186,7 @@ void IRun::run() {
         // save current statistics
         stats.set(StatisticsId::RUN_TIME, t);
         stats.set(StatisticsId::WALLCLOCK_TIME, int(runTimer.elapsed(TimerUnit::MILLISECOND)));
-        const Float progress = (t - timeRange.lower()) / timeRange.size();
+        const Float progress = t / timeRange.upper();
         ASSERT(progress >= 0._f && progress <= 1._f);
         stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
         stats.set(StatisticsId::INDEX, (int)i);
@@ -195,8 +220,8 @@ void IRun::run() {
         }
 
         // callbacks
-        callbacks->onTimeStep(*storage, stats);
-        if (callbacks->shouldAbortRun()) {
+        callbacks.onTimeStep(*storage, stats);
+        if (callbacks.shouldAbortRun()) {
             result = "Aborted by user";
             break;
         }
@@ -207,15 +232,15 @@ void IRun::run() {
         logger->write(result.error());
     }
 
-    this->tearDownInternal(stats);
+    this->tearDownInternal(*storage, stats);
+
+    // move data back to parameter
+    input = std::move(*storage);
+    return stats;
 }
 
-SharedPtr<Storage> IRun::getStorage() const {
-    ASSERT(storage);
-    return storage;
-}
 
-void IRun::setNullToDefaults() {
+void IRun::setNullToDefaults(SharedPtr<Storage> storage) {
     ASSERT(storage != nullptr);
     if (!scheduler) {
         // default to global thread pool
@@ -240,19 +265,13 @@ void IRun::setNullToDefaults() {
     if (!output) {
         output = Factory::getOutput(settings);
     }
-    if (!callbacks) {
-        callbacks = makeAuto<NullCallbacks>();
-    }
 }
 
-void IRun::tearDownInternal(Statistics& stats) {
-    this->tearDown(stats);
-    // needs to be called after tearDown, as we signal the storage is not changing anymore
-    callbacks->onRunEnd(*storage, stats);
+void IRun::tearDownInternal(const Storage& storage, const Statistics& stats) {
+    this->tearDown(storage, stats);
 
     triggers.clear();
     output.reset();
-    callbacks.reset();
     logger.reset();
     logWriter.reset();
     timeStepping.reset();

@@ -71,7 +71,7 @@ public:
         } else {
             C = nullptr;
         }
-        if (flags.has(DerivativeFlag::SUM_ONLY_UNDAMAGED)) {
+        if (flags.has(DerivativeFlag::SUM_ONLY_UNDAMAGED) && input.has(QuantityId::STRESS_REDUCING)) {
             idxs = input.getValue<Size>(QuantityId::FLAG);
             reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
         } else {
@@ -122,7 +122,7 @@ private:
         ArrayView<const Size> neighs,
         ArrayView<const Vector> grads,
         const TFunctor& functor) {
-        if (flags.has(DerivativeFlag::SUM_ONLY_UNDAMAGED)) {
+        if (reduce) {
             for (Size k = 0; k < neighs.size(); ++k) {
                 const Size j = neighs[k];
                 if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
@@ -187,7 +187,7 @@ public:
         du = results.getBuffer<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
 
         m = input.getValue<Float>(QuantityId::MASS);
-        if (sumOnlyUndamaged) {
+        if (sumOnlyUndamaged && input.has(QuantityId::STRESS_REDUCING)) {
             idxs = input.getValue<Size>(QuantityId::FLAG);
             reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
         } else {
@@ -252,7 +252,7 @@ private:
         ArrayView<const Size> neighs,
         ArrayView<const Vector> grads,
         const TFunctor& functor) {
-        if (sumOnlyUndamaged) {
+        if (reduce) {
             for (Size k = 0; k < neighs.size(); ++k) {
                 const Size j = neighs[k];
                 if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {

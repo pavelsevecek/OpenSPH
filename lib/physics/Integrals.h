@@ -3,7 +3,7 @@
 /// \file Integrals.h
 /// \brief Integrals of motion and other integral quantities
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "common/ForwardDecl.h"
 #include "math/Means.h"

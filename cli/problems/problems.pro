@@ -8,7 +8,7 @@ DEPENDPATH += . ../../lib
 PRE_TARGETDEPS += ../../lib/liblib.a
 LIBS += ../../lib/liblib.a
 
-include(../../lib/inc.pro)
+include(../../lib/sharedLib.pro)
 
 SOURCES += \
     main.cpp \
@@ -17,6 +17,7 @@ SOURCES += \
     elastic_bands/ElasticBands.cpp \
     cliff_collapse/CliffCollapse.cpp \
     collision/Collision.cpp \
+    galaxy/Galaxy.cpp \
     Common.cpp
 
 HEADERS += \  

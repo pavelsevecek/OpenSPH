@@ -3,7 +3,7 @@
 /// \file SummationSolver.h
 /// \brief Solver using direction summation to compute density and smoothing length.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "sph/solvers/SymmetricSolver.h"
 
@@ -15,7 +15,6 @@ NAMESPACE_SPH_BEGIN
 /// evolved using energy equation.
 class SummationSolver : public SymmetricSolver {
 private:
-    Float eta;
     Size maxIteration;
     Float targetDensityDifference;
     bool adaptiveH;

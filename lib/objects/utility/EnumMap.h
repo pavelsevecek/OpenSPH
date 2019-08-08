@@ -3,7 +3,7 @@
 /// \file EnumMap.h
 /// \brief Helper object for converting enums to string, listing all available values of enum, etc.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/containers/FlatMap.h"
 #include <typeindex>
@@ -73,6 +73,10 @@ public:
                 }
                 result += pair->value;
             }
+            if (result.empty()) {
+                // empty flags, represent by 0
+                result += '0';
+            }
             return result;
         }
     }
@@ -123,6 +127,19 @@ public:
         Array<TEnum> enums;
         for (auto pair : record.value()) {
             enums.push(TEnum(pair.key));
+        }
+        return enums;
+    }
+
+
+    static Array<int> getAll(const std::size_t id) {
+        EnumMap& instance = getInstance();
+        Optional<EnumRecord&> record = instance.records.tryGet(id);
+        ASSERT(record);
+
+        Array<int> enums;
+        for (auto pair : record.value()) {
+            enums.push(pair.key);
         }
         return enums;
     }

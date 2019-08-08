@@ -13,7 +13,7 @@ TEST_CASE("XSph", "[solvers]") {
     Storage storage = Tests::getGassStorage(1000, BodySettings::getDefaults());
     EquationHolder eqs;
     RunSettings settings;
-    settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE);
+    settings.set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE);
 
     eqs += makeTerm<PressureForce>() + makeTerm<ContinuityEquation>(settings) + makeTerm<XSph>() +
            makeTerm<ConstSmoothingLength>();

@@ -3,7 +3,7 @@
 /// \file SvgContext.h
 /// \brief Implementation of IDrawingContext for creating vector images (.svg)
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "gui/objects/Point.h"
 #include "io/Path.h"

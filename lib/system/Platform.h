@@ -3,7 +3,7 @@
 /// \file Platform.h
 /// \brief System functions
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/wrappers/Expected.h"
 #include "objects/wrappers/Outcome.h"

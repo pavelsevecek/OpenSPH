@@ -14,10 +14,16 @@ static_assert(sizeof(InnerNode<BarnesHutNode>) == sizeof(LeafNode<BarnesHutNode>
 static_assert(alignof(InnerNode<BarnesHutNode>) == alignof(LeafNode<BarnesHutNode>),
     "Invalid alignment of BarnesHut nodes");
 
-BarnesHut::BarnesHut(const Float theta, const MultipoleOrder order, const Size leafSize)
-    : kdTree(leafSize)
+BarnesHut::BarnesHut(const Float theta,
+    const MultipoleOrder order,
+    const Size leafSize,
+    const Size maxDepth,
+    const Float gravityConstant)
+    : kdTree(leafSize, maxDepth)
     , thetaInv(1.f / theta)
-    , order(order) {
+    , order(order)
+    , maxDepth(maxDepth)
+    , gravityConstant(gravityConstant) {
     // use default-constructed kernel; it works, because by default LutKernel has zero radius and functions
     // valueImpl and gradImpl are never called.
     // Check by assert to make sure this trick will work
@@ -28,15 +34,21 @@ BarnesHut::BarnesHut(const Float theta, const MultipoleOrder order, const Size l
 BarnesHut::BarnesHut(const Float theta,
     const MultipoleOrder order,
     GravityLutKernel&& kernel,
-    const Size leafSize)
-    : kdTree(leafSize)
+    const Size leafSize,
+    const Size maxDepth,
+    const Float gravityConstant)
+    : kdTree(leafSize, maxDepth)
     , kernel(std::move(kernel))
     , thetaInv(1.f / theta)
-    , order(order) {
+    , order(order)
+    , maxDepth(maxDepth)
+    , gravityConstant(gravityConstant) {
     ASSERT(theta > 0._f, theta);
 }
 
 void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
+    VERBOSE_LOG
+
     // save source data
     r = storage.getValue<Vector>(QuantityId::POSITION);
 
@@ -65,10 +77,12 @@ void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
         return true;
     };
     /// \todo sequential needed because TBB cannot wait on child tasks yet
-    iterateTree<IterateDirection::BOTTOM_UP>(kdTree, SEQUENTIAL, functor);
+    iterateTree<IterateDirection::BOTTOM_UP>(kdTree, SEQUENTIAL, functor, 0, maxDepth);
 }
 
 void BarnesHut::evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const {
+    VERBOSE_LOG
+
     TreeWalkState data;
     TreeWalkResult result;
     SharedPtr<ITask> rootTask = scheduler.submit([this, &scheduler, dv, &data, &result] { //
@@ -82,15 +96,15 @@ void BarnesHut::evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics&
 }
 
 
-Vector BarnesHut::eval(const Vector& r0, Statistics& stats) const {
-    return this->evalImpl(r0, Size(-1), stats);
+Vector BarnesHut::eval(const Vector& r0) const {
+    return this->evalImpl(r0, Size(-1));
 }
 
 Float BarnesHut::evalEnergy(IScheduler& UNUSED(scheduler), Statistics& UNUSED(stats)) const {
     NOT_IMPLEMENTED;
 }
 
-Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(stats)) const {
+Vector BarnesHut::evalImpl(const Vector& r0, const Size idx) const {
     if (SPH_UNLIKELY(r.empty())) {
         return Vector(0._f);
     }
@@ -105,8 +119,9 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(
         const Float boxSizeSqr = getSqrLength(node.box.size());
         const Float boxDistSqr = getSqrLength(node.box.center() - r0);
         ASSERT(isReal(boxDistSqr));
-        /// \todo
-        if (!node.box.contains(r0) && boxSizeSqr / (boxDistSqr + EPS) < 1.f / sqr(thetaInv)) {
+
+        if (!node.box.contains(r0) && boxSizeSqr > 0._f &&
+            boxSizeSqr / (boxDistSqr + EPS) < 1.f / sqr(thetaInv)) {
             // small node, use multipole approximation
             f += evaluateGravity(r0 - node.com, node.moments, order);
 
@@ -254,8 +269,8 @@ void BarnesHut::evalNode(IScheduler& scheduler,
         auto task = makeShared<NodeTask>(*this, scheduler, dv, inner.left, std::move(childData), result);
         if (childData.depth < maxDepth) {
             // Ad-hoc decision (see also KdTree.cpp where we do the same trick);
-            // only split the build in the topmost nodes, process the bottom nodes in the same thread to avoid
-            // high scheduling overhead of ThreadPool (TBBs deal with this quite well)
+            // only split the treewalk in the topmost nodes, process the bottom nodes in the same thread to
+            // avoid high scheduling overhead of ThreadPool (TBBs deal with this quite well)
             //
             // The expression above can be modified to get optimal performance.
             scheduler.submit(std::move(task));
@@ -335,10 +350,23 @@ Vector BarnesHut::evalExact(const LeafNode<BarnesHutNode>& leaf, const Vector& r
 
 void BarnesHut::buildLeaf(BarnesHutNode& node) {
     LeafNode<BarnesHutNode>& leaf = (LeafNode<BarnesHutNode>&)node;
-    if (leaf.size() == 0) {
-        // set to zero to correctly compute mass and com of parent nodes
+
+    switch (leaf.size()) {
+    case 0:
+        // empty leaf - set to zero to correctly compute mass and com of parent nodes
         leaf.com = Vector(0._f);
         leaf.moments.order<0>() = 0._f;
+        leaf.moments.order<1>() = TracelessMultipole<1>(0._f);
+        leaf.moments.order<2>() = TracelessMultipole<2>(0._f);
+        leaf.moments.order<3>() = TracelessMultipole<3>(0._f);
+        leaf.r_open = 0._f;
+        return;
+    case 1:
+        // single particle - requires special handling to avoid numerical problems
+        const Size i = *kdTree.getLeafIndices(leaf).begin();
+        leaf.com = r[i];
+        leaf.box.extend(r[i]);
+        leaf.moments.order<0>() = m[i];
         leaf.moments.order<1>() = TracelessMultipole<1>(0._f);
         leaf.moments.order<2>() = TracelessMultipole<2>(0._f);
         leaf.moments.order<3>() = TracelessMultipole<3>(0._f);
@@ -352,12 +380,8 @@ void BarnesHut::buildLeaf(BarnesHutNode& node) {
     for (Size i : sequence) {
         leaf.com += m[i] * r[i];
         m_leaf += m[i];
-        // extend the bounding box, given particle radius
-        /// \todo this slows down the simulation way too much, approximating by point particles
-        // ASSERT(r[i][H] > 0._f, r[i][H]);
-        // const Vector dr(r[i][H] * kernel.radius());
-        // leaf.box.extend(r[i] + dr);
-        // leaf.box.extend(r[i] - dr);
+
+        // extend the bounding box
         leaf.box.extend(r[i]);
     }
     ASSERT(m_leaf > 0._f, m_leaf);
@@ -384,11 +408,6 @@ void BarnesHut::buildLeaf(BarnesHutNode& node) {
     leaf.moments.order<1>() = TracelessMultipole<1>(0._f);
     leaf.moments.order<2>() = q2;
     leaf.moments.order<3>() = q3;
-
-    // sanity check
-    /// \todo fails, but appers to be only due to round-off errors
-    // ASSERT(leaf.size() > 1 || q2 == TracelessMultipole<2>(0._f));
-    // ASSERT(leaf.size() > 1 || q3 == TracelessMultipole<3>(0._f));
 }
 
 void BarnesHut::buildInner(BarnesHutNode& node, BarnesHutNode& left, BarnesHutNode& right) {

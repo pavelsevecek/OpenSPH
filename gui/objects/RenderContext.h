@@ -136,13 +136,11 @@ protected:
 class SmoothedRenderContext : public AntiAliasedRenderContext {
 private:
     LutKernel<2> kernel;
-    float particleScale;
 
 public:
-    SmoothedRenderContext(Bitmap<Rgba>& bitmap, const LutKernel<2>& kernel, const float particleScale)
+    SmoothedRenderContext(Bitmap<Rgba>& bitmap, const LutKernel<2>& kernel)
         : AntiAliasedRenderContext(bitmap)
-        , kernel(kernel)
-        , particleScale(particleScale) {}
+        , kernel(kernel) {}
 
     virtual void drawCircle(const Coords center, const float radius) override;
 };

@@ -3,7 +3,7 @@
 /// \file DeltaSph.h
 /// \brief Delta-SPH modification of the standard SPH formulation
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "sph/equations/EquationTerm.h"
 

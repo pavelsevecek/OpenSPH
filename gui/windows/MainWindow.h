@@ -1,116 +1,74 @@
 #pragma once
 
+#include "gui/Project.h"
 #include "gui/Settings.h"
-#include "objects/containers/Array.h"
-#include "objects/wrappers/LockingPtr.h"
-#include "system/Settings.h"
-#include "system/Timer.h"
+#include "io/Path.h"
+#include "objects/wrappers/RawPtr.h"
 #include <wx/frame.h>
 
-class wxComboBox;
-class wxBoxSizer;
-class wxGauge;
-class wxCheckBox;
-class wxTextCtrl;
-class wxPanel;
+class wxMenu;
+class wxAuiManager;
+class wxAuiNotebook;
 
 NAMESPACE_SPH_BEGIN
 
-class IColorizer;
-class IGraphicsPane;
-class IPlot;
-class IPluginControls;
 class Controller;
-class OrthoPane;
-class ParticleProbe;
-class PlotView;
-class Particle;
-class Rgba;
-class Statistics;
-class Storage;
-struct DiagnosticsError;
-class SelectedParticlePlot;
+class IPluginControls;
+class RunPage;
+class NodeWindow;
+class WorkerNode;
 
-/// \brief Main frame of the application.
-///
-/// Run is coupled with the window; currently there can only be one window and one run at the same time. Run
-/// is ended when user closes the window.
+
+wxAuiNotebook* findNotebook();
+
 class MainWindow : public wxFrame {
+    friend class NodeManagerCallbacks;
+
 private:
-    /// Parent control object
-    RawPtr<Controller> controller;
+    wxAuiNotebook* notebook;
+    NodeWindow* nodePage;
 
-    /// Gui settings
-    GuiSettings gui;
+    struct RunData {
+        AutoPtr<Controller> controller;
+        bool isRun;
+    };
 
-    /// Drawing pane (owned by wxWidgets)
-    RawPtr<IGraphicsPane> pane;
+    FlatMap<RunPage*, RunData> runs;
 
-    RawPtr<ParticleProbe> probe;
-
-    Array<LockingPtr<IPlot>> plots;
-
-    LockingPtr<SelectedParticlePlot> selectedParticlePlot;
-
-    wxTextCtrl* status = nullptr;
-    wxTextCtrl* errors = nullptr;
-    bool errorReported = false;
-    Timer statusTimer;
-
-    /// Additional wx controls
-    wxComboBox* quantityBox;
-    Size selectedIdx = 0;
-    wxGauge* gauge;
-    wxPanel* quantityPanel;
-    wxSizer* quantityPanelSizer;
-
-    /// Colorizers corresponding to the items in combobox
-    Array<SharedPtr<IColorizer>> colorizerList;
+    Path projectPath;
+    bool savedFlag = true;
 
 public:
-    MainWindow(Controller* controller, const GuiSettings& guiSettings, RawPtr<IPluginControls> plugin);
-
-    void runStarted();
-
-    void onTimeStep(const Storage& storage, const Statistics& stats);
-
-    void onRunFailure(const DiagnosticsError& error, const Statistics& stats);
-
-    void setProgress(const float progress);
-
-    void setColorizerList(Array<SharedPtr<IColorizer>>&& colorizers);
-
-    void setSelectedParticle(const Particle& particle, const Rgba color);
-
-    void deselectParticle();
-
-    wxSize getCanvasSize() const;
+    MainWindow(const Path& openPath = Path());
 
 private:
-    /// Toolbar on the top, containing buttons for controlling the run.
-    wxBoxSizer* createToolBar();
+    wxMenu* createProjectMenu();
 
-    /// Panel on the right, with plots and particle info
-    wxBoxSizer* createPlotBar();
+    wxMenu* createRunMenu();
 
-    /// Panel on the left, with visualization controls
-    wxBoxSizer* createVisBar();
+    wxMenu* createAnalysisMenu();
 
-    /// Panel on the bottom, with run log and error reporting
-    wxBoxSizer* createStatusBar();
+    wxMenu* createResultMenu();
 
-    void setColorizer(const Size idx);
+    void addPage(SharedPtr<WorkerNode> node, const RunSettings& globals, const std::string pageName);
 
-    void replaceQuantityBar(const Size idx);
+    bool removeAll();
 
-    void addComponentIdBar(wxWindow* parent, wxSizer* sizer, SharedPtr<IColorizer> colorizer);
+    void saveAs();
 
-    void updateCutoff(const double cutoff);
+    void save();
 
-    /// wx event handlers
+    void open(const Path& openPath);
+
+    void load(const Path& openPath = Path(""));
+
+    void setProjectPath(const Path& newPath);
+
+    void markSaved(const bool saved);
 
     void onClose(wxCloseEvent& evt);
-};
 
+    void enableMenus(const Size id);
+};
 
 NAMESPACE_SPH_END

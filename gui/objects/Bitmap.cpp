@@ -1,13 +1,18 @@
 #include "gui/objects/Bitmap.h"
 #include "io/FileSystem.h"
 #include "io/Path.h"
+#include "objects/Exceptions.h"
 #include <wx/bitmap.h>
+#include <wx/log.h>
 #include <wx/rawbmp.h>
 
 NAMESPACE_SPH_BEGIN
 
 void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx) {
-    wx.Create(bitmap.size().x, bitmap.size().y, 32);
+    const Pixel size = bitmap.size();
+    if (!wx.IsOk() || wx.GetSize() != wxSize(size.x, size.y)) {
+        wx.Create(size.x, size.y, 32);
+    }
     ASSERT(wx.IsOk());
 
     wxAlphaPixelData pixels(wx);
@@ -64,11 +69,15 @@ void saveToFile(const Bitmap<Rgba>& bitmap, const Path& path) {
 }
 
 Bitmap<Rgba> loadBitmapFromFile(const Path& path) {
+    wxLogNull logNullGuard; // we have custom error reporting
     wxBitmap wx;
     if (!wx.LoadFile(path.native().c_str())) {
-        ASSERT(false, "Cannot load bitmap");
+        throw IoError("Cannot load bitmap '" + path.native() + "'");
     }
-    ASSERT(wx.IsOk());
+
+    if (!wx.IsOk()) {
+        throw IoError("Bitmap '" + path.native() + "' failed to load correctly");
+    }
     return toBitmap(wx);
 }
 

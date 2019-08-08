@@ -4,7 +4,7 @@
 
 using namespace Sph;
 
-TEST_CASE("Box intersect", "[bvh]") {
+TEST_CASE("Bvh box intersect", "[bvh]") {
     Box box(Vector(0._f), Vector(1._f));
 
     Ray ray1(Vector(2._f, 0.5_f, 0.5_f), Vector(-1._f, 0._f, 0._f));

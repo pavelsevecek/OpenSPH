@@ -61,7 +61,7 @@ void PreviewRenderContext::drawCircle(const Coords center, const float radius) {
         return;
     }
     const Pixel p(center);
-    const int intRadius(radius);
+    const int intRadius = min(int(radius), bitmap.size().x);
     for (int y = -intRadius; y <= intRadius; ++y) {
         for (int x = -intRadius; x <= +intRadius; ++x) {
             const int rSqr = sqr(x) + sqr(y);

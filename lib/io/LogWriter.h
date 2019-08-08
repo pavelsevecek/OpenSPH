@@ -68,9 +68,9 @@ public:
 /// \brief Helper writer that does not write any logs.
 ///
 /// Use this to disable logging of statistics during run.
-class NullLogFile : public ILogWriter {
+class NullLogWriter : public ILogWriter {
 public:
-    NullLogFile();
+    NullLogWriter();
 
     virtual void write(const Storage& storage, const Statistics& stats) override;
 };

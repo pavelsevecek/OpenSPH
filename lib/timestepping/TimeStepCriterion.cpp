@@ -125,6 +125,7 @@ TimeStep DerivativeCriterion::compute(IScheduler& scheduler,
     Storage& storage,
     const Float maxStep,
     Statistics& stats) {
+    VERBOSE_LOG
     if (power < -1.e3_f) {
         // very high negative power, this is effectively computing minimal timestep
         return this->computeImpl<MinimalStepTls>(scheduler, storage, maxStep, stats);
@@ -216,6 +217,7 @@ TimeStep AccelerationCriterion::compute(IScheduler& scheduler,
     Storage& storage,
     const Float maxStep,
     Statistics& UNUSED(stats)) {
+    VERBOSE_LOG
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     struct Tl {
@@ -257,6 +259,7 @@ TimeStep CourantCriterion::compute(IScheduler& scheduler,
     Storage& storage,
     const Float maxStep,
     Statistics& UNUSED(stats)) {
+    VERBOSE_LOG
 
     /// \todo AV contribution?
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
@@ -323,7 +326,7 @@ TimeStep MultiCriterion::compute(IScheduler& scheduler,
     Storage& storage,
     const Float maxStep,
     Statistics& stats) {
-    PROFILE_SCOPE("MultiCriterion::compute");
+    VERBOSE_LOG
     ASSERT(!criteria.empty());
     Float minStep = INFTY;
     CriterionId minId = CriterionId::INITIAL_VALUE;

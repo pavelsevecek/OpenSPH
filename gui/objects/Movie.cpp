@@ -28,7 +28,8 @@ Movie::Movie(const GuiSettings& settings,
     outputStep = settings.get<Float>(GuiSettingsId::IMAGES_TIMESTEP);
     const Path directory(settings.get<std::string>(GuiSettingsId::IMAGES_PATH));
     const Path name(settings.get<std::string>(GuiSettingsId::IMAGES_NAME));
-    paths = OutputFile(directory / name);
+    const Size firstIndex(settings.get<int>(GuiSettingsId::IMAGES_FIRST_INDEX));
+    paths = OutputFile(directory / name, firstIndex);
 
     const Path animationName(settings.get<std::string>(GuiSettingsId::IMAGES_MOVIE_NAME));
     animationPath = directory / animationName;
@@ -50,20 +51,52 @@ INLINE std::string escapeColorizerName(const std::string& name) {
 }
 
 class MovieRenderOutput : public IRenderOutput {
-public:
+private:
     wxBitmap wx;
 
-    virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels) override {
+    std::condition_variable waitVar;
+    std::mutex waitMutex;
+
+    Path currentPath;
+
+
+public:
+    void setPath(const Path& path) {
+        currentPath = path;
+    }
+
+    virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels, const bool isFinal) override {
+        if (!isFinal) {
+            // no need for save intermediate results on disk
+            return;
+        }
+
+        if (isMainThread()) {
+            this->updateMainThread(bitmap, std::move(labels));
+        } else {
+            std::unique_lock<std::mutex> lock(waitMutex);
+            executeOnMainThread([this, &bitmap, &labels] {
+                std::unique_lock<std::mutex> lock(waitMutex);
+                this->updateMainThread(bitmap, std::move(labels));
+                waitVar.notify_one();
+            });
+            waitVar.wait(lock);
+        }
+    }
+
+private:
+    void updateMainThread(const Bitmap<Rgba>& bitmap, Array<Label>&& labels) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         toWxBitmap(bitmap, wx);
         wxMemoryDC dc(wx);
         printLabels(dc, labels);
         dc.SelectObject(wxNullBitmap);
+        saveToFile(wx, currentPath);
     }
 };
 
 void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
-    if (stats.get<Float>(StatisticsId::RUN_TIME) < nextOutput || !enabled) {
+    if (!enabled || stats.get<Float>(StatisticsId::RUN_TIME) < nextOutput) {
         return;
     }
 
@@ -77,6 +110,8 @@ void Movie::save(const Storage& storage, Statistics& stats) {
 
     const Path path = paths.getNextPath(stats);
     FileSystem::createDirectory(path.parentPath());
+
+    MovieRenderOutput output;
     for (auto& e : colorizers) {
         Path actPath(replaceAll(path.native(), "%e", escapeColorizerName(e->name())));
 
@@ -86,23 +121,9 @@ void Movie::save(const Storage& storage, Statistics& stats) {
         // initialize render with new data (outside main thread)
         renderer->initialize(storage, *e, *params.camera);
 
-        auto functor = [this, actPath, &stats] {
-            std::unique_lock<std::mutex> lock(waitMutex);
-
-            // create the bitmap and save it to file
-            MovieRenderOutput output;
-            renderer->render(params, stats, output);
-            saveToFile(output.wx, actPath);
-            waitVar.notify_one();
-        };
-        if (isMainThread()) {
-            functor();
-        } else {
-            // wxWidgets don't like when we draw into DC from different thread
-            std::unique_lock<std::mutex> lock(waitMutex);
-            executeOnMainThread(functor);
-            waitVar.wait(lock);
-        }
+        // create the bitmap and save it to file
+        output.setPath(actPath);
+        renderer->render(params, stats, output);
     }
 }
 

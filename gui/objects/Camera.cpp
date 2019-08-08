@@ -5,9 +5,9 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// ----------------------------------------------------------------------------------------------------------
-/// OrthoCamera
-/// ----------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------
+// OrthoCamera
+// ----------------------------------------------------------------------------------------------------------
 
 OrthoCamera::OrthoCamera(const Pixel imageSize, const Pixel center, OrthoCameraData data)
     : imageSize(imageSize)
@@ -93,7 +93,7 @@ Optional<float> OrthoCamera::getCutoff() const {
 }
 
 Optional<float> OrthoCamera::getWorldToPixel() const {
-    return data.fov.value();
+    return data.fov;
 }
 
 void OrthoCamera::setCutoff(const Optional<float> newCutoff) {
@@ -127,9 +127,9 @@ void OrthoCamera::resize(const Pixel newSize) {
     center = Pixel(Coords(center) * scaling);
 }
 
-/// ----------------------------------------------------------------------------------------------------------
-/// PerspectiveCamera
-/// ----------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------
+// PerspectiveCamera
+// ----------------------------------------------------------------------------------------------------------
 
 Vector ParticleTracker::position(const Storage& storage) const {
     if (index < storage.getParticleCnt()) {
@@ -187,9 +187,11 @@ Optional<ProjectedPoint> PerspectiveCamera::project(const Vector& r) const {
 CameraRay PerspectiveCamera::unproject(const Coords& coords) const {
     const float rx = 2.f * coords.x / imageSize.x - 1.f;
     const float ry = 2.f * coords.y / imageSize.y - 1.f;
+    const Vector dir = cached.dir + cached.left * rx - cached.up * ry;
     CameraRay ray;
-    ray.origin = data.position;
-    ray.target = ray.origin + cached.dir + cached.left * rx - cached.up * ry;
+    /// \todo implement far clipping plane (max ray param)
+    ray.origin = data.position + data.clipping.lower() * dir;
+    ray.target = ray.origin + dir;
     return ray;
 }
 

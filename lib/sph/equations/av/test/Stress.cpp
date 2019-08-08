@@ -29,10 +29,10 @@ TEST_CASE("StressAV test", "[av]") {
         v[i] = dir * (dot(r[i], dir) > 0._f ? 0.1_f * cs : -0.1_f * cs);
     }
     RunSettings settings;
-    settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
+    settings.set(RunSettingsId::TIMESTEPPING_CRITERION, EMPTY_FLAGS);
     settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.1_f * r[0][H] / cs);
     settings.set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::BENZ_ASPHAUG);
-    settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
+    settings.set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
     EulerExplicit timestepping(storage, settings);
 
     // solver with some basic forces and artificial stress

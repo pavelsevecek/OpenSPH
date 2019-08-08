@@ -253,7 +253,7 @@ void ContinuityEquation::setDerivatives(DerivativeHolder& derivatives, const Run
     // this formulation uses equation \dot \rho_i = m_i \sum_j m_j/rho_j \nabla \cdot \vec  v where the
     // velocity divergence is taken either directly, or as a trace of strength velocity gradient, see
     // below.
-    Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
+    Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES);
     if (forces.has(ForceEnum::SOLID_STRESS)) {
         const Flags<DerivativeFlag> flags = DerivativeFlag::CORRECTED | DerivativeFlag::SUM_ONLY_UNDAMAGED;
         derivatives.require(makeDerivative<VelocityGradient>(settings, flags));
@@ -298,7 +298,7 @@ void ContinuityEquation::create(Storage& storage, IMaterial& material) const {
 AdaptiveSmoothingLength::AdaptiveSmoothingLength(const RunSettings& settings, const Size dimensions)
     : dimensions(dimensions) {
     Flags<SmoothingLengthEnum> flags =
-        settings.getFlags<SmoothingLengthEnum>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH);
+        settings.getFlags<SmoothingLengthEnum>(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH);
     if (flags.has(SmoothingLengthEnum::SOUND_SPEED_ENFORCING)) {
         enforcing.strength = settings.get<Float>(RunSettingsId::SPH_NEIGHBOUR_ENFORCING);
         enforcing.range = settings.get<Interval>(RunSettingsId::SPH_NEIGHBOUR_RANGE);

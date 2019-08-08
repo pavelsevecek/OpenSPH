@@ -8,9 +8,11 @@
 #include "sph/Materials.h"
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"
+#include "system/Factory.h"
 #include "system/Settings.h"
 #include "tests/Approx.h"
 #include "thread/Pool.h"
+#include "timestepping/ISolver.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;
@@ -238,9 +240,9 @@ TEST_CASE("GhostParticles empty", "[boundary]") {
 }
 
 TEST_CASE("GhostParticles with material", "[boundary]") {
-    Storage storage(getDefaultMaterial());
+    Storage storage(getMaterial(MaterialEnum::BASALT));
     AutoPtr<SphericalDomain> domain = makeAuto<SphericalDomain>(Vector(0._f), 1.5_f);
-    InitialConditions ic(*ThreadPool::getGlobalInstance(), RunSettings::getDefaults());
+    InitialConditions ic(RunSettings::getDefaults());
     BodySettings body;
     body.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::RANDOM);
     body.set(BodySettingsId::PARTICLE_COUNT, 1000);
@@ -257,15 +259,23 @@ TEST_CASE("GhostParticles with material", "[boundary]") {
     REQUIRE(storage.getParticleCnt() == 1000);
 }
 
+static void createSolverQuantities(Storage& storage) {
+    RunSettings settings;
+    AutoPtr<ISolver> solver = Factory::getSolver(*ThreadPool::getGlobalInstance(), settings);
+    for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
+        solver->create(storage, storage.getMaterial(i));
+    }
+}
+
 TEST_CASE("FrozenParticles by flag", "[boundary]") {
     Storage storage;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    InitialConditions conds(pool, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
     BodySettings settings;
     settings.set(BodySettingsId::PARTICLE_COUNT, 100);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), settings);
     const Size size0 = storage.getParticleCnt();
     conds.addMonolithicBody(storage, SphericalDomain(Vector(3._f, 0._f, 0._f), 1._f), settings);
+    createSolverQuantities(storage);
 
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
@@ -352,11 +362,12 @@ TEST_CASE("FrozenParticles by flag", "[boundary]") {
 
 TEST_CASE("FrozenParticles by distance", "[boundary]") {
     Storage storage;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    InitialConditions conds(pool, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
     BodySettings settings;
     settings.set(BodySettingsId::PARTICLE_COUNT, 1000);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1.5_f), settings);
+    createSolverQuantities(storage);
+
     const Float radius = 2._f;
     FrozenParticles boundaryConditions(makeAuto<SphericalDomain>(Vector(0._f), 1._f), radius);
 

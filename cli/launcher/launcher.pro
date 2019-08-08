@@ -8,7 +8,11 @@ INCLUDEPATH += ../../lib
 PRE_TARGETDEPS += ../../lib/liblib.a
 LIBS += ../../lib/liblib.a
 
-include(../../lib/inc.pro)
+TARGET = opensph-cli
+target.path = /usr/bin/
+INSTALLS += target
+
+include(../../lib/sharedLib.pro)
 
 SOURCES += \
     Launcher.cpp

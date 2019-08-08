@@ -22,24 +22,28 @@ Using git, you can clone the code with
 ```bash
 git clone https://sevecekp@gitlab.com/sevecekp/sph.git
 cd sph
+```
+To get the latest (experimental) version, switch to develomnent branch using
+```bash
 git checkout devel
 ```
 
 ## Compilation 
-The code uses many c++14 features and will migrate to c++17 when it gets implemented 
-by mainstream compilers. The compilation has been tested on gcc 6.3.1 and clang 4.0.0.
+The code uses many c++14 features, so a reasonably new version of a C++ compiler is necessary.
+The compilation has been tested on gcc 6.3.1 and clang 4.0.0.
 Prerequisities of the code are:
 
 - git (to get the code from the repository, skip if you already have the code)
 - up-to-date version of gcc or clang compiler
 - QMake (tested with version 3.1)
-- <a href="http://eigen.tuxfamily.org/index.php?title=Main_Page">Eigen</a> (for solving sparse systems)
 
 Another optional dependencies of the code are:
 
 - <a href="https://www.wxwidgets.org/">wxWidgets</a> (needed for graphical interface of the code)
-- <a href="https://github.com/philsquared/Catch">Catch</a> (C++ unit testing framework)
-- <a href="https://github.com/google/benchmark">Google Benchmark</a> (comparing perfomance of different solvers, code settings, etc.)
+- <a href="https://www.threadingbuildingblocks.org/">Intel Threading Building Blocks</a> (generally improves performance of the code)
+- <a href="https://github.com/catchorg/Catch2">Catch2</a> (C++ unit testing framework)
+- <a href="https://www.openvdb.org/">OpenVDB</a> (used for converting particles to volumetric data, usable by renderers)
+- <a href="http://eigen.tuxfamily.org/index.php?title=Main_Page">Eigen</a> (for solving sparse systems)
 
 The compilation should be as easy as
 ```bash
@@ -53,10 +57,39 @@ where *version* can be one of:
 - *debug* - debugging build with no optimizations (SLOW)
 - *assert* - build with all optimizations and additional sanity checks
 - *profile* - full-speed build that measures durations of various segments of the code and print run statistics
-Use different build directory for each version.
+
+Use different build directory for each version!
+
+By default, OpenSPH uses a custom thread pool for parallelization. It is possible to use Intel TBB library 
+instead, by adding use_tbb flag:
+```bash
+qmake CONFIG+=version CONFIG+=use_tbb ../sph.pro
+```
+
+The project sph.pro builds command-line launcher and the GUI application that allows to set up and run 
+simulations, as well as view previously saved results.
+
+To further build the code examples, run:
+```bash
+cd build_version
+qmake CONFIG+=version ../examples.pro
+make
+```
+
+## Windows binaries
+Building the code on Windows is currently a bit difficult.
+Consider using pre-built executables, uploaded to a 
+<a href="https://www.dropbox.com/sh/qx4tdiai9epurzb/AAC7dx6mLyuWxFWjQQDYy22ua?dl=0">Dropbox</a>
+folder.
 
 ## Running a basic impact simulation
-The code can be executed with default settings, in which case it will use the following:
+A simulation can be started using a command-line launcher, located in cli/launcher directory.
+When a launcher is started for the first time, it generates configuration files 
+(with extension .cnf), which can be then modified to set up the simulation as needed.
+Simulation can be also set up in the graphical application, using a node-based editor.
+See category 'presets' on the right side of the editor for some basic simulations.
+
+Default simulation uses the following:
 - Equation of motion consists of a stress tensor divergence (SolidStressForce) and an artifial viscosity term (StandardAV)
 - Density evolution is solved using continuity equation (ContinuityEquation)
 - Hooke's law as a constitutive equation
@@ -66,15 +99,10 @@ The code can be executed with default settings, in which case it will use the fo
 - Adaptive smoothing length (AdaptiveSmoothingLength)
 - Basalt material parameters
 
-Only thing that needs to be set up by the user is the initial conditions of the simulation.
-For the impact experiment, this can be easily done with InitialConditions object.
-
-See file cli/main.cpp for an example of a simple impact simulation.
-
 ## Documentation
 See [documentation](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/docs/index.html)
 
-## Examples of the code usage
+## Examples of code usage
 See [examples](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/docs/Examples.html)
 
 ## Bug reports, ideas, question

@@ -150,8 +150,8 @@ Outcome StaticSolver::solve(Storage& storage, Statistics& stats) {
             const Float f = dot(dr, grad) / getSqrLength(dr);
             const Vector dr0 = getNormalized(dr);
             ASSERT(isReal(f));
-            SymmetricTensor lhs =
-                -5._f * (lambda + mu) * outer(dr0, dr0) + (lambda - mu) * SymmetricTensor::identity();
+            SymmetricTensor lhs = -5._f * (lambda + mu) * symmetricOuter(dr0, dr0) +
+                                  (lambda - mu) * SymmetricTensor::identity();
             ASSERT(isReal(lhs));
 
             SymmetricTensor mij = m[j] / rho[j] * lhs * f;

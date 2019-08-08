@@ -3,7 +3,7 @@
 /// \file BarnesHut.h
 /// \brief Barnes-Hut algorithm for computation of gravitational acceleration
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "common/ForwardDecl.h"
 #include "gravity/IGravity.h"
@@ -60,15 +60,16 @@ protected:
     /// Order of multipole approximation
     MultipoleOrder order;
 
-    /// Gravitational constant in the selected unit system. In SI, this is simply \ref Constants::gravity.
-    ///
-    /// \todo generalize
-    Float gravityConstant = Constants::gravity;
-
-    /// Maximum depth at which the nodes evaluation is parallelized.
+    /// \brief Maximum depth at which the nodes evaluation is parallelized.
     ///
     /// Child nodes are then evaluated serially on the same thread.
-    Size maxDepth = 50;
+    Size maxDepth;
+
+    /// \brief Gravitational constant in the selected unit system.
+    ///
+    /// In SI, this is simply \ref Constants::gravity.
+    /// \todo generalize
+    Float gravityConstant = Constants::gravity;
 
 public:
     /// \brief Constructs the Barnes-Hut gravity assuming point-like particles (with zero radius).
@@ -76,24 +77,33 @@ public:
     /// \param theta Opening angle; lower value means higher precision, but slower computation
     /// \param order Order of multipole approximation
     /// \param leafSize Maximum number of particles in a leaf
-    BarnesHut(const Float theta, const MultipoleOrder order, const Size leafSize = 20);
+    /// \param maxDepth Maximum parallel depth for tree contruction and evaluation
+    BarnesHut(const Float theta,
+        const MultipoleOrder order,
+        const Size leafSize = 25,
+        const Size maxDepth = 50,
+        const Float gravityConstant = Constants::gravity);
 
     /// \brief Constructs the Barnes-Hut gravity with given smoothing kernel
     ///
     /// \param theta Opening angle; lower value means higher precision, but slower computation
     /// \param order Order of multipole approximation
+    /// \param kernel Precomputed gravity smoothing kernel
     /// \param leafSize Maximum number of particles in a leaf
+    /// \param maxDepth Maximum parallel depth for tree contruction and evaluation
     BarnesHut(const Float theta,
         const MultipoleOrder order,
         GravityLutKernel&& kernel,
-        const Size leafSize = 20);
+        const Size leafSize = 25,
+        const Size maxDepth = 50,
+        const Float gravityConstant = Constants::gravity);
 
     /// Masses of particles must be strictly positive, otherwise center of mass would be undefined.
     virtual void build(IScheduler& pool, const Storage& storage) override;
 
     virtual void evalAll(IScheduler& pool, ArrayView<Vector> dv, Statistics& stats) const override;
 
-    virtual Vector eval(const Vector& r0, Statistics& stats) const override;
+    virtual Vector eval(const Vector& r0) const override;
 
     virtual Float evalEnergy(IScheduler& scheduler, Statistics& stats) const override;
 
@@ -106,7 +116,7 @@ public:
 
 protected:
     /// Evaluates the gravity at a single point in space.
-    Vector evalImpl(const Vector& r0, const Size idx, Statistics& stats) const;
+    Vector evalImpl(const Vector& r0, const Size idx) const;
 
     /// Helper task for parallelization of treewalk
     class NodeTask;

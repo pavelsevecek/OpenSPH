@@ -3,11 +3,12 @@
 /// \file Domain.h
 /// \brief Object defining computational domain.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "math/AffineMatrix.h"
 #include "objects/geometry/Box.h"
 #include "objects/wrappers/Optional.h"
+#include "objects/wrappers/SharedPtr.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -58,6 +59,8 @@ public:
     /// can be computed with small error to simplify implementation.
     /// \param vs Input array of points.
     /// \param distances Output array, will be resized to the size of particle array and cleared.
+    ///
+    /// \todo unify the (non)clearing of output arrays
     virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const = 0;
 
     /// \brief Projects vectors outside of the domain onto its boundary.
@@ -330,80 +333,37 @@ public:
 /// \brief Transform another domain by given transformation matrix
 ///
 /// \todo TESTS
-template <typename TDomain>
 class TransformedDomain : public IDomain {
 private:
-    TDomain domain;
+    SharedPtr<IDomain> domain;
     AffineMatrix tm, tmInv;
 
 public:
-    template <typename... TArgs>
-    TransformedDomain(const AffineMatrix& matrix, const Vector& center, TArgs&&... args)
-        : domain(matrix.inverse() * center, std::forward<TArgs>(args)...) {
-        tm = matrix;
-        tmInv = matrix.inverse();
-    }
+    TransformedDomain(SharedPtr<IDomain> domain, const AffineMatrix& matrix);
 
-    virtual Vector getCenter() const override {
-        return domain.getCenter() + tm.translation();
-    }
+    virtual Vector getCenter() const override;
 
-    virtual Float getVolume() const override {
-        return domain.getVolume() * tm.determinant();
-    }
+    virtual Float getVolume() const override;
 
-    virtual Box getBoundingBox() const override {
-        const Box box = domain.getBoundingBox();
-        // transform all 8 points
-        Box transformedBox;
-        for (Size i = 0; i <= 1; ++i) {
-            for (Size j = 0; j <= 1; ++j) {
-                for (Size k = 0; k <= 1; ++k) {
-                    const Vector p =
-                        box.lower() * Vector(i, j, k) + box.upper() * Vector(1 - i, 1 - j, 1 - k);
-                    transformedBox.extend(tm * p);
-                }
-            }
-        }
-        return transformedBox;
-    }
+    virtual Box getBoundingBox() const override;
 
-    virtual bool contains(const Vector& v) const override {
-        return domain.contains(tmInv * v);
-    }
+    virtual bool contains(const Vector& v) const override;
 
     virtual void getSubset(ArrayView<const Vector> vs,
         Array<Size>& output,
-        const SubsetType type) const override {
-        domain.getSubset(this->untransform(vs), output, type);
-    }
+        const SubsetType type) const override;
 
-    virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const override {
-        return domain.getDistanceToBoundary(this->untransform(vs), distances);
-    }
+    virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const override;
 
-    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
-        return domain.project(this->untransform(vs), indices);
-    }
+    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override;
 
     virtual void addGhosts(ArrayView<const Vector> vs,
         Array<Ghost>& ghosts,
         const Float eta,
-        const Float eps) const override {
-        domain.addGhosts(this->untransform(vs), ghosts, eta, eps);
-        for (Ghost& g : ghosts) {
-            g.position = tm * g.position;
-        }
-    }
+        const Float eps) const override;
 
 private:
-    Array<Vector> untransform(ArrayView<const Vector> vs) const {
-        Array<Vector> untransformed(vs.size());
-        for (Size i = 0; i < vs.size(); ++i) {
-            untransformed[i] = tmInv * vs[i];
-        }
-        return untransformed;
-    }
+    Array<Vector> untransform(ArrayView<const Vector> vs) const;
 };
 
 NAMESPACE_SPH_END

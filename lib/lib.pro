@@ -2,12 +2,13 @@ TEMPLATE = lib
 CONFIG += c++14 staticlib thread silent
 CONFIG -= app_bundle qt
 
-include(inc.pro)
+include(sharedLib.pro)
 
 SOURCES += \
     common/Assert.cpp \
     gravity/AggregateSolver.cpp \
     gravity/BarnesHut.cpp \
+    gravity/Galaxy.cpp \
     gravity/NBodySolver.cpp \
     io/FileManager.cpp \
     io/FileSystem.cpp \
@@ -46,9 +47,9 @@ SOURCES += \
     quantities/Quantity.cpp \
     quantities/QuantityIds.cpp \
     quantities/Storage.cpp \
-    run/Collision.cpp \
     run/IRun.cpp \
-    run/RubblePile.cpp \
+    run/Node.cpp \
+    run/VirtualSettings.cpp \
     sph/Diagnostics.cpp \
     sph/Material.cpp \
     sph/boundary/Boundary.cpp \
@@ -61,7 +62,6 @@ SOURCES += \
     sph/initial/Distribution.cpp \
     sph/initial/Initial.cpp \
     sph/initial/MeshDomain.cpp \
-    sph/initial/Presets.cpp \
     sph/solvers/AsymmetricSolver.cpp \
     sph/solvers/EnergyConservingSolver.cpp \
     sph/solvers/GradHSolver.cpp \
@@ -85,9 +85,18 @@ SOURCES += \
     thread/Tbb.cpp \
     timestepping/TimeStepCriterion.cpp \
     timestepping/TimeStepping.cpp \
-    run/CompositeRun.cpp \
     io/LogWriter.cpp \
-    sph/solvers/ElasticDeformationSolver.cpp
+    sph/solvers/ElasticDeformationSolver.cpp \
+    sph/solvers/DensityIndependentSolver.cpp \
+    run/Worker.cpp \
+    run/Config.cpp \
+    run/workers/Presets.cpp \
+    run/workers/SimulationWorkers.cpp \
+    run/workers/GeometryWorkers.cpp \
+    run/workers/InitialConditionWorkers.cpp \
+    run/workers/MaterialWorkers.cpp \
+    run/workers/IoWorkers.cpp \
+    run/workers/ParticleWorkers.cpp
 
 HEADERS += \
     Sph.h \
@@ -100,6 +109,7 @@ HEADERS += \
     gravity/BruteForceGravity.h \
     gravity/CachedGravity.h \
     gravity/Collision.h \
+    gravity/Galaxy.h \
     gravity/IGravity.h \
     gravity/Moments.h \
     gravity/NBodySolver.h \
@@ -210,6 +220,7 @@ HEADERS += \
     post/Plot.h \
     post/Point.h \
     post/StatisticTests.h \
+    quantities/CompressedStorage.h \
     quantities/IMaterial.h \
     quantities/Iterate.h \
     quantities/Particle.h \
@@ -217,11 +228,8 @@ HEADERS += \
     quantities/QuantityHelpers.h \
     quantities/QuantityIds.h \
     quantities/Storage.h \
-    run/Collision.h \
-    run/CompositeRun.h \
     run/IRun.h \
-    run/RubblePile.h \
-    run/RunCallbacks.h \
+    run/Node.h \
     run/Trigger.h \
     sph/Diagnostics.h \
     sph/Materials.h \
@@ -249,7 +257,6 @@ HEADERS += \
     sph/initial/Distribution.h \
     sph/initial/Initial.h \
     sph/initial/MeshDomain.h \
-    sph/initial/Presets.h \
     sph/kernel/GravityKernel.h \
     sph/kernel/Interpolation.h \
     sph/kernel/Kernel.h \
@@ -293,4 +300,18 @@ HEADERS += \
     timestepping/TimeStepping.h \
     io/LogWriter.h \
     objects/finders/PeriodicFinder.h \
-    sph/solvers/ElasticDeformationSolver.h
+    sph/solvers/ElasticDeformationSolver.h \
+    run/VirtualSettings.h \
+    objects/containers/UnorderedMap.h \
+    run/VirtualSettings.inl.h \
+    run/Worker.h \
+    run/Config.h \
+    run/workers/Presets.h \
+    run/workers/GeometryWorkers.h \
+    run/workers/MaterialWorkers.h \
+    run/workers/SimulationWorkers.h \
+    run/workers/IoWorkers.h \
+    run/workers/ParticleWorkers.h \
+    run/workers/InitialConditionWorkers.h \
+    run/workers/SpecialEntries.h \
+    run/SpecialEntries.h

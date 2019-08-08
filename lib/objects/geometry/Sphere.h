@@ -3,7 +3,7 @@
 /// \file Sphere.h
 /// \brief Object representing a three-dimensional sphere
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/geometry/Box.h"
 
@@ -17,67 +17,71 @@ enum class IntersectResult {
 
 class Sphere {
 private:
-    /// Radius is stored as 4th component
-    Vector centerAndRadius;
+    /// Center
+    Vector p;
+
+    /// Radius
+    Float r;
 
 public:
-    /// Creates an uninitialized sphere.
+    /// \brief Creates an uninitialized sphere.
     Sphere() = default;
 
-    /// Creates a sphere given its center and radius
+    /// \brief Creates a sphere given its center and radius
     Sphere(const Vector& center, const Float radius)
-        : centerAndRadius(center) {
-        centerAndRadius[H] = radius;
+        : p(center)
+        , r(radius) {
+        ASSERT(radius >= 0._f);
     }
 
     INLINE Vector center() const {
-        return centerAndRadius;
+        return p;
     }
 
     INLINE Vector& center() {
-        return centerAndRadius;
+        return p;
     }
 
     INLINE Float radius() const {
-        return centerAndRadius[H];
+        return r;
     }
 
     INLINE Float& radius() {
-        return centerAndRadius[H];
+        return r;
     }
 
     INLINE Float volume() const {
-        return sphereVolume(this->radius());
+        return sphereVolume(r);
     }
 
     INLINE bool contains(const Vector& v) const {
-        return getSqrLength(this->center() - v) < sqr(this->radius());
+        return getSqrLength(p - v) < sqr(r);
     }
 
     INLINE Box getBBox() const {
-        return Box(this->center() - Vector(this->radius()), this->center() + Vector(this->radius()));
+        return Box(p - Vector(r), p + Vector(r));
     }
 
     /// \brief Checks if the sphere intersects another sphere.
     ///
     /// If one sphere contains the other one entirely, it counts as an intersections.
     INLINE bool intersects(const Sphere& other) const {
-        return getSqrLength(this->center() - other.center()) < sqr(this->radius() + other.radius());
+        return getSqrLength(p - other.p) < sqr(r + other.r);
     }
 
     /// \brief Checks the intersection of the sphere with a box
     /// \todo not all branches are actually needed by TreeWalk, possibly optimize by some constexpr flag
     INLINE IntersectResult intersectsBox(const Box& box) const {
         ASSERT(box != Box::EMPTY());
-        const Vector leftOf = max(box.lower() - centerAndRadius, Vector(0._f));
-        const Vector rightOf = max(centerAndRadius - box.upper(), Vector(0._f));
-        const Float rSqr = sqr(this->radius());
+        const Vector leftOf = max(box.lower() - p, Vector(0._f));
+        const Vector rightOf = max(p - box.upper(), Vector(0._f));
+        const Float rSqr = sqr(r);
         const Float distSqr = rSqr - getSqrLength(leftOf) - getSqrLength(rightOf);
         if (distSqr <= 0._f) {
             return IntersectResult::BOX_OUTSIDE_SPHERE;
         }
         // either the whole box is inside the sphere, or it intersects the sphere
-        auto vertexInsideSphere = [&](const Vector& v) { return getSqrLength(v - centerAndRadius) < rSqr; };
+        auto vertexInsideSphere = [&](const Vector& v) { return getSqrLength(v - p) < rSqr; };
         if (!vertexInsideSphere(box.lower())) {
             return IntersectResult::INTERESECTION;
         }

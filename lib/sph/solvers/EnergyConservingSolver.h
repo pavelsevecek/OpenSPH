@@ -77,6 +77,11 @@ private:
 public:
     EnergyConservingSolver(IScheduler& scheduler, const RunSettings& settings, const EquationHolder& eqs);
 
+    EnergyConservingSolver(IScheduler& scheduler,
+        const RunSettings& settings,
+        const EquationHolder& eqs,
+        AutoPtr<IBoundaryCondition>&& bc);
+
 private:
     virtual void sanityCheck(const Storage& storage) const override;
 

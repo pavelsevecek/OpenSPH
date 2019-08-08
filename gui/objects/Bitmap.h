@@ -3,7 +3,7 @@
 /// \file Bitmap.h
 /// \brief Wrapper of wxBitmap, will be possibly replaced by custom implementation.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "gui/objects/Color.h"
 #include "gui/objects/Point.h"

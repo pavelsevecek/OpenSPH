@@ -1,5 +1,5 @@
 #include "gui/Factory.h"
-#include "gui/Config.h"
+#include "gui/Project.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/renderers/Brdf.h"
@@ -65,7 +65,12 @@ AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Pixel siz
     }
 }
 
-AutoPtr<IRenderer> Factory::getRenderer(IScheduler& scheduler, const GuiSettings& settings) {
+AutoPtr<IRenderer> Factory::getRenderer(const GuiSettings& settings) {
+    SharedPtr<IScheduler> scheduler = getScheduler(RunSettings::getDefaults());
+    return getRenderer(scheduler, settings);
+}
+
+AutoPtr<IRenderer> Factory::getRenderer(SharedPtr<IScheduler> scheduler, const GuiSettings& settings) {
     RendererEnum id = settings.get<RendererEnum>(GuiSettingsId::RENDERER);
     switch (id) {
     case RendererEnum::NONE:
@@ -104,12 +109,9 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const Color
         return makeAuto<CorotatingVelocityColorizer>(getPalette(ColorizerId::VELOCITY));
     case ColorizerId::DENSITY_PERTURBATION:
         return makeAuto<DensityPerturbationColorizer>(getPalette(id));
-    case ColorizerId::SUMMED_DENSITY: {
-        RunSettings dummy(EMPTY_SETTINGS);
-        dummy.set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE);
-        dummy.set(RunSettingsId::SPH_KERNEL, KernelEnum::CUBIC_SPLINE);
-        return makeAuto<SummedDensityColorizer>(dummy, getPalette(ColorizerId(QuantityId::DENSITY)));
-    }
+    case ColorizerId::SUMMED_DENSITY:
+        return makeAuto<SummedDensityColorizer>(
+            RunSettings::getDefaults(), getPalette(ColorizerId(QuantityId::DENSITY)));
     case ColorizerId::TOTAL_ENERGY:
         return makeAuto<EnergyColorizer>(getPalette(id));
     case ColorizerId::TEMPERATURE:
@@ -137,7 +139,9 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const Color
     case ColorizerId::AGGREGATE_ID:
         return makeAuto<AggregateIdColorizer>(settings);
     case ColorizerId::FLAG:
-        return makeAuto<FlagColorizer>(settings);
+        return makeAuto<IndexColorizer>(QuantityId::FLAG, settings);
+    case ColorizerId::MATERIAL_ID:
+        return makeAuto<IndexColorizer>(QuantityId::MATERIAL_ID, settings);
     case ColorizerId::BEAUTY:
         return makeAuto<BeautyColorizer>();
     case ColorizerId::MARKER:
@@ -164,10 +168,10 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const Color
     }
 }
 
-AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings, const ColorizerId id) {
-    AutoPtr<IColorizer> colorizer = Sph::getColorizer(settings, id);
+AutoPtr<IColorizer> Factory::getColorizer(const Project& project, const ColorizerId id) {
+    AutoPtr<IColorizer> colorizer = Sph::getColorizer(project.getGuiSettings(), id);
     Optional<Palette> palette = colorizer->getPalette();
-    if (palette && Config::getPalette(colorizer->name(), palette.value())) {
+    if (palette && project.getPalette(colorizer->name(), palette.value())) {
         colorizer->setPalette(palette.value());
     }
     return colorizer;
@@ -210,10 +214,12 @@ static FlatMap<PaletteKey, PaletteDesc> paletteDescs = {
     { QuantityId::VELOCITY_DIVERGENCE, { Interval(-0.1_f, 0.1_f), PaletteScale::LINEAR } },
     { QuantityId::VELOCITY_GRADIENT, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
     { QuantityId::VELOCITY_ROTATION, { Interval(0._f, 4._f), PaletteScale::LINEAR } },
+    { QuantityId::SOUND_SPEED, { Interval(0._f, 5.e3_f), PaletteScale::LINEAR } },
+    { QuantityId::VIBRATIONAL_VELOCITY, { Interval(0._f, 5.e3_f), PaletteScale::LINEAR } },
     { QuantityId::AV_STRESS, { Interval(0._f, 1.e8_f), PaletteScale::LINEAR } },
     { QuantityId::ANGULAR_FREQUENCY, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
     { QuantityId::MOMENT_OF_INERTIA, { Interval(0._f, 1.e10_f), PaletteScale::LINEAR } },
-    { QuantityId::STRAIN_RATE_CORRECTION_TENSOR, { Interval(0.5_f, 5._f), PaletteScale::LINEAR } },
+    { QuantityId::STRAIN_RATE_CORRECTION_TENSOR, { Interval(0._f, 5._f), PaletteScale::LINEAR } },
     { QuantityId::EPS_MIN, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
     { QuantityId::NEIGHBOUR_CNT, { Interval(50._f, 150._f), PaletteScale::LINEAR } },
     { ColorizerId::VELOCITY, { Interval(0.1_f, 100._f), PaletteScale::LOGARITHMIC } },
@@ -309,13 +315,17 @@ Palette Factory::getPalette(const ColorizerId id) {
                                { 0.75f * dx, Rgba(0.8f, 0.8f, 0.8f) },
                                { dx, Rgba(1.0f, 0.6f, 0.f) } },
                 scale);
-        case QuantityId::STRAIN_RATE_CORRECTION_TENSOR:
-            ASSERT(x0 > 0._f);
-            return Palette({ { x0, Rgba(0.f, 0.f, 0.5f) },
-                               { x0 + 0.01f, Rgba(0.1f, 0.1f, 0.1f) },
-                               { x0 + 0.6f * dx, Rgba(0.9f, 0.9f, 0.9f) },
-                               { x0 + dx, Rgba(0.6f, 0.0f, 0.0f) } },
+        case QuantityId::STRAIN_RATE_CORRECTION_TENSOR: {
+            // sqrt(3) is an important value, as it corresponds to identity tensor
+            const float actDx = max(dx, sqrt(3.f) + 0.2f);
+            const float eps = 0.05f;
+            return Palette({ { 0._f, Rgba(0.f, 0.0f, 0.5f) },
+                               { sqrt(3.f) - eps, Rgba(0.9f, 0.9f, 0.9f) },
+                               { sqrt(3.f), Rgba(1.f, 1.f, 0.f) },
+                               { sqrt(3.f) + eps, Rgba(0.9f, 0.9f, 0.9f) },
+                               { actDx, Rgba(0.5f, 0.0f, 0.0f) } },
                 scale);
+        }
         case QuantityId::AV_BALSARA:
             return Palette({ { x0, Rgba(0.1f, 0.1f, 0.1f) }, { x0 + dx, Rgba(0.9f, 0.9f, 0.9f) } }, scale);
         case QuantityId::EPS_MIN:

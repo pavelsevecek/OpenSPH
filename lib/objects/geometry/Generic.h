@@ -3,17 +3,17 @@
 /// \file Generic.h
 /// \brief Function for generic manipulation with geometric types
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni)
-/// \date 2016-2018
+/// \date 2016-2019
 
+#include "math/MathUtils.h"
 #include "objects/containers/StaticArray.h"
-#include <math.h>
 
 NAMESPACE_SPH_BEGIN
 
 /// \brief Returns a norm, absolute value by default.
 template <typename T>
 INLINE Float norm(const T& value) {
-    return abs(value);
+    return Sph::abs(value);
 }
 
 /// \brief Squared value of the norm.

@@ -16,14 +16,14 @@ TEST_CASE("MC Integrator", "[functional]") {
     const Float targetError = 1.e-3_f;
 
     // Area of circle / volume of sphere
-    AutoPtr<SphericalDomain> sphere = makeAuto<SphericalDomain>(Vector(0._f), 1._f);
-    Integrator<> int1(std::move(sphere));
+    SphericalDomain sphere(Vector(0._f), 1._f);
+    Integrator<> int1(sphere);
     Float result = int1.integrate([](const Vector& UNUSED(v)) -> Float { return 1._f; }, targetError);
     REQUIRE(result == approx(sphereVolume(1._f), targetError));
 
     // Block [0,1]^d, linear function in each component
-    AutoPtr<BlockDomain> block = makeAuto<BlockDomain>(Vector(0.5_f), Vector(1._f));
-    Integrator<> int2(std::move(block));
+    BlockDomain block(Vector(0.5_f), Vector(1._f));
+    Integrator<> int2(block);
     result = int2.integrate([](const Vector& v) { return dot(v, Vector(1._f)); }, targetError);
     REQUIRE(result == approx(3 * 0.5_f, 2._f * targetError));
 

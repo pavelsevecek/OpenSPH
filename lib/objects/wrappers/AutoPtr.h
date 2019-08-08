@@ -3,7 +3,7 @@
 /// \file AutoPtr.h
 /// \brief Simplified implementation of std::unique_ptr, using only default deleter.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/wrappers/AlignedStorage.h"
 #include "objects/wrappers/RawPtr.h"
@@ -38,7 +38,7 @@ public:
     }
 
     ~AutoPtr() {
-        alignedDelete(ptr);
+        this->reset();
     }
 
     INLINE AutoPtr& operator=(const AutoPtr& other) = delete;
@@ -48,6 +48,11 @@ public:
         reset();
         ptr = other.ptr;
         other.ptr = nullptr;
+        return *this;
+    }
+
+    INLINE AutoPtr& operator=(std::nullptr_t) {
+        this->reset();
         return *this;
     }
 

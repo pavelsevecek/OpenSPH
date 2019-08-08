@@ -3,7 +3,7 @@
 /// \file LookupMap.h
 /// \brief Three-dimensional grid containing indices
 /// \author Pavel Sevecek (seevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/containers/Array.h"
 #include "objects/geometry/Box.h"

@@ -3,7 +3,7 @@
 /// \file MeshDomain.h
 /// \brief Domain represented by triangular mesh.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/finders/Bvh.h"
 #include "objects/geometry/Domain.h"
@@ -85,8 +85,27 @@ public:
         return insideCnt >= outsideCnt;
     }
 
-    virtual void getSubset(ArrayView<const Vector>, Array<Size>&, const SubsetType) const override {
-        NOT_IMPLEMENTED;
+    virtual void getSubset(ArrayView<const Vector> vs,
+        Array<Size>& output,
+        const SubsetType type) const override {
+        switch (type) {
+        case SubsetType::OUTSIDE:
+            for (Size i = 0; i < vs.size(); ++i) {
+                if (!this->contains(vs[i])) {
+                    output.push(i);
+                }
+            }
+            break;
+        case SubsetType::INSIDE:
+            for (Size i = 0; i < vs.size(); ++i) {
+                if (this->contains(vs[i])) {
+                    output.push(i);
+                }
+            }
+            break;
+        default:
+            NOT_IMPLEMENTED;
+        }
     }
 
     virtual void getDistanceToBoundary(ArrayView<const Vector>, Array<Float>&) const override {

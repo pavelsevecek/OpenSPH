@@ -3,7 +3,7 @@
 /// \file SymmetricTensor.h
 /// \brief Basic algebra for symmetric 2nd order tensors
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "math/AffineMatrix.h"
 #include "objects/containers/StaticArray.h"

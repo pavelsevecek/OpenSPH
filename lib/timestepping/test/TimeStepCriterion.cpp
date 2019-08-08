@@ -17,7 +17,7 @@ using namespace Sph;
 const Size MINIMAL_PARTICLE_IDX = 53; // just something non-trivial
 
 static Storage getStorage() {
-    Storage storage(getDefaultMaterial());
+    Storage storage(getMaterial(MaterialEnum::BASALT));
     HexagonalPacking distribution;
     storage.insert<Vector>(QuantityId::POSITION,
         OrderEnum::SECOND,

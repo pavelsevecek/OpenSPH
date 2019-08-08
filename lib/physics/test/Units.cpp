@@ -7,9 +7,9 @@ using namespace Sph;
 
 TEST_CASE("Unit systems", "[units]") {
     Unit u1(5._f, BasicDimension::MASS, UnitSystem::CGS());
-    REQUIRE(u1 == 5._g);
-    REQUIRE(u1.value(UnitSystem::CGS()) == 5._f);
-    REQUIRE(u1.value(UnitSystem::SI()) == 5.e-3_f);
+    REQUIRE(u1 == approx(5._g));
+    REQUIRE(u1.value(UnitSystem::CGS()) == approx(5._f));
+    REQUIRE(u1.value(UnitSystem::SI()) == approx(5.e-3_f));
 }
 
 TEST_CASE("Unit sum and diff", "[units]") {

@@ -3,7 +3,7 @@
 /// \file Box.h
 /// \brief Object representing a three-dimensional axis-aligned box
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/containers/Array.h"
 #include "objects/geometry/Indices.h"
@@ -130,6 +130,11 @@ public:
         return minBound != other.minBound || maxBound != other.maxBound;
     }
 
+    /// \brief Returns a box with specified offset.
+    INLINE Box translate(const Vector& offset) const {
+        return Box(minBound + offset, maxBound + offset);
+    }
+
     /// \brief Splits the box along given coordinate.
     ///
     /// The splitting plane must pass through the box.
@@ -144,6 +149,18 @@ public:
         b1.maxBound[dim] = x;
         b2.minBound[dim] = x;
         return { b1, b2 };
+    }
+
+    /// \brief Computes the intersection of this box with another one.
+    INLINE Box intersect(const Box& other) const {
+        Box is;
+        is.minBound = max(minBound, other.minBound);
+        is.maxBound = min(maxBound, other.maxBound);
+        if (is.isValid()) {
+            return is;
+        } else {
+            return Box::EMPTY();
+        }
     }
 
 

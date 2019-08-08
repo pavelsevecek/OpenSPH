@@ -3,7 +3,7 @@
 /// \file Camera.h
 /// \brief Defines projection transforming 3D particles onto 2D screen
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mf.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "gui/objects/Point.h"
 #include "math/AffineMatrix.h"

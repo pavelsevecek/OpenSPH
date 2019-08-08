@@ -3,7 +3,7 @@
 /// \file ClonePtr.h
 /// \brief Smart pointer performing cloning of stored resource rather than copying pointer
 /// \author Pavel Sevecek
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/wrappers/AutoPtr.h"
 

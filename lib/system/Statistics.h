@@ -3,7 +3,7 @@
 /// \file Statistics.h
 /// \brief Statistics gathered and periodically displayed during the run
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "common/ForwardDecl.h"
 #include "math/Means.h"
@@ -49,9 +49,10 @@ public:
     ///
     /// This overrides any previously stored value.
     template <typename TValue>
-    void set(const StatisticsId idx, TValue&& value) {
+    Statistics& set(const StatisticsId idx, TValue&& value) {
         using StoreType = ConvertToSize<TValue>;
         entries.insert(idx, StoreType(std::forward<TValue>(value)));
+        return *this;
     }
 
     /// \brief Increments an integer statistic by given amount
@@ -135,6 +136,9 @@ enum class StatisticsId {
 
     /// Wallclock duration of evaluation of SPH derivatives
     SPH_EVAL_TIME,
+
+    /// Wallclock duration of gravity tree building
+    GRAVITY_BUILD_TIME,
 
     /// Number of nodes in used gravity tree
     GRAVITY_NODE_COUNT,

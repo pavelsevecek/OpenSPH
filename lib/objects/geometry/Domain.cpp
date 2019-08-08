@@ -440,7 +440,6 @@ void CylindricalDomain::addGhosts(ArrayView<const Vector> vs,
 // HexagonalDomain implementation
 //-----------------------------------------------------------------------------------------------------------
 
-
 HexagonalDomain::HexagonalDomain(const Vector& center,
     const Float radius,
     const Float height,
@@ -557,6 +556,10 @@ void HexagonalDomain::addGhosts(ArrayView<const Vector> vs,
     }
 }
 
+//-----------------------------------------------------------------------------------------------------------
+// HalfSpaceDomain implementation
+//-----------------------------------------------------------------------------------------------------------
+
 Vector HalfSpaceDomain::getCenter() const {
     // z == 0, x and y are arbitrary
     return Vector(0._f);
@@ -636,6 +639,75 @@ void HalfSpaceDomain::addGhosts(ArrayView<const Vector> vs,
             ghosts.push(Ghost{ g, i });
         }
     }
+}
+
+//-----------------------------------------------------------------------------------------------------------
+// TransformedDomain implementation
+//-----------------------------------------------------------------------------------------------------------
+
+TransformedDomain::TransformedDomain(SharedPtr<IDomain> domain, const AffineMatrix& matrix)
+    : domain(std::move(domain)) {
+    tm = matrix;
+    tmInv = matrix.inverse();
+}
+
+Vector TransformedDomain::getCenter() const {
+    return domain->getCenter() + tm.translation();
+}
+
+Float TransformedDomain::getVolume() const {
+    return domain->getVolume() * tm.determinant();
+}
+
+Box TransformedDomain::getBoundingBox() const {
+    const Box box = domain->getBoundingBox();
+    // transform all 8 points
+    Box transformedBox;
+    for (Size i = 0; i <= 1; ++i) {
+        for (Size j = 0; j <= 1; ++j) {
+            for (Size k = 0; k <= 1; ++k) {
+                const Vector p = box.lower() * Vector(i, j, k) + box.upper() * Vector(1 - i, 1 - j, 1 - k);
+                transformedBox.extend(tm * p);
+            }
+        }
+    }
+    return transformedBox;
+}
+
+bool TransformedDomain::contains(const Vector& v) const {
+    return domain->contains(tmInv * v);
+}
+
+void TransformedDomain::getSubset(ArrayView<const Vector> vs,
+    Array<Size>& output,
+    const SubsetType type) const {
+    domain->getSubset(this->untransform(vs), output, type);
+}
+
+void TransformedDomain::getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const {
+    return domain->getDistanceToBoundary(this->untransform(vs), distances);
+}
+
+void TransformedDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices) const {
+    return domain->project(this->untransform(vs), indices);
+}
+
+void TransformedDomain::addGhosts(ArrayView<const Vector> vs,
+    Array<Ghost>& ghosts,
+    const Float eta,
+    const Float eps) const {
+    domain->addGhosts(this->untransform(vs), ghosts, eta, eps);
+    for (Ghost& g : ghosts) {
+        g.position = tm * g.position;
+    }
+}
+
+Array<Vector> TransformedDomain::untransform(ArrayView<const Vector> vs) const {
+    Array<Vector> untransformed(vs.size());
+    for (Size i = 0; i < vs.size(); ++i) {
+        untransformed[i] = tmInv * vs[i];
+    }
+    return untransformed;
 }
 
 

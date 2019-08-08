@@ -1,4 +1,5 @@
 #include "physics/Rheology.h"
+#include "io/Logger.h"
 #include "physics/Damage.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Quantity.h"
@@ -7,9 +8,9 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// ----------------------------------------------------------------------------------------------------------
-/// VonMisesRheology
-/// ----------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------
+// VonMisesRheology
+// ----------------------------------------------------------------------------------------------------------
 
 VonMisesRheology::VonMisesRheology()
     : VonMisesRheology(makeAuto<NullFracture>()) {}
@@ -24,6 +25,8 @@ VonMisesRheology::~VonMisesRheology() = default;
 void VonMisesRheology::create(Storage& storage,
     IMaterial& material,
     const MaterialInitialContext& context) const {
+    VERBOSE_LOG
+
     ASSERT(storage.getMaterialCnt() == 1);
     storage.insert<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO, 1._f);
 
@@ -31,6 +34,8 @@ void VonMisesRheology::create(Storage& storage,
 }
 
 void VonMisesRheology::initialize(IScheduler& scheduler, Storage& storage, const MaterialView material) {
+    VERBOSE_LOG
+
     ArrayView<Float> u = storage.getValue<Float>(QuantityId::ENERGY);
     ArrayView<Float> reducing = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
     ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
@@ -78,12 +83,13 @@ void VonMisesRheology::initialize(IScheduler& scheduler, Storage& storage, const
 }
 
 void VonMisesRheology::integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) {
+    VERBOSE_LOG
     damage->integrate(scheduler, storage, material);
 }
 
-/// ----------------------------------------------------------------------------------------------------------
-/// DruckerPragerRheology
-/// ----------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------
+// DruckerPragerRheology
+// ----------------------------------------------------------------------------------------------------------
 
 DruckerPragerRheology::DruckerPragerRheology()
     : DruckerPragerRheology(makeAuto<NullFracture>()) {}
@@ -98,17 +104,26 @@ DruckerPragerRheology::~DruckerPragerRheology() = default;
 void DruckerPragerRheology::create(Storage& storage,
     IMaterial& material,
     const MaterialInitialContext& context) const {
+    VERBOSE_LOG
     ASSERT(storage.getMaterialCnt() == 1);
     storage.insert<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO, 1._f);
+    if (material.getParam<bool>(BodySettingsId::USE_ACOUSTIC_FLUDIZATION)) {
+        storage.insert<Float>(QuantityId::VIBRATIONAL_VELOCITY, OrderEnum::FIRST, 0._f);
+        /// \todo user defined max value
+        material.setRange(QuantityId::VIBRATIONAL_VELOCITY, Interval(0._f, LARGE), LARGE);
+    }
+
     damage->setFlaws(storage, material, context);
 }
 
 void DruckerPragerRheology::initialize(IScheduler& scheduler, Storage& storage, const MaterialView material) {
-    ArrayView<Float> u = storage.getValue<Float>(QuantityId::ENERGY);
+    VERBOSE_LOG
+
+    ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
     ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
     ArrayView<TracelessTensor> S = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     ArrayView<Float> reducing = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
-    ArrayView<Float> D;
+    ArrayView<const Float> D;
     if (storage.has(QuantityId::DAMAGE)) {
         D = storage.getValue<Float>(QuantityId::DAMAGE);
     }
@@ -119,6 +134,14 @@ void DruckerPragerRheology::initialize(IScheduler& scheduler, Storage& storage, 
     const Float mu_d = material->getParam<Float>(BodySettingsId::DRY_FRICTION);
     const Float u_melt = material->getParam<Float>(BodySettingsId::MELT_ENERGY);
 
+    const bool fluidization = material->getParam<bool>(BodySettingsId::USE_ACOUSTIC_FLUDIZATION);
+    // const Float nu_lim = material->getParam<Float>(BodySettingsId::FLUIDIZATION_VISCOSITY);
+    ArrayView<const Float> v_vib, rho, cs;
+    if (fluidization) {
+        tie(v_vib, rho, cs) = storage.getValues<Float>(
+            QuantityId::VIBRATIONAL_VELOCITY, QuantityId::DENSITY, QuantityId::SOUND_SPEED);
+    }
+
     const IndexSequence seq = material.sequence();
     parallelFor(scheduler, *seq.begin(), *seq.end(), [&](const Size i) {
         // reduce the pressure (pressure is reduced only for negative values)
@@ -128,7 +151,12 @@ void DruckerPragerRheology::initialize(IScheduler& scheduler, Storage& storage, 
         }
 
         const Float Y_i = Y_0 + mu_i * p[i] / (1._f + mu_i * max(p[i], 0._f) / (Y_M - Y_0));
-        const Float Y_d = mu_d * p[i];
+        Float Y_d = mu_d * p[i];
+
+        if (fluidization) {
+            const Float p_vib = rho[i] * cs[i] * v_vib[i];
+            Y_d = max(0._f, Y_d - mu_d * p_vib);
+        }
 
         Float Y;
         if (Y_d > Y_i) {
@@ -160,6 +188,21 @@ void DruckerPragerRheology::initialize(IScheduler& scheduler, Storage& storage, 
 }
 
 void DruckerPragerRheology::integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) {
+    VERBOSE_LOG
+
+    if (material->getParam<bool>(BodySettingsId::USE_ACOUSTIC_FLUDIZATION)) {
+        // integrate the vibrational velocity
+        ArrayView<Float> v, dv;
+        tie(v, dv) = storage.getAll<Float>(QuantityId::VIBRATIONAL_VELOCITY);
+        ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
+        ArrayView<const Float> cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
+        const Float t_dec = material->getParam<Float>(BodySettingsId::OSCILLATION_DECAY_TIME);
+
+        for (Size i : material.sequence()) {
+            dv[i] = cs[i] * max(0._f, divv[i]) - v[i] / t_dec;
+        }
+    }
+
     damage->integrate(scheduler, storage, material);
 }
 

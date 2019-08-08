@@ -39,15 +39,17 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Width of the rendered image (in pixels)." },
     { GuiSettingsId::VIEW_HEIGHT,           "view.height",          600,
         "Height of the rendered image (in pixels)." },
-    { GuiSettingsId::VIEW_MAX_FRAMERATE,    "view.max_framerate",   100, // ms
+    { GuiSettingsId::VIEW_MAX_FRAMERATE,    "view.max_framerate",   10, // ms
         "Minimal refresh period of the drawed bitmap. Used to avoid visualization unnecessarily affecting "
         "the performance of the simulation." },
+    { GuiSettingsId::REFRESH_ON_TIMESTEP,   "view.refresh_on_timestep",  true,
+        "If true, the image is automatically refreshed every timestep, otherwise manual refresh is needed." },
     { GuiSettingsId::VIEW_GRID_SIZE,        "view.grid_size",       0._f,
         "Step of the grid drawn into the bitmap. If zero, no grid is drawn." },
     { GuiSettingsId::SURFACE_RESOLUTION,    "surface.resolution",   100._f,  // m
         "Resolution of the meshed surface (in world units). Lower values means the mesh is more detailed, "
         "but construction takes (significantly) more time and memory." },
-    { GuiSettingsId::SURFACE_LEVEL,         "surface.level",        0.3_f,
+    { GuiSettingsId::SURFACE_LEVEL,         "surface.level",        0.13_f,
         "Surface level for mesh renderer and raytracer. Specifies the value of the constructed/intersected "
         "iso-surface of color field." },
     { GuiSettingsId::SURFACE_SUN_POSITION,  "surface.sun_position", Vector(0.f, 0.f, 1.f),
@@ -56,9 +58,11 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Relative intensity of the sun, used for shading in mesh renderer in raytracer." },
     { GuiSettingsId::SURFACE_AMBIENT,       "surface.ambient",      0.3_f,
         "Relative intensity of an ambient light, illuminating all shaded points." },
-    { GuiSettingsId::ORTHO_VIEW_CENTER,     "ortho.center",          Vector(0._f),
+    { GuiSettingsId::SURFACE_EMISSION,      "surface.emission",     1._f,
+        "Emission multiplier used by raytracer. Note that emission is only enabled for Beauty quantity." },
+    { GuiSettingsId::ORTHO_VIEW_CENTER,     "ortho.center",         Vector(0._f),
         "Center point of the orthographic camera." },
-    { GuiSettingsId::ORTHO_FOV,             "ortho.fov",             0._f,
+    { GuiSettingsId::ORTHO_FOV,             "ortho.fov",            0._f,
         "Field of view of the orthographic camera. Specified as distance (not an angle). Value 0 means the "
         "field of view is computed automatically to fit all particles inside the view."},
     { GuiSettingsId::RAYTRACE_SUBSAMPLING,  "raytrace.subsampling", 1,
@@ -113,6 +117,8 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
     { GuiSettingsId::IMAGES_NAME,           "images.name",          std::string("img_%e_%d.png"),
         "File mask of the created images. Can contain wildcard %d, replaced with the counter of an image, "
         "and %e, replaced with the name of the renderer quantity." },
+    { GuiSettingsId::IMAGES_FIRST_INDEX,    "images.first_index",   0,
+        "Index of the first generated image."},
     { GuiSettingsId::IMAGES_MAKE_MOVIE,     "images.make_movie",    false,
         "If true, an animation is made from the saved images automatically at the end of the simulation. "
         "Requires ffmpeg to be installed." },
@@ -137,5 +143,6 @@ const Settings<GuiSettingsId>& Settings<GuiSettingsId>::getDefaults() {
 
 // Explicit instantiation
 template class Settings<GuiSettingsId>;
+template class SettingsIterator<GuiSettingsId>;
 
 NAMESPACE_SPH_END

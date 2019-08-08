@@ -3,7 +3,7 @@
 /// \file Materials.h
 /// \brief SPH-specific implementation of particle materials
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "quantities/IMaterial.h"
 
@@ -33,7 +33,7 @@ public:
     /// Equation of state is constructed from parameters in settings.
     explicit EosMaterial(const BodySettings& body);
 
-    /// Evaluate holded equation of state.
+    /// Evaluate held equation of state.
     /// \param rho Density of particle in code units.
     /// \param u Specific energy of particle in code units
     /// \returns Computed pressure and sound speed as pair.
@@ -73,7 +73,16 @@ public:
     virtual void finalize(IScheduler& scheduler, Storage& storage, const IndexSequence sequence) override;
 };
 
-/// \brief Returns material using default settings.
-AutoPtr<IMaterial> getDefaultMaterial();
+/// \brief Basic materials available in the code.
+///
+/// Parameters were taken from Reinhardt and Stadel (2016).
+enum class MaterialEnum {
+    BASALT,
+    IRON,
+    ICE,
+    OLIVINE,
+};
+
+AutoPtr<IMaterial> getMaterial(const MaterialEnum type);
 
 NAMESPACE_SPH_END

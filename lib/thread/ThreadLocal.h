@@ -3,7 +3,7 @@
 /// \file ThreadLocal.h
 /// \brief Template for thread-local storage
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/containers/Array.h"
 #include "objects/utility/Iterator.h"
@@ -148,7 +148,7 @@ INLINE void parallelFor(IScheduler& scheduler,
     const Size from,
     const Size to,
     TFunctor&& functor) {
-    const Size granularity = scheduler.getRecommendedGranularity(from, to);
+    const Size granularity = scheduler.getRecommendedGranularity();
     parallelFor(scheduler, storage, from, to, granularity, std::forward<TFunctor>(functor));
 }
 

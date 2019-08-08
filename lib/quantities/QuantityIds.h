@@ -3,7 +3,7 @@
 /// \file QuantityIds.h
 /// \brief Quantity identifiers
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "physics/Units.h"
 #include "quantities/QuantityHelpers.h"
@@ -52,11 +52,11 @@ enum class QuantityId {
     /// \name Density-independent SPH formulation
     ///@{
 
-    /// Energy density (energy per unit volume)
-    ENERGY_DENSITY = 8,
+    /// The "Y" quantity defined by \cite Hosono_2016, used to compute equation of motion and energy in DISPH.
+    GENERALIZED_ENERGY = 8,
 
-    /// Internal energy per particle (analogy of particle masses in DISPH)
-    ENERGY_PER_PARTICLE = 9,
+    /// \todo
+    GENERALIZED_PRESSURE = 9,
 
     ///@}
 
@@ -78,11 +78,6 @@ enum class QuantityId {
     /// Number of explicit flaws per particle
     N_FLAWS = 14,
 
-    /// Explicitly specified activation 'index' between 0 and N_particles. Lower value mean lower activation
-    /// strain rate of a flaw. Used only for testing purposes, by default activation strain rates are
-    /// automatically computed from Weibull distribution.
-    FLAW_ACTIVATION_IDX = 15,
-
     /// Total stress reduction factor due to damage and yielding. Is always scalar.
     STRESS_REDUCING = 16,
 
@@ -92,14 +87,16 @@ enum class QuantityId {
     /// \todo
     FRICTION_ANGLE = 18,
 
+    /// Vibrational particle velocity, used by the block model of acoustic fluidization.
+    VIBRATIONAL_VELOCITY = 47,
+
     ///@}
 
     /// \name N-body & Solid sphere physics
     ///@{
 
-    /// Gravitational potential; not needed for solution, but needs to be included to the total energy of the
-    /// system, otherwise the energy will not be conserved.
-    GRAVITY_POTENTIAL = 19,
+    /// Index of the aggregate containing this particle.
+    AGGREGATE_ID = 19,
 
     /// Angular frequency of particles. Note that SPH particles in standard formulation have no angular
     /// frequency, this quantity is used by solid sphere solvers or by SPH modifications that include particle
@@ -119,6 +116,7 @@ enum class QuantityId {
 
     /// Local coordinates of a particle; moment of inertia is typically expressed in these coordinates.
     LOCAL_FRAME = 24,
+
 
     ///@}
 
@@ -218,6 +216,13 @@ enum class QuantityId {
 
     ///@}
 
+    /// \name Miscellaneous
+    ///@{
+
+    /// Texture mapping coordinates,
+    UVW = 1000,
+
+    ///@}
 
     // TEMPORARY QUANTITIES, TO BE REMOVED
 

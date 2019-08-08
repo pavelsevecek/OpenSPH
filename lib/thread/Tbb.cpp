@@ -67,17 +67,23 @@ public:
 
 struct TbbData {
     tbb::task_arena arena;
+    Size granularity;
 
-    TbbData(const Size numThreads) {
+    TbbData(const Size numThreads, const Size granularity)
+        : granularity(granularity) {
         arena.initialize(numThreads == 0 ? tbb::task_scheduler_init::default_num_threads() : numThreads);
     }
 };
 
-Tbb::Tbb(const Size numThreads) {
-    data = makeAuto<TbbData>(numThreads);
+Tbb::Tbb(const Size numThreads, const Size granularity) {
+    data = makeAuto<TbbData>(numThreads, granularity);
 }
 
 Tbb::~Tbb() = default;
+
+void Tbb::setGranularity(const Size newGranularity) {
+    data->granularity = newGranularity;
+}
 
 SharedPtr<ITask> Tbb::submit(const Function<void()>& task) {
     /// \todo we need to hold the SharedPtr somewhere, otherwise the task_group would be destroyed
@@ -106,10 +112,8 @@ Size Tbb::getThreadCnt() const {
     return tbb::this_task_arena::max_concurrency();
 }
 
-Size Tbb::getRecommendedGranularity(const Size from, const Size to) const {
-    ASSERT(to > from);
-    const int threadCnt = data->arena.max_concurrency();
-    return min<Size>(1000, max<Size>((to - from) / threadCnt, 1));
+Size Tbb::getRecommendedGranularity() const {
+    return data->granularity;
 }
 
 void Tbb::parallelFor(const Size from,

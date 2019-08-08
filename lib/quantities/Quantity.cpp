@@ -14,6 +14,11 @@ Holder<TValue> Holder<TValue>::clone(const Flags<VisitorEnum> flags) const {
 }
 
 template <typename TValue>
+Holder<TValue> Holder<TValue>::createZeros(const Size particleCnt) const {
+    return Holder(order, TValue(0._f), particleCnt);
+}
+
+template <typename TValue>
 void Holder<TValue>::swap(Holder& other, Flags<VisitorEnum> flags) {
     visitMutable(other, flags, [](Array<TValue>& ar1, Array<TValue>& ar2) { ar1.swap(ar2); });
 }

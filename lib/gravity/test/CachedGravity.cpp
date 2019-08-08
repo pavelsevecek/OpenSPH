@@ -21,7 +21,7 @@ struct TestGravity : public IGravity {
         }
     }
 
-    virtual Vector eval(const Vector& UNUSED(r0), Statistics& UNUSED(stats)) const override {
+    virtual Vector eval(const Vector& UNUSED(r0)) const override {
         NOT_IMPLEMENTED;
     }
 

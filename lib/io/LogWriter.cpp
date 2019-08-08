@@ -83,6 +83,7 @@ void StandardLogWriter::write(const Storage& storage, const Statistics& stats) {
     printStat<int>(*logger, stats, StatisticsId::SPH_EVAL_TIME,                "    * SPH evaluation:       ", "ms");
     printStat<int>(*logger, stats, StatisticsId::GRAVITY_EVAL_TIME,            "    * gravity evaluation:   ", "ms");
     printStat<int>(*logger, stats, StatisticsId::COLLISION_EVAL_TIME,          "    * collision evaluation: ", "ms");
+    printStat<int>(*logger, stats, StatisticsId::GRAVITY_BUILD_TIME,           "    * tree construction:    ", "ms");
     printStat<int>(*logger, stats, StatisticsId::POSTPROCESS_EVAL_TIME,        "    * visualization:        ", "ms");
     logger->write(                                                             " - particles:   ", storage.getParticleCnt());
     printStat<MinMaxMean>(*logger, stats, StatisticsId::NEIGHBOUR_COUNT,       " - neigbours:   ");
@@ -115,9 +116,9 @@ void IntegralsLogWriter::write(const Storage& storage, const Statistics& stats) 
 }
 
 
-NullLogFile::NullLogFile()
+NullLogWriter::NullLogWriter()
     : ILogWriter(makeShared<NullLogger>(), LARGE) {}
 
-void NullLogFile::write(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) {}
+void NullLogWriter::write(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) {}
 
 NAMESPACE_SPH_END

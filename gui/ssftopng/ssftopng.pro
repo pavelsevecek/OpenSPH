@@ -10,7 +10,8 @@ LIBS += ../../gui/libgui.a
 LIBS += ../../lib/liblib.a # must be used after libgui
 LIBS += `wx-config --libs --gl-libs`
 
-include(../../lib/inc.pro)
+include(../../lib/sharedLib.pro)
+
 QMAKE_CXXFLAGS += `wx-config --cxxflags`
 
 SOURCES += \

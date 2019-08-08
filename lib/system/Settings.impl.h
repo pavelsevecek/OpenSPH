@@ -13,6 +13,7 @@ NAMESPACE_SPH_BEGIN
 template <typename TEnum>
 Settings<TEnum>::Settings(std::initializer_list<Entry> list) {
     for (auto& entry : list) {
+        ASSERT(!entries.contains(entry.id), "Duplicate settings ID ", int(entry.id));
         entries.insert(entry.id, entry);
     }
 }
@@ -165,6 +166,17 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Value& defaultValue, co
             if (ss.fail()) {
                 return false;
             }
+            if (textValue == "0") {
+                // special value representing empty flags;
+                // we need to check that this is the only thing on the line
+                ss >> textValue;
+                if (!ss && flags == 0) {
+                    flags = 0;
+                    break;
+                } else {
+                    return false;
+                }
+            }
             Optional<int> value = EnumMap::fromString(textValue, id);
             if (!value) {
                 return false;
@@ -209,7 +221,7 @@ Outcome Settings<TEnum>::loadFromFile(const Path& path) {
         bool found = false;
         for (auto& e : descriptors.entries) {
             if (e.value.name == trimmedKey) {
-                entries.insert(e.value.id, Entry{});
+                entries.insert(e.value.id, e.value);
                 if (!setValueByType(entries[e.value.id], e.value.value, value)) {
                     return "Invalid value of key " + trimmedKey + ": " + value;
                 }
@@ -232,18 +244,20 @@ Outcome Settings<TEnum>::saveToFile(const Path& path) const {
         return "Cannot save settings: " + dirCreated.error();
     }
 
+    const Settings& descriptors = getDefaults();
     try {
         std::ofstream ofs(path.native());
         for (auto& e : entries) {
             const Entry& entry = e.value;
-            if (!entry.desc.empty()) {
-                std::string desc = "# " + entry.desc;
+            const Entry& descriptor = descriptors.entries[e.key];
+            if (!descriptor.desc.empty()) {
+                std::string desc = "# " + descriptor.desc;
                 desc = setLineBreak(desc, 120);
                 desc = replaceAll(desc, "\n", "\n# ");
                 ofs << desc << std::endl;
             }
 
-            ofs << std::setw(30) << std::left << entry.name << " = ";
+            ofs << std::setw(30) << std::left << descriptor.name << " = ";
             switch (entry.value.getTypeIdx()) {
             case BOOL:
                 ofs << (entry.value.template get<bool>() ? "true" : "false");
@@ -287,12 +301,12 @@ Outcome Settings<TEnum>::saveToFile(const Path& path) const {
 }
 
 template <typename TEnum>
-Expected<bool> Settings<TEnum>::tryLoadFileOrSaveCurrent(const Path& path, const Settings& overrides) {
+bool Settings<TEnum>::tryLoadFileOrSaveCurrent(const Path& path, const Settings& overrides) {
     if (FileSystem::pathExists(path)) {
         // load from file and apply the overrides
         const Outcome result = this->loadFromFile(path);
         if (!result) {
-            return makeUnexpected<bool>(result.error());
+            throw IoError(result.error());
         }
         this->addEntries(overrides);
         return true;

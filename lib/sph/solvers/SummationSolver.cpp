@@ -10,7 +10,7 @@
 NAMESPACE_SPH_BEGIN
 
 static EquationHolder getEquations(const RunSettings& settings) {
-    Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
+    Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES);
     EquationHolder equations;
     if (forces.has(ForceEnum::PRESSURE)) {
         equations += makeTerm<PressureForce>();
@@ -22,7 +22,7 @@ static EquationHolder getEquations(const RunSettings& settings) {
 
     // we evolve density and smoothing length ourselves (outside the equation framework)
 
-    ASSERT(!forces.has(ForceEnum::GRAVITY), "Summation solver cannot be currently used with gravity");
+    ASSERT(!forces.has(ForceEnum::SELF_GRAVITY), "Summation solver cannot be currently used with gravity");
 
     return equations;
 }
@@ -31,13 +31,13 @@ SummationSolver::SummationSolver(IScheduler& scheduler,
     const RunSettings& settings,
     const EquationHolder& additionalEquations)
     : SymmetricSolver(scheduler, settings, getEquations(settings) + additionalEquations) {
-    eta = settings.get<Float>(RunSettingsId::SPH_KERNEL_ETA);
-    targetDensityDifference = settings.get<Float>(RunSettingsId::SUMMATION_DENSITY_DELTA);
+
+    targetDensityDifference = settings.get<Float>(RunSettingsId::SPH_SUMMATION_DENSITY_DELTA);
     densityKernel = Factory::getKernel<DIMENSIONS>(settings);
     Flags<SmoothingLengthEnum> flags =
-        settings.getFlags<SmoothingLengthEnum>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH);
+        settings.getFlags<SmoothingLengthEnum>(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH);
     adaptiveH = !flags.has(SmoothingLengthEnum::CONST);
-    maxIteration = adaptiveH ? settings.get<int>(RunSettingsId::SUMMATION_MAX_ITERATIONS) : 1;
+    maxIteration = adaptiveH ? settings.get<int>(RunSettingsId::SPH_SUMMATION_MAX_ITERATIONS) : 1;
 }
 
 void SummationSolver::create(Storage& storage, IMaterial& material) const {
@@ -63,8 +63,14 @@ void SummationSolver::beforeLoop(Storage& storage, Statistics& stats) {
         h[i] = r[i][H];
     }
 
+    Float eta = 0._f;
+    for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
+        // all eta's should be the same, but let's use max to be sure
+        eta = max(eta, storage.getMaterial(matId)->getParam<Float>(BodySettingsId::SMOOTHING_LENGTH_ETA));
+    }
+
     Atomic<Float> totalDiff = 0._f; /// \todo use thread local for summing?
-    auto functor = [this, r, m, &totalDiff](const Size i, ThreadData& data) {
+    auto functor = [this, r, m, eta, &totalDiff](const Size i, ThreadData& data) {
         /// \todo do we have to recompute neighbours in every iteration?
         // find all neighbours
         finder->findAll(i, h[i] * kernel.radius(), data.neighs);
@@ -86,7 +92,7 @@ void SummationSolver::beforeLoop(Storage& storage, Statistics& stats) {
     finder->build(scheduler, r);
     Size iterationIdx = 0;
     for (; iterationIdx < maxIteration; ++iterationIdx) {
-        parallelFor(scheduler, threadData, 0, r.size(), granularity, functor);
+        parallelFor(scheduler, threadData, 0, r.size(), functor);
         const Float diff = totalDiff / r.size();
         if (diff < targetDensityDifference) {
             break;

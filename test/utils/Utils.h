@@ -3,7 +3,7 @@
 /// \file Utils.h
 /// \brief Additional helper macros and functions for unit testing
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "catch.hpp"
 #include "io/Logger.h"
@@ -16,7 +16,7 @@
 #define REQUIRE_ASSERT(func)                                                                                 \
     {                                                                                                        \
         Sph::Assert::ScopedAssertExceptionEnabler enabler;                                                   \
-        REQUIRE_THROWS((void)(func));                                                                        \
+        REQUIRE_THROWS_AS((void)(func), Sph::Assert::Exception);                                             \
     }
 #else
 #define REQUIRE_ASSERT(func)

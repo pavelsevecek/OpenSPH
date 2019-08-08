@@ -8,6 +8,6 @@ DEPENDPATH += . ../lib
 LIBS += ../lib/liblib.a
 PRE_TARGETDEPS += ../lib/liblib.a
 
-include(../lib/inc.pro)
+include(../lib/sharedLib.pro)
 
 SOURCES += main.cpp

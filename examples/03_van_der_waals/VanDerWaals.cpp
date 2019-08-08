@@ -1,4 +1,5 @@
 #include "Sph.h"
+#include <iostream>
 
 using namespace Sph;
 
@@ -50,14 +51,13 @@ public:
 
 class VanDerWallsSimulation : public IRun {
 public:
-    virtual void setUp() override {
+    virtual void setUp(SharedPtr<Storage> storage) override {
         settings.set(RunSettingsId::RUN_NAME, std::string("Van der Waals"));
 
         // We simulate a gass, so the only force in the system is due to pressure gradient
-        settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE);
+        settings.set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE);
 
-        storage = makeShared<Storage>();
-        InitialConditions ic(*scheduler, settings);
+        InitialConditions ic(settings);
         SphericalDomain domain(Vector(0._f), 1.e3_f);
         BodySettings body;
         body.set(BodySettingsId::PARTICLE_COUNT, 10000);
@@ -74,12 +74,17 @@ public:
         ic.addMonolithicBody(*storage, domain, std::move(material));
     }
 
-    virtual void tearDown(const Statistics& UNUSED(stats)) override {}
+    virtual void tearDown(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {}
 };
 
 int main() {
-    VanDerWallsSimulation simulation;
-    simulation.setUp();
-    simulation.run();
+    try {
+        VanDerWallsSimulation simulation;
+        Storage storage;
+        simulation.run(storage);
+    } catch (Exception& e) {
+        std::cout << "Error in simulation: " << e.what() << std::endl;
+        return -1;
+    }
     return 0;
 }

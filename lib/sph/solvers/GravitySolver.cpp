@@ -5,6 +5,7 @@
 #include "sph/equations/Potentials.h"
 #include "sph/kernel/Kernel.h"
 #include "sph/solvers/AsymmetricSolver.h"
+#include "sph/solvers/DensityIndependentSolver.h"
 #include "sph/solvers/EnergyConservingSolver.h"
 #include "sph/solvers/SymmetricSolver.h"
 #include "system/Factory.h"
@@ -17,6 +18,19 @@ GravitySolver<TSphSolver>::GravitySolver(IScheduler& scheduler,
     const RunSettings& settings,
     const EquationHolder& equations)
     : GravitySolver(scheduler, settings, equations, Factory::getGravity(settings)) {}
+
+template <typename TSphSolver>
+GravitySolver<TSphSolver>::GravitySolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    const EquationHolder& equations,
+    AutoPtr<IGravity>&& gravity)
+    : TSphSolver(scheduler, settings, equations)
+    , gravity(std::move(gravity)) {
+
+    // make sure acceleration are being accumulated
+    Accumulated& results = this->derivatives.getAccumulated();
+    results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
+}
 
 template <>
 GravitySolver<SymmetricSolver>::GravitySolver(IScheduler& scheduler,
@@ -33,48 +47,26 @@ GravitySolver<SymmetricSolver>::GravitySolver(IScheduler& scheduler,
     }
 }
 
-template <>
-GravitySolver<AsymmetricSolver>::GravitySolver(IScheduler& scheduler,
-    const RunSettings& settings,
-    const EquationHolder& equations,
-    AutoPtr<IGravity>&& gravity)
-    : AsymmetricSolver(scheduler, settings, equations)
-    , gravity(std::move(gravity)) {
-
-    // make sure acceleration are being accumulated
-    Accumulated& results = derivatives.getAccumulated();
-    results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
-}
-
-template <>
-GravitySolver<EnergyConservingSolver>::GravitySolver(IScheduler& scheduler,
-    const RunSettings& settings,
-    const EquationHolder& equations,
-    AutoPtr<IGravity>&& gravity)
-    : EnergyConservingSolver(scheduler, settings, equations)
-    , gravity(std::move(gravity)) {
-
-    // make sure acceleration are being accumulated
-    Accumulated& results = derivatives.getAccumulated();
-    results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
-}
-
 template <typename TSphSolver>
 GravitySolver<TSphSolver>::~GravitySolver() = default;
 
 template <typename TSphSolver>
 void GravitySolver<TSphSolver>::loop(Storage& storage, Statistics& stats) {
+    VERBOSE_LOG
+
     // first, do asymmetric evaluation of gravity:
 
     // build gravity tree
+    Timer timer;
     gravity->build(this->scheduler, storage);
+    stats.set(StatisticsId::GRAVITY_BUILD_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
 
     // get acceleration buffer corresponding to first thread (to save some memory + time)
     Accumulated& accumulated = this->getAccumulated();
     ArrayView<Vector> dv = accumulated.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
 
     // evaluate gravity for each particle
-    Timer timer;
+    timer.restart();
     gravity->evalAll(this->scheduler, dv, stats);
     stats.set(StatisticsId::GRAVITY_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
 
@@ -125,7 +117,8 @@ const IBasicFinder& GravitySolver<EnergyConservingSolver>::getFinder(ArrayView<c
 
 template <>
 const IBasicFinder& GravitySolver<SymmetricSolver>::getFinder(ArrayView<const Vector> UNUSED(r)) {
-    // symmetric solver currently does not use this, we just implement it to make the templates work ...
+    // Symmetric solver currently does not use this, we just implement it to make the templates work ...
+    // If implemented, make sure to include RANK in the created tree - BarnesHut currently does not do that
     NOT_IMPLEMENTED;
 }
 
@@ -142,6 +135,7 @@ void GravitySolver<TSphSolver>::sanityCheck(const Storage& storage) const {
 
 template class GravitySolver<SymmetricSolver>;
 template class GravitySolver<AsymmetricSolver>;
+// template class GravitySolver<DensityIndependentSolver>;
 template class GravitySolver<EnergyConservingSolver>;
 
 NAMESPACE_SPH_END

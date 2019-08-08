@@ -1,4 +1,5 @@
 #include "Sph.h"
+#include <iostream>
 
 using namespace Sph;
 
@@ -60,7 +61,7 @@ public:
 
 class DeathStar : public IRun {
 public:
-    virtual void setUp() override {
+    virtual void setUp(SharedPtr<Storage> storage) override {
 
         // base spherical domain without the crater with radius 1000m
         SphericalDomain primarySphere(Vector(0._f), 1.e3_f);
@@ -72,24 +73,28 @@ public:
         SubtractDomain domain(primarySphere, subtractedSphere);
 
         // the rest is the same as in "Hello Asteroid"
-        storage = makeShared<Storage>();
-        InitialConditions ic(*scheduler, settings);
+        InitialConditions ic(settings);
         BodySettings body;
         ic.addMonolithicBody(*storage, domain, body);
 
         settings.set(RunSettingsId::RUN_NAME, std::string("Death star"));
-        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1._f));
+        settings.set(RunSettingsId::RUN_END_TIME, 1._f);
     }
 
-    virtual void tearDown(const Statistics& stats) override {
+    virtual void tearDown(const Storage& storage, const Statistics& stats) override {
         BinaryOutput io(Path("output.ssf"));
-        io.dump(*storage, stats);
+        io.dump(storage, stats);
     }
 };
 
 int main() {
-    DeathStar simulation;
-    simulation.setUp();
-    simulation.run();
+    try {
+        DeathStar simulation;
+        Storage storage;
+        simulation.run(storage);
+    } catch (Exception& e) {
+        std::cout << "Error during simulation: " << e.what() << std::endl;
+        return -1;
+    }
     return 0;
 }

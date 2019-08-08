@@ -16,8 +16,7 @@ NAMESPACE_SPH_BEGIN
 OrthoPane::OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings& UNUSED(gui))
     : IGraphicsPane(parent)
     , controller(controller) {
-    /// \todo auto-expand
-    this->SetMinSize(wxSize(1024, 900));
+    this->SetMinSize(wxSize(300, 300));
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(OrthoPane::onPaint));
     this->Connect(wxEVT_MOTION, wxMouseEventHandler(OrthoPane::onMouseMotion));
     this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(OrthoPane::onMouseWheel));
@@ -44,6 +43,7 @@ void OrthoPane::resetView() {
 }
 
 void OrthoPane::onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) {
+    /// \todo should not be here
     camera->initialize(storage);
 }
 
@@ -134,6 +134,7 @@ void OrthoPane::onResize(wxSizeEvent& evt) {
     const Pixel newSize(max(10, evt.GetSize().x), max(10, evt.GetSize().y));
     arcBall.resize(newSize);
     camera->resize(newSize);
+    controller->tryRedraw();
 }
 
 NAMESPACE_SPH_END

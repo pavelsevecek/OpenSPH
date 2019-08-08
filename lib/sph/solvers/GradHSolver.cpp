@@ -108,7 +108,7 @@ void GradHSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
         finder.findAll(i, radius, data.neighs);
         gradH.eval(kernel, i, data.neighs);
     };
-    parallelFor(scheduler, threadData, 0, r.size(), granularity, preFunctor);
+    parallelFor(scheduler, threadData, 0, r.size(), preFunctor);
 
     ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
     ArrayView<Float> omega = storage.getValue<Float>(QuantityId::GRAD_H);
@@ -142,7 +142,7 @@ void GradHSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
 
         neighs[i] = data.idxs.size();
     };
-    parallelFor(scheduler, threadData, 0, r.size(), granularity, functor);
+    parallelFor(scheduler, threadData, 0, r.size(), functor);
 }
 
 NAMESPACE_SPH_END

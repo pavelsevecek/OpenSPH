@@ -3,7 +3,7 @@
 /// \file XSph.h
 /// \brief XSPH correction to the integration of particle positions
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "sph/equations/DerivativeHelpers.h"
 #include "sph/equations/EquationTerm.h"
@@ -36,7 +36,7 @@ private:
         explicit Derivative(const RunSettings& settings)
             : DerivativeTemplate<Derivative>(settings)
             , kernel(Factory::getKernel<DIMENSIONS>(settings)) {
-            epsilon = settings.get<Float>(RunSettingsId::XSPH_EPSILON);
+            epsilon = settings.get<Float>(RunSettingsId::SPH_XSPH_EPSILON);
         }
 
         INLINE void additionalCreate(Accumulated& results) {

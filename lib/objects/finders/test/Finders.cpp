@@ -1,4 +1,5 @@
 #include "catch.hpp"
+#include "io/FileManager.h"
 #include "objects/finders/BruteForceFinder.h"
 #include "objects/finders/KdTree.h"
 #include "objects/finders/LinkedList.h"
@@ -7,8 +8,11 @@
 #include "objects/geometry/Domain.h"
 #include "objects/utility/ArrayUtils.h"
 #include "quantities/Storage.h"
+#include "run/Node.h"
+#include "run/workers/InitialConditionWorkers.h"
+#include "run/workers/ParticleWorkers.h"
 #include "sph/initial/Distribution.h"
-#include "sph/initial/Presets.h"
+#include "system/Settings.h"
 #include "tests/Approx.h"
 #include "thread/Pool.h"
 #include "thread/Tbb.h"
@@ -347,48 +351,46 @@ TEST_CASE("KdTree iterateTree topDown", "[finders]") {
     REQUIRE(visitedCnt == tree.getNodeCnt());
 }
 
+class KdTreeWorkerCallbacks : public NullWorkerCallbacks {
+public:
+    int checkedCnt = 0;
+
+    virtual void onEnd(const Storage& storage, const Statistics& UNUSED(stats)) override {
+        REQUIRE(storage.getParticleCnt() > 10);
+        KdTree<KdNode> tree;
+        REQUIRE_NOTHROW(tree.build(SEQUENTIAL, storage.getValue<Vector>(QuantityId::POSITION)));
+        REQUIRE(tree.sanityCheck());
+        checkedCnt++;
+    }
+};
+
 TEST_CASE("KdTree empty leaf bug", "[finders]") {
     // before 2018-10-23, this test would produce empty leafs in KdTree and fail a sanity check
 
-    RunSettings settings;
-
-    CollisionParams params;
-    params.geometry.set(CollisionGeometrySettingsId::TARGET_RADIUS, 1.e5_f)
-        .set(CollisionGeometrySettingsId::IMPACTOR_RADIUS, 1.3e4_f)
-        .set(CollisionGeometrySettingsId::IMPACT_ANGLE, 0._f)
+    CollisionGeometrySettings geometry;
+    geometry.set(CollisionGeometrySettingsId::IMPACT_ANGLE, 0._f)
         .set(CollisionGeometrySettingsId::IMPACT_SPEED, 5.e3_f);
 
-    Storage storage;
-    CollisionInitialConditions collision(SEQUENTIAL, settings, params);
-    collision.addTarget(storage);
-    collision.addImpactor(storage);
+    SharedPtr<WorkerNode> setup = makeNode<CollisionGeometrySetup>("collision", geometry);
 
-    KdTree<KdNode> tree;
-    REQUIRE_NOTHROW(tree.build(SEQUENTIAL, storage.getValue<Vector>(QuantityId::POSITION)));
-    REQUIRE(tree.sanityCheck());
+    BodySettings body;
+    body.set(BodySettingsId::BODY_SHAPE_TYPE, DomainEnum::SPHERICAL);
+    body.set(BodySettingsId::BODY_RADIUS, 1.e5_f);
+    SharedPtr<WorkerNode> target = makeNode<MonolithicBodyIc>("target", body);
+    target->connect(setup, "target");
+
+    body.set(BodySettingsId::BODY_RADIUS, 1.3e4_f);
+    SharedPtr<WorkerNode> impactor = makeNode<MonolithicBodyIc>("impactor", body);
+    impactor->connect(setup, "impactor");
+
+    KdTreeWorkerCallbacks callbacks;
+    setup->run(EMPTY_SETTINGS, callbacks);
+
+    // sanity check to make sure the test was actually executed
+    REQUIRE(callbacks.checkedCnt == 3);
 }
-
-/*TEST_CASE("LinkedList", "[finders]") {
-    LinkedList linkedList;
-    testFinder(linkedList);
-    testFinderSmallerH(linkedList);
-}*/
 
 TEST_CASE("UniformGridFinder", "[finders]") {
     UniformGridFinder finder;
     testFinder(finder);
 }
-
-/*TEST_CASE("Octree", "[finders]") {
-    Octree finder;
-    /// \todo testFinder(finder);
-
-    // test enumerating children
-    HexagonalPacking distr;
-    SphericalDomain domain(Vector(0._f), 2._f);
-    Array<Vector> storage = distr.generate(1000, domain);
-    finder.build(storage);
-    Size cnt = 0;
-    finder.enumerateChildren([&cnt](OctreeNode& node) { cnt += node.points.size(); });
-    REQUIRE(cnt == storage.size());
-}*/

@@ -3,7 +3,7 @@
 /// \file CachedGravity.h
 /// \brief Wrapper of other IGravity object that uses cached accelerations to speed-up the evaluation
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "gravity/IGravity.h"
 #include "system/Settings.h"
@@ -64,10 +64,10 @@ public:
         }
     }
 
-    virtual Vector eval(const Vector& r0, Statistics& stats) const override {
+    virtual Vector eval(const Vector& r0) const override {
         // we could cache this as well, but the function is mainly used for testing and some utilities where
         // performance does not matter, so it's probably not worth it.
-        return gravity->eval(r0, stats);
+        return gravity->eval(r0);
     }
 
     virtual Float evalEnergy(IScheduler& scheduler, Statistics& stats) const override {

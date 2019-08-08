@@ -6,19 +6,14 @@ NAMESPACE_SPH_BEGIN
 
 const std::thread::id MAIN_THREAD_ID = std::this_thread::get_id();
 
-FunctionChecker::FunctionChecker(std::atomic<Size>& reentrantCnt, std::atomic<Size>& totalCnt)
+FunctionChecker::FunctionChecker(std::atomic<Size>& reentrantCnt,
+    std::atomic<Size>& totalCnt,
+    const Flags<CheckFunction> flags)
     : reentrantCnt(reentrantCnt)
-    , totalCnt(totalCnt) {
+    , flags(flags) {
     reentrantCnt++;
     totalCnt++;
-}
 
-FunctionChecker::~FunctionChecker() {
-    MARK_USED(totalCnt); // to silence clang warning
-    reentrantCnt--;
-}
-
-void FunctionChecker::check(const Flags<CheckFunction>& flags) {
     if (flags.has(CheckFunction::MAIN_THREAD)) {
         ASSERT(std::this_thread::get_id() == MAIN_THREAD_ID, "Called from different thread");
     }
@@ -30,6 +25,14 @@ void FunctionChecker::check(const Flags<CheckFunction>& flags) {
     }
     if (flags.has(CheckFunction::ONCE)) {
         ASSERT(totalCnt == 1, "Called more than once");
+    }
+}
+
+FunctionChecker::~FunctionChecker() {
+    reentrantCnt--;
+
+    if (flags.has(CheckFunction::NO_THROW)) {
+        ASSERT(!std::uncaught_exception(), "Function threw an exception");
     }
 }
 

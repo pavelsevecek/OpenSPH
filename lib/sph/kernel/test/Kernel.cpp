@@ -50,7 +50,8 @@ void testKernel(const TKernel& kernel,
     // normalization
     if (flags.has(KernelTestFlag::NORMALIZATION)) {
         const Float targetError = 1.e-3_f;
-        Integrator<> in(makeAuto<SphericalDomain>(Vector(0._f), kernel.radius()));
+        SphericalDomain domain(Vector(0._f), kernel.radius());
+        Integrator<> in(domain);
         Float norm = in.integrate([&](const Vector& v) { return kernel.value(v, 1._f); }, targetError);
         REQUIRE(norm == approx(1._f, 5._f * kernel.radius() * targetError));
     }
@@ -228,7 +229,8 @@ TEST_CASE("Thomas-Couchman kernel", "[kernel]") {
     auto flags = KernelTestFlag::NORMALIZATION | KernelTestFlag::EQUALS_LUT |
                  KernelTestFlag::VALUES_CONTINUOUS | KernelTestFlag::GRADIENT_CONTINUOUS;
 
-    testKernel<3>(kernel,
+    testKernel<3>(
+        kernel,
         [](const auto& kernel) {
             REQUIRE(kernel.radius() == 2._f);
 
@@ -246,7 +248,8 @@ TEST_CASE("CoreTriangle kernel", "[kernel]") {
     auto flags = KernelTestFlag::EQUALS_LUT | KernelTestFlag::GRADIENT_CONTINUOUS |
                  KernelTestFlag::NORMALIZATION | KernelTestFlag::VALUES_CONTINUOUS |
                  KernelTestFlag::VALUE_GRADIENT_CONSISTENCY;
-    testKernel<3>(kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 1._f); }, flags, 0.2_f);
+    testKernel<3>(
+        kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 1._f); }, flags, 0.2_f);
 }
 
 TEST_CASE("Triangle kernel", "[kernel]") {
@@ -254,7 +257,8 @@ TEST_CASE("Triangle kernel", "[kernel]") {
     // triangle is continuous, but it has discontinuous derivatives
     auto flags = KernelTestFlag::VALUE_GRADIENT_CONSISTENCY | KernelTestFlag::NORMALIZATION |
                  KernelTestFlag::EQUALS_LUT | KernelTestFlag::VALUES_CONTINUOUS;
-    testKernel<3>(kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 1._f); }, flags, 0.01_f);
+    testKernel<3>(
+        kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 1._f); }, flags, 0.01_f);
 }
 
 TEST_CASE("Scaling kernel", "[kernel]") {

@@ -3,7 +3,7 @@
 /// \file Pool.h
 /// \brief Simple thread pool with fixed number of threads
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Function.h"
@@ -74,6 +74,9 @@ private:
     /// Threads managed by this pool
     Array<AutoPtr<std::thread>> threads;
 
+    /// Selected granularity of the parallel processing.
+    Size granularity;
+
     /// Queue of waiting tasks.
     std::queue<SharedPtr<Task>> tasks;
 
@@ -96,8 +99,10 @@ private:
     static SharedPtr<ThreadPool> globalInstance;
 
 public:
-    /// Initialize thread pool given the number of threads to use. By default, all available threads are used.
-    ThreadPool(const Size numThreads = 0);
+    /// \brief Initialize thread pool given the number of threads to use.
+    ///
+    /// By default, all available threads are used.
+    ThreadPool(const Size numThreads = 0, const Size granularity = 1000);
 
     ~ThreadPool();
 
@@ -116,7 +121,7 @@ public:
     /// Note that this number is constant during the lifetime of thread pool.
     virtual Size getThreadCnt() const override;
 
-    virtual Size getRecommendedGranularity(const Size from, const Size to) const override;
+    virtual Size getRecommendedGranularity() const override;
 
     /// \brief Blocks until all submitted tasks has been finished.
     void waitForAll();
@@ -126,6 +131,11 @@ public:
     /// This includes both tasks currently running and tasks waiting in processing queue.
     Size remainingTaskCnt() {
         return tasksLeft;
+    }
+
+    /// \brief Modifies the default granularity of the thread pool.
+    void setGranularity(const Size newGranularity) {
+        granularity = newGranularity;
     }
 
     /// \brief Returns the global instance of the thread pool.

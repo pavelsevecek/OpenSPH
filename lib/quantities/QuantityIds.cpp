@@ -44,10 +44,10 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Deviatoric stress", L"S", ValueEnum::TRACELESS_TENSOR);
     case QuantityId::SPECIFIC_ENTROPY:
         return QuantityMetadata("Specific entropy", L"s", ValueEnum::SCALAR);
-    case QuantityId::ENERGY_DENSITY:
-        return QuantityMetadata("Energy density", L"q", ValueEnum::SCALAR);
-    case QuantityId::ENERGY_PER_PARTICLE:
-        return QuantityMetadata("Energy per particle", L"U", ValueEnum::SCALAR);
+    case QuantityId::GENERALIZED_ENERGY:
+        return QuantityMetadata("Generalized energy", L"Y", ValueEnum::SCALAR);
+    case QuantityId::GENERALIZED_PRESSURE:
+        return QuantityMetadata("Generalized pressure", L"p^alpha", ValueEnum::SCALAR);
     case QuantityId::DAMAGE:
         return QuantityMetadata("Damage", L"D", ValueEnum::SCALAR);
     case QuantityId::EPS_MIN:
@@ -58,8 +58,6 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Explicit crack growth", L"???", ValueEnum::SCALAR);
     case QuantityId::N_FLAWS:
         return QuantityMetadata("Number of flaws", L"N_flaws", ValueEnum::INDEX);
-    case QuantityId::FLAW_ACTIVATION_IDX:
-        return QuantityMetadata("Flaw activation idx", L"Act", ValueEnum::INDEX);
     case QuantityId::STRESS_REDUCING:
         return QuantityMetadata("Yielding reduce", L"Red", ValueEnum::SCALAR);
     case QuantityId::VELOCITY_GRADIENT:
@@ -78,6 +76,8 @@ QuantityMetadata getMetadata(const QuantityId key) {
             ValueEnum::VECTOR);
     case QuantityId::FRICTION:
         return QuantityMetadata("Friction", L"f", ValueEnum::VECTOR);
+    case QuantityId::VIBRATIONAL_VELOCITY:
+        return QuantityMetadata("Vibrational velocity", L"v_vib", ValueEnum::SCALAR);
     case QuantityId::ENERGY_LAPLACIAN:
         return QuantityMetadata("Energy laplacian", L"\u0394u" /*Delta u*/, ValueEnum::SCALAR);
     case QuantityId::AV_ALPHA:
@@ -93,13 +93,13 @@ QuantityMetadata getMetadata(const QuantityId key) {
     case QuantityId::FLAG:
         return QuantityMetadata("Flag", L"flag", ValueEnum::INDEX);
     case QuantityId::MATERIAL_ID:
-        return QuantityMetadata("MaterialId", L"matID", ValueEnum::INDEX);
+        return QuantityMetadata("Material ID", L"matID", ValueEnum::INDEX);
     case QuantityId::XSPH_VELOCITIES:
         return QuantityMetadata("XSPH correction", L"xsph", ValueEnum::VECTOR);
     case QuantityId::GRAD_H:
         return QuantityMetadata("Grad-h terms", L"\u03A9" /*Omega*/, ValueEnum::SCALAR);
-    case QuantityId::GRAVITY_POTENTIAL:
-        return QuantityMetadata("Grav. potential", L"\u03A6" /*Phi*/, ValueEnum::SCALAR);
+    case QuantityId::AGGREGATE_ID:
+        return QuantityMetadata("Aggregate ID", L"i", ValueEnum::INDEX);
     case QuantityId::ANGULAR_FREQUENCY:
         return QuantityMetadata("Angular frequency", L"\u03C9" /*omega*/, ValueEnum::VECTOR);
     case QuantityId::ANGULAR_MOMENTUM:
@@ -114,6 +114,8 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Phase angle", L"\u03C6" /*phi*/, ValueEnum::VECTOR);
     case QuantityId::SMOOTHING_LENGTH:
         return QuantityMetadata("Smoothing length", L"h", ValueEnum::SCALAR);
+    case QuantityId::UVW:
+        return QuantityMetadata("Mapping coordinates", L"uvw", ValueEnum::VECTOR);
     default:
         NOT_IMPLEMENTED;
     }

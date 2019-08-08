@@ -3,7 +3,7 @@
 /// \file Distribution.h
 /// \brief Filling spatial domain with SPH particles
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "math/rng/Rng.h"
 #include "objects/containers/Array.h"
@@ -80,37 +80,56 @@ public:
         SPH5_COMPATIBILITY = 1 << 2
     };
 
-    HexagonalPacking(const Flags<Options> flags = Options::CENTER);
-
-    virtual Array<Vector> generate(IScheduler& scheduler, const Size n, const IDomain& domain) const override;
-
 private:
     Flags<Options> flags;
+
+    Function<bool(Float)> progressCallback;
+
+public:
+    HexagonalPacking(const Flags<Options> flags = Options::CENTER);
+
+    HexagonalPacking(const Flags<Options> flags, Function<bool(Float)> progressCallback);
+
+    virtual Array<Vector> generate(IScheduler& scheduler, const Size n, const IDomain& domain) const override;
 };
 
 /// \brief Parameters of \ref DiehlDistribution.
 struct DiehlParams {
     using DensityFunc = Function<Float(const Vector& position)>;
 
-    /// Function specifies the particle density in space. Does not have to be normalized, only a relative
-    /// number of particles at different places is relevant. It has to be strictly non-negative in the domain.
+    /// \brief Function specifies the particle density in space.
+    ///
+    /// Does not have to be normalized, only a relative number of particles at different places is relevant.
+    /// It has to be strictly non-negative in the domain.
     DensityFunc particleDensity = [](const Vector&) { return 1._f; };
 
-    /// Allowed difference between the expected number of particles and the number of generated particles.
+    /// \brief Allowed difference between the expected and actual number of particles.
+    ///
     /// Lower value generates number of particles closer to required value, but takes longer to compute.
     Float maxDifference = 10;
 
-    /// Number of iterations. For zero, distribution of particles is simply random, higher values lead to more
-    /// evenly distributed particles (less discrepancy), but also take longer to compute.
+    /// \brief Number of iterations.
+    ///
+    /// For zero, distribution of particles is simply random, higher values lead to more evenly distributed
+    /// particles (less discrepancy), but also take longer to compute.
     Size numOfIters = 50;
 
-    /// Magnitude of repulsive force between particles that iteratively moves the to their final locations.
+    /// \brief Magnitude of a repulsive force between particles that moves them to their final locations.
+    ///
     /// Larger values mean faster convergence but less stable particle grid.
     Float strength = 0.1_f;
 
-    /// Normalization value to prevent division by zero for overlapping particles. Keep default, only for
-    /// testing.
+    /// \brief Normalization value to prevent division by zero for overlapping particles.
+    ///
+    /// Keep default, only for testing.
     Float small = 0.1_f;
+
+    /// \brief Optional callback executed once every iteration.
+    ///
+    /// The generator passes the iteration number and the current particle distribution as parameters. Functor
+    /// may return false to cancel the iterative algorithm prematurely and return the current particle
+    /// distribution.
+    Function<bool(Size iter, ArrayView<const Vector> r)> onIteration = nullptr;
 };
 
 /// \brief Distribution with given particle density.
@@ -124,13 +143,15 @@ public:
     /// \brief Constructs the distribution.
     DiehlDistribution(const DiehlParams& params);
 
-    /// Returns generated particle distribution. Smoothing lengths correspond to particle density given in the
-    /// constructor (as h ~ n^(-1/3) )
+    /// \brief Returns generated particle distribution.
+    ///
+    /// Smoothing lengths correspond to particle density given in the constructor (as h ~ n^(-1/3) )
     virtual Array<Vector> generate(IScheduler& scheduler, const Size n, const IDomain& domain) const override;
 };
 
-/// Generates particles uniformly on a line in x direction, for testing purposes. Uses only center and radius
-/// of the domain.
+/// \brief Generates particles uniformly on a line in x direction, for testing purposes.
+///
+/// Uses only center and radius of the domain.
 class LinearDistribution : public IDistribution {
 public:
     virtual Array<Vector> generate(IScheduler& scheduler, const Size n, const IDomain& domain) const override;

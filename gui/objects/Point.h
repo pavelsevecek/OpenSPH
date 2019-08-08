@@ -3,7 +3,7 @@
 /// \file Point.h
 /// \brief Simple 2D vector with integer coordinates. Provides conversion from and to wxPoint.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "math/MathUtils.h"
 #include "objects/Object.h"
@@ -81,6 +81,16 @@ struct BasicPoint {
 
     bool operator==(const TDerived& other) const {
         return x == other.x && y == other.y;
+    }
+
+    friend std::ostream& operator<<(std::ostream& stream, const BasicPoint& p) {
+        stream << p.x << " " << p.y;
+        return stream;
+    }
+
+    friend std::istream& operator>>(std::istream& stream, BasicPoint& p) {
+        stream >> p.x >> p.y;
+        return stream;
     }
 };
 

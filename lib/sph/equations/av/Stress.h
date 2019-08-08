@@ -3,7 +3,7 @@
 /// \file Stress.h
 /// \brief Form of tensor artificial viscosity for SPH with stress tensor
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/Kernel.h"

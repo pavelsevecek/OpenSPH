@@ -267,14 +267,14 @@ Expected<Array<Triangle>> ObjFile::load(const Path& path) {
         Array<Vector> vertices;
         Array<Triangle> triangles;
 
-        char symb;
+        std::string identifier;
         while (ifs) {
-            ifs >> symb;
-            if (symb == 'v') {
+            ifs >> identifier;
+            if (identifier == "v") {
                 Vector v;
                 ifs >> v[X] >> v[Y] >> v[Z];
                 vertices.push(v);
-            } else if (symb == 'f') {
+            } else if (identifier == "f") {
                 Size i, j, k;
                 ifs >> i >> j >> k;
                 triangles.emplaceBack(vertices[i - 1], vertices[j - 1], vertices[k - 1]);
@@ -285,6 +285,17 @@ Expected<Array<Triangle>> ObjFile::load(const Path& path) {
 
     } catch (std::exception& e) {
         return makeUnexpected<Array<Triangle>>(e.what());
+    }
+}
+
+AutoPtr<IMeshFile> getMeshFile(const Path& path) {
+    const std::string extension = path.extension().native();
+    if (extension == "ply") {
+        return makeAuto<PlyFile>();
+    } else if (extension == "obj") {
+        return makeAuto<ObjFile>();
+    } else {
+        NOT_IMPLEMENTED;
     }
 }
 

@@ -1,6 +1,7 @@
 #include "SsfToPng.h"
 #include "Sph.h"
 #include "gui/Factory.h"
+#include "gui/Project.h"
 #include "gui/Settings.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
@@ -35,7 +36,7 @@ bool SsfToPngApp::OnInit() {
         .set(GuiSettingsId::SURFACE_AMBIENT, 0.05_f)
         .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-0.4f, -0.1f, 0.6f)))
         .set(GuiSettingsId::RENDERER, RendererEnum::RAYTRACER)
-        .set(GuiSettingsId::RAYTRACE_ITERATION_LIMIT, 5)
+        .set(GuiSettingsId::RAYTRACE_ITERATION_LIMIT, 3)
         .set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 0)
         .set(GuiSettingsId::CAMERA, CameraEnum::PERSPECTIVE)
         .set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(-4.e4, -3.8e4_f, 0._f))
@@ -92,7 +93,8 @@ bool SsfToPngApp::OnInit() {
 #else
 
     gui.set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f))
-        .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 0._f, -6.5e5_f));
+        .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 0._f, -6.5e5_f))
+        .set(GuiSettingsId::PERSPECTIVE_TRACKED_PARTICLE, 201717);
 
     const Path dir(std::string(wxTheApp->argv[1]));
     for (Path path : FileSystem::iterateDirectory(dir)) {
@@ -109,7 +111,9 @@ bool SsfToPngApp::OnInit() {
         AutoPtr<IRenderer> renderer = Factory::getRenderer(*Tbb::getGlobalInstance(), gui);
 
         Array<SharedPtr<IColorizer>> colorizers;
-        colorizers.push(Factory::getColorizer(gui, ColorizerId(QuantityId::MASS)));
+        Project project;
+        project.getGuiSettings() = gui;
+        colorizers.push(Factory::getColorizer(project, ColorizerId(QuantityId::MASS)));
 
         RenderParams params;
         params.size = Pixel(800, 800);

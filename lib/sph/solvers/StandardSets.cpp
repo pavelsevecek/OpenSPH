@@ -10,7 +10,7 @@ NAMESPACE_SPH_BEGIN
 EquationHolder getStandardEquations(const RunSettings& settings, const EquationHolder& other) {
     EquationHolder equations;
     /// \todo test that all possible combination (pressure, stress, AV, ...) work and dont assert
-    Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
+    Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES);
     if (forces.has(ForceEnum::PRESSURE)) {
         equations += makeTerm<PressureForce>();
 
@@ -33,6 +33,11 @@ EquationHolder getStandardEquations(const RunSettings& settings, const EquationH
         equations += makeTerm<InertialForce>(omega);
     }
 
+    const Vector g = settings.get<Vector>(RunSettingsId::FRAME_CONSTANT_ACCELERATION);
+    if (g != Vector(0._f)) {
+        equations += makeExternalForce([g](const Vector& UNUSED(r)) { return g; });
+    }
+
     equations += makeTerm<ContinuityEquation>(settings);
 
     // artificial viscosity
@@ -48,7 +53,7 @@ EquationHolder getStandardEquations(const RunSettings& settings, const EquationH
     // adaptivity of smoothing length should be last as it sets 4th component of velocities (and
     // accelerations), this should be improved (similarly to derivatives - equation phases)
     Flags<SmoothingLengthEnum> hflags =
-        settings.getFlags<SmoothingLengthEnum>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH);
+        settings.getFlags<SmoothingLengthEnum>(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH);
     if (hflags.has(SmoothingLengthEnum::CONTINUITY_EQUATION)) {
         equations += makeTerm<AdaptiveSmoothingLength>(settings);
     } else {

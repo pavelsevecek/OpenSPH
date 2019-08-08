@@ -17,7 +17,7 @@ using namespace Sph;
 TEMPLATE_TEST_CASE("Rheology reduction", "[yielding]", VonMisesRheology, DruckerPragerRheology) {
     TestType rheology;
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    Storage storage(getDefaultMaterial());
+    Storage storage(getMaterial(MaterialEnum::BASALT));
 
     Array<Float> energy(10);
     energy.fill(0._f);
@@ -88,7 +88,7 @@ TEST_CASE("Yielding combinations", "[yielding]") {
             body.set(BodySettingsId::RHEOLOGY_YIELDING, yieldingId);
             body.set(BodySettingsId::RHEOLOGY_DAMAGE, damageId);
 
-            InitialConditions ic(*ThreadPool::getGlobalInstance(), settings);
+            InitialConditions ic(settings);
 
             Storage storage;
             /// \todo merging storages with different rheologies (ergo different quantities)

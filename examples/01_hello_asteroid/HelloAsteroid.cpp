@@ -1,4 +1,5 @@
 #include "Sph.h"
+#include <iostream>
 
 using namespace Sph;
 
@@ -7,14 +8,12 @@ using namespace Sph;
 // after the simulation ends.
 class HelloAsteroid : public IRun {
 public:
-    virtual void setUp() override {
-        // Create a new (empty) particle storage
-        storage = makeShared<Storage>();
+    virtual void setUp(SharedPtr<Storage> storage) override {
 
         // The easiest way to set up the initial conditions is via InitialConditions object.
         // Here we pass the default settings of the simulation, stored in variable 'settings'. For a list of
-        // settings, see RunSettingsId enum. We also pass a scheduler object, used for parallelization.
-        InitialConditions ic(*scheduler, settings);
+        // settings, see RunSettingsId enum.
+        InitialConditions ic(settings);
 
         // Domain specifying the asteroid - sphere centered at the origin with radius 1000m.
         SphericalDomain domain(Vector(0._f), 1.e3_f);
@@ -33,19 +32,32 @@ public:
         settings.set(RunSettingsId::RUN_NAME, std::string("Hello asteroid"));
 
         // Last thing - set up the duration of the simulation to 1 second
-        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1._f));
+        settings.set(RunSettingsId::RUN_END_TIME, 1._f);
     }
 
-    virtual void tearDown(const Statistics& stats) override {
+    virtual void tearDown(const Storage& storage, const Statistics& stats) override {
         // Save the result of the simulation to custom binary format.
         BinaryOutput io(Path("output.ssf"));
-        io.dump(*storage, stats);
+        io.dump(storage, stats);
     }
 };
 
 int main() {
-    HelloAsteroid simulation;
-    simulation.setUp();
-    simulation.run();
+
+    try {
+        HelloAsteroid simulation;
+
+        // To start the simulation, we need to provide it with a particle storage. Since our simulation
+        // creates the initial conditions itself, we can simply create an empty storage here.
+        Storage storage;
+        simulation.run(storage);
+
+    } catch (Exception& e) {
+        // An exception may be thrown either from user-defined setUp or tearDown function, but also
+        // while running the simulation, so we should always catch it.
+        std::cout << "Error in simulation: " << e.what() << std::endl;
+        return -1;
+    }
+
     return 0;
 }

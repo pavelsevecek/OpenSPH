@@ -3,7 +3,7 @@
 /// \file Function.h
 /// \brief Helper functions used by the code
 /// \author Pavel Sevecek
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "math/rng/Rng.h"
 #include "objects/geometry/SymmetricTensor.h"

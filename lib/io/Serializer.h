@@ -3,7 +3,7 @@
 /// \file Serializer.h
 /// \brief Data serialization and deserialization
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "io/Path.h"
 #include "objects/containers/Array.h"

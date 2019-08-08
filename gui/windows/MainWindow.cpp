@@ -1,513 +1,455 @@
 #include "gui/windows/MainWindow.h"
 #include "gui/Controller.h"
-#include "gui/Factory.h"
-#include "gui/MainLoop.h"
+#include "gui/Settings.h"
 #include "gui/Utils.h"
-#include "gui/objects/Camera.h"
-#include "gui/objects/Colorizer.h"
-#include "gui/renderers/MeshRenderer.h"
-#include "gui/renderers/ParticleRenderer.h"
-#include "gui/renderers/RayTracer.h"
-#include "gui/windows/GlPane.h"
-#include "gui/windows/OrthoPane.h"
-#include "gui/windows/ParticleProbe.h"
+#include "gui/windows/GridPage.h"
+#include "gui/windows/NodePage.h"
 #include "gui/windows/PlotView.h"
+#include "gui/windows/RunPage.h"
 #include "io/FileSystem.h"
-#include "io/LogWriter.h"
-#include "io/Logger.h"
-#include "sph/Diagnostics.h"
-#include "thread/CheckFunction.h"
-#include "thread/Pool.h"
+#include "objects/utility/IteratorAdapters.h"
+#include "post/Plot.h"
+#include "run/workers/GeometryWorkers.h"
+#include "run/workers/IoWorkers.h"
+#include "run/workers/ParticleWorkers.h"
 #include <fstream>
-#include <wx/button.h>
-#include <wx/combobox.h>
-#include <wx/gauge.h>
-#include <wx/sizer.h>
-#include <wx/spinctrl.h>
-#include <wx/statline.h>
-#include <wx/textctrl.h>
+#include <wx/aboutdlg.h>
+#include <wx/aui/auibook.h>
+#include <wx/menu.h>
+#include <wx/msgdlg.h>
 
 NAMESPACE_SPH_BEGIN
 
-class SelectedParticleIntegral : public IIntegral<Float> {
-private:
-    SharedPtr<IColorizer> colorizer;
-    Size selectedIdx;
+constexpr int NOTEBOOK_ID = 4257;
 
-public:
-    SelectedParticleIntegral(SharedPtr<IColorizer> colorizer, const Size idx)
-        : colorizer(colorizer)
-        , selectedIdx(idx) {}
+wxAuiNotebook* findNotebook() {
+    return dynamic_cast<wxAuiNotebook*>(wxWindow::FindWindowById(NOTEBOOK_ID));
+}
 
-    virtual Float evaluate(const Storage& UNUSED(storage)) const override {
-        ASSERT(colorizer->isInitialized(), colorizer->name());
-        return colorizer->evalScalar(selectedIdx).valueOr(0._f);
+
+static Expected<Path> getRecentSessionCache() {
+    Expected<Path> home = FileSystem::getHomeDirectory();
+    if (home) {
+        return home.value() / Path(".config/opensph/recent.csv");
+    } else {
+        return home;
     }
+}
 
-    virtual std::string getName() const override {
-        return colorizer->name() + " " + std::to_string(selectedIdx);
-    }
-};
-
-/// \brief Temporal plot of currently selected particle.
-///
-/// Uses current colorizer as a source quantity. If either colorizer or selected particle changes, plot is
-/// cleared. It also holds a cache of previously selected particles, so that if a previously plotted particle
-/// is re-selected, the cached data are redrawn.
-class SelectedParticlePlot : public IPlot {
-private:
-    // Currently used plot (actual implementation); may be nullptr
-    SharedPtr<TemporalPlot> currentPlot;
-
-    // Selected particle; if NOTHING, no plot is drawn
-    Optional<Size> selectedIdx;
-
-    // Colorizer used to get the scalar value of the selected particle
-    SharedPtr<IColorizer> colorizer;
-
-    // Cache of previously selected particles. Cleared every time a new colorizer is selected.
-    FlatMap<Size, SharedPtr<TemporalPlot>> plotCache;
-
-public:
-    void selectParticle(const Optional<Size> idx) {
-        if (selectedIdx.valueOr(-1) == idx.valueOr(-1)) {
-            // either the same particle or deselecting when nothing was selected; do nothing
-            return;
-        }
-        if (selectedIdx && currentPlot) {
-            // save the current plot to cache
-            plotCache.insert(selectedIdx.value(), currentPlot);
-        }
-        selectedIdx = idx;
-
-        if (idx) {
-            // try to get the plot from the cache
-            Optional<SharedPtr<TemporalPlot>&> cachedPlot = plotCache.tryGet(idx.value());
-            if (cachedPlot) {
-                // reuse the cached plot
-                currentPlot = cachedPlot.value();
-                return;
+static Array<Path> getRecentSessions() {
+    if (Expected<Path> recentCache = getRecentSessionCache()) {
+        try {
+            std::ifstream ifs(recentCache->native());
+            std::string line;
+            if (std::getline(ifs, line)) {
+                Array<std::string> strings = split(line, ',');
+                Array<Path> paths;
+                for (std::string& s : strings) {
+                    paths.emplaceBack(s);
+                }
+                return paths;
             }
-        }
-        // either deselecting or no cached plot found; clear the plot
-        this->clear();
-    }
-
-    void setColorizer(const SharedPtr<IColorizer>& newColorizer) {
-        if (colorizer != newColorizer) {
-            colorizer = newColorizer;
-            this->clear();
-            plotCache.clear();
+        } catch (std::exception& UNUSED(e)) {
+            // do nothing
         }
     }
+    return {};
+}
 
-    virtual std::string getCaption() const override {
-        if (currentPlot) {
-            return currentPlot->getCaption();
-        } else {
-            return "Selected particle";
-        }
+constexpr Size MAX_CACHE_SIZE = 8;
+
+static void addToRecentSessions(const Path& sessionPath) {
+    ASSERT(!sessionPath.empty());
+    Array<Path> sessions = getRecentSessions();
+    if (std::find(sessions.begin(), sessions.end(), sessionPath) != sessions.end()) {
+        // already in the list
+        /// \todo move to top?
+        return;
+    }
+    sessions.insert(0, sessionPath);
+    if (sessions.size() > MAX_CACHE_SIZE) {
+        sessions.pop();
     }
 
-    virtual void onTimeStep(const Storage& storage, const Statistics& stats) override {
-        if (selectedIdx && currentPlot) {
-            currentPlot->onTimeStep(storage, stats);
-        } else {
-            currentPlot.reset();
-        }
-        // also do onTimeStep for all cached plots
-        for (auto& plot : plotCache) {
-            plot.value->onTimeStep(storage, stats);
-        }
-        this->syncRanges();
-    }
-
-    virtual void clear() override {
-        if (selectedIdx) {
-            AutoPtr<SelectedParticleIntegral> integral =
-                makeAuto<SelectedParticleIntegral>(colorizer, selectedIdx.value());
-            TemporalPlot::Params params;
-            params.minRangeY = EPS;
-            params.shrinkY = false;
-            params.period = 0.01_f;
-            params.maxPointCnt = 1000;
-            currentPlot = makeAuto<TemporalPlot>(std::move(integral), params);
-        } else {
-            currentPlot.reset();
-        }
-        this->syncRanges();
-    }
-
-    virtual void plot(IDrawingContext& dc) const override {
-        if (currentPlot) {
-            currentPlot->plot(dc);
+    if (Expected<Path> recentCache = getRecentSessionCache()) {
+        try {
+            std::ofstream ofs(recentCache->native());
+            for (Size i = 0; i < sessions.size(); ++i) {
+                ofs << sessions[i].native();
+                if (i != sessions.size() - 1) {
+                    ofs << ",";
+                }
+            }
+        } catch (std::exception& UNUSED(e)) {
         }
     }
+}
 
+class NodeManagerCallbacks : public INodeManagerCallbacks {
 private:
-    /// Since range getters are not virtual, we have to update ranges manually.
-    void syncRanges() {
-        if (currentPlot) {
-            ranges.x = currentPlot->rangeX();
-            ranges.y = currentPlot->rangeY();
-        }
+    MainWindow* window;
+
+public:
+    NodeManagerCallbacks(MainWindow* window)
+        : window(window) {}
+
+    virtual void startRun(WorkerNode& node, const RunSettings& globals) const override {
+        window->addPage(node.sharedFromThis(), globals, node.instanceName());
+    }
+
+    virtual void markUnsaved() const override {
+        window->markSaved(false);
     }
 };
 
-MainWindow::MainWindow(Controller* parent, const GuiSettings& settings, RawPtr<IPluginControls> plugin)
-    : controller(parent)
-    , gui(settings) {
-    // create the frame
-    std::string title = settings.get<std::string>(GuiSettingsId::WINDOW_TITLE);
-    wxSize size(
-        settings.get<int>(GuiSettingsId::WINDOW_WIDTH), settings.get<int>(GuiSettingsId::WINDOW_HEIGHT));
-    this->Create(nullptr, wxID_ANY, title.c_str(), wxDefaultPosition, size);
 
-    // toolbar
-    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-    wxBoxSizer* toolbarSizer = createToolBar();
-    sizer->Add(toolbarSizer);
+MainWindow::MainWindow(const Path& openPath)
+    : wxFrame(nullptr,
+          wxID_ANY,
+#ifdef SPH_DEBUG
+          std::string("OpenSPH - build: ") + __DATE__ + " (DEBUG)",
+#else
+          std::string("OpenSPH - build: ") + __DATE__,
+#endif
+          wxDefaultPosition,
+          wxSize(1024, 768)) {
 
-    // everything below toolbar
-    wxBoxSizer* mainSizer = new wxBoxSizer(wxHORIZONTAL);
-    wxBoxSizer* visBarSizer = createVisBar();
-    mainSizer->Add(visBarSizer);
-    mainSizer->AddSpacer(5);
+    this->Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(MainWindow::onClose));
 
-    wxBoxSizer* middleSizer = new wxBoxSizer(wxVERTICAL);
-    pane = alignedNew<OrthoPane>(this, parent, settings);
-    middleSizer->Add(pane.get(), 4);
+    this->Maximize();
+    this->SetAutoLayout(true);
 
-    /// \todo generalize window setup
-    if (plugin) {
-        plugin->create(this, middleSizer);
-    }
-    mainSizer->Add(middleSizer);
-    mainSizer->AddSpacer(5);
+    // close button does not work in wxGTK
+    notebook = new wxAuiNotebook(this,
+        NOTEBOOK_ID,
+        wxDefaultPosition,
+        wxDefaultSize,
+        wxAUI_NB_DEFAULT_STYLE & ~wxAUI_NB_CLOSE_ON_ACTIVE_TAB);
+    notebook->SetMinSize(wxSize(1024, 768));
 
-    wxBoxSizer* sidebarSizer = createPlotBar();
-    mainSizer->Add(sidebarSizer);
-    sizer->Add(mainSizer);
+    nodePage = new NodeWindow(notebook, makeShared<NodeManagerCallbacks>(this));
+    notebook->AddPage(nodePage, "Unnamed session");
 
+    wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
+    sizer->Add(notebook, 1, wxALL | wxEXPAND);
 
     this->SetSizer(sizer);
-    this->Layout();
 
-    // connect event handlers
-    Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(MainWindow::onClose));
+    wxMenuBar* bar = new wxMenuBar();
+
+    wxMenu* projectMenu = this->createProjectMenu();
+    bar->Append(projectMenu, "&Project");
+
+    wxMenu* runMenu = this->createRunMenu();
+    bar->Append(runMenu, "&Simulation");
+    bar->EnableTop(bar->GetMenuCount() - 1, false);
+
+    wxMenu* analysisMenu = this->createAnalysisMenu();
+    bar->Append(analysisMenu, "&Analysis");
+
+    wxMenu* resultMenu = this->createResultMenu();
+    bar->Append(resultMenu, "&Result");
+    // bar->EnableTop(bar->GetMenuCount() - 1, false);
+
+    wxMenu* viewMenu = new wxMenu();
+    viewMenu->Append(NodeWindow::ID_PROPERTIES, "&Node properties");
+    viewMenu->Append(NodeWindow::ID_LIST, "&Node list");
+    viewMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& evt) { //
+        nodePage->showPanel(NodeWindow::PanelId(evt.GetId()));
+    });
+    bar->Append(viewMenu, "&Window");
+
+    wxMenu* helpMenu = new wxMenu();
+    bar->Append(helpMenu, "&Help");
+    helpMenu->Append(0, "&About");
+    helpMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [](wxCommandEvent& evt) { //
+        switch (evt.GetId()) {
+        case 0: {
+            wxAboutDialogInfo info;
+            info.SetName("OpenSPH");
+            info.SetVersion("0.2.1");
+
+            std::string desc;
+#ifdef SPH_DEBUG
+            desc += "Debug build\n";
+#else
+            desc += "Release build\n";
+#endif
+#ifdef SPH_PROFILE
+            desc += "Profiling enabled\n";
+#endif
+#ifdef SPH_USE_TBB
+            desc += "Parallelized by TBB";
+#else
+            desc += "Parallelized by built-in thread pool";
+#endif
+            info.SetDescription(desc);
+            info.SetCopyright("Pavel Sevecek <sevecek@sirrah.troja.mff.cuni.cz>");
+
+            wxAboutBox(info);
+            break;
+        }
+        default:
+            NOT_IMPLEMENTED;
+        }
+    });
+
+    this->SetMenuBar(bar);
+
+    notebook->Bind(wxEVT_AUINOTEBOOK_PAGE_CLOSE, [this](wxAuiNotebookEvent& evt) {
+        const int pageId = evt.GetSelection();
+        wxWindow* page = notebook->GetPage(pageId);
+        RunPage* runPage = dynamic_cast<RunPage*>(page);
+        NodeWindow* nodePage = dynamic_cast<NodeWindow*>(page);
+        if (nodePage || (runPage && !runPage->close())) {
+            evt.Veto();
+        }
+    });
+
+    notebook->Bind(wxEVT_AUINOTEBOOK_PAGE_CHANGED, [this](wxAuiNotebookEvent& evt) {
+        const int pageId = evt.GetSelection();
+        this->enableMenus(pageId);
+    });
+
+
+    if (!openPath.empty()) {
+        /// \todo generalize
+        const std::string ext = openPath.extension().native();
+        if (ext == "ssf" || ext == "scf" || ext == "tab") {
+            this->open(openPath);
+        } else if (ext == "sph") {
+            this->load(openPath);
+        } else {
+            wxMessageBox("Unrecognized file format", "Error", wxOK);
+        }
+    }
+
+    Project& project = Project::getInstance();
+    project.getGuiSettings().accessor = [this](GuiSettingsId UNUSED(id)) { markSaved(false); };
 }
 
-wxBoxSizer* MainWindow::createToolBar() {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    wxBoxSizer* toolbar = new wxBoxSizer(wxHORIZONTAL);
+void MainWindow::saveAs() {
+    Optional<Path> selectedPath = doSaveFileDialog("Save session", { { "OpenSPH session", "sph" } });
+    if (selectedPath) {
+        this->setProjectPath(selectedPath.value());
+        this->save();
+    }
+}
 
-    wxButton* button = new wxButton(this, wxID_ANY, "Start");
-    button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { controller->restart(); });
-    toolbar->Add(button);
+void MainWindow::save() {
+    BusyCursor wait(this);
 
-    button = new wxButton(this, wxID_ANY, "Pause");
-    toolbar->Add(button);
-    button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { controller->pause(); });
+    Config config;
+    // get project data (gui, palettes, ...)
+    Project& project = Project::getInstance();
+    project.save(config);
 
-    button = new wxButton(this, wxID_ANY, "Stop");
-    toolbar->Add(button);
-    button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { controller->stop(); });
+    // get node data
+    nodePage->save(config);
 
-    button = new wxButton(this, wxID_ANY, "Save");
-    toolbar->Add(button);
-    button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
-        static Array<FileFormat> fileFormats = {
-            { "SPH state file", "ssf" }, { "SPH compressed file", "scf" }, { "Text file", "txt" }
-        };
-        Optional<Path> path = doSaveFileDialog("Save state file", fileFormats.clone());
-        if (!path) {
+    config.save(projectPath);
+
+    this->markSaved(true);
+}
+
+void MainWindow::open(const Path& openPath) {
+    BusyCursor wait(this);
+
+    AutoPtr<Controller> controller = makeAuto<Controller>(notebook);
+    controller->open(openPath);
+
+    const Size index = notebook->GetPageCount();
+    RunPage* page = &*controller->getPage();
+
+    const Path displayedPath = openPath.parentPath().fileName() / openPath.fileName();
+    notebook->AddPage(page, displayedPath.native());
+    notebook->SetSelection(index);
+
+    RunData data;
+    data.controller = std::move(controller);
+    data.isRun = false;
+    runs.insert(page, std::move(data));
+
+    this->enableMenus(index);
+}
+
+void MainWindow::load(const Path& openPath) {
+    BusyCursor wait(this);
+
+    Path pathToLoad;
+    if (openPath.empty()) {
+        Optional<Path> selectedPath = doOpenFileDialog("Open session", { { "OpenSPH session", "sph" } });
+        if (selectedPath && FileSystem::pathExists(selectedPath.value())) {
+            pathToLoad = selectedPath.value();
+        } else {
             return;
         }
-        controller->saveState(path.value());
-    });
+    } else {
+        pathToLoad = openPath;
+    }
 
-    button = new wxButton(this, wxID_ANY, "Load");
-    toolbar->Add(button);
-    button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
-        static Array<FileFormat> fileFormats = { { "SPH state file", "ssf" } };
-        Optional<Path> path = doOpenFileDialog("Load state file", fileFormats.clone());
-        if (!path) {
-            return;
-        }
-        controller->loadState(path.value());
-    });
+    if (!FileSystem::pathExists(pathToLoad)) {
+        wxMessageBox("File '" + pathToLoad.native() + "' does not exist.");
+        return;
+    }
 
-    button = new wxButton(this, wxID_ANY, "Snap");
-    toolbar->Add(button);
-    button->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
-        Optional<Path> path = doSaveFileDialog("Save image", { { "PNG image", "png" } });
-        if (!path) {
-            return;
-        }
-        const wxBitmap& bitmap = controller->getRenderedBitmap();
-        saveToFile(bitmap, path.value());
-    });
+    const bool removed = this->removeAll();
+    if (!removed) {
+        return;
+    }
 
-    toolbar->AddSpacer(434);
+    Config config;
+    try {
+        config.load(pathToLoad);
+    } catch (Exception& e) {
+        wxMessageBox(std::string("Cannot load: ") + e.what(), "Error", wxOK);
+        return;
+    }
 
-    quantityBox = new wxComboBox(this, wxID_ANY, "", wxDefaultPosition, wxSize(200, -1));
-    quantityBox->SetWindowStyle(wxCB_SIMPLE | wxCB_READONLY);
-    quantityBox->SetSelection(0);
-    quantityBox->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& UNUSED(evt)) {
-        CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-        const int idx = quantityBox->GetSelection();
-        this->setColorizer(idx);
-    });
-    toolbar->Add(quantityBox);
+    try {
+        Project& project = Project::getInstance();
+        project.load(config);
+        nodePage->load(config);
+    } catch (Exception& e) {
+        wxMessageBox(std::string("Cannot load: ") + e.what(), "Error", wxOK);
+        return;
+    }
 
-    wxButton* resetView = new wxButton(this, wxID_ANY, "Reset view");
-    resetView->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
-        pane->resetView();
-        AutoPtr<ICamera> camera = controller->getCurrentCamera();
-        camera->transform(AffineMatrix::identity());
-        controller->refresh(std::move(camera));
-    });
-    toolbar->Add(resetView);
-
-    wxButton* refresh = new wxButton(this, wxID_ANY, "Refresh");
-    refresh->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { controller->tryRedraw(); });
-    toolbar->Add(refresh);
-
-    gauge = new wxGauge(this, wxID_ANY, 1000);
-    gauge->SetValue(0);
-    gauge->SetMinSize(wxSize(300, -1));
-    toolbar->AddSpacer(10);
-    toolbar->Add(gauge, 0, wxALIGN_CENTER_VERTICAL);
-    return toolbar;
+    this->setProjectPath(pathToLoad);
+    addToRecentSessions(FileSystem::getAbsolutePath(pathToLoad));
 }
 
-const wxSize buttonSize(250, 35);
-const wxSize textSize(120, -1);
-const wxSize spinnerSizer(145, -1);
+void MainWindow::setProjectPath(const Path& newPath) {
+    projectPath = newPath;
+    const int pageIndex = notebook->GetPageIndex(nodePage);
+    if (!projectPath.empty()) {
+        notebook->SetPageText(
+            pageIndex, "Session '" + projectPath.fileName().removeExtension().native() + "'");
+    } else {
+        notebook->SetPageText(pageIndex, "Unnamed session");
+    }
+}
 
-wxBoxSizer* MainWindow::createVisBar() {
+void MainWindow::markSaved(const bool saved) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    wxBoxSizer* visbarSizer = new wxBoxSizer(wxVERTICAL);
+    if (savedFlag == saved) {
+        return;
+    }
 
-    wxRadioButton* particleButton =
-        new wxRadioButton(this, wxID_ANY, "Particles", wxDefaultPosition, buttonSize, wxRB_GROUP);
-    visbarSizer->Add(particleButton);
+    savedFlag = saved;
+    if (saved) {
+        this->setProjectPath(projectPath); // remove the '*' mark
+    } else {
+        const int pageIndex = notebook->GetPageIndex(nodePage);
+        notebook->SetPageText(pageIndex, notebook->GetPageText(pageIndex) + " *");
+    }
+}
 
-    wxBoxSizer* cutoffSizer = new wxBoxSizer(wxHORIZONTAL);
-    cutoffSizer->AddSpacer(25);
-    wxStaticText* text = new wxStaticText(this, wxID_ANY, "Cutoff", wxDefaultPosition, textSize);
-    cutoffSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
-    const Float cutoff = gui.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
-    wxSpinCtrlDouble* cutoffSpinner =
-        new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, spinnerSizer);
-    cutoffSpinner->SetRange(0., 1000000.);
-    cutoffSpinner->SetValue(cutoff);
-    cutoffSpinner->SetDigits(3);
-    cutoffSpinner->SetIncrement(1);
-    cutoffSpinner->Bind(
-        wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent& evt) { this->updateCutoff(evt.GetValue()); });
-    cutoffSpinner->Bind(wxEVT_MOTION, [this, cutoffSpinner](wxMouseEvent& evt) {
-        static wxPoint prevPos = evt.GetPosition();
-        if (evt.Dragging()) {
-            wxPoint drag = evt.GetPosition() - prevPos;
-            const int value = cutoffSpinner->GetValue();
-            const int cutoff = max(int(value * (1.f + float(drag.y) / 500.f)), 0);
-            cutoffSpinner->SetValue(cutoff);
-            this->updateCutoff(cutoff);
+wxMenu* MainWindow::createProjectMenu() {
+    wxMenu* projectMenu = new wxMenu();
+    projectMenu->Append(0, "&New session\tCtrl+N");
+    projectMenu->Append(1, "&Save session\tCtrl+S");
+    projectMenu->Append(2, "&Save session as");
+    projectMenu->Append(3, "&Open session\tCtrl+O");
+
+    wxMenu* recentMenu = new wxMenu();
+    projectMenu->AppendSubMenu(recentMenu, "&Recent");
+    projectMenu->Append(4, "&Shared properties");
+    projectMenu->Append(5, "&Undo\tCtrl+Z");
+    projectMenu->Append(6, "&Quit");
+
+    SharedPtr<Array<Path>> recentSessions = makeShared<Array<Path>>();
+    *recentSessions = getRecentSessions();
+    for (Size i = 0; i < recentSessions->size(); ++i) {
+        recentMenu->Append(i, (*recentSessions)[i].native());
+    }
+
+    // wx handlers need to be copyable, we thus cannot capture Array
+    recentMenu->Bind(wxEVT_COMMAND_MENU_SELECTED,
+        [this, recentSessions](wxCommandEvent& evt) { this->load((*recentSessions)[evt.GetId()]); });
+
+    projectMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& evt) { //
+        switch (evt.GetId()) {
+        case 0:
+            if (this->removeAll()) {
+                this->setProjectPath(Path());
+                nodePage->reset();
+            }
+            break;
+        case 1: {
+            if (projectPath.empty()) {
+                this->saveAs();
+            } else {
+                this->save();
+            }
+            break;
         }
-        prevPos = evt.GetPosition();
+        case 2:
+            this->saveAs();
+            break;
+        case 3:
+            this->load();
+            break;
+        case 4:
+            notebook->SetSelection(0);
+            nodePage->showGlobals();
+            break;
+        case 5:
+            nodePage->undo();
+            break;
+        case 6:
+            this->Close();
+            break;
+        default:
+            NOT_IMPLEMENTED;
+        }
     });
-    cutoffSizer->Add(cutoffSpinner);
-    visbarSizer->Add(cutoffSizer);
-
-    wxBoxSizer* particleSizeSizer = new wxBoxSizer(wxHORIZONTAL);
-    particleSizeSizer->AddSpacer(25);
-    text = new wxStaticText(this, wxID_ANY, "Particle radius", wxDefaultPosition, textSize);
-    particleSizeSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
-    wxSpinCtrlDouble* particleSizeSpinner =
-        new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, spinnerSizer);
-    const Float radius = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
-    particleSizeSpinner->SetValue(radius);
-    particleSizeSpinner->SetDigits(3);
-    particleSizeSpinner->SetRange(0.001, 1000.);
-    particleSizeSpinner->SetIncrement(0.001);
-    particleSizeSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent& evt) {
-        GuiSettings& gui = controller->getParams();
-        gui.set(GuiSettingsId::PARTICLE_RADIUS, evt.GetValue());
-        controller->tryRedraw();
-    });
-    particleSizeSizer->Add(particleSizeSpinner);
-    visbarSizer->Add(particleSizeSizer);
-
-
-    wxBoxSizer* grayscaleSizer = new wxBoxSizer(wxHORIZONTAL);
-    grayscaleSizer->AddSpacer(25);
-    wxCheckBox* grayscaleBox = new wxCheckBox(this, wxID_ANY, "Force grayscale");
-    grayscaleBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
-        const bool value = evt.IsChecked();
-        GuiSettings& gui = controller->getParams();
-        gui.set(GuiSettingsId::FORCE_GRAYSCALE, value);
-        controller->tryRedraw();
-    });
-    grayscaleSizer->Add(grayscaleBox);
-    visbarSizer->Add(grayscaleSizer);
-
-    wxBoxSizer* keySizer = new wxBoxSizer(wxHORIZONTAL);
-    keySizer->AddSpacer(25);
-    wxCheckBox* keyBox = new wxCheckBox(this, wxID_ANY, "Show key");
-    keyBox->SetValue(true);
-    keySizer->Add(keyBox);
-    visbarSizer->Add(keySizer);
-
-    wxBoxSizer* aaSizer = new wxBoxSizer(wxHORIZONTAL);
-    aaSizer->AddSpacer(25);
-    wxCheckBox* aaBox = new wxCheckBox(this, wxID_ANY, "Anti-aliasing");
-    aaSizer->Add(aaBox);
-    visbarSizer->Add(aaSizer);
-
-    wxBoxSizer* smoothSizer = new wxBoxSizer(wxHORIZONTAL);
-    smoothSizer->AddSpacer(25);
-    wxCheckBox* smoothBox = new wxCheckBox(this, wxID_ANY, "Smooth particles");
-    smoothBox->Enable(false);
-    smoothSizer->Add(smoothBox);
-    visbarSizer->Add(smoothSizer);
-
-    keyBox->Bind(wxEVT_CHECKBOX, [this, smoothBox](wxCommandEvent& evt) {
-        const bool value = evt.IsChecked();
-        GuiSettings& gui = controller->getParams();
-        gui.set(GuiSettingsId::SHOW_KEY, value);
-        controller->tryRedraw();
-    });
-    aaBox->Bind(wxEVT_CHECKBOX, [this, smoothBox](wxCommandEvent& evt) {
-        const bool value = evt.IsChecked();
-        GuiSettings& gui = controller->getParams();
-        gui.set(GuiSettingsId::ANTIALIASED, value);
-        smoothBox->Enable(value);
-        controller->tryRedraw();
-    });
-    smoothBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
-        const bool value = evt.IsChecked();
-        GuiSettings& gui = controller->getParams();
-        gui.set(GuiSettingsId::SMOOTH_PARTICLES, value);
-        controller->tryRedraw();
-    });
-
-
-    wxRadioButton* meshButton =
-        new wxRadioButton(this, wxID_ANY, "Surface mesh", wxDefaultPosition, buttonSize, 0);
-    visbarSizer->Add(meshButton);
-
-    wxRadioButton* surfaceButton =
-        new wxRadioButton(this, wxID_ANY, "Raytraced surface", wxDefaultPosition, buttonSize, 0);
-    visbarSizer->Add(surfaceButton);
-
-    wxBoxSizer* levelSizer = new wxBoxSizer(wxHORIZONTAL);
-    levelSizer->AddSpacer(25);
-    text = new wxStaticText(this, wxID_ANY, "Surface level", wxDefaultPosition, textSize);
-    levelSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
-    const Float level = gui.get<Float>(GuiSettingsId::SURFACE_LEVEL);
-    wxSpinCtrlDouble* levelSpinner =
-        new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, spinnerSizer);
-    levelSpinner->SetRange(0., 10.);
-    levelSpinner->SetValue(level);
-    levelSpinner->SetDigits(3);
-    levelSpinner->SetIncrement(0.001);
-    levelSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent& evt) {
-        GuiSettings& gui = controller->getParams();
-        gui.set(GuiSettingsId::SURFACE_LEVEL, evt.GetValue());
-        controller->tryRedraw();
-    });
-    levelSizer->Add(levelSpinner);
-    visbarSizer->Add(levelSizer);
-
-    wxBoxSizer* sunlightSizer = new wxBoxSizer(wxHORIZONTAL);
-    sunlightSizer->AddSpacer(25);
-    text = new wxStaticText(this, wxID_ANY, "Sunlight", wxDefaultPosition, textSize);
-    sunlightSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
-    const Float sunlight = gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY);
-    wxSpinCtrlDouble* sunlightSpinner =
-        new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, wxSize(145, -1));
-    sunlightSpinner->SetRange(0., 10.);
-    sunlightSpinner->SetValue(sunlight);
-    sunlightSpinner->SetDigits(3);
-    sunlightSpinner->SetIncrement(0.001);
-    sunlightSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent& evt) {
-        GuiSettings& gui = controller->getParams();
-        gui.set(GuiSettingsId::SURFACE_SUN_INTENSITY, evt.GetValue());
-        controller->tryRedraw();
-    });
-    sunlightSizer->Add(sunlightSpinner);
-    visbarSizer->Add(sunlightSizer);
-
-    wxBoxSizer* ambientSizer = new wxBoxSizer(wxHORIZONTAL);
-    ambientSizer->AddSpacer(25);
-    text = new wxStaticText(this, wxID_ANY, "Ambient", wxDefaultPosition, textSize);
-    ambientSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
-    const Float ambient = gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
-    wxSpinCtrlDouble* ambientSpinner =
-        new wxSpinCtrlDouble(this, wxID_ANY, "", wxDefaultPosition, wxSize(145, -1));
-    ambientSpinner->SetRange(0., 10.);
-    ambientSpinner->SetValue(ambient);
-    ambientSpinner->SetDigits(3);
-    ambientSpinner->SetIncrement(0.001);
-    ambientSpinner->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent& evt) {
-        GuiSettings& gui = controller->getParams();
-        gui.set(GuiSettingsId::SURFACE_AMBIENT, evt.GetValue());
-        controller->tryRedraw();
-    });
-    ambientSizer->Add(ambientSpinner);
-    visbarSizer->Add(ambientSizer);
-
-
-    auto enableControls = [=](int renderIdx) {
-        cutoffSpinner->Enable(renderIdx == 0);
-        particleSizeSpinner->Enable(renderIdx == 0);
-        grayscaleBox->Enable(renderIdx == 0);
-        keyBox->Enable(renderIdx == 0);
-        aaBox->Enable(renderIdx == 0);
-        smoothBox->Enable(renderIdx == 0);
-        levelSpinner->Enable(renderIdx == 2);
-        sunlightSpinner->Enable(renderIdx == 2);
-        ambientSpinner->Enable(renderIdx == 2);
-    };
-    enableControls(0);
-
-    particleButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
-        CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-        controller->setRenderer(makeAuto<ParticleRenderer>(gui));
-        enableControls(0);
-    });
-    meshButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
-        CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-        IScheduler& scheduler = *ThreadPool::getGlobalInstance();
-        controller->setRenderer(makeAuto<MeshRenderer>(scheduler, gui));
-        enableControls(1);
-    });
-    surfaceButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
-        CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-        IScheduler& scheduler = *ThreadPool::getGlobalInstance();
-        controller->setRenderer(makeAuto<RayTracer>(scheduler, gui));
-        enableControls(2);
-    });
-
-    visbarSizer->AddSpacer(16);
-    quantityPanel = new wxPanel(this, wxID_ANY, wxDefaultPosition, textSize);
-    visbarSizer->Add(quantityPanel);
-    quantityPanelSizer = visbarSizer;
-
-    return visbarSizer;
+    return projectMenu;
 }
 
-void MainWindow::updateCutoff(const double cutoff) {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    // Note that we have to get camera from pane, not controller, as pane camera is always the one being
-    // modified and fed to controller. Using controller's camera would cause cutoff to be later overriden by
-    // the camera from pane.
-    ICamera& camera = pane->getCamera();
-    camera.setCutoff(cutoff > 0 ? Optional<float>(cutoff) : NOTHING);
-    controller->refresh(camera.clone());
-    controller->tryRedraw();
+wxMenu* MainWindow::createResultMenu() {
+
+    wxMenu* fileMenu = new wxMenu();
+    fileMenu->Append(0, "&Open\tCtrl+O");
+    fileMenu->Append(1, "&Close current\tCtrl+W");
+
+    fileMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& evt) { //
+        switch (evt.GetId()) {
+        case 0: {
+            Optional<Path> path = doOpenFileDialog("Open file",
+                { { "SPH state file", "ssf" },
+                    { "SPH compressed file", "scf" },
+                    { "Text .tab files", "tab" } });
+            if (path) {
+                this->open(path.value());
+            }
+            break;
+        }
+        case 1: {
+            wxWindow* page = notebook->GetCurrentPage();
+            if (dynamic_cast<NodeWindow*>(page)) {
+                // node page should not be closeable
+                break;
+            }
+
+            bool canClose = true;
+            if (RunPage* runPage = dynamic_cast<RunPage*>(page)) {
+                canClose = runPage->close();
+            }
+
+            if (canClose) {
+                notebook->DeletePage(notebook->GetPageIndex(page));
+            }
+            break;
+        }
+        default:
+            NOT_IMPLEMENTED
+        }
+
+    });
+    return fileMenu;
 }
+
 
 /// \brief Helper object used for drawing multiple plots into the same device.
 class MultiPlot : public IPlot {
@@ -565,447 +507,196 @@ static Array<Post::HistPoint> getOverplotSfd(const GuiSettings& gui) {
     return overplotSfd;
 }
 
-wxBoxSizer* MainWindow::createPlotBar() {
-    wxBoxSizer* sidebarSizer = new wxBoxSizer(wxVERTICAL);
-    probe = new ParticleProbe(this, wxSize(300, 155));
-    sidebarSizer->Add(probe.get(), 1, wxALIGN_TOP);
-    sidebarSizer->AddSpacer(5);
+wxMenu* MainWindow::createRunMenu() {
+    wxMenu* runMenu = new wxMenu();
+    runMenu->Append(0, "&Restart");
+    runMenu->Append(1, "&Pause");
+    runMenu->Append(2, "&Stop");
+    runMenu->Append(3, "&Save state");
+    runMenu->Append(4, "Create &node from state");
+    runMenu->Append(5, "&Close current\tCtrl+W");
+    runMenu->Append(6, "Close all");
 
-    // the list of all available integrals to plot
-    // shared between plotviews, so that they can switch plot through context menu
-    SharedPtr<Array<PlotData>> list = makeShared<Array<PlotData>>();
-
-    TemporalPlot::Params params;
-    params.minRangeY = 1.4_f;
-    params.shrinkY = false;
-    params.period = gui.get<Float>(GuiSettingsId::PLOT_INITIAL_PERIOD);
-
-    PlotData data;
-    IntegralWrapper integral;
-    Flags<PlotEnum> flags = gui.getFlags<PlotEnum>(GuiSettingsId::PLOT_INTEGRALS);
-
-    Array<Post::HistPoint> overplotSfd = getOverplotSfd(gui);
-
-    /// \todo this plots should really be set somewhere outside of main window, they are problem-specific
-    if (flags.has(PlotEnum::TOTAL_ENERGY)) {
-        integral = makeAuto<TotalEnergy>();
-        data.plot = makeLocking<TemporalPlot>(integral, params);
-        plots.push(data.plot);
-        data.color = Rgba(wxColour(240, 255, 80));
-        list->push(data);
-    }
-
-    if (flags.has(PlotEnum::KINETIC_ENERGY)) {
-        integral = makeAuto<TotalKineticEnergy>();
-        data.plot = makeLocking<TemporalPlot>(integral, params);
-        plots.push(data.plot);
-        data.color = Rgba(wxColour(200, 0, 0));
-        list->push(data);
-    }
-
-    if (flags.has(PlotEnum::INTERNAL_ENERGY)) {
-        integral = makeAuto<TotalInternalEnergy>();
-        data.plot = makeLocking<TemporalPlot>(integral, params);
-        plots.push(data.plot);
-        data.color = Rgba(wxColour(255, 50, 50));
-        list->push(data);
-    }
-
-    if (flags.has(PlotEnum::TOTAL_MOMENTUM)) {
-        integral = makeAuto<TotalMomentum>();
-        params.minRangeY = 1.e6_f;
-        data.plot = makeLocking<TemporalPlot>(integral, params);
-        plots.push(data.plot);
-        data.color = Rgba(wxColour(100, 200, 0));
-        list->push(data);
-    }
-
-    if (flags.has(PlotEnum::TOTAL_ANGULAR_MOMENTUM)) {
-        integral = makeAuto<TotalAngularMomentum>();
-        data.plot = makeLocking<TemporalPlot>(integral, params);
-        plots.push(data.plot);
-        data.color = Rgba(wxColour(130, 80, 255));
-        list->push(data);
-    }
-
-    if (flags.has(PlotEnum::PARTICLE_SFD)) {
-        data.plot = makeLocking<SfdPlot>(0._f);
-        plots.push(data.plot);
-        data.color = Rgba(wxColour(0, 190, 255));
-        list->push(data);
-    }
-
-    if (flags.has(PlotEnum::CURRENT_SFD)) {
-        Array<AutoPtr<IPlot>> multiplot;
-        multiplot.emplaceBack(makeAuto<SfdPlot>(Post::ComponentFlag::OVERLAP, params.period));
-        if (!overplotSfd.empty()) {
-            multiplot.emplaceBack(
-                makeAuto<DataPlot>(overplotSfd, AxisScaleEnum::LOG_X | AxisScaleEnum::LOG_Y, "Overplot"));
+    runMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& evt) { //
+        RunPage* page = dynamic_cast<RunPage*>(notebook->GetCurrentPage());
+        if (!page) {
+            return;
         }
-        data.plot = makeLocking<MultiPlot>(std::move(multiplot));
-        plots.push(data.plot);
-        data.color = Rgba(wxColour(255, 40, 255));
-        list->push(data);
-    }
+        RawPtr<Controller> controller = runs[page].controller.get();
 
-    if (flags.has(PlotEnum::PREDICTED_SFD)) {
-        /// \todo could be deduplicated a bit
-        Array<AutoPtr<IPlot>> multiplot;
-        multiplot.emplaceBack(makeAuto<SfdPlot>(Post::ComponentFlag::ESCAPE_VELOCITY, params.period));
-        if (!overplotSfd.empty()) {
-            multiplot.emplaceBack(
-                makeAuto<DataPlot>(overplotSfd, AxisScaleEnum::LOG_X | AxisScaleEnum::LOG_Y, "Overplot"));
+        switch (evt.GetId()) {
+        case 0:
+            controller->restart();
+            break;
+        case 1:
+            controller->pause();
+            break;
+        case 2:
+            controller->stop();
+            break;
+        case 3: {
+            static Array<FileFormat> fileFormats = {
+                { "SPH state file", "ssf" },
+                { "SPH compressed file", "scf" },
+                { "VTK unstructured grid", "vtu" },
+                { "Text file", "txt" },
+            };
+            Optional<Path> path = doSaveFileDialog("Save state file", fileFormats.clone());
+            if (!path) {
+                return;
+            }
+            controller->saveState(path.value());
+            break;
         }
-        data.plot = makeLocking<MultiPlot>(std::move(multiplot));
-        plots.push(data.plot);
-        data.color = Rgba(wxColour(80, 150, 255));
-        list->push(data);
-    }
-
-    if (flags.has(PlotEnum::PERIOD_HISTOGRAM)) {
-        data.plot = makeLocking<HistogramPlot>(
-            Post::HistogramId::ROTATIONAL_PERIOD, Interval(0._f, 10._f), "Rotational periods");
-        plots.push(data.plot);
-        data.color = Rgba(wxColour(255, 255, 0));
-        list->push(data);
-    }
-
-    if (flags.has(PlotEnum::LARGEST_REMNANT_ROTATION)) {
-        class LargestRemnantRotation : public IIntegral<Float> {
-        public:
-            virtual Float evaluate(const Storage& storage) const override {
-                ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-                if (!storage.has(QuantityId::ANGULAR_FREQUENCY)) {
-                    return 0._f;
-                }
-                ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
-
-                const Size largestRemnantIdx = std::distance(m.begin(), std::max_element(m.begin(), m.end()));
-                const Float w = getLength(omega[largestRemnantIdx]);
-                if (w == 0._f) {
-                    return 0._f;
-                } else {
-                    return 2._f * PI / (3600._f * w);
-                }
+        case 4: {
+            const Storage& storage = controller->getStorage();
+            const std::string text("cached " + notebook->GetPageText(notebook->GetSelection()));
+            AutoPtr<CachedParticlesWorker> worker = makeAuto<CachedParticlesWorker>(text, storage);
+            nodePage->addNode(std::move(worker));
+            notebook->SetSelection(notebook->GetPageIndex(nodePage));
+            break;
+        }
+        case 5:
+            if (page->close()) {
+                notebook->DeletePage(notebook->GetPageIndex(page));
             }
+            break;
+        case 6:
+            this->removeAll();
+            break;
+        default:
+            NOT_IMPLEMENTED;
+        }
+    });
 
-            virtual std::string getName() const override {
-                return "Largest remnant period";
-            }
-        };
-        integral = makeAuto<LargestRemnantRotation>();
-        auto clonedParams = params;
-        clonedParams.minRangeY = 1.e-2_f;
-        data.plot = makeLocking<TemporalPlot>(integral, clonedParams);
-        plots.push(data.plot);
-        data.color = Rgba(wxColour(255, 0, 255));
-        list->push(data);
-    }
-
-    if (flags.has(PlotEnum::SELECTED_PARTICLE)) {
-        selectedParticlePlot = makeLocking<SelectedParticlePlot>();
-        data.plot = selectedParticlePlot;
-        plots.push(data.plot);
-        data.color = Rgba(wxColour(255, 255, 255));
-        list->push(data);
-    } else {
-        selectedParticlePlot.reset();
-    }
-
-
-    PlotView* firstPlot = new PlotView(this, wxSize(300, 200), wxSize(10, 10), list, 0, false);
-    sidebarSizer->Add(firstPlot, 1, wxALIGN_TOP);
-    sidebarSizer->AddSpacer(5);
-
-    PlotView* secondPlot =
-        new PlotView(this, wxSize(300, 200), wxSize(10, 10), list, list->size() == 1 ? 0 : 1, false);
-    sidebarSizer->Add(secondPlot, 1, wxALIGN_TOP);
-
-    /*wxButton* settingsButton = new wxButton(this, wxID_ANY, "Show material");
-    sidebarSizer->Add(settingsButton);*/
-
-    return sidebarSizer;
+    return runMenu;
 }
 
-wxBoxSizer* MainWindow::createStatusBar() {
-    wxBoxSizer* statusSizer = new wxBoxSizer(wxHORIZONTAL);
-    wxSize size;
-    size.x = gui.get<int>(GuiSettingsId::VIEW_WIDTH) / 2 - 2;
-    size.y = 215;
 
-    status = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, size, wxTE_READONLY | wxTE_MULTILINE);
-    wxTextAttr attr;
-    attr.SetFontSize(9);
-    status->SetDefaultStyle(attr);
-    status->ChangeValue("No log");
+wxMenu* MainWindow::createAnalysisMenu() {
+    wxMenu* analysisMenu = new wxMenu();
+    analysisMenu->Append(0, "Current SFD");
+    analysisMenu->Append(1, "Predicted SFD");
+    analysisMenu->Append(2, "Velocity histogram");
+    analysisMenu->Append(3, "Fragment parameters");
+    analysisMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& evt) { //
+        BusyCursor wait(this);
+        RunPage* page = dynamic_cast<RunPage*>(notebook->GetCurrentPage());
+        if (!page) {
+            return;
+        }
+        RawPtr<Controller> controller = runs[page].controller.get();
 
-    errors = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, size, wxTE_READONLY | wxTE_MULTILINE);
-    attr.SetTextColour(*wxGREEN);
-    errors->SetDefaultStyle(attr);
-    errors->ChangeValue("No problems detected");
-    errors->Bind(wxEVT_LEFT_UP, [this](wxMouseEvent& evt) {
-        wxPoint pos = evt.GetPosition();
-        long index;
-        wxTextCtrlHitTestResult result = errors->HitTest(pos, &index);
-        if (result != wxTE_HT_ON_TEXT) {
+        if (evt.GetId() == 3) {
+            GridPage* gridPage = new GridPage(notebook, wxSize(800, 600), wxSize(25, 25));
+            gridPage->update(controller->getStorage());
+
+            const Size index = notebook->GetPageCount();
+            notebook->AddPage(gridPage, "Fragments");
+            notebook->SetSelection(index);
             return;
         }
 
-        const std::string text(errors->GetValue().mb_str());
-        if (index >= 0 && index < int(text.size()) && std::isdigit(text[index])) {
-            // this relies on leading '#' and trailing ':'; see below
-            int startIdx = index;
-            while (startIdx >= 0 && std::isdigit(text[startIdx])) {
-                startIdx--;
+        // plot options below
+        LockingPtr<IPlot> plot;
+        switch (evt.GetId()) {
+        case 0:
+        case 1: {
+            Post::ComponentFlag flag =
+                evt.GetId() == 0 ? Post::ComponentFlag::OVERLAP : Post::ComponentFlag::ESCAPE_VELOCITY;
+
+            Array<AutoPtr<IPlot>> multiplot;
+            multiplot.emplaceBack(makeAuto<SfdPlot>(flag, 0._f));
+
+            Project& project = Project::getInstance();
+            Array<Post::HistPoint> overplotSfd = getOverplotSfd(project.getGuiSettings());
+            if (!overplotSfd.empty()) {
+                multiplot.emplaceBack(
+                    makeAuto<DataPlot>(overplotSfd, AxisScaleEnum::LOG_X | AxisScaleEnum::LOG_Y, "Overplot"));
             }
-            int endIdx = index;
-            while (endIdx < int(text.size()) && std::isdigit(text[endIdx])) {
-                endIdx++;
-            }
-            if (startIdx >= 0 && text[startIdx] == '#' && endIdx < int(text.size()) && text[endIdx] == ':') {
-                const int particleIdx = std::stoi(text.substr(startIdx + 1, endIdx - startIdx - 1));
-                controller->setSelectedParticle(particleIdx);
-                pane->Refresh();
-            }
+            plot = makeLocking<MultiPlot>(std::move(multiplot));
+            break;
         }
+        case 2:
+            plot = makeLocking<HistogramPlot>(Post::HistogramId::VELOCITIES, NOTHING, "Velocity");
+            break;
+        default:
+            NOT_IMPLEMENTED;
+        }
+        Statistics stats;
+        stats.set(StatisticsId::RUN_TIME, 0._f);
+        plot->onTimeStep(controller->getStorage(), stats);
+
+        PlotPage* plotPage = new PlotPage(notebook, wxSize(800, 600), wxSize(25, 25), plot);
+
+        const Size index = notebook->GetPageCount();
+        // needs to be called before, AddPage calls onPaint, which locks the mutex
+        const std::string caption = plot->getCaption();
+        notebook->AddPage(plotPage, caption);
+        notebook->SetSelection(index);
+
     });
-
-    statusSizer->Add(status);
-    statusSizer->AddSpacer(4);
-    statusSizer->Add(errors);
-    return statusSizer;
+    return analysisMenu;
 }
 
-void MainWindow::setColorizer(const Size idx) {
-    // do this even if idx==selectedIdx, we might change the colorizerList (weird behavior, but it will do for
-    // now)
-    controller->setColorizer(colorizerList[idx]);
-    if (idx == selectedIdx) {
-        return;
-    }
-    this->replaceQuantityBar(idx);
-    selectedIdx = idx;
+void MainWindow::addPage(SharedPtr<WorkerNode> node, const RunSettings& globals, const std::string pageName) {
+    AutoPtr<Controller> controller = makeAuto<Controller>(notebook);
+    controller->start(node, globals);
+
+    const Size index = notebook->GetPageCount();
+    RunPage* page = &*controller->getPage();
+    notebook->AddPage(page, pageName);
+    notebook->SetSelection(index);
+
+    RunData data;
+    data.controller = std::move(controller);
+    data.isRun = true;
+    runs.insert(page, std::move(data));
+
+    this->enableMenus(index);
 }
 
-void MainWindow::addComponentIdBar(wxWindow* parent, wxSizer* sizer, SharedPtr<IColorizer> colorizer) {
-    sizer->AddSpacer(5);
-    RawPtr<ComponentIdColorizer> componentId = dynamicCast<ComponentIdColorizer>(colorizer.get());
-
-    wxRadioButton* overlapButton = new wxRadioButton(
-        parent, wxID_ANY, "Connected particles", wxDefaultPosition, wxSize(-1, 25), wxRB_GROUP);
-    sizer->Add(overlapButton);
-
-    wxRadioButton* boundButton =
-        new wxRadioButton(parent, wxID_ANY, "Bound particles", wxDefaultPosition, wxSize(-1, 25), 0);
-    sizer->Add(boundButton);
-
-    sizer->AddSpacer(15);
-    wxCheckBox* highlightBox = new wxCheckBox(parent, wxID_ANY, "Highlight component");
-    highlightBox->SetValue(bool(componentId->getHighlightIdx()));
-    sizer->Add(highlightBox);
-
-    wxBoxSizer* highlightSizer = new wxBoxSizer(wxHORIZONTAL);
-    highlightSizer->AddSpacer(30);
-    wxStaticText* text =
-        new wxStaticText(parent, wxID_ANY, "Index", wxDefaultPosition, wxSize(textSize.x - 30, -1));
-    highlightSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
-    wxSpinCtrl* highlightIndex = new wxSpinCtrl(parent, wxID_ANY, "", wxDefaultPosition, spinnerSizer);
-    highlightIndex->SetValue(componentId->getHighlightIdx().valueOr(0));
-    highlightIndex->Enable(highlightBox->GetValue());
-    highlightSizer->Add(highlightIndex);
-    sizer->Add(highlightSizer);
-
-    overlapButton->Bind(wxEVT_RADIOBUTTON, [this, componentId, colorizer](wxCommandEvent& UNUSED(evt)) {
-        componentId->setConnectivity(Post::ComponentFlag::SORT_BY_MASS | Post::ComponentFlag::OVERLAP);
-        controller->setColorizer(colorizer);
-    });
-    boundButton->Bind(wxEVT_RADIOBUTTON, [this, componentId, colorizer](wxCommandEvent& UNUSED(evt)) {
-        componentId->setConnectivity(
-            Post::ComponentFlag::SORT_BY_MASS | Post::ComponentFlag::ESCAPE_VELOCITY);
-        controller->setColorizer(colorizer);
-    });
-    highlightBox->Bind(wxEVT_CHECKBOX, [this, colorizer, componentId, highlightIndex](wxCommandEvent& evt) {
-        const bool value = evt.IsChecked();
-
-        ASSERT(componentId);
-        if (value) {
-            componentId->setHighlightIdx(highlightIndex->GetValue());
-        } else {
-            componentId->setHighlightIdx(NOTHING);
-        }
-        highlightIndex->Enable(value);
-        /// \todo this causes rebuild of colorizer, which is very inefficient, there should be some concept of
-        /// validity that would tell whether it is necessary or not to rebuild it
-        controller->setColorizer(colorizer);
-    });
-    highlightIndex->Bind(wxEVT_SPINCTRL, [this, componentId, colorizer](wxSpinEvent& evt) {
-        // this is already executed on main thread, but we query it anyway to avoid spinner getting stuck
-        executeOnMainThread([this, componentId, colorizer, evt] {
-            const int index = evt.GetValue();
-            componentId->setHighlightIdx(index);
-            /// \todo also unnecessary
-            controller->setColorizer(colorizer);
-        });
-    });
-}
-
-void MainWindow::replaceQuantityBar(const Size idx) {
-    quantityPanel->Destroy();
-
-    quantityPanel = new wxPanel(this, wxID_ANY);
-    // so far only needed for component id, so it is hacked like this
-    SharedPtr<IColorizer> newColorizer = colorizerList[idx];
-    /// \todo implemnet SharedPtr dynamicCast
-    if (typeid(*newColorizer) == typeid(ComponentIdColorizer)) {
-        wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-        sizer->Add(new wxStaticText(quantityPanel, wxID_ANY, newColorizer->name()));
-        wxBoxSizer* offsetSizer = new wxBoxSizer(wxHORIZONTAL);
-        offsetSizer->AddSpacer(25);
-        sizer->Add(offsetSizer);
-        wxBoxSizer* actSizer = new wxBoxSizer(wxVERTICAL);
-        addComponentIdBar(quantityPanel, actSizer, newColorizer);
-        offsetSizer->Add(actSizer);
-        quantityPanel->SetSizerAndFit(sizer);
-    }
-
-    quantityPanelSizer->Add(quantityPanel);
-    this->Layout();
-}
-
-
-void MainWindow::setProgress(const float progress) {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    gauge->SetValue(int(progress * 1000.f));
-}
-
-void MainWindow::runStarted() {
-    for (auto plot : plots) {
-        plot->clear();
-    }
-}
-
-class LinesLogger : public ILogger {
-private:
-    Array<std::string> lines;
-
-public:
-    virtual void writeString(const std::string& s) override {
-        lines.push(s);
-    }
-
-    void setText(wxTextCtrl* text) {
-        text->Clear();
-        // remove the last newline
-        if (!lines.empty() && !lines.back().empty() && lines.back().back() == '\n') {
-            lines.back() = lines.back().substr(0, lines.back().size() - 1);
-        }
-        for (const std::string& line : lines) {
-            text->AppendText(line);
-        }
-    }
-};
-
-void MainWindow::onTimeStep(const Storage& storage, const Statistics& stats) {
-    // this is called from run thread (NOT main thread)
-
-    // limit the refresh rate to avoid blocking the main thread
-    if (status && statusTimer.elapsed(TimerUnit::MILLISECOND) > 10) {
-        // we get the data using CommonStatsLog (even though it's not really designed for it), in order to
-        // avoid code duplication
-        /// \todo how to access settings here??
-        SharedPtr<LinesLogger> logger = makeShared<LinesLogger>();
-        StandardLogWriter statsLog(logger, RunSettings::getDefaults());
-        statsLog.write(storage, stats);
-        // we have to modify wxTextCtrl from main thread!!
-        executeOnMainThread([this, logger] { logger->setText(status); });
-        statusTimer.restart();
-    }
-
-    pane->onTimeStep(storage, stats);
-
-    if (selectedParticlePlot) {
-        selectedParticlePlot->selectParticle(controller->getSelectedParticle());
-
-        /// \todo we should only touch colorizer from main thread!
-        SharedPtr<IColorizer> colorizer = controller->getCurrentColorizer();
-        // we need validity of arrayrefs only for the duration of this function, so weak reference is OK
-        colorizer->initialize(storage, RefEnum::WEAK);
-        selectedParticlePlot->setColorizer(colorizer);
-    }
-
-    if (storage.has(QuantityId::MASS)) {
-        // skip plots if we don't have mass, for simplicity; this can be generalized if needed
-        for (auto plot : plots) {
-            plot->onTimeStep(storage, stats);
-        }
-    }
-}
-
-void MainWindow::onRunFailure(const DiagnosticsError& error, const Statistics& stats) {
-    if (!errors) {
-        return;
-    }
-    const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
-    executeOnMainThread([this, error, t] {
-        if (!errorReported) {
-            errors->Clear(); // clear the "no problems" message
-            errorReported = true;
-        }
-        errors->SetForegroundColour(*wxRED);
-        std::string message = "t = " + std::to_string(t) + ":  " + error.description + "\n";
-        Size counter = 0;
-        for (auto idxAndMessage : error.offendingParticles) {
-            message +=
-                "  * particle #" + std::to_string(idxAndMessage.first) + ": " + idxAndMessage.second + "\n";
-            if (counter++ >= 8) {
-                // skip the rest, probably no point of listing ALL the particles
-                message += "    ... " + std::to_string(error.offendingParticles.size()) + " total\n";
-                break;
+bool MainWindow::removeAll() {
+    for (int i = notebook->GetPageCount() - 1; i >= 0; --i) {
+        if (RunPage* page = dynamic_cast<RunPage*>(notebook->GetPage(i))) {
+            const bool canClose = page->close();
+            if (canClose) {
+                notebook->DeletePage(i);
+            } else {
+                return false;
             }
         }
-        errors->AppendText(message);
-        if (errors->GetNumberOfLines() > 100) {
-            // prevent displaying a huge log by deleting the first half
-            const Size size = errors->GetLastPosition();
-            errors->Remove(0, size / 2);
-        }
-    });
-}
-
-void MainWindow::setColorizerList(Array<SharedPtr<IColorizer>>&& colorizers) {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    colorizerList = std::move(colorizers);
-    wxArrayString items;
-    for (auto& e : colorizerList) {
-        items.Add(e->name().c_str());
     }
-    quantityBox->Set(items);
-    const Size actSelectedIdx = (selectedIdx < colorizerList.size()) ? selectedIdx : 0;
-    quantityBox->SetSelection(actSelectedIdx);
-}
-
-void MainWindow::setSelectedParticle(const Particle& particle, const Rgba color) {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    probe->update(particle, color);
-}
-
-void MainWindow::deselectParticle() {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    probe->clear();
-}
-
-wxSize MainWindow::getCanvasSize() const {
-    return pane->GetSize();
+    return true;
 }
 
 void MainWindow::onClose(wxCloseEvent& evt) {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    // veto the event, we will close the window ourselves
-    if (!controller->isQuitting()) {
-        evt.Veto();
-        controller->quit();
+    for (Size i = 0; i < notebook->GetPageCount(); ++i) {
+        RunPage* page = dynamic_cast<RunPage*>(notebook->GetPage(i));
+        if (page) {
+            if (!page->close()) {
+                evt.Veto();
+            }
+        }
     }
-    // don't wait till it's closed so that we don't block the main thread
+    this->Destroy();
+}
+
+void MainWindow::enableMenus(const Size id) {
+    wxMenuBar* bar = this->GetMenuBar();
+    RunPage* page = dynamic_cast<RunPage*>(notebook->GetPage(id));
+    if (!runs.contains(page)) {
+        bar->EnableTop(1, false);
+        // bar->EnableTop(2, false);
+        return;
+    }
+    const bool enableRun = page && runs[page].isRun;
+    // const bool enableResult = page && !runs[page].isRun;
+
+    /// \todo avoid hardcoded indices
+
+    bar->EnableTop(1, enableRun);
+    //    bar->EnableTop(2, enableResult);
 }
 
 NAMESPACE_SPH_END

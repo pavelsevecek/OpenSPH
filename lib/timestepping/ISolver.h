@@ -3,7 +3,7 @@
 /// \file ISolver.h
 /// \brief Base interface for all solvers
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "common/ForwardDecl.h"
 #include "objects/geometry/Vector.h"
@@ -58,11 +58,6 @@ public:
     /// When called, storage already contains particle positions and their masses. All remaining quantities
     /// must be created by the solver. The function is called once for every body in the run. The given
     /// storage is guaranteed to be homogeneous; it contains only a single material.
-    ///
-    /// Note that when settings up initial condition using \ref InitialConditions object, the instance of \ref
-    /// ISolver used for creating quantities can be different than the one used during the run. It is not
-    /// recommended to set up or modify member variables of the solver from \ref create function or keep a
-    /// reference to the calling solver elsewhere.
     ///
     /// \param storage Particle storage that shall be modified as needed by the solver.
     /// \param material Material containing parameters of the body being created. The solver can also set up

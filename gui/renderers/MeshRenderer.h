@@ -3,7 +3,7 @@
 /// \file MeshRenderer.h
 /// \brief Renderer visualizing the surface as triangle mesh
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2018
+/// \date 2016-2019
 
 #include "gui/Settings.h"
 #include "gui/objects/Bitmap.h"
@@ -35,7 +35,7 @@ private:
 
     } cached;
 
-    IScheduler& scheduler;
+    SharedPtr<IScheduler> scheduler;
 
     /// Finder used for colorization of the surface
     AutoPtr<IBasicFinder> finder;
@@ -43,7 +43,7 @@ private:
     LutKernel<3> kernel;
 
 public:
-    explicit MeshRenderer(IScheduler& scheduler, const GuiSettings& settings);
+    MeshRenderer(SharedPtr<IScheduler> scheduler, const GuiSettings& settings);
 
     virtual void initialize(const Storage& storage,
         const IColorizer& colorizer,

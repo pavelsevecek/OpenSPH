@@ -77,13 +77,17 @@ Array<Vector> CubicPacking::generate(IScheduler& UNUSED(scheduler),
 // HexagonalPacking implementation
 //-----------------------------------------------------------------------------------------------------------
 
-HexagonalPacking::HexagonalPacking(const Flags<Options> f)
-    : flags(f) {}
+HexagonalPacking::HexagonalPacking(const Flags<Options> flags)
+    : flags(flags) {}
+
+HexagonalPacking::HexagonalPacking(const Flags<Options> flags, Function<bool(Float)> progressCallback)
+    : flags(flags)
+    , progressCallback(progressCallback) {}
 
 Array<Vector> HexagonalPacking::generate(IScheduler& UNUSED(scheduler),
     const Size n,
     const IDomain& domain) const {
-    PROFILE_SCOPE("HexagonalPacking::generate")
+    VERBOSE_LOG
     ASSERT(n > 0);
     const Float volume = domain.getVolume();
     const Float particleDensity = Float(n) / volume;
@@ -103,6 +107,8 @@ Array<Vector> HexagonalPacking::generate(IScheduler& UNUSED(scheduler),
     Array<Vector> vecs;
     const Float deltaX = 0.5_f * dx;
     const Float deltaY = sqrt(3._f) / 6._f * dx;
+    const Size progressStep = progressCallback ? max(n / 1000, 1u) : Size(-1);
+
     box.iterateWithIndices(step, [&](Indices&& idxs, Vector&& v) {
         if (idxs[2] % 2 == 0) {
             if (idxs[1] % 2 == 1) {
@@ -117,6 +123,10 @@ Array<Vector> HexagonalPacking::generate(IScheduler& UNUSED(scheduler),
         if (domain.contains(v)) {
             v[H] = h;
             vecs.push(std::move(v));
+
+            if (vecs.size() % progressStep == 0) {
+                progressCallback(Float(vecs.size()) / n);
+            }
         }
     });
     if (flags.has(Options::SORTED)) {
@@ -136,18 +146,17 @@ Array<Vector> HexagonalPacking::generate(IScheduler& UNUSED(scheduler),
         }
         com /= vecs.size();
         // match center of mass to center of domain
-        const Vector delta = domain.getCenter() - com;
+        Vector delta = domain.getCenter() - com;
+        delta[H] = 0._f;
         for (Vector& v : vecs) {
-            const Float h = v[H];
             v += delta;
-            v[H] = h;
         }
     }
     return vecs;
 }
 
 //-----------------------------------------------------------------------------------------------------------
-// DiehlEtAlDistribution implementation
+// DiehlDistribution implementation
 //-----------------------------------------------------------------------------------------------------------
 
 DiehlDistribution::DiehlDistribution(const DiehlParams& params)
@@ -213,7 +222,9 @@ public:
 /// \return Functor representing the renormalized density
 template <typename TDensity>
 static auto renormalizeDensity(const IDomain& domain, Size& n, const Size error, TDensity& density) {
-    Float multiplier = 1._f;
+    VERBOSE_LOG
+
+    Float multiplier = n / domain.getVolume();
     auto actDensity = [&domain, &density, &multiplier](const Vector& v) {
         if (domain.contains(v)) {
             return multiplier * density(v);
@@ -222,7 +233,7 @@ static auto renormalizeDensity(const IDomain& domain, Size& n, const Size error,
         }
     };
 
-    Integrator<HaltonQrng> mc(makeAuto<ForwardingDomain>(domain));
+    Integrator<HaltonQrng> mc(domain);
     Size cnt = 0;
     Float particleCnt;
     for (particleCnt = mc.integrate(actDensity); abs(particleCnt - n) > error;) {
@@ -272,6 +283,8 @@ static Storage generateInitial(const IDomain& domain, const Size N, TDensity&& d
 Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
     const Size expectedN,
     const IDomain& domain) const {
+    VERBOSE_LOG
+
     Size N = expectedN;
     auto actDensity = renormalizeDensity(domain, N, params.maxDifference, params.particleDensity);
     ASSERT(abs(int(N) - int(expectedN)) <= params.maxDifference);
@@ -292,6 +305,13 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
 
     Array<Vector> deltas(N);
     for (Size k = 0; k < params.numOfIters; ++k) {
+        VerboseLogGuard guard("DiehlDistribution::generate - iteration " + std::to_string(k));
+
+        // notify caller, if requested
+        if (params.onIteration && !params.onIteration(k, r)) {
+            break;
+        }
+
         // gradually decrease the strength of particle dislocation
         const Float converg = 1._f / sqrt(Float(k + 1));
 
