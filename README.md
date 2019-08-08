@@ -1,6 +1,13 @@
 # OpenSPH
 
-![alt text](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/snapshot.png "Graphical interface")
+## Screenshots
+
+<img src="http://sirrah.troja.mff.cuni.cz/~sevecek/sph/components.png" width="400">
+<img src="http://sirrah.troja.mff.cuni.cz/~sevecek/sph/raytraced.png" width="400">
+<img src="http://sirrah.troja.mff.cuni.cz/~sevecek/sph/sequence.png" width="400">
+<img src="http://sirrah.troja.mff.cuni.cz/~sevecek/sph/cliff.png" width="400">
+<img src="http://sirrah.troja.mff.cuni.cz/~sevecek/sph/editor.png" width="400">
+<img src="http://sirrah.troja.mff.cuni.cz/~sevecek/sph/adjustui.png" width="400">
 
 ## About
 OpenSPH is an integrator of hydrodynamic equations using SPH discretization in space, 
