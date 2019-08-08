@@ -46,6 +46,8 @@ private:
 
     wxMenu* createRunMenu();
 
+    wxMenu* createAnalysisMenu();
+
     wxMenu* createResultMenu();
 
     void addPage(SharedPtr<WorkerNode> node, const RunSettings& globals, const std::string pageName);

@@ -63,6 +63,7 @@ VirtualSettings AnimationWorker::getSettings() {
         .connect<bool>("Transparent background", "transparent", transparentBackground)
         .connect<Float>("Particle radius", gui, GuiSettingsId::PARTICLE_RADIUS, particleEnabler)
         .connect<bool>("Antialiasing", gui, GuiSettingsId::ANTIALIASED, particleEnabler)
+        .connect<bool>("Show key", gui, GuiSettingsId::SHOW_KEY, particleEnabler)
         .connect<Vector>("Sun position", gui, GuiSettingsId::SURFACE_SUN_POSITION, raytracerEnabler)
         .connect<Float>("Sunlight intensity", gui, GuiSettingsId::SURFACE_SUN_INTENSITY, raytracerEnabler)
         .connect<Float>("Ambient intensity", gui, GuiSettingsId::SURFACE_AMBIENT, raytracerEnabler)

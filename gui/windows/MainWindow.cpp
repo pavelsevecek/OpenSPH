@@ -144,6 +144,9 @@ MainWindow::MainWindow(const Path& openPath)
     bar->Append(runMenu, "&Simulation");
     bar->EnableTop(bar->GetMenuCount() - 1, false);
 
+    wxMenu* analysisMenu = this->createAnalysisMenu();
+    bar->Append(analysisMenu, "&Analysis");
+
     wxMenu* resultMenu = this->createResultMenu();
     bar->Append(resultMenu, "&Result");
     // bar->EnableTop(bar->GetMenuCount() - 1, false);
@@ -506,20 +509,13 @@ static Array<Post::HistPoint> getOverplotSfd(const GuiSettings& gui) {
 
 wxMenu* MainWindow::createRunMenu() {
     wxMenu* runMenu = new wxMenu();
-    wxMenu* analysisMenu = new wxMenu();
     runMenu->Append(0, "&Restart");
     runMenu->Append(1, "&Pause");
     runMenu->Append(2, "&Stop");
     runMenu->Append(3, "&Save state");
     runMenu->Append(4, "Create &node from state");
-    runMenu->AppendSubMenu(analysisMenu, "&Analysis");
     runMenu->Append(5, "&Close current\tCtrl+W");
     runMenu->Append(6, "Close all");
-
-    analysisMenu->Append(0, "Current SFD");
-    analysisMenu->Append(1, "Predicted SFD");
-    analysisMenu->Append(2, "Velocity histogram");
-    analysisMenu->Append(3, "Fragment parameters");
 
     runMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& evt) { //
         RunPage* page = dynamic_cast<RunPage*>(notebook->GetCurrentPage());
@@ -573,6 +569,16 @@ wxMenu* MainWindow::createRunMenu() {
         }
     });
 
+    return runMenu;
+}
+
+
+wxMenu* MainWindow::createAnalysisMenu() {
+    wxMenu* analysisMenu = new wxMenu();
+    analysisMenu->Append(0, "Current SFD");
+    analysisMenu->Append(1, "Predicted SFD");
+    analysisMenu->Append(2, "Velocity histogram");
+    analysisMenu->Append(3, "Fragment parameters");
     analysisMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& evt) { //
         BusyCursor wait(this);
         RunPage* page = dynamic_cast<RunPage*>(notebook->GetCurrentPage());
@@ -630,7 +636,7 @@ wxMenu* MainWindow::createRunMenu() {
         notebook->SetSelection(index);
 
     });
-    return runMenu;
+    return analysisMenu;
 }
 
 void MainWindow::addPage(SharedPtr<WorkerNode> node, const RunSettings& globals, const std::string pageName) {
