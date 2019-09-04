@@ -88,7 +88,7 @@ void GhostParticles::initialize(Storage& storage) {
         ArrayView<Size> flag = storage.getValue<Size>(QuantityId::FLAG);
         for (Size i = 0; i < ghosts.size(); ++i) {
             const Size ghostIdx = ghostIdxs[i];
-            flag[ghostIdx] = Size(-1);
+            flag[ghostIdx] = FLAG;
         }
     }
 
@@ -305,37 +305,60 @@ void WindTunnel::finalize(Storage& storage) {
 // PeriodicBoundary implementation
 //-----------------------------------------------------------------------------------------------------------
 
-PeriodicBoundary::PeriodicBoundary(const Box& domain, AutoPtr<IBoundaryCondition>&& additional)
-    : domain(domain)
-    , additional(std::move(additional)) {}
+PeriodicBoundary::PeriodicBoundary(const Box& domain)
+    : domain(domain) {}
+
+static const StaticArray<Vector, 3> UNIT = {
+    Vector(1._f, 0._f, 0._f),
+    Vector(0._f, 1._f, 0._f),
+    Vector(0._f, 0._f, 1._f),
+};
 
 void PeriodicBoundary::initialize(Storage& storage) {
-    ArrayView<Vector> positions = storage.getValue<Vector>(QuantityId::POSITION);
-    for (Vector& pos : positions) {
-        const Vector lowerFlags(int(pos[X] < domain.lower()[X]),
-            int(pos[Y] < domain.lower()[Y]),
-            int(pos[Z] < domain.lower()[Z]));
-        const Vector upperFlags(int(pos[X] > domain.upper()[X]),
-            int(pos[Y] > domain.upper()[Y]),
-            int(pos[Z] > domain.upper()[Z]));
+    storage.setUserData(nullptr); // clear previous data
+    ASSERT(ghostIdxs.empty() && ghosts.empty());
 
-        pos += domain.size() * (lowerFlags - upperFlags);
+    Array<Size> duplIdxs;
+    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
+    const Float radius = 2._f;
+
+    for (Size i = 0; i < r.size(); ++i) {
+        // move particles outside of the domain to the other side
+        const Vector lowerFlags(int(r[i][X] < domain.lower()[X]),
+            int(r[i][Y] < domain.lower()[Y]),
+            int(r[i][Z] < domain.lower()[Z]));
+        const Vector upperFlags(int(r[i][X] > domain.upper()[X]),
+            int(r[i][Y] > domain.upper()[Y]),
+            int(r[i][Z] > domain.upper()[Z]));
+
+        r[i] += domain.size() * (lowerFlags - upperFlags);
+
+        // for particles close to the boundary, add ghosts
+        for (Size j = 0; j < 3; ++j) {
+            if (r[i][j] < domain.lower()[j] + radius * r[i][H]) {
+                duplIdxs.push(i);
+                ghosts.push(Ghost{ r[i] + domain.size()[j] * UNIT[j], i });
+            }
+            if (r[i][j] > domain.upper()[j] - radius * r[i][H]) {
+                duplIdxs.push(i);
+                ghosts.push(Ghost{ r[i] - domain.size()[j] * UNIT[j], i });
+            }
+        }
     }
 
-    if (additional) {
-        additional->initialize(storage);
+    ghostIdxs = storage.duplicate(duplIdxs);
+    ASSERT(ghostIdxs.size() == duplIdxs.size());
+
+    for (Size i = 0; i < ghostIdxs.size(); ++i) {
+        r[ghostIdxs[i]] = ghosts[i].position;
     }
 }
 
 void PeriodicBoundary::finalize(Storage& storage) {
-    if (additional) {
-        additional->finalize(storage);
-    }
-}
+    storage.remove(ghostIdxs);
+    ghostIdxs.clear();
 
-AutoPtr<ISymmetricFinder> PeriodicBoundary::getPeriodicFinder(AutoPtr<ISymmetricFinder>&& finder) {
-    SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
-    return makeAuto<PeriodicFinder>(std::move(finder), domain, scheduler);
+    storage.setUserData(makeShared<GhostParticlesData>(std::move(ghosts)));
 }
 
 //-----------------------------------------------------------------------------------------------------------

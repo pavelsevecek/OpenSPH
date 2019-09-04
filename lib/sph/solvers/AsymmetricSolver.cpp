@@ -83,19 +83,6 @@ AsymmetricSolver::AsymmetricSolver(IScheduler& scheduler,
 
     // creates all derivatives required by the equation terms
     equations.setDerivatives(derivatives, settings);
-
-    /// \todo this will get overriden by GravitySolver!!!
-    ///
-    /// We need the following:
-    /// no gravity, no PBC -> TFinder
-    /// no gravity, PBC    -> PeriodicFinder<TFinder>
-    /// gravity, no PBC    -> KdTree
-    /// gravity, PBC       -> PeriodicFinder<KdTree>
-
-    // special case for PeriodicBoundary - needs to wrap the finder
-    if (RawPtr<PeriodicBoundary> periodicBc = dynamicCast<PeriodicBoundary>(this->bc.get())) {
-        finder = periodicBc->getPeriodicFinder(std::move(finder));
-    }
 }
 
 AsymmetricSolver::~AsymmetricSolver() = default;

@@ -444,7 +444,7 @@ AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& se
     }
     case BoundaryEnum::PERIODIC: {
         const Box box = domain->getBoundingBox();
-        return makeAuto<PeriodicBoundary>(box, nullptr);
+        return makeAuto<PeriodicBoundary>(box);
     }
     case BoundaryEnum::KILL_ESCAPERS:
         ASSERT(domain != nullptr);

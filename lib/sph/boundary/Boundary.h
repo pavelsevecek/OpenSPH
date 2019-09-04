@@ -64,15 +64,14 @@ public:
 /// All physical quantities are copied on them. This acts as a natural boundary for SPH particles without
 /// creating unphysical gradients due to discontinuity.
 class GhostParticles : public IBoundaryCondition {
+public:
+    /// Special flag denoting ghost particles.
+    static constexpr Size FLAG = Size(-1);
+
 private:
     Array<Ghost> ghosts;
     Array<Size> ghostIdxs;
     SharedPtr<IDomain> domain;
-
-    /// Cached array to avoid frequent (de)allocations
-    struct {
-        Array<Float> distances;
-    } cached;
 
     /// Parameters of the BCs
     struct {
@@ -210,20 +209,15 @@ class PeriodicBoundary : public IBoundaryCondition {
 private:
     Box domain;
 
-    AutoPtr<IBoundaryCondition> additional;
+    Array<Ghost> ghosts;
+    Array<Size> ghostIdxs;
 
 public:
-    PeriodicBoundary(const Box& domain, AutoPtr<IBoundaryCondition>&& additional);
+    explicit PeriodicBoundary(const Box& domain);
 
     virtual void initialize(Storage& storage) override;
 
     virtual void finalize(Storage& storage) override;
-
-    /// \brief Finder respecting the boundary condition.
-    ///
-    /// Acts as a wrapper of another finder. Unlike other finders that only search for particles in the
-    /// specified radius, the periodic finder also returns the particles on the other side of the bounadry.
-    AutoPtr<ISymmetricFinder> getPeriodicFinder(AutoPtr<ISymmetricFinder>&& finder);
 };
 
 /// \brief Boundary condition that removes particles outside the domain.

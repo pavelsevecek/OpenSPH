@@ -502,3 +502,18 @@ TEST_CASE("Storage duplicate", "[storage]") {
     REQUIRE(storage1.getMaterial(0).sequence() == IndexSequence(0, 5));
     REQUIRE(storage1.getMaterial(1).sequence() == IndexSequence(5, 11));
 }
+
+TEST_CASE("Storage duplicate multiple", "[storage]") {
+    Storage storage1(getMaterial(MaterialEnum::BASALT));
+    storage1.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 1, 2, 3 });
+    Storage storage2(getMaterial(MaterialEnum::BASALT));
+    storage2.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 4, 5, 6, 7 });
+    storage1.merge(std::move(storage2));
+
+    Array<Size> createdIdxs = storage1.duplicate(Array<Size>{ 1, 1, 1, 5, 5 });
+    REQUIRE(createdIdxs == Array<Size>({ 10, 11, 3, 4, 5 }));
+    REQUIRE(storage1.isValid());
+
+    Array<Size>& flag = storage1.getValue<Size>(QuantityId::FLAG);
+    REQUIRE(flag == Array<Size>({ 1, 2, 3, 2, 2, 2, 4, 5, 6, 7, 6, 6 }));
+}
