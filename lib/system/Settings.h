@@ -569,6 +569,9 @@ enum class BoundaryEnum {
     /// Periodic boundary conditions
     PERIODIC,
 
+    /// Removes particles outside the domain
+    KILL_ESCAPERS,
+
     /// Project all movement onto a line, effectivelly reducing the simulation to 1D
     PROJECT_1D
 };
@@ -794,6 +797,12 @@ enum class IoEnum {
     PKDGRAV_INPUT,
 };
 
+/// \brief Returns the file extension associated with given IO type.
+///
+/// Result NOTHING indicates there is no particular extension associated with the IO type.
+Optional<std::string> getIoExtension(const IoEnum type);
+
+
 enum class RngEnum {
     /// Mersenne Twister PRNG from Standard library
     UNIFORM,
@@ -823,7 +832,7 @@ enum class RunSettingsId {
     /// information is saved in output files and taken into account by visualization tools, for example.
     RUN_TYPE,
 
-    /// Selected format of the output file, see OutputEnum
+    /// Selected format of the output file, see \ref IoEnum
     RUN_OUTPUT_TYPE,
 
     /// Time interval of dumping data to disk.

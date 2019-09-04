@@ -28,7 +28,7 @@ VirtualSettings SphereWorker::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& geoCat = connector.addCategory("geometry");
-    geoCat.connect("radius [km]", "radius", radius, 1.e3_f);
+    geoCat.connect("radius [km]", "radius", radius).setUnits(1.e3_f);
     return connector;
 }
 
@@ -48,8 +48,8 @@ VirtualSettings BlockWorker::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& geoCat = connector.addCategory("geometry");
-    geoCat.connect("center [km]", "center", center, 1.e3_f);
-    geoCat.connect("dimensions [km]", "dimensions", dimensions, 1.e3_f);
+    geoCat.connect("center [km]", "center", center).setUnits(1.e3_f);
+    geoCat.connect("dimensions [km]", "dimensions", dimensions).setUnits(1.e3_f);
     return connector;
 }
 
@@ -69,7 +69,7 @@ VirtualSettings EllipsoidWorker::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& geoCat = connector.addCategory("geometry");
-    geoCat.connect("semi-axes [km]", "semixes", semiaxes, 1.e3_f);
+    geoCat.connect("semi-axes [km]", "semixes", semiaxes).setUnits(1.e3_f);
     return connector;
 }
 
@@ -100,7 +100,8 @@ VirtualSettings CylinderWorker::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& geoCat = connector.addCategory("geometry");
-    geoCat.connect("height [km]", "height", height, 1.e3_f).connect("radius [km]", "radius", radius, 1.e3_f);
+    geoCat.connect("height [km]", "height", height).setUnits(1.e3_f);
+    geoCat.connect("radius [km]", "radius", radius).setUnits(1.e3_f);
     return connector;
 }
 
@@ -131,7 +132,8 @@ VirtualSettings MeshGeometryWorker::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& pathCat = connector.addCategory("Mesh source");
-    pathCat.connect("Path", "path", path).connect("Scaling factor", "scale", scale);
+    pathCat.connect("Path", "path", path);
+    pathCat.connect("Scaling factor", "scale", scale);
     return connector;
 }
 
@@ -157,8 +159,8 @@ VirtualSettings ParticleGeometryWorker::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& pathCat = connector.addCategory("Surface");
-    pathCat.connect("Spatial resolution [m]", "resolution", resolution)
-        .connect("Iso-surface value", "level", surfaceLevel);
+    pathCat.connect("Spatial resolution [m]", "resolution", resolution);
+    pathCat.connect("Iso-surface value", "level", surfaceLevel);
     return connector;
 }
 
@@ -350,7 +352,8 @@ VirtualSettings TransformGeometryWorker::getSettings() {
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& transformCat = connector.addCategory("Transform");
-    transformCat.connect("Scaling", "scaling", scaling).connect("Offset", "offset", offset);
+    transformCat.connect("Scaling", "scaling", scaling);
+    transformCat.connect("Offset", "offset", offset);
     return connector;
 }
 
@@ -510,7 +513,8 @@ VirtualSettings BooleanGeometryWorker::getSettings() {
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& boolCat = connector.addCategory("Boolean");
-    boolCat.connect("Operation", "operation", mode).connect("Offset [km]", "offset", offset, 1.e3_f);
+    boolCat.connect("Operation", "operation", mode);
+    boolCat.connect("Offset [km]", "offset", offset).setUnits(1.e3_f);
 
     return connector;
 }

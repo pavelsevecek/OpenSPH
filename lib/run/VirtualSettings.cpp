@@ -2,6 +2,39 @@
 
 NAMESPACE_SPH_BEGIN
 
+EntryControl& EntryControl::setTooltip(const std::string& newTooltip) {
+    tooltip = newTooltip;
+    return *this;
+}
+
+EntryControl& EntryControl::setUnits(const float newMult) {
+    mult = newMult;
+    return *this;
+}
+
+EntryControl& EntryControl::setEnabler(Function<bool()> newEnabler) {
+    enabler = newEnabler;
+    return *this;
+}
+
+EntryControl& EntryControl::setAccessor(Function<void(const Value& newValue)> newAccessor) {
+    accessor = newAccessor;
+    return *this;
+}
+
+bool EntryControl::enabled() const {
+    return enabler ? enabler() : true;
+}
+
+std::string EntryControl::getTooltip() const {
+    return tooltip;
+}
+
+bool EntryControl::hasSideEffect() const {
+    return bool(accessor);
+}
+
+
 void VirtualSettings::set(const std::string& key, const IVirtualEntry::Value& value) {
     for (auto& category : categories) {
         auto entry = category.value.entries.tryGet(key);

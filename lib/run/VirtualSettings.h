@@ -91,6 +91,62 @@ public:
     virtual std::string getTooltip() const {
         return "";
     }
+
+    /// \brief Returns true if the entry can modify multiple values simultaneously.
+    ///
+    /// Usually, there is a 1-1 correspondence between entries and values (stored either in \ref Settings or
+    /// directly in the worker). However, an entry can modify other values as well, in which case it should
+    /// signal this by returning true from this function.
+    virtual bool hasSideEffect() const {
+        return false;
+    }
+};
+
+/// \brief Helper object, allowing to add units, tooltips and additional properties into the entry created
+/// with \ref VirtualSettings::Category::connect.
+///
+/// Each member function returns a reference to the object in order to allow queuing the calls, such as
+/// \code
+/// control.setTooltip("This is a tooltip").setUnits(1.e3f);
+/// \endcode
+///
+/// It partially implements the \ref IVirtualEntry interface to avoid code duplication.
+class EntryControl : public IVirtualEntry {
+protected:
+    std::string tooltip;
+    float mult = 1.f;
+    Function<bool()> enabler = nullptr;
+    Function<void(const Value& newValue)> accessor = nullptr;
+
+public:
+    /// \brief Adds or replaces the previous tooltip associanted with the entry.
+    EntryControl& setTooltip(const std::string& newTooltip);
+
+    /// \brief Sets units in which the entry is stored.
+    ///
+    /// Note that the units are currently only applied for \ref Float or \ref Vector entries. Other entries
+    /// ignore the value.
+    EntryControl& setUnits(const float newMult);
+
+    /// \brief Adds or replaces the enabler functor of the entry.
+    ///
+    /// Enabler specifies whether the entry is accessible or not. The user can still call the member function
+    /// \ref set or \ref get of the entry even if the functor returns false, but it indicates that the entry
+    /// has no meaning in the context of the current settings. For example, enabler should returns false for
+    /// entries associated with parameters of the boundary if there are no boundary conditions in the
+    /// simulations.
+    EntryControl& setEnabler(Function<bool()> newEnabler);
+
+    /// \brief Adds or replaces the previous functor called when the entry changes, i.e. when \ref set
+    /// function is called.
+    EntryControl& setAccessor(Function<void(const Value& newValue)> newAccessor);
+
+protected:
+    virtual bool enabled() const override;
+
+    virtual std::string getTooltip() const override;
+
+    virtual bool hasSideEffect() const override;
 };
 
 /// \brief Holds a map of virtual entries, associated with a unique name.
@@ -107,64 +163,19 @@ public:
         UnorderedMap<std::string, AutoPtr<IVirtualEntry>> entries;
 
     public:
+        /// \brief Manually adds a new entry into the settings.
+        ///
+        /// Mostly intended for custom implementations of \ref IVirtualEntry. For most uses, using \ref
+        /// connect is more conventient way to connect values with \ref IVirtualSettings.
         void addEntry(const std::string& key, AutoPtr<IVirtualEntry>&& entry);
 
         /// \brief Connects to given reference.
         template <typename TValue>
-        Category& connect(const std::string& name,
-            const std::string& key,
-            TValue& value,
-            const Float mult = 1._f,
-            const std::string& tooltip = "");
-
-        template <typename TValue>
-        Category& connect(const std::string& name,
-            const std::string& key,
-            TValue& value,
-            Function<bool()> enabler,
-            const std::string& tooltip = "");
-
-        template <typename TValue>
-        Category& connect(const std::string& name,
-            const std::string& key,
-            TValue& value,
-            const Float mult,
-            Function<bool()> enabler,
-            const std::string& tooltip = "");
-
-        template <typename TValue>
-        Category& connect(const std::string& name,
-            const std::string& key,
-            TValue& value,
-            const std::string& tooltip);
+        EntryControl& connect(const std::string& name, const std::string& key, TValue& value);
 
         /// \brief Connects to value in \ref Settings object
         template <typename TValue, typename TEnum>
-        Category& connect(const std::string& name,
-            Settings<TEnum>& settings,
-            const TEnum id,
-            const Float mult = 1._f);
-
-        template <typename TValue, typename TEnum>
-        Category& connect(const std::string& name,
-            Settings<TEnum>& settings,
-            const TEnum id,
-            const std::string& tooltip);
-
-        template <typename TValue, typename TEnum>
-        Category& connect(const std::string& name,
-            Settings<TEnum>& settings,
-            const TEnum id,
-            Function<bool()> enabler,
-            const Float mult = 1._f);
-
-        template <typename TValue, typename TEnum>
-        Category& connect(const std::string& name,
-            Settings<TEnum>& settings,
-            const TEnum id,
-            Function<bool()> enabler,
-            const Float mult,
-            const std::string& tooltip);
+        EntryControl& connect(const std::string& name, Settings<TEnum>& settings, const TEnum id);
     };
 
 

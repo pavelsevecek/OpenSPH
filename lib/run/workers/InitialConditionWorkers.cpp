@@ -39,10 +39,10 @@ UnorderedMap<std::string, WorkerType> MonolithicBodyIc::requires() const {
 
 void MonolithicBodyIc::addParticleCategory(VirtualSettings& settings) {
     VirtualSettings::Category& particleCat = settings.addCategory("Particles");
-    particleCat.connect<int>("Particle count", body, BodySettingsId::PARTICLE_COUNT)
-        .connect<EnumWrapper>("Distribution", body, BodySettingsId::INITIAL_DISTRIBUTION)
-        .connect<Float>("Radius multiplier", body, BodySettingsId::SMOOTHING_LENGTH_ETA)
-        .connect<bool>("Exact distance", body, BodySettingsId::DISTRIBUTE_MODE_SPH5);
+    particleCat.connect<int>("Particle count", body, BodySettingsId::PARTICLE_COUNT);
+    particleCat.connect<EnumWrapper>("Distribution", body, BodySettingsId::INITIAL_DISTRIBUTION);
+    particleCat.connect<Float>("Radius multiplier", body, BodySettingsId::SMOOTHING_LENGTH_ETA);
+    particleCat.connect<bool>("Exact distance", body, BodySettingsId::DISTRIBUTE_MODE_SPH5);
 }
 
 VirtualSettings MonolithicBodyIc::getSettings() {
@@ -51,47 +51,35 @@ VirtualSettings MonolithicBodyIc::getSettings() {
     this->addParticleCategory(connector);
 
     VirtualSettings::Category& shapeCat = connector.addCategory("Shape");
-    shapeCat
-        .connect<bool>("Custom shape",
-            "useShapeSlot",
-            slotUsage.shape,
-            "If true, a user-specified geometry input is used instead of shape parameters of the node.")
-        .connect<EnumWrapper>(
-            "Shape type", body, BodySettingsId::BODY_SHAPE_TYPE, [this] { return !slotUsage.shape; })
-        .connect<Float>(
-            "Radius [km]",
-            body,
-            BodySettingsId::BODY_RADIUS,
-            [this] {
-                const DomainEnum domain = body.get<DomainEnum>(BodySettingsId::BODY_SHAPE_TYPE);
-                return !slotUsage.shape &&
-                       (domain == DomainEnum::SPHERICAL || domain == DomainEnum::CYLINDER);
-            },
-            1.e3_f)
-        .connect<Float>(
-            "Height [km]",
-            body,
-            BodySettingsId::BODY_HEIGHT,
-            [this] {
-                const DomainEnum domain = body.get<DomainEnum>(BodySettingsId::BODY_SHAPE_TYPE);
-                return !slotUsage.shape && domain == DomainEnum::CYLINDER;
-            },
-            1.e3_f)
-        .connect<Vector>(
-            "Dimensions [km]",
-            body,
-            BodySettingsId::BODY_DIMENSIONS,
-            [this] {
-                const DomainEnum domain = body.get<DomainEnum>(BodySettingsId::BODY_SHAPE_TYPE);
-                return !slotUsage.shape && (domain == DomainEnum::BLOCK || domain == DomainEnum::ELLIPSOIDAL);
-            },
-            1.e3_f);
+    shapeCat.connect<bool>("Custom shape", "useShapeSlot", slotUsage.shape)
+        .setTooltip(
+            "If true, a user-specified geometry input is used instead of shape parameters of the node.");
+    shapeCat.connect<EnumWrapper>("Shape type", body, BodySettingsId::BODY_SHAPE_TYPE).setEnabler([this] {
+        return !slotUsage.shape;
+    });
+    shapeCat.connect<Float>("Radius [km]", body, BodySettingsId::BODY_RADIUS)
+        .setEnabler([this] {
+            const DomainEnum domain = body.get<DomainEnum>(BodySettingsId::BODY_SHAPE_TYPE);
+            return !slotUsage.shape && (domain == DomainEnum::SPHERICAL || domain == DomainEnum::CYLINDER);
+        })
+        .setUnits(1.e3_f);
+    shapeCat.connect<Float>("Height [km]", body, BodySettingsId::BODY_HEIGHT)
+        .setEnabler([this] {
+            const DomainEnum domain = body.get<DomainEnum>(BodySettingsId::BODY_SHAPE_TYPE);
+            return !slotUsage.shape && domain == DomainEnum::CYLINDER;
+        })
+        .setUnits(1.e3_f);
+    shapeCat.connect<Vector>("Dimensions [km]", body, BodySettingsId::BODY_DIMENSIONS)
+        .setEnabler([this] {
+            const DomainEnum domain = body.get<DomainEnum>(BodySettingsId::BODY_SHAPE_TYPE);
+            return !slotUsage.shape && (domain == DomainEnum::BLOCK || domain == DomainEnum::ELLIPSOIDAL);
+        })
+        .setUnits(1.e3_f);
 
     VirtualSettings::Category& materialCat = connector.addCategory("Material");
-    materialCat.connect<bool>("Custom material",
-        "useMaterialSlot",
-        slotUsage.material,
-        "If true, a user-specified material input is used instead of material parameters of the node.");
+    materialCat.connect<bool>("Custom material", "useMaterialSlot", slotUsage.material)
+        .setTooltip(
+            "If true, a user-specified material input is used instead of material parameters of the node.");
     this->addMaterialEntries(materialCat, [this] { return !slotUsage.material; });
 
     auto diehlEnabler = [this] {
@@ -99,8 +87,9 @@ VirtualSettings MonolithicBodyIc::getSettings() {
                DistributionEnum::DIEHL_ET_AL;
     };
     VirtualSettings::Category& diehlCat = connector.addCategory("Diehl's distribution");
-    diehlCat.connect<int>("Iteration count", body, BodySettingsId::DIEHL_ITERATION_COUNT, diehlEnabler);
-    diehlCat.connect<Float>("Strength", body, BodySettingsId::DIEHL_STRENGTH, diehlEnabler);
+    diehlCat.connect<int>("Iteration count", body, BodySettingsId::DIEHL_ITERATION_COUNT)
+        .setEnabler(diehlEnabler);
+    diehlCat.connect<Float>("Strength", body, BodySettingsId::DIEHL_STRENGTH).setEnabler(diehlEnabler);
 
     VirtualSettings::Category& dynamicsCat = connector.addCategory("Dynamics");
     dynamicsCat.connect<Float>("Spin rate [rev/day]", body, BodySettingsId::BODY_SPIN_RATE);
@@ -194,8 +183,8 @@ VirtualSettings DifferentiatedBodyIc::getSettings() {
     VirtualSettings::Category& layersCat = connector.addCategory("Layers");
     layersCat.connect("Layer count", "layer_cnt", layerCnt);
     VirtualSettings::Category& particleCat = connector.addCategory("Particles");
-    particleCat.connect<int>("Particle count", mainBody, BodySettingsId::PARTICLE_COUNT)
-        .connect<EnumWrapper>("Distribution", mainBody, BodySettingsId::INITIAL_DISTRIBUTION);
+    particleCat.connect<int>("Particle count", mainBody, BodySettingsId::PARTICLE_COUNT);
+    particleCat.connect<EnumWrapper>("Distribution", mainBody, BodySettingsId::INITIAL_DISTRIBUTION);
 
     return connector;
 }
@@ -232,9 +221,9 @@ static WorkerRegistrar sRegisterDifferentiated("create differentiated body",
 
 void ImpactorIc::addParticleCategory(VirtualSettings& settings) {
     VirtualSettings::Category& particleCat = settings.addCategory("Particles");
-    particleCat.connect<EnumWrapper>("Distribution", body, BodySettingsId::INITIAL_DISTRIBUTION)
-        .connect<Float>("Radius multiplier", body, BodySettingsId::SMOOTHING_LENGTH_ETA)
-        .connect<bool>("Exact distance", body, BodySettingsId::DISTRIBUTE_MODE_SPH5);
+    particleCat.connect<EnumWrapper>("Distribution", body, BodySettingsId::INITIAL_DISTRIBUTION);
+    particleCat.connect<Float>("Radius multiplier", body, BodySettingsId::SMOOTHING_LENGTH_ETA);
+    particleCat.connect<bool>("Exact distance", body, BodySettingsId::DISTRIBUTE_MODE_SPH5);
 }
 
 static Float getTargetDensity(const Storage& storage) {
@@ -396,11 +385,13 @@ VirtualSettings ModifyQuantityIc::getSettings() {
     auto curveEnabler = [this] { return ChangeMode(mode) == ChangeMode::CURVE; };
 
     VirtualSettings::Category& quantityCat = connector.addCategory("Modification");
-    quantityCat.connect("Quantity", "quantity", id)
-        .connect("Mode", "mode", mode)
-        .connect("Center value [si]", "central_value", centralValue, paramEnabler)
-        .connect("Radial gradient [si/km]", "radial_grad", radialGrad, 1.e-3f, paramEnabler)
-        .connect("Curve", "curve", curve, curveEnabler);
+    quantityCat.connect("Quantity", "quantity", id);
+    quantityCat.connect("Mode", "mode", mode);
+    quantityCat.connect("Center value [si]", "central_value", centralValue).setEnabler(paramEnabler);
+    quantityCat.connect("Radial gradient [si/km]", "radial_grad", radialGrad)
+        .setUnits(1.e-3f)
+        .setEnabler(paramEnabler);
+    quantityCat.connect("Curve", "curve", curve).setEnabler(curveEnabler);
 
     return connector;
 }
@@ -495,9 +486,10 @@ VirtualSettings NBodyIc::getSettings() {
     particleCat.connect<int>("Particle count", settings, NBodySettingsId::PARTICLE_COUNT);
 
     VirtualSettings::Category& distributionCat = connector.addCategory("Distribution");
-    distributionCat.connect<Float>("Domain radius [km]", settings, NBodySettingsId::DOMAIN_RADIUS, 1.e3_f)
-        .connect<Float>("Radial exponent", settings, NBodySettingsId::RADIAL_PROFILE)
-        .connect<Float>("Height scale", settings, NBodySettingsId::HEIGHT_SCALE);
+    distributionCat.connect<Float>("Domain radius [km]", settings, NBodySettingsId::DOMAIN_RADIUS)
+        .setUnits(1.e3_f);
+    distributionCat.connect<Float>("Radial exponent", settings, NBodySettingsId::RADIAL_PROFILE);
+    distributionCat.connect<Float>("Height scale", settings, NBodySettingsId::HEIGHT_SCALE);
     distributionCat.addEntry("min_size",
         makeEntry(settings, NBodySettingsId::POWER_LAW_INTERVAL, "Minimal size [m]", IntervalBound::LOWER));
     distributionCat.addEntry("max_size",
@@ -506,10 +498,12 @@ VirtualSettings NBodyIc::getSettings() {
     distributionCat.connect<Float>("Power-law exponent", settings, NBodySettingsId::POWER_LAW_EXPONENT);
 
     VirtualSettings::Category& dynamicsCat = connector.addCategory("Dynamics");
-    dynamicsCat
-        .connect<Float>("Total mass [M_earth]", settings, NBodySettingsId::TOTAL_MASS, Constants::M_earth)
-        .connect<Float>("Velocity multiplier", settings, NBodySettingsId::VELOCITY_MULTIPLIER)
-        .connect<Float>("Velocity dispersion [km/s]", settings, NBodySettingsId::VELOCITY_DISPERSION, 1.e3_f);
+    dynamicsCat.connect<Float>("Total mass [M_earth]", settings, NBodySettingsId::TOTAL_MASS)
+        .setUnits(Constants::M_earth);
+    distributionCat.connect<Float>("Velocity multiplier", settings, NBodySettingsId::VELOCITY_MULTIPLIER);
+    distributionCat
+        .connect<Float>("Velocity dispersion [km/s]", settings, NBodySettingsId::VELOCITY_DISPERSION)
+        .setUnits(1.e3_f);
 
     return connector;
 }
@@ -629,26 +623,26 @@ VirtualSettings GalaxyIc::getSettings() {
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& diskCat = connector.addCategory("Disk");
-    diskCat.connect<int>("Disk particle count", settings, GalaxySettingsId::DISK_PARTICLE_COUNT)
-        .connect<Float>("Disk radial scale", settings, GalaxySettingsId::DISK_RADIAL_SCALE)
-        .connect<Float>("Disk radial cutoff", settings, GalaxySettingsId::DISK_RADIAL_CUTOFF)
-        .connect<Float>("Disk vertical scale", settings, GalaxySettingsId::DISK_VERTICAL_SCALE)
-        .connect<Float>("Disk vertical cutoff", settings, GalaxySettingsId::DISK_VERTICAL_CUTOFF)
-        .connect<Float>("Disk mass", settings, GalaxySettingsId::DISK_MASS)
-        .connect<Float>("Toomre Q parameter", settings, GalaxySettingsId::DISK_TOOMRE_Q);
+    diskCat.connect<int>("Disk particle count", settings, GalaxySettingsId::DISK_PARTICLE_COUNT);
+    diskCat.connect<Float>("Disk radial scale", settings, GalaxySettingsId::DISK_RADIAL_SCALE);
+    diskCat.connect<Float>("Disk radial cutoff", settings, GalaxySettingsId::DISK_RADIAL_CUTOFF);
+    diskCat.connect<Float>("Disk vertical scale", settings, GalaxySettingsId::DISK_VERTICAL_SCALE);
+    diskCat.connect<Float>("Disk vertical cutoff", settings, GalaxySettingsId::DISK_VERTICAL_CUTOFF);
+    diskCat.connect<Float>("Disk mass", settings, GalaxySettingsId::DISK_MASS);
+    diskCat.connect<Float>("Toomre Q parameter", settings, GalaxySettingsId::DISK_TOOMRE_Q);
 
     VirtualSettings::Category& haloCat = connector.addCategory("Halo");
-    haloCat.connect<int>("Halo particle count", settings, GalaxySettingsId::HALO_PARTICLE_COUNT)
-        .connect<Float>("Halo scale length", settings, GalaxySettingsId::HALO_SCALE_LENGTH)
-        .connect<Float>("Halo cutoff", settings, GalaxySettingsId::HALO_CUTOFF)
-        .connect<Float>("Halo gamma", settings, GalaxySettingsId::HALO_GAMMA)
-        .connect<Float>("Halo mass", settings, GalaxySettingsId::HALO_MASS);
+    haloCat.connect<int>("Halo particle count", settings, GalaxySettingsId::HALO_PARTICLE_COUNT);
+    haloCat.connect<Float>("Halo scale length", settings, GalaxySettingsId::HALO_SCALE_LENGTH);
+    haloCat.connect<Float>("Halo cutoff", settings, GalaxySettingsId::HALO_CUTOFF);
+    haloCat.connect<Float>("Halo gamma", settings, GalaxySettingsId::HALO_GAMMA);
+    haloCat.connect<Float>("Halo mass", settings, GalaxySettingsId::HALO_MASS);
 
     VirtualSettings::Category& bulgeCat = connector.addCategory("Bulge");
-    bulgeCat.connect<int>("Bulge particle count", settings, GalaxySettingsId::BULGE_PARTICLE_COUNT)
-        .connect<Float>("Bulge scale length", settings, GalaxySettingsId::BULGE_SCALE_LENGTH)
-        .connect<Float>("Bulge cutoff", settings, GalaxySettingsId::BULGE_CUTOFF)
-        .connect<Float>("Bulge mass", settings, GalaxySettingsId::BULGE_MASS);
+    bulgeCat.connect<int>("Bulge particle count", settings, GalaxySettingsId::BULGE_PARTICLE_COUNT);
+    bulgeCat.connect<Float>("Bulge scale length", settings, GalaxySettingsId::BULGE_SCALE_LENGTH);
+    bulgeCat.connect<Float>("Bulge cutoff", settings, GalaxySettingsId::BULGE_CUTOFF);
+    bulgeCat.connect<Float>("Bulge mass", settings, GalaxySettingsId::BULGE_MASS);
 
     VirtualSettings::Category& particleCat = connector.addCategory("Particles");
     particleCat.connect<Float>("Particle radius", settings, GalaxySettingsId::PARTICLE_RADIUS);

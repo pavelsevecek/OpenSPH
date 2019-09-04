@@ -63,15 +63,15 @@ VirtualSettings FileSequenceWorker::getSettings() {
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& inputCat = connector.addCategory("Input");
-    inputCat.connect("First file", "first_file", firstFile).connect("Maximum framerate", "max_fps", maxFps);
+    inputCat.connect("First file", "first_file", firstFile);
+    inputCat.connect("Maximum framerate", "max_fps", maxFps);
 
     VirtualSettings::Category& cacheCat = connector.addCategory("Cache");
-    cacheCat.connect("Cache loaded file",
-        "do_caching",
-        cache.use,
-        "If true, loaded files are kept in memory, allowing to run the sequence much faster in the following "
-        "evaluations.\n\nCurrently only particle positions, velocities and radii are cached in order to "
-        "reduce the memory of loaded files.");
+    cacheCat.connect("Cache loaded file", "do_caching", cache.use)
+        .setTooltip(
+            "If true, loaded files are kept in memory, allowing to run the sequence much faster in the "
+            "following evaluations.\n\nCurrently only particle positions, velocities and radii are cached in "
+            "order to reduce the memory of loaded files.");
 
     return connector;
 }
@@ -183,13 +183,13 @@ VirtualSettings SaveFileWorker::getSettings() {
     VirtualSettings connector;
 
     VirtualSettings::Category& outputCat = connector.addCategory("Output");
-    outputCat.connect<Path>("File", settings, RunSettingsId::RUN_OUTPUT_NAME)
-        .connect<EnumWrapper>("Format", settings, RunSettingsId::RUN_OUTPUT_TYPE)
-        .connect<Flags<OutputQuantityFlag>>(
-            "Quantities", settings, RunSettingsId::RUN_OUTPUT_QUANTITIES, [this] {
-                const IoEnum type = settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
-                return type == IoEnum::TEXT_FILE || type == IoEnum::VTK_FILE;
-            });
+    outputCat.connect<Path>("File", settings, RunSettingsId::RUN_OUTPUT_NAME);
+    outputCat.connect<EnumWrapper>("Format", settings, RunSettingsId::RUN_OUTPUT_TYPE);
+    outputCat.connect<Flags<OutputQuantityFlag>>("Quantities", settings, RunSettingsId::RUN_OUTPUT_QUANTITIES)
+        .setEnabler([this] {
+            const IoEnum type = settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
+            return type == IoEnum::TEXT_FILE || type == IoEnum::VTK_FILE;
+        });
 
     return connector;
 }
@@ -219,9 +219,9 @@ VirtualSettings SaveMeshWorker::getSettings() {
     outputCat.connect("File", "file", path);
 
     VirtualSettings::Category& meshCat = connector.addCategory("Mesh parameters");
-    meshCat.connect<Float>("Resolution", "resolution", resolution)
-        .connect<Float>("Surface level", "level", level)
-        .connect<bool>("Scale to unit size", "scale_to_unit", scaleToUnit);
+    meshCat.connect<Float>("Resolution", "resolution", resolution);
+    meshCat.connect<Float>("Surface level", "level", level);
+    meshCat.connect<bool>("Scale to unit size", "scale_to_unit", scaleToUnit);
 
     return connector;
 }

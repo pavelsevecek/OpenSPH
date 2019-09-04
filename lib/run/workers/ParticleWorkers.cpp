@@ -28,8 +28,8 @@ VirtualSettings CachedParticlesWorker::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& cacheCat = connector.addCategory("Caching");
-    cacheCat.connect("Use cached data", "use_cache", useCached)
-        .connect("Switch to cached on eval", "do_cache", doSwitch);
+    cacheCat.connect("Use cached data", "use_cache", useCached);
+    cacheCat.connect("Switch to cached on eval", "do_cache", doSwitch);
 
     return connector;
 }
@@ -67,8 +67,8 @@ VirtualSettings MergeParticlesWorker::getSettings() {
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& cat = connector.addCategory("Merging");
-    cat.connect("Offset [km]", "offset", offset, 1.e3_f);
-    cat.connect("Add velocity [km/s]", "velocity", velocity, 1.e3_f);
+    cat.connect("Offset [km]", "offset", offset).setUnits(1.e3_f);
+    cat.connect("Add velocity [km/s]", "velocity", velocity).setUnits(1.e3_f);
     cat.connect("Move to COM", "com", moveToCom);
     cat.connect("Make flags unique", "unique_flags", uniqueFlags);
 
@@ -126,13 +126,13 @@ VirtualSettings TransformParticlesWorker::getSettings() {
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& posCat = connector.addCategory("Positions");
-    posCat.connect("Translate [km]", "offset", positions.offset, 1.e3_f);
-    posCat.connect("Yaw angle [deg]", "yaw", positions.angles[0], DEG_TO_RAD);
-    posCat.connect("Pitch angle [deg]", "pitch", positions.angles[1], DEG_TO_RAD);
-    posCat.connect("Roll angle [deg]", "roll", positions.angles[2], DEG_TO_RAD);
+    posCat.connect("Translate [km]", "offset", positions.offset).setUnits(1.e3_f);
+    posCat.connect("Yaw angle [deg]", "yaw", positions.angles[0]).setUnits(DEG_TO_RAD);
+    posCat.connect("Pitch angle [deg]", "pitch", positions.angles[1]).setUnits(DEG_TO_RAD);
+    posCat.connect("Roll angle [deg]", "roll", positions.angles[2]).setUnits(DEG_TO_RAD);
 
     VirtualSettings::Category& velCat = connector.addCategory("Velocities");
-    velCat.connect("Add velocity [km/s]", "velocity", velocities.offset, 1.e3_f);
+    velCat.connect("Add velocity [km/s]", "velocity", velocities.offset).setUnits(1.e3_f);
 
     return connector;
 }
@@ -187,7 +187,8 @@ VirtualSettings ChangeMaterialWorker::getSettings() {
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& cat = connector.addCategory("Change material");
-    cat.connect("Subset", "subset", type).connect("Material ID", "mat_id", matId, [this] {
+    cat.connect("Subset", "subset", type);
+    cat.connect("Material ID", "mat_id", matId).setEnabler([this] {
         return ChangeMaterialSubset(type) == ChangeMaterialSubset::MATERIAL_ID;
     });
 
@@ -306,10 +307,12 @@ VirtualSettings CollisionGeometrySetup::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& positionCat = connector.addCategory("Collision geometry");
-    positionCat.connect<Float>("Impact angle [deg]", geometry, CollisionGeometrySettingsId::IMPACT_ANGLE)
-        .connect<Float>("Impact velocity [km/s]", geometry, CollisionGeometrySettingsId::IMPACT_SPEED, 1.e3_f)
-        .connect<Float>("Impactor offset [h]", geometry, CollisionGeometrySettingsId::IMPACTOR_OFFSET)
-        .connect<bool>("Move to CoM frame", geometry, CollisionGeometrySettingsId::CENTER_OF_MASS_FRAME);
+    positionCat.connect<Float>("Impact angle [deg]", geometry, CollisionGeometrySettingsId::IMPACT_ANGLE);
+    positionCat.connect<Float>("Impact velocity [km/s]", geometry, CollisionGeometrySettingsId::IMPACT_SPEED)
+        .setUnits(1.e3_f);
+    positionCat.connect<Float>("Impactor offset [h]", geometry, CollisionGeometrySettingsId::IMPACTOR_OFFSET);
+    positionCat.connect<bool>(
+        "Move to CoM frame", geometry, CollisionGeometrySettingsId::CENTER_OF_MASS_FRAME);
 
     return connector;
 }
@@ -446,9 +449,9 @@ VirtualSettings ExtractComponentWorker::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& category = connector.addCategory("Component");
-    category.connect("Component index", "index", componentIdx)
-        .connect("Connectivity factor", "factor", factor)
-        .connect("Move to CoM", "center", center);
+    category.connect("Component index", "index", componentIdx);
+    category.connect("Connectivity factor", "factor", factor);
+    category.connect("Move to CoM", "center", center);
     return connector;
 }
 
@@ -613,6 +616,59 @@ void SubsampleWorker::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(
 
 static WorkerRegistrar sRegisterSubsampler("subsampler", "particle operators", [](const std::string& name) {
     return makeAuto<SubsampleWorker>(name);
+});
+
+
+// ----------------------------------------------------------------------------------------------------------
+// AnalysisWorker
+// ----------------------------------------------------------------------------------------------------------
+
+VirtualSettings AnalysisWorker::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+    VirtualSettings::Category& outputCat = connector.addCategory("Output");
+    outputCat.connect("Output path", "output_path", outputPath);
+    return connector;
+}
+
+void AnalysisWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+    SharedPtr<ParticleData> input = this->getInput<ParticleData>("particles");
+
+    /*FlatMap<Size, Path> fileMap = getFileSequence(sequence.firstFile);
+    if (fileMap.empty()) {
+        throw InvalidSetup("No files to render.");
+    }
+    const Size firstKey = fileMap.begin()->key;
+
+    AutoPtr<IInput> input = Factory::getInput(sequence.firstFile);
+    for (auto& element : fileMap) {
+        Storage storage;
+        Statistics stats;
+        const Outcome result = input->load(element.value, storage, stats);
+        if (!result) {
+            /// \todo how to report this? (don't do modal dialog)
+            break;
+        }
+
+        stats.set(StatisticsId::RELATIVE_PROGRESS, Float(element.key - firstKey) / fileMap.size());
+        stats.set(StatisticsId::WALLCLOCK_TIME, int(renderTimer.elapsed(TimerUnit::MILLISECOND)));
+        if (element.key == firstKey) {
+            callbacks.onSetUp(storage, stats);
+        }
+        callbacks.onTimeStep(storage, stats);
+
+        if (callbacks.shouldAbortRun()) {
+            break;
+        }
+
+        movie.save(storage, stats);
+    }*/
+
+    result = input;
+}
+
+static WorkerRegistrar sRegisterAnalysis("analysis", "particle operators", [](const std::string& name) {
+    return makeAuto<AnalysisWorker>(name);
 });
 
 

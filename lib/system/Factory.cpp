@@ -442,14 +442,17 @@ AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& se
         const Float radius = settings.get<Float>(RunSettingsId::DOMAIN_FROZEN_DIST);
         return makeAuto<WindTunnel>(std::move(domain), radius);
     }
+    case BoundaryEnum::PERIODIC: {
+        const Box box = domain->getBoundingBox();
+        return makeAuto<PeriodicBoundary>(box, nullptr);
+    }
+    case BoundaryEnum::KILL_ESCAPERS:
+        ASSERT(domain != nullptr);
+        return makeAuto<KillEscapersBoundary>(domain);
     case BoundaryEnum::PROJECT_1D: {
         ASSERT(domain != nullptr);
         const Box box = domain->getBoundingBox();
         return makeAuto<Projection1D>(Interval(box.lower()[X], box.upper()[X]));
-    }
-    case BoundaryEnum::PERIODIC: {
-        const Box box = domain->getBoundingBox();
-        return makeAuto<PeriodicBoundary>(box, nullptr);
     }
     default:
         NOT_IMPLEMENTED;

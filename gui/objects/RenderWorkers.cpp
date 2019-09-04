@@ -45,8 +45,8 @@ VirtualSettings AnimationWorker::getSettings() {
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& outputCat = connector.addCategory("Output");
-    outputCat.connect<Path>("Directory", gui, GuiSettingsId::IMAGES_PATH)
-        .connect<std::string>("File mask", gui, GuiSettingsId::IMAGES_NAME);
+    outputCat.connect<Path>("Directory", gui, GuiSettingsId::IMAGES_PATH);
+    outputCat.connect<std::string>("File mask", gui, GuiSettingsId::IMAGES_NAME);
 
     auto particleEnabler = [this] {
         return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::PARTICLE;
@@ -56,45 +56,58 @@ VirtualSettings AnimationWorker::getSettings() {
     };
 
     VirtualSettings::Category& rendererCat = connector.addCategory("Rendering");
-    rendererCat.connect<EnumWrapper>("Renderer", gui, GuiSettingsId::RENDERER)
-        .connect("Quantities", "quantities", colorizers)
-        .connect<int>("Image width", gui, GuiSettingsId::IMAGES_WIDTH)
-        .connect<int>("Image height", gui, GuiSettingsId::IMAGES_HEIGHT)
-        .connect<bool>("Transparent background", "transparent", transparentBackground)
-        .connect<Float>("Particle radius", gui, GuiSettingsId::PARTICLE_RADIUS, particleEnabler)
-        .connect<bool>("Antialiasing", gui, GuiSettingsId::ANTIALIASED, particleEnabler)
-        .connect<bool>("Show key", gui, GuiSettingsId::SHOW_KEY, particleEnabler)
-        .connect<Vector>("Sun position", gui, GuiSettingsId::SURFACE_SUN_POSITION, raytracerEnabler)
-        .connect<Float>("Sunlight intensity", gui, GuiSettingsId::SURFACE_SUN_INTENSITY, raytracerEnabler)
-        .connect<Float>("Ambient intensity", gui, GuiSettingsId::SURFACE_AMBIENT, raytracerEnabler)
-        .connect<Float>("Emission", gui, GuiSettingsId::SURFACE_EMISSION, raytracerEnabler)
-        .connect<Float>("Surface level", gui, GuiSettingsId::SURFACE_LEVEL, raytracerEnabler)
-        .connect<int>("Interation count", gui, GuiSettingsId::RAYTRACE_ITERATION_LIMIT, raytracerEnabler);
+    rendererCat.connect<EnumWrapper>("Renderer", gui, GuiSettingsId::RENDERER);
+    rendererCat.connect("Quantities", "quantities", colorizers);
+    rendererCat.connect<int>("Image width", gui, GuiSettingsId::IMAGES_WIDTH);
+    rendererCat.connect<int>("Image height", gui, GuiSettingsId::IMAGES_HEIGHT);
+    rendererCat.connect<bool>("Transparent background", "transparent", transparentBackground);
+    rendererCat.connect<Float>("Particle radius", gui, GuiSettingsId::PARTICLE_RADIUS)
+        .setEnabler(particleEnabler);
+    rendererCat.connect<bool>("Antialiasing", gui, GuiSettingsId::ANTIALIASED).setEnabler(particleEnabler);
+    rendererCat.connect<bool>("Show key", gui, GuiSettingsId::SHOW_KEY).setEnabler(particleEnabler);
+    rendererCat.connect<Vector>("Sun position", gui, GuiSettingsId::SURFACE_SUN_POSITION)
+        .setEnabler(raytracerEnabler);
+    rendererCat.connect<Float>("Sunlight intensity", gui, GuiSettingsId::SURFACE_SUN_INTENSITY)
+        .setEnabler(raytracerEnabler);
+    rendererCat.connect<Float>("Ambient intensity", gui, GuiSettingsId::SURFACE_AMBIENT)
+        .setEnabler(raytracerEnabler);
+    rendererCat.connect<Float>("Emission", gui, GuiSettingsId::SURFACE_EMISSION).setEnabler(raytracerEnabler);
+    rendererCat.connect<Float>("Surface level", gui, GuiSettingsId::SURFACE_LEVEL)
+        .setEnabler(raytracerEnabler);
+    rendererCat.connect<int>("Interation count", gui, GuiSettingsId::RAYTRACE_ITERATION_LIMIT)
+        .setEnabler(raytracerEnabler);
 
     VirtualSettings::Category& textureCat = connector.addCategory("Texture paths");
-    textureCat.connect<std::string>("Body 1", gui, GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY, raytracerEnabler)
-        .connect<std::string>("Body 2", gui, GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY, raytracerEnabler)
-        .connect<std::string>("Background", gui, GuiSettingsId::RAYTRACE_HDRI, raytracerEnabler);
+    textureCat.connect<std::string>("Body 1", gui, GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY)
+        .setEnabler(raytracerEnabler);
+    textureCat.connect<std::string>("Body 2", gui, GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY)
+        .setEnabler(raytracerEnabler);
+    textureCat.connect<std::string>("Background", gui, GuiSettingsId::RAYTRACE_HDRI)
+        .setEnabler(raytracerEnabler);
 
     VirtualSettings::Category& cameraCat = connector.addCategory("Camera");
-    cameraCat.connect<EnumWrapper>("Camera type", gui, GuiSettingsId::CAMERA)
-        .connect<Float>("Field of view", gui, GuiSettingsId::PERSPECTIVE_FOV, DEG_TO_RAD)
-        .connect<Vector>("Position", gui, GuiSettingsId::PERSPECTIVE_POSITION)
-        .connect<Vector>("Target", gui, GuiSettingsId::PERSPECTIVE_TARGET)
-        .connect<Vector>("Up-direction", gui, GuiSettingsId::PERSPECTIVE_UP)
-        .connect<Float>("Clip near", gui, GuiSettingsId::PERSPECTIVE_CLIP_NEAR)
-        .connect<Float>("Clip far", gui, GuiSettingsId::PERSPECTIVE_CLIP_FAR)
-        .connect<int>("Track particle", gui, GuiSettingsId::PERSPECTIVE_TRACKED_PARTICLE);
+    cameraCat.connect<EnumWrapper>("Camera type", gui, GuiSettingsId::CAMERA);
+    cameraCat.connect<Float>("Field of view", gui, GuiSettingsId::PERSPECTIVE_FOV).setUnits(DEG_TO_RAD);
+    cameraCat.connect<Vector>("Position", gui, GuiSettingsId::PERSPECTIVE_POSITION);
+    cameraCat.connect<Vector>("Target", gui, GuiSettingsId::PERSPECTIVE_TARGET);
+    cameraCat.connect<Vector>("Up-direction", gui, GuiSettingsId::PERSPECTIVE_UP);
+    cameraCat.connect<Float>("Clip near", gui, GuiSettingsId::PERSPECTIVE_CLIP_NEAR);
+    cameraCat.connect<Float>("Clip far", gui, GuiSettingsId::PERSPECTIVE_CLIP_FAR);
+    cameraCat.connect<int>("Track particle", gui, GuiSettingsId::PERSPECTIVE_TRACKED_PARTICLE);
 
     auto orbitEnabler = [this] { return AnimationType(animationType) == AnimationType::ORBIT; };
 
     VirtualSettings::Category& animationCat = connector.addCategory("Animation");
-    animationCat.connect<EnumWrapper>("Animation type", "animation_type", animationType)
-        .connect<Float>("Angular step", "step", orbit.step, DEG_TO_RAD, orbitEnabler)
-        .connect<Float>("Final angle", "final_angle", orbit.finalAngle, DEG_TO_RAD, orbitEnabler)
-        .connect<Path>("First file", "first_file", sequence.firstFile, [this] {
-            return AnimationType(animationType) == AnimationType::FILE_SEQUENCE;
-        });
+    animationCat.connect<EnumWrapper>("Animation type", "animation_type", animationType);
+    animationCat.connect<Float>("Angular step", "step", orbit.step)
+        .setUnits(DEG_TO_RAD)
+        .setEnabler(orbitEnabler);
+    animationCat.connect<Float>("Final angle", "final_angle", orbit.finalAngle)
+        .setUnits(DEG_TO_RAD)
+        .setEnabler(orbitEnabler);
+    animationCat.connect<Path>("First file", "first_file", sequence.firstFile).setEnabler([this] {
+        return AnimationType(animationType) == AnimationType::FILE_SEQUENCE;
+    });
 
     return connector;
 }

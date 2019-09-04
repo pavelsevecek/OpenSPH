@@ -58,51 +58,56 @@ static void addTimeSteppingCategory(VirtualSettings& connector, RunSettings& set
     VirtualSettings::Category& rangeCat = connector.addCategory("Integration");
     rangeCat.connect<Float>("Duration [s]", settings, RunSettingsId::RUN_END_TIME);
     rangeCat.connect("Use start time of input", "is_resumed", resumeRun);
-    rangeCat.connect<Float>("Maximal timestep [s]", settings, RunSettingsId::TIMESTEPPING_MAX_TIMESTEP)
-        .connect<Float>("Initial timestep [s]", settings, RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP)
-        .connect<EnumWrapper>("Integrator", settings, RunSettingsId::TIMESTEPPING_INTEGRATOR)
-        .connect<Flags<TimeStepCriterionEnum>>(
-            "Time step criteria", settings, RunSettingsId::TIMESTEPPING_CRITERION)
-        .connect<Float>(
-            "Courant number", settings, RunSettingsId::TIMESTEPPING_COURANT_NUMBER, courantEnabler)
-        .connect<Float>("Time step multiplier", settings, RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR);
+    rangeCat.connect<Float>("Maximal timestep [s]", settings, RunSettingsId::TIMESTEPPING_MAX_TIMESTEP);
+    rangeCat.connect<Float>("Initial timestep [s]", settings, RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP);
+    rangeCat.connect<EnumWrapper>("Integrator", settings, RunSettingsId::TIMESTEPPING_INTEGRATOR);
+    rangeCat.connect<Flags<TimeStepCriterionEnum>>(
+        "Time step criteria", settings, RunSettingsId::TIMESTEPPING_CRITERION);
+    rangeCat.connect<Float>("Courant number", settings, RunSettingsId::TIMESTEPPING_COURANT_NUMBER)
+        .setEnabler(courantEnabler);
+    rangeCat.connect<Float>("Time step multiplier", settings, RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR);
 }
 
 static void addGravityCategory(VirtualSettings& connector, RunSettings& settings) {
     VirtualSettings::Category& gravityCat = connector.addCategory("Gravity");
-    gravityCat.connect<EnumWrapper>("Gravity solver", settings, RunSettingsId::GRAVITY_SOLVER)
-        .connect<Float>("Opening angle",
-            settings,
-            RunSettingsId::GRAVITY_OPENING_ANGLE,
-            [&settings] {
-                return settings.get<GravityEnum>(RunSettingsId::GRAVITY_SOLVER) == GravityEnum::BARNES_HUT;
-            })
-        .connect<int>("Multipole order", settings, RunSettingsId::GRAVITY_MULTIPOLE_ORDER)
-        .connect<EnumWrapper>("Softening kernel", settings, RunSettingsId::GRAVITY_KERNEL)
-        .connect<Float>("Recomputation period [s]", settings, RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD);
+    gravityCat.connect<EnumWrapper>("Gravity solver", settings, RunSettingsId::GRAVITY_SOLVER);
+    gravityCat.connect<Float>("Opening angle", settings, RunSettingsId::GRAVITY_OPENING_ANGLE)
+        .setEnabler([&settings] {
+            return settings.get<GravityEnum>(RunSettingsId::GRAVITY_SOLVER) == GravityEnum::BARNES_HUT;
+        });
+    gravityCat.connect<int>("Multipole order", settings, RunSettingsId::GRAVITY_MULTIPOLE_ORDER);
+    gravityCat.connect<EnumWrapper>("Softening kernel", settings, RunSettingsId::GRAVITY_KERNEL);
+    gravityCat.connect<Float>(
+        "Recomputation period [s]", settings, RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD);
 }
 
 static void addOutputCategory(VirtualSettings& connector, RunSettings& settings) {
     VirtualSettings::Category& outputCat = connector.addCategory("Output");
     outputCat.connect<EnumWrapper>("Format", settings, RunSettingsId::RUN_OUTPUT_TYPE)
-        .connect<Path>("Directory", settings, RunSettingsId::RUN_OUTPUT_PATH)
-        .connect<std::string>("File mask", settings, RunSettingsId::RUN_OUTPUT_NAME)
-        .connect<Flags<OutputQuantityFlag>>("Quantities",
-            settings,
-            RunSettingsId::RUN_OUTPUT_QUANTITIES,
-            [&settings] {
-                const IoEnum type = settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
-                return type == IoEnum::TEXT_FILE || type == IoEnum::VTK_FILE;
-            })
-        .connect<Float>("Output interval [s]", settings, RunSettingsId::RUN_OUTPUT_INTERVAL);
+        .setAccessor([&settings](const IVirtualEntry::Value& value) {
+            const IoEnum type = IoEnum(value.get<EnumWrapper>());
+            Path name = Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
+            if (Optional<std::string> extension = getIoExtension(type)) {
+                name.replaceExtension(extension.value());
+            }
+            settings.set(RunSettingsId::RUN_OUTPUT_NAME, name.native());
+        });
+    outputCat.connect<Path>("Directory", settings, RunSettingsId::RUN_OUTPUT_PATH);
+    outputCat.connect<std::string>("File mask", settings, RunSettingsId::RUN_OUTPUT_NAME);
+    outputCat.connect<Flags<OutputQuantityFlag>>("Quantities", settings, RunSettingsId::RUN_OUTPUT_QUANTITIES)
+        .setEnabler([&settings] {
+            const IoEnum type = settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
+            return type == IoEnum::TEXT_FILE || type == IoEnum::VTK_FILE;
+        });
+    outputCat.connect<Float>("Output interval [s]", settings, RunSettingsId::RUN_OUTPUT_INTERVAL);
 }
 
 static void addLoggerCategory(VirtualSettings& connector, RunSettings& settings) {
     VirtualSettings::Category& loggerCat = connector.addCategory("Logging");
-    loggerCat.connect<EnumWrapper>("Logger", settings, RunSettingsId::RUN_LOGGER)
-        .connect<Path>("File", settings, RunSettingsId::RUN_LOGGER_FILE, [&settings] {
-            return settings.get<LoggerEnum>(RunSettingsId::RUN_LOGGER) == LoggerEnum::FILE;
-        });
+    loggerCat.connect<EnumWrapper>("Logger", settings, RunSettingsId::RUN_LOGGER);
+    loggerCat.connect<Path>("File", settings, RunSettingsId::RUN_LOGGER_FILE).setEnabler([&settings] {
+        return settings.get<LoggerEnum>(RunSettingsId::RUN_LOGGER) == LoggerEnum::FILE;
+    });
 }
 
 
@@ -192,24 +197,25 @@ VirtualSettings SphWorker::getSettings() {
     };
 
     VirtualSettings::Category& solverCat = connector.addCategory("SPH solver");
-    solverCat.connect<Flags<ForceEnum>>("Forces", settings, RunSettingsId::SPH_SOLVER_FORCES)
-        .connect<Vector>("Constant acceleration", settings, RunSettingsId::FRAME_CONSTANT_ACCELERATION)
-        .connect<EnumWrapper>("Artificial viscosity", settings, RunSettingsId::SPH_AV_TYPE)
-        .connect<bool>("Apply Balsara switch", settings, RunSettingsId::SPH_AV_USE_BALSARA)
-        .connect<bool>("Apply artificial stress", settings, RunSettingsId::SPH_AV_USE_STRESS)
-        .connect<Float>("Artificial viscosity alpha", settings, RunSettingsId::SPH_AV_ALPHA)
-        .connect<Float>("Artificial viscosity beta", settings, RunSettingsId::SPH_AV_BETA)
-        .connect<EnumWrapper>("Solver type", settings, RunSettingsId::SPH_SOLVER_TYPE)
-        .connect<EnumWrapper>("SPH discretization", settings, RunSettingsId::SPH_DISCRETIZATION)
-        .connect<bool>("Apply correction tensor",
-            settings,
-            RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR,
-            stressEnabler)
-        .connect<bool>("Sum only undamaged particles", settings, RunSettingsId::SPH_SUM_ONLY_UNDAMAGED)
-        .connect<EnumWrapper>("Neighbour finder", settings, RunSettingsId::SPH_FINDER)
-        .connect<int>("Max leaf size", settings, RunSettingsId::FINDER_LEAF_SIZE, treeEnabler)
-        .connect<int>("Max parallel depth", settings, RunSettingsId::FINDER_MAX_PARALLEL_DEPTH, treeEnabler)
-        .connect<EnumWrapper>("Boundary condition", settings, RunSettingsId::DOMAIN_BOUNDARY);
+    solverCat.connect<Flags<ForceEnum>>("Forces", settings, RunSettingsId::SPH_SOLVER_FORCES);
+    solverCat.connect<Vector>("Constant acceleration", settings, RunSettingsId::FRAME_CONSTANT_ACCELERATION);
+    solverCat.connect<EnumWrapper>("Artificial viscosity", settings, RunSettingsId::SPH_AV_TYPE);
+    solverCat.connect<bool>("Apply Balsara switch", settings, RunSettingsId::SPH_AV_USE_BALSARA);
+    solverCat.connect<bool>("Apply artificial stress", settings, RunSettingsId::SPH_AV_USE_STRESS);
+    solverCat.connect<Float>("Artificial viscosity alpha", settings, RunSettingsId::SPH_AV_ALPHA);
+    solverCat.connect<Float>("Artificial viscosity beta", settings, RunSettingsId::SPH_AV_BETA);
+    solverCat.connect<EnumWrapper>("Solver type", settings, RunSettingsId::SPH_SOLVER_TYPE);
+    solverCat.connect<EnumWrapper>("SPH discretization", settings, RunSettingsId::SPH_DISCRETIZATION);
+    solverCat
+        .connect<bool>("Apply correction tensor", settings, RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR)
+        .setEnabler(stressEnabler);
+    solverCat.connect<bool>("Sum only undamaged particles", settings, RunSettingsId::SPH_SUM_ONLY_UNDAMAGED);
+    solverCat.connect<EnumWrapper>("Neighbour finder", settings, RunSettingsId::SPH_FINDER);
+    solverCat.connect<int>("Max leaf size", settings, RunSettingsId::FINDER_LEAF_SIZE)
+        .setEnabler(treeEnabler);
+    solverCat.connect<int>("Max parallel depth", settings, RunSettingsId::FINDER_MAX_PARALLEL_DEPTH)
+        .setEnabler(treeEnabler);
+    solverCat.connect<EnumWrapper>("Boundary condition", settings, RunSettingsId::DOMAIN_BOUNDARY);
 
     addGravityCategory(connector, settings);
     addLoggerCategory(connector, settings);
@@ -363,10 +369,9 @@ VirtualSettings NBodyWorker::getSettings() {
     addGravityCategory(connector, settings);
 
     VirtualSettings::Category& aggregateCat = connector.addCategory("Aggregates (experimental)");
-    aggregateCat.connect<bool>("Enable", settings, RunSettingsId::NBODY_AGGREGATES_ENABLE)
-        .connect<EnumWrapper>("Initial aggregates", settings, RunSettingsId::NBODY_AGGREGATES_SOURCE, [this] {
-            return settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE);
-        });
+    aggregateCat.connect<bool>("Enable", settings, RunSettingsId::NBODY_AGGREGATES_ENABLE);
+    aggregateCat.connect<EnumWrapper>("Initial aggregates", settings, RunSettingsId::NBODY_AGGREGATES_SOURCE)
+        .setEnabler([this] { return settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE); });
 
     auto collisionEnabler = [this] { return !settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE); };
     auto mergeEnabler = [this] {
@@ -377,20 +382,20 @@ VirtualSettings NBodyWorker::getSettings() {
     };
 
     VirtualSettings::Category& collisionCat = connector.addCategory("Collisions");
+    collisionCat.connect<EnumWrapper>("Collision handler", settings, RunSettingsId::COLLISION_HANDLER)
+        .setEnabler(collisionEnabler);
+    collisionCat.connect<EnumWrapper>("Overlap handler", settings, RunSettingsId::COLLISION_OVERLAP)
+        .setEnabler(collisionEnabler);
+    collisionCat.connect<Float>("Normal restitution", settings, RunSettingsId::COLLISION_RESTITUTION_NORMAL)
+        .setEnabler(collisionEnabler);
     collisionCat
-        .connect<EnumWrapper>(
-            "Collision handler", settings, RunSettingsId::COLLISION_HANDLER, collisionEnabler)
-        .connect<EnumWrapper>("Overlap handler", settings, RunSettingsId::COLLISION_OVERLAP, collisionEnabler)
-        .connect<Float>(
-            "Normal restitution", settings, RunSettingsId::COLLISION_RESTITUTION_NORMAL, collisionEnabler)
-        .connect<Float>("Tangential restitution",
-            settings,
-            RunSettingsId::COLLISION_RESTITUTION_TANGENT,
-            collisionEnabler)
-        .connect<Float>(
-            "Merge velocity limit", settings, RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, mergeEnabler)
-        .connect<Float>(
-            "Merge rotation limit", settings, RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT, mergeEnabler);
+        .connect<Float>("Tangential restitution", settings, RunSettingsId::COLLISION_RESTITUTION_TANGENT)
+        .setEnabler(collisionEnabler);
+    collisionCat.connect<Float>("Merge velocity limit", settings, RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT)
+        .setEnabler(mergeEnabler);
+    collisionCat
+        .connect<Float>("Merge rotation limit", settings, RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT)
+        .setEnabler(mergeEnabler);
 
     addLoggerCategory(connector, settings);
     addOutputCategory(connector, settings);

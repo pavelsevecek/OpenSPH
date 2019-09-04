@@ -32,26 +32,28 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
         return (!enabler || enabler()) && use && id == YieldingEnum::DRUCKER_PRAGER;
     };
 
-    category.connect<EnumWrapper>("EoS", body, BodySettingsId::EOS, enabler)
-        .connect<Float>("Density [kg/m^3]", body, BodySettingsId::DENSITY, enabler)
-        .connect<Float>("Specific energy [J/kg]", body, BodySettingsId::ENERGY, enabler)
-        .connect<Float>("Damage []", body, BodySettingsId::DAMAGE, enabler)
-        .connect<EnumWrapper>("Rheology", body, BodySettingsId::RHEOLOGY_YIELDING, enabler)
-        .connect<Float>("von Mises limit [Pa]",
-            body,
-            BodySettingsId::ELASTICITY_LIMIT,
-            [this, enabler] {
-                const YieldingEnum id = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
-                return (!enabler || enabler()) &&
-                       (id == YieldingEnum::VON_MISES || id == YieldingEnum::DRUCKER_PRAGER);
-            })
-        .connect<Float>("Internal friction []", body, BodySettingsId::INTERNAL_FRICTION, enablerDp)
-        .connect<Float>("Cohesion [Pa]", body, BodySettingsId::COHESION, enablerDp)
-        .connect<Float>("Dry friction []", body, BodySettingsId::DRY_FRICTION, enablerDp)
-        .connect<bool>("Use acoustic fludization", body, BodySettingsId::USE_ACOUSTIC_FLUDIZATION, enablerDp)
-        .connect<Float>("Oscillation decay time [s]", body, BodySettingsId::OSCILLATION_DECAY_TIME, enablerAf)
-        .connect<Float>("Fludization viscosity", body, BodySettingsId::FLUIDIZATION_VISCOSITY, enablerAf)
-        .connect<EnumWrapper>("Fragmentation", body, BodySettingsId::RHEOLOGY_DAMAGE, enabler);
+    category.connect<EnumWrapper>("EoS", body, BodySettingsId::EOS).setEnabler(enabler);
+    category.connect<Float>("Density [kg/m^3]", body, BodySettingsId::DENSITY).setEnabler(enabler);
+    category.connect<Float>("Specific energy [J/kg]", body, BodySettingsId::ENERGY).setEnabler(enabler);
+    category.connect<Float>("Damage []", body, BodySettingsId::DAMAGE).setEnabler(enabler);
+    category.connect<EnumWrapper>("Rheology", body, BodySettingsId::RHEOLOGY_YIELDING).setEnabler(enabler);
+    category.connect<Float>("von Mises limit [Pa]", body, BodySettingsId::ELASTICITY_LIMIT)
+        .setEnabler([this, enabler] {
+            const YieldingEnum id = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
+            return (!enabler || enabler()) &&
+                   (id == YieldingEnum::VON_MISES || id == YieldingEnum::DRUCKER_PRAGER);
+        });
+    category.connect<Float>("Internal friction []", body, BodySettingsId::INTERNAL_FRICTION)
+        .setEnabler(enablerDp);
+    category.connect<Float>("Cohesion [Pa]", body, BodySettingsId::COHESION).setEnabler(enablerDp);
+    category.connect<Float>("Dry friction []", body, BodySettingsId::DRY_FRICTION).setEnabler(enablerDp);
+    category.connect<bool>("Use acoustic fludization", body, BodySettingsId::USE_ACOUSTIC_FLUDIZATION)
+        .setEnabler(enablerDp);
+    category.connect<Float>("Oscillation decay time [s]", body, BodySettingsId::OSCILLATION_DECAY_TIME)
+        .setEnabler(enablerAf);
+    category.connect<Float>("Fludization viscosity", body, BodySettingsId::FLUIDIZATION_VISCOSITY)
+        .setEnabler(enablerAf);
+    category.connect<EnumWrapper>("Fragmentation", body, BodySettingsId::RHEOLOGY_DAMAGE).setEnabler(enabler);
 }
 
 // ----------------------------------------------------------------------------------------------------------
@@ -70,10 +72,10 @@ VirtualSettings MaterialWorker::getSettings() {
     this->addMaterialEntries(materialCat, nullptr);
 
     VirtualSettings::Category& integratorCat = connector.addCategory("Time step control");
-    integratorCat.connect<Float>("Density coeff. [kg/m^3]", body, BodySettingsId::DENSITY_MIN)
-        .connect<Float>("Energy coeff. [J/kg]", body, BodySettingsId::ENERGY_MIN)
-        .connect<Float>("Stress coeff. [Pa]", body, BodySettingsId::STRESS_TENSOR_MIN)
-        .connect<Float>("Damage coeff. []", body, BodySettingsId::DAMAGE_MIN);
+    integratorCat.connect<Float>("Density coeff. [kg/m^3]", body, BodySettingsId::DENSITY_MIN);
+    integratorCat.connect<Float>("Energy coeff. [J/kg]", body, BodySettingsId::ENERGY_MIN);
+    integratorCat.connect<Float>("Stress coeff. [Pa]", body, BodySettingsId::STRESS_TENSOR_MIN);
+    integratorCat.connect<Float>("Damage coeff. []", body, BodySettingsId::DAMAGE_MIN);
 
     return connector;
 }

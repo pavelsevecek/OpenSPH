@@ -277,5 +277,25 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
+class AnalysisWorker : public IParticleWorker {
+private:
+    Path outputPath = Path("report.txt");
+
+public:
+    explicit AnalysisWorker(const std::string& name)
+        : IParticleWorker(name) {}
+
+    virtual std::string className() const override {
+        return "analysis";
+    }
+
+    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+        return { { "particles", WorkerType::PARTICLES } };
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+};
 
 NAMESPACE_SPH_END

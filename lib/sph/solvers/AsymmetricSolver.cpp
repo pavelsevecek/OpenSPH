@@ -104,7 +104,7 @@ AsymmetricSolver::~AsymmetricSolver() = default;
 void AsymmetricSolver::beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
     VERBOSE_LOG
 
-    // initialize boundary conditions first, as they may change the number of particles (ghosts)
+    // initialize boundary conditions first, as they may change the number of particles (ghosts, killbox, ...)
     bc->initialize(storage);
 
     // initialize all equation terms (applies dependencies between quantities)

@@ -498,20 +498,20 @@ VirtualSettings NodeManager::getGlobalSettings() {
     sphCat.connect<EnumWrapper>("SPH kernel", globals, RunSettingsId::SPH_KERNEL);
 
     VirtualSettings::Category& parallelCat = settings.addCategory("Parallelization");
-    parallelCat.connect<int>("Number of threads", globals, RunSettingsId::RUN_THREAD_CNT)
-        .connect<int>("Particle granularity", globals, RunSettingsId::RUN_THREAD_GRANULARITY);
+    parallelCat.connect<int>("Number of threads", globals, RunSettingsId::RUN_THREAD_CNT);
+    parallelCat.connect<int>("Particle granularity", globals, RunSettingsId::RUN_THREAD_GRANULARITY);
 
     VirtualSettings::Category& flawCat = settings.addCategory("Random numbers");
-    flawCat.connect<EnumWrapper>("Random-number generator", globals, RunSettingsId::RUN_RNG)
-        .connect<int>("Random seed", globals, RunSettingsId::RUN_RNG_SEED);
+    flawCat.connect<EnumWrapper>("Random-number generator", globals, RunSettingsId::RUN_RNG);
+    flawCat.connect<int>("Random seed", globals, RunSettingsId::RUN_RNG_SEED);
 
     VirtualSettings::Category& renderCat = settings.addCategory("Rendering");
     renderCat.connect<bool>("Enable textures", globals, RunSettingsId::GENERATE_UVWS);
 
     VirtualSettings::Category& authorCat = settings.addCategory("Run metadata");
-    authorCat.connect<std::string>("Author name", globals, RunSettingsId::RUN_AUTHOR)
-        .connect<std::string>("Author e-mail", globals, RunSettingsId::RUN_EMAIL)
-        .connect<std::string>("Comment", globals, RunSettingsId::RUN_COMMENT);
+    authorCat.connect<std::string>("Author name", globals, RunSettingsId::RUN_AUTHOR);
+    authorCat.connect<std::string>("Author e-mail", globals, RunSettingsId::RUN_EMAIL);
+    authorCat.connect<std::string>("Comment", globals, RunSettingsId::RUN_COMMENT);
 
     return settings;
 }
@@ -1293,7 +1293,14 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             NOT_IMPLEMENTED;
         }
 
-        this->updateEnabled(grid);
+        if (entry->hasSideEffect()) {
+            // need to update all properties
+            /// \todo alternatively the entry could return the list of properties to update ...
+            this->updateProperties();
+        } else {
+            // only update the enabled/disabled state
+            this->updateEnabled(grid);
+        }
         nodeEditor->Refresh();
         callbacks->markUnsaved();
     });
@@ -1461,6 +1468,7 @@ SharedPtr<WorkerNode> NodeWindow::addNode(AutoPtr<IWorker>&& worker) {
 }
 
 void NodeWindow::updateProperties() {
+    const wxString states = grid->SaveEditableState(wxPropertyGrid::ScrollPosState);
     grid->Clear();
     propertyEntryMap.clear();
 
@@ -1473,6 +1481,7 @@ void NodeWindow::updateProperties() {
     this->updateEnabled(grid);
 
     grid->SetSplitterPosition(int(0.55 * grid->GetSize().x));
+    grid->RestoreEditableState(states, wxPropertyGrid::ScrollPosState);
 }
 
 void NodeWindow::updateEnabled(wxPropertyGrid* grid) {

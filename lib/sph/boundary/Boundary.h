@@ -226,6 +226,18 @@ public:
     AutoPtr<ISymmetricFinder> getPeriodicFinder(AutoPtr<ISymmetricFinder>&& finder);
 };
 
+/// \brief Boundary condition that removes particles outside the domain.
+class KillEscapersBoundary : public IBoundaryCondition {
+private:
+    SharedPtr<IDomain> domain;
+
+public:
+    explicit KillEscapersBoundary(SharedPtr<IDomain> domain);
+
+    virtual void initialize(Storage& storage) override;
+
+    virtual void finalize(Storage& storage) override;
+};
 
 /// Helper tool for 1D tests, projects all particles onto a 1D line.
 class Projection1D : public IBoundaryCondition {

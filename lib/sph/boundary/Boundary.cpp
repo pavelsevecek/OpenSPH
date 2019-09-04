@@ -305,7 +305,6 @@ void WindTunnel::finalize(Storage& storage) {
 // PeriodicBoundary implementation
 //-----------------------------------------------------------------------------------------------------------
 
-
 PeriodicBoundary::PeriodicBoundary(const Box& domain, AutoPtr<IBoundaryCondition>&& additional)
     : domain(domain)
     , additional(std::move(additional)) {}
@@ -340,9 +339,28 @@ AutoPtr<ISymmetricFinder> PeriodicBoundary::getPeriodicFinder(AutoPtr<ISymmetric
 }
 
 //-----------------------------------------------------------------------------------------------------------
-// Projection1D implementation
+// KillEscapersBoundary implementation
 //-----------------------------------------------------------------------------------------------------------
 
+KillEscapersBoundary::KillEscapersBoundary(SharedPtr<IDomain> domain)
+    : domain(domain) {}
+
+void KillEscapersBoundary::initialize(Storage& storage) {
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    Array<Size> toRemove;
+    for (Size i = 0; i < r.size(); ++i) {
+        if (!domain->contains(r[i])) {
+            toRemove.push(i);
+        }
+    }
+    storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED);
+}
+
+void KillEscapersBoundary::finalize(Storage& UNUSED(storage)) {}
+
+//-----------------------------------------------------------------------------------------------------------
+// Projection1D implementation
+//----------------------------------------------------------------------------------------------------------
 
 Projection1D::Projection1D(const Interval& domain)
     : domain(domain) {}

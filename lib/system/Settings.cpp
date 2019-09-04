@@ -86,7 +86,6 @@ static RegisterEnum<FinderEnum> sFinder({
     { FinderEnum::DYNAMIC, "dynamic", "Selecting most suitable finder automatically" },
 });
 
-
 static RegisterEnum<BoundaryEnum> sBoundary({
     { BoundaryEnum::NONE, "none", "Do not use any boundary conditions (= vacuum conditions)" },
     { BoundaryEnum::FROZEN_PARTICLES,
@@ -108,6 +107,7 @@ static RegisterEnum<BoundaryEnum> sBoundary({
         "periodic",
         "Periodic boundary conditions; particles can interact accross boundaries. When particles leave the "
         "domain, they re-enter on the other side of the domain. " },
+    { BoundaryEnum::KILL_ESCAPERS, "kill escapers", "Removes all particles outside the domain" },
     { BoundaryEnum::PROJECT_1D,
         "project_1D",
         "Debug boundary condition, used to emulate 1D SPH solver. While the solver is still "
@@ -294,6 +294,26 @@ static RegisterEnum<IoEnum> sIo({
         "visualization tools." },
     { IoEnum::PKDGRAV_INPUT, "pkdgrav_input", "Generate a pkdgrav input file." },
 });
+
+Optional<std::string> getIoExtension(const IoEnum type) {
+    switch (type) {
+    case IoEnum::NONE:
+        return NOTHING;
+    case IoEnum::TEXT_FILE:
+    case IoEnum::GNUPLOT_OUTPUT:
+        return std::string("txt");
+    case IoEnum::BINARY_FILE:
+        return std::string("ssf");
+    case IoEnum::COMPRESSED_FILE:
+        return std::string("scf");
+    case IoEnum::PKDGRAV_INPUT:
+        return std::string("ss");
+    case IoEnum::VTK_FILE:
+        return std::string("vtu");
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
 
 static RegisterEnum<RngEnum> sRng({
     { RngEnum::UNIFORM, "uniform", "Mersenne Twister PRNG from Standard library." },

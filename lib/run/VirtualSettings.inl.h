@@ -7,31 +7,25 @@ namespace Detail {
 template <typename T, typename = void>
 class UnitAdapter {
 public:
-    explicit UnitAdapter(const Float UNUSED(mult)) {}
-
-    INLINE T get(const T input) const {
+    INLINE const T& get(const T& input, const float mult) const {
+        ASSERT(mult == 1._f, "Units not implemented for entries other than float or vector");
         return input;
     }
 
-    INLINE T set(const T input) const {
+    INLINE const T& set(const T& input, const float mult) const {
+        ASSERT(mult == 1._f, "Units not implemented for entries other than float or vector");
         return input;
     }
 };
 
 template <typename T>
 class UnitAdapter<T, std::enable_if_t<std::is_same<T, Float>::value || std::is_same<T, Vector>::value>> {
-private:
-    Float mult;
-
 public:
-    explicit UnitAdapter(const Float mult)
-        : mult(mult) {}
-
-    INLINE T get(const T input) const {
+    INLINE T get(const T& input, const float mult) const {
         return input / mult;
     }
 
-    INLINE T set(const T input) const {
+    INLINE T set(const T& input, const float mult) const {
         return input * mult;
     }
 };
@@ -45,37 +39,27 @@ inline void VirtualSettings::Category::addEntry(const std::string& key, AutoPtr<
 namespace Detail {
 
 template <typename TValue, typename = void>
-class ValueEntry : public IVirtualEntry {
+class ValueEntry : public EntryControl {
 private:
     TValue& ref;
     std::string name;
-    std::string tooltip;
-    Detail::UnitAdapter<TValue> units;
-
-    Function<bool()> enabler = nullptr;
 
 public:
-    ValueEntry(TValue& ref,
-        const std::string& name,
-        const Float mult,
-        Function<bool()> enabler,
-        const std::string& tooltip)
+    ValueEntry(TValue& ref, const std::string& name)
         : ref(ref)
-        , name(name)
-        , tooltip(tooltip)
-        , units(mult)
-        , enabler(enabler) {}
-
-    virtual bool enabled() const override {
-        return enabler ? enabler() : true;
-    }
+        , name(name) {}
 
     virtual void set(const Value& value) override {
-        ref = units.set(value.get<TValue>());
+        UnitAdapter<TValue> adapter;
+        ref = adapter.set(value.get<TValue>(), mult);
+        if (accessor) {
+            accessor(value);
+        }
     }
 
     virtual Value get() const override {
-        return units.get(ref);
+        UnitAdapter<TValue> adapter;
+        return adapter.get(ref, mult);
     }
 
     virtual Type getType() const override {
@@ -87,39 +71,26 @@ public:
     virtual std::string getName() const override {
         return name;
     }
-
-    virtual std::string getTooltip() const override {
-        return tooltip;
-    }
 };
 
 template <typename TValue>
-class ValueEntry<TValue, std::enable_if_t<FlagsTraits<TValue>::isFlags>> : public IVirtualEntry {
+class ValueEntry<TValue, std::enable_if_t<FlagsTraits<TValue>::isFlags>> : public EntryControl {
 private:
     TValue& ref;
     std::string name;
-    std::string tooltip;
-    Function<bool()> enabler;
 
     using TEnum = typename FlagsTraits<TValue>::Type;
 
 public:
-    ValueEntry(TValue& ref,
-        const std::string& name,
-        const Float UNUSED(mult),
-        Function<bool()> enabler,
-        const std::string& tooltip)
+    ValueEntry(TValue& ref, const std::string& name)
         : ref(ref)
-        , name(name)
-        , tooltip(tooltip)
-        , enabler(enabler) {}
-
-    virtual bool enabled() const override {
-        return enabler ? enabler() : true;
-    }
+        , name(name) {}
 
     virtual void set(const Value& value) override {
         ref = TValue::fromValue(value.get<EnumWrapper>().value);
+        if (accessor) {
+            accessor(value);
+        }
     }
 
     virtual Value get() const override {
@@ -133,135 +104,77 @@ public:
     virtual std::string getName() const override {
         return name;
     }
-
-    virtual std::string getTooltip() const override {
-        return tooltip;
-    }
 };
 
 } // namespace Detail
 
-// connects reference
 template <typename TValue>
-inline VirtualSettings::Category& VirtualSettings::Category::connect(const std::string& name,
+inline EntryControl& VirtualSettings::Category::connect(const std::string& name,
     const std::string& key,
-    TValue& value,
-    const Float mult,
-    const std::string& tooltip) {
-    return this->connect(name, key, value, mult, nullptr, tooltip);
-    return *this;
+    TValue& value) {
+    auto entry = makeAuto<Detail::ValueEntry<TValue>>(value, name);
+    EntryControl& control = *entry;
+    entries.insert(key, std::move(entry));
+    return control;
 }
 
-template <typename TValue>
-inline VirtualSettings::Category& VirtualSettings::Category::connect(const std::string& name,
-    const std::string& key,
-    TValue& value,
-    Function<bool()> enabler,
-    const std::string& tooltip) {
-    return this->connect(name, key, value, 1.f, enabler, tooltip);
-}
-
-template <typename TValue>
-inline VirtualSettings::Category& VirtualSettings::Category::connect(const std::string& name,
-    const std::string& key,
-    TValue& value,
-    const Float mult,
-    Function<bool()> enabler,
-    const std::string& tooltip) {
-    entries.insert(key, makeAuto<Detail::ValueEntry<TValue>>(value, name, mult, enabler, tooltip));
-    return *this;
-}
-
-template <typename TValue>
-inline VirtualSettings::Category& VirtualSettings::Category::connect(const std::string& name,
-    const std::string& key,
-    TValue& value,
-    const std::string& tooltip) {
-    return this->connect(name, key, value, 1.f, nullptr, tooltip);
-}
 
 namespace Detail {
 
-/// Partially implements IVirtualEntry
-class SettingsEntryBase : public IVirtualEntry {
-private:
-    std::string name;
-    std::string tooltip;
-    Function<bool()> enabler;
-
-public:
-    SettingsEntryBase(const std::string& name, const std::string& tooltip, Function<bool()> enabler)
-        : name(name)
-        , tooltip(tooltip)
-        , enabler(enabler) {}
-
-    virtual bool enabled() const override {
-        return enabler ? enabler() : true;
-    }
-
-    virtual std::string getName() const override {
-        return name;
-    }
-
-    virtual std::string getTooltip() const override {
-        return tooltip;
-    }
-};
-
 template <typename TValue, typename TEnum, typename TEnabler = void>
-class SettingsEntry : public SettingsEntryBase {
+class SettingsEntry : public EntryControl {
 private:
     Settings<TEnum>& settings;
+    std::string name;
     TEnum id;
 
-    UnitAdapter<TValue> units;
-
 public:
-    SettingsEntry(Settings<TEnum>& settings,
-        const TEnum id,
-        const std::string& name,
-        const Float mult,
-        Function<bool()> enabler,
-        const std::string& tooltip)
-        : SettingsEntryBase(name, tooltip, enabler)
-        , settings(settings)
-        , id(id)
-        , units(mult) {}
+    SettingsEntry(Settings<TEnum>& settings, const TEnum id, const std::string& name)
+        : settings(settings)
+        , name(name)
+        , id(id) {}
 
     virtual void set(const Value& value) override {
-        settings.set(id, units.set(value.get<TValue>()));
+        UnitAdapter<TValue> adapter;
+        settings.set(id, adapter.set(value.get<TValue>(), mult));
+        if (accessor) {
+            accessor(value);
+        }
     }
 
     virtual Value get() const override {
-        return units.get(settings.template get<TValue>(id));
+        UnitAdapter<TValue> adapter;
+        return adapter.get(settings.template get<TValue>(id), mult);
     }
 
     virtual Type getType() const override {
         return Type(getTypeIndex<TValue, bool, int, Float, Vector, std::string, Path, EnumWrapper>);
     }
+
+    virtual std::string getName() const override {
+        return name;
+    }
 };
 
 /// Partial specialization for Flags
 template <typename TValue, typename TEnum>
-class SettingsEntry<TValue, TEnum, std::enable_if_t<FlagsTraits<TValue>::isFlags>>
-    : public SettingsEntryBase {
+class SettingsEntry<TValue, TEnum, std::enable_if_t<FlagsTraits<TValue>::isFlags>> : public EntryControl {
 private:
     Settings<TEnum>& settings;
+    std::string name;
     TEnum id;
 
 public:
-    SettingsEntry(Settings<TEnum>& settings,
-        const TEnum id,
-        const std::string& name,
-        const Float UNUSED(mult),
-        Function<bool()> enabler,
-        const std::string& tooltip)
-        : SettingsEntryBase(name, tooltip, enabler)
-        , settings(settings)
+    SettingsEntry(Settings<TEnum>& settings, const TEnum id, const std::string& name)
+        : settings(settings)
+        , name(name)
         , id(id) {}
 
     virtual void set(const Value& value) override {
         settings.set(id, value.get<EnumWrapper>());
+        if (accessor) {
+            accessor(value);
+        }
     }
 
     virtual Value get() const override {
@@ -271,28 +184,31 @@ public:
     virtual Type getType() const override {
         return Type::FLAGS;
     }
+
+    virtual std::string getName() const override {
+        return name;
+    }
 };
 
 /// Partial specialization for Path
 template <typename TEnum>
-class SettingsEntry<Path, TEnum> : public SettingsEntryBase {
+class SettingsEntry<Path, TEnum> : public EntryControl {
 private:
     Settings<TEnum>& settings;
+    std::string name;
     TEnum id;
 
 public:
-    SettingsEntry(Settings<TEnum>& settings,
-        const TEnum id,
-        const std::string& name,
-        const Float UNUSED(mult),
-        Function<bool()> enabler,
-        const std::string& tooltip)
-        : SettingsEntryBase(name, tooltip, enabler)
-        , settings(settings)
+    SettingsEntry(Settings<TEnum>& settings, const TEnum id, const std::string& name)
+        : settings(settings)
+        , name(name)
         , id(id) {}
 
     virtual void set(const Value& value) override {
         settings.set(id, value.get<Path>().native());
+        if (accessor) {
+            accessor(value);
+        }
     }
 
     virtual Value get() const override {
@@ -302,54 +218,29 @@ public:
     virtual Type getType() const override {
         return Type::PATH;
     }
+
+    virtual std::string getName() const override {
+        return name;
+    }
 };
 
 
 } // namespace Detail
 
 template <typename TValue, typename TEnum>
-VirtualSettings::Category& VirtualSettings::Category::connect(const std::string& name,
+EntryControl& VirtualSettings::Category::connect(const std::string& name,
     Settings<TEnum>& settings,
-    const TEnum id,
-    Function<bool()> enabler,
-    const Float mult,
-    const std::string& tooltip) {
-
+    const TEnum id) {
     const Optional<std::string> key = Settings<TEnum>::getEntryName(id);
     if (!key) {
         throw InvalidSetup("No settings entry with id " + std::to_string(int(id)));
     }
-    AutoPtr<IVirtualEntry> entry =
-        makeAuto<Detail::SettingsEntry<TValue, TEnum>>(settings, id, name, mult, enabler, tooltip);
+    auto entry = makeAuto<Detail::SettingsEntry<TValue, TEnum>>(settings, id, name);
+    EntryControl& control = *entry;
     entries.insert(key.value(), std::move(entry));
-
-    return *this;
+    return control;
 }
 
-template <typename TValue, typename TEnum>
-VirtualSettings::Category& VirtualSettings::Category::connect(const std::string& name,
-    Settings<TEnum>& settings,
-    const TEnum id,
-    Function<bool()> enabler,
-    const Float mult) {
-    return this->connect<TValue>(name, settings, id, enabler, mult, "");
-}
-
-template <typename TValue, typename TEnum>
-VirtualSettings::Category& VirtualSettings::Category::connect(const std::string& name,
-    Settings<TEnum>& settings,
-    const TEnum id,
-    const Float mult) {
-    return this->connect<TValue>(name, settings, id, nullptr, mult, "");
-}
-
-template <typename TValue, typename TEnum>
-VirtualSettings::Category& VirtualSettings::Category::connect(const std::string& name,
-    Settings<TEnum>& settings,
-    const TEnum id,
-    const std::string& tooltip) {
-    return this->connect<TValue>(name, settings, id, nullptr, 1.f, tooltip);
-}
 
 template <typename TEnum, typename>
 void VirtualSettings::set(const TEnum id, const IVirtualEntry::Value& value) {
