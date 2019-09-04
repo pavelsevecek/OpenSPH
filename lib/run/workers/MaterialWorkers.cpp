@@ -37,6 +37,11 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
     category.connect<Float>("Specific energy [J/kg]", body, BodySettingsId::ENERGY).setEnabler(enabler);
     category.connect<Float>("Damage []", body, BodySettingsId::DAMAGE).setEnabler(enabler);
     category.connect<EnumWrapper>("Rheology", body, BodySettingsId::RHEOLOGY_YIELDING).setEnabler(enabler);
+    category.connect<Float>("Shear modulur [Pa]", body, BodySettingsId::SHEAR_MODULUS)
+        .setEnabler([this, enabler] {
+            const YieldingEnum id = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
+            return (!enabler || enabler()) && id != YieldingEnum::NONE;
+        });
     category.connect<Float>("von Mises limit [Pa]", body, BodySettingsId::ELASTICITY_LIMIT)
         .setEnabler([this, enabler] {
             const YieldingEnum id = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);

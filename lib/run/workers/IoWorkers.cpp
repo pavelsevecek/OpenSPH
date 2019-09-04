@@ -25,10 +25,13 @@ VirtualSettings LoadFileWorker::getSettings() {
 }
 
 void LoadFileWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+    if (!FileSystem::pathExists(path)) {
+        throw InvalidSetup("File '" + path.native() + "' does not exist or cannot be accessed.");
+    }
     AutoPtr<IInput> input = Factory::getInput(path);
     Storage storage;
     Statistics stats;
-    Outcome outcome = input->load(Path(path), storage, stats);
+    Outcome outcome = input->load(path, storage, stats);
     if (!outcome) {
         throw InvalidSetup(outcome.error());
     }
