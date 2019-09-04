@@ -578,7 +578,10 @@ wxMenu* MainWindow::createAnalysisMenu() {
     analysisMenu->Append(0, "Current SFD");
     analysisMenu->Append(1, "Predicted SFD");
     analysisMenu->Append(2, "Velocity histogram");
-    analysisMenu->Append(3, "Fragment parameters");
+    analysisMenu->Append(3, "Density profile");
+    analysisMenu->Append(4, "Energy profile");
+    analysisMenu->Append(5, "Pressure profile");
+    analysisMenu->Append(6, "Fragment parameters");
     analysisMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& evt) { //
         BusyCursor wait(this);
         RunPage* page = dynamic_cast<RunPage*>(notebook->GetCurrentPage());
@@ -587,7 +590,7 @@ wxMenu* MainWindow::createAnalysisMenu() {
         }
         RawPtr<Controller> controller = runs[page].controller.get();
 
-        if (evt.GetId() == 3) {
+        if (evt.GetId() == 6) { // not a plot, requires special handling
             GridPage* gridPage = new GridPage(notebook, wxSize(800, 600), wxSize(25, 25));
             gridPage->update(controller->getStorage());
 
@@ -619,6 +622,19 @@ wxMenu* MainWindow::createAnalysisMenu() {
         }
         case 2:
             plot = makeLocking<HistogramPlot>(Post::HistogramId::VELOCITIES, NOTHING, "Velocity");
+            break;
+        case 3:
+            plot = makeLocking<RadialDistributionPlot>(QuantityId::DENSITY);
+            break;
+        case 4:
+            plot = makeLocking<RadialDistributionPlot>(QuantityId::ENERGY);
+            break;
+        case 5:
+            if (!controller->getStorage().has(QuantityId::PRESSURE)) {
+                wxMessageBox("No pressure data", "Error", wxOK);
+                return;
+            }
+            plot = makeLocking<RadialDistributionPlot>(QuantityId::PRESSURE);
             break;
         default:
             NOT_IMPLEMENTED;

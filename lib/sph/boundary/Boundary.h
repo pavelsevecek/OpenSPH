@@ -16,6 +16,8 @@
 
 NAMESPACE_SPH_BEGIN
 
+class ISymmetricFinder;
+
 /// \brief Base object for boundary conditions.
 ///
 /// All boundary conditions behave similarly to equation terms, meaning they can modify the storage each time
@@ -211,30 +213,17 @@ private:
     AutoPtr<IBoundaryCondition> additional;
 
 public:
-    PeriodicBoundary(const Box& domain, AutoPtr<IBoundaryCondition>&& additional)
-        : domain(domain)
-        , additional(std::move(additional)) {}
+    PeriodicBoundary(const Box& domain, AutoPtr<IBoundaryCondition>&& additional);
 
-    virtual void initialize(Storage& storage) override {
-        ArrayView<Vector> positions = storage.getValue<Vector>(QuantityId::POSITION);
-        for (Vector& pos : positions) {
-            if (pos[X] < domain.lower()[X]) {
-                pos[X] += domain.size()[X];
-            } else if (pos[X] > domain.upper()[X]) {
-                pos[X] -= domain.size()[X];
-            }
-        }
+    virtual void initialize(Storage& storage) override;
 
-        if (additional) {
-            additional->initialize(storage);
-        }
-    }
+    virtual void finalize(Storage& storage) override;
 
-    virtual void finalize(Storage& storage) override {
-        if (additional) {
-            additional->finalize(storage);
-        }
-    }
+    /// \brief Finder respecting the boundary condition.
+    ///
+    /// Acts as a wrapper of another finder. Unlike other finders that only search for particles in the
+    /// specified radius, the periodic finder also returns the particles on the other side of the bounadry.
+    AutoPtr<ISymmetricFinder> getPeriodicFinder(AutoPtr<ISymmetricFinder>&& finder);
 };
 
 

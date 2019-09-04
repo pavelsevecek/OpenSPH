@@ -13,17 +13,17 @@
 
 NAMESPACE_SPH_BEGIN
 
+class ISymmetricFinder;
 class IBoundaryCondition;
 
 /// \brief Base class for asymmetric SPH solvers.
 class IAsymmetricSolver : public ISolver {
-private:
+protected:
     /// \brief Structure used to search for neighbouring particles.
     ///
-    /// Cannot be accessed by derived classes, use \ref getFinder instead.
-    AutoPtr<IBasicFinder> finder;
+    /// Should not be accessed by derived classes directly, use \ref getFinder instead.
+    AutoPtr<ISymmetricFinder> finder;
 
-protected:
     /// Scheduler used to parallelize the solver.
     IScheduler& scheduler;
 
@@ -47,7 +47,7 @@ protected:
     ///
     /// Derived classes might override this function to return generally different finder that the member \ref
     /// finder, implementations should therefore use this function instead of accessing the finder directly.
-    virtual const IBasicFinder& getFinder(ArrayView<const Vector> r);
+    virtual RawPtr<const IBasicFinder> getFinder(ArrayView<const Vector> r);
 
     /// \todo this structure is probably not needed, we only use it by EnergyConservingSolver anyway
     virtual void beforeLoop(Storage& storage, Statistics& stats) = 0;
@@ -103,13 +103,13 @@ public:
     ~AsymmetricSolver();
 
 protected:
-    virtual void beforeLoop(Storage& storage, Statistics& stats);
+    virtual void beforeLoop(Storage& storage, Statistics& stats) override;
 
-    virtual void loop(Storage& storage, Statistics& stats);
+    virtual void loop(Storage& storage, Statistics& stats) override;
 
-    virtual void afterLoop(Storage& storage, Statistics& stats);
+    virtual void afterLoop(Storage& storage, Statistics& stats) override;
 
-    virtual void sanityCheck(const Storage& storage) const;
+    virtual void sanityCheck(const Storage& storage) const override;
 };
 
 NAMESPACE_SPH_END

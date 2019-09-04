@@ -62,10 +62,10 @@ Float IAsymmetricSolver::getSearchRadius(const Storage& storage) const {
     return maxH * kernel.radius();
 }
 
-const IBasicFinder& IAsymmetricSolver::getFinder(ArrayView<const Vector> r) {
+RawPtr<const IBasicFinder> IAsymmetricSolver::getFinder(ArrayView<const Vector> r) {
     VERBOSE_LOG
     finder->build(scheduler, r);
-    return *finder;
+    return &*finder;
 }
 
 AsymmetricSolver::AsymmetricSolver(IScheduler& scheduler,
@@ -83,8 +83,20 @@ AsymmetricSolver::AsymmetricSolver(IScheduler& scheduler,
 
     // creates all derivatives required by the equation terms
     equations.setDerivatives(derivatives, settings);
-}
 
+    /// \todo this will get overriden by GravitySolver!!!
+    ///
+    /// We need the following:
+    /// no gravity, no PBC -> TFinder
+    /// no gravity, PBC    -> PeriodicFinder<TFinder>
+    /// gravity, no PBC    -> KdTree
+    /// gravity, PBC       -> PeriodicFinder<KdTree>
+
+    // special case for PeriodicBoundary - needs to wrap the finder
+    if (RawPtr<PeriodicBoundary> periodicBc = dynamicCast<PeriodicBoundary>(this->bc.get())) {
+        finder = periodicBc->getPeriodicFinder(std::move(finder));
+    }
+}
 
 AsymmetricSolver::~AsymmetricSolver() = default;
 
@@ -108,7 +120,7 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     // (re)build neighbour-finding structure; this needs to be done after all equations
     // are initialized in case some of them modify smoothing lengths
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    const IBasicFinder& actFinder = this->getFinder(r);
+    const IBasicFinder& actFinder = *this->getFinder(r);
 
     // find the maximum search radius
     const Float radius = this->getSearchRadius(storage);

@@ -1,9 +1,11 @@
 #include "gui/windows/NodePage.h"
 #include "gui/Utils.h"
 #include "gui/objects/RenderWorkers.h"
+#include "gui/windows/CurveDialog.h"
 #include "io/FileSystem.h"
 #include "objects/utility/IteratorAdapters.h"
 #include "run/Config.h"
+#include "run/SpecialEntries.h"
 #include "run/workers/IoWorkers.h"
 #include "run/workers/Presets.h"
 #include "thread/CheckFunction.h"
@@ -286,6 +288,11 @@ public:
             out.set<int>(name, ew.value);
             break;
         }
+        case IVirtualEntry::Type::EXTRA: {
+            ExtraEntry extra(entry.get());
+            out.set<std::string>(name, extra.toString());
+            break;
+        }
         default:
             NOT_IMPLEMENTED;
         }
@@ -354,7 +361,6 @@ public:
                 entry.set(input.get<Vector>(name));
                 break;
             case IVirtualEntry::Type::STRING:
-                entry.set(input.get<std::string>(name));
                 break;
             case IVirtualEntry::Type::PATH:
                 entry.set(input.get<Path>(name));
@@ -364,6 +370,13 @@ public:
                 EnumWrapper ew = entry.get();
                 ew.value = input.get<int>(name);
                 entry.set(ew);
+                break;
+            }
+            case IVirtualEntry::Type::EXTRA: {
+                /// \todo currently used only by curves, can be generalized if needed
+                ExtraEntry extra(makeAuto<CurveEntry>());
+                extra.fromString(input.get<std::string>(name));
+                entry.set(extra);
                 break;
             }
             default:
@@ -1134,6 +1147,12 @@ public:
         return grid->Append(new wxFlagsProperty(name, wxPG_LABEL, values, flags, wrapper.value));
     }
 
+    wxPGProperty* addExtra(const std::string& name, const ExtraEntry& extra) const {
+        RawPtr<CurveEntry> entry = dynamicCast<CurveEntry>(extra.getEntry());
+        ASSERT(entry);
+        return grid->Append(new CurveProperty(name, entry->getCurve()));
+    }
+
     void setTooltip(wxPGProperty* prop, const std::string& tooltip) const {
         grid->SetPropertyHelpString(prop, tooltip);
     }
@@ -1182,6 +1201,9 @@ public:
             break;
         case IVirtualEntry::Type::FLAGS:
             prop = wrapper.addFlags(name, entry.get());
+            break;
+        case IVirtualEntry::Type::EXTRA:
+            prop = wrapper.addExtra(name, entry.get());
             break;
         default:
             NOT_IMPLEMENTED;
@@ -1257,6 +1279,14 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             EnumWrapper ew = entry->get();
             ew.value = value.GetLong();
             entry->set(ew);
+            break;
+        }
+        case IVirtualEntry::Type::EXTRA: {
+            CurveProperty* curveProp = dynamic_cast<CurveProperty*>(prop);
+            ASSERT(curveProp != nullptr);
+            Curve curve = curveProp->getCurve();
+            ExtraEntry extra(makeAuto<CurveEntry>(curve));
+            entry->set(extra);
             break;
         }
         default:

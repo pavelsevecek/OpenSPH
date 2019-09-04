@@ -45,6 +45,37 @@ Array<Vector> RandomDistribution::generate(IScheduler& UNUSED(scheduler),
 }
 
 //-----------------------------------------------------------------------------------------------------------
+// StratifiedDistribution implementation
+//-----------------------------------------------------------------------------------------------------------
+
+StratifiedDistribution::StratifiedDistribution(const Size seed)
+    : rng(makeRng<UniformRng>(seed)) {}
+
+Array<Vector> StratifiedDistribution::generate(IScheduler& UNUSED(scheduler),
+    const Size n,
+    const IDomain& domain) const {
+    VectorRng<IRng&> boxRng(*rng);
+    Array<Vector> vecs(0, n);
+    const Float volume = domain.getVolume();
+    const Float h = root<3>(volume / n);
+    Size found = 0;
+    const Box bounds = domain.getBoundingBox();
+    const Vector step = Vector(maxElement(bounds.size()) / regionCnt);
+    for (Size i = 0; i < 1e5 * n && found < n; ++i) {
+        bounds.iterate(step, [h, &step, &vecs, &found, &domain, &boxRng](const Vector& r) {
+            const Box box(r, r + step);
+            Vector w = boxRng() * box.size() + box.lower();
+            w[H] = h;
+            if (domain.contains(w)) {
+                vecs.push(w);
+                ++found;
+            }
+        });
+    }
+    return vecs;
+}
+
+//-----------------------------------------------------------------------------------------------------------
 // CubicPacking implementation
 //-----------------------------------------------------------------------------------------------------------
 

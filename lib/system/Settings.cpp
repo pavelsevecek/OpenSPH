@@ -86,6 +86,7 @@ static RegisterEnum<FinderEnum> sFinder({
     { FinderEnum::DYNAMIC, "dynamic", "Selecting most suitable finder automatically" },
 });
 
+
 static RegisterEnum<BoundaryEnum> sBoundary({
     { BoundaryEnum::NONE, "none", "Do not use any boundary conditions (= vacuum conditions)" },
     { BoundaryEnum::FROZEN_PARTICLES,
@@ -95,6 +96,9 @@ static RegisterEnum<BoundaryEnum> sBoundary({
         "ghost_particles",
         "Create ghosts particles located symmetricaly to the particles near the boundary, in order to keep "
         "particles inside domain." },
+    { BoundaryEnum::FIXED_PARTICLES,
+        "fixed_particles",
+        "Boundary is created by immovable particles placed along the boundary." },
     { BoundaryEnum::WIND_TUNNEL,
         "wind_tunnel",
         "Simulates a wind tunnel by pushing air particles into the domain and removing them on the other "
@@ -555,6 +559,7 @@ static RegisterEnum<DistributionEnum> sDistribution({
     { DistributionEnum::CUBIC, "cubic", "Cubic close packing (generally unstable, mainly for tests!)" },
     { DistributionEnum::RANDOM, "random", "Randomly distributed particles" },
     { DistributionEnum::DIEHL_ET_AL, "diehl_et_al", "Isotropic uniform distribution by Diehl et al. (2012)" },
+    { DistributionEnum::STRATIFIED, "stratified", "Stratified distribution" },
 });
 
 static RegisterEnum<EosEnum> sEos({

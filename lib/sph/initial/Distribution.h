@@ -51,6 +51,18 @@ public:
     virtual Array<Vector> generate(IScheduler& scheduler, const Size n, const IDomain& domain) const override;
 };
 
+/// \brief Generates random positions using stratified sampling.
+class StratifiedDistribution : public IDistribution {
+private:
+    AutoPtr<IRng> rng;
+    Size regionCnt = 100;
+
+public:
+    explicit StratifiedDistribution(const Size seed);
+
+    virtual Array<Vector> generate(IScheduler& scheduler, const Size n, const IDomain& domain) const override;
+};
+
 /// \brief Cubic close packing
 class CubicPacking : public IDistribution {
 public:

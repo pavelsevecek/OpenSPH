@@ -94,29 +94,29 @@ Accumulated& GravitySolver<EnergyConservingSolver>::getAccumulated() {
 }
 
 template <>
-const IBasicFinder& GravitySolver<AsymmetricSolver>::getFinder(ArrayView<const Vector> r) {
+RawPtr<const IBasicFinder> GravitySolver<AsymmetricSolver>::getFinder(ArrayView<const Vector> r) {
     RawPtr<const IBasicFinder> finder = gravity->getFinder();
     if (!finder) {
         // no finder provided, just call the default implementation
         return AsymmetricSolver::getFinder(r);
     } else {
-        return *finder;
+        return finder.get();
     }
 }
 
 template <>
-const IBasicFinder& GravitySolver<EnergyConservingSolver>::getFinder(ArrayView<const Vector> r) {
+RawPtr<const IBasicFinder> GravitySolver<EnergyConservingSolver>::getFinder(ArrayView<const Vector> r) {
     RawPtr<const IBasicFinder> finder = gravity->getFinder();
     if (!finder) {
         // no finder provided, just call the default implementation
         return EnergyConservingSolver::getFinder(r);
     } else {
-        return *finder;
+        return finder.get();
     }
 }
 
 template <>
-const IBasicFinder& GravitySolver<SymmetricSolver>::getFinder(ArrayView<const Vector> UNUSED(r)) {
+RawPtr<const IBasicFinder> GravitySolver<SymmetricSolver>::getFinder(ArrayView<const Vector> UNUSED(r)) {
     // Symmetric solver currently does not use this, we just implement it to make the templates work ...
     // If implemented, make sure to include RANK in the created tree - BarnesHut currently does not do that
     NOT_IMPLEMENTED;

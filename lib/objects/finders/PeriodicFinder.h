@@ -8,18 +8,20 @@
 NAMESPACE_SPH_BEGIN
 
 // currently fixed to x-direction
-class PeriodicFinder : public IBasicFinder {
+class PeriodicFinder : public ISymmetricFinder {
 private:
-    AutoPtr<IBasicFinder> actual;
+    AutoPtr<ISymmetricFinder> actual;
     Box domain;
+    SharedPtr<IScheduler> scheduler;
 
     mutable ThreadLocal<Array<NeighbourRecord>> extra;
 
 public:
-    PeriodicFinder(AutoPtr<IBasicFinder>&& actual, const Box& domain, IScheduler& scheduler)
+    PeriodicFinder(AutoPtr<ISymmetricFinder>&& actual, const Box& domain, SharedPtr<IScheduler> scheduler)
         : actual(std::move(actual))
         , domain(domain)
-        , extra(scheduler) {}
+        , scheduler(scheduler)
+        , extra(*scheduler) {}
 
     virtual Size findAll(const Size index,
         const Float radius,
@@ -31,6 +33,7 @@ public:
         const Float radius,
         Array<NeighbourRecord>& neighbours) const override {
         Size count = actual->findAll(pos, radius, neighbours);
+
         if (pos[X] < domain.lower()[X] + radius) {
             count += actual->findAll(pos + Vector(domain.size()[X], 0._f, 0._f), radius, extra.local());
             neighbours.pushAll(extra.local());
@@ -39,6 +42,10 @@ public:
             neighbours.pushAll(extra.local());
         }
         return count;
+    }
+
+    virtual Size findLowerRank(const Size, const Float, Array<NeighbourRecord>&) const override {
+        NOT_IMPLEMENTED;
     }
 
 protected:

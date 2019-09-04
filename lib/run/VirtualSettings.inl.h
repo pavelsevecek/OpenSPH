@@ -80,7 +80,8 @@ public:
 
     virtual Type getType() const override {
         // path has to be included to get correct index of EnumWrapper
-        return Type(getTypeIndex<TValue, bool, int, Float, Vector, std::string, Path, EnumWrapper>);
+        return Type(
+            getTypeIndex<TValue, bool, int, Float, Vector, std::string, Path, EnumWrapper, ExtraEntry>);
     }
 
     virtual std::string getName() const override {

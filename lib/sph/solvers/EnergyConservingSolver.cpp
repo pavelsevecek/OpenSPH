@@ -155,7 +155,7 @@ void EnergyConservingSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
 
     const Float radius = this->getSearchRadius(storage);
 
-    const IBasicFinder& finder = this->getFinder(r);
+    const IBasicFinder& finder = *this->getFinder(r);
     // partitioner->initialize(storage);
 
     neighList.resize(r.size());

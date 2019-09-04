@@ -7,15 +7,60 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Provides an interface for implementing new types of entries.
+///
+/// Class \ref IVirtualEntry can store basic types, such as bool, int, std::string, etc. When necessary to
+/// store more complex data, the user can implement \ref IExtraEntry interface and store the data using \ref
+/// ExtraEntry wrapper.
+class IExtraEntry : public Polymorphic {
+public:
+    virtual std::string toString() const = 0;
+
+    virtual void fromString(const std::string& s) = 0;
+
+    /// \todo use ClonePtr instead
+    virtual AutoPtr<IExtraEntry> clone() const = 0;
+};
+
+/// \brief Copyable wrapper of a \ref IExtraEntry.
+class ExtraEntry {
+public:
+    AutoPtr<IExtraEntry> entry;
+
+public:
+    explicit ExtraEntry(AutoPtr<IExtraEntry>&& entry)
+        : entry(std::move(entry)) {}
+
+    ExtraEntry(const ExtraEntry& other)
+        : entry(other.entry->clone()) {}
+
+    ExtraEntry& operator=(const ExtraEntry& other) {
+        entry = other.entry->clone();
+        return *this;
+    }
+
+    std::string toString() const {
+        return entry->toString();
+    }
+
+    void fromString(const std::string& s) const {
+        entry->fromString(s);
+    }
+
+    RawPtr<IExtraEntry> getEntry() const {
+        return entry.get();
+    }
+};
+
 /// \brief Represents a virtual entry in the settings.
 ///
 /// This entry may be connected to a single reference, an entry in \ref Settings object or other user-defined
 /// value. It provides an abstraction through which state of workers can be queried and modified.
 class IVirtualEntry : public Polymorphic {
 public:
-    enum class Type { BOOL, INT, FLOAT, VECTOR, STRING, PATH, ENUM, FLAGS };
+    enum class Type { BOOL, INT, FLOAT, VECTOR, STRING, PATH, ENUM, EXTRA, FLAGS };
 
-    using Value = Variant<bool, int, Float, Vector, std::string, Path, EnumWrapper>;
+    using Value = Variant<bool, int, Float, Vector, std::string, Path, EnumWrapper, ExtraEntry>;
 
     /// \brief Returns if this entry is currently enabled.
     ///

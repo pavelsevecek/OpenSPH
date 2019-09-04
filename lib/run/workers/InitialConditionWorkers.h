@@ -112,6 +112,32 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
+class ModifyQuantityIc : public IParticleWorker {
+private:
+    EnumWrapper id;
+    EnumWrapper mode;
+
+    Float centralValue = 1.f;
+    Float radialGrad = 0.f;
+
+    ExtraEntry curve;
+
+public:
+    ModifyQuantityIc(const std::string& name);
+
+    virtual std::string className() const override {
+        return "modify quantity";
+    }
+
+    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+        return { { "particles", WorkerType::PARTICLES } };
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+};
+
 enum class NBodySettingsId {
     PARTICLE_COUNT,
     TOTAL_MASS,

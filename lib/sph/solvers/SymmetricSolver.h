@@ -92,7 +92,7 @@ protected:
 
     virtual void afterLoop(Storage& storage, Statistics& stats);
 
-    virtual const IBasicFinder& getFinder(ArrayView<const Vector> r);
+    virtual RawPtr<const IBasicFinder> getFinder(ArrayView<const Vector> r);
 
     /// \brief Used to check internal consistency of the solver.
     ///

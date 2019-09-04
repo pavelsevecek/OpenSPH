@@ -66,8 +66,11 @@ void SpatialPlot<TDerived>::clear() {
 
 template <typename TDerived>
 void SpatialPlot<TDerived>::plot(IDrawingContext& dc) const {
-    for (PlotPoint p : points) {
-        dc.drawPoint(p);
+    for (Size i = 0; i < points.size(); ++i) {
+        if (i > 0) {
+            dc.drawLine(points[i], points[i - 1]);
+        }
+        dc.drawPoint(points[i]);
     }
 }
 

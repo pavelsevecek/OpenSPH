@@ -1,15 +1,16 @@
 #pragma once
 
+#include "math/Curve.h"
 #include "run/VirtualSettings.h"
 
 NAMESPACE_SPH_BEGIN
-
 
 enum class IntervalBound {
     LOWER,
     UPPER,
 };
 
+/// \brief Entry connecting to either lower or upper bound of an interval stored in settings.
 template <typename TEnum>
 class IntervalEntry : public IVirtualEntry {
 private:
@@ -70,5 +71,28 @@ INLINE AutoPtr<IVirtualEntry> makeEntry(Settings<TEnum>& settings,
     const IntervalBound bound) {
     return makeAuto<IntervalEntry<TEnum>>(settings, id, name, bound);
 }
+
+/// \brief Special entry allowing to access and (de)serialize a curve.
+class CurveEntry : public IExtraEntry {
+private:
+    Curve curve;
+
+public:
+    CurveEntry() = default;
+
+    CurveEntry(const Curve& curve)
+        : curve(curve) {}
+
+    Curve getCurve() const {
+        return curve;
+    }
+
+    virtual std::string toString() const override;
+
+    virtual void fromString(const std::string& s) override;
+
+    virtual AutoPtr<IExtraEntry> clone() const override;
+};
+
 
 NAMESPACE_SPH_END

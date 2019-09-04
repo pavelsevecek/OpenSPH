@@ -1156,6 +1156,9 @@ enum class DistributionEnum {
     /// Isotropic uniform distribution by Diehl et al. (2012)
     DIEHL_ET_AL,
 
+    /// Stratified distribution to reduce clustering
+    STRATIFIED,
+
     /// Distributes particles uniformly on line
     LINEAR
 };

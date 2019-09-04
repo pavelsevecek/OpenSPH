@@ -169,10 +169,10 @@ void SymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {
     stats.set(StatisticsId::NEIGHBOUR_COUNT, neighs);
 }
 
-const IBasicFinder& SymmetricSolver::getFinder(ArrayView<const Vector> r) {
+RawPtr<const IBasicFinder> SymmetricSolver::getFinder(ArrayView<const Vector> r) {
     /// \todo same thing as in AsymmetricSolver -> move to shared parent?
     finder->build(scheduler, r);
-    return *finder;
+    return &*finder;
 }
 
 void SymmetricSolver::sanityCheck(const Storage& UNUSED(storage)) const {

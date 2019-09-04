@@ -60,6 +60,10 @@ public:
         return !ptr;
     }
 
+    operator RawPtr<const T>() const {
+        return ptr;
+    }
+
     INLINE T* get() const {
         return ptr;
     }

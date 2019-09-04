@@ -1,4 +1,5 @@
 #include "sph/boundary/Boundary.h"
+#include "objects/finders/PeriodicFinder.h"
 #include "objects/geometry/Domain.h"
 #include "objects/utility/Iterator.h"
 #include "quantities/IMaterial.h"
@@ -300,6 +301,43 @@ void WindTunnel::finalize(Storage& storage) {
     ASSERT(storage.isValid());
 }
 
+//-----------------------------------------------------------------------------------------------------------
+// PeriodicBoundary implementation
+//-----------------------------------------------------------------------------------------------------------
+
+
+PeriodicBoundary::PeriodicBoundary(const Box& domain, AutoPtr<IBoundaryCondition>&& additional)
+    : domain(domain)
+    , additional(std::move(additional)) {}
+
+void PeriodicBoundary::initialize(Storage& storage) {
+    ArrayView<Vector> positions = storage.getValue<Vector>(QuantityId::POSITION);
+    for (Vector& pos : positions) {
+        const Vector lowerFlags(int(pos[X] < domain.lower()[X]),
+            int(pos[Y] < domain.lower()[Y]),
+            int(pos[Z] < domain.lower()[Z]));
+        const Vector upperFlags(int(pos[X] > domain.upper()[X]),
+            int(pos[Y] > domain.upper()[Y]),
+            int(pos[Z] > domain.upper()[Z]));
+
+        pos += domain.size() * (lowerFlags - upperFlags);
+    }
+
+    if (additional) {
+        additional->initialize(storage);
+    }
+}
+
+void PeriodicBoundary::finalize(Storage& storage) {
+    if (additional) {
+        additional->finalize(storage);
+    }
+}
+
+AutoPtr<ISymmetricFinder> PeriodicBoundary::getPeriodicFinder(AutoPtr<ISymmetricFinder>&& finder) {
+    SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
+    return makeAuto<PeriodicFinder>(std::move(finder), domain, scheduler);
+}
 
 //-----------------------------------------------------------------------------------------------------------
 // Projection1D implementation

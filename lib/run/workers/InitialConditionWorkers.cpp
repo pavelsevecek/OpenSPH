@@ -276,6 +276,56 @@ VirtualSettings EquilibriumIc::getSettings() {
     return connector;
 }
 
+using MassShell = Tuple<Size, Float, Float>;
+
+/// Returns array of "shells", sorted by radius, containing particle index, shell radius and integrated mass.
+static Array<MassShell> getMassInRadius(const Storage& storage, const Vector& r0) {
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+
+    Array<MassShell> table(r.size());
+    for (Size i = 0; i < r.size(); ++i) {
+        table[i] = makeTuple(i, getLength(r[i] - r0), m[i]);
+    }
+
+    // sort by radius
+    std::sort(table.begin(), table.end(), [](const MassShell& s1, const MassShell& s2) {
+        return s1.get<1>() < s2.get<1>();
+    });
+
+    // integrate masses
+    for (Size i = 1; i < r.size(); ++i) {
+        table[i].get<2>() += table[i - 1].get<2>();
+    }
+
+    return table;
+}
+
+static Array<Float> integratePressure(const Storage& storage, const Vector& r0) {
+    Array<MassShell> massInRadius = getMassInRadius(storage, r0);
+    ArrayView<const Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
+    Array<Float> p(massInRadius.size());
+    Float p0 = 0._f; // ad hoc, will be corrected afterwards
+    p.fill(p0);
+    for (Size k = 1; k < massInRadius.size(); ++k) {
+        const Size i = massInRadius[k].get<0>();
+        const Float r = massInRadius[k].get<1>();
+        const Float dr = r - massInRadius[k - 1].get<1>();
+        ASSERT(dr >= 0._f);
+        const Float M = massInRadius[k].get<2>();
+
+        p[i] = p0 - Constants::gravity * M * rho[i] / sqr(r) * dr;
+        p0 = p[i];
+    }
+
+    // subtract the surface pressure, so that the surface pressure is 0
+    for (Size i = 0; i < p.size(); ++i) {
+        p[i] -= p0;
+    }
+
+    return p;
+}
+
 void EquilibriumIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     result = this->getInput<ParticleData>("particles");
     Storage& storage = result->storage;
@@ -290,16 +340,15 @@ void EquilibriumIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& U
 
     ArrayView<const Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
     ArrayView<Float> u = storage.getValue<Float>(QuantityId::ENERGY);
-    const Float R = boundingSphere.radius();
-    Analytic::StaticSphere sphereFunc(R, rho[0]);
+    Array<Float> p = integratePressure(storage, r0);
 
-    IMaterial& material = storage.getMaterial(0);
-    RawPtr<EosMaterial> eosMat = dynamicCast<EosMaterial>(addressOf(material));
-    ASSERT(eosMat);
-    for (Size i = 0; i < r.size(); ++i) {
-        const Float dr = getLength(r[i] - r0);
-        const Float p = sphereFunc.getPressure(dr);
-        u[i] = eosMat->getEos().getInternalEnergy(rho[i], p);
+    for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
+        MaterialView mat = storage.getMaterial(matId);
+        RawPtr<EosMaterial> eosMat = dynamicCast<EosMaterial>(addressOf(mat.material()));
+        ASSERT(eosMat);
+        for (Size i : mat.sequence()) {
+            u[i] = eosMat->getEos().getInternalEnergy(rho[i], p[i]);
+        }
     }
 }
 
@@ -308,6 +357,95 @@ static WorkerRegistrar sRegisterEquilibriumIc("set equilibrium energy",
     "initial conditions",
     [](const std::string& name) { return makeAuto<EquilibriumIc>(name); });
 
+// ----------------------------------------------------------------------------------------------------------
+// ModifyQuantityIc
+// ----------------------------------------------------------------------------------------------------------
+
+enum class ChangeMode {
+    PARAMETRIC,
+    CURVE,
+};
+
+static RegisterEnum<ChangeMode> sChangeMode({
+    { ChangeMode::PARAMETRIC, "parametric", "Specified by parameters" },
+    { ChangeMode::CURVE, "curve", "Curve" },
+});
+
+enum class ChangeableQuantityId {
+    DENSITY,
+    ENERGY,
+};
+
+static RegisterEnum<ChangeableQuantityId> sSubsetType({
+    { ChangeableQuantityId::DENSITY, "density", "Material density." },
+    { ChangeableQuantityId::ENERGY, "specific energy", "Initial specific energy." },
+});
+
+ModifyQuantityIc::ModifyQuantityIc(const std::string& name)
+    : IParticleWorker(name)
+    , mode(ChangeMode::PARAMETRIC)
+    , curve(makeAuto<CurveEntry>()) {
+    id = EnumWrapper(ChangeableQuantityId::DENSITY);
+}
+
+VirtualSettings ModifyQuantityIc::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+
+    auto paramEnabler = [this] { return ChangeMode(mode) == ChangeMode::PARAMETRIC; };
+    auto curveEnabler = [this] { return ChangeMode(mode) == ChangeMode::CURVE; };
+
+    VirtualSettings::Category& quantityCat = connector.addCategory("Modification");
+    quantityCat.connect("Quantity", "quantity", id)
+        .connect("Mode", "mode", mode)
+        .connect("Center value [si]", "central_value", centralValue, paramEnabler)
+        .connect("Radial gradient [si/km]", "radial_grad", radialGrad, 1.e-3f, paramEnabler)
+        .connect("Curve", "curve", curve, curveEnabler);
+
+    return connector;
+}
+
+void ModifyQuantityIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+    result = this->getInput<ParticleData>("particles");
+
+    ArrayView<const Vector> r = result->storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Float> q;
+    switch (ChangeableQuantityId(id)) {
+    case ChangeableQuantityId::DENSITY:
+        q = result->storage.getValue<Float>(QuantityId::DENSITY);
+        break;
+    case ChangeableQuantityId::ENERGY:
+        q = result->storage.getValue<Float>(QuantityId::ENERGY);
+        break;
+    default:
+        NOT_IMPLEMENTED;
+    }
+
+    switch (ChangeMode(mode)) {
+    case ChangeMode::PARAMETRIC:
+        for (Size i = 0; i < r.size(); ++i) {
+            const Float dist = getLength(r[i]);
+            q[i] = centralValue + radialGrad * dist;
+        }
+        break;
+    case ChangeMode::CURVE: {
+        RawPtr<CurveEntry> curveEntry = dynamicCast<CurveEntry>(curve.getEntry());
+        const Curve func = curveEntry->getCurve();
+        for (Size i = 0; i < r.size(); ++i) {
+            const Float dist = getLength(r[i]);
+            q[i] = func(dist);
+        }
+        break;
+    }
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+static WorkerRegistrar sRegisterModifyQuantityIc("modify quantity",
+    "modifier",
+    "initial conditions",
+    [](const std::string& name) { return makeAuto<ModifyQuantityIc>(name); });
 
 // ----------------------------------------------------------------------------------------------------------
 // NBodyIc

@@ -216,6 +216,8 @@ AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& body,
     case DistributionEnum::RANDOM:
         /// \todo user-selected seed?
         return makeAuto<RandomDistribution>(1234);
+    case DistributionEnum::STRATIFIED:
+        return makeAuto<StratifiedDistribution>(1234);
     case DistributionEnum::DIEHL_ET_AL: {
         DiehlParams diehl;
         diehl.particleDensity = [](const Vector&) { return 1._f; };

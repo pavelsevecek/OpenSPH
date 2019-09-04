@@ -93,7 +93,7 @@ void GradHSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     }
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    const IBasicFinder& finder = getFinder(r);
+    const IBasicFinder& finder = *getFinder(r);
 
     // find the maximum search radius
     Float maxH = 0._f;

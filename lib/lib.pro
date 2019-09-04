@@ -15,6 +15,7 @@ SOURCES += \
     io/Logger.cpp \
     io/Output.cpp \
     io/Path.cpp \
+    math/Curve.cpp \
     math/Morton.cpp \
     math/SparseMatrix.cpp \
     math/rng/Rng.cpp \
@@ -49,6 +50,7 @@ SOURCES += \
     quantities/Storage.cpp \
     run/IRun.cpp \
     run/Node.cpp \
+    run/SpecialEntries.cpp \
     run/VirtualSettings.cpp \
     sph/Diagnostics.cpp \
     sph/Material.cpp \
@@ -123,6 +125,7 @@ HEADERS += \
     io/Serializer.h \
     io/Table.h \
     math/AffineMatrix.h \
+    math/Curve.h \
     math/Functional.h \
     math/MathBasic.h \
     math/MathUtils.h \
