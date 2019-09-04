@@ -7,7 +7,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-// currently fixed to x-direction
+/// \brief Finder wrapper respecting periodic domain.
 class PeriodicFinder : public ISymmetricFinder {
 private:
     AutoPtr<ISymmetricFinder> actual;
@@ -17,32 +17,15 @@ private:
     mutable ThreadLocal<Array<NeighbourRecord>> extra;
 
 public:
-    PeriodicFinder(AutoPtr<ISymmetricFinder>&& actual, const Box& domain, SharedPtr<IScheduler> scheduler)
-        : actual(std::move(actual))
-        , domain(domain)
-        , scheduler(scheduler)
-        , extra(*scheduler) {}
+    PeriodicFinder(AutoPtr<ISymmetricFinder>&& actual, const Box& domain, SharedPtr<IScheduler> scheduler);
 
     virtual Size findAll(const Size index,
         const Float radius,
-        Array<NeighbourRecord>& neighbours) const override {
-        return this->findAll(values[index], radius, neighbours);
-    }
+        Array<NeighbourRecord>& neighbours) const override;
 
     virtual Size findAll(const Vector& pos,
         const Float radius,
-        Array<NeighbourRecord>& neighbours) const override {
-        Size count = actual->findAll(pos, radius, neighbours);
-
-        if (pos[X] < domain.lower()[X] + radius) {
-            count += actual->findAll(pos + Vector(domain.size()[X], 0._f, 0._f), radius, extra.local());
-            neighbours.pushAll(extra.local());
-        } else if (pos[X] > domain.upper()[X] - radius) {
-            count += actual->findAll(pos - Vector(domain.size()[X], 0._f, 0._f), radius, extra.local());
-            neighbours.pushAll(extra.local());
-        }
-        return count;
-    }
+        Array<NeighbourRecord>& neighbours) const override;
 
     virtual Size findLowerRank(const Size, const Float, Array<NeighbourRecord>&) const override {
         NOT_IMPLEMENTED;

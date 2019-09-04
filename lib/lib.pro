@@ -25,6 +25,7 @@ SOURCES += \
     objects/finders/DynamicFinder.cpp \
     objects/finders/KdTree.cpp \
     objects/finders/NeighbourFinder.cpp \
+    objects/finders/PeriodicFinder.cpp \
     objects/finders/UniformGrid.cpp \
     objects/geometry/Domain.cpp \
     objects/geometry/SymmetricTensor.cpp \

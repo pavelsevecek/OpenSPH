@@ -10,7 +10,7 @@ using namespace Sph;
 
 TEST_CASE("PeriodicFinder", "[finders]") {
     Box box(Vector(0._f), Vector(2._f, 1._f, 1._f));
-    PeriodicFinder finder(makeAuto<UniformGridFinder>(), box, SEQUENTIAL);
+    PeriodicFinder finder(makeAuto<UniformGridFinder>(), box, SEQUENTIAL.getGlobalInstance());
 
     BlockDomain domain(box.center(), box.size());
     HexagonalPacking dist;
