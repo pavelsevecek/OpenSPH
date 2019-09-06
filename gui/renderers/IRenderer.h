@@ -60,6 +60,9 @@ struct RenderParams {
     /// \brief Background color of the rendered image.
     Rgba background = Rgba::black();
 
+    /// \brief If true, a color palette and a distance scale is included in the image.
+    bool showKey = true;
+
     /// \brief Parameters of the particle renderer
     struct {
         /// \brief  Scaling factor of drawn particles relative to 1.
@@ -87,9 +90,6 @@ struct RenderParams {
 
         /// \brief If true, ghost particles (if present) will be rendered as empty circles.
         bool renderGhosts = true;
-
-        /// \brief If true, a color palette and a distance scale is included in the image.
-        bool showKey = true;
 
     } particles;
 
@@ -120,6 +120,19 @@ struct RenderParams {
         float filterWidth = 2.f;
 
     } surface;
+
+    struct {
+
+        /// \brief Step between subsequent iso-lines
+        float isoStep = 30.f;
+
+        /// \brief Horizontal resolution of the grid
+        Size gridSize = 100;
+
+        /// \brief Show numerical values of iso-lines
+        bool showLabels = true;
+
+    } contours;
 
     /// \brief Sets up parameters using values stored in settings.
     ///

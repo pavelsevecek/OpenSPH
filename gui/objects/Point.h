@@ -83,6 +83,10 @@ struct BasicPoint {
         return x == other.x && y == other.y;
     }
 
+    bool operator!=(const TDerived& other) const {
+        return !(*this == other);
+    }
+
     friend std::ostream& operator<<(std::ostream& stream, const BasicPoint& p) {
         stream << p.x << " " << p.y;
         return stream;

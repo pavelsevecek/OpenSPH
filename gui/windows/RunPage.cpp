@@ -5,6 +5,7 @@
 #include "gui/Utils.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
+#include "gui/renderers/ContourRenderer.h"
 #include "gui/renderers/MeshRenderer.h"
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/renderers/RayTracer.h"
@@ -375,7 +376,7 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
 }
 
 wxWindow* RunPage::createRaytracerBox(wxPanel* parent) {
-    wxStaticBox* raytraceBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 160));
+    wxStaticBox* raytraceBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 150));
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* levelSizer = new wxBoxSizer(wxHORIZONTAL);
     levelSizer->AddSpacer(boxPadding);
@@ -441,6 +442,57 @@ wxWindow* RunPage::createRaytracerBox(wxPanel* parent) {
     return raytraceBox;
 }
 
+wxWindow* RunPage::createContourBox(wxPanel* parent) {
+    wxStaticBox* contourBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 110));
+    wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
+
+    wxBoxSizer* levelSizer = new wxBoxSizer(wxHORIZONTAL);
+    levelSizer->AddSpacer(boxPadding);
+    wxStaticText* text = new wxStaticText(contourBox, wxID_ANY, "Contour spacing");
+    levelSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
+    const Float level = gui.get<Float>(GuiSettingsId::CONTOUR_SPACING);
+    FloatTextCtrl* levelCtrl = new FloatTextCtrl(contourBox, level, Interval(1.e-6_f, 1.e6_f));
+    levelCtrl->onValueChanged = [this](const Float value) {
+        GuiSettings& gui = controller->getParams();
+        gui.set(GuiSettingsId::CONTOUR_SPACING, value);
+        controller->tryRedraw();
+    };
+    levelSizer->Add(levelCtrl, 1, wxALIGN_CENTER_VERTICAL);
+    levelSizer->AddSpacer(boxPadding);
+    boxSizer->Add(levelSizer);
+
+    wxBoxSizer* gridSizer = new wxBoxSizer(wxHORIZONTAL);
+    gridSizer->AddSpacer(boxPadding);
+    text = new wxStaticText(contourBox, wxID_ANY, "Grid resolution");
+    gridSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
+    const int gridSize = gui.get<int>(GuiSettingsId::CONTOUR_GRID_SIZE);
+    FloatTextCtrl* gridCtrl = new FloatTextCtrl(contourBox, gridSize, Interval(10._f, 1000._f));
+    gridCtrl->onValueChanged = [this](const Float value) {
+        GuiSettings& gui = controller->getParams();
+        gui.set(GuiSettingsId::CONTOUR_GRID_SIZE, int(value));
+        controller->tryRedraw();
+    };
+    gridSizer->Add(gridCtrl, 1, wxALIGN_CENTER_VERTICAL);
+    gridSizer->AddSpacer(boxPadding);
+    boxSizer->Add(gridSizer);
+
+    wxBoxSizer* labelSizer = new wxBoxSizer(wxHORIZONTAL);
+    labelSizer->AddSpacer(boxPadding);
+    wxCheckBox* labelBox = new wxCheckBox(contourBox, wxID_ANY, "Show values");
+    labelBox->SetValue(gui.get<bool>(GuiSettingsId::CONTOUR_SHOW_LABELS));
+    labelSizer->Add(labelBox);
+    boxSizer->Add(labelSizer);
+    labelBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
+        const bool value = evt.IsChecked();
+        gui.set(GuiSettingsId::CONTOUR_SHOW_LABELS, value);
+        controller->tryRedraw();
+    });
+
+
+    contourBox->SetSizer(boxSizer);
+    return contourBox;
+}
+
 static void enableRecursive(wxWindow* window, const bool enable) {
     window->Enable(enable);
     for (wxWindow* child : window->GetChildren()) {
@@ -503,7 +555,7 @@ wxPanel* RunPage::createVisBar() {
     visbarSizer->AddSpacer(10);
 
 
-    wxBoxSizer* colorSizer = new wxBoxSizer(wxHORIZONTAL);
+    /*wxBoxSizer* colorSizer = new wxBoxSizer(wxHORIZONTAL);
     colorSizer->Add(new wxStaticText(visbarPanel, wxID_ANY, "Background: "), 10, wxALIGN_CENTER_VERTICAL);
     wxColourPickerCtrl* picker = new wxColourPickerCtrl(visbarPanel, wxID_ANY);
     picker->SetColour(wxColour(controller->getParams().get<Rgba>(GuiSettingsId::BACKGROUND_COLOR)));
@@ -526,7 +578,7 @@ wxPanel* RunPage::createVisBar() {
     });
     colorSizer->Add(transparentBox, 1, wxALIGN_CENTER_VERTICAL, 5);
     visbarSizer->Add(colorSizer);
-    visbarSizer->AddSpacer(10);
+    visbarSizer->AddSpacer(10);*/
 
     wxBoxSizer* quantitySizer = new wxBoxSizer(wxHORIZONTAL);
 
@@ -564,6 +616,13 @@ wxPanel* RunPage::createVisBar() {
     visbarSizer->Add(raytracerBox, 0, wxALL, 5);
     visbarSizer->AddSpacer(10);
 
+    wxRadioButton* contourButton =
+        new wxRadioButton(visbarPanel, wxID_ANY, "Iso-lines", wxDefaultPosition, buttonSize, 0);
+    visbarSizer->Add(contourButton);
+    wxWindow* contourBox = this->createContourBox(visbarPanel);
+    visbarSizer->Add(contourBox, 0, wxALL, 5);
+    visbarSizer->AddSpacer(6);
+
     wxRadioButton* meshButton =
         new wxRadioButton(visbarPanel, wxID_ANY, "Surface mesh", wxDefaultPosition, buttonSize, 0);
     visbarSizer->Add(meshButton);
@@ -573,6 +632,7 @@ wxPanel* RunPage::createVisBar() {
     auto enableControls = [=](int renderIdx) {
         enableRecursive(particleBox, renderIdx == 0);
         enableRecursive(raytracerBox, renderIdx == 1);
+        enableRecursive(contourBox, renderIdx == 2);
     };
     enableControls(0);
 
@@ -585,6 +645,12 @@ wxPanel* RunPage::createVisBar() {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
         controller->setRenderer(makeAuto<MeshRenderer>(scheduler, gui));
+        enableControls(3);
+    });
+    contourButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
+        CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+        SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
+        controller->setRenderer(makeAuto<ContourRenderer>(scheduler, gui));
         enableControls(2);
     });
     surfaceButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {

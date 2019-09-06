@@ -90,6 +90,12 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
     { GuiSettingsId::SMOOTH_PARTICLES,      "smooth_particles",     false,
         "If true, rendered particles will be smoothed using cubic spline kernel. Useful to visualize the actual "
         "extend of particles."},
+    { GuiSettingsId::CONTOUR_SPACING,       "contour.spacing",      10._f,
+        "Different between values corresponding to subsequenct iso-lines" },
+    { GuiSettingsId::CONTOUR_GRID_SIZE,     "contour.grid_size",    100,
+        "TODO" },
+    { GuiSettingsId::CONTOUR_SHOW_LABELS,   "contour.show_labels",  true,
+        "TODO" },
 
     /// Window settings
     { GuiSettingsId::WINDOW_TITLE,          "window.title",         std::string("OpenSPH"),

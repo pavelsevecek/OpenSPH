@@ -330,7 +330,7 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
         drawVector(*context, *params.camera, dir.r, dir.v, params.vectors.length);
     }
 
-    if (params.particles.showKey) {
+    if (params.showKey) {
         if (cached.palette) {
             const Pixel origin(context->size().x - 50, 231);
             Palette palette;

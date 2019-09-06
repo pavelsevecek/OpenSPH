@@ -126,6 +126,7 @@ private:
 
     wxWindow* createParticleBox(wxPanel* parent);
     wxWindow* createRaytracerBox(wxPanel* parent);
+    wxWindow* createContourBox(wxPanel* parent);
 
 
     void makeStatsText(const Size particleCnt, const Statistics& stats);

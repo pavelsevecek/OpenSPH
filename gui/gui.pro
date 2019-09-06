@@ -29,6 +29,7 @@ SOURCES += \
     objects/Palette.cpp \
     objects/RenderContext.cpp \
     objects/RenderWorkers.cpp \
+    renderers/ContourRenderer.cpp \
     renderers/IRenderer.cpp \
     renderers/MeshRenderer.cpp \
     renderers/ParticleRenderer.cpp \
@@ -67,6 +68,7 @@ HEADERS += \
     objects/RenderWorkers.h \
     objects/SvgContext.h \
     renderers/Brdf.h \
+    renderers/ContourRenderer.h \
     renderers/FrameBuffer.h \
     renderers/IRenderer.h \
     renderers/MeshRenderer.h \

@@ -23,6 +23,9 @@ enum class RendererEnum {
     /// Raytracer that computes intersections with implicit surface.
     RAYTRACER,
 
+    /// Draws contours (iso-lines) of quantities
+    CONTOUR,
+
 };
 static RegisterEnum<RendererEnum> sRenderer({
     { RendererEnum::NONE, "none", "No particle visualization" },
@@ -31,6 +34,7 @@ static RegisterEnum<RendererEnum> sRenderer({
         "mesh",
         "Surfaces of bodies are meshed using Marching cubes and drawed as triangles." },
     { RendererEnum::RAYTRACER, "raytracer", "Use raytracing to find intersections with implicit surface." },
+    { RendererEnum::CONTOUR, "contour", "Draws contours (iso-lines) of quantities" },
 });
 
 enum class CameraEnum {
@@ -186,6 +190,12 @@ enum class GuiSettingsId {
     RAYTRACE_TEXTURE_PRIMARY,
 
     RAYTRACE_TEXTURE_SECONDARY,
+
+    CONTOUR_SPACING,
+
+    CONTOUR_GRID_SIZE,
+
+    CONTOUR_SHOW_LABELS,
 
     /// Title of the window appearing on taskbar
     WINDOW_TITLE,

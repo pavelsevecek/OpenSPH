@@ -285,13 +285,16 @@ public:
         return !values.empty();
     }
 
-    virtual Rgba evalColor(const Size idx) const override {
+    virtual Optional<Float> evalScalar(const Size idx) const override {
         ASSERT(this->isInitialized());
         const Vector projected = values[idx] - dot(values[idx], axis) * axis;
         const Float x = dot(projected, dir1);
         const Float y = dot(projected - x * dir1, dir2);
-        const Float angle = PI + atan2(y, x);
-        return palette(angle);
+        return PI + atan2(y, x);
+    }
+
+    virtual Rgba evalColor(const Size idx) const override {
+        return palette(this->evalScalar(idx).value());
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {

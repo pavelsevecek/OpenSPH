@@ -738,6 +738,7 @@ Array<Size> Storage::duplicate(ArrayView<const Size> idxs, const Flags<IndicesFl
     this->update();
     ASSERT(this->isValid(), this->isValid().error());
 
+    std::sort(createdIdxs.begin(), createdIdxs.end());
     return createdIdxs;
 }
 

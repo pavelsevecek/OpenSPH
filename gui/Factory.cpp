@@ -3,6 +3,7 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/renderers/Brdf.h"
+#include "gui/renderers/ContourRenderer.h"
 #include "gui/renderers/MeshRenderer.h"
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/renderers/RayTracer.h"
@@ -86,6 +87,8 @@ AutoPtr<IRenderer> Factory::getRenderer(SharedPtr<IScheduler> scheduler, const G
         return makeAuto<MeshRenderer>(scheduler, settings);
     case RendererEnum::RAYTRACER:
         return makeAuto<RayTracer>(scheduler, settings);
+    case RendererEnum::CONTOUR:
+        return makeAuto<ContourRenderer>(scheduler, settings);
     default:
         NOT_IMPLEMENTED;
     }
