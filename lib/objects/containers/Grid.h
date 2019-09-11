@@ -46,6 +46,14 @@ public:
         return dimensions[X] * dimensions[Y] * dimensions[Z];
     }
 
+    Iterator<T, uint64_t> begin() {
+        return data.begin();
+    }
+
+    Iterator<T, uint64_t> end() {
+        return data.end();
+    }
+
 private:
     INLINE uint64_t map(const Indices idxs) const {
         ASSERT(idxs[X] >= 0 && idxs[X] < dimensions[X]);

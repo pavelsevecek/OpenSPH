@@ -365,7 +365,7 @@ enum class ChangeableQuantityId {
     ENERGY,
 };
 
-static RegisterEnum<ChangeableQuantityId> sSubsetType({
+static RegisterEnum<ChangeableQuantityId> sChangeableQuantity({
     { ChangeableQuantityId::DENSITY, "density", "Material density." },
     { ChangeableQuantityId::ENERGY, "specific energy", "Initial specific energy." },
 });
@@ -437,6 +437,135 @@ static WorkerRegistrar sRegisterModifyQuantityIc("modify quantity",
     "modifier",
     "initial conditions",
     [](const std::string& name) { return makeAuto<ModifyQuantityIc>(name); });
+
+// ----------------------------------------------------------------------------------------------------------
+// NoiseQuantity
+// ----------------------------------------------------------------------------------------------------------
+
+enum class NoiseQuantityId {
+    DENSITY,
+    VELOCITY,
+};
+
+static RegisterEnum<NoiseQuantityId> sNoiseQuantity({
+    { NoiseQuantityId::DENSITY, "density", "Material density" },
+    { NoiseQuantityId::VELOCITY, "velocity", "Particle velocity" },
+});
+
+const Indices GRID_DIMS(8, 8, 8);
+
+NoiseQuantityIc::NoiseQuantityIc(const std::string& name)
+    : IParticleWorker(name) {
+    id = EnumWrapper(NoiseQuantityId::DENSITY);
+}
+
+VirtualSettings NoiseQuantityIc::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+
+    VirtualSettings::Category& quantityCat = connector.addCategory("Noise parameters");
+    quantityCat.connect("Quantity", "quantity", id);
+    quantityCat.connect("Mean [si]", "mean", mean);
+    quantityCat.connect("Magnitude [si]", "magnitude", magnitude);
+
+    return connector;
+}
+
+void NoiseQuantityIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
+    result = this->getInput<ParticleData>("particles");
+    Storage& storage = result->storage;
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+
+    switch (NoiseQuantityId(id)) {
+    case NoiseQuantityId::DENSITY: {
+        ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
+        this->randomize<1>(callbacks, r, [&rho](Float value, Size i, Size UNUSED(j)) { //
+            rho[i] = value;
+        });
+        break;
+    }
+    case NoiseQuantityId::VELOCITY: {
+        ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+        this->randomize<3>(callbacks, r, [&v](Float value, Size i, Size j) { v[i][j] = value; });
+        break;
+    }
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+template <Size Dims, typename TSetter>
+void NoiseQuantityIc::randomize(IRunCallbacks& callbacks,
+    ArrayView<const Vector> r,
+    const TSetter& setter) const {
+    UniformRng rng;
+
+    StaticArray<Grid<Vector>, Dims> gradients;
+    for (Size dim = 0; dim < Dims; ++dim) {
+        gradients[dim] = Grid<Vector>(GRID_DIMS);
+        for (Vector& grad : gradients[dim]) {
+            grad = sampleUnitSphere(rng);
+        }
+    }
+
+    Box box;
+    for (Size i = 0; i < r.size(); ++i) {
+        box.extend(r[i]);
+    }
+
+    Statistics stats;
+    for (Size i = 0; i < r.size(); ++i) {
+
+        for (Size dim = 0; dim < Dims; ++dim) {
+            const Vector pos = (r[i] - box.lower()) / box.size() * GRID_DIMS;
+            const Float value = mean + magnitude * perlin(gradients[dim], pos);
+            setter(value, i, dim);
+        }
+
+        if (i % 1000 == 0) {
+            stats.set(StatisticsId::RELATIVE_PROGRESS, Float(i) / r.size());
+            callbacks.onTimeStep({}, stats);
+        }
+    }
+}
+
+Float NoiseQuantityIc::perlin(const Grid<Vector>& gradients, const Vector& v) const {
+    const Indices v0(v);
+    const Vector dv = Vector(v) - v0;
+
+    const Float x000 = this->dotGradient(gradients, v0 + Indices(0, 0, 0), v);
+    const Float x001 = this->dotGradient(gradients, v0 + Indices(0, 0, 1), v);
+    const Float x010 = this->dotGradient(gradients, v0 + Indices(0, 1, 0), v);
+    const Float x011 = this->dotGradient(gradients, v0 + Indices(0, 1, 1), v);
+    const Float x100 = this->dotGradient(gradients, v0 + Indices(1, 0, 0), v);
+    const Float x101 = this->dotGradient(gradients, v0 + Indices(1, 0, 1), v);
+    const Float x110 = this->dotGradient(gradients, v0 + Indices(1, 1, 0), v);
+    const Float x111 = this->dotGradient(gradients, v0 + Indices(1, 1, 1), v);
+
+    const Float x00 = lerp(x000, x001, dv[Z]);
+    const Float x01 = lerp(x010, x011, dv[Z]);
+    const Float x10 = lerp(x100, x101, dv[Z]);
+    const Float x11 = lerp(x110, x111, dv[Z]);
+
+    const Float x0 = lerp(x00, x01, dv[Y]);
+    const Float x1 = lerp(x10, x11, dv[Y]);
+
+    return lerp(x0, x1, dv[X]);
+}
+
+Float NoiseQuantityIc::dotGradient(const Grid<Vector>& gradients, const Indices& i, const Vector& v) const {
+    const Vector& dv = Vector(i) - v;
+    const Indices is(
+        positiveMod(i[X], GRID_DIMS[X]), positiveMod(i[Y], GRID_DIMS[Y]), positiveMod(i[Z], GRID_DIMS[Z]));
+
+    return dot(dv, gradients[is]);
+}
+
+
+static WorkerRegistrar sRegisterNoise("Perlin noise",
+    "noise",
+    "initial conditions",
+    [](const std::string& name) { return makeAuto<NoiseQuantityIc>(name); });
 
 // ----------------------------------------------------------------------------------------------------------
 // NBodyIc

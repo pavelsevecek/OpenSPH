@@ -490,7 +490,7 @@ TEST_CASE("Storage duplicate", "[storage]") {
     REQUIRE(storage1.has(QuantityId::MATERIAL_ID));
     Array<Size> createdIdxs =
         storage1.duplicate(Array<Size>{ 0, 2, 3, 5 }, Storage::IndicesFlag::INDICES_SORTED);
-    REQUIRE(createdIdxs == Array<Size>({ 9, 10, 3, 4 }));
+    REQUIRE(createdIdxs == Array<Size>({ 3, 4, 9, 10 }));
     REQUIRE(storage1.isValid());
 
     Array<Size>& flag = storage1.getValue<Size>(QuantityId::FLAG);
@@ -511,7 +511,7 @@ TEST_CASE("Storage duplicate multiple", "[storage]") {
     storage1.merge(std::move(storage2));
 
     Array<Size> createdIdxs = storage1.duplicate(Array<Size>{ 1, 1, 1, 5, 5 });
-    REQUIRE(createdIdxs == Array<Size>({ 10, 11, 3, 4, 5 }));
+    REQUIRE(createdIdxs == Array<Size>({ 3, 4, 5, 10, 11 }));
     REQUIRE(storage1.isValid());
 
     Array<Size>& flag = storage1.getValue<Size>(QuantityId::FLAG);

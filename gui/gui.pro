@@ -25,6 +25,7 @@ SOURCES += \
     Utils.cpp \
     objects/Bitmap.cpp \
     objects/Camera.cpp \
+    objects/Colorizer.cpp \
     objects/Movie.cpp \
     objects/Palette.cpp \
     objects/RenderContext.cpp \

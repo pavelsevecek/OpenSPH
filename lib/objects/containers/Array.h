@@ -19,9 +19,16 @@ template <typename TValue>
 struct NumericLimits;
 
 template <>
-struct NumericLimits<Size> {
-    static constexpr Size max() {
-        return Size(-1);
+struct NumericLimits<uint64_t> {
+    static constexpr uint64_t max() {
+        return uint64_t(-1);
+    }
+};
+
+template <>
+struct NumericLimits<uint32_t> {
+    static constexpr uint32_t max() {
+        return uint32_t(-1);
     }
 };
 

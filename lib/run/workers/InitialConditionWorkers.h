@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gravity/Galaxy.h"
+#include "objects/containers/Grid.h"
 #include "run/workers/MaterialWorkers.h"
 
 NAMESPACE_SPH_BEGIN
@@ -136,6 +137,37 @@ public:
     virtual VirtualSettings getSettings() override;
 
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+};
+
+class NoiseQuantityIc : public IParticleWorker {
+private:
+    EnumWrapper id;
+
+    Float mean = 1.f;
+    Float magnitude = 1.f;
+
+public:
+    NoiseQuantityIc(const std::string& name);
+
+    virtual std::string className() const override {
+        return "Perlin noise";
+    }
+
+    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+        return { { "particles", WorkerType::PARTICLES } };
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+
+private:
+    template <Size Dims, typename TSetter>
+    void randomize(IRunCallbacks& callbacks, ArrayView<const Vector> r, const TSetter& setter) const;
+
+    Float perlin(const Grid<Vector>& gradients, const Vector& v) const;
+
+    Float dotGradient(const Grid<Vector>& gradients, const Indices& i, const Vector& v) const;
 };
 
 enum class NBodySettingsId {

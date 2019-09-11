@@ -737,7 +737,7 @@ wxPanel* RunPage::createPlotBar() {
 
     if (flags.has(PlotEnum::TOTAL_MOMENTUM)) {
         integral = makeAuto<TotalMomentum>();
-        params.minRangeY = 1.e6_f;
+        // params.minRangeY = 1.e6_f;
         data.plot = makeLocking<TemporalPlot>(integral, params);
         plots.push(data.plot);
         data.color = Rgba(wxColour(100, 200, 0));

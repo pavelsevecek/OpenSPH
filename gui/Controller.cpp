@@ -414,6 +414,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         quantityColorizerIds.push(QuantityId::ANGULAR_FREQUENCY);
         quantityColorizerIds.push(QuantityId::MOMENT_OF_INERTIA);
         quantityColorizerIds.push(QuantityId::STRAIN_RATE_CORRECTION_TENSOR);
+        quantityColorizerIds.push(QuantityId::PHASE_ANGLE);
         quantityColorizerIds.push(QuantityId::EPS_MIN);
         quantityColorizerIds.push(QuantityId::NEIGHBOUR_CNT);
         quantityColorizerIds.push(QuantityId::VELOCITY_GRADIENT);

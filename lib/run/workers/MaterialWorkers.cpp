@@ -31,6 +31,10 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
         const bool use = body.get<bool>(BodySettingsId::USE_ACOUSTIC_FLUDIZATION);
         return (!enabler || enabler()) && use && id == YieldingEnum::DRUCKER_PRAGER;
     };
+    auto enablerRheo = [this, enabler] {
+        const YieldingEnum id = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
+        return (!enabler || enabler()) && id != YieldingEnum::NONE;
+    };
 
     category.connect<EnumWrapper>("EoS", body, BodySettingsId::EOS).setEnabler(enabler);
     category.connect<Float>("Density [kg/m^3]", body, BodySettingsId::DENSITY).setEnabler(enabler);
@@ -38,10 +42,9 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
     category.connect<Float>("Damage []", body, BodySettingsId::DAMAGE).setEnabler(enabler);
     category.connect<EnumWrapper>("Rheology", body, BodySettingsId::RHEOLOGY_YIELDING).setEnabler(enabler);
     category.connect<Float>("Shear modulur [Pa]", body, BodySettingsId::SHEAR_MODULUS)
-        .setEnabler([this, enabler] {
-            const YieldingEnum id = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
-            return (!enabler || enabler()) && id != YieldingEnum::NONE;
-        });
+        .setEnabler(enablerRheo);
+    category.connect<Float>("Elastic modulur [Pa]", body, BodySettingsId::ELASTIC_MODULUS)
+        .setEnabler(enablerRheo);
     category.connect<Float>("von Mises limit [Pa]", body, BodySettingsId::ELASTICITY_LIMIT)
         .setEnabler([this, enabler] {
             const YieldingEnum id = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);

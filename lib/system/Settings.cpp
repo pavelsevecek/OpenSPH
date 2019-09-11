@@ -107,7 +107,7 @@ static RegisterEnum<BoundaryEnum> sBoundary({
         "periodic",
         "Periodic boundary conditions; particles can interact accross boundaries. When particles leave the "
         "domain, they re-enter on the other side of the domain. " },
-    { BoundaryEnum::KILL_ESCAPERS, "kill escapers", "Removes all particles outside the domain" },
+    { BoundaryEnum::KILL_ESCAPERS, "kill_escapers", "Removes all particles outside the domain" },
     { BoundaryEnum::PROJECT_1D,
         "project_1D",
         "Debug boundary condition, used to emulate 1D SPH solver. While the solver is still "
@@ -161,6 +161,9 @@ static RegisterEnum<SolverEnum> sSolver({
     { SolverEnum::SUMMATION_SOLVER,
         "summation_solver",
         "Solver computing density by direct summation over nearest SPH particles." },
+    { SolverEnum::ELASTIC_DEFORMATION_SOLVER,
+        "elastic_deformation_solver",
+        "Solver used for extreme elastic deformations." },
     { SolverEnum::DENSITY_INDEPENDENT,
         "density_independent",
         "Density independent solver by Saitoh & Makino (2013). Experimental!" },

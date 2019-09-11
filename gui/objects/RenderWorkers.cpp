@@ -85,15 +85,30 @@ VirtualSettings AnimationWorker::getSettings() {
     textureCat.connect<std::string>("Background", gui, GuiSettingsId::RAYTRACE_HDRI)
         .setEnabler(raytracerEnabler);
 
+    auto orthoEnabler = [this] { return gui.get<CameraEnum>(GuiSettingsId::CAMERA) == CameraEnum::ORTHO; };
+    auto persEnabler = [this] {
+        return gui.get<CameraEnum>(GuiSettingsId::CAMERA) == CameraEnum::PERSPECTIVE;
+    };
+
     VirtualSettings::Category& cameraCat = connector.addCategory("Camera");
     cameraCat.connect<EnumWrapper>("Camera type", gui, GuiSettingsId::CAMERA);
-    cameraCat.connect<Float>("Field of view", gui, GuiSettingsId::PERSPECTIVE_FOV).setUnits(DEG_TO_RAD);
-    cameraCat.connect<Vector>("Position", gui, GuiSettingsId::PERSPECTIVE_POSITION);
-    cameraCat.connect<Vector>("Target", gui, GuiSettingsId::PERSPECTIVE_TARGET);
-    cameraCat.connect<Vector>("Up-direction", gui, GuiSettingsId::PERSPECTIVE_UP);
-    cameraCat.connect<Float>("Clip near", gui, GuiSettingsId::PERSPECTIVE_CLIP_NEAR);
-    cameraCat.connect<Float>("Clip far", gui, GuiSettingsId::PERSPECTIVE_CLIP_FAR);
-    cameraCat.connect<int>("Track particle", gui, GuiSettingsId::PERSPECTIVE_TRACKED_PARTICLE);
+    cameraCat.connect<Float>("Field of view", gui, GuiSettingsId::PERSPECTIVE_FOV)
+        .setUnits(DEG_TO_RAD)
+        .setEnabler(persEnabler);
+    cameraCat.connect<Vector>("Position", gui, GuiSettingsId::PERSPECTIVE_POSITION).setEnabler(persEnabler);
+    cameraCat.connect<Vector>("Target", gui, GuiSettingsId::PERSPECTIVE_TARGET).setEnabler(persEnabler);
+    cameraCat.connect<Vector>("Up-direction", gui, GuiSettingsId::PERSPECTIVE_UP).setEnabler(persEnabler);
+    cameraCat.connect<Float>("Clip near", gui, GuiSettingsId::PERSPECTIVE_CLIP_NEAR).setEnabler(persEnabler);
+    cameraCat.connect<Float>("Clip far", gui, GuiSettingsId::PERSPECTIVE_CLIP_FAR).setEnabler(persEnabler);
+    cameraCat.connect<int>("Track particle", gui, GuiSettingsId::PERSPECTIVE_TRACKED_PARTICLE)
+        .setEnabler(persEnabler);
+    cameraCat.connect<Float>("Ortho FoV [km]", gui, GuiSettingsId::ORTHO_FOV)
+        .setUnits(1.e3_f)
+        .setEnabler(orthoEnabler);
+    cameraCat.connect<Float>("Cutoff distance [km]", gui, GuiSettingsId::ORTHO_CUTOFF)
+        .setUnits(1.e3_f)
+        .setEnabler(orthoEnabler);
+
 
     auto orbitEnabler = [this] { return AnimationType(animationType) == AnimationType::ORBIT; };
 
@@ -120,6 +135,7 @@ void AnimationWorker::evaluate(const RunSettings& global, IRunCallbacks& callbac
 
     RenderParams params;
     params.size = { gui.get<int>(GuiSettingsId::IMAGES_WIDTH), gui.get<int>(GuiSettingsId::IMAGES_HEIGHT) };
+    gui.set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5f * Vector(params.size.x, params.size.y, 0._f));
     params.camera = Factory::getCamera(gui, params.size);
     params.initialize(gui);
 

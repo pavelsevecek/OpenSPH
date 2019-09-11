@@ -278,7 +278,7 @@ AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler,
         return getActualSolver<EnergyConservingSolver>(scheduler, settings, std::move(eqs), std::move(bc));
     case SolverEnum::ELASTIC_DEFORMATION_SOLVER:
         throwIfGravity();
-        return makeAuto<ElasticDeformationSolver>(scheduler, settings);
+        return makeAuto<ElasticDeformationSolver>(scheduler, settings, std::move(bc));
     case SolverEnum::SUMMATION_SOLVER:
         throwIfGravity();
         return makeAuto<SummationSolver>(scheduler, settings);

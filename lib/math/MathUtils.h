@@ -85,6 +85,11 @@ INLINE Float cbrt(const Float f) {
     return std::cbrt(f);
 }
 
+/// Returns a positive modulo value
+INLINE int positiveMod(const int i, const int n) {
+    return (i % n + n) % n;
+}
+
 
 template <int N>
 INLINE Float root(const Float f);

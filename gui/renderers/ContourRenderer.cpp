@@ -18,9 +18,10 @@ void ContourRenderer::initialize(const Storage& storage,
     const ICamera& UNUSED(camera)) {
     cached.positions = storage.getValue<Vector>(QuantityId::POSITION).clone();
     cached.values.resize(cached.positions.size());
-    for (Size i = 0; i < cached.positions.size(); ++i) {
+
+    parallelFor(*scheduler, 0, cached.positions.size(), [this, &colorizer](const Size i) {
         cached.values[i] = colorizer.evalScalar(i).value();
-    }
+    });
     cached.palette = colorizer.getPalette();
 
     finder->build(*scheduler, cached.positions);
@@ -104,7 +105,7 @@ void ContourRenderer::render(const RenderParams& params,
     AntiAliasedRenderContext context(bitmap);
     context.fill(Rgba::black());
 
-    context.setColor(Rgba::gray(0.25f), ColorFlag::LINE);
+    /*context.setColor(Rgba::gray(0.25f), ColorFlag::LINE);
     for (Size x = 0; x < resX; ++x) {
         const int i = x * params.size.x / resX;
         context.drawLine(Coords(i, 0), Coords(i, params.size.y - 1));
@@ -112,7 +113,7 @@ void ContourRenderer::render(const RenderParams& params,
     for (Size y = 0; y < resY; ++y) {
         const int i = y * params.size.y / resY;
         context.drawLine(Coords(0, i), Coords(params.size.x - 1, i));
-    }
+    }*/
 
     context.setColor(Rgba::white(), ColorFlag::LINE);
 

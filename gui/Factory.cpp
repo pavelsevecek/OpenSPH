@@ -222,6 +222,7 @@ static FlatMap<PaletteKey, PaletteDesc> paletteDescs = {
     { QuantityId::AV_STRESS, { Interval(0._f, 1.e8_f), PaletteScale::LINEAR } },
     { QuantityId::ANGULAR_FREQUENCY, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
     { QuantityId::MOMENT_OF_INERTIA, { Interval(0._f, 1.e10_f), PaletteScale::LINEAR } },
+    { QuantityId::PHASE_ANGLE, { Interval(0._f, 10._f), PaletteScale::LINEAR } },
     { QuantityId::STRAIN_RATE_CORRECTION_TENSOR, { Interval(0._f, 5._f), PaletteScale::LINEAR } },
     { QuantityId::EPS_MIN, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
     { QuantityId::NEIGHBOUR_CNT, { Interval(50._f, 150._f), PaletteScale::LINEAR } },

@@ -261,21 +261,7 @@ private:
     ArrayRef<const Vector> values;
 
 public:
-    explicit DirectionColorizer(const Vector& axis, const Palette& palette)
-        : palette(palette)
-        , axis(axis) {
-        ASSERT(almostEqual(getLength(axis), 1._f));
-        // compute 2 perpendicular directions
-        Vector ref;
-        if (almostEqual(axis, Vector(0._f, 0._f, 1._f)) || almostEqual(axis, Vector(0._f, 0._f, -1._f))) {
-            ref = Vector(0._f, 1._f, 0._f);
-        } else {
-            ref = Vector(0._f, 0._f, 1._f);
-        }
-        dir1 = getNormalized(cross(axis, ref));
-        dir2 = cross(axis, dir1);
-        ASSERT(almostEqual(getLength(dir2), 1._f));
-    }
+    DirectionColorizer(const Vector& axis, const Palette& palette);
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
         values = makeArrayRef(storage.getDt<Vector>(QuantityId::POSITION), ref);
@@ -285,13 +271,7 @@ public:
         return !values.empty();
     }
 
-    virtual Optional<Float> evalScalar(const Size idx) const override {
-        ASSERT(this->isInitialized());
-        const Vector projected = values[idx] - dot(values[idx], axis) * axis;
-        const Float x = dot(projected, dir1);
-        const Float y = dot(projected - x * dir1, dir2);
-        return PI + atan2(y, x);
-    }
+    virtual Optional<Float> evalScalar(const Size idx) const override;
 
     virtual Rgba evalColor(const Size idx) const override {
         return palette(this->evalScalar(idx).value());
@@ -334,26 +314,7 @@ public:
     explicit CorotatingVelocityColorizer(Palette palette)
         : palette(std::move(palette)) {}
 
-    virtual void initialize(const Storage& storage, const RefEnum ref) override {
-        r = makeArrayRef(storage.getValue<Vector>(QuantityId::POSITION), ref);
-        v = makeArrayRef(storage.getDt<Vector>(QuantityId::POSITION), ref);
-        matIds = makeArrayRef(storage.getValue<Size>(QuantityId::MATERIAL_ID), ref);
-
-        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-        ArrayView<const Vector> rv = r;
-        ArrayView<const Vector> vv = v;
-        data.resize(storage.getMaterialCnt());
-
-        for (Size i = 0; i < data.size(); ++i) {
-            MaterialView mat = storage.getMaterial(i);
-            const Size from = *mat.sequence().begin();
-            const Size to = *mat.sequence().end();
-            const Size size = to - from;
-            data[i].center = Post::getCenterOfMass(m.subset(from, size), rv.subset(from, size));
-            data[i].omega =
-                Post::getAngularFrequency(m.subset(from, size), rv.subset(from, size), vv.subset(from, size));
-        }
-    }
+    virtual void initialize(const Storage& storage, const RefEnum ref) override;
 
     virtual bool isInitialized() const override {
         return !v.empty();
@@ -443,26 +404,20 @@ private:
     ArrayRef<const Vector> r;
 
     AutoPtr<IBasicFinder> finder;
-    mutable Array<NeighbourRecord> neighs;
 
     LutKernel<3> kernel;
 
 public:
-    explicit SummedDensityColorizer(const RunSettings& settings, Palette palette)
-        : palette(std::move(palette)) {
-        finder = Factory::getFinder(settings);
-        kernel = Factory::getKernel<3>(settings);
-    }
+    SummedDensityColorizer(const RunSettings& settings, Palette palette);
 
-    virtual void initialize(const Storage& storage, const RefEnum ref) override {
-        m = makeArrayRef(storage.getValue<Float>(QuantityId::MASS), ref);
-        r = makeArrayRef(storage.getValue<Vector>(QuantityId::POSITION), ref);
-
-        finder->build(SEQUENTIAL, r);
-    }
+    virtual void initialize(const Storage& storage, const RefEnum ref) override;
 
     virtual bool isInitialized() const override {
         return !m.empty();
+    }
+
+    virtual Optional<Float> evalScalar(const Size idx) const override {
+        return sum(idx);
     }
 
     virtual Rgba evalColor(const Size idx) const override {
@@ -486,14 +441,7 @@ public:
     }
 
 private:
-    Float sum(const Size idx) const {
-        finder->findAll(idx, r[idx][H] * kernel.radius(), neighs);
-        Float rho = 0._f;
-        for (const auto& n : neighs) {
-            rho += m[n.index] * kernel.value(r[idx] - r[n.index], r[idx][H]);
-        }
-        return rho;
-    }
+    Float sum(const Size idx) const;
 };
 
 class StressColorizer : public IColorizer {

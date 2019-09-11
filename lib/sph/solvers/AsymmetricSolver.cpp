@@ -115,7 +115,7 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
 
     // we need to symmetrize kernel in smoothing lenghts to conserve momentum
-    SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>> symmetrizedKernel(kernel);
+    SymmetrizeSmoothingLengths<const LutKernel<DIMENSIONS>&> symmetrizedKernel(kernel);
 
     auto functor = [this, r, &neighs, radius, &symmetrizedKernel, &actFinder](Size i, ThreadData& data) {
         actFinder.findAll(i, radius, data.neighs);

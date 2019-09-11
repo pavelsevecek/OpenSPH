@@ -14,7 +14,7 @@ TEST_CASE("StressAV test", "[av]") {
     // prepare storage, two hemispheres moving towards each other in x direction
     BodySettings body;
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
-    body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
+    body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::ELASTIC);
     /// \todo this test is HIGHLY sensitive on initial distribution!
     body.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::HEXAGONAL)
         .set(BodySettingsId::DENSITY, 1._f)
