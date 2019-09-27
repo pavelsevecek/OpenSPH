@@ -35,6 +35,10 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
         const YieldingEnum id = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
         return (!enabler || enabler()) && id != YieldingEnum::NONE;
     };
+    auto enablerFrag = [this, enabler] {
+        const FractureEnum id = body.get<FractureEnum>(BodySettingsId::RHEOLOGY_DAMAGE);
+        return (!enabler || enabler()) && id != FractureEnum::NONE;
+    };
 
     category.connect<EnumWrapper>("EoS", body, BodySettingsId::EOS).setEnabler(enabler);
     category.connect<Float>("Density [kg/m^3]", body, BodySettingsId::DENSITY).setEnabler(enabler);
@@ -62,6 +66,10 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
     category.connect<Float>("Fludization viscosity", body, BodySettingsId::FLUIDIZATION_VISCOSITY)
         .setEnabler(enablerAf);
     category.connect<EnumWrapper>("Fragmentation", body, BodySettingsId::RHEOLOGY_DAMAGE).setEnabler(enabler);
+    category.connect<Float>("Weibull exponent", body, BodySettingsId::WEIBULL_EXPONENT)
+        .setEnabler(enablerFrag);
+    category.connect<Float>("Weibull coefficient", body, BodySettingsId::WEIBULL_COEFFICIENT)
+        .setEnabler(enablerFrag);
 }
 
 // ----------------------------------------------------------------------------------------------------------

@@ -89,7 +89,7 @@ void ElasticDeformationSolver::integrate(Storage& storage, Statistics& UNUSED(st
             for (NeighbourRecord& n : neighs) {
                 const Size j = n.index;
                 const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-                if (n.distanceSqr < sqr(kernel.radius() * hbar)) {
+                if (i != j && n.distanceSqr < sqr(kernel.radius() * hbar)) {
                     neighsPerParticle[i].push(j);
 
                     C[i] += m[j] / rho[j] * symmetricOuter(r[j] - r[i], kernel.grad(r[i], r[j]));
