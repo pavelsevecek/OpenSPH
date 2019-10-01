@@ -362,6 +362,20 @@ public:
         }
     }
 
+    /// \brief Returns a description of the entry with given index.
+    ///
+    /// If the index does not correspond to any parameter, returns string NOTHING.
+    static Optional<std::string> getEntryDesc(const TEnum idx) {
+        const Settings& settings = getDefaults();
+        Optional<const Entry&> entry = settings.entries.tryGet(idx);
+        if (entry) {
+            return entry->desc;
+        } else {
+            // idx might be invalid if loaded from older config file
+            return NOTHING;
+        }
+    }
+
     /// \brief Checks if the given entry is stored in the settings.
     bool has(const TEnum idx) const {
         return entries.contains(idx);

@@ -118,20 +118,27 @@ VirtualSettings::Category& addGenericCategory(VirtualSettings& connector, std::s
 WorkerRegistrar::WorkerRegistrar(std::string className,
     std::string shortName,
     std::string category,
-    CreateWorkerFunc func) {
+    CreateWorkerFunc func,
+    std::string tooltip) {
 
     class GenericDesc : public IWorkerDesc {
     private:
         std::string longName;
         std::string shortName;
         std::string cat;
+        std::string desc;
         CreateWorkerFunc func;
 
     public:
-        GenericDesc(std::string longName, std::string shortName, std::string cat, CreateWorkerFunc func)
+        GenericDesc(std::string longName,
+            std::string shortName,
+            std::string cat,
+            CreateWorkerFunc func,
+            std::string desc)
             : longName(std::move(longName))
             , shortName(std::move(shortName))
             , cat(std::move(cat))
+            , desc(std::move(desc))
             , func(func) {}
 
         virtual std::string className() const override {
@@ -142,6 +149,10 @@ WorkerRegistrar::WorkerRegistrar(std::string className,
             return cat;
         }
 
+        virtual std::string tooltip() const override {
+            return desc;
+        }
+
         virtual AutoPtr<IWorker> create(Optional<std::string> instanceName) const override {
             CHECK_FUNCTION(CheckFunction::NO_THROW);
             AutoPtr<IWorker> worker = func(instanceName.valueOr("unnamed " + shortName));
@@ -149,12 +160,15 @@ WorkerRegistrar::WorkerRegistrar(std::string className,
         }
     };
 
-    sRegisteredWorkers.emplaceBack(makeAuto<GenericDesc>(className, shortName, category, func));
+    sRegisteredWorkers.emplaceBack(makeAuto<GenericDesc>(className, shortName, category, func, tooltip));
 }
 
 
-WorkerRegistrar::WorkerRegistrar(std::string className, std::string category, CreateWorkerFunc func)
-    : WorkerRegistrar(className, className, category, func) {}
+WorkerRegistrar::WorkerRegistrar(std::string className,
+    std::string category,
+    CreateWorkerFunc func,
+    std::string tooltip)
+    : WorkerRegistrar(className, className, category, func, std::move(tooltip)) {}
 
 
 IParticleWorker::IParticleWorker(const std::string& name)

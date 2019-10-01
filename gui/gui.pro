@@ -61,6 +61,7 @@ HEADERS += \
     objects/Camera.h \
     objects/Color.h \
     objects/Colorizer.h \
+    objects/DelayedCallback.h \
     objects/GraphicsContext.h \
     objects/Movie.h \
     objects/Palette.h \

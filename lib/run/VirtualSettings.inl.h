@@ -132,7 +132,9 @@ public:
     SettingsEntry(Settings<TEnum>& settings, const TEnum id, const std::string& name)
         : settings(settings)
         , name(name)
-        , id(id) {}
+        , id(id) {
+        tooltip = settings.getEntryDesc(id).valueOr("");
+    }
 
     virtual void set(const Value& value) override {
         UnitAdapter<TValue> adapter;
@@ -168,7 +170,9 @@ public:
     SettingsEntry(Settings<TEnum>& settings, const TEnum id, const std::string& name)
         : settings(settings)
         , name(name)
-        , id(id) {}
+        , id(id) {
+        tooltip = settings.getEntryDesc(id).valueOr("");
+    }
 
     virtual void set(const Value& value) override {
         settings.set(id, value.get<EnumWrapper>());
@@ -202,7 +206,9 @@ public:
     SettingsEntry(Settings<TEnum>& settings, const TEnum id, const std::string& name)
         : settings(settings)
         , name(name)
-        , id(id) {}
+        , id(id) {
+        tooltip = settings.getEntryDesc(id).valueOr("");
+    }
 
     virtual void set(const Value& value) override {
         settings.set(id, value.get<Path>().native());

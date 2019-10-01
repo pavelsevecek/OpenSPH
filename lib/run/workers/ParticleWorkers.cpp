@@ -54,9 +54,12 @@ void CachedParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunCall
     }
 }
 
-static WorkerRegistrar sRegisterCache("cache", "particle operators", [](const std::string& name) {
-    return makeAuto<CachedParticlesWorker>(name);
-});
+static WorkerRegistrar sRegisterCache(
+    "cache",
+    "particle operators",
+    [](const std::string& name) { return makeAuto<CachedParticlesWorker>(name); },
+    "Stores the input particle state when evaluated. Subsequent evaluations then simply reuse the stored "
+    "data rather than evaluating the input every time.");
 
 //-----------------------------------------------------------------------------------------------------------
 // MergeParticlesWorker
@@ -69,8 +72,14 @@ VirtualSettings MergeParticlesWorker::getSettings() {
     VirtualSettings::Category& cat = connector.addCategory("Merging");
     cat.connect("Offset [km]", "offset", offset).setUnits(1.e3_f);
     cat.connect("Add velocity [km/s]", "velocity", velocity).setUnits(1.e3_f);
-    cat.connect("Move to COM", "com", moveToCom);
-    cat.connect("Make flags unique", "unique_flags", uniqueFlags);
+    cat.connect("Move to COM", "com", moveToCom)
+        .setTooltip(
+            "If true, the particles are moved so that their center of mass lies at the origin and their "
+            "velocities are modified so that the total momentum is zero.");
+    cat.connect("Make flags unique", "unique_flags", uniqueFlags)
+        .setTooltip(
+            "If true, the particle flags of the second input state are renumbered to avoid overlap with "
+            "flags of the first input. This is necessary to properly separate the input bodies.");
 
     return connector;
 }
@@ -112,9 +121,11 @@ void MergeParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunCallb
 }
 
 
-static WorkerRegistrar sRegisterParticleMerge("merge", "particle operators", [](const std::string& name) {
-    return makeAuto<MergeParticlesWorker>(name);
-});
+static WorkerRegistrar sRegisterParticleMerge(
+    "merge",
+    "particle operators",
+    [](const std::string& name) { return makeAuto<MergeParticlesWorker>(name); },
+    "Simply adds particles from two inputs into a single particle state.");
 
 
 //-----------------------------------------------------------------------------------------------------------
@@ -166,9 +177,11 @@ void TransformParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunC
 }
 
 
-static WorkerRegistrar sRegisterParticleTransform("transform",
+static WorkerRegistrar sRegisterParticleTransform(
+    "transform",
     "particle operators",
-    [](const std::string& name) { return makeAuto<TransformParticlesWorker>(name); });
+    [](const std::string& name) { return makeAuto<TransformParticlesWorker>(name); },
+    "Modifies positions and velocities of the input particles.");
 
 //-----------------------------------------------------------------------------------------------------------
 // ChangeMaterialWorker
@@ -236,10 +249,12 @@ void ChangeMaterialWorker::evaluate(const RunSettings& UNUSED(global), IRunCallb
 }
 
 
-static WorkerRegistrar sRegisterChangeMaterial("change material",
+static WorkerRegistrar sRegisterChangeMaterial(
+    "change material",
     "changer",
     "particle operators",
-    [](const std::string& name) { return makeAuto<ChangeMaterialWorker>(name); });
+    [](const std::string& name) { return makeAuto<ChangeMaterialWorker>(name); },
+    "Changes the material of all or a subset of the input particles.");
 
 //-----------------------------------------------------------------------------------------------------------
 // CollisionGeometrySetup
@@ -373,10 +388,13 @@ void CollisionGeometrySetup::evaluate(const RunSettings& UNUSED(global), IRunCal
     result->storage = std::move(target);
 }
 
-static WorkerRegistrar sRegisterCollisionSetup("collision setup",
+static WorkerRegistrar sRegisterCollisionSetup(
+    "collision setup",
     "setup",
     "particle operators",
-    [](const std::string& name) { return makeAuto<CollisionGeometrySetup>(name); });
+    [](const std::string& name) { return makeAuto<CollisionGeometrySetup>(name); },
+    "Adds two input particle states (bodies) into a single state, moving the second body (impactor) to a "
+    "position specified by the impact angle and adding an impact velocity to the impactor.");
 
 
 // ----------------------------------------------------------------------------------------------------------
@@ -435,10 +453,13 @@ void SmoothedToSolidHandoff::evaluate(const RunSettings& UNUSED(global), IRunCal
     result->storage = std::move(spheres);
 }
 
-static WorkerRegistrar sRegisterHandoff("smoothed-to-solid handoff",
+static WorkerRegistrar sRegisterHandoff(
+    "smoothed-to-solid handoff",
     "handoff",
     "particle operators",
-    [](const std::string& name) { return makeAuto<SmoothedToSolidHandoff>(name); });
+    [](const std::string& name) { return makeAuto<SmoothedToSolidHandoff>(name); },
+    "Converts smoothed particles, an output of SPH simulaion, into hard spheres that can be hand off to the "
+    "N-body simulation.");
 
 
 // ----------------------------------------------------------------------------------------------------------
@@ -487,10 +508,14 @@ void ExtractComponentWorker::evaluate(const RunSettings& UNUSED(global), IRunCal
     result->storage = std::move(storage);
 }
 
-static WorkerRegistrar sRegisterExtractComponent("extract component",
+static WorkerRegistrar sRegisterExtractComponent(
+    "extract component",
     "extractor",
     "particle operators",
-    [](const std::string& name) { return makeAuto<ExtractComponentWorker>(name); });
+    [](const std::string& name) { return makeAuto<ExtractComponentWorker>(name); },
+    "Preserves all particles belonging to the largest body in the input particle state (or optionally the "
+    "n-th largest body) and removes all other particles. This modifier is useful to separate the largest "
+    "remnant or the largest fragment in the result of a simulation.");
 
 // ----------------------------------------------------------------------------------------------------------
 // ExtractComponentWorker
@@ -530,10 +555,12 @@ void ExtractParticlesInDomainWorker::evaluate(const RunSettings& UNUSED(global),
     result = data;
 }
 
-static WorkerRegistrar sRegisterExtractInDomain("extract particles in domain",
+static WorkerRegistrar sRegisterExtractInDomain(
+    "extract particles in domain",
     "extractor",
     "particle operators",
-    [](const std::string& name) { return makeAuto<ExtractParticlesInDomainWorker>(name); });
+    [](const std::string& name) { return makeAuto<ExtractParticlesInDomainWorker>(name); },
+    "Preserves only particles inside the given shape, particles outside the shape are removed.");
 
 // ----------------------------------------------------------------------------------------------------------
 // EmplaceComponentsAsFlagsWorker
@@ -571,10 +598,14 @@ void EmplaceComponentsAsFlagsWorker::evaluate(const RunSettings& UNUSED(global),
     result->storage = std::move(original);
 }
 
-static WorkerRegistrar sRegisterEmplaceComponents("emplace components",
+static WorkerRegistrar sRegisterEmplaceComponents(
+    "emplace components",
     "emplacer",
     "particle operators",
-    [](const std::string& name) { return makeAuto<EmplaceComponentsAsFlagsWorker>(name); });
+    [](const std::string& name) { return makeAuto<EmplaceComponentsAsFlagsWorker>(name); },
+    "This modifier detects components (i.e. separated bodies) in the \"fragments\" particle input and stores "
+    "the indices of the components as flags to the other particle input \"original\". This is useful to "
+    "visualize the particles belonging to different fragments in the initial conditions of the simulation.");
 
 
 // ----------------------------------------------------------------------------------------------------------
@@ -614,9 +645,11 @@ void SubsampleWorker::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(
     result = input;
 }
 
-static WorkerRegistrar sRegisterSubsampler("subsampler", "particle operators", [](const std::string& name) {
-    return makeAuto<SubsampleWorker>(name);
-});
+static WorkerRegistrar sRegisterSubsampler(
+    "subsampler",
+    "particle operators",
+    [](const std::string& name) { return makeAuto<SubsampleWorker>(name); },
+    "Preserves a fraction of randomly selected particles, removes the other particles.");
 
 
 // ----------------------------------------------------------------------------------------------------------
@@ -667,9 +700,11 @@ void AnalysisWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& 
     result = input;
 }
 
-static WorkerRegistrar sRegisterAnalysis("analysis", "particle operators", [](const std::string& name) {
-    return makeAuto<AnalysisWorker>(name);
-});
+static WorkerRegistrar sRegisterAnalysis(
+    "analysis",
+    "particle operators",
+    [](const std::string& name) { return makeAuto<AnalysisWorker>(name); },
+    "TODO");
 
 
 NAMESPACE_SPH_END

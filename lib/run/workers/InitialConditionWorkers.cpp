@@ -164,10 +164,12 @@ void MonolithicBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callba
     view.addRotation(Vector(0._f, 0._f, spinRate), domain->getCenter());
 }
 
-static WorkerRegistrar sRegisterMonolithic("create monolithic body",
+static WorkerRegistrar sRegisterMonolithic(
+    "create monolithic body",
     "body",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<MonolithicBodyIc>(name); });
+    [](const std::string& name) { return makeAuto<MonolithicBodyIc>(name); },
+    "Creates a single monolithic homogeneous body.");
 
 // ----------------------------------------------------------------------------------------------------------
 // DifferentiatedBodyIc
@@ -210,10 +212,14 @@ void DifferentiatedBodyIc::evaluate(const RunSettings& global, IRunCallbacks& UN
     ic.addHeterogeneousBody(result->storage, mantle, std::move(layers));
 }
 
-static WorkerRegistrar sRegisterDifferentiated("create differentiated body",
+static WorkerRegistrar sRegisterDifferentiated(
+    "create differentiated body",
     "body",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<DifferentiatedBodyIc>(name); });
+    [](const std::string& name) { return makeAuto<DifferentiatedBodyIc>(name); },
+    "Creates a body consisting of multiple different materials. The base shape/material describes the "
+    "global shape of body and material of a particles not assigned to any layer. The indexed layers than "
+    "assign a specific material to a subset of particles.");
 
 // ----------------------------------------------------------------------------------------------------------
 // ImpactorIc
@@ -250,10 +256,13 @@ void ImpactorIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     MonolithicBodyIc::evaluate(global, callbacks);
 }
 
-static WorkerRegistrar sRegisterImpactorBody("create impactor",
+static WorkerRegistrar sRegisterImpactorBody(
+    "create impactor",
     "impactor",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<ImpactorIc>(name); });
+    [](const std::string& name) { return makeAuto<ImpactorIc>(name); },
+    "Creates a monolithic body with automatic particle count. The number of particles is assigned "
+    "to match the particle concentration (number density) of a target body.");
 
 // ----------------------------------------------------------------------------------------------------------
 // EquilibriumIc
@@ -341,10 +350,15 @@ void EquilibriumIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& U
     }
 }
 
-static WorkerRegistrar sRegisterEquilibriumIc("set equilibrium energy",
+static WorkerRegistrar sRegisterEquilibriumIc(
+    "set equilibrium energy",
     "equilibrium",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<EquilibriumIc>(name); });
+    [](const std::string& name) { return makeAuto<EquilibriumIc>(name); },
+    "Modifies the internal energy of the input body to create a pressure gradient that balances "
+    "the gravitational acceleration. This can be used only for material with equation of state, "
+    "it further expects spherical symmetry of the input body (although homogeneity is not "
+    "required).");
 
 // ----------------------------------------------------------------------------------------------------------
 // ModifyQuantityIc
@@ -433,10 +447,13 @@ void ModifyQuantityIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
     }
 }
 
-static WorkerRegistrar sRegisterModifyQuantityIc("modify quantity",
+static WorkerRegistrar sRegisterModifyQuantityIc(
+    "modify quantity",
     "modifier",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<ModifyQuantityIc>(name); });
+    [](const std::string& name) { return makeAuto<ModifyQuantityIc>(name); },
+    "Modifies given quantity of the input body, optionally specifying a radial gradient or generic radial "
+    "dependency via a user-defined curve.");
 
 // ----------------------------------------------------------------------------------------------------------
 // NoiseQuantity
@@ -562,10 +579,12 @@ Float NoiseQuantityIc::dotGradient(const Grid<Vector>& gradients, const Indices&
 }
 
 
-static WorkerRegistrar sRegisterNoise("Perlin noise",
+static WorkerRegistrar sRegisterNoise(
+    "Perlin noise",
     "noise",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<NoiseQuantityIc>(name); });
+    [](const std::string& name) { return makeAuto<NoiseQuantityIc>(name); },
+    "Perturbs selected quantity of the input body using a noise function.");
 
 // ----------------------------------------------------------------------------------------------------------
 // NBodyIc
@@ -731,9 +750,11 @@ void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     result->storage = std::move(storage);
 }
 
-static WorkerRegistrar sRegisterNBodyIc("N-body ICs", "initial conditions", [](const std::string& name) {
-    return makeAuto<NBodyIc>(name);
-});
+static WorkerRegistrar sRegisterNBodyIc(
+    "N-body ICs",
+    "initial conditions",
+    [](const std::string& name) { return makeAuto<NBodyIc>(name); },
+    "Creates a spherical or ellipsoidal cloud of particles.");
 
 
 // ----------------------------------------------------------------------------------------------------------
@@ -790,8 +811,10 @@ void GalaxyIc::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbac
 }
 
 
-static WorkerRegistrar sRegisterGalaxyIc("galaxy ICs", "initial conditions", [](const std::string& name) {
-    return makeAuto<GalaxyIc>(name);
-});
+static WorkerRegistrar sRegisterGalaxyIc(
+    "galaxy ICs",
+    "initial conditions",
+    [](const std::string& name) { return makeAuto<GalaxyIc>(name); },
+    "Creates a single galaxy.");
 
 NAMESPACE_SPH_END

@@ -36,9 +36,11 @@ void SphereWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UN
     result = makeAuto<SphericalDomain>(Vector(0._f), radius);
 }
 
-static WorkerRegistrar sRegisterSphere("sphere", "geometry", [](const std::string& name) {
-    return makeAuto<SphereWorker>(name);
-});
+static WorkerRegistrar sRegisterSphere(
+    "sphere",
+    "geometry",
+    [](const std::string& name) { return makeAuto<SphereWorker>(name); },
+    "Geometric shape representing a sphere with given radius.");
 
 //-----------------------------------------------------------------------------------------------------------
 // BlockWorker
@@ -57,9 +59,11 @@ void BlockWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNU
     result = makeAuto<BlockDomain>(center, dimensions);
 }
 
-static WorkerRegistrar sRegisterBlock("block", "geometry", [](const std::string& name) {
-    return makeAuto<BlockWorker>(name);
-});
+static WorkerRegistrar sRegisterBlock(
+    "block",
+    "geometry",
+    [](const std::string& name) { return makeAuto<BlockWorker>(name); },
+    "Geometric shape representing a block with given dimensions.");
 
 //-----------------------------------------------------------------------------------------------------------
 // EllipsoidWorker
@@ -77,9 +81,11 @@ void EllipsoidWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks&
     result = makeAuto<EllipsoidalDomain>(Vector(0._f), semiaxes);
 }
 
-static WorkerRegistrar sRegisterEllipsoid("ellipsoid", "geometry", [](const std::string& name) {
-    return makeAuto<EllipsoidWorker>(name);
-});
+static WorkerRegistrar sRegisterEllipsoid(
+    "ellipsoid",
+    "geometry",
+    [](const std::string& name) { return makeAuto<EllipsoidWorker>(name); },
+    "Geometric shape representing a triaxial ellipsoid.");
 
 //-----------------------------------------------------------------------------------------------------------
 // CylinderWorker
@@ -109,9 +115,11 @@ void CylinderWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& 
     result = makeAuto<CylindricalDomain>(Vector(0._f), radius, height, true);
 }
 
-static WorkerRegistrar sRegisterCylinder("cylinder", "geometry", [](const std::string& name) {
-    return makeAuto<CylinderWorker>(name);
-});
+static WorkerRegistrar sRegisterCylinder(
+    "cylinder",
+    "geometry",
+    [](const std::string& name) { return makeAuto<CylinderWorker>(name); },
+    "Geometric shape representing a cylinder aligned with z-axis, using provided radius and height.");
 
 //-----------------------------------------------------------------------------------------------------------
 // MeshGeometryWorker
@@ -146,10 +154,12 @@ void MeshGeometryWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbac
     result = makeAuto<MeshDomain>(std::move(triangles.value()), AffineMatrix::scale(Vector(scale)));
 }
 
-static WorkerRegistrar sRegisterMeshGeometry("triangle mesh",
+static WorkerRegistrar sRegisterMeshGeometry(
+    "triangle mesh",
     "mesh",
     "geometry",
-    [](const std::string& name) { return makeAuto<MeshGeometryWorker>(name); });
+    [](const std::string& name) { return makeAuto<MeshGeometryWorker>(name); },
+    "Geometric shape given by provided triangular mesh.");
 
 //-----------------------------------------------------------------------------------------------------------
 // ParticleGeometryWorker
@@ -187,10 +197,12 @@ void ParticleGeometryWorker::evaluate(const RunSettings& UNUSED(global), IRunCal
     result = makeAuto<MeshDomain>(std::move(triangles));
 }
 
-static WorkerRegistrar sRegisterParticleGeometry("particle geometry",
+static WorkerRegistrar sRegisterParticleGeometry(
+    "particle geometry",
     "particles",
     "geometry",
-    [](const std::string& name) { return makeAuto<ParticleGeometryWorker>(name); });
+    [](const std::string& name) { return makeAuto<ParticleGeometryWorker>(name); },
+    "Geometric shape represented by input particles");
 
 
 //-----------------------------------------------------------------------------------------------------------
@@ -269,10 +281,12 @@ void SpheresGeometryWorker::evaluate(const RunSettings& UNUSED(global), IRunCall
     result = makeShared<SpheresDomain>(r);
 }
 
-static WorkerRegistrar sRegisterSpheresGeometry("spheres geometry",
+static WorkerRegistrar sRegisterSpheresGeometry(
+    "spheres geometry",
     "spheres",
     "geometry",
-    [](const std::string& name) { return makeAuto<SpheresGeometryWorker>(name); });
+    [](const std::string& name) { return makeAuto<SpheresGeometryWorker>(name); },
+    "Geometric shape given by a set of spheres, specifies by the input particles.");
 
 //-----------------------------------------------------------------------------------------------------------
 // InvertGeometryWorker
@@ -337,10 +351,13 @@ void InvertGeometryWorker::evaluate(const RunSettings& UNUSED(global), IRunCallb
     result = makeShared<InvertDomain>(domain);
 }
 
-static WorkerRegistrar sRegisterInvertGeometry("invert geometry",
+static WorkerRegistrar sRegisterInvertGeometry(
+    "invert geometry",
     "inverter",
     "geometry",
-    [](const std::string& name) { return makeAuto<InvertGeometryWorker>(name); });
+    [](const std::string& name) { return makeAuto<InvertGeometryWorker>(name); },
+    "Shape modifier that inverts the geometry, i.e. swaps the outside and inside of a shape. This converts a "
+    "sphere into a space with spherical hole, etc.");
 
 //-----------------------------------------------------------------------------------------------------------
 // TransformGeometryWorker
@@ -367,10 +384,12 @@ void TransformGeometryWorker::evaluate(const RunSettings& UNUSED(global), IRunCa
     result = makeShared<TransformedDomain>(domain, matrix);
 }
 
-static WorkerRegistrar sRegisterTransformGeometry("transform geometry",
+static WorkerRegistrar sRegisterTransformGeometry(
+    "transform geometry",
     "transform",
     "geometry",
-    [](const std::string& name) { return makeAuto<TransformGeometryWorker>(name); });
+    [](const std::string& name) { return makeAuto<TransformGeometryWorker>(name); },
+    "Shape modifier, adding a translation and scaling to the input geometry.");
 
 //-----------------------------------------------------------------------------------------------------------
 // BooleanGeometryWorker
@@ -519,9 +538,11 @@ VirtualSettings BooleanGeometryWorker::getSettings() {
     return connector;
 }
 
-static WorkerRegistrar sRegisterBoolean("boolean", "geometry", [](const std::string& name) {
-    return makeAuto<BooleanGeometryWorker>(name);
-});
+static WorkerRegistrar sRegisterBoolean(
+    "boolean",
+    "geometry",
+    [](const std::string& name) { return makeAuto<BooleanGeometryWorker>(name); },
+    "Composite shape that applies given boolean operation to two input shapes.");
 
 
 NAMESPACE_SPH_END

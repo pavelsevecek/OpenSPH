@@ -240,9 +240,11 @@ AutoPtr<IRun> SphWorker::getRun(const RunSettings& overrides) const {
     return makeAuto<SphRun>(run, domain);
 }
 
-static WorkerRegistrar sRegisterSph("SPH run", "simulations", [](const std::string& name) {
-    return makeAuto<SphWorker>(name, EMPTY_SETTINGS);
-});
+static WorkerRegistrar sRegisterSph(
+    "SPH run",
+    "simulations",
+    [](const std::string& name) { return makeAuto<SphWorker>(name, EMPTY_SETTINGS); },
+    "Runs a SPH simulation, using provided initial conditions.");
 
 // ----------------------------------------------------------------------------------------------------------
 // SphStabilizationWorker
@@ -281,10 +283,13 @@ AutoPtr<IRun> SphStabilizationWorker::getRun(const RunSettings& overrides) const
     return makeAuto<SphStabilizationRun>(run, domain);
 }
 
-static WorkerRegistrar sRegisterSphStab("SPH stabilization",
+static WorkerRegistrar sRegisterSphStab(
+    "SPH stabilization",
     "stabilization",
     "simulations",
-    [](const std::string& name) { return makeAuto<SphStabilizationWorker>(name, EMPTY_SETTINGS); });
+    [](const std::string& name) { return makeAuto<SphStabilizationWorker>(name, EMPTY_SETTINGS); },
+    "Runs a SPH simulation with a damping term, suitable for stabilization of non-equilibrium initial "
+    "conditions.");
 
 
 // ----------------------------------------------------------------------------------------------------------
@@ -407,9 +412,11 @@ AutoPtr<IRun> NBodyWorker::getRun(const RunSettings& overrides) const {
     return makeAuto<NBodyRun>(run);
 }
 
-static WorkerRegistrar sRegisterNBody("N-body run", "simulations", [](const std::string& name) {
-    return makeAuto<NBodyWorker>(name, EMPTY_SETTINGS);
-});
+static WorkerRegistrar sRegisterNBody(
+    "N-body run",
+    "simulations",
+    [](const std::string& name) { return makeAuto<NBodyWorker>(name, EMPTY_SETTINGS); },
+    "Runs N-body simulation using given initial conditions.");
 
 
 NAMESPACE_SPH_END

@@ -197,7 +197,8 @@ struct WorkerRegistrar {
     /// \param className Class name of the worker, must be the same as returned by \ref IWorker::className.
     /// \param category Name of the worker category.
     /// \param func Functor returning a new instance of the worker.
-    WorkerRegistrar(std::string className, std::string category, CreateWorkerFunc func);
+    /// \param tooltip Optional description of the worker
+    WorkerRegistrar(std::string className, std::string category, CreateWorkerFunc func, std::string tooltip);
 
     /// \brief Registers a new worker.
     ///
@@ -205,10 +206,12 @@ struct WorkerRegistrar {
     /// \param shortName Name used for newly created instances, useful in case the class name is too long.
     /// \param category Name of the worker category.
     /// \param func Functor returning a new instance of the worker.
+    /// \param tooltip Optional description of the worker
     WorkerRegistrar(std::string className,
         std::string shortName,
         std::string category,
-        CreateWorkerFunc func);
+        CreateWorkerFunc func,
+        std::string tooltip);
 };
 
 /// \brief Returns a view of all currently registered workers.

@@ -53,9 +53,11 @@ void LoadFileWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& 
     }
 }
 
-static WorkerRegistrar sRegisterLoadFile("load file", "I/O", [](const std::string& UNUSED(name)) {
-    return makeAuto<LoadFileWorker>();
-});
+static WorkerRegistrar sRegisterLoadFile(
+    "load file",
+    "I/O",
+    [](const std::string& UNUSED(name)) { return makeAuto<LoadFileWorker>(); },
+    "Loads particle state from a file");
 
 // ----------------------------------------------------------------------------------------------------------
 // FileSequenceWorker
@@ -165,9 +167,12 @@ void FileSequenceWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbac
     result->stats = std::move(stats);
 }
 
-static WorkerRegistrar sRegisterFileSequence("load sequence", "sequence", "I/O", [](const std::string& name) {
-    return makeAuto<FileSequenceWorker>(name);
-});
+static WorkerRegistrar sRegisterFileSequence(
+    "load sequence",
+    "sequence",
+    "I/O",
+    [](const std::string& name) { return makeAuto<FileSequenceWorker>(name); },
+    "Loads and displays a sequence of particle states.");
 
 // ----------------------------------------------------------------------------------------------------------
 // SaveFileWorker
@@ -206,9 +211,11 @@ void SaveFileWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& 
     result = data;
 }
 
-static WorkerRegistrar sRegisterOutput("save file", "I/O", [](const std::string& name) {
-    return makeAuto<SaveFileWorker>(name);
-});
+static WorkerRegistrar sRegisterOutput(
+    "save file",
+    "I/O",
+    [](const std::string& name) { return makeAuto<SaveFileWorker>(name); },
+    "Saves the input particle state into a file.");
 
 // ----------------------------------------------------------------------------------------------------------
 // SaveMeshWorker
@@ -269,8 +276,10 @@ void SaveMeshWorker::evaluate(const RunSettings& global, IRunCallbacks& callback
     result = data;
 }
 
-static WorkerRegistrar sRegisterMeshSaver("save mesh", "I/O", [](const std::string& name) {
-    return makeAuto<SaveMeshWorker>(name);
-});
+static WorkerRegistrar sRegisterMeshSaver(
+    "save mesh",
+    "I/O",
+    [](const std::string& name) { return makeAuto<SaveMeshWorker>(name); },
+    "Creates a triangular mesh from the input particles and saves it to file.");
 
 NAMESPACE_SPH_END

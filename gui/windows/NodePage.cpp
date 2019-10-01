@@ -1,5 +1,6 @@
 #include "gui/windows/NodePage.h"
 #include "gui/Utils.h"
+#include "gui/objects/DelayedCallback.h"
 #include "gui/objects/RenderWorkers.h"
 #include "gui/windows/CurveDialog.h"
 #include "io/FileSystem.h"
@@ -14,6 +15,7 @@
 #include <wx/graphics.h>
 #include <wx/menu.h>
 #include <wx/msgdlg.h>
+#include <wx/richtooltip.h>
 #include <wx/settings.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
@@ -1322,6 +1324,10 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         AutoPtr<IWorker> create() const {
             return desc->create(NOTHING);
         }
+
+        std::string tooltip() const {
+            return desc->tooltip();
+        }
     };
 
     FlatMap<std::string, wxTreeItemId> categoryItemIdMap;
@@ -1341,6 +1347,27 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
     wxTreeItemId crateringId = workerView->AppendItem(presetsId, "cratering");
     wxTreeItemId galaxyId = workerView->AppendItem(presetsId, "galaxy collision");
 
+    workerView->Bind(wxEVT_MOTION, [workerView](wxMouseEvent& evt) {
+        wxPoint pos = evt.GetPosition();
+        int flags;
+        wxTreeItemId id = workerView->HitTest(pos, flags);
+
+        static DelayedCallback callback;
+        if (flags & wxTREE_HITTEST_ONITEMLABEL) {
+            WorkerTreeData* data = dynamic_cast<WorkerTreeData*>(workerView->GetItemData(id));
+            if (data) {
+                callback.start(600, [workerView, id, data, pos] {
+                    const wxString name = workerView->GetItemText(id);
+                    wxRichToolTip tip(name, setLineBreak(data->tooltip(), 50));
+                    const wxRect rect(pos, pos);
+                    tip.ShowFor(workerView, &rect);
+                    tip.SetTimeout(1e6);
+                });
+            }
+        } else {
+            callback.stop();
+        }
+    });
 
     workerView->Bind(wxEVT_TREE_ITEM_ACTIVATED, [=](wxTreeEvent& evt) {
         wxTreeItemId id = evt.GetItem();

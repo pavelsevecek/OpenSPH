@@ -235,9 +235,12 @@ void AnimationWorker::evaluate(const RunSettings& global, IRunCallbacks& callbac
     }
 }
 
-WorkerRegistrar sRegisterAnimation("render animation", "animation", "rendering", [](const std::string& name) {
-    return makeAuto<AnimationWorker>(name);
-});
+WorkerRegistrar sRegisterAnimation(
+    "render animation",
+    "animation",
+    "rendering",
+    [](const std::string& name) { return makeAuto<AnimationWorker>(name); },
+    "Renders an image or a sequence of images from given particle input(s)");
 
 //-----------------------------------------------------------------------------------------------------------
 // VdbWorker
