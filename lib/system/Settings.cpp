@@ -135,6 +135,9 @@ static RegisterEnum<ForceEnum> sForce({
         "inertial",
         "Centrifugal force and Coriolis force given by angular frequency of the coordinate frame." },
     { ForceEnum::SELF_GRAVITY, "gravity", "Self-gravity of particles" },
+    { ForceEnum::SURFACE_TENSION,
+        "surface_tension",
+        "Surface tension, proportional to the curvature of the surface." },
 });
 
 static RegisterEnum<ArtificialViscosityEnum> sArtificialViscosity({

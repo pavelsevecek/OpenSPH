@@ -58,7 +58,7 @@ private:
 
     void save();
 
-    void open(const Path& openPath);
+    void open(const Path& openPath, const bool setDefaults);
 
     void load(const Path& openPath = Path(""));
 

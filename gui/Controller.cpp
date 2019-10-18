@@ -366,6 +366,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         colorizerIds.push(ColorizerId::MOVEMENT_DIRECTION);
         colorizerIds.push(ColorizerId::ACCELERATION);
         colorizerIds.push(ColorizerId::RADIUS);
+        colorizerIds.push(ColorizerId::DEPTH);
         colorizerIds.push(ColorizerId::PARTICLE_ID);
         colorizerIds.push(ColorizerId::COMPONENT_ID);
         colorizerIds.push(ColorizerId::MARKER);
@@ -484,9 +485,13 @@ Optional<Size> Controller::getIntersectedParticle(const Pixel position, const fl
 
     const GuiSettings& gui = project.getGuiSettings();
     const float radius = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
-    const CameraRay ray = camera->unproject(Coords(position));
+    const Optional<CameraRay> ray = camera->unproject(Coords(position));
+    if (!ray) {
+        return NOTHING;
+    }
+
     const float cutoff = camera->getCutoff().valueOr(0.f);
-    const Vector dir = getNormalized(ray.target - ray.origin);
+    const Vector dir = getNormalized(ray->target - ray->origin);
 
     struct {
         float t = -INFTY;
@@ -507,7 +512,7 @@ Optional<Size> Controller::getIntersectedParticle(const Pixel position, const fl
             continue;
         }
 
-        const Vector r = vis.positions[i] - ray.origin;
+        const Vector r = vis.positions[i] - ray->origin;
         const float t = dot(r, dir);
         const Vector projected = r - t * dir;
         /// \todo this radius computation is actually renderer-specific ...

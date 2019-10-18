@@ -144,16 +144,17 @@ enum class ColorizerId {
     YIELD_REDUCTION = -11,     ///< Reduction of stress tensor due to yielding (1 - f_vonMises)
     DAMAGE_ACTIVATION = -12,   ///< Ratio of the stress and the activation strain
     RADIUS = -13,              ///< Radii/smoothing lenghts of particles
-    UVW = -14,                 ///< Shows UV mapping, u-coordinate in red and v-coordinate in blur
-    BOUNDARY = -15,            ///< Shows boundary particles
-    PARTICLE_ID = -16,         ///< Each particle drawn with different color
-    COMPONENT_ID = -17,        ///< Color assigned to each component (group of connected particles)
-    BOUND_COMPONENT_ID = -18,  ///< Color assigned to each group of gravitationally bound particles
-    AGGREGATE_ID = -19,        ///< Color assigned to each aggregate
-    FLAG = -20,                ///< Particles of different bodies are colored differently
-    MATERIAL_ID = -21,         ///< Particles with different materials are colored differently
-    BEAUTY = -22,              ///< Attempts to show the real-world look
-    MARKER = -23, ///< Simple colorizer assigning given color to all particles, creating particle "mask".
+    DEPTH = -14,               ///< Z-depth of particles
+    UVW = -15,                 ///< Shows UV mapping, u-coordinate in red and v-coordinate in blur
+    BOUNDARY = -16,            ///< Shows boundary particles
+    PARTICLE_ID = -17,         ///< Each particle drawn with different color
+    COMPONENT_ID = -18,        ///< Color assigned to each component (group of connected particles)
+    BOUND_COMPONENT_ID = -19,  ///< Color assigned to each group of gravitationally bound particles
+    AGGREGATE_ID = -20,        ///< Color assigned to each aggregate
+    FLAG = -21,                ///< Particles of different bodies are colored differently
+    MATERIAL_ID = -22,         ///< Particles with different materials are colored differently
+    BEAUTY = -23,              ///< Attempts to show the real-world look
+    MARKER = -24, ///< Simple colorizer assigning given color to all particles, creating particle "mask".
 };
 
 /// \brief Default colorizer simply converting quantity value to color using defined palette.
@@ -730,6 +731,50 @@ public:
         return "Radius";
     }
 };
+
+class DepthColorizer : public IColorizer {
+private:
+    Vector cameraPos;
+    Float mult = 1._f;
+    ArrayRef<const Vector> positions;
+
+public:
+    explicit DepthColorizer(const Vector& cameraPos, const Vector& cameraTarget)
+        : cameraPos(cameraPos) {
+        mult = 1._f / getLength(cameraPos - cameraTarget);
+    }
+
+    virtual void initialize(const Storage& storage, const RefEnum ref) override {
+        positions = makeArrayRef(storage.getValue<Vector>(QuantityId::POSITION), ref);
+    }
+
+    virtual bool isInitialized() const override {
+        return !positions.empty();
+    }
+
+    virtual Rgba evalColor(const Size idx) const override {
+        return Rgba(this->evalScalar(idx).value());
+    }
+
+    virtual Optional<Float> evalScalar(const Size idx) const override {
+        return mult * getLength(positions[idx] - cameraPos);
+    }
+
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        return Particle(idx);
+    }
+
+    virtual Optional<Palette> getPalette() const override {
+        return NOTHING;
+    }
+
+    virtual void setPalette(const Palette& UNUSED(newPalette)) override {}
+
+    virtual std::string name() const override {
+        return "Depth";
+    }
+};
+
 
 class UvwColorizer : public IColorizer {
 private:

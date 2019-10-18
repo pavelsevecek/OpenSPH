@@ -40,10 +40,14 @@ static RegisterEnum<RendererEnum> sRenderer({
 enum class CameraEnum {
     ORTHO,
     PERSPECTIVE,
+    FISHEYE,
+    SPHERICAL,
 };
 static RegisterEnum<CameraEnum> sCamera({
     { CameraEnum::ORTHO, "ortho", "Orthographic projection" },
     { CameraEnum::PERSPECTIVE, "perspective", "Perspective projection" },
+    { CameraEnum::FISHEYE, "fisheye", "Fisheye equidistant projection" },
+    { CameraEnum::SPHERICAL, "spherical", "Spherical 360° projection" },
 });
 
 enum class OrthoEnum { XY, XZ, YZ };

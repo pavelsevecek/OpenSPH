@@ -4,8 +4,10 @@ CONFIG += ordered
 
 SUBDIRS = lib \
           cli/launcher \
+          cli/impact \
           cli/batch \
           cli/problems \
+          cli/sandbox \
           gui \
           gui/launcherGui \
           test \
@@ -21,8 +23,10 @@ SUBDIRS = lib \
 
 run.depends = lib
 launcher.depends = lib
+impact.depends = lib
 batch.depends = lib
 problems.depends = lib
+sandbox.depends = lib
 gui.depends = lib
 launcherGui.depends = lib gui
 test.depends = lib

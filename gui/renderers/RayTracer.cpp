@@ -173,9 +173,14 @@ void RayTracer::refine(const RenderParams& params, const Size iteration, FrameBu
             for (Size x = 0; x < Size(bitmap.size().x); ++x) {
                 const Coords pixel = Coords(x * level, y * level) +
                                      sampleTent2d(level, params.surface.filterWidth / 2.f, data.rng);
-                CameraRay cameraRay = params.camera->unproject(pixel);
-                const Vector dir = getNormalized(cameraRay.target - cameraRay.origin);
-                const Ray ray(cameraRay.origin, dir);
+                const Optional<CameraRay> cameraRay = params.camera->unproject(pixel);
+                if (!cameraRay) {
+                    bitmap[Pixel(x, y)] = Rgba::black();
+                    continue;
+                }
+
+                const Vector dir = getNormalized(cameraRay->target - cameraRay->origin);
+                const Ray ray(cameraRay->origin, dir);
 
                 Rgba accumulatedColor = Rgba::transparent();
                 if (Optional<Vector> hit = this->intersect(data, ray, params.surface.level, false)) {

@@ -30,8 +30,9 @@ static RegisterEnum<ColorizerFlag> sColorizers({
     { ColorizerFlag::VELOCITY, "velocity", "Particle velocities" },
     { ColorizerFlag::ENERGY, "energy", "Specific internal energy" },
     { ColorizerFlag::BOUND_COMPONENT_ID, "bound components", "Components" },
-    { ColorizerFlag::MASS, "mass", "Mass" },
+    { ColorizerFlag::MASS, "clay", "Clay" },
     { ColorizerFlag::BEAUTY, "beauty", "Beauty" },
+    { ColorizerFlag::DEPTH, "depth", "Depth" },
 });
 
 AnimationWorker::AnimationWorker(const std::string& name)
@@ -156,6 +157,9 @@ void AnimationWorker::evaluate(const RunSettings& global, IRunCallbacks& callbac
     }
     if (colorizers.has(ColorizerFlag::BEAUTY)) {
         colorizerArray.push(Factory::getColorizer(project, ColorizerId::BEAUTY));
+    }
+    if (colorizers.has(ColorizerFlag::DEPTH)) {
+        colorizerArray.push(Factory::getColorizer(project, ColorizerId::DEPTH));
     }
 
     if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE) {

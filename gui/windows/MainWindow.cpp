@@ -216,7 +216,7 @@ MainWindow::MainWindow(const Path& openPath)
         /// \todo generalize
         const std::string ext = openPath.extension().native();
         if (ext == "ssf" || ext == "scf" || ext == "tab") {
-            this->open(openPath);
+            this->open(openPath, true);
         } else if (ext == "sph") {
             this->load(openPath);
         } else {
@@ -252,9 +252,18 @@ void MainWindow::save() {
     this->markSaved(true);
 }
 
-void MainWindow::open(const Path& openPath) {
+void MainWindow::open(const Path& openPath, const bool setDefaults) {
     BusyCursor wait(this);
 
+    if (setDefaults) {
+        // if loading a file specified as parameter, modify defaults if its SPH
+        /// \todo generalize
+        BinaryInput input;
+        Expected<BinaryInput::Info> info = input.getInfo(openPath);
+        if (info && info->runType == RunTypeEnum::SPH) {
+            Project::getInstance().getGuiSettings().set(GuiSettingsId::PARTICLE_RADIUS, 0.35);
+        }
+    }
     AutoPtr<Controller> controller = makeAuto<Controller>(notebook);
     controller->open(openPath);
 
@@ -421,7 +430,7 @@ wxMenu* MainWindow::createResultMenu() {
                     { "SPH compressed file", "scf" },
                     { "Text .tab files", "tab" } });
             if (path) {
-                this->open(path.value());
+                this->open(path.value(), false);
             }
             break;
         }

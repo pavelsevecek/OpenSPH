@@ -23,7 +23,8 @@ public:
 private:
     void updateAsync(const Storage& storage);
 
-    void updateCell(const Size rowIdx, const Size colIdx, const Float value);
+    template <typename T>
+    void updateCell(const Size rowIdx, const Size colIdx, const T& value);
 };
 
 NAMESPACE_SPH_END

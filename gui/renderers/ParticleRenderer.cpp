@@ -104,8 +104,8 @@ void drawPalette(IRenderContext& context,
 
 static void drawGrid(IRenderContext& context, const ICamera& camera, const float grid) {
     // find (any) direction in the camera plane
-    const CameraRay originRay = camera.unproject(Coords(0, 0));
-    const Vector dir = getNormalized(originRay.target - originRay.origin);
+    const Optional<CameraRay> originRay = camera.unproject(Coords(0, 0));
+    const Vector dir = getNormalized(originRay->target - originRay->origin);
     Vector perpDir;
     if (dir == Vector(0._f, 0._f, 1._f)) {
         perpDir = Vector(1._f, 0._f, 0._f);
@@ -114,7 +114,7 @@ static void drawGrid(IRenderContext& context, const ICamera& camera, const float
     }
 
     // find how much is projected grid distance
-    const Coords shifted = camera.project(originRay.origin + grid * perpDir)->coords;
+    const Coords shifted = camera.project(originRay->origin + grid * perpDir)->coords;
     const float dx = getLength(shifted);
     const float dy = dx;
     const Coords origin = camera.project(Vector(0._f))->coords;

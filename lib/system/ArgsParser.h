@@ -26,6 +26,15 @@ public:
         : Exception(message) {}
 };
 
+/// \brief Exception thrown when used passes -h or --help parameter.
+///
+/// The exception message contains the parameter description.
+class HelpException : public Exception {
+public:
+    explicit HelpException(const std::string& message)
+        : Exception(message) {}
+};
+
 /// \brief Descriptor of a command-line argument.
 struct ArgDesc {
     /// Short name, prefixed by single dash (e.g. -h)
@@ -84,16 +93,17 @@ public:
     /// \throw ArgError if the argument was not been parsed or it has different type.
     template <typename TValue>
     TValue getArg(const std::string& name) const {
+        throwIfUnknownArg(name);
         Optional<const ArgValue&> value = params.tryGet(name);
         if (value && value->has<TValue>()) {
             return value->get<TValue>();
         } else {
-            const std::string message = value ? "Invalid type of argument" : "Invalid argument name: " + name;
+            const std::string message = value ? "Invalid type of argument -" : "Missing argument -" + name;
             throw ArgError(message);
         }
     }
 
-    /// \brief Retunrs the value of an argument or NOTHING if the argument was not parsed.
+    /// \brief Returns the value of an argument or NOTHING if the argument was not parsed.
     ///
     /// \throw ArgError if the name does not match any argument descriptor or it has different type.
     template <typename TValue>

@@ -7,9 +7,9 @@ ArgParser::ArgParser(ArrayView<const ArgDesc> args) {
     descs.pushAll(args.begin(), args.end());
     descs.push(ArgDesc{ "h", "help", ArgEnum::NONE, "Prints this help", [this] {
                            StringLogger logger;
+                           logger.write("List of parameters:");
                            printHelp(logger);
-                           /// \todo maybe use different exception than ArgError?
-                           throw ArgError(logger.toString());
+                           throw HelpException(logger.toString());
                        } });
 }
 
@@ -56,7 +56,9 @@ void ArgParser::printHelp(ILogger& logger) {
         }
         /// \todo make padding adaptive
         line += std::string(max(1, 35 - int(line.size())), ' ');
-        line += arg.desc;
+
+        const std::string desc = setLineBreak(arg.desc, 40);
+        line += replaceAll(desc, "\n", "\n" + std::string(35, ' '));
         logger.write(line);
     }
 }

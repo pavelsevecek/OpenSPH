@@ -12,7 +12,7 @@ GridPage::GridPage(wxWindow* parent, const wxSize size, const wxSize padding)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, size) {
 
     grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, size);
-    grid->CreateGrid(4, 6);
+    grid->CreateGrid(4, 7);
     grid->EnableEditing(false);
     (void)padding;
     this->Layout();
@@ -101,12 +101,13 @@ static Float getPeriod(const Storage& storage) {
 }
 
 void GridPage::update(const Storage& storage) {
-    grid->SetColLabelValue(0, "Mass fraction");
-    grid->SetColLabelValue(1, "Diameter [km]");
-    grid->SetColLabelValue(2, "Period [h]");
-    grid->SetColLabelValue(3, "Ratio c/b");
-    grid->SetColLabelValue(4, "Ratio b/a");
-    grid->SetColLabelValue(5, "Sphericity");
+    grid->SetColLabelValue(0, "Particle count");
+    grid->SetColLabelValue(1, "Mass fraction");
+    grid->SetColLabelValue(2, "Diameter [km]");
+    grid->SetColLabelValue(3, "Period [h]");
+    grid->SetColLabelValue(4, "Ratio c/b");
+    grid->SetColLabelValue(5, "Ratio b/a");
+    grid->SetColLabelValue(6, "Sphericity");
     grid->AutoSize();
 
     thread = std::thread([this, &storage] {
@@ -131,25 +132,27 @@ void GridPage::updateAsync(const Storage& storage) {
         if (fragment.getParticleCnt() < 2) {
             break;
         }
+        this->updateCell(i, 0, fragment.getParticleCnt());
 
         const Pair<Float> massAndDiameter = getMassAndDiameter(fragment);
-        this->updateCell(i, 0, massAndDiameter[0] / totalMass);
-        this->updateCell(i, 1, massAndDiameter[1] / 1.e3_f);
+        this->updateCell(i, 1, massAndDiameter[0] / totalMass);
+        this->updateCell(i, 2, massAndDiameter[1] / 1.e3_f);
 
         const Float period = getPeriod(fragment);
-        this->updateCell(i, 2, period);
+        this->updateCell(i, 3, period);
 
         const Pair<Float> ratios = getSemiaxisRatios(fragment);
-        this->updateCell(i, 3, ratios[0]);
-        this->updateCell(i, 4, ratios[1]);
+        this->updateCell(i, 4, ratios[0]);
+        this->updateCell(i, 5, ratios[1]);
 
-        this->updateCell(i, 5, getSphericity(fragment));
+        this->updateCell(i, 6, getSphericity(fragment));
 
         executeOnMainThread([this] { grid->AutoSize(); });
     }
 }
 
-void GridPage::updateCell(const Size rowIdx, const Size colIdx, const Float value) {
+template <typename T>
+void GridPage::updateCell(const Size rowIdx, const Size colIdx, const T& value) {
     executeOnMainThread([this, rowIdx, colIdx, value] { //
         grid->SetCellValue(rowIdx, colIdx, std::to_string(value));
     });

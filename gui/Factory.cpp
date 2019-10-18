@@ -47,7 +47,9 @@ AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Pixel siz
         const Vector center(settings.get<Vector>(GuiSettingsId::ORTHO_VIEW_CENTER));
         return makeAuto<OrthoCamera>(size, Pixel(int(center[X]), int(center[Y])), data);
     }
-    case CameraEnum::PERSPECTIVE: {
+    case CameraEnum::PERSPECTIVE:
+    case CameraEnum::FISHEYE:
+    case CameraEnum::SPHERICAL: {
         PerspectiveCameraData data;
         data.position = settings.get<Vector>(GuiSettingsId::PERSPECTIVE_POSITION);
         data.target = settings.get<Vector>(GuiSettingsId::PERSPECTIVE_TARGET);
@@ -59,7 +61,14 @@ AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Pixel siz
         if (trackedIndex >= 0) {
             data.tracker = makeClone<ParticleTracker>(trackedIndex);
         }
-        return makeAuto<PerspectiveCamera>(size, data);
+
+        if (cameraId == CameraEnum::PERSPECTIVE) {
+            return makeAuto<PerspectiveCamera>(size, data);
+        } else if (cameraId == CameraEnum::FISHEYE) {
+            return makeAuto<FisheyeCamera>(size, data);
+        } else if (cameraId == CameraEnum::SPHERICAL) {
+            return makeAuto<SphericalCamera>(size, data);
+        }
     }
     default:
         NOT_IMPLEMENTED;
@@ -129,6 +138,11 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const Color
         return makeAuto<RadiusColorizer>(getPalette(id));
     case ColorizerId::BOUNDARY:
         return makeAuto<BoundaryColorizer>(BoundaryColorizer::Detection::NEIGBOUR_THRESHOLD, 40);
+    case ColorizerId::DEPTH: {
+        const Vector position = settings.get<Vector>(GuiSettingsId::PERSPECTIVE_POSITION);
+        const Vector target = settings.get<Vector>(GuiSettingsId::PERSPECTIVE_TARGET);
+        return makeAuto<DepthColorizer>(position, target);
+    }
     case ColorizerId::UVW:
         return makeAuto<UvwColorizer>();
     case ColorizerId::PARTICLE_ID:

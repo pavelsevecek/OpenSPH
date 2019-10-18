@@ -144,6 +144,7 @@ VirtualSettings TransformParticlesWorker::getSettings() {
 
     VirtualSettings::Category& velCat = connector.addCategory("Velocities");
     velCat.connect("Add velocity [km/s]", "velocity", velocities.offset).setUnits(1.e3_f);
+    velCat.connect("Multiplier", "velocity", velocities.mult);
 
     return connector;
 }
@@ -158,7 +159,8 @@ void TransformParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunC
     AffineMatrix positionTm = rotator;
     positionTm.translate(positions.offset);
 
-    AffineMatrix velocityTm = rotator; // correct for orthogonal matrices
+    // using same TM for positions and velocities is correct for orthogonal matrices
+    AffineMatrix velocityTm = rotator * AffineMatrix::scale(Vector(velocities.mult));
     velocityTm.translate(velocities.offset);
 
     ArrayView<Vector> r = result->storage.getValue<Vector>(QuantityId::POSITION);

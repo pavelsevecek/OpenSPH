@@ -46,7 +46,7 @@ public:
     virtual Optional<ProjectedPoint> project(const Vector& r) const = 0;
 
     /// \brief Returns a ray in particle coordinates corresponding to given coordinates in the image plane.
-    virtual CameraRay unproject(const Coords& coords) const = 0;
+    virtual Optional<CameraRay> unproject(const Coords& coords) const = 0;
 
     /// \brief Returns the direction of the camera.
     virtual Vector getDirection() const = 0;
@@ -127,7 +127,7 @@ public:
 
     virtual Optional<ProjectedPoint> project(const Vector& r) const override;
 
-    virtual CameraRay unproject(const Coords& coords) const override;
+    virtual Optional<CameraRay> unproject(const Coords& coords) const override;
 
     virtual Vector getDirection() const override;
 
@@ -226,7 +226,7 @@ public:
 
     virtual Optional<ProjectedPoint> project(const Vector& r) const override;
 
-    virtual CameraRay unproject(const Coords& coords) const override;
+    virtual Optional<CameraRay> unproject(const Coords& coords) const override;
 
     virtual Vector getDirection() const override;
 
@@ -251,5 +251,106 @@ public:
 private:
     void update();
 };
+
+/// \brief Fisheye camera
+class FisheyeCamera : public ICamera {
+private:
+    Pixel imageSize;
+    PerspectiveCameraData data;
+    Float focalLength = 2._f / PI;
+
+    struct {
+        /// Unit direction of the camera
+        Vector dir;
+
+        /// Up vector of the camera, size of which of represents the image size at unit distance
+        Vector up;
+
+        /// Left vector of the camera, size of which of represents the image size at unit distance
+        Vector left;
+
+        Coords center;
+
+        Size radius;
+
+    } cached;
+
+public:
+    FisheyeCamera(const Pixel imageSize, const PerspectiveCameraData& data);
+
+    virtual void initialize(const Storage& storage) override;
+
+    virtual Optional<ProjectedPoint> project(const Vector& r) const override;
+
+    virtual Optional<CameraRay> unproject(const Coords& coords) const override;
+
+    virtual Vector getDirection() const override;
+
+    virtual Optional<float> getCutoff() const override;
+
+    virtual Optional<float> getWorldToPixel() const override;
+
+    virtual void setCutoff(const Optional<float> newCutoff) override;
+
+    virtual void zoom(const Pixel UNUSED(fixedPoint), const float magnitude) override;
+
+    virtual void transform(const AffineMatrix& matrix) override;
+
+    virtual void pan(const Pixel offset) override;
+
+    virtual void resize(const Pixel newSize) override;
+
+    virtual AutoPtr<ICamera> clone() const override {
+        return makeAuto<FisheyeCamera>(*this);
+    }
+
+private:
+    void update();
+};
+
+/// \brief Spherical camera
+class SphericalCamera : public ICamera {
+private:
+    Pixel imageSize;
+    PerspectiveCameraData data;
+
+    struct {
+        AffineMatrix matrix;
+
+    } cached;
+
+public:
+    SphericalCamera(const Pixel imageSize, const PerspectiveCameraData& data);
+
+    virtual void initialize(const Storage& storage) override;
+
+    virtual Optional<ProjectedPoint> project(const Vector& r) const override;
+
+    virtual Optional<CameraRay> unproject(const Coords& coords) const override;
+
+    virtual Vector getDirection() const override;
+
+    virtual Optional<float> getCutoff() const override;
+
+    virtual Optional<float> getWorldToPixel() const override;
+
+    virtual void setCutoff(const Optional<float> newCutoff) override;
+
+    virtual void zoom(const Pixel UNUSED(fixedPoint), const float magnitude) override;
+
+    virtual void transform(const AffineMatrix& matrix) override;
+
+    virtual void pan(const Pixel offset) override;
+
+    virtual void resize(const Pixel newSize) override;
+
+    virtual AutoPtr<ICamera> clone() const override {
+        return makeAuto<SphericalCamera>(*this);
+    }
+
+private:
+    void update();
+};
+
 
 NAMESPACE_SPH_END

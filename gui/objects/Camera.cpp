@@ -72,7 +72,7 @@ Optional<ProjectedPoint> OrthoCamera::project(const Vector& r) const {
     return { { point, data.fov.value() * float(r[H]) } };
 }
 
-CameraRay OrthoCamera::unproject(const Coords& coords) const {
+Optional<CameraRay> OrthoCamera::unproject(const Coords& coords) const {
     if (!data.fov) {
         return CameraRay{ Vector(0._f), cached.w };
     }
@@ -184,7 +184,7 @@ Optional<ProjectedPoint> PerspectiveCamera::project(const Vector& r) const {
     return ProjectedPoint{ { x, imageSize.y - y - 1 }, max(float(h), 1.f) };
 }
 
-CameraRay PerspectiveCamera::unproject(const Coords& coords) const {
+Optional<CameraRay> PerspectiveCamera::unproject(const Coords& coords) const {
     const float rx = 2.f * coords.x / imageSize.x - 1.f;
     const float ry = 2.f * coords.y / imageSize.y - 1.f;
     const Vector dir = cached.dir + cached.left * rx - cached.up * ry;
@@ -252,6 +252,184 @@ void PerspectiveCamera::update() {
     const Float tgfov = tan(0.5_f * data.fov);
     cached.up = tgfov / aspect * up;
     cached.left = tgfov * getNormalized(cross(cached.up, cached.dir));
+}
+
+// ----------------------------------------------------------------------------------------------------------
+// FisheyeCamera
+// ----------------------------------------------------------------------------------------------------------
+
+FisheyeCamera::FisheyeCamera(const Pixel imageSize, const PerspectiveCameraData& data)
+    : imageSize(imageSize)
+    , data(data) {
+    ASSERT(data.clipping.lower() > 0._f && data.clipping.size() > EPS);
+
+    this->update();
+}
+
+void FisheyeCamera::initialize(const Storage& storage) {
+    /// \todo auto-view, like OrthoCamera ?
+
+    if (data.tracker) {
+        const Vector newTarget = data.tracker->position(storage);
+        data.position += newTarget - data.target;
+        data.target = newTarget;
+        this->update();
+    }
+}
+
+Optional<ProjectedPoint> FisheyeCamera::project(const Vector& UNUSED(r)) const {
+    /// \todo
+    return NOTHING;
+}
+
+Optional<CameraRay> FisheyeCamera::unproject(const Coords& coords) const {
+    Coords p = (coords - cached.center) / cached.radius;
+    const Float r = getLength(p);
+    if (r > 1._f) {
+        return NOTHING;
+    }
+
+    const Float theta = r / focalLength;
+    const Float phi = atan2(p.y, p.x);
+    const Vector perp = cached.left * cos(phi) - cached.up * sin(phi);
+    const Vector dir = cached.dir * cos(theta) + perp * sin(theta);
+
+    CameraRay ray;
+    ray.origin = data.position + dir * data.clipping.lower();
+    ray.target = ray.origin + dir;
+    return ray;
+}
+
+Vector FisheyeCamera::getDirection() const {
+    return cached.dir;
+}
+
+Optional<float> FisheyeCamera::getCutoff() const {
+    // not implemented yet
+    return NOTHING;
+}
+
+Optional<float> FisheyeCamera::getWorldToPixel() const {
+    return NOTHING;
+}
+
+void FisheyeCamera::setCutoff(const Optional<float> UNUSED(newCutoff)) {}
+
+void FisheyeCamera::zoom(const Pixel UNUSED(fixedPoint), const float UNUSED(magnitude)) {
+    NOT_IMPLEMENTED;
+}
+
+void FisheyeCamera::transform(const AffineMatrix& UNUSED(matrix)) {
+    NOT_IMPLEMENTED;
+}
+
+void FisheyeCamera::pan(const Pixel offset) {
+    const Float x = Float(offset.x) / imageSize.x;
+    const Float y = Float(offset.y) / imageSize.y;
+    const Vector worldOffset = getLength(data.target - data.position) * (cached.left * x + cached.up * y);
+    data.position -= worldOffset;
+    data.target -= worldOffset;
+}
+
+void FisheyeCamera::resize(const Pixel newSize) {
+    imageSize = newSize;
+    this->update();
+}
+
+void FisheyeCamera::update() {
+    cached.dir = getNormalized(data.target - data.position);
+
+    // make sure the up vector is perpendicular
+    cached.up = getNormalized(data.up - dot(data.up, cached.dir) * cached.dir);
+    ASSERT(abs(dot(cached.up, cached.dir)) < EPS);
+
+    cached.left = getNormalized(cross(cached.up, cached.dir));
+
+    cached.center = Coords(imageSize.x / 2, imageSize.y / 2);
+    cached.radius = min(cached.center.x, cached.center.y);
+}
+
+// ----------------------------------------------------------------------------------------------------------
+// SphericalCamera
+// ----------------------------------------------------------------------------------------------------------
+
+SphericalCamera::SphericalCamera(const Pixel imageSize, const PerspectiveCameraData& data)
+    : imageSize(imageSize)
+    , data(data) {
+    ASSERT(data.clipping.lower() > 0._f && data.clipping.size() > EPS);
+
+    this->update();
+}
+
+void SphericalCamera::initialize(const Storage& storage) {
+    /// \todo auto-view, like OrthoCamera ?
+
+    if (data.tracker) {
+        const Vector newTarget = data.tracker->position(storage);
+        data.position += newTarget - data.target;
+        data.target = newTarget;
+        this->update();
+    }
+}
+
+Optional<ProjectedPoint> SphericalCamera::project(const Vector& UNUSED(r)) const {
+    /// \todo
+    return NOTHING;
+}
+
+Optional<CameraRay> SphericalCamera::unproject(const Coords& coords) const {
+    const Float phi = 2._f * PI * coords.x / imageSize.x;
+    const Float theta = PI * coords.y / imageSize.y;
+    const Vector dir = cached.matrix * sphericalToCartesian(1._f, theta, phi);
+
+    CameraRay ray;
+    ray.origin = data.position + dir * data.clipping.lower();
+    ray.target = ray.origin + dir;
+    return ray;
+}
+
+Vector SphericalCamera::getDirection() const {
+    return getNormalized(data.target - data.position);
+}
+
+Optional<float> SphericalCamera::getCutoff() const {
+    // not implemented yet
+    return NOTHING;
+}
+
+Optional<float> SphericalCamera::getWorldToPixel() const {
+    return NOTHING;
+}
+
+void SphericalCamera::setCutoff(const Optional<float> UNUSED(newCutoff)) {}
+
+void SphericalCamera::zoom(const Pixel UNUSED(fixedPoint), const float UNUSED(magnitude)) {
+    NOT_IMPLEMENTED;
+}
+
+void SphericalCamera::transform(const AffineMatrix& UNUSED(matrix)) {
+    NOT_IMPLEMENTED;
+}
+
+void SphericalCamera::pan(const Pixel UNUSED(offset)) {
+    NOT_IMPLEMENTED;
+}
+
+void SphericalCamera::resize(const Pixel newSize) {
+    imageSize = newSize;
+    this->update();
+}
+
+void SphericalCamera::update() {
+    const Vector dir = getNormalized(data.target - data.position);
+
+    // make sure the up vector is perpendicular
+    const Vector up = getNormalized(data.up - dot(data.up, dir) * dir);
+    ASSERT(abs(dot(up, dir)) < EPS);
+
+    const Vector left = getNormalized(cross(up, dir));
+
+    cached.matrix = AffineMatrix(-dir, -left, up).inverse();
 }
 
 NAMESPACE_SPH_END

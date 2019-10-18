@@ -64,6 +64,7 @@ private:
 
     struct {
         Vector offset = Vector(0._f);
+        Float mult = 1.;
     } velocities;
 
 public:

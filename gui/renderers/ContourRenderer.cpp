@@ -71,10 +71,10 @@ static bool isCoordValid(const UnorderedMap<float, Coords>& map, const Coords& p
 void ContourRenderer::render(const RenderParams& params,
     Statistics& UNUSED(stats),
     IRenderOutput& output) const {
-    const CameraRay ray1 = params.camera->unproject(Coords(0, 0));
-    const CameraRay ray2 = params.camera->unproject(Coords(params.size));
-    const Vector pos1(ray1.origin[X], ray1.origin[Y], 0._f);
-    const Vector pos2(ray2.origin[X], ray2.origin[Y], 0._f);
+    const Optional<CameraRay> ray1 = params.camera->unproject(Coords(0, 0));
+    const Optional<CameraRay> ray2 = params.camera->unproject(Coords(params.size));
+    const Vector pos1(ray1->origin[X], ray1->origin[Y], 0._f);
+    const Vector pos2(ray2->origin[X], ray2->origin[Y], 0._f);
     const Size resX = params.contours.gridSize;
     const Size resY = Size(resX * float(params.size.y) / float(params.size.x));
     const Vector dxdp = Vector(1._f / resX, 1._f / resY, 0._f) * (pos2 - pos1);

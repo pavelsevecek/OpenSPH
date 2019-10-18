@@ -632,6 +632,9 @@ enum class ForceEnum {
 
     /// Use gravitational force in the model
     SELF_GRAVITY = 1 << 5,
+
+    /// Surface force proportional to surface curvature
+    SURFACE_TENSION = 1 << 6,
 };
 
 enum class ArtificialViscosityEnum {

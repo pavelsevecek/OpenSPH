@@ -1,4 +1,5 @@
 #include "sph/solvers/StandardSets.h"
+#include "sph/equations/Fluids.h"
 #include "sph/equations/Friction.h"
 #include "sph/equations/HelperTerms.h"
 #include "sph/equations/Potentials.h"
@@ -26,6 +27,10 @@ EquationHolder getStandardEquations(const RunSettings& settings, const EquationH
         /// outside to reduce code duplication, but this also provides a way to get all necessary terms by
         /// calling a single function ...
         equations += makeTerm<ViscousStress>();
+    }
+
+    if (forces.has(ForceEnum::SURFACE_TENSION)) {
+        equations += makeTerm<CohesionTerm>();
     }
 
     if (forces.has(ForceEnum::INERTIAL)) {

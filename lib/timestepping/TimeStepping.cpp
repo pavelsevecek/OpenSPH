@@ -372,6 +372,7 @@ void RungeKutta::integrateAndAdvance(ISolver& solver,
     Storage& k,
     const float m,
     const float n) {
+    k.zeroHighestDerivatives();
     solver.integrate(k, stats);
     iteratePair<VisitorEnum::FIRST_ORDER>(
         k, *storage, [&](const QuantityId UNUSED(id), auto& kv, auto& kdv, auto& v, auto&) {
