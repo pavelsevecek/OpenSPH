@@ -132,7 +132,7 @@ SharedPtr<WorkerNode> Presets::makeCratering(UniqueNameManager& nameMgr, const S
     impactorMaterial->connect(impactorIc, "material");
     targetIc->connect(impactorIc, "target");
 
-    SharedPtr<WorkerNode> merger = makeNode<MergeParticlesWorker>("merger");
+    SharedPtr<WorkerNode> merger = makeNode<JoinParticlesWorker>("merger");
     VirtualSettings mergerSettings = merger->getSettings();
     mergerSettings.set("offset", Vector(0._f, 50._f, 0._f));   // 50km
     mergerSettings.set("velocity", Vector(0._f, -5._f, 0._f)); // 5km/s
@@ -157,7 +157,7 @@ SharedPtr<WorkerNode> Presets::makeGalaxyCollision(UniqueNameManager& nameMgr,
     VirtualSettings galaxySettings = galaxyIc->getSettings();
     galaxySettings.set(GalaxySettingsId::PARTICLE_RADIUS, 0.001_f);
 
-    SharedPtr<WorkerNode> merger = makeNode<MergeParticlesWorker>(nameMgr.getName("merge"));
+    SharedPtr<WorkerNode> merger = makeNode<JoinParticlesWorker>(nameMgr.getName("merge"));
     VirtualSettings mergerSettings = merger->getSettings();
     mergerSettings.set("offset", Vector(0.01_f, 0._f, 0._f));
     mergerSettings.set("velocity", Vector(0._f, 0.0005_f, 0._f));

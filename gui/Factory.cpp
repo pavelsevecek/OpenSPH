@@ -10,66 +10,47 @@
 
 NAMESPACE_SPH_BEGIN
 
-AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Pixel size) {
-    CameraEnum cameraId = settings.get<CameraEnum>(GuiSettingsId::CAMERA);
-    switch (cameraId) {
-    case CameraEnum::ORTHO: {
-        OrthoCameraData data;
-        const float fov = settings.get<Float>(GuiSettingsId::ORTHO_FOV);
-        if (fov != 0.f) {
-            ASSERT(fov > 0.f);
-            data.fov = 0.5_f * size.y / fov;
-        } else {
-            data.fov = NOTHING;
-        }
-        data.zoffset = settings.get<Float>(GuiSettingsId::ORTHO_ZOFFSET);
-        data.cutoff = settings.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
-        if (data.cutoff.value() == 0._f) {
-            data.cutoff = NOTHING;
-        }
-        const OrthoEnum id = settings.get<OrthoEnum>(GuiSettingsId::ORTHO_PROJECTION);
-        switch (id) {
-        case OrthoEnum::XY:
-            data.u = Vector(1._f, 0._f, 0._f);
-            data.v = Vector(0._f, 1._f, 0._f);
-            break;
-        case OrthoEnum::XZ:
-            data.u = Vector(1._f, 0._f, 0._f);
-            data.v = Vector(0._f, 0._f, 1._f);
-            break;
-        case OrthoEnum::YZ:
-            data.u = Vector(0._f, 1._f, 0._f);
-            data.v = Vector(0._f, 0._f, 1._f);
-            break;
-        default:
-            NOT_IMPLEMENTED;
-        }
-        const Vector center(settings.get<Vector>(GuiSettingsId::ORTHO_VIEW_CENTER));
-        return makeAuto<OrthoCamera>(size, Pixel(int(center[X]), int(center[Y])), data);
+static ClonePtr<ITracker> getTracker(const GuiSettings& settings) {
+    const int trackedIndex = settings.get<int>(GuiSettingsId::CAMERA_TRACK_PARTICLE);
+    if (trackedIndex >= 0) {
+        return makeClone<ParticleTracker>(trackedIndex);
     }
-    case CameraEnum::PERSPECTIVE:
-    case CameraEnum::FISHEYE:
-    case CameraEnum::SPHERICAL: {
-        PerspectiveCameraData data;
-        data.position = settings.get<Vector>(GuiSettingsId::PERSPECTIVE_POSITION);
-        data.target = settings.get<Vector>(GuiSettingsId::PERSPECTIVE_TARGET);
-        data.up = settings.get<Vector>(GuiSettingsId::PERSPECTIVE_UP);
-        data.fov = settings.get<Float>(GuiSettingsId::PERSPECTIVE_FOV);
-        data.clipping = Interval(settings.get<Float>(GuiSettingsId::PERSPECTIVE_CLIP_NEAR),
-            settings.get<Float>(GuiSettingsId::PERSPECTIVE_CLIP_FAR));
-        const int trackedIndex = settings.get<int>(GuiSettingsId::PERSPECTIVE_TRACKED_PARTICLE);
-        if (trackedIndex >= 0) {
-            data.tracker = makeClone<ParticleTracker>(trackedIndex);
-        }
+    const bool useMedian = settings.get<bool>(GuiSettingsId::CAMERA_TRACK_MEDIAN);
+    if (useMedian) {
+        return makeClone<MedianTracker>();
+    }
+    return nullptr;
+}
 
-        if (cameraId == CameraEnum::PERSPECTIVE) {
-            return makeAuto<PerspectiveCamera>(size, data);
-        } else if (cameraId == CameraEnum::FISHEYE) {
-            return makeAuto<FisheyeCamera>(size, data);
-        } else if (cameraId == CameraEnum::SPHERICAL) {
-            return makeAuto<SphericalCamera>(size, data);
-        }
+AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Pixel size) {
+    CameraEnum cameraId = settings.get<CameraEnum>(GuiSettingsId::CAMERA_TYPE);
+    CameraData data;
+    data.imageSize = size;
+    data.position = settings.get<Vector>(GuiSettingsId::CAMERA_POSITION);
+    data.target = settings.get<Vector>(GuiSettingsId::CAMERA_TARGET);
+    data.up = settings.get<Vector>(GuiSettingsId::CAMERA_UP);
+    data.clipping = Interval(settings.get<Float>(GuiSettingsId::CAMERA_CLIP_NEAR),
+        settings.get<Float>(GuiSettingsId::CAMERA_CLIP_FAR));
+    data.tracker = getTracker(settings);
+    data.perspective.fov = settings.get<Float>(GuiSettingsId::CAMERA_PERSPECTIVE_FOV);
+    data.ortho.fov = settings.get<Float>(GuiSettingsId::CAMERA_ORTHO_FOV);
+    if (data.ortho.fov.value() == 0._f) {
+        data.ortho.fov = NOTHING;
     }
+    data.ortho.cutoff = settings.get<Float>(GuiSettingsId::CAMERA_ORTHO_CUTOFF);
+    if (data.ortho.cutoff.value() == 0._f) {
+        data.ortho.cutoff = NOTHING;
+    }
+
+    switch (cameraId) {
+    case CameraEnum::ORTHO:
+        return makeAuto<OrthoCamera>(data);
+    case CameraEnum::PERSPECTIVE:
+        return makeAuto<PerspectiveCamera>(data);
+    case CameraEnum::FISHEYE:
+        return makeAuto<FisheyeCamera>(data);
+    case CameraEnum::SPHERICAL:
+        return makeAuto<SphericalCamera>(data);
     default:
         NOT_IMPLEMENTED;
     }
@@ -139,8 +120,8 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const Color
     case ColorizerId::BOUNDARY:
         return makeAuto<BoundaryColorizer>(BoundaryColorizer::Detection::NEIGBOUR_THRESHOLD, 40);
     case ColorizerId::DEPTH: {
-        const Vector position = settings.get<Vector>(GuiSettingsId::PERSPECTIVE_POSITION);
-        const Vector target = settings.get<Vector>(GuiSettingsId::PERSPECTIVE_TARGET);
+        const Vector position = settings.get<Vector>(GuiSettingsId::CAMERA_POSITION);
+        const Vector target = settings.get<Vector>(GuiSettingsId::CAMERA_TARGET);
         return makeAuto<DepthColorizer>(position, target);
     }
     case ColorizerId::UVW:

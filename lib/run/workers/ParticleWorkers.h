@@ -30,7 +30,7 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class MergeParticlesWorker : public IParticleWorker {
+class JoinParticlesWorker : public IParticleWorker {
 private:
     Vector offset = Vector(0._f);
     Vector velocity = Vector(0._f);
@@ -38,11 +38,11 @@ private:
     bool uniqueFlags = false;
 
 public:
-    MergeParticlesWorker(const std::string& name)
+    JoinParticlesWorker(const std::string& name)
         : IParticleWorker(name) {}
 
     virtual std::string className() const override {
-        return "merge";
+        return "join";
     }
 
     virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
@@ -211,6 +211,32 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
+enum class ConnectivityEnum {
+    OVERLAP,
+    ESCAPE_VELOCITY,
+};
+
+class MergeComponentsWorker : public IParticleWorker {
+private:
+    Float factor = 1.5_f;
+    EnumWrapper connectivity = EnumWrapper(ConnectivityEnum::OVERLAP);
+
+public:
+    explicit MergeComponentsWorker(const std::string& name)
+        : IParticleWorker(name) {}
+
+    virtual std::string className() const override {
+        return "merge components";
+    }
+
+    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+        return { { "particles", WorkerType::PARTICLES } };
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
+};
 
 class ExtractParticlesInDomainWorker : public IParticleWorker {
 private:

@@ -104,7 +104,7 @@ public:
         for (Size i = 0; i < values.size(); ++i) {
             result[i] = a.value()(i);
         }
-        return std::move(result);
+        return result;
     }
 
 private:

@@ -527,7 +527,8 @@ void NoiseQuantityIc::randomize(IRunCallbacks& callbacks,
 
     Box box;
     for (Size i = 0; i < r.size(); ++i) {
-        box.extend(r[i]);
+        box.extend(r[i] + Vector(r[i][H]));
+        box.extend(r[i] - Vector(r[i][H]));
     }
 
     Statistics stats;
@@ -536,6 +537,7 @@ void NoiseQuantityIc::randomize(IRunCallbacks& callbacks,
         for (Size dim = 0; dim < Dims; ++dim) {
             const Vector pos = (r[i] - box.lower()) / box.size() * GRID_DIMS;
             const Float value = mean + magnitude * perlin(gradients[dim], pos);
+            ASSERT(isReal(value));
             setter(value, i, dim);
         }
 

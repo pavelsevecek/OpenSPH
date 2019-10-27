@@ -156,8 +156,8 @@ void ContourRenderer::render(const RenderParams& params,
                     const Pixel p21 = p + ps2.first;
                     const Pixel p22 = p + ps2.second;
 
-                    ASSERT(grid[p11] > iso != grid[p12] > iso);
-                    ASSERT(grid[p21] > iso != grid[p22] > iso);
+                    ASSERT((grid[p11] > iso) != (grid[p12] > iso));
+                    ASSERT((grid[p21] > iso) != (grid[p22] > iso));
 
                     const float rati1 = (grid[p11] - iso) / (grid[p11] - grid[p12]);
                     ASSERT(rati1 >= 0.f && rati1 <= 1.f, rati1);

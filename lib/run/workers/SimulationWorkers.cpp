@@ -105,7 +105,7 @@ static void addOutputCategory(VirtualSettings& connector, RunSettings& settings)
 static void addLoggerCategory(VirtualSettings& connector, RunSettings& settings) {
     VirtualSettings::Category& loggerCat = connector.addCategory("Logging");
     loggerCat.connect<EnumWrapper>("Logger", settings, RunSettingsId::RUN_LOGGER);
-    loggerCat.connect<Path>("File", settings, RunSettingsId::RUN_LOGGER_FILE).setEnabler([&settings] {
+    loggerCat.connect<Path>("Log file", settings, RunSettingsId::RUN_LOGGER_FILE).setEnabler([&settings] {
         return settings.get<LoggerEnum>(RunSettingsId::RUN_LOGGER) == LoggerEnum::FILE;
     });
 }
@@ -187,10 +187,10 @@ VirtualSettings SphWorker::getSettings() {
     addGenericCategory(connector, instName);
     addTimeSteppingCategory(connector, settings, isResumed);
 
-    auto treeEnabler = [this] {
+    /*auto treeEnabler = [this] {
         return settings.get<FinderEnum>(RunSettingsId::SPH_FINDER) == FinderEnum::KD_TREE ||
                settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES).has(ForceEnum::SELF_GRAVITY);
-    };
+    };*/
 
     auto stressEnabler = [this] {
         return settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES).has(ForceEnum::SOLID_STRESS);
@@ -199,11 +199,6 @@ VirtualSettings SphWorker::getSettings() {
     VirtualSettings::Category& solverCat = connector.addCategory("SPH solver");
     solverCat.connect<Flags<ForceEnum>>("Forces", settings, RunSettingsId::SPH_SOLVER_FORCES);
     solverCat.connect<Vector>("Constant acceleration", settings, RunSettingsId::FRAME_CONSTANT_ACCELERATION);
-    solverCat.connect<EnumWrapper>("Artificial viscosity", settings, RunSettingsId::SPH_AV_TYPE);
-    solverCat.connect<bool>("Apply Balsara switch", settings, RunSettingsId::SPH_AV_USE_BALSARA);
-    solverCat.connect<bool>("Apply artificial stress", settings, RunSettingsId::SPH_AV_USE_STRESS);
-    solverCat.connect<Float>("Artificial viscosity alpha", settings, RunSettingsId::SPH_AV_ALPHA);
-    solverCat.connect<Float>("Artificial viscosity beta", settings, RunSettingsId::SPH_AV_BETA);
     solverCat.connect<EnumWrapper>("Solver type", settings, RunSettingsId::SPH_SOLVER_TYPE);
     solverCat.connect<EnumWrapper>("SPH discretization", settings, RunSettingsId::SPH_DISCRETIZATION);
     solverCat
@@ -211,11 +206,18 @@ VirtualSettings SphWorker::getSettings() {
         .setEnabler(stressEnabler);
     solverCat.connect<bool>("Sum only undamaged particles", settings, RunSettingsId::SPH_SUM_ONLY_UNDAMAGED);
     solverCat.connect<EnumWrapper>("Neighbour finder", settings, RunSettingsId::SPH_FINDER);
-    solverCat.connect<int>("Max leaf size", settings, RunSettingsId::FINDER_LEAF_SIZE)
+    /*solverCat.connect<int>("Max leaf size", settings, RunSettingsId::FINDER_LEAF_SIZE)
         .setEnabler(treeEnabler);
     solverCat.connect<int>("Max parallel depth", settings, RunSettingsId::FINDER_MAX_PARALLEL_DEPTH)
-        .setEnabler(treeEnabler);
+        .setEnabler(treeEnabler);*/
     solverCat.connect<EnumWrapper>("Boundary condition", settings, RunSettingsId::DOMAIN_BOUNDARY);
+
+    VirtualSettings::Category& avCat = connector.addCategory("Artificial viscosity");
+    avCat.connect<EnumWrapper>("Artificial viscosity type", settings, RunSettingsId::SPH_AV_TYPE);
+    avCat.connect<bool>("Apply Balsara switch", settings, RunSettingsId::SPH_AV_USE_BALSARA);
+    avCat.connect<bool>("Apply artificial stress", settings, RunSettingsId::SPH_AV_USE_STRESS);
+    avCat.connect<Float>("Artificial viscosity alpha", settings, RunSettingsId::SPH_AV_ALPHA);
+    avCat.connect<Float>("Artificial viscosity beta", settings, RunSettingsId::SPH_AV_BETA);
 
     addGravityCategory(connector, settings);
     addLoggerCategory(connector, settings);

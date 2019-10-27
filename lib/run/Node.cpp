@@ -175,4 +175,73 @@ void WorkerNode::run(const RunSettings& global, IWorkerCallbacks& callbacks, std
     }
 }
 
+class CopyEntriesProc : public VirtualSettings::IEntryProc {
+public:
+    VirtualSettings& target;
+
+public:
+    CopyEntriesProc(VirtualSettings& target)
+        : target(target) {}
+
+    virtual void onCategory(const std::string& UNUSED(name)) const override {}
+    virtual void onEntry(const std::string& name, IVirtualEntry& entry) const override {
+        if (name != "name") {
+            target.set(name, entry.get());
+        }
+    }
+};
+
+static std::string clonedName(const std::string& name) {
+    const std::size_t n1 = name.find_last_of('(');
+    const std::size_t n2 = name.find_last_of(')');
+    if (n1 != std::string::npos && n2 != std::string::npos && n1 < n2) {
+        const std::string numStr = name.substr(n1 + 1, n2 - n1 - 1);
+        const int num = stoi(numStr);
+        return name.substr(0, n1) + " (" + std::to_string(num + 1) + ")";
+    } else {
+        return name + " (1)";
+    }
+}
+
+SharedPtr<WorkerNode> cloneNode(const WorkerNode& node, const std::string& name) {
+    RawPtr<IWorkerDesc> desc = getWorkerDesc(node.className());
+    ASSERT(desc);
+
+    AutoPtr<IWorker> worker = desc->create(name.empty() ? clonedName(node.instanceName()) : name);
+    VirtualSettings target = worker->getSettings();
+    VirtualSettings source = node.getSettings();
+    CopyEntriesProc proc(target);
+    source.enumerate(proc);
+
+    return makeShared<WorkerNode>(std::move(worker));
+}
+
+SharedPtr<WorkerNode> cloneHierarchy(WorkerNode& node, const std::string& prefix) {
+    // maps original node to cloned nodes
+    FlatMap<SharedPtr<WorkerNode>, SharedPtr<WorkerNode>> nodeMap;
+
+    // first, clone all nodes and build up the map
+    node.enumerate([&nodeMap, &prefix](SharedPtr<WorkerNode> node, Size UNUSED(depth)) {
+        std::string name;
+        if (prefix.empty()) {
+            name = clonedName(node->instanceName());
+        } else {
+            name = prefix + node->instanceName();
+        }
+        SharedPtr<WorkerNode> clonedNode = cloneNode(*node, name);
+        nodeMap.insert(node, clonedNode);
+    });
+
+    // second, connect cloned nodes to get the same hierarchy
+    node.enumerate([&nodeMap](SharedPtr<WorkerNode> node, Size UNUSED(depth)) {
+        for (Size i = 0; i < node->getSlotCnt(); ++i) {
+            SlotData slot = node->getSlot(i);
+            if (slot.provider != nullptr) {
+                nodeMap[slot.provider]->connect(nodeMap[node], slot.name);
+            }
+        }
+    });
+    return nodeMap[node.sharedFromThis()];
+}
+
 NAMESPACE_SPH_END

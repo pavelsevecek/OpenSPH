@@ -65,7 +65,7 @@ static WorkerRegistrar sRegisterCache(
 // MergeParticlesWorker
 //-----------------------------------------------------------------------------------------------------------
 
-VirtualSettings MergeParticlesWorker::getSettings() {
+VirtualSettings JoinParticlesWorker::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
@@ -84,7 +84,7 @@ VirtualSettings MergeParticlesWorker::getSettings() {
     return connector;
 }
 
-void MergeParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
+void JoinParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
     SharedPtr<ParticleData> input1 = this->getInput<ParticleData>("particles A");
     SharedPtr<ParticleData> input2 = this->getInput<ParticleData>("particles B");
 
@@ -121,11 +121,12 @@ void MergeParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunCallb
 }
 
 
-static WorkerRegistrar sRegisterParticleMerge(
-    "merge",
+static WorkerRegistrar sRegisterParticleJoin(
+    "join",
     "particle operators",
-    [](const std::string& name) { return makeAuto<MergeParticlesWorker>(name); },
-    "Simply adds particles from two inputs into a single particle state.");
+    [](const std::string& name) { return makeAuto<JoinParticlesWorker>(name); },
+    "Simply adds particles from two inputs into a single particle state. Optionally, positions and "
+    "velocities of particles in the second state may be shifted.");
 
 
 //-----------------------------------------------------------------------------------------------------------
@@ -520,7 +521,87 @@ static WorkerRegistrar sRegisterExtractComponent(
     "remnant or the largest fragment in the result of a simulation.");
 
 // ----------------------------------------------------------------------------------------------------------
-// ExtractComponentWorker
+// MergeComponentsWorker
+// ----------------------------------------------------------------------------------------------------------
+
+static RegisterEnum<ConnectivityEnum> sConnectivity({
+    { ConnectivityEnum::OVERLAP, "overlap", "Overlap" },
+    { ConnectivityEnum::ESCAPE_VELOCITY, "escape velocity", "Escape velocity" },
+});
+
+VirtualSettings MergeComponentsWorker::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+    VirtualSettings::Category& category = connector.addCategory("Component");
+    category.connect("Connectivity factor", "factor", factor);
+    category.connect("Component definition", "definition", connectivity);
+    return connector;
+}
+
+void MergeComponentsWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+    SharedPtr<ParticleData> particles = this->getInput<ParticleData>("particles");
+    Storage& input = particles->storage;
+
+    // allow using this for storage without masses --> add ad hoc mass if it's missing
+    if (!input.has(QuantityId::MASS)) {
+        input.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, 1._f);
+    }
+
+    Array<Size> components;
+    Flags<Post::ComponentFlag> flags = Post::ComponentFlag::OVERLAP;
+    if (ConnectivityEnum(connectivity) == ConnectivityEnum::ESCAPE_VELOCITY) {
+        flags = Post::ComponentFlag::ESCAPE_VELOCITY;
+    }
+    const Size componentCount = Post::findComponents(input, factor, flags, components);
+
+    ArrayView<const Float> m = input.getValue<Float>(QuantityId::MASS);
+    ArrayView<const Vector> r = input.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<const Vector> v = input.getDt<Vector>(QuantityId::POSITION);
+
+    Array<Float> mc(componentCount);
+    Array<Vector> rc(componentCount), vc(componentCount);
+    Array<Float> hc(componentCount);
+
+    mc.fill(0._f);
+    rc.fill(Vector(0._f));
+    vc.fill(Vector(0._f));
+    hc.fill(0._f);
+
+    for (Size i = 0; i < m.size(); ++i) {
+        const Size ci = components[i];
+        mc[ci] += m[i];
+        rc[ci] += m[i] * r[i];
+        vc[ci] += m[i] * v[i];
+        hc[ci] += pow<3>(r[i][H]);
+    }
+
+    for (Size ci = 0; ci < componentCount; ++ci) {
+        rc[ci] /= mc[ci];
+        vc[ci] /= mc[ci];
+        rc[ci][H] = cbrt(hc[ci]);
+        vc[ci][H] = 0._f;
+    }
+
+    Storage output;
+    output.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, std::move(mc));
+    output
+        .insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(rc)) //
+        .getDt<Vector>() = std::move(vc);
+
+    result = particles;
+    result->storage = std::move(output);
+}
+
+static WorkerRegistrar sRegisterMergeComponents(
+    "merge components",
+    "merger",
+    "particle operators",
+    [](const std::string& name) { return makeAuto<MergeComponentsWorker>(name); },
+    "Merges all overlapping particles into larger spheres, preserving the total mass and volume of "
+    "particles. Other quantities are handled as intensive, i.e. they are computed using weighted average.");
+
+// ----------------------------------------------------------------------------------------------------------
+// ExtractParticlesInDomainWorker
 // ----------------------------------------------------------------------------------------------------------
 
 VirtualSettings ExtractParticlesInDomainWorker::getSettings() {

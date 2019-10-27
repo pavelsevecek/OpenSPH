@@ -26,16 +26,19 @@ SOURCES += \
     objects/Bitmap.cpp \
     objects/Camera.cpp \
     objects/Colorizer.cpp \
+    objects/Filmic.cpp \
     objects/Movie.cpp \
     objects/Palette.cpp \
     objects/RenderContext.cpp \
     objects/RenderWorkers.cpp \
     renderers/ContourRenderer.cpp \
+    renderers/FrameBuffer.cpp \
     renderers/IRenderer.cpp \
     renderers/MeshRenderer.cpp \
     renderers/ParticleRenderer.cpp \
     renderers/RayTracer.cpp \
     renderers/Spectrum.cpp \
+    windows/BatchDialog.cpp \
     windows/CurveDialog.cpp \
     windows/GridPage.cpp \
     windows/OrthoPane.cpp \
@@ -62,6 +65,7 @@ HEADERS += \
     objects/Color.h \
     objects/Colorizer.h \
     objects/DelayedCallback.h \
+    objects/Filmic.h \
     objects/GraphicsContext.h \
     objects/Movie.h \
     objects/Palette.h \
@@ -77,6 +81,7 @@ HEADERS += \
     renderers/ParticleRenderer.h \
     renderers/RayTracer.h \
     renderers/Spectrum.h \
+    windows/BatchDialog.h \
     windows/CurveDialog.h \
     windows/GridPage.h \
     windows/IGraphicsPane.h \

@@ -33,7 +33,7 @@ static Expected<Storage> parsePkdgravOutput(const Path& path) {
     if (!result) {
         return makeUnexpected<Storage>(result.error());
     } else {
-        return std::move(storage);
+        return storage;
     }
 }
 

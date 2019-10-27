@@ -89,41 +89,41 @@ public:
 /// Tensor -> trace, 2nd inv, xx, yy, zz, xy, xz, yz, largest eigen, smallest eigen
 
 namespace Detail {
-    /// Helper function returning a scalar representation of given quantity.
-    ///
-    /// This value is later converted to color, using provided palette.
-    template <typename Type>
-    INLINE float getColorizerValue(const Type& value) {
-        ASSERT(isReal(value));
-        return float(value);
-    }
-    template <>
-    INLINE float getColorizerValue(const Vector& value) {
-        const Float result = getLength(value);
-        ASSERT(isReal(result), value);
-        return result;
-    }
-    template <>
-    INLINE float getColorizerValue(const TracelessTensor& value) {
-        return sqrt(ddot(value, value));
-    }
-    template <>
-    INLINE float getColorizerValue(const SymmetricTensor& value) {
-        return sqrt(ddot(value, value));
-    }
+/// Helper function returning a scalar representation of given quantity.
+///
+/// This value is later converted to color, using provided palette.
+template <typename Type>
+INLINE float getColorizerValue(const Type& value) {
+    ASSERT(isReal(value));
+    return float(value);
+}
+template <>
+INLINE float getColorizerValue(const Vector& value) {
+    const Float result = getLength(value);
+    ASSERT(isReal(result), value);
+    return result;
+}
+template <>
+INLINE float getColorizerValue(const TracelessTensor& value) {
+    return sqrt(ddot(value, value));
+}
+template <>
+INLINE float getColorizerValue(const SymmetricTensor& value) {
+    return sqrt(ddot(value, value));
+}
 
-    /// Helper function returning vector representation of given quantity.
-    ///
-    /// Only meaningful result is returned for vector quantity, other quantities simply return zero vector.
-    /// The function is useful to avoid specializing colorizers for different types.
-    template <typename Type>
-    INLINE Optional<Vector> getColorizerVector(const Type& UNUSED(value)) {
-        return NOTHING;
-    }
-    template <>
-    INLINE Optional<Vector> getColorizerVector(const Vector& value) {
-        return value;
-    }
+/// Helper function returning vector representation of given quantity.
+///
+/// Only meaningful result is returned for vector quantity, other quantities simply return zero vector.
+/// The function is useful to avoid specializing colorizers for different types.
+template <typename Type>
+INLINE Optional<Vector> getColorizerVector(const Type& UNUSED(value)) {
+    return NOTHING;
+}
+template <>
+INLINE Optional<Vector> getColorizerVector(const Vector& value) {
+    return value;
+}
 } // namespace Detail
 
 /// \brief Special colorizers that do not directly correspond to quantities.

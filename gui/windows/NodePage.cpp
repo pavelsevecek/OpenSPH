@@ -2,6 +2,7 @@
 #include "gui/Utils.h"
 #include "gui/objects/DelayedCallback.h"
 #include "gui/objects/RenderWorkers.h"
+#include "gui/windows/BatchDialog.h"
 #include "gui/windows/CurveDialog.h"
 #include "io/FileSystem.h"
 #include "objects/utility/IteratorAdapters.h"
@@ -55,26 +56,23 @@ NodeManager::NodeManager(NodeEditor* editor, SharedPtr<INodeManagerCallbacks> ca
         .set(RunSettingsId::RUN_EMAIL, std::string("sevecek@sirrah.troja.mff.cuni.cz"));
 }
 
-SharedPtr<WorkerNode> NodeManager::addNode(AutoPtr<IWorker>&& worker, const Pixel position) {
-    const std::string currentName = worker->instanceName();
+void NodeManager::addNode(const SharedPtr<WorkerNode>& node, const Pixel position) {
+    const std::string currentName = node->instanceName();
     UniqueNameManager nameMgr = this->makeUniqueNameManager();
     const std::string fixedName = nameMgr.getName(currentName);
     if (fixedName != currentName) {
-        VirtualSettings settings = worker->getSettings();
+        VirtualSettings settings = node->getSettings();
         settings.set("name", fixedName);
     }
-
-    SharedPtr<WorkerNode> node = makeShared<WorkerNode>(std::move(worker));
 
     VisNode vis(node.get(), position);
     nodes.insert(node, vis);
     editor->Refresh();
-    return node;
 }
 
-SharedPtr<WorkerNode> NodeManager::addNode(AutoPtr<IWorker>&& worker) {
+void NodeManager::addNode(const SharedPtr<WorkerNode>& node) {
     const wxSize size = editor->GetSize();
-    return this->addNode(std::move(worker), Pixel(size.x / 2, size.y / 2) - editor->offset());
+    return this->addNode(node, Pixel(size.x / 2, size.y / 2) - editor->offset());
 }
 
 void NodeManager::addNodes(WorkerNode& node) {
@@ -84,63 +82,28 @@ void NodeManager::addNodes(WorkerNode& node) {
     this->layoutNodes(node, Pixel(800, 200) - editor->offset());
 }
 
-SharedPtr<WorkerNode> NodeManager::cloneNode(WorkerNode& node) {
-    CHECK_FUNCTION(CheckFunction::NO_THROW);
-    RawPtr<IWorkerDesc> desc = getWorkerDesc(node.className());
-    ASSERT(desc);
-
-    AutoPtr<IWorker> worker = desc->create("cloned " + node.instanceName());
-
-    class CopyEntriesProc : public VirtualSettings::IEntryProc {
-    public:
-        VirtualSettings& target;
-
-    public:
-        CopyEntriesProc(VirtualSettings& target)
-            : target(target) {}
-
-        virtual void onCategory(const std::string& UNUSED(name)) const override {}
-        virtual void onEntry(const std::string& name, IVirtualEntry& entry) const override {
-            if (name != "name") {
-                target.set(name, entry.get());
-            }
-        }
-    };
-
-    VirtualSettings target = worker->getSettings();
-    VirtualSettings source = node.getSettings();
-    CopyEntriesProc proc(target);
-    source.enumerate(proc);
-
-    return this->addNode(std::move(worker));
-}
-
-void NodeManager::cloneTree(WorkerNode& node) {
+void NodeManager::cloneHierarchy(WorkerNode& node) {
     /// \todo deduplicate
     const wxSize size = editor->GetSize();
     const Pixel pivot = Pixel(size.x / 2, size.y / 2) - editor->offset();
     const Pixel offset = pivot - nodes[node.sharedFromThis()].position;
 
-    // maps original node to cloned nodes
-    FlatMap<SharedPtr<WorkerNode>, SharedPtr<WorkerNode>> nodeMap;
+    SharedPtr<WorkerNode> clonedRoot = Sph::cloneHierarchy(node);
+    this->addNodes(*clonedRoot);
 
-    // first, clone all nodes and build up the map
-    node.enumerate([this, offset, &nodeMap](SharedPtr<WorkerNode> node, Size UNUSED(depth)) {
-        SharedPtr<WorkerNode> clonedNode = this->cloneNode(*node);
-        nodes[clonedNode].position = nodes[node].position + offset;
-
-        nodeMap.insert(node, clonedNode);
+    // fix positions
+    Array<SharedPtr<WorkerNode>> origTree, clonedTree;
+    node.enumerate([&origTree](SharedPtr<WorkerNode> node, Size UNUSED(depth)) { //
+        origTree.push(node);
     });
-
-    // second, connect cloned nodes to get the same hierarchy
-    node.enumerate([&nodeMap](SharedPtr<WorkerNode> node, Size UNUSED(depth)) {
-        for (Size i = 0; i < node->getSlotCnt(); ++i) {
-            SlotData slot = node->getSlot(i);
-            if (slot.provider != nullptr) {
-                nodeMap[slot.provider]->connect(nodeMap[node], slot.name);
-            }
-        }
+    clonedRoot->enumerate([&clonedTree](SharedPtr<WorkerNode> node, Size UNUSED(depth)) { //
+        clonedTree.push(node);
     });
+    ASSERT(origTree.size() == clonedTree.size());
+
+    for (Size i = 0; i < origTree.size(); ++i) {
+        nodes[clonedTree[i]].position = nodes[origTree[i]].position + offset;
+    }
 }
 
 void NodeManager::layoutNodes(WorkerNode& node, const Pixel position) {
@@ -330,6 +293,9 @@ void NodeManager::save(Config& config) {
             VirtualSettings settings = node->getSettings();
             settings.enumerate(SaveProc(*out));
         }
+
+        batch.save(config);
+
     } catch (Exception& e) {
         wxMessageBox(std::string("Cannot save file.\n\n") + e.what(), "Error", wxOK);
     }
@@ -417,7 +383,8 @@ void NodeManager::load(Config& config) {
                 return;
             }
 
-            SharedPtr<WorkerNode> node = this->addNode(desc->create(name), input.get<Pixel>("position"));
+            SharedPtr<WorkerNode> node = makeShared<WorkerNode>(desc->create(name));
+            this->addNode(node, input.get<Pixel>("position"));
             VirtualSettings settings = node->getSettings();
             settings.enumerate(LoadProc(input));
 
@@ -437,6 +404,13 @@ void NodeManager::load(Config& config) {
                 }
             }
         }
+
+        Array<SharedPtr<WorkerNode>> nodeList;
+        for (auto& pair : nodes) {
+            nodeList.push(pair.key);
+        }
+        batch.load(config, nodeList);
+
     } catch (Exception& e) {
         wxMessageBox(std::string("Cannot load file.\n\n") + e.what(), "Error", wxOK);
     }
@@ -446,12 +420,12 @@ void NodeManager::startRun(WorkerNode& node) {
     callbacks->startRun(node, globals);
 }
 
-class BatchRunWorker : public IParticleWorker {
+class BatchWorker : public IParticleWorker {
 private:
     Size runCnt;
 
 public:
-    BatchRunWorker(const std::string& name, const Size runCnt)
+    BatchWorker(const std::string& name, const Size runCnt)
         : IParticleWorker(name)
         , runCnt(runCnt) {}
 
@@ -476,6 +450,29 @@ public:
     }
 };
 
+void NodeManager::startBatch(WorkerNode& node) {
+    RawPtr<IWorkerDesc> desc = getWorkerDesc(node.className());
+    ASSERT(desc);
+
+    Array<SharedPtr<WorkerNode>> batchNodes;
+    try {
+        for (Size runIdx = 0; runIdx < batch.getRunCount(); ++runIdx) {
+            SharedPtr<WorkerNode> runNode = Sph::cloneHierarchy(node, batch.getRunName(runIdx) + " / ");
+            batch.modifyHierarchy(runIdx, *runNode);
+            batchNodes.push(runNode);
+        }
+    } catch (Exception& e) {
+        wxMessageBox(std::string("Cannot start batch run.\n\n") + e.what(), "Error", wxOK);
+    }
+
+    SharedPtr<WorkerNode> root = makeNode<BatchWorker>("batch", batchNodes.size());
+    for (Size i = 0; i < batchNodes.size(); ++i) {
+        batchNodes[i]->connect(root, "worker " + std::to_string(i));
+    }
+
+    callbacks->startRun(*root, globals);
+}
+
 void NodeManager::startAll() {
     Array<SharedPtr<WorkerNode>> inputs;
     for (auto& element : nodes) {
@@ -485,7 +482,7 @@ void NodeManager::startAll() {
         }
     }
 
-    SharedPtr<WorkerNode> root = makeNode<BatchRunWorker>("batch", inputs.size());
+    SharedPtr<WorkerNode> root = makeNode<BatchWorker>("batch", inputs.size());
     for (Size i = 0; i < inputs.size(); ++i) {
         inputs[i]->connect(root, "worker " + std::to_string(i));
     }
@@ -528,6 +525,17 @@ UniqueNameManager NodeManager::makeUniqueNameManager() const {
     return uniqueNames;
 }
 
+void NodeManager::showBatchDialog() {
+    Array<SharedPtr<WorkerNode>> nodeList;
+    for (auto& pair : nodes) {
+        nodeList.push(pair.key);
+    }
+    BatchDialog* batchDialog = new BatchDialog(editor, batch, std::move(nodeList));
+    if (batchDialog->ShowModal() == wxID_OK) {
+        batch = batchDialog->getBatch().clone();
+        callbacks->markUnsaved();
+    }
+}
 
 //-----------------------------------------------------------------------------------------------------------
 // NodeEditor
@@ -931,18 +939,19 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
     VisNode* vis = nodeMgr->getSelectedNode(position);
     if (vis != nullptr && vis->node->provides() == WorkerType::PARTICLES) {
         menu.Append(0, "Evaluate"); // there is no visible result of other types
+        menu.Append(1, "Evaluate batch");
     }
 
-    menu.Append(1, "Evaluate all");
+    menu.Append(2, "Evaluate all");
 
     if (vis != nullptr) {
-        menu.Append(2, "Clone");
-        menu.Append(3, "Clone tree");
-        menu.Append(4, "Layout");
-        menu.Append(5, "Delete");
-        menu.Append(6, "Delete tree");
+        menu.Append(3, "Clone");
+        menu.Append(4, "Clone tree");
+        menu.Append(5, "Layout");
+        menu.Append(6, "Delete");
+        menu.Append(7, "Delete tree");
     }
-    menu.Append(7, "Delete all");
+    menu.Append(8, "Delete all");
 
     menu.Bind(wxEVT_COMMAND_MENU_SELECTED, [this, vis](wxCommandEvent& evt) {
         const Size index = evt.GetId();
@@ -955,24 +964,27 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
             }
             break;
         case 1:
-            nodeMgr->startAll();
+            nodeMgr->startBatch(*vis->node);
             break;
         case 2:
-            nodeMgr->cloneNode(*vis->node);
+            nodeMgr->startAll();
             break;
         case 3:
-            nodeMgr->cloneTree(*vis->node);
+            nodeMgr->addNode(cloneNode(*vis->node));
             break;
         case 4:
-            nodeMgr->layoutNodes(*vis->node, vis->position);
+            nodeMgr->cloneHierarchy(*vis->node);
             break;
         case 5:
-            nodeMgr->deleteNode(*vis->node);
+            nodeMgr->layoutNodes(*vis->node, vis->position);
             break;
         case 6:
-            nodeMgr->deleteTree(*vis->node);
+            nodeMgr->deleteNode(*vis->node);
             break;
         case 7:
+            nodeMgr->deleteTree(*vis->node);
+            break;
+        case 8:
             nodeMgr->deleteAll();
             break;
         default:
@@ -1415,7 +1427,8 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
                     // settings.set("name", "Save to '" + path->fileName().native() + "'");
                 }
             }
-            SharedPtr<WorkerNode> node = nodeMgr->addNode(std::move(worker));
+            SharedPtr<WorkerNode> node = makeShared<WorkerNode>(std::move(worker));
+            nodeMgr->addNode(node);
             this->selectNode(*node);
             callbacks->markUnsaved();
         }
@@ -1473,6 +1486,10 @@ void NodeWindow::showGlobals() {
     this->updateProperties();
 }
 
+void NodeWindow::showBatchDialog() {
+    nodeMgr->showBatchDialog();
+}
+
 void NodeWindow::reset() {
     nodeMgr->deleteAll();
     this->clearGrid();
@@ -1491,7 +1508,9 @@ void NodeWindow::load(Config& config) {
 }
 
 SharedPtr<WorkerNode> NodeWindow::addNode(AutoPtr<IWorker>&& worker) {
-    return nodeMgr->addNode(std::move(worker));
+    SharedPtr<WorkerNode> node = makeShared<WorkerNode>(std::move(worker));
+    nodeMgr->addNode(node);
+    return node;
 }
 
 void NodeWindow::updateProperties() {

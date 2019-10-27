@@ -32,6 +32,7 @@
 #include "sph/solvers/GravitySolver.h"
 #include "sph/solvers/StandardSets.h"
 #include "sph/solvers/SummationSolver.h"
+#include "thread/OpenMp.h"
 #include "thread/Pool.h"
 #include "thread/Tbb.h"
 #include "timestepping/TimeStepCriterion.h"
@@ -179,6 +180,9 @@ SharedPtr<IScheduler> Factory::getScheduler(const RunSettings& settings) {
         SharedPtr<Tbb> scheduler = Tbb::getGlobalInstance();
         scheduler->setGranularity(granularity);
         return scheduler;
+#elif SPH_USE_OPENMP
+        MARK_USED(granularity);
+        return OmpScheduler::getGlobalInstance();
 #else
         static WeakPtr<ThreadPool> weakGlobal = ThreadPool::getGlobalInstance();
         if (SharedPtr<ThreadPool> global = weakGlobal.lock()) {

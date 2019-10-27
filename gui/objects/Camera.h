@@ -51,6 +51,8 @@ public:
     /// \brief Returns the direction of the camera.
     virtual Vector getDirection() const = 0;
 
+    virtual Vector getVelocity() const = 0;
+
     /// \brief Returns the clipping distance from plane passing through origin, perpendicular to camera
     /// direction.
     ///
@@ -90,30 +92,68 @@ public:
     virtual AutoPtr<ICamera> clone() const = 0;
 };
 
-
-struct OrthoCameraData {
-    /// Field of view (zoom)
-    Optional<float> fov = NOTHING;
-
-    /// Cutoff distance of the camera.
-    Optional<float> cutoff = NOTHING;
-
-    /// Z-offset of the camera
-    float zoffset = 0.f;
-
-    /// Vectors defining camera plane
-    Vector u = Vector(1._f, 0._f, 0._f);
-
-    Vector v = Vector(0._f, 1._f, 0._f);
+class ITracker : public Polymorphic {
+public:
+    // position and velocity
+    virtual Pair<Vector> getCameraState(const Storage& storage) const = 0;
 };
+
+class ParticleTracker : public ITracker {
+private:
+    Size index;
+
+public:
+    explicit ParticleTracker(const Size index)
+        : index(index) {}
+
+    virtual Pair<Vector> getCameraState(const Storage& storage) const override;
+};
+
+class MedianTracker : public ITracker {
+public:
+    virtual Pair<Vector> getCameraState(const Storage& storage) const override;
+};
+
+struct CameraData {
+    /// Size of the image
+    Pixel imageSize = Pixel(1024, 768);
+
+    /// Camera position in space
+    Vector position = Vector(0._f, 0._f, -1._f);
+
+    /// Look-at point in space
+    Vector target = Vector(0._f);
+
+    /// Up vector of the camera (direction)
+    Vector up = Vector(0._f, 1._f, 0._f);
+
+    /// Defines the clipping planes of the camera.
+    Interval clipping = Interval(0._f, INFTY);
+
+    /// Object returning position of the camera based on current particle state.
+    ClonePtr<ITracker> tracker = nullptr;
+
+    struct {
+        /// Field of view (angle)
+        Float fov = PI / 3._f;
+    } perspective;
+
+    struct {
+
+        /// Field of view (world units). NOTHING means automatic.
+        Optional<float> fov = NOTHING;
+
+        /// Cutoff distance of the camera.
+        Optional<float> cutoff = NOTHING;
+
+    } ortho;
+};
+
 
 /// \brief Orthographic camera.
 class OrthoCamera : public ICamera {
 private:
-    Pixel imageSize;
-    Pixel center;
-
-    OrthoCameraData data;
+    CameraData data;
 
     /// Cached transformed values
     struct {
@@ -121,7 +161,7 @@ private:
     } cached;
 
 public:
-    OrthoCamera(const Pixel imageSize, const Pixel center, OrthoCameraData data);
+    OrthoCamera(const CameraData& data);
 
     virtual void initialize(const Storage& storage) override;
 
@@ -130,6 +170,10 @@ public:
     virtual Optional<CameraRay> unproject(const Coords& coords) const override;
 
     virtual Vector getDirection() const override;
+
+    virtual Vector getVelocity() const override {
+        return Vector(0._f);
+    }
 
     virtual Optional<float> getCutoff() const override;
 
@@ -148,61 +192,15 @@ public:
     virtual AutoPtr<ICamera> clone() const override {
         return makeAuto<OrthoCamera>(*this);
     }
-};
 
-class ITracker : public Polymorphic {
-public:
-    virtual Vector position(const Storage& storage) const = 0;
-};
-
-class ConstTracker : public ITracker {
 private:
-    Vector pos;
-
-public:
-    explicit ConstTracker(const Vector& pos)
-        : pos(pos) {}
-
-    virtual Vector position(const Storage& UNUSED(storage)) const override {
-        return pos;
-    }
-};
-
-class ParticleTracker : public ITracker {
-private:
-    Size index;
-
-public:
-    explicit ParticleTracker(const Size index)
-        : index(index) {}
-
-    virtual Vector position(const Storage& storage) const override;
-};
-
-struct PerspectiveCameraData {
-    /// Field of view (angle)
-    Float fov = PI / 3._f;
-
-    /// Camera position in space
-    Vector position = Vector(0._f, 0._f, -1._f);
-
-    /// Look-at point in space
-    Vector target = Vector(0._f);
-
-    /// Up vector of the camera (direction)
-    Vector up = Vector(0._f, 1._f, 0._f);
-
-    /// Defines the clipping planes of the camera.
-    Interval clipping = Interval(0._f, INFTY);
-
-    ClonePtr<ITracker> tracker = nullptr;
+    void update();
 };
 
 /// \brief Perspective camera
 class PerspectiveCamera : public ICamera {
 private:
-    Pixel imageSize;
-    PerspectiveCameraData data;
+    CameraData data;
 
     struct {
         /// Unit direction of the camera
@@ -214,13 +212,12 @@ private:
         /// Left vector of the camera, size of which of represents the image size at unit distance
         Vector left;
 
-        /// Last matrix set by \ref transform.
-        AffineMatrix matrix = AffineMatrix::identity();
+        Vector velocity;
 
     } cached;
 
 public:
-    PerspectiveCamera(const Pixel imageSize, const PerspectiveCameraData& data);
+    PerspectiveCamera(const CameraData& data);
 
     virtual void initialize(const Storage& storage) override;
 
@@ -229,6 +226,10 @@ public:
     virtual Optional<CameraRay> unproject(const Coords& coords) const override;
 
     virtual Vector getDirection() const override;
+
+    virtual Vector getVelocity() const override {
+        return cached.velocity;
+    }
 
     virtual Optional<float> getCutoff() const override;
 
@@ -252,39 +253,24 @@ private:
     void update();
 };
 
-/// \brief Fisheye camera
-class FisheyeCamera : public ICamera {
-private:
-    Pixel imageSize;
-    PerspectiveCameraData data;
-    Float focalLength = 2._f / PI;
-
-    struct {
-        /// Unit direction of the camera
-        Vector dir;
-
-        /// Up vector of the camera, size of which of represents the image size at unit distance
-        Vector up;
-
-        /// Left vector of the camera, size of which of represents the image size at unit distance
-        Vector left;
-
-        Coords center;
-
-        Size radius;
-
-    } cached;
+/// \brief Common base for panoramic cameras.
+class PanoCameraBase : public ICamera {
+protected:
+    CameraData data;
+    AffineMatrix matrix;
 
 public:
-    FisheyeCamera(const Pixel imageSize, const PerspectiveCameraData& data);
+    explicit PanoCameraBase(const CameraData& data);
 
     virtual void initialize(const Storage& storage) override;
 
     virtual Optional<ProjectedPoint> project(const Vector& r) const override;
 
-    virtual Optional<CameraRay> unproject(const Coords& coords) const override;
-
     virtual Vector getDirection() const override;
+
+    virtual Vector getVelocity() const override {
+        return Vector(0._f);
+    }
 
     virtual Optional<float> getCutoff() const override;
 
@@ -299,57 +285,43 @@ public:
     virtual void pan(const Pixel offset) override;
 
     virtual void resize(const Pixel newSize) override;
+
+protected:
+    virtual void update();
+};
+
+/// \brief Fisheye camera
+class FisheyeCamera : public PanoCameraBase {
+private:
+    struct {
+        Coords center;
+
+        Size radius;
+    } cached;
+
+public:
+    explicit FisheyeCamera(const CameraData& data);
+
+    virtual Optional<CameraRay> unproject(const Coords& coords) const override;
 
     virtual AutoPtr<ICamera> clone() const override {
         return makeAuto<FisheyeCamera>(*this);
     }
 
 private:
-    void update();
+    virtual void update() override;
 };
 
 /// \brief Spherical camera
-class SphericalCamera : public ICamera {
-private:
-    Pixel imageSize;
-    PerspectiveCameraData data;
-
-    struct {
-        AffineMatrix matrix;
-
-    } cached;
-
+class SphericalCamera : public PanoCameraBase {
 public:
-    SphericalCamera(const Pixel imageSize, const PerspectiveCameraData& data);
-
-    virtual void initialize(const Storage& storage) override;
-
-    virtual Optional<ProjectedPoint> project(const Vector& r) const override;
+    explicit SphericalCamera(const CameraData& data);
 
     virtual Optional<CameraRay> unproject(const Coords& coords) const override;
-
-    virtual Vector getDirection() const override;
-
-    virtual Optional<float> getCutoff() const override;
-
-    virtual Optional<float> getWorldToPixel() const override;
-
-    virtual void setCutoff(const Optional<float> newCutoff) override;
-
-    virtual void zoom(const Pixel UNUSED(fixedPoint), const float magnitude) override;
-
-    virtual void transform(const AffineMatrix& matrix) override;
-
-    virtual void pan(const Pixel offset) override;
-
-    virtual void resize(const Pixel newSize) override;
 
     virtual AutoPtr<ICamera> clone() const override {
         return makeAuto<SphericalCamera>(*this);
     }
-
-private:
-    void update();
 };
 
 

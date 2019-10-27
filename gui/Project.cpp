@@ -4,9 +4,7 @@
 NAMESPACE_SPH_BEGIN
 
 Project::Project() {
-    gui.set(GuiSettingsId::ORTHO_FOV, 0._f)
-        .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(1024, 768, 0))
-        .set(GuiSettingsId::VIEW_WIDTH, 1024)
+    gui.set(GuiSettingsId::VIEW_WIDTH, 1024)
         .set(GuiSettingsId::VIEW_HEIGHT, 768)
         .set(GuiSettingsId::VIEW_MAX_FRAMERATE, 100)
         .set(GuiSettingsId::IMAGES_WIDTH, 1024)
@@ -20,11 +18,10 @@ Project::Project() {
         .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-0.4f, -0.1f, 0.6f)))
         .set(GuiSettingsId::RAYTRACE_ITERATION_LIMIT, 10)
         .set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 4)
-        .set(GuiSettingsId::CAMERA, CameraEnum::ORTHO)
-        .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
-        .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
-        .set(GuiSettingsId::ORTHO_ZOFFSET, -1.e8_f)
-        .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 0._f, -7.e3_f))
+        .set(GuiSettingsId::CAMERA_TYPE, CameraEnum::ORTHO)
+        .set(GuiSettingsId::CAMERA_ORTHO_FOV, 0._f)
+        .set(GuiSettingsId::CAMERA_ORTHO_CUTOFF, 0._f)
+        .set(GuiSettingsId::CAMERA_POSITION, Vector(0._f, 0._f, -7.e3_f))
         .set(GuiSettingsId::IMAGES_SAVE, false)
         .set(GuiSettingsId::IMAGES_NAME, std::string("frag_%e_%d.png"))
         .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"))

@@ -59,7 +59,8 @@ Optional<Path> doSaveFileDialog(const std::string& title, Array<FileFormat>&& fo
         doFileDialog(title, getDesc(formats, false), defaultDir, wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (pathAndIndex) {
         const std::string ext = formats[pathAndIndex->second].ext;
-        return pathAndIndex->first.replaceExtension(ext);
+        pathAndIndex->first.replaceExtension(ext);
+        return pathAndIndex->first;
     } else {
         return NOTHING;
     }

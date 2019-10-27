@@ -75,8 +75,12 @@ public:
     explicit SaveFileWorker(const std::string& name);
 
     virtual std::string instanceName() const override {
-        const Path path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
-        return "Save to '" + path.fileName().native() + "'";
+        if (instName.empty()) {
+            const Path path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
+            return "Save to '" + path.fileName().native() + "'";
+        } else {
+            return instName;
+        }
     }
 
     virtual std::string className() const override {

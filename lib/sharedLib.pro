@@ -12,6 +12,12 @@ CONFIG(use_tbb) {
     LIBS += -ltbb -ltbb_debug -ltbbmalloc
 }
 
+CONFIG(use_openmp) {
+    DEFINES += SPH_USE_OPENMP
+    QMAKE_CXXFLAGS += -fopenmp
+    QMAKE_LFLAGS += -fopenmp
+}
+
 CONFIG(use_eigen) {
     DEFINES += SPH_USE_EIGEN
     INCLUDEPATH += /usr/include/eigen3

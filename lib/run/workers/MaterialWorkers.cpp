@@ -45,9 +45,10 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
     category.connect<Float>("Specific energy [J/kg]", body, BodySettingsId::ENERGY).setEnabler(enabler);
     category.connect<Float>("Damage []", body, BodySettingsId::DAMAGE).setEnabler(enabler);
     category.connect<EnumWrapper>("Rheology", body, BodySettingsId::RHEOLOGY_YIELDING).setEnabler(enabler);
-    category.connect<Float>("Shear modulur [Pa]", body, BodySettingsId::SHEAR_MODULUS)
+    category.connect<Float>("Bulk modulus [Pa]", body, BodySettingsId::BULK_MODULUS);
+    category.connect<Float>("Shear modulus [Pa]", body, BodySettingsId::SHEAR_MODULUS)
         .setEnabler(enablerRheo);
-    category.connect<Float>("Elastic modulur [Pa]", body, BodySettingsId::ELASTIC_MODULUS)
+    category.connect<Float>("Elastic modulus [Pa]", body, BodySettingsId::ELASTIC_MODULUS)
         .setEnabler(enablerRheo);
     category.connect<Float>("von Mises limit [Pa]", body, BodySettingsId::ELASTICITY_LIMIT)
         .setEnabler([this, enabler] {

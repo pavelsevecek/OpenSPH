@@ -111,31 +111,26 @@ enum class GuiSettingsId {
     /// Selected renderer
     RENDERER,
 
-    CAMERA,
+    CAMERA_TYPE,
 
-    /// Center point of the view
-    ORTHO_VIEW_CENTER,
+    CAMERA_POSITION,
+
+    CAMERA_TARGET,
+
+    CAMERA_UP,
 
     /// View field of view (zoom). Special value 0 means the field of view is computed from the bounding box.
-    ORTHO_FOV,
+    CAMERA_ORTHO_FOV,
 
-    /// Z-offset of the camera (from origin)
-    /// \todo replace this and ORTHO_VIEW_CENTER with camera position
-    ORTHO_ZOFFSET,
+    CAMERA_PERSPECTIVE_FOV,
 
-    PERSPECTIVE_FOV,
+    CAMERA_CLIP_NEAR,
 
-    PERSPECTIVE_POSITION,
+    CAMERA_CLIP_FAR,
 
-    PERSPECTIVE_TARGET,
+    CAMERA_TRACK_PARTICLE,
 
-    PERSPECTIVE_UP,
-
-    PERSPECTIVE_CLIP_NEAR,
-
-    PERSPECTIVE_CLIP_FAR,
-
-    PERSPECTIVE_TRACKED_PARTICLE,
+    CAMERA_TRACK_MEDIAN,
 
     VIEW_WIDTH,
 
@@ -164,9 +159,7 @@ enum class GuiSettingsId {
     PARTICLE_RADIUS,
 
     /// Max z-coordinate of particle to be displayed by ortho renderer
-    ORTHO_CUTOFF,
-
-    ORTHO_PROJECTION,
+    CAMERA_ORTHO_CUTOFF,
 
     /// Size of the grid used in MarchingCubes (in code units, not h).
     SURFACE_RESOLUTION,

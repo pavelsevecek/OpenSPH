@@ -86,27 +86,31 @@ VirtualSettings AnimationWorker::getSettings() {
     textureCat.connect<std::string>("Background", gui, GuiSettingsId::RAYTRACE_HDRI)
         .setEnabler(raytracerEnabler);
 
-    auto orthoEnabler = [this] { return gui.get<CameraEnum>(GuiSettingsId::CAMERA) == CameraEnum::ORTHO; };
+    auto orthoEnabler = [this] {
+        return gui.get<CameraEnum>(GuiSettingsId::CAMERA_TYPE) == CameraEnum::ORTHO;
+    };
     auto persEnabler = [this] {
-        return gui.get<CameraEnum>(GuiSettingsId::CAMERA) == CameraEnum::PERSPECTIVE;
+        return gui.get<CameraEnum>(GuiSettingsId::CAMERA_TYPE) == CameraEnum::PERSPECTIVE;
     };
 
     VirtualSettings::Category& cameraCat = connector.addCategory("Camera");
-    cameraCat.connect<EnumWrapper>("Camera type", gui, GuiSettingsId::CAMERA);
-    cameraCat.connect<Float>("Field of view", gui, GuiSettingsId::PERSPECTIVE_FOV)
+    cameraCat.connect<EnumWrapper>("Camera type", gui, GuiSettingsId::CAMERA_TYPE);
+    cameraCat.connect<Vector>("Position", gui, GuiSettingsId::CAMERA_POSITION);
+    cameraCat.connect<Vector>("Target", gui, GuiSettingsId::CAMERA_TARGET);
+    cameraCat.connect<Vector>("Up-direction", gui, GuiSettingsId::CAMERA_UP);
+    cameraCat.connect<Float>("Clip near", gui, GuiSettingsId::CAMERA_CLIP_NEAR);
+    cameraCat.connect<Float>("Clip far", gui, GuiSettingsId::CAMERA_CLIP_FAR);
+    cameraCat.connect<Float>("Field of view [deg]", gui, GuiSettingsId::CAMERA_PERSPECTIVE_FOV)
         .setUnits(DEG_TO_RAD)
         .setEnabler(persEnabler);
-    cameraCat.connect<Vector>("Position", gui, GuiSettingsId::PERSPECTIVE_POSITION).setEnabler(persEnabler);
-    cameraCat.connect<Vector>("Target", gui, GuiSettingsId::PERSPECTIVE_TARGET).setEnabler(persEnabler);
-    cameraCat.connect<Vector>("Up-direction", gui, GuiSettingsId::PERSPECTIVE_UP).setEnabler(persEnabler);
-    cameraCat.connect<Float>("Clip near", gui, GuiSettingsId::PERSPECTIVE_CLIP_NEAR).setEnabler(persEnabler);
-    cameraCat.connect<Float>("Clip far", gui, GuiSettingsId::PERSPECTIVE_CLIP_FAR).setEnabler(persEnabler);
-    cameraCat.connect<int>("Track particle", gui, GuiSettingsId::PERSPECTIVE_TRACKED_PARTICLE)
-        .setEnabler(persEnabler);
-    cameraCat.connect<Float>("Ortho FoV [km]", gui, GuiSettingsId::ORTHO_FOV)
+    cameraCat.connect<Float>("Ortho FoV [km]", gui, GuiSettingsId::CAMERA_ORTHO_FOV)
         .setUnits(1.e3_f)
         .setEnabler(orthoEnabler);
-    cameraCat.connect<Float>("Cutoff distance [km]", gui, GuiSettingsId::ORTHO_CUTOFF)
+    cameraCat.connect<int>("Track particle", gui, GuiSettingsId::CAMERA_TRACK_PARTICLE);
+    cameraCat.connect<bool>("Track median", gui, GuiSettingsId::CAMERA_TRACK_MEDIAN).setEnabler([this] {
+        return gui.get<int>(GuiSettingsId::CAMERA_TRACK_PARTICLE) != -1;
+    });
+    cameraCat.connect<Float>("Cutoff distance [km]", gui, GuiSettingsId::CAMERA_ORTHO_CUTOFF)
         .setUnits(1.e3_f)
         .setEnabler(orthoEnabler);
 
@@ -136,7 +140,6 @@ void AnimationWorker::evaluate(const RunSettings& global, IRunCallbacks& callbac
 
     RenderParams params;
     params.size = { gui.get<int>(GuiSettingsId::IMAGES_WIDTH), gui.get<int>(GuiSettingsId::IMAGES_HEIGHT) };
-    gui.set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5f * Vector(params.size.x, params.size.y, 0._f));
     params.camera = Factory::getCamera(gui, params.size);
     params.initialize(gui);
 
@@ -179,14 +182,14 @@ void AnimationWorker::evaluate(const RunSettings& global, IRunCallbacks& callbac
     }
     case AnimationType::ORBIT: {
         SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
-        const Vector target = gui.get<Vector>(GuiSettingsId::PERSPECTIVE_TARGET);
-        const Vector position = gui.get<Vector>(GuiSettingsId::PERSPECTIVE_POSITION);
+        const Vector target = gui.get<Vector>(GuiSettingsId::CAMERA_TARGET);
+        const Vector position = gui.get<Vector>(GuiSettingsId::CAMERA_POSITION);
         const Float orbitRadius = getLength(target - position);
 
         for (Float phi = 0._f; phi < orbit.finalAngle; phi += orbit.step) {
             const Vector newPosition = target + orbitRadius * (cos(phi) * Vector(0._f, 0._f, 1._f) +
                                                                   sin(phi) * Vector(1._f, 0._f, 0._f));
-            gui.set(GuiSettingsId::PERSPECTIVE_POSITION, newPosition);
+            gui.set(GuiSettingsId::CAMERA_POSITION, newPosition);
             movie.setCamera(Factory::getCamera(gui, params.size));
             movie.save(data->storage, data->stats);
 
@@ -200,7 +203,7 @@ void AnimationWorker::evaluate(const RunSettings& global, IRunCallbacks& callbac
         }
 
         // reset the position
-        gui.set(GuiSettingsId::PERSPECTIVE_POSITION, position);
+        gui.set(GuiSettingsId::CAMERA_POSITION, position);
         break;
     }
     case AnimationType::FILE_SEQUENCE: {

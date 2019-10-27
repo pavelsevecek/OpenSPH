@@ -53,6 +53,14 @@ public:
         return values[map(p)];
     }
 
+    Type& operator()(const int x, const int y) {
+        return values[map(Pixel(x, y))];
+    }
+
+    const Type& operator()(const int x, const int y) const {
+        return values[map(Pixel(x, y))];
+    }
+
     Pixel size() const {
         return res;
     }

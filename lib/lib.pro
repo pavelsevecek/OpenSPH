@@ -83,6 +83,7 @@ SOURCES += \
     system/Timer.cpp \
     tests/Setup.cpp \
     thread/CheckFunction.cpp \
+    thread/OpenMp.cpp \
     thread/Pool.cpp \
     thread/Scheduler.cpp \
     thread/Tbb.cpp \
@@ -294,6 +295,7 @@ HEADERS += \
     tests/Setup.h \
     thread/AtomicFloat.h \
     thread/CheckFunction.h \
+    thread/OpenMp.h \
     thread/Pool.h \
     thread/Scheduler.h \
     thread/Tbb.h \

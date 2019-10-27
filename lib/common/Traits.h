@@ -124,6 +124,11 @@ public:
     ReferenceWrapper(T& ref)
         : data(std::addressof(ref)) {}
 
+    ReferenceWrapper& operator=(const ReferenceWrapper& other) {
+        data = other.data;
+        return *this;
+    }
+
     INLINE operator T&() noexcept {
         return *data;
     }

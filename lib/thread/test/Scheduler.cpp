@@ -1,4 +1,5 @@
 #include "objects/utility/ArrayUtils.h"
+#include "thread/OpenMp.h"
 #include "thread/Pool.h"
 #include "thread/Tbb.h"
 #include "thread/ThreadLocal.h"
@@ -6,9 +7,9 @@
 
 using namespace Sph;
 
-#ifdef SPH_USE_TBB
+#if defined(SPH_USE_TBB) && defined(SPH_USE_OPENMP)
 
-TEMPLATE_TEST_CASE("ThreadLocal", "[thread]", ThreadPool, Tbb) {
+TEMPLATE_TEST_CASE("ThreadLocal", "[thread]", ThreadPool, Tbb, OmpScheduler) {
     TestType& scheduler = *TestType::getGlobalInstance();
     ThreadLocal<uint64_t> partialSum(scheduler);
     parallelFor(scheduler, 1, 100000, 10, [&partialSum](Size i) {
@@ -25,12 +26,12 @@ TEMPLATE_TEST_CASE("ThreadLocal", "[thread]", ThreadPool, Tbb) {
     for (auto& value : partialSum) {
 
         // this can be very noisy, so lets be generous
-        if (std::is_same<TestType, Tbb>::value) {
-            // TBBs do not attempt to equalize the work in this way
-            REQUIRE_THREAD_SAFE(value > 0);
-        } else {
+        if (std::is_same<TestType, ThreadPool>::value) {
             REQUIRE_THREAD_SAFE(value >= sumPerThread / 2);
             REQUIRE_THREAD_SAFE(value <= sumPerThread * 2);
+        } else {
+            // TBBs do not attempt to equalize the work in this way
+            REQUIRE_THREAD_SAFE(value > 0);
         }
         sum += value;
     }
@@ -41,7 +42,7 @@ TEMPLATE_TEST_CASE("ThreadLocal", "[thread]", ThreadPool, Tbb) {
     // REQUIRE_THREAD_SAFE(pool.remainingTaskCnt() == 0);
 }
 
-TEMPLATE_TEST_CASE("ThreadLocal parallelFor", "[thread]", ThreadPool, Tbb) {
+TEMPLATE_TEST_CASE("ThreadLocal parallelFor", "[thread]", ThreadPool, Tbb, OmpScheduler) {
     TestType& scheduler = *TestType::getGlobalInstance();
     const Size N = 100000;
     ThreadLocal<Array<Size>> partial(scheduler, N);
@@ -69,14 +70,14 @@ TEMPLATE_TEST_CASE("ThreadLocal parallelFor", "[thread]", ThreadPool, Tbb) {
         if (std::is_same<TestType, ThreadPool>::value) {
             // TBBs do not attempt to equalize the work in this way
 
-            REQUIRE_THREAD_SAFE(perThreadSum > N / scheduler.getThreadCnt() - 2000);
-            REQUIRE_THREAD_SAFE(perThreadSum < N / scheduler.getThreadCnt() + 2000);
+            REQUIRE_THREAD_SAFE(perThreadSum > N / scheduler.getThreadCnt() - 3000);
+            REQUIRE_THREAD_SAFE(perThreadSum < N / scheduler.getThreadCnt() + 3000);
         }
     }
     REQUIRE_THREAD_SAFE(areAllMatching(sum, [](const Size v) { return v == 1; }));
 }
 
-TEMPLATE_TEST_CASE("ThreadLocal accumulate", "[thread]", ThreadPool, Tbb) {
+TEMPLATE_TEST_CASE("ThreadLocal accumulate", "[thread]", ThreadPool, Tbb, OmpScheduler) {
     TestType& scheduler = *TestType::getGlobalInstance();
     ThreadLocal<int64_t> sumTl(scheduler, 0._f);
     parallelFor(scheduler, sumTl, 0, 10000, 10, [](Size i, int64_t& value) { value += i; });
@@ -89,7 +90,7 @@ TEMPLATE_TEST_CASE("ThreadLocal accumulate", "[thread]", ThreadPool, Tbb) {
     REQUIRE_THREAD_SAFE(sum2 == expectedSum2);
 }
 
-TEMPLATE_TEST_CASE("Nested parallelFor", "[thread]", ThreadPool, Tbb) {
+TEMPLATE_TEST_CASE("Nested parallelFor", "[thread]", ThreadPool, Tbb, OmpScheduler) {
     TestType& scheduler = *TestType::getGlobalInstance();
     std::atomic<uint64_t> sum{ 0 };
     parallelFor(scheduler, 0, 1000, 1, [&sum, &scheduler](Size i) {

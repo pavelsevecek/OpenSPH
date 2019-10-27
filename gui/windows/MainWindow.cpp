@@ -180,6 +180,8 @@ MainWindow::MainWindow(const Path& openPath)
 #endif
 #ifdef SPH_USE_TBB
             desc += "Parallelized by TBB";
+#elif SPH_USE_OPENMP
+            desc += "Parallelized by OpenMP";
 #else
             desc += "Parallelized by built-in thread pool";
 #endif
@@ -364,8 +366,9 @@ wxMenu* MainWindow::createProjectMenu() {
     wxMenu* recentMenu = new wxMenu();
     projectMenu->AppendSubMenu(recentMenu, "&Recent");
     projectMenu->Append(4, "&Shared properties");
-    projectMenu->Append(5, "&Undo\tCtrl+Z");
-    projectMenu->Append(6, "&Quit");
+    projectMenu->Append(5, "&Batch run\tCtrl+B");
+    projectMenu->Append(6, "&Undo\tCtrl+Z");
+    projectMenu->Append(7, "&Quit");
 
     SharedPtr<Array<Path>> recentSessions = makeShared<Array<Path>>();
     *recentSessions = getRecentSessions();
@@ -404,9 +407,12 @@ wxMenu* MainWindow::createProjectMenu() {
             nodePage->showGlobals();
             break;
         case 5:
-            nodePage->undo();
+            nodePage->showBatchDialog();
             break;
         case 6:
+            nodePage->undo();
+            break;
+        case 7:
             this->Close();
             break;
         default:
@@ -600,8 +606,7 @@ wxMenu* MainWindow::createAnalysisMenu() {
         RawPtr<Controller> controller = runs[page].controller.get();
 
         if (evt.GetId() == 6) { // not a plot, requires special handling
-            GridPage* gridPage = new GridPage(notebook, wxSize(800, 600), wxSize(25, 25));
-            gridPage->update(controller->getStorage());
+            GridPage* gridPage = new GridPage(notebook, wxSize(800, 600), controller->getStorage());
 
             const Size index = notebook->GetPageCount();
             notebook->AddPage(gridPage, "Fragments");

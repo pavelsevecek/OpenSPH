@@ -27,6 +27,11 @@ public:
     explicit Rgba(const wxColour& other)
         : data(other.Red() / 255.f, other.Green() / 255.f, other.Blue() / 255.f, 1.f) {}
 
+    Rgba& operator=(const Rgba& other) {
+        data = other.data;
+        return *this;
+    }
+
     explicit operator wxColour() const {
         return wxColour(getByte(data[0]), getByte(data[1]), getByte(data[2]));
     }

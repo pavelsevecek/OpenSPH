@@ -271,7 +271,7 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     cutoffSizer->AddSpacer(boxPadding);
     wxStaticText* text = new wxStaticText(particleBox, wxID_ANY, "Cutoff [km]");
     cutoffSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
-    const Float cutoff = gui.get<Float>(GuiSettingsId::ORTHO_CUTOFF) * 1.e-3_f;
+    const Float cutoff = gui.get<Float>(GuiSettingsId::CAMERA_ORTHO_CUTOFF) * 1.e-3_f;
 
     FloatTextCtrl* cutoffCtrl = new FloatTextCtrl(particleBox, cutoff, Interval(0, LARGE));
     cutoffCtrl->onValueChanged = [this](const Float value) { this->updateCutoff(value * 1.e3_f); };
@@ -680,7 +680,7 @@ wxPanel* RunPage::createVisBar() {
 
 void RunPage::updateCutoff(const double cutoff) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    gui.set(GuiSettingsId::ORTHO_CUTOFF, Float(cutoff));
+    gui.set(GuiSettingsId::CAMERA_ORTHO_CUTOFF, Float(cutoff));
     // Note that we have to get camera from pane, not controller, as pane camera is always the one being
     // modified and fed to controller. Using controller's camera would cause cutoff to be later overriden by
     // the camera from pane.

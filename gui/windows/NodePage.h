@@ -2,6 +2,7 @@
 
 #include "gui/objects/Color.h"
 #include "gui/objects/Point.h"
+#include "gui/windows/BatchDialog.h"
 #include "objects/containers/UnorderedMap.h"
 #include "run/Node.h"
 #include <map>
@@ -64,6 +65,8 @@ class NodeManager {
 private:
     NodeEditor* editor;
 
+    BatchManager batch;
+
     NodeMap nodes;
 
     RunSettings globals = EMPTY_SETTINGS;
@@ -75,15 +78,13 @@ private:
 public:
     NodeManager(NodeEditor* editor, SharedPtr<INodeManagerCallbacks> callbacks);
 
-    SharedPtr<WorkerNode> addNode(AutoPtr<IWorker>&& worker);
+    void addNode(const SharedPtr<WorkerNode>& node);
 
-    SharedPtr<WorkerNode> addNode(AutoPtr<IWorker>&& worker, const Pixel position);
+    void addNode(const SharedPtr<WorkerNode>& node, const Pixel position);
 
     void addNodes(WorkerNode& node);
 
-    SharedPtr<WorkerNode> cloneNode(WorkerNode& node);
-
-    void cloneTree(WorkerNode& node);
+    void cloneHierarchy(WorkerNode& node);
 
     void layoutNodes(WorkerNode& node, const Pixel position);
 
@@ -107,6 +108,8 @@ public:
 
     void startRun(WorkerNode& node);
 
+    void startBatch(WorkerNode& node);
+
     void startAll();
 
     void addToUndo(Function<void()> func) {
@@ -120,6 +123,8 @@ public:
     }
 
     VirtualSettings getGlobalSettings();
+
+    void showBatchDialog();
 
     UniqueNameManager makeUniqueNameManager() const;
 };
@@ -233,6 +238,8 @@ public:
     void clearGrid();
 
     void showGlobals();
+
+    void showBatchDialog();
 
     void save(Config& config);
 

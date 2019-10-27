@@ -1,21 +1,110 @@
 #include "gui/windows/GridPage.h"
 #include "gui/MainLoop.h"
+#include "gui/Utils.h"
+#include "io/Path.h"
 #include "quantities/Quantity.h"
 #include "system/Factory.h"
 #include "thread/Scheduler.h"
+#include <fstream>
 #include <numeric>
+#include <wx/button.h>
+#include <wx/checkbox.h>
 #include <wx/msgdlg.h>
+#include <wx/sizer.h>
+#include <wx/spinctrl.h>
+#include <wx/stattext.h>
 
 NAMESPACE_SPH_BEGIN
 
-GridPage::GridPage(wxWindow* parent, const wxSize size, const wxSize padding)
-    : wxPanel(parent, wxID_ANY, wxDefaultPosition, size) {
+/// Flags used as window ID and as parameters to compute
+enum class CheckFlag {
+    PARTICLE_COUNT = 1 << 0,
+    MASS_FRACTION = 1 << 1,
+    DIAMETER = 1 << 2,
+    VELOCITY_DIFFERENCE = 1 << 3,
+    PERIOD = 1 << 4,
+    RATIO_CB = 1 << 5,
+    RATIO_BA = 1 << 6,
+    SPHERICITY = 1 << 7,
+};
+const Size CHECK_COUNT = 8;
 
-    grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, size);
-    grid->CreateGrid(4, 7);
-    grid->EnableEditing(false);
-    (void)padding;
+GridPage::GridPage(wxWindow* parent, const wxSize size, const Storage& storage)
+    : wxPanel(parent, wxID_ANY, wxDefaultPosition, size)
+    , storage(storage) {
+
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+
+    wxBoxSizer* countSizer = new wxBoxSizer(wxHORIZONTAL);
+    countSizer->Add(new wxStaticText(this, wxID_ANY, "Number of fragments"));
+    countSpinner = new wxSpinCtrl(this, wxID_ANY);
+    countSpinner->SetValue(4);
+    countSizer->Add(countSpinner);
+    sizer->Add(countSizer);
+
+    wxGridSizer* boxSizer = new wxGridSizer(4, 2, 2);
+    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::PARTICLE_COUNT), "Particle count"));
+    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::MASS_FRACTION), "Mass fraction"));
+    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::DIAMETER), "Diameter [km]"));
+    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::VELOCITY_DIFFERENCE), "Velocity difference [m/s]"));
+    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::PERIOD), "Period [h]"));
+    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::RATIO_CB), "Ratio c/b"));
+    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::RATIO_BA), "Ratio b/a"));
+    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::SPHERICITY), "Sphericity"));
+
+    sizer->Add(boxSizer);
+
+    wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
+    wxButton* computeButton = new wxButton(this, wxID_ANY, "Compute");
+    buttonSizer->Add(computeButton);
+
+    wxButton* saveButton = new wxButton(this, wxID_ANY, "Save to file");
+    saveButton->Enable(false);
+    buttonSizer->Add(saveButton);
+    sizer->Add(buttonSizer);
+
+    this->SetSizer(sizer);
     this->Layout();
+
+    computeButton->Bind(wxEVT_BUTTON, [this, size, sizer, saveButton](wxCommandEvent& UNUSED(evt)) {
+        const Size checkCount = this->getCheckedCount();
+        if (checkCount == 0) {
+            wxMessageBox("No parameters selected", "Fail", wxOK | wxCENTRE);
+            return;
+        }
+        if (grid != nullptr) {
+            sizer->Detach(grid);
+            this->RemoveChild(grid);
+        }
+        grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, size);
+        grid->EnableEditing(false);
+        sizer->Add(grid);
+        grid->CreateGrid(countSpinner->GetValue(), checkCount);
+        this->Layout();
+        saveButton->Enable(true);
+
+        this->update(this->storage);
+    });
+
+    saveButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
+        Optional<Path> path = doSaveFileDialog("Save to file", { { "Text file", "txt" } });
+        if (path) {
+            std::ofstream ofs(path->native());
+            ofs << "#";
+            for (int col = 0; col < grid->GetNumberCols(); ++col) {
+                const wxString label = grid->GetColLabelValue(col);
+                ofs << std::string(max(1, 26 - int(label.size())), ' ') << label;
+            }
+            ofs << "\n";
+            for (int row = 0; row < grid->GetNumberRows(); ++row) {
+                ofs << "  ";
+                for (int col = 0; col < grid->GetNumberCols(); ++col) {
+                    ofs << std::setw(25) << grid->GetCellValue(row, col) << " ";
+                }
+                ofs << "\n";
+            }
+        }
+    });
 }
 
 GridPage::~GridPage() {
@@ -35,7 +124,7 @@ public:
         : storage(storage) {
         const Flags<Post::ComponentFlag> flags =
             Post::ComponentFlag::OVERLAP | Post::ComponentFlag::SORT_BY_MASS;
-        maxIdx = Post::findComponents(storage, 1._f, flags, indices);
+        maxIdx = Post::findComponents(storage, 2._f, flags, indices);
     }
 
     Storage getComponent(const Size idx) {
@@ -88,6 +177,30 @@ static Float getSphericity(const Storage& storage) {
     return Post::getSphericity(*scheduler, storage, 0.02_f);
 }
 
+static Float getVelocityDifference(const Storage& s1, const Storage& s2) {
+    ArrayView<const Float> m1 = s1.getValue<Float>(QuantityId::MASS);
+    ArrayView<const Vector> v1 = s1.getDt<Vector>(QuantityId::POSITION);
+
+    Float mtot1 = 0._f;
+    Vector p1(0._f);
+    for (Size i = 0; i < m1.size(); ++i) {
+        mtot1 += m1[i];
+        p1 += m1[i] * v1[i];
+    }
+
+    ArrayView<const Float> m2 = s2.getValue<Float>(QuantityId::MASS);
+    ArrayView<const Vector> v2 = s2.getDt<Vector>(QuantityId::POSITION);
+
+    Float mtot2 = 0._f;
+    Vector p2(0._f);
+    for (Size i = 0; i < m2.size(); ++i) {
+        mtot2 += m2[i];
+        p2 += m2[i] * v2[i];
+    }
+
+    return getLength(p1 / mtot1 - p2 / mtot2);
+}
+
 static Float getPeriod(const Storage& storage) {
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
     ArrayView<const Vector> r, v, dv;
@@ -101,18 +214,23 @@ static Float getPeriod(const Storage& storage) {
 }
 
 void GridPage::update(const Storage& storage) {
-    grid->SetColLabelValue(0, "Particle count");
-    grid->SetColLabelValue(1, "Mass fraction");
-    grid->SetColLabelValue(2, "Diameter [km]");
-    grid->SetColLabelValue(3, "Period [h]");
-    grid->SetColLabelValue(4, "Ratio c/b");
-    grid->SetColLabelValue(5, "Ratio b/a");
-    grid->SetColLabelValue(6, "Sphericity");
+    Size colIdx = 0;
+    Flags<CheckFlag> checks;
+    for (Size i = 0; i < CHECK_COUNT; ++i) {
+        const CheckFlag flag = CheckFlag(1 << i);
+        wxCheckBox* box = this->getCheck(flag);
+        if (box->GetValue()) {
+            grid->SetColLabelValue(colIdx++, box->GetLabel());
+            checks.set(flag);
+        }
+    }
     grid->AutoSize();
 
-    thread = std::thread([this, &storage] {
+    const Size fragmentCnt = countSpinner->GetValue();
+
+    thread = std::thread([this, &storage, fragmentCnt, checks] {
         try {
-            this->updateAsync(storage);
+            this->updateAsync(storage, fragmentCnt, checks);
         } catch (std::exception& e) {
             executeOnMainThread([message = std::string(e.what())] {
                 wxMessageBox("Failed to compute fragment parameters.\n\n" + message, "Fail", wxOK | wxCENTRE);
@@ -121,34 +239,65 @@ void GridPage::update(const Storage& storage) {
     });
 }
 
-void GridPage::updateAsync(const Storage& storage) {
+void GridPage::updateAsync(const Storage& storage, const Size fragmentCnt, const Flags<CheckFlag> checks) {
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
     const Float totalMass = std::accumulate(m.begin(), m.end(), 0._f);
 
     ComponentGetter getter(storage);
 
-    for (Size i = 0; i < 4; ++i) {
+    Storage lr;
+    for (Size i = 0; i < fragmentCnt; ++i) {
         const Storage fragment = getter.getComponent(i);
         if (fragment.getParticleCnt() < 2) {
             break;
         }
-        this->updateCell(i, 0, fragment.getParticleCnt());
+        if (i == 0) {
+            lr = fragment.clone(VisitorEnum::ALL_BUFFERS);
+        }
 
-        const Pair<Float> massAndDiameter = getMassAndDiameter(fragment);
-        this->updateCell(i, 1, massAndDiameter[0] / totalMass);
-        this->updateCell(i, 2, massAndDiameter[1] / 1.e3_f);
+        // order must match the values of CheckFlag
+        Size colIdx = 0;
+        if (checks.has(CheckFlag::PARTICLE_COUNT)) {
+            this->updateCell(i, colIdx++, fragment.getParticleCnt());
+        }
 
-        const Float period = getPeriod(fragment);
-        this->updateCell(i, 3, period);
+        if (checks.hasAny(CheckFlag::MASS_FRACTION, CheckFlag::DIAMETER)) {
+            const Pair<Float> massAndDiameter = getMassAndDiameter(fragment);
+            if (checks.has(CheckFlag::MASS_FRACTION)) {
+                this->updateCell(i, colIdx++, massAndDiameter[0] / totalMass);
+            }
+            if (checks.has(CheckFlag::DIAMETER)) {
+                this->updateCell(i, colIdx++, massAndDiameter[1] / 1.e3_f);
+            }
+        }
 
-        const Pair<Float> ratios = getSemiaxisRatios(fragment);
-        this->updateCell(i, 4, ratios[0]);
-        this->updateCell(i, 5, ratios[1]);
+        if (checks.has(CheckFlag::VELOCITY_DIFFERENCE)) {
+            this->updateCell(i, colIdx++, getVelocityDifference(fragment, lr));
+        }
 
-        this->updateCell(i, 6, getSphericity(fragment));
+        if (checks.has(CheckFlag::PERIOD)) {
+            const Float period = getPeriod(fragment);
+            this->updateCell(i, colIdx++, period);
+        }
+
+        if (checks.hasAny(CheckFlag::RATIO_BA, CheckFlag::RATIO_CB)) {
+            const Pair<Float> ratios = getSemiaxisRatios(fragment);
+            if (checks.has(CheckFlag::RATIO_CB)) {
+                this->updateCell(i, colIdx++, ratios[0]);
+            }
+            if (checks.has(CheckFlag::RATIO_BA)) {
+                this->updateCell(i, colIdx++, ratios[1]);
+            }
+        }
+
+        if (checks.has(CheckFlag::SPHERICITY)) {
+            this->updateCell(i, colIdx++, getSphericity(fragment));
+        }
 
         executeOnMainThread([this] { grid->AutoSize(); });
     }
+
+    executeOnMainThread([this] { thread.join(); });
 }
 
 template <typename T>
@@ -156,6 +305,32 @@ void GridPage::updateCell(const Size rowIdx, const Size colIdx, const T& value) 
     executeOnMainThread([this, rowIdx, colIdx, value] { //
         grid->SetCellValue(rowIdx, colIdx, std::to_string(value));
     });
+}
+
+wxCheckBox* GridPage::getCheck(const CheckFlag check) const {
+    wxCheckBox* box = dynamic_cast<wxCheckBox*>(this->FindWindow(int(check)));
+    ASSERT(box);
+    return box;
+}
+
+Size GridPage::getCheckedCount() const {
+    Size count = 0;
+    const StaticArray<CheckFlag, CHECK_COUNT> allIds = {
+        CheckFlag::PARTICLE_COUNT,
+        CheckFlag::MASS_FRACTION,
+        CheckFlag::DIAMETER,
+        CheckFlag::VELOCITY_DIFFERENCE,
+        CheckFlag::PERIOD,
+        CheckFlag::RATIO_CB,
+        CheckFlag::RATIO_BA,
+        CheckFlag::SPHERICITY,
+    };
+    ASSERT(allIds.size() == CHECK_COUNT);
+
+    for (CheckFlag id : allIds) {
+        count += int(this->getCheck(id)->GetValue());
+    }
+    return count;
 }
 
 NAMESPACE_SPH_END

@@ -248,7 +248,8 @@ std::string UniqueNameManager::getName(const std::string& name) {
             names.insert(tested);
             return tested;
         } else {
-            tested = name + " " + std::to_string(postfix);
+            /// \todo increase the number if there is already a (x) at the end
+            tested = name + " (" + std::to_string(postfix) + ")";
         }
     }
     return name; /// \todo what to return?
