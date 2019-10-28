@@ -57,8 +57,8 @@ TEST_CASE("String capitalize", "[string]") {
 TEST_CASE("Unique name manager", "[string]") {
     UniqueNameManager mgr;
     REQUIRE(mgr.getName("name") == "name");
-    REQUIRE(mgr.getName("name") == "name 1");
-    REQUIRE(mgr.getName("name") == "name 2");
+    REQUIRE(mgr.getName("name") == "name (1)");
+    REQUIRE(mgr.getName("name") == "name (2)");
     REQUIRE(mgr.getName("test") == "test");
-    REQUIRE(mgr.getName("test") == "test 1");
+    REQUIRE(mgr.getName("test") == "test (1)");
 }
