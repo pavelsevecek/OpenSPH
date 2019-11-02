@@ -5,6 +5,10 @@ linux-g++ {
     QMAKE_CXXFLAGS += -Wno-aggressive-loop-optimizations
 }
 
+#LIBS += -lcudart -lcuda
+
+LIBS += -L/opt/cuda/lib64/ -lcuda -lcudart
+#QMAKE_LFLAGS += -L/opt/cuda/targets/x86_64-linux/lib/libcudart.so -lcuda
 
 CONFIG(use_tbb) {
     DEFINES += SPH_USE_TBB

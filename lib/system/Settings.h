@@ -669,6 +669,8 @@ enum class SolverEnum {
 
     /// Solver advancing internal energy using pair-wise work done by particles, by Owen (2009).
     ENERGY_CONSERVING_SOLVER,
+
+    CUDA_SOLVER,
 };
 
 enum class DiscretizationEnum {
@@ -725,6 +727,8 @@ enum class GravityEnum {
 
     /// Use Barnes-Hut algorithm, approximating gravity by multipole expansion (up to octupole order)
     BARNES_HUT,
+
+    CUDA,
 };
 
 enum class GravityKernelEnum {

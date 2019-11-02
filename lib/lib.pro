@@ -1,5 +1,5 @@
 TEMPLATE = lib
-CONFIG += c++14 staticlib thread silent
+CONFIG += c++14 staticlib thread
 CONFIG -= app_bundle qt
 
 include(sharedLib.pro)
@@ -10,6 +10,7 @@ SOURCES += \
     gravity/BarnesHut.cpp \
     gravity/Galaxy.cpp \
     gravity/NBodySolver.cpp \
+    gravity/cuda/CudaGravity.cpp \
     io/FileManager.cpp \
     io/FileSystem.cpp \
     io/Logger.cpp \
@@ -73,6 +74,7 @@ SOURCES += \
     sph/solvers/StaticSolver.cpp \
     sph/solvers/SummationSolver.cpp \
     sph/solvers/SymmetricSolver.cpp \
+    sph/solvers/cuda/CudaSolver.cpp \
     system/ArgsParser.cpp \
     system/Factory.cpp \
     system/Platform.cpp \
@@ -118,6 +120,8 @@ HEADERS += \
     gravity/Moments.h \
     gravity/NBodySolver.h \
     gravity/SphericalGravity.h \
+    gravity/cuda/CudaGravity.h \
+    gravity/cuda/DeviceMath.h \
     io/Column.h \
     io/FileManager.h \
     io/FileSystem.h \
@@ -277,6 +281,7 @@ HEADERS += \
     sph/solvers/StaticSolver.h \
     sph/solvers/SummationSolver.h \
     sph/solvers/SymmetricSolver.h \
+    sph/solvers/cuda/CudaSolver.h \
     system/ArgsParser.h \
     system/ArrayStats.h \
     system/Column.h \
@@ -321,3 +326,37 @@ HEADERS += \
     run/workers/InitialConditionWorkers.h \
     run/workers/SpecialEntries.h \
     run/SpecialEntries.h
+
+OTHER_FILES += \
+    sph/solvers/cuda/CudaSolver.cu \
+    gravity/cuda/CudaGravity.cu
+
+CUDA_SOURCES += \
+    sph/solvers/cuda/CudaSolver.cu \
+    gravity/cuda/CudaGravity.cu
+
+CUDA_DIR = /opt/cuda
+
+INCLUDEPATH += $$CUDA_DIR/include
+
+QMAKE_LIBDIR += $$CUDA_DIR/lib
+
+NVCCFLAGS     = --compiler-options -fno-strict-aliasing -use_fast_math --ptxas-options=-v
+#CUDA_INC = $$join(INCLUDEPATH,' -I','-I',' ')
+CUDA_INC = -I/opt/cuda/include -I. -I.. -I/home/pavel/projects/astro/sph/src/lib
+
+cuda.commands = $$CUDA_DIR/bin/nvcc -m64 -O3 -std c++14 -c $$NVCCFLAGS $$CUDA_INC ${QMAKE_FILE_NAME} -o ${QMAKE_FILE_OUT}
+
+#-gencode arch=compute_37,code=sm_37
+
+# nvcc error printout format ever so slightly different from gcc
+# http://forums.nvidia.com/index.php?showtopic=171651
+
+#cuda.dependency_type = TYPE_C # there was a typo here. Thanks workmate!
+#cuda.depend_command = $$CUDA_DIR/bin/nvcc -O3 -M $$CUDA_INC $$NVCCFLAGS ${QMAKE_FILE_NAME}
+
+cuda.input = CUDA_SOURCES
+cuda.output = ${OBJECTS_DIR}${QMAKE_FILE_BASE}_cuda.o
+
+QMAKE_EXTRA_COMPILERS += cuda
+

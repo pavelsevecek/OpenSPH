@@ -4,6 +4,7 @@
 #include "gravity/CachedGravity.h"
 #include "gravity/Collision.h"
 #include "gravity/SphericalGravity.h"
+#include "gravity/cuda/CudaGravity.h"
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "math/rng/Rng.h"
@@ -32,6 +33,7 @@
 #include "sph/solvers/GravitySolver.h"
 #include "sph/solvers/StandardSets.h"
 #include "sph/solvers/SummationSolver.h"
+#include "sph/solvers/cuda/CudaSolver.h"
 #include "thread/OpenMp.h"
 #include "thread/Pool.h"
 #include "thread/Tbb.h"
@@ -289,6 +291,8 @@ AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler,
     case SolverEnum::DENSITY_INDEPENDENT:
         throwIfGravity();
         return makeAuto<DensityIndependentSolver>(scheduler, settings);
+    case SolverEnum::CUDA_SOLVER:
+        return makeAuto<CudaSolver>();
     default:
         NOT_IMPLEMENTED;
     }
@@ -319,6 +323,9 @@ AutoPtr<IGravity> Factory::getGravity(const RunSettings& settings) {
         break;
     case GravityEnum::BRUTE_FORCE:
         gravity = makeAuto<BruteForceGravity>(std::move(kernel));
+        break;
+    case GravityEnum::CUDA:
+        gravity = makeAuto<CudaGravity>(std::move(kernel));
         break;
     case GravityEnum::BARNES_HUT: {
         const Float theta = settings.get<Float>(RunSettingsId::GRAVITY_OPENING_ANGLE);

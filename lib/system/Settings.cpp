@@ -224,6 +224,7 @@ static RegisterEnum<GravityEnum> sGravity({
     { GravityEnum::BARNES_HUT,
         "barnes_hut",
         "Barnes-Hut algorithm approximating gravity by multipole expansion (up to octupole order)." },
+    { GravityEnum::CUDA, "cuda", "todo" },
 });
 
 static RegisterEnum<GravityKernelEnum> sGravityKernel({
