@@ -57,7 +57,12 @@ void RayTracer::initialize(const Storage& storage,
     const IColorizer& colorizer,
     const ICamera& UNUSED(camera)) {
     MEASURE_SCOPE("Building BVH");
+    previous.r = std::move(cached.r);
     cached.r = storage.getValue<Vector>(QuantityId::POSITION).clone();
+    if (previous.r.empty()) {
+        previous.r = cached.r.clone();
+    }
+    // cached.v = storage.getDt<Vector>(QuantityId::POSITION).clone();
     const Size particleCnt = cached.r.size();
 
     if (storage.has(QuantityId::UVW)) {
@@ -81,7 +86,7 @@ void RayTracer::initialize(const Storage& storage,
         cached.flags.fill(0);
     }
 
-    cached.v.resize(particleCnt);
+    cached.volume.resize(particleCnt);
     if (storage.has(QuantityId::MASS) && storage.has(QuantityId::DENSITY)) {
         ArrayView<const Float> rho, m;
         tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
@@ -89,12 +94,12 @@ void RayTracer::initialize(const Storage& storage,
             MaterialView material = storage.getMaterial(matId);
             const Float rho = material->getParam<Float>(BodySettingsId::DENSITY);
             for (Size i : material.sequence()) {
-                cached.v[i] = m[i] / rho;
+                cached.volume[i] = m[i] / rho;
             }
         }
     } else {
         for (Size i = 0; i < particleCnt; ++i) {
-            cached.v[i] = sphereVolume(cached.r[i][H]);
+            cached.volume[i] = sphereVolume(cached.r[i][H]);
         }
     }
 
@@ -131,7 +136,10 @@ void RayTracer::render(const RenderParams& params, Statistics& UNUSED(stats), IR
     FrameBuffer fb(params.size);
     for (Size iteration = 0; iteration < fixed.iterationLimit && shouldContinue; ++iteration) {
         this->refine(params, iteration, fb);
-        output.update(fb.bitmap(), {}, iteration == fixed.iterationLimit - 1);
+        if (iteration == fixed.iterationLimit - 1) {
+            /// \todo only do motionBlur for final iter
+            output.update(fb.motionBlur(), {}, iteration == fixed.iterationLimit - 1);
+        }
     }
 }
 
@@ -158,7 +166,11 @@ void RayTracer::refine(const RenderParams& params, const Size iteration, FrameBu
     Pixel actSize;
     actSize.x = params.size.x / level + sgn(params.size.x % level);
     actSize.y = params.size.y / level + sgn(params.size.y % level);
-    Bitmap<Rgba> bitmap(actSize);
+    Bitmap<ShadeResult> bitmap(actSize);
+
+    CameraState camera;
+    camera.position = params.camera->unproject(Coords(actSize) * 0.5f)->origin;
+    camera.velocity = params.camera->getVelocity();
 
     const bool first = (iteration == 0);
     parallelFor(*scheduler,
@@ -166,7 +178,7 @@ void RayTracer::refine(const RenderParams& params, const Size iteration, FrameBu
         0,
         Size(bitmap.size().y),
         1,
-        [this, &bitmap, &params, level, first](Size y, ThreadData& data) {
+        [this, &bitmap, &params, &camera, level, first](Size y, ThreadData& data) {
             if (!shouldContinue && !first) {
                 return;
             }
@@ -175,21 +187,21 @@ void RayTracer::refine(const RenderParams& params, const Size iteration, FrameBu
                                      sampleTent2d(level, params.surface.filterWidth / 2.f, data.rng);
                 const Optional<CameraRay> cameraRay = params.camera->unproject(pixel);
                 if (!cameraRay) {
-                    bitmap[Pixel(x, y)] = Rgba::black();
+                    bitmap[Pixel(x, y)] = ShadeResult::black();
                     continue;
                 }
 
                 const Vector dir = getNormalized(cameraRay->target - cameraRay->origin);
                 const Ray ray(cameraRay->origin, dir);
 
-                Rgba accumulatedColor = Rgba::transparent();
+                ShadeResult shadeResult = ShadeResult::black();
                 if (Optional<Vector> hit = this->intersect(data, ray, params.surface.level, false)) {
-                    accumulatedColor =
-                        this->shade(data, params, data.previousIdx, hit.value(), ray.direction());
+                    shadeResult =
+                        this->shade(data, params, camera, data.previousIdx, hit.value(), ray.direction());
                 } else {
-                    accumulatedColor = this->getEnviroColor(ray);
+                    shadeResult = this->getEnviroColor(ray);
                 }
-                bitmap[Pixel(x, y)] = accumulatedColor;
+                bitmap[Pixel(x, y)] = shadeResult;
             }
         });
 
@@ -199,7 +211,7 @@ void RayTracer::refine(const RenderParams& params, const Size iteration, FrameBu
     if (level == 1) {
         fb.accumulate(bitmap);
     } else {
-        Bitmap<Rgba> full(params.size);
+        Bitmap<ShadeResult> full(params.size);
         for (Size y = 0; y < Size(full.size().y); ++y) {
             for (Size x = 0; x < Size(full.size().x); ++x) {
                 full[Pixel(x, y)] = bitmap[Pixel(x / level, y / level)];
@@ -297,8 +309,9 @@ Optional<Vector> RayTracer::getSurfaceHit(ThreadData& data,
     }
 }
 
-Rgba RayTracer::shade(ThreadData& data,
+ShadeResult RayTracer::shade(ThreadData& data,
     const RenderParams& params,
+    const CameraState& camera,
     const Size index,
     const Vector& hit,
     const Vector& dir) const {
@@ -314,13 +327,13 @@ Rgba RayTracer::shade(ThreadData& data,
     }
 
     // evaluate color before checking for occlusion as that invalidates the neighbour list
-    const Rgba colorizerValue = this->evalColor(data.neighs, hit);
+    ShadeResult result = this->evalColor(data.neighs, hit, camera);
 
     Rgba emission = Rgba::black();
     if (cached.doEmission) {
-        emission = colorizerValue * params.surface.emission;
+        emission = result.color * params.surface.emission;
     } else {
-        diffuse = diffuse * colorizerValue;
+        diffuse = diffuse * result.color;
     }
 
     // compute normal = gradient of the field
@@ -330,7 +343,8 @@ Rgba RayTracer::shade(ThreadData& data,
     const Float cosPhi = dot(n_norm, fixed.dirToSun);
     if (cosPhi <= 0._f) {
         // not illuminated -> just ambient light + emission
-        return diffuse * params.surface.ambientLight + emission;
+        result.color = diffuse * params.surface.ambientLight + emission;
+        return result;
     }
 
     // check for occlusion
@@ -338,14 +352,17 @@ Rgba RayTracer::shade(ThreadData& data,
         Ray rayToSun(hit - 1.e-3_f * fixed.dirToSun, -fixed.dirToSun);
         if (this->intersect(data, rayToSun, params.surface.level, true)) {
             // casted shadow
-            return diffuse * params.surface.ambientLight + emission;
+            result.color = diffuse * params.surface.ambientLight + emission;
+            return result;
         }
     }
 
     // evaluate BRDF
     const Float f = fixed.brdf->transport(n_norm, -dir, fixed.dirToSun);
 
-    return diffuse * (PI * f * cosPhi * params.surface.sunLight + params.surface.ambientLight) + emission;
+    result.color =
+        diffuse * (PI * f * cosPhi * params.surface.sunLight + params.surface.ambientLight) + emission;
+    return result;
 }
 
 Float RayTracer::evalField(ArrayView<const Size> neighs, const Vector& pos1) const {
@@ -355,7 +372,7 @@ Float RayTracer::evalField(ArrayView<const Size> neighs, const Vector& pos1) con
         const Vector& pos2 = cached.r[index];
         /// \todo could be optimized by using n.distSqr, no need to compute the dot again
         const Float w = kernel.value(pos1 - pos2, pos2[H]);
-        value += cached.v[index] * w;
+        value += cached.volume[index] * w;
     }
     return value;
 }
@@ -365,24 +382,35 @@ Vector RayTracer::evalGradient(ArrayView<const Size> neighs, const Vector& pos1)
     for (Size index : neighs) {
         const Vector& pos2 = cached.r[index];
         const Vector grad = kernel.grad(pos1 - pos2, pos2[H]);
-        value += cached.v[index] * grad;
+        value += cached.volume[index] * grad;
     }
     return value;
 }
 
-Rgba RayTracer::evalColor(ArrayView<const Size> neighs, const Vector& pos1) const {
+ShadeResult RayTracer::evalColor(ArrayView<const Size> neighs,
+    const Vector& pos1,
+    const CameraState& camera) const {
     ASSERT(!neighs.empty());
     Rgba color = Rgba::black();
+    Vector velocity = Vector(0._f);
     Float weightSum = 0._f;
     for (Size index : neighs) {
         const Vector& pos2 = cached.r[index];
         /// \todo could be optimized by using n.distSqr, no need to compute the dot again
-        const Float w = kernel.value(pos1 - pos2, pos2[H]) * cached.v[index];
+        const Float w = kernel.value(pos1 - pos2, pos2[H]) * cached.volume[index];
         color += cached.colors[index] * w;
+        velocity += (cached.r[index] - previous.r[index]) * w;
         weightSum += w;
     }
     ASSERT(weightSum != 0._f);
-    return color / weightSum;
+
+    ShadeResult result;
+    result.color = color / weightSum;
+    const Float z = getLength(pos1 - camera.position);
+    result.velocity = vectorCast<float>(velocity / weightSum /*- camera.velocity*/); // / z);
+    result.depth = z;
+    result.weight = 1.f;
+    return result;
 }
 
 constexpr Float SEAM_WIDTH = 0.1_f;
@@ -394,7 +422,7 @@ Vector RayTracer::evalUvws(ArrayView<const Size> neighs, const Vector& pos1) con
     int seamFlag = 0;
     for (Size index : neighs) {
         const Vector& pos2 = cached.r[index];
-        const Float weight = kernel.value(pos1 - pos2, pos2[H]) * cached.v[index];
+        const Float weight = kernel.value(pos1 - pos2, pos2[H]) * cached.volume[index];
         uvws += cached.uvws[index] * weight;
         weightSum += weight;
         seamFlag |= cached.uvws[index][X] < SEAM_WIDTH ? 0x01 : 0;
@@ -407,7 +435,7 @@ Vector RayTracer::evalUvws(ArrayView<const Size> neighs, const Vector& pos1) con
         for (Size index : neighs) {
             const Vector& pos2 = cached.r[index];
             /// \todo optimize - cache the kernel values
-            const Float weight = kernel.value(pos1 - pos2, pos2[H]) * cached.v[index];
+            const Float weight = kernel.value(pos1 - pos2, pos2[H]) * cached.volume[index];
             Vector uvw = cached.uvws[index];
             // if near the seam, subtract 1 to make the u-mapping continuous
             uvw[X] -= (uvw[X] > 0.5_f) ? 1._f : 0._f;
@@ -424,7 +452,7 @@ Vector RayTracer::evalUvws(ArrayView<const Size> neighs, const Vector& pos1) con
     }
 }
 
-Rgba RayTracer::getEnviroColor(const Ray& ray) const {
+ShadeResult RayTracer::getEnviroColor(const Ray& ray) const {
     if (fixed.enviro.hdri.empty()) {
         return fixed.enviro.color;
     } else {

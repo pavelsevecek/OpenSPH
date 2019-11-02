@@ -661,8 +661,8 @@ private:
     ArrayRef<const Float> u;
     Palette palette;
 
-    const float u_red = 3.e5_f;
-    const float u_yellow = 5.e6_f;
+    const float u_red = 3.e3_f;
+    const float u_yellow = 5.e5_f;
     const float u_glow = 0.5_f * u_red;
 
 public:
@@ -688,7 +688,7 @@ public:
     }
 
     virtual Optional<Float> evalScalar(const Size idx) const override {
-        return max(0._f, (u[idx] - u_glow) / u_red);
+        return max(0._f, u[idx] / u_red); //(u[idx] - u_glow) / u_red);
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {

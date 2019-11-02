@@ -13,8 +13,14 @@
 NAMESPACE_SPH_BEGIN
 
 class FrameBuffer;
+struct ShadeResult;
 struct Seeder;
 class IBrdf;
+
+struct CameraState {
+    Vector position;
+    Vector velocity;
+};
 
 class RayTracer : public IRenderer {
 private:
@@ -81,6 +87,7 @@ private:
 
     mutable ThreadLocal<ThreadData> threadData;
 
+    /// Cached values since last call of \ref initialize
     struct {
         /// Particle positions
         Array<Vector> r;
@@ -92,7 +99,7 @@ private:
         Array<Vector> uvws;
 
         /// Particle volume (=mass/density)
-        Array<Float> v;
+        Array<Float> volume;
 
         /// Particle indices
         Array<Size> flags;
@@ -101,6 +108,13 @@ private:
         bool doEmission;
 
     } cached;
+
+    /// Cached values from the previous frame, used to compute MB
+    struct {
+        /// Particle positions
+        Array<Vector> r;
+
+    } previous;
 
     mutable std::atomic_bool shouldContinue;
 
@@ -158,21 +172,22 @@ private:
         const bool occlusion) const;
 
     /// \brief Returns the color of given hit point.
-    Rgba shade(ThreadData& data,
+    ShadeResult shade(ThreadData& data,
         const RenderParams& params,
+        const CameraState& camera,
         const Size index,
         const Vector& hit,
         const Vector& dir) const;
 
-    Rgba getEnviroColor(const Ray& ray) const;
+    ShadeResult getEnviroColor(const Ray& ray) const;
 
     Float evalField(ArrayView<const Size> neighs, const Vector& pos) const;
 
     Vector evalGradient(ArrayView<const Size> neighs, const Vector& pos) const;
 
-    Rgba evalColor(ArrayView<const Size> neighs, const Vector& pos1) const;
+    ShadeResult evalColor(ArrayView<const Size> neighs, const Vector& pos, const CameraState& camera) const;
 
-    Vector evalUvws(ArrayView<const Size> neighs, const Vector& pos1) const;
+    Vector evalUvws(ArrayView<const Size> neighs, const Vector& pos) const;
 };
 
 NAMESPACE_SPH_END
