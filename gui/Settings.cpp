@@ -32,6 +32,8 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Index of the particle tracked by the camera. -1 means no tracking is used. " },
     { GuiSettingsId::CAMERA_TRACK_MEDIAN, "camera.track_median",  false,
         "If true, camera tracks the median position of particles. Not used if camera.track_particle is set." },
+    { GuiSettingsId::CAMERA_TRACKING_OFFSET, "camera.tracking_offset",  Vector(0._f),
+        "Constant offset from the median." },
 
     /// Particle visualization
     { GuiSettingsId::RENDERER,              "renderer",             RendererEnum::PARTICLE,

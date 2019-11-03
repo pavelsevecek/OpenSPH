@@ -1,5 +1,5 @@
 TEMPLATE = app
-CONFIG += c++14 thread silent
+CONFIG += c++14 thread
 CONFIG -= app_bundle
 CONFIG -= qt
 

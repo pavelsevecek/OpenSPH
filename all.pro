@@ -10,6 +10,7 @@ SUBDIRS = lib \
           cli/sandbox \
           gui \
           gui/launcherGui \
+          gui/sandboxGui \
           test \
           bench \
           post \
@@ -20,7 +21,6 @@ SUBDIRS = lib \
           examples/05_fragmentation_reaccumulation \
           examples/06_heat_diffusion
 
-
 run.depends = lib
 launcher.depends = lib
 impact.depends = lib
@@ -29,6 +29,7 @@ problems.depends = lib
 sandbox.depends = lib
 gui.depends = lib
 launcherGui.depends = lib gui
+sandboxGui.depends = lib gui
 test.depends = lib
 bench.depends = lib
 01_hello_asteroid.depends = lib

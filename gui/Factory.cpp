@@ -17,7 +17,8 @@ static ClonePtr<ITracker> getTracker(const GuiSettings& settings) {
     }
     const bool useMedian = settings.get<bool>(GuiSettingsId::CAMERA_TRACK_MEDIAN);
     if (useMedian) {
-        return makeClone<MedianTracker>();
+        const Vector offset = settings.get<Vector>(GuiSettingsId::CAMERA_TRACKING_OFFSET);
+        return makeClone<MedianTracker>(offset);
     }
     return nullptr;
 }

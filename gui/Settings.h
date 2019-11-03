@@ -132,6 +132,8 @@ enum class GuiSettingsId {
 
     CAMERA_TRACK_MEDIAN,
 
+    CAMERA_TRACKING_OFFSET,
+
     VIEW_WIDTH,
 
     VIEW_HEIGHT,

@@ -1,17 +1,27 @@
 #pragma once
 
 #include "gui/objects/Bitmap.h"
+#include "gui/objects/Filmic.h"
 
 NAMESPACE_SPH_BEGIN
 
 class FrameBuffer : public Noncopyable {
 private:
+    FilmicMapping filmic;
     Bitmap<Rgba> values;
     Size passCnt = 0;
 
 public:
     explicit FrameBuffer(const Pixel resolution) {
         values.resize(resolution, Rgba::transparent());
+
+        FilmicMapping::UserParams params;
+        params.toeStrength = 0.1f;
+        params.toeLength = 0.1f;
+        params.shoulderStrength = 2.f;
+        params.shoulderLength = 0.4f;
+        params.shoulderAngle = 0.f;
+        filmic.create(params);
     }
 
     void accumulate(const Bitmap<Rgba>& pass) {
@@ -31,8 +41,16 @@ public:
         passCnt = 1;
     }
 
-    const Bitmap<Rgba>& bitmap() const {
-        return values;
+    Bitmap<Rgba> getBitmap() const {
+        Bitmap<Rgba> colormapped(values.size());
+        for (int y = 0; y < values.size().y; ++y) {
+            for (int x = 0; x < values.size().x; ++x) {
+                const Rgba color = values[Pixel(x, y)];
+                colormapped[Pixel(x, y)] =
+                    Rgba(filmic(color.r()), filmic(color.g()), filmic(color.b()), color.a());
+            }
+        }
+        return colormapped;
     }
 };
 

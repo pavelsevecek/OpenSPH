@@ -110,7 +110,13 @@ public:
 };
 
 class MedianTracker : public ITracker {
+private:
+    Vector offset;
+
 public:
+    explicit MedianTracker(const Vector& offset)
+        : offset(offset) {}
+
     virtual Pair<Vector> getCameraState(const Storage& storage) const override;
 };
 
@@ -128,7 +134,7 @@ struct CameraData {
     Vector up = Vector(0._f, 1._f, 0._f);
 
     /// Defines the clipping planes of the camera.
-    Interval clipping = Interval(0._f, INFTY);
+    Interval clipping = Interval(EPS, INFTY);
 
     /// Object returning position of the camera based on current particle state.
     ClonePtr<ITracker> tracker = nullptr;

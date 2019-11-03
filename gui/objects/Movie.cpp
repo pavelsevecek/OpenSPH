@@ -52,8 +52,6 @@ INLINE std::string escapeColorizerName(const std::string& name) {
 
 class MovieRenderOutput : public IRenderOutput {
 private:
-    wxBitmap wx;
-
     std::condition_variable waitVar;
     std::mutex waitMutex;
 
@@ -87,6 +85,7 @@ public:
 private:
     void updateMainThread(const Bitmap<Rgba>& bitmap, Array<Label>&& labels) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+        wxBitmap wx;
         toWxBitmap(bitmap, wx);
         wxMemoryDC dc(wx);
         printLabels(dc, labels);

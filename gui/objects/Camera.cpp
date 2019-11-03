@@ -29,7 +29,7 @@ Pair<Vector> MedianTracker::getCameraState(const Storage& storage) const {
     std::nth_element(x.begin(), x.begin() + mid, x.end());
     std::nth_element(y.begin(), y.begin() + mid, y.end());
     std::nth_element(z.begin(), z.begin() + mid, z.end());
-    return { Vector(x[mid], y[mid], z[mid]), Vector(0._f) };
+    return { Vector(x[mid], y[mid], z[mid]) + offset, Vector(0._f) };
 }
 
 
@@ -366,7 +366,7 @@ FisheyeCamera::FisheyeCamera(const CameraData& data)
 }
 
 Optional<CameraRay> FisheyeCamera::unproject(const Coords& coords) const {
-    Coords p = (coords - cached.center) / cached.radius;
+    const Coords p = (coords - cached.center) / cached.radius;
     const Float r = getLength(p);
     if (r > 1._f) {
         return NOTHING;
@@ -393,7 +393,7 @@ void FisheyeCamera::update() {
 
     const Vector left = getNormalized(cross(up, dir));
 
-    matrix = AffineMatrix(up, left, dir);
+    matrix = AffineMatrix(up, left, dir).inverse();
 
     cached.center = Coords(data.imageSize.x / 2, data.imageSize.y / 2);
     cached.radius = min(cached.center.x, cached.center.y);

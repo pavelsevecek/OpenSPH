@@ -108,8 +108,10 @@ VirtualSettings AnimationWorker::getSettings() {
         .setEnabler(orthoEnabler);
     cameraCat.connect<int>("Track particle", gui, GuiSettingsId::CAMERA_TRACK_PARTICLE);
     cameraCat.connect<bool>("Track median", gui, GuiSettingsId::CAMERA_TRACK_MEDIAN).setEnabler([this] {
-        return gui.get<int>(GuiSettingsId::CAMERA_TRACK_PARTICLE) != -1;
+        return gui.get<int>(GuiSettingsId::CAMERA_TRACK_PARTICLE) == -1;
     });
+    cameraCat.connect<Vector>("Tracking offset", gui, GuiSettingsId::CAMERA_TRACKING_OFFSET)
+        .setEnabler([this] { return gui.get<bool>(GuiSettingsId::CAMERA_TRACK_MEDIAN); });
     cameraCat.connect<Float>("Cutoff distance [km]", gui, GuiSettingsId::CAMERA_ORTHO_CUTOFF)
         .setUnits(1.e3_f)
         .setEnabler(orthoEnabler);

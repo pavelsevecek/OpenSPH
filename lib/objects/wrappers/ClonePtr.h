@@ -165,7 +165,7 @@ INLINE bool operator!=(const std::nullptr_t&, const ClonePtr<T>& ptr) {
 
 template <typename T, typename... TArgs>
 INLINE ClonePtr<T> makeClone(TArgs&&... args) {
-    return ClonePtr<T>(new T(std::forward<TArgs>(args)...));
+    return ClonePtr<T>(alignedNew<T>(std::forward<TArgs>(args)...));
 }
 
 NAMESPACE_SPH_END

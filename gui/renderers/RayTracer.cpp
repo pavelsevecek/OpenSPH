@@ -131,7 +131,7 @@ void RayTracer::render(const RenderParams& params, Statistics& UNUSED(stats), IR
     FrameBuffer fb(params.size);
     for (Size iteration = 0; iteration < fixed.iterationLimit && shouldContinue; ++iteration) {
         this->refine(params, iteration, fb);
-        output.update(fb.bitmap(), {}, iteration == fixed.iterationLimit - 1);
+        output.update(fb.getBitmap(), {}, iteration == fixed.iterationLimit - 1);
     }
 }
 
