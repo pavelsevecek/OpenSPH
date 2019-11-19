@@ -186,12 +186,12 @@ MainWindow::MainWindow(const Path& openPath)
             desc += "Parallelization: built-in thread pool\n";
 #endif
 #ifdef SPH_USE_EIGEN
-            decs += "Eigen: enabled\n";
+            desc += "Eigen: enabled\n";
 #else
             desc += "OpenVDB: disabled\n";
 #endif
 #ifdef SPH_USE_VDB
-            decs += "OpenVDB: enabled\n";
+            desc += "OpenVDB: enabled\n";
 #else
             desc += "OpenVDB: disabled\n";
 #endif

@@ -39,6 +39,11 @@ public:
     virtual void finalize(Storage& storage) = 0;
 };
 
+struct NullBoundaryCondition : public IBoundaryCondition {
+    virtual void initialize(Storage& UNUSED(storage)) override {}
+    virtual void finalize(Storage& UNUSED(storage)) override {}
+};
+
 /// \brief Provides a way to access ghost particle data outside the solver.
 class GhostParticlesData : public IStorageUserData {
 private:

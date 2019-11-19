@@ -239,11 +239,6 @@ AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& body,
     }
 }
 
-struct NullBoundaryCondition : public IBoundaryCondition {
-    virtual void initialize(Storage& UNUSED(storage)) override {}
-    virtual void finalize(Storage& UNUSED(storage)) override {}
-};
-
 template <typename TSolver>
 static AutoPtr<ISolver> getActualSolver(IScheduler& scheduler,
     const RunSettings& settings,

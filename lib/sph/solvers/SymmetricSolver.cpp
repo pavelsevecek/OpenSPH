@@ -59,7 +59,7 @@ void SymmetricSolver::integrate(Storage& storage, Statistics& stats) {
         material->initialize(scheduler, storage, material.sequence());
     }
 
-    const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+    const Float t = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
 
     // initialize all equation terms (applies dependencies between quantities)
     equations.initialize(scheduler, storage, t);

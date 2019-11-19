@@ -5,13 +5,14 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2019
 
-#ifdef SPH_USE_CHAISCRIPT
-
 #include "post/Analysis.h"
 #include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "system/Factory.h"
 #include "thread/Scheduler.h"
+
+#ifdef SPH_USE_CHAISCRIPT
+
 #include <chaiscript/chaiscript.hpp>
 #include <numeric>
 

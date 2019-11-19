@@ -2,6 +2,8 @@
 
 NAMESPACE_SPH_BEGIN
 
+#ifdef SPH_USE_CHAISCRIPT
+
 Chai::Particles::Particles(const Size particleCnt) {
     Array<Vector> r(particleCnt);
     r.fill(Vector(0._f, 0._f, 0._f, EPS));
@@ -220,5 +222,7 @@ void Chai::registerBindings(chaiscript::ChaiScript& chai) {
     chai.add_global_const(chaiscript::const_var(Constants::M_sun), "M_sun");
     chai.add_global_const(chaiscript::const_var(Constants::gravity), "G");
 }
+
+#endif
 
 NAMESPACE_SPH_END

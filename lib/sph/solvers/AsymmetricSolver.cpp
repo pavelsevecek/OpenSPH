@@ -95,7 +95,7 @@ void AsymmetricSolver::beforeLoop(Storage& storage, Statistics& stats) {
     bc->initialize(storage);
 
     // initialize all equation terms (applies dependencies between quantities)
-    const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+    const Float t = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
     equations.initialize(scheduler, storage, t);
 
     // sets up references to storage buffers for all derivatives
@@ -150,7 +150,7 @@ void AsymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {
     accumulated.store(storage);
 
     // using the stored values, integrates all equation terms
-    const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+    const Float t = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
     equations.finalize(scheduler, storage, t);
 
     // lastly, finalize boundary conditions, to make sure the computed quantities will not change any further

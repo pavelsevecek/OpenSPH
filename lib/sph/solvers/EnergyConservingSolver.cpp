@@ -188,7 +188,7 @@ void EnergyConservingSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
 }
 
 void EnergyConservingSolver::beforeLoop(Storage& storage, Statistics& stats) {
-    const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+    const Float t = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
     equations.initialize(scheduler, storage, t);
     derivatives.initialize(storage);
     const Size particleCnt = storage.getParticleCnt();
@@ -204,7 +204,7 @@ void EnergyConservingSolver::afterLoop(Storage& storage, Statistics& stats) {
     Accumulated& accumulated = derivatives.getAccumulated();
     accumulated.store(storage);
 
-    const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+    const Float t = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
     equations.finalize(scheduler, storage, t);
 
     // now, we have computed everything that modifies the energy derivatives, so we can override it with stuff
