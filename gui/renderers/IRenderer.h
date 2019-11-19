@@ -16,6 +16,7 @@ NAMESPACE_SPH_BEGIN
 template <typename T>
 class Bitmap;
 class ICamera;
+class ITracker;
 class IColorizer;
 class Statistics;
 class GuiSettings;
@@ -56,6 +57,11 @@ struct RenderParams {
 
     /// \brief Camera used for rendering.
     AutoPtr<ICamera> camera;
+
+    /// \brief Tracker used for camera motion.
+    ///
+    /// May be nullptr for static camera.
+    AutoPtr<ITracker> tracker;
 
     /// \brief Background color of the rendered image.
     Rgba background = Rgba::black();

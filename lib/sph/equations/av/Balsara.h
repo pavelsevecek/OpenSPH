@@ -113,12 +113,12 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(IScheduler& scheduler, Storage& storage) override {
-        av.initialize(scheduler, storage);
+    virtual void initialize(IScheduler& scheduler, Storage& storage, const Float t) override {
+        av.initialize(scheduler, storage, t);
     }
 
-    virtual void finalize(IScheduler& scheduler, Storage& storage) override {
-        av.finalize(scheduler, storage);
+    virtual void finalize(IScheduler& scheduler, Storage& storage, const Float t) override {
+        av.finalize(scheduler, storage, t);
 
         if (storeFactor) {
             ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);

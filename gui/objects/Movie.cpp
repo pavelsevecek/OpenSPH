@@ -104,8 +104,12 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
 }
 
 void Movie::save(const Storage& storage, Statistics& stats) {
-    // initialize the camera (shared for all colorizers)
-    params.camera->initialize(storage);
+    // move the camera (shared for all colorizers)
+    if (params.tracker != nullptr) {
+        Vector pos, vel;
+        tie(pos, vel) = params.tracker->getCameraState(storage);
+        params.camera->moveTo(pos);
+    }
 
     const Path path = paths.getNextPath(stats);
     FileSystem::createDirectory(path.parentPath());

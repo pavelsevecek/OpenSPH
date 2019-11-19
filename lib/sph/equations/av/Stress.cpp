@@ -93,7 +93,7 @@ void StressAV::setDerivatives(DerivativeHolder& derivatives, const RunSettings& 
     }
 }
 
-void StressAV::initialize(IScheduler& scheduler, Storage& storage) {
+void StressAV::initialize(IScheduler& scheduler, Storage& storage, const Float UNUSED(t)) {
     ArrayView<SymmetricTensor> as = storage.getValue<SymmetricTensor>(QuantityId::AV_STRESS);
     ArrayView<const TracelessTensor> s = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     ArrayView<const Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
@@ -115,7 +115,7 @@ void StressAV::initialize(IScheduler& scheduler, Storage& storage) {
     });
 }
 
-void StressAV::finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) {}
+void StressAV::finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage), const Float UNUSED(t)) {}
 
 void StressAV::create(Storage& storage, IMaterial& UNUSED(material)) const {
     Quantity& q = storage.insert<Float>(QuantityId::INTERPARTICLE_SPACING_KERNEL, OrderEnum::ZERO, 0._f);

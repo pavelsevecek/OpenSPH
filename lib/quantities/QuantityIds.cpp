@@ -60,6 +60,8 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Number of flaws", L"N_flaws", ValueEnum::INDEX);
     case QuantityId::STRESS_REDUCING:
         return QuantityMetadata("Yielding reduce", L"Red", ValueEnum::SCALAR);
+    case QuantityId::DISTENTION:
+        return QuantityMetadata("Distention", L"\u03B1" /*alpha*/, ValueEnum::SCALAR);
     case QuantityId::VELOCITY_GRADIENT:
         return QuantityMetadata("Velocity gradient", L"\u2207v" /*nabla v*/, ValueEnum::SYMMETRIC_TENSOR);
     case QuantityId::VELOCITY_DIVERGENCE:

@@ -117,6 +117,21 @@ enum class MoonEnum {
 /// \return Array of the same size of storage, marking each body in the storage; see MoonEnum.
 Array<MoonEnum> findMoons(const Storage& storage, const Float radius = 1._f, const Float limit = 0._f);
 
+/// \brief Find the number of moons of given body.
+///
+/// \param m Masses of bodies, sorted in descending order.
+/// \param r Positions and radii of bodies, sorted by mass (in descending order)
+/// \param v Velocities of bodies, sorted by mass (in descending order)
+/// \param i Index of the queried body
+/// \param radius Radius multiplier, may be used to exclude moons with pericenter very close to the body.
+/// \param limit Limiting mass radio, moons with masses lower than limit*m[i] are excluded.
+Size findMoonCount(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    ArrayView<const Vector> v,
+    const Size i,
+    const Float radius = 1._f,
+    const Float limit = 0._f);
+
 /// \brief Computes the center of mass.
 Vector getCenterOfMass(ArrayView<const Float> m,
     ArrayView<const Vector> r,

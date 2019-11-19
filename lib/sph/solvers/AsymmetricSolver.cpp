@@ -88,14 +88,15 @@ AsymmetricSolver::AsymmetricSolver(IScheduler& scheduler,
 AsymmetricSolver::~AsymmetricSolver() = default;
 
 
-void AsymmetricSolver::beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
+void AsymmetricSolver::beforeLoop(Storage& storage, Statistics& stats) {
     VERBOSE_LOG
 
     // initialize boundary conditions first, as they may change the number of particles (ghosts, killbox, ...)
     bc->initialize(storage);
 
     // initialize all equation terms (applies dependencies between quantities)
-    equations.initialize(scheduler, storage);
+    const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+    equations.initialize(scheduler, storage, t);
 
     // sets up references to storage buffers for all derivatives
     derivatives.initialize(storage);
@@ -149,7 +150,8 @@ void AsymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {
     accumulated.store(storage);
 
     // using the stored values, integrates all equation terms
-    equations.finalize(scheduler, storage);
+    const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+    equations.finalize(scheduler, storage, t);
 
     // lastly, finalize boundary conditions, to make sure the computed quantities will not change any further
     bc->finalize(storage);

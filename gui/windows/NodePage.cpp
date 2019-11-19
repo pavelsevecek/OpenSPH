@@ -10,6 +10,7 @@
 #include "run/SpecialEntries.h"
 #include "run/workers/IoWorkers.h"
 #include "run/workers/Presets.h"
+#include "run/workers/ScriptWorkers.h"
 #include "thread/CheckFunction.h"
 #include <wx/dcclient.h>
 #include <wx/dirdlg.h>
@@ -37,6 +38,10 @@ constexpr int SLOT_RADIUS = 6;
 
 /// \todo figure out why this is needed
 static AnimationWorker animationDummy("dummy");
+
+#ifdef SPH_USE_CHAISCRIPT
+static ChaiScriptWorker scriptDummy("dummy");
+#endif
 
 //-----------------------------------------------------------------------------------------------------------
 // NodeManager
@@ -329,6 +334,7 @@ public:
                 entry.set(input.get<Vector>(name));
                 break;
             case IVirtualEntry::Type::STRING:
+                entry.set(input.get<std::string>(name));
                 break;
             case IVirtualEntry::Type::PATH:
                 entry.set(input.get<Path>(name));

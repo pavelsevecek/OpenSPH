@@ -37,8 +37,6 @@ struct NumericLimits<uint32_t> {
 /// Can also be used with STL algorithms.
 template <typename T, typename TCounter = Size>
 class Array : public Noncopyable {
-    friend class VectorizedArray; // needs to explicitly set actSize
-
 private:
     using StorageType = typename WrapReferenceType<T>::Type;
     StorageType* data = nullptr;
@@ -299,9 +297,9 @@ public:
         data[actSize - 1] = std::forward<U>(u);
     }
 
-    template <typename U>
-    void pushAll(const Iterator<const U> first, const Iterator<const U> last) {
-        for (Iterator<const U> iter = first; iter != last; ++iter) {
+    template <typename TIter>
+    void pushAll(const TIter first, const TIter last) {
+        for (TIter iter = first; iter != last; ++iter) {
             push(*iter);
         }
     }

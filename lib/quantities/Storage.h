@@ -19,6 +19,7 @@ NAMESPACE_SPH_BEGIN
 
 class IMaterial;
 class Quantity;
+class Box;
 enum class OrderEnum;
 enum class VisitorEnum;
 
@@ -575,6 +576,17 @@ private:
     /// \brief Updates the cached matIds view.
     void update();
 };
+
+/// \brief Convenience function to get the bounding box of all particles.
+///
+/// This takes into account particle radii, using given kernel radius.
+Box getBoundingBox(const Storage& storage, const Float radius = 2._f);
+
+/// \brief Returns the center of mass of all particles.
+///
+/// Function can be called even if the storage does not store particle masses, in which case all particles are
+/// assumed to have equal mass.
+Vector getCenterOfMass(const Storage& storage);
 
 /// \brief Adds or updates a quantity holding particle indices to the storage.
 ///

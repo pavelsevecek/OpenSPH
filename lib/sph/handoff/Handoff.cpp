@@ -60,13 +60,7 @@ public:
     }
 
     virtual Box getBoundingBox() const override {
-        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-        Box box;
-        for (Size i : idxs) {
-            box.extend(r[i] + Vector(r[i][H]));
-            box.extend(r[i] - Vector(r[i][H]));
-        }
-        return box;
+        return Sph::getBoundingBox(storage);
     }
 
     virtual Float getVolume() const override {

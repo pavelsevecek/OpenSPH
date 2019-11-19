@@ -10,15 +10,15 @@
 
 NAMESPACE_SPH_BEGIN
 
-static ClonePtr<ITracker> getTracker(const GuiSettings& settings) {
+AutoPtr<ITracker> Factory::getTracker(const GuiSettings& settings) {
     const int trackedIndex = settings.get<int>(GuiSettingsId::CAMERA_TRACK_PARTICLE);
     if (trackedIndex >= 0) {
-        return makeClone<ParticleTracker>(trackedIndex);
+        return makeAuto<ParticleTracker>(trackedIndex);
     }
     const bool useMedian = settings.get<bool>(GuiSettingsId::CAMERA_TRACK_MEDIAN);
     if (useMedian) {
         const Vector offset = settings.get<Vector>(GuiSettingsId::CAMERA_TRACKING_OFFSET);
-        return makeClone<MedianTracker>(offset);
+        return makeAuto<MedianTracker>(offset);
     }
     return nullptr;
 }
@@ -32,12 +32,8 @@ AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Pixel siz
     data.up = settings.get<Vector>(GuiSettingsId::CAMERA_UP);
     data.clipping = Interval(settings.get<Float>(GuiSettingsId::CAMERA_CLIP_NEAR),
         settings.get<Float>(GuiSettingsId::CAMERA_CLIP_FAR));
-    data.tracker = getTracker(settings);
     data.perspective.fov = settings.get<Float>(GuiSettingsId::CAMERA_PERSPECTIVE_FOV);
     data.ortho.fov = settings.get<Float>(GuiSettingsId::CAMERA_ORTHO_FOV);
-    if (data.ortho.fov.value() == 0._f) {
-        data.ortho.fov = NOTHING;
-    }
     data.ortho.cutoff = settings.get<Float>(GuiSettingsId::CAMERA_ORTHO_CUTOFF);
     if (data.ortho.cutoff.value() == 0._f) {
         data.ortho.cutoff = NOTHING;

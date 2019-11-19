@@ -413,6 +413,32 @@ Array<Post::MoonEnum> Post::findMoons(const Storage& storage, const Float radius
     return statuses;
 }
 
+Size Post::findMoonCount(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    ArrayView<const Vector> v,
+    const Size i,
+    const Float radius,
+    const Float limit) {
+    ASSERT(std::is_sorted(m.begin(), m.end(), std::greater<Float>{}));
+    ASSERT(r.size() == m.size());
+
+    Size count = 0;
+    for (Size j = i + 1; j < r.size(); ++j) {
+        if (m[j] < limit * m[i]) {
+            break;
+        }
+
+        Optional<KeplerianElements> elements =
+            findKeplerEllipse(m[i] + m[j], m[i] * m[j] / (m[i] + m[j]), r[i] - r[j], v[i] - v[j]);
+
+        if (elements && elements->pericenterDist() > radius * (r[i][H] + r[j][H])) {
+            count++;
+        }
+    }
+
+    return count;
+}
+
 Array<Post::Tumbler> Post::findTumblers(const Storage& storage, const Float limit) {
     Array<Tumbler> tumblers;
     ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
@@ -523,12 +549,7 @@ Vector Post::getAngularFrequency(ArrayView<const Float> m,
 }
 
 Float Post::getSphericity(IScheduler& scheduler, const Storage& storage, const Float resolution) {
-    Box boundingBox;
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    for (Size i = 0; i < r.size(); ++i) {
-        boundingBox.extend(r[i]);
-    }
-
+    const Box boundingBox = getBoundingBox(storage);
     Array<Triangle> mesh =
         getSurfaceMesh(scheduler, storage, resolution * maxElement(boundingBox.size()), 0.15_f);
     Float area = 0._f;

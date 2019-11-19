@@ -68,9 +68,13 @@ public:
         derivatives.require(makeAuto<DisplacementGradient>(settings));
     }
 
-    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const Float UNUSED(t)) override {}
 
-    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
+    virtual void finalize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const Float UNUSED(t)) override {}
 
     virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
         storage.insert<Float>(QuantityId::PRESSURE, OrderEnum::ZERO, 0._f);

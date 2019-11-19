@@ -12,6 +12,7 @@ NAMESPACE_SPH_BEGIN
 class IGravity;
 class IScheduler;
 class EquationHolder;
+class IBoundaryCondition;
 class Accumulated;
 
 /// \brief Extension of a generic SPH solver, including gravitational interactions of particles.
@@ -27,10 +28,18 @@ public:
     /// \brief Creates the gravity solver, used implementation of gravity given by settings parameters.
     GravitySolver(IScheduler& scheduler, const RunSettings& settings, const EquationHolder& equations);
 
-    /// \brief Creates the gravity solver by explicitly specifying the gravity implementation.
+    /// \brief Creates the gravity solver by explicitly specifying the boundary conditions.
     GravitySolver(IScheduler& scheduler,
         const RunSettings& settings,
         const EquationHolder& equations,
+        AutoPtr<IBoundaryCondition>&& bc);
+
+    /// \brief Creates the gravity solver by explicitly specifying the boundary conditions and gravity
+    /// implementation.
+    GravitySolver(IScheduler& scheduler,
+        const RunSettings& settings,
+        const EquationHolder& equations,
+        AutoPtr<IBoundaryCondition>&& bc,
         AutoPtr<IGravity>&& gravity);
 
     ~GravitySolver();

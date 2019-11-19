@@ -70,11 +70,11 @@ struct TestEquation : public IEquationTerm {
         flags.set(Status::DERIVATIVES_SET);
     }
 
-    virtual void initialize(IScheduler&, Storage&) override {
+    virtual void initialize(IScheduler&, Storage&, const Float) override {
         flags.set(Status::INITIALIZED);
     }
 
-    virtual void finalize(IScheduler&, Storage&) override {
+    virtual void finalize(IScheduler&, Storage&, const Float) override {
         flags.set(Status::FINALIZED);
     }
 

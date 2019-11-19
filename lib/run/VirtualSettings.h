@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file VirtualSettings.h
+/// \brief Object providing connection between component parameters and values exposed to the user
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2019
+
 #include "io/Path.h"
 #include "objects/containers/UnorderedMap.h"
 #include "objects/wrappers/Function.h"

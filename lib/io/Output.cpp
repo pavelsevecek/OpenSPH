@@ -791,7 +791,7 @@ Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) const {
         return makeUnexpected<Info>("Invalid format specifier: expected SPH, got " + identifier);
     }
     info.runType = readRunType(runTypeBuffer, info.version);
-    return info;
+    return std::move(info);
 }
 
 // ----------------------------------------------------------------------------------------------------------

@@ -29,11 +29,7 @@ void MeshRenderer::initialize(const Storage& storage,
     const ICamera& UNUSED(camera)) {
     cached.colors.clear();
 
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    Box boundingBox;
-    for (Size i = 0; i < r.size(); ++i) {
-        boundingBox.extend(r[i]);
-    }
+    const Box boundingBox = getBoundingBox(storage);
     const Float dim = maxElement(boundingBox.size());
     // clamp to avoid extreme resolution (which would most likely cause bad alloc)
     const Float actResolution = clamp(surfaceResolution, 0.001_f * dim, 0.1_f * dim);
@@ -41,6 +37,7 @@ void MeshRenderer::initialize(const Storage& storage,
     // get the surface as triangles
     cached.triangles = getSurfaceMesh(*scheduler, storage, actResolution, surfaceLevel);
 
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     finder->build(*scheduler, r);
     Array<NeighbourRecord> neighs;
 

@@ -63,7 +63,6 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-
 class CylinderWorker : public IGeometryWorker {
 private:
     Float radius = 1.e5_f;
@@ -75,6 +74,24 @@ public:
     virtual std::string className() const override;
 
     virtual UnorderedMap<std::string, WorkerType> getSlots() const override;
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+};
+
+class HalfSpaceWorker : public IGeometryWorker {
+public:
+    explicit HalfSpaceWorker(const std::string& name)
+        : IGeometryWorker(name) {}
+
+    virtual std::string className() const override {
+        return "half space";
+    }
+
+    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+        return {};
+    }
 
     virtual VirtualSettings getSettings() override;
 

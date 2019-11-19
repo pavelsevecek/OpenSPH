@@ -175,7 +175,6 @@ static WorkerRegistrar sRegisterMonolithic(
 // DifferentiatedBodyIc
 // ----------------------------------------------------------------------------------------------------------
 
-
 DifferentiatedBodyIc::DifferentiatedBodyIc(const std::string& name)
     : IParticleWorker(name) {}
 
@@ -220,6 +219,46 @@ static WorkerRegistrar sRegisterDifferentiated(
     "Creates a body consisting of multiple different materials. The base shape/material describes the "
     "global shape of body and material of a particles not assigned to any layer. The indexed layers than "
     "assign a specific material to a subset of particles.");
+
+// ----------------------------------------------------------------------------------------------------------
+// SingleParticleIc
+// ----------------------------------------------------------------------------------------------------------
+
+VirtualSettings SingleParticleIc::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+    VirtualSettings::Category& particleCat = connector.addCategory("Particle");
+    particleCat.connect("Mass [M_sun]", "mass", mass).setUnits(Constants::M_sun);
+    particleCat.connect("Radius [R_sun]", "radius", radius).setUnits(Constants::R_sun);
+    particleCat.connect("Position [R_sun]", "r0", r0).setUnits(Constants::R_sun);
+    particleCat.connect("Velocity [R_sun/yr]", "v0", v0).setUnits(Constants::R_sun / Constants::year);
+
+    return connector;
+}
+
+void SingleParticleIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+    result = makeShared<ParticleData>();
+    BodySettings body;
+    body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE)
+        .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE)
+        .set(BodySettingsId::EOS, EosEnum::IDEAL_GAS); /// \todo only to allow pressure, should be done better
+    result->storage = Storage(Factory::getMaterial(body));
+
+    Vector pos = r0;
+    pos[H] = radius;
+    v0[H] = 0._f;
+    result->storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>({ pos }));
+    result->storage.getDt<Vector>(QuantityId::POSITION)[0] = v0;
+    result->storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, mass);
+}
+
+static WorkerRegistrar sRegisterSingleParticle(
+    "create single particle",
+    "particle",
+    "initial conditions",
+    [](const std::string& name) { return makeAuto<SingleParticleIc>(name); },
+    "Creates a single particle with given mass, providing a convenient central potential for simulations of "
+    "circumplanetary (circumstelar, circumbinary) disk.");
 
 // ----------------------------------------------------------------------------------------------------------
 // ImpactorIc

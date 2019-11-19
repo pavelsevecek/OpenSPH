@@ -122,6 +122,29 @@ static WorkerRegistrar sRegisterCylinder(
     "Geometric shape representing a cylinder aligned with z-axis, using provided radius and height.");
 
 //-----------------------------------------------------------------------------------------------------------
+// HalfSpaceWorker
+//-----------------------------------------------------------------------------------------------------------
+
+VirtualSettings HalfSpaceWorker::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+    return connector;
+}
+
+void HalfSpaceWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+    result = makeAuto<HalfSpaceDomain>();
+}
+
+static WorkerRegistrar sRegisterHalfSpace(
+    "half space",
+    "geometry",
+    [](const std::string& name) { return makeAuto<HalfSpaceWorker>(name); },
+    "Represents a half space z>0. Note that this cannot be used as a domain for generating particles as the "
+    "volume of the domain is infinite. It can be used as an input to a composite domain (boolean, etc.) or "
+    "as a domain for boundary conditions of a simulation.");
+
+
+//-----------------------------------------------------------------------------------------------------------
 // MeshGeometryWorker
 //-----------------------------------------------------------------------------------------------------------
 
@@ -177,11 +200,7 @@ VirtualSettings ParticleGeometryWorker::getSettings() {
 void ParticleGeometryWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
     Storage input = std::move(this->getInput<ParticleData>("particles")->storage);
     // sanitize the resolution
-    ArrayView<const Vector> r = input.getValue<Vector>(QuantityId::POSITION);
-    Box boundingBox;
-    for (Size i = 0; i < r.size(); ++i) {
-        boundingBox.extend(r[i]);
-    }
+    const Box boundingBox = getBoundingBox(input);
     const Float scale = maxElement(boundingBox.size());
     const Float actResolution = clamp(resolution, 0.001_f * scale, 0.25_f * scale);
 

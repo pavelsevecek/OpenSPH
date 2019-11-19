@@ -10,8 +10,8 @@ TEST_CASE("Heat Diffusion", "[heat]") {
     Storage storage = Tests::getGassStorage(100, settings);
     HeatDiffusionEquation eq;
     REQUIRE_NOTHROW(eq.create(storage, storage.getMaterial(0)));
-    REQUIRE_NOTHROW(eq.initialize(SEQUENTIAL, storage));
-    REQUIRE_NOTHROW(eq.finalize(SEQUENTIAL, storage));
+    REQUIRE_NOTHROW(eq.initialize(SEQUENTIAL, storage, 0._f));
+    REQUIRE_NOTHROW(eq.finalize(SEQUENTIAL, storage, 0._f));
 
     /// \todo more tests
 }

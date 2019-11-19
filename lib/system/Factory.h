@@ -33,6 +33,7 @@ class IRng;
 class IEquationTerm;
 class IScheduler;
 class Storage;
+class EquationHolder;
 enum class FinderFlag;
 template <Size D>
 class LutKernel;
@@ -58,6 +59,11 @@ AutoPtr<ISolver> getSolver(IScheduler& scheduler, const RunSettings& settings);
 AutoPtr<ISolver> getSolver(IScheduler& scheduler,
     const RunSettings& settings,
     AutoPtr<IBoundaryCondition>&& bc);
+
+AutoPtr<ISolver> getSolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    AutoPtr<IBoundaryCondition>&& bc,
+    const EquationHolder& additionalTerms);
 
 template <Size D>
 LutKernel<D> getKernel(const RunSettings& settings);
@@ -87,7 +93,7 @@ AutoPtr<IBoundaryCondition> getBoundaryConditions(const RunSettings& settings);
 
 AutoPtr<ISymmetricFinder> getFinder(const RunSettings& settings);
 
-SharedPtr<IScheduler> getScheduler(const RunSettings& settings);
+SharedPtr<IScheduler> getScheduler(const RunSettings& settings = RunSettings::getDefaults());
 
 
 /// \addtogroup Material components

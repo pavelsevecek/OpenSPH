@@ -40,7 +40,21 @@ EquationHolder getStandardEquations(const RunSettings& settings, const EquationH
 
     const Vector g = settings.get<Vector>(RunSettingsId::FRAME_CONSTANT_ACCELERATION);
     if (g != Vector(0._f)) {
-        equations += makeExternalForce([g](const Vector& UNUSED(r)) { return g; });
+        equations += makeExternalForce([g](const Vector& UNUSED(r), const Float UNUSED(t)) { return g; });
+    }
+
+    const Float M = settings.get<Float>(RunSettingsId::FRAME_TIDES_MASS);
+    if (M != 0._f) {
+        const Vector R = settings.get<Vector>(RunSettingsId::FRAME_TIDES_POSITION);
+        const Vector dir = getNormalized(R);
+        equations += makeExternalForce([M, R, dir](const Vector& r, const Float UNUSED(t)) {
+            return Constants::gravity * M * dot(r, dir) * dir / pow<3>(getLength(R));
+        });
+    }
+
+    if (settings.get<bool>(RunSettingsId::SPH_SCRIPT_ENABLE)) {
+        const Path scriptPath(settings.get<std::string>(RunSettingsId::SPH_SCRIPT_FILE));
+        equations += makeTerm<ChaiScriptTerm>(scriptPath);
     }
 
     equations += makeTerm<ContinuityEquation>(settings);

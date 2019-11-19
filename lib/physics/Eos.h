@@ -128,7 +128,34 @@ public:
     virtual Float getDensity(const Float p, const Float u) const override;
 };
 
-/// Murnaghan equation of state. Pressure is computed from density only (does not depend on energy).
+/// \brief Simplified Tillotsons equation of state, valid for small pressures and energies.
+///
+/// See \cite Jutzi_2008.
+class SimplifiedTillotsonEos : public IEos {
+private:
+    Float rho0;
+    Float A;
+    Float c;
+
+public:
+    explicit SimplifiedTillotsonEos(const BodySettings& settings);
+
+    virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
+
+    /// Currently not implemented.
+    virtual Float getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const override {
+        NOT_IMPLEMENTED;
+    }
+
+    /// Currently not implemented.
+    virtual Float getDensity(const Float UNUSED(p), const Float UNUSED(u)) const override {
+        NOT_IMPLEMENTED;
+    }
+};
+
+/// \brief Murnaghan equation of state.
+///
+/// Pressure is computed from density only (does not depend on energy).
 class MurnaghanEos : public IEos {
 private:
     Float rho0;

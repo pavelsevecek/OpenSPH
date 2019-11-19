@@ -70,7 +70,9 @@ public:
             .set(BodySettingsId::PARTICLE_COUNT, int(N));
 
         EquationHolder eqs = getStandardEquations(settings);
-        eqs += makeExternalForce([](const Vector UNUSED(r)) { return Vector(0._f, -9.81_f, 0._f); });
+        eqs += makeExternalForce([](const Vector UNUSED(r), const Float UNUSED(t)) { //
+            return Vector(0._f, -9.81_f, 0._f);
+        });
 
         AutoPtr<IDomain> boundary = Factory::getDomain(settings);
         AutoPtr<GhostParticles> bc = makeAuto<GhostParticles>(std::move(boundary), settings);

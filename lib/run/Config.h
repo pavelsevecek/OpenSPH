@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file Config.h
+/// \brief Interface for the configuration files storing worker data.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2019
+
 #include "io/Path.h"
 #include "objects/Exceptions.h"
 #include "objects/containers/UnorderedMap.h"

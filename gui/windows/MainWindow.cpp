@@ -167,7 +167,7 @@ MainWindow::MainWindow(const Path& openPath)
         case 0: {
             wxAboutDialogInfo info;
             info.SetName("OpenSPH");
-            info.SetVersion("0.2.1");
+            info.SetVersion("0.2.4");
 
             std::string desc;
 #ifdef SPH_DEBUG
@@ -179,11 +179,26 @@ MainWindow::MainWindow(const Path& openPath)
             desc += "Profiling enabled\n";
 #endif
 #ifdef SPH_USE_TBB
-            desc += "Parallelized by TBB";
+            desc += "Parallelization: TBB\n";
 #elif SPH_USE_OPENMP
-            desc += "Parallelized by OpenMP";
+            desc += "Parallelization: OpenMP\n";
 #else
-            desc += "Parallelized by built-in thread pool";
+            desc += "Parallelization: built-in thread pool\n";
+#endif
+#ifdef SPH_USE_EIGEN
+            decs += "Eigen: enabled\n";
+#else
+            desc += "OpenVDB: disabled\n";
+#endif
+#ifdef SPH_USE_VDB
+            decs += "OpenVDB: enabled\n";
+#else
+            desc += "OpenVDB: disabled\n";
+#endif
+#ifdef SPH_USE_CHAISCRIPT
+            desc += "Chaiscript: enabled";
+#else
+            desc += "Chaiscript: disabled";
 #endif
             info.SetDescription(desc);
             info.SetCopyright("Pavel Sevecek <sevecek@sirrah.troja.mff.cuni.cz>");

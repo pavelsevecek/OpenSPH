@@ -120,7 +120,7 @@ public:
 
     /// \addtogroup utility Utility functions
 
-    static constexpr Size npos = NumericLimits<Size>::max();
+    static Size npos;
 
     Size find(const String& s, const Size pos = 0) const;
 

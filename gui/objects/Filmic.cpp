@@ -16,6 +16,8 @@ float FilmicMapping::CurveSegment::eval(const float x) const {
     return y0 * scaleY + offsetY;
 }
 
+FilmicMapping::FilmicMapping() = default;
+
 void FilmicMapping::create(const UserParams& userParams) {
     DirectParams directParams;
     this->getDirectParams(directParams, userParams);
@@ -25,7 +27,7 @@ void FilmicMapping::create(const UserParams& userParams) {
 float FilmicMapping::operator()(const float x) const {
     const float normX = x * invW;
     int index = (normX < x0) ? 0 : ((normX < x1) ? 1 : 2);
-    CurveSegment segment = m_segments[index];
+    CurveSegment segment = segments[index];
     return segment.eval(normX);
 }
 
@@ -101,7 +103,7 @@ void FilmicMapping::create(const DirectParams& srcParams) {
         midSegment.lnA = g * logf(m);
         midSegment.B = g;
 
-        m_segments[1] = midSegment;
+        segments[1] = midSegment;
 
         toeM = EvalDerivativeLinearGamma(m, b, g, params.x0);
         shoulderM = EvalDerivativeLinearGamma(m, b, g, params.x1);
@@ -127,7 +129,7 @@ void FilmicMapping::create(const DirectParams& srcParams) {
         toeSegment.scaleY = 1.0f;
 
         SolveAB(toeSegment.lnA, toeSegment.B, params.x0, params.y0, toeM);
-        m_segments[0] = toeSegment;
+        segments[0] = toeSegment;
     }
 
     // shoulder section
@@ -150,24 +152,24 @@ void FilmicMapping::create(const DirectParams& srcParams) {
         shoulderSegment.lnA = lnA;
         shoulderSegment.B = B;
 
-        m_segments[2] = shoulderSegment;
+        segments[2] = shoulderSegment;
     }
 
     // Normalize so that we hit 1.0 at our white point. We wouldn't have do this if we
     // skipped the overshoot part.
     {
         // evaluate shoulder at the end of the curve
-        float scale = m_segments[2].eval(1.0f);
+        float scale = segments[2].eval(1.0f);
         float invScale = 1.0f / scale;
 
-        m_segments[0].offsetY *= invScale;
-        m_segments[0].scaleY *= invScale;
+        segments[0].offsetY *= invScale;
+        segments[0].scaleY *= invScale;
 
-        m_segments[1].offsetY *= invScale;
-        m_segments[1].scaleY *= invScale;
+        segments[1].offsetY *= invScale;
+        segments[1].scaleY *= invScale;
 
-        m_segments[2].offsetY *= invScale;
-        m_segments[2].scaleY *= invScale;
+        segments[2].offsetY *= invScale;
+        segments[2].scaleY *= invScale;
     }
 }
 

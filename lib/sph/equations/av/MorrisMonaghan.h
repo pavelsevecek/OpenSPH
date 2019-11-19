@@ -73,9 +73,11 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const Float UNUSED(t)) override {}
 
-    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& storage) override {
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& storage, const Float UNUSED(t)) override {
         ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         ArrayView<Float> alpha, dalpha;
         tie(alpha, dalpha) = storage.getAll<Float>(QuantityId::AV_ALPHA);

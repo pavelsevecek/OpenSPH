@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file SpecialEntries.h
+/// \brief Additional bindings to IVirtualSettings
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2019
+
 #include "math/Curve.h"
 #include "run/VirtualSettings.h"
 

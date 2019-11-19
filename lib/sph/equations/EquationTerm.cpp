@@ -81,9 +81,11 @@ void PressureForce::setDerivatives(DerivativeHolder& derivatives, const RunSetti
     }
 }
 
-void PressureForce::initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) {}
+void PressureForce::initialize(IScheduler& UNUSED(scheduler),
+    Storage& UNUSED(storage),
+    const Float UNUSED(t)) {}
 
-void PressureForce::finalize(IScheduler& scheduler, Storage& storage) {
+void PressureForce::finalize(IScheduler& scheduler, Storage& storage, const Float UNUSED(t)) {
     ArrayView<const Float> p, rho;
     tie(p, rho) = storage.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY);
     ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
@@ -165,9 +167,11 @@ void SolidStressForce::setDerivatives(DerivativeHolder& derivatives, const RunSe
     }
 }
 
-void SolidStressForce::initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) {}
+void SolidStressForce::initialize(IScheduler& UNUSED(scheduler),
+    Storage& UNUSED(storage),
+    const Float UNUSED(t)) {}
 
-void SolidStressForce::finalize(IScheduler& scheduler, Storage& storage) {
+void SolidStressForce::finalize(IScheduler& scheduler, Storage& storage, const Float UNUSED(t)) {
     ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
     ArrayView<TracelessTensor> s, ds;
     tie(s, ds) = storage.getAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
@@ -217,11 +221,13 @@ void NavierStokesForce::setDerivatives(DerivativeHolder& derivatives, const RunS
     derivatives.require(makeDerivative<VelocityGradient>(settings, DerivativeFlag::CORRECTED));
 }
 
-void NavierStokesForce::initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) {
+void NavierStokesForce::initialize(IScheduler& UNUSED(scheduler),
+    Storage& UNUSED(storage),
+    const Float UNUSED(t)) {
     TODO("implement");
 }
 
-void NavierStokesForce::finalize(IScheduler& UNUSED(scheduler), Storage& storage) {
+void NavierStokesForce::finalize(IScheduler& UNUSED(scheduler), Storage& storage, const Float UNUSED(t)) {
     ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
     ArrayView<TracelessTensor> s, ds;
     tie(s, ds) = storage.getAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
@@ -266,9 +272,11 @@ void ContinuityEquation::setDerivatives(DerivativeHolder& derivatives, const Run
     derivatives.require(makeDerivative<VelocityDivergence>(settings));
 }
 
-void ContinuityEquation::initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) {}
+void ContinuityEquation::initialize(IScheduler& UNUSED(scheduler),
+    Storage& UNUSED(storage),
+    const Float UNUSED(t)) {}
 
-void ContinuityEquation::finalize(IScheduler& scheduler, Storage& storage) {
+void ContinuityEquation::finalize(IScheduler& scheduler, Storage& storage, const Float UNUSED(t)) {
     ArrayView<Float> rho, drho;
     tie(rho, drho) = storage.getAll<Float>(QuantityId::DENSITY);
     ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
@@ -317,7 +325,9 @@ void AdaptiveSmoothingLength::setDerivatives(DerivativeHolder& derivatives, cons
     derivatives.require(makeDerivative<VelocityDivergence>(settings));
 }
 
-void AdaptiveSmoothingLength::initialize(IScheduler& UNUSED(scheduler), Storage& storage) {
+void AdaptiveSmoothingLength::initialize(IScheduler& UNUSED(scheduler),
+    Storage& storage,
+    const Float UNUSED(t)) {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     // clamp smoothing lengths
     for (Size i = 0; i < r.size(); ++i) {
@@ -325,7 +335,7 @@ void AdaptiveSmoothingLength::initialize(IScheduler& UNUSED(scheduler), Storage&
     }
 }
 
-void AdaptiveSmoothingLength::finalize(IScheduler& scheduler, Storage& storage) {
+void AdaptiveSmoothingLength::finalize(IScheduler& scheduler, Storage& storage, const Float UNUSED(t)) {
     ArrayView<const Float> divv, cs;
     tie(divv, cs) = storage.getValues<Float>(QuantityId::VELOCITY_DIVERGENCE, QuantityId::SOUND_SPEED);
     ArrayView<const Size> neighCnt = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
@@ -382,9 +392,11 @@ INLINE void AdaptiveSmoothingLength::enforce(const Size i,
 void ConstSmoothingLength::setDerivatives(DerivativeHolder& UNUSED(derivatives),
     const RunSettings& UNUSED(settings)) {}
 
-void ConstSmoothingLength::initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) {}
+void ConstSmoothingLength::initialize(IScheduler& UNUSED(scheduler),
+    Storage& UNUSED(storage),
+    const Float UNUSED(t)) {}
 
-void ConstSmoothingLength::finalize(IScheduler& scheduler, Storage& storage) {
+void ConstSmoothingLength::finalize(IScheduler& scheduler, Storage& storage, const Float UNUSED(t)) {
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     parallelFor(scheduler, 0, r.size(), [&v, &dv](const Size i) INL {

@@ -30,9 +30,9 @@ public:
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(IScheduler& scheduler, Storage& storage) override;
+    virtual void initialize(IScheduler& scheduler, Storage& storage, const Float t) override;
 
-    virtual void finalize(IScheduler& scheduler, Storage& storage) override;
+    virtual void finalize(IScheduler& scheduler, Storage& storage, const Float t) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 };

@@ -59,8 +59,10 @@ void SymmetricSolver::integrate(Storage& storage, Statistics& stats) {
         material->initialize(scheduler, storage, material.sequence());
     }
 
+    const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+
     // initialize all equation terms (applies dependencies between quantities)
-    equations.initialize(scheduler, storage);
+    equations.initialize(scheduler, storage, t);
 
     // apply boundary conditions before the loop
     bc->initialize(storage);
@@ -75,7 +77,7 @@ void SymmetricSolver::integrate(Storage& storage, Statistics& stats) {
     this->afterLoop(storage, stats);
 
     // integrate all equations
-    equations.finalize(scheduler, storage);
+    equations.finalize(scheduler, storage, t);
 
     // apply boundary conditions after the loop
     bc->finalize(storage);

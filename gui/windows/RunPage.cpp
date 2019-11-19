@@ -551,7 +551,22 @@ wxPanel* RunPage::createVisBar() {
         gui.set(GuiSettingsId::REFRESH_ON_TIMESTEP, evt.IsChecked());
     });
     autoRefresh->SetValue(gui.get<bool>(GuiSettingsId::REFRESH_ON_TIMESTEP));
+    autoRefresh->SetToolTip(
+        "When checked, the image is updated on every timestep, otherwise the image is only updated when "
+        "pressing the 'Refresh' button. Note that repainting the image on every timestep may decrease "
+        "the performance of the code.");
     visbarSizer->Add(autoRefresh);
+
+    wxCheckBox* autoCamera = new wxCheckBox(visbarPanel, wxID_ANY, "Auto-camera");
+    autoCamera->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
+        GuiSettings& gui = controller->getParams();
+        gui.set(GuiSettingsId::CAMERA_AUTOSETUP, evt.IsChecked());
+    });
+    autoCamera->SetValue(gui.get<bool>(GuiSettingsId::CAMERA_AUTOSETUP));
+    autoCamera->SetToolTip(
+        "When checked, parameters of the camera (position, field of view, etc.) are automatically adjusted "
+        "during the simulation.");
+    visbarSizer->Add(autoCamera);
     visbarSizer->AddSpacer(10);
 
 

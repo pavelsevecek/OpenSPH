@@ -665,8 +665,10 @@ void Controller::redraw(const Storage& storage, const Statistics& stats) {
     // setup camera
     ASSERT(vis.camera);
     vis.cameraMutex.lock();
-    vis.camera->initialize(storage); /// \todo we cannot change camera here, it would be overriden later
-    // anyway
+    if (project.getGuiSettings().get<bool>(GuiSettingsId::CAMERA_AUTOSETUP)) {
+        vis.camera->autoSetup(storage); /// we do autoSetup here AND in orthoPane to get consistent states
+        /// \todo can it be done better? (autosetup before passing camera to orthopane?)
+    }
     AutoPtr<ICamera> camera = vis.camera->clone();
     vis.cameraMutex.unlock();
 

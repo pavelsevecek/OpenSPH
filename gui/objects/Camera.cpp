@@ -49,13 +49,7 @@ void OrthoCamera::update() {
     cached.u = cross(cached.v, cached.w);
 }
 
-void OrthoCamera::initialize(const Storage& storage) {
-    if (data.ortho.fov) {
-        // fov either specified explicitly or already computed
-        return;
-    }
-
-    /// \todo also auto-center?
+float OrthoCamera::estimateFov(const Storage& storage) const {
     // handle case without mass in storage
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayRef<const Float> m;
@@ -74,6 +68,7 @@ void OrthoCamera::initialize(const Storage& storage) {
         m_sum += m[i];
         r_com += m[i] * r[i];
     }
+    ASSERT(m_sum > 0._f);
     r_com /= m_sum;
 
     Array<Float> distances(r.size());
@@ -85,17 +80,23 @@ void OrthoCamera::initialize(const Storage& storage) {
     const Size mid = r.size() / 2;
     std::nth_element(distances.begin(), distances.begin() + mid, distances.end());
     // factor 5 is ad hoc
-    const Float fov = 5._f * distances[mid];
-    ASSERT(fov > EPS);
+    const Float fov = max(5._f * distances[mid], EPS);
 
-    data.ortho.fov = data.imageSize.y / fov;
+    return data.imageSize.y / fov;
+}
+
+void OrthoCamera::autoSetup(const Storage& storage) {
+    data.ortho.fov = this->estimateFov(storage);
+
+    /*const Box box = getBoundingBox(storage);
+    if (box.contains(data.position)) {
+        const Vector dir = data.position - data.target;
+
+    }*/
 }
 
 Optional<ProjectedPoint> OrthoCamera::project(const Vector& r) const {
-    if (!data.ortho.fov) {
-        return NOTHING;
-    }
-    const float fov = data.ortho.fov.value();
+    const float fov = data.ortho.fov;
     const float x = dot(r - data.position, cached.u) * fov;
     const float y = dot(r - data.position, cached.v) * fov;
     const Coords point = Coords(data.imageSize.x / 2 + x, data.imageSize.y / 2 - y - 1);
@@ -103,14 +104,13 @@ Optional<ProjectedPoint> OrthoCamera::project(const Vector& r) const {
 }
 
 Optional<CameraRay> OrthoCamera::unproject(const Coords& coords) const {
-    if (!data.ortho.fov) {
-        return CameraRay{ Vector(0._f), cached.w };
-    }
-    const float fov = data.ortho.fov.value();
+    const float fov = data.ortho.fov;
     const float rx = (coords.x - data.imageSize.x * 0.5f) / fov;
     const float ry = (data.imageSize.y * 0.5f - coords.y - 1) / fov;
     CameraRay ray;
-    ray.origin = data.position + cached.u * rx + cached.v * ry + cached.w * data.clipping.lower();
+    /// \todo TEMPORARY HACK, FIX!
+    ray.origin =
+        data.position + cached.u * rx + cached.v * ry + cached.w * (-1.e6_f); // data.clipping.lower();
     ray.target = ray.origin + cached.w;
     return ray;
 }
@@ -133,33 +133,39 @@ void OrthoCamera::setCutoff(const Optional<float> newCutoff) {
 
 void OrthoCamera::zoom(const Pixel fixedPoint, const float magnitude) {
     ASSERT(magnitude > 0.f);
-    if (!data.ortho.fov) {
-        // this can be called before run starts
-        return;
-    }
 
     const Vector fixed1 = this->unproject(Coords(fixedPoint))->origin;
-    data.ortho.fov.value() *= magnitude;
+    data.ortho.fov *= magnitude;
     const Vector fixed2 = this->unproject(Coords(fixedPoint))->origin;
     const Vector dp = fixed1 - fixed2;
     data.position += dp;
     data.target += dp;
 }
 
-void OrthoCamera::transform(const AffineMatrix& matrix) {
+void OrthoCamera::moveTo(const Vector& newPosition) {
+    const Vector offset = newPosition - data.position;
+    data.position += offset;
+    data.target += offset;
     this->update();
+}
+
+void OrthoCamera::transform(const AffineMatrix& matrix) {
+    // reset camera position
+    this->update();
+    //  const Float dist = getLength(data.target - data.position);
+    //  data.position = cached.w * dist;
+
+    // transform unit vectors
     cached.u = matrix * cached.u;
     cached.v = matrix * cached.v;
     cached.w = cross(cached.u, cached.v);
+
+    // orbit around target
+    //  data.position = cached.w * dist;
 }
 
 void OrthoCamera::pan(const Pixel offset) {
-    if (!data.ortho.fov) {
-        // this can be called before run starts
-        return;
-    }
-
-    const float fov = data.ortho.fov.value();
+    const float fov = data.ortho.fov;
     const Vector dp = -offset.x / fov * cached.u - offset.y / fov * cached.v;
     data.position += dp;
     data.target += dp;
@@ -182,8 +188,9 @@ PerspectiveCamera::PerspectiveCamera(const CameraData& data)
     this->update();
 }
 
-void PerspectiveCamera::initialize(const Storage& storage) {
-    if (data.tracker) {
+void PerspectiveCamera::autoSetup(const Storage& storage) {
+    (void)storage;
+    /*if (data.tracker) {
         Vector newTarget;
         tie(newTarget, cached.velocity) = data.tracker->getCameraState(storage);
         data.position += newTarget - data.target;
@@ -191,7 +198,7 @@ void PerspectiveCamera::initialize(const Storage& storage) {
         this->update();
     } else {
         cached.velocity = Vector(0._f);
-    }
+    }*/
 }
 
 Optional<ProjectedPoint> PerspectiveCamera::project(const Vector& r) const {
@@ -252,6 +259,13 @@ void PerspectiveCamera::zoom(const Pixel UNUSED(fixedPoint), const float magnitu
     // this->transform(//cached.matrix);
 }
 
+void PerspectiveCamera::moveTo(const Vector& newPosition) {
+    const Vector offset = newPosition - data.position;
+    data.position += offset;
+    data.target += offset;
+    this->update();
+}
+
 void PerspectiveCamera::transform(const AffineMatrix& matrix) {
     // reset the previous transform
     this->update();
@@ -298,13 +312,14 @@ PanoCameraBase::PanoCameraBase(const CameraData& data)
     ASSERT(data.clipping.lower() > 0._f && data.clipping.size() > EPS);
 }
 
-void PanoCameraBase::initialize(const Storage& storage) {
-    if (data.tracker) {
+void PanoCameraBase::autoSetup(const Storage& storage) {
+    /*if (data.tracker) {
         const Vector newTarget = data.tracker->getCameraState(storage)[0];
         data.position += newTarget - data.target;
         data.target = newTarget;
         this->update();
-    }
+    }*/
+    (void)storage;
 }
 
 Optional<ProjectedPoint> PanoCameraBase::project(const Vector& UNUSED(r)) const {
@@ -328,6 +343,10 @@ Optional<float> PanoCameraBase::getWorldToPixel() const {
 void PanoCameraBase::setCutoff(const Optional<float> UNUSED(newCutoff)) {}
 
 void PanoCameraBase::zoom(const Pixel UNUSED(fixedPoint), const float UNUSED(magnitude)) {
+    NOT_IMPLEMENTED;
+}
+
+void PanoCameraBase::moveTo(const Vector& UNUSED(newPosition)) {
     NOT_IMPLEMENTED;
 }
 

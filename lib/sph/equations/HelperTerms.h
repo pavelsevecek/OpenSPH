@@ -1,10 +1,12 @@
 #pragma once
 
 /// \file HelperTerms.h
-/// \brief Additional equatiosn computing SPH statistics rather than physical quantities
+/// \brief Additional equation terms computing SPH statistics rather than physical quantities
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2019
 
+#include "io/FileSystem.h"
+#include "run/ScriptUtils.h"
 #include "sph/equations/DerivativeHelpers.h"
 #include "sph/equations/EquationTerm.h"
 
@@ -49,9 +51,13 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const Float UNUSED(t)) override {}
 
-    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
+    virtual void finalize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const Float UNUSED(t)) override {}
 
     virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };
@@ -104,13 +110,61 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const Float UNUSED(t)) override {}
 
-    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
+    virtual void finalize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const Float UNUSED(t)) override {}
 
     virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
         storage.insert<Vector>(QuantityId::SURFACE_NORMAL, OrderEnum::ZERO, Vector(0._f));
     }
+};
+
+class ChaiScriptTerm : public IEquationTerm {
+private:
+    std::string script;
+
+#ifdef SPH_USE_CHAISCRIPT
+    Chai::Particles particles;
+#endif
+
+public:
+    explicit ChaiScriptTerm(const Path& scriptFile) {
+#ifdef SPH_USE_CHAISCRIPT
+        script = FileSystem::readFile(scriptFile);
+#else
+        (void)scriptFile;
+        throw InvalidSetup("Code not built with ChaiScript support. Re-build with flag 'use_chaiscript'.");
+#endif
+    }
+
+    virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
+        const RunSettings& UNUSED(settings)) override {}
+
+    virtual void initialize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const Float UNUSED(t)) override {}
+
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& storage, const Float t) override {
+#ifdef SPH_USE_CHAISCRIPT
+        particles.bindToStorage(storage);
+
+        chaiscript::ChaiScript chai;
+        Chai::registerBindings(chai);
+        chai.add(chaiscript::var(std::ref(particles)), "particles");
+        chai.add(chaiscript::const_var(t), "time");
+        chai.eval(script);
+        particles.store();
+#else
+        (void)storage;
+        (void)t;
+#endif
+    }
+
+    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };
 
 

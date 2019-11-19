@@ -13,6 +13,7 @@ namespace Constants {
 
 constexpr Float gasConstant = 8.3144598_f; // J mol^−1 K^−1
 
+/// Atomic mass constant
 constexpr Float atomicMass = 1.660539040e-27_f; // kg
 
 /// Boltzmann constant
@@ -36,7 +37,7 @@ constexpr Float au = 149597870700._f; // m
 /// Parsec
 constexpr Float pc = 3.0856776e16_f; // m
 
-/// Number of seconds in year
+/// Number of seconds in a year
 constexpr Float year = 3.154e7_f; // s
 
 /// Solar mass
@@ -45,6 +46,12 @@ constexpr Float M_sun = 1.9884e30_f; // kg
 
 /// Earth mass
 constexpr Float M_earth = 5.9722e24_f; // kg
+
+/// Solar radius
+constexpr Float R_sun = 6.957e8_f; // m
+
+/// Earth radius
+constexpr Float R_earth = 6.3781e6_f; // m
 
 } // namespace Constants
 

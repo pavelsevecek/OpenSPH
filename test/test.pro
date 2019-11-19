@@ -81,7 +81,7 @@ SOURCES += \
     ../lib/objects/wrappers/test/Outcome.cpp \
     ../lib/objects/wrappers/test/SharedPtr.cpp \
     ../lib/objects/wrappers/test/Variant.cpp \
-    ../lib/objects/wrappers/test/VectorizedArray.cpp \
+    ../lib/objects/wrappers/test/PropagateConst.cpp \
     ../lib/physics/test/Damage.cpp \
     ../lib/physics/test/Eos.cpp \
     ../lib/physics/test/Integrals.cpp \

@@ -41,13 +41,7 @@ NAMESPACE_SPH_BEGIN
 /// \note sizeof is used to make sure x is not evaluated.
 #define MARK_USED(x) (void)sizeof(x)
 
-#define SPH_CPP17
-
-#ifdef SPH_CPP17
 #define SPH_FALLTHROUGH [[fallthrough]];
-#else
-#define SPH_FALLTHROUGH
-#endif
 
 #define DEPRECATED __attribute__((deprecated))
 

@@ -240,12 +240,7 @@ void SaveMeshWorker::evaluate(const RunSettings& global, IRunCallbacks& callback
     SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
 
     // sanitize resolution
-    Box bbox;
-    ArrayView<const Vector> r = data->storage.getValue<Vector>(QuantityId::POSITION);
-    for (Size i = 0; i < r.size(); ++i) {
-        bbox.extend(r[i]);
-    }
-
+    const Box bbox = getBoundingBox(data->storage);
     const Float boxSize = maxElement(bbox.size());
     Float step = clamp(resolution, 1.e-3_f * boxSize, 0.2_f * boxSize);
 

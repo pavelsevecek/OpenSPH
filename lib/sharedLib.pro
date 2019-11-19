@@ -3,6 +3,9 @@ QMAKE_CXXFLAGS += -Wall -Wextra -msse4.1 -std=c++14 -pthread
 linux-g++ {
     # seems like gcc reports false positive for this warning
     QMAKE_CXXFLAGS += -Wno-aggressive-loop-optimizations
+
+    # necessary for backward compatibility (gcc-7 would fail to compile)
+    QMAKE_CXXFLAGS += -Wno-redundant-move
 }
 
 
@@ -21,6 +24,11 @@ CONFIG(use_openmp) {
 CONFIG(use_eigen) {
     DEFINES += SPH_USE_EIGEN
     INCLUDEPATH += /usr/include/eigen3
+}
+
+CONFIG(use_chaiscript) {
+    DEFINES += SPH_USE_CHAISCRIPT
+    LIBS += -ldl
 }
 
 CONFIG(static_libc) {

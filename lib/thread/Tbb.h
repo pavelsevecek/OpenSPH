@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2019
 
+#include "objects/wrappers/PropagateConst.h"
 #include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
@@ -16,7 +17,7 @@ struct TbbData;
 /// TBB libraries need to be linked in order to use this scheduler.
 class Tbb : public IScheduler {
 private:
-    AutoPtr<TbbData> data;
+    PropagateConst<AutoPtr<TbbData>> data;
 
     static SharedPtr<Tbb> globalInstance;
 

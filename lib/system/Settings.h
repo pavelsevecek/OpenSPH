@@ -583,6 +583,9 @@ enum class BoundaryEnum {
     /// Periodic boundary conditions
     PERIODIC,
 
+    /// Particles are duplicated along the z=0 plane
+    SYMMETRIC,
+
     /// Removes particles outside the domain
     KILL_ESCAPERS,
 
@@ -605,6 +608,9 @@ enum class DomainEnum {
 
     /// Cylindrical domain aligned with z axis
     CYLINDER,
+
+    /// Gaussian random sphere
+    GAUSSIAN_SPHERE,
 
     /// Half-space z>0
     HALF_SPACE,
@@ -1017,6 +1023,12 @@ enum class RunSettingsId {
     /// Alpha parameter of the density-independent solver.
     SPH_DI_ALPHA,
 
+    /// Enables or disables scripted term.
+    SPH_SCRIPT_ENABLE,
+
+    /// Path of an arbitrary ChaiScript script executed each timestep.
+    SPH_SCRIPT_FILE,
+
     /// If true, all particles have also a moment of inertia, representing a non-homogeneous mass
     /// distribution. Otherwise, particles are spherical with inertia tensor I = 2/5 mr^2
     NBODY_INERTIA_TENSOR,
@@ -1127,6 +1139,10 @@ enum class RunSettingsId {
 
     FRAME_CONSTANT_ACCELERATION,
 
+    FRAME_TIDES_MASS,
+
+    FRAME_TIDES_POSITION,
+
     /// Maximum number of particles in a leaf node.
     FINDER_LEAF_SIZE,
 
@@ -1209,6 +1225,9 @@ enum class EosEnum {
     /// Murnaghan equation of state
     MURNAGHAN,
 
+    /// Simplified version of the Tillotson equation of state
+    SIMPLIFIED_TILLOTSON,
+
     /// ANEOS given by look-up table
     ANEOS
 };
@@ -1245,6 +1264,7 @@ enum class BodySettingsId {
     /// particles. Higher value speed up the generation of particle positions.
     DIEHL_MAX_DIFFERENCE = 6,
 
+    /// Number of iterations of particle repelling.
     DIEHL_ITERATION_COUNT = 71,
 
     /// Eta-factor between smoothing length and particle concentration (h = eta * n^(-1/d) )
@@ -1329,13 +1349,16 @@ enum class BodySettingsId {
     /// Linear Hugoniot slope coefficient used in Mie-Gruneisen equation of state
     HUGONIOT_SLOPE = 32,
 
+    /// Model of stress reducing used within the rheological model
     RHEOLOGY_YIELDING = 33,
 
+    /// Model of fragmentation used within the rheological model
     RHEOLOGY_DAMAGE = 34,
 
     /// Shear modulus mu (a.k.a Lame's second parameter) of the material
     SHEAR_MODULUS = 35,
 
+    /// Young modulus of the material
     YOUNG_MODULUS = 36,
 
     /// Elastic modulus lambda (a.k.a Lame's first parameter) of the material
@@ -1344,6 +1367,7 @@ enum class BodySettingsId {
     /// Elasticity limit of the von Mises yielding criterion
     ELASTICITY_LIMIT = 38,
 
+    /// Melting energy, used for temperature-dependence of the stress tensor
     MELT_ENERGY = 39,
 
     /// Cohesion, yield strength at zero pressure
@@ -1367,11 +1391,19 @@ enum class BodySettingsId {
     /// Speed of crack growth, in units of local sound speed.
     RAYLEIGH_SOUND_SPEED = 47,
 
+    /// Coefficient (multiplier) of the Weibull distribution of flaws
     WEIBULL_COEFFICIENT = 48,
 
+    /// Exponent of the Weibull distribution of flaws
     WEIBULL_EXPONENT = 49,
 
+    /// Whether to use precomputed distributions for flaw sampling. Otherwise, flaws are sampled using uniform
+    /// random number generator, which may be prohibitively slow for large particle counts.
     WEIBULL_SAMPLE_DISTRIBUTIONS = 66,
+
+    /// Initial value of the material distention, used in the P-alpha model.
+    DISTENTION = 81,
+
 
     BULK_VISCOSITY = 50,
 

@@ -4,6 +4,7 @@
 #include "gravity/CachedGravity.h"
 #include "gravity/Collision.h"
 #include "gravity/SphericalGravity.h"
+#include "gravity/SymmetricGravity.h"
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "math/rng/Rng.h"
@@ -51,6 +52,8 @@ AutoPtr<IEos> Factory::getEos(const BodySettings& body) {
         return makeAuto<MieGruneisenEos>(body);
     case EosEnum::TILLOTSON:
         return makeAuto<TillotsonEos>(body);
+    case EosEnum::SIMPLIFIED_TILLOTSON:
+        return makeAuto<SimplifiedTillotsonEos>(body);
     case EosEnum::MURNAGHAN:
         return makeAuto<MurnaghanEos>(body);
     case EosEnum::NONE:
@@ -248,11 +251,7 @@ static AutoPtr<ISolver> getActualSolver(IScheduler& scheduler,
     AutoPtr<IBoundaryCondition>&& bc) {
     const Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES);
     if (forces.has(ForceEnum::SELF_GRAVITY)) {
-        IBoundaryCondition& bcRef = *bc; // needed to silence a warning
-        if (typeid(bcRef) != typeid(NullBoundaryCondition)) {
-            throw InvalidSetup("Gravity currently cannot be used with boundary conditions");
-        }
-        return makeAuto<GravitySolver<TSolver>>(scheduler, settings, std::move(eqs));
+        return makeAuto<GravitySolver<TSolver>>(scheduler, settings, std::move(eqs), std::move(bc));
     } else {
         return makeAuto<TSolver>(scheduler, settings, std::move(eqs), std::move(bc));
     }
@@ -265,7 +264,14 @@ AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler, const RunSettings& se
 AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler,
     const RunSettings& settings,
     AutoPtr<IBoundaryCondition>&& bc) {
-    EquationHolder eqs = getStandardEquations(settings);
+    return getSolver(scheduler, settings, std::move(bc), {});
+}
+
+AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    AutoPtr<IBoundaryCondition>&& bc,
+    const EquationHolder& additionalTerms) {
+    EquationHolder eqs = getStandardEquations(settings, additionalTerms);
     const SolverEnum id = settings.get<SolverEnum>(RunSettingsId::SPH_SOLVER_TYPE);
     auto throwIfGravity = [&settings] {
         const Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES);
@@ -334,12 +340,18 @@ AutoPtr<IGravity> Factory::getGravity(const RunSettings& settings) {
         NOT_IMPLEMENTED;
     }
 
+    // wrap gravity in case of symmetric boundary conditions
+    if (settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY) == BoundaryEnum::SYMMETRIC) {
+        gravity = makeAuto<SymmetricGravity>(std::move(gravity));
+    }
+
+    // wrap if gravity recomputation period is specified
     const Float period = settings.get<Float>(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD);
     if (period > 0._f) {
-        return makeAuto<CachedGravity>(period, std::move(gravity));
-    } else {
-        return gravity;
+        gravity = makeAuto<CachedGravity>(period, std::move(gravity));
     }
+
+    return gravity;
 }
 
 AutoPtr<ICollisionHandler> Factory::getCollisionHandler(const RunSettings& settings) {
@@ -450,6 +462,8 @@ AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& se
         const Box box = domain->getBoundingBox();
         return makeAuto<PeriodicBoundary>(box);
     }
+    case BoundaryEnum::SYMMETRIC:
+        return makeAuto<SymmetricBoundary>();
     case BoundaryEnum::KILL_ESCAPERS:
         ASSERT(domain != nullptr);
         return makeAuto<KillEscapersBoundary>(domain);

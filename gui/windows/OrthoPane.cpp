@@ -43,8 +43,9 @@ void OrthoPane::resetView() {
 }
 
 void OrthoPane::onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) {
-    /// \todo should not be here
-    camera->initialize(storage);
+    if (controller->getParams().get<bool>(GuiSettingsId::CAMERA_AUTOSETUP)) {
+        camera->autoSetup(storage);
+    }
 }
 
 void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {

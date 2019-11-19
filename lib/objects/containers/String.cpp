@@ -3,7 +3,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-constexpr Size String::npos;
+Size String::npos = NumericLimits<Size>::max();
 
 Size String::find(const String& s, const Size pos) const {
     ASSERT(pos < this->size() && !s.empty(), pos, this->size());

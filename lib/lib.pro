@@ -51,8 +51,10 @@ SOURCES += \
     quantities/Storage.cpp \
     run/IRun.cpp \
     run/Node.cpp \
+    run/ScriptUtils.cpp \
     run/SpecialEntries.cpp \
     run/VirtualSettings.cpp \
+    run/workers/ScriptWorkers.cpp \
     sph/Diagnostics.cpp \
     sph/Material.cpp \
     sph/boundary/Boundary.cpp \
@@ -118,6 +120,7 @@ HEADERS += \
     gravity/Moments.h \
     gravity/NBodySolver.h \
     gravity/SphericalGravity.h \
+    gravity/SymmetricGravity.h \
     io/Column.h \
     io/FileManager.h \
     io/FileSystem.h \
@@ -206,11 +209,11 @@ HEADERS += \
     objects/wrappers/ObserverPtr.h \
     objects/wrappers/Optional.h \
     objects/wrappers/Outcome.h \
+    objects/wrappers/PropagateConst.h \
     objects/wrappers/RawPtr.h \
     objects/wrappers/SafePtr.h \
     objects/wrappers/SharedPtr.h \
     objects/wrappers/Variant.h \
-    objects/wrappers/VectorizedArray.h \
     physics/Constants.h \
     physics/Damage.h \
     physics/Eos.h \
@@ -235,7 +238,9 @@ HEADERS += \
     quantities/Storage.h \
     run/IRun.h \
     run/Node.h \
+    run/ScriptUtils.h \
     run/Trigger.h \
+    run/workers/ScriptWorkers.h \
     sph/Diagnostics.h \
     sph/Materials.h \
     sph/boundary/Boundary.h \
@@ -251,6 +256,7 @@ HEADERS += \
     sph/equations/Potentials.h \
     sph/equations/Rotation.h \
     sph/equations/XSph.h \
+    sph/equations/Yorp.h \
     sph/equations/av/Balsara.h \
     sph/equations/av/MorrisMonaghan.h \
     sph/equations/av/Riemann.h \
@@ -287,6 +293,7 @@ HEADERS += \
     system/Process.h \
     system/Profiler.h \
     system/RunCallbacks.h \
+    system/ScriptUtils.h \
     system/Settings.h \
     system/Settings.impl.h \
     system/Statistics.h \

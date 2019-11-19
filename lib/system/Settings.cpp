@@ -107,6 +107,7 @@ static RegisterEnum<BoundaryEnum> sBoundary({
         "periodic",
         "Periodic boundary conditions; particles can interact accross boundaries. When particles leave the "
         "domain, they re-enter on the other side of the domain. " },
+    { BoundaryEnum::SYMMETRIC, "symmetric", "Particles are duplicated along the z=0 plane." },
     { BoundaryEnum::KILL_ESCAPERS, "kill_escapers", "Removes all particles outside the domain" },
     { BoundaryEnum::PROJECT_1D,
         "project_1D",
@@ -399,10 +400,14 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
         "at a cost of higher computation time. " },
     { RunSettingsId::SPH_SUMMATION_MAX_ITERATIONS,  "sph.summation.max_iterations",  5,
         "Used by summation solver. Specifies the maximum number of iterations for density computation." },
-    { RunSettingsId::SPH_XSPH_EPSILON,              "sph.xsph.epsilon",              1._f,
+    { RunSettingsId::SPH_XSPH_EPSILON,              "sph.xsph.epsilon",         1._f,
         "Epsilon parameter of XSph modification." },
-    { RunSettingsId::SPH_DI_ALPHA,                  "sph.di.alpha", 1._f,
+    { RunSettingsId::SPH_DI_ALPHA,                  "sph.di.alpha",             1._f,
         "Alpha parameter of the density-independent SPH solver." },
+    { RunSettingsId::SPH_SCRIPT_ENABLE,             "sph.script.enable",        false,
+        "Whether to enable or disable script evaluation." },
+    { RunSettingsId::SPH_SCRIPT_FILE,               "sph.script.file",          std::string("script.chai"),
+        "Path to the file containing an arbitrary ChaiScript script evaluated each time step." },
 
     /// Global SPH parameters
     { RunSettingsId::SPH_KERNEL,                    "sph.kernel",               KernelEnum::CUBIC_SPLINE,
@@ -550,7 +555,12 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
         "system around axis (0, 0, 1) passing through origin. If the solver includes inertial forces, rotating frame "
         "introduces centrifugal and Coriolis force." },
     { RunSettingsId::FRAME_CONSTANT_ACCELERATION,   "frame.constant_acceleration",  Vector(0._f),
-        "Used to implement homogeneous gravity field. Applied only if solver forces include EXTERNAL_POTENTIAL." },
+        "Used to implement homogeneous gravity field." },
+    { RunSettingsId::FRAME_TIDES_MASS,              "frame.tides.mass",             0._f,
+        "." },
+    { RunSettingsId::FRAME_TIDES_POSITION,          "frame.tides.position",         Vector(Constants::R_earth, 0._f, 0._f),
+        "." },
+
 
     /// Computational domain and boundary conditions
     { RunSettingsId::DOMAIN_TYPE,                   "domain.type",              DomainEnum::NONE,
@@ -601,6 +611,7 @@ static RegisterEnum<EosEnum> sEos({
         "Mie-Gruneisen equation of state. Simple model for solids without any phase transitions." },
     { EosEnum::TILLOTSON, "tillotson", "Tillotson equation of stats." },
     { EosEnum::MURNAGHAN, "murnaghan", "Murnaghan equation of state." },
+    { EosEnum::SIMPLIFIED_TILLOTSON, "simplified_tillotson", "Simplified version of the Tillotson equation."},
     { EosEnum::ANEOS,
         "aneos",
         "ANEOS equation of state, requires look-up table of values for given material." },
@@ -707,6 +718,8 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
         "particles have at least one flaw, as in Benz and Asphaug (1994). The latter is needed for reproducibility "
         "of older results and compatibility with SPH5, otherwise the distribution sampling should be used, "
         "especially for simulation with large (N > 1e7) number of particles." },
+    { BodySettingsId::DISTENTION,              "material.palpha.distention",   1.275,
+        "Initial value of the material distention, used in the P-alpha model." },
     { BodySettingsId::BULK_VISCOSITY,          "material.bulk_viscosity",      1.e20_f,
         "Bulk viscosity of the material. Applicable is internal friction is used." },
     { BodySettingsId::SHEAR_VISCOSITY,         "material.shear_viscosity",     1.e20_f,

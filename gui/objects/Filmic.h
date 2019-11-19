@@ -48,9 +48,11 @@ private:
     float y0 = 0.25f;
     float y1 = 0.75f;
 
-    StaticArray<CurveSegment, 3> m_segments;
+    CurveSegment segments[3];
 
 public:
+    FilmicMapping();
+
     void create(const UserParams& userParams);
 
     float operator()(const float x) const;

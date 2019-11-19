@@ -187,8 +187,9 @@ void EnergyConservingSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     parallelFor(scheduler, threadData, 0, r.size(), evalDerivatives);
 }
 
-void EnergyConservingSolver::beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
-    equations.initialize(scheduler, storage);
+void EnergyConservingSolver::beforeLoop(Storage& storage, Statistics& stats) {
+    const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+    equations.initialize(scheduler, storage, t);
     derivatives.initialize(storage);
     const Size particleCnt = storage.getParticleCnt();
     for (ThreadData& data : threadData) {
@@ -202,7 +203,9 @@ void EnergyConservingSolver::afterLoop(Storage& storage, Statistics& stats) {
 
     Accumulated& accumulated = derivatives.getAccumulated();
     accumulated.store(storage);
-    equations.finalize(scheduler, storage);
+
+    const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+    equations.finalize(scheduler, storage, t);
 
     // now, we have computed everything that modifies the energy derivatives, so we can override it with stuff
     // below

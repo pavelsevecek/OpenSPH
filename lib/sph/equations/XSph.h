@@ -70,7 +70,7 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& storage) override {
+    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& storage, const Float UNUSED(t)) override {
         // fix previously modified velocities before computing derivatives
         /// \todo this is not very good solution as it depends on ordering of equation term in the array;
         /// some may already get corrected velocities.
@@ -82,7 +82,7 @@ public:
         }
     }
 
-    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& storage) override {
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& storage, const Float UNUSED(t)) override {
         ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
         ArrayView<Vector> dr = storage.getValue<Vector>(QuantityId::XSPH_VELOCITIES);
         for (Size i = 0; i < v.size(); ++i) {

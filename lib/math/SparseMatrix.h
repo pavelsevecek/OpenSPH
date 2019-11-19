@@ -8,6 +8,7 @@
 #include "objects/containers/Array.h"
 #include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Expected.h"
+#include "objects/wrappers/PropagateConst.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -15,7 +16,7 @@ NAMESPACE_SPH_BEGIN
 class SparseMatrix {
 private:
     class Impl;
-    AutoPtr<Impl> impl;
+    PropagateConst<AutoPtr<Impl>> impl;
 
 public:
     SparseMatrix();

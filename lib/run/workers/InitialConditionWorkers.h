@@ -66,6 +66,30 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
+class SingleParticleIc : public IParticleWorker {
+private:
+    Vector r0 = Vector(0._f);
+    Vector v0 = Vector(0._f);
+    Float mass = Constants::M_sun;
+    Float radius = Constants::R_sun;
+
+public:
+    explicit SingleParticleIc(const std::string& name)
+        : IParticleWorker(name) {}
+
+    virtual std::string className() const override {
+        return "create single particle";
+    }
+
+    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+        return {};
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+};
+
 class ImpactorIc : public MonolithicBodyIc {
 public:
     ImpactorIc(const std::string& name, const BodySettings& overrides = EMPTY_SETTINGS)

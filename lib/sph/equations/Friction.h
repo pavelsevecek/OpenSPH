@@ -79,9 +79,13 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const Float UNUSED(t)) override {}
 
-    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
+    virtual void finalize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const Float UNUSED(t)) override {}
 
     virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
         storage.insert<Vector>(QuantityId::VELOCITY_LAPLACIAN, OrderEnum::ZERO, Vector(0._f));
@@ -148,9 +152,13 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const Float UNUSED(t)) override {}
 
-    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
+    virtual void finalize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const Float UNUSED(t)) override {}
 
     virtual void create(Storage& storage, IMaterial& material) const override {
         const Float u0 = material.getParam<Float>(BodySettingsId::ENERGY);
@@ -201,9 +209,13 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const Float UNUSED(t)) override {}
 
-    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
+    virtual void finalize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const Float UNUSED(t)) override {}
 
     virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };

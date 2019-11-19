@@ -199,6 +199,10 @@ VirtualSettings SphWorker::getSettings() {
     VirtualSettings::Category& solverCat = connector.addCategory("SPH solver");
     solverCat.connect<Flags<ForceEnum>>("Forces", settings, RunSettingsId::SPH_SOLVER_FORCES);
     solverCat.connect<Vector>("Constant acceleration", settings, RunSettingsId::FRAME_CONSTANT_ACCELERATION);
+    solverCat.connect<Float>("Tides mass [M_earth]", settings, RunSettingsId::FRAME_TIDES_MASS)
+        .setUnits(Constants::M_earth);
+    solverCat.connect<Vector>("Tides position [R_earth]", settings, RunSettingsId::FRAME_TIDES_POSITION)
+        .setUnits(Constants::R_earth);
     solverCat.connect<EnumWrapper>("Solver type", settings, RunSettingsId::SPH_SOLVER_TYPE);
     solverCat.connect<EnumWrapper>("SPH discretization", settings, RunSettingsId::SPH_DISCRETIZATION);
     solverCat
@@ -219,9 +223,15 @@ VirtualSettings SphWorker::getSettings() {
     avCat.connect<Float>("Artificial viscosity alpha", settings, RunSettingsId::SPH_AV_ALPHA);
     avCat.connect<Float>("Artificial viscosity beta", settings, RunSettingsId::SPH_AV_BETA);
 
+    VirtualSettings::Category& scriptCat = connector.addCategory("Scripts");
+    scriptCat.connect<bool>("Enable script", settings, RunSettingsId::SPH_SCRIPT_ENABLE);
+    scriptCat.connect<Path>("Script file", settings, RunSettingsId::SPH_SCRIPT_FILE).setEnabler([this] {
+        return settings.get<bool>(RunSettingsId::SPH_SCRIPT_ENABLE);
+    });
+
     addGravityCategory(connector, settings);
-    addLoggerCategory(connector, settings);
     addOutputCategory(connector, settings);
+    addLoggerCategory(connector, settings);
 
     return connector;
 }

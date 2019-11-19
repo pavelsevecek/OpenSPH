@@ -128,6 +128,8 @@ enum class GuiSettingsId {
 
     CAMERA_CLIP_FAR,
 
+    CAMERA_AUTOSETUP,
+
     CAMERA_TRACK_PARTICLE,
 
     CAMERA_TRACK_MEDIAN,

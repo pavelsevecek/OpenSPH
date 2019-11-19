@@ -30,7 +30,7 @@ struct Assert {
         const std::string message;
 
     public:
-        Exception(const char* message)
+        Exception(const std::string& message)
             : message(message) {}
 
         virtual const char* what() const noexcept override {
@@ -99,7 +99,7 @@ struct Assert {
 /// Helper macro marking missing implementation
 #define NOT_IMPLEMENTED                                                                                      \
     ASSERT(false, "not implemented");                                                                        \
-    throw std::exception();
+    throw Assert::Exception(std::string("Functionality not implemented in function ") + __PRETTY_FUNCTION__);
 
 /// Helper macro marking code that should never be executed (default branch of switch where there is finite
 /// number of options, for example)

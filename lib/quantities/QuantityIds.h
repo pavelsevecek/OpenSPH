@@ -81,8 +81,8 @@ enum class QuantityId {
     /// Total stress reduction factor due to damage and yielding. Is always scalar.
     STRESS_REDUCING = 16,
 
-    /// \todo
-    MOHR_COULOMB_STRESS = 17,
+    /// Ratio of the solid and bulk density (parameter alpha in P-alpha and eps-alpha models).
+    DISTENTION = 17,
 
     /// \todo
     FRICTION_ANGLE = 18,

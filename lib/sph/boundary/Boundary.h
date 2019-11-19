@@ -220,6 +220,21 @@ public:
     virtual void finalize(Storage& storage) override;
 };
 
+/// \brief Boundary duplicating particles along z=0 plane.
+///
+/// Particles from z>0 half-space are copied into the z<0 half-space. Any particles originally located in the
+/// negative half-space are first projected to the z=0 plane.
+class SymmetricBoundary : public IBoundaryCondition {
+private:
+    Array<Ghost> ghosts;
+    Array<Size> ghostIdxs;
+
+public:
+    virtual void initialize(Storage& storage) override;
+
+    virtual void finalize(Storage& storage) override;
+};
+
 /// \brief Boundary condition that removes particles outside the domain.
 class KillEscapersBoundary : public IBoundaryCondition {
 private:

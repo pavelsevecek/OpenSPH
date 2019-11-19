@@ -2,6 +2,7 @@
 #include "gravity/SphericalGravity.h"
 #include "objects/Exceptions.h"
 #include "quantities/Quantity.h"
+#include "sph/boundary/Boundary.h"
 #include "sph/equations/Potentials.h"
 #include "sph/kernel/Kernel.h"
 #include "sph/solvers/AsymmetricSolver.h"
@@ -17,14 +18,22 @@ template <typename TSphSolver>
 GravitySolver<TSphSolver>::GravitySolver(IScheduler& scheduler,
     const RunSettings& settings,
     const EquationHolder& equations)
-    : GravitySolver(scheduler, settings, equations, Factory::getGravity(settings)) {}
+    : GravitySolver(scheduler, settings, equations, Factory::getBoundaryConditions(settings)) {}
 
 template <typename TSphSolver>
 GravitySolver<TSphSolver>::GravitySolver(IScheduler& scheduler,
     const RunSettings& settings,
     const EquationHolder& equations,
+    AutoPtr<IBoundaryCondition>&& bc)
+    : GravitySolver(scheduler, settings, equations, std::move(bc), Factory::getGravity(settings)) {}
+
+template <typename TSphSolver>
+GravitySolver<TSphSolver>::GravitySolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    const EquationHolder& equations,
+    AutoPtr<IBoundaryCondition>&& bc,
     AutoPtr<IGravity>&& gravity)
-    : TSphSolver(scheduler, settings, equations)
+    : TSphSolver(scheduler, settings, equations, std::move(bc))
     , gravity(std::move(gravity)) {
 
     // make sure acceleration are being accumulated
@@ -36,8 +45,9 @@ template <>
 GravitySolver<SymmetricSolver>::GravitySolver(IScheduler& scheduler,
     const RunSettings& settings,
     const EquationHolder& equations,
+    AutoPtr<IBoundaryCondition>&& bc,
     AutoPtr<IGravity>&& gravity)
-    : SymmetricSolver(scheduler, settings, equations)
+    : SymmetricSolver(scheduler, settings, equations, std::move(bc))
     , gravity(std::move(gravity)) {
 
     // make sure acceleration are being accumulated

@@ -362,6 +362,47 @@ void PeriodicBoundary::finalize(Storage& storage) {
 }
 
 //-----------------------------------------------------------------------------------------------------------
+// SymmetricBoundary implementation
+//-----------------------------------------------------------------------------------------------------------
+
+void SymmetricBoundary::initialize(Storage& storage) {
+    storage.setUserData(nullptr); // clear previous data
+    ASSERT(ghostIdxs.empty() && ghosts.empty());
+
+    Array<Size> duplIdxs;
+    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
+    const Float radius = 2._f;
+
+    for (Size i = 0; i < r.size(); ++i) {
+        if (r[i][Z] < 0._f) {
+            r[i][Z] = 0.1_f * r[i][H];
+        }
+
+        // for particles close to the boundary, add ghosts
+        for (Size j = 0; j < 3; ++j) {
+            if (r[i][Z] < radius * r[i][H]) {
+                duplIdxs.push(i);
+                ghosts.push(Ghost{ r[i] - Vector(0, 0, 2._f * r[i][Z]), i });
+            }
+        }
+    }
+
+    ghostIdxs = storage.duplicate(duplIdxs);
+    ASSERT(ghostIdxs.size() == duplIdxs.size());
+
+    for (Size i = 0; i < ghostIdxs.size(); ++i) {
+        r[ghostIdxs[i]] = ghosts[i].position;
+    }
+}
+
+void SymmetricBoundary::finalize(Storage& storage) {
+    storage.remove(ghostIdxs);
+    ghostIdxs.clear();
+
+    storage.setUserData(makeShared<GhostParticlesData>(std::move(ghosts)));
+}
+
+//-----------------------------------------------------------------------------------------------------------
 // KillEscapersBoundary implementation
 //-----------------------------------------------------------------------------------------------------------
 

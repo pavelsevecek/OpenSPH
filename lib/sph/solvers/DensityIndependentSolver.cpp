@@ -4,6 +4,7 @@
 #include "sph/Materials.h"
 #include "sph/equations/av/Standard.h"
 #include "system/Factory.h"
+#include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -58,7 +59,7 @@ public:
         derivatives.require(makeAuto<DensityIndependentPressureGradient>(settings));
     }
 
-    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& storage) override {
+    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& storage, const Float UNUSED(t)) override {
         // EoS can return negative pressure, which is not allowed in DISPH, so we have to clamp it
         ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
         for (Size i = 0; i < p.size(); ++i) {
@@ -67,7 +68,9 @@ public:
         }
     }
 
-    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
+    virtual void finalize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const Float UNUSED(t)) override {}
 
     virtual void create(Storage& storage, IMaterial& material) const override {
         if (!dynamic_cast<EosMaterial*>(&material)) {
@@ -96,7 +99,7 @@ DensityIndependentSolver::DensityIndependentSolver(IScheduler& scheduler, const 
 
 DensityIndependentSolver::~DensityIndependentSolver() = default;
 
-void DensityIndependentSolver::integrate(Storage& storage, Statistics& UNUSED(stats)) {
+void DensityIndependentSolver::integrate(Storage& storage, Statistics& stats) {
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     finder->build(scheduler, r);
 
@@ -116,7 +119,9 @@ void DensityIndependentSolver::integrate(Storage& storage, Statistics& UNUSED(st
         MaterialView material = storage.getMaterial(matId);
         material->initialize(scheduler, storage, material.sequence());
     }
-    equations.initialize(scheduler, storage);
+
+    const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+    equations.initialize(scheduler, storage, t);
     derivatives.initialize(storage);
 
     // step 3: update Y from the pressure
@@ -173,7 +178,7 @@ void DensityIndependentSolver::integrate(Storage& storage, Statistics& UNUSED(st
     parallelFor(scheduler, threadData, 0, r.size(), equationFunc);
 
     derivatives.getAccumulated().store(storage);
-    equations.finalize(scheduler, storage);
+    equations.finalize(scheduler, storage, t);
 
     // step 6: get an estimate of Y for next time step by computing its derivative
     // dY/dt must be computed after all equations are finalized, as it depends on du/dt

@@ -67,9 +67,13 @@ struct SingleDerivativeMaker : public IEquationTerm {
         derivatives.require(makeAuto<TDerivative>(settings));
     }
 
-    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const Float UNUSED(t)) override {}
 
-    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
+    virtual void finalize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const Float UNUSED(t)) override {}
 
     virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };

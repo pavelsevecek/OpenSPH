@@ -19,9 +19,8 @@ Project::Project() {
         .set(GuiSettingsId::RAYTRACE_ITERATION_LIMIT, 10)
         .set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 4)
         .set(GuiSettingsId::CAMERA_TYPE, CameraEnum::ORTHO)
-        .set(GuiSettingsId::CAMERA_ORTHO_FOV, 0._f)
+        .set(GuiSettingsId::CAMERA_ORTHO_FOV, 1.e5_f)
         .set(GuiSettingsId::CAMERA_ORTHO_CUTOFF, 0._f)
-        .set(GuiSettingsId::CAMERA_POSITION, Vector(0._f, 0._f, -7.e3_f))
         .set(GuiSettingsId::IMAGES_SAVE, false)
         .set(GuiSettingsId::IMAGES_NAME, std::string("frag_%e_%d.png"))
         .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"))
@@ -136,6 +135,11 @@ void Project::loadGui(Config& config) {
     Rgba background = gui.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
     background.a() = 1.f;
     gui.set<Rgba>(GuiSettingsId::BACKGROUND_COLOR, background);
+
+    if (gui.get<Float>(GuiSettingsId::CAMERA_ORTHO_FOV) == 0._f) {
+        gui.set(GuiSettingsId::CAMERA_ORTHO_FOV, 1.e5_f);
+        gui.set(GuiSettingsId::CAMERA_AUTOSETUP, true);
+    }
 }
 
 void Project::loadPalettes(Config& config) {

@@ -5,6 +5,10 @@
 
 NAMESPACE_SPH_BEGIN
 
+//-----------------------------------------------------------------------------------------------------------
+// IdealGasEos implementation
+//-----------------------------------------------------------------------------------------------------------
+
 IdealGasEos::IdealGasEos(const Float gamma)
     : gamma(gamma) {}
 
@@ -25,6 +29,10 @@ Float IdealGasEos::getTemperature(const Float u) const {
     return u / Constants::gasConstant;
 }
 
+//-----------------------------------------------------------------------------------------------------------
+// TaitEos implementation
+//-----------------------------------------------------------------------------------------------------------
+
 TaitEos::TaitEos(const BodySettings& settings) {
     c0 = settings.get<Float>(BodySettingsId::TAIT_SOUND_SPEED);
     rho0 = settings.get<Float>(BodySettingsId::DENSITY);
@@ -36,6 +44,9 @@ Pair<Float> TaitEos::evaluate(const Float rho, const Float UNUSED(u)) const {
     return { p, c0 };
 }
 
+//-----------------------------------------------------------------------------------------------------------
+// MieGruneisenEos implementation
+//-----------------------------------------------------------------------------------------------------------
 
 MieGruneisenEos::MieGruneisenEos(const BodySettings& settings) {
     c0 = settings.get<Float>(BodySettingsId::BULK_SOUND_SPEED);
@@ -53,6 +64,9 @@ Pair<Float> MieGruneisenEos::evaluate(const Float rho, const Float u) const {
     return { num / denom + Gamma * u * rho, c0 }; /// \todo derive the sound speed
 }
 
+//-----------------------------------------------------------------------------------------------------------
+// TillotsonEos implementation
+//-----------------------------------------------------------------------------------------------------------
 
 TillotsonEos::TillotsonEos(const BodySettings& settings)
     : u0(settings.get<Float>(BodySettingsId::TILLOTSON_SUBLIMATION))
@@ -148,6 +162,29 @@ Float TillotsonEos::getDensity(const Float p, const Float u) const {
     ASSERT(root);
     return root.value();
 }
+
+//-----------------------------------------------------------------------------------------------------------
+// SimplifiedTillotsonEos implementation
+//-----------------------------------------------------------------------------------------------------------
+
+SimplifiedTillotsonEos::SimplifiedTillotsonEos(const BodySettings& settings) {
+    const Float a = settings.get<Float>(BodySettingsId::TILLOTSON_SMALL_A);
+    const Float b = settings.get<Float>(BodySettingsId::TILLOTSON_SMALL_B);
+    c = a + b;
+    rho0 = settings.get<Float>(BodySettingsId::DENSITY);
+    A = settings.get<Float>(BodySettingsId::BULK_MODULUS);
+}
+
+Pair<Float> SimplifiedTillotsonEos::evaluate(const Float rho, const Float u) const {
+    const Float mu = rho / rho0 - 1._f;
+    const Float p = c * rho * u + A * mu;
+    const Float cs = sqrt(A / rho0); /// \todo Correctly, has to depend on u!
+    return { p, cs };
+}
+
+//-----------------------------------------------------------------------------------------------------------
+// MurnaghanEos implementation
+//-----------------------------------------------------------------------------------------------------------
 
 MurnaghanEos::MurnaghanEos(const BodySettings& settings)
     : rho0(settings.get<Float>(BodySettingsId::DENSITY))
