@@ -1,4 +1,4 @@
-# OpenSPH
+# OpenSPH  <a href="http://ascl.net/1911.003"><img src="https://img.shields.io/badge/ascl-1911.003-blue.svg?colorB=262255" alt="ascl:1911.003" /></a>
 
 ## Screenshots
 
