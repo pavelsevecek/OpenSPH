@@ -1,4 +1,5 @@
-# OpenSPH  <a href="http://ascl.net/1911.003"><img src="https://img.shields.io/badge/ascl-1911.003-blue.svg?colorB=262255" alt="ascl:1911.003" /></a>
+# OpenSPH  <a href="http://ascl.net/1911.003"><img src="https://img.shields.io/badge/ascl-1911.003-blue.svg?colorB=262255" alt="ascl:1911.003" /> </a><a href="https://gitlab.com/sevecekp/sph/commits/master"><img src="https://gitlab.com/sevecekp/sph/badges/master/pipeline.svg" /></a>
+
 
 ## Screenshots
 
