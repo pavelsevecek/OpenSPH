@@ -187,14 +187,14 @@ VirtualSettings SphWorker::getSettings() {
     addGenericCategory(connector, instName);
     addTimeSteppingCategory(connector, settings, isResumed);
 
-    /*auto treeEnabler = [this] {
-        return settings.get<FinderEnum>(RunSettingsId::SPH_FINDER) == FinderEnum::KD_TREE ||
-               settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES).has(ForceEnum::SELF_GRAVITY);
-    };*/
-
     auto stressEnabler = [this] {
         return settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES).has(ForceEnum::SOLID_STRESS);
     };
+    auto avEnabler = [this] {
+        return settings.get<ArtificialViscosityEnum>(RunSettingsId::SPH_AV_TYPE) !=
+               ArtificialViscosityEnum::NONE;
+    };
+    auto asEnabler = [this] { return settings.get<bool>(RunSettingsId::SPH_AV_USE_STRESS); };
 
     VirtualSettings::Category& solverCat = connector.addCategory("SPH solver");
     solverCat.connect<Flags<ForceEnum>>("Forces", settings, RunSettingsId::SPH_SOLVER_FORCES);
@@ -218,10 +218,17 @@ VirtualSettings SphWorker::getSettings() {
 
     VirtualSettings::Category& avCat = connector.addCategory("Artificial viscosity");
     avCat.connect<EnumWrapper>("Artificial viscosity type", settings, RunSettingsId::SPH_AV_TYPE);
-    avCat.connect<bool>("Apply Balsara switch", settings, RunSettingsId::SPH_AV_USE_BALSARA);
+    avCat.connect<bool>("Apply Balsara switch", settings, RunSettingsId::SPH_AV_USE_BALSARA)
+        .setEnabler(avEnabler);
+    avCat.connect<Float>("Artificial viscosity alpha", settings, RunSettingsId::SPH_AV_ALPHA)
+        .setEnabler(avEnabler);
+    avCat.connect<Float>("Artificial viscosity beta", settings, RunSettingsId::SPH_AV_BETA)
+        .setEnabler(avEnabler);
     avCat.connect<bool>("Apply artificial stress", settings, RunSettingsId::SPH_AV_USE_STRESS);
-    avCat.connect<Float>("Artificial viscosity alpha", settings, RunSettingsId::SPH_AV_ALPHA);
-    avCat.connect<Float>("Artificial viscosity beta", settings, RunSettingsId::SPH_AV_BETA);
+    avCat.connect<Float>("Artificial stress factor", settings, RunSettingsId::SPH_AV_STRESS_FACTOR)
+        .setEnabler(asEnabler);
+    avCat.connect<Float>("Artificial stress exponent", settings, RunSettingsId::SPH_AV_STRESS_EXPONENT)
+        .setEnabler(asEnabler);
 
     VirtualSettings::Category& scriptCat = connector.addCategory("Scripts");
     scriptCat.connect<bool>("Enable script", settings, RunSettingsId::SPH_SCRIPT_ENABLE);
