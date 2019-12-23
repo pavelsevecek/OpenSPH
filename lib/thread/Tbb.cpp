@@ -85,6 +85,10 @@ void Tbb::setGranularity(const Size newGranularity) {
     data->granularity = newGranularity;
 }
 
+void Tbb::setThreadCnt(const Size numThreads) {
+    data = makeAuto<TbbData>(numThreads, data->granularity);
+}
+
 SharedPtr<ITask> Tbb::submit(const Function<void()>& task) {
     /// \todo we need to hold the SharedPtr somewhere, otherwise the task_group would be destroyed
     if (tbbThreadContext.task) {

@@ -203,7 +203,7 @@ struct CollisionRecord {
 
     /// Returns true if there is some collision or overlap
     explicit operator bool() const {
-        return overlap > 0._f || collisionTime < INFINITY;
+        return overlap > 0._f || collisionTime < INFTY;
     }
 
     static CollisionRecord COLLISION(const Size i, const Size j, const Float time) {

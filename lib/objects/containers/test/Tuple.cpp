@@ -36,9 +36,9 @@ TEST_CASE("Tuple copy/move construction", "[tuple]") {
     REQUIRE(t3.get<1>().value == 10);
     REQUIRE(t3.get<1>().wasMoveConstructed);
 
-    Tuple<int, float> t4{ 3, 4.5_f };
+    Tuple<int, float> t4{ 3, 4.5f };
     REQUIRE(t4.get<0>() == 3);
-    REQUIRE(t4.get<1>() == 4.5_f);
+    REQUIRE(t4.get<1>() == 4.5f);
 }
 
 TEST_CASE("Tuple copy/move assignment", "[tuple]") {
@@ -243,8 +243,8 @@ TEST_CASE("ForwardAsTuple", "[tuple]") {
 }
 
 TEST_CASE("ForEach", "[tuple]") {
-    Tuple<int, float, double, char> t = makeTuple(1, 2._f, 3., 5);
-    int sum = 0;
+    Tuple<int, float, double, char> t = makeTuple(1, 2.f, 3., 5);
+    double sum = 0.;
     forEach(t, [&sum](auto& value) { sum += value; });
     REQUIRE(sum == 11);
     /// \todo test other overloads

@@ -51,7 +51,7 @@ struct MinimalStepTls {
     MinimalStepTls(const Float UNUSED(power)) {}
 
     /// Add a time step to the set, given also value, derivative and particle index
-    INLINE void add(const Float step, const T v, const T dv, const Float idx) {
+    INLINE void add(const Float step, const T v, const T dv, const Size idx) {
         if (step < minStep) {
             minStep = step;
             value = v;
@@ -102,7 +102,7 @@ struct MeanStepTls {
     INLINE Optional<Float> getStep() const {
         if (mean.count() > 0) {
             const Float step = mean.compute();
-            ASSERT(isReal(step) || step == INFINITY, step);
+            ASSERT(isReal(step) || step == INFTY, step);
             return step;
         } else {
             return NOTHING;

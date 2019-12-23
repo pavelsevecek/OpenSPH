@@ -138,7 +138,7 @@ public:
 protected:
     virtual void stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
 
-    void integrateAndAdvance(ISolver& solver, Statistics& stats, Storage& k, const float m, const float n);
+    void integrateAndAdvance(ISolver& solver, Statistics& stats, Storage& k, const Float m, const Float n);
 };
 
 

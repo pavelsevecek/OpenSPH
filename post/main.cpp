@@ -83,7 +83,7 @@ int pkdgravToOmega(const Path& filePath, const Path& omegaPath) {
     return 0;
 }
 
-int pkdgravToMoons(const Path& filePath, const float limit) {
+int pkdgravToMoons(const Path& filePath, const Float limit) {
     std::cout << "Processing pkdgrav file ... " << std::endl;
     Expected<Storage> storage = parsePkdgravOutput(filePath);
     if (!storage) {
@@ -99,10 +99,10 @@ int pkdgravToMoons(const Path& filePath, const float limit) {
 
 int ssfToSfd(const Post::HistogramSource source, const Path& filePath, const Path& sfdPath) {
     std::cout << "Processing SPH file ... " << std::endl;
-    BinaryInput input;
+    AutoPtr<IInput> input = Factory::getInput(filePath);
     Storage storage;
     Statistics stats;
-    Outcome outcome = input.load(filePath, storage, stats);
+    Outcome outcome = input->load(filePath, storage, stats);
     if (!outcome) {
         std::cout << "Cannot load particle data, " << outcome.error() << std::endl;
         return 0;
@@ -238,8 +238,8 @@ void ssfToVelDir(const Path& filePath, const Path& outPath) {
 struct HarrisAsteroid {
     Optional<Size> number;
     std::string name;
-    Optional<float> radius;
-    Optional<float> period;
+    Optional<Float> radius;
+    Optional<Float> period;
 };
 
 static Array<HarrisAsteroid> loadHarris(std::ifstream& ifs) {
@@ -270,8 +270,8 @@ static Array<HarrisAsteroid> loadHarris(std::ifstream& ifs) {
         harris.push(HarrisAsteroid{
             fromString<Size>(number),
             name,
-            fromString<float>(radius),
-            fromString<float>(period),
+            fromString<Float>(radius),
+            fromString<Float>(period),
         });
     }
     return harris;
@@ -742,7 +742,7 @@ int main(int argc, char** argv) {
                 std::cout << "Expected parameters: post pkdgravToMoons ss.50000.bt 0.1";
                 return 0;
             }
-            const float limit = std::atof(argv[3]);
+            const Float limit = std::atof(argv[3]);
             return pkdgravToMoons(Path(argv[2]), limit);
         } else if (mode == "ssfToSfd") {
             if (argc < 4) {

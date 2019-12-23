@@ -238,7 +238,7 @@ Size KdTree<TNode, TMetric>::addInner(const Size parent,
     node.box = Box(); // will be computed later
 #endif
 
-    node.splitPosition = splitPosition;
+    node.splitPosition = float(splitPosition);
 
     if (parent == ROOT_PARENT_NODE) {
         // no need to set up parents

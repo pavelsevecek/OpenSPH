@@ -119,7 +119,7 @@ public:
 class EntryControl : public IVirtualEntry {
 protected:
     std::string tooltip;
-    float mult = 1.f;
+    Float mult = 1._f;
     Function<bool()> enabler = nullptr;
     Function<void(const Value& newValue)> accessor = nullptr;
 
@@ -131,7 +131,7 @@ public:
     ///
     /// Note that the units are currently only applied for \ref Float or \ref Vector entries. Other entries
     /// ignore the value.
-    EntryControl& setUnits(const float newMult);
+    EntryControl& setUnits(const Float newMult);
 
     /// \brief Adds or replaces the enabler functor of the entry.
     ///

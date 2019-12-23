@@ -69,7 +69,7 @@ void GhostParticles::initialize(Storage& storage) {
             const Size ghostIdx = ghostIdxs[i];
             // offset between particle and its ghost
             const Vector deltaR = r[ghosts[i].index] - ghosts[i].position;
-            ASSERT(getLength(deltaR) > 0.f);
+            ASSERT(getLength(deltaR) > 0._f);
             const Vector normal = getNormalized(deltaR);
             const Float perp = dot(normal, v[ghosts[i].index]);
             // mirror vector by copying parallel component and inverting perpendicular component
@@ -131,8 +131,8 @@ FixedParticles::FixedParticles(const RunSettings& settings, Params&& params)
     // works fine.
     BlockDomain boundingDomain(box.center(), box.size());
     /// \todo generalize, we assume that kernel radius = 2 and don't take eta into account
-    Array<Vector> dummies = params.distribution->generate(
-        SEQUENTIAL, box.volume() / pow<3>(0.5_f * params.thickness), boundingDomain);
+    const Size n = Size(box.volume() / pow<3>(0.5_f * params.thickness));
+    Array<Vector> dummies = params.distribution->generate(SEQUENTIAL, n, boundingDomain);
     // remove all particles inside the actual domain or too far away
     /*Array<Float> distances;
     params.domain->getDistanceToBoundary(dummies, distances);*/

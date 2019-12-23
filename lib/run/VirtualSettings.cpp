@@ -7,7 +7,7 @@ EntryControl& EntryControl::setTooltip(const std::string& newTooltip) {
     return *this;
 }
 
-EntryControl& EntryControl::setUnits(const float newMult) {
+EntryControl& EntryControl::setUnits(const Float newMult) {
     mult = newMult;
     return *this;
 }

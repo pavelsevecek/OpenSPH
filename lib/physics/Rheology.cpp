@@ -60,7 +60,7 @@ void VonMisesRheology::initialize(IScheduler& scheduler, Storage& storage, const
 
         // compute yielding stress
         const Float unorm = u[i] / u_melt;
-        Float Y = unorm < 1.e-5_f ? limit : limit * max(1.f - unorm, 0._f);
+        Float Y = unorm < 1.e-5_f ? limit : limit * max(1._f - unorm, 0._f);
         Y = (1._f - d) * Y;
 
         // apply reduction to stress tensor
@@ -168,7 +168,7 @@ void DruckerPragerRheology::initialize(IScheduler& scheduler, Storage& storage, 
         }
 
         // apply temperature dependence
-        Y = (u[i] < 1.e-5_f * u_melt) ? Y : Y * max(1.f - u[i] / u_melt, 0._f);
+        Y = (u[i] < 1.e-5_f * u_melt) ? Y : Y * max(1._f - u[i] / u_melt, 0._f);
 
         if (Y < EPS) {
             reducing[i] = 0._f;

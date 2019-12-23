@@ -6,8 +6,8 @@
 NAMESPACE_SPH_BEGIN
 
 struct CurvePoint {
-    float x;
-    float y;
+    Float x;
+    Float y;
 
     bool operator==(const CurvePoint& other) const {
         return x == other.x && y == other.y;
@@ -39,7 +39,7 @@ public:
     Curve& operator=(const Curve& curve);
 
     /// \brief Evaluates the function and returns the result.
-    float operator()(const float x) const;
+    Float operator()(const Float x) const;
 
     /// \brief Returns the number of points defining the curve.
     Size getPointCnt() const;
@@ -73,9 +73,13 @@ public:
     Interval rangeY() const;
 
 private:
-    float linear(const CurvePoint& p1, const CurvePoint& p2, const float x) const;
+    Float linear(const CurvePoint& p1, const CurvePoint& p2, const Float x) const;
 
-    float cubic(const CurvePoint& p1, const CurvePoint& p2, float dy1, float dy2, float x) const;
+    Float cubic(const CurvePoint& p1,
+        const CurvePoint& p2,
+        const Float dy1,
+        const Float dy2,
+        const Float x) const;
 
     void sort();
 };

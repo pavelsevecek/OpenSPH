@@ -14,9 +14,9 @@ Size expandBits(Size v) {
 
 Size morton(const Vector& v) {
     const Vector u = v * 1024._f;
-    const int x = u[X];
-    const int y = u[Y];
-    const int z = u[Z];
+    const int x = int(u[X]);
+    const int y = int(u[Y]);
+    const int z = int(u[Z]);
     ASSERT(x >= 0 && x <= 1023);
     ASSERT(y >= 0 && y <= 1023);
     ASSERT(z >= 0 && z <= 1023);

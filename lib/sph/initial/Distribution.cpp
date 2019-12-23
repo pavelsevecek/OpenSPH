@@ -276,7 +276,7 @@ static auto renormalizeDensity(const IDomain& domain, Size& n, const Size error,
             break;
         }
     }
-    n = particleCnt;
+    n = Size(particleCnt);
     // create a different functor that captures multiplier by value, so we can return it from the function
     return [&domain, &density, multiplier](const Vector& v) {
         if (domain.contains(v)) {
@@ -318,7 +318,7 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
 
     Size N = expectedN;
     auto actDensity = renormalizeDensity(domain, N, params.maxDifference, params.particleDensity);
-    ASSERT(abs(int(N) - int(expectedN)) <= params.maxDifference);
+    ASSERT(abs(int(N) - int(expectedN)) <= int(params.maxDifference));
 
     // generate initial particle positions
     Storage storage = generateInitial(domain, N, actDensity);
@@ -330,7 +330,7 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
     ThreadLocal<Array<NeighbourRecord>> neighs(scheduler);
     finder.build(scheduler, r);
 
-    const Float correction = params.strength / (1.f + params.small);
+    const Float correction = params.strength / (1._f + params.small);
     // radius of search, does not have to be equal to radius of used SPH kernel
     const Float kernelRadius = 2._f;
 
@@ -369,11 +369,11 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
                 // for ghost particles, just copy the density (density outside the domain is always 0)
                 const Float rhok = (k >= N) ? rhoi : actDensity(r[k]);
                 // average kernel radius to allow for the gradient of particle density
-                const Float h = kernelRadius * (0.5f / root<3>(rhoi) + 0.5f / root<3>(rhok));
+                const Float h = kernelRadius * (0.5_f / root<3>(rhoi) + 0.5_f / root<3>(rhok));
                 if (lengthSqr > h * h || lengthSqr == 0) {
                     continue;
                 }
-                const Float hSqrInv = 1.f / (h * h);
+                const Float hSqrInv = 1._f / (h * h);
                 const Float length = getLength(diff);
                 ASSERT(length != 0._f);
                 const Vector diffUnit = diff / length;

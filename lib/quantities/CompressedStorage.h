@@ -12,13 +12,13 @@ public:
     CompressedVector() = default;
 
     CompressedVector(const Vector& v) {
-        data[X] = v[X];
-        data[Y] = v[Y];
-        data[Z] = v[Z];
+        data[X] = float(v[X]);
+        data[Y] = float(v[Y]);
+        data[Z] = float(v[Z]);
     }
 
     explicit operator Vector() const {
-        return Vector(data[X], data[Y], data[Z]);
+        return Vector(Float(data[X]), Float(data[Y]), Float(data[Z]));
     }
 };
 
@@ -43,7 +43,7 @@ public:
         for (Size i = 0; i < r.size(); ++i) {
             positions[i] = r[i];
             velocities[i] = v[i];
-            radii[i] = r[i][H];
+            radii[i] = float(r[i][H]);
         }
     }
 
@@ -52,7 +52,7 @@ public:
         Array<Vector> r(positions.size());
         for (Size i = 0; i < r.size(); ++i) {
             r[i] = Vector(positions[i]);
-            r[i][H] = radii[i];
+            r[i][H] = Float(radii[i]);
         }
         storage.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST, std::move(r));
 

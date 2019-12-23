@@ -20,7 +20,7 @@ BarnesHut::BarnesHut(const Float theta,
     const Size maxDepth,
     const Float gravityConstant)
     : kdTree(leafSize, maxDepth)
-    , thetaInv(1.f / theta)
+    , thetaInv(1._f / theta)
     , order(order)
     , maxDepth(maxDepth)
     , gravityConstant(gravityConstant) {
@@ -39,7 +39,7 @@ BarnesHut::BarnesHut(const Float theta,
     const Float gravityConstant)
     : kdTree(leafSize, maxDepth)
     , kernel(std::move(kernel))
-    , thetaInv(1.f / theta)
+    , thetaInv(1._f / theta)
     , order(order)
     , maxDepth(maxDepth)
     , gravityConstant(gravityConstant) {
@@ -121,7 +121,7 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx) const {
         ASSERT(isReal(boxDistSqr));
 
         if (!node.box.contains(r0) && boxSizeSqr > 0._f &&
-            boxSizeSqr / (boxDistSqr + EPS) < 1.f / sqr(thetaInv)) {
+            boxSizeSqr / (boxDistSqr + EPS) < 1._f / sqr(thetaInv)) {
             // small node, use multipole approximation
             f += evaluateGravity(r0 - node.com, node.moments, order);
 
@@ -204,7 +204,7 @@ void BarnesHut::evalNode(IScheduler& scheduler,
 
         const Size idx = *iter;
         const BarnesHutNode& node = kdTree.getNode(idx);
-        if (node.r_open == 0.f) {
+        if (node.r_open == 0._f) {
             // either empty node or a single particle in a leaf, just add it to particle list
             ASSERT(node.isLeaf());
             data.particleList.push(idx);

@@ -61,14 +61,14 @@ void ScalarGradyKippModel::setFlaws(Storage& storage,
     for (Size i = 0; i < size; ++i) {
         V += m[i] / rho[i];
     }
-    ASSERT(V > 0.f);
+    ASSERT(V > 0._f);
     const Float k_weibull = material.getParam<Float>(BodySettingsId::WEIBULL_COEFFICIENT);
     const Float m_weibull = material.getParam<Float>(BodySettingsId::WEIBULL_EXPONENT);
     const bool sampleDistribution = material.getParam<bool>(BodySettingsId::WEIBULL_SAMPLE_DISTRIBUTIONS);
 
     // cannot use pow on k_weibull*V, leads to float overflow for larger V
-    const Float denom = 1._f / (std::pow(k_weibull, 1._f / m_weibull) * std::pow(V, 1.f / m_weibull));
-    ASSERT(isReal(denom) && denom > 0.f);
+    const Float denom = 1._f / (std::pow(k_weibull, 1._f / m_weibull) * std::pow(V, 1._f / m_weibull));
+    ASSERT(isReal(denom) && denom > 0._f);
     Array<Float> eps_max(size);
 
     if (sampleDistribution) {
@@ -100,7 +100,7 @@ void ScalarGradyKippModel::setFlaws(Storage& storage,
         while (flawedCnt < size) {
             const Size i = Size(context.rng() * size);
             const Float eps = denom * std::pow(Float(p), 1._f / m_weibull);
-            ASSERT(isReal(eps) && eps > 0.f);
+            ASSERT(isReal(eps) && eps > 0._f);
             if (n_flaws[i] == 0) {
                 flawedCnt++;
                 eps_min[i] = eps;
@@ -165,7 +165,7 @@ void ScalarGradyKippModel::integrate(IScheduler& scheduler, Storage& storage, co
             return;
         }
         ddamage[i] = growth[i] * root<3>(min(std::pow(ratio, m_zero[i]), Float(n_flaws[i])));
-        ASSERT(ddamage[i] >= 0.f);
+        ASSERT(ddamage[i] >= 0._f);
     });
 }
 

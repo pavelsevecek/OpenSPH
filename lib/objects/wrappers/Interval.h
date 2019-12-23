@@ -110,7 +110,7 @@ public:
 /// Can be used by other Floats by specializing the method
 template <typename T>
 INLINE T clamp(const T& v, const Interval& range) {
-    return range.clamp(v);
+    return T(range.clamp(v));
 }
 
 

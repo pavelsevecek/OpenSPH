@@ -10,12 +10,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// TODO
-enum class ExtensionEnum {
-    ALL,
-    LAST,
-};
-
 /// \brief Object representing a path on a filesystem
 ///
 /// Can represent both directory and file paths. Object does not check existence or accesibility of the path

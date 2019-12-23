@@ -29,7 +29,7 @@ public:
         }
         averageValue /= values.size();
         const Size mid = values.size() >> 1;
-        Array<Float> cloned;
+        Array<Type> cloned;
         cloned.pushAll(values.begin(), values.end());
         std::nth_element(cloned.begin(), cloned.begin() + mid, cloned.end());
         medianValue = cloned[mid];

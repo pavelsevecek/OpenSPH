@@ -110,7 +110,7 @@ public:
     }
 
     INLINE Float valueImpl(const Float qSqr) const noexcept {
-        ASSERT(qSqr >= 0.f);
+        ASSERT(qSqr >= 0._f);
         ASSERT(isInit());
         if (SPH_UNLIKELY(qSqr >= sqr(rad))) {
             // outside of kernel support
@@ -182,7 +182,7 @@ public:
             return (1._f / q) * normalization[D - 1] * (-0.75_f * pow<2>(2._f - q) + 3._f * pow<2>(1._f - q));
         }
         if (q < 2._f) {
-            return (1._f / q) * normalization[D - 1] * (-0.75f * pow<2>(2.f - q));
+            return (1._f / q) * normalization[D - 1] * (-0.75_f * pow<2>(2._f - q));
         }
         return 0._f;
     }

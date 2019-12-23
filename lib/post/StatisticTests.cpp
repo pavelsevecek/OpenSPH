@@ -102,7 +102,7 @@ Post::KsResult Post::kolmogorovSmirnovTest(ArrayView<const Float> data,
         D = max(D, abs(p.y - expectedY), abs(prevY - expectedY));
         prevY = p.y;
     }
-    const Float sqrtN = sqrt(data.size());
+    const Float sqrtN = sqrt(Float(data.size()));
     Float prob = ksProb(sqrtN, D);
     ASSERT(prob >= 0._f && prob <= 1._f);
     return { D, prob };
@@ -123,7 +123,7 @@ Post::KsResult Post::kolmogorovSmirnovTest(ArrayView<const Float> data1, ArrayVi
         D = max(D, abs(cdf1[i].y - cdf2[j].y));
     }
 
-    const Float sqrtNe = sqrt((data1.size() * data2.size()) / (data1.size() + data2.size()));
+    const Float sqrtNe = sqrt(Float(data1.size() * data2.size()) / (data1.size() + data2.size()));
     Float prob = ksProb(sqrtNe, D);
     ASSERT(prob >= 0._f && prob <= 1._f);
     return { D, prob };
@@ -156,7 +156,7 @@ Post::KsResult Post::kolmogorovSmirnovTest(ArrayView<const PlotPoint> data, cons
         }
     }
 
-    const Float sqrtNe = sqrt(data.size());
+    const Float sqrtNe = sqrt(Float(data.size()));
     const Float r = correlationCoefficient(data);
     const Float prob =
         kolmogorovSmirnovDistribution(sqrtNe * D / (1._f + sqrt(1._f - sqr(r)) * (0.25_f - 0.75_f / sqrtNe)));

@@ -52,7 +52,7 @@ TEST_CASE("Initial addBody", "[initial]") {
     REQUIRE(result);
 
     ArrayView<Float> ms = storage.getValue<Float>(QuantityId::MASS);
-    float totalM = 0._f;
+    Float totalM = 0._f;
     for (Float m : ms) {
         totalM += m;
     }
@@ -93,7 +93,7 @@ TEST_CASE("Initial rotation", "[initial]") {
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
 
     Vector axis;
-    float magnitude;
+    Float magnitude;
     tieToTuple(axis, magnitude) = getNormalizedWithLength(Vector(1._f, 3._f, -2._f));
 
     auto test = [&](const Size i) -> Outcome {

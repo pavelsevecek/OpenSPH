@@ -7,12 +7,12 @@ namespace Detail {
 template <typename T, typename = void>
 class UnitAdapter {
 public:
-    INLINE const T& get(const T& input, const float mult) const {
+    INLINE const T& get(const T& input, const Float mult) const {
         ASSERT(mult == 1._f, "Units not implemented for entries other than float or vector");
         return input;
     }
 
-    INLINE const T& set(const T& input, const float mult) const {
+    INLINE const T& set(const T& input, const Float mult) const {
         ASSERT(mult == 1._f, "Units not implemented for entries other than float or vector");
         return input;
     }
@@ -21,11 +21,11 @@ public:
 template <typename T>
 class UnitAdapter<T, std::enable_if_t<std::is_same<T, Float>::value || std::is_same<T, Vector>::value>> {
 public:
-    INLINE T get(const T& input, const float mult) const {
+    INLINE T get(const T& input, const Float mult) const {
         return input / mult;
     }
 
-    INLINE T set(const T& input, const float mult) const {
+    INLINE T set(const T& input, const Float mult) const {
         return input * mult;
     }
 };

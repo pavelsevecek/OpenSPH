@@ -438,33 +438,31 @@ inline Unit operator/(const Unit& u1, const Unit& u2) {
 
 
 INLINE Unit operator"" _kg(long double value) {
-    return Unit::kilogram(value);
+    return Unit::kilogram(Float(value));
 }
 INLINE Unit operator"" _g(long double value) {
-    return 1.e-3_kg * value;
+    return 1.e-3_kg * Float(value);
 }
 INLINE Unit operator"" _m(long double value) {
-    return Unit::meter(value);
+    return Unit::meter(Float(value));
 }
 INLINE Unit operator"" _cm(long double value) {
-    return 0.01_m * value;
+    return 0.01_m * Float(value);
 }
 INLINE Unit operator"" _mm(long double value) {
-    return 1.e-3_m * value;
+    return 1.e-3_m * Float(value);
 }
 INLINE Unit operator"" _km(long double value) {
-    return 1.e3_m * value;
+    return 1.e3_m * Float(value);
 }
 INLINE Unit operator"" _s(long double value) {
-    return Unit::second(value);
+    return Unit::second(Float(value));
 }
 INLINE Unit operator"" _rad(long double value) {
-    return Unit::radian(value);
+    return Unit::radian(Float(value));
 }
-
-
 INLINE Unit operator"" _mps(long double value) {
-    return Unit(value, UnitDimensions::velocity(), UnitSystem::SI());
+    return Unit(Float(value), UnitDimensions::velocity(), UnitSystem::SI());
 }
 
 Expected<Unit> parseUnit(const std::string& text);

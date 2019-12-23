@@ -31,7 +31,7 @@ public:
     }
 
     /// \todo
-    INLINE float radius() const {
+    INLINE Float radius() const {
         return close.radius();
     }
 

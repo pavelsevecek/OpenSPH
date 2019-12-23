@@ -92,8 +92,8 @@ SharedPtr<WorkerNode> Presets::makeCratering(UniqueNameManager& nameMgr, const S
     SharedPtr<WorkerNode> targetMaterial =
         makeNode<MaterialWorker>(nameMgr.getName("material"), EMPTY_SETTINGS);
 
-    const Vector targetSize(1.e5_f, 3.e4_f, 1.e5_f);
-    const Vector domainSize(1.e5_f, 1.e5_f, 1.e5_f);
+    const Vector targetSize(100._f, 30._f, 100._f);  // in km
+    const Vector domainSize(100._f, 100._f, 100._f); // in km
     const Flags<ForceEnum> forces = ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS;
 
     SharedPtr<WorkerNode> domain = makeNode<BlockWorker>(nameMgr.getName("boundary"));
@@ -112,9 +112,11 @@ SharedPtr<WorkerNode> Presets::makeCratering(UniqueNameManager& nameMgr, const S
     SharedPtr<WorkerNode> stabilizeTarget =
         makeNode<SphStabilizationWorker>(nameMgr.getName("stabilize target"));
     VirtualSettings stabilizeSettings = stabilizeTarget->getSettings();
+    stabilizeSettings.set(RunSettingsId::RUN_END_TIME, 40._f);
     stabilizeSettings.set(RunSettingsId::DOMAIN_BOUNDARY, EnumWrapper(BoundaryEnum::GHOST_PARTICLES));
     stabilizeSettings.set(RunSettingsId::SPH_SOLVER_FORCES, EnumWrapper(ForceEnum(forces.value())));
     stabilizeSettings.set(RunSettingsId::FRAME_CONSTANT_ACCELERATION, Vector(0._f, -10._f, 0._f));
+    stabilizeSettings.set(RunSettingsId::TIMESTEPPING_CRITERION, EnumWrapper(TimeStepCriterionEnum::COURANT));
     targetIc->connect(stabilizeTarget, "particles");
     domain->connect(stabilizeTarget, "boundary");
 
@@ -136,14 +138,17 @@ SharedPtr<WorkerNode> Presets::makeCratering(UniqueNameManager& nameMgr, const S
     VirtualSettings mergerSettings = merger->getSettings();
     mergerSettings.set("offset", Vector(0._f, 50._f, 0._f));   // 50km
     mergerSettings.set("velocity", Vector(0._f, -5._f, 0._f)); // 5km/s
+    mergerSettings.set("unique_flags", true);                  // separate the bodies
     stabilizeTarget->connect(merger, "particles A");
     impactorIc->connect(merger, "particles B");
 
     SharedPtr<WorkerNode> cratering = makeNode<SphWorker>(nameMgr.getName("cratering"), EMPTY_SETTINGS);
     VirtualSettings crateringSettings = cratering->getSettings();
+    crateringSettings.set(RunSettingsId::RUN_END_TIME, 1000._f);
     crateringSettings.set(RunSettingsId::DOMAIN_BOUNDARY, EnumWrapper(BoundaryEnum::GHOST_PARTICLES));
     crateringSettings.set(RunSettingsId::SPH_SOLVER_FORCES, EnumWrapper(ForceEnum(forces.value())));
     crateringSettings.set(RunSettingsId::FRAME_CONSTANT_ACCELERATION, Vector(0._f, -10._f, 0._f));
+    crateringSettings.set(RunSettingsId::TIMESTEPPING_CRITERION, EnumWrapper(TimeStepCriterionEnum::COURANT));
 
     merger->connect(cratering, "particles");
     domain->connect(cratering, "boundary");

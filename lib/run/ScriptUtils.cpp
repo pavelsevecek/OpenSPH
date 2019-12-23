@@ -160,7 +160,7 @@ void Chai::registerBindings(chaiscript::ChaiScript& chai) {
     chai.add(chaiscript::fun(&Sph::sqrt<double>), "sqrt");
     chai.add(chaiscript::fun(&Sph::cos<double>), "cos");
     chai.add(chaiscript::fun(&Sph::sin<double>), "sin");
-    chai.add(chaiscript::fun(&Sph::lerp<double>), "lerp");
+    chai.add(chaiscript::fun(&Sph::lerp<double, double>), "lerp");
     chai.add(chaiscript::fun(&Sph::abs<double>), "abs");
     chai.add(chaiscript::fun(&Sph::pow<double>), "pow");
 

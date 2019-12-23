@@ -101,7 +101,7 @@ TEST_CASE("TupleAdapter", "[iterators]") {
 TEST_CASE("SubsetIterator", "[iterators]") {
     Array<int> values{ 2, 5, 4, 8, 3, -1, 2, 1 };
     Array<int> visited;
-    for (float v : subset(values, [](int f) { return f % 2 == 0; })) {
+    for (int v : subset(values, [](int f) { return f % 2 == 0; })) {
         visited.push(v);
     }
     REQUIRE(visited == makeArray(2, 4, 8, 2));

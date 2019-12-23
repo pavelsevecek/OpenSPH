@@ -289,7 +289,7 @@ void ImpactorIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     SharedPtr<ParticleData> target = this->getInput<ParticleData>("target");
 
     const Size minParticleCnt = body.get<int>(BodySettingsId::MIN_PARTICLE_COUNT);
-    const Size particleCnt = getTargetDensity(target->storage) * domain->getVolume();
+    const Size particleCnt = Size(getTargetDensity(target->storage) * domain->getVolume());
     body.set(BodySettingsId::PARTICLE_COUNT, max<int>(particleCnt, minParticleCnt));
 
     MonolithicBodyIc::evaluate(global, callbacks);

@@ -42,7 +42,7 @@ public:
     explicit Quat(const AffineMatrix& m) {
         ASSERT(m.translation() == Vector(0._f));
         ASSERT(m.isOrthogonal());
-        const Float w = 0.5_f * sqrt(1.f + m(0, 0) + m(1, 1) + m(2, 2));
+        const Float w = 0.5_f * sqrt(1._f + m(0, 0) + m(1, 1) + m(2, 2));
         const Float n = 0.25_f / w;
         v[X] = (m(2, 1) - m(1, 2)) * n;
         v[Y] = (m(0, 2) - m(2, 0)) * n;

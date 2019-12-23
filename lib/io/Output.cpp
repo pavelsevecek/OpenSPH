@@ -1203,7 +1203,7 @@ Outcome PkdgravInput::load(const Path& path, Storage& storage, Statistics& stats
         // compute radius, using the density formula
         /// \todo here we actually store radius in rho ...
         rho[i] *= conversion.distance;
-        r[i][H] = root<3>(3.f * m[i] / (2700.f * 4.f * PI));
+        r[i][H] = root<3>(3._f * m[i] / (2700._f * 4._f * PI));
 
         // replace the radius with actual density
         /// \todo too high, fix

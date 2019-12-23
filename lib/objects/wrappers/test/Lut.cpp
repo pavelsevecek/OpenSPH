@@ -5,7 +5,7 @@
 using namespace Sph;
 
 TEST_CASE("Lut", "[lut]") {
-    Lut<float> lut(Interval(0._f, 2._f * PI), 10000, [](const Float x) { return sin(x); });
+    Lut<Float> lut(Interval(0._f, 2._f * PI), 10000, [](const Float x) { return sin(x); });
 
     REQUIRE(lut(10._f) == approx(0._f));
     REQUIRE(lut(-10._f) == approx(0._f));

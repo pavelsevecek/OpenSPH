@@ -120,7 +120,7 @@ static void testEquivalence(const Size npart, const int maxdiff) {
     // check histograms
     Post::HistogramParams params;
     params.range = Interval(1, 30);
-    params.binCnt = params.range.size();
+    params.binCnt = Size(params.range.size());
     Array<Float> ns(n_flaws.size());
     for (Size i = 0; i < n_flaws.size(); ++i) {
         ns[i] = Float(n_flaws[i]);

@@ -45,7 +45,7 @@ INLINE T sqrtInv(const T& f) {
     int i;
     // cast to float
     float x2 = float(f) * 0.5f;
-    float y = f;
+    float y = float(f);
     memcpy(&i, &y, sizeof(float));
     i = 0x5f3759df - (i >> 1);
     memcpy(&y, &i, sizeof(float));
@@ -76,7 +76,7 @@ INLINE constexpr bool isPower2(const Size n) noexcept {
 /// Return a squared root of a value.
 template <typename T>
 INLINE T sqrt(const T f) {
-    ASSERT(f >= 0._f, f);
+    ASSERT(f >= T(0), f);
     return std::sqrt(f);
 }
 
@@ -220,7 +220,7 @@ INLINE constexpr Size pow<6>(const Size v) {
 
 template <typename T>
 INLINE T pow(const T value, const T power) {
-    return ::pow(value, power);
+    return std::pow(value, power);
 }
 
 /// Approximative version of pow function.
@@ -312,9 +312,9 @@ INLINE int sgn(const T val) {
     return (T(0) < val) - (val < T(0));
 }
 
-template <typename T>
-INLINE T lerp(const T v1, const T v2, const Float amount) {
-    return v1 * (1._f - amount) + v2 * amount;
+template <typename T, typename TAmount>
+INLINE T lerp(const T v1, const T v2, const TAmount amount) {
+    return v1 * (TAmount(1) - amount) + v2 * amount;
 }
 
 

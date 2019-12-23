@@ -30,7 +30,7 @@ void testDistributionForDomain(IDistribution* distribution, const IDomain& domai
     for (Vector& v : values) {
         const Vector idx = 2._f * (v - domain.getBoundingBox().lower()) / domain.getBoundingBox().size();
         const Size octantIdx =
-            4 * clamp(int(idx[X]), 0, 1) + 2._f * clamp(int(idx[Y]), 0, 1) + clamp(int(idx[Z]), 0, 1);
+            4 * clamp(int(idx[X]), 0, 1) + 2 * clamp(int(idx[Y]), 0, 1) + clamp(int(idx[Z]), 0, 1);
         octants[octantIdx]++;
     }
     const Size n = values.size();

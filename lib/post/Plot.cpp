@@ -377,11 +377,11 @@ Array<Float> getLogTics(const Interval& interval, const Size minCount) {
         // add 2, 5, 20, 50, ...
         for (Float order = fromOrder; order <= toOrder; order++) {
             const Float value = pow(10._f, order);
-            if (interval.contains(2.f * value)) {
-                tics.insert(2.f * value);
+            if (interval.contains(2._f * value)) {
+                tics.insert(2._f * value);
             }
-            if (interval.contains(5.f * value)) {
-                tics.insert(5.f * value);
+            if (interval.contains(5._f * value)) {
+                tics.insert(5._f * value);
             }
         }
     }

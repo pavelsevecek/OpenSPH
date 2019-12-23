@@ -156,7 +156,7 @@ void EllipsoidalDomain::getDistanceToBoundary(ArrayView<const Vector> vs, Array<
     distances.clear();
     for (const Vector& v : vs) {
         /// \todo test
-        const Float dist = effectiveRadius * (1.f - getLength((v - this->center) / radii));
+        const Float dist = effectiveRadius * (1._f - getLength((v - this->center) / radii));
         distances.push(dist);
     }
 }
@@ -456,7 +456,7 @@ Vector HexagonalDomain::getCenter() const {
 
 Float HexagonalDomain::getVolume() const {
     // 6 equilateral triangles
-    return 1.5_f * sqrt(3) * sqr(outerRadius);
+    return 1.5_f * sqrt(3._f) * sqr(outerRadius);
 }
 
 Box HexagonalDomain::getBoundingBox() const {

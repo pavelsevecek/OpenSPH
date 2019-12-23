@@ -23,7 +23,7 @@ class CohesionKernel {
 private:
     // this kernel does not have to be normalized to 1, this constant is used only to shift practical values
     // of the surface tension coefficient to 1.
-    static constexpr Float normalization = 32.f / PI;
+    static constexpr Float normalization = 32._f / PI;
 
 public:
     INLINE Float valueImpl(const Float qSqr) const {

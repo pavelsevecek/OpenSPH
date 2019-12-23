@@ -5,19 +5,19 @@ NAMESPACE_SPH_BEGIN
 
 class Vector4 {
 private:
-    float v[4];
+    Float v[4];
 
 public:
-    Vector4(const float x1, const float x2, const float x3, const float x4)
+    Vector4(const Float x1, const Float x2, const Float x3, const Float x4)
         : v{ x1, x2, x3, x4 } {}
 
-    float operator[](const Size i) const {
+    INLINE Float operator[](const Size i) const {
         ASSERT(unsigned(i) < 4);
         return v[i];
     }
 };
 
-static float dot(const Vector4& v1, const Vector4& v2) {
+static Float dot(const Vector4& v1, const Vector4& v2) {
     return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2] + v1[3] * v2[3];
 }
 
@@ -45,18 +45,18 @@ const Matrix4 CURVE_MATRIX{
     { 2.f, -2.f, 1.f, 1.f },
 };
 
-static float getDist(const CurvePoint& p1, const CurvePoint& p2) {
+static Float getDist(const CurvePoint& p1, const CurvePoint& p2) {
     return sqrt(sqr(p1.x - p2.x) + sqr(p1.y - p2.y));
 }
 
-static float getDerivative(const CurvePoint& p1, const CurvePoint& p2) {
+static Float getDerivative(const CurvePoint& p1, const CurvePoint& p2) {
     return (p2.y - p1.y) / (p2.x - p1.x);
 }
 
-static float getDerivative(const CurvePoint& p0, const CurvePoint& p1, const CurvePoint& p2) {
+static Float getDerivative(const CurvePoint& p0, const CurvePoint& p1, const CurvePoint& p2) {
     // centripetal parametrization -> weight by the squared root of the distance
-    const float d1 = sqrt(getDist(p0, p1));
-    const float d2 = sqrt(getDist(p1, p2));
+    const Float d1 = sqrt(getDist(p0, p1));
+    const Float d2 = sqrt(getDist(p1, p2));
     return lerp(getDerivative(p0, p1), getDerivative(p1, p2), d1 / (d1 + d2));
 }
 
@@ -147,9 +147,9 @@ Interval Curve::rangeY() const {
     return range;
 }
 
-float Curve::operator()(const float x) const {
+Float Curve::operator()(const Float x) const {
     auto lowerBoundIter = std::lower_bound(
-        points.begin(), points.end(), x, [](const std::pair<CurvePoint, bool>& p, const float x) {
+        points.begin(), points.end(), x, [](const std::pair<CurvePoint, bool>& p, const Float x) {
             return p.first.x < x;
         });
     Size idx;
@@ -191,18 +191,18 @@ float Curve::operator()(const float x) const {
     }
 }
 
-float Curve::linear(const CurvePoint& p1, const CurvePoint& p2, const float x) const {
+Float Curve::linear(const CurvePoint& p1, const CurvePoint& p2, const Float x) const {
     return p1.y + (x - p1.x) / (p2.x - p1.x) * (p2.y - p1.y);
 }
 
-float Curve::cubic(const CurvePoint& p1,
+Float Curve::cubic(const CurvePoint& p1,
     const CurvePoint& p2,
-    const float dy1,
-    const float dy2,
-    const float x) const {
-    const float d = p2.x - p1.x;
-    const float t = (x - p1.x) / d;
-    const Vector4 ts(1.f, t, pow<2>(t), pow<3>(t));
+    const Float dy1,
+    const Float dy2,
+    const Float x) const {
+    const Float d = p2.x - p1.x;
+    const Float t = (x - p1.x) / d;
+    const Vector4 ts(1._f, t, pow<2>(t), pow<3>(t));
     const Vector4 ys(p1.y, p2.y, dy1 * d, dy2 * d);
     return dot(ts, CURVE_MATRIX * ys);
 }

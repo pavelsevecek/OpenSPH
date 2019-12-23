@@ -93,7 +93,7 @@ Storage Tests::getSolidStorage(const Size particleCnt, BodySettings settings, co
 
 Size Tests::getClosestParticle(const Storage& storage, const Vector& p) {
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    Float closestDistSqr = INFINITY;
+    Float closestDistSqr = INFTY;
     Size closestIdx = Size(-1);
     for (Size i = 0; i < r.size(); ++i) {
         const Float distSqr = getSqrLength(r[i] - p);
@@ -102,7 +102,7 @@ Size Tests::getClosestParticle(const Storage& storage, const Vector& p) {
             closestIdx = i;
         }
     }
-    ASSERT(closestDistSqr < INFINITY);
+    ASSERT(closestDistSqr < INFTY);
     return closestIdx;
 }
 

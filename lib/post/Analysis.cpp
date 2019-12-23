@@ -670,7 +670,7 @@ static Array<Float> getParticleValues(const Storage& storage,
     case Post::HistogramId::EQUIVALENT_MASS_RADII: {
         ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
         return processParticleCutoffs(storage, params, [m, &params](Size i) {
-            return root<3>(3.f * m[i] / (params.referenceDensity * 4.f * PI));
+            return root<3>(3._f * m[i] / (params.referenceDensity * 4._f * PI));
         });
     }
     case Post::HistogramId::VELOCITIES: {
@@ -930,7 +930,7 @@ Array<Post::HistPoint> Post::getDifferentialHistogram(ArrayView<const Float> val
     Size binCnt = params.binCnt;
     if (binCnt == 0) {
         // estimate initial bin count as sqrt of component count
-        binCnt = Size(sqrt(values.size()));
+        binCnt = Size(sqrt(Float(values.size())));
     }
 
     Array<Size> sfd(binCnt);

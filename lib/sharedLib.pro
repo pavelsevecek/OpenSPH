@@ -1,6 +1,9 @@
 QMAKE_CXXFLAGS += -Wall -Wextra -msse4.1 -std=c++14 -pthread
 
 linux-g++ {
+    # extra warnings
+    QMAKE_CXXFLAGS += -Wfloat-conversion -Wduplicated-cond -Wduplicated-branches -Wlogical-op
+
     # seems like gcc reports false positive for this warning
     QMAKE_CXXFLAGS += -Wno-aggressive-loop-optimizations
 

@@ -210,18 +210,21 @@ void EulerExplicit::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics&
 
     // advance velocities
     stepSecondOrder(*storage, scheduler, [dt](auto& UNUSED(r), auto& v, const auto& dv) INL { //
-        v += dv * dt;
+        using Type = typename std::decay_t<decltype(v)>;
+        v += Type(dv * dt);
     });
     // find positions and velocities after collision (at the beginning of the time step
     solver.collide(*storage, stats, timeStep);
     // advance positions
     stepSecondOrder(*storage, scheduler, [dt](auto& r, auto& v, const auto& UNUSED(dv)) INL { //
-        r += v * dt;
+        using Type = typename std::decay_t<decltype(v)>;
+        r += Type(v * dt);
     });
 
     // simply advance first order quanties
     stepFirstOrder(*storage, scheduler, [dt](auto& x, const auto& dx) INL { //
-        x += dx * dt;
+        using Type = typename std::decay_t<decltype(x)>;
+        x += Type(dx * dt);
     });
 
     ASSERT(storage->isValid());
@@ -251,11 +254,13 @@ void PredictorCorrector::makePredictions(IScheduler& scheduler) {
     const Float dt2 = 0.5_f * sqr(dt);
     /// \todo this is currently incompatible with NBodySolver, because we advance positions by 0.5 adt^2 ...
     stepSecondOrder(*storage, scheduler, [dt, dt2](auto& r, auto& v, const auto& dv) INL {
-        r += v * dt + dv * dt2;
-        v += dv * dt;
+        using Type = typename std::decay_t<decltype(v)>;
+        r += Type(v * dt + dv * dt2);
+        v += Type(dv * dt);
     });
     stepFirstOrder(*storage, scheduler, [dt](auto& x, const auto& dx) INL { //
-        x += dx * dt;
+        using Type = typename std::decay_t<decltype(x)>;
+        x += Type(dx * dt);
     });
 }
 
@@ -270,12 +275,14 @@ void PredictorCorrector::makeCorrections(IScheduler& scheduler) {
         *predictions,
         scheduler,
         [a, b, dt, dt2](auto& pr, auto& pv, const auto& pdv, const auto& cdv) {
-            pr -= a * (cdv - pdv) * dt2;
-            pv -= b * (cdv - pdv) * dt;
+            using Type = typename std::decay_t<decltype(pr)>;
+            pr -= Type(a * (cdv - pdv) * dt2);
+            pv -= Type(b * (cdv - pdv) * dt);
         });
 
     stepFirstOrder(*storage, *predictions, scheduler, [dt](auto& px, const auto& pdx, const auto& cdx) {
-        px -= 0.5_f * (cdx - pdx) * dt;
+        using Type = typename std::decay_t<decltype(px)>;
+        px -= Type(0.5_f * (cdx - pdx) * dt);
     });
 }
 
@@ -314,7 +321,8 @@ void LeapFrog::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stat
     const Float dt = timeStep;
     solver.collide(*storage, stats, 0.5_f * dt);
     stepSecondOrder(*storage, scheduler, [dt](auto& r, const auto& v, const auto& UNUSED(dv)) INL { //
-        r += v * 0.5_f * dt;
+        using Type = typename std::decay_t<decltype(v)>;
+        r += Type(v * 0.5_f * dt);
     });
 
     // compute the derivatives
@@ -324,13 +332,15 @@ void LeapFrog::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stat
     // integrate first-order quantities as in Euler
     /// \todo this is not LeapFrog !
     stepFirstOrder(*storage, scheduler, [dt](auto& x, const auto& dx) INL { //
-        x += dx * dt;
+        using Type = typename std::decay_t<decltype(x)>;
+        x += Type(dx * dt);
     });
 
 
     // move velocities by full timestep (kick)
     stepSecondOrder(*storage, scheduler, [dt](auto& UNUSED(r), auto& v, const auto& dv) INL { //
-        v += dv * dt;
+        using Type = typename std::decay_t<decltype(v)>;
+        v += Type(dv * dt);
     });
 
     // evaluate collisions
@@ -338,7 +348,8 @@ void LeapFrog::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stat
 
     // move positions by another half timestep (drift)
     stepSecondOrder(*storage, scheduler, [dt](auto& r, auto& v, const auto& UNUSED(dv)) INL { //
-        r += v * 0.5_f * dt;
+        using Type = typename std::decay_t<decltype(v)>;
+        r += Type(v * 0.5_f * dt);
     });
 
     ASSERT(storage->isValid());
@@ -370,25 +381,27 @@ RungeKutta::~RungeKutta() = default;
 void RungeKutta::integrateAndAdvance(ISolver& solver,
     Statistics& stats,
     Storage& k,
-    const float m,
-    const float n) {
+    const Float m,
+    const Float n) {
     k.zeroHighestDerivatives();
     solver.integrate(k, stats);
     iteratePair<VisitorEnum::FIRST_ORDER>(
         k, *storage, [&](const QuantityId UNUSED(id), auto& kv, auto& kdv, auto& v, auto&) {
+            using Type = typename std::decay_t<decltype(kv)>::Type;
             for (Size i = 0; i < v.size(); ++i) {
-                kv[i] += kdv[i] * m * this->timeStep;
-                v[i] += kdv[i] * n * this->timeStep;
+                kv[i] += Type(kdv[i] * m * this->timeStep);
+                v[i] += Type(kdv[i] * n * this->timeStep);
             }
         });
     iteratePair<VisitorEnum::SECOND_ORDER>(k,
         *storage,
         [&](const QuantityId UNUSED(id), auto& kv, auto& kdv, auto& kd2v, auto& v, auto& dv, auto&) {
+            using Type = typename std::decay_t<decltype(kv)>::Type;
             for (Size i = 0; i < v.size(); ++i) {
-                kv[i] += kdv[i] * m * this->timeStep;
-                kdv[i] += kd2v[i] * m * this->timeStep;
-                v[i] += kdv[i] * n * this->timeStep;
-                dv[i] += kd2v[i] * n * this->timeStep;
+                kv[i] += Type(kdv[i] * m * this->timeStep);
+                kdv[i] += Type(kd2v[i] * m * this->timeStep);
+                v[i] += Type(kdv[i] * n * this->timeStep);
+                dv[i] += Type(kd2v[i] * n * this->timeStep);
             }
         });
 }
@@ -419,16 +432,18 @@ void RungeKutta::stepImpl(IScheduler& UNUSED(scheduler), ISolver& solver, Statis
 
     iteratePair<VisitorEnum::FIRST_ORDER>(
         *storage, *k4, [this](const QuantityId UNUSED(id), auto& v, auto&, auto&, auto& kdv) {
+            using Type = typename std::decay_t<decltype(v)>::Type;
             for (Size i = 0; i < v.size(); ++i) {
-                v[i] += this->timeStep / 6.f * kdv[i];
+                v[i] += Type(this->timeStep / 6._f * kdv[i]);
             }
         });
     iteratePair<VisitorEnum::SECOND_ORDER>(*storage,
         *k4,
         [this](const QuantityId UNUSED(id), auto& v, auto& dv, auto&, auto&, auto& kdv, auto& kd2v) {
+            using Type = typename std::decay_t<decltype(v)>::Type;
             for (Size i = 0; i < v.size(); ++i) {
-                dv[i] += this->timeStep / 6.f * kd2v[i];
-                v[i] += this->timeStep / 6.f * kdv[i];
+                dv[i] += Type(this->timeStep / 6._f * kd2v[i]);
+                v[i] += Type(this->timeStep / 6._f * kdv[i]);
             }
         });
 }
@@ -455,15 +470,17 @@ void ModifiedMidpointMethod::stepImpl(IScheduler& scheduler, ISolver& solver, St
         *storage,
         scheduler,
         [h](auto& pr, auto& pv, const auto&, const auto& cr, const auto& cv, const auto& cdv) INL {
-            pv = cv + h * cdv;
-            pr = cr + h * cv;
+            using Type = typename std::decay_t<decltype(cv)>;
+            pv = Type(cv + h * cdv);
+            pr = Type(cr + h * cv);
             ASSERT(isReal(pv) && isReal(pr));
         });
     stepPairFirstOrder(*mid,
         *storage,
         scheduler,
         [h](auto& px, const auto& UNUSED(pdx), const auto& cx, const auto& cdx) INL { //
-            px = cx + h * cdx;
+            using Type = typename std::decay_t<decltype(cx)>;
+            px = Type(cx + h * cdx);
             ASSERT(isReal(px));
         });
 
@@ -485,15 +502,17 @@ void ModifiedMidpointMethod::stepImpl(IScheduler& scheduler, ISolver& solver, St
                 const auto& UNUSED(cr),
                 const auto& cv,
                 const auto& cdv) INL {
-                pv += 2._f * h * cdv;
-                pr += 2._f * h * cv;
+                using Type = typename std::decay_t<decltype(pr)>;
+                pv += Type(2._f * h * cdv);
+                pr += Type(2._f * h * cv);
                 ASSERT(isReal(pv) && isReal(pr));
             });
         stepPairFirstOrder(*storage,
             *mid,
             scheduler,
             [h](auto& px, const auto& UNUSED(pdx), const auto& UNUSED(cx), const auto& cdx) INL { //
-                px += 2._f * h * cdx;
+                using Type = typename std::decay_t<decltype(px)>;
+                px += Type(2._f * h * cdx);
                 ASSERT(isReal(px));
             });
         storage->swap(*mid, VisitorEnum::ALL_BUFFERS);
@@ -507,15 +526,17 @@ void ModifiedMidpointMethod::stepImpl(IScheduler& scheduler, ISolver& solver, St
         *mid,
         scheduler,
         [h](auto& pr, auto& pv, const auto& UNUSED(pdv), auto& cr, const auto& cv, const auto& cdv) INL {
-            pv = 0.5_f * (pv + cv + h * cdv);
-            pr = 0.5_f * (pr + cr + h * cv);
+            using Type = typename std::decay_t<decltype(pr)>;
+            pv = Type(0.5_f * (pv + cv + h * cdv));
+            pr = Type(0.5_f * (pr + cr + h * cv));
             ASSERT(isReal(pv) && isReal(pr));
         });
     stepPairFirstOrder(*storage,
         *mid,
         scheduler,
         [h](auto& px, const auto& UNUSED(pdx), const auto& cx, const auto& cdx) INL {
-            px = 0.5_f * (px + cx + h * cdx);
+            using Type = typename std::decay_t<decltype(px)>;
+            px = Type(0.5_f * (px + cx + h * cdx));
             ASSERT(isReal(px));
         });
 }

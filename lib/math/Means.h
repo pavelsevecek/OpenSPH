@@ -118,7 +118,7 @@ public:
     }
 
     INLINE Float compute() const {
-        return Float(powFastest(sum / weight, 1.f / power));
+        return Float(powFastest(sum / weight, 1._f / power));
     }
 
     INLINE Size count() const {
@@ -142,7 +142,7 @@ public:
     INLINE void accumulate(const Float value) {
         ASSERT(value > 0._f, value);
         const Float p = pow(value, power);
-        if (p == INFINITY) {
+        if (p == INFTY) {
             weight++; // just increase weight
         } else if (p > 0._f) {
             sum += 1._f / p;

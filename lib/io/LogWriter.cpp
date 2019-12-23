@@ -51,7 +51,7 @@ void StandardLogWriter::write(const Storage& storage, const Statistics& stats) {
         const Float progress = stats.get<Float>(StatisticsId::RELATIVE_PROGRESS);
         logger->write(" - progress:    ", int(progress * 100), "%");
         if (progress > 0.05_f) {
-            const std::string formattedEta = getFormattedTime(wallclock * (1._f / progress - 1._f));
+            const std::string formattedEta = getFormattedTime(int64_t(wallclock * (1._f / progress - 1._f)));
             logger->write(" - ETA:         ", formattedEta);
         } else {
             logger->write(" - ETA:         N/A");

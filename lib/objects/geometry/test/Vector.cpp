@@ -126,8 +126,8 @@ TEST_CASE("Vector products", "[vector]") {
         const Vector v2 = randomVector();
         // cross product is perpendicular to both vectors
         const Vector c = cross(v1, v2);
-        const float dot1 = dot(c, v1);
-        const float dot2 = dot(c, v2);
+        const Float dot1 = dot(c, v1);
+        const Float dot2 = dot(c, v2);
         REQUIRE(abs(dot1) <= EPS);
         REQUIRE(abs(dot2) <= EPS);
     }

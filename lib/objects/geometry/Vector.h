@@ -766,7 +766,7 @@ INLINE StaticArray<Float, 6> getComponents<Vector>(const Vector& v) {
 /// avoid problems with contructor/conversion operator ambiguity.
 template <typename T1, typename T2>
 INLINE BasicVector<T1> vectorCast(const BasicVector<T2>& v) {
-    return BasicVector<T1>(v[X], v[Y], v[Z], v[H]);
+    return BasicVector<T1>(T1(v[X]), T1(v[Y]), T1(v[Z]), T1(v[H]));
 }
 template <>
 INLINE BasicVector<Float> vectorCast(const BasicVector<Float>& v) {

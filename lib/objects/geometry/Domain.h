@@ -168,7 +168,7 @@ public:
 
 private:
     INLINE bool isInsideImpl(const Vector& v) const {
-        return getSqrLength((v - center) / radii) <= 1.f;
+        return getSqrLength((v - center) / radii) <= 1._f;
     }
 };
 

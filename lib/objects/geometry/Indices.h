@@ -44,7 +44,7 @@ public:
 
     INLINE explicit Indices(const BasicVector<double>& v) {
         /// \todo optimize
-        *this = Indices(v[0], v[1], v[2], v[3]);
+        *this = Indices(int(v[0]), int(v[1]), int(v[2]), int(v[3]));
     }
 
     INLINE Indices(const Indices& other)
