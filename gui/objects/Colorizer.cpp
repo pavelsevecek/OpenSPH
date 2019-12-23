@@ -42,11 +42,10 @@ void SummedDensityColorizer::initialize(const Storage& storage, const RefEnum re
 }
 
 Float SummedDensityColorizer::sum(const Size idx) const {
-    constexpr Float mult = 1.e3_f;
-    finder->findAll(idx, mult * r[idx][H] * kernel.radius(), neighs);
+    finder->findAll(idx, r[idx][H] * kernel.radius(), neighs);
     Float rho = 0._f;
     for (const auto& n : neighs) {
-        rho += 1.e4_f * m[n.index] * kernel.value(r[idx] - r[n.index], mult * r[idx][H]);
+        rho += m[n.index] * kernel.value(r[idx] - r[n.index], r[idx][H]);
     }
     return rho;
 }
