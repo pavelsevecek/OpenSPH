@@ -46,7 +46,7 @@ TEST_CASE("Kolmogorov-Smirnov 2D success", "[statistictests]") {
     Post::KsFunction expected = Post::getUniformKsFunction(Interval(0._f, 1._f), Interval(0._f, 1._f));
     Post::KsResult result = Post::kolmogorovSmirnovTest(values, expected);
     REQUIRE(result.D < 0.03_f);
-    REQUIRE(result.prob > 0.8_f);
+    REQUIRE(result.prob > 0.79_f);
 }
 
 TEST_CASE("Kolmogorov-Smirnov 2D fail", "[statistictests]") {
