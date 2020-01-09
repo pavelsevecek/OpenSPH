@@ -212,7 +212,8 @@ void ParticleGeometryWorker::evaluate(const RunSettings& UNUSED(global), IRunCal
         callbacks.onTimeStep(Storage(), stats);
         return !callbacks.shouldAbortRun();
     };
-    Array<Triangle> triangles = getSurfaceMesh(*scheduler, input, actResolution, surfaceLevel, callback);
+    Array<Triangle> triangles =
+        getSurfaceMesh(*scheduler, input, actResolution, surfaceLevel, smoothingMult, callback);
     result = makeAuto<MeshDomain>(std::move(triangles));
 }
 
