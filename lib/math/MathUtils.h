@@ -337,6 +337,11 @@ INLINE constexpr Float sphereVolume(const Float radius) {
     return 1.3333333333333333333333_f * PI * pow<3>(radius);
 }
 
+/// Computes a surface area of a sphere given its radius.
+INLINE constexpr Float sphereSurfaceArea(const Float radius) {
+    return 4._f * PI * pow<2>(radius);
+}
+
 /// Checks if two values are equal to some given accuracy.
 /// \note We use <= rather than < on purpose as EPS for integral types is zero.
 INLINE auto almostEqual(const Float& f1, const Float& f2, const Float& eps = EPS) {

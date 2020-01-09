@@ -724,7 +724,7 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
         "Bulk viscosity of the material. Applicable is internal friction is used." },
     { BodySettingsId::SHEAR_VISCOSITY,         "material.shear_viscosity",     1.e20_f,
         "Shear viscosity of the material. Applicable is internal friction is used." },
-    { BodySettingsId::DIFFUSIVITY,             "material.diffusivity",         1._f,
+    { BodySettingsId::DIFFUSIVITY,             "material.diffusivity",         2.3e-5_f, // iron
         "Diffusivity of the material, used in heat diffusion equation." },
     { BodySettingsId::SURFACE_TENSION,         "material.surface_tension",     1._f,
         "Surface tension of the fluid. Not applicable for solids nor gass." },

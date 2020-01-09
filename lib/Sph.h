@@ -19,6 +19,7 @@
 #include "run/IRun.h"
 #include "sph/Materials.h"
 #include "sph/boundary/Boundary.h"
+#include "sph/equations/Derivative.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"

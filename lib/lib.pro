@@ -41,6 +41,7 @@ SOURCES += \
     physics/Units.cpp \
     post/Analysis.cpp \
     post/MarchingCubes.cpp \
+    post/Mesh.cpp \
     post/MeshFile.cpp \
     post/Plot.cpp \
     post/StatisticTests.cpp \
@@ -224,6 +225,7 @@ HEADERS += \
     physics/Units.h \
     post/Analysis.h \
     post/MarchingCubes.h \
+    post/Mesh.h \
     post/MeshFile.h \
     post/Plot.h \
     post/Point.h \

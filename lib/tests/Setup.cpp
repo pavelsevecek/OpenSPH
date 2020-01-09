@@ -19,7 +19,7 @@ Storage Tests::getStorage(const Size particleCnt) {
     Array<Vector> positions = distribution->generate(SEQUENTIAL, particleCnt, domain);
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(positions));
 
-    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 1._f);
+    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, 1._f);
     storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, 0);
     // density = 1, therefore total mass = volume, therefore mass per particle = volume / N
     storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, sphereVolume(1._f) / storage.getParticleCnt());
@@ -42,7 +42,7 @@ Storage Tests::getGassStorage(const Size particleCnt, BodySettings settings, con
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(r));
 
     // set needed quantities and materials
-    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, rho0);
+    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, rho0);
     const Float m0 = rho0 * domain.getVolume() / storage.getParticleCnt();
     storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, m0);
     storage.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, u0);
@@ -72,7 +72,7 @@ Storage Tests::getSolidStorage(const Size particleCnt, BodySettings settings, co
     Array<Vector> positions = distribution->generate(SEQUENTIAL, particleCnt, domain);
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(positions));
 
-    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, rho0);
+    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, rho0);
     const Float m0 = rho0 * domain.getVolume() / storage.getParticleCnt();
     storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, m0);
     storage.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, u0);

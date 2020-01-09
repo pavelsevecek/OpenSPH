@@ -78,9 +78,9 @@ private:
 public:
     NodeManager(NodeEditor* editor, SharedPtr<INodeManagerCallbacks> callbacks);
 
-    void addNode(const SharedPtr<WorkerNode>& node);
+    VisNode* addNode(const SharedPtr<WorkerNode>& node);
 
-    void addNode(const SharedPtr<WorkerNode>& node, const Pixel position);
+    VisNode* addNode(const SharedPtr<WorkerNode>& node, const Pixel position);
 
     void addNodes(WorkerNode& node);
 
@@ -148,8 +148,11 @@ private:
 
         Pixel mousePosition = Pixel(0, 0);
 
-        /// Node currently selected by mouse
+        /// Node currently selected by mouse (clicked, dragged, etc.)
         VisNode* selected = nullptr;
+
+        /// Last double-clicked node.
+        VisNode* activated = nullptr;
 
         /// Source slot when connecting
         Optional<NodeSlot> connectingSlot;
@@ -173,6 +176,10 @@ public:
 
     Pixel transform(const Pixel position) const {
         return (position - state.offset) / state.zoom;
+    }
+
+    void activate(VisNode* vis) {
+        state.activated = vis;
     }
 
     void save(Config& config);

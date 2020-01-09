@@ -115,11 +115,13 @@ private:
 /// \param surfaceLevel (Number) density defining the surface. Higher value is more likely to cause SPH
 ///                     particles being separated into smaller groups (droplets), lower value will cause the
 ///                     boundary to be "bulgy" rather than smooth.
+/// \param smoothingMult Multiplieer of the smoothing lengths
 /// \return Array of generated triangles. Can be empty if no boundary exists.
 Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
     const Storage& storage,
     const Float gridResolution,
     const Float surfaceLevel,
+    const Float smoothingMult,
     Function<bool(Float progress)> progressCallback = nullptr);
 
 

@@ -2,27 +2,12 @@
 
 #include "io/Path.h"
 #include "objects/finders/Order.h"
-#include "objects/geometry/Triangle.h"
 #include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Expected.h"
 #include "objects/wrappers/Outcome.h"
+#include "post/Mesh.h"
 
 NAMESPACE_SPH_BEGIN
-
-/// \brief Converts array of triangles into array of vertices (without duplicate vertices) and array of
-/// indices into the vertex array, where each three consecutive indices define a triangle.
-///
-/// \param triangles Input array of triangles.
-/// \param vertices Output array of vertices. All previous elements are cleared.
-/// \param indices Output array of indices. All previous elements are cleared.
-/// \param eps Tolerancy for two vertices to be considered equal.
-///
-/// \internal Currently exposed in header for testing purposes. Should be moved elsewhere if it is needed by
-/// other component of the code.
-void getVerticesAndIndices(ArrayView<const Triangle> triangles,
-    Array<Vector>& vertices,
-    Array<Size>& indices,
-    const Float eps);
 
 /// \brief Interface for mesh exporters.
 class IMeshFile : public Polymorphic {

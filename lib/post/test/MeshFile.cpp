@@ -9,7 +9,7 @@
 
 using namespace Sph;
 
-TEST_CASE("MeshFile getVerticesAndIndices", "[meshfile]") {
+TEST_CASE("Mesh getMeshFromTriangles", "[meshfile]") {
     // simple tetrahedron
     Array<Vector> vertices{ Vector(-1, 0, 0), Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0.3, 1) };
     Array<Triangle> triangles{ Triangle(vertices[0], vertices[1], vertices[2]),
@@ -17,12 +17,10 @@ TEST_CASE("MeshFile getVerticesAndIndices", "[meshfile]") {
         Triangle(vertices[0], vertices[2], vertices[3]),
         Triangle(vertices[1], vertices[2], vertices[3]) };
 
-    Array<Vector> outVtxs;
-    Array<Size> outIdxs;
-    getVerticesAndIndices(triangles, outVtxs, outIdxs, 0.f);
+    Mesh mesh = getMeshFromTriangles(triangles, 0._f);
 
-    REQUIRE(outVtxs == vertices);
-    REQUIRE(outIdxs == Array<Size>({ 0, 1, 2, 0, 1, 3, 0, 2, 3, 1, 2, 3 }));
+    REQUIRE(mesh.vertices == vertices);
+    REQUIRE(mesh.faces == Array<Mesh::Face>({ { 0, 1, 2 }, { 0, 1, 3 }, { 0, 2, 3 }, { 1, 2, 3 } }));
 }
 
 TEST_CASE("Ply save cube", "[meshfile]") {

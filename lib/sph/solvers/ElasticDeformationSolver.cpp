@@ -73,8 +73,7 @@ void ElasticDeformationSolver::integrate(Storage& storage, Statistics& UNUSED(st
         r0.resize(r.size());
         V0.resize(r.size());
 
-        (void)scheduler;
-        finder->build(SEQUENTIAL, r);
+        finder->build(scheduler, r);
         const Float maxH = r[0][H]; /// \todo
         neighsPerParticle.resize(r.size());
         Array<NeighbourRecord> neighs;

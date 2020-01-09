@@ -38,10 +38,10 @@ public:
 
     template <bool Symmetric>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        const Float f = laplacian(u[j] - u[i], r[j] - r[i], grad);
-        deltaU[i] -= m[j] / rho[j] * f;
+        const Float f = laplacian(u[j] - u[i], grad, r[j] - r[i]);
+        deltaU[i] += m[j] / rho[j] * f;
         if (Symmetric) {
-            deltaU[j] += m[i] / rho[i] * f;
+            deltaU[j] -= m[i] / rho[i] * f;
         }
     }
 };
@@ -70,8 +70,12 @@ public:
         }
     }
 
-    virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
+    virtual void create(Storage& storage, IMaterial& material) const override {
         storage.insert<Float>(QuantityId::ENERGY_LAPLACIAN, OrderEnum::ZERO, 0._f);
+
+        const Float u0 = material.getParam<Float>(BodySettingsId::ENERGY);
+        storage.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, u0);
+        material.setRange(QuantityId::ENERGY, BodySettingsId::ENERGY_RANGE, BodySettingsId::ENERGY_MIN);
     }
 };
 

@@ -551,7 +551,7 @@ Vector Post::getAngularFrequency(ArrayView<const Float> m,
 Float Post::getSphericity(IScheduler& scheduler, const Storage& storage, const Float resolution) {
     const Box boundingBox = getBoundingBox(storage);
     Array<Triangle> mesh =
-        getSurfaceMesh(scheduler, storage, resolution * maxElement(boundingBox.size()), 0.15_f);
+        getSurfaceMesh(scheduler, storage, resolution * maxElement(boundingBox.size()), 0.15_f, 1._f);
     Float area = 0._f;
     for (const Triangle& triangle : mesh) {
         area += triangle.area();

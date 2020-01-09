@@ -590,11 +590,12 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
     const Storage& storage,
     const Float gridResolution,
     const Float surfaceLevel,
+    const Float smoothingMult,
     Function<bool(Float progress)> progressCallback) {
     MEASURE_SCOPE("getSurfaceMesh");
 
     // (according to http://www.cc.gatech.edu/~turk/my_papers/sph_surfaces.pdf)
-    const Float lambda = 0.9_f;
+    // const Float lambda = 0.9_f;
     const Float kr = 4._f;
     const Float ks = 1400._f;
     const Float kn = 0.5_f;
@@ -614,7 +615,7 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
 
     ThreadLocal<Array<NeighbourRecord>> neighsData(scheduler);
     parallelFor(scheduler, 0, r.size(), [&](const Size i) {
-        Array<NeighbourRecord>& neighs = neighsData.local();
+        /*Array<NeighbourRecord>& neighs = neighsData.local();
         finder->findAll(i, 2._f * r[i][H], neighs);
         // 1. compute the mean particle positions and the denoised (bar) positions
         Vector wr(0._f);
@@ -627,19 +628,19 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
         }
         ASSERT(wsum > 0._f);
         // Eq. (10) from the paper
-        const Vector r_mean = wr / wsum;
+        const Vector r_mean = wr / wsum;*/
         // Eq. (6)
-        r_bar[i] = (1._f - lambda) * r[i] + lambda * wr / wsum;
-
+        r_bar[i] = r[i]; //<(1._f - lambda) * r[i] + lambda * wr / wsum;
+        r_bar[i][H] = r[i][H] * smoothingMult;
         // 2. compute the covariance matrix, utilizing the mean positions
-        SymmetricTensor cov = SymmetricTensor::null();
+        /*SymmetricTensor cov = SymmetricTensor::null();
         for (NeighbourRecord& n : neighs) {
             const Size j = n.index;
             const Float w = weight(r[i], r[j]); /// \todo can be probably cached
             // Eq. (9)
             cov += w * symmetricOuter(r[j] - r_mean, r[j] - r_mean);
         }
-        C[i] = cov / wsum;
+        C[i] = cov / wsum;*/
 
         /*Svd svd = singularValueDecomposition(C[i]);
         std::sort((Float*)&svd.S, ((Float*)&svd.S) + 3, std::greater<Float>{});
@@ -677,17 +678,17 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
         /*if (neighCnt[i] < 10) {
             continue; // don't mesh separated particles
         }*/
-        const Vector dr = Vector(r[i][H] * kernel.radius());
-        box.extend(r[i] + dr);
-        box.extend(r[i] - dr);
+        const Vector dr = Vector(r_bar[i][H] * kernel.radius());
+        box.extend(r_bar[i] + dr);
+        box.extend(r_bar[i] - dr);
         maxH = max(maxH, r_bar[i][H]);
     }
     SharedPtr<IScalarField> field;
 
     if (storage.has(QuantityId::MASS) && storage.has(QuantityId::DENSITY) && storage.has(QuantityId::FLAG)) {
-        field = makeShared<ColorField>(storage, scheduler, r, maxH, std::move(kernel), std::move(finder));
+        field = makeShared<ColorField>(storage, scheduler, r_bar, maxH, std::move(kernel), std::move(finder));
     } else {
-        field = makeShared<FallbackField>(scheduler, r, maxH, std::move(kernel), std::move(finder));
+        field = makeShared<FallbackField>(scheduler, r_bar, maxH, std::move(kernel), std::move(finder));
     }
     MarchingCubes mc(scheduler, surfaceLevel, field, progressCallback);
 

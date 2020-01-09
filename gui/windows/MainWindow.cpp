@@ -73,6 +73,7 @@ static void addToRecentSessions(const Path& sessionPath) {
 
     if (Expected<Path> recentCache = getRecentSessionCache()) {
         try {
+            FileSystem::createDirectory(recentCache->parentPath());
             std::ofstream ofs(recentCache->native());
             for (Size i = 0; i < sessions.size(); ++i) {
                 ofs << sessions[i].native();
@@ -188,7 +189,7 @@ MainWindow::MainWindow(const Path& openPath)
 #ifdef SPH_USE_EIGEN
             desc += "Eigen: enabled\n";
 #else
-            desc += "OpenVDB: disabled\n";
+            desc += "Eigen: disabled\n";
 #endif
 #ifdef SPH_USE_VDB
             desc += "OpenVDB: enabled\n";
@@ -531,7 +532,7 @@ static Array<Post::HistPoint> getOverplotSfd(const GuiSettings& gui) {
         if (!is) {
             break;
         }
-        value *= 0.5 /*D->R*/ * 1000 /*km->m*/; // super-specific, should be generalized somehow
+        value *= 0.5f /*D->R*/ * 1000.f /*km->m*/; // super-specific, should be generalized somehow
         overplotSfd.emplaceBack(Post::HistPoint{ value, Size(round(count)) });
     };
     return overplotSfd;

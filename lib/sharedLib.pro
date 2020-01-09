@@ -11,11 +11,10 @@ linux-g++ {
     QMAKE_CXXFLAGS += -Wno-redundant-move
 }
 
-
 CONFIG(use_tbb) {
     DEFINES += SPH_USE_TBB
     INCLUDEPATH += /usr/include/tbb
-    LIBS += -ltbb -ltbb_debug -ltbbmalloc
+    LIBS += -ltbb -ltbbmalloc
 }
 
 CONFIG(use_openmp) {

@@ -231,6 +231,8 @@ VirtualSettings SaveMeshWorker::getSettings() {
     VirtualSettings::Category& meshCat = connector.addCategory("Mesh parameters");
     meshCat.connect<Float>("Resolution", "resolution", resolution);
     meshCat.connect<Float>("Surface level", "level", level);
+    meshCat.connect<Float>("Smoothing multiplier", "smoothing_mult", smoothingMult);
+    meshCat.connect<Float>("Refine mesh", "refine", refine);
     meshCat.connect<bool>("Scale to unit size", "scale_to_unit", scaleToUnit);
 
     return connector;
@@ -252,7 +254,8 @@ void SaveMeshWorker::evaluate(const RunSettings& global, IRunCallbacks& callback
         callbacks.onTimeStep(Storage(), stats);
         return !callbacks.shouldAbortRun();
     };
-    Array<Triangle> triangles = getSurfaceMesh(*scheduler, data->storage, step, level, callback);
+    Array<Triangle> triangles =
+        getSurfaceMesh(*scheduler, data->storage, step, level, smoothingMult, callback);
 
     if (scaleToUnit) {
         for (Triangle& t : triangles) {
@@ -260,6 +263,14 @@ void SaveMeshWorker::evaluate(const RunSettings& global, IRunCallbacks& callback
                 t[i] = (t[i] - bbox.center()) / boxSize;
             }
         }
+    }
+
+    if (refine) {
+        Mesh mesh = getMeshFromTriangles(triangles, 1.e-6_f);
+        for (Size i = 0; i < 5; ++i) {
+            refineMesh(mesh);
+        }
+        triangles = getTrianglesFromMesh(mesh);
     }
 
     AutoPtr<IMeshFile> saver = getMeshFile(path);

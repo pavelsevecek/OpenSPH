@@ -61,7 +61,7 @@ NodeManager::NodeManager(NodeEditor* editor, SharedPtr<INodeManagerCallbacks> ca
         .set(RunSettingsId::RUN_EMAIL, std::string("sevecek@sirrah.troja.mff.cuni.cz"));
 }
 
-void NodeManager::addNode(const SharedPtr<WorkerNode>& node, const Pixel position) {
+VisNode* NodeManager::addNode(const SharedPtr<WorkerNode>& node, const Pixel position) {
     const std::string currentName = node->instanceName();
     UniqueNameManager nameMgr = this->makeUniqueNameManager();
     const std::string fixedName = nameMgr.getName(currentName);
@@ -71,11 +71,12 @@ void NodeManager::addNode(const SharedPtr<WorkerNode>& node, const Pixel positio
     }
 
     VisNode vis(node.get(), position);
-    nodes.insert(node, vis);
+    VisNode& stored = nodes.insert(node, vis);
     editor->Refresh();
+    return &stored;
 }
 
-void NodeManager::addNode(const SharedPtr<WorkerNode>& node) {
+VisNode* NodeManager::addNode(const SharedPtr<WorkerNode>& node) {
     const wxSize size = editor->GetSize();
     return this->addNode(node, Pixel(size.x / 2, size.y / 2) - editor->offset());
 }
@@ -568,7 +569,7 @@ static void drawCenteredText(wxGraphicsContext* gc,
     const Pixel to) {
     wxDouble width, height, descent, externalLeading;
     gc->GetTextExtent(text, &width, &height, &descent, &externalLeading);
-    const Pixel pivot = (from + to) / 2 - Pixel(width, height) / 2;
+    const Pixel pivot = (from + to) / 2 - Pixel(int(width), int(height)) / 2;
     gc->DrawText(text, pivot.x, pivot.y);
 }
 
@@ -692,6 +693,7 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
     const Pixel position = vis.position;
     const Pixel size = vis.size();
 
+    // setup pen and brush
     const bool isLightTheme = background.intensity() > 0.5f;
     wxBrush brush = *wxBLACK_BRUSH;
     Rgba brushColor;
@@ -703,15 +705,26 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
     }
     brush.SetColour(wxColour(brushColor));
     gc->SetBrush(brush);
-    gc->SetPen(getNodePen(vis.node->provides(), isLightTheme));
+
+    wxPen pen = getNodePen(vis.node->provides(), isLightTheme);
+    gc->SetPen(pen);
 
     const wxFont font = wxSystemSettings::GetFont(wxSYS_SYSTEM_FONT);
     const Rgba lineColor(getLineColor(background));
     gc->SetFont(font, wxColour(lineColor));
 
+    if (&vis == state.activated) {
+        pen.SetWidth(3);
+        gc->SetPen(pen);
+    }
+
+    // node (rounded) rectangle
     gc->DrawRoundedRectangle(position.x, position.y, size.x, size.y, 10);
+
+    // node instance name
     drawCenteredText(gc, vis.node->instanceName(), position, Pixel(position.x + size.x, position.y + 23));
 
+    // node class name
     wxColour disabledTextColor(decreaseContrast(lineColor, 0.3f, !isLightTheme));
     gc->SetFont(font.Smaller(), disabledTextColor);
     drawCenteredText(gc,
@@ -720,16 +733,21 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
         Pixel(position.x + size.x, position.y + 40));
     gc->SetFont(font, wxColour(lineColor));
 
-    wxPen pen = *wxBLACK_PEN;
+    // separating line for particle nodes
+    pen = *wxBLACK_PEN;
     if (vis.node->provides() == WorkerType::PARTICLES) {
         pen.SetColour(isLightTheme ? wxColour(160, 160, 160) : wxColour(20, 20, 20));
         gc->SetPen(pen);
         const int lineY = 44;
-        gc->StrokeLine(position.x + 1, position.y + lineY, position.x + size.x - 1, position.y + lineY);
+        const int padding = (&vis == state.activated) ? 2 : 1;
+        gc->StrokeLine(
+            position.x + padding, position.y + lineY, position.x + size.x - padding, position.y + lineY);
         pen.SetColour(isLightTheme ? wxColour(240, 240, 240) : wxColour(100, 100, 100));
         gc->SetPen(pen);
-        gc->StrokeLine(
-            position.x + 1, position.y + lineY + 1, position.x + size.x - 1, position.y + lineY + 1);
+        gc->StrokeLine(position.x + padding,
+            position.y + lineY + 1,
+            position.x + size.x - padding,
+            position.y + lineY + 1);
     }
 
     for (Size i = 0; i < vis.node->getSlotCnt(); ++i) {
@@ -1006,6 +1024,8 @@ void NodeEditor::onDoubleClick(wxMouseEvent& evt) {
     const Pixel position(evt.GetPosition());
     VisNode* vis = nodeMgr->getSelectedNode((position - state.offset) / state.zoom);
     if (vis) {
+        state.activated = vis;
+        this->Refresh();
         nodeWindow->selectNode(*vis->node);
     }
 }
@@ -1122,8 +1142,8 @@ public:
         return grid->Append(new wxIntProperty(name, wxPG_LABEL, value));
     }
 
-    wxPGProperty* addFloat(const std::string& name, const float value) const {
-        return grid->Append(new wxFloatProperty(name, wxPG_LABEL, value));
+    wxPGProperty* addFloat(const std::string& name, const Float value) const {
+        return grid->Append(new wxFloatProperty(name, wxPG_LABEL, float(value)));
     }
 
     wxPGProperty* addVector(const std::string& name, const Vector& value) const {
@@ -1434,7 +1454,8 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
                 }
             }
             SharedPtr<WorkerNode> node = makeShared<WorkerNode>(std::move(worker));
-            nodeMgr->addNode(node);
+            VisNode* vis = nodeMgr->addNode(node);
+            nodeEditor->activate(vis);
             this->selectNode(*node);
             callbacks->markUnsaved();
         }
