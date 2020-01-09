@@ -119,6 +119,7 @@ class ParticleGeometryWorker : public IGeometryWorker {
 private:
     Float resolution = 1.e3_f;
     Float surfaceLevel = 0.15_f;
+    Float smoothingMult = 1._f;
 
 public:
     explicit ParticleGeometryWorker(const std::string& name)
