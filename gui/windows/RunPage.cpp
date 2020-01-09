@@ -1149,6 +1149,7 @@ void RunPage::onTimeStep(const Storage& storage, const Statistics& stats) {
 }
 
 void RunPage::onRunEnd() {
+    progressBar->onRunEnd();
     if (waitingDialog) {
         waitingDialog->EndModal(0);
     }

@@ -232,7 +232,7 @@ VirtualSettings SaveMeshWorker::getSettings() {
     meshCat.connect<Float>("Resolution", "resolution", resolution);
     meshCat.connect<Float>("Surface level", "level", level);
     meshCat.connect<Float>("Smoothing multiplier", "smoothing_mult", smoothingMult);
-    meshCat.connect<Float>("Refine mesh", "refine", refine);
+    meshCat.connect<bool>("Refine mesh", "refine", refine);
     meshCat.connect<bool>("Scale to unit size", "scale_to_unit", scaleToUnit);
 
     return connector;

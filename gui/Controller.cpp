@@ -494,7 +494,7 @@ Optional<Size> Controller::getIntersectedParticle(const Pixel position, const fl
     const Vector dir = getNormalized(ray->target - ray->origin);
 
     struct {
-        float t = -INFTY;
+        float t = -std::numeric_limits<float>::lowest();
         Size idx = -1;
         bool wasHitOutside = true;
     } first;

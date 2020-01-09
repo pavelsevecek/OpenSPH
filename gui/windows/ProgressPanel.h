@@ -11,9 +11,10 @@ private:
     std::string name;
 
     struct {
-        float progress = 0._f;
+        float progress = 0.f;
         std::string simulationTime;
         std::string eta;
+        bool finished = false;
     } stat;
 
 public:
@@ -29,19 +30,23 @@ public:
         this->Refresh();
     }
 
+    void onRunEnd() {
+        stat.finished = true;
+    }
+
     void update(const Statistics& stats) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
         this->reset();
 
-        stat.progress = stats.getOr<Float>(StatisticsId::RELATIVE_PROGRESS, 0._f);
+        stat.progress = float(stats.getOr<Float>(StatisticsId::RELATIVE_PROGRESS, 0._f));
 
         if (stats.has(StatisticsId::WALLCLOCK_TIME)) {
             const int64_t wallclock = stats.get<int>(StatisticsId::WALLCLOCK_TIME);
             stat.simulationTime = "Elapsed time: " + getFormattedTime(wallclock);
 
             if (stat.progress > 0.05_f) {
-                stat.eta =
-                    "Estimated remaining: " + getFormattedTime(wallclock * (1._f / stat.progress - 1._f));
+                stat.eta = "Estimated remaining: " +
+                           getFormattedTime(int64_t(wallclock * (1._f / stat.progress - 1._f)));
             }
         }
 
@@ -53,6 +58,7 @@ private:
         stat.progress = 0._f;
         stat.eta = "";
         stat.simulationTime = "";
+        stat.finished = false;
     }
 
     void onPaint(wxPaintEvent& UNUSED(evt)) {
@@ -63,7 +69,11 @@ private:
 
         wxBrush brush = *wxBLACK_BRUSH;
         const bool isLightTheme = Rgba(dc.GetBackground().GetColour()).intensity() > 0.5f;
-        brush.SetColour(isLightTheme ? wxColour(160, 160, 200) : wxColour(100, 100, 120));
+        if (stat.finished) {
+            brush.SetColour(wxColour(40, 150, 40));
+        } else {
+            brush.SetColour(isLightTheme ? wxColour(160, 160, 200) : wxColour(100, 100, 120));
+        }
         dc.SetBrush(brush);
         dc.DrawRectangle(wxPoint(0, 0), wxSize(int(stat.progress * size.x), size.y));
 
