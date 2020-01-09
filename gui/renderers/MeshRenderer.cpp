@@ -35,7 +35,7 @@ void MeshRenderer::initialize(const Storage& storage,
     const Float actResolution = clamp(surfaceResolution, 0.001_f * dim, 0.1_f * dim);
 
     // get the surface as triangles
-    cached.triangles = getSurfaceMesh(*scheduler, storage, actResolution, surfaceLevel);
+    cached.triangles = getSurfaceMesh(*scheduler, storage, actResolution, surfaceLevel, 1._f);
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     finder->build(*scheduler, r);
