@@ -13,19 +13,27 @@ NAMESPACE_SPH_BEGIN
 ///
 /// Density is solved by direct summation, using self-consistent solution with smoothing length. Energy is
 /// evolved using energy equation.
-class SummationSolver : public SymmetricSolver {
+template <Size Dim>
+class SummationSolver : public SymmetricSolver<Dim> {
 private:
     Size maxIteration;
     Float targetDensityDifference;
     bool adaptiveH;
     Array<Float> rho, h;
 
-    LutKernel<DIMENSIONS> densityKernel;
+    LutKernel<Dim> densityKernel;
+
+    using ThreadData = typename SymmetricSolver<Dim>::ThreadData;
 
 public:
     SummationSolver(IScheduler& scheduler,
         const RunSettings& settings,
         const EquationHolder& additionalEquations = {});
+
+    SummationSolver(IScheduler& scheduler,
+        const RunSettings& settings,
+        const EquationHolder& additionalEquations,
+        AutoPtr<IBoundaryCondition>&& bc);
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 

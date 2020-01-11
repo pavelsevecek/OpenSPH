@@ -10,7 +10,7 @@
 
 using namespace Sph;
 
-TEMPLATE_TEST_CASE("Balsara shear flow", "[av]", SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("Balsara shear flow", "[av]", SymmetricSolver<3>, AsymmetricSolver) {
     // no switch
     EquationHolder term1 = makeTerm<StandardAV>();
     BodySettings settings;
@@ -26,7 +26,8 @@ TEMPLATE_TEST_CASE("Balsara shear flow", "[av]", SymmetricSolver, AsymmetricSolv
     Storage storage2 = Tests::getGassStorage(10000, settings);
     EquationHolder term2 = makeTerm<BalsaraSwitch<StandardAV>>(RunSettings::getDefaults());
     // need to compute twice, first to get velocity divergence and rotation, second to compute AV
-    Tests::computeField<TestType>(storage2,
+    Tests::computeField<TestType>(
+        storage2,
         std::move(term2),
         [](const Vector& r) {
             const Vector l(r[X], r[Y], 0._f);
@@ -69,7 +70,7 @@ TEMPLATE_TEST_CASE("Balsara shear flow", "[av]", SymmetricSolver, AsymmetricSolv
     REQUIRE_SEQUENCE(test, 0, dv1.size());
 }
 
-TEMPLATE_TEST_CASE("Balsara divergent flow", "[av]", SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("Balsara divergent flow", "[av]", SymmetricSolver<3>, AsymmetricSolver) {
     // no switch
     EquationHolder term1 = makeTerm<StandardAV>();
     BodySettings settings;
@@ -81,7 +82,8 @@ TEMPLATE_TEST_CASE("Balsara divergent flow", "[av]", SymmetricSolver, Asymmetric
     Storage storage2 = Tests::getGassStorage(10000, settings);
     EquationHolder term2 = makeTerm<BalsaraSwitch<StandardAV>>(RunSettings::getDefaults());
     // need to compute twice, first to get velocity divergence and rotation, second to compute AV
-    Tests::computeField<TestType>(storage2, std::move(term2), [](const Vector& r) { return -r; }, 2);
+    Tests::computeField<TestType>(
+        storage2, std::move(term2), [](const Vector& r) { return -r; }, 2);
 
     ArrayView<Vector> dv1 = storage1.getD2t<Vector>(QuantityId::POSITION);
     ArrayView<Float> du1 = storage1.getDt<Float>(QuantityId::ENERGY);

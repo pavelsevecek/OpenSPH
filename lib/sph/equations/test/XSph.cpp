@@ -19,7 +19,7 @@ TEST_CASE("XSph", "[solvers]") {
            makeTerm<ConstSmoothingLength>();
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    SymmetricSolver solver(pool, settings, std::move(eqs));
+    SymmetricSolver<3> solver(pool, settings, std::move(eqs));
     REQUIRE_NOTHROW(solver.create(storage, storage.getMaterial(0)));
     Statistics stats;
     REQUIRE_NOTHROW(solver.integrate(storage, stats));

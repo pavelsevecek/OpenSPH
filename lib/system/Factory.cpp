@@ -276,7 +276,8 @@ AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler,
     };
     switch (id) {
     case SolverEnum::SYMMETRIC_SOLVER:
-        return getActualSolver<SymmetricSolver>(scheduler, settings, std::move(eqs), std::move(bc));
+        return getActualSolver<SymmetricSolver<DIMENSIONS>>(
+            scheduler, settings, std::move(eqs), std::move(bc));
     case SolverEnum::ASYMMETRIC_SOLVER:
         return getActualSolver<AsymmetricSolver>(scheduler, settings, std::move(eqs), std::move(bc));
     case SolverEnum::ENERGY_CONSERVING_SOLVER:
@@ -286,7 +287,7 @@ AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler,
         return makeAuto<ElasticDeformationSolver>(scheduler, settings, std::move(bc));
     case SolverEnum::SUMMATION_SOLVER:
         throwIfGravity();
-        return makeAuto<SummationSolver>(scheduler, settings);
+        return makeAuto<SummationSolver<DIMENSIONS>>(scheduler, settings);
     case SolverEnum::DENSITY_INDEPENDENT:
         throwIfGravity();
         return makeAuto<DensityIndependentSolver>(scheduler, settings);

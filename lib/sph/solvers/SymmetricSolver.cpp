@@ -11,7 +11,8 @@
 
 NAMESPACE_SPH_BEGIN
 
-SymmetricSolver::SymmetricSolver(IScheduler& scheduler,
+template <Size Dim>
+SymmetricSolver<Dim>::SymmetricSolver(IScheduler& scheduler,
     const RunSettings& settings,
     const EquationHolder& eqs,
     AutoPtr<IBoundaryCondition>&& bc)
@@ -21,7 +22,7 @@ SymmetricSolver::SymmetricSolver(IScheduler& scheduler,
     /// \todo we have to somehow enforce either conservation of smoothing length or some EquationTerm that
     /// will evolve it. Or maybe just move smoothing length to separate quantity to get rid of these
     /// issues?
-    kernel = Factory::getKernel<DIMENSIONS>(settings);
+    kernel = Factory::getKernel<Dim>(settings);
 
     // Find all neighbours within kernel support. Since we are only searching for particles with
     // smaller h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal
@@ -44,14 +45,17 @@ SymmetricSolver::SymmetricSolver(IScheduler& scheduler,
     }
 }
 
-SymmetricSolver::SymmetricSolver(IScheduler& scheduler,
+template <Size Dim>
+SymmetricSolver<Dim>::SymmetricSolver(IScheduler& scheduler,
     const RunSettings& settings,
     const EquationHolder& eqs)
     : SymmetricSolver(scheduler, settings, eqs, Factory::getBoundaryConditions(settings)) {}
 
-SymmetricSolver::~SymmetricSolver() = default;
+template <Size Dim>
+SymmetricSolver<Dim>::~SymmetricSolver() = default;
 
-void SymmetricSolver::integrate(Storage& storage, Statistics& stats) {
+template <Size Dim>
+void SymmetricSolver<Dim>::integrate(Storage& storage, Statistics& stats) {
     // initialize all materials (compute pressure, apply yielding and damage, ...)
     for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
         PROFILE_SCOPE("SymmetricSolver initialize materials")
@@ -90,7 +94,8 @@ void SymmetricSolver::integrate(Storage& storage, Statistics& stats) {
     }
 }
 
-void SymmetricSolver::create(Storage& storage, IMaterial& material) const {
+template <Size Dim>
+void SymmetricSolver<Dim>::create(Storage& storage, IMaterial& material) const {
     storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
 
     // create necessary quantities
@@ -100,7 +105,8 @@ void SymmetricSolver::create(Storage& storage, IMaterial& material) const {
     this->sanityCheck(storage);
 }
 
-void SymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
+template <Size Dim>
+void SymmetricSolver<Dim>::loop(Storage& storage, Statistics& UNUSED(stats)) {
     MEASURE_SCOPE("SymmetricSolver::loop");
     // (re)build neighbour-finding structure; this needs to be done after all equations
     // are initialized in case some of them modify smoothing lengths
@@ -109,7 +115,7 @@ void SymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
 
     // here we use a kernel symmetrized in smoothing lengths:
     // \f$ W_ij(r_i - r_j, 0.5(h[i] + h[j]) \f$
-    SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>> symmetrizedKernel(kernel);
+    SymmetrizeSmoothingLengths<LutKernel<Dim>> symmetrizedKernel(kernel);
 
     auto functor = [this, r, &symmetrizedKernel](const Size i, ThreadData& data) {
         finder->findLowerRank(i, r[i][H] * kernel.radius(), data.neighs);
@@ -134,7 +140,8 @@ void SymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     parallelFor(scheduler, threadData, 0, r.size(), functor);
 }
 
-void SymmetricSolver::beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
+template <Size Dim>
+void SymmetricSolver<Dim>::beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
     // clear thread local storages
     PROFILE_SCOPE("GenericSolver::beforeLoop");
     for (ThreadData& data : threadData) {
@@ -142,7 +149,8 @@ void SymmetricSolver::beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
     }
 }
 
-void SymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {
+template <Size Dim>
+void SymmetricSolver<Dim>::afterLoop(Storage& storage, Statistics& stats) {
     Accumulated* first = nullptr;
 
     // sum up thread local accumulated values
@@ -171,13 +179,15 @@ void SymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {
     stats.set(StatisticsId::NEIGHBOUR_COUNT, neighs);
 }
 
-RawPtr<const IBasicFinder> SymmetricSolver::getFinder(ArrayView<const Vector> r) {
+template <Size Dim>
+RawPtr<const IBasicFinder> SymmetricSolver<Dim>::getFinder(ArrayView<const Vector> r) {
     /// \todo same thing as in AsymmetricSolver -> move to shared parent?
     finder->build(scheduler, r);
     return &*finder;
 }
 
-void SymmetricSolver::sanityCheck(const Storage& UNUSED(storage)) const {
+template <Size Dim>
+void SymmetricSolver<Dim>::sanityCheck(const Storage& UNUSED(storage)) const {
     // we must solve smoothing length somehow
     if (!equations.contains<AdaptiveSmoothingLength>() && !equations.contains<ConstSmoothingLength>()) {
         throw InvalidSetup(
@@ -185,5 +195,9 @@ void SymmetricSolver::sanityCheck(const Storage& UNUSED(storage)) const {
             "AdaptiveSmootingLength into the list of equations");
     }
 }
+
+template class SymmetricSolver<1>;
+template class SymmetricSolver<2>;
+template class SymmetricSolver<3>;
 
 NAMESPACE_SPH_END

@@ -27,7 +27,7 @@ static Storage initStorage(TSolver& solver, BodySettings body) {
     return storage;
 }
 
-TEMPLATE_TEST_CASE("StandardSets quantities B&A", "[solvers]", SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("StandardSets quantities B&A", "[solvers]", SymmetricSolver<3>, AsymmetricSolver) {
     RunSettings settings;
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     settings.set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::BENZ_ASPHAUG);
@@ -64,7 +64,7 @@ TEMPLATE_TEST_CASE("StandardSets quantities B&A", "[solvers]", SymmetricSolver, 
     REQUIRE(storage.has<Size>(QuantityId::N_FLAWS, OrderEnum::ZERO));
 }
 
-TEMPLATE_TEST_CASE("StandardSets quantities standard", "[solvers]", SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("StandardSets quantities standard", "[solvers]", SymmetricSolver<3>, AsymmetricSolver) {
     RunSettings settings;
     settings.set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::STANDARD);
     settings.set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION);
@@ -95,7 +95,7 @@ TEMPLATE_TEST_CASE("StandardSets quantities standard", "[solvers]", SymmetricSol
     // damage is the same in both formulations
 }
 
-TEMPLATE_TEST_CASE("StandardSets gass", "[solvers]", SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("StandardSets gass", "[solvers]", SymmetricSolver<3>, AsymmetricSolver) {
     RunSettings settings;
     settings.set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE);
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::NONE);
@@ -129,7 +129,7 @@ TEMPLATE_TEST_CASE("StandardSets gass", "[solvers]", SymmetricSolver, Asymmetric
     testSolver<TestType>(storage, settings);
 }
 
-TEMPLATE_TEST_CASE("StandardSets solid", "[solvers]", SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("StandardSets solid", "[solvers]", SymmetricSolver<3>, AsymmetricSolver) {
     RunSettings settings;
     settings.set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
     settings.set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
@@ -161,7 +161,10 @@ TEMPLATE_TEST_CASE("StandardSets solid", "[solvers]", SymmetricSolver, Asymmetri
     testSolver<TestType>(storage, settings);
 }
 
-TEMPLATE_TEST_CASE("StandardSets constant smoothing length", "[solvers]", SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("StandardSets constant smoothing length",
+    "[solvers]",
+    SymmetricSolver<3>,
+    AsymmetricSolver) {
     // there was a bug that smoothing length changed (incorrectly) for SmoothingLengthEnum::CONST
 
     SharedPtr<Storage> storage = makeShared<Storage>(Tests::getSolidStorage(10000));

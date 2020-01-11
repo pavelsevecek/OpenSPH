@@ -25,7 +25,7 @@ private:
 
     SymmetrizeSmoothingLengths<LutKernel<3>> kernel;
 
-    SymmetricSolver equationSolver;
+    SymmetricSolver<DIMENSIONS> equationSolver;
 
     Size boundaryThreshold;
 

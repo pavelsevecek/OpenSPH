@@ -9,7 +9,7 @@
 
 using namespace Sph;
 
-TEMPLATE_TEST_CASE("MorrisMonaghan sanitycheck", "[av]", SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("MorrisMonaghan sanitycheck", "[av]", SymmetricSolver<3>, AsymmetricSolver) {
     BodySettings body;
     body.set(BodySettingsId::DENSITY, 1._f)
         .set(BodySettingsId::ENERGY, 1._f)

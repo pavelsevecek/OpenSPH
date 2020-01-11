@@ -13,7 +13,7 @@ using namespace Sph;
 TEMPLATE_TEST_CASE("AV divergent", "[av]", StandardAV, RiemannAV) {
     EquationHolder term = makeTerm<TestType>();
     Storage storage = Tests::getGassStorage(10000);
-    Tests::computeField<SymmetricSolver>(storage, std::move(term), [](const Vector& r) {
+    Tests::computeField<SymmetricSolver<3>>(storage, std::move(term), [](const Vector& r) {
         // some divergent velocity field
         return r;
     });
@@ -30,7 +30,7 @@ TEMPLATE_TEST_CASE("AV shockwave", "[av]", StandardAV, RiemannAV) {
     const Float cs = storage.getValue<Float>(QuantityId::SOUND_SPEED)[0]; // all particles have the same c_s
     REQUIRE(cs > 0._f);
     const Float v0 = 5._f * cs;
-    Tests::computeField<SymmetricSolver>(storage, std::move(term), [v0](const Vector& r) {
+    Tests::computeField<SymmetricSolver<3>>(storage, std::move(term), [v0](const Vector& r) {
         // zero velocity for x<0, supersonic flow for x>0
         if (r[X] < 0._f) {
             return Vector(0._f);

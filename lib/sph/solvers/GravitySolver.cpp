@@ -42,12 +42,12 @@ GravitySolver<TSphSolver>::GravitySolver(IScheduler& scheduler,
 }
 
 template <>
-GravitySolver<SymmetricSolver>::GravitySolver(IScheduler& scheduler,
+GravitySolver<SymmetricSolver<DIMENSIONS>>::GravitySolver(IScheduler& scheduler,
     const RunSettings& settings,
     const EquationHolder& equations,
     AutoPtr<IBoundaryCondition>&& bc,
     AutoPtr<IGravity>&& gravity)
-    : SymmetricSolver(scheduler, settings, equations, std::move(bc))
+    : SymmetricSolver<DIMENSIONS>(scheduler, settings, equations, std::move(bc))
     , gravity(std::move(gravity)) {
 
     // make sure acceleration are being accumulated
@@ -87,7 +87,7 @@ void GravitySolver<TSphSolver>::loop(Storage& storage, Statistics& stats) {
 }
 
 template <>
-Accumulated& GravitySolver<SymmetricSolver>::getAccumulated() {
+Accumulated& GravitySolver<SymmetricSolver<DIMENSIONS>>::getAccumulated() {
     // gravity is evaluated asymmetrically, so we can simply put everything in the first (or any) accumulated
     ThreadData& data = this->threadData.value(0);
     return data.derivatives.getAccumulated();
@@ -126,7 +126,8 @@ RawPtr<const IBasicFinder> GravitySolver<EnergyConservingSolver>::getFinder(Arra
 }
 
 template <>
-RawPtr<const IBasicFinder> GravitySolver<SymmetricSolver>::getFinder(ArrayView<const Vector> UNUSED(r)) {
+RawPtr<const IBasicFinder> GravitySolver<SymmetricSolver<DIMENSIONS>>::getFinder(
+    ArrayView<const Vector> UNUSED(r)) {
     // Symmetric solver currently does not use this, we just implement it to make the templates work ...
     // If implemented, make sure to include RANK in the created tree - BarnesHut currently does not do that
     NOT_IMPLEMENTED;
@@ -143,7 +144,7 @@ void GravitySolver<TSphSolver>::sanityCheck(const Storage& storage) const {
     }
 }
 
-template class GravitySolver<SymmetricSolver>;
+template class GravitySolver<SymmetricSolver<DIMENSIONS>>;
 template class GravitySolver<AsymmetricSolver>;
 // template class GravitySolver<DensityIndependentSolver>;
 template class GravitySolver<EnergyConservingSolver>;

@@ -126,7 +126,7 @@ SharedPtr<Storage> solveGassBall(RunSettings settings, Flags<Options> flags) {
 
 TEMPLATE_TEST_CASE("Solvers gass ball",
     "[solvers]",
-    SymmetricSolver,
+    SymmetricSolver<3>,
     AsymmetricSolver,
     EnergyConservingSolver) {
     RunSettings settings;
@@ -157,12 +157,12 @@ TEST_CASE("SymmetricSolver asymmetric derivative", "[solvers]") {
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     auto eq = makeTerm<Tests::SingleDerivativeMaker<AsymmetricDerivative>>();
-    REQUIRE_THROWS_AS(SymmetricSolver(pool, RunSettings::getDefaults(), eq), InvalidSetup);
+    REQUIRE_THROWS_AS(SymmetricSolver<3>(pool, RunSettings::getDefaults(), eq), InvalidSetup);
 }
 
 TEST_CASE("SummationSolver gass ball", "[solvers]") {
     /// \todo why energy doesn't work?
-    solveGassBall<SummationSolver>(
+    solveGassBall<SummationSolver<3>>(
         RunSettings::getDefaults(), /*Options::CHECK_ENERGY | */ Options::CHECK_MOVEMENT);
 }
 
@@ -216,7 +216,7 @@ static void testSolverEquivalency(const Float eps) {
 
 TEST_CASE("Symmetric/asymmetric equivalency", "[solvers]") {
     // Symmetric and asymmetric solvers should be equivalent (the difference is just in implementation)
-    testSolverEquivalency<SymmetricSolver, AsymmetricSolver>(EPS);
+    testSolverEquivalency<SymmetricSolver<3>, AsymmetricSolver>(EPS);
 }
 
 TEST_CASE("Asymmetric/Energy conserving similarity", "[solvers]") {

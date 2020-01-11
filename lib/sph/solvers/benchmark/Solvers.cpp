@@ -35,7 +35,7 @@ static void benchmarkSolver(ISolver& solver, Benchmark::Context& context) {
 BENCHMARK("SymmetricSolver simple", "[solvers]", Benchmark::Context& context) {
     RunSettings settings;
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    SymmetricSolver solver(pool, settings, getStandardEquations(settings));
+    SymmetricSolver<DIMENSIONS> solver(pool, settings, getStandardEquations(settings));
     benchmarkSolver(solver, context);
 }
 
@@ -97,7 +97,7 @@ void test(const std::string path) {
 
 BENCHMARK("Thread scaling", "[solvers]", Benchmark::Context& context) {
     test<AsymmetricSolver>("scaling_asym.txt");
-    test<SymmetricSolver>("scaling_sym.txt");
+    test<SymmetricSolver<DIMENSIONS>>("scaling_sym.txt");
     test<GravitySolver<AsymmetricSolver>>("scaling_gravity.txt");
     while (context.running()) {
     }

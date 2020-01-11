@@ -27,6 +27,7 @@ class ISymmetricFinder;
 /// buffers where the computed derivatives are accumulated) and cannot be use when more than one pass over
 /// particle neighbours is needed to compute the derivative (unless the user constructs two SymmetricSolvers
 /// with different sets of equations).
+template <Size Dim>
 class SymmetricSolver : public ISolver {
 protected:
     struct ThreadData {
@@ -59,7 +60,7 @@ protected:
     AutoPtr<ISymmetricFinder> finder;
 
     /// Selected SPH kernel
-    LutKernel<DIMENSIONS> kernel;
+    LutKernel<Dim> kernel;
 
 public:
     /// \brief Creates a symmetric solver, given the list of equations to solve

@@ -1,6 +1,7 @@
 #include "sph/solvers/SummationSolver.h"
 #include "objects/finders/NeighbourFinder.h"
 #include "quantities/IMaterial.h"
+#include "sph/boundary/Boundary.h"
 #include "sph/equations/av/Standard.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
@@ -20,36 +21,48 @@ static EquationHolder getEquations(const RunSettings& settings) {
     }
     equations += makeTerm<StandardAV>();
 
-    // we evolve density and smoothing length ourselves (outside the equation framework)
+    // we evolve density and smoothing length ourselves (outside the equation framework),
+    // so make sure it does not change outside the solver
+    equations += makeTerm<ConstSmoothingLength>();
 
     ASSERT(!forces.has(ForceEnum::SELF_GRAVITY), "Summation solver cannot be currently used with gravity");
 
     return equations;
 }
 
-SummationSolver::SummationSolver(IScheduler& scheduler,
+template <Size Dim>
+SummationSolver<Dim>::SummationSolver(IScheduler& scheduler,
     const RunSettings& settings,
-    const EquationHolder& additionalEquations)
-    : SymmetricSolver(scheduler, settings, getEquations(settings) + additionalEquations) {
+    const EquationHolder& additionalEquations,
+    AutoPtr<IBoundaryCondition>&& bc)
+    : SymmetricSolver<Dim>(scheduler, settings, getEquations(settings) + additionalEquations, std::move(bc)) {
 
     targetDensityDifference = settings.get<Float>(RunSettingsId::SPH_SUMMATION_DENSITY_DELTA);
-    densityKernel = Factory::getKernel<DIMENSIONS>(settings);
+    densityKernel = Factory::getKernel<Dim>(settings);
     Flags<SmoothingLengthEnum> flags =
         settings.getFlags<SmoothingLengthEnum>(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH);
     adaptiveH = !flags.has(SmoothingLengthEnum::CONST);
     maxIteration = adaptiveH ? settings.get<int>(RunSettingsId::SPH_SUMMATION_MAX_ITERATIONS) : 1;
 }
 
-void SummationSolver::create(Storage& storage, IMaterial& material) const {
+template <Size Dim>
+SummationSolver<Dim>::SummationSolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    const EquationHolder& additionalEquations)
+    : SummationSolver(scheduler, settings, additionalEquations, Factory::getBoundaryConditions(settings)) {}
+
+template <Size Dim>
+void SummationSolver<Dim>::create(Storage& storage, IMaterial& material) const {
     const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, rho0);
     material.setRange(QuantityId::DENSITY, BodySettingsId::DENSITY_RANGE, BodySettingsId::DENSITY_MIN);
     storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
-    equations.create(storage, material);
+    this->equations.create(storage, material);
 }
 
-void SummationSolver::beforeLoop(Storage& storage, Statistics& stats) {
-    SymmetricSolver::beforeLoop(storage, stats);
+template <Size Dim>
+void SummationSolver<Dim>::beforeLoop(Storage& storage, Statistics& stats) {
+    SymmetricSolver<Dim>::beforeLoop(storage, stats);
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
 
@@ -61,6 +74,7 @@ void SummationSolver::beforeLoop(Storage& storage, Statistics& stats) {
     h.resize(r.size());
     for (Size i = 0; i < r.size(); ++i) {
         h[i] = r[i][H];
+        ASSERT(h[i] > 0._f);
     }
 
     Float eta = 0._f;
@@ -73,7 +87,7 @@ void SummationSolver::beforeLoop(Storage& storage, Statistics& stats) {
     auto functor = [this, r, m, eta, &totalDiff](const Size i, ThreadData& data) {
         /// \todo do we have to recompute neighbours in every iteration?
         // find all neighbours
-        finder->findAll(i, h[i] * kernel.radius(), data.neighs);
+        this->finder->findAll(i, h[i] * densityKernel.radius(), data.neighs);
         ASSERT(data.neighs.size() > 0, data.neighs.size());
         // find density and smoothing length by self-consistent solution.
         const Float rho0 = rho[i];
@@ -84,15 +98,15 @@ void SummationSolver::beforeLoop(Storage& storage, Statistics& stats) {
             rho[i] += m[j] * densityKernel.value(r[i] - r[j], h[i]);
         }
         ASSERT(rho[i] > 0._f, rho[i]);
-        h[i] = eta * root<DIMENSIONS>(m[i] / rho[i]);
+        h[i] = eta * root<Dim>(m[i] / rho[i]);
         ASSERT(h[i] > 0._f);
         totalDiff += abs(rho[i] - rho0) / (rho[i] + rho0);
     };
 
-    finder->build(scheduler, r);
+    this->finder->build(this->scheduler, r);
     Size iterationIdx = 0;
     for (; iterationIdx < maxIteration; ++iterationIdx) {
-        parallelFor(scheduler, threadData, 0, r.size(), functor);
+        parallelFor(this->scheduler, this->threadData, 0, r.size(), functor);
         const Float diff = totalDiff / r.size();
         if (diff < targetDensityDifference) {
             break;
@@ -104,12 +118,18 @@ void SummationSolver::beforeLoop(Storage& storage, Statistics& stats) {
     if (adaptiveH) {
         for (Size i = 0; i < r.size(); ++i) {
             r[i][H] = h[i];
+            ASSERT(r[i][H] > 0._f);
         }
     }
 }
 
-void SummationSolver::sanityCheck(const Storage& UNUSED(storage)) const {
+template <Size Dim>
+void SummationSolver<Dim>::sanityCheck(const Storage& UNUSED(storage)) const {
     // we handle smoothing lengths ourselves, bypass the check of equations
 }
+
+template class SummationSolver<1>;
+template class SummationSolver<2>;
+template class SummationSolver<3>;
 
 NAMESPACE_SPH_END

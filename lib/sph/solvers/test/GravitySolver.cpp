@@ -20,7 +20,7 @@ static void testGravity(AutoPtr<IGravity>&& gravity) {
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
 
     // no SPH equations, just gravity
-    GravitySolver<SymmetricSolver> solver(pool,
+    GravitySolver<SymmetricSolver<3>> solver(pool,
         RunSettings::getDefaults(),
         makeTerm<ConstSmoothingLength>(),
         makeAuto<NullBoundaryCondition>(),
@@ -76,7 +76,7 @@ TEST_CASE("GravitySolver setup", "[solvers]") {
     holder += makeTerm<SphericalGravityEquation>();
     RunSettings settings;
     Storage storage = Tests::getGassStorage(2);
-    GravitySolver<SymmetricSolver> solver(
+    GravitySolver<SymmetricSolver<3>> solver(
         pool, settings, holder, makeAuto<NullBoundaryCondition>(), makeAuto<BruteForceGravity>());
     REQUIRE_THROWS_AS(solver.create(storage, storage.getMaterial(0)), InvalidSetup);
 }

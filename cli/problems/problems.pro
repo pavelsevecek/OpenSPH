@@ -13,6 +13,7 @@ include(../../lib/sharedLib.pro)
 SOURCES += \
     main.cpp \
     sod/Sod.cpp \
+    sod/Solution.cpp \
     wave/SoundWave.cpp \
     elastic_bands/ElasticBands.cpp \
     cliff_collapse/CliffCollapse.cpp \
@@ -20,6 +21,6 @@ SOURCES += \
     galaxy/Galaxy.cpp \
     Common.cpp
 
-HEADERS += \  
-    sod/solution.h \
+HEADERS += \   \
+    sod/Solution.h
     Common.h

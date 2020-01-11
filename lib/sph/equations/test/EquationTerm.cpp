@@ -118,7 +118,7 @@ TEST_CASE("EquationHolder contains", "[equationterm]") {
     REQUIRE_FALSE(eqs.contains<TestEquation>());
 }
 
-TEMPLATE_TEST_CASE("TestEquation", "[equationterm]", SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("TestEquation", "[equationterm]", SymmetricSolver<3>, AsymmetricSolver) {
     Storage storage = Tests::getStorage(10);
     Statistics stats;
     SharedPtr<TestEquation> eq = makeShared<TestEquation>();
@@ -142,7 +142,7 @@ TEMPLATE_TEST_CASE("TestEquation", "[equationterm]", SymmetricSolver, Asymmetric
     REQUIRE(perElement(cnts) == 1);
 }
 
-TEMPLATE_TEST_CASE("NeighbourCount", "[equationterm]", SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("NeighbourCount", "[equationterm]", SymmetricSolver<3>, AsymmetricSolver) {
     Storage storage = Tests::getStorage(10000);
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     const Size N = storage.getParticleCnt();
@@ -174,7 +174,7 @@ TEMPLATE_TEST_CASE("NeighbourCount", "[equationterm]", SymmetricSolver, Asymmetr
     REQUIRE_SEQUENCE(test, 0, r.size());
 }
 
-TEMPLATE_TEST_CASE("Div v of position vectors", "[equationterm]", SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("Div v of position vectors", "[equationterm]", SymmetricSolver<3>, AsymmetricSolver) {
     // test case checking that div r = 3
     Storage storage = Tests::getStorage(10000);
     storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
@@ -201,7 +201,7 @@ TEMPLATE_TEST_CASE("Div v of position vectors", "[equationterm]", SymmetricSolve
     REQUIRE_SEQUENCE(test, 0, r.size());
 }
 
-TEMPLATE_TEST_CASE("Grad v of const field", "[equationterm]", SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("Grad v of const field", "[equationterm]", SymmetricSolver<3>, AsymmetricSolver) {
     Storage storage = Tests::getStorage(10000);
     storage.insert<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());
     Tests::computeField<VelocityGradient<CenterDensityDiscr>, TestType>(storage, [](const Vector&) { //
@@ -225,7 +225,7 @@ TEMPLATE_TEST_CASE("Grad v of const field", "[equationterm]", SymmetricSolver, A
     REQUIRE_SEQUENCE(test, 0, gradv.size());
 }
 
-TEMPLATE_TEST_CASE("Grad v of position vector", "[equationterm]", SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("Grad v of position vector", "[equationterm]", SymmetricSolver<3>, AsymmetricSolver) {
     Storage storage = Tests::getStorage(10000);
     storage.insert<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());
     Tests::computeField<VelocityGradient<CenterDensityDiscr>, TestType>(
@@ -250,7 +250,7 @@ TEMPLATE_TEST_CASE("Grad v of position vector", "[equationterm]", SymmetricSolve
     REQUIRE_SEQUENCE(test, 0, r.size());
 }
 
-TEMPLATE_TEST_CASE("Grad v of non-trivial field", "[equationterm]", SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("Grad v of non-trivial field", "[equationterm]", SymmetricSolver<3>, AsymmetricSolver) {
     Storage storage = Tests::getStorage(10000);
     storage.insert<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());
     Tests::computeField<VelocityGradient<CenterDensityDiscr>, TestType>(storage, [](const Vector& r) { //
@@ -316,7 +316,7 @@ static void testRotation(QuantityId id) {
     REQUIRE_SEQUENCE(test, 0, r.size());
 }
 
-TEMPLATE_TEST_CASE("Rot v", "[equationterm]", SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("Rot v", "[equationterm]", SymmetricSolver<3>, AsymmetricSolver) {
     testRotation<VelocityRotation<CenterDensityDiscr>, TestType>(QuantityId::VELOCITY_ROTATION);
 }
 
@@ -359,7 +359,7 @@ public:
 
 } // namespace
 
-TEMPLATE_TEST_CASE("Laplacian vector", "[equationterm]", SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("Laplacian vector", "[equationterm]", SymmetricSolver<3>, AsymmetricSolver) {
     Storage storage = Tests::getStorage(10000);
     storage.insert<Vector>(QuantityId::VELOCITY_LAPLACIAN, OrderEnum::ZERO, Vector(0._f));
     Tests::computeField<VelocityLaplacian, TestType>(storage, [](const Vector& r) { //
@@ -432,7 +432,7 @@ public:
 
 } // namespace
 
-TEMPLATE_TEST_CASE("Gradient of divergence", "[equationterm]", SymmetricSolver, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("Gradient of divergence", "[equationterm]", SymmetricSolver<3>, AsymmetricSolver) {
     SKIP_TEST;
 
     Storage storage = Tests::getStorage(10000);
