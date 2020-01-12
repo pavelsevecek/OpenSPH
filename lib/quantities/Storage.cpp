@@ -268,6 +268,7 @@ template const Array<Tensor>& Storage::getD2t(const QuantityId) const;
 
 template <typename TValue>
 Quantity& Storage::insert(const QuantityId key, const OrderEnum order, const TValue& defaultValue) {
+    ASSERT(isReal(defaultValue));
     if (this->has(key)) {
         Quantity& q = this->getQuantity(key);
         checkStorageAccess(q.getValueEnum() == GetValueEnum<TValue>::type,

@@ -266,6 +266,7 @@ static WorkerRegistrar sRegisterSingleParticle(
 
 void ImpactorIc::addParticleCategory(VirtualSettings& settings) {
     VirtualSettings::Category& particleCat = settings.addCategory("Particles");
+    particleCat.connect<int>("Min particle count", body, BodySettingsId::MIN_PARTICLE_COUNT);
     particleCat.connect<EnumWrapper>("Distribution", body, BodySettingsId::INITIAL_DISTRIBUTION);
     particleCat.connect<Float>("Radius multiplier", body, BodySettingsId::SMOOTHING_LENGTH_ETA);
     particleCat.connect<bool>("Exact distance", body, BodySettingsId::DISTRIBUTE_MODE_SPH5);
