@@ -557,6 +557,79 @@ void HexagonalDomain::addGhosts(ArrayView<const Vector> vs,
 }
 
 //-----------------------------------------------------------------------------------------------------------
+// GaussianRandomSphere implementation
+//-----------------------------------------------------------------------------------------------------------
+
+GaussianRandomSphere::GaussianRandomSphere(const Vector& center,
+    const Float radius,
+    const Float beta,
+    const Size seed)
+    : center(center)
+    , a(radius)
+    , beta(beta) {
+    (void)seed;
+}
+
+
+Vector GaussianRandomSphere::getCenter() const {
+    return center;
+}
+
+Float GaussianRandomSphere::getVolume() const {
+    return sphereVolume(a) * exp(3._f * sqr(beta));
+}
+
+Box GaussianRandomSphere::getBoundingBox() const {
+    Box box; /// \todo
+    box.extend(center - 2._f * Vector(a));
+    box.extend(center + 2._f * Vector(a));
+    return box;
+}
+
+bool GaussianRandomSphere::contains(const Vector& v) const {
+    const SphericalCoords sp = cartensianToSpherical(v - center);
+    const Float r = a * exp(this->sphericalHarmonic(sp.theta, sp.phi) - 0.5_f * sqr(beta));
+    return sp.r < r;
+}
+
+void GaussianRandomSphere::getSubset(ArrayView<const Vector>, Array<Size>&, const SubsetType) const {
+    NOT_IMPLEMENTED;
+}
+
+void GaussianRandomSphere::getDistanceToBoundary(ArrayView<const Vector>, Array<Float>&) const {
+    NOT_IMPLEMENTED;
+}
+
+void GaussianRandomSphere::project(ArrayView<Vector>, Optional<ArrayView<Size>>) const {
+    NOT_IMPLEMENTED;
+}
+
+void GaussianRandomSphere::addGhosts(ArrayView<const Vector>, Array<Ghost>&, const Float, const Float) const {
+    NOT_IMPLEMENTED;
+}
+
+Float GaussianRandomSphere::sphericalHarmonic(const Float theta, const Float phi) const {
+#ifdef SPH_CPP17
+    Float r = 0._f;
+    for (int l = 0; l < 5; ++l) {
+        for (int m = 0; m <= l; ++m) {
+            const Float s1 = (1._f + (m == 0)) * 2._f * PI / (2 * l + 1) * sqr(beta);
+            const Float s2 = (1._f - (m == 0)) * 2._f * PI / (2 * l + 1) * sqr(beta);
+
+            r += s1 * std::sph_legendre(l, m, theta) * cos(m * phi) +
+                 s2 * std::sph_legendre(l, -m, theta) * sin(m * phi);
+        }
+    }
+    return r;
+#else
+    MARK_USED(theta);
+    MARK_USED(phi);
+    NOT_IMPLEMENTED;
+#endif
+}
+
+
+//-----------------------------------------------------------------------------------------------------------
 // HalfSpaceDomain implementation
 //-----------------------------------------------------------------------------------------------------------
 

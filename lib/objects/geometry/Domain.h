@@ -303,6 +303,41 @@ private:
     }
 };
 
+/// See Muinonen 1998
+class GaussianRandomSphere : public IDomain {
+private:
+    Vector center;
+    Float a;
+    Float beta;
+
+public:
+    GaussianRandomSphere(const Vector& center, const Float radius, const Float beta, const Size seed);
+
+    virtual Vector getCenter() const override;
+
+    virtual Float getVolume() const override;
+
+    virtual Box getBoundingBox() const override;
+
+    virtual bool contains(const Vector& v) const override;
+
+    virtual void getSubset(ArrayView<const Vector> vs,
+        Array<Size>& output,
+        const SubsetType type) const override;
+
+    virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const override;
+
+    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override;
+
+    virtual void addGhosts(ArrayView<const Vector> vs,
+        Array<Ghost>& ghosts,
+        const Float eta,
+        const Float eps) const override;
+
+private:
+    Float sphericalHarmonic(const Float theta, const Float phi) const;
+};
+
 /// \brief Domain representing a half-space, given by z>0.
 ///
 /// The domain has an infinite volume and thus cannot be used to generate particles. It is useful for
