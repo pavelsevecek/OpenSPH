@@ -34,7 +34,7 @@ public:
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = storage.getAll<Vector>(QuantityId::POSITION);
             cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
-            rho = storage.getValue<Float>(QuantityId::SOUND_SPEED);
+            rho = storage.getValue<Float>(QuantityId::DENSITY);
         }
 
         INLINE bool additionalEquals(const Derivative& other) const {

@@ -2,12 +2,12 @@
 
 #include "gravity/Galaxy.h"
 #include "objects/containers/Grid.h"
-#include "run/workers/MaterialWorkers.h"
+#include "run/workers/MaterialJobs.h"
 
 NAMESPACE_SPH_BEGIN
 
 /// \brief Creates a single monolithic body
-class MonolithicBodyIc : public IParticleWorker, public MaterialProvider {
+class MonolithicBodyIc : public IParticleJob, public MaterialProvider {
 protected:
     struct {
         bool shape = false;
@@ -21,10 +21,10 @@ public:
         return "create monolithic body";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> requires() const override;
+    virtual UnorderedMap<std::string, JobType> requires() const override;
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "shape", WorkerType::GEOMETRY }, { "material", WorkerType::MATERIAL } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "shape", JobType::GEOMETRY }, { "material", JobType::MATERIAL } };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -37,7 +37,7 @@ protected:
 
 
 /// \brief Creates a single differentiated body.
-class DifferentiatedBodyIc : public IParticleWorker {
+class DifferentiatedBodyIc : public IParticleJob {
 private:
     BodySettings mainBody;
     int layerCnt = 1;
@@ -49,14 +49,14 @@ public:
         return "create differentiated body";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        UnorderedMap<std::string, WorkerType> slots = {
-            { "base shape", WorkerType::GEOMETRY },
-            { "base material", WorkerType::MATERIAL },
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        UnorderedMap<std::string, JobType> slots = {
+            { "base shape", JobType::GEOMETRY },
+            { "base material", JobType::MATERIAL },
         };
         for (int i = 0; i < layerCnt; ++i) {
-            slots.insert("shape " + std::to_string(i + 1), WorkerType::GEOMETRY);
-            slots.insert("material " + std::to_string(i + 1), WorkerType::MATERIAL);
+            slots.insert("shape " + std::to_string(i + 1), JobType::GEOMETRY);
+            slots.insert("material " + std::to_string(i + 1), JobType::MATERIAL);
         }
         return slots;
     }
@@ -66,7 +66,7 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class SingleParticleIc : public IParticleWorker {
+class SingleParticleIc : public IParticleJob {
 private:
     Vector r0 = Vector(0._f);
     Vector v0 = Vector(0._f);
@@ -75,13 +75,13 @@ private:
 
 public:
     explicit SingleParticleIc(const std::string& name)
-        : IParticleWorker(name) {}
+        : IParticleJob(name) {}
 
     virtual std::string className() const override {
         return "create single particle";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
         return {};
     }
 
@@ -99,17 +99,17 @@ public:
         return "create impactor";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> requires() const override {
-        UnorderedMap<std::string, WorkerType> map = MonolithicBodyIc::requires();
-        map.insert("target", WorkerType::PARTICLES);
+    virtual UnorderedMap<std::string, JobType> requires() const override {
+        UnorderedMap<std::string, JobType> map = MonolithicBodyIc::requires();
+        map.insert("target", JobType::PARTICLES);
         return map;
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
         return {
-            { "target", WorkerType::PARTICLES },
-            { "shape", WorkerType::GEOMETRY },
-            { "material", WorkerType::MATERIAL },
+            { "target", JobType::PARTICLES },
+            { "shape", JobType::GEOMETRY },
+            { "material", JobType::MATERIAL },
         };
     }
 
@@ -119,17 +119,17 @@ private:
     virtual void addParticleCategory(VirtualSettings& settings) override;
 };
 
-class EquilibriumIc : public IParticleWorker {
+class EquilibriumIc : public IParticleJob {
 public:
     EquilibriumIc(const std::string& name)
-        : IParticleWorker(name) {}
+        : IParticleJob(name) {}
 
     virtual std::string className() const override {
         return "set equilibrium energy";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -137,7 +137,7 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class ModifyQuantityIc : public IParticleWorker {
+class ModifyQuantityIc : public IParticleJob {
 private:
     EnumWrapper id;
     EnumWrapper mode;
@@ -154,8 +154,8 @@ public:
         return "modify quantity";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -163,7 +163,7 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class NoiseQuantityIc : public IParticleWorker {
+class NoiseQuantityIc : public IParticleJob {
 private:
     EnumWrapper id;
 
@@ -177,8 +177,8 @@ public:
         return "Perlin noise";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -208,7 +208,7 @@ enum class NBodySettingsId {
 
 using NBodySettings = Settings<NBodySettingsId>;
 
-class NBodyIc : public IParticleWorker {
+class NBodyIc : public IParticleJob {
 private:
     NBodySettings settings;
 
@@ -219,8 +219,8 @@ public:
         return "N-body ICs";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "shape", WorkerType::GEOMETRY } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "shape", JobType::GEOMETRY } };
     }
 
 
@@ -229,7 +229,7 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class GalaxyIc : public IParticleWorker {
+class GalaxyIc : public IParticleJob {
 private:
     GalaxySettings settings;
 
@@ -240,7 +240,7 @@ public:
         return "galaxy ICs";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
         return {};
     }
 

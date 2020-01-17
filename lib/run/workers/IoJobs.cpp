@@ -1,4 +1,4 @@
-#include "run/workers/IoWorkers.h"
+#include "run/workers/IoJobs.h"
 #include "io/FileSystem.h"
 #include "io/Output.h"
 #include "post/MarchingCubes.h"
@@ -15,7 +15,7 @@ NAMESPACE_SPH_BEGIN
 // LoadFileWorker
 // ----------------------------------------------------------------------------------------------------------
 
-VirtualSettings LoadFileWorker::getSettings() {
+VirtualSettings LoadFileJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
@@ -24,7 +24,7 @@ VirtualSettings LoadFileWorker::getSettings() {
     return connector;
 }
 
-void LoadFileWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void LoadFileJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     if (!FileSystem::pathExists(path)) {
         throw InvalidSetup("File '" + path.native() + "' does not exist or cannot be accessed.");
     }
@@ -53,17 +53,17 @@ void LoadFileWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& 
     }
 }
 
-static WorkerRegistrar sRegisterLoadFile(
+static JobRegistrar sRegisterLoadFile(
     "load file",
     "I/O",
-    [](const std::string& UNUSED(name)) { return makeAuto<LoadFileWorker>(); },
+    [](const std::string& UNUSED(name)) { return makeAuto<LoadFileJob>(); },
     "Loads particle state from a file");
 
 // ----------------------------------------------------------------------------------------------------------
 // FileSequenceWorker
 // ----------------------------------------------------------------------------------------------------------
 
-VirtualSettings FileSequenceWorker::getSettings() {
+VirtualSettings FileSequenceJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
@@ -114,7 +114,7 @@ FlatMap<Size, Path> getFileSequence(const Path& firstFile) {
 }
 
 
-void FileSequenceWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
+void FileSequenceJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
     AutoPtr<IInput> input = Factory::getInput(firstFile);
     Storage storage;
     Statistics stats;
@@ -167,19 +167,19 @@ void FileSequenceWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbac
     result->stats = std::move(stats);
 }
 
-static WorkerRegistrar sRegisterFileSequence(
+static JobRegistrar sRegisterFileSequence(
     "load sequence",
     "sequence",
     "I/O",
-    [](const std::string& name) { return makeAuto<FileSequenceWorker>(name); },
+    [](const std::string& name) { return makeAuto<FileSequenceJob>(name); },
     "Loads and displays a sequence of particle states.");
 
 // ----------------------------------------------------------------------------------------------------------
 // SaveFileWorker
 // ----------------------------------------------------------------------------------------------------------
 
-SaveFileWorker::SaveFileWorker(const std::string& name)
-    : IParticleWorker(name) {
+SaveFileJob::SaveFileJob(const std::string& name)
+    : IParticleJob(name) {
     settings.set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
         .set(RunSettingsId::RUN_OUTPUT_PATH, std::string(""))
         .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("final.ssf"))
@@ -187,7 +187,7 @@ SaveFileWorker::SaveFileWorker(const std::string& name)
             OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY);
 }
 
-VirtualSettings SaveFileWorker::getSettings() {
+VirtualSettings SaveFileJob::getSettings() {
     VirtualSettings connector;
 
     VirtualSettings::Category& outputCat = connector.addCategory("Output");
@@ -202,7 +202,7 @@ VirtualSettings SaveFileWorker::getSettings() {
     return connector;
 }
 
-void SaveFileWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void SaveFileJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
 
     AutoPtr<IOutput> output = Factory::getOutput(settings);
@@ -211,17 +211,17 @@ void SaveFileWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& 
     result = data;
 }
 
-static WorkerRegistrar sRegisterOutput(
+static JobRegistrar sRegisterOutput(
     "save file",
     "I/O",
-    [](const std::string& name) { return makeAuto<SaveFileWorker>(name); },
+    [](const std::string& name) { return makeAuto<SaveFileJob>(name); },
     "Saves the input particle state into a file.");
 
 // ----------------------------------------------------------------------------------------------------------
 // SaveMeshWorker
 // ----------------------------------------------------------------------------------------------------------
 
-VirtualSettings SaveMeshWorker::getSettings() {
+VirtualSettings SaveMeshJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
@@ -238,7 +238,7 @@ VirtualSettings SaveMeshWorker::getSettings() {
     return connector;
 }
 
-void SaveMeshWorker::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
+void SaveMeshJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
 
     // sanitize resolution
@@ -282,10 +282,10 @@ void SaveMeshWorker::evaluate(const RunSettings& global, IRunCallbacks& callback
     result = data;
 }
 
-static WorkerRegistrar sRegisterMeshSaver(
+static JobRegistrar sRegisterMeshSaver(
     "save mesh",
     "I/O",
-    [](const std::string& name) { return makeAuto<SaveMeshWorker>(name); },
+    [](const std::string& name) { return makeAuto<SaveMeshJob>(name); },
     "Creates a triangular mesh from the input particles and saves it to file.");
 
 NAMESPACE_SPH_END

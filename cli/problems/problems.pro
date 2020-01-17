@@ -14,11 +14,14 @@ SOURCES += \
     main.cpp \
     sod/Sod.cpp \
     sod/Solution.cpp \
+    sedov/Sedov.cpp \
     wave/SoundWave.cpp \
     elastic_bands/ElasticBands.cpp \
     cliff_collapse/CliffCollapse.cpp \
     collision/Collision.cpp \
     galaxy/Galaxy.cpp \
+    kelvin_helmholtz/KelvinHelmholtz.cpp \
+    rotating_rod/RotatingRod.cpp \
     Common.cpp
 
 HEADERS += \   \

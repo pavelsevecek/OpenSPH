@@ -8,16 +8,16 @@ NAMESPACE_SPH_BEGIN
 
 class FloatTextCtrl : public wxTextCtrl {
 private:
-    float value;
-    float lastValidValue;
+    double value;
+    double lastValidValue;
     Interval range;
 
 public:
-    Function<void(Float)> onValueChanged;
+    Function<void(double)> onValueChanged;
 
-    FloatTextCtrl(wxWindow* parent, const float value, const Interval range = Interval::unbounded());
+    FloatTextCtrl(wxWindow* parent, const double value, const Interval range = Interval::unbounded());
 
-    float getValue() const {
+    double getValue() const {
         return value;
     }
 

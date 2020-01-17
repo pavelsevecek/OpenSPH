@@ -22,7 +22,7 @@ class Statistics;
 class Timer;
 struct Pixel;
 class Palette;
-class WorkerNode;
+class JobNode;
 class Project;
 class IRenderer;
 class ICamera;
@@ -39,7 +39,7 @@ enum class RunStatus {
 
 
 /// \brief Main GUI class connection the simulation with UI controls.
-class Controller : public IWorkerCallbacks {
+class Controller : public IJobCallbacks {
 private:
     /// Run page
     RawPtr<RunPage> page;
@@ -52,7 +52,7 @@ private:
         std::thread thread;
 
         /// Root node of the simulation
-        SharedPtr<WorkerNode> run;
+        SharedPtr<JobNode> run;
 
         RunSettings globals;
 
@@ -259,7 +259,7 @@ public:
     /// Must be called before any other run-related functions can be called. If a simulation is currently
     /// running, it waits until the simulation stops and then starts the new simulation.
     /// \param run New simulation to start
-    void start(SharedPtr<WorkerNode> run, const RunSettings& globals);
+    void start(SharedPtr<JobNode> run, const RunSettings& globals);
 
     void open(const Path& path, const bool sequence = false);
 
@@ -293,7 +293,7 @@ public:
 
 
 private:
-    virtual void onStart(const IWorker& worker) override;
+    virtual void onStart(const IJob& job) override;
 
     virtual void onEnd(const Storage& storage, const Statistics& stats) override;
 

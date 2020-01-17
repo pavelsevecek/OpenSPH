@@ -1,11 +1,11 @@
-#include "gui/objects/RenderWorkers.h"
+#include "gui/objects/RenderJobs.h"
 #include "gui/Factory.h"
 #include "gui/Project.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/objects/Movie.h"
 #include "run/IRun.h"
-#include "run/workers/IoWorkers.h"
+#include "run/workers/IoJobs.h"
 #include "system/Factory.h"
 #include "system/Timer.h"
 
@@ -17,7 +17,7 @@
 NAMESPACE_SPH_BEGIN
 
 //-----------------------------------------------------------------------------------------------------------
-// AnimationWorker
+// AnimationJob
 //-----------------------------------------------------------------------------------------------------------
 
 static RegisterEnum<AnimationType> sAnimation({
@@ -33,15 +33,16 @@ static RegisterEnum<ColorizerFlag> sColorizers({
     { ColorizerFlag::MASS, "clay", "Clay" },
     { ColorizerFlag::BEAUTY, "beauty", "Beauty" },
     { ColorizerFlag::DEPTH, "depth", "Depth" },
+    { ColorizerFlag::DAMAGE, "damage", "Damage" },
 });
 
-AnimationWorker::AnimationWorker(const std::string& name)
-    : IParticleWorker(name) {
+AnimationJob::AnimationJob(const std::string& name)
+    : IParticleJob(name) {
     animationType = EnumWrapper(AnimationType::SINGLE_FRAME);
     gui.set(GuiSettingsId::IMAGES_SAVE, true);
 }
 
-VirtualSettings AnimationWorker::getSettings() {
+VirtualSettings AnimationJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
@@ -77,6 +78,10 @@ VirtualSettings AnimationWorker::getSettings() {
         .setEnabler(raytracerEnabler);
     rendererCat.connect<int>("Interation count", gui, GuiSettingsId::RAYTRACE_ITERATION_LIMIT)
         .setEnabler(raytracerEnabler);
+
+    VirtualSettings::Category& anaglyphCat = connector.addCategory("Anaglyph");
+    anaglyphCat.connect<bool>("Enable anaglyph", gui, GuiSettingsId::CAMERA_ANAGLYPH_ENABLE);
+    anaglyphCat.connect<Float>("Eye separation", gui, GuiSettingsId::CAMERA_ANAGLYPH_EYE_SEPARATION);
 
     VirtualSettings::Category& textureCat = connector.addCategory("Texture paths");
     textureCat.connect<std::string>("Body 1", gui, GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY)
@@ -134,7 +139,7 @@ VirtualSettings AnimationWorker::getSettings() {
     return connector;
 }
 
-void AnimationWorker::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
+void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     gui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f));
 
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
@@ -143,6 +148,7 @@ void AnimationWorker::evaluate(const RunSettings& global, IRunCallbacks& callbac
     RenderParams params;
     params.size = { gui.get<int>(GuiSettingsId::IMAGES_WIDTH), gui.get<int>(GuiSettingsId::IMAGES_HEIGHT) };
     params.camera = Factory::getCamera(gui, params.size);
+    params.tracker = Factory::getTracker(gui);
     params.initialize(gui);
 
     Project project = Project::getInstance().clone();
@@ -165,6 +171,9 @@ void AnimationWorker::evaluate(const RunSettings& global, IRunCallbacks& callbac
     }
     if (colorizers.has(ColorizerFlag::DEPTH)) {
         colorizerArray.push(Factory::getColorizer(project, ColorizerId::DEPTH));
+    }
+    if (colorizers.has(ColorizerFlag::DAMAGE)) {
+        colorizerArray.push(Factory::getColorizer(project, ColorizerId(QuantityId::DAMAGE)));
     }
 
     if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE) {
@@ -244,11 +253,11 @@ void AnimationWorker::evaluate(const RunSettings& global, IRunCallbacks& callbac
     }
 }
 
-WorkerRegistrar sRegisterAnimation(
+JobRegistrar sRegisterAnimation(
     "render animation",
     "animation",
     "rendering",
-    [](const std::string& name) { return makeAuto<AnimationWorker>(name); },
+    [](const std::string& name) { return makeAuto<AnimationJob>(name); },
     "Renders an image or a sequence of images from given particle input(s)");
 
 //-----------------------------------------------------------------------------------------------------------
@@ -278,7 +287,7 @@ Tuple<Indices, Indices> getParticleBox(const Vector& r, const Box& box, const In
     return { max(fromIdxs, Indices(0._f)), min(toIdxs, dims - Indices(1)) };
 }
 
-VirtualSettings VdbWorker::getSettings() {
+VirtualSettings VdbJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
@@ -290,15 +299,17 @@ VirtualSettings VdbWorker::getSettings() {
 
     VirtualSettings::Category& inputCat = connector.addCategory("Input files");
     inputCat.connect("Enable", "enable_sequence", sequence.enabled);
-    inputCat.connect("First file", "first_file", sequence.firstFile, [this] { return sequence.enabled; });
+    inputCat.connect("First file", "first_file", sequence.firstFile).setEnabler([this] {
+        return sequence.enabled;
+    });
 
     VirtualSettings::Category& outputCat = connector.addCategory("Output");
-    outputCat.connect("VDB File", "file", path, [this] { return !sequence.enabled; });
+    outputCat.connect("VDB File", "file", path).setEnabler([this] { return !sequence.enabled; });
 
     return connector;
 }
 
-void VdbWorker::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
+void VdbJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     openvdb::initialize();
 
     if (sequence.enabled) {
@@ -339,7 +350,7 @@ void VdbWorker::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     openvdb::uninitialize();
 }
 
-void VdbWorker::generate(Storage& storage, const RunSettings& global, const Path& outputPath) {
+void VdbJob::generate(Storage& storage, const RunSettings& global, const Path& outputPath) {
     openvdb::FloatGrid::Ptr colorField = openvdb::FloatGrid::create(-surfaceLevel);
     openvdb::Vec3SGrid::Ptr velocityField = openvdb::Vec3SGrid::create(vectorToVec3R(Vector(0._f)));
     openvdb::FloatGrid::Ptr energyField = openvdb::FloatGrid::create(0._f);
@@ -400,9 +411,12 @@ void VdbWorker::generate(Storage& storage, const RunSettings& global, const Path
     vdbFile.close();
 }
 
-WorkerRegistrar sRegisterVdb("save VDB grid", "grid", "rendering", [](const std::string& name) {
-    return makeAuto<VdbWorker>(name);
-});
+JobRegistrar sRegisterVdb(
+    "save VDB grid",
+    "grid",
+    "rendering",
+    [](const std::string& name) { return makeAuto<VdbJob>(name); },
+    "Converts the particle data into a volumetric grid in OpenVDB format.");
 
 #endif
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui/Settings.h"
-#include "run/Worker.h"
+#include "run/Job.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -12,6 +12,7 @@ enum class ColorizerFlag {
     MASS = 1 << 3,
     BEAUTY = 1 << 4,
     DEPTH = 1 << 5,
+    DAMAGE = 1 << 6,
 };
 
 enum class AnimationType {
@@ -20,7 +21,7 @@ enum class AnimationType {
     FILE_SEQUENCE,
 };
 
-class AnimationWorker : public IParticleWorker {
+class AnimationJob : public IParticleJob {
 private:
     GuiSettings gui;
     Flags<ColorizerFlag> colorizers = ColorizerFlag::VELOCITY;
@@ -39,21 +40,21 @@ private:
     } sequence;
 
 public:
-    AnimationWorker(const std::string& name);
+    AnimationJob(const std::string& name);
 
     virtual std::string className() const override {
         return "render animation";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
     }
 
-    virtual UnorderedMap<std::string, WorkerType> requires() const override {
+    virtual UnorderedMap<std::string, JobType> requires() const override {
         if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE) {
             return {};
         } else {
-            return { { "particles", WorkerType::PARTICLES } };
+            return { { "particles", JobType::PARTICLES } };
         }
     }
 
@@ -62,7 +63,7 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class VdbWorker : public IParticleWorker {
+class VdbJob : public IParticleJob {
 private:
     Vector gridStart = Vector(-1.e5_f);
     Vector gridEnd = Vector(1.e5_f);
@@ -77,22 +78,22 @@ private:
     Path path = Path("grid.vdb");
 
 public:
-    VdbWorker(const std::string& name)
-        : IParticleWorker(name) {}
+    VdbJob(const std::string& name)
+        : IParticleJob(name) {}
 
     virtual std::string className() const override {
         return "save VDB grid";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
     }
 
-    virtual UnorderedMap<std::string, WorkerType> requires() const override {
+    virtual UnorderedMap<std::string, JobType> requires() const override {
         if (sequence.enabled) {
             return {};
         } else {
-            return { { "particles", WorkerType::PARTICLES } };
+            return { { "particles", JobType::PARTICLES } };
         }
     }
 

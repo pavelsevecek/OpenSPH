@@ -1,4 +1,4 @@
-#include "run/workers/ParticleWorkers.h"
+#include "run/workers/ParticleJobs.h"
 #include "io/LogWriter.h"
 #include "io/Logger.h"
 #include "objects/geometry/Sphere.h"
@@ -16,15 +16,15 @@ NAMESPACE_SPH_BEGIN
 // CachedParticlesWorker
 //-----------------------------------------------------------------------------------------------------------
 
-CachedParticlesWorker::CachedParticlesWorker(const std::string& name, const Storage& storage)
-    : IParticleWorker(name) {
+CachedParticlesJob::CachedParticlesJob(const std::string& name, const Storage& storage)
+    : IParticleJob(name) {
     if (!storage.empty()) {
         cached.storage = storage.clone(VisitorEnum::ALL_BUFFERS);
         useCached = true;
     }
 }
 
-VirtualSettings CachedParticlesWorker::getSettings() {
+VirtualSettings CachedParticlesJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& cacheCat = connector.addCategory("Caching");
@@ -34,7 +34,7 @@ VirtualSettings CachedParticlesWorker::getSettings() {
     return connector;
 }
 
-void CachedParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void CachedParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     result = makeShared<ParticleData>();
     if (useCached) {
         result->storage = cached.storage.clone(VisitorEnum::ALL_BUFFERS);
@@ -54,10 +54,10 @@ void CachedParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunCall
     }
 }
 
-static WorkerRegistrar sRegisterCache(
+static JobRegistrar sRegisterCache(
     "cache",
     "particle operators",
-    [](const std::string& name) { return makeAuto<CachedParticlesWorker>(name); },
+    [](const std::string& name) { return makeAuto<CachedParticlesJob>(name); },
     "Stores the input particle state when evaluated. Subsequent evaluations then simply reuse the stored "
     "data rather than evaluating the input every time.");
 
@@ -65,7 +65,7 @@ static WorkerRegistrar sRegisterCache(
 // MergeParticlesWorker
 //-----------------------------------------------------------------------------------------------------------
 
-VirtualSettings JoinParticlesWorker::getSettings() {
+VirtualSettings JoinParticlesJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
@@ -84,7 +84,7 @@ VirtualSettings JoinParticlesWorker::getSettings() {
     return connector;
 }
 
-void JoinParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
+void JoinParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
     SharedPtr<ParticleData> input1 = this->getInput<ParticleData>("particles A");
     SharedPtr<ParticleData> input2 = this->getInput<ParticleData>("particles B");
 
@@ -121,10 +121,10 @@ void JoinParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunCallba
 }
 
 
-static WorkerRegistrar sRegisterParticleJoin(
+static JobRegistrar sRegisterParticleJoin(
     "join",
     "particle operators",
-    [](const std::string& name) { return makeAuto<JoinParticlesWorker>(name); },
+    [](const std::string& name) { return makeAuto<JoinParticlesJob>(name); },
     "Simply adds particles from two inputs into a single particle state. Optionally, positions and "
     "velocities of particles in the second state may be shifted.");
 
@@ -133,7 +133,7 @@ static WorkerRegistrar sRegisterParticleJoin(
 // TransformParticlesWorker
 //-----------------------------------------------------------------------------------------------------------
 
-VirtualSettings TransformParticlesWorker::getSettings() {
+VirtualSettings TransformParticlesJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
@@ -150,7 +150,7 @@ VirtualSettings TransformParticlesWorker::getSettings() {
     return connector;
 }
 
-void TransformParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
+void TransformParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
     result = this->getInput<ParticleData>("particles");
 
     AffineMatrix rotator = AffineMatrix::rotateX(positions.angles[0]) *
@@ -180,14 +180,14 @@ void TransformParticlesWorker::evaluate(const RunSettings& UNUSED(global), IRunC
 }
 
 
-static WorkerRegistrar sRegisterParticleTransform(
+static JobRegistrar sRegisterParticleTransform(
     "transform",
     "particle operators",
-    [](const std::string& name) { return makeAuto<TransformParticlesWorker>(name); },
+    [](const std::string& name) { return makeAuto<TransformParticlesJob>(name); },
     "Modifies positions and velocities of the input particles.");
 
 //-----------------------------------------------------------------------------------------------------------
-// ChangeMaterialWorker
+// ChangeMaterialJob
 //-----------------------------------------------------------------------------------------------------------
 
 static RegisterEnum<ChangeMaterialSubset> sSubsetType({
@@ -198,7 +198,7 @@ static RegisterEnum<ChangeMaterialSubset> sSubsetType({
     { ChangeMaterialSubset::INSIDE_DOMAIN, "inside_domain", "Change material of particles in given domain." },
 });
 
-VirtualSettings ChangeMaterialWorker::getSettings() {
+VirtualSettings ChangeMaterialJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
@@ -211,7 +211,7 @@ VirtualSettings ChangeMaterialWorker::getSettings() {
     return connector;
 }
 
-void ChangeMaterialWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void ChangeMaterialJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     SharedPtr<ParticleData> input = this->getInput<ParticleData>("particles");
     SharedPtr<IMaterial> material = this->getInput<IMaterial>("material");
 
@@ -252,11 +252,11 @@ void ChangeMaterialWorker::evaluate(const RunSettings& UNUSED(global), IRunCallb
 }
 
 
-static WorkerRegistrar sRegisterChangeMaterial(
+static JobRegistrar sRegisterChangeMaterial(
     "change material",
     "changer",
     "particle operators",
-    [](const std::string& name) { return makeAuto<ChangeMaterialWorker>(name); },
+    [](const std::string& name) { return makeAuto<ChangeMaterialJob>(name); },
     "Changes the material of all or a subset of the input particles.");
 
 //-----------------------------------------------------------------------------------------------------------
@@ -317,7 +317,7 @@ static void displace(Storage& storage, const Vector& offset) {
 
 CollisionGeometrySetup::CollisionGeometrySetup(const std::string& name,
     const CollisionGeometrySettings& overrides)
-    : IParticleWorker(name) {
+    : IParticleJob(name) {
     geometry.addEntries(overrides);
 }
 
@@ -391,7 +391,7 @@ void CollisionGeometrySetup::evaluate(const RunSettings& UNUSED(global), IRunCal
     result->storage = std::move(target);
 }
 
-static WorkerRegistrar sRegisterCollisionSetup(
+static JobRegistrar sRegisterCollisionSetup(
     "collision setup",
     "setup",
     "particle operators",
@@ -456,7 +456,7 @@ void SmoothedToSolidHandoff::evaluate(const RunSettings& UNUSED(global), IRunCal
     result->storage = std::move(spheres);
 }
 
-static WorkerRegistrar sRegisterHandoff(
+static JobRegistrar sRegisterHandoff(
     "smoothed-to-solid handoff",
     "handoff",
     "particle operators",
@@ -469,7 +469,7 @@ static WorkerRegistrar sRegisterHandoff(
 // ExtractComponentWorker
 // ----------------------------------------------------------------------------------------------------------
 
-VirtualSettings ExtractComponentWorker::getSettings() {
+VirtualSettings ExtractComponentJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& category = connector.addCategory("Component");
@@ -479,7 +479,7 @@ VirtualSettings ExtractComponentWorker::getSettings() {
     return connector;
 }
 
-void ExtractComponentWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void ExtractComponentJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     Storage storage = std::move(this->getInput<ParticleData>("particles")->storage);
 
     // allow using this for storage without masses --> add ad hoc mass if it's missing
@@ -511,11 +511,11 @@ void ExtractComponentWorker::evaluate(const RunSettings& UNUSED(global), IRunCal
     result->storage = std::move(storage);
 }
 
-static WorkerRegistrar sRegisterExtractComponent(
+static JobRegistrar sRegisterExtractComponent(
     "extract component",
     "extractor",
     "particle operators",
-    [](const std::string& name) { return makeAuto<ExtractComponentWorker>(name); },
+    [](const std::string& name) { return makeAuto<ExtractComponentJob>(name); },
     "Preserves all particles belonging to the largest body in the input particle state (or optionally the "
     "n-th largest body) and removes all other particles. This modifier is useful to separate the largest "
     "remnant or the largest fragment in the result of a simulation.");
@@ -529,7 +529,7 @@ static RegisterEnum<ConnectivityEnum> sConnectivity({
     { ConnectivityEnum::ESCAPE_VELOCITY, "escape velocity", "Escape velocity" },
 });
 
-VirtualSettings MergeComponentsWorker::getSettings() {
+VirtualSettings MergeComponentsJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& category = connector.addCategory("Component");
@@ -538,7 +538,7 @@ VirtualSettings MergeComponentsWorker::getSettings() {
     return connector;
 }
 
-void MergeComponentsWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void MergeComponentsJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     SharedPtr<ParticleData> particles = this->getInput<ParticleData>("particles");
     Storage& input = particles->storage;
 
@@ -592,11 +592,11 @@ void MergeComponentsWorker::evaluate(const RunSettings& UNUSED(global), IRunCall
     result->storage = std::move(output);
 }
 
-static WorkerRegistrar sRegisterMergeComponents(
+static JobRegistrar sRegisterMergeComponents(
     "merge components",
     "merger",
     "particle operators",
-    [](const std::string& name) { return makeAuto<MergeComponentsWorker>(name); },
+    [](const std::string& name) { return makeAuto<MergeComponentsJob>(name); },
     "Merges all overlapping particles into larger spheres, preserving the total mass and volume of "
     "particles. Other quantities are handled as intensive, i.e. they are computed using weighted average.");
 
@@ -604,7 +604,7 @@ static WorkerRegistrar sRegisterMergeComponents(
 // ExtractParticlesInDomainWorker
 // ----------------------------------------------------------------------------------------------------------
 
-VirtualSettings ExtractParticlesInDomainWorker::getSettings() {
+VirtualSettings ExtractParticlesInDomainJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& category = connector.addCategory("Misc");
@@ -612,7 +612,7 @@ VirtualSettings ExtractParticlesInDomainWorker::getSettings() {
     return connector;
 }
 
-void ExtractParticlesInDomainWorker::evaluate(const RunSettings& UNUSED(global),
+void ExtractParticlesInDomainJob::evaluate(const RunSettings& UNUSED(global),
     IRunCallbacks& UNUSED(callbacks)) {
     SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
     SharedPtr<IDomain> domain = this->getInput<IDomain>("domain");
@@ -638,18 +638,18 @@ void ExtractParticlesInDomainWorker::evaluate(const RunSettings& UNUSED(global),
     result = data;
 }
 
-static WorkerRegistrar sRegisterExtractInDomain(
+static JobRegistrar sRegisterExtractInDomain(
     "extract particles in domain",
     "extractor",
     "particle operators",
-    [](const std::string& name) { return makeAuto<ExtractParticlesInDomainWorker>(name); },
+    [](const std::string& name) { return makeAuto<ExtractParticlesInDomainJob>(name); },
     "Preserves only particles inside the given shape, particles outside the shape are removed.");
 
 // ----------------------------------------------------------------------------------------------------------
 // EmplaceComponentsAsFlagsWorker
 // ----------------------------------------------------------------------------------------------------------
 
-VirtualSettings EmplaceComponentsAsFlagsWorker::getSettings() {
+VirtualSettings EmplaceComponentsAsFlagsJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& category = connector.addCategory("Component");
@@ -657,7 +657,7 @@ VirtualSettings EmplaceComponentsAsFlagsWorker::getSettings() {
     return connector;
 }
 
-void EmplaceComponentsAsFlagsWorker::evaluate(const RunSettings& UNUSED(global),
+void EmplaceComponentsAsFlagsJob::evaluate(const RunSettings& UNUSED(global),
     IRunCallbacks& UNUSED(callbacks)) {
     Storage fragments = std::move(this->getInput<ParticleData>("fragments")->storage);
 
@@ -681,11 +681,11 @@ void EmplaceComponentsAsFlagsWorker::evaluate(const RunSettings& UNUSED(global),
     result->storage = std::move(original);
 }
 
-static WorkerRegistrar sRegisterEmplaceComponents(
+static JobRegistrar sRegisterEmplaceComponents(
     "emplace components",
     "emplacer",
     "particle operators",
-    [](const std::string& name) { return makeAuto<EmplaceComponentsAsFlagsWorker>(name); },
+    [](const std::string& name) { return makeAuto<EmplaceComponentsAsFlagsJob>(name); },
     "This modifier detects components (i.e. separated bodies) in the \"fragments\" particle input and stores "
     "the indices of the components as flags to the other particle input \"original\". This is useful to "
     "visualize the particles belonging to different fragments in the initial conditions of the simulation.");
@@ -695,7 +695,7 @@ static WorkerRegistrar sRegisterEmplaceComponents(
 // SubsampleWorker
 // ----------------------------------------------------------------------------------------------------------
 
-VirtualSettings SubsampleWorker::getSettings() {
+VirtualSettings SubsampleJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& category = connector.addCategory("Subsampling");
@@ -703,7 +703,7 @@ VirtualSettings SubsampleWorker::getSettings() {
     return connector;
 }
 
-void SubsampleWorker::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) {
+void SubsampleJob::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) {
     SharedPtr<ParticleData> input = this->getInput<ParticleData>("particles");
     AutoPtr<IRng> rng = Factory::getRng(global);
 
@@ -728,10 +728,10 @@ void SubsampleWorker::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(
     result = input;
 }
 
-static WorkerRegistrar sRegisterSubsampler(
+static JobRegistrar sRegisterSubsampler(
     "subsampler",
     "particle operators",
-    [](const std::string& name) { return makeAuto<SubsampleWorker>(name); },
+    [](const std::string& name) { return makeAuto<SubsampleJob>(name); },
     "Preserves a fraction of randomly selected particles, removes the other particles.");
 
 
@@ -739,7 +739,7 @@ static WorkerRegistrar sRegisterSubsampler(
 // AnalysisWorker
 // ----------------------------------------------------------------------------------------------------------
 
-VirtualSettings AnalysisWorker::getSettings() {
+VirtualSettings AnalysisJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& outputCat = connector.addCategory("Output");
@@ -747,7 +747,7 @@ VirtualSettings AnalysisWorker::getSettings() {
     return connector;
 }
 
-void AnalysisWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void AnalysisJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     SharedPtr<ParticleData> input = this->getInput<ParticleData>("particles");
 
     /*FlatMap<Size, Path> fileMap = getFileSequence(sequence.firstFile);
@@ -783,10 +783,10 @@ void AnalysisWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& 
     result = input;
 }
 
-static WorkerRegistrar sRegisterAnalysis(
+static JobRegistrar sRegisterAnalysis(
     "analysis",
     "particle operators",
-    [](const std::string& name) { return makeAuto<AnalysisWorker>(name); },
+    [](const std::string& name) { return makeAuto<AnalysisJob>(name); },
     "TODO");
 
 

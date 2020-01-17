@@ -92,6 +92,7 @@ void PressureForce::finalize(IScheduler& scheduler, Storage& storage, const Floa
     ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
     parallelFor(scheduler, 0, du.size(), [&](const Size i) INL { //
         du[i] -= p[i] / rho[i] * divv[i];
+        ASSERT(isReal(du[i]));
     });
 }
 

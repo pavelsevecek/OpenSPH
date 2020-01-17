@@ -1,4 +1,4 @@
-#include "run/workers/MaterialWorkers.h"
+#include "run/workers/MaterialJobs.h"
 #include "sph/Materials.h"
 #include "system/Factory.h"
 
@@ -74,14 +74,14 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
 }
 
 // ----------------------------------------------------------------------------------------------------------
-// MaterialWorker
+// MaterialJob
 // ----------------------------------------------------------------------------------------------------------
 
-MaterialWorker::MaterialWorker(const std::string& name, const BodySettings& overrides)
-    : IMaterialWorker(name)
+MaterialJob::MaterialJob(const std::string& name, const BodySettings& overrides)
+    : IMaterialJob(name)
     , MaterialProvider(overrides) {}
 
-VirtualSettings MaterialWorker::getSettings() {
+VirtualSettings MaterialJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
@@ -98,43 +98,43 @@ VirtualSettings MaterialWorker::getSettings() {
 }
 
 
-void MaterialWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void MaterialJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     result = Factory::getMaterial(body);
 }
 
-static WorkerRegistrar sRegisterMaterial(
+static JobRegistrar sRegisterMaterial(
     "material",
     "materials",
-    [](const std::string& name) { return makeAuto<MaterialWorker>(name); },
+    [](const std::string& name) { return makeAuto<MaterialJob>(name); },
     "Generic material");
 
 // these presets only differ in initial parameters, so it's ok if they have different class names
-static WorkerRegistrar sRegisterBasalt(
+static JobRegistrar sRegisterBasalt(
     "basalt",
     "materials",
     [](const std::string& name) {
-        return makeAuto<MaterialWorker>(name, getMaterial(MaterialEnum::BASALT)->getParams());
+        return makeAuto<MaterialJob>(name, getMaterial(MaterialEnum::BASALT)->getParams());
     },
     "Basalt");
-static WorkerRegistrar sRegisterIce(
+static JobRegistrar sRegisterIce(
     "ice",
     "materials",
     [](const std::string& name) {
-        return makeAuto<MaterialWorker>(name, getMaterial(MaterialEnum::ICE)->getParams());
+        return makeAuto<MaterialJob>(name, getMaterial(MaterialEnum::ICE)->getParams());
     },
     "Ice");
-static WorkerRegistrar sRegisterOlivine(
+static JobRegistrar sRegisterOlivine(
     "olivine",
     "materials",
     [](const std::string& name) {
-        return makeAuto<MaterialWorker>(name, getMaterial(MaterialEnum::OLIVINE)->getParams());
+        return makeAuto<MaterialJob>(name, getMaterial(MaterialEnum::OLIVINE)->getParams());
     },
     "Olivine");
-static WorkerRegistrar sRegisterIron(
+static JobRegistrar sRegisterIron(
     "iron",
     "materials",
     [](const std::string& name) {
-        return makeAuto<MaterialWorker>(name, getMaterial(MaterialEnum::IRON)->getParams());
+        return makeAuto<MaterialJob>(name, getMaterial(MaterialEnum::IRON)->getParams());
     },
     "Iron");
 
@@ -143,13 +143,13 @@ static WorkerRegistrar sRegisterIron(
 // DisableDerivativeCriterionWorker
 // ----------------------------------------------------------------------------------------------------------
 
-VirtualSettings DisableDerivativeCriterionWorker::getSettings() {
+VirtualSettings DisableDerivativeCriterionJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     return connector;
 }
 
-void DisableDerivativeCriterionWorker::evaluate(const RunSettings& UNUSED(global),
+void DisableDerivativeCriterionJob::evaluate(const RunSettings& UNUSED(global),
     IRunCallbacks& UNUSED(callbacks)) {
     SharedPtr<IMaterial> input = this->getInput<IMaterial>("material");
 
@@ -159,11 +159,11 @@ void DisableDerivativeCriterionWorker::evaluate(const RunSettings& UNUSED(global
     result->setParam(BodySettingsId::DAMAGE_MIN, LARGE);
 }
 
-static WorkerRegistrar sRegisterDisabler(
+static JobRegistrar sRegisterDisabler(
     "optimize timestepping",
     "optimizer",
     "materials",
-    [](const std::string& name) { return makeAuto<DisableDerivativeCriterionWorker>(name); },
+    [](const std::string& name) { return makeAuto<DisableDerivativeCriterionJob>(name); },
     "Helper material modifier that turns off the time step limitation for damage and stress "
     "tensor. Useful to avoid very low time steps due to particles that are deemed not important to "
     "the solution (such as impactor particles). If the time step is not limited by the derivative "

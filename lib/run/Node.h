@@ -1,7 +1,7 @@
 #pragma once
 
 /// \file RunNode.h
-/// \brief Wrapper of IWorker with connections to dependents and providers.
+/// \brief Wrapper of IJob with connections to dependents and providers.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2019
 
@@ -10,21 +10,21 @@
 #include "objects/wrappers/SharedPtr.h"
 #include "quantities/Storage.h"
 #include "run/IRun.h"
+#include "run/Job.h"
 #include "run/VirtualSettings.h"
-#include "run/Worker.h"
 #include "system/Statistics.h"
 #include <set>
 
 NAMESPACE_SPH_BEGIN
 
 class ConfigNode;
-class WorkerNode;
+class JobNode;
 
 /// \brief Interface used during worker evaluation.
-class IWorkerCallbacks : public IRunCallbacks {
+class IJobCallbacks : public IRunCallbacks {
 public:
     /// \brief Notifies the caller that a new worker started running.
-    virtual void onStart(const IWorker& worker) = 0;
+    virtual void onStart(const IJob& worker) = 0;
 
     /// \brief Notifies the caller that the current worker ended.
     ///
@@ -33,9 +33,9 @@ public:
     virtual void onEnd(const Storage& storage, const Statistics& stats) = 0;
 };
 
-class NullWorkerCallbacks : public IWorkerCallbacks {
+class NullJobCallbacks : public IJobCallbacks {
 public:
-    virtual void onStart(const IWorker& UNUSED(worker)) override {}
+    virtual void onStart(const IJob& UNUSED(worker)) override {}
 
     virtual void onEnd(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {}
 
@@ -53,7 +53,7 @@ struct SlotData {
     std::string name;
 
     /// \brief Specifies the type of the slot, or the type of the node connecting to it.
-    WorkerType type;
+    JobType type;
 
     /// \brief Whether the node is used by the worker.
     ///
@@ -64,25 +64,25 @@ struct SlotData {
     /// \brief Node currently connected to the slot.
     ///
     /// May be nullptr if no node is connected.
-    SharedPtr<WorkerNode> provider;
+    SharedPtr<JobNode> provider;
 };
 
 /// \brief Building block of a simulation hierarchy.
 ///
 /// Each node can have any number of providers (preconditions of the worker).
-class WorkerNode : public ShareFromThis<WorkerNode> {
+class JobNode : public ShareFromThis<JobNode> {
     /// Maps slot names to connected providers
-    UnorderedMap<std::string, SharedPtr<WorkerNode>> providers;
+    UnorderedMap<std::string, SharedPtr<JobNode>> providers;
 
     /// All dependent nodes (i.e. nodes that have this node as provider) in no particular order.
-    Array<WeakPtr<WorkerNode>> dependents;
+    Array<WeakPtr<JobNode>> dependents;
 
     /// Worker object of this node
-    SharedPtr<IWorker> worker;
+    SharedPtr<IJob> job;
 
 public:
     /// \brief Creates a new node, given a worker object.
-    WorkerNode(AutoPtr<IWorker>&& worker);
+    JobNode(AutoPtr<IJob>&& job);
 
     /// \brief Returns the class name of the worker.
     std::string className() const;
@@ -94,20 +94,20 @@ public:
     VirtualSettings getSettings() const;
 
     /// \brief Returns the type of the worker.
-    WorkerType provides() const;
+    JobType provides() const;
 
     /// \brief Connects this node to given dependent node.
     ///
     /// \param dependent Dependent node to which this node is connected.
     /// \param slotName Name of the slot of the dependent node.
     /// \throw InvalidSetup if no such slot exists or it has a different type.
-    void connect(SharedPtr<WorkerNode> dependent, const std::string& slotName);
+    void connect(SharedPtr<JobNode> dependent, const std::string& slotName);
 
     /// \brief Disconnects this node from given dependent node.
     ///
     /// \param dependent Dependent node to be disconnected.
     /// \throw InvalidSetup if the given node is not a dependent.
-    void disconnect(SharedPtr<WorkerNode> dependent);
+    void disconnect(SharedPtr<JobNode> dependent);
 
     /// \brief Disconnects all dependent nodes from this node.
     void disconnectAll();
@@ -122,13 +122,13 @@ public:
     Size getDependentCnt() const;
 
     /// \brief Returns a dependent node with given index.
-    SharedPtr<WorkerNode> getDependent(const Size index) const;
+    SharedPtr<JobNode> getDependent(const Size index) const;
 
     /// \brief Enumerates all nodes in the hierarchy.
     ///
     /// Function call provided function for this node and recursively for all providers of this node. Each
     /// node is visited only once.
-    void enumerate(Function<void(SharedPtr<WorkerNode> worker, Size depth)> func);
+    void enumerate(Function<void(SharedPtr<JobNode> job, Size depth)> func);
 
     /// \brief Evaluates the node and all its providers.
     ///
@@ -136,20 +136,20 @@ public:
     /// have been set up.
     /// \param global Global settings, used by all nodes in the hierarchy.
     /// \param callbacks Interface allowing to get a feedback from evaluated nodes, see \ref IWorkerCallbacks.
-    void run(const RunSettings& global, IWorkerCallbacks& callbacks);
+    void run(const RunSettings& global, IJobCallbacks& callbacks);
 
 private:
-    void enumerate(Function<void(SharedPtr<WorkerNode> worker, Size depth)> func,
+    void enumerate(Function<void(SharedPtr<JobNode> job, Size depth)> func,
         Size depth,
-        std::set<WorkerNode*>& visited);
+        std::set<JobNode*>& visited);
 
-    void run(const RunSettings& global, IWorkerCallbacks& callbacks, std::set<WorkerNode*>& visited);
+    void run(const RunSettings& global, IJobCallbacks& callbacks, std::set<JobNode*>& visited);
 };
 
 /// \brief Helper function for creating worker nodes.
 template <typename TWorker, typename... TArgs>
-SharedPtr<WorkerNode> makeNode(TArgs&&... args) {
-    return makeShared<WorkerNode>(makeAuto<TWorker>(std::forward<TArgs>(args)...));
+SharedPtr<JobNode> makeNode(TArgs&&... args) {
+    return makeShared<JobNode>(makeAuto<TWorker>(std::forward<TArgs>(args)...));
 }
 
 /// \brief Clones a single node.
@@ -157,13 +157,13 @@ SharedPtr<WorkerNode> makeNode(TArgs&&... args) {
 /// No slots of the returned node are connected.
 /// \param node Node to clone.
 /// \param name Instance name of the returned clone. Empty means the name is autogenerated.
-SharedPtr<WorkerNode> cloneNode(const WorkerNode& node, const std::string& name = "");
+SharedPtr<JobNode> cloneNode(const JobNode& node, const std::string& name = "");
 
 /// \brief Clones all nodes in the hierarchy.
 ///
 /// Returned node is already connected to the other cloned nodes.
 /// \param node Root node of the cloned hierarchy
 /// \param prefix Prefix added to all names of cloned nodes. Empty means the cloned names are autogenerated.
-SharedPtr<WorkerNode> cloneHierarchy(WorkerNode& node, const std::string& prefix = "");
+SharedPtr<JobNode> cloneHierarchy(JobNode& node, const std::string& prefix = "");
 
 NAMESPACE_SPH_END

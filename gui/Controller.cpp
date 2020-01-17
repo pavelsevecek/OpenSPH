@@ -10,7 +10,7 @@
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/windows/RunPage.h"
 #include "run/Node.h"
-#include "run/workers/IoWorkers.h"
+#include "run/workers/IoJobs.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
 #include "system/Timer.h"
@@ -69,7 +69,7 @@ void Controller::Vis::refresh() {
     renderThreadVar.notify_one();
 }
 
-void Controller::start(SharedPtr<WorkerNode> run, const RunSettings& globals) {
+void Controller::start(SharedPtr<JobNode> run, const RunSettings& globals) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
     ASSERT(globals.size() < 10);
 
@@ -93,9 +93,9 @@ void Controller::open(const Path& path, const bool sequence) {
     page->showTimeLine(true);
 
     if (sequence) {
-        this->start(makeNode<FileSequenceWorker>("loader", path), EMPTY_SETTINGS);
+        this->start(makeNode<FileSequenceJob>("loader", path), EMPTY_SETTINGS);
     } else {
-        this->start(makeNode<LoadFileWorker>(path), EMPTY_SETTINGS);
+        this->start(makeNode<LoadFileJob>(path), EMPTY_SETTINGS);
     }
 }
 
@@ -156,8 +156,8 @@ void Controller::saveState(const Path& path) {
             output = makeAuto<VtkOutput>(path, flags);
         } else {
             ASSERT(path.extension() == Path("txt"));
-            Flags<OutputQuantityFlag> flags =
-                OutputQuantityFlag::INDEX | OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY;
+            Flags<OutputQuantityFlag> flags = OutputQuantityFlag::INDEX | OutputQuantityFlag::POSITION |
+                                              OutputQuantityFlag::VELOCITY | OutputQuantityFlag::MASS;
             output = makeAuto<TextOutput>(path, "unnamed", flags);
         }
 
@@ -212,9 +212,9 @@ void Controller::onSetUp(const Storage& storage, Statistics& stats) {
     this->update(storage, stats);
 }
 
-void Controller::onStart(const IWorker& worker) {
-    const std::string className = worker.className();
-    const std::string instanceName = worker.instanceName();
+void Controller::onStart(const IJob& job) {
+    const std::string className = job.className();
+    const std::string instanceName = job.instanceName();
     this->safePageCall([className, instanceName](RunPage* page) { page->newPhase(className, instanceName); });
 }
 
@@ -484,14 +484,15 @@ Optional<Size> Controller::getIntersectedParticle(const Pixel position, const fl
     cameraLock.unlock();
 
     const GuiSettings& gui = project.getGuiSettings();
-    const float radius = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
+    const float radius = float(gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS));
     const Optional<CameraRay> ray = camera->unproject(Coords(position));
     if (!ray) {
         return NOTHING;
     }
 
     const float cutoff = camera->getCutoff().valueOr(0.f);
-    const Vector dir = getNormalized(ray->target - ray->origin);
+    const Vector rayDir = getNormalized(ray->target - ray->origin);
+    const Vector camDir = camera->getFrame().row(2);
 
     struct {
         float t = -std::numeric_limits<float>::lowest();
@@ -505,7 +506,7 @@ Optional<Size> Controller::getIntersectedParticle(const Pixel position, const fl
             // particle not visible by the camera
             continue;
         }
-        if (cutoff != 0._f && abs(dot(camera->getDirection(), vis.positions[i])) > cutoff) {
+        if (cutoff != 0._f && abs(dot(camDir, vis.positions[i])) > cutoff) {
             // particle cut off by projection
             /// \todo This is really weird, we are duplicating code of ParticleRenderer in a function that
             /// really makes only sense with ParticleRenderer. Needs refactoring.
@@ -513,11 +514,11 @@ Optional<Size> Controller::getIntersectedParticle(const Pixel position, const fl
         }
 
         const Vector r = vis.positions[i] - ray->origin;
-        const float t = dot(r, dir);
-        const Vector projected = r - t * dir;
+        const float t = float(dot(r, rayDir));
+        const Vector projected = r - t * rayDir;
         /// \todo this radius computation is actually renderer-specific ...
-        const float radiusSqr = sqr(vis.positions[i][H] * radius);
-        const float distanceSqr = getSqrLength(projected);
+        const float radiusSqr = float(sqr(vis.positions[i][H] * radius));
+        const float distanceSqr = float(getSqrLength(projected));
         if (distanceSqr < radiusSqr * sqr(1._f + toleranceEps)) {
             const bool wasHitOutside = distanceSqr > radiusSqr;
             // hit candidate, check if it's closer or current candidate was hit outside the actual radius
@@ -611,7 +612,7 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) const {
     ASSERT(sph.run);
     RenderParams params;
     const GuiSettings& gui = project.getGuiSettings();
-    params.particles.scale = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
+    params.particles.scale = float(gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS));
     params.size.x = gui.get<int>(GuiSettingsId::IMAGES_WIDTH);
     params.size.y = gui.get<int>(GuiSettingsId::IMAGES_HEIGHT);
 
@@ -642,9 +643,9 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) const {
     params.particles.grayScale = gui.get<bool>(GuiSettingsId::FORCE_GRAYSCALE);
     params.particles.doAntialiasing = gui.get<bool>(GuiSettingsId::ANTIALIASED);
     params.particles.smoothed = gui.get<bool>(GuiSettingsId::SMOOTH_PARTICLES);
-    params.surface.level = gui.get<Float>(GuiSettingsId::SURFACE_LEVEL);
-    params.surface.ambientLight = gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
-    params.surface.sunLight = gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY);
+    params.surface.level = float(gui.get<Float>(GuiSettingsId::SURFACE_LEVEL));
+    params.surface.ambientLight = float(gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT));
+    params.surface.sunLight = float(gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY));
 
     return makeShared<Movie>(gui, std::move(renderer), std::move(colorizers), std::move(params));
 }
@@ -712,6 +713,11 @@ void Controller::refresh(AutoPtr<ICamera>&& camera) {
     std::unique_lock<std::mutex> lock(vis.cameraMutex);
     vis.camera = std::move(camera);
     vis.refresh();
+
+    if (const Optional<float> fov = vis.camera->getWorldToPixel()) {
+        /// \todo generalize
+        project.getGuiSettings().set(GuiSettingsId::CAMERA_ORTHO_FOV, Float(fov.value()));
+    }
 }
 
 void Controller::safePageCall(Function<void(RunPage*)> func) {

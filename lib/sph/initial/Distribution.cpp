@@ -412,6 +412,60 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
 }
 
 //-----------------------------------------------------------------------------------------------------------
+// ParametrizedSpiralingDistribution implementation
+//-----------------------------------------------------------------------------------------------------------
+
+ParametrizedSpiralingDistribution::ParametrizedSpiralingDistribution(const Size seed)
+    : seed(seed) {}
+
+Array<Vector> ParametrizedSpiralingDistribution::generate(IScheduler& UNUSED(scheduler),
+    const Size n,
+    const IDomain& domain) const {
+    const Vector center = domain.getCenter();
+    const Float volume = domain.getVolume();
+    const Box bbox = domain.getBoundingBox();
+    const Float R = 0.5_f * getLength(bbox.size());
+
+    // interparticle distance based on density
+    const Float h = root<3>(volume / n);
+    const Size numShells = Size(R / h);
+    Array<Float> shells(numShells);
+    Float total = 0._f;
+    for (Size i = 0; i < numShells; ++i) {
+        shells[i] = sqr((i + 1) * h);
+        total += shells[i];
+    }
+    ASSERT(isReal(total));
+
+    Float mult = Float(n) / total;
+    for (Size i = 0; i < numShells; ++i) {
+        shells[i] *= mult;
+    }
+
+    Array<Vector> pos;
+    Float phi = 0._f;
+    Size shellIdx = 0;
+    UniformRng rng(seed);
+    for (Float r = h; r <= R; r += h, shellIdx++) {
+        Vector dir = sampleUnitSphere(rng);
+        Float rot = 2._f * PI * rng();
+        AffineMatrix rotator = AffineMatrix::rotateAxis(dir, rot);
+        const Size m = Size(ceil(shells[shellIdx]));
+        for (Size k = 1; k < m; ++k) {
+            const Float hk = -1._f + 2._f * Float(k) / m;
+            const Float theta = acos(hk);
+            phi += 3.8_f / sqrt(m * (1._f - sqr(hk)));
+            Vector v = center + rotator * sphericalToCartesian(r, theta, phi);
+            if (domain.contains(v)) {
+                v[H] = sqrt(sphereSurfaceArea(r) / m);
+                ASSERT(isReal(v));
+                pos.push(v);
+            }
+        }
+    }
+    return pos;
+}
+//-----------------------------------------------------------------------------------------------------------
 // LinearDistribution implementation
 //-----------------------------------------------------------------------------------------------------------
 

@@ -1,4 +1,4 @@
-#include "run/workers/ScriptWorkers.h"
+#include "run/workers/ScriptJobs.h"
 #include "quantities/Quantity.h"
 #include "run/IRun.h"
 #include "run/ScriptUtils.h"
@@ -9,8 +9,8 @@ NAMESPACE_SPH_BEGIN
 
 #ifdef SPH_USE_CHAISCRIPT
 
-ChaiScriptWorker::ChaiScriptWorker(const std::string& name)
-    : IParticleWorker(name) {
+ChaiScriptJob::ChaiScriptJob(const std::string& name)
+    : IParticleJob(name) {
     slotNames.resize(8);
     for (Size i = 0; i < slotNames.size(); ++i) {
         slotNames[i] = "slot " + std::to_string(i + 1);
@@ -24,16 +24,16 @@ ChaiScriptWorker::ChaiScriptWorker(const std::string& name)
     }
 }
 
-UnorderedMap<std::string, WorkerType> ChaiScriptWorker::getSlots() const {
-    UnorderedMap<std::string, WorkerType> slots;
+UnorderedMap<std::string, JobType> ChaiScriptJob::getSlots() const {
+    UnorderedMap<std::string, JobType> slots;
     for (int i = 0; i < min<int>(inputCnt, slotNames.maxSize()); ++i) {
-        slots.insert(slotNames[i], WorkerType::PARTICLES);
+        slots.insert(slotNames[i], JobType::PARTICLES);
     }
     return slots;
 }
 
 
-VirtualSettings ChaiScriptWorker::getSettings() {
+VirtualSettings ChaiScriptJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
@@ -55,7 +55,7 @@ VirtualSettings ChaiScriptWorker::getSettings() {
     return connector;
 }
 
-void ChaiScriptWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
+void ChaiScriptJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
     chaiscript::ChaiScript chai;
     Chai::registerBindings(chai);
 
@@ -99,10 +99,10 @@ void ChaiScriptWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
     std::cout << std::endl;
 }
 
-static WorkerRegistrar sRegisterChaiWorker(
+static JobRegistrar sRegisterChaiWorker(
     "custom script",
     "particle operators",
-    [](const std::string& name) { return makeAuto<ChaiScriptWorker>(name); },
+    [](const std::string& name) { return makeAuto<ChaiScriptJob>(name); },
     "Custom particle operator, given by a ChaiScript file.");
 
 #endif

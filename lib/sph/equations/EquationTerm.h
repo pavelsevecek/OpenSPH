@@ -6,6 +6,7 @@
 /// \date 2016-2019
 
 #include "common/ForwardDecl.h"
+#include "objects/utility/IteratorAdapters.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "physics/Constants.h"
 #include "quantities/Storage.h"
@@ -276,28 +277,30 @@ public:
         return false;
     }
 
-    /// Calls \ref EquationTerm::setDerivatives for all stored equation terms.
+    /// \brief Calls \ref EquationTerm::setDerivatives for all stored equation terms.
     void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) const {
         for (auto& term : terms) {
             term->setDerivatives(derivatives, settings);
         }
     }
 
-    /// Calls \ref EquationTerm::initialize for all stored equation terms.
+    /// \brief Calls \ref EquationTerm::initialize for all stored equation terms.
     void initialize(IScheduler& scheduler, Storage& storage, const Float t) {
         for (auto& term : terms) {
             term->initialize(scheduler, storage, t);
         }
     }
 
-    /// Calls \ref EquationTerm::finalize for all stored equation terms.
+    /// \brief Calls \ref EquationTerm::finalize for all stored equation terms.
+    ///
+    /// The order is reversed compared to \ref initialize call.
     void finalize(IScheduler& scheduler, Storage& storage, const Float t) {
-        for (auto& term : terms) {
+        for (auto& term : reverse(terms)) {
             term->finalize(scheduler, storage, t);
         }
     }
 
-    /// Calls \ref EquationTerm::create for all stored equation terms.
+    /// \brief Calls \ref EquationTerm::create for all stored equation terms.
     void create(Storage& storage, IMaterial& material) const {
         for (auto& term : terms) {
             term->create(storage, material);

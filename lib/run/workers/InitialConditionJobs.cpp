@@ -1,4 +1,4 @@
-#include "run/workers/InitialConditionWorkers.h"
+#include "run/workers/InitialConditionJobs.h"
 #include "objects/geometry/Sphere.h"
 #include "physics/Eos.h"
 #include "physics/Functions.h"
@@ -20,18 +20,18 @@ NAMESPACE_SPH_BEGIN
 // ----------------------------------------------------------------------------------------------------------
 
 MonolithicBodyIc::MonolithicBodyIc(const std::string& name, const BodySettings& overrides)
-    : IParticleWorker(name)
+    : IParticleJob(name)
     , MaterialProvider(overrides) {
     body.set(BodySettingsId::SMOOTHING_LENGTH_ETA, 1.3_f).set(BodySettingsId::DISTRIBUTE_MODE_SPH5, false);
 }
 
-UnorderedMap<std::string, WorkerType> MonolithicBodyIc::requires() const {
-    UnorderedMap<std::string, WorkerType> map;
+UnorderedMap<std::string, JobType> MonolithicBodyIc::requires() const {
+    UnorderedMap<std::string, JobType> map;
     if (slotUsage.shape) {
-        map.insert("shape", WorkerType::GEOMETRY);
+        map.insert("shape", JobType::GEOMETRY);
     }
     if (slotUsage.material) {
-        map.insert("material", WorkerType::MATERIAL);
+        map.insert("material", JobType::MATERIAL);
     }
 
     return map;
@@ -164,7 +164,7 @@ void MonolithicBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callba
     view.addRotation(Vector(0._f, 0._f, spinRate), domain->getCenter());
 }
 
-static WorkerRegistrar sRegisterMonolithic(
+static JobRegistrar sRegisterMonolithic(
     "create monolithic body",
     "body",
     "initial conditions",
@@ -176,7 +176,7 @@ static WorkerRegistrar sRegisterMonolithic(
 // ----------------------------------------------------------------------------------------------------------
 
 DifferentiatedBodyIc::DifferentiatedBodyIc(const std::string& name)
-    : IParticleWorker(name) {}
+    : IParticleJob(name) {}
 
 VirtualSettings DifferentiatedBodyIc::getSettings() {
     VirtualSettings connector;
@@ -211,7 +211,7 @@ void DifferentiatedBodyIc::evaluate(const RunSettings& global, IRunCallbacks& UN
     ic.addHeterogeneousBody(result->storage, mantle, std::move(layers));
 }
 
-static WorkerRegistrar sRegisterDifferentiated(
+static JobRegistrar sRegisterDifferentiated(
     "create differentiated body",
     "body",
     "initial conditions",
@@ -252,7 +252,7 @@ void SingleParticleIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
     result->storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, mass);
 }
 
-static WorkerRegistrar sRegisterSingleParticle(
+static JobRegistrar sRegisterSingleParticle(
     "create single particle",
     "particle",
     "initial conditions",
@@ -296,7 +296,7 @@ void ImpactorIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     MonolithicBodyIc::evaluate(global, callbacks);
 }
 
-static WorkerRegistrar sRegisterImpactorBody(
+static JobRegistrar sRegisterImpactorBody(
     "create impactor",
     "impactor",
     "initial conditions",
@@ -390,7 +390,7 @@ void EquilibriumIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& U
     }
 }
 
-static WorkerRegistrar sRegisterEquilibriumIc(
+static JobRegistrar sRegisterEquilibriumIc(
     "set equilibrium energy",
     "equilibrium",
     "initial conditions",
@@ -425,7 +425,7 @@ static RegisterEnum<ChangeableQuantityId> sChangeableQuantity({
 });
 
 ModifyQuantityIc::ModifyQuantityIc(const std::string& name)
-    : IParticleWorker(name)
+    : IParticleJob(name)
     , mode(ChangeMode::PARAMETRIC)
     , curve(makeAuto<CurveEntry>()) {
     id = EnumWrapper(ChangeableQuantityId::DENSITY);
@@ -487,7 +487,7 @@ void ModifyQuantityIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
     }
 }
 
-static WorkerRegistrar sRegisterModifyQuantityIc(
+static JobRegistrar sRegisterModifyQuantityIc(
     "modify quantity",
     "modifier",
     "initial conditions",
@@ -512,7 +512,7 @@ static RegisterEnum<NoiseQuantityId> sNoiseQuantity({
 const Indices GRID_DIMS(8, 8, 8);
 
 NoiseQuantityIc::NoiseQuantityIc(const std::string& name)
-    : IParticleWorker(name) {
+    : IParticleJob(name) {
     id = EnumWrapper(NoiseQuantityId::DENSITY);
 }
 
@@ -621,7 +621,7 @@ Float NoiseQuantityIc::dotGradient(const Grid<Vector>& gradients, const Indices&
 }
 
 
-static WorkerRegistrar sRegisterNoise(
+static JobRegistrar sRegisterNoise(
     "Perlin noise",
     "noise",
     "initial conditions",
@@ -664,7 +664,7 @@ AutoPtr<NBodySettings> NBodySettings::instance(new NBodySettings{
 template class Settings<NBodySettingsId>;
 
 NBodyIc::NBodyIc(const std::string& name, const NBodySettings& overrides)
-    : IParticleWorker(name) {
+    : IParticleJob(name) {
     settings.addEntries(overrides);
 }
 
@@ -792,7 +792,7 @@ void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     result->storage = std::move(storage);
 }
 
-static WorkerRegistrar sRegisterNBodyIc(
+static JobRegistrar sRegisterNBodyIc(
     "N-body ICs",
     "initial conditions",
     [](const std::string& name) { return makeAuto<NBodyIc>(name); },
@@ -806,7 +806,7 @@ static WorkerRegistrar sRegisterNBodyIc(
 extern template class Settings<GalaxySettingsId>;
 
 GalaxyIc::GalaxyIc(const std::string& name, const GalaxySettings& overrides)
-    : IParticleWorker(name) {
+    : IParticleJob(name) {
     settings.addEntries(overrides);
 }
 
@@ -853,7 +853,7 @@ void GalaxyIc::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbac
 }
 
 
-static WorkerRegistrar sRegisterGalaxyIc(
+static JobRegistrar sRegisterGalaxyIc(
     "galaxy ICs",
     "initial conditions",
     [](const std::string& name) { return makeAuto<GalaxyIc>(name); },

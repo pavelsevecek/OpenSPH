@@ -994,9 +994,24 @@ enum class RunSettingsId {
     /// If true, Balsara factors will be saved as quantity AV_BALSARA. Mainly for debugging purposes.
     SPH_AV_BALSARA_STORE,
 
+    /// Enables the artificial thermal conductivity term.
+    SPH_USE_AC,
+
+    /// Artificial conductivity alpha coefficient
+    SPH_AC_ALPHA,
+
+    /// Artificial conductivity beta coefficient
+    SPH_AC_BETA,
+
+    /// Turn on the XSPH correction
+    SPH_USE_XSPH,
+
     /// Epsilon-factor of XSPH correction (Monaghan, 1992). Value 0 turns off the correction, epsilon
     /// shouldn't be larger than 1.
     SPH_XSPH_EPSILON,
+
+    /// Turn on the delta-SPH correction
+    SPH_USE_DELTASPH,
 
     /// Delta-coefficient of the delta-SPH modification, see Marrone et al. 2011
     SPH_DENSITY_DIFFUSION_DELTA,
@@ -1200,6 +1215,9 @@ enum class DistributionEnum {
 
     /// Stratified distribution to reduce clustering
     STRATIFIED,
+
+    /// Parametrized spiraling scheme by Saff & Kuijlaars (1997)
+    PARAMETRIZED_SPIRALING,
 
     /// Distributes particles uniformly on line
     LINEAR

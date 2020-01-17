@@ -4,10 +4,10 @@
 #include "run/Config.h"
 #include "run/Node.h"
 #include "run/SpecialEntries.h"
-#include "run/workers/InitialConditionWorkers.h"
-#include "run/workers/IoWorkers.h"
-#include "run/workers/ParticleWorkers.h"
-#include "run/workers/SimulationWorkers.h"
+#include "run/workers/InitialConditionJobs.h"
+#include "run/workers/IoJobs.h"
+#include "run/workers/ParticleJobs.h"
+#include "run/workers/SimulationJobs.h"
 
 using namespace Sph;
 
@@ -82,10 +82,10 @@ public:
 
 /// \todo AVOID THIS
 static void registerRunners() {
-    static SphWorker sSph("");
+    static SphJob sSph("");
     static CollisionGeometrySetup sSetup("");
     static MonolithicBodyIc sIc("");
-    static SaveFileWorker sIo("");
+    static SaveFileJob sIo("");
 }
 
 static void run(const ArgParser& parser, ILogger& logger) {
@@ -98,21 +98,21 @@ static void run(const ArgParser& parser, ILogger& logger) {
     /*SharedPtr<ConfigNode> inGlobals = config.getNode("globals");
     VirtualSettings globalSettings = this->getGlobalSettings();
     globalSettings.enumerate(LoadProc(*inGlobals));*/
-    FlatMap<std::string, SharedPtr<WorkerNode>> nodes;
+    FlatMap<std::string, SharedPtr<JobNode>> nodes;
 
     SharedPtr<ConfigNode> inNodes = config.getNode("nodes");
     // lists node connections: node, target slot and target node
-    Array<Tuple<SharedPtr<WorkerNode>, std::string, std::string>> allToConnect;
+    Array<Tuple<SharedPtr<JobNode>, std::string, std::string>> allToConnect;
 
     inNodes->enumerateChildren([&nodes, &allToConnect, &logger](std::string name, ConfigNode& input) {
         const std::string className = input.get<std::string>("class_name");
-        RawPtr<IWorkerDesc> desc = getWorkerDesc(className);
+        RawPtr<IJobDesc> desc = getJobDesc(className);
         if (!desc) {
             throw Exception("Cannot find desc for node '" + className + "'");
         }
 
-        AutoPtr<IWorker> worker = desc->create(name);
-        SharedPtr<WorkerNode> node = makeShared<WorkerNode>(std::move(worker));
+        AutoPtr<IJob> worker = desc->create(name);
+        SharedPtr<JobNode> node = makeShared<JobNode>(std::move(worker));
         nodes.insert(name, node);
 
         VirtualSettings settings = node->getSettings();
@@ -135,18 +135,18 @@ static void run(const ArgParser& parser, ILogger& logger) {
         }
     }
 
-    Optional<SharedPtr<WorkerNode>&> runner = nodes.tryGet(nodeToRun);
+    Optional<SharedPtr<JobNode>&> runner = nodes.tryGet(nodeToRun);
     if (!runner) {
         throw Exception("No node '" + nodeToRun + "' found in the project");
     }
 
     logger.write("Running node tree:");
-    runner.value()->enumerate([&logger](SharedPtr<WorkerNode> node, const Size depth) {
+    runner.value()->enumerate([&logger](SharedPtr<JobNode> node, const Size depth) {
         logger.write(std::string(depth * 3, ' '), " - ", node->instanceName());
     });
 
     RunSettings globals = EMPTY_SETTINGS; /// \todo
-    NullWorkerCallbacks callbacks;
+    NullJobCallbacks callbacks;
     runner.value()->run(globals, callbacks);
 }
 

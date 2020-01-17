@@ -1,27 +1,27 @@
 #pragma once
 
-#include "run/Worker.h"
+#include "run/Job.h"
 
 NAMESPACE_SPH_BEGIN
 
-class CachedParticlesWorker : public IParticleWorker {
+class CachedParticlesJob : public IParticleJob {
 private:
     ParticleData cached;
     bool doSwitch = false;
     bool useCached = false;
 
 public:
-    CachedParticlesWorker(const std::string& name, const Storage& storage = {});
+    CachedParticlesJob(const std::string& name, const Storage& storage = {});
 
     virtual std::string className() const override {
         return "cache";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
         if (useCached) {
             return {};
         } else {
-            return { { "particles", WorkerType::PARTICLES } };
+            return { { "particles", JobType::PARTICLES } };
         }
     }
 
@@ -30,7 +30,7 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class JoinParticlesWorker : public IParticleWorker {
+class JoinParticlesJob : public IParticleJob {
 private:
     Vector offset = Vector(0._f);
     Vector velocity = Vector(0._f);
@@ -38,15 +38,15 @@ private:
     bool uniqueFlags = false;
 
 public:
-    JoinParticlesWorker(const std::string& name)
-        : IParticleWorker(name) {}
+    JoinParticlesJob(const std::string& name)
+        : IParticleJob(name) {}
 
     virtual std::string className() const override {
         return "join";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles A", WorkerType::PARTICLES }, { "particles B", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles A", JobType::PARTICLES }, { "particles B", JobType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -54,8 +54,7 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
-
-class TransformParticlesWorker : public IParticleWorker {
+class TransformParticlesJob : public IParticleJob {
 private:
     struct {
         Vector offset = Vector(0._f);
@@ -68,15 +67,15 @@ private:
     } velocities;
 
 public:
-    TransformParticlesWorker(const std::string& name)
-        : IParticleWorker(name) {}
+    TransformParticlesJob(const std::string& name)
+        : IParticleJob(name) {}
 
     virtual std::string className() const override {
         return "transform";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -90,34 +89,34 @@ enum class ChangeMaterialSubset {
     INSIDE_DOMAIN,
 };
 
-class ChangeMaterialWorker : public IParticleWorker {
+class ChangeMaterialJob : public IParticleJob {
 private:
     EnumWrapper type = EnumWrapper(ChangeMaterialSubset::ALL);
     int matId = 0;
 
 public:
-    ChangeMaterialWorker(const std::string& name)
-        : IParticleWorker(name) {}
+    ChangeMaterialJob(const std::string& name)
+        : IParticleJob(name) {}
 
     virtual std::string className() const override {
         return "change material";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> requires() const override {
-        UnorderedMap<std::string, WorkerType> map{
-            { "particles", WorkerType::PARTICLES },
-            { "material", WorkerType::MATERIAL },
+    virtual UnorderedMap<std::string, JobType> requires() const override {
+        UnorderedMap<std::string, JobType> map{
+            { "particles", JobType::PARTICLES },
+            { "material", JobType::MATERIAL },
         };
         if (ChangeMaterialSubset(type) == ChangeMaterialSubset::INSIDE_DOMAIN) {
-            map.insert("domain", WorkerType::GEOMETRY);
+            map.insert("domain", JobType::GEOMETRY);
         }
         return map;
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES },
-            { "material", WorkerType::MATERIAL },
-            { "domain", WorkerType::GEOMETRY } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES },
+            { "material", JobType::MATERIAL },
+            { "domain", JobType::GEOMETRY } };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -149,7 +148,7 @@ enum class CollisionGeometrySettingsId {
 
 using CollisionGeometrySettings = Settings<CollisionGeometrySettingsId>;
 
-class CollisionGeometrySetup : public IParticleWorker {
+class CollisionGeometrySetup : public IParticleJob {
 private:
     CollisionGeometrySettings geometry;
 
@@ -161,8 +160,8 @@ public:
         return "collision setup";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "target", WorkerType::PARTICLES }, { "impactor", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "target", JobType::PARTICLES }, { "impactor", JobType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -170,17 +169,17 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class SmoothedToSolidHandoff : public IParticleWorker {
+class SmoothedToSolidHandoff : public IParticleJob {
 public:
     explicit SmoothedToSolidHandoff(const std::string& name)
-        : IParticleWorker(name) {}
+        : IParticleJob(name) {}
 
     virtual std::string className() const override {
         return "smoothed-to-solid handoff";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -188,22 +187,22 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class ExtractComponentWorker : public IParticleWorker {
+class ExtractComponentJob : public IParticleJob {
 private:
     int componentIdx = 0;
     Float factor = 1.5_f;
     bool center = false;
 
 public:
-    explicit ExtractComponentWorker(const std::string& name)
-        : IParticleWorker(name) {}
+    explicit ExtractComponentJob(const std::string& name)
+        : IParticleJob(name) {}
 
     virtual std::string className() const override {
         return "extract component";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -216,21 +215,21 @@ enum class ConnectivityEnum {
     ESCAPE_VELOCITY,
 };
 
-class MergeComponentsWorker : public IParticleWorker {
+class MergeComponentsJob : public IParticleJob {
 private:
     Float factor = 1.5_f;
     EnumWrapper connectivity = EnumWrapper(ConnectivityEnum::OVERLAP);
 
 public:
-    explicit MergeComponentsWorker(const std::string& name)
-        : IParticleWorker(name) {}
+    explicit MergeComponentsJob(const std::string& name)
+        : IParticleJob(name) {}
 
     virtual std::string className() const override {
         return "merge components";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -238,20 +237,20 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
-class ExtractParticlesInDomainWorker : public IParticleWorker {
+class ExtractParticlesInDomainJob : public IParticleJob {
 private:
     bool center = false;
 
 public:
-    explicit ExtractParticlesInDomainWorker(const std::string& name)
-        : IParticleWorker(name) {}
+    explicit ExtractParticlesInDomainJob(const std::string& name)
+        : IParticleJob(name) {}
 
     virtual std::string className() const override {
         return "extract particles in domain";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES }, { "domain", WorkerType::GEOMETRY } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES }, { "domain", JobType::GEOMETRY } };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -259,22 +258,22 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
-class EmplaceComponentsAsFlagsWorker : public IParticleWorker {
+class EmplaceComponentsAsFlagsJob : public IParticleJob {
 private:
     Float factor = 1.5_f;
 
 public:
-    explicit EmplaceComponentsAsFlagsWorker(const std::string& name)
-        : IParticleWorker(name) {}
+    explicit EmplaceComponentsAsFlagsJob(const std::string& name)
+        : IParticleJob(name) {}
 
     virtual std::string className() const override {
         return "emplace components";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
         return {
-            { "fragments", WorkerType::PARTICLES },
-            { "original", WorkerType::PARTICLES },
+            { "fragments", JobType::PARTICLES },
+            { "original", JobType::PARTICLES },
         };
     }
 
@@ -283,20 +282,20 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
-class SubsampleWorker : public IParticleWorker {
+class SubsampleJob : public IParticleJob {
 private:
     Float fraction = 0.5_f;
 
 public:
-    explicit SubsampleWorker(const std::string& name)
-        : IParticleWorker(name) {}
+    explicit SubsampleJob(const std::string& name)
+        : IParticleJob(name) {}
 
     virtual std::string className() const override {
         return "subsampler";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -304,20 +303,20 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class AnalysisWorker : public IParticleWorker {
+class AnalysisJob : public IParticleJob {
 private:
     Path outputPath = Path("report.txt");
 
 public:
-    explicit AnalysisWorker(const std::string& name)
-        : IParticleWorker(name) {}
+    explicit AnalysisJob(const std::string& name)
+        : IParticleJob(name) {}
 
     virtual std::string className() const override {
         return "analysis";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override;

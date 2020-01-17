@@ -30,7 +30,7 @@ Array<Vector> sodDistribution(const Float x1,
     const Float rho2,
     const Float eta) {
     Array<Vector> r;
-    Float delta = 0.005_f;
+    Float delta = 2 * 0.0127_f;
     Float dx1 = delta * rho2 / (rho1 + rho2);
     Float dx2 = delta * rho1 / (rho1 + rho2);
     Float dx = 0._f;
@@ -105,6 +105,7 @@ private:
                 u[i] = mat.getEos().getInternalEnergy(rho[i], p[i]);
                 du[i] = 0._f;
             }
+            v[i][X] = max(v[i][X], 0._f);
         }
     }
 };
@@ -199,19 +200,6 @@ protected:
 };
 
 TEST_CASE("Sod", "[sod]") {
-    // generate analytical solution
-    /*  SodConfig conf;
-      TextOutput output(Path("sod_analytical_%d.txt"),
-          "sod",
-          OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY | OutputQuantityFlag::DENSITY |
-              OutputQuantityFlag::PRESSURE);
-      Statistics stats;
-      for (Float t = 0.1_f; t <= 0.5_f; t += 0.1_f) {
-          Storage an = analyticSod(conf, t);
-          stats.set(StatisticsId::RUN_TIME, t);
-          output.dump(an, stats);
-      }*/
-
     Sod run;
     Storage storage;
     run.run(storage);

@@ -1,4 +1,4 @@
-#include "run/workers/GeometryWorkers.h"
+#include "run/workers/GeometryJobs.h"
 #include "math/rng/VectorRng.h"
 #include "objects/geometry/Sphere.h"
 #include "post/MarchingCubes.h"
@@ -13,18 +13,18 @@ NAMESPACE_SPH_BEGIN
 // SphereWorker
 //-----------------------------------------------------------------------------------------------------------
 
-SphereWorker::SphereWorker(const std::string& name)
-    : IGeometryWorker(name) {}
+SphereJob::SphereJob(const std::string& name)
+    : IGeometryJob(name) {}
 
-std::string SphereWorker::className() const {
+std::string SphereJob::className() const {
     return "sphere";
 }
 
-UnorderedMap<std::string, WorkerType> SphereWorker::getSlots() const {
+UnorderedMap<std::string, JobType> SphereJob::getSlots() const {
     return {};
 }
 
-VirtualSettings SphereWorker::getSettings() {
+VirtualSettings SphereJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& geoCat = connector.addCategory("geometry");
@@ -32,21 +32,21 @@ VirtualSettings SphereWorker::getSettings() {
     return connector;
 }
 
-void SphereWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void SphereJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     result = makeAuto<SphericalDomain>(Vector(0._f), radius);
 }
 
-static WorkerRegistrar sRegisterSphere(
+static JobRegistrar sRegisterSphere(
     "sphere",
     "geometry",
-    [](const std::string& name) { return makeAuto<SphereWorker>(name); },
+    [](const std::string& name) { return makeAuto<SphereJob>(name); },
     "Geometric shape representing a sphere with given radius.");
 
 //-----------------------------------------------------------------------------------------------------------
 // BlockWorker
 //-----------------------------------------------------------------------------------------------------------
 
-VirtualSettings BlockWorker::getSettings() {
+VirtualSettings BlockJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& geoCat = connector.addCategory("geometry");
@@ -55,21 +55,21 @@ VirtualSettings BlockWorker::getSettings() {
     return connector;
 }
 
-void BlockWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void BlockJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     result = makeAuto<BlockDomain>(center, dimensions);
 }
 
-static WorkerRegistrar sRegisterBlock(
+static JobRegistrar sRegisterBlock(
     "block",
     "geometry",
-    [](const std::string& name) { return makeAuto<BlockWorker>(name); },
+    [](const std::string& name) { return makeAuto<BlockJob>(name); },
     "Geometric shape representing a block with given dimensions.");
 
 //-----------------------------------------------------------------------------------------------------------
 // EllipsoidWorker
 //-----------------------------------------------------------------------------------------------------------
 
-VirtualSettings EllipsoidWorker::getSettings() {
+VirtualSettings EllipsoidJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& geoCat = connector.addCategory("geometry");
@@ -77,32 +77,32 @@ VirtualSettings EllipsoidWorker::getSettings() {
     return connector;
 }
 
-void EllipsoidWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void EllipsoidJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     result = makeAuto<EllipsoidalDomain>(Vector(0._f), semiaxes);
 }
 
-static WorkerRegistrar sRegisterEllipsoid(
+static JobRegistrar sRegisterEllipsoid(
     "ellipsoid",
     "geometry",
-    [](const std::string& name) { return makeAuto<EllipsoidWorker>(name); },
+    [](const std::string& name) { return makeAuto<EllipsoidJob>(name); },
     "Geometric shape representing a triaxial ellipsoid.");
 
 //-----------------------------------------------------------------------------------------------------------
 // CylinderWorker
 //-----------------------------------------------------------------------------------------------------------
 
-CylinderWorker::CylinderWorker(const std::string& name)
-    : IGeometryWorker(name) {}
+CylinderJob::CylinderJob(const std::string& name)
+    : IGeometryJob(name) {}
 
-std::string CylinderWorker::className() const {
+std::string CylinderJob::className() const {
     return "cylinder";
 }
 
-UnorderedMap<std::string, WorkerType> CylinderWorker::getSlots() const {
+UnorderedMap<std::string, JobType> CylinderJob::getSlots() const {
     return {};
 }
 
-VirtualSettings CylinderWorker::getSettings() {
+VirtualSettings CylinderJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& geoCat = connector.addCategory("geometry");
@@ -111,55 +111,79 @@ VirtualSettings CylinderWorker::getSettings() {
     return connector;
 }
 
-void CylinderWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void CylinderJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     result = makeAuto<CylindricalDomain>(Vector(0._f), radius, height, true);
 }
 
-static WorkerRegistrar sRegisterCylinder(
+static JobRegistrar sRegisterCylinder(
     "cylinder",
     "geometry",
-    [](const std::string& name) { return makeAuto<CylinderWorker>(name); },
+    [](const std::string& name) { return makeAuto<CylinderJob>(name); },
     "Geometric shape representing a cylinder aligned with z-axis, using provided radius and height.");
 
 //-----------------------------------------------------------------------------------------------------------
 // HalfSpaceWorker
 //-----------------------------------------------------------------------------------------------------------
 
-VirtualSettings HalfSpaceWorker::getSettings() {
+VirtualSettings HalfSpaceJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     return connector;
 }
 
-void HalfSpaceWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void HalfSpaceJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     result = makeAuto<HalfSpaceDomain>();
 }
 
-static WorkerRegistrar sRegisterHalfSpace(
+static JobRegistrar sRegisterHalfSpace(
     "half space",
     "geometry",
-    [](const std::string& name) { return makeAuto<HalfSpaceWorker>(name); },
+    [](const std::string& name) { return makeAuto<HalfSpaceJob>(name); },
     "Represents a half space z>0. Note that this cannot be used as a domain for generating particles as the "
     "volume of the domain is infinite. It can be used as an input to a composite domain (boolean, etc.) or "
     "as a domain for boundary conditions of a simulation.");
 
 
 //-----------------------------------------------------------------------------------------------------------
+// GaussianSphereWorker
+//-----------------------------------------------------------------------------------------------------------
+
+VirtualSettings GaussianSphereJob::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+    VirtualSettings::Category& geoCat = connector.addCategory("geometry");
+    geoCat.connect("radius [km]", "radius", radius).setUnits(1.e3_f);
+    geoCat.connect("variance", "variance", beta);
+    geoCat.connect("random seed", "seed", seed);
+    return connector;
+}
+
+void GaussianSphereJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+    result = makeAuto<GaussianRandomSphere>(Vector(0._f), radius, beta, seed);
+}
+
+static JobRegistrar sRegisterGaussian(
+    "Gaussian sphere",
+    "geometry",
+    [](const std::string& name) { return makeAuto<GaussianSphereJob>(name); },
+    "TODO");
+
+//-----------------------------------------------------------------------------------------------------------
 // MeshGeometryWorker
 //-----------------------------------------------------------------------------------------------------------
 
-MeshGeometryWorker::MeshGeometryWorker(const std::string& name)
-    : IGeometryWorker(name) {}
+MeshGeometryJob::MeshGeometryJob(const std::string& name)
+    : IGeometryJob(name) {}
 
-std::string MeshGeometryWorker::className() const {
+std::string MeshGeometryJob::className() const {
     return "triangle mesh";
 }
 
-UnorderedMap<std::string, WorkerType> MeshGeometryWorker::getSlots() const {
+UnorderedMap<std::string, JobType> MeshGeometryJob::getSlots() const {
     return {};
 }
 
-VirtualSettings MeshGeometryWorker::getSettings() {
+VirtualSettings MeshGeometryJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& pathCat = connector.addCategory("Mesh source");
@@ -168,7 +192,7 @@ VirtualSettings MeshGeometryWorker::getSettings() {
     return connector;
 }
 
-void MeshGeometryWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void MeshGeometryJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     AutoPtr<IMeshFile> meshLoader = getMeshFile(path);
     Expected<Array<Triangle>> triangles = meshLoader->load(path);
     if (!triangles) {
@@ -177,18 +201,18 @@ void MeshGeometryWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbac
     result = makeAuto<MeshDomain>(std::move(triangles.value()), AffineMatrix::scale(Vector(scale)));
 }
 
-static WorkerRegistrar sRegisterMeshGeometry(
+static JobRegistrar sRegisterMeshGeometry(
     "triangle mesh",
     "mesh",
     "geometry",
-    [](const std::string& name) { return makeAuto<MeshGeometryWorker>(name); },
+    [](const std::string& name) { return makeAuto<MeshGeometryJob>(name); },
     "Geometric shape given by provided triangular mesh.");
 
 //-----------------------------------------------------------------------------------------------------------
 // ParticleGeometryWorker
 //-----------------------------------------------------------------------------------------------------------
 
-VirtualSettings ParticleGeometryWorker::getSettings() {
+VirtualSettings ParticleGeometryJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& pathCat = connector.addCategory("Surface");
@@ -197,7 +221,7 @@ VirtualSettings ParticleGeometryWorker::getSettings() {
     return connector;
 }
 
-void ParticleGeometryWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
+void ParticleGeometryJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
     Storage input = std::move(this->getInput<ParticleData>("particles")->storage);
     // sanitize the resolution
     const Box boundingBox = getBoundingBox(input);
@@ -217,11 +241,11 @@ void ParticleGeometryWorker::evaluate(const RunSettings& UNUSED(global), IRunCal
     result = makeAuto<MeshDomain>(std::move(triangles));
 }
 
-static WorkerRegistrar sRegisterParticleGeometry(
+static JobRegistrar sRegisterParticleGeometry(
     "particle geometry",
     "particles",
     "geometry",
-    [](const std::string& name) { return makeAuto<ParticleGeometryWorker>(name); },
+    [](const std::string& name) { return makeAuto<ParticleGeometryJob>(name); },
     "Geometric shape represented by input particles");
 
 
@@ -289,23 +313,23 @@ public:
     }
 };
 
-VirtualSettings SpheresGeometryWorker::getSettings() {
+VirtualSettings SpheresGeometryJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     return connector;
 }
 
-void SpheresGeometryWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void SpheresGeometryJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     SharedPtr<ParticleData> data = this->getInput<ParticleData>("spheres");
     ArrayView<const Vector> r = data->storage.getValue<Vector>(QuantityId::POSITION);
     result = makeShared<SpheresDomain>(r);
 }
 
-static WorkerRegistrar sRegisterSpheresGeometry(
+static JobRegistrar sRegisterSpheresGeometry(
     "spheres geometry",
     "spheres",
     "geometry",
-    [](const std::string& name) { return makeAuto<SpheresGeometryWorker>(name); },
+    [](const std::string& name) { return makeAuto<SpheresGeometryJob>(name); },
     "Geometric shape given by a set of spheres, specifies by the input particles.");
 
 //-----------------------------------------------------------------------------------------------------------
@@ -360,22 +384,22 @@ public:
     }
 };
 
-VirtualSettings InvertGeometryWorker::getSettings() {
+VirtualSettings InvertGeometryJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     return connector;
 }
 
-void InvertGeometryWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void InvertGeometryJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     SharedPtr<IDomain> domain = this->getInput<IDomain>("geometry");
     result = makeShared<InvertDomain>(domain);
 }
 
-static WorkerRegistrar sRegisterInvertGeometry(
+static JobRegistrar sRegisterInvertGeometry(
     "invert geometry",
     "inverter",
     "geometry",
-    [](const std::string& name) { return makeAuto<InvertGeometryWorker>(name); },
+    [](const std::string& name) { return makeAuto<InvertGeometryJob>(name); },
     "Shape modifier that inverts the geometry, i.e. swaps the outside and inside of a shape. This converts a "
     "sphere into a space with spherical hole, etc.");
 
@@ -384,7 +408,7 @@ static WorkerRegistrar sRegisterInvertGeometry(
 //-----------------------------------------------------------------------------------------------------------
 
 
-VirtualSettings TransformGeometryWorker::getSettings() {
+VirtualSettings TransformGeometryJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
@@ -394,7 +418,7 @@ VirtualSettings TransformGeometryWorker::getSettings() {
     return connector;
 }
 
-void TransformGeometryWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void TransformGeometryJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     SharedPtr<IDomain> domain = this->getInput<IDomain>("geometry");
     const Vector center = domain->getCenter();
     AffineMatrix matrix = AffineMatrix::identity();
@@ -404,11 +428,11 @@ void TransformGeometryWorker::evaluate(const RunSettings& UNUSED(global), IRunCa
     result = makeShared<TransformedDomain>(domain, matrix);
 }
 
-static WorkerRegistrar sRegisterTransformGeometry(
+static JobRegistrar sRegisterTransformGeometry(
     "transform geometry",
     "transform",
     "geometry",
-    [](const std::string& name) { return makeAuto<TransformGeometryWorker>(name); },
+    [](const std::string& name) { return makeAuto<TransformGeometryJob>(name); },
     "Shape modifier, adding a translation and scaling to the input geometry.");
 
 //-----------------------------------------------------------------------------------------------------------
@@ -541,13 +565,13 @@ public:
     }
 };
 
-void BooleanGeometryWorker::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void BooleanGeometryJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     SharedPtr<IDomain> operA = this->getInput<IDomain>("operand A");
     SharedPtr<IDomain> operB = this->getInput<IDomain>("operand B");
     result = makeAuto<BooleanDomain>(operA, operB, offset, BooleanEnum(mode.value));
 }
 
-VirtualSettings BooleanGeometryWorker::getSettings() {
+VirtualSettings BooleanGeometryJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
@@ -558,10 +582,10 @@ VirtualSettings BooleanGeometryWorker::getSettings() {
     return connector;
 }
 
-static WorkerRegistrar sRegisterBoolean(
+static JobRegistrar sRegisterBoolean(
     "boolean",
     "geometry",
-    [](const std::string& name) { return makeAuto<BooleanGeometryWorker>(name); },
+    [](const std::string& name) { return makeAuto<BooleanGeometryJob>(name); },
     "Composite shape that applies given boolean operation to two input shapes.");
 
 

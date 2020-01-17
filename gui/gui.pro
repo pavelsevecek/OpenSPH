@@ -30,7 +30,7 @@ SOURCES += \
     objects/Movie.cpp \
     objects/Palette.cpp \
     objects/RenderContext.cpp \
-    objects/RenderWorkers.cpp \
+    objects/RenderJobs.cpp \
     renderers/ContourRenderer.cpp \
     renderers/IRenderer.cpp \
     renderers/MeshRenderer.cpp \
@@ -70,7 +70,7 @@ HEADERS += \
     objects/Palette.h \
     objects/Point.h \
     objects/RenderContext.h \
-    objects/RenderWorkers.h \
+    objects/RenderJobs.h \
     objects/SvgContext.h \
     renderers/Brdf.h \
     renderers/ContourRenderer.h \

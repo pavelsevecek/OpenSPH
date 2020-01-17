@@ -3,6 +3,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2019
 
+#include "gravity/Galaxy.h"
 #include "gravity/NBodySolver.h"
 #include "io/Column.h"
 #include "io/FileSystem.h"
@@ -26,6 +27,7 @@
 #include "sph/kernel/Kernel.h"
 #include "sph/solvers/AsymmetricSolver.h"
 #include "sph/solvers/StandardSets.h"
+#include "sph/solvers/SymmetricSolver.h"
 #include "system/ArgsParser.h"
 #include "system/Factory.h"
 #include "thread/Pool.h"

@@ -51,11 +51,18 @@ SOURCES += \
     quantities/QuantityIds.cpp \
     quantities/Storage.cpp \
     run/IRun.cpp \
+    run/Job.cpp \
     run/Node.cpp \
     run/ScriptUtils.cpp \
     run/SpecialEntries.cpp \
     run/VirtualSettings.cpp \
-    run/workers/ScriptWorkers.cpp \
+    run/workers/GeometryJobs.cpp \
+    run/workers/InitialConditionJobs.cpp \
+    run/workers/IoJobs.cpp \
+    run/workers/MaterialJobs.cpp \
+    run/workers/ParticleJobs.cpp \
+    run/workers/ScriptJobs.cpp \
+    run/workers/SimulationJobs.cpp \
     sph/Diagnostics.cpp \
     sph/Material.cpp \
     sph/boundary/Boundary.cpp \
@@ -95,15 +102,8 @@ SOURCES += \
     io/LogWriter.cpp \
     sph/solvers/ElasticDeformationSolver.cpp \
     sph/solvers/DensityIndependentSolver.cpp \
-    run/Worker.cpp \
     run/Config.cpp \
-    run/workers/Presets.cpp \
-    run/workers/SimulationWorkers.cpp \
-    run/workers/GeometryWorkers.cpp \
-    run/workers/InitialConditionWorkers.cpp \
-    run/workers/MaterialWorkers.cpp \
-    run/workers/IoWorkers.cpp \
-    run/workers/ParticleWorkers.cpp
+    run/workers/Presets.cpp
 
 HEADERS += \
     Sph.h \
@@ -239,10 +239,17 @@ HEADERS += \
     quantities/QuantityIds.h \
     quantities/Storage.h \
     run/IRun.h \
+    run/Job.h \
     run/Node.h \
     run/ScriptUtils.h \
     run/Trigger.h \
-    run/workers/ScriptWorkers.h \
+    run/workers/GeometryJobs.h \
+    run/workers/InitialConditionJobs.h \
+    run/workers/IoJobs.h \
+    run/workers/MaterialJobs.h \
+    run/workers/ParticleJobs.h \
+    run/workers/ScriptJobs.h \
+    run/workers/SimulationJobs.h \
     sph/Diagnostics.h \
     sph/Materials.h \
     sph/boundary/Boundary.h \
@@ -260,6 +267,7 @@ HEADERS += \
     sph/equations/XSph.h \
     sph/equations/Yorp.h \
     sph/equations/av/Balsara.h \
+    sph/equations/av/Conductivity.h \
     sph/equations/av/MorrisMonaghan.h \
     sph/equations/av/Riemann.h \
     sph/equations/av/Standard.h \
@@ -319,14 +327,7 @@ HEADERS += \
     run/VirtualSettings.h \
     objects/containers/UnorderedMap.h \
     run/VirtualSettings.inl.h \
-    run/Worker.h \
     run/Config.h \
     run/workers/Presets.h \
-    run/workers/GeometryWorkers.h \
-    run/workers/MaterialWorkers.h \
-    run/workers/SimulationWorkers.h \
-    run/workers/IoWorkers.h \
-    run/workers/ParticleWorkers.h \
-    run/workers/InitialConditionWorkers.h \
     run/workers/SpecialEntries.h \
     run/SpecialEntries.h

@@ -1,12 +1,12 @@
 #pragma once
 
-#include "run/Worker.h"
+#include "run/Job.h"
 
 NAMESPACE_SPH_BEGIN
 
 #ifdef SPH_USE_CHAISCRIPT
 
-class ChaiScriptWorker : public IParticleWorker {
+class ChaiScriptJob : public IParticleJob {
 private:
     Path file = Path("script.chai");
 
@@ -18,13 +18,13 @@ private:
     StaticArray<Float, 8> paramValues;
 
 public:
-    ChaiScriptWorker(const std::string& name);
+    ChaiScriptJob(const std::string& name);
 
     virtual std::string className() const override {
         return "custom script";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override;
+    virtual UnorderedMap<std::string, JobType> getSlots() const override;
 
     virtual VirtualSettings getSettings() override;
 

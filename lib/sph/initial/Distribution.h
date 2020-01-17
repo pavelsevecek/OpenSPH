@@ -161,6 +161,19 @@ public:
     virtual Array<Vector> generate(IScheduler& scheduler, const Size n, const IDomain& domain) const override;
 };
 
+/// \brief Parametrized spiraling scheme by Saff & Kuijlaars (1997).
+///
+/// This distribution is mainly intended for spherically symmetric bodies.
+class ParametrizedSpiralingDistribution : public IDistribution {
+private:
+    Size seed;
+
+public:
+    ParametrizedSpiralingDistribution(const Size seed);
+
+    virtual Array<Vector> generate(IScheduler& scheduler, const Size n, const IDomain& domain) const override;
+};
+
 /// \brief Generates particles uniformly on a line in x direction, for testing purposes.
 ///
 /// Uses only center and radius of the domain.

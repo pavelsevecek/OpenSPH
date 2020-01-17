@@ -20,12 +20,12 @@ class NodeEditor;
 class Config;
 
 struct VisNode {
-    RawPtr<WorkerNode> node;
+    RawPtr<JobNode> node;
     Pixel position;
 
     VisNode() = default;
 
-    VisNode(RawPtr<WorkerNode> node, Pixel position)
+    VisNode(RawPtr<JobNode> node, Pixel position)
         : node(node)
         , position(position) {}
 
@@ -52,11 +52,11 @@ struct NodeSlot {
     }
 };
 
-using NodeMap = UnorderedMap<SharedPtr<WorkerNode>, VisNode>;
+using NodeMap = UnorderedMap<SharedPtr<JobNode>, VisNode>;
 
 class INodeManagerCallbacks : public Polymorphic {
 public:
-    virtual void startRun(WorkerNode& node, const RunSettings& settings) const = 0;
+    virtual void startRun(JobNode& node, const RunSettings& settings) const = 0;
 
     virtual void markUnsaved() const = 0;
 };
@@ -78,23 +78,23 @@ private:
 public:
     NodeManager(NodeEditor* editor, SharedPtr<INodeManagerCallbacks> callbacks);
 
-    VisNode* addNode(const SharedPtr<WorkerNode>& node);
+    VisNode* addNode(const SharedPtr<JobNode>& node);
 
-    VisNode* addNode(const SharedPtr<WorkerNode>& node, const Pixel position);
+    VisNode* addNode(const SharedPtr<JobNode>& node, const Pixel position);
 
-    void addNodes(WorkerNode& node);
+    void addNodes(JobNode& node);
 
-    void cloneHierarchy(WorkerNode& node);
+    void cloneHierarchy(JobNode& node);
 
-    void layoutNodes(WorkerNode& node, const Pixel position);
+    void layoutNodes(JobNode& node, const Pixel position);
 
     const NodeMap& getNodes() const {
         return nodes;
     }
 
-    void deleteNode(WorkerNode& node);
+    void deleteNode(JobNode& node);
 
-    void deleteTree(WorkerNode& node);
+    void deleteTree(JobNode& node);
 
     void deleteAll();
 
@@ -106,9 +106,9 @@ public:
 
     void load(Config& config);
 
-    void startRun(WorkerNode& node);
+    void startRun(JobNode& node);
 
-    void startBatch(WorkerNode& node);
+    void startBatch(JobNode& node);
 
     void startAll();
 
@@ -240,7 +240,7 @@ public:
 
     void showPanel(const PanelId id);
 
-    void selectNode(const WorkerNode& node);
+    void selectNode(const JobNode& node);
 
     void clearGrid();
 
@@ -252,7 +252,7 @@ public:
 
     void load(Config& config);
 
-    SharedPtr<WorkerNode> addNode(AutoPtr<IWorker>&& worker);
+    SharedPtr<JobNode> addNode(AutoPtr<IJob>&& worker);
 
     void undo() {
         nodeMgr->undo();

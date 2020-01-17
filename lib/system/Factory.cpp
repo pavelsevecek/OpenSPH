@@ -232,6 +232,8 @@ AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& body,
         diehl.maxDifference = body.get<int>(BodySettingsId::DIEHL_MAX_DIFFERENCE);
         return makeAuto<DiehlDistribution>(diehl);
     }
+    case DistributionEnum::PARAMETRIZED_SPIRALING:
+        return makeAuto<ParametrizedSpiralingDistribution>(1234);
     case DistributionEnum::LINEAR:
         return makeAuto<LinearDistribution>();
     default:

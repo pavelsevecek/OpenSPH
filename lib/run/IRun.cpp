@@ -193,7 +193,10 @@ Statistics IRun::run(Storage& input, IRunCallbacks& callbacks) {
 
         // dump output
         if (output && t >= nextOutput) {
-            output->dump(*storage, stats);
+            Expected<Path> result = output->dump(*storage, stats);
+            if (!result) {
+                logger->write(result.error());
+            }
             nextOutput += outputInterval;
         }
 

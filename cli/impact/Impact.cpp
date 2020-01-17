@@ -2,11 +2,11 @@
 
 #include "Sph.h"
 #include "run/Node.h"
-#include "run/workers/InitialConditionWorkers.h"
-#include "run/workers/IoWorkers.h"
-#include "run/workers/MaterialWorkers.h"
-#include "run/workers/ParticleWorkers.h"
-#include "run/workers/SimulationWorkers.h"
+#include "run/workers/InitialConditionJobs.h"
+#include "run/workers/IoJobs.h"
+#include "run/workers/MaterialJobs.h"
+#include "run/workers/ParticleJobs.h"
+#include "run/workers/SimulationJobs.h"
 
 using namespace Sph;
 
@@ -35,7 +35,7 @@ static Array<ArgDesc> params{
 
 static void printBanner(ILogger& logger) {
     logger.write("*******************************************************************************");
-    logger.write("******************************* OpenSPH Impact*********************************");
+    logger.write("******************************* OpenSPH Impact ********************************");
     logger.write("*******************************************************************************");
 }
 
@@ -134,7 +134,7 @@ public:
         outputDir = Path(params.getOutputPath());
     }
 
-    SharedPtr<WorkerNode> makeSimulation() {
+    SharedPtr<JobNode> makeSimulation() {
         if (params.resumePath) {
             BinaryInput input;
             Expected<BinaryInput::Info> info = input.getInfo(Path(params.resumePath.value()));
@@ -181,7 +181,7 @@ private:
             .set(RunSettingsId::RUN_OUTPUT_INTERVAL, endTime / 10._f);
     }
 
-    SharedPtr<WorkerNode> makeCollisionSetup() {
+    SharedPtr<JobNode> makeCollisionSetup() {
         // target IC
         BodySettings targetDefaults;
         targetDefaults.set(BodySettingsId::BODY_RADIUS, params.targetRadius.valueOr(50.e3_f))
@@ -191,7 +191,7 @@ private:
         }
         BodySettings targetBody =
             loadSettings<BodySettingsId>(outputDir / Path("target.cnf"), targetDefaults, logger, doDryRun);
-        SharedPtr<WorkerNode> targetIc = makeNode<MonolithicBodyIc>("target body", targetBody);
+        SharedPtr<JobNode> targetIc = makeNode<MonolithicBodyIc>("target body", targetBody);
 
         // impactor IC
         BodySettings impactorDefaults;
@@ -201,17 +201,17 @@ private:
         impactorDefaults.unset(BodySettingsId::PARTICLE_COUNT); // never used
         BodySettings impactorBody = loadSettings<BodySettingsId>(
             outputDir / Path("impactor.cnf"), impactorDefaults, logger, doDryRun);
-        SharedPtr<WorkerNode> impactorIc = makeNode<ImpactorIc>("impactor body", impactorBody);
+        SharedPtr<JobNode> impactorIc = makeNode<ImpactorIc>("impactor body", impactorBody);
         targetIc->connect(impactorIc, "target");
 
         // target stabilization
-        RunSettings stabDefaults = SphStabilizationWorker::getDefaultSettings("stabilization");
+        RunSettings stabDefaults = SphStabilizationJob::getDefaultSettings("stabilization");
         stabDefaults.set(RunSettingsId::RUN_OUTPUT_PATH, outputDir.native());
         overrideRunTime(stabDefaults, defaultSphTime(params.stabTime, params.targetRadius, 0.2_f));
 
         RunSettings stabRun =
             loadSettings<RunSettingsId>(outputDir / Path("stab.cnf"), stabDefaults, logger, doDryRun);
-        SharedPtr<WorkerNode> stabTarget = makeNode<SphStabilizationWorker>("stabilization", stabRun);
+        SharedPtr<JobNode> stabTarget = makeNode<SphStabilizationJob>("stabilization", stabRun);
         targetIc->connect(stabTarget, "particles");
 
         // collision setup
@@ -220,7 +220,7 @@ private:
             .set(CollisionGeometrySettingsId::IMPACT_ANGLE, params.impactAngle.valueOr(45._f));
         CollisionGeometrySettings geometry = loadSettings<CollisionGeometrySettingsId>(
             outputDir / Path("geometry.cnf"), geometryDefaults, logger, doDryRun);
-        SharedPtr<WorkerNode> setup = makeNode<CollisionGeometrySetup>("geometry", geometry);
+        SharedPtr<JobNode> setup = makeNode<CollisionGeometrySetup>("geometry", geometry);
         stabTarget->connect(setup, "target");
         impactorIc->connect(setup, "impactor");
 
@@ -229,57 +229,57 @@ private:
         return setup;
     }
 
-    SharedPtr<WorkerNode> makeFragmentation() {
-        RunSettings fragDefaults = SphWorker::getDefaultSettings("fragmentation");
+    SharedPtr<JobNode> makeFragmentation() {
+        RunSettings fragDefaults = SphJob::getDefaultSettings("fragmentation");
         fragDefaults.set(RunSettingsId::RUN_OUTPUT_PATH, outputDir.native());
         overrideRunTime(fragDefaults, defaultSphTime(params.fragTime, params.targetRadius, 1._f));
         RunSettings fragRun =
             loadSettings<RunSettingsId>(outputDir / Path("frag.cnf"), fragDefaults, logger, doDryRun);
-        SharedPtr<WorkerNode> frag = makeNode<SphWorker>("fragmentation", fragRun);
+        SharedPtr<JobNode> frag = makeNode<SphJob>("fragmentation", fragRun);
         return frag;
     }
 
-    SharedPtr<WorkerNode> makeReaccumulation() {
-        RunSettings reacDefaults = NBodyWorker::getDefaultSettings("reaccumulation");
+    SharedPtr<JobNode> makeReaccumulation() {
+        RunSettings reacDefaults = NBodyJob::getDefaultSettings("reaccumulation");
         reacDefaults.set(RunSettingsId::RUN_OUTPUT_PATH, outputDir.native());
         overrideRunTime(reacDefaults, params.reacTime.valueOr(3600._f * 24._f * 10._f));
         RunSettings reacRun =
             loadSettings<RunSettingsId>(outputDir / Path("reac.cnf"), reacDefaults, logger, doDryRun);
-        SharedPtr<WorkerNode> reac = makeNode<NBodyWorker>("reaccumulation", reacRun);
+        SharedPtr<JobNode> reac = makeNode<NBodyJob>("reaccumulation", reacRun);
         return reac;
     }
 
-    SharedPtr<WorkerNode> makeNewSimulation() {
-        SharedPtr<WorkerNode> setup = makeCollisionSetup();
-        SharedPtr<WorkerNode> frag = makeFragmentation();
+    SharedPtr<JobNode> makeNewSimulation() {
+        SharedPtr<JobNode> setup = makeCollisionSetup();
+        SharedPtr<JobNode> frag = makeFragmentation();
         setup->connect(frag, "particles");
 
-        SharedPtr<WorkerNode> handoff = makeNode<SmoothedToSolidHandoff>("handoff"); // has no parameters
+        SharedPtr<JobNode> handoff = makeNode<SmoothedToSolidHandoff>("handoff"); // has no parameters
         frag->connect(handoff, "particles");
 
-        SharedPtr<WorkerNode> reac = makeReaccumulation();
+        SharedPtr<JobNode> reac = makeReaccumulation();
         handoff->connect(reac, "particles");
         return reac;
     }
 
-    SharedPtr<WorkerNode> resumeFragmentation() {
-        SharedPtr<WorkerNode> loadFile = makeNode<LoadFileWorker>(Path(params.resumePath.value()));
+    SharedPtr<JobNode> resumeFragmentation() {
+        SharedPtr<JobNode> loadFile = makeNode<LoadFileJob>(Path(params.resumePath.value()));
 
-        SharedPtr<WorkerNode> frag = makeFragmentation();
+        SharedPtr<JobNode> frag = makeFragmentation();
         loadFile->connect(frag, "particles");
 
-        SharedPtr<WorkerNode> handoff = makeNode<SmoothedToSolidHandoff>("handoff");
+        SharedPtr<JobNode> handoff = makeNode<SmoothedToSolidHandoff>("handoff");
         frag->connect(handoff, "particles");
 
-        SharedPtr<WorkerNode> reac = makeReaccumulation();
+        SharedPtr<JobNode> reac = makeReaccumulation();
         handoff->connect(reac, "particles");
         return reac;
     }
 
-    SharedPtr<WorkerNode> resumeReaccumulation() {
-        SharedPtr<WorkerNode> loadFile = makeNode<LoadFileWorker>(Path(params.resumePath.value()));
+    SharedPtr<JobNode> resumeReaccumulation() {
+        SharedPtr<JobNode> loadFile = makeNode<LoadFileJob>(Path(params.resumePath.value()));
 
-        SharedPtr<WorkerNode> reac = makeReaccumulation();
+        SharedPtr<JobNode> reac = makeReaccumulation();
         loadFile->connect(reac, "particles");
         return reac;
     }
@@ -356,13 +356,13 @@ static void run(const ArgParser& parser, ILogger& logger) {
     params.reacTime = parser.tryGetArg<Float>("rt");
 
     RunFactory factory(params);
-    SharedPtr<WorkerNode> node = factory.makeSimulation();
+    SharedPtr<JobNode> node = factory.makeSimulation();
 
     printBanner(logger);
     if (!factory.isDryRun()) {
         logger.write(factory.getBannerMsg());
 
-        NullWorkerCallbacks callbacks;
+        NullJobCallbacks callbacks;
         node->run(EMPTY_SETTINGS, callbacks);
     } else {
         printNoConfigsMsg(logger, factory.getOutputDir());

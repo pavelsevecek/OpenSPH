@@ -4,30 +4,30 @@
 
 NAMESPACE_SPH_BEGIN
 
-WorkerNode::WorkerNode(AutoPtr<IWorker>&& worker)
-    : worker(std::move(worker)) {}
+JobNode::JobNode(AutoPtr<IJob>&& worker)
+    : job(std::move(worker)) {}
 
-std::string WorkerNode::className() const {
-    return worker->className();
+std::string JobNode::className() const {
+    return job->className();
 }
 
-std::string WorkerNode::instanceName() const {
-    return worker->instanceName();
+std::string JobNode::instanceName() const {
+    return job->instanceName();
 }
 
-VirtualSettings WorkerNode::getSettings() const {
-    return worker->getSettings();
+VirtualSettings JobNode::getSettings() const {
+    return job->getSettings();
 }
 
-WorkerType WorkerNode::provides() const {
-    return worker->provides();
+JobType JobNode::provides() const {
+    return job->provides();
 }
 
-void WorkerNode::connect(SharedPtr<WorkerNode> node, const std::string& slotName) {
-    UnorderedMap<std::string, WorkerType> slots = node->worker->getSlots();
+void JobNode::connect(SharedPtr<JobNode> node, const std::string& slotName) {
+    UnorderedMap<std::string, JobType> slots = node->job->getSlots();
     if (slots.contains(slotName)) {
-        if (worker->provides() != slots[slotName]) {
-            throw InvalidSetup("Cannot connect node '" + worker->instanceName() + "' to slot '" + slotName +
+        if (job->provides() != slots[slotName]) {
+            throw InvalidSetup("Cannot connect node '" + job->instanceName() + "' to slot '" + slotName +
                                "' of node '" + node->instanceName() +
                                "', the slot expects different type of node.");
         }
@@ -45,7 +45,7 @@ void WorkerNode::connect(SharedPtr<WorkerNode> node, const std::string& slotName
 }
 
 
-void WorkerNode::disconnect(SharedPtr<WorkerNode> dependent) {
+void JobNode::disconnect(SharedPtr<JobNode> dependent) {
     bool dependentRemoved = false;
     // remove the dependent from the list of dependents
     for (Size i = 0; i < dependents.size(); ++i) {
@@ -62,7 +62,7 @@ void WorkerNode::disconnect(SharedPtr<WorkerNode> dependent) {
 
 
     // remove us from their list of providers
-    SharedPtr<WorkerNode> self = this->sharedFromThis();
+    SharedPtr<JobNode> self = this->sharedFromThis();
     bool providerRemoved = false;
     for (auto& element : dependent->providers) {
         if (element.value == self) {
@@ -78,50 +78,50 @@ void WorkerNode::disconnect(SharedPtr<WorkerNode> dependent) {
     }
 }
 
-void WorkerNode::disconnectAll() {
+void JobNode::disconnectAll() {
     while (!dependents.empty()) {
         this->disconnect(dependents.back().lock());
     }
 }
 
-Size WorkerNode::getSlotCnt() const {
-    return worker->getSlots().size();
+Size JobNode::getSlotCnt() const {
+    return job->getSlots().size();
 }
 
-SlotData WorkerNode::getSlot(const Size index) const {
-    const UnorderedMap<std::string, WorkerType> slots = worker->getSlots();
-    const UnorderedMap<std::string, WorkerType> required = worker->requires();
+SlotData JobNode::getSlot(const Size index) const {
+    const UnorderedMap<std::string, JobType> slots = job->getSlots();
+    const UnorderedMap<std::string, JobType> required = job->requires();
     if (index >= slots.size()) {
-        throw InvalidSetup("Cannot query slot #" + std::to_string(index) + ", node '" +
-                           worker->instanceName() + "' has only " + std::to_string(slots.size()) + " slots");
+        throw InvalidSetup("Cannot query slot #" + std::to_string(index) + ", node '" + job->instanceName() +
+                           "' has only " + std::to_string(slots.size()) + " slots");
     }
 
     const auto iter = slots.begin() + index;
     const bool used = required.contains(iter->key);
 
-    SharedPtr<WorkerNode> provider;
+    SharedPtr<JobNode> provider;
     if (auto optProvider = providers.tryGet(iter->key)) {
         provider = optProvider.value();
     }
     return { iter->key, iter->value, used, provider };
 }
 
-Size WorkerNode::getDependentCnt() const {
+Size JobNode::getDependentCnt() const {
     return dependents.size();
 }
 
-SharedPtr<WorkerNode> WorkerNode::getDependent(const Size index) const {
+SharedPtr<JobNode> JobNode::getDependent(const Size index) const {
     return dependents[index].lock();
 }
 
-void WorkerNode::enumerate(Function<void(SharedPtr<WorkerNode>, Size)> func) {
-    std::set<WorkerNode*> visited;
+void JobNode::enumerate(Function<void(SharedPtr<JobNode>, Size)> func) {
+    std::set<JobNode*> visited;
     this->enumerate(func, 0, visited);
 }
 
-void WorkerNode::enumerate(Function<void(SharedPtr<WorkerNode> worker, Size depth)> func,
+void JobNode::enumerate(Function<void(SharedPtr<JobNode> job, Size depth)> func,
     Size depth,
-    std::set<WorkerNode*>& visited) {
+    std::set<JobNode*>& visited) {
     auto pair = visited.insert(this);
     if (!pair.second) {
         return;
@@ -132,42 +132,42 @@ void WorkerNode::enumerate(Function<void(SharedPtr<WorkerNode> worker, Size dept
     }
 }
 
-void WorkerNode::run(const RunSettings& global, IWorkerCallbacks& callbacks) {
-    std::set<WorkerNode*> visited;
+void JobNode::run(const RunSettings& global, IJobCallbacks& callbacks) {
+    std::set<JobNode*> visited;
     this->run(global, callbacks, visited);
 }
 
-void WorkerNode::run(const RunSettings& global, IWorkerCallbacks& callbacks, std::set<WorkerNode*>& visited) {
+void JobNode::run(const RunSettings& global, IJobCallbacks& callbacks, std::set<JobNode*>& visited) {
 
     // first, run all dependencies
     for (auto& element : providers) {
-        if (!worker->requires().contains(element.key)) {
+        if (!job->requires().contains(element.key)) {
             // worker may change its requirements during (or before) the run, in this case it's not a real
             // dependency
             continue;
         }
-        SharedPtr<WorkerNode> provider = element.value;
+        SharedPtr<JobNode> provider = element.value;
         if (visited.find(&*provider) == visited.end()) {
             visited.insert(&*provider);
             provider->run(global, callbacks, visited);
         }
 
-        WorkerContext result = provider->worker->getResult();
+        JobContext result = provider->job->getResult();
         if (provider->getDependentCnt() > 1) {
             // dependents modify the result in place, so we need to clone it
             result = result.clone();
         }
-        worker->inputs.insert(element.key, result);
+        job->inputs.insert(element.key, result);
     }
 
     if (callbacks.shouldAbortRun()) {
         return;
     }
 
-    callbacks.onStart(*worker);
-    worker->evaluate(global, callbacks);
+    callbacks.onStart(*job);
+    job->evaluate(global, callbacks);
 
-    WorkerContext result = worker->getResult();
+    JobContext result = job->getResult();
     if (SharedPtr<ParticleData> data = result.tryGetValue<ParticleData>()) {
         callbacks.onEnd(data->storage, data->stats);
     } else {
@@ -203,37 +203,37 @@ static std::string clonedName(const std::string& name) {
     }
 }
 
-SharedPtr<WorkerNode> cloneNode(const WorkerNode& node, const std::string& name) {
-    RawPtr<IWorkerDesc> desc = getWorkerDesc(node.className());
+SharedPtr<JobNode> cloneNode(const JobNode& node, const std::string& name) {
+    RawPtr<IJobDesc> desc = getJobDesc(node.className());
     ASSERT(desc);
 
-    AutoPtr<IWorker> worker = desc->create(name.empty() ? clonedName(node.instanceName()) : name);
+    AutoPtr<IJob> worker = desc->create(name.empty() ? clonedName(node.instanceName()) : name);
     VirtualSettings target = worker->getSettings();
     VirtualSettings source = node.getSettings();
     CopyEntriesProc proc(target);
     source.enumerate(proc);
 
-    return makeShared<WorkerNode>(std::move(worker));
+    return makeShared<JobNode>(std::move(worker));
 }
 
-SharedPtr<WorkerNode> cloneHierarchy(WorkerNode& node, const std::string& prefix) {
+SharedPtr<JobNode> cloneHierarchy(JobNode& node, const std::string& prefix) {
     // maps original node to cloned nodes
-    FlatMap<SharedPtr<WorkerNode>, SharedPtr<WorkerNode>> nodeMap;
+    FlatMap<SharedPtr<JobNode>, SharedPtr<JobNode>> nodeMap;
 
     // first, clone all nodes and build up the map
-    node.enumerate([&nodeMap, &prefix](SharedPtr<WorkerNode> node, Size UNUSED(depth)) {
+    node.enumerate([&nodeMap, &prefix](SharedPtr<JobNode> node, Size UNUSED(depth)) {
         std::string name;
         if (prefix.empty()) {
             name = clonedName(node->instanceName());
         } else {
             name = prefix + node->instanceName();
         }
-        SharedPtr<WorkerNode> clonedNode = cloneNode(*node, name);
+        SharedPtr<JobNode> clonedNode = cloneNode(*node, name);
         nodeMap.insert(node, clonedNode);
     });
 
     // second, connect cloned nodes to get the same hierarchy
-    node.enumerate([&nodeMap](SharedPtr<WorkerNode> node, Size UNUSED(depth)) {
+    node.enumerate([&nodeMap](SharedPtr<JobNode> node, Size UNUSED(depth)) {
         for (Size i = 0; i < node->getSlotCnt(); ++i) {
             SlotData slot = node->getSlot(i);
             if (slot.provider != nullptr) {

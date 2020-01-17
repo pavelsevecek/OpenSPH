@@ -1,39 +1,39 @@
 #pragma once
 
-#include "run/Worker.h"
+#include "run/Job.h"
 
 NAMESPACE_SPH_BEGIN
 
-class SphereWorker : public IGeometryWorker {
+class SphereJob : public IGeometryJob {
 private:
     Float radius = 1.e5_f;
 
 public:
-    explicit SphereWorker(const std::string& name);
+    explicit SphereJob(const std::string& name);
 
     virtual std::string className() const override;
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override;
+    virtual UnorderedMap<std::string, JobType> getSlots() const override;
 
     virtual VirtualSettings getSettings() override;
 
     virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
-class BlockWorker : public IGeometryWorker {
+class BlockJob : public IGeometryJob {
 private:
     Vector center = Vector(0._f);
     Vector dimensions = Vector(1.e5_f);
 
 public:
-    explicit BlockWorker(const std::string& name)
-        : IGeometryWorker(name) {}
+    explicit BlockJob(const std::string& name)
+        : IGeometryJob(name) {}
 
     virtual std::string className() const override {
         return "block";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
         return {};
     }
 
@@ -42,19 +42,19 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class EllipsoidWorker : public IGeometryWorker {
+class EllipsoidJob : public IGeometryJob {
 private:
     Vector semiaxes = Vector(2.e5_f, 1.e5_f, 1.e5_f);
 
 public:
-    explicit EllipsoidWorker(const std::string& name)
-        : IGeometryWorker(name) {}
+    explicit EllipsoidJob(const std::string& name)
+        : IGeometryJob(name) {}
 
     virtual std::string className() const override {
         return "ellipsoid";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
         return {};
     }
 
@@ -63,33 +63,33 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class CylinderWorker : public IGeometryWorker {
+class CylinderJob : public IGeometryJob {
 private:
     Float radius = 1.e5_f;
     Float height = 2.e5_f;
 
 public:
-    explicit CylinderWorker(const std::string& name);
+    explicit CylinderJob(const std::string& name);
 
     virtual std::string className() const override;
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override;
+    virtual UnorderedMap<std::string, JobType> getSlots() const override;
 
     virtual VirtualSettings getSettings() override;
 
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class HalfSpaceWorker : public IGeometryWorker {
+class HalfSpaceJob : public IGeometryJob {
 public:
-    explicit HalfSpaceWorker(const std::string& name)
-        : IGeometryWorker(name) {}
+    explicit HalfSpaceJob(const std::string& name)
+        : IGeometryJob(name) {}
 
     virtual std::string className() const override {
         return "half space";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
         return {};
     }
 
@@ -98,39 +98,63 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class MeshGeometryWorker : public IGeometryWorker {
+class GaussianSphereJob : public IGeometryJob {
+private:
+    Float radius = 1.e5_f;
+    Float beta = 0.2_f;
+    int seed = 1337;
+
+public:
+    explicit GaussianSphereJob(const std::string& name)
+        : IGeometryJob(name) {}
+
+    virtual std::string className() const override {
+        return "Gaussian sphere";
+    }
+
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return {};
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+};
+
+
+class MeshGeometryJob : public IGeometryJob {
 private:
     Path path = Path("file.ply");
     Float scale = 1._f;
 
 public:
-    explicit MeshGeometryWorker(const std::string& name);
+    explicit MeshGeometryJob(const std::string& name);
 
     virtual std::string className() const override;
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override;
+    virtual UnorderedMap<std::string, JobType> getSlots() const override;
 
     virtual VirtualSettings getSettings() override;
 
     virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
-class ParticleGeometryWorker : public IGeometryWorker {
+class ParticleGeometryJob : public IGeometryJob {
 private:
     Float resolution = 1.e3_f;
     Float surfaceLevel = 0.15_f;
     Float smoothingMult = 1._f;
 
 public:
-    explicit ParticleGeometryWorker(const std::string& name)
-        : IGeometryWorker(name) {}
+    explicit ParticleGeometryJob(const std::string& name)
+        : IGeometryJob(name) {}
 
     virtual std::string className() const override {
         return "particle geometry";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -138,17 +162,17 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
-class SpheresGeometryWorker : public IGeometryWorker {
+class SpheresGeometryJob : public IGeometryJob {
 public:
-    explicit SpheresGeometryWorker(const std::string& name)
-        : IGeometryWorker(name) {}
+    explicit SpheresGeometryJob(const std::string& name)
+        : IGeometryJob(name) {}
 
     virtual std::string className() const override {
         return "spheres geometry";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "spheres", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "spheres", JobType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -156,17 +180,17 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
-class InvertGeometryWorker : public IGeometryWorker {
+class InvertGeometryJob : public IGeometryJob {
 public:
-    explicit InvertGeometryWorker(const std::string& name)
-        : IGeometryWorker(name) {}
+    explicit InvertGeometryJob(const std::string& name)
+        : IGeometryJob(name) {}
 
     virtual std::string className() const override {
         return "invert geometry";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "geometry", WorkerType::GEOMETRY } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "geometry", JobType::GEOMETRY } };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -174,21 +198,21 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
-class TransformGeometryWorker : public IGeometryWorker {
+class TransformGeometryJob : public IGeometryJob {
 private:
     Vector scaling = Vector(1._f);
     Vector offset = Vector(0._f);
 
 public:
-    explicit TransformGeometryWorker(const std::string& name)
-        : IGeometryWorker(name) {}
+    explicit TransformGeometryJob(const std::string& name)
+        : IGeometryJob(name) {}
 
     virtual std::string className() const override {
         return "transform geometry";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "geometry", WorkerType::GEOMETRY } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "geometry", JobType::GEOMETRY } };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -208,13 +232,13 @@ static RegisterEnum<BooleanEnum> sBoolean({
 });
 
 
-class BooleanGeometryWorker : public IGeometryWorker {
+class BooleanGeometryJob : public IGeometryJob {
     EnumWrapper mode;
     Vector offset = Vector(0._f);
 
 public:
-    BooleanGeometryWorker(const std::string& name)
-        : IGeometryWorker(name) {
+    BooleanGeometryJob(const std::string& name)
+        : IGeometryJob(name) {
         mode = EnumWrapper(BooleanEnum::DIFFERENCE);
     }
 
@@ -222,8 +246,8 @@ public:
         return "boolean";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "operand A", WorkerType::GEOMETRY }, { "operand B", WorkerType::GEOMETRY } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "operand A", JobType::GEOMETRY }, { "operand B", JobType::GEOMETRY } };
     }
 
     virtual VirtualSettings getSettings() override;

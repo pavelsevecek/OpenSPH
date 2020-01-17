@@ -18,6 +18,9 @@ bool isMeshClosed(const Mesh& mesh);
 /// \brief Improves mesh quality using edge flips (valence equalization) and tangential relaxation.
 void refineMesh(Mesh& mesh);
 
+/// \brief Subdivides all triangles of the mesh using 1-4 scheme
+void subdivideMesh(Mesh& mesh);
+
 /// \brief Converts array of triangles into a mesh.
 ///
 /// The mesh contains a set of unique vertices and faces as indices into the vertex array.

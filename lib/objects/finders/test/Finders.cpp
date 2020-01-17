@@ -9,8 +9,8 @@
 #include "objects/utility/ArrayUtils.h"
 #include "quantities/Storage.h"
 #include "run/Node.h"
-#include "run/workers/InitialConditionWorkers.h"
-#include "run/workers/ParticleWorkers.h"
+#include "run/workers/InitialConditionJobs.h"
+#include "run/workers/ParticleJobs.h"
 #include "sph/initial/Distribution.h"
 #include "system/Settings.h"
 #include "tests/Approx.h"
@@ -351,7 +351,7 @@ TEST_CASE("KdTree iterateTree topDown", "[finders]") {
     REQUIRE(visitedCnt == tree.getNodeCnt());
 }
 
-class KdTreeWorkerCallbacks : public NullWorkerCallbacks {
+class KdTreeJobCallbacks : public NullJobCallbacks {
 public:
     int checkedCnt = 0;
 
@@ -371,19 +371,19 @@ TEST_CASE("KdTree empty leaf bug", "[finders]") {
     geometry.set(CollisionGeometrySettingsId::IMPACT_ANGLE, 0._f)
         .set(CollisionGeometrySettingsId::IMPACT_SPEED, 5.e3_f);
 
-    SharedPtr<WorkerNode> setup = makeNode<CollisionGeometrySetup>("collision", geometry);
+    SharedPtr<JobNode> setup = makeNode<CollisionGeometrySetup>("collision", geometry);
 
     BodySettings body;
     body.set(BodySettingsId::BODY_SHAPE_TYPE, DomainEnum::SPHERICAL);
     body.set(BodySettingsId::BODY_RADIUS, 1.e5_f);
-    SharedPtr<WorkerNode> target = makeNode<MonolithicBodyIc>("target", body);
+    SharedPtr<JobNode> target = makeNode<MonolithicBodyIc>("target", body);
     target->connect(setup, "target");
 
     body.set(BodySettingsId::BODY_RADIUS, 1.3e4_f);
-    SharedPtr<WorkerNode> impactor = makeNode<MonolithicBodyIc>("impactor", body);
+    SharedPtr<JobNode> impactor = makeNode<MonolithicBodyIc>("impactor", body);
     impactor->connect(setup, "impactor");
 
-    KdTreeWorkerCallbacks callbacks;
+    KdTreeJobCallbacks callbacks;
     setup->run(EMPTY_SETTINGS, callbacks);
 
     // sanity check to make sure the test was actually executed

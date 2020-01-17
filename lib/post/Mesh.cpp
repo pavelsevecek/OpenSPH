@@ -53,6 +53,33 @@ void refineMesh(Mesh& mesh) {
     }
 }
 
+void subdivideMesh(Mesh& mesh) {
+    Array<Mesh::Face> newFaces;
+    for (Mesh::Face& face : mesh.faces) {
+        const Vector p1 = mesh.vertices[face[0]];
+        const Vector p2 = mesh.vertices[face[1]];
+        const Vector p3 = mesh.vertices[face[2]];
+        const Vector p12 = 0.5_f * (p1 + p2);
+        const Vector p13 = 0.5_f * (p1 + p3);
+        const Vector p23 = 0.5_f * (p2 + p3);
+        const Size i2 = face[1];
+        const Size i3 = face[2];
+        const Size i12 = mesh.vertices.size();
+        const Size i13 = i12 + 1;
+        const Size i23 = i12 + 2;
+        mesh.vertices.push(p12);
+        mesh.vertices.push(p13);
+        mesh.vertices.push(p23);
+
+        newFaces.push(Mesh::Face{ i12, i2, i23 });
+        newFaces.push(Mesh::Face{ i13, i23, i3 });
+        newFaces.push(Mesh::Face{ i13, i12, i23 });
+        face[1] = i12;
+        face[2] = i13;
+    }
+    mesh.faces.pushAll(std::move(newFaces));
+}
+
 Mesh getMeshFromTriangles(ArrayView<const Triangle> triangles, const Float eps) {
     Mesh mesh;
     mesh.faces.resize(triangles.size());

@@ -1,8 +1,11 @@
 #include "sph/solvers/StandardSets.h"
+#include "sph/equations/DeltaSph.h"
 #include "sph/equations/Fluids.h"
 #include "sph/equations/Friction.h"
 #include "sph/equations/HelperTerms.h"
 #include "sph/equations/Potentials.h"
+#include "sph/equations/XSph.h"
+#include "sph/equations/av/Conductivity.h"
 #include "sph/equations/av/Stress.h"
 #include "system/Factory.h"
 
@@ -10,6 +13,12 @@ NAMESPACE_SPH_BEGIN
 
 EquationHolder getStandardEquations(const RunSettings& settings, const EquationHolder& other) {
     EquationHolder equations;
+
+    if (settings.get<bool>(RunSettingsId::SPH_USE_XSPH)) {
+        // add XSPH as the very first term (it modifies velocities used by other terms)
+        equations += makeTerm<XSph>();
+    }
+
     /// \todo test that all possible combination (pressure, stress, AV, ...) work and dont assert
     Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES);
     if (forces.has(ForceEnum::PRESSURE)) {
@@ -59,11 +68,20 @@ EquationHolder getStandardEquations(const RunSettings& settings, const EquationH
 
     equations += makeTerm<ContinuityEquation>(settings);
 
+    if (settings.get<bool>(RunSettingsId::SPH_USE_DELTASPH)) {
+        equations += makeTerm<DeltaSph::DensityDiffusion>();
+        equations += makeTerm<DeltaSph::VelocityDiffusion>();
+    }
+
     // artificial viscosity
     equations += EquationHolder(Factory::getArtificialViscosity(settings));
 
     if (settings.get<bool>(RunSettingsId::SPH_AV_USE_STRESS)) {
         equations += makeTerm<StressAV>(settings);
+    }
+
+    if (settings.get<bool>(RunSettingsId::SPH_USE_AC)) {
+        equations += makeTerm<ArtificialConductivity>();
     }
 
     // add all the additional equations

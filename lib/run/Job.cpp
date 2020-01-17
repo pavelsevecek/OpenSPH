@@ -1,4 +1,4 @@
-#include "run/Worker.h"
+#include "run/Job.h"
 #include "objects/containers/FlatSet.h"
 #include "post/MeshFile.h"
 #include "quantities/Quantity.h"
@@ -8,10 +8,10 @@
 
 NAMESPACE_SPH_BEGIN
 
-class IWorkerData : public Polymorphic {};
+class IJobData : public Polymorphic {};
 
 template <typename TValue>
-class WorkerData : public IWorkerData {
+class WorkerData : public IJobData {
 private:
     static_assert(std::is_same<TValue, ParticleData>::value || std::is_same<TValue, IDomain>::value ||
                       std::is_same<TValue, IMaterial>::value,
@@ -29,16 +29,16 @@ public:
 };
 
 template <typename TValue>
-WorkerContext::WorkerContext(SharedPtr<TValue> value) {
+JobContext::JobContext(SharedPtr<TValue> value) {
     data = makeShared<WorkerData<TValue>>(value);
 }
 
-template WorkerContext::WorkerContext(SharedPtr<ParticleData> value);
-template WorkerContext::WorkerContext(SharedPtr<IDomain> value);
-template WorkerContext::WorkerContext(SharedPtr<IMaterial> value);
+template JobContext::JobContext(SharedPtr<ParticleData> value);
+template JobContext::JobContext(SharedPtr<IDomain> value);
+template JobContext::JobContext(SharedPtr<IMaterial> value);
 
 template <typename TValue>
-SharedPtr<TValue> WorkerContext::getValue() const {
+SharedPtr<TValue> JobContext::getValue() const {
     SharedPtr<TValue> value = this->tryGetValue<TValue>();
     if (value) {
         return value;
@@ -47,12 +47,12 @@ SharedPtr<TValue> WorkerContext::getValue() const {
     }
 }
 
-template SharedPtr<ParticleData> WorkerContext::getValue() const;
-template SharedPtr<IDomain> WorkerContext::getValue() const;
-template SharedPtr<IMaterial> WorkerContext::getValue() const;
+template SharedPtr<ParticleData> JobContext::getValue() const;
+template SharedPtr<IDomain> JobContext::getValue() const;
+template SharedPtr<IMaterial> JobContext::getValue() const;
 
 template <typename TValue>
-SharedPtr<TValue> WorkerContext::tryGetValue() const {
+SharedPtr<TValue> JobContext::tryGetValue() const {
     RawPtr<WorkerData<TValue>> typedData = dynamicCast<WorkerData<TValue>>(data.get());
     if (typedData != nullptr) {
         return typedData->getValue();
@@ -61,11 +61,11 @@ SharedPtr<TValue> WorkerContext::tryGetValue() const {
     }
 }
 
-template SharedPtr<ParticleData> WorkerContext::tryGetValue() const;
-template SharedPtr<IDomain> WorkerContext::tryGetValue() const;
-template SharedPtr<IMaterial> WorkerContext::tryGetValue() const;
+template SharedPtr<ParticleData> JobContext::tryGetValue() const;
+template SharedPtr<IDomain> JobContext::tryGetValue() const;
+template SharedPtr<IMaterial> JobContext::tryGetValue() const;
 
-WorkerContext WorkerContext::clone() const {
+JobContext JobContext::clone() const {
     if (SharedPtr<ParticleData> particleData = this->tryGetValue<ParticleData>()) {
         SharedPtr<ParticleData> clonedData = makeShared<ParticleData>();
         clonedData->storage = particleData->storage.clone(VisitorEnum::ALL_BUFFERS);
@@ -79,29 +79,29 @@ WorkerContext WorkerContext::clone() const {
 }
 
 template <typename T>
-SharedPtr<T> IWorker::getInput(const std::string& name) const {
+SharedPtr<T> IJob::getInput(const std::string& name) const {
     if (!inputs.contains(name)) {
         throw InvalidSetup(
             "Input '" + name + "' for worker '" + instName +
             "' was not found, either it was not connected or the node has not been successfully evaluated.");
     }
 
-    WorkerContext context = inputs[name];
+    JobContext context = inputs[name];
     return context.getValue<T>();
 }
 
-template SharedPtr<ParticleData> IWorker::getInput<ParticleData>(const std::string& name) const;
-template SharedPtr<IDomain> IWorker::getInput<IDomain>(const std::string& name) const;
-template SharedPtr<IMaterial> IWorker::getInput<IMaterial>(const std::string& name) const;
+template SharedPtr<ParticleData> IJob::getInput<ParticleData>(const std::string& name) const;
+template SharedPtr<IDomain> IJob::getInput<IDomain>(const std::string& name) const;
+template SharedPtr<IMaterial> IJob::getInput<IMaterial>(const std::string& name) const;
 
-static Array<AutoPtr<IWorkerDesc>> sRegisteredWorkers;
+static Array<AutoPtr<IJobDesc>> sRegisteredJobs;
 
-ArrayView<const AutoPtr<IWorkerDesc>> enumerateRegisteredWorkers() {
-    return sRegisteredWorkers;
+ArrayView<const AutoPtr<IJobDesc>> enumerateRegisteredJobs() {
+    return sRegisteredJobs;
 }
 
-RawPtr<IWorkerDesc> getWorkerDesc(const std::string& name) {
-    for (auto& desc : sRegisteredWorkers) {
+RawPtr<IJobDesc> getJobDesc(const std::string& name) {
+    for (auto& desc : sRegisteredJobs) {
         if (desc->className() == name) {
             return desc.get();
         }
@@ -115,25 +115,25 @@ VirtualSettings::Category& addGenericCategory(VirtualSettings& connector, std::s
     return cat;
 }
 
-WorkerRegistrar::WorkerRegistrar(std::string className,
+JobRegistrar::JobRegistrar(std::string className,
     std::string shortName,
     std::string category,
-    CreateWorkerFunc func,
+    CreateJobFunc func,
     std::string tooltip) {
 
-    class GenericDesc : public IWorkerDesc {
+    class GenericDesc : public IJobDesc {
     private:
         std::string longName;
         std::string shortName;
         std::string cat;
         std::string desc;
-        CreateWorkerFunc func;
+        CreateJobFunc func;
 
     public:
         GenericDesc(std::string longName,
             std::string shortName,
             std::string cat,
-            CreateWorkerFunc func,
+            CreateJobFunc func,
             std::string desc)
             : longName(std::move(longName))
             , shortName(std::move(shortName))
@@ -153,35 +153,35 @@ WorkerRegistrar::WorkerRegistrar(std::string className,
             return desc;
         }
 
-        virtual AutoPtr<IWorker> create(Optional<std::string> instanceName) const override {
+        virtual AutoPtr<IJob> create(Optional<std::string> instanceName) const override {
             CHECK_FUNCTION(CheckFunction::NO_THROW);
-            AutoPtr<IWorker> worker = func(instanceName.valueOr("unnamed " + shortName));
+            AutoPtr<IJob> worker = func(instanceName.valueOr("unnamed " + shortName));
             return worker;
         }
     };
 
-    sRegisteredWorkers.emplaceBack(makeAuto<GenericDesc>(className, shortName, category, func, tooltip));
+    sRegisteredJobs.emplaceBack(makeAuto<GenericDesc>(className, shortName, category, func, tooltip));
 }
 
 
-WorkerRegistrar::WorkerRegistrar(std::string className,
+JobRegistrar::JobRegistrar(std::string className,
     std::string category,
-    CreateWorkerFunc func,
+    CreateJobFunc func,
     std::string tooltip)
-    : WorkerRegistrar(className, className, category, func, std::move(tooltip)) {}
+    : JobRegistrar(className, className, category, func, std::move(tooltip)) {}
 
 
-IParticleWorker::IParticleWorker(const std::string& name)
-    : IWorker(name) {}
+IParticleJob::IParticleJob(const std::string& name)
+    : IJob(name) {}
 
-IParticleWorker::~IParticleWorker() = default;
+IParticleJob::~IParticleJob() = default;
 
-IRunWorker::IRunWorker(const std::string& name)
-    : IParticleWorker(name) {}
+IRunJob::IRunJob(const std::string& name)
+    : IParticleJob(name) {}
 
-IRunWorker::~IRunWorker() = default;
+IRunJob::~IRunJob() = default;
 
-static SharedPtr<ParticleData> findStorageInput(const UnorderedMap<std::string, WorkerContext>& inputs,
+static SharedPtr<ParticleData> findStorageInput(const UnorderedMap<std::string, JobContext>& inputs,
     const std::string& workerName) {
     for (const auto& element : inputs) {
         SharedPtr<ParticleData> data = element.value.tryGetValue<ParticleData>();
@@ -192,7 +192,7 @@ static SharedPtr<ParticleData> findStorageInput(const UnorderedMap<std::string, 
     throw InvalidSetup("No input particles found for worker '" + workerName + "'");
 }
 
-void IRunWorker::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
+void IRunJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     SharedPtr<ParticleData> data = findStorageInput(inputs, instName);
     RunSettings overrides = global;
     overrides.addEntries(data->overrides);

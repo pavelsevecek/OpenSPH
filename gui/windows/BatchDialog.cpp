@@ -11,13 +11,13 @@
 
 NAMESPACE_SPH_BEGIN
 
-void BatchManager::modifyHierarchy(const Size runIdx, WorkerNode& node) {
+void BatchManager::modifyHierarchy(const Size runIdx, JobNode& node) {
     for (Size colIdx = 0; colIdx < cols.size(); ++colIdx) {
         const std::string baseName = cols[colIdx].node->instanceName();
 
         // find the node in the hierarchy
-        SharedPtr<WorkerNode> modifiedNode;
-        node.enumerate([&baseName, &modifiedNode](SharedPtr<WorkerNode> node, const Size UNUSED(depth)) {
+        SharedPtr<JobNode> modifiedNode;
+        node.enumerate([&baseName, &modifiedNode](SharedPtr<JobNode> node, const Size UNUSED(depth)) {
             const std::string name = node->instanceName();
             const std::size_t n = name.find(" / ");
             if (n == std::string::npos) {
@@ -69,7 +69,7 @@ public:
     }
 };
 
-void BatchManager::modifyNode(WorkerNode& node, const Size runIdx, const Size paramIdx) {
+void BatchManager::modifyNode(JobNode& node, const Size runIdx, const Size paramIdx) {
     const std::string newValue = getCell(paramIdx, runIdx);
     VirtualSettings settings = node.getSettings();
     IVirtualEntry::Value variant = settings.get(cols[paramIdx].key);
@@ -78,7 +78,7 @@ void BatchManager::modifyNode(WorkerNode& node, const Size runIdx, const Size pa
     settings.set(cols[paramIdx].key, variant);
 }
 
-void BatchManager::load(Config& config, ArrayView<const SharedPtr<WorkerNode>> nodes) {
+void BatchManager::load(Config& config, ArrayView<const SharedPtr<JobNode>> nodes) {
     SharedPtr<ConfigNode> root = config.getNode("batch");
     const Size rowCnt = root->get<int>("runCount");
     const Size colCnt = root->get<int>("paramCount");
@@ -96,7 +96,7 @@ void BatchManager::load(Config& config, ArrayView<const SharedPtr<WorkerNode>> n
         }
         cols[i].key = paramDesc->substr(sep + 2);
         const std::string name = paramDesc->substr(0, sep);
-        auto iter = std::find_if(nodes.begin(), nodes.end(), [&name](const SharedPtr<WorkerNode>& node) {
+        auto iter = std::find_if(nodes.begin(), nodes.end(), [&name](const SharedPtr<JobNode>& node) {
             return node->instanceName() == name;
         });
         if (iter != nodes.end()) {
@@ -165,7 +165,7 @@ public:
 
 class ParamSelectDialog : public wxDialog {
 private:
-    ArrayView<const SharedPtr<WorkerNode>> nodes;
+    ArrayView<const SharedPtr<JobNode>> nodes;
     wxComboBox* nodeBox;
     wxComboBox* paramBox;
 
@@ -174,7 +174,7 @@ private:
     } cached;
 
 public:
-    ParamSelectDialog(wxWindow* parent, ArrayView<const SharedPtr<WorkerNode>> nodes)
+    ParamSelectDialog(wxWindow* parent, ArrayView<const SharedPtr<JobNode>> nodes)
         : wxDialog(parent, wxID_ANY, "Select parameter")
         , nodes(nodes) {
         wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
@@ -184,7 +184,7 @@ public:
         nodeBox = new wxComboBox(this, wxID_ANY, "", wxDefaultPosition, wxSize(200, -1));
         nodeBox->SetWindowStyle(wxCB_SIMPLE | wxCB_READONLY);
         wxArrayString items;
-        for (const SharedPtr<WorkerNode>& node : nodes) {
+        for (const SharedPtr<JobNode>& node : nodes) {
             items.Add(node->instanceName());
         }
         nodeBox->Set(items);
@@ -222,7 +222,7 @@ public:
         this->SetSizer(sizer);
     }
 
-    SharedPtr<WorkerNode> getNode() const {
+    SharedPtr<JobNode> getNode() const {
         return nodes[nodeBox->GetSelection()];
     }
 
@@ -235,7 +235,7 @@ public:
     }
 };
 
-BatchDialog::BatchDialog(wxWindow* parent, const BatchManager& mgr, Array<SharedPtr<WorkerNode>>&& nodes)
+BatchDialog::BatchDialog(wxWindow* parent, const BatchManager& mgr, Array<SharedPtr<JobNode>>&& nodes)
     : wxDialog(parent, wxID_ANY, "Batch run", wxDefaultPosition, wxSize(800, 530))
     , manager(mgr.clone())
     , nodes(std::move(nodes)) {
@@ -361,7 +361,7 @@ void BatchDialog::update() {
         grid->SetRowLabelValue(j, manager.getRunName(j));
     }
     for (Size i = 0; i < paramCnt; ++i) {
-        SharedPtr<WorkerNode> node = manager.getParamNode(i);
+        SharedPtr<JobNode> node = manager.getParamNode(i);
         if (node) {
             grid->SetColLabelValue(i, node->instanceName() + " - " + manager.getParamKey(i));
         }

@@ -12,7 +12,7 @@ class Config;
 class BatchManager {
 private:
     struct Col {
-        SharedPtr<WorkerNode> node;
+        SharedPtr<JobNode> node;
         std::string key;
     };
 
@@ -54,7 +54,7 @@ public:
         return cols[colIdx].key;
     }
 
-    SharedPtr<WorkerNode> getParamNode(const Size colIdx) const {
+    SharedPtr<JobNode> getParamNode(const Size colIdx) const {
         return cols[colIdx].node;
     }
 
@@ -66,7 +66,7 @@ public:
         rows[rowIdx] = name;
     }
 
-    void setParam(const Size colIdx, const SharedPtr<WorkerNode>& node, const std::string& key) {
+    void setParam(const Size colIdx, const SharedPtr<JobNode>& node, const std::string& key) {
         cols[colIdx].key = key;
         cols[colIdx].node = node;
     }
@@ -120,24 +120,24 @@ public:
     ///
     /// Nodes are modified according to parameters of given run. Other parameters or nodes not specified in
     /// the manager are unchanged.
-    void modifyHierarchy(const Size runIdx, WorkerNode& node);
+    void modifyHierarchy(const Size runIdx, JobNode& node);
 
-    void load(Config& config, ArrayView<const SharedPtr<WorkerNode>> nodes);
+    void load(Config& config, ArrayView<const SharedPtr<JobNode>> nodes);
     void save(Config& config);
 
 private:
-    void modifyNode(WorkerNode& node, const Size runIdx, const Size paramIdx);
+    void modifyNode(JobNode& node, const Size runIdx, const Size paramIdx);
 };
 
 class BatchDialog : public wxDialog {
 private:
     BatchManager manager;
-    Array<SharedPtr<WorkerNode>> nodes;
+    Array<SharedPtr<JobNode>> nodes;
 
     wxGrid* grid;
 
 public:
-    BatchDialog(wxWindow* parent, const BatchManager& manager, Array<SharedPtr<WorkerNode>>&& nodes);
+    BatchDialog(wxWindow* parent, const BatchManager& manager, Array<SharedPtr<JobNode>>&& nodes);
 
     ~BatchDialog();
 

@@ -1,16 +1,16 @@
 #pragma once
 
-#include "run/Worker.h"
+#include "run/Job.h"
 
 NAMESPACE_SPH_BEGIN
 
-class SphWorker : public IRunWorker {
+class SphJob : public IRunJob {
 protected:
     RunSettings settings;
     bool isResumed = false;
 
 public:
-    explicit SphWorker(const std::string& name, const RunSettings& overrides = EMPTY_SETTINGS);
+    explicit SphJob(const std::string& name, const RunSettings& overrides = EMPTY_SETTINGS);
 
     static RunSettings getDefaultSettings(const std::string& name);
 
@@ -18,14 +18,14 @@ public:
         return "SPH run";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES }, { "boundary", WorkerType::GEOMETRY } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES }, { "boundary", JobType::GEOMETRY } };
     }
 
-    virtual UnorderedMap<std::string, WorkerType> requires() const override {
-        UnorderedMap<std::string, WorkerType> map{ { "particles", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> requires() const override {
+        UnorderedMap<std::string, JobType> map{ { "particles", JobType::PARTICLES } };
         if (settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY) != BoundaryEnum::NONE) {
-            map.insert("boundary", WorkerType::GEOMETRY);
+            map.insert("boundary", JobType::GEOMETRY);
         }
         return map;
     }
@@ -35,9 +35,9 @@ public:
     virtual AutoPtr<IRun> getRun(const RunSettings& overrides) const override;
 };
 
-class SphStabilizationWorker : public SphWorker {
+class SphStabilizationJob : public SphJob {
 public:
-    using SphWorker::SphWorker;
+    using SphJob::SphJob;
 
     virtual std::string className() const override {
         return "SPH stabilization";
@@ -48,13 +48,13 @@ public:
     virtual AutoPtr<IRun> getRun(const RunSettings& overrides) const override;
 };
 
-class NBodyWorker : public IRunWorker {
+class NBodyJob : public IRunJob {
 private:
     RunSettings settings;
     bool isResumed = false;
 
 public:
-    explicit NBodyWorker(const std::string& name, const RunSettings& overrides = EMPTY_SETTINGS);
+    explicit NBodyJob(const std::string& name, const RunSettings& overrides = EMPTY_SETTINGS);
 
     static RunSettings getDefaultSettings(const std::string& name);
 
@@ -62,8 +62,8 @@ public:
         return "N-body run";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override;

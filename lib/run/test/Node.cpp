@@ -1,13 +1,13 @@
 #include "run/Node.h"
 #include "catch.hpp"
-#include "run/workers/InitialConditionWorkers.h"
-#include "run/workers/MaterialWorkers.h"
+#include "run/workers/InitialConditionJobs.h"
+#include "run/workers/MaterialJobs.h"
 
 using namespace Sph;
 
-class TestCallbacks : public IWorkerCallbacks {
+class TestCallbacks : public IJobCallbacks {
 public:
-    virtual void onStart(const IWorker& UNUSED(worker)) override {}
+    virtual void onStart(const IJob& UNUSED(worker)) override {}
 
     virtual void onEnd(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {}
 
@@ -20,17 +20,17 @@ public:
     }
 };
 
-class TestWorker : public IGeometryWorker {
+class TestJob : public IGeometryJob {
 public:
-    explicit TestWorker()
-        : IGeometryWorker("test") {}
+    explicit TestJob()
+        : IGeometryJob("test") {}
 
     virtual std::string className() const override {
         return "test worker";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES }, { "material", WorkerType::MATERIAL } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES }, { "material", JobType::MATERIAL } };
     }
 
     virtual VirtualSettings getSettings() override {
@@ -45,8 +45,8 @@ public:
 };
 
 TEST_CASE("Run correct", "[nodes]") {
-    SharedPtr<WorkerNode> node = makeNode<TestWorker>();
-    makeNode<MaterialWorker>("material")->connect(node, "material");
+    SharedPtr<JobNode> node = makeNode<TestJob>();
+    makeNode<MaterialJob>("material")->connect(node, "material");
     makeNode<MonolithicBodyIc>("particles")->connect(node, "particles");
 
     RunSettings globals;
@@ -55,7 +55,7 @@ TEST_CASE("Run correct", "[nodes]") {
 }
 
 TEST_CASE("Run without inputs", "[nodes]") {
-    SharedPtr<WorkerNode> node = makeNode<TestWorker>();
+    SharedPtr<JobNode> node = makeNode<TestJob>();
 
     RunSettings globals;
     TestCallbacks callbacks;
@@ -63,15 +63,15 @@ TEST_CASE("Run without inputs", "[nodes]") {
 }
 
 TEST_CASE("Connect incorrect ", "[nodes]") {
-    SharedPtr<WorkerNode> node = makeNode<TestWorker>();
-    SharedPtr<WorkerNode> provider = makeNode<TestWorker>();
+    SharedPtr<JobNode> node = makeNode<TestJob>();
+    SharedPtr<JobNode> provider = makeNode<TestJob>();
     REQUIRE_THROWS_AS(provider->connect(node, "particles"), InvalidSetup);
     REQUIRE_THROWS_AS(provider->connect(node, "material"), InvalidSetup);
 
     REQUIRE_THROWS_AS(provider->connect(node, "abcd"), InvalidSetup);
 }
 
-class BadWorker : public TestWorker {
+class BadJob : public TestJob {
 public:
     virtual void evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) override {
         // incorrect type
@@ -83,8 +83,8 @@ public:
 };
 
 TEST_CASE("Bad worker", "[nodes]") {
-    SharedPtr<WorkerNode> node = makeNode<BadWorker>();
-    makeNode<MaterialWorker>("material")->connect(node, "material");
+    SharedPtr<JobNode> node = makeNode<BadJob>();
+    makeNode<MaterialJob>("material")->connect(node, "material");
     makeNode<MonolithicBodyIc>("particles")->connect(node, "particles");
 
     RunSettings globals;
@@ -93,17 +93,17 @@ TEST_CASE("Bad worker", "[nodes]") {
 }
 
 
-class MultipleBodyWorker : public IParticleWorker {
+class MultipleBodyJob : public IParticleJob {
 public:
-    explicit MultipleBodyWorker()
-        : IParticleWorker("test") {}
+    explicit MultipleBodyJob()
+        : IParticleJob("test") {}
 
     virtual std::string className() const override {
         return "multiple body worker";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "body A", WorkerType::PARTICLES }, { "body B", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "body A", JobType::PARTICLES }, { "body B", JobType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override {
@@ -127,8 +127,8 @@ public:
 };
 
 TEST_CASE("Same input connected to multiple slots", "[nodes]") {
-    SharedPtr<WorkerNode> node = makeNode<MultipleBodyWorker>();
-    SharedPtr<WorkerNode> particles = makeNode<MonolithicBodyIc>("particles");
+    SharedPtr<JobNode> node = makeNode<MultipleBodyJob>();
+    SharedPtr<JobNode> particles = makeNode<MonolithicBodyIc>("particles");
     particles->connect(node, "body A");
     particles->connect(node, "body B");
 
@@ -138,27 +138,27 @@ TEST_CASE("Same input connected to multiple slots", "[nodes]") {
 }
 
 TEST_CASE("Slot queries", "[nodes]") {
-    SharedPtr<WorkerNode> node = makeNode<TestWorker>();
+    SharedPtr<JobNode> node = makeNode<TestJob>();
     REQUIRE(node->getSlotCnt() == 2);
     SlotData slot0 = node->getSlot(0);
     SlotData slot1 = node->getSlot(1);
     REQUIRE_THROWS_AS(node->getSlot(2), InvalidSetup);
 
     REQUIRE(slot0.name == "particles");
-    REQUIRE(slot0.type == WorkerType::PARTICLES);
+    REQUIRE(slot0.type == JobType::PARTICLES);
     REQUIRE(slot0.used);
     REQUIRE(slot0.provider == nullptr);
 
     REQUIRE(slot1.name == "material");
-    REQUIRE(slot1.type == WorkerType::MATERIAL);
+    REQUIRE(slot1.type == JobType::MATERIAL);
     REQUIRE(slot1.used);
     REQUIRE(slot1.provider == nullptr);
 }
 
 TEST_CASE("Checking connections", "[nodes]") {
-    SharedPtr<WorkerNode> node = makeNode<TestWorker>();
-    SharedPtr<WorkerNode> material = makeNode<MaterialWorker>("material");
-    SharedPtr<WorkerNode> particles = makeNode<MonolithicBodyIc>("particles");
+    SharedPtr<JobNode> node = makeNode<TestJob>();
+    SharedPtr<JobNode> material = makeNode<MaterialJob>("material");
+    SharedPtr<JobNode> particles = makeNode<MonolithicBodyIc>("particles");
     REQUIRE(material->getDependentCnt() == 0);
     REQUIRE(particles->getDependentCnt() == 0);
 
@@ -175,9 +175,9 @@ TEST_CASE("Checking connections", "[nodes]") {
 }
 
 TEST_CASE("Node disconnect", "[nodes]") {
-    SharedPtr<WorkerNode> node = makeNode<TestWorker>();
-    SharedPtr<WorkerNode> material = makeNode<MaterialWorker>("material");
-    SharedPtr<WorkerNode> particles = makeNode<MonolithicBodyIc>("particles");
+    SharedPtr<JobNode> node = makeNode<TestJob>();
+    SharedPtr<JobNode> material = makeNode<MaterialJob>("material");
+    SharedPtr<JobNode> particles = makeNode<MonolithicBodyIc>("particles");
     material->connect(node, "material");
     particles->connect(node, "particles");
     REQUIRE(node->getSlot(0).provider == particles);

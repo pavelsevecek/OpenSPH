@@ -9,9 +9,9 @@
 #include "io/FileSystem.h"
 #include "objects/utility/IteratorAdapters.h"
 #include "post/Plot.h"
-#include "run/workers/GeometryWorkers.h"
-#include "run/workers/IoWorkers.h"
-#include "run/workers/ParticleWorkers.h"
+#include "run/workers/GeometryJobs.h"
+#include "run/workers/IoJobs.h"
+#include "run/workers/ParticleJobs.h"
 #include <fstream>
 #include <wx/aboutdlg.h>
 #include <wx/aui/auibook.h>
@@ -94,7 +94,7 @@ public:
     NodeManagerCallbacks(MainWindow* window)
         : window(window) {}
 
-    virtual void startRun(WorkerNode& node, const RunSettings& globals) const override {
+    virtual void startRun(JobNode& node, const RunSettings& globals) const override {
         window->addPage(node.sharedFromThis(), globals, node.instanceName());
     }
 
@@ -582,7 +582,7 @@ wxMenu* MainWindow::createRunMenu() {
         case 4: {
             const Storage& storage = controller->getStorage();
             const std::string text("cached " + notebook->GetPageText(notebook->GetSelection()));
-            AutoPtr<CachedParticlesWorker> worker = makeAuto<CachedParticlesWorker>(text, storage);
+            AutoPtr<CachedParticlesJob> worker = makeAuto<CachedParticlesJob>(text, storage);
             nodePage->addNode(std::move(worker));
             notebook->SetSelection(notebook->GetPageIndex(nodePage));
             break;
@@ -685,7 +685,7 @@ wxMenu* MainWindow::createAnalysisMenu() {
     return analysisMenu;
 }
 
-void MainWindow::addPage(SharedPtr<WorkerNode> node, const RunSettings& globals, const std::string pageName) {
+void MainWindow::addPage(SharedPtr<JobNode> node, const RunSettings& globals, const std::string pageName) {
     AutoPtr<Controller> controller = makeAuto<Controller>(notebook);
     controller->start(node, globals);
 

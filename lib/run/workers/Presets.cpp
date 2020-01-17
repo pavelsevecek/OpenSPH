@@ -1,29 +1,29 @@
 #include "run/workers/Presets.h"
 #include "io/FileSystem.h"
-#include "run/workers/GeometryWorkers.h"
-#include "run/workers/InitialConditionWorkers.h"
-#include "run/workers/IoWorkers.h"
-#include "run/workers/MaterialWorkers.h"
-#include "run/workers/ParticleWorkers.h"
-#include "run/workers/SimulationWorkers.h"
+#include "run/workers/GeometryJobs.h"
+#include "run/workers/InitialConditionJobs.h"
+#include "run/workers/IoJobs.h"
+#include "run/workers/MaterialJobs.h"
+#include "run/workers/ParticleJobs.h"
+#include "run/workers/SimulationJobs.h"
 #include "thread/CheckFunction.h"
 
 NAMESPACE_SPH_BEGIN
 
-SharedPtr<WorkerNode> Presets::makeAsteroidCollision(UniqueNameManager& nameMgr, const Size particleCnt) {
-    SharedPtr<WorkerNode> targetMaterial =
-        makeNode<MaterialWorker>(nameMgr.getName("material"), EMPTY_SETTINGS);
-    SharedPtr<WorkerNode> impactorMaterial =
-        makeNode<DisableDerivativeCriterionWorker>(nameMgr.getName("optimize impactor"));
+SharedPtr<JobNode> Presets::makeAsteroidCollision(UniqueNameManager& nameMgr, const Size particleCnt) {
+    SharedPtr<JobNode> targetMaterial =
+        makeNode<MaterialJob>(nameMgr.getName("material"), EMPTY_SETTINGS);
+    SharedPtr<JobNode> impactorMaterial =
+        makeNode<DisableDerivativeCriterionJob>(nameMgr.getName("optimize impactor"));
     targetMaterial->connect(impactorMaterial, "material");
 
-    SharedPtr<WorkerNode> targetIc = makeNode<MonolithicBodyIc>(nameMgr.getName("target body"));
+    SharedPtr<JobNode> targetIc = makeNode<MonolithicBodyIc>(nameMgr.getName("target body"));
     VirtualSettings targetSettings = targetIc->getSettings();
     targetSettings.set("useMaterialSlot", true);
     targetSettings.set("body.radius", 50._f); // D=100km
     targetSettings.set("particles.count", int(particleCnt));
 
-    SharedPtr<WorkerNode> impactorIc = makeNode<ImpactorIc>(nameMgr.getName("impactor body"));
+    SharedPtr<JobNode> impactorIc = makeNode<ImpactorIc>(nameMgr.getName("impactor body"));
     VirtualSettings impactorSettings = impactorIc->getSettings();
     impactorSettings.set("useMaterialSlot", true);
     impactorSettings.set("body.radius", 10._f); // D=20km
@@ -32,33 +32,33 @@ SharedPtr<WorkerNode> Presets::makeAsteroidCollision(UniqueNameManager& nameMgr,
     targetIc->connect(impactorIc, "target");
 
     CollisionGeometrySettings geometry;
-    SharedPtr<WorkerNode> setup = makeNode<CollisionGeometrySetup>(nameMgr.getName("geometry"), geometry);
+    SharedPtr<JobNode> setup = makeNode<CollisionGeometrySetup>(nameMgr.getName("geometry"), geometry);
     targetIc->connect(setup, "target");
     impactorIc->connect(setup, "impactor");
 
-    SharedPtr<WorkerNode> frag = makeNode<SphWorker>(nameMgr.getName("fragmentation"), EMPTY_SETTINGS);
+    SharedPtr<JobNode> frag = makeNode<SphJob>(nameMgr.getName("fragmentation"), EMPTY_SETTINGS);
     setup->connect(frag, "particles");
 
     return frag;
 }
 
-SharedPtr<WorkerNode> Presets::makeFragmentationAndReaccumulation(UniqueNameManager& nameMgr,
+SharedPtr<JobNode> Presets::makeFragmentationAndReaccumulation(UniqueNameManager& nameMgr,
     const Size particleCnt) {
-    makeNode<SphereWorker>("dummy"); /// \todo needed to include geometry in the list, how??
+    makeNode<SphereJob>("dummy"); /// \todo needed to include geometry in the list, how??
 
-    SharedPtr<WorkerNode> targetMaterial =
-        makeNode<MaterialWorker>(nameMgr.getName("material"), EMPTY_SETTINGS);
-    SharedPtr<WorkerNode> impactorMaterial =
-        makeNode<DisableDerivativeCriterionWorker>(nameMgr.getName("optimize impactor"));
+    SharedPtr<JobNode> targetMaterial =
+        makeNode<MaterialJob>(nameMgr.getName("material"), EMPTY_SETTINGS);
+    SharedPtr<JobNode> impactorMaterial =
+        makeNode<DisableDerivativeCriterionJob>(nameMgr.getName("optimize impactor"));
     targetMaterial->connect(impactorMaterial, "material");
 
-    SharedPtr<WorkerNode> targetIc = makeNode<MonolithicBodyIc>(nameMgr.getName("target body"));
+    SharedPtr<JobNode> targetIc = makeNode<MonolithicBodyIc>(nameMgr.getName("target body"));
     VirtualSettings targetSettings = targetIc->getSettings();
     targetSettings.set("useMaterialSlot", true);
     targetSettings.set("body.radius", 50._f); // D=100km
     targetSettings.set("particles.count", int(particleCnt));
 
-    SharedPtr<WorkerNode> impactorIc = makeNode<ImpactorIc>(nameMgr.getName("impactor body"));
+    SharedPtr<JobNode> impactorIc = makeNode<ImpactorIc>(nameMgr.getName("impactor body"));
     VirtualSettings impactorSettings = impactorIc->getSettings();
     impactorSettings.set("useMaterialSlot", true);
     impactorSettings.set("body.radius", 10._f); // D=20km
@@ -66,42 +66,42 @@ SharedPtr<WorkerNode> Presets::makeFragmentationAndReaccumulation(UniqueNameMana
     impactorMaterial->connect(impactorIc, "material");
     targetIc->connect(impactorIc, "target");
 
-    SharedPtr<WorkerNode> stabTarget =
-        makeNode<SphStabilizationWorker>(nameMgr.getName("stabilize target"), EMPTY_SETTINGS);
+    SharedPtr<JobNode> stabTarget =
+        makeNode<SphStabilizationJob>(nameMgr.getName("stabilize target"), EMPTY_SETTINGS);
     targetIc->connect(stabTarget, "particles");
 
     CollisionGeometrySettings geometry;
-    SharedPtr<WorkerNode> setup = makeNode<CollisionGeometrySetup>(nameMgr.getName("geometry"), geometry);
+    SharedPtr<JobNode> setup = makeNode<CollisionGeometrySetup>(nameMgr.getName("geometry"), geometry);
     stabTarget->connect(setup, "target");
     impactorIc->connect(setup, "impactor");
 
-    SharedPtr<WorkerNode> frag = makeNode<SphWorker>(nameMgr.getName("fragmentation"), EMPTY_SETTINGS);
+    SharedPtr<JobNode> frag = makeNode<SphJob>(nameMgr.getName("fragmentation"), EMPTY_SETTINGS);
     setup->connect(frag, "particles");
-    SharedPtr<WorkerNode> handoff = makeNode<SmoothedToSolidHandoff>(nameMgr.getName("handoff"));
+    SharedPtr<JobNode> handoff = makeNode<SmoothedToSolidHandoff>(nameMgr.getName("handoff"));
     frag->connect(handoff, "particles");
 
-    SharedPtr<WorkerNode> reacc = makeNode<NBodyWorker>(nameMgr.getName("reaccumulation"), EMPTY_SETTINGS);
+    SharedPtr<JobNode> reacc = makeNode<NBodyJob>(nameMgr.getName("reaccumulation"), EMPTY_SETTINGS);
     handoff->connect(reacc, "particles");
 
     return reacc;
 }
 
-SharedPtr<WorkerNode> Presets::makeCratering(UniqueNameManager& nameMgr, const Size particleCnt) {
+SharedPtr<JobNode> Presets::makeCratering(UniqueNameManager& nameMgr, const Size particleCnt) {
     CHECK_FUNCTION(CheckFunction::NO_THROW);
 
-    SharedPtr<WorkerNode> targetMaterial =
-        makeNode<MaterialWorker>(nameMgr.getName("material"), EMPTY_SETTINGS);
+    SharedPtr<JobNode> targetMaterial =
+        makeNode<MaterialJob>(nameMgr.getName("material"), EMPTY_SETTINGS);
 
     const Vector targetSize(100._f, 30._f, 100._f);  // in km
     const Vector domainSize(100._f, 100._f, 100._f); // in km
     const Flags<ForceEnum> forces = ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS;
 
-    SharedPtr<WorkerNode> domain = makeNode<BlockWorker>(nameMgr.getName("boundary"));
+    SharedPtr<JobNode> domain = makeNode<BlockJob>(nameMgr.getName("boundary"));
     VirtualSettings domainSettings = domain->getSettings();
     domainSettings.set("dimensions", domainSize);
     domainSettings.set("center", 0.5_f * (domainSize - targetSize));
 
-    SharedPtr<WorkerNode> targetIc = makeNode<MonolithicBodyIc>(nameMgr.getName("target body"));
+    SharedPtr<JobNode> targetIc = makeNode<MonolithicBodyIc>(nameMgr.getName("target body"));
     VirtualSettings targetSettings = targetIc->getSettings();
     targetSettings.set("useMaterialSlot", true);
     targetSettings.set("particles.count", int(particleCnt));
@@ -109,8 +109,8 @@ SharedPtr<WorkerNode> Presets::makeCratering(UniqueNameManager& nameMgr, const S
     targetSettings.set(BodySettingsId::BODY_DIMENSIONS, targetSize);
     targetMaterial->connect(targetIc, "material");
 
-    SharedPtr<WorkerNode> stabilizeTarget =
-        makeNode<SphStabilizationWorker>(nameMgr.getName("stabilize target"));
+    SharedPtr<JobNode> stabilizeTarget =
+        makeNode<SphStabilizationJob>(nameMgr.getName("stabilize target"));
     VirtualSettings stabilizeSettings = stabilizeTarget->getSettings();
     stabilizeSettings.set(RunSettingsId::RUN_END_TIME, 40._f);
     stabilizeSettings.set(RunSettingsId::DOMAIN_BOUNDARY, EnumWrapper(BoundaryEnum::GHOST_PARTICLES));
@@ -120,21 +120,21 @@ SharedPtr<WorkerNode> Presets::makeCratering(UniqueNameManager& nameMgr, const S
     targetIc->connect(stabilizeTarget, "particles");
     domain->connect(stabilizeTarget, "boundary");
 
-    SharedPtr<WorkerNode> impactorIc = makeNode<ImpactorIc>(nameMgr.getName("impactor body"));
+    SharedPtr<JobNode> impactorIc = makeNode<ImpactorIc>(nameMgr.getName("impactor body"));
     VirtualSettings impactorSettings = impactorIc->getSettings();
     impactorSettings.set("useMaterialSlot", true);
 
     const Float impactorRadius = 2._f;
     impactorSettings.set("body.radius", impactorRadius); // D=4km
 
-    SharedPtr<WorkerNode> impactorMaterial =
-        makeNode<DisableDerivativeCriterionWorker>(nameMgr.getName("optimize impactor"));
+    SharedPtr<JobNode> impactorMaterial =
+        makeNode<DisableDerivativeCriterionJob>(nameMgr.getName("optimize impactor"));
     targetMaterial->connect(impactorMaterial, "material");
 
     impactorMaterial->connect(impactorIc, "material");
     targetIc->connect(impactorIc, "target");
 
-    SharedPtr<WorkerNode> merger = makeNode<JoinParticlesWorker>("merger");
+    SharedPtr<JobNode> merger = makeNode<JoinParticlesJob>("merger");
     VirtualSettings mergerSettings = merger->getSettings();
     mergerSettings.set("offset", Vector(0._f, 50._f, 0._f));   // 50km
     mergerSettings.set("velocity", Vector(0._f, -5._f, 0._f)); // 5km/s
@@ -142,7 +142,7 @@ SharedPtr<WorkerNode> Presets::makeCratering(UniqueNameManager& nameMgr, const S
     stabilizeTarget->connect(merger, "particles A");
     impactorIc->connect(merger, "particles B");
 
-    SharedPtr<WorkerNode> cratering = makeNode<SphWorker>(nameMgr.getName("cratering"), EMPTY_SETTINGS);
+    SharedPtr<JobNode> cratering = makeNode<SphJob>(nameMgr.getName("cratering"), EMPTY_SETTINGS);
     VirtualSettings crateringSettings = cratering->getSettings();
     crateringSettings.set(RunSettingsId::RUN_END_TIME, 1000._f);
     crateringSettings.set(RunSettingsId::DOMAIN_BOUNDARY, EnumWrapper(BoundaryEnum::GHOST_PARTICLES));
@@ -156,20 +156,20 @@ SharedPtr<WorkerNode> Presets::makeCratering(UniqueNameManager& nameMgr, const S
     return cratering;
 }
 
-SharedPtr<WorkerNode> Presets::makeGalaxyCollision(UniqueNameManager& nameMgr,
+SharedPtr<JobNode> Presets::makeGalaxyCollision(UniqueNameManager& nameMgr,
     const Size UNUSED(particleCnt)) {
-    SharedPtr<WorkerNode> galaxyIc = makeNode<GalaxyIc>(nameMgr.getName("galaxy"));
+    SharedPtr<JobNode> galaxyIc = makeNode<GalaxyIc>(nameMgr.getName("galaxy"));
     VirtualSettings galaxySettings = galaxyIc->getSettings();
     galaxySettings.set(GalaxySettingsId::PARTICLE_RADIUS, 0.001_f);
 
-    SharedPtr<WorkerNode> merger = makeNode<JoinParticlesWorker>(nameMgr.getName("merge"));
+    SharedPtr<JobNode> merger = makeNode<JoinParticlesJob>(nameMgr.getName("merge"));
     VirtualSettings mergerSettings = merger->getSettings();
     mergerSettings.set("offset", Vector(0.01_f, 0._f, 0._f));
     mergerSettings.set("velocity", Vector(0._f, 0.0005_f, 0._f));
     mergerSettings.set("com", true);
     mergerSettings.set("unique_flags", true);
 
-    SharedPtr<WorkerNode> rotator = makeNode<TransformParticlesWorker>(nameMgr.getName("rotator"));
+    SharedPtr<JobNode> rotator = makeNode<TransformParticlesJob>(nameMgr.getName("rotator"));
     VirtualSettings rotatorSettings = rotator->getSettings();
     rotatorSettings.set("yaw", 90._f); // 90deg
 
@@ -186,7 +186,7 @@ SharedPtr<WorkerNode> Presets::makeGalaxyCollision(UniqueNameManager& nameMgr,
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 1._f)
         .set(RunSettingsId::GRAVITY_CONSTANT,
             1._f); // should be already provided by GalaxyIc, but doesnt hurt settings explicitly
-    SharedPtr<WorkerNode> run = makeNode<NBodyWorker>(nameMgr.getName("N-body simulation"), settings);
+    SharedPtr<JobNode> run = makeNode<NBodyJob>(nameMgr.getName("N-body simulation"), settings);
     merger->connect(run, "particles");
     return run;
 }

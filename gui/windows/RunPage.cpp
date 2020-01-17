@@ -58,7 +58,7 @@ public:
 
     virtual Float evaluate(const Storage& UNUSED(storage)) const override {
         ASSERT(colorizer->isInitialized(), colorizer->name());
-        return colorizer->evalScalar(selectedIdx).valueOr(0._f);
+        return colorizer->evalScalar(selectedIdx).valueOr(0.f);
     }
 
     virtual std::string getName() const override {
@@ -274,7 +274,7 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     const Float cutoff = gui.get<Float>(GuiSettingsId::CAMERA_ORTHO_CUTOFF) * 1.e-3_f;
 
     FloatTextCtrl* cutoffCtrl = new FloatTextCtrl(particleBox, cutoff, Interval(0, LARGE));
-    cutoffCtrl->onValueChanged = [this](const Float value) { this->updateCutoff(value * 1.e3_f); };
+    cutoffCtrl->onValueChanged = [this](const double value) { this->updateCutoff(value * 1.e3_f); };
     cutoffCtrl->SetToolTip(
         "Specifies the cutoff distance in kilometers for rendering particles. When set to a positive number, "
         "only particles in a layer of specified thickness are rendered. Zero means all particles are "
@@ -700,7 +700,7 @@ void RunPage::updateCutoff(const double cutoff) {
     // modified and fed to controller. Using controller's camera would cause cutoff to be later overriden by
     // the camera from pane.
     ICamera& camera = pane->getCamera();
-    camera.setCutoff(cutoff > 0 ? Optional<float>(cutoff) : NOTHING);
+    camera.setCutoff(cutoff > 0. ? Optional<float>(float(cutoff)) : NOTHING);
     controller->refresh(camera.clone());
     controller->tryRedraw();
 }

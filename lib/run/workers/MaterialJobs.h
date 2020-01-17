@@ -1,6 +1,6 @@
 #pragma once
 
-#include "run/Worker.h"
+#include "run/Job.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -15,15 +15,15 @@ protected:
     void addMaterialEntries(VirtualSettings::Category& category, Function<bool()> enabler);
 };
 
-class MaterialWorker : public IMaterialWorker, public MaterialProvider {
+class MaterialJob : public IMaterialJob, public MaterialProvider {
 public:
-    MaterialWorker(const std::string& name, const BodySettings& overrides = EMPTY_SETTINGS);
+    MaterialJob(const std::string& name, const BodySettings& overrides = EMPTY_SETTINGS);
 
     virtual std::string className() const override {
         return "material";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
         return {};
     }
 
@@ -32,17 +32,17 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class DisableDerivativeCriterionWorker : public IMaterialWorker {
+class DisableDerivativeCriterionJob : public IMaterialJob {
 public:
-    DisableDerivativeCriterionWorker(const std::string& name)
-        : IMaterialWorker(name) {}
+    DisableDerivativeCriterionJob(const std::string& name)
+        : IMaterialJob(name) {}
 
     virtual std::string className() const override {
         return "optimize timestepping";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "material", WorkerType::MATERIAL } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "material", JobType::MATERIAL } };
     }
 
     virtual VirtualSettings getSettings() override;

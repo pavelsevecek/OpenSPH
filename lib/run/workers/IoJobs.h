@@ -1,17 +1,17 @@
 #pragma once
 
 #include "quantities/CompressedStorage.h"
-#include "run/Worker.h"
+#include "run/Job.h"
 
 NAMESPACE_SPH_BEGIN
 
-class LoadFileWorker : public IParticleWorker {
+class LoadFileJob : public IParticleJob {
 private:
     Path path;
 
 public:
-    LoadFileWorker(const Path& path = Path("file.ssf"))
-        : IParticleWorker("")
+    LoadFileJob(const Path& path = Path("file.ssf"))
+        : IParticleJob("")
         , path(path.native()) {}
 
     virtual std::string instanceName() const override {
@@ -26,7 +26,7 @@ public:
         return "load file";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
         return {};
     }
 
@@ -37,7 +37,7 @@ public:
 
 FlatMap<Size, Path> getFileSequence(const Path& firstFile);
 
-class FileSequenceWorker : public IParticleWorker {
+class FileSequenceJob : public IParticleJob {
 private:
     Path firstFile;
 
@@ -49,15 +49,15 @@ private:
     } cache;
 
 public:
-    FileSequenceWorker(const std::string& name, const Path& firstFile = Path("file_0000.ssf"))
-        : IParticleWorker(name)
+    FileSequenceJob(const std::string& name, const Path& firstFile = Path("file_0000.ssf"))
+        : IParticleJob(name)
         , firstFile(firstFile.native()) {}
 
     virtual std::string className() const override {
         return "load sequence";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
         return {};
     }
 
@@ -67,12 +67,12 @@ public:
 };
 
 
-class SaveFileWorker : public IParticleWorker {
+class SaveFileJob : public IParticleJob {
 private:
     RunSettings settings;
 
 public:
-    explicit SaveFileWorker(const std::string& name);
+    explicit SaveFileJob(const std::string& name);
 
     virtual std::string instanceName() const override {
         if (instName.empty()) {
@@ -87,8 +87,8 @@ public:
         return "save file";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -96,7 +96,7 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class SaveMeshWorker : public IParticleWorker {
+class SaveMeshJob : public IParticleJob {
 private:
     Path path = Path("surface.ply");
     Float resolution = 1.e4_f;
@@ -106,15 +106,15 @@ private:
     bool refine = false;
 
 public:
-    explicit SaveMeshWorker(const std::string& name)
-        : IParticleWorker(name) {}
+    explicit SaveMeshJob(const std::string& name)
+        : IParticleJob(name) {}
 
     virtual std::string className() const override {
         return "save mesh";
     }
 
-    virtual UnorderedMap<std::string, WorkerType> getSlots() const override {
-        return { { "particles", WorkerType::PARTICLES } };
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override;

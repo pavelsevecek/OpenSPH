@@ -4,7 +4,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-FloatTextCtrl::FloatTextCtrl(wxWindow* parent, const float value, const Interval range)
+FloatTextCtrl::FloatTextCtrl(wxWindow* parent, const double value, const Interval range)
     : value(value)
     , range(range) {
 

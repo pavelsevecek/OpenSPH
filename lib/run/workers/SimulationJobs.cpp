@@ -1,4 +1,4 @@
-#include "run/workers/SimulationWorkers.h"
+#include "run/workers/SimulationJobs.h"
 #include "gravity/AggregateSolver.h"
 #include "io/LogWriter.h"
 #include "io/Logger.h"
@@ -137,14 +137,14 @@ public:
     }
 };
 
-SphWorker::SphWorker(const std::string& name, const RunSettings& overrides)
-    : IRunWorker(name) {
+SphJob::SphJob(const std::string& name, const RunSettings& overrides)
+    : IRunJob(name) {
     settings = getDefaultSettings(name);
 
     settings.addEntries(overrides);
 }
 
-RunSettings SphWorker::getDefaultSettings(const std::string& name) {
+RunSettings SphJob::getDefaultSettings(const std::string& name) {
     const Size dumpCnt = 10;
     const Interval timeRange(0, 10);
 
@@ -182,7 +182,7 @@ RunSettings SphWorker::getDefaultSettings(const std::string& name) {
     return settings;
 }
 
-VirtualSettings SphWorker::getSettings() {
+VirtualSettings SphJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     addTimeSteppingCategory(connector, settings, isResumed);
@@ -195,6 +195,8 @@ VirtualSettings SphWorker::getSettings() {
                ArtificialViscosityEnum::NONE;
     };
     auto asEnabler = [this] { return settings.get<bool>(RunSettingsId::SPH_AV_USE_STRESS); };
+    // auto acEnabler = [this] { return settings.get<bool>(RunSettingsId::SPH_USE_AC); };
+    auto deltaSphEnabler = [this] { return settings.get<bool>(RunSettingsId::SPH_USE_DELTASPH); };
 
     VirtualSettings::Category& solverCat = connector.addCategory("SPH solver");
     solverCat.connect<Flags<ForceEnum>>("Forces", settings, RunSettingsId::SPH_SOLVER_FORCES);
@@ -229,6 +231,18 @@ VirtualSettings SphWorker::getSettings() {
         .setEnabler(asEnabler);
     avCat.connect<Float>("Artificial stress exponent", settings, RunSettingsId::SPH_AV_STRESS_EXPONENT)
         .setEnabler(asEnabler);
+    avCat.connect<bool>("Apply artificial conductivity", settings, RunSettingsId::SPH_USE_AC);
+
+    VirtualSettings::Category& modCat = connector.addCategory("SPH modifications");
+    modCat.connect<bool>("Enable XPSH", settings, RunSettingsId::SPH_USE_XSPH);
+    modCat.connect<Float>("XSPH epsilon", settings, RunSettingsId::SPH_XSPH_EPSILON).setEnabler([this] {
+        return settings.get<bool>(RunSettingsId::SPH_USE_XSPH);
+    });
+    modCat.connect<bool>("Enable delta-SPH", settings, RunSettingsId::SPH_USE_DELTASPH);
+    modCat.connect<Float>("delta-SPH alpha", settings, RunSettingsId::SPH_VELOCITY_DIFFUSION_ALPHA)
+        .setEnabler(deltaSphEnabler);
+    modCat.connect<Float>("delta-SPH delta", settings, RunSettingsId::SPH_DENSITY_DIFFUSION_DELTA)
+        .setEnabler(deltaSphEnabler);
 
     VirtualSettings::Category& scriptCat = connector.addCategory("Scripts");
     scriptCat.connect<bool>("Enable script", settings, RunSettingsId::SPH_SCRIPT_ENABLE);
@@ -243,7 +257,7 @@ VirtualSettings SphWorker::getSettings() {
     return connector;
 }
 
-AutoPtr<IRun> SphWorker::getRun(const RunSettings& overrides) const {
+AutoPtr<IRun> SphJob::getRun(const RunSettings& overrides) const {
     ASSERT(overrides.size() < 10); // not really required, just checking that we don't override everything
     const BoundaryEnum boundary = settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY);
     SharedPtr<IDomain> domain;
@@ -259,10 +273,10 @@ AutoPtr<IRun> SphWorker::getRun(const RunSettings& overrides) const {
     return makeAuto<SphRun>(run, domain);
 }
 
-static WorkerRegistrar sRegisterSph(
+static JobRegistrar sRegisterSph(
     "SPH run",
     "simulations",
-    [](const std::string& name) { return makeAuto<SphWorker>(name, EMPTY_SETTINGS); },
+    [](const std::string& name) { return makeAuto<SphJob>(name, EMPTY_SETTINGS); },
     "Runs a SPH simulation, using provided initial conditions.");
 
 // ----------------------------------------------------------------------------------------------------------
@@ -283,8 +297,8 @@ public:
     }
 };
 
-VirtualSettings SphStabilizationWorker::getSettings() {
-    VirtualSettings connector = SphWorker::getSettings();
+VirtualSettings SphStabilizationJob::getSettings() {
+    VirtualSettings connector = SphJob::getSettings();
 
     VirtualSettings::Category& stabCat = connector.addCategory("Stabilization");
     stabCat.connect<Float>("Damping coefficient", settings, RunSettingsId::SPH_STABILIZATION_DAMPING);
@@ -292,7 +306,7 @@ VirtualSettings SphStabilizationWorker::getSettings() {
     return connector;
 }
 
-AutoPtr<IRun> SphStabilizationWorker::getRun(const RunSettings& overrides) const {
+AutoPtr<IRun> SphStabilizationJob::getRun(const RunSettings& overrides) const {
     RunSettings run = overrideSettings(settings, overrides, isResumed);
     const BoundaryEnum boundary = settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY);
     SharedPtr<IDomain> domain;
@@ -302,11 +316,11 @@ AutoPtr<IRun> SphStabilizationWorker::getRun(const RunSettings& overrides) const
     return makeAuto<SphStabilizationRun>(run, domain);
 }
 
-static WorkerRegistrar sRegisterSphStab(
+static JobRegistrar sRegisterSphStab(
     "SPH stabilization",
     "stabilization",
     "simulations",
-    [](const std::string& name) { return makeAuto<SphStabilizationWorker>(name, EMPTY_SETTINGS); },
+    [](const std::string& name) { return makeAuto<SphStabilizationJob>(name, EMPTY_SETTINGS); },
     "Runs a SPH simulation with a damping term, suitable for stabilization of non-equilibrium initial "
     "conditions.");
 
@@ -345,14 +359,14 @@ public:
     }
 };
 
-NBodyWorker::NBodyWorker(const std::string& name, const RunSettings& overrides)
-    : IRunWorker(name) {
+NBodyJob::NBodyJob(const std::string& name, const RunSettings& overrides)
+    : IRunJob(name) {
 
     settings = getDefaultSettings(name);
     settings.addEntries(overrides);
 }
 
-RunSettings NBodyWorker::getDefaultSettings(const std::string& name) {
+RunSettings NBodyJob::getDefaultSettings(const std::string& name) {
     const Interval timeRange(0, 1.e6_f);
     RunSettings settings;
     settings.set(RunSettingsId::RUN_NAME, name)
@@ -386,7 +400,7 @@ RunSettings NBodyWorker::getDefaultSettings(const std::string& name) {
     return settings;
 }
 
-VirtualSettings NBodyWorker::getSettings() {
+VirtualSettings NBodyJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     addTimeSteppingCategory(connector, settings, isResumed);
@@ -426,15 +440,15 @@ VirtualSettings NBodyWorker::getSettings() {
     return connector;
 }
 
-AutoPtr<IRun> NBodyWorker::getRun(const RunSettings& overrides) const {
+AutoPtr<IRun> NBodyJob::getRun(const RunSettings& overrides) const {
     RunSettings run = overrideSettings(settings, overrides, isResumed);
     return makeAuto<NBodyRun>(run);
 }
 
-static WorkerRegistrar sRegisterNBody(
+static JobRegistrar sRegisterNBody(
     "N-body run",
     "simulations",
-    [](const std::string& name) { return makeAuto<NBodyWorker>(name, EMPTY_SETTINGS); },
+    [](const std::string& name) { return makeAuto<NBodyJob>(name, EMPTY_SETTINGS); },
     "Runs N-body simulation using given initial conditions.");
 
 
