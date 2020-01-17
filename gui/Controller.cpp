@@ -484,15 +484,14 @@ Optional<Size> Controller::getIntersectedParticle(const Pixel position, const fl
     cameraLock.unlock();
 
     const GuiSettings& gui = project.getGuiSettings();
-    const float radius = float(gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS));
+    const float radius = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
     const Optional<CameraRay> ray = camera->unproject(Coords(position));
     if (!ray) {
         return NOTHING;
     }
 
     const float cutoff = camera->getCutoff().valueOr(0.f);
-    const Vector rayDir = getNormalized(ray->target - ray->origin);
-    const Vector camDir = camera->getFrame().row(2);
+    const Vector dir = getNormalized(ray->target - ray->origin);
 
     struct {
         float t = -std::numeric_limits<float>::lowest();
@@ -506,7 +505,7 @@ Optional<Size> Controller::getIntersectedParticle(const Pixel position, const fl
             // particle not visible by the camera
             continue;
         }
-        if (cutoff != 0._f && abs(dot(camDir, vis.positions[i])) > cutoff) {
+        if (cutoff != 0._f && abs(dot(camera->getDirection(), vis.positions[i])) > cutoff) {
             // particle cut off by projection
             /// \todo This is really weird, we are duplicating code of ParticleRenderer in a function that
             /// really makes only sense with ParticleRenderer. Needs refactoring.
@@ -514,11 +513,11 @@ Optional<Size> Controller::getIntersectedParticle(const Pixel position, const fl
         }
 
         const Vector r = vis.positions[i] - ray->origin;
-        const float t = float(dot(r, rayDir));
-        const Vector projected = r - t * rayDir;
+        const float t = dot(r, dir);
+        const Vector projected = r - t * dir;
         /// \todo this radius computation is actually renderer-specific ...
-        const float radiusSqr = float(sqr(vis.positions[i][H] * radius));
-        const float distanceSqr = float(getSqrLength(projected));
+        const float radiusSqr = sqr(vis.positions[i][H] * radius);
+        const float distanceSqr = getSqrLength(projected);
         if (distanceSqr < radiusSqr * sqr(1._f + toleranceEps)) {
             const bool wasHitOutside = distanceSqr > radiusSqr;
             // hit candidate, check if it's closer or current candidate was hit outside the actual radius
