@@ -79,10 +79,6 @@ VirtualSettings AnimationJob::getSettings() {
     rendererCat.connect<int>("Interation count", gui, GuiSettingsId::RAYTRACE_ITERATION_LIMIT)
         .setEnabler(raytracerEnabler);
 
-    VirtualSettings::Category& anaglyphCat = connector.addCategory("Anaglyph");
-    anaglyphCat.connect<bool>("Enable anaglyph", gui, GuiSettingsId::CAMERA_ANAGLYPH_ENABLE);
-    anaglyphCat.connect<Float>("Eye separation", gui, GuiSettingsId::CAMERA_ANAGLYPH_EYE_SEPARATION);
-
     VirtualSettings::Category& textureCat = connector.addCategory("Texture paths");
     textureCat.connect<std::string>("Body 1", gui, GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY)
         .setEnabler(raytracerEnabler);
