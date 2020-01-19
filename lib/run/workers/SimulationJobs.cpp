@@ -207,15 +207,13 @@ VirtualSettings SphJob::getSettings() {
         .setUnits(Constants::R_earth);
     solverCat.connect<EnumWrapper>("Solver type", settings, RunSettingsId::SPH_SOLVER_TYPE);
     solverCat.connect<EnumWrapper>("SPH discretization", settings, RunSettingsId::SPH_DISCRETIZATION);
+    solverCat.connect<Flags<SmoothingLengthEnum>>(
+        "Adaptive smoothing length", settings, RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH);
     solverCat
         .connect<bool>("Apply correction tensor", settings, RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR)
         .setEnabler(stressEnabler);
     solverCat.connect<bool>("Sum only undamaged particles", settings, RunSettingsId::SPH_SUM_ONLY_UNDAMAGED);
     solverCat.connect<EnumWrapper>("Neighbour finder", settings, RunSettingsId::SPH_FINDER);
-    /*solverCat.connect<int>("Max leaf size", settings, RunSettingsId::FINDER_LEAF_SIZE)
-        .setEnabler(treeEnabler);
-    solverCat.connect<int>("Max parallel depth", settings, RunSettingsId::FINDER_MAX_PARALLEL_DEPTH)
-        .setEnabler(treeEnabler);*/
     solverCat.connect<EnumWrapper>("Boundary condition", settings, RunSettingsId::DOMAIN_BOUNDARY);
 
     VirtualSettings::Category& avCat = connector.addCategory("Artificial viscosity");

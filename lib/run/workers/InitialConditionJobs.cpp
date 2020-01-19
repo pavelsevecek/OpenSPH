@@ -43,6 +43,7 @@ void MonolithicBodyIc::addParticleCategory(VirtualSettings& settings) {
     particleCat.connect<EnumWrapper>("Distribution", body, BodySettingsId::INITIAL_DISTRIBUTION);
     particleCat.connect<Float>("Radius multiplier", body, BodySettingsId::SMOOTHING_LENGTH_ETA);
     particleCat.connect<bool>("Exact distance", body, BodySettingsId::DISTRIBUTE_MODE_SPH5);
+    particleCat.connect<bool>("Center particles", body, BodySettingsId::CENTER_PARTICLES);
 }
 
 VirtualSettings MonolithicBodyIc::getSettings() {
