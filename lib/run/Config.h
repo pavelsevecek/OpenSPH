@@ -107,6 +107,38 @@ public:
 
 /// \copydoc ConfigValue.
 ///
+/// Specialization for \ref Interval.
+template <>
+class ConfigValue<Interval> : public IConfigValue {
+private:
+    Interval value;
+
+public:
+    ConfigValue() = default;
+
+    ConfigValue(const Interval& value)
+        : value(value) {}
+
+    virtual std::string write() const override {
+        std::stringstream ss;
+        ss << value;
+        return ss.str();
+    }
+
+    virtual void read(const std::string& source) override {
+        std::stringstream ss(source);
+        Float lower, upper;
+        ss >> lower >> upper;
+        value = Interval(lower, upper);
+    }
+
+    Interval get() const {
+        return value;
+    }
+};
+
+/// \copydoc ConfigValue.
+///
 /// Specialization for \ref std::string.
 template <>
 class ConfigValue<std::string> : public IConfigValue {

@@ -6,7 +6,7 @@
 NAMESPACE_SPH_BEGIN
 
 inline std::pair<int, int> makeEdge(const int i1, const int i2) {
-    return std::make_pair(std::min(i1, i2), std::max(i1, i2));
+    return std::make_pair(min(i1, i2), max(i1, i2));
 }
 
 bool isMeshClosed(const Mesh& mesh) {

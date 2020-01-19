@@ -10,8 +10,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-// #define NO_ROUNDING_MODE
-
+#define SPH_NO_ROUNDING_MODE
 
 /// Helper object for storing three (possibly four) int or bool values.
 class Indices {
@@ -33,7 +32,7 @@ public:
         : data(_mm_set_epi32(l, k, j, i)) {}
 
 /// Constructs indices by casting components of vectors to ints
-#ifndef NO_ROUNDING_MODE
+#ifndef SPH_NO_ROUNDING_MODE
     INLINE explicit Indices(const BasicVector<float>& v) {
         data = _mm_cvtps_epi32(v.sse());
     }
@@ -52,7 +51,7 @@ public:
 
     /// Must be called once before Indices are used
     INLINE static void init() {
-#ifndef NO_ROUNDING_MODE
+#ifndef SPH_NO_ROUNDING_MODE
         _MM_SET_ROUNDING_MODE(_MM_ROUND_DOWN);
 #endif
     }
@@ -62,7 +61,7 @@ public:
         return *this;
     }
 
-#ifndef NO_ROUNDING_MODE
+#ifndef SPH_NO_ROUNDING_MODE
     INLINE operator BasicVector<float>() const {
         return BasicVector<float>(_mm_cvtepi32_ps(data));
     }

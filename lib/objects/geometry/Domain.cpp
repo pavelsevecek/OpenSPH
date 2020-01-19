@@ -18,6 +18,10 @@ Float SphericalDomain::getVolume() const {
     return sphereVolume(radius);
 }
 
+Float SphericalDomain::getSurfaceArea() const {
+    return sphereSurfaceArea(radius);
+}
+
 Box SphericalDomain::getBoundingBox() const {
     const Vector r(radius);
     return Box(this->center - r, this->center + r);
@@ -121,6 +125,13 @@ Float EllipsoidalDomain::getVolume() const {
     return sphereVolume(effectiveRadius);
 }
 
+Float EllipsoidalDomain::getSurfaceArea() const {
+    // https://en.wikipedia.org/wiki/Ellipsoid#Surface_area
+    constexpr Float p = 1.6075_f;
+    const Float sum = pow(radii[X] * radii[Y], p) + pow(radii[X] * radii[Z], p) + pow(radii[Y] * radii[Z], p);
+    return 4._f * PI * pow(sum / 3._f, 1._f / p);
+}
+
 Box EllipsoidalDomain::getBoundingBox() const {
     return Box(center - radii, center + radii);
 }
@@ -204,6 +215,11 @@ Vector BlockDomain::getCenter() const {
 
 Float BlockDomain::getVolume() const {
     return box.volume();
+}
+
+Float BlockDomain::getSurfaceArea() const {
+    const Vector size = box.size();
+    return 2._f * (size[X] * size[Y] + size[X] * size[Z] + size[Y] * size[Z]);
 }
 
 Box BlockDomain::getBoundingBox() const {
@@ -335,6 +351,10 @@ Float CylindricalDomain::getVolume() const {
     return PI * sqr(radius) * height;
 }
 
+Float CylindricalDomain::getSurfaceArea() const {
+    return 2._f * PI * sqr(radius) + height * 2._f * PI * radius;
+}
+
 Box CylindricalDomain::getBoundingBox() const {
     const Vector sides(radius, radius, 0.5_f * height);
     return Box(this->center - sides, this->center + sides);
@@ -459,6 +479,10 @@ Float HexagonalDomain::getVolume() const {
     return 1.5_f * sqrt(3._f) * sqr(outerRadius);
 }
 
+Float HexagonalDomain::getSurfaceArea() const {
+    NOT_IMPLEMENTED;
+}
+
 Box HexagonalDomain::getBoundingBox() const {
     const Vector sides(outerRadius, outerRadius, 0.5_f * height);
     return Box(this->center - sides, this->center + sides);
@@ -579,6 +603,11 @@ Float GaussianRandomSphere::getVolume() const {
     return sphereVolume(a) * exp(3._f * sqr(beta));
 }
 
+Float GaussianRandomSphere::getSurfaceArea() const {
+    NOT_IMPLEMENTED;
+    return 0._f;
+}
+
 Box GaussianRandomSphere::getBoundingBox() const {
     Box box; /// \todo
     box.extend(center - 2._f * Vector(a));
@@ -639,6 +668,10 @@ Vector HalfSpaceDomain::getCenter() const {
 }
 
 Float HalfSpaceDomain::getVolume() const {
+    return INFTY;
+}
+
+Float HalfSpaceDomain::getSurfaceArea() const {
     return INFTY;
 }
 
@@ -730,6 +763,11 @@ Vector TransformedDomain::getCenter() const {
 
 Float TransformedDomain::getVolume() const {
     return domain->getVolume() * tm.determinant();
+}
+
+Float TransformedDomain::getSurfaceArea() const {
+    NOT_IMPLEMENTED;
+    return domain->getSurfaceArea();
 }
 
 Box TransformedDomain::getBoundingBox() const {

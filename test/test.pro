@@ -122,6 +122,7 @@ SOURCES += \
     ../lib/sph/solvers/test/Solvers.cpp \
     ../lib/sph/solvers/test/StandardSets.cpp \
     ../lib/sph/solvers/test/StaticSolver.cpp \
+    ../lib/sph/solvers/test/AsymmetricSolver.cpp \
     ../lib/sph/test/Diagnostics.cpp \
     ../lib/system/test/ArgsParser.cpp \
     ../lib/system/test/ArrayStats.cpp \

@@ -91,7 +91,7 @@ void ContourRenderer::render(const RenderParams& params,
             Float sum = 0._f;
             Float weight = 0._f;
             for (const NeighbourRecord& n : neighs) {
-                const float w = kernel.value(pos - cached.positions[n.index], h);
+                const float w = float(kernel.value(pos - cached.positions[n.index], h));
                 sum += cached.values[n.index] * w;
                 weight += w;
             }

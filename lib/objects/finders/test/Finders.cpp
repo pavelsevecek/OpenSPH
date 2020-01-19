@@ -1,6 +1,7 @@
 #include "catch.hpp"
 #include "io/FileManager.h"
 #include "objects/finders/BruteForceFinder.h"
+#include "objects/finders/HashMapFinder.h"
 #include "objects/finders/KdTree.h"
 #include "objects/finders/LinkedList.h"
 #include "objects/finders/Octree.h"
@@ -392,5 +393,10 @@ TEST_CASE("KdTree empty leaf bug", "[finders]") {
 
 TEST_CASE("UniformGridFinder", "[finders]") {
     UniformGridFinder finder;
+    testFinder(finder);
+}
+
+TEST_CASE("HashMapFinder", "[finders]") {
+    HashMapFinder finder(RunSettings::getDefaults());
     testFinder(finder);
 }

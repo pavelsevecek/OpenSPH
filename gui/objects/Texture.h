@@ -73,14 +73,14 @@ private:
         const Size v1 = int(textureUvw[Y]);
         const Size u2 = u1 + 1;
         const Size v2 = v1 + 1;
-        const Float a = textureUvw[X] - u1;
-        const Float b = textureUvw[Y] - v1;
-        ASSERT(a >= 0._f && a < 1._f, a);
-        ASSERT(b >= 0._f && b < 1._f, b);
+        const float a = float(textureUvw[X] - u1);
+        const float b = float(textureUvw[Y] - v1);
+        ASSERT(a >= 0.f && a < 1.f, a);
+        ASSERT(b >= 0.f && b < 1.f, b);
 
-        return Rgba(bitmap[Pixel(u1, v1)]) * (1._f - a) * (1._f - b) +
-               Rgba(bitmap[Pixel(u2, v1)]) * a * (1._f - b) + //
-               Rgba(bitmap[Pixel(u1, v2)]) * (1._f - a) * b + //
+        return Rgba(bitmap[Pixel(u1, v1)]) * (1.f - a) * (1.f - b) +
+               Rgba(bitmap[Pixel(u2, v1)]) * a * (1.f - b) + //
+               Rgba(bitmap[Pixel(u1, v2)]) * (1.f - a) * b + //
                Rgba(bitmap[Pixel(u2, v2)]) * a * b;
     }
 };

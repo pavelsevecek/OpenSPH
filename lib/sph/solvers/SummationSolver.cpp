@@ -41,7 +41,7 @@ SummationSolver<Dim>::SummationSolver(IScheduler& scheduler,
     densityKernel = Factory::getKernel<Dim>(settings);
     Flags<SmoothingLengthEnum> flags =
         settings.getFlags<SmoothingLengthEnum>(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH);
-    adaptiveH = !flags.has(SmoothingLengthEnum::CONST);
+    adaptiveH = (flags != EMPTY_FLAGS);
     maxIteration = adaptiveH ? settings.get<int>(RunSettingsId::SPH_SUMMATION_MAX_ITERATIONS) : 1;
 }
 

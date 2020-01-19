@@ -69,17 +69,23 @@ public:
         return getSqrLength(p - other.p) < sqr(r + other.r);
     }
 
-    /// \brief Checks the intersection of the sphere with a box
-    /// \todo not all branches are actually needed by TreeWalk, possibly optimize by some constexpr flag
-    INLINE IntersectResult intersectsBox(const Box& box) const {
-        ASSERT(box != Box::EMPTY());
+    /// \brief Checks whether the sphere partially or fully overlaps given box.
+    INLINE bool overlaps(const Box& box) const {
         const Vector leftOf = max(box.lower() - p, Vector(0._f));
         const Vector rightOf = max(p - box.upper(), Vector(0._f));
         const Float rSqr = sqr(r);
         const Float distSqr = rSqr - getSqrLength(leftOf) - getSqrLength(rightOf);
-        if (distSqr <= 0._f) {
+        return distSqr > 0._f;
+    }
+
+    /// \brief Checks the intersection of the sphere with a box
+    /// \todo not all branches are actually needed by TreeWalk, possibly optimize by some constexpr flag
+    INLINE IntersectResult intersectsBox(const Box& box) const {
+        ASSERT(box != Box::EMPTY());
+        if (!this->overlaps(box)) {
             return IntersectResult::BOX_OUTSIDE_SPHERE;
         }
+        const Float rSqr = sqr(r);
         // either the whole box is inside the sphere, or it intersects the sphere
         auto vertexInsideSphere = [&](const Vector& v) { return getSqrLength(v - p) < rSqr; };
         if (!vertexInsideSphere(box.lower())) {

@@ -1,5 +1,6 @@
 #include "post/MarchingCubes.h"
 #include "objects/finders/NeighbourFinder.h"
+#include "post/Analysis.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
@@ -595,12 +596,6 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
     MEASURE_SCOPE("getSurfaceMesh");
 
     // (according to http://www.cc.gatech.edu/~turk/my_papers/sph_surfaces.pdf)
-    // const Float lambda = 0.9_f;
-    const Float kr = 4._f;
-    const Float ks = 1400._f;
-    const Float kn = 0.5_f;
-    const Size Ne = 25;
-
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     // ArrayView<const Size> neighCnt = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
@@ -615,72 +610,15 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
 
     ThreadLocal<Array<NeighbourRecord>> neighsData(scheduler);
     parallelFor(scheduler, 0, r.size(), [&](const Size i) {
-        /*Array<NeighbourRecord>& neighs = neighsData.local();
-        finder->findAll(i, 2._f * r[i][H], neighs);
-        // 1. compute the mean particle positions and the denoised (bar) positions
-        Vector wr(0._f);
-        Float wsum = 0._f;
-        for (NeighbourRecord& n : neighs) {
-            const Size j = n.index;
-            const Float w = weight(r[i], r[j]);
-            wr += w * r[j];
-            wsum += w;
-        }
-        ASSERT(wsum > 0._f);
-        // Eq. (10) from the paper
-        const Vector r_mean = wr / wsum;*/
-        // Eq. (6)
         r_bar[i] = r[i]; //<(1._f - lambda) * r[i] + lambda * wr / wsum;
         r_bar[i][H] = r[i][H] * smoothingMult;
-        // 2. compute the covariance matrix, utilizing the mean positions
-        /*SymmetricTensor cov = SymmetricTensor::null();
-        for (NeighbourRecord& n : neighs) {
-            const Size j = n.index;
-            const Float w = weight(r[i], r[j]); /// \todo can be probably cached
-            // Eq. (9)
-            cov += w * symmetricOuter(r[j] - r_mean, r[j] - r_mean);
-        }
-        C[i] = cov / wsum;*/
-
-        /*Svd svd = singularValueDecomposition(C[i]);
-        std::sort((Float*)&svd.S, ((Float*)&svd.S) + 3, std::greater<Float>{});
-        ASSERT(svd.S[X] >= svd.S[Y] &&
-               svd.S[Y] >= svd.S[Z]); // temporary check, either make sure the implementation
-                                      // behaves like this or sort it afterwards
-        // 3. 'fix' the singular values (end of Sec. 4)
-        if (neighCnt[i] > Ne) {
-            svd.S[Y] = max(svd.S[Y], svd.S[X] / kr);
-            svd.S[Z] = max(svd.S[Z], svd.S[X] / kr);
-            svd.S = (ks * svd.S);
-        } else {
-            svd.S = Vector(1._f / kn);
-        }*/
-
-        // 4. get the final anisotropy matrix using Eq. (16)
-        // const AffineMatrix matrix = svd.U * AffineMatrix::scale(svd.S) * svd.V.transpose();
-        // C[i] = convert<SymmetricTensor>(0.5_f * (matrix + matrix.transpose()));
-        (void)ks;
-        (void)kr;
-        (void)kn;
-        (void)Ne;
-        // C[i] = SymmetricTensor::identity(); // C[i].pseudoInverse(1.e-6_f);
-
-        // C[i] = SymmetricTensor::identity();
-        // C[i] = C[i].inverse();
-        // C[i] = C[i] / (root<3>(C[i].determinant()) * r[i][H]);
     });
 
     /// \todo we skip the anisotropy correction for now
     // 5. find bounding box and maximum h (we need to search neighbours of arbitrary point in space)
-    Box box;
+
     Float maxH = 0._f;
     for (Size i = 0; i < r_bar.size(); ++i) {
-        /*if (neighCnt[i] < 10) {
-            continue; // don't mesh separated particles
-        }*/
-        const Vector dr = Vector(r_bar[i][H] * kernel.radius());
-        box.extend(r_bar[i] + dr);
-        box.extend(r_bar[i] - dr);
         maxH = max(maxH, r_bar[i][H]);
     }
     SharedPtr<IScalarField> field;
@@ -690,10 +628,27 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
     } else {
         field = makeShared<FallbackField>(scheduler, r_bar, maxH, std::move(kernel), std::move(finder));
     }
+
     MarchingCubes mc(scheduler, surfaceLevel, field, progressCallback);
 
-    // 6. find the surface using marching cubes
-    mc.addComponent(box, gridResolution);
+    Array<Size> components;
+    const Size numComponents = Post::findComponents(storage, 2._f, Post::ComponentFlag::OVERLAP, components);
+
+    // 6. find the surface using marching cubes for each component
+    Array<Box> boxes(numComponents);
+    Array<Size> counts(numComponents);
+    counts.fill(0);
+    for (Size j = 0; j < components.size(); ++j) {
+        const Vector padding(max(2._f * r_bar[j][H], 2._f * gridResolution));
+        boxes[components[j]].extend(r_bar[j] + padding);
+        boxes[components[j]].extend(r_bar[j] - padding);
+        counts[components[j]]++;
+    }
+    for (Size i = 0; i < numComponents; ++i) {
+        if (counts[i] > 10) {
+            mc.addComponent(boxes[i], gridResolution);
+        }
+    }
 
     return std::move(mc.getTriangles());
 }

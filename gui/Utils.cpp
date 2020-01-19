@@ -112,10 +112,10 @@ void drawTextWithSubscripts(wxDC& dc, const std::wstring& text, const wxPoint po
 }
 
 
-std::wstring toPrintableString(const float value, const Size precision, const float decimalThreshold) {
-    const float absValue = abs(value);
+std::wstring toPrintableString(const Float value, const Size precision, const Float decimalThreshold) {
+    const Float absValue = abs(value);
     std::stringstream ss;
-    if (absValue == 0.f || (absValue >= 1.f / decimalThreshold && absValue <= decimalThreshold)) {
+    if (absValue == 0._f || (absValue >= 1._f / decimalThreshold && absValue <= decimalThreshold)) {
         ss << value;
     } else {
         ss << std::setprecision(precision) << std::scientific << value;

@@ -558,7 +558,7 @@ Float Post::getSphericity(IScheduler& scheduler, const Storage& storage, const F
     }
     ASSERT(area > 0._f);
 
-    MeshDomain domain(std::move(mesh));
+    MeshDomain domain(scheduler, std::move(mesh));
     const Float volume = domain.getVolume();
     ASSERT(volume > 0._f);
 

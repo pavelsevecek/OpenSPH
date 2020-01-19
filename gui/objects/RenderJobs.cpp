@@ -56,6 +56,10 @@ VirtualSettings AnimationJob::getSettings() {
     auto raytracerEnabler = [this] {
         return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::RAYTRACER;
     };
+    auto surfaceEnabler = [this] {
+        const RendererEnum type = gui.get<RendererEnum>(GuiSettingsId::RENDERER);
+        return type == RendererEnum::RAYTRACER || type == RendererEnum::MESH;
+    };
 
     VirtualSettings::Category& rendererCat = connector.addCategory("Rendering");
     rendererCat.connect<EnumWrapper>("Renderer", gui, GuiSettingsId::RENDERER);
@@ -67,17 +71,21 @@ VirtualSettings AnimationJob::getSettings() {
         .setEnabler(particleEnabler);
     rendererCat.connect<bool>("Antialiasing", gui, GuiSettingsId::ANTIALIASED).setEnabler(particleEnabler);
     rendererCat.connect<bool>("Show key", gui, GuiSettingsId::SHOW_KEY).setEnabler(particleEnabler);
+    rendererCat.connect<Float>("Surface level", gui, GuiSettingsId::SURFACE_LEVEL).setEnabler(surfaceEnabler);
     rendererCat.connect<Vector>("Sun position", gui, GuiSettingsId::SURFACE_SUN_POSITION)
-        .setEnabler(raytracerEnabler);
+        .setEnabler(surfaceEnabler);
     rendererCat.connect<Float>("Sunlight intensity", gui, GuiSettingsId::SURFACE_SUN_INTENSITY)
-        .setEnabler(raytracerEnabler);
+        .setEnabler(surfaceEnabler);
     rendererCat.connect<Float>("Ambient intensity", gui, GuiSettingsId::SURFACE_AMBIENT)
-        .setEnabler(raytracerEnabler);
+        .setEnabler(surfaceEnabler);
     rendererCat.connect<Float>("Emission", gui, GuiSettingsId::SURFACE_EMISSION).setEnabler(raytracerEnabler);
-    rendererCat.connect<Float>("Surface level", gui, GuiSettingsId::SURFACE_LEVEL)
-        .setEnabler(raytracerEnabler);
     rendererCat.connect<int>("Interation count", gui, GuiSettingsId::RAYTRACE_ITERATION_LIMIT)
         .setEnabler(raytracerEnabler);
+    rendererCat.connect<bool>("Render as spheres", gui, GuiSettingsId::RAYTRACE_SPHERES)
+        .setEnabler(raytracerEnabler);
+    rendererCat.connect<Float>("Cell size", gui, GuiSettingsId::SURFACE_RESOLUTION).setEnabler([this] {
+        return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::MESH;
+    });
 
     VirtualSettings::Category& textureCat = connector.addCategory("Texture paths");
     textureCat.connect<std::string>("Body 1", gui, GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY)

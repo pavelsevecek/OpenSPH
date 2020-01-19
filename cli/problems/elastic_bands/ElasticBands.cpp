@@ -33,7 +33,7 @@ public:
             .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
             .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 1._f)
             .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
-            .set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
+            .set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, EMPTY_FLAGS)
             .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, false)
             .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f));
 
@@ -60,6 +60,10 @@ public:
 
         virtual Float getVolume() const override {
             return primary.getVolume() - subtracted.getVolume();
+        }
+
+        virtual Float getSurfaceArea() const override {
+            return primary.getSurfaceArea();
         }
 
         virtual bool contains(const Vector& v) const override {

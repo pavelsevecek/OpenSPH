@@ -153,7 +153,7 @@ void EnergyConservingSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     // we need to symmetrize kernel in smoothing lenghts to conserve momentum
     SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>&> symmetrizedKernel(kernel);
 
-    const Float radius = this->getSearchRadius(storage);
+    const Float radius = this->getMaxSearchRadius(storage);
 
     const IBasicFinder& finder = *this->getFinder(r);
     // partitioner->initialize(storage);

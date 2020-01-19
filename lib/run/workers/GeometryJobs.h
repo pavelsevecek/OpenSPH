@@ -126,6 +126,7 @@ class MeshGeometryJob : public IGeometryJob {
 private:
     Path path = Path("file.ply");
     Float scale = 1._f;
+    bool precompute = false;
 
 public:
     explicit MeshGeometryJob(const std::string& name);

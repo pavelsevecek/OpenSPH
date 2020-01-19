@@ -40,6 +40,9 @@ public:
     /// precise.
     virtual Float getVolume() const = 0;
 
+    /// \brief Returns the surface area of the domain.
+    virtual Float getSurfaceArea() const = 0;
+
     /// \brief Checks if the given point lies inside the domain.
     ///
     /// Points lying exactly on the boundary of the domain are assumed to be inside.
@@ -108,6 +111,8 @@ public:
 
     virtual Float getVolume() const override;
 
+    virtual Float getSurfaceArea() const override;
+
     virtual Box getBoundingBox() const override;
 
     virtual bool contains(const Vector& v) const override;
@@ -149,6 +154,8 @@ public:
 
     virtual Float getVolume() const override;
 
+    virtual Float getSurfaceArea() const override;
+
     virtual Box getBoundingBox() const override;
 
     virtual bool contains(const Vector& v) const override;
@@ -186,6 +193,8 @@ public:
 
     virtual Float getVolume() const override;
 
+    virtual Float getSurfaceArea() const override;
+
     virtual Box getBoundingBox() const override;
 
     virtual bool contains(const Vector& v) const override;
@@ -219,6 +228,8 @@ public:
     virtual Vector getCenter() const override;
 
     virtual Float getVolume() const override;
+
+    virtual Float getSurfaceArea() const override;
 
     virtual Box getBoundingBox() const override;
 
@@ -263,6 +274,8 @@ public:
     virtual Vector getCenter() const override;
 
     virtual Float getVolume() const override;
+
+    virtual Float getSurfaceArea() const override;
 
     virtual Box getBoundingBox() const override;
 
@@ -317,6 +330,8 @@ public:
 
     virtual Float getVolume() const override;
 
+    virtual Float getSurfaceArea() const override;
+
     virtual Box getBoundingBox() const override;
 
     virtual bool contains(const Vector& v) const override;
@@ -347,6 +362,8 @@ public:
     virtual Vector getCenter() const override;
 
     virtual Float getVolume() const override;
+
+    virtual Float getSurfaceArea() const override;
 
     virtual Box getBoundingBox() const override;
 
@@ -379,6 +396,8 @@ public:
     virtual Vector getCenter() const override;
 
     virtual Float getVolume() const override;
+
+    virtual Float getSurfaceArea() const override;
 
     virtual Box getBoundingBox() const override;
 

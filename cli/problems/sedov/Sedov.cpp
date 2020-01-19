@@ -48,7 +48,7 @@ public:
             .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
             .set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE)
             .set(RunSettingsId::SPH_FINDER, FinderEnum::UNIFORM_GRID)
-            .set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
+            .set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, EMPTY_FLAGS)
             .set(RunSettingsId::DOMAIN_TYPE, DomainEnum::BLOCK)
             //.set(RunSettingsId::DOMAIN_BOUNDARY, BoundaryEnum::FROZEN_PARTICLES)
             .set(RunSettingsId::DOMAIN_SIZE, Vector(1._f));

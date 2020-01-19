@@ -215,6 +215,10 @@ public:
         return domain.getVolume();
     }
 
+    virtual Float getSurfaceArea() const override {
+        return domain.getSurfaceArea();
+    }
+
     virtual bool contains(const Vector& v) const override {
         return domain.contains(v);
     }
@@ -300,7 +304,7 @@ static Storage generateInitial(const IDomain& domain, const Size N, TDensity&& d
     for (Size i = 0; i < N; ++i) {
         Vector pos = rng();
         const Float n = density(pos);
-        pos[H] = 1._f / root<3>(n);
+        pos[H] = 1.3_f / root<3>(n);
         ASSERT(isReal(pos));
         r.push(pos);
     }
@@ -368,6 +372,10 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
                 const Float lengthSqr = getSqrLength(diff);
                 // for ghost particles, just copy the density (density outside the domain is always 0)
                 const Float rhok = (k >= N) ? rhoi : actDensity(r[k]);
+                if (rhoi == 0._f || rhok == 0._f) {
+                    // outside of the domain? do not move
+                    continue;
+                }
                 // average kernel radius to allow for the gradient of particle density
                 const Float h = kernelRadius * (0.5_f / root<3>(rhoi) + 0.5_f / root<3>(rhok));
                 if (lengthSqr > h * h || lengthSqr == 0) {
@@ -457,7 +465,7 @@ Array<Vector> ParametrizedSpiralingDistribution::generate(IScheduler& UNUSED(sch
             phi += 3.8_f / sqrt(m * (1._f - sqr(hk)));
             Vector v = center + rotator * sphericalToCartesian(r, theta, phi);
             if (domain.contains(v)) {
-                v[H] = sqrt(sphereSurfaceArea(r) / m);
+                v[H] = 0.66_f * sqrt(sphereSurfaceArea(r) / m);
                 ASSERT(isReal(v));
                 pos.push(v);
             }

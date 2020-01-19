@@ -560,8 +560,8 @@ enum class FinderEnum {
     /// Partitioning particles into a grid uniform in space
     UNIFORM_GRID,
 
-    /// Selecting most suitable finder automatically
-    DYNAMIC
+    /// Using hash map
+    HASH_MAP,
 };
 
 enum class BoundaryEnum {
@@ -711,9 +711,6 @@ enum class FractureEnum {
 };
 
 enum class SmoothingLengthEnum {
-    /// Smoothing length is constant and given by initial conditions
-    CONST = 1 << 0,
-
     /// Smoothing length is evolved using continuity equation
     CONTINUITY_EQUATION = 1 << 1,
 
@@ -936,6 +933,11 @@ enum class RunSettingsId {
     /// solver is ended when the density changes by less than the delta or the iteration number exceeds
     /// SOLVER_SUMMATION_MAX_ITERATIONS.
     SPH_SUMMATION_DENSITY_DELTA,
+
+    /// If true, the SPH solver computes a hash map connecting position in space with required search radius.
+    /// Otherwise, the radius is determined from the maximal smoothing length in the simulation. Used only by
+    /// the AsymmetricSolver.
+    SPH_ASYMMETRIC_COMPUTE_RADII_HASH_MAP,
 
     /// Index of SPH Kernel, see KernelEnum
     SPH_KERNEL,
@@ -1160,11 +1162,6 @@ enum class RunSettingsId {
 
     /// Maximum number of particles in a leaf node.
     FINDER_LEAF_SIZE,
-
-    /// Used by DynamicFinder. Maximum relative distance between center of mass and geometric center of the
-    /// bounding box for which VoxelFinder is used. For larger offsets of center of mass, K-d tree is used
-    /// instead.
-    FINDER_COMPACT_THRESHOLD,
 
     /// Maximal in a a tree depth to be processed in parallel. While a larger value implies better
     /// distribution of work between threads, it also comes up with performance penalty due to scheduling

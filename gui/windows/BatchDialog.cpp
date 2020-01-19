@@ -50,6 +50,12 @@ public:
         ss >> v[X] >> v[Y] >> v[Z];
     }
 
+    void operator()(Interval& i) {
+        Float lower, upper;
+        ss >> lower >> upper;
+        i = Interval(lower, upper);
+    }
+
     void operator()(Path& path) {
         path = Path(ss.str());
     }

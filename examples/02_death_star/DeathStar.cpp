@@ -31,6 +31,11 @@ public:
         return primary.getVolume();
     }
 
+    virtual Float getSurfaceArea() const override {
+        // Similar to the argument in getVolume
+        return primary.getSurfaceArea();
+    }
+
     virtual bool contains(const Vector& v) const override {
         // The main part - vector is contained in the domain if it is contained in the primary domain
         // and NOT contained in the subtracted domain

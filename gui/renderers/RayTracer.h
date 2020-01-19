@@ -53,6 +53,9 @@ private:
         /// Cast shadows
         bool shadows = false;
 
+        /// Render surface of spheres instead of an isosurface.
+        bool renderSpheres = true;
+
         /// Number of iterations of the progressive renderer.
         Size iterationLimit;
 

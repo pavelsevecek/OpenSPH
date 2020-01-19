@@ -132,6 +132,11 @@ public:
         return data == other.data;
     }
 
+    /// \brief Checks for inequality with other Flags object.
+    INLINE bool operator!=(const Flags& other) const {
+        return data != other.data;
+    }
+
 private:
     // overload with no argument ending the recursion
     INLINE constexpr bool hasAny() const {

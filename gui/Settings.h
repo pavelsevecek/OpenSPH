@@ -192,6 +192,8 @@ enum class GuiSettingsId {
 
     RAYTRACE_TEXTURE_SECONDARY,
 
+    RAYTRACE_SPHERES,
+
     CONTOUR_SPACING,
 
     CONTOUR_GRID_SIZE,
@@ -263,13 +265,13 @@ public:
 template <>
 INLINE Pixel GuiSettings::get<Pixel>(const GuiSettingsId id) const {
     const Interval i = this->get<Interval>(id);
-    return Pixel(i.lower(), i.upper());
+    return Pixel(int(i.lower()), int(i.upper()));
 }
 
 template <>
 INLINE Rgba GuiSettings::get<Rgba>(const GuiSettingsId id) const {
     const Vector v = this->get<Vector>(id);
-    return Rgba(v[X], v[Y], v[Z], v[H]);
+    return Rgba(float(v[X]), float(v[Y]), float(v[Z]), float(v[H]));
 }
 
 template <>

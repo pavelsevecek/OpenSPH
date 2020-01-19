@@ -29,6 +29,10 @@ Float IdealGasEos::getTemperature(const Float u) const {
     return u / Constants::gasConstant;
 }
 
+Float IdealGasEos::getSpecificEntropy(const Float rho, const Float p) const {
+    return p / pow(rho, gamma);
+}
+
 //-----------------------------------------------------------------------------------------------------------
 // TaitEos implementation
 //-----------------------------------------------------------------------------------------------------------

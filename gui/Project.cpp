@@ -146,8 +146,8 @@ void Project::loadPalettes(Config& config) {
     palettes.clear();
     SharedPtr<ConfigNode> paletteParentNode = config.getNode("palettes");
     paletteParentNode->enumerateChildren([this](const std::string& name, ConfigNode& paletteNode) {
-        const float lower = paletteNode.get<Float>("lower");
-        const float upper = paletteNode.get<Float>("upper");
+        const float lower = float(paletteNode.get<Float>("lower"));
+        const float upper = float(paletteNode.get<Float>("upper"));
         const PaletteScale scale = PaletteScale(paletteNode.get<int>("scale"));
         const std::string path = paletteNode.get<std::string>("file");
         Palette palette({ { lower, Rgba::black() }, { upper, Rgba::white() } }, scale);

@@ -249,6 +249,9 @@ public:
         case IVirtualEntry::Type::VECTOR:
             out.set<Vector>(name, entry.get());
             break;
+        case IVirtualEntry::Type::INTERVAL:
+            out.set<Interval>(name, entry.get());
+            break;
         case IVirtualEntry::Type::STRING:
             out.set<std::string>(name, entry.get());
             break;
@@ -335,6 +338,9 @@ public:
                 break;
             case IVirtualEntry::Type::VECTOR:
                 entry.set(input.get<Vector>(name));
+                break;
+            case IVirtualEntry::Type::INTERVAL:
+                entry.set(input.get<Interval>(name));
                 break;
             case IVirtualEntry::Type::STRING:
                 entry.set(input.get<std::string>(name));
@@ -1126,6 +1132,59 @@ public:
     }
 };
 
+class IntervalProperty : public wxStringProperty {
+private:
+    class ComponentProperty : public wxFloatProperty {
+    private:
+        IntervalProperty* parent;
+
+    public:
+        ComponentProperty(IntervalProperty* parent, const wxString& name, const Float value)
+            : wxFloatProperty(name, wxPG_LABEL, value)
+            , parent(parent) {}
+
+        virtual void OnSetValue() override {
+            wxFloatProperty::OnSetValue();
+            parent->update();
+        }
+    };
+
+    StaticArray<ComponentProperty*, 2> components;
+    wxWindow* parent;
+
+public:
+    IntervalProperty(wxWindow* parent, const wxString& name, const Interval& value)
+        : wxStringProperty(name, wxPG_LABEL, "")
+        , parent(parent) {
+        this->SetFlagRecursively(wxPG_PROP_READONLY, true);
+
+        components[0] = new ComponentProperty(this, "from", value.lower());
+        components[1] = new ComponentProperty(this, "to", value.upper());
+        for (ComponentProperty* comp : components) {
+            this->AppendChild(comp);
+        }
+
+        this->update(false);
+    }
+
+    Interval getInterval() const {
+        return Interval(components[0]->GetValue(), components[1]->GetValue());
+    }
+
+    void update(const bool notify = true) {
+        wxString value = "[ " + components[0]->GetValue().GetString() + ", " +
+                         components[1]->GetValue().GetString() + " ]";
+        this->SetValue(value);
+
+        if (notify) {
+            // SetValue does not notify the grid, so we have to do it manually
+            wxPropertyGridEvent evt(wxEVT_PG_CHANGED);
+            evt.SetProperty(this);
+            parent->GetEventHandler()->ProcessEvent(evt);
+        }
+    }
+};
+
 class PropertyGrid {
 private:
     wxPropertyGrid* grid;
@@ -1152,6 +1211,12 @@ public:
 
     wxPGProperty* addVector(const std::string& name, const Vector& value) const {
         wxPGProperty* prop = grid->Append(new VectorProperty(grid, name, value));
+        grid->Collapse(prop);
+        return prop;
+    }
+
+    wxPGProperty* addInterval(const std::string& name, const Interval& value) const {
+        wxPGProperty* prop = grid->Append(new IntervalProperty(grid, name, value));
         grid->Collapse(prop);
         return prop;
     }
@@ -1234,6 +1299,9 @@ public:
         case IVirtualEntry::Type::VECTOR:
             prop = wrapper.addVector(name, entry.get());
             break;
+        case IVirtualEntry::Type::INTERVAL:
+            prop = wrapper.addInterval(name, entry.get());
+            break;
         case IVirtualEntry::Type::STRING:
             prop = wrapper.addString(name, entry.get());
             break;
@@ -1303,6 +1371,12 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             VectorProperty* vector = dynamic_cast<VectorProperty*>(prop);
             ASSERT(vector);
             entry->set(vector->getVector());
+            break;
+        }
+        case IVirtualEntry::Type::INTERVAL: {
+            IntervalProperty* i = dynamic_cast<IntervalProperty*>(prop);
+            ASSERT(i);
+            entry->set(i->getInterval());
             break;
         }
         case IVirtualEntry::Type::STRING: {

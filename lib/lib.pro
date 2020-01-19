@@ -22,7 +22,7 @@ SOURCES += \
     mpi/Mpi.cpp \
     objects/containers/String.cpp \
     objects/finders/Bvh.cpp \
-    objects/finders/DynamicFinder.cpp \
+    objects/finders/HashMapFinder.cpp \
     objects/finders/KdTree.cpp \
     objects/finders/NeighbourFinder.cpp \
     objects/finders/PeriodicFinder.cpp \
@@ -161,10 +161,11 @@ HEADERS += \
     objects/containers/StaticArray.h \
     objects/containers/String.h \
     objects/containers/Tuple.h \
+    objects/containers/Volume.h \
     objects/finders/AdaptiveGrid.h \
     objects/finders/BruteForceFinder.h \
     objects/finders/Bvh.h \
-    objects/finders/DynamicFinder.h \
+    objects/finders/HashMapFinder.h \
     objects/finders/KdTree.h \
     objects/finders/KdTree.inl.h \
     objects/finders/LinkedList.h \

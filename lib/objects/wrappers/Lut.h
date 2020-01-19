@@ -11,14 +11,14 @@
 NAMESPACE_SPH_BEGIN
 
 /// \brief Callable representing a generic R->T function, approximated using look-up table.
-template <typename T>
+template <typename TValue, typename TScalar = Float>
 class Lut {
 private:
-    Array<T> data;
+    Array<TValue> data;
     Interval range;
 
 public:
-    Lut(const Interval range, Array<T>&& data)
+    Lut(const Interval range, Array<TValue>&& data)
         : data(std::move(data))
         , range(range) {}
 
@@ -32,8 +32,8 @@ public:
         }
     }
 
-    T operator()(const Float x) const {
-        const Float fidx = (x - range.lower()) / range.size() * (data.size() - 1);
+    INLINE TValue operator()(const TScalar x) const {
+        const TScalar fidx = TScalar((x - range.lower()) / range.size() * (data.size() - 1));
         const int idx1 = int(fidx);
         const int idx2 = idx1 + 1;
         if (idx2 >= int(data.size() - 1)) {
@@ -42,8 +42,8 @@ public:
         } else if (idx1 <= 0) {
             return data.front();
         } else {
-            const Float ratio = fidx - idx1;
-            ASSERT(ratio >= 0._f && ratio < 1._f);
+            const TScalar ratio = fidx - idx1;
+            ASSERT(ratio >= TScalar(0) && ratio < TScalar(1));
             return lerp(data[idx1], data[idx2], ratio);
         }
     }

@@ -160,7 +160,7 @@ void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) 
     const Float x0 = -rangeX.lower() / rangeX.size();
     if (x0 >= 0._f && x0 <= 1._f) {
         // draw y-axis
-        const Float dcX = padding.x + x0 * (size.x - 2 * padding.x);
+        const int dcX = int(padding.x + x0 * (size.x - 2 * padding.x));
         dc.DrawLine(dcX, size.y - padding.y, dcX, padding.y);
         if (ticsParams) {
             Array<Float> tics = getLinearTics(rangeY, ticsParams->minCnt);
@@ -168,11 +168,13 @@ void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) 
             for (const Float tic : tics) {
                 const PlotPoint plotPoint(0, tic);
                 const PlotPoint imagePoint = matrix.transformPoint(plotPoint);
-                dc.DrawLine(imagePoint.x - 2, imagePoint.y, imagePoint.x + 2, imagePoint.y);
+                dc.DrawLine(
+                    int(imagePoint.x) - 2, int(imagePoint.y), int(imagePoint.x) + 2, int(imagePoint.y));
                 const std::wstring text = toPrintableString(tic, ticsParams->digits);
                 const wxSize extent = dc.GetTextExtent(text);
-                const Float labelX = (imagePoint.x > size.x / 2._f) ? imagePoint.x - extent.x : imagePoint.x;
-                drawTextWithSubscripts(dc, text, wxPoint(labelX, imagePoint.y - extent.y / 2));
+                const int labelX =
+                    (imagePoint.x > size.x / 2._f) ? int(imagePoint.x) - extent.x : int(imagePoint.x);
+                drawTextWithSubscripts(dc, text, wxPoint(labelX, int(imagePoint.y) - extent.y / 2));
             }
         }
     }
@@ -180,18 +182,20 @@ void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) 
     const Float y0 = -rangeY.lower() / rangeY.size();
     if (y0 >= 0._f && y0 <= 1._f) {
         // draw x-axis
-        const Float dcY = size.y - padding.y - y0 * (size.y - 2 * padding.y);
+        const int dcY = int(size.y - padding.y - y0 * (size.y - 2 * padding.y));
         dc.DrawLine(padding.x, dcY, size.x - padding.x, dcY);
         if (ticsParams) {
             Array<Float> tics = getLinearTics(rangeX, ticsParams->minCnt);
             for (const Float tic : tics) {
                 const PlotPoint plotPoint(tic, 0);
                 const PlotPoint imagePoint = matrix.transformPoint(plotPoint);
-                dc.DrawLine(imagePoint.x, imagePoint.y - 2, imagePoint.x, imagePoint.y + 2);
+                dc.DrawLine(
+                    int(imagePoint.x), int(imagePoint.y) - 2, int(imagePoint.x), int(imagePoint.y) + 2);
                 const std::wstring text = toPrintableString(tic, ticsParams->digits);
                 const wxSize extent = dc.GetTextExtent(text);
-                const Float labelY = (imagePoint.y < size.y / 2._f) ? imagePoint.y : imagePoint.y - extent.y;
-                drawTextWithSubscripts(dc, text, wxPoint(imagePoint.x - extent.x / 2, labelY));
+                const int labelY =
+                    (imagePoint.y < size.y / 2._f) ? int(imagePoint.y) : int(imagePoint.y) - extent.y;
+                drawTextWithSubscripts(dc, text, wxPoint(int(imagePoint.x) - extent.x / 2, labelY));
             }
         }
     }

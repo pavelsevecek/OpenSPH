@@ -99,8 +99,6 @@ static Order makeRank(const Size size, TCompare&& comp) {
 /// particle, j-th particle does not 'see' i-th particle. This can be a significant optimization as only half
 /// of the neighbours is evaluated.
 class ISymmetricFinder : public IBasicFinder {
-    friend class DynamicFinder;
-
 protected:
     /// Ranks of particles according to their smoothing lengths
     Order rank;

@@ -13,6 +13,10 @@
 
 NAMESPACE_SPH_BEGIN
 
+//-----------------------------------------------------------------------------------------------------------
+// Galaxy
+//-----------------------------------------------------------------------------------------------------------
+
 // clang-format off
 template<>
 AutoPtr<Settings<GalaxySettingsId>> Settings<GalaxySettingsId>::instance (new Settings<GalaxySettingsId> {

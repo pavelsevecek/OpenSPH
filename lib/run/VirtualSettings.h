@@ -63,9 +63,9 @@ public:
 /// value. It provides an abstraction through which state of workers can be queried and modified.
 class IVirtualEntry : public Polymorphic {
 public:
-    enum class Type { BOOL, INT, FLOAT, VECTOR, STRING, PATH, ENUM, EXTRA, FLAGS };
+    enum class Type { BOOL, INT, FLOAT, VECTOR, INTERVAL, STRING, PATH, ENUM, EXTRA, FLAGS };
 
-    using Value = Variant<bool, int, Float, Vector, std::string, Path, EnumWrapper, ExtraEntry>;
+    using Value = Variant<bool, int, Float, Vector, Interval, std::string, Path, EnumWrapper, ExtraEntry>;
 
     /// \brief Returns if this entry is currently enabled.
     ///

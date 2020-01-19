@@ -5,16 +5,53 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2019
 
+#include "objects/geometry/Indices.h"
 #include "sph/equations/Derivative.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/Kernel.h"
 #include "thread/ThreadLocal.h"
 #include "timestepping/ISolver.h"
+#include <unordered_map>
 
 NAMESPACE_SPH_BEGIN
 
 class ISymmetricFinder;
 class IBoundaryCondition;
+
+/// \brief Helper structure storing search radii for particles as hash map.
+class RadiiHashMap {
+private:
+    class IndicesHash {
+    public:
+        INLINE std::size_t operator()(const Indices& idxs) const {
+            std::hash<int> hash;
+            return combine(combine(hash(idxs[0]), hash(idxs[1])), hash(idxs[2]));
+        }
+
+    private:
+        INLINE size_t combine(const size_t lhs, const size_t rhs) const {
+            return lhs ^ (rhs + 0x9e3779b9 + (lhs << 6) + (lhs >> 2));
+        }
+    };
+    class IndicesEqual {
+    public:
+        INLINE bool operator()(const Indices& i1, const Indices& i2) const {
+            return all(i1 == i2);
+        }
+    };
+
+    std::unordered_map<Indices, Float, IndicesHash, IndicesEqual> map;
+    Float cellSize;
+
+public:
+    /// \brief Computes the search radii at each cell in space.
+    /// \param r Positions and smoothing lenghts of particles.
+    /// \param kernelRadius Dimensionless support radius of the kernel.
+    void build(ArrayView<const Vector> r, const Float kernelRadius);
+
+    /// \brief Returns the required search radius for particle at given position.
+    Float getRadius(const Vector& r) const;
+};
 
 /// \brief Base class for asymmetric SPH solvers.
 class IAsymmetricSolver : public ISolver {
@@ -33,6 +70,9 @@ protected:
     /// Selected SPH kernel
     LutKernel<DIMENSIONS> kernel;
 
+    /// Hash map used to determine search radii of particles.
+    Optional<RadiiHashMap> radiiMap;
+
 public:
     IAsymmetricSolver(IScheduler& scheduler, const RunSettings& settings, const EquationHolder& eqs);
 
@@ -41,7 +81,7 @@ public:
     virtual void create(Storage& storage, IMaterial& material) const override;
 
 protected:
-    Float getSearchRadius(const Storage& storage) const;
+    Float getMaxSearchRadius(const Storage& storage) const;
 
     /// \brief Returns a finder, already build using the provided positions.
     ///

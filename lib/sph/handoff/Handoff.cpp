@@ -73,6 +73,11 @@ public:
         return volume;
     }
 
+    virtual Float getSurfaceArea() const override {
+        NOT_IMPLEMENTED;
+        return 0._f;
+    }
+
     virtual bool contains(const Vector& v) const override {
         ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);

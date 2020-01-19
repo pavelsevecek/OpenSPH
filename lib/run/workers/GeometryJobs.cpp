@@ -189,16 +189,22 @@ VirtualSettings MeshGeometryJob::getSettings() {
     VirtualSettings::Category& pathCat = connector.addCategory("Mesh source");
     pathCat.connect("Path", "path", path);
     pathCat.connect("Scaling factor", "scale", scale);
+    pathCat.connect("Precompute", "precompute", precompute);
     return connector;
 }
 
-void MeshGeometryJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void MeshGeometryJob::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) {
     AutoPtr<IMeshFile> meshLoader = getMeshFile(path);
     Expected<Array<Triangle>> triangles = meshLoader->load(path);
     if (!triangles) {
         throw InvalidSetup("cannot load " + path.native());
     }
-    result = makeAuto<MeshDomain>(std::move(triangles.value()), AffineMatrix::scale(Vector(scale)));
+
+    SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
+    MeshParams params;
+    params.matrix = AffineMatrix::scale(Vector(scale));
+    params.precomputeInside = precompute;
+    result = makeAuto<MeshDomain>(*scheduler, std::move(triangles.value()), params);
 }
 
 static JobRegistrar sRegisterMeshGeometry(
@@ -221,14 +227,14 @@ VirtualSettings ParticleGeometryJob::getSettings() {
     return connector;
 }
 
-void ParticleGeometryJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
+void ParticleGeometryJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     Storage input = std::move(this->getInput<ParticleData>("particles")->storage);
     // sanitize the resolution
     const Box boundingBox = getBoundingBox(input);
     const Float scale = maxElement(boundingBox.size());
     const Float actResolution = clamp(resolution, 0.001_f * scale, 0.25_f * scale);
 
-    SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
+    SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
 
     auto callback = [&callbacks](const Float progress) {
         Statistics stats;
@@ -238,7 +244,7 @@ void ParticleGeometryJob::evaluate(const RunSettings& UNUSED(global), IRunCallba
     };
     Array<Triangle> triangles =
         getSurfaceMesh(*scheduler, input, actResolution, surfaceLevel, smoothingMult, callback);
-    result = makeAuto<MeshDomain>(std::move(triangles));
+    result = makeAuto<MeshDomain>(*scheduler, std::move(triangles));
 }
 
 static JobRegistrar sRegisterParticleGeometry(
@@ -282,6 +288,14 @@ public:
             volume += s.volume();
         }
         return volume;
+    }
+
+    virtual Float getSurfaceArea() const override {
+        Float area = 0._f;
+        for (const Sphere& s : spheres) {
+            area += sphereSurfaceArea(s.radius());
+        }
+        return area;
     }
 
     virtual bool contains(const Vector& v) const override {
@@ -354,6 +368,10 @@ public:
 
     virtual Float getVolume() const override {
         return LARGE;
+    }
+
+    virtual Float getSurfaceArea() const override {
+        return domain->getSurfaceArea();
     }
 
     virtual bool contains(const Vector& v) const override {
@@ -501,6 +519,11 @@ public:
 
     virtual Float getVolume() const override {
         return volume;
+    }
+
+    virtual Float getSurfaceArea() const override {
+        NOT_IMPLEMENTED;
+        return 0._f;
     }
 
     virtual bool contains(const Vector& v1) const override {

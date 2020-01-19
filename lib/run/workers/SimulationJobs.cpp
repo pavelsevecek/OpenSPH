@@ -176,7 +176,8 @@ RunSettings SphJob::getDefaultSettings(const std::string& name) {
         .set(RunSettingsId::FINDER_LEAF_SIZE, 20)
         .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.1_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 1000)
-        .set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
+        .set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, EMPTY_FLAGS)
+        .set(RunSettingsId::SPH_ASYMMETRIC_COMPUTE_RADII_HASH_MAP, false)
         .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true)
         .set(RunSettingsId::RUN_DIAGNOSTICS_INTERVAL, 1._f);
     return settings;
@@ -197,6 +198,10 @@ VirtualSettings SphJob::getSettings() {
     auto asEnabler = [this] { return settings.get<bool>(RunSettingsId::SPH_AV_USE_STRESS); };
     // auto acEnabler = [this] { return settings.get<bool>(RunSettingsId::SPH_USE_AC); };
     auto deltaSphEnabler = [this] { return settings.get<bool>(RunSettingsId::SPH_USE_DELTASPH); };
+    auto enforceEnabler = [this] {
+        return settings.getFlags<SmoothingLengthEnum>(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH)
+            .has(SmoothingLengthEnum::SOUND_SPEED_ENFORCING);
+    };
 
     VirtualSettings::Category& solverCat = connector.addCategory("SPH solver");
     solverCat.connect<Flags<ForceEnum>>("Forces", settings, RunSettingsId::SPH_SOLVER_FORCES);
@@ -209,6 +214,21 @@ VirtualSettings SphJob::getSettings() {
     solverCat.connect<EnumWrapper>("SPH discretization", settings, RunSettingsId::SPH_DISCRETIZATION);
     solverCat.connect<Flags<SmoothingLengthEnum>>(
         "Adaptive smoothing length", settings, RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH);
+    solverCat.connect<Float>("Minimal smoothing length", settings, RunSettingsId::SPH_SMOOTHING_LENGTH_MIN)
+        .setEnabler([this] {
+            return settings.getFlags<SmoothingLengthEnum>(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH) !=
+                   EMPTY_FLAGS;
+        });
+    solverCat
+        .connect<Float>("Neighbor count enforcing strength", settings, RunSettingsId::SPH_NEIGHBOUR_ENFORCING)
+        .setEnabler(enforceEnabler);
+    solverCat.connect<Interval>("Neighbor range", settings, RunSettingsId::SPH_NEIGHBOUR_RANGE)
+        .setEnabler(enforceEnabler);
+    solverCat
+        .connect<bool>("Use radii hash map", settings, RunSettingsId::SPH_ASYMMETRIC_COMPUTE_RADII_HASH_MAP)
+        .setEnabler([this] {
+            return settings.get<SolverEnum>(RunSettingsId::SPH_SOLVER_TYPE) == SolverEnum::ASYMMETRIC_SOLVER;
+        });
     solverCat
         .connect<bool>("Apply correction tensor", settings, RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR)
         .setEnabler(stressEnabler);
@@ -256,7 +276,7 @@ VirtualSettings SphJob::getSettings() {
 }
 
 AutoPtr<IRun> SphJob::getRun(const RunSettings& overrides) const {
-    ASSERT(overrides.size() < 10); // not really required, just checking that we don't override everything
+    ASSERT(overrides.size() < 12); // not really required, just checking that we don't override everything
     const BoundaryEnum boundary = settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY);
     SharedPtr<IDomain> domain;
     if (boundary != BoundaryEnum::NONE) {

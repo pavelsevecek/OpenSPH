@@ -29,6 +29,10 @@ public:
         NOT_IMPLEMENTED;
     }
 
+    virtual Float getSurfaceArea() const override {
+        NOT_IMPLEMENTED;
+    }
+
     virtual Box getBoundingBox() const override {
         NOT_IMPLEMENTED;
     }

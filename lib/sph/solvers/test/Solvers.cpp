@@ -46,7 +46,7 @@ SharedPtr<Storage> solveGassBall(RunSettings settings, Flags<Options> flags) {
         .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)
         .set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE)
-        .set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
+        .set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, EMPTY_FLAGS)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 10);
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();

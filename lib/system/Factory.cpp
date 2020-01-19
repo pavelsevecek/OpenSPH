@@ -10,7 +10,7 @@
 #include "math/rng/Rng.h"
 #include "objects/Exceptions.h"
 #include "objects/finders/BruteForceFinder.h"
-#include "objects/finders/DynamicFinder.h"
+#include "objects/finders/HashMapFinder.h"
 #include "objects/finders/KdTree.h"
 #include "objects/finders/Octree.h"
 #include "objects/finders/UniformGrid.h"
@@ -165,8 +165,8 @@ AutoPtr<ISymmetricFinder> Factory::getFinder(const RunSettings& settings) {
         // return makeAuto<Octree>();
     case FinderEnum::UNIFORM_GRID:
         return makeAuto<UniformGridFinder>();
-    case FinderEnum::DYNAMIC:
-        return makeAuto<DynamicFinder>(settings);
+    case FinderEnum::HASH_MAP:
+        return makeAuto<HashMapFinder>(settings);
     default:
         NOT_IMPLEMENTED;
     }

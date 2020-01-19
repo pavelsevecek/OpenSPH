@@ -116,13 +116,13 @@ TEST_CASE("Settings iterator", "[settings]") {
 TEST_CASE("Settings enums", "[settings]") {
     RunSettings settings(EMPTY_SETTINGS);
     settings.set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE);
-    settings.set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
+    settings.set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, EMPTY_FLAGS);
     settings.set(RunSettingsId::TIMESTEPPING_CRITERION,
         TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::ACCELERATION);
 
     REQUIRE(settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE) == IoEnum::BINARY_FILE);
-    REQUIRE(settings.get<SmoothingLengthEnum>(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH) ==
-            SmoothingLengthEnum::CONST);
+    REQUIRE(
+        settings.getFlags<SmoothingLengthEnum>(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH) == EMPTY_FLAGS);
     Flags<TimeStepCriterionEnum> flags =
         settings.getFlags<TimeStepCriterionEnum>(RunSettingsId::TIMESTEPPING_CRITERION);
     REQUIRE(flags == (TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::ACCELERATION));

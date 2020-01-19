@@ -5,44 +5,44 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2019
 
+#include "objects/containers/Volume.h"
 #include "objects/finders/Bvh.h"
 #include "objects/geometry/Domain.h"
 #include "objects/geometry/Triangle.h"
 
 NAMESPACE_SPH_BEGIN
 
+class IScheduler;
+
+struct MeshParams {
+    /// Arbitrary transformation matrix applied on the mesh
+    AffineMatrix matrix = AffineMatrix::identity();
+
+    /// If true, cached volume is created to allow fast calls of \ref contains
+    bool precomputeInside = true;
+
+    /// Resolution of the volume, used if precomputeInside == true
+    Size volumeResolution = 128;
+};
+
+
 /// \brief Domain represented by triangular mesh.
 class MeshDomain : public IDomain {
 private:
     Bvh<BvhTriangle> bvh;
+    Volume<char> mask;
 
     /// Cached values, so that we do not have to keep a separate list of triangles
     struct {
+        Array<Vector> points;
+        Array<Vector> normals;
         Box box;
         Float volume;
+        Float area;
     } cached;
 
 public:
-    explicit MeshDomain(Array<Triangle>&& triangles, const AffineMatrix matrix = AffineMatrix::identity()) {
-        Array<BvhTriangle> bvhTriangles;
-        for (Triangle& t : triangles) {
-            // transform vertices in place
-            for (Size i = 0; i < 3; ++i) {
-                t[i] = matrix * t[i];
-            }
-
-            bvhTriangles.emplaceBack(t[0], t[1], t[2]);
-            cached.box.extend(t.getBBox());
-        }
-        const Vector center = cached.box.center();
-
-        // compute volume (using center for optimal accuracy)
-        cached.volume = 0._f;
-        for (const Triangle& t : triangles) {
-            cached.volume += dot(t[0] - center, cross(t[1] - center, t[2] - center)) / 6._f;
-        }
-        bvh.build(std::move(bvhTriangles));
-    }
+    MeshDomain(IScheduler& scheduler, Array<Triangle>&& triangles, const MeshParams& params = MeshParams{});
 
     virtual Vector getCenter() const override {
         return cached.box.center();
@@ -56,69 +56,29 @@ public:
         return cached.volume;
     }
 
-    virtual bool contains(const Vector& v) const override {
-        // As we assume watertight mesh, we could theoretically make just one intersection test, but this
-        // could cause problems at grazing angles, returning false positives. Instead, we opt for a more
-        // robust (albeit slower) solution and cast a ray for each axis.
-        Size insideCnt = 0;
-        Size outsideCnt = 0;
-        static Array<Vector> dirs = {
-            Vector(1._f, 0._f, 0._f),
-            Vector(-1._f, 0._f, 0._f),
-            Vector(0._f, 1._f, 0._f),
-            Vector(0._f, -1._f, 0._f),
-            Vector(0._f, 0._f, 1._f),
-            Vector(0._f, 0._f, -1._f),
-        };
-
-        std::set<IntersectionInfo> intersections;
-        for (Vector& dir : dirs) {
-            Ray ray(v, dir);
-            bvh.getAllIntersections(ray, intersections);
-            if (isOdd(intersections.size())) {
-                insideCnt++;
-            } else {
-                outsideCnt++;
-            }
-        }
-        ASSERT(insideCnt + outsideCnt == 6);
-        return insideCnt >= outsideCnt;
+    virtual Float getSurfaceArea() const override {
+        return cached.area;
     }
+
+    virtual bool contains(const Vector& v) const override;
 
     virtual void getSubset(ArrayView<const Vector> vs,
         Array<Size>& output,
-        const SubsetType type) const override {
-        switch (type) {
-        case SubsetType::OUTSIDE:
-            for (Size i = 0; i < vs.size(); ++i) {
-                if (!this->contains(vs[i])) {
-                    output.push(i);
-                }
-            }
-            break;
-        case SubsetType::INSIDE:
-            for (Size i = 0; i < vs.size(); ++i) {
-                if (this->contains(vs[i])) {
-                    output.push(i);
-                }
-            }
-            break;
-        default:
-            NOT_IMPLEMENTED;
-        }
-    }
+        const SubsetType type) const override;
 
     virtual void getDistanceToBoundary(ArrayView<const Vector>, Array<Float>&) const override {
         NOT_IMPLEMENTED;
     }
 
-    virtual void project(ArrayView<Vector>, Optional<ArrayView<Size>>) const override {
-        NOT_IMPLEMENTED;
-    }
+    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices) const override;
 
-    virtual void addGhosts(ArrayView<const Vector>, Array<Ghost>&, const Float, const Float) const override {
-        NOT_IMPLEMENTED;
-    }
+    virtual void addGhosts(ArrayView<const Vector> vs,
+        Array<Ghost>& ghosts,
+        const Float eta,
+        const Float eps) const override;
+
+private:
+    bool containImpl(const Vector& v) const;
 };
 
 NAMESPACE_SPH_END

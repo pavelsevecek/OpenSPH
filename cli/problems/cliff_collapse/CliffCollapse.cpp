@@ -37,7 +37,7 @@ public:
             .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
             .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.2_f)
             .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
-            .set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
+            .set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, EMPTY_FLAGS)
             .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true)
             .set(RunSettingsId::SPH_SUM_ONLY_UNDAMAGED, false)
             .set(RunSettingsId::DOMAIN_BOUNDARY, BoundaryEnum::GHOST_PARTICLES)

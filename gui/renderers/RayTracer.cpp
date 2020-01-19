@@ -46,6 +46,8 @@ RayTracer::RayTracer(SharedPtr<IScheduler> scheduler, const GuiSettings& setting
         }
     }
 
+    fixed.renderSpheres = settings.get<bool>(GuiSettingsId::RAYTRACE_SPHERES);
+
     shouldContinue = true;
 }
 
@@ -145,7 +147,9 @@ INLINE float sampleTent(const float x) {
 
 INLINE Coords sampleTent2d(const Size level, const float halfWidth, UniformRng& rng) {
     if (level == 1) {
-        return Coords(0.5f + sampleTent(rng()) * halfWidth, 0.5f + sampleTent(rng()) * halfWidth);
+        const float x = 0.5f + sampleTent(float(rng())) * halfWidth;
+        const float y = 0.5f + sampleTent(float(rng())) * halfWidth;
+        return Coords(x, y);
     } else {
         // center of the pixel
         return Coords(0.5f, 0.5f);
@@ -253,6 +257,11 @@ Optional<Vector> RayTracer::intersect(ThreadData& data,
 Optional<Vector> RayTracer::getSurfaceHit(ThreadData& data,
     const IntersectContext& context,
     bool occlusion) const {
+    if (fixed.renderSpheres) {
+        data.previousIdx = context.index;
+        return context.ray.origin() + context.ray.direction() * context.t_min;
+    }
+
     this->getNeighbourList(data, context.index);
 
     const Size i = context.index;
@@ -314,7 +323,8 @@ Rgba RayTracer::shade(ThreadData& data,
     }
 
     // evaluate color before checking for occlusion as that invalidates the neighbour list
-    const Rgba colorizerValue = this->evalColor(data.neighs, hit);
+    const Rgba colorizerValue =
+        fixed.renderSpheres ? cached.colors[index] : this->evalColor(data.neighs, hit);
 
     Rgba emission = Rgba::black();
     if (cached.doEmission) {
@@ -324,7 +334,7 @@ Rgba RayTracer::shade(ThreadData& data,
     }
 
     // compute normal = gradient of the field
-    const Vector n = this->evalGradient(data.neighs, hit);
+    const Vector n = fixed.renderSpheres ? cached.r[index] - hit : this->evalGradient(data.neighs, hit);
     ASSERT(n != Vector(0._f));
     const Vector n_norm = getNormalized(n);
     const Float cosPhi = dot(n_norm, fixed.dirToSun);
@@ -345,7 +355,8 @@ Rgba RayTracer::shade(ThreadData& data,
     // evaluate BRDF
     const Float f = fixed.brdf->transport(n_norm, -dir, fixed.dirToSun);
 
-    return diffuse * (PI * f * cosPhi * params.surface.sunLight + params.surface.ambientLight) + emission;
+    return diffuse * float(PI * f * cosPhi * params.surface.sunLight + params.surface.ambientLight) +
+           emission;
 }
 
 Float RayTracer::evalField(ArrayView<const Size> neighs, const Vector& pos1) const {
@@ -373,11 +384,11 @@ Vector RayTracer::evalGradient(ArrayView<const Size> neighs, const Vector& pos1)
 Rgba RayTracer::evalColor(ArrayView<const Size> neighs, const Vector& pos1) const {
     ASSERT(!neighs.empty());
     Rgba color = Rgba::black();
-    Float weightSum = 0._f;
+    float weightSum = 0.f;
     for (Size index : neighs) {
         const Vector& pos2 = cached.r[index];
         /// \todo could be optimized by using n.distSqr, no need to compute the dot again
-        const Float w = kernel.value(pos1 - pos2, pos2[H]) * cached.v[index];
+        const float w = float(kernel.value(pos1 - pos2, pos2[H]) * cached.v[index]);
         color += cached.colors[index] * w;
         weightSum += w;
     }

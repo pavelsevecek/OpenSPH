@@ -31,9 +31,9 @@ Optional<Path> doOpenFileDialog(const std::string& title, Array<FileFormat>&& fo
 void drawTextWithSubscripts(wxDC& dc, const std::wstring& text, const wxPoint point);
 
 /// Converts the value to a printable string.
-std::wstring toPrintableString(const float value,
+std::wstring toPrintableString(const Float value,
     const Size precision = 5,
-    const float decimalThreshold = 1000.f);
+    const Float decimalThreshold = 1000._f);
 
 void printLabels(wxDC& dc, ArrayView<const IRenderOutput::Label> labels);
 

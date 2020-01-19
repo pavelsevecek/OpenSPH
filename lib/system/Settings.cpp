@@ -83,7 +83,7 @@ static RegisterEnum<FinderEnum> sFinder({
     { FinderEnum::OCTREE, "octree", "Using octree" },
     { FinderEnum::LINKED_LIST, "linked_list", "Using linked list" },
     { FinderEnum::UNIFORM_GRID, "uniform_grid", "Partitioning particles into a grid uniform in space" },
-    { FinderEnum::DYNAMIC, "dynamic", "Selecting most suitable finder automatically" },
+    { FinderEnum::HASH_MAP, "hash_map", "Using hash map" },
 });
 
 static RegisterEnum<BoundaryEnum> sBoundary({
@@ -204,7 +204,6 @@ static RegisterEnum<FractureEnum> sFracture({
 });
 
 static RegisterEnum<SmoothingLengthEnum> sSmoothingLength({
-    { SmoothingLengthEnum::CONST, "const", "Smoothing length is constant and given by initial conditions." },
     { SmoothingLengthEnum::CONTINUITY_EQUATION,
         "continuity_equation",
         "Smoothing length is evolved using continuity equation." },
@@ -400,6 +399,10 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
         "at a cost of higher computation time. " },
     { RunSettingsId::SPH_SUMMATION_MAX_ITERATIONS,  "sph.summation.max_iterations",  5,
         "Used by summation solver. Specifies the maximum number of iterations for density computation." },
+    { RunSettingsId::SPH_ASYMMETRIC_COMPUTE_RADII_HASH_MAP,   "sph.asymmetric.compute_radii_hash_map",    false,
+        "If true, the SPH solver computes a hash map connecting position in space with required search radius. "
+        "Otherwise, the radius is determined from the maximal smoothing length in the simulation. Used only by "
+        "the AsymmetricSolver." },
     { RunSettingsId::SPH_USE_XSPH,                  "sph.xsph.enable",          false,
         "Enables the XSPH modification" },
     { RunSettingsId::SPH_XSPH_EPSILON,              "sph.xsph.epsilon",         1._f,
@@ -560,8 +563,6 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::FINDER_MAX_PARALLEL_DEPTH, "finder.max_parallel_depth", 50,
         "Maximal tree depth to be processed in parallel. A larger value implies better distribution of work "
         "between threads, but it also comes with performance penalty due to scheduling overhead." },
-    { RunSettingsId::FINDER_COMPACT_THRESHOLD,  "finder.compact_threshold",     0.5_f,
-        "Used by dynamic finder. Threshold value for switching between grid finder and K-d tree." },
 
     /// Selected coordinate system, rotation of bodies
     { RunSettingsId::FRAME_ANGULAR_FREQUENCY,       "frame.angular_frequency",  Vector(0._f),

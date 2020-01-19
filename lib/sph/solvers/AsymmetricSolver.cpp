@@ -11,6 +11,36 @@
 
 NAMESPACE_SPH_BEGIN
 
+void RadiiHashMap::build(ArrayView<const Vector> r, const Float kernelRadius) {
+    cellSize = 0._f;
+    for (Size i = 0; i < r.size(); ++i) {
+        cellSize = max(cellSize, r[i][H] * kernelRadius);
+    }
+
+    map.clear();
+    for (Size i = 0; i < r.size(); ++i) {
+        Indices idxs = Indices(r[i] / cellSize);
+        Float& radius = map[idxs];
+        radius = max(radius, r[i][H] * kernelRadius);
+    }
+}
+
+Float RadiiHashMap::getRadius(const Vector& r) const {
+    const Indices idxs = Indices(r / cellSize);
+    Float radius = 0._f;
+    for (int i = -1; i <= 1; ++i) {
+        for (int j = -1; j <= 1; ++j) {
+            for (int k = -1; k <= 1; ++k) {
+                const auto iter = map.find(idxs + Indices(i, j, k));
+                if (iter != map.end()) {
+                    radius = max(radius, iter->second);
+                }
+            }
+        }
+    }
+    return radius;
+}
+
 IAsymmetricSolver::IAsymmetricSolver(IScheduler& scheduler,
     const RunSettings& settings,
     const EquationHolder& eqs)
@@ -18,6 +48,10 @@ IAsymmetricSolver::IAsymmetricSolver(IScheduler& scheduler,
     kernel = Factory::getKernel<DIMENSIONS>(settings);
     finder = Factory::getFinder(settings);
     equations += eqs;
+
+    if (settings.get<bool>(RunSettingsId::SPH_ASYMMETRIC_COMPUTE_RADII_HASH_MAP)) {
+        radiiMap.emplace();
+    }
 }
 
 void IAsymmetricSolver::integrate(Storage& storage, Statistics& stats) {
@@ -53,7 +87,7 @@ void IAsymmetricSolver::create(Storage& storage, IMaterial& material) const {
     this->sanityCheck(storage);
 }
 
-Float IAsymmetricSolver::getSearchRadius(const Storage& storage) const {
+Float IAsymmetricSolver::getMaxSearchRadius(const Storage& storage) const {
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     Float maxH = 0._f;
     for (Size i = 0; i < r.size(); ++i) {
@@ -110,15 +144,23 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     const IBasicFinder& actFinder = *this->getFinder(r);
 
-    // find the maximum search radius
-    const Float radius = this->getSearchRadius(storage);
+    // precompute the search radii
+    Float maxRadius = 0._f;
+    if (radiiMap) {
+        radiiMap->build(r, kernel.radius());
+    } else {
+        maxRadius = this->getMaxSearchRadius(storage);
+    }
 
     ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
 
     // we need to symmetrize kernel in smoothing lenghts to conserve momentum
     SymmetrizeSmoothingLengths<const LutKernel<DIMENSIONS>&> symmetrizedKernel(kernel);
 
-    auto functor = [this, r, &neighs, radius, &symmetrizedKernel, &actFinder](Size i, ThreadData& data) {
+    auto functor = [this, r, &neighs, maxRadius, &symmetrizedKernel, &actFinder](Size i, ThreadData& data) {
+        const Float radius = radiiMap ? radiiMap->getRadius(r[i]) : maxRadius;
+        ASSERT(radius > 0._f);
+
         actFinder.findAll(i, radius, data.neighs);
         data.grads.clear();
         data.idxs.clear();

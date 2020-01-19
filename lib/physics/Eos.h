@@ -41,6 +41,8 @@ public:
     virtual Float getDensity(const Float p, const Float u) const override;
 
     Float getTemperature(const Float u) const;
+
+    Float getSpecificEntropy(const Float rho, const Float p) const;
 };
 
 /// \brief Tait equation of state
