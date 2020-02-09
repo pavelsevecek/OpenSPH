@@ -187,6 +187,50 @@ static JobRegistrar sRegisterParticleTransform(
     "Modifies positions and velocities of the input particles.");
 
 //-----------------------------------------------------------------------------------------------------------
+// CenterParticlesWorker
+//-----------------------------------------------------------------------------------------------------------
+
+VirtualSettings CenterParticlesJob::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+
+    VirtualSettings::Category& centerCat = connector.addCategory("Center");
+    centerCat.connect("Move to CoM", "positions", centerPositions);
+    centerCat.connect("Set zero momentum", "velocities", centerVelocities);
+
+    return connector;
+}
+
+void CenterParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
+    result = this->getInput<ParticleData>("particles");
+    Storage& storage = result->storage;
+
+    Array<Float> m;
+    if (storage.has(QuantityId::MASS)) {
+        m = storage.getValue<Float>(QuantityId::MASS).clone();
+    } else {
+        m.resize(storage.getParticleCnt());
+        m.fill(1._f);
+    }
+    if (centerPositions) {
+        moveToCenterOfMassSystem(m, storage.getValue<Vector>(QuantityId::POSITION));
+    }
+    if (centerVelocities) {
+        moveToCenterOfMassSystem(m, storage.getDt<Vector>(QuantityId::POSITION));
+    }
+
+    callbacks.onSetUp(result->storage, result->stats);
+}
+
+
+static JobRegistrar sRegisterCenterTransform(
+    "center",
+    "particle operators",
+    [](const std::string& name) { return makeAuto<CenterParticlesJob>(name); },
+    "Moves particle positions and/or velocities to center-of-mass frame.");
+
+
+//-----------------------------------------------------------------------------------------------------------
 // ChangeMaterialJob
 //-----------------------------------------------------------------------------------------------------------
 

@@ -317,6 +317,15 @@ INLINE T lerp(const T v1, const T v2, const TAmount amount) {
     return v1 * (TAmount(1) - amount) + v2 * amount;
 }
 
+template <typename T>
+INLINE auto floor(const T& f) {
+    return std::floor(f);
+}
+
+template <typename T>
+INLINE auto ceil(const T& f) {
+    return std::ceil(f);
+}
 
 /// Mathematical constants
 constexpr Float PI = 3.14159265358979323846264338327950288419716939937510582097_f;

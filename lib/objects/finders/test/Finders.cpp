@@ -399,4 +399,51 @@ TEST_CASE("UniformGridFinder", "[finders]") {
 TEST_CASE("HashMapFinder", "[finders]") {
     HashMapFinder finder(RunSettings::getDefaults());
     testFinder(finder);
+    REQUIRE(finder.good());
+}
+
+TEST_CASE("HashMapFinder cell size", "[finders]") {
+    // tests that bounding box of particles in all cells is below the 2h
+    HexagonalPacking distr;
+    SphericalDomain domain(Vector(0._f), 3._f);
+    Array<Vector> storage = distr.generate(SEQUENTIAL, 100000, domain);
+    const Float h0 = storage[0][H];
+
+    HashMapFinder finder(RunSettings::getDefaults());
+    finder.build(SEQUENTIAL, storage);
+    Outcome result = SUCCESS;
+    finder.iterate([&result, h0](const HashMapFinder::Cell& cell, const Box& box) {
+        if (box.size() != approx(Vector(2._f * h0))) {
+            result = makeFailed("Incorrect cell box size");
+        }
+        if (!box.contains(cell.box.lower()) || !box.contains(cell.box.upper())) {
+            result = makeFailed("Particle box not contained in cell box");
+        }
+    });
+    REQUIRE(result == SUCCESS);
+    REQUIRE(finder.good());
+}
+
+static void testHashMapWithDistr(IDistribution& distr) {
+    // SphericalDomain domain(Vector(5._f, -2._f, 9._f), 8._f);
+    SphericalDomain domain(Vector(0._f), 8._f);
+    Array<Vector> storage = distr.generate(SEQUENTIAL, 100000, domain);
+    for (Float h : { 1.e-6_f, 1.e-4_f, 0.01_f, 1._f }) {
+        for (Size i = 0; i < storage.size(); ++i) {
+            storage[i][H] = h;
+        }
+        HashMapFinder finder(RunSettings::getDefaults());
+        finder.build(SEQUENTIAL, storage);
+        REQUIRE(finder.good());
+    }
+}
+
+TEST_CASE("HashMapFinder random good", "[finders]") {
+    RandomDistribution distr(1234);
+    testHashMapWithDistr(distr);
+}
+
+TEST_CASE("HashMapFinder hexa good", "[finders]") {
+    HexagonalPacking distr;
+    testHashMapWithDistr(distr);
 }

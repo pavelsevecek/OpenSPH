@@ -138,4 +138,21 @@ INLINE bool all(const Indices& i) {
     return i[0] && i[1] && i[2];
 }
 
+INLINE bool any(const Indices& i) {
+    return i[0] || i[1] || i[2];
+}
+
+template <>
+INLINE auto floor(const Vector& v) {
+    return Indices(int(std::floor(v[X])), int(std::floor(v[Y])), int(std::floor(v[Z])));
+}
+
 NAMESPACE_SPH_END
+
+template <>
+class std::hash<Sph::Indices> {
+public:
+    INLINE size_t operator()(const Sph::Indices& idxs) const {
+        return (idxs[0] * 73856093ull) ^ (idxs[1] * 19349663ull) ^ (idxs[2] ^ 83492791ull);
+    }
+};

@@ -21,18 +21,6 @@ class IBoundaryCondition;
 /// \brief Helper structure storing search radii for particles as hash map.
 class RadiiHashMap {
 private:
-    class IndicesHash {
-    public:
-        INLINE std::size_t operator()(const Indices& idxs) const {
-            std::hash<int> hash;
-            return combine(combine(hash(idxs[0]), hash(idxs[1])), hash(idxs[2]));
-        }
-
-    private:
-        INLINE size_t combine(const size_t lhs, const size_t rhs) const {
-            return lhs ^ (rhs + 0x9e3779b9 + (lhs << 6) + (lhs >> 2));
-        }
-    };
     class IndicesEqual {
     public:
         INLINE bool operator()(const Indices& i1, const Indices& i2) const {
@@ -40,7 +28,7 @@ private:
         }
     };
 
-    std::unordered_map<Indices, Float, IndicesHash, IndicesEqual> map;
+    std::unordered_map<Indices, Float, std::hash<Indices>, IndicesEqual> map;
     Float cellSize;
 
 public:

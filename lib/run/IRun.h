@@ -119,4 +119,14 @@ protected:
     void tearDownInternal(const Storage& storage, const Statistics& stats);
 };
 
+/// \brief Runs a simulation using provided storage as initial conditions.
+///
+/// This function is a simple alternative to implementing the IRun interface. By providing the initial
+/// conditions and settings that specify the solver, timestepping, end time, etc., functions run the
+/// simulation and updates the \ref Storage object with computed values of quantities.
+/// \param storage Input/output storage containing initial conditions
+/// \param settings Parameters of the simulation
+/// \return SUCCESS if computed successfully, otherwise an error message.
+Outcome doRun(Storage& storage, const RunSettings& settings);
+
 NAMESPACE_SPH_END

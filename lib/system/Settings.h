@@ -675,6 +675,10 @@ enum class SolverEnum {
 
     /// Solver advancing internal energy using pair-wise work done by particles, by Owen (2009).
     ENERGY_CONSERVING_SOLVER,
+
+    /// Simple solver with pressure gradient only, mainly used for supporting purposes (benchmarking,
+    /// teaching, etc.)
+    SIMPLE_SOLVER,
 };
 
 enum class DiscretizationEnum {

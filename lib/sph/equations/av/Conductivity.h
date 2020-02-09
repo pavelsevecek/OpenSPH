@@ -66,6 +66,14 @@ public:
         }
     };
 
+    ArtificialConductivity(const RunSettings& settings) {
+        const Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES);
+        if (forces != ForceEnum::PRESSURE) {
+            throw InvalidSetup(
+                "Artificiacl conductivity cannot be used with forces other than pressure gradient.");
+        }
+    }
+
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
         derivatives.require(makeAuto<Derivative>(settings));
     }

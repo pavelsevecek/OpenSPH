@@ -81,7 +81,7 @@ EquationHolder getStandardEquations(const RunSettings& settings, const EquationH
     }
 
     if (settings.get<bool>(RunSettingsId::SPH_USE_AC)) {
-        equations += makeTerm<ArtificialConductivity>();
+        equations += makeTerm<ArtificialConductivity>(settings);
     }
 
     // add all the additional equations

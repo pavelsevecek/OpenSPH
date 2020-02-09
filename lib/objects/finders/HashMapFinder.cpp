@@ -9,7 +9,8 @@ HashMapFinder::Cell::Cell() = default;
 
 HashMapFinder::Cell::~Cell() = default;
 
-HashMapFinder::HashMapFinder(const RunSettings& settings) {
+HashMapFinder::HashMapFinder(const RunSettings& settings, const Float cellMult)
+    : cellMult(cellMult) {
     kernelRadius = Factory::getKernel<3>(settings).radius();
 }
 
@@ -21,9 +22,10 @@ void HashMapFinder::buildImpl(IScheduler& UNUSED(scheduler), ArrayView<const Vec
     for (Size i = 0; i < points.size(); ++i) {
         cellSize = max(cellSize, kernelRadius * points[i][H]);
     }
+    cellSize *= cellMult;
 
     for (Size i = 0; i < points.size(); ++i) {
-        const Indices idxs = Indices(points[i] / cellSize);
+        const Indices idxs = floor(points[i] / cellSize);
         Cell& cell = map[idxs];
         cell.points.push(i);
         cell.box.extend(points[i]);
@@ -36,7 +38,7 @@ Size HashMapFinder::find(const Vector& pos,
     const Float radius,
     Array<NeighbourRecord>& neighs) const {
     ASSERT(neighs.empty());
-    const Indices idxs0 = Indices(pos / cellSize);
+    const Indices idxs0 = floor(pos / cellSize);
     Sphere sphere(pos, radius);
     for (int x = -1; x <= 1; ++x) {
         for (int y = -1; y <= 1; ++y) {

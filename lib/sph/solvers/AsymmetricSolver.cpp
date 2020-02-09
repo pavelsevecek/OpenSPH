@@ -19,14 +19,15 @@ void RadiiHashMap::build(ArrayView<const Vector> r, const Float kernelRadius) {
 
     map.clear();
     for (Size i = 0; i < r.size(); ++i) {
-        Indices idxs = Indices(r[i] / cellSize);
+        // floor needed to properly handle negative values
+        Indices idxs = floor(r[i] / cellSize);
         Float& radius = map[idxs];
         radius = max(radius, r[i][H] * kernelRadius);
     }
 }
 
 Float RadiiHashMap::getRadius(const Vector& r) const {
-    const Indices idxs = Indices(r / cellSize);
+    const Indices idxs = floor(r / cellSize);
     Float radius = 0._f;
     for (int i = -1; i <= 1; ++i) {
         for (int j = -1; j <= 1; ++j) {

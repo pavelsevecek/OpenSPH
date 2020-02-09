@@ -27,6 +27,15 @@ TEST_CASE("Sphere intersectsSphere", "[sphere]") {
     REQUIRE_FALSE(sphere.intersects(Sphere(Vector(0._f, 1._f + 2._f * EPS, 0._f), EPS)));
 }
 
+TEST_CASE("Sphere overlaps", "[sphere]") {
+    Sphere sphere(Vector(1._f, 0._f, -1._f), 1.5_f);
+    REQUIRE(sphere.overlaps(Box(Vector(0._f), Vector(0._f))));
+    REQUIRE(
+        sphere.overlaps(Box(Vector(-0.5_f + EPS, 0._f, -1._f), Vector(Vector(-0.5_f + EPS, 0._f, -1._f)))));
+    REQUIRE(sphere.overlaps(Box(Vector(0._f, 0._f, -1._f), Vector(0.5_f, 0.5_f, -0.5_f))));
+    REQUIRE(sphere.overlaps(Box(Vector(-10._f), Vector(10._f))));
+}
+
 TEST_CASE("Sphere intersectsBox", "[sphere]") {
     Sphere sphere(Vector(0._f), 1._f);
     /*// box enclosing the sphere

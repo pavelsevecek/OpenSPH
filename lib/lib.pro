@@ -289,6 +289,7 @@ HEADERS += \
     sph/solvers/EntropySolver.h \
     sph/solvers/GradHSolver.h \
     sph/solvers/GravitySolver.h \
+    sph/solvers/SimpleSolver.h \
     sph/solvers/StabilizationSolver.h \
     sph/solvers/StandardSets.h \
     sph/solvers/StaticSolver.h \

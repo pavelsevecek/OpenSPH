@@ -124,7 +124,7 @@ public:
 };
 
 
-class NullCallbacks : public IRunCallbacks {
+class NullRunCallbacks : public IRunCallbacks {
 public:
     virtual void onSetUp(const Storage&, Statistics&) override {}
 
@@ -136,7 +136,7 @@ public:
 };
 
 Statistics IRun::run(Storage& input) {
-    NullCallbacks callbacks;
+    NullRunCallbacks callbacks;
     return this->run(input, callbacks);
 }
 
@@ -280,6 +280,29 @@ void IRun::tearDownInternal(const Storage& storage, const Statistics& stats) {
     timeStepping.reset();
     solver.reset();
     // keep storage so that we can access particle data after run ends
+}
+
+class SimpleRun : public IRun {
+public:
+    SimpleRun(const RunSettings& settings) {
+        this->settings = settings;
+    }
+
+protected:
+    virtual void setUp(SharedPtr<Storage> UNUSED(storage)) override {}
+
+    virtual void tearDown(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {}
+};
+
+Outcome doRun(Storage& storage, const RunSettings& settings) {
+    try {
+        SimpleRun run(settings);
+        NullRunCallbacks callbacks;
+        run.run(storage, callbacks);
+        return SUCCESS;
+    } catch (const InvalidSetup& e) {
+        return makeFailed(e.what());
+    }
 }
 
 NAMESPACE_SPH_END

@@ -83,6 +83,28 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
+class CenterParticlesJob : public IParticleJob {
+private:
+    bool centerPositions = true;
+    bool centerVelocities = false;
+
+public:
+    CenterParticlesJob(const std::string& name)
+        : IParticleJob(name) {}
+
+    virtual std::string className() const override {
+        return "center";
+    }
+
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
+};
+
 enum class ChangeMaterialSubset {
     ALL,
     MATERIAL_ID,
