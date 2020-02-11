@@ -85,8 +85,8 @@ AutoPtr<IRenderer> Factory::getRenderer(SharedPtr<IScheduler> scheduler, const G
     default:
         NOT_IMPLEMENTED;
     }
-        return renderer;
-}
+
+    return renderer;
 }
 
 AutoPtr<IBrdf> Factory::getBrdf(const GuiSettings& UNUSED(settings)) {
