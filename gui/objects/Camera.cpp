@@ -6,7 +6,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-Pair<Vector> ParticleTracker::getCameraState(const Storage& storage) const {
+Pair<Vector> ParticleTracker::getTrackedPoint(const Storage& storage) const {
     if (index < storage.getParticleCnt()) {
         const Quantity& pos = storage.getQuantity(QuantityId::POSITION);
         return { pos.getValue<Vector>()[index], pos.getDt<Vector>()[index] };
@@ -15,7 +15,7 @@ Pair<Vector> ParticleTracker::getCameraState(const Storage& storage) const {
     }
 }
 
-Pair<Vector> MedianTracker::getCameraState(const Storage& storage) const {
+Pair<Vector> MedianTracker::getTrackedPoint(const Storage& storage) const {
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     Array<Float> x(r.size());
     Array<Float> y(r.size());
@@ -82,7 +82,7 @@ float OrthoCamera::estimateFov(const Storage& storage) const {
     // factor 5 is ad hoc
     const Float fov = max(5._f * distances[mid], EPS);
 
-    return data.imageSize.y / fov;
+    return float(data.imageSize.y / fov);
 }
 
 void OrthoCamera::autoSetup(const Storage& storage) {
@@ -97,8 +97,8 @@ void OrthoCamera::autoSetup(const Storage& storage) {
 
 Optional<ProjectedPoint> OrthoCamera::project(const Vector& r) const {
     const float fov = data.ortho.fov;
-    const float x = dot(r - data.position, cached.u) * fov;
-    const float y = dot(r - data.position, cached.v) * fov;
+    const float x = float(dot(r - data.position, cached.u)) * fov;
+    const float y = float(dot(r - data.position, cached.v)) * fov;
     const Coords point = Coords(data.imageSize.x / 2 + x, data.imageSize.y / 2 - y - 1);
     return { { point, fov * float(r[H]) } };
 }
@@ -115,8 +115,12 @@ Optional<CameraRay> OrthoCamera::unproject(const Coords& coords) const {
     return ray;
 }
 
-Vector OrthoCamera::getDirection() const {
-    return cached.w;
+AffineMatrix OrthoCamera::getFrame() const {
+    return AffineMatrix(cached.u, cached.v, cached.w).translate(data.position);
+}
+
+Vector OrthoCamera::getTarget() const {
+    return data.target;
 }
 
 Optional<float> OrthoCamera::getCutoff() const {
@@ -142,9 +146,14 @@ void OrthoCamera::zoom(const Pixel fixedPoint, const float magnitude) {
     data.target += dp;
 }
 
-void OrthoCamera::moveTo(const Vector& newPosition) {
+void OrthoCamera::setPosition(const Vector& newPosition) {
     const Vector offset = newPosition - data.position;
     data.position += offset;
+    this->update();
+}
+
+void OrthoCamera::setTarget(const Vector& newTarget) {
+    const Vector offset = newTarget - data.target;
     data.target += offset;
     this->update();
 }
@@ -216,12 +225,12 @@ Optional<ProjectedPoint> PerspectiveCamera::project(const Vector& r) const {
     Vector up0;
     Float upLength;
     tieToTuple(up0, upLength) = getNormalizedWithLength(cached.up);
-    const float leftRel = dot(left0, r0) / leftLength;
-    const float upRel = dot(up0, r0) / upLength;
+    const float leftRel = float(dot(left0, r0) / leftLength);
+    const float upRel = float(dot(up0, r0) / upLength);
     const float x = 0.5f * (1.f + leftRel) * data.imageSize.x;
     const float y = 0.5f * (1.f + upRel) * data.imageSize.y;
-    const float hAtUnitDist = r[H] / proj;
-    const float h = hAtUnitDist / leftLength * data.imageSize.x;
+    const float hAtUnitDist = float(r[H] / proj);
+    const float h = hAtUnitDist / float(leftLength) * float(data.imageSize.x);
 
     // if (x >= -h && x < imageSize.x + h && y >= -h && y < imageSize.y )
     return ProjectedPoint{ { x, data.imageSize.y - y - 1 }, max(float(h), 1.f) };
@@ -238,8 +247,12 @@ Optional<CameraRay> PerspectiveCamera::unproject(const Coords& coords) const {
     return ray;
 }
 
-Vector PerspectiveCamera::getDirection() const {
-    return cached.dir;
+AffineMatrix PerspectiveCamera::getFrame() const {
+    return AffineMatrix(cached.left, cached.up, cached.dir).translate(data.position);
+}
+
+Vector PerspectiveCamera::getTarget() const {
+    return data.target;
 }
 
 Optional<float> PerspectiveCamera::getCutoff() const {
@@ -259,9 +272,14 @@ void PerspectiveCamera::zoom(const Pixel UNUSED(fixedPoint), const float magnitu
     // this->transform(//cached.matrix);
 }
 
-void PerspectiveCamera::moveTo(const Vector& newPosition) {
+void PerspectiveCamera::setPosition(const Vector& newPosition) {
     const Vector offset = newPosition - data.position;
     data.position += offset;
+    this->update();
+}
+
+void PerspectiveCamera::setTarget(const Vector& newTarget) {
+    const Vector offset = newTarget - data.target;
     data.target += offset;
     this->update();
 }
@@ -327,8 +345,12 @@ Optional<ProjectedPoint> PanoCameraBase::project(const Vector& UNUSED(r)) const 
     return NOTHING;
 }
 
-Vector PanoCameraBase::getDirection() const {
-    return getNormalized(data.target - data.position);
+AffineMatrix PanoCameraBase::getFrame() const {
+    NOT_IMPLEMENTED;
+}
+
+Vector PanoCameraBase::getTarget() const {
+    return data.target;
 }
 
 Optional<float> PanoCameraBase::getCutoff() const {
@@ -346,7 +368,11 @@ void PanoCameraBase::zoom(const Pixel UNUSED(fixedPoint), const float UNUSED(mag
     NOT_IMPLEMENTED;
 }
 
-void PanoCameraBase::moveTo(const Vector& UNUSED(newPosition)) {
+void PanoCameraBase::setPosition(const Vector& UNUSED(newPosition)) {
+    NOT_IMPLEMENTED;
+}
+
+void PanoCameraBase::setTarget(const Vector& UNUSED(newPosition)) {
     NOT_IMPLEMENTED;
 }
 
@@ -386,13 +412,13 @@ FisheyeCamera::FisheyeCamera(const CameraData& data)
 
 Optional<CameraRay> FisheyeCamera::unproject(const Coords& coords) const {
     const Coords p = (coords - cached.center) / cached.radius;
-    const Float r = getLength(p);
-    if (r > 1._f) {
+    const float r = getLength(p);
+    if (r > 1.f) {
         return NOTHING;
     }
 
-    const Float theta = r * PI / 2._f;
-    const Float phi = atan2(p.y, p.x) + PI / 2._f;
+    const Float theta = Float(r) * PI / 2._f;
+    const Float phi = Float(atan2(p.y, p.x)) + PI / 2._f;
 
     const Vector localDir = sphericalToCartesian(1._f, theta, phi);
     const Vector dir = matrix * localDir;

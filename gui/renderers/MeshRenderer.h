@@ -22,8 +22,8 @@ private:
 
     /// Shading parameters
     Vector sunPosition;
-    Float sunIntensity;
-    Float ambient;
+    float sunIntensity;
+    float ambient;
 
     /// Cached values of visible particles, used for faster drawing.
     struct {

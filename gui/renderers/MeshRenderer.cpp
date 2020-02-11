@@ -15,8 +15,8 @@ MeshRenderer::MeshRenderer(SharedPtr<IScheduler> scheduler, const GuiSettings& g
     surfaceLevel = gui.get<Float>(GuiSettingsId::SURFACE_LEVEL);
     surfaceResolution = gui.get<Float>(GuiSettingsId::SURFACE_RESOLUTION);
     sunPosition = gui.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION);
-    sunIntensity = gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY);
-    ambient = gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
+    sunIntensity = float(gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY));
+    ambient = float(gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT));
 
     RunSettings settings;
     settings.set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE);
@@ -46,12 +46,12 @@ void MeshRenderer::initialize(const Storage& storage,
         finder->findAll(pos, 4._f * actResolution, neighs);
 
         Rgba colorSum(0._f);
-        Float weightSum = 0._f;
+        float weightSum = 0.f;
         for (auto& n : neighs) {
             const Size i = n.index;
             const Rgba color = colorizer.evalColor(i);
             /// \todo fix, the weight here should be consistent with MC
-            const Float w = max(kernel.value(r[i] - pos, r[i][H]), EPS);
+            const float w = float(max(kernel.value(r[i] - pos, r[i][H]), EPS));
             colorSum += color * w;
             weightSum += w;
         }
@@ -61,7 +61,7 @@ void MeshRenderer::initialize(const Storage& storage,
             cached.colors.push(Rgba::red());
         } else {
             // supersimple diffuse shading
-            const float gray = ambient + sunIntensity * max(0._f, dot(sunPosition, t.normal()));
+            const float gray = ambient + sunIntensity * max(0.f, float(dot(sunPosition, t.normal())));
             cached.colors.push(colorSum / weightSum * gray);
         }
     }
@@ -72,11 +72,11 @@ void MeshRenderer::render(const RenderParams& params, Statistics& stats, IRender
     PreviewRenderContext context(bitmap);
 
     // draw black background
-    context.fill(Rgba::black());
+    context.fill(Rgba::transparent());
 
     // sort the arrays by z-depth
     Order triangleOrder(cached.triangles.size());
-    const Vector cameraDir = params.camera->getDirection();
+    const Vector cameraDir = params.camera->getFrame().row(2);
     triangleOrder.shuffle([this, &cameraDir](const Size i1, const Size i2) {
         const Vector v1 = cached.triangles[i1].center();
         const Vector v2 = cached.triangles[i2].center();
@@ -98,9 +98,16 @@ void MeshRenderer::render(const RenderParams& params, Statistics& stats, IRender
     }
 
     if (stats.has(StatisticsId::RUN_TIME)) {
-        const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
+        const int64_t time = int64_t(stats.get<Float>(StatisticsId::RUN_TIME));
         context.drawText(Coords(0, 0), TextAlign::RIGHT | TextAlign::BOTTOM, getFormattedTime(time * 1000));
     }
+
+    // lastly black frame to draw on top of other stuff
+    context.setColor(Rgba::black(), ColorFlag::LINE);
+    context.drawLine(Coords(0, 0), Coords(params.size.x - 1, 0));
+    context.drawLine(Coords(params.size.x - 1, 0), Coords(params.size.x - 1, params.size.y - 1));
+    context.drawLine(Coords(params.size.x - 1, params.size.y - 1), Coords(0, params.size.y - 1));
+    context.drawLine(Coords(0, params.size.y - 1), Coords(0, 0));
 
     output.update(bitmap, context.getLabels(), true);
 }

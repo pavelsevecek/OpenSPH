@@ -106,9 +106,13 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
 void Movie::save(const Storage& storage, Statistics& stats) {
     // move the camera (shared for all colorizers)
     if (params.tracker != nullptr) {
-        Vector pos, vel;
-        tie(pos, vel) = params.tracker->getCameraState(storage);
-        params.camera->moveTo(pos);
+        Vector trackedPos, trackedVel;
+        tie(trackedPos, trackedVel) = params.tracker->getTrackedPoint(storage);
+        const Vector target = params.camera->getTarget();
+        const Vector cameraPos = params.camera->getFrame().translation();
+        const Vector newPos = trackedPos - target + cameraPos;
+        params.camera->setPosition(newPos);
+        params.camera->setTarget(trackedPos);
     }
 
     const Path path = paths.getNextPath(stats);

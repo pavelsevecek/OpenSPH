@@ -24,6 +24,23 @@ public:
     }
 };
 
+class PhongBrdf : public IBrdf {
+private:
+    Float albedo;
+    Float alpha = 2._f;
+
+public:
+    explicit PhongBrdf(const Float albedo)
+        : albedo(albedo) {}
+
+    virtual Float transport(const Vector& normal,
+        const Vector& dir_in,
+        const Vector& dir_out) const override {
+        const Vector out = 2._f * dot(normal, dir_in) * normal - dir_in;
+        return albedo / PI + 0.3_f * pow(abs(dot(out, dir_out)), alpha);
+    }
+};
+
 struct HapkeParams {
     Float B0;
     Float h;

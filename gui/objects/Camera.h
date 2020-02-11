@@ -17,7 +17,7 @@ class Storage;
 class ITracker : public Polymorphic {
 public:
     // position and velocity
-    virtual Pair<Vector> getCameraState(const Storage& storage) const = 0;
+    virtual Pair<Vector> getTrackedPoint(const Storage& storage) const = 0;
 };
 
 class ParticleTracker : public ITracker {
@@ -28,7 +28,7 @@ public:
     explicit ParticleTracker(const Size index)
         : index(index) {}
 
-    virtual Pair<Vector> getCameraState(const Storage& storage) const override;
+    virtual Pair<Vector> getTrackedPoint(const Storage& storage) const override;
 };
 
 class MedianTracker : public ITracker {
@@ -39,7 +39,7 @@ public:
     explicit MedianTracker(const Vector& offset)
         : offset(offset) {}
 
-    virtual Pair<Vector> getCameraState(const Storage& storage) const override;
+    virtual Pair<Vector> getTrackedPoint(const Storage& storage) const override;
 };
 
 /// \brief Represents a particle projected onto image plane
@@ -72,8 +72,13 @@ public:
     /// \brief Returns a ray in particle coordinates corresponding to given coordinates in the image plane.
     virtual Optional<CameraRay> unproject(const Coords& coords) const = 0;
 
-    /// \brief Returns the direction of the camera.
-    virtual Vector getDirection() const = 0;
+    /// \brief Returns the transformation matrix converting camera space to world space.
+    ///
+    /// In the camera space, camera direction is aligned with the z-axis, y-axis corresponds to the up-vector
+    /// and x-axis is perpendicular, i.e. left-vector.
+    virtual AffineMatrix getFrame() const = 0;
+
+    virtual Vector getTarget() const = 0;
 
     /// \brief Returns the clipping distance from plane passing through origin, perpendicular to camera
     /// direction.
@@ -99,7 +104,9 @@ public:
     virtual void zoom(const Pixel fixedPoint, const float magnitude) = 0;
 
     /// \brief Moves the camera to new position in world space.
-    virtual void moveTo(const Vector& newPosition) = 0;
+    virtual void setPosition(const Vector& newPosition) = 0;
+
+    virtual void setTarget(const Vector& newTarget) = 0;
 
     /// \brief Transforms the current view by given matrix.
     ///
@@ -169,7 +176,9 @@ public:
 
     virtual Optional<CameraRay> unproject(const Coords& coords) const override;
 
-    virtual Vector getDirection() const override;
+    virtual AffineMatrix getFrame() const override;
+
+    virtual Vector getTarget() const override;
 
     virtual Optional<float> getCutoff() const override;
 
@@ -179,7 +188,9 @@ public:
 
     virtual void zoom(const Pixel fixedPoint, const float magnitude) override;
 
-    virtual void moveTo(const Vector& newPosition) override;
+    virtual void setPosition(const Vector& newPosition) override;
+
+    virtual void setTarget(const Vector& newTarget) override;
 
     virtual void transform(const AffineMatrix& matrix) override;
 
@@ -225,7 +236,9 @@ public:
 
     virtual Optional<CameraRay> unproject(const Coords& coords) const override;
 
-    virtual Vector getDirection() const override;
+    virtual AffineMatrix getFrame() const override;
+
+    virtual Vector getTarget() const override;
 
     virtual Optional<float> getCutoff() const override;
 
@@ -235,7 +248,9 @@ public:
 
     virtual void zoom(const Pixel UNUSED(fixedPoint), const float magnitude) override;
 
-    virtual void moveTo(const Vector& newPosition) override;
+    virtual void setPosition(const Vector& newPosition) override;
+
+    virtual void setTarget(const Vector& newTarget) override;
 
     virtual void transform(const AffineMatrix& matrix) override;
 
@@ -264,7 +279,9 @@ public:
 
     virtual Optional<ProjectedPoint> project(const Vector& r) const override;
 
-    virtual Vector getDirection() const override;
+    virtual AffineMatrix getFrame() const override;
+
+    virtual Vector getTarget() const override;
 
     virtual Optional<float> getCutoff() const override;
 
@@ -274,7 +291,9 @@ public:
 
     virtual void zoom(const Pixel UNUSED(fixedPoint), const float magnitude) override;
 
-    virtual void moveTo(const Vector& newPosition) override;
+    virtual void setPosition(const Vector& newPosition) override;
+
+    virtual void setTarget(const Vector& newTarget) override;
 
     virtual void transform(const AffineMatrix& matrix) override;
 
@@ -292,7 +311,7 @@ private:
     struct {
         Coords center;
 
-        Size radius;
+        float radius;
     } cached;
 
 public:

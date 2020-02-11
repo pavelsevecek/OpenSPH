@@ -19,7 +19,7 @@ static void drawVector(IRenderContext& context,
     const ICamera& camera,
     const Vector& r,
     const Vector& v,
-    const float length) {
+    const Float length) {
     if (getSqrLength(v) == 0._f) {
         return;
     }
@@ -34,7 +34,7 @@ static void drawVector(IRenderContext& context,
     if (l == 0._f) {
         return;
     }
-    dir *= length / l;
+    dir *= float(length / l);
     const Coords c1 = p1->coords;
     const Coords c2 = p1->coords + dir;
 
@@ -48,8 +48,8 @@ static void drawVector(IRenderContext& context,
     PlotPoint a1 = rot.transformPoint(dp) * 0.1f;
     PlotPoint a2 = rot.transpose().transformPoint(dp) * 0.1f;
 
-    context.drawLine(c2, c2 + Coords(a1.x, a1.y));
-    context.drawLine(c2, c2 + Coords(a2.x, a2.y));
+    context.drawLine(c2, c2 + Coords(float(a1.x), float(a1.y)));
+    context.drawLine(c2, c2 + Coords(float(a2.x), float(a2.y)));
 }
 
 void drawPalette(IRenderContext& context,
@@ -90,8 +90,8 @@ void drawPalette(IRenderContext& context,
     }
     context.setColor(lineColor, ColorFlag::LINE | ColorFlag::TEXT);
     for (Float tic : tics) {
-        const Float value = palette.paletteToRelative(tic);
-        const int i = value * size.y;
+        const float value = palette.paletteToRelative(float(tic));
+        const int i = int(value * size.y);
         context.drawLine(Coords(origin.x, origin.y - i), Coords(origin.x + 6, origin.y - i));
         context.drawLine(
             Coords(origin.x + size.x - 6, origin.y - i), Coords(origin.x + size.x, origin.y - i));
@@ -119,7 +119,7 @@ static void drawGrid(IRenderContext& context, const ICamera& camera, const float
     const float dy = dx;
     const Coords origin = camera.project(Vector(0._f))->coords;
 
-    context.setColor(Rgba(0.16_f), ColorFlag::LINE);
+    context.setColor(Rgba(0.16f), ColorFlag::LINE);
     const Pixel size = context.size();
     for (float x = origin.x; x < size.x; x += dx) {
         context.drawLine(Coords(x, 0), Coords(x, size.y));
@@ -145,8 +145,8 @@ static void drawKey(IRenderContext& context,
 
     context.setColor(background.inverse(), ColorFlag::TEXT | ColorFlag::LINE);
     if (stats.has(StatisticsId::RUN_TIME)) {
-        const float time = stats.get<Float>(StatisticsId::RUN_TIME);
-        context.drawText(keyStart, flags, "t = " + getFormattedTime(1.e3_f * time));
+        const float time = float(stats.get<Float>(StatisticsId::RUN_TIME));
+        context.drawText(keyStart, flags, "t = " + getFormattedTime(int64_t(1.e3f * time)));
     }
     // context.drawText(keyStart + Coords(0, 50), flags, "fps = " + std::to_string(int(fps)));
 
@@ -163,7 +163,7 @@ static void drawKey(IRenderContext& context,
     /// \todo finally implement the units!
     std::wstring units = L" m";
     if (actScaleFov > Constants::au) {
-        actScaleFov /= Constants::au;
+        actScaleFov /= float(Constants::au);
         units = L" au";
     } else if (actScaleFov > 1.e3f) {
         actScaleFov /= 1.e3f;
@@ -178,13 +178,12 @@ static void drawKey(IRenderContext& context,
 }
 
 ParticleRenderer::ParticleRenderer(const GuiSettings& settings) {
-    grid = settings.get<Float>(GuiSettingsId::VIEW_GRID_SIZE);
+    grid = float(settings.get<Float>(GuiSettingsId::VIEW_GRID_SIZE));
     shouldContinue = true;
 }
 
-static bool isCutOff(const ICamera& camera, const Vector& r) {
-    const Optional<float> cutoff = camera.getCutoff();
-    return cutoff && abs(dot(camera.getDirection(), r)) > cutoff.value();
+static bool isCutOff(const Vector& r, const Optional<float> cutoff, const Vector direction) {
+    return cutoff && abs(dot(direction, r)) > cutoff.value();
 }
 
 void ParticleRenderer::initialize(const Storage& storage,
@@ -196,11 +195,13 @@ void ParticleRenderer::initialize(const Storage& storage,
     cached.colors.clear();
     cached.vectors.clear();
 
+    const Optional<float> cutoff = camera.getCutoff();
+    const Vector direction = camera.getFrame().row(2);
     bool hasVectorData = bool(colorizer.evalVector(0));
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
         const Optional<ProjectedPoint> p = camera.project(r[i]);
-        if (p && !isCutOff(camera, r[i])) {
+        if (p && !isCutOff(r[i], cutoff, direction)) {
             cached.idxs.push(i);
             cached.positions.push(r[i]);
 
@@ -220,7 +221,7 @@ void ParticleRenderer::initialize(const Storage& storage,
         for (Size i = 0; i < ghosts->size(); ++i) {
             const Vector pos = ghosts->getGhost(i).position;
             const Optional<ProjectedPoint> p = camera.project(pos);
-            if (p && !isCutOff(camera, pos)) {
+            if (p && !isCutOff(pos, cutoff, direction)) {
                 cached.idxs.push(Size(-1));
                 cached.positions.push(pos);
                 cached.colors.push(Rgba::transparent());
@@ -233,19 +234,18 @@ void ParticleRenderer::initialize(const Storage& storage,
     }
 
     // sort in z-order
-    const Vector dir = camera.getDirection();
     Order order(cached.positions.size());
-    order.shuffle([this, &dir](Size i, Size j) {
+    order.shuffle([this, &direction](Size i, Size j) {
         const Vector r1 = cached.positions[i];
         const Vector r2 = cached.positions[j];
-        return dot(dir, r1) > dot(dir, r2);
+        return dot(direction, r1) > dot(direction, r2);
     });
     /// \todo could be changed to AOS to sort only once
     cached.positions = order.apply(cached.positions);
     cached.idxs = order.apply(cached.idxs);
     cached.colors = order.apply(cached.colors);
 
-    cached.cameraDir = dir;
+    cached.cameraDir = direction;
 
     if (hasVectorData) {
         cached.vectors = order.apply(cached.vectors);
@@ -292,7 +292,7 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
 
     shouldContinue = true;
     // draw particles
-    const bool reverseOrder = dot(cached.cameraDir, params.camera->getDirection()) < 0._f;
+    const bool reverseOrder = dot(cached.cameraDir, params.camera->getFrame().row(2)) < 0._f;
     for (Size k = 0; k < cached.positions.size(); ++k) {
         const Size i = reverseOrder ? cached.positions.size() - k - 1 : k;
         if (!params.particles.renderGhosts && cached.idxs[i] == Size(-1)) {
@@ -316,13 +316,13 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
             context->setColor(color, ColorFlag::FILL | ColorFlag::LINE);
             if (cached.idxs[i] == Size(-1)) {
                 // ghost
-                context->setColor(Rgba::gray(0.7_f), ColorFlag::LINE);
+                context->setColor(Rgba::gray(0.7f), ColorFlag::LINE);
             }
         }
 
         const Optional<ProjectedPoint> p = params.camera->project(cached.positions[i]);
         ASSERT(p); // cached values must be visible by the camera
-        const Float size = p->radius * params.particles.scale;
+        const float size = float(p->radius * params.particles.scale);
         context->drawCircle(p->coords, size);
     }
     // after all particles are drawn, draw the velocity vector over

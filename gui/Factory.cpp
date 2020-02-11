@@ -60,6 +60,7 @@ AutoPtr<IRenderer> Factory::getRenderer(const GuiSettings& settings) {
 
 AutoPtr<IRenderer> Factory::getRenderer(SharedPtr<IScheduler> scheduler, const GuiSettings& settings) {
     RendererEnum id = settings.get<RendererEnum>(GuiSettingsId::RENDERER);
+    AutoPtr<IRenderer> renderer;
     switch (id) {
     case RendererEnum::NONE:
         class NullRenderer : public IRenderer {
@@ -67,22 +68,30 @@ AutoPtr<IRenderer> Factory::getRenderer(SharedPtr<IScheduler> scheduler, const G
             virtual void render(const RenderParams&, Statistics&, IRenderOutput&) const override {}
             virtual void cancelRender() override {}
         };
-        return makeAuto<NullRenderer>();
+        renderer = makeAuto<NullRenderer>();
+        break;
     case RendererEnum::PARTICLE:
-        return makeAuto<ParticleRenderer>(settings);
+        renderer = makeAuto<ParticleRenderer>(settings);
+        break;
     case RendererEnum::MESH:
-        return makeAuto<MeshRenderer>(scheduler, settings);
+        renderer = makeAuto<MeshRenderer>(scheduler, settings);
+        break;
     case RendererEnum::RAYTRACER:
-        return makeAuto<RayTracer>(scheduler, settings);
+        renderer = makeAuto<RayTracer>(scheduler, settings);
+        break;
     case RendererEnum::CONTOUR:
-        return makeAuto<ContourRenderer>(scheduler, settings);
+        renderer = makeAuto<ContourRenderer>(scheduler, settings);
+        break;
     default:
         NOT_IMPLEMENTED;
     }
+        return renderer;
+}
 }
 
 AutoPtr<IBrdf> Factory::getBrdf(const GuiSettings& UNUSED(settings)) {
-    return makeAuto<LambertBrdf>(1._f);
+    // return makeAuto<LambertBrdf>(1._f);
+    return makeAuto<PhongBrdf>(1._f);
 }
 
 static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const ColorizerId id) {
