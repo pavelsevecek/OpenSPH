@@ -76,6 +76,8 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Optional bitmap used as a texture for the primary body (target). Applicable for raytracer." },
     { GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY,    "raytrace.texture_secondary",   std::string(""),
         "Optional bitmap used as a texture for the secondary body (impactor). Applicable for raytracer." },
+    { GuiSettingsId::RAYTRACE_BRDF,                 "raytrace.brdf",                BrdfEnum::LAMBERT,
+        "Surface BRDF. Applicable for raytracer. "},
     { GuiSettingsId::RAYTRACE_SPHERES,              "raytrace.spheres",             false,
         "If true, raytraced surface is given by spheres centered at particles, "
         "otherwise isosurface of a colorfield is rendered." },

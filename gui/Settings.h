@@ -107,6 +107,17 @@ static RegisterEnum<PlotEnum> sPlot({
 
 /// \todo generic ortho projection (x,y,z) -> (u,v)
 
+enum class BrdfEnum {
+    LAMBERT,
+    PHONG,
+};
+
+static RegisterEnum<BrdfEnum> sBrdf({
+    { BrdfEnum::LAMBERT, "lambert", "Lambert shading" },
+    { BrdfEnum::PHONG, "phong", "Phong shading" },
+});
+
+
 enum class GuiSettingsId {
     /// Selected renderer
     RENDERER,
@@ -191,6 +202,8 @@ enum class GuiSettingsId {
     RAYTRACE_TEXTURE_PRIMARY,
 
     RAYTRACE_TEXTURE_SECONDARY,
+
+    RAYTRACE_BRDF,
 
     RAYTRACE_SPHERES,
 

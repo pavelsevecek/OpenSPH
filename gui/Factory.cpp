@@ -89,9 +89,16 @@ AutoPtr<IRenderer> Factory::getRenderer(SharedPtr<IScheduler> scheduler, const G
     return renderer;
 }
 
-AutoPtr<IBrdf> Factory::getBrdf(const GuiSettings& UNUSED(settings)) {
-    // return makeAuto<LambertBrdf>(1._f);
-    return makeAuto<PhongBrdf>(1._f);
+AutoPtr<IBrdf> Factory::getBrdf(const GuiSettings& settings) {
+    const BrdfEnum id = settings.get<BrdfEnum>(GuiSettingsId::RAYTRACE_BRDF);
+    switch (id) {
+    case BrdfEnum::LAMBERT:
+        return makeAuto<LambertBrdf>(1._f);
+    case BrdfEnum::PHONG:
+        return makeAuto<PhongBrdf>(1._f);
+    default:
+        NOT_IMPLEMENTED;
+    }
 }
 
 static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const ColorizerId id) {

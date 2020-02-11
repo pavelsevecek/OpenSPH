@@ -81,6 +81,7 @@ VirtualSettings AnimationJob::getSettings() {
     rendererCat.connect<Float>("Emission", gui, GuiSettingsId::SURFACE_EMISSION).setEnabler(raytracerEnabler);
     rendererCat.connect<int>("Interation count", gui, GuiSettingsId::RAYTRACE_ITERATION_LIMIT)
         .setEnabler(raytracerEnabler);
+    rendererCat.connect<EnumWrapper>("BRDF", gui, GuiSettingsId::RAYTRACE_BRDF).setEnabler(raytracerEnabler);
     rendererCat.connect<bool>("Render as spheres", gui, GuiSettingsId::RAYTRACE_SPHERES)
         .setEnabler(raytracerEnabler);
     rendererCat.connect<Float>("Cell size", gui, GuiSettingsId::SURFACE_RESOLUTION).setEnabler([this] {
