@@ -175,6 +175,10 @@ static RegisterEnum<SolverEnum> sSolver({
         "energy_conserving_solver",
         "Solver advancing internal energy using pair-wise work done by particles, by Owen (2009). "
         "Experimental!" },
+    { SolverEnum::SIMPLE_SOLVER,
+        "simple_solver",
+        "Simple solver with pressure gradient only, mainly used for supporting purposes (benchmarking, "
+        "teaching, etc.)" },
 });
 
 static RegisterEnum<DiscretizationEnum> sFormulation({

@@ -15,7 +15,8 @@ TEST_CASE("Interpolation gassball", "[interpolation]") {
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, rho0).set(BodySettingsId::ENERGY, u0);
     Storage storage = Tests::getGassStorage(4000, settings, 1._f);
-    Interpolation interpol(storage);
+    SphInterpolant<Float> energyFunc(storage, QuantityId::ENERGY, OrderEnum::ZERO);
+    SphInterpolant<Float> densityFunc(storage, QuantityId::DENSITY, OrderEnum::ZERO);
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     const Float h = r[0][H];
@@ -24,20 +25,19 @@ TEST_CASE("Interpolation gassball", "[interpolation]") {
         if (getLength(r[i]) > 1._f - 3._f * h) { // kernel radius is just 2, but use 3h to be safe
             return SUCCESS;
         }
-        const Float rhoInt = interpol.interpolate<Float>(QuantityId::DENSITY, OrderEnum::ZERO, r[i]);
-        if (rhoInt != approx(rho0, 0.01_f)) {
-            return makeFailed("Incorrect density:\n", rhoInt, " == ", rho0);
+        const Float rho = densityFunc.interpolate(r[i]);
+        if (rho != approx(rho0, 0.01_f)) {
+            return makeFailed("Incorrect density:\n", rho, " == ", rho0);
         }
-        const Float uInt = interpol.interpolate<Float>(QuantityId::ENERGY, OrderEnum::ZERO, r[i]);
-        if (uInt != approx(u0, 0.01_f)) {
-            return makeFailed("Incorrect energy:\n", uInt, " == ", u0);
+        const Float u = energyFunc.interpolate(r[i]);
+        if (u != approx(u0, 0.01_f)) {
+            return makeFailed("Incorrect energy:\n", u, " == ", u0);
         }
         return SUCCESS;
     };
     REQUIRE_SEQUENCE(test, 0, r.size());
 
-    const Float u_out =
-        interpol.interpolate<Float>(QuantityId::ENERGY, OrderEnum::ZERO, Vector(2._f, 1._f, 0._f));
+    const Float u_out = energyFunc.interpolate(Vector(2._f, 1._f, 0._f));
     REQUIRE(u_out == 0._f);
 }
 
@@ -57,12 +57,12 @@ TEST_CASE("Interpolate velocity", "[interpolation]") {
     }
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    Interpolation interpol(storage);
+    SphInterpolant<Vector> interpol(storage, QuantityId::POSITION, OrderEnum::FIRST);
     RandomDistribution dist(1234);
     Array<Vector> points = dist.generate(pool, 1000, SphericalDomain(Vector(0._f), 0.7_f));
     auto test = [&](const Size i) -> Outcome {
         const Vector expected = field(points[i]);
-        const Vector actual = interpol.interpolate<Vector>(QuantityId::POSITION, OrderEnum::FIRST, points[i]);
+        const Vector actual = interpol.interpolate(points[i]);
         if (expected != approx(actual, 0.01_f)) {
             return makeFailed("Incorrect velocity:\n", expected, " == ", actual);
         }
@@ -70,7 +70,52 @@ TEST_CASE("Interpolate velocity", "[interpolation]") {
     };
     REQUIRE_SEQUENCE(test, 0, points.size());
 
-    const Vector v_out =
-        interpol.interpolate<Vector>(QuantityId::POSITION, OrderEnum::FIRST, Vector(-1._f, 2._f, 1._f));
+    const Vector v_out = interpol.interpolate(Vector(-1._f, 2._f, 1._f));
     REQUIRE(v_out == Vector(0._f));
+}
+
+TEST_CASE("Corrected interpolation", "[interpolation]") {
+    BodySettings settings;
+    const Float r0 = 5._f;
+    const Float rho0 = 45._f;
+    settings.set(BodySettingsId::DENSITY, rho0)
+        .set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::RANDOM); // bad uncorrected interpolation
+    SphericalDomain domain(Vector(0._f), r0);
+    Storage storage = Tests::getGassStorage(10000, settings, domain);
+    const Float h0 = storage.getValue<Vector>(QuantityId::POSITION)[0][H];
+
+    SphInterpolant<Float> sphRho(storage, QuantityId::DENSITY, OrderEnum::ZERO);
+    CorrectedSphInterpolant<Float> csphRho(storage, QuantityId::DENSITY, OrderEnum::ZERO);
+
+    RandomDistribution dist(1339);
+    Array<Vector> points = dist.generate(SEQUENTIAL, 1000, BlockDomain(Vector(0._f), Vector(2._f * r0)));
+    auto test = [&](const Size i) -> Outcome {
+        const Float corrected = csphRho.interpolate(points[i]);
+        const Float uncorrected = sphRho.interpolate(points[i]);
+
+        if (getLength(points[i]) < r0) {
+            if (corrected != approx(rho0)) {
+                return makeFailed("Incorrect corrected density:\n", corrected, " == ", rho0);
+            }
+            if (uncorrected == approx(rho0, 0.0001_f)) {
+                return makeFailed("Suspiciously precise uncorrected density??:\n", uncorrected, " == ", rho0);
+            }
+        } else if (getLength(points[i]) > r0 + 2 * h0) {
+            if (corrected != 0._f || uncorrected != 0._f) {
+                return makeFailed("Density outside domain not zero\n",
+                    corrected,
+                    " == ",
+                    rho0,
+                    "\n",
+                    uncorrected,
+                    " == ",
+                    rho0);
+            }
+        } else {
+            // in the ring [r0, r0+2h0], there might not be any neighbors (even though it technically lies in
+            // the kernel support), so we cannot determine the expected result; just skip
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, points.size());
 }
