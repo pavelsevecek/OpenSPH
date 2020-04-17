@@ -31,11 +31,14 @@ void MeshRenderer::initialize(const Storage& storage,
 
     const Box boundingBox = getBoundingBox(storage);
     const Float dim = maxElement(boundingBox.size());
+
+    McConfig config;
     // clamp to avoid extreme resolution (which would most likely cause bad alloc)
-    const Float actResolution = clamp(surfaceResolution, 0.001_f * dim, 0.1_f * dim);
+    config.gridResolution = clamp(surfaceResolution, 0.001_f * dim, 0.1_f * dim);
+    config.surfaceLevel = surfaceLevel;
 
     // get the surface as triangles
-    cached.triangles = getSurfaceMesh(*scheduler, storage, actResolution, surfaceLevel, 1._f);
+    cached.triangles = getSurfaceMesh(*scheduler, storage, config);
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     finder->build(*scheduler, r);
@@ -43,7 +46,7 @@ void MeshRenderer::initialize(const Storage& storage,
 
     for (Triangle& t : cached.triangles) {
         const Vector pos = t.center();
-        finder->findAll(pos, 4._f * actResolution, neighs);
+        finder->findAll(pos, 4._f * config.gridResolution, neighs);
 
         Rgba colorSum(0._f);
         float weightSum = 0.f;

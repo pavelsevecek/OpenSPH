@@ -233,6 +233,7 @@ VirtualSettings SaveMeshJob::getSettings() {
     meshCat.connect<Float>("Surface level", "level", level);
     meshCat.connect<Float>("Smoothing multiplier", "smoothing_mult", smoothingMult);
     meshCat.connect<bool>("Refine mesh", "refine", refine);
+    meshCat.connect<bool>("Anisotropic kernels", "aniso", anisotropic);
     meshCat.connect<bool>("Scale to unit size", "scale_to_unit", scaleToUnit);
 
     return connector;
@@ -244,18 +245,21 @@ void SaveMeshJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) 
     // sanitize resolution
     const Box bbox = getBoundingBox(data->storage);
     const Float boxSize = maxElement(bbox.size());
-    Float step = clamp(resolution, 1.e-3_f * boxSize, 0.2_f * boxSize);
 
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
 
-    auto callback = [&callbacks](const Float progress) {
+    McConfig config;
+    config.gridResolution = clamp(resolution, 1.e-3_f * boxSize, 0.2_f * boxSize);
+    config.surfaceLevel = level;
+    config.smoothingMult = smoothingMult;
+    config.useAnisotropicKernels = anisotropic;
+    config.progressCallback = [&callbacks](const Float progress) {
         Statistics stats;
         stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
         callbacks.onTimeStep(Storage(), stats);
         return !callbacks.shouldAbortRun();
     };
-    Array<Triangle> triangles =
-        getSurfaceMesh(*scheduler, data->storage, step, level, smoothingMult, callback);
+    Array<Triangle> triangles = getSurfaceMesh(*scheduler, data->storage, config);
 
     if (scaleToUnit) {
         for (Triangle& t : triangles) {

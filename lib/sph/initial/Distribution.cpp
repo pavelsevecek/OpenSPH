@@ -304,7 +304,7 @@ static Storage generateInitial(const IDomain& domain, const Size N, TDensity&& d
     for (Size i = 0; i < N; ++i) {
         Vector pos = rng();
         const Float n = density(pos);
-        pos[H] = 1.3_f / root<3>(n);
+        pos[H] = 1._f / root<3>(n);
         ASSERT(isReal(pos));
         r.push(pos);
     }

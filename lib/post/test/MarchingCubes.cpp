@@ -56,7 +56,10 @@ TEST_CASE("MarchingCubes storage", "[marchingcubes]") {
         storage, SphericalDomain(sphericalToCartesian(1._f, PI / 4._f, -PI / 4._f), 0.2_f), body);
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    Array<Triangle> triangles = getSurfaceMesh(pool, storage, 0.05_f, 0.2_f, 1._f);
+    McConfig config;
+    config.gridResolution = 0.05_f;
+    config.surfaceLevel = 0.2_f;
+    Array<Triangle> triangles = getSurfaceMesh(pool, storage, config);
 
     PlyFile file;
     REQUIRE(file.save(Path("storage.ply"), triangles));

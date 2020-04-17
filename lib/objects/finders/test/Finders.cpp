@@ -321,7 +321,7 @@ TEST_CASE("KdTree iterateTree bottomUp", "[finders]") {
             return true;
         });
     REQUIRE(success);
-    REQUIRE(visitedCnt == tree.getNodeCnt());
+    REQUIRE(Size(visitedCnt) == tree.getNodeCnt());
 }
 
 TEST_CASE("KdTree iterateTree topDown", "[finders]") {
@@ -349,7 +349,7 @@ TEST_CASE("KdTree iterateTree topDown", "[finders]") {
             return true;
         });
     REQUIRE(success);
-    REQUIRE(visitedCnt == tree.getNodeCnt());
+    REQUIRE(Size(visitedCnt) == tree.getNodeCnt());
 }
 
 class KdTreeJobCallbacks : public NullJobCallbacks {

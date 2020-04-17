@@ -57,7 +57,7 @@ public:
 
     Outcome good() const {
         for (Size i = 0; i < map.bucket_count(); ++i) {
-            if (map.bucket_size(i) > 10) {
+            if (map.bucket_size(i) > 15) {
                 return makeFailed(
                     "Inefficient hash map: Bucket ", i, " has ", map.bucket_size(i), " elements");
             }

@@ -232,18 +232,20 @@ void ParticleGeometryJob::evaluate(const RunSettings& global, IRunCallbacks& cal
     // sanitize the resolution
     const Box boundingBox = getBoundingBox(input);
     const Float scale = maxElement(boundingBox.size());
-    const Float actResolution = clamp(resolution, 0.001_f * scale, 0.25_f * scale);
 
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
 
-    auto callback = [&callbacks](const Float progress) {
+    McConfig config;
+    config.gridResolution = clamp(resolution, 0.001_f * scale, 0.25_f * scale);
+    config.smoothingMult = smoothingMult;
+    config.surfaceLevel = surfaceLevel;
+    config.progressCallback = [&callbacks](const Float progress) {
         Statistics stats;
         stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
         callbacks.onTimeStep(Storage(), stats);
         return !callbacks.shouldAbortRun();
     };
-    Array<Triangle> triangles =
-        getSurfaceMesh(*scheduler, input, actResolution, surfaceLevel, smoothingMult, callback);
+    Array<Triangle> triangles = getSurfaceMesh(*scheduler, input, config);
     result = makeAuto<MeshDomain>(*scheduler, std::move(triangles));
 }
 

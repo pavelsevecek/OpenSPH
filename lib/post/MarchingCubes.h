@@ -106,23 +106,31 @@ private:
     bool iterateWithIndices(const Box& box, const Vector& step, TFunctor&& functor);
 };
 
+struct McConfig {
+    /// Absolute size of each produced triangle.
+    Float gridResolution = 1.e2_f;
+
+    /// (Number) density defining the surface. Higher value is more likely to cause SPH particles being
+    /// separated into smaller groups (droplets), lower value will cause the boundary to be "bulgy" rather
+    /// than smooth.
+    Float surfaceLevel = 0.12_f;
+
+    /// Multiplier of the smoothing lengths
+    Float smoothingMult = 1._f;
+
+    /// If true, anisotropic kernels of Yu & Turk (2010) are used instead of normal isotropic kernels.
+    bool useAnisotropicKernels = false;
+
+    /// Generic functor called during MC evaluation
+    Function<bool(Float progress)> progressCallback = nullptr;
+};
 
 /// \brief Returns the triangle mesh of the body surface (or surfaces of bodies).
 ///
 /// \param scheduler Scheduler used for parallelization.
 /// \param storage Particle storage; must contain particle positions.
-/// \param gridResolution Absolute size of each produced triangle.
-/// \param surfaceLevel (Number) density defining the surface. Higher value is more likely to cause SPH
-///                     particles being separated into smaller groups (droplets), lower value will cause the
-///                     boundary to be "bulgy" rather than smooth.
-/// \param smoothingMult Multiplieer of the smoothing lengths
 /// \return Array of generated triangles. Can be empty if no boundary exists.
-Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
-    const Storage& storage,
-    const Float gridResolution,
-    const Float surfaceLevel,
-    const Float smoothingMult,
-    Function<bool(Float progress)> progressCallback = nullptr);
+Array<Triangle> getSurfaceMesh(IScheduler& scheduler, const Storage& storage, const McConfig& config);
 
 
 NAMESPACE_SPH_END

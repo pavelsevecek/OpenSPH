@@ -116,7 +116,8 @@ TEST_CASE("Settings iterator", "[settings]") {
 TEST_CASE("Settings enums", "[settings]") {
     RunSettings settings(EMPTY_SETTINGS);
     settings.set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE);
-    settings.set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, EMPTY_FLAGS);
+    // cannot set to EMPTY_FLAGS here, that requires value already stored in the settings object
+    settings.set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum(0));
     settings.set(RunSettingsId::TIMESTEPPING_CRITERION,
         TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::ACCELERATION);
 

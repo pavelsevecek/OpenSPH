@@ -50,10 +50,10 @@ TEST_CASE("Dynamic get", "[dynamic]") {
 
 TEST_CASE("Dynamic getScalar", "[dynamic]") {
     Dynamic value1(5._f);
-    REQUIRE(value1.getScalar() == 5.f);
-    Dynamic value2(Vector(3.f, 4.f, 12.f));
-    REQUIRE(value2.getScalar() == approx(13.f));
-    Dynamic value3(SymmetricTensor(Vector(1.f, 2.f, 3.f), Vector(-1.f, -2.f, -3.f)));
+    REQUIRE(value1.getScalar() == 5._f);
+    Dynamic value2(Vector(3._f, 4._f, 12._f));
+    REQUIRE(value2.getScalar() == approx(13._f));
+    Dynamic value3(SymmetricTensor(Vector(1._f, 2._f, 3._f), Vector(-1._f, -2._f, -3._f)));
     REQUIRE(value3.getScalar() > 0);
 }
 

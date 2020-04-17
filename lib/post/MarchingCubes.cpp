@@ -466,6 +466,7 @@ private:
     ArrayView<const Vector> r;
     ArrayView<const Float> m, rho;
     ArrayView<const Size> flag;
+    ArrayView<const SymmetricTensor> G;
     Float maxH = 0._f;
 
     ThreadLocal<Array<NeighbourRecord>> neighs;
@@ -485,12 +486,14 @@ public:
     ColorField(const Storage& storage,
         IScheduler& scheduler,
         const ArrayView<const Vector> r,
+        const ArrayView<const SymmetricTensor> aniso,
         const Float maxH,
         LutKernel<3>&& kernel,
         AutoPtr<IBasicFinder>&& finder)
         : kernel(std::move(kernel))
         , finder(std::move(finder))
         , r(r)
+        , G(aniso)
         , maxH(maxH)
         , neighs(scheduler) {
         tie(m, rho) = storage.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
@@ -525,7 +528,7 @@ public:
             if (flag[j] != closestFlag) {
                 continue;
             }
-            phi += m[j] / rho[j] * kernel.value(pos - r[j], r[j][H]);
+            phi += m[j] / rho[j] * G[j].determinant() * kernel.valueImpl(getSqrLength(G[j] * (pos - r[j])));
         }
         return phi;
     }
@@ -538,6 +541,7 @@ private:
     AutoPtr<IBasicFinder> finder;
 
     ArrayView<const Vector> r;
+    ArrayView<const SymmetricTensor> G;
     Float maxH = 0._f;
 
     ThreadLocal<Array<NeighbourRecord>> neighs;
@@ -545,12 +549,14 @@ private:
 public:
     FallbackField(IScheduler& scheduler,
         const ArrayView<const Vector> r,
+        const ArrayView<const SymmetricTensor> aniso,
         const Float maxH,
         LutKernel<3>&& kernel,
         AutoPtr<IBasicFinder>&& finder)
         : kernel(std::move(kernel))
         , finder(std::move(finder))
         , r(r)
+        , G(aniso)
         , maxH(maxH)
         , neighs(scheduler) {
 
@@ -569,7 +575,8 @@ public:
         // interpolate values of neighbours
         for (NeighbourRecord& n : neighsTl) {
             const Size j = n.index;
-            phi += sphereVolume(0.5_f * r[j][H]) * kernel.value(pos - r[j], r[j][H]);
+            phi += sphereVolume(0.5_f * r[j][H]) * G[j].determinant() *
+                   kernel.valueImpl(getSqrLength(G[j] * (pos - r[j])));
         }
         return phi;
     }
@@ -587,18 +594,12 @@ INLINE Float weight(const Vector& r1, const Vector& r2) {
     }
 }
 
-Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
-    const Storage& storage,
-    const Float gridResolution,
-    const Float surfaceLevel,
-    const Float smoothingMult,
-    Function<bool(Float progress)> progressCallback) {
+Array<Triangle> getSurfaceMesh(IScheduler& scheduler, const Storage& storage, const McConfig& config) {
     MEASURE_SCOPE("getSurfaceMesh");
 
     // (according to http://www.cc.gatech.edu/~turk/my_papers/sph_surfaces.pdf)
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    // ArrayView<const Size> neighCnt = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
     RunSettings settings;
     LutKernel<3> kernel = Factory::getKernel<3>(settings);
     AutoPtr<IBasicFinder> finder = Factory::getFinder(settings);
@@ -606,15 +607,38 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
     finder->build(scheduler, r);
 
     Array<Vector> r_bar(r.size());
-    Array<SymmetricTensor> C(r.size()); // covariance matrix
+    Array<SymmetricTensor> G(r.size()); // anisotropy matrix
 
     ThreadLocal<Array<NeighbourRecord>> neighsData(scheduler);
-    parallelFor(scheduler, 0, r.size(), [&](const Size i) {
-        r_bar[i] = r[i]; //<(1._f - lambda) * r[i] + lambda * wr / wsum;
-        r_bar[i][H] = r[i][H] * smoothingMult;
-    });
+    parallelFor(scheduler, neighsData, 0, r.size(), [&](const Size i, Array<NeighbourRecord>& neighs) {
+        /// \todo point cloud denoising?
+        r_bar[i] = r[i];
+        r_bar[i][H] = r[i][H] * config.smoothingMult;
 
-    /// \todo we skip the anisotropy correction for now
+        if (config.useAnisotropicKernels) {
+            Vector r_center = Vector(0._f);
+            finder->findAll(r_bar[i], 2 * r_bar[i][H], neighs);
+            for (const NeighbourRecord& n : neighs) {
+                r_center += r_bar[n.index];
+            }
+            r_center /= neighs.size();
+            SymmetricTensor C = SymmetricTensor::null();
+            for (const NeighbourRecord& n : neighs) {
+                C += symmetricOuter(r[n.index] - r_center, r[n.index] - r_center);
+            }
+
+            Svd svd = singularValueDecomposition(C);
+            const Float maxSigma = maxElement(svd.S);
+            for (Size i = 0; i < 3; ++i) {
+                svd.S[i] = 1._f / std::max(svd.S[i], 0.125_f * maxSigma);
+            }
+
+            AffineMatrix sigma = convert<AffineMatrix>(SymmetricTensor(svd.S, Vector(0._f)));
+            G[i] = convert<SymmetricTensor>(svd.V * sigma * svd.U.transpose());
+        } else {
+            G[i] = SymmetricTensor(Vector(1._f / r[i][H]), Vector(0._f));
+        }
+    });
     // 5. find bounding box and maximum h (we need to search neighbours of arbitrary point in space)
 
     Float maxH = 0._f;
@@ -624,12 +648,13 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
     SharedPtr<IScalarField> field;
 
     if (storage.has(QuantityId::MASS) && storage.has(QuantityId::DENSITY) && storage.has(QuantityId::FLAG)) {
-        field = makeShared<ColorField>(storage, scheduler, r_bar, maxH, std::move(kernel), std::move(finder));
+        field =
+            makeShared<ColorField>(storage, scheduler, r_bar, G, maxH, std::move(kernel), std::move(finder));
     } else {
-        field = makeShared<FallbackField>(scheduler, r_bar, maxH, std::move(kernel), std::move(finder));
+        field = makeShared<FallbackField>(scheduler, r_bar, G, maxH, std::move(kernel), std::move(finder));
     }
 
-    MarchingCubes mc(scheduler, surfaceLevel, field, progressCallback);
+    MarchingCubes mc(scheduler, config.surfaceLevel, field, config.progressCallback);
 
     Array<Size> components;
     const Size numComponents = Post::findComponents(storage, 2._f, Post::ComponentFlag::OVERLAP, components);
@@ -639,14 +664,14 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
     Array<Size> counts(numComponents);
     counts.fill(0);
     for (Size j = 0; j < components.size(); ++j) {
-        const Vector padding(max(2._f * r_bar[j][H], 2._f * gridResolution));
+        const Vector padding(max(2._f * r_bar[j][H], 2._f * config.gridResolution));
         boxes[components[j]].extend(r_bar[j] + padding);
         boxes[components[j]].extend(r_bar[j] - padding);
         counts[components[j]]++;
     }
     for (Size i = 0; i < numComponents; ++i) {
         if (counts[i] > 10) {
-            mc.addComponent(boxes[i], gridResolution);
+            mc.addComponent(boxes[i], config.gridResolution);
         }
     }
 

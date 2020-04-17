@@ -293,6 +293,8 @@ Storage generateLatestOutput() {
     body1.set(BodySettingsId::BODY_CENTER, Vector(1._f, 2._f, 3._f));
     body1.set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
     Storage storage1 = Tests::getSolidStorage(200, body1, 2._f);
+    // legacy reasons - getSolidStorage used to create first-order density
+    storage1.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, body1.get<Float>(BodySettingsId::DENSITY));
 
     BodySettings body2;
     body2.set(BodySettingsId::DENSITY, 2000._f);
@@ -300,6 +302,8 @@ Storage generateLatestOutput() {
     body2.set(BodySettingsId::BODY_CENTER, Vector(0._f, 1._f, 2._f));
     body2.set(BodySettingsId::DISTRIBUTE_MODE_SPH5, false);
     Storage storage2 = Tests::getSolidStorage(30, body2, 1._f);
+    // legacy reasons
+    storage2.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, body2.get<Float>(BodySettingsId::DENSITY));
 
     Storage storage(std::move(storage1));
     storage.merge(std::move(storage2));

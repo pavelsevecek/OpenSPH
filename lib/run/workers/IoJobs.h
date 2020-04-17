@@ -102,6 +102,7 @@ private:
     Float resolution = 1.e4_f;
     Float level = 0.13_f;
     Float smoothingMult = 1._f;
+    bool anisotropic = false;
     bool scaleToUnit = false;
     bool refine = false;
 

@@ -550,15 +550,19 @@ Vector Post::getAngularFrequency(ArrayView<const Float> m,
 
 Float Post::getSphericity(IScheduler& scheduler, const Storage& storage, const Float resolution) {
     const Box boundingBox = getBoundingBox(storage);
-    Array<Triangle> mesh =
-        getSurfaceMesh(scheduler, storage, resolution * maxElement(boundingBox.size()), 0.15_f, 1._f);
+    McConfig config;
+    config.gridResolution = resolution * maxElement(boundingBox.size());
+    config.surfaceLevel = 0.15_f;
+    Array<Triangle> mesh = getSurfaceMesh(scheduler, storage, config);
     Float area = 0._f;
     for (const Triangle& triangle : mesh) {
         area += triangle.area();
     }
     ASSERT(area > 0._f);
 
-    MeshDomain domain(scheduler, std::move(mesh));
+    MeshParams params;
+    params.precomputeInside = false;
+    MeshDomain domain(scheduler, std::move(mesh), params);
     const Float volume = domain.getVolume();
     ASSERT(volume > 0._f);
 
