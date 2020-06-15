@@ -208,7 +208,7 @@ Outcome Settings<TEnum>::loadFromFile(const Path& path) {
         if (line.empty() || line[0] == '#') {
             continue;
         }
-        const Size idx = line.find("=", 0);
+        const std::size_t idx = line.find("=", 0);
         if (idx == std::string::npos) {
             return "Invalid format of the file, didn't find separating '='";
         }

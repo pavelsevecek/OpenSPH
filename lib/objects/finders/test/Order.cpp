@@ -8,12 +8,12 @@ using namespace Sph;
 TEST_CASE("Order shuffle", "[order]") {
     Order o(5);
     o.shuffle([](int i1, int i2) { return (i1 + 2) % 5 < (i2 + 2) % 5; });
-    Array<int> expected = { 3, 4, 0, 1, 2 };
+    Array<Size> expected = { 3, 4, 0, 1, 2 };
     for (int i = 0; i < 5; ++i) {
         REQUIRE(o[i] == expected[i]);
     }
     Order inv = o.getInverted();
-    Array<int> invExpected = { 2, 3, 4, 0, 1 };
+    Array<Size> invExpected = { 2, 3, 4, 0, 1 };
     for (int i = 0; i < 5; ++i) {
         REQUIRE(inv[i] == invExpected[i]);
     }

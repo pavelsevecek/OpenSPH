@@ -53,7 +53,7 @@ TEST_CASE("Array Reserve", "[array]") {
     REQUIRE(ar.size() == 2);
     REQUIRE(RecordType::destructedNum == 4); // 2 temporaries, 2 old values
 
-    Size constructed = RecordType::constructedNum;
+    int constructed = RecordType::constructedNum;
     ar.reserve(4);
     REQUIRE(RecordType::constructedNum == constructed);
     REQUIRE(RecordType::destructedNum == 4);

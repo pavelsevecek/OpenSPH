@@ -140,7 +140,7 @@ TEST_CASE("List range-based for empty", "[list]") {
 
 TEST_CASE("List range-based for elements", "[list]") {
     List<RecordType> list({ 1, 2, 3, 4 });
-    Size idx = 1;
+    int idx = 1;
     for (RecordType& e : list) {
         REQUIRE(e.value == idx);
         ++idx;

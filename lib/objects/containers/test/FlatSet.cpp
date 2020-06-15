@@ -86,11 +86,11 @@ TEST_CASE("Set erase", "[flatset]") {
 
 TEST_CASE("Set erase loop", "[flatset]") {
     FlatSet<RecordType> set{ 1, 2, 3, 4, 5 };
-    Size index = 1;
+    int index = 1;
     for (auto iter = set.begin(); iter != set.end();) {
         REQUIRE(iter->value == index);
         iter = set.erase(iter);
-        REQUIRE(set.size() == 5 - index);
+        REQUIRE(int(set.size()) == 5 - index);
         index++;
     }
     REQUIRE(index == 6);
