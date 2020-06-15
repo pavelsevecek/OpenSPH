@@ -5,6 +5,7 @@
 #include "quantities/Quantity.h"
 #include "system/Factory.h"
 #include "thread/Scheduler.h"
+#include "windows/Widgets.h"
 #include <fstream>
 #include <numeric>
 #include <wx/button.h>
@@ -12,11 +13,18 @@
 #include <wx/msgdlg.h>
 #include <wx/sizer.h>
 #include <wx/spinctrl.h>
+#include <wx/statbox.h>
 #include <wx/stattext.h>
 
 NAMESPACE_SPH_BEGIN
 
 /// Flags used as window ID and as parameters to compute
+///
+/// \note When adding a new parameter, you have to:
+/// 1. Increment constant CHECK_COUNT
+/// 2. Add the parameter to the list in \ref getCheckedCount
+/// 3. Make sure the evaluating function in \ref updateAsync is at the right position, it has to match the
+/// position of the parameter within \ref CheckFlag.
 enum class CheckFlag {
     PARTICLE_COUNT = 1 << 0,
     MASS_FRACTION = 1 << 1,
@@ -26,8 +34,9 @@ enum class CheckFlag {
     RATIO_CB = 1 << 5,
     RATIO_BA = 1 << 6,
     SPHERICITY = 1 << 7,
+    MOONS = 1 << 8,
 };
-const Size CHECK_COUNT = 8;
+const Size CHECK_COUNT = 9;
 
 GridPage::GridPage(wxWindow* parent, const wxSize size, const Storage& storage)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, size)
@@ -51,8 +60,29 @@ GridPage::GridPage(wxWindow* parent, const wxSize size, const Storage& storage)
     boxSizer->Add(new wxCheckBox(this, int(CheckFlag::RATIO_CB), "Ratio c/b"));
     boxSizer->Add(new wxCheckBox(this, int(CheckFlag::RATIO_BA), "Ratio b/a"));
     boxSizer->Add(new wxCheckBox(this, int(CheckFlag::SPHERICITY), "Sphericity"));
-
     sizer->Add(boxSizer);
+
+    wxStaticBox* moonGroup = new wxStaticBox(this, wxID_ANY, "Moons", wxDefaultPosition, wxSize(-1, 60));
+    wxBoxSizer* moonSizer = new wxBoxSizer(wxHORIZONTAL);
+    wxCheckBox* moonBox = new wxCheckBox(moonGroup, int(CheckFlag::MOONS), "Moon counts");
+    moonSizer->Add(moonBox);
+    moonSizer->AddSpacer(30);
+    moonSizer->Add(new wxStaticText(moonGroup, wxID_ANY, "Mass ratio limit"));
+    FloatTextCtrl* limitSpinner = new FloatTextCtrl(moonGroup, 0.1f);
+    moonSizer->Add(limitSpinner);
+    limitSpinner->Enable(false);
+    moonGroup->SetSizer(moonSizer);
+    moonSizer->AddSpacer(30);
+    moonSizer->Add(new wxStaticText(moonGroup, wxID_ANY, "Pericenter limit"));
+    FloatTextCtrl* radiiSpinner = new FloatTextCtrl(moonGroup, 2.f);
+    moonSizer->Add(radiiSpinner);
+    radiiSpinner->Enable(false);
+    moonGroup->SetSizer(moonSizer);
+    sizer->Add(moonGroup);
+    moonBox->Bind(wxEVT_CHECKBOX, [moonBox, limitSpinner, radiiSpinner](wxCommandEvent&) {
+        limitSpinner->Enable(moonBox->GetValue());
+        radiiSpinner->Enable(moonBox->GetValue());
+    });
 
     wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
     wxButton* computeButton = new wxButton(this, wxID_ANY, "Compute");
@@ -66,25 +96,29 @@ GridPage::GridPage(wxWindow* parent, const wxSize size, const Storage& storage)
     this->SetSizer(sizer);
     this->Layout();
 
-    computeButton->Bind(wxEVT_BUTTON, [this, size, sizer, saveButton](wxCommandEvent& UNUSED(evt)) {
-        const Size checkCount = this->getCheckedCount();
-        if (checkCount == 0) {
-            wxMessageBox("No parameters selected", "Fail", wxOK | wxCENTRE);
-            return;
-        }
-        if (grid != nullptr) {
-            sizer->Detach(grid);
-            this->RemoveChild(grid);
-        }
-        grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, size);
-        grid->EnableEditing(false);
-        sizer->Add(grid);
-        grid->CreateGrid(countSpinner->GetValue(), checkCount);
-        this->Layout();
-        saveButton->Enable(true);
+    computeButton->Bind(wxEVT_BUTTON,
+        [this, size, sizer, saveButton, limitSpinner, radiiSpinner](wxCommandEvent& UNUSED(evt)) {
+            const Size checkCount = this->getCheckedCount();
+            if (checkCount == 0) {
+                wxMessageBox("No parameters selected", "Fail", wxOK | wxCENTRE);
+                return;
+            }
+            if (grid != nullptr) {
+                sizer->Detach(grid);
+                this->RemoveChild(grid);
+            }
+            grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, size);
+            grid->EnableEditing(false);
+            sizer->Add(grid);
+            grid->CreateGrid(countSpinner->GetValue(), checkCount);
+            this->Layout();
+            saveButton->Enable(true);
 
-        this->update(this->storage);
-    });
+            Config config;
+            config.moonLimit = limitSpinner->getValue();
+            config.radiiLimit = radiiSpinner->getValue();
+            this->update(this->storage, config);
+        });
 
     saveButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
         Optional<Path> path = doSaveFileDialog("Save to file", { { "Text file", "txt" } });
@@ -119,6 +153,12 @@ private:
     Array<Size> indices;
     Size maxIdx;
 
+    mutable struct {
+        Array<Float> masses;
+        Array<Vector> positions;
+        Array<Vector> velocities;
+    } lazy;
+
 public:
     explicit ComponentGetter(const Storage& storage)
         : storage(storage) {
@@ -137,6 +177,52 @@ public:
         }
         component.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED);
         return component;
+    }
+
+    ArrayView<const Float> getMasses() const {
+        if (lazy.masses.empty()) {
+            this->computeIntegrals();
+        }
+        return lazy.masses;
+    }
+
+    ArrayView<const Vector> getPositions() const {
+        if (lazy.positions.empty()) {
+            this->computeIntegrals();
+        }
+        return lazy.positions;
+    }
+
+    ArrayView<const Vector> getVelocities() const {
+        if (lazy.velocities.empty()) {
+            this->computeIntegrals();
+        }
+        return lazy.velocities;
+    }
+
+private:
+    void computeIntegrals() const {
+        lazy.masses.resizeAndSet(maxIdx, 0._f);
+        lazy.positions.resizeAndSet(maxIdx, Vector(0._f));
+        lazy.velocities.resizeAndSet(maxIdx, Vector(0._f));
+
+        Array<Float> radii(maxIdx);
+        radii.fill(0._f);
+
+        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+        for (Size i = 0; i < indices.size(); ++i) {
+            lazy.masses[indices[i]] += m[i];
+            lazy.positions[indices[i]] += m[i] * r[i];
+            lazy.velocities[indices[i]] += m[i] * v[i];
+            radii[indices[i]] += pow<3>(r[i][H]);
+        }
+        for (Size k = 0; k < maxIdx; ++k) {
+            lazy.positions[k] /= lazy.masses[k];
+            lazy.positions[k][H] = cbrt(radii[k]);
+            lazy.velocities[k] /= lazy.masses[k];
+        }
     }
 };
 
@@ -213,7 +299,20 @@ static Float getPeriod(const Storage& storage) {
     }
 }
 
-void GridPage::update(const Storage& storage) {
+static Size getMoons(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    ArrayView<const Vector> v,
+    const Size idx,
+    const Float limit,
+    const Float radius) {
+    return Post::findMoonCount(m, r, v, idx, radius, limit);
+}
+
+void GridPage::update(const Storage& storage, const Config& config) {
+    if (thread.joinable()) {
+        wxMessageBox("Computation in progress", "Fail", wxOK | wxCENTRE);
+        return;
+    }
     Size colIdx = 0;
     Flags<CheckFlag> checks;
     for (Size i = 0; i < CHECK_COUNT; ++i) {
@@ -228,9 +327,9 @@ void GridPage::update(const Storage& storage) {
 
     const Size fragmentCnt = countSpinner->GetValue();
 
-    thread = std::thread([this, &storage, fragmentCnt, checks] {
+    thread = std::thread([this, &storage, fragmentCnt, checks, config] {
         try {
-            this->updateAsync(storage, fragmentCnt, checks);
+            this->updateAsync(storage, fragmentCnt, checks, config);
         } catch (std::exception& e) {
             executeOnMainThread([message = std::string(e.what())] {
                 wxMessageBox("Failed to compute fragment parameters.\n\n" + message, "Fail", wxOK | wxCENTRE);
@@ -239,7 +338,10 @@ void GridPage::update(const Storage& storage) {
     });
 }
 
-void GridPage::updateAsync(const Storage& storage, const Size fragmentCnt, const Flags<CheckFlag> checks) {
+void GridPage::updateAsync(const Storage& storage,
+    const Size fragmentCnt,
+    const Flags<CheckFlag> checks,
+    const Config& config) {
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
     const Float totalMass = std::accumulate(m.begin(), m.end(), 0._f);
 
@@ -294,6 +396,15 @@ void GridPage::updateAsync(const Storage& storage, const Size fragmentCnt, const
             this->updateCell(i, colIdx++, getSphericity(fragment));
         }
 
+        if (checks.has(CheckFlag::MOONS)) {
+            ArrayView<const Float> masses = getter.getMasses();
+            ArrayView<const Vector> positions = getter.getPositions();
+            ArrayView<const Vector> velocities = getter.getVelocities();
+            const Size count =
+                getMoons(masses, positions, velocities, i, config.moonLimit, config.radiiLimit);
+            this->updateCell(i, colIdx++, count);
+        }
+
         executeOnMainThread([this] { grid->AutoSize(); });
     }
 
@@ -324,6 +435,7 @@ Size GridPage::getCheckedCount() const {
         CheckFlag::RATIO_CB,
         CheckFlag::RATIO_BA,
         CheckFlag::SPHERICITY,
+        CheckFlag::MOONS,
     };
     ASSERT(allIds.size() == CHECK_COUNT);
 

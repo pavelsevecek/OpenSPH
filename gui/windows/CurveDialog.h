@@ -49,7 +49,7 @@ private:
 
     const static int padding = 30;
 
-    template <typename TPoint>
+    template <typename TPoint, typename T = int>
     TPoint curveToWindow(const CurvePoint& p) const;
 
     CurvePoint windowToCurve(const wxPoint2DDouble p) const;

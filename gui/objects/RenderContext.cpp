@@ -32,24 +32,24 @@ void PreviewRenderContext::drawLine(Coords p1, Coords p2) {
         if (p1.x > p2.x) {
             std::swap(p1, p2);
         }
-        const float x1 = floor(p1.x);
-        const float x2 = ceil(p2.x);
+        const int x1 = int(floor(p1.x));
+        const int x2 = int(ceil(p2.x));
         const float y1 = p1.y;
         const float y2 = p2.y;
         for (int x = x1; x <= x2; ++x) {
-            int y = y1 + (x - x1) * (y2 - y1) / (x2 - x1);
+            int y = int(y1 + (x - x1) * (y2 - y1) / (x2 - x1));
             drawSafe(Pixel(x, y), colors.line);
         }
     } else {
         if (p1.y > p2.y) {
             std::swap(p1, p2);
         }
-        const float y1 = floor(p1.y);
-        const float y2 = ceil(p2.y);
+        const int y1 = int(floor(p1.y));
+        const int y2 = int(ceil(p2.y));
         const float x1 = p1.x;
         const float x2 = p2.x;
         for (int y = y1; y <= y2; ++y) {
-            int x = x1 + (y - y1) * (x2 - x1) / (y2 - y1);
+            int x = int(x1 + (y - y1) * (x2 - x1) / (y2 - y1));
             drawSafe(Pixel(x, y), colors.line);
         }
     }
@@ -110,7 +110,7 @@ void PreviewRenderContext::drawTriangle(const Coords p1, const Coords p2, const 
         if (x1 > x2) {
             std::swap(x1, x2);
         }
-        for (int x = floor(x1); x <= ceil(x2); ++x) {
+        for (int x = int(floor(x1)); x <= int(ceil(x2)); ++x) {
             drawSafe(Pixel(x, int(y)), colors.fill);
         }
     };
@@ -153,8 +153,9 @@ void AntiAliasedRenderContext::drawCircle(const Coords center, const float radiu
         color.a() = sqr(radius);
         drawSafe(p, color);
     } else {
-        for (int y = p.y - radius - 1; y <= p.y + radius + 1; ++y) {
-            for (int x = p.x - radius - 1; x <= p.x + radius + 1; ++x) {
+        const int r = int(std::ceil(radius)) + 1;
+        for (int y = p.y - r; y <= p.y + r; ++y) {
+            for (int x = p.x - r; x <= p.x + r; ++x) {
                 const float distSqr = sqr(x - center.x) + sqr(y - center.y);
                 Rgba color = colors.fill;
                 color.a() = clamp(radius - sqrt(distSqr), 0.f, 1.f);
@@ -170,15 +171,16 @@ void SmoothedRenderContext::drawCircle(const Coords center, const float radius) 
         return;
     }
     const Pixel p(center);
-    const float maxRadius = radius * kernel.radius();
-    const float normalization = 1.f / kernel.valueImpl(0); // sqr(25.f / particleScale);
-    for (int y = p.y - maxRadius - 1; y <= p.y + maxRadius + 1; ++y) {
-        for (int x = p.x - maxRadius - 1; x <= p.x + maxRadius + 1; ++x) {
+    const float maxRadius = radius * float(kernel.radius());
+    const float normalization = 1.f / float(kernel.valueImpl(0)); // sqr(25.f / particleScale);
+    const int r = int(std::ceil(maxRadius)) + 1;
+    for (int y = p.y - r; y <= p.y + r; ++y) {
+        for (int x = p.x - r; x <= p.x + r; ++x) {
             const float distSqr = sqr(x - center.x) + sqr(y - center.y);
             if (distSqr <= sqr(maxRadius + 1)) {
                 Rgba color = colors.fill;
 
-                const float alpha = kernel.valueImpl(distSqr / sqr(radius)) * normalization;
+                const float alpha = float(kernel.valueImpl(distSqr / sqr(radius))) * normalization;
                 color.a() = clamp(alpha, 0.f, 1.f);
                 drawSafe(Pixel(x, y), color);
             }

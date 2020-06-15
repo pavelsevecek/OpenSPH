@@ -17,14 +17,14 @@ float Palette::linearToPalette(const float value) const {
         if (value < EPS) {
             palette = -LARGE;
         } else {
-            palette = log10(value);
+            palette = float(log10(value));
         }
         break;
     case PaletteScale::HYBRID:
         if (value > 1.f) {
-            palette = 1.f + log10(value);
+            palette = 1.f + float(log10(value));
         } else if (value < -1.f) {
-            palette = -1.f - log10(-value);
+            palette = -1.f - float(log10(-value));
         } else {
             palette = value;
         }
@@ -41,12 +41,12 @@ float Palette::paletteToLinear(const float value) const {
     case PaletteScale::LINEAR:
         return value;
     case PaletteScale::LOGARITHMIC:
-        return exp10(value);
+        return float(exp10(value));
     case PaletteScale::HYBRID:
         if (value > 1.f) {
-            return exp10(value - 1.f);
+            return float(exp10(value - 1.f));
         } else if (value < -1.f) {
-            return -exp10(-value - 1.f);
+            return float(-exp10(-value - 1.f));
         } else {
             return value;
         }
@@ -94,9 +94,10 @@ Interval Palette::getInterval() const {
 
 void Palette::setInterval(const Interval& newRange) {
     Interval oldPaletteRange(points.front().value, points.back().value);
-    Interval newPaletteRange(linearToPalette(newRange.lower()), linearToPalette(newRange.upper()));
-    const float scale = newPaletteRange.size() / oldPaletteRange.size();
-    const float offset = newPaletteRange.lower() - scale * oldPaletteRange.lower();
+    Interval newPaletteRange(
+        linearToPalette(float(newRange.lower())), linearToPalette(float(newRange.upper())));
+    const float scale = float(newPaletteRange.size() / oldPaletteRange.size());
+    const float offset = float(newPaletteRange.lower() - scale * oldPaletteRange.lower());
     for (Size i = 0; i < points.size(); ++i) {
         points[i].value = points[i].value * scale + offset;
     }
@@ -142,12 +143,12 @@ float Palette::relativeToPalette(const float value) const {
     case PaletteScale::LINEAR:
         return interpol;
     case PaletteScale::LOGARITHMIC:
-        return exp10(interpol);
+        return float(exp10(interpol));
     case PaletteScale::HYBRID:
         if (interpol > 1.f) {
-            return exp10(interpol - 1.f);
+            return float(exp10(interpol - 1.f));
         } else if (interpol < -1.f) {
-            return -exp10(-interpol - 1.f);
+            return float(-exp10(-interpol - 1.f));
         } else {
             return interpol;
         }
@@ -182,8 +183,8 @@ Outcome Palette::loadFromFile(const Path& path) {
 
         // preserve the interval of values
         /// \todo improve
-        Float from = points.front().value;
-        Float to = points.back().value;
+        float from = points.front().value;
+        float to = points.back().value;
         points.resize(colors.size());
         for (Size i = 0; i < points.size(); ++i) {
             points[i].color = colors[i];

@@ -24,9 +24,17 @@ public:
     ~GridPage();
 
 private:
-    void update(const Storage& storage);
+    struct Config {
+        Float moonLimit = 0.1f;
+        Float radiiLimit = 2.f;
+    };
 
-    void updateAsync(const Storage& storage, const Size fragmentCnt, const Flags<CheckFlag> checks);
+    void update(const Storage& storage, const Config& config);
+
+    void updateAsync(const Storage& storage,
+        const Size fragmentCnt,
+        const Flags<CheckFlag> checks,
+        const Config& config);
 
     template <typename T>
     void updateCell(const Size rowIdx, const Size colIdx, const T& value);

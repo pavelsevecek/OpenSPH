@@ -44,14 +44,14 @@ struct BasicPoint {
     }
 
     TDerived& operator*=(const float factor) {
-        x *= factor;
-        y *= factor;
+        x = T(x * factor);
+        y = T(y * factor);
         return static_cast<TDerived&>(*this);
     }
 
     TDerived& operator/=(const float factor) {
-        x /= factor;
-        y /= factor;
+        x = T(x / factor);
+        y = T(y / factor);
         return static_cast<TDerived&>(*this);
     }
 
@@ -150,7 +150,7 @@ struct Coords : public BasicPoint<float, Coords> {
 
 template <typename T, typename TDerived>
 INLINE float getLength(const BasicPoint<T, TDerived>& p) {
-    return sqrt(sqr(p.x) + sqr(p.y));
+    return sqrt(float(sqr(p.x) + sqr(p.y)));
 }
 
 NAMESPACE_SPH_END

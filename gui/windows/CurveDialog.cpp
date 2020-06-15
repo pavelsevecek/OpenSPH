@@ -44,8 +44,8 @@ void CurvePanel::onPaint(wxPaintEvent& UNUSED(evt)) {
         gc->SetPen(pen);
 
         for (int x = x1; x <= x2; ++x) {
-            const float f = curve(windowToCurve(wxPoint(x, 0)).x);
-            const float y = curveToWindow<wxPoint2DDouble>(CurvePoint{ 0.f, f }).m_y;
+            const float f = float(curve(windowToCurve(wxPoint(x, 0)).x));
+            const float y = float(curveToWindow<wxPoint2DDouble, double>(CurvePoint{ 0.f, f }).m_y);
             const wxPoint2DDouble p(x, y);
             if (x > padding) {
                 path.AddLineToPoint(p);
@@ -152,14 +152,14 @@ void CurvePanel::onRightUp(wxMouseEvent& evt) {
     this->Refresh();
 }
 
-template <typename TPoint>
+template <typename TPoint, typename T>
 TPoint CurvePanel::curveToWindow(const CurvePoint& p) const {
     wxSize size = this->GetSize() - wxSize(2 * padding, 2 * padding);
     const Interval rangeX = curve.rangeX();
     const Interval rangeY = curve.rangeY();
 
-    return TPoint(padding + (p.x - rangeX.lower()) / rangeX.size() * size.x,
-        padding + size.y - (p.y - rangeY.lower()) / rangeY.size() * size.y);
+    return TPoint(T(padding + (p.x - rangeX.lower()) / rangeX.size() * size.x),
+        T(padding + size.y - (p.y - rangeY.lower()) / rangeY.size() * size.y));
 }
 
 CurvePoint CurvePanel::windowToCurve(const wxPoint2DDouble p) const {

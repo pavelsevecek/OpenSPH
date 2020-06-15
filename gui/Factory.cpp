@@ -33,8 +33,8 @@ AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Pixel siz
     data.clipping = Interval(settings.get<Float>(GuiSettingsId::CAMERA_CLIP_NEAR),
         settings.get<Float>(GuiSettingsId::CAMERA_CLIP_FAR));
     data.perspective.fov = settings.get<Float>(GuiSettingsId::CAMERA_PERSPECTIVE_FOV);
-    data.ortho.fov = settings.get<Float>(GuiSettingsId::CAMERA_ORTHO_FOV);
-    data.ortho.cutoff = settings.get<Float>(GuiSettingsId::CAMERA_ORTHO_CUTOFF);
+    data.ortho.fov = float(settings.get<Float>(GuiSettingsId::CAMERA_ORTHO_FOV));
+    data.ortho.cutoff = float(settings.get<Float>(GuiSettingsId::CAMERA_ORTHO_CUTOFF));
     if (data.ortho.cutoff.value() == 0._f) {
         data.ortho.cutoff = NOTHING;
     }
@@ -261,8 +261,8 @@ Palette Factory::getPalette(const ColorizerId id) {
     const PaletteDesc desc = paletteDescs[id];
     const Interval range = desc.range;
     const PaletteScale scale = desc.scale;
-    const float x0 = Float(range.lower());
-    const float dx = Float(range.size());
+    const float x0 = float(range.lower());
+    const float dx = float(range.size());
     if (int(id) >= 0) {
         QuantityId quantity = QuantityId(id);
         switch (quantity) {
@@ -294,7 +294,7 @@ Palette Factory::getPalette(const ColorizerId id) {
         case QuantityId::FRICTION:
         case QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE:
             return Palette({ { x0, Rgba(0.4f, 0.f, 0.4f) },
-                               { x0 + 0.3f * dx, Rgba(0.3_f, 0.3_f, 1._f) },
+                               { x0 + 0.3f * dx, Rgba(0.3f, 0.3f, 1.f) },
                                { x0 + 0.5f * dx, Rgba(0.9f, 0.9f, 0.9f) },
                                { x0 + 0.7f * dx, Rgba(1.f, 0.f, 0.f) },
                                { x0 + dx, Rgba(1.f, 1.f, 0.f) } },
@@ -369,16 +369,18 @@ Palette Factory::getPalette(const ColorizerId id) {
                                { x0 + 0.1f * dx, Rgba(1.0f, 0.0f, 0.2f) },
                                { x0 + dx, Rgba(1.0f, 1.0f, 0.2f) } },
                 scale);
-        case ColorizerId::MOVEMENT_DIRECTION:
-            ASSERT(range == Interval(0.f, 2.f * PI)); // in radians
+        case ColorizerId::MOVEMENT_DIRECTION: {
+            ASSERT(range == Interval(0.f, 2._f * PI)); // in radians
+            const float pi = float(PI);
             return Palette({ { 0.f, Rgba(0.1f, 0.1f, 1.f) },
-                               { PI / 3.f, Rgba(1.f, 0.1f, 1.f) },
-                               { 2.f * PI / 3.f, Rgba(1.f, 0.1f, 0.1f) },
-                               { 3.f * PI / 3.f, Rgba(1.f, 1.f, 0.1f) },
-                               { 4.f * PI / 3.f, Rgba(0.1f, 1.f, 0.1f) },
-                               { 5.f * PI / 3.f, Rgba(0.1f, 1.f, 1.f) },
-                               { 2.f * PI, Rgba(0.1f, 0.1f, 1.f) } },
+                               { pi / 3.f, Rgba(1.f, 0.1f, 1.f) },
+                               { 2.f * pi / 3.f, Rgba(1.f, 0.1f, 0.1f) },
+                               { 3.f * pi / 3.f, Rgba(1.f, 1.f, 0.1f) },
+                               { 4.f * pi / 3.f, Rgba(0.1f, 1.f, 0.1f) },
+                               { 5.f * pi / 3.f, Rgba(0.1f, 1.f, 1.f) },
+                               { 2.f * pi, Rgba(0.1f, 0.1f, 1.f) } },
                 scale);
+        }
         case ColorizerId::DENSITY_PERTURBATION:
             return Palette({ { x0, Rgba(0.1f, 0.1f, 1.f) },
                                { x0 + 0.5f * dx, Rgba(0.7f, 0.7f, 0.7f) },

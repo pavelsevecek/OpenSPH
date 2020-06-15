@@ -51,7 +51,7 @@ public:
     /// \brief Returns the scalar representation of the colorized quantity for idx-th particle.
     ///
     /// If there is no reasonable scalar representation (boundary particles, for example), returns NOTHING
-    virtual Optional<Float> evalScalar(const Size UNUSED(idx)) const {
+    virtual Optional<float> evalScalar(const Size UNUSED(idx)) const {
         return NOTHING;
     }
 
@@ -101,15 +101,15 @@ template <>
 INLINE float getColorizerValue(const Vector& value) {
     const Float result = getLength(value);
     ASSERT(isReal(result), value);
-    return result;
+    return float(result);
 }
 template <>
 INLINE float getColorizerValue(const TracelessTensor& value) {
-    return sqrt(ddot(value, value));
+    return float(sqrt(ddot(value, value)));
 }
 template <>
 INLINE float getColorizerValue(const SymmetricTensor& value) {
-    return sqrt(ddot(value, value));
+    return float(sqrt(ddot(value, value)));
 }
 
 /// Helper function returning vector representation of given quantity.
@@ -184,7 +184,7 @@ public:
         return palette(this->evalScalar(idx).value());
     }
 
-    virtual Optional<Float> evalScalar(const Size idx) const override {
+    virtual Optional<float> evalScalar(const Size idx) const override {
         ASSERT(this->isInitialized());
         return Detail::getColorizerValue(values[idx]);
     }
@@ -272,7 +272,7 @@ public:
         return !values.empty();
     }
 
-    virtual Optional<Float> evalScalar(const Size idx) const override;
+    virtual Optional<float> evalScalar(const Size idx) const override;
 
     virtual Rgba evalColor(const Size idx) const override {
         return palette(this->evalScalar(idx).value());
@@ -323,7 +323,7 @@ public:
 
     virtual Rgba evalColor(const Size idx) const override {
         ASSERT(!v.empty() && !r.empty());
-        return palette(getLength(this->getCorotatingVelocity(idx)));
+        return palette(float(getLength(this->getCorotatingVelocity(idx))));
     }
 
     virtual Optional<Vector> evalVector(const Size idx) const override {
@@ -378,7 +378,7 @@ public:
 
     virtual Rgba evalColor(const Size idx) const override {
         ASSERT(this->isInitialized());
-        return palette(rho[idx] / rho0[idx] - 1.f);
+        return palette(float(rho[idx] / rho0[idx] - 1._f));
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
@@ -417,7 +417,7 @@ public:
         return !m.empty();
     }
 
-    virtual Optional<Float> evalScalar(const Size idx) const override {
+    virtual Optional<float> evalScalar(const Size idx) const override {
         return sum(idx);
     }
 
@@ -426,7 +426,7 @@ public:
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
-        return Particle(QuantityId::DENSITY, sum(idx), idx);
+        return Particle(QuantityId::DENSITY, Float(sum(idx)), idx);
     }
 
     virtual Optional<Palette> getPalette() const override {
@@ -442,7 +442,7 @@ public:
     }
 
 private:
-    Float sum(const Size idx) const;
+    float sum(const Size idx) const;
 };
 
 class StressColorizer : public IColorizer {
@@ -467,12 +467,12 @@ public:
         return palette(this->evalScalar(idx).value());
     }
 
-    virtual Optional<Float> evalScalar(const Size idx) const override {
+    virtual Optional<float> evalScalar(const Size idx) const override {
         ASSERT(this->isInitialized());
         SymmetricTensor sigma = SymmetricTensor(s[idx]) - p[idx] * SymmetricTensor::identity();
         // StaticArray<Float, 3> eigens = findEigenvalues(sigma);
         // return max(abs(eigens[0]), abs(eigens[1]), abs(eigens[2]));
-        return sqrt(ddot(sigma, sigma));
+        return float(sqrt(ddot(sigma, sigma)));
     }
 
     virtual Optional<Vector> evalVector(const Size UNUSED(idx)) const override {
@@ -519,9 +519,9 @@ public:
         return palette(this->evalScalar(idx).value());
     }
 
-    virtual Optional<Float> evalScalar(const Size idx) const override {
+    virtual Optional<float> evalScalar(const Size idx) const override {
         ASSERT(this->isInitialized());
-        return u[idx] + 0.5_f * getSqrLength(v[idx]);
+        return float(u[idx] + 0.5_f * getSqrLength(v[idx]));
     }
 
     virtual Optional<Vector> evalVector(const Size UNUSED(idx)) const override {
@@ -558,9 +558,9 @@ public:
         cp = storage.getMaterial(0)->getParam<Float>(BodySettingsId::HEAT_CAPACITY);
     }
 
-    virtual Optional<Float> evalScalar(const Size idx) const override {
+    virtual Optional<float> evalScalar(const Size idx) const override {
         ASSERT(this->isInitialized());
-        return this->values[idx] / cp;
+        return float(this->values[idx] / cp);
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
@@ -589,7 +589,7 @@ public:
     virtual Rgba evalColor(const Size idx) const override {
         ASSERT(this->isInitialized());
         ASSERT(values[idx] >= 0._f && values[idx] <= 1._f);
-        return palette(1._f - values[idx]);
+        return palette(float(1._f - values[idx]));
     }
 
     virtual std::string name() const override {
@@ -600,7 +600,7 @@ public:
 class DamageActivationColorizer : public IColorizer {
 private:
     Palette palette;
-    Array<Float> ratio;
+    Array<float> ratio;
 
 public:
     explicit DamageActivationColorizer(Palette palette)
@@ -626,7 +626,7 @@ public:
                 const Float sigMax = max(sig1, sig2, sig3);
                 const Float young_red = max((1._f - pow<3>(damage[i])) * young, 1.e-20_f);
                 const Float strain = sigMax / young_red;
-                ratio[i] = strain / eps_min[i];
+                ratio[i] = float(strain / eps_min[i]);
             }
         }
     }
@@ -661,16 +661,16 @@ private:
     ArrayRef<const Float> u;
     Palette palette;
 
-    const float u_red = 3.e5_f;
-    const float u_yellow = 5.e6_f;
-    const float u_glow = 0.5_f * u_red;
+    const float u_red = 3.e5f;
+    const float u_yellow = 5.e6f;
+    const float u_glow = 0.5f * u_red;
 
 public:
     BeautyColorizer() {
         palette = Palette({ { 0.1f * u_red, Rgba(0.5f, 0.5f, 0.5) },
                               { u_glow, Rgba(0.5f, 0.5f, 0.5f) },
                               { u_red, Rgba(0.8f, 0.f, 0.f) },
-                              { u_yellow, Rgba(1.f, 1.f, 0.6) } },
+                              { u_yellow, Rgba(1.f, 1.f, 0.6f) } },
             PaletteScale::LOGARITHMIC);
     }
 
@@ -684,11 +684,11 @@ public:
 
     virtual Rgba evalColor(const Size idx) const override {
         ASSERT(this->isInitialized());
-        return palette(u[idx]);
+        return palette(float(u[idx]));
     }
 
-    virtual Optional<Float> evalScalar(const Size idx) const override {
-        return max(0._f, (u[idx] - u_glow) / u_red);
+    virtual Optional<float> evalScalar(const Size idx) const override {
+        return float(max(0._f, (u[idx] - u_glow) / u_red));
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
@@ -720,7 +720,7 @@ public:
 
     virtual Rgba evalColor(const Size idx) const override {
         ASSERT(this->isInitialized());
-        return palette(values[idx][H]);
+        return palette(float(values[idx][H]));
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
@@ -756,8 +756,8 @@ public:
         return Rgba(this->evalScalar(idx).value());
     }
 
-    virtual Optional<Float> evalScalar(const Size idx) const override {
-        return mult * getLength(positions[idx] - cameraPos);
+    virtual Optional<float> evalScalar(const Size idx) const override {
+        return float(mult * getLength(positions[idx] - cameraPos));
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
@@ -791,7 +791,7 @@ public:
 
     virtual Rgba evalColor(const Size idx) const override {
         ASSERT(this->isInitialized());
-        return Rgba(uvws[idx][X], 0._f, uvws[idx][Y]);
+        return Rgba(float(uvws[idx][X]), 0.f, float(uvws[idx][Y]));
     }
 
     virtual Optional<Particle> getParticle(const Size UNUSED(idx)) const override {
@@ -1075,7 +1075,7 @@ public:
     virtual Rgba evalColor(const Size idx) const override {
         if (highlightIdx) {
             if (highlightIdx.value() == components[idx]) {
-                return Rgba(1.f, 0.65, 0.f);
+                return Rgba(1.f, 0.65f, 0.f);
             } else {
                 return Rgba::gray(0.3f);
             }

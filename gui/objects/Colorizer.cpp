@@ -18,12 +18,12 @@ DirectionColorizer::DirectionColorizer(const Vector& axis, const Palette& palett
     ASSERT(almostEqual(getLength(dir2), 1._f));
 }
 
-Optional<Float> DirectionColorizer::evalScalar(const Size idx) const {
+Optional<float> DirectionColorizer::evalScalar(const Size idx) const {
     ASSERT(this->isInitialized());
     const Vector projected = values[idx] - dot(values[idx], axis) * axis;
     const Float x = dot(projected, dir1);
     const Float y = dot(projected - x * dir1, dir2);
-    return PI + atan2(y, x);
+    return float(PI + atan2(y, x));
 }
 
 static thread_local Array<NeighbourRecord> neighs;
@@ -41,13 +41,13 @@ void SummedDensityColorizer::initialize(const Storage& storage, const RefEnum re
     finder->build(SEQUENTIAL, r);
 }
 
-Float SummedDensityColorizer::sum(const Size idx) const {
+float SummedDensityColorizer::sum(const Size idx) const {
     finder->findAll(idx, r[idx][H] * kernel.radius(), neighs);
     Float rho = 0._f;
     for (const auto& n : neighs) {
         rho += m[n.index] * kernel.value(r[idx] - r[n.index], r[idx][H]);
     }
-    return rho;
+    return float(rho);
 }
 
 void CorotatingVelocityColorizer::initialize(const Storage& storage, const RefEnum ref) {
