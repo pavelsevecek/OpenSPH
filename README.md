@@ -100,6 +100,18 @@ Default simulation uses the following:
 - Adaptive smoothing length (AdaptiveSmoothingLength)
 - Basalt material parameters
 
+## Particle renderer
+OpenSPH contains useful tools for visualization of particles. It allows rendering
+individual spherical particles as well as rendering of isosurface, reconstructed 
+from particles. The color palette can be specified from arbitrary state quantities,
+making it easy to visualize particle velocities, internal energy, etc. 
+The surface of bodies can be also textured with an arbitrary bitmap image.
+![Impact animation](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/render/anim.mp4)
+
+Besides the orthographic and perspective projection, a fisheye 
+camera for fulldome animations and a spherical 360° camera can be used.
+![Fulldome camera](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/render/fisheye.mp4)
+
 ## Documentation
 See [documentation](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/docs/index.html)
 
