@@ -331,7 +331,9 @@ void PeriodicBoundary::initialize(Storage& storage) {
             int(r[i][Y] > domain.upper()[Y]),
             int(r[i][Z] > domain.upper()[Z]));
 
+        const Float h = r[i][H]; // backup for safety
         r[i] += domain.size() * (lowerFlags - upperFlags);
+        r[i][H] = h;
 
         // for particles close to the boundary, add ghosts
         for (Size j = 0; j < 3; ++j) {
@@ -351,6 +353,15 @@ void PeriodicBoundary::initialize(Storage& storage) {
 
     for (Size i = 0; i < ghostIdxs.size(); ++i) {
         r[ghostIdxs[i]] = ghosts[i].position;
+        r[ghostIdxs[i]][H] = r[ghosts[i].index][H];
+    }
+
+    // set flag to some special value to separate the bodies
+    if (storage.has(QuantityId::FLAG)) {
+        ArrayView<Size> flag = storage.getValue<Size>(QuantityId::FLAG);
+        for (Size i = 0; i < ghosts.size(); ++i) {
+            flag[ghostIdxs[i]] = Size(-1);
+        }
     }
 }
 

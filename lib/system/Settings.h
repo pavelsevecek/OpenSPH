@@ -1404,6 +1404,9 @@ enum class BodySettingsId {
     /// Characteristic decay time of acoustic oscillations in the material
     OSCILLATION_DECAY_TIME = 44,
 
+    /// Regeneration efficiency of acoustric oscillations
+    OSCILLATION_REGENERATION = 74,
+
     /// Effective viscosity of acoustic fludizations
     FLUIDIZATION_VISCOSITY = 45,
 

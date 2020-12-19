@@ -276,7 +276,7 @@ VirtualSettings SphJob::getSettings() {
 }
 
 AutoPtr<IRun> SphJob::getRun(const RunSettings& overrides) const {
-    ASSERT(overrides.size() < 12); // not really required, just checking that we don't override everything
+    ASSERT(overrides.size() < 15); // not really required, just checking that we don't override everything
     const BoundaryEnum boundary = settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY);
     SharedPtr<IDomain> domain;
     if (boundary != BoundaryEnum::NONE) {

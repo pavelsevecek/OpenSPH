@@ -68,7 +68,7 @@ TEST_CASE("TupleAdapter", "[iterators]") {
     Size cnt = 1;
     for (Element e : iterateTuple<Element>(floats, ints, chars)) {
         REQUIRE(e.f == float(cnt));
-        REQUIRE(e.i == cnt);
+        REQUIRE(e.i == int(cnt));
         REQUIRE(e.ch == 'a' + char(cnt - 1));
         e.f = 6.f;
         e.i = 7;

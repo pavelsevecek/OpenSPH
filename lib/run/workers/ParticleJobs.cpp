@@ -91,6 +91,7 @@ void JoinParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = input2->storage.getAll<Vector>(QuantityId::POSITION);
     offset[H] = 0._f; // can contain garbage
+    velocity[H] = 0._f;
     for (Size i = 0; i < r.size(); ++i) {
         r[i] += offset;
         v[i] += velocity;

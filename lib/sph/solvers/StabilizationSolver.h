@@ -90,8 +90,10 @@ public:
             // reset both the damage and its derivative
             ArrayView<Float> D, dD;
             tie(D, dD) = storage.getAll<Float>(QuantityId::DAMAGE);
+            const Float d0 = storage.getMaterial(0)->getParam<Float>(BodySettingsId::DAMAGE);
             for (Size i = 0; i < D.size(); ++i) {
-                D[i] = dD[i] = 0._f;
+                dD[i] = 0._f;
+                D[i] = d0;
             }
         }
 

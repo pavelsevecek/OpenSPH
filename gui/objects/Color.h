@@ -113,6 +113,10 @@ public:
         const float a1 = other.a();
         const float a2 = this->a();
         const float ar = a2 + a1 * (1.f - a2);
+        if (ar == 0.f) {
+            // blending two fully transparent colors
+            return transparent();
+        }
         ASSERT(ar > 0.f);
         Rgba color = (data * a2 + other.data * a1 * (1.f - a2)) / ar;
         color.a() = ar;

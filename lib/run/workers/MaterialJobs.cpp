@@ -56,6 +56,8 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
             return (!enabler || enabler()) &&
                    (id == YieldingEnum::VON_MISES || id == YieldingEnum::DRUCKER_PRAGER);
         });
+    category.connect<Float>("Melting energy [J/kg]", body, BodySettingsId::MELT_ENERGY)
+        .setEnabler(enablerRheo);
     category.connect<Float>("Internal friction []", body, BodySettingsId::INTERNAL_FRICTION)
         .setEnabler(enablerDp);
     category.connect<Float>("Cohesion [Pa]", body, BodySettingsId::COHESION).setEnabler(enablerDp);
@@ -63,6 +65,8 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
     category.connect<bool>("Use acoustic fludization", body, BodySettingsId::USE_ACOUSTIC_FLUDIZATION)
         .setEnabler(enablerDp);
     category.connect<Float>("Oscillation decay time [s]", body, BodySettingsId::OSCILLATION_DECAY_TIME)
+        .setEnabler(enablerAf);
+    category.connect<Float>("Oscillation regeneration []", body, BodySettingsId::OSCILLATION_REGENERATION)
         .setEnabler(enablerAf);
     category.connect<Float>("Fludization viscosity", body, BodySettingsId::FLUIDIZATION_VISCOSITY)
         .setEnabler(enablerAf);

@@ -715,9 +715,12 @@ void Controller::refresh(AutoPtr<ICamera>&& camera) {
     vis.camera = std::move(camera);
     vis.refresh();
 
-    if (const Optional<float> fov = vis.camera->getWorldToPixel()) {
-        /// \todo generalize
-        project.getGuiSettings().set(GuiSettingsId::CAMERA_ORTHO_FOV, Float(fov.value()));
+    // save the current fov to settings
+    /// \todo generalize
+    if (const Optional<float> wtp = vis.camera->getWorldToPixel()) {
+        const Pixel imageSize = vis.camera->getSize();
+        const Float fov = imageSize.y / wtp.value();
+        project.getGuiSettings().set(GuiSettingsId::CAMERA_ORTHO_FOV, fov);
     }
 }
 

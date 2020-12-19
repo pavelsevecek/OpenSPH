@@ -194,12 +194,19 @@ void DruckerPragerRheology::integrate(IScheduler& scheduler, Storage& storage, c
         // integrate the vibrational velocity
         ArrayView<Float> v, dv;
         tie(v, dv) = storage.getAll<Float>(QuantityId::VIBRATIONAL_VELOCITY);
-        ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
-        ArrayView<const Float> cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
+        ArrayView<const SymmetricTensor> eps = storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
+        ArrayView<const TracelessTensor> S = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+        ArrayView<const Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
+
         const Float t_dec = material->getParam<Float>(BodySettingsId::OSCILLATION_DECAY_TIME);
+        const Float e = material->getParam<Float>(BodySettingsId::OSCILLATION_REGENERATION);
+        const Float rho = material->getParam<Float>(BodySettingsId::DENSITY);
 
         for (Size i : material.sequence()) {
-            dv[i] = cs[i] * max(0._f, divv[i]) - v[i] / t_dec;
+            const SymmetricTensor sigma = p[i] * SymmetricTensor::identity() - SymmetricTensor(S[i]);
+            const Float dE = e * max(ddot(sigma, eps[i]), 0._f);
+            // energy to velocity
+            dv[i] = sqrt(2._f * dE / rho) - v[i] / t_dec;
         }
     }
 
