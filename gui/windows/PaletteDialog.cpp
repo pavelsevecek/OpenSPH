@@ -137,11 +137,11 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
 
     const Size height = 30;
     rangeSizer->Add(new wxStaticText(this, wxID_ANY, "From: ", wxDefaultPosition, wxSize(-1, height)));
-    FloatTextCtrl* lowerCtrl = new FloatTextCtrl(this, int(initialPalette.getInterval().lower()));
+    FloatTextCtrl* lowerCtrl = new FloatTextCtrl(this, double(initialPalette.getInterval().lower()));
     rangeSizer->Add(lowerCtrl);
 
     rangeSizer->Add(new wxStaticText(this, wxID_ANY, "To: ", wxDefaultPosition, wxSize(-1, height)));
-    FloatTextCtrl* upperCtrl = new FloatTextCtrl(this, int(initialPalette.getInterval().upper()));
+    FloatTextCtrl* upperCtrl = new FloatTextCtrl(this, double(initialPalette.getInterval().upper()));
     rangeSizer->Add(upperCtrl);
 
     upperCtrl->onValueChanged = [this](const Float value) {
