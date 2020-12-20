@@ -177,6 +177,8 @@ public:
 #else
         (void)storage;
         (void)t;
+        (void)period;
+        (void)oneShot;
 #endif
     }
 
