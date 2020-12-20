@@ -218,25 +218,41 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
 
 static FlatMap<ColorizerId, std::string> PALETTE_ID_LIST = {
     { ColorizerId::VELOCITY, "Velocity" },
-    { ColorizerId::MOVEMENT_DIRECTION, "Direction" },
-    { ColorizerId::DENSITY_PERTURBATION, "Delta density" },
-    { ColorizerId::TOTAL_ENERGY, "Total energy" },
     { ColorizerId::TEMPERATURE, "Temperature" },
-    { ColorizerId::YIELD_REDUCTION, "Yield reduction" },
-    { ColorizerId(QuantityId::PRESSURE), "Pressure" },
-    { ColorizerId(QuantityId::ENERGY), "Specific energy" },
-    { ColorizerId(QuantityId::DEVIATORIC_STRESS), "Deviatoric stress" },
-    { ColorizerId(QuantityId::DENSITY), "Density" },
+    { ColorizerId(QuantityId::DEVIATORIC_STRESS), "Stress" },
     { ColorizerId(QuantityId::DAMAGE), "Damage" },
-    { ColorizerId(QuantityId::VELOCITY_DIVERGENCE), "Velocity divergence" },
-    { ColorizerId(QuantityId::ANGULAR_FREQUENCY), "Angular frequency" },
-    { ColorizerId(QuantityId::STRAIN_RATE_CORRECTION_TENSOR), "Correction tensor" },
+    { ColorizerId::MOVEMENT_DIRECTION, "Periodic" },
+    { ColorizerId::DENSITY_PERTURBATION, "Diverging 1" },
+    { ColorizerId(QuantityId::DENSITY), "Diverging 2" },
+    { ColorizerId(QuantityId::VELOCITY_DIVERGENCE), "Diverging 3" },
+    { ColorizerId(QuantityId::ANGULAR_FREQUENCY), "Extremes" },
 };
+
+// some extra palettes
+namespace Palettes {
+
+const Palette GALAXY({ { 0.001f, Rgba(0.f, 0.02f, 0.09f) },
+                         { 0.01f, Rgba(0.4f, 0.106f, 0.38f) },
+                         { 0.1f, Rgba(0.78f, 0.18f, 0.38f) },
+                         { 1.f, Rgba(0.91f, 0.56f, 0.81f) },
+                         { 10.f, Rgba(0.29f, 0.69f, 0.93f) } },
+    PaletteScale::LOGARITHMIC);
+
+const Palette ACCRETION({ { 0.001f, Rgba(0.43f, 0.70f, 100.f) },
+                            { 0.01f, Rgba(0.65f, 0.12f, 0.01f) },
+                            { 0.1f, Rgba(0.79f, 0.38f, 0.02f) },
+                            { 1.f, Rgba(0.93f, 0.83f, 0.34f) },
+                            { 10.f, Rgba(0.94f, 0.90f, 0.84f) } },
+    PaletteScale::LOGARITHMIC);
+
+} // namespace Palettes
 
 void PaletteDialog::setDefaultPaletteList() {
     paletteMap = {
         { "(default)", initial },
         { "Blackbody", getBlackBodyPalette(Interval(300, 12000)) },
+        { "Galaxy", Palettes::GALAXY },
+        { "Accretion", Palettes::ACCRETION },
     };
     for (auto& pair : PALETTE_ID_LIST) {
         paletteMap.insert(pair.value, Factory::getPalette(pair.key));
