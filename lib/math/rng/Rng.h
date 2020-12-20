@@ -193,4 +193,23 @@ INLINE Float sampleDistribution(TRng& rng, const Interval& range, const Float up
     }
 }
 
+/// \brief Generates a random vector from a generic distribution, using rejection sampling.
+///
+/// \param rng Random number generator
+/// \param box Extents of generated vectors
+/// \param upperBound Upper bound for the values returned by the functor
+/// \param func Probability distribution function. Does not have to be normalized.
+template <typename TRng, typename TFunc>
+INLINE Vector sampleDistribution(TRng& rng, const Box& box, const Float upperBound, const TFunc& func) {
+    while (true) {
+        const Vector r = box.lower() + Vector(rng(), rng(), rng()) * box.size();
+        const Float y = rng() * upperBound;
+        const Float pdf = func(r);
+        ASSERT(pdf >= 0._f && pdf < upperBound, pdf);
+        if (y < pdf) {
+            return r;
+        }
+    }
+}
+
 NAMESPACE_SPH_END

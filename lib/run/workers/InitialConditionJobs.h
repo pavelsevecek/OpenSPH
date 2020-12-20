@@ -229,6 +229,30 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
+class IsothermalSphereIc : public IParticleJob {
+private:
+    Float radius = 1.e6_f;
+    Float centralDensity = 1000._f;
+    Float centralEnergy = 1000._f;
+    Float gamma = 4._f / 3._f;
+    int particleCnt = 10000;
+
+public:
+    IsothermalSphereIc(const std::string& name);
+
+    virtual std::string className() const override {
+        return "isothermal sphere ICs";
+    }
+
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return {};
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+};
+
 class GalaxyIc : public IParticleJob {
 private:
     GalaxySettings settings;
