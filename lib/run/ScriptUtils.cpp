@@ -44,23 +44,31 @@ void Chai::Particles::bindToStorage(Storage& input) {
         ArrayView<const Float> m = storage->getValue<Float>(QuantityId::MASS);
         std::copy(m.begin(), m.end(), masses.begin());
     }
+
+    if (storage->has(QuantityId::ENERGY)) {
+        ArrayView<const Float> u = storage->getValue<Float>(QuantityId::ENERGY);
+        std::copy(u.begin(), u.end(), energies.begin());
+    }
 }
 
 const Storage& Chai::Particles::store() const {
     const Size N = positions.size();
     Array<Vector> r(N), v(N), dv(N);
     Array<Float> m(N);
+    Array<Float> u(N);
     for (Size i = 0; i < N; ++i) {
         r[i] = positions[i];
         r[i][H] = radii[i];
         v[i] = velocities[i];
         dv[i] = accelerations[i];
         m[i] = masses[i];
+        u[i] = energies[i];
     }
     storage->insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(r));
     storage->getDt<Vector>(QuantityId::POSITION) = std::move(v);
     storage->getD2t<Vector>(QuantityId::POSITION) = std::move(dv);
     storage->insert<Float>(QuantityId::MASS, OrderEnum::ZERO, std::move(m));
+    storage->insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, std::move(u));
     return *storage;
 }
 
@@ -73,12 +81,18 @@ void Chai::Particles::resize(const Size particleCnt) {
     velocities.resize(particleCnt);
     accelerations.resize(particleCnt);
     masses.resize(particleCnt);
+    energies.resize(particleCnt);
     radii.resize(particleCnt);
 }
 
 std::vector<Float>& Chai::Particles::getMasses() {
     /// \todo lazy init!
     return masses;
+}
+
+std::vector<Float>& Chai::Particles::getEnergies() {
+    /// \todo lazy init!
+    return energies;
 }
 
 std::vector<Float>& Chai::Particles::getRadii() {
@@ -151,6 +165,7 @@ void Chai::Particles::merge(Particles& other) {
     positions.insert(positions.end(), other.positions.begin(), other.positions.end());
     velocities.insert(velocities.end(), other.velocities.begin(), other.velocities.end());
     masses.insert(masses.end(), other.masses.begin(), other.masses.end());
+    energies.insert(energies.end(), other.energies.begin(), other.energies.end());
     radii.insert(radii.end(), other.radii.begin(), other.radii.end());
 }
 
@@ -199,6 +214,7 @@ void Chai::registerBindings(chaiscript::ChaiScript& chai) {
     chai.add(chaiscript::constructor<Particles(Size)>(), "Particles");
     chai.add(chaiscript::fun(&Particles::getParticleCnt), "getParticleCnt");
     chai.add(chaiscript::fun(&Particles::getMasses), "getMasses");
+    chai.add(chaiscript::fun(&Particles::getEnergies), "getEnergies");
     chai.add(chaiscript::fun(&Particles::getPositions), "getPositions");
     chai.add(chaiscript::fun(&Particles::getVelocities), "getVelocities");
     chai.add(chaiscript::fun(&Particles::getAccelerations), "getAccelerations");

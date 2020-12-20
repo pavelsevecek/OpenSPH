@@ -423,6 +423,11 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
         "Whether to enable or disable script evaluation." },
     { RunSettingsId::SPH_SCRIPT_FILE,               "sph.script.file",          std::string("script.chai"),
         "Path to the file containing an arbitrary ChaiScript script evaluated each time step." },
+    { RunSettingsId::SPH_SCRIPT_PERIOD,             "sph.script.period",        0._f,
+        "Period or time point to execute the script. Zero means the time step is executed "
+        "immediately or every time step, depending on the value of sph.script.oneshot" },
+    { RunSettingsId::SPH_SCRIPT_ONESHOT,            "sph.script.oneshot",       false,
+        "Whether to execute the script only once or periodically." },
 
     /// Global SPH parameters
     { RunSettingsId::SPH_KERNEL,                    "sph.kernel",               KernelEnum::CUBIC_SPLINE,

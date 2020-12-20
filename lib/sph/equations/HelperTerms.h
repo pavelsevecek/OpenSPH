@@ -126,13 +126,21 @@ public:
 class ChaiScriptTerm : public IEquationTerm {
 private:
     std::string script;
+    Float period;
+    bool oneShot;
+    bool done;
+    Float nextTime;
 
 #ifdef SPH_USE_CHAISCRIPT
     Chai::Particles particles;
 #endif
 
 public:
-    explicit ChaiScriptTerm(const Path& scriptFile) {
+    explicit ChaiScriptTerm(const Path& scriptFile, const Float period, const bool oneShot)
+        : period(period)
+        , oneShot(oneShot) {
+        nextTime = period;
+        done = false;
 #ifdef SPH_USE_CHAISCRIPT
         script = FileSystem::readFile(scriptFile);
 #else
@@ -150,6 +158,10 @@ public:
 
     virtual void finalize(IScheduler& UNUSED(scheduler), Storage& storage, const Float t) override {
 #ifdef SPH_USE_CHAISCRIPT
+        if (t < nextTime || done) {
+            return;
+        }
+        nextTime += period;
         particles.bindToStorage(storage);
 
         chaiscript::ChaiScript chai;
@@ -158,6 +170,10 @@ public:
         chai.add(chaiscript::const_var(t), "time");
         chai.eval(script);
         particles.store();
+
+        if (oneShot) {
+            done = true;
+        }
 #else
         (void)storage;
         (void)t;

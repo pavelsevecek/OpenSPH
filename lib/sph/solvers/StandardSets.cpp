@@ -63,7 +63,9 @@ EquationHolder getStandardEquations(const RunSettings& settings, const EquationH
 
     if (settings.get<bool>(RunSettingsId::SPH_SCRIPT_ENABLE)) {
         const Path scriptPath(settings.get<std::string>(RunSettingsId::SPH_SCRIPT_FILE));
-        equations += makeTerm<ChaiScriptTerm>(scriptPath);
+        const Float period = settings.get<Float>(RunSettingsId::SPH_SCRIPT_PERIOD);
+        const bool oneshot = settings.get<bool>(RunSettingsId::SPH_SCRIPT_ONESHOT);
+        equations += makeTerm<ChaiScriptTerm>(scriptPath, period, oneshot);
     }
 
     equations += makeTerm<ContinuityEquation>(settings);

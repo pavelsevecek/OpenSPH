@@ -262,11 +262,16 @@ VirtualSettings SphJob::getSettings() {
     modCat.connect<Float>("delta-SPH delta", settings, RunSettingsId::SPH_DENSITY_DIFFUSION_DELTA)
         .setEnabler(deltaSphEnabler);
 
+    auto scriptEnabler = [this] { return settings.get<bool>(RunSettingsId::SPH_SCRIPT_ENABLE); };
+
     VirtualSettings::Category& scriptCat = connector.addCategory("Scripts");
     scriptCat.connect<bool>("Enable script", settings, RunSettingsId::SPH_SCRIPT_ENABLE);
-    scriptCat.connect<Path>("Script file", settings, RunSettingsId::SPH_SCRIPT_FILE).setEnabler([this] {
-        return settings.get<bool>(RunSettingsId::SPH_SCRIPT_ENABLE);
-    });
+    scriptCat.connect<Path>("Script file", settings, RunSettingsId::SPH_SCRIPT_FILE)
+        .setEnabler(scriptEnabler);
+    scriptCat.connect<Float>("Script period [s]", settings, RunSettingsId::SPH_SCRIPT_PERIOD)
+        .setEnabler(scriptEnabler);
+    scriptCat.connect<bool>("Run only once", settings, RunSettingsId::SPH_SCRIPT_ONESHOT)
+        .setEnabler(scriptEnabler);
 
     addGravityCategory(connector, settings);
     addOutputCategory(connector, settings);

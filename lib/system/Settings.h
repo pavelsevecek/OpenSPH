@@ -1050,6 +1050,13 @@ enum class RunSettingsId {
     /// Path of an arbitrary ChaiScript script executed each timestep.
     SPH_SCRIPT_FILE,
 
+    /// Period or time point to execute the script. Zero means the time step is executed immediately or every
+    /// time step, depending on the value of SPH_SCRIPT_ONESHOT.
+    SPH_SCRIPT_PERIOD,
+
+    /// Whether to execute the script only once or periodically.
+    SPH_SCRIPT_ONESHOT,
+
     /// If true, all particles have also a moment of inertia, representing a non-homogeneous mass
     /// distribution. Otherwise, particles are spherical with inertia tensor I = 2/5 mr^2
     NBODY_INERTIA_TENSOR,
