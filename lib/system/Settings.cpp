@@ -535,6 +535,13 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
         "breakup frequency. If zero, particles are always merged, values larger than 1 can be used to avoid "
         "fast rotators in the simulation." },
 
+
+    /// Parameters of the soft-body solver
+    { RunSettingsId::SOFT_REPEL_STRENGTH,       "soft.repel_strength",    1._f,
+        "Repel strength used by the soft-body solver" },
+    { RunSettingsId::SOFT_FRICTION_STRENGTH,    "soft.friction_strength",  1.e-3_f,
+        "Friction strength used by the soft-body solver" },
+
     /// Timestepping parameters
     { RunSettingsId::TIMESTEPPING_INTEGRATOR,       "timestep.integrator",      TimesteppingEnum::PREDICTOR_CORRECTOR,
         "Integrator performing evolution in time. Can be one of the following:\n" + EnumMap::getDesc<TimesteppingEnum>() },

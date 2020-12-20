@@ -1115,6 +1115,12 @@ enum class RunSettingsId {
     /// fast rotators in the simulation.
     COLLISION_ROTATION_MERGE_LIMIT,
 
+    /// Magnitude of the repel force for the soft-body solver
+    SOFT_REPEL_STRENGTH,
+
+    /// Magnitude of the friction force for the soft-body solver
+    SOFT_FRICTION_STRENGTH,
+
     /// Selected timestepping integrator
     TIMESTEPPING_INTEGRATOR,
 

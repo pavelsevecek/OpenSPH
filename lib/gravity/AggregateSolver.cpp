@@ -643,7 +643,7 @@ public:
 };
 
 AggregateSolver::AggregateSolver(IScheduler& scheduler, const RunSettings& settings)
-    : NBodySolver(scheduler,
+    : HardSphereSolver(scheduler,
           settings,
           Factory::getGravity(settings),
           makeAuto<AggregateCollisionHandler>(settings),
@@ -655,7 +655,7 @@ AggregateSolver::~AggregateSolver() = default;
 
 void AggregateSolver::integrate(Storage& storage, Statistics& stats) {
     holder->spin();
-    NBodySolver::integrate(storage, stats);
+    HardSphereSolver::integrate(storage, stats);
     holder->integrate();
 
     // storage IDs and aggregate stats
@@ -668,12 +668,12 @@ void AggregateSolver::integrate(Storage& storage, Statistics& stats) {
 
 void AggregateSolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     holder->spin();
-    NBodySolver::collide(storage, stats, dt);
+    HardSphereSolver::collide(storage, stats, dt);
     holder->integrate();
 }
 
 void AggregateSolver::create(Storage& storage, IMaterial& material) const {
-    NBodySolver::create(storage, material);
+    HardSphereSolver::create(storage, material);
 
     storage.insert<Vector>(QuantityId::ANGULAR_FREQUENCY, OrderEnum::FIRST, Vector(0._f));
     storage.insert<Vector>(QuantityId::PHASE_ANGLE, OrderEnum::FIRST, Vector(0._f));

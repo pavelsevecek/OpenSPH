@@ -36,7 +36,7 @@ TEST_CASE("Local frame rotation", "[nbody]") {
     RunSettings settings;
     settings.set(RunSettingsId::NBODY_INERTIA_TENSOR, true);
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    NBodySolver solver(pool, settings);
+    HardSphereSolver solver(pool, settings);
     SharedPtr<Storage> storage = makeShared<Storage>(makeAuto<NullMaterial>(EMPTY_SETTINGS));
     storage->insert<Vector>(
         QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>{ Vector(0._f, 0._f, 0._f, 1._f) });
@@ -73,7 +73,7 @@ static void flywheel(const Float dt, const Float eps) {
     settings.set(RunSettingsId::NBODY_INERTIA_TENSOR, true);
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    NBodySolver solver(pool, settings);
+    HardSphereSolver solver(pool, settings);
     SharedPtr<Storage> storage = makeShared<Storage>(makeAuto<NullMaterial>(EMPTY_SETTINGS));
     storage->insert<Vector>(QuantityId::POSITION,
         OrderEnum::SECOND,
@@ -154,7 +154,7 @@ TEMPLATE_TEST_CASE("Collision bounce two", "[nbody]", EulerExplicit, LeapFrog) {
         .set(RunSettingsId::NBODY_INERTIA_TENSOR, true);
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    NBodySolver solver(pool, settings);
+    HardSphereSolver solver(pool, settings);
 
     SharedPtr<Storage> storage = makeTwoParticles();
     solver.create(*storage, storage->getMaterial(0));
@@ -232,7 +232,7 @@ TEMPLATE_TEST_CASE("Collision merge two", "[nbody]", EulerExplicit, LeapFrog) {
         .set(RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT, 0._f);
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    NBodySolver solver(pool, settings);
+    HardSphereSolver solver(pool, settings);
 
     SharedPtr<Storage> storage = makeTwoParticles();
     solver.create(*storage, storage->getMaterial(0));
@@ -331,7 +331,7 @@ TEMPLATE_TEST_CASE("Collision merge off-center", "[nbody]", EulerExplicit, LeapF
         .set(RunSettingsId::NBODY_INERTIA_TENSOR, true);
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    NBodySolver solver(pool, settings);
+    HardSphereSolver solver(pool, settings);
 
     SharedPtr<Storage> storage = makeTwoParticles();
     solver.create(*storage, storage->getMaterial(0));
@@ -386,7 +386,7 @@ TEMPLATE_TEST_CASE("Collision merge miss", "[nbody]", EulerExplicit, LeapFrog) {
         .set(RunSettingsId::NBODY_INERTIA_TENSOR, true);
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    NBodySolver solver(pool, settings);
+    HardSphereSolver solver(pool, settings);
 
     SharedPtr<Storage> storage = makeTwoParticles();
     solver.create(*storage, storage->getMaterial(0));
@@ -411,7 +411,7 @@ TEMPLATE_TEST_CASE("Collision merge rejection", "[nbody]", EulerExplicit, LeapFr
         .set(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT, 1.e6_f); // to reject the collision
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    NBodySolver solver(pool, settings);
+    HardSphereSolver solver(pool, settings);
 
     SharedPtr<Storage> storage = makeTwoParticles();
     solver.create(*storage, storage->getMaterial(0));
@@ -465,7 +465,7 @@ TEST_CASE("Collision repel", "[nbody]") {
 template <typename TTimestepping>
 static SharedPtr<Storage> runCloud(const RunSettings& settings, const Size particleCount) {
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    NBodySolver solver(pool, settings);
+    HardSphereSolver solver(pool, settings);
 
     SharedPtr<Storage> storage = makeShared<Storage>(Tests::getStorage(particleCount));
     solver.create(*storage, storage->getMaterial(0));
@@ -519,6 +519,6 @@ TEMPLATE_TEST_CASE("Collision cloud bounce", "[nbody]", EulerExplicit, LeapFrog)
         .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::ELASTIC_BOUNCE)
         .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::NONE);
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    NBodySolver solver(pool, settings);
+    HardSphereSolver solver(pool, settings);
     REQUIRE_NOTHROW(runCloud<TestType>(settings, 50));
 }

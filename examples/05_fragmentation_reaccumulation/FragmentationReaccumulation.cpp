@@ -144,7 +144,7 @@ public:
             .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::PASS_OR_MERGE)
             .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SOLID_SPHERES);
 
-        solver = makeAuto<NBodySolver>(*scheduler, settings);
+        solver = makeAuto<HardSphereSolver>(*scheduler, settings);
 
         // For manually created solvers, it is necessary to call function create for every material in the
         // storage. In this case, we only have one "sort" of particles, so we call the function just once for

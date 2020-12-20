@@ -51,6 +51,7 @@ public:
 class NBodyJob : public IRunJob {
 private:
     RunSettings settings;
+    bool useSoft = false;
     bool isResumed = false;
 
 public:

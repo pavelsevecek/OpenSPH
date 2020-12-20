@@ -12,17 +12,19 @@
 
 NAMESPACE_SPH_BEGIN
 
-NBodySolver::NBodySolver(IScheduler& scheduler, const RunSettings& settings)
-    : NBodySolver(scheduler, settings, Factory::getGravity(settings)) {}
+HardSphereSolver::HardSphereSolver(IScheduler& scheduler, const RunSettings& settings)
+    : HardSphereSolver(scheduler, settings, Factory::getGravity(settings)) {}
 
-NBodySolver::NBodySolver(IScheduler& scheduler, const RunSettings& settings, AutoPtr<IGravity>&& gravity)
-    : NBodySolver(scheduler,
+HardSphereSolver::HardSphereSolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    AutoPtr<IGravity>&& gravity)
+    : HardSphereSolver(scheduler,
           settings,
           std::move(gravity),
           Factory::getCollisionHandler(settings),
           Factory::getOverlapHandler(settings)) {}
 
-NBodySolver::NBodySolver(IScheduler& scheduler,
+HardSphereSolver::HardSphereSolver(IScheduler& scheduler,
     const RunSettings& settings,
     AutoPtr<IGravity>&& gravity,
     AutoPtr<ICollisionHandler>&& collisionHandler,
@@ -38,7 +40,7 @@ NBodySolver::NBodySolver(IScheduler& scheduler,
     rigidBody.maxAngle = settings.get<Float>(RunSettingsId::NBODY_MAX_ROTATION_ANGLE);
 }
 
-NBodySolver::~NBodySolver() = default;
+HardSphereSolver::~HardSphereSolver() = default;
 
 /*static void integrateOmega(Storage& storage) {
     ArrayView<SymmetricTensor> I = storage.getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
@@ -66,7 +68,7 @@ NBodySolver::~NBodySolver() = default;
     }
 }*/
 
-void NBodySolver::rotateLocalFrame(Storage& storage, const Float dt) {
+void HardSphereSolver::rotateLocalFrame(Storage& storage, const Float dt) {
     ArrayView<Tensor> E = storage.getValue<Tensor>(QuantityId::LOCAL_FRAME);
     ArrayView<Vector> L = storage.getValue<Vector>(QuantityId::ANGULAR_MOMENTUM);
     ArrayView<Vector> w = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
@@ -115,7 +117,7 @@ void NBodySolver::rotateLocalFrame(Storage& storage, const Float dt) {
     }
 }
 
-void NBodySolver::integrate(Storage& storage, Statistics& stats) {
+void HardSphereSolver::integrate(Storage& storage, Statistics& stats) {
     VERBOSE_LOG;
 
     Timer timer;
@@ -223,7 +225,7 @@ struct CollisionRecord {
     }
 };
 
-void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
+void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     VERBOSE_LOG
 
     Timer timer;
@@ -359,7 +361,7 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     stats.set(StatisticsId::COLLISION_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
 }
 
-void NBodySolver::create(Storage& storage, IMaterial& UNUSED(material)) const {
+void HardSphereSolver::create(Storage& storage, IMaterial& UNUSED(material)) const {
     VERBOSE_LOG
 
     // dependent quantity, computed from angular momentum
@@ -381,7 +383,7 @@ void NBodySolver::create(Storage& storage, IMaterial& UNUSED(material)) const {
     }
 }
 
-CollisionRecord NBodySolver::findClosestCollision(const Size i,
+CollisionRecord HardSphereSolver::findClosestCollision(const Size i,
     const SearchEnum opt,
     const Interval interval,
     Array<NeighbourRecord>& neighs) {
@@ -433,7 +435,7 @@ CollisionRecord NBodySolver::findClosestCollision(const Size i,
     return closestCollision;
 }
 
-Optional<Float> NBodySolver::checkCollision(const Vector& r1,
+Optional<Float> HardSphereSolver::checkCollision(const Vector& r1,
     const Vector& v1,
     const Vector& r2,
     const Vector& v2,
@@ -466,5 +468,78 @@ Optional<Float> NBodySolver::checkCollision(const Vector& r1,
     }
     return NOTHING;
 }
+
+SoftSphereSolver::SoftSphereSolver(IScheduler& scheduler, const RunSettings& settings)
+    : SoftSphereSolver(scheduler, settings, Factory::getGravity(settings)) {}
+
+SoftSphereSolver::SoftSphereSolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    AutoPtr<IGravity>&& gravity)
+    : gravity(std::move(gravity))
+    , scheduler(scheduler)
+    , threadData(scheduler) {
+    repel = settings.get<Float>(RunSettingsId::SOFT_REPEL_STRENGTH);
+    friction = settings.get<Float>(RunSettingsId::SOFT_FRICTION_STRENGTH);
+}
+
+SoftSphereSolver::~SoftSphereSolver() = default;
+
+void SoftSphereSolver::integrate(Storage& storage, Statistics& stats) {
+    VERBOSE_LOG;
+
+    Timer timer;
+    gravity->build(scheduler, storage);
+
+    ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
+    ArrayView<Vector> r, v, dv;
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+    ASSERT_UNEVAL(std::all_of(dv.begin(), dv.end(), [](Vector& a) { return a == Vector(0._f); }));
+    gravity->evalAll(scheduler, dv, stats);
+
+    stats.set(StatisticsId::GRAVITY_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
+    timer.restart();
+    const IBasicFinder& finder = *gravity->getFinder();
+
+
+    // precompute the search radii
+    Float maxRadius = 0._f;
+    for (Size i = 0; i < r.size(); ++i) {
+        maxRadius = max(maxRadius, r[i][H]);
+    }
+
+    auto functor = [this, r, maxRadius, m, &v, &dv, &finder](Size i, ThreadData& data) {
+        finder.findAll(i, 2._f * maxRadius, data.neighs);
+        Vector f(0._f);
+        for (auto& n : data.neighs) {
+            const Size j = n.index;
+            const Float hi = r[i][H];
+            const Float hj = r[j][H];
+            if (i == j || n.distanceSqr >= sqr(hi + hj)) {
+                // aren't actual neighbours
+                continue;
+            }
+            Float rm = m[j] / (m[i] + m[j]);
+            const Float dist = sqrt(n.distanceSqr);
+            const Float radialForce = repel / pow<6>(dist / (hi + hj));
+            const Vector dir = getNormalized(r[i] - r[j]);
+            f += rm * dir * radialForce;
+            const Float vsqr = getSqrLength(v[i] - v[j]);
+            if (vsqr > EPS) {
+                const Vector velocity = getNormalized(v[i] - v[j]);
+                const Float frictionForce = friction * vsqr;
+                f -= rm * velocity * frictionForce;
+            }
+        }
+        dv[i] += f;
+
+        // null all derivatives of smoothing lengths (particle radii)
+        v[i][H] = 0._f;
+        dv[i][H] = 0._f;
+    };
+    parallelFor(scheduler, threadData, 0, r.size(), functor);
+    stats.set(StatisticsId::COLLISION_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
+}
+
+void SoftSphereSolver::create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const {}
 
 NAMESPACE_SPH_END

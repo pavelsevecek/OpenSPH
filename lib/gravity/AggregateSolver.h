@@ -30,7 +30,7 @@ static RegisterEnum<AggregateEnum> sAggregate({
     { AggregateEnum::FLAGS, "flags", "" },
 });
 
-class AggregateSolver : public NBodySolver {
+class AggregateSolver : public HardSphereSolver {
 private:
     /// Holds all aggregates in the simulation.
     ///

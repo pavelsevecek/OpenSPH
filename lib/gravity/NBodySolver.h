@@ -20,8 +20,8 @@ class CollisionStats;
 enum class CollisionResult;
 enum class OverlapEnum;
 
-/// \brief Solver computing gravitational interaction of particles.
-class NBodySolver : public ISolver {
+/// \brief Solver computing gravitational interactions of hard-sphere particles.
+class HardSphereSolver : public ISolver {
 private:
     /// Gravity used by the solver
     AutoPtr<IGravity> gravity;
@@ -87,19 +87,19 @@ private:
 
 public:
     /// \brief Creates the solver, using the gravity implementation specified by settings.
-    NBodySolver(IScheduler& scheduler, const RunSettings& settings);
+    HardSphereSolver(IScheduler& scheduler, const RunSettings& settings);
 
     /// \brief Creates the solver by passing the user-defined gravity implementation.
-    NBodySolver(IScheduler& scheduler, const RunSettings& settings, AutoPtr<IGravity>&& gravity);
+    HardSphereSolver(IScheduler& scheduler, const RunSettings& settings, AutoPtr<IGravity>&& gravity);
 
     /// \brief Creates the solver by specifying gravity and handlers for collision and overlaps.
-    NBodySolver(IScheduler& scheduler,
+    HardSphereSolver(IScheduler& scheduler,
         const RunSettings& settings,
         AutoPtr<IGravity>&& gravity,
         AutoPtr<ICollisionHandler>&& collisionHandler,
         AutoPtr<IOverlapHandler>&& overlapHandler);
 
-    ~NBodySolver();
+    ~HardSphereSolver();
 
     virtual void integrate(Storage& storage, Statistics& stats) override;
 
@@ -134,6 +134,35 @@ private:
         const Vector& r2,
         const Vector& v2,
         const Float dt) const;
+};
+
+/// \brief Solver computing gravitational interactions and repulsive forces between particles.
+class SoftSphereSolver : public ISolver {
+    /// Gravity used by the solver
+    AutoPtr<IGravity> gravity;
+
+    IScheduler& scheduler;
+
+    struct ThreadData {
+        /// Neighbours for parallelized queries
+        Array<NeighbourRecord> neighs;
+    };
+
+    ThreadLocal<ThreadData> threadData;
+
+    Float repel;
+    Float friction;
+
+public:
+    SoftSphereSolver(IScheduler& scheduler, const RunSettings& settings);
+
+    SoftSphereSolver(IScheduler& scheduler, const RunSettings& settings, AutoPtr<IGravity>&& gravity);
+
+    ~SoftSphereSolver();
+
+    virtual void integrate(Storage& storage, Statistics& stats) override;
+
+    virtual void create(Storage& storage, IMaterial& material) const override;
 };
 
 NAMESPACE_SPH_END

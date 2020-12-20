@@ -41,7 +41,7 @@ public:
 
         *storage = Galaxy::generateIc(settings, galaxy);
 
-        solver = makeAuto<NBodySolver>(*scheduler, settings);
+        solver = makeAuto<HardSphereSolver>(*scheduler, settings);
 
         logWriter = makeAuto<NullLogWriter>();
 

@@ -348,8 +348,12 @@ static JobRegistrar sRegisterSphStab(
 // ----------------------------------------------------------------------------------------------------------
 
 class NBodyRun : public IRun {
+private:
+    bool useSoft;
+
 public:
-    NBodyRun(const RunSettings& run) {
+    NBodyRun(const RunSettings& run, const bool useSoft)
+        : useSoft(useSoft) {
         settings = run;
         scheduler = Factory::getScheduler(settings);
     }
@@ -364,8 +368,10 @@ public:
             AutoPtr<AggregateSolver> aggregates = makeAuto<AggregateSolver>(*scheduler, settings);
             aggregates->createAggregateData(*storage, aggregateSource);
             solver = std::move(aggregates);
+        } else if (useSoft) {
+            solver = makeAuto<SoftSphereSolver>(*scheduler, settings);
         } else {
-            solver = makeAuto<NBodySolver>(*scheduler, settings);
+            solver = makeAuto<HardSphereSolver>(*scheduler, settings);
         }
 
         NullMaterial mtl(BodySettings::getDefaults());
@@ -425,12 +431,24 @@ VirtualSettings NBodyJob::getSettings() {
     addGravityCategory(connector, settings);
 
     VirtualSettings::Category& aggregateCat = connector.addCategory("Aggregates (experimental)");
-    aggregateCat.connect<bool>("Enable", settings, RunSettingsId::NBODY_AGGREGATES_ENABLE);
+    aggregateCat.connect<bool>("Enable aggregates", settings, RunSettingsId::NBODY_AGGREGATES_ENABLE);
     aggregateCat.connect<EnumWrapper>("Initial aggregates", settings, RunSettingsId::NBODY_AGGREGATES_SOURCE)
         .setEnabler([this] { return settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE); });
 
-    auto collisionEnabler = [this] { return !settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE); };
+    VirtualSettings::Category& softCat = connector.addCategory("Soft-body physics (experimental)");
+    softCat.connect("Enable soft-body", "soft.enable", useSoft);
+    softCat.connect<Float>("Repel force strength", settings, RunSettingsId::SOFT_REPEL_STRENGTH)
+        .setEnabler([this] { return useSoft; });
+    softCat.connect<Float>("Friction force strength", settings, RunSettingsId::SOFT_FRICTION_STRENGTH)
+        .setEnabler([this] { return useSoft; });
+
+    auto collisionEnabler = [this] {
+        return !useSoft && !settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE);
+    };
     auto mergeEnabler = [this] {
+        if (useSoft) {
+            return false;
+        }
         const bool aggregates = settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE);
         const CollisionHandlerEnum handler =
             settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER);
@@ -460,7 +478,7 @@ VirtualSettings NBodyJob::getSettings() {
 
 AutoPtr<IRun> NBodyJob::getRun(const RunSettings& overrides) const {
     RunSettings run = overrideSettings(settings, overrides, isResumed);
-    return makeAuto<NBodyRun>(run);
+    return makeAuto<NBodyRun>(run, useSoft);
 }
 
 static JobRegistrar sRegisterNBody(
