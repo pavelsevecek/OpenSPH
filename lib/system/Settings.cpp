@@ -690,8 +690,10 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
         "Coefficient of friction for fully damaged material. Used by Drucker-Prager rheology." },
     { BodySettingsId::USE_ACOUSTIC_FLUDIZATION, "rheology.acoustic_fludization", false,
         "Whether to use the model of acoustic fludization." },
-    { BodySettingsId::OSCILLATION_DECAY_TIME,   "rheology.oscillation",          100._f,
+    { BodySettingsId::OSCILLATION_DECAY_TIME,   "rheology.oscillation_decay_time", 100._f,
         "Characteristic decay time of the acoustic oscillations in the material." },
+    { BodySettingsId::OSCILLATION_REGENERATION, "rheology.oscillation_regeneration", 0.5_f,
+        "Regeneration efficiency of the acoustic oscillations." },
     { BodySettingsId::FLUIDIZATION_VISCOSITY,   "rheology.fludization_viscosity", 8.8e4_f, // Ivanov and Turtle, 2001
         "Effective kinematic viscosity of acoustic fludization." },
 

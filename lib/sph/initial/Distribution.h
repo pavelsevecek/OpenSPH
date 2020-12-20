@@ -55,7 +55,6 @@ public:
 class StratifiedDistribution : public IDistribution {
 private:
     AutoPtr<IRng> rng;
-    Size regionCnt = 100;
 
 public:
     explicit StratifiedDistribution(const Size seed);

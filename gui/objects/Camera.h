@@ -72,6 +72,9 @@ public:
     /// \brief Returns a ray in particle coordinates corresponding to given coordinates in the image plane.
     virtual Optional<CameraRay> unproject(const Coords& coords) const = 0;
 
+    /// \brief Returns the current resolution of the camera
+    virtual Pixel getSize() const = 0;
+
     /// \brief Returns the transformation matrix converting camera space to world space.
     ///
     /// In the camera space, camera direction is aligned with the z-axis, y-axis corresponds to the up-vector
@@ -176,6 +179,8 @@ public:
 
     virtual Optional<CameraRay> unproject(const Coords& coords) const override;
 
+    virtual Pixel getSize() const override;
+
     virtual AffineMatrix getFrame() const override;
 
     virtual Vector getTarget() const override;
@@ -236,6 +241,8 @@ public:
 
     virtual Optional<CameraRay> unproject(const Coords& coords) const override;
 
+    virtual Pixel getSize() const override;
+
     virtual AffineMatrix getFrame() const override;
 
     virtual Vector getTarget() const override;
@@ -278,6 +285,8 @@ public:
     virtual void autoSetup(const Storage& storage) override;
 
     virtual Optional<ProjectedPoint> project(const Vector& r) const override;
+
+    virtual Pixel getSize() const override;
 
     virtual AffineMatrix getFrame() const override;
 

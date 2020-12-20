@@ -234,6 +234,8 @@ Statistics IRun::run(Storage& input, IRunCallbacks& callbacks) {
     if (!result) {
         logger->write(result.error());
     }
+    // clear any user data set during the simulation
+    storage->setUserData(nullptr);
 
     this->tearDownInternal(*storage, stats);
 

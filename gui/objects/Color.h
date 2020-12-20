@@ -113,6 +113,10 @@ public:
         const float a1 = other.a();
         const float a2 = this->a();
         const float ar = a2 + a1 * (1.f - a2);
+        if (ar == 0.f) {
+            // blending two fully transparent colors
+            return transparent();
+        }
         ASSERT(ar > 0.f);
         Rgba color = (data * a2 + other.data * a1 * (1.f - a2)) / ar;
         color.a() = ar;
@@ -145,6 +149,22 @@ public:
     /// For amount 0, function returns this color, for amount 1 it returns the other color.
     Rgba blend(const Rgba& other, const float amount) const {
         return Rgba(lerp(data, other.data, amount));
+    }
+
+    /// \brief Retuns a color with modified saturation.
+    ///
+    /// \param value Values greater than 1 increase the saturation, values lower than 1 decrease it. For zero,
+    /// a gray color is returned.
+    Rgba saturate(const float value) const {
+        const float Pr = 0.299f;
+        const float Pg = 0.587f;
+        const float Pb = 0.114f;
+        const float P = sqrt(sqr(data[0]) * Pr + sqr(data[1]) * Pg + sqr(data[2]) * Pb);
+        Rgba result = *this;
+        result.r() = P + (data[0] - P) * value;
+        result.g() = P + (data[1] - P) * value;
+        result.b() = P + (data[2] - P) * value;
+        return result;
     }
 
     static Rgba red() {

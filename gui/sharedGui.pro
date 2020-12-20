@@ -1,4 +1,4 @@
-QMAKE_CXXFLAGS += `wx-config --cxxflags`
+QMAKE_CXXFLAGS += `wx-config --cxxflags` -Wno-deprecated-copy -Wno-array-bounds -Wno-float-conversion
 LIBS += `wx-config --libs` -lwx_gtk2u_propgrid-3.0 -lwx_gtk2u_aui-3.0
 
 CONFIG(use_vdb) {

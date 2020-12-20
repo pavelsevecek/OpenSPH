@@ -40,6 +40,8 @@ Pair<Vector> MedianTracker::getTrackedPoint(const Storage& storage) const {
 OrthoCamera::OrthoCamera(const CameraData& data)
     : data(data) {
     this->update();
+    // world units to world-to-pixel
+    this->data.ortho.fov = float(data.imageSize.y / data.ortho.fov);
 }
 
 void OrthoCamera::update() {
@@ -113,6 +115,10 @@ Optional<CameraRay> OrthoCamera::unproject(const Coords& coords) const {
         data.position + cached.u * rx + cached.v * ry + cached.w * (-1.e6_f); // data.clipping.lower();
     ray.target = ray.origin + cached.w;
     return ray;
+}
+
+Pixel OrthoCamera::getSize() const {
+    return data.imageSize;
 }
 
 AffineMatrix OrthoCamera::getFrame() const {
@@ -247,6 +253,10 @@ Optional<CameraRay> PerspectiveCamera::unproject(const Coords& coords) const {
     return ray;
 }
 
+Pixel PerspectiveCamera::getSize() const {
+    return data.imageSize;
+}
+
 AffineMatrix PerspectiveCamera::getFrame() const {
     return AffineMatrix(cached.left, cached.up, cached.dir).translate(data.position);
 }
@@ -343,6 +353,10 @@ void PanoCameraBase::autoSetup(const Storage& storage) {
 Optional<ProjectedPoint> PanoCameraBase::project(const Vector& UNUSED(r)) const {
     /// \todo
     return NOTHING;
+}
+
+Pixel PanoCameraBase::getSize() const {
+    return data.imageSize;
 }
 
 AffineMatrix PanoCameraBase::getFrame() const {

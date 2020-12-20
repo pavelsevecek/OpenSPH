@@ -48,6 +48,18 @@ Array<Vector> RandomDistribution::generate(IScheduler& UNUSED(scheduler),
 // StratifiedDistribution implementation
 //-----------------------------------------------------------------------------------------------------------
 
+static Float findStep(const Box& bounds, const Size n) {
+    const Vector size = bounds.size();
+    Float step = maxElement(size);
+    Size particlesPerRegion = n;
+    while (particlesPerRegion > 1000) {
+        step /= 2;
+        const Size numRegions = Size(ceil(size[X] / step) * ceil(size[Y] / step) * ceil(size[Z] / step));
+        particlesPerRegion = n / numRegions;
+    }
+    return step;
+}
+
 StratifiedDistribution::StratifiedDistribution(const Size seed)
     : rng(makeRng<UniformRng>(seed)) {}
 
@@ -60,7 +72,7 @@ Array<Vector> StratifiedDistribution::generate(IScheduler& UNUSED(scheduler),
     const Float h = root<3>(volume / n);
     Size found = 0;
     const Box bounds = domain.getBoundingBox();
-    const Vector step = Vector(maxElement(bounds.size()) / regionCnt);
+    const Vector step(findStep(bounds, n));
     for (Size i = 0; i < 1e5 * n && found < n; ++i) {
         bounds.iterate(step, [h, &step, &vecs, &found, &domain, &boxRng](const Vector& r) {
             const Box box(r, r + step);
