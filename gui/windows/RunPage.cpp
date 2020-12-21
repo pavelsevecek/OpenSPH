@@ -557,7 +557,7 @@ wxPanel* RunPage::createVisBar() {
         "the performance of the code.");
     visbarSizer->Add(autoRefresh);
 
-    wxCheckBox* autoCamera = new wxCheckBox(visbarPanel, wxID_ANY, "Auto-camera");
+    wxCheckBox* autoCamera = new wxCheckBox(visbarPanel, wxID_ANY, "Auto-zoom");
     autoCamera->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
         GuiSettings& gui = controller->getParams();
         gui.set(GuiSettingsId::CAMERA_AUTOSETUP, evt.IsChecked());

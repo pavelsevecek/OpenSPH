@@ -291,6 +291,8 @@ public:
     /// Closes down the model, clears all allocated resources. Must be called only once.
     void quit(const bool waitForFinish = false);
 
+    /// \brief Enables or disables auto-zoom during the simulation.
+    void setAutoZoom(const bool enable);
 
 private:
     virtual void onStart(const IJob& job) override;

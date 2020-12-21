@@ -17,6 +17,7 @@
 #include "thread/CheckFunction.h"
 #include "thread/Pool.h"
 #include <wx/app.h>
+#include <wx/checkbox.h>
 #include <wx/dcmemory.h>
 #include <wx/msgdlg.h>
 
@@ -206,6 +207,19 @@ void Controller::quit(const bool waitForFinish) {
 
     // close animation object
     movie.reset();
+}
+
+void Controller::setAutoZoom(const bool enable) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    GuiSettings& gui = project.getGuiSettings();
+    if (gui.get<bool>(GuiSettingsId::CAMERA_AUTOSETUP) == enable) {
+        return;
+    }
+    gui.set(GuiSettingsId::CAMERA_AUTOSETUP, enable);
+    wxWindow* window = wxWindow::FindWindowByLabel("Auto-zoom", page.get());
+    ASSERT(window != nullptr);
+    wxCheckBox* checkbox = dynamic_cast<wxCheckBox*>(window);
+    checkbox->SetValue(enable);
 }
 
 void Controller::onSetUp(const Storage& storage, Statistics& stats) {
@@ -778,7 +792,7 @@ void Controller::startRenderThread() {
             toWxBitmap(bitmap, *newBitmap);
 
             // Capture page as weak ref as we need to check it first, this might not exit anymore!
-            auto callback = [& vis = vis,
+            auto callback = [&vis = vis,
                                 page = page,
                                 bitmap = std::move(newBitmap),
                                 labels = std::move(labels)]() mutable {

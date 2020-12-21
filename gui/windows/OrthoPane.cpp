@@ -129,6 +129,7 @@ void OrthoPane::onMouseWheel(wxMouseEvent& evt) {
     Pixel fixedPoint(evt.GetPosition());
     camera->zoom(fixedPoint, amount);
     controller->refresh(camera->clone());
+    controller->setAutoZoom(false);
 }
 
 void OrthoPane::onResize(wxSizeEvent& evt) {
