@@ -186,6 +186,7 @@ VirtualSettings DifferentiatedBodyIc::getSettings() {
     layersCat.connect("Layer count", "layer_cnt", layerCnt);
     VirtualSettings::Category& particleCat = connector.addCategory("Particles");
     particleCat.connect<int>("Particle count", mainBody, BodySettingsId::PARTICLE_COUNT);
+    particleCat.connect<Float>("Radius multiplier", mainBody, BodySettingsId::SMOOTHING_LENGTH_ETA);
     particleCat.connect<EnumWrapper>("Distribution", mainBody, BodySettingsId::INITIAL_DISTRIBUTION);
 
     return connector;
@@ -199,12 +200,15 @@ void DifferentiatedBodyIc::evaluate(const RunSettings& global, IRunCallbacks& UN
         BodySettingsId::PARTICLE_COUNT, mainBody.get<int>(BodySettingsId::PARTICLE_COUNT));
     mantle.material->setParam(BodySettingsId::INITIAL_DISTRIBUTION,
         mainBody.get<DistributionEnum>(BodySettingsId::INITIAL_DISTRIBUTION));
+    const Float eta = mainBody.get<Float>(BodySettingsId::SMOOTHING_LENGTH_ETA);
+    mantle.material->setParam(BodySettingsId::SMOOTHING_LENGTH_ETA, eta);
 
     Array<InitialConditions::BodySetup> layers;
     for (int i = layerCnt - 1; i >= 0; --i) {
         InitialConditions::BodySetup& layer = layers.emplaceBack();
         layer.domain = this->getInput<IDomain>("shape " + std::to_string(i + 1));
         layer.material = this->getInput<IMaterial>("material " + std::to_string(i + 1));
+        layer.material->setParam(BodySettingsId::SMOOTHING_LENGTH_ETA, eta);
     }
 
     result = makeShared<ParticleData>();

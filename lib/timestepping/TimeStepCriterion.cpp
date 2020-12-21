@@ -20,6 +20,9 @@ std::ostream& operator<<(std::ostream& stream, const CriterionId id) {
     case CriterionId::DERIVATIVE:
         stream << "Derivative";
         break;
+    case CriterionId::DIVERGENCE:
+        stream << "Divergence";
+        break;
     case CriterionId::MAXIMAL_VALUE:
         stream << "Maximal value";
         break;
@@ -247,6 +250,47 @@ TimeStep AccelerationCriterion::compute(IScheduler& scheduler,
 }
 
 //-----------------------------------------------------------------------------------------------------------
+// DivergenceCriterion implementation
+//-----------------------------------------------------------------------------------------------------------
+
+DivergenceCriterion::DivergenceCriterion(const RunSettings& settings) {
+    /// \todo make into a separate parameter?
+    factor = 0.1 * settings.get<Float>(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR);
+}
+
+TimeStep DivergenceCriterion::compute(IScheduler& scheduler,
+    Storage& storage,
+    const Float maxStep,
+    Statistics& UNUSED(stats)) {
+    VERBOSE_LOG
+    ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
+    struct Tl {
+        Float minStep = INFTY;
+    };
+
+    auto functor = [&](const Size i, Tl& tl) {
+        const Float dv = abs(divv[i]);
+        if (dv > EPS) {
+            const Float step = factor / dv;
+            ASSERT(isReal(step) && step > 0._f && step < INFTY);
+            tl.minStep = min(tl.minStep, step);
+        }
+    };
+    Tl result;
+    ThreadLocal<Tl> tls(scheduler);
+    parallelFor(scheduler, tls, 0, divv.size(), functor);
+    for (Tl& tl : tls) {
+        result.minStep = min(result.minStep, tl.minStep);
+    }
+
+    if (result.minStep > maxStep) {
+        return { maxStep, CriterionId::MAXIMAL_VALUE };
+    } else {
+        return { result.minStep, CriterionId::DIVERGENCE };
+    }
+}
+
+//-----------------------------------------------------------------------------------------------------------
 // CourantCriterion implementation
 //-----------------------------------------------------------------------------------------------------------
 
@@ -309,6 +353,9 @@ MultiCriterion::MultiCriterion(const RunSettings& settings) {
     }
     if (flags.has(TimeStepCriterionEnum::ACCELERATION)) {
         criteria.push(makeAuto<AccelerationCriterion>(settings));
+    }
+    if (flags.has(TimeStepCriterionEnum::DIVERGENCE)) {
+        criteria.push(makeAuto<DivergenceCriterion>(settings));
     }
 
     maxChange = settings.get<Float>(RunSettingsId::TIMESTEPPING_MAX_INCREASE);

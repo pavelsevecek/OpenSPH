@@ -1103,6 +1103,12 @@ void RunPage::runStarted(const Storage& storage, const Path& path) {
     Statistics dummy;
     pane->onTimeStep(storage, dummy);
 
+    const Size particleCnt = storage.getParticleCnt();
+    executeOnMainThread([this, particleCnt] {
+        Statistics dummyStats;
+        this->makeStatsText(particleCnt, dummyStats);
+    });
+
     if (!path.empty()) {
         timelineBar->update(path);
     }

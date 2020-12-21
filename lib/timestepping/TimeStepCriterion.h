@@ -20,6 +20,7 @@ enum class CriterionId {
     DERIVATIVE,    ///< Timestep based on value-to-derivative ratio
     CFL_CONDITION, ///< Timestep computed using CFL condition
     ACCELERATION,  ///< Timestep constrained by acceleration condition
+    DIVERGENCE,    ///< Timestep computed by velocity divergence
     MAX_CHANGE,    ///< Timestep is limited by the maximum allowed change from previous timestep
 };
 
@@ -97,7 +98,7 @@ private:
     TimeStep computeImpl(IScheduler& scheduler, Storage& storage, Float maxStep, Statistics& stats);
 };
 
-/// \brief Criterion settings time step based on computed acceleration of particles.
+/// \brief Criterion setting time step based on computed acceleration of particles.
 ///
 /// This criterion is somewhat similar to \ref DerivativeCriterion; the time step is computed from the ratio
 /// of smoothing length and particle acceleration (or square root of the ratio, to be exact).
@@ -107,6 +108,22 @@ private:
 
 public:
     explicit AccelerationCriterion(const RunSettings& settings);
+
+    virtual TimeStep compute(IScheduler& scheduler,
+        Storage& storage,
+        Float maxStep,
+        Statistics& stats) override;
+};
+
+/// \brief Criterion computing time step from velocity divergence.
+///
+/// This criterion constrains the time step based on relative velocities of interacting particles.
+class DivergenceCriterion : public ITimeStepCriterion {
+private:
+    Float factor;
+
+public:
+    explicit DivergenceCriterion(const RunSettings& settings);
 
     virtual TimeStep compute(IScheduler& scheduler,
         Storage& storage,
