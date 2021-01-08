@@ -1,4 +1,5 @@
 #include "run/workers/GeometryJobs.h"
+#include "math/Functional.h"
 #include "math/rng/VectorRng.h"
 #include "objects/geometry/Sphere.h"
 #include "post/MarchingCubes.h"
@@ -10,7 +11,7 @@
 NAMESPACE_SPH_BEGIN
 
 //-----------------------------------------------------------------------------------------------------------
-// SphereWorker
+// SphereJob
 //-----------------------------------------------------------------------------------------------------------
 
 SphereJob::SphereJob(const std::string& name)
@@ -28,7 +29,7 @@ VirtualSettings SphereJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& geoCat = connector.addCategory("geometry");
-    geoCat.connect("radius [km]", "radius", radius).setUnits(1.e3_f);
+    geoCat.connect("Radius [km]", "radius", radius).setUnits(1.e3_f);
     return connector;
 }
 
@@ -43,15 +44,15 @@ static JobRegistrar sRegisterSphere(
     "Geometric shape representing a sphere with given radius.");
 
 //-----------------------------------------------------------------------------------------------------------
-// BlockWorker
+// BlockJob
 //-----------------------------------------------------------------------------------------------------------
 
 VirtualSettings BlockJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& geoCat = connector.addCategory("geometry");
-    geoCat.connect("center [km]", "center", center).setUnits(1.e3_f);
-    geoCat.connect("dimensions [km]", "dimensions", dimensions).setUnits(1.e3_f);
+    geoCat.connect("Center [km]", "center", center).setUnits(1.e3_f);
+    geoCat.connect("Dimensions [km]", "dimensions", dimensions).setUnits(1.e3_f);
     return connector;
 }
 
@@ -66,14 +67,14 @@ static JobRegistrar sRegisterBlock(
     "Geometric shape representing a block with given dimensions.");
 
 //-----------------------------------------------------------------------------------------------------------
-// EllipsoidWorker
+// EllipsoidJob
 //-----------------------------------------------------------------------------------------------------------
 
 VirtualSettings EllipsoidJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& geoCat = connector.addCategory("geometry");
-    geoCat.connect("semi-axes [km]", "semixes", semiaxes).setUnits(1.e3_f);
+    geoCat.connect("Semi-axes [km]", "semixes", semiaxes).setUnits(1.e3_f);
     return connector;
 }
 
@@ -88,7 +89,7 @@ static JobRegistrar sRegisterEllipsoid(
     "Geometric shape representing a triaxial ellipsoid.");
 
 //-----------------------------------------------------------------------------------------------------------
-// CylinderWorker
+// CylinderJob
 //-----------------------------------------------------------------------------------------------------------
 
 CylinderJob::CylinderJob(const std::string& name)
@@ -106,8 +107,8 @@ VirtualSettings CylinderJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& geoCat = connector.addCategory("geometry");
-    geoCat.connect("height [km]", "height", height).setUnits(1.e3_f);
-    geoCat.connect("radius [km]", "radius", radius).setUnits(1.e3_f);
+    geoCat.connect("Height [km]", "height", height).setUnits(1.e3_f);
+    geoCat.connect("Radius [km]", "radius", radius).setUnits(1.e3_f);
     return connector;
 }
 
@@ -121,8 +122,49 @@ static JobRegistrar sRegisterCylinder(
     [](const std::string& name) { return makeAuto<CylinderJob>(name); },
     "Geometric shape representing a cylinder aligned with z-axis, using provided radius and height.");
 
+
 //-----------------------------------------------------------------------------------------------------------
-// HalfSpaceWorker
+// MaclaurinSpheroidJob
+//-----------------------------------------------------------------------------------------------------------
+
+// Maclaurin formula (https://en.wikipedia.org/wiki/Maclaurin_spheroid)
+static Float evalMaclaurinFormula(const Float e) {
+    return 2._f * sqrt(1._f - sqr(e)) / pow<3>(e) * (3._f - 2._f * sqr(e)) * asin(e) -
+           6._f / sqr(e) * (1._f - sqr(e));
+}
+
+VirtualSettings MaclaurinSpheroidJob::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+    VirtualSettings::Category& geoCat = connector.addCategory("geometry");
+    geoCat.connect("Semi-major axis [km]", "semimajor", semimajorAxis).setUnits(1.e3_f);
+    geoCat.connect("Spin rate [rev/day]", "spinRate", spinRate).setUnits(2._f * PI / (3600._f * 24._f));
+    geoCat.connect("Density [kg/m^3]", "density", density);
+    return connector;
+}
+
+void MaclaurinSpheroidJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+    const Float y = sqr(spinRate) / (PI * Constants::gravity * density);
+    const Float e_max = 0.812670_f; // for larger values, Jacobi ellipsoid should be used
+    const Optional<Float> e =
+        getRoot(Interval(0._f, e_max), EPS, [y](const Float e) { return evalMaclaurinFormula(e) - y; });
+    if (!e) {
+        throw InvalidSetup("Failed to calculate the eccentricity of Maclaurin spheroid");
+    }
+    const Float a = semimajorAxis;
+    const Float c = sqrt(1._f - sqr(e.value())) * a;
+    result = makeAuto<EllipsoidalDomain>(Vector(0._f), Vector(a, a, c));
+}
+
+static JobRegistrar sRegisterMaclaurin(
+    "Maclaurin spheroid",
+    "spheroid",
+    "geometry",
+    [](const std::string& name) { return makeAuto<MaclaurinSpheroidJob>(name); },
+    "Creates a Maclaurin spheroid, given density and spin rate of the body.");
+
+//-----------------------------------------------------------------------------------------------------------
+// HalfSpaceJob
 //-----------------------------------------------------------------------------------------------------------
 
 VirtualSettings HalfSpaceJob::getSettings() {
@@ -145,16 +187,16 @@ static JobRegistrar sRegisterHalfSpace(
 
 
 //-----------------------------------------------------------------------------------------------------------
-// GaussianSphereWorker
+// GaussianSphereJob
 //-----------------------------------------------------------------------------------------------------------
 
 VirtualSettings GaussianSphereJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& geoCat = connector.addCategory("geometry");
-    geoCat.connect("radius [km]", "radius", radius).setUnits(1.e3_f);
-    geoCat.connect("variance", "variance", beta);
-    geoCat.connect("random seed", "seed", seed);
+    geoCat.connect("Radius [km]", "radius", radius).setUnits(1.e3_f);
+    geoCat.connect("Variance", "variance", beta);
+    geoCat.connect("Random seed", "seed", seed);
     return connector;
 }
 
@@ -169,7 +211,7 @@ static JobRegistrar sRegisterGaussian(
     "TODO");
 
 //-----------------------------------------------------------------------------------------------------------
-// MeshGeometryWorker
+// MeshGeometryJob
 //-----------------------------------------------------------------------------------------------------------
 
 MeshGeometryJob::MeshGeometryJob(const std::string& name)
@@ -215,7 +257,7 @@ static JobRegistrar sRegisterMeshGeometry(
     "Geometric shape given by provided triangular mesh.");
 
 //-----------------------------------------------------------------------------------------------------------
-// ParticleGeometryWorker
+// ParticleGeometryJob
 //-----------------------------------------------------------------------------------------------------------
 
 VirtualSettings ParticleGeometryJob::getSettings() {
@@ -258,7 +300,7 @@ static JobRegistrar sRegisterParticleGeometry(
 
 
 //-----------------------------------------------------------------------------------------------------------
-// SpheresGeometryWorker
+// SpheresGeometryJob
 //-----------------------------------------------------------------------------------------------------------
 
 class SpheresDomain : public IDomain {
@@ -349,7 +391,7 @@ static JobRegistrar sRegisterSpheresGeometry(
     "Geometric shape given by a set of spheres, specifies by the input particles.");
 
 //-----------------------------------------------------------------------------------------------------------
-// InvertGeometryWorker
+// InvertGeometryJob
 //-----------------------------------------------------------------------------------------------------------
 
 class InvertDomain : public IDomain {
@@ -424,7 +466,7 @@ static JobRegistrar sRegisterInvertGeometry(
     "sphere into a space with spherical hole, etc.");
 
 //-----------------------------------------------------------------------------------------------------------
-// TransformGeometryWorker
+// TransformGeometryJob
 //-----------------------------------------------------------------------------------------------------------
 
 
@@ -456,7 +498,7 @@ static JobRegistrar sRegisterTransformGeometry(
     "Shape modifier, adding a translation and scaling to the input geometry.");
 
 //-----------------------------------------------------------------------------------------------------------
-// BooleanGeometryWorker
+// BooleanGeometryJob
 //-----------------------------------------------------------------------------------------------------------
 
 class BooleanDomain : public IDomain {

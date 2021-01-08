@@ -77,10 +77,10 @@ SOURCES += \
     sph/initial/MeshDomain.cpp \
     sph/solvers/AsymmetricSolver.cpp \
     sph/solvers/EnergyConservingSolver.cpp \
+    sph/solvers/EquilibriumSolver.cpp \
     sph/solvers/GradHSolver.cpp \
     sph/solvers/GravitySolver.cpp \
     sph/solvers/StandardSets.cpp \
-    sph/solvers/StaticSolver.cpp \
     sph/solvers/SummationSolver.cpp \
     sph/solvers/SymmetricSolver.cpp \
     system/ArgsParser.cpp \
@@ -287,12 +287,12 @@ HEADERS += \
     sph/solvers/DensityIndependentSolver.h \
     sph/solvers/EnergyConservingSolver.h \
     sph/solvers/EntropySolver.h \
+    sph/solvers/EquilibriumSolver.h \
     sph/solvers/GradHSolver.h \
     sph/solvers/GravitySolver.h \
     sph/solvers/SimpleSolver.h \
     sph/solvers/StabilizationSolver.h \
     sph/solvers/StandardSets.h \
-    sph/solvers/StaticSolver.h \
     sph/solvers/SummationSolver.h \
     sph/solvers/SymmetricSolver.h \
     system/ArgsParser.h \

@@ -80,6 +80,29 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
+class MaclaurinSpheroidJob : public IGeometryJob {
+private:
+    Float semimajorAxis = 1.e5_f;
+    Float spinRate = 0._f;
+    Float density = 2700._f;
+
+public:
+    explicit MaclaurinSpheroidJob(const std::string& name)
+        : IGeometryJob(name) {}
+
+    virtual std::string className() const override {
+        return "Maclaurin spheroid";
+    }
+
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return {};
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+};
+
 class HalfSpaceJob : public IGeometryJob {
 public:
     explicit HalfSpaceJob(const std::string& name)

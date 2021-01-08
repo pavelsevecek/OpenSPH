@@ -12,7 +12,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// \brief Sparse representation of square matrix of arbitrary dimension
+/// \brief Sparse representation of matrix of arbitrary dimension
 class SparseMatrix {
 private:
     class Impl;
@@ -21,13 +21,13 @@ private:
 public:
     SparseMatrix();
 
-    /// Constructs square n x n empty matrix
-    SparseMatrix(const Size n);
+    /// Constructs square n x m empty matrix
+    SparseMatrix(const Size rows, const Size cols);
 
     ~SparseMatrix();
 
     /// Changes the size of the matrix, removing all previous entries.
-    void resize(const Size n);
+    void resize(const Size rows, const Size cols);
 
     /// \brief Adds a values to given element of the matrix.
     ///
@@ -46,8 +46,8 @@ public:
         /// Least-square conjugate gradient, can be used for any matrix
         LSCG,
 
-        /// Bi-conjugate gradient method, can be used for any matrix
-        BI_CG,
+        /// Stabilized bi-conjugate gradient method, can be used for any square matrix
+        BICGSTAB,
     };
 
     /// Solvers an equation Ax = b, where A is the sparse matrix and b is given array of values.
