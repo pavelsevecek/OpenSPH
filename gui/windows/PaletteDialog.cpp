@@ -238,11 +238,12 @@ const Palette GALAXY({ { 0.001f, Rgba(0.f, 0.02f, 0.09f) },
                          { 10.f, Rgba(0.29f, 0.69f, 0.93f) } },
     PaletteScale::LOGARITHMIC);
 
-const Palette ACCRETION({ { 0.001f, Rgba(0.43f, 0.70f, 100.f) },
-                            { 0.01f, Rgba(0.65f, 0.12f, 0.01f) },
-                            { 0.1f, Rgba(0.79f, 0.38f, 0.02f) },
-                            { 1.f, Rgba(0.93f, 0.83f, 0.34f) },
-                            { 10.f, Rgba(0.94f, 0.90f, 0.84f) } },
+const Palette ACCRETION({ { 0.001f, Rgba(0.43f, 0.70f, 1.f) },
+                            { 0.01f, Rgba(0.5f, 0.5f, 0.5f) },
+                            { 0.1f, Rgba(0.65f, 0.12f, 0.01f) },
+                            { 1.f, Rgba(0.79f, 0.38f, 0.02f) },
+                            { 10.f, Rgba(0.93f, 0.83f, 0.34f) },
+                            { 100.f, Rgba(0.94f, 0.90f, 0.84f) } },
     PaletteScale::LOGARITHMIC);
 
 } // namespace Palettes

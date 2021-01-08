@@ -444,7 +444,7 @@ Array<Vector> ParametrizedSpiralingDistribution::generate(IScheduler& UNUSED(sch
     const Vector center = domain.getCenter();
     const Float volume = domain.getVolume();
     const Box bbox = domain.getBoundingBox();
-    const Float R = 0.5_f * getLength(bbox.size());
+    const Float R = 0.5_f * maxElement(bbox.size());
 
     // interparticle distance based on density
     const Float h = root<3>(volume / n);
@@ -477,7 +477,7 @@ Array<Vector> ParametrizedSpiralingDistribution::generate(IScheduler& UNUSED(sch
             phi += 3.8_f / sqrt(m * (1._f - sqr(hk)));
             Vector v = center + rotator * sphericalToCartesian(r, theta, phi);
             if (domain.contains(v)) {
-                v[H] = 0.66_f * sqrt(sphereSurfaceArea(r) / m);
+                v[H] = h; // 0.66_f * sqrt(sphereSurfaceArea(r) / m);
                 ASSERT(isReal(v));
                 pos.push(v);
             }

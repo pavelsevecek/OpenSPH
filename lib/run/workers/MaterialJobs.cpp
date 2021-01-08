@@ -35,9 +35,9 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
         const YieldingEnum id = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
         return (!enabler || enabler()) && id != YieldingEnum::NONE;
     };
-    auto enablerFrag = [this, enabler] {
+    auto enablerFrag = [this, enablerRheo] {
         const FractureEnum id = body.get<FractureEnum>(BodySettingsId::RHEOLOGY_DAMAGE);
-        return (!enabler || enabler()) && id != FractureEnum::NONE;
+        return enablerRheo() && id != FractureEnum::NONE;
     };
 
     category.connect<EnumWrapper>("EoS", body, BodySettingsId::EOS).setEnabler(enabler);
@@ -45,7 +45,13 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
     category.connect<Float>("Specific energy [J/kg]", body, BodySettingsId::ENERGY).setEnabler(enabler);
     category.connect<Float>("Damage []", body, BodySettingsId::DAMAGE).setEnabler(enabler);
     category.connect<EnumWrapper>("Rheology", body, BodySettingsId::RHEOLOGY_YIELDING).setEnabler(enabler);
-    category.connect<Float>("Bulk modulus [Pa]", body, BodySettingsId::BULK_MODULUS);
+    category.connect<Float>("Bulk modulus [Pa]", body, BodySettingsId::BULK_MODULUS)
+        .setEnabler([this, enabler] {
+            const EosEnum eos = body.get<EosEnum>(BodySettingsId::EOS);
+            const YieldingEnum yield = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
+            return (!enabler || enabler()) &&
+                   ((eos != EosEnum::NONE && eos != EosEnum::IDEAL_GAS) || (yield != YieldingEnum::NONE));
+        });
     category.connect<Float>("Shear modulus [Pa]", body, BodySettingsId::SHEAR_MODULUS)
         .setEnabler(enablerRheo);
     category.connect<Float>("Elastic modulus [Pa]", body, BodySettingsId::ELASTIC_MODULUS)
@@ -70,7 +76,8 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
         .setEnabler(enablerAf);
     category.connect<Float>("Fludization viscosity", body, BodySettingsId::FLUIDIZATION_VISCOSITY)
         .setEnabler(enablerAf);
-    category.connect<EnumWrapper>("Fragmentation", body, BodySettingsId::RHEOLOGY_DAMAGE).setEnabler(enabler);
+    category.connect<EnumWrapper>("Fragmentation", body, BodySettingsId::RHEOLOGY_DAMAGE)
+        .setEnabler(enablerRheo);
     category.connect<Float>("Weibull exponent", body, BodySettingsId::WEIBULL_EXPONENT)
         .setEnabler(enablerFrag);
     category.connect<Float>("Weibull coefficient", body, BodySettingsId::WEIBULL_COEFFICIENT)

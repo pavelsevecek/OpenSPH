@@ -70,6 +70,7 @@ static RegisterEnum<TimeStepCriterionEnum> sTimeStepCriterion({
     { TimeStepCriterionEnum::DERIVATIVES,
         "derivatives",
         "Time step computed by limiting value-to-derivative ratio of quantities" },
+    { TimeStepCriterionEnum::DIVERGENCE, "divergence", "Time step computed from velocity divergence." },
     { TimeStepCriterionEnum::ACCELERATION,
         "acceleration",
         "Time step computed from ratio of acceleration and smoothing length." },

@@ -540,8 +540,11 @@ enum class TimeStepCriterionEnum {
     /// Time step computed from ratio of acceleration and smoothing length.
     ACCELERATION = 1 << 3,
 
+    /// Time step computed from velocity divergence
+    DIVERGENCE = 1 << 4,
+
     /// Value for using all criteria.
-    ALL = COURANT | DERIVATIVES | ACCELERATION,
+    ALL = COURANT | DERIVATIVES | ACCELERATION | DIVERGENCE,
 };
 
 enum class FinderEnum {
