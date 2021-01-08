@@ -82,7 +82,7 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
         .setEnabler(enablerFrag);
     category.connect<Float>("Weibull coefficient", body, BodySettingsId::WEIBULL_COEFFICIENT)
         .setEnabler(enablerFrag);
-    category.connect<Float>("Sample distributions", body, BodySettingsId::WEIBULL_SAMPLE_DISTRIBUTIONS)
+    category.connect<bool>("Sample distributions", body, BodySettingsId::WEIBULL_SAMPLE_DISTRIBUTIONS)
         .setEnabler(enablerFrag);
 }
 
