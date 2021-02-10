@@ -1,6 +1,6 @@
 #pragma once
 
-/// \file StaticSolver.h
+/// \file EquilibriumSolver.h
 /// \brief Computes quantities to get equilibrium state
 /// \author Pavel Sevecek
 /// \date 2016-2019

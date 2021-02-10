@@ -61,7 +61,7 @@ public:
 
 /// \brief Implements IEquationTerm interface using SphericalGravity.
 ///
-/// Useful for solvers that only accept equation terms, such as StaticSolver.
+/// Useful for solvers that only accept equation terms, such as EquilibriumSolver.
 class SphericalGravityEquation : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
