@@ -175,7 +175,7 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
         const Float radius = radiiMap ? radiiMap->getRadius(r[i]) : maxRadius;
         ASSERT(radius > 0._f);
 
-        actFinder.findAll(i, 0.5_f * (radius + r[i][H]), data.neighs);
+        actFinder.findAll(i, radius, data.neighs);
         data.grads.clear();
         data.idxs.clear();
         for (auto& n : data.neighs) {
