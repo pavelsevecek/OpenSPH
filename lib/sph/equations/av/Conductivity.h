@@ -51,7 +51,8 @@ public:
 
         template <bool Symmetrize>
         INLINE void eval(const Size i, const Size j, const Vector& grad) {
-            const Vector e = (r[i] - r[j]) / getLength(r[i] - r[j]);
+            const Float eps = 1.e-6_f;
+            const Vector e = (r[i] - r[j]) / (getLength(r[i] - r[j]) + eps);
             const Float rho_bar = 0.5_f * (rho[i] + rho[j]);
             const Float vu_sig = sgn((p[i] - p[j]) * (u[i] - u[j])) * sqrt(abs(p[i] - p[j]) / rho_bar);
             const Float v_sig = cs[i] + cs[j] - beta * dot(v[i] - v[j], e);
@@ -61,7 +62,7 @@ public:
             du[i] += m[j] / rho_bar * sum;
 
             if (Symmetrize) {
-                du[j] += m[j] / rho_bar * sum;
+                du[j] -= m[j] / rho_bar * sum;
             }
         }
     };
@@ -70,7 +71,7 @@ public:
         const Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES);
         if (forces != ForceEnum::PRESSURE) {
             throw InvalidSetup(
-                "Artificiacl conductivity cannot be used with forces other than pressure gradient.");
+                "Artificial conductivity cannot be used with forces other than pressure gradient.");
         }
     }
 

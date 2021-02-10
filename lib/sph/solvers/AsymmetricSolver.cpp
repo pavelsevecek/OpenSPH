@@ -17,27 +17,40 @@ void RadiiHashMap::build(ArrayView<const Vector> r, const Float kernelRadius) {
         cellSize = max(cellSize, r[i][H] * kernelRadius);
     }
 
-    map.clear();
+    std::unordered_map<Indices, Float, std::hash<Indices>, IndicesEqual> newMap;
     for (Size i = 0; i < r.size(); ++i) {
         // floor needed to properly handle negative values
-        Indices idxs = floor(r[i] / cellSize);
-        Float& radius = map[idxs];
+        const Indices idxs = floor(r[i] / cellSize);
+        Float& radius = newMap[idxs];
         radius = max(radius, r[i][H] * kernelRadius);
+    }
+
+    // create map by dilating newMap
+    map.clear();
+    for (const auto& p : newMap) {
+        const Indices& idxs0 = p.first;
+        Float radius = p.second;
+        for (int i = -1; i <= 1; ++i) {
+            for (int j = -1; j <= 1; ++j) {
+                for (int k = -1; k <= 1; ++k) {
+                    const Indices idxs = idxs0 + Indices(i, j, k);
+                    auto iter = newMap.find(idxs);
+                    if (iter != newMap.end()) {
+                        radius = std::max(radius, iter->second);
+                    }
+                }
+            }
+        }
+        map[idxs0] = radius;
     }
 }
 
 Float RadiiHashMap::getRadius(const Vector& r) const {
     const Indices idxs = floor(r / cellSize);
     Float radius = 0._f;
-    for (int i = -1; i <= 1; ++i) {
-        for (int j = -1; j <= 1; ++j) {
-            for (int k = -1; k <= 1; ++k) {
-                const auto iter = map.find(idxs + Indices(i, j, k));
-                if (iter != map.end()) {
-                    radius = max(radius, iter->second);
-                }
-            }
-        }
+    const auto iter = map.find(idxs);
+    if (iter != map.end()) {
+        radius = max(radius, iter->second);
     }
     return radius;
 }
@@ -162,7 +175,7 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
         const Float radius = radiiMap ? radiiMap->getRadius(r[i]) : maxRadius;
         ASSERT(radius > 0._f);
 
-        actFinder.findAll(i, radius, data.neighs);
+        actFinder.findAll(i, 0.5_f * (radius + r[i][H]), data.neighs);
         data.grads.clear();
         data.idxs.clear();
         for (auto& n : data.neighs) {
