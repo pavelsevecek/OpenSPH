@@ -745,6 +745,10 @@ Array<Size> Storage::duplicate(ArrayView<const Size> idxs, const Flags<IndicesFl
 
 void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags) {
     ASSERT(!userData, "Removing particles from storages with user data is currently not supported");
+    if (idxs.empty()) {
+        // job well done!
+        return;
+    }
 
     ArrayView<const Size> sortedIdxs;
     Array<Size> sortedHolder;

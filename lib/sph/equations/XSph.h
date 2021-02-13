@@ -57,7 +57,8 @@ private:
         template <bool Symmetric>
         INLINE void eval(const Size i, const Size j, const Vector& UNUSED(grad)) {
             // this depends on v[i]-v[j], so it is zero for i==j
-            const Vector f = epsilon * (v[j] - v[i]) / (0.5_f * (rho[i] + rho[j])) * kernel.value(r[i], r[j]);
+            Vector f = epsilon * (v[j] - v[i]) / (0.5_f * (rho[i] + rho[j])) * kernel.value(r[i], r[j]);
+            f[H] = 0._f;
             dr[i] += m[j] * f;
             if (Symmetric) {
                 dr[j] -= m[i] * f;
