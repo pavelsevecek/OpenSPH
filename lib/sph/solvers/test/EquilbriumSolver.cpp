@@ -1,9 +1,9 @@
-#include "sph/solvers/StaticSolver.h"
 #include "catch.hpp"
 #include "gravity/SphericalGravity.h"
 #include "physics/Constants.h"
 #include "physics/Eos.h"
 #include "sph/equations/Potentials.h"
+#include "sph/solvers/EquilibriumSolver.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
 #include "utils/SequenceTest.h"
@@ -12,11 +12,11 @@ using namespace Sph;
 
 #ifdef SPH_USE_EIGEN
 
-TEST_CASE("StaticSolver no forces", "[staticsolver]") {
+TEST_CASE("EquilibriumStressSolver no forces", "[equilibriumsolver]") {
     // tests that with no external forces, the stress tensor is zero
     RunSettings settings;
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    StaticSolver solver(pool, settings, EquationHolder());
+    EquilibriumStressSolver solver(pool, settings, EquationHolder());
     BodySettings body;
     body.set(BodySettingsId::ENERGY, 0._f)
         .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
@@ -41,7 +41,7 @@ TEST_CASE("StaticSolver no forces", "[staticsolver]") {
     REQUIRE_SEQUENCE(test, 0, r.size());
 }
 
-TEST_CASE("StaticSolver pressure", "[staticsolver]") {
+TEST_CASE("EquilibriumStressSolver pressure", "[equilibriumsolver]") {
     // tests that in a sphere with gravity and pressure gradient, the pressure distribution follows the
     // analytical result (considering EoS rho = const.)
 
@@ -50,7 +50,7 @@ TEST_CASE("StaticSolver pressure", "[staticsolver]") {
     const Float r0 = 1._f * Constants::au;
     EquationHolder equations = makeTerm<SphericalGravityEquation>();
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    StaticSolver solver(pool, settings, std::move(equations));
+    EquilibriumStressSolver solver(pool, settings, std::move(equations));
 
     BodySettings body;
     // body.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::DIEHL_ET_AL);
@@ -102,7 +102,7 @@ TEST_CASE("StaticSolver pressure", "[staticsolver]") {
     REQUIRE_SEQUENCE(test, 0, r.size());
 }
 
-TEST_CASE("StaticSolver stationary", "[staticsolver]") {
+TEST_CASE("EquilibriumStressSolver stationary", "[equilibriumsolver]") {
     // tests that the solution of static solver is indeed the statinary solution, meaning the derivatives of
     // density, energy and stress tensor will be (approximately) zero in the first time step
 
@@ -122,7 +122,7 @@ TEST_CASE("StaticSolver stationary", "[staticsolver]") {
     EquationHolder equations;
     equations += makeTerm<SphericalGravityEquation>();
     equations += makeTerm<InertialForce>(Vector(0._f, 0._f, 2.f * PI / (3600._f * 12._f)));
-    StaticSolver staticSolver(pool, RunSettings::getDefaults(), equations);
+    EquilibriumStressSolver staticSolver(pool, RunSettings::getDefaults(), equations);
     staticSolver.create(storage, storage.getMaterial(0));
     Statistics stats;
     /*REQUIRE_NOTHROW(staticSolver.solve(storage, stats));

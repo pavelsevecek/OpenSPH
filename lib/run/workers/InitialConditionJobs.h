@@ -120,9 +120,12 @@ private:
 };
 
 class EquilibriumIc : public IParticleJob {
+private:
+    EnumWrapper solver;
+    int boundaryThreshold;
+
 public:
-    EquilibriumIc(const std::string& name)
-        : IParticleJob(name) {}
+    EquilibriumIc(const std::string& name);
 
     virtual std::string className() const override {
         return "set equilibrium energy";

@@ -1,4 +1,5 @@
 #include "run/workers/InitialConditionJobs.h"
+#include "gravity/IGravity.h"
 #include "objects/geometry/Sphere.h"
 #include "physics/Eos.h"
 #include "physics/Functions.h"
@@ -9,9 +10,11 @@
 #include "sph/Materials.h"
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"
+#include "sph/solvers/EquilibriumSolver.h"
 #include "system/Factory.h"
 #include "system/Settings.impl.h"
 #include "system/Statistics.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -313,9 +316,34 @@ static JobRegistrar sRegisterImpactorBody(
 // EquilibriumIc
 // ----------------------------------------------------------------------------------------------------------
 
+enum class EquilSolveEnum {
+    SPHERICAL,
+    PRECISE,
+};
+
+static RegisterEnum<EquilSolveEnum> sSolverType({
+    { EquilSolveEnum::SPHERICAL,
+        "spherical",
+        "Computes equilibrium assuming spherically symmetric configuration." },
+    { EquilSolveEnum::PRECISE, "precise", "Computes equilibrium by solving a least-squares problem." },
+});
+
+EquilibriumIc::EquilibriumIc(const std::string& name)
+    : IParticleJob(name)
+    , solver(EquilSolveEnum::SPHERICAL) {
+    boundaryThreshold = 40;
+}
+
 VirtualSettings EquilibriumIc::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
+
+    VirtualSettings::Category& solverCat = connector.addCategory("Solution");
+    solverCat.connect("Solver", "solver", solver);
+    solverCat.connect("Boundary threshold", "threshold", boundaryThreshold).setEnabler([&] {
+        return EquilSolveEnum(solver) == EquilSolveEnum::PRECISE;
+    });
+
     return connector;
 }
 
@@ -369,10 +397,7 @@ static Array<Float> integratePressure(const Storage& storage, const Vector& r0) 
     return p;
 }
 
-void EquilibriumIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
-    result = this->getInput<ParticleData>("particles");
-    Storage& storage = result->storage;
-
+static void solveSpherical(Storage& storage) {
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
     const Vector r0 = Post::getCenterOfMass(m, r);
@@ -383,15 +408,49 @@ void EquilibriumIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& U
 
     ArrayView<const Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
     ArrayView<Float> u = storage.getValue<Float>(QuantityId::ENERGY);
-    Array<Float> p = integratePressure(storage, r0);
+    ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
+    Array<Float> solution = integratePressure(storage, r0);
 
     for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
         MaterialView mat = storage.getMaterial(matId);
         RawPtr<EosMaterial> eosMat = dynamicCast<EosMaterial>(addressOf(mat.material()));
         ASSERT(eosMat);
         for (Size i : mat.sequence()) {
+            p[i] = solution[i];
             u[i] = eosMat->getEos().getInternalEnergy(rho[i], p[i]);
         }
+    }
+}
+
+void EquilibriumIc::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) {
+    result = this->getInput<ParticleData>("particles");
+    Storage& storage = result->storage;
+
+    switch (EquilSolveEnum(solver)) {
+    case EquilSolveEnum::SPHERICAL:
+        solveSpherical(storage);
+        break;
+    case EquilSolveEnum::PRECISE: {
+#ifdef SPH_USE_EIGEN
+        RunSettings settings;
+        settings.addEntries(global);
+        SharedPtr<IScheduler> scheduler = Factory::getScheduler(settings);
+        AutoPtr<IGravity> gravity = Factory::getGravity(settings);
+        EquilibriumEnergySolver solver(*scheduler, settings, std::move(gravity), boundaryThreshold);
+        Statistics stats;
+        Outcome result = solver.solve(storage, stats);
+        if (!result) {
+            throw InvalidSetup("Cannot find equilibrium solution: " + result.error());
+        }
+#else
+        MARK_USED(global);
+        MARK_USED(boundaryThreshold);
+        throw InvalidSetup("OpenSPH needs to be compiled with CONFIG+=use_eigen to use this option");
+#endif
+        break;
+    }
+    default:
+        throw InvalidSetup("Unknown equilibrium solver");
     }
 }
 

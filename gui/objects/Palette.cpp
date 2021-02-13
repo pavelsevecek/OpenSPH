@@ -110,7 +110,9 @@ PaletteScale Palette::getScale() const {
 
 Rgba Palette::operator()(const float value) const {
     ASSERT(points.size() >= 2);
-    ASSERT(scale != PaletteScale::LOGARITHMIC || value >= 0.f);
+    if (scale == PaletteScale::LOGARITHMIC && value <= 0.f) {
+        return points[0].color;
+    }
     const float palette = linearToPalette(value);
     if (palette <= points[0].value) {
         return points[0].color;

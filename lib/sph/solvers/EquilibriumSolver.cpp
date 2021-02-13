@@ -1,4 +1,5 @@
-#include "sph/solvers/StaticSolver.h"
+#include "sph/solvers/EquilibriumSolver.h"
+#include "gravity/IGravity.h"
 #include "objects/finders/NeighbourFinder.h"
 #include "physics/Eos.h"
 #include "sph/Materials.h"
@@ -6,8 +7,189 @@
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
+#include <iostream>
 
 NAMESPACE_SPH_BEGIN
+
+#ifdef SPH_USE_EIGEN
+
+EquilibriumEnergySolver::EquilibriumEnergySolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    AutoPtr<IGravity>&& gravity,
+    const Size boundaryThreshold)
+    : scheduler(scheduler)
+    , gravity(std::move(gravity))
+    , boundaryThreshold(boundaryThreshold) {
+    kernel = Factory::getKernel<3>(settings);
+    finder = Factory::getFinder(settings);
+}
+
+EquilibriumEnergySolver::~EquilibriumEnergySolver() = default;
+
+Outcome EquilibriumEnergySolver::solve(Storage& storage, Statistics& stats) {
+    // compute gravity to use as right-hand side
+    gravity->build(scheduler, storage);
+    ArrayView<Vector> r, v, dv;
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+    gravity->evalAll(scheduler, dv, stats);
+
+    ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
+    // add centrifugal force
+    for (Size i = 0; i < r.size(); ++i) {
+        const Float R = sqrt(sqr(r[i][X]) + sqr(r[i][Y]));
+        dv[i] += getSqrLength(v[i]) / R * Vector(r[i][X], r[i][Y], 0._f) / R;
+    }
+
+    finder->build(scheduler, r);
+    Float maxRadius = 0._f;
+    for (Size i = 0; i < r.size(); ++i) {
+        maxRadius = max(maxRadius, r[i][H]);
+    }
+
+    ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
+
+#if 0
+    SparseMatrix matrix(3 * r.size(), r.size());
+    Array<Float> b(3 * r.size());
+    Array<NeighbourRecord> neighs;
+    Float lambda = 0._f;
+    for (Size i = 0; i < r.size(); ++i) {
+        neighs.clear();
+        finder->findAll(i, maxRadius * kernel.radius(), neighs);
+        /*if (neighs.size() < boundaryThreshold) {
+            // boundary -> dirichlet
+            for (int k = 0; k < 3; ++k) {
+                matrix.insert(3 * i + k, i, 1);
+                b[3 * i + k] = 0;
+            }
+            continue;
+        }*/
+        const bool isBoundary = neighs.size() < boundaryThreshold;
+
+        Vector Aii(0._f);
+        Float weightSum = 0;
+        for (const NeighbourRecord& n : neighs) {
+            const Size j = n.index;
+            const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
+            ASSERT(hbar > EPS, hbar);
+            if (i == j || n.distanceSqr >= sqr(kernel.radius() * hbar)) {
+                // aren't actual neighbours
+                continue;
+            }
+            const Vector grad = kernel.grad(r[i], r[j]);
+            const Float weight = m[i] / (r[i][H] * sqr(rho[i])) * kernel.value(r[i], r[j]);
+            Aii += m[j] * grad / sqr(rho[i]);
+            const Vector Aij = m[j] * grad / sqr(rho[j]);
+            if (!isBoundary) {
+                for (int k = 0; k < 3; ++k) {
+                    matrix.insert(3 * i + k, j, Aij[k] - lambda * weight);
+                }
+            } else {
+                for (int k = 0; k < 3; ++k) {
+                    matrix.insert(3 * i + k, j, -lambda * weight);
+                }
+            }
+            weightSum += weight;
+        }
+        // add diagonal element and right-hand side
+        if (!isBoundary) {
+            for (int k = 0; k < 3; ++k) {
+                matrix.insert(3 * i + k, i, Aii[k] + weightSum * lambda);
+                b[3 * i + k] = dv[i][k];
+            }
+        } else {
+            for (int k = 0; k < 3; ++k) {
+                matrix.insert(3 * i + k, i, 1.f + weightSum * lambda);
+                b[3 * i + k] = 0._f;
+            }
+        }
+    }
+    Expected<Array<Float>> X = matrix.solve(b, SparseMatrix::Solver::LSCG, 1.e-8f);
+    if (!X) {
+        return X.error();
+    }
+
+#else
+
+    SparseMatrix matrix(r.size(), r.size());
+    Array<Float> b(r.size());
+    Array<NeighbourRecord> neighs;
+
+    for (Size i = 0; i < r.size(); ++i) {
+        neighs.clear();
+        finder->findAll(i, maxRadius * kernel.radius(), neighs);
+
+        Float Aii(0._f);
+        Float divDv = 0._f;
+        for (const NeighbourRecord& n : neighs) {
+            const Size j = n.index;
+            const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
+            ASSERT(hbar > EPS, hbar);
+            if (i == j || n.distanceSqr >= sqr(kernel.radius() * hbar)) {
+                // aren't actual neighbours
+                continue;
+            }
+            const Vector grad = kernel.grad(r[i], r[j]);
+            const Float lapl = laplacian(1._f, grad, r[i] - r[j]);
+            Aii -= m[j] * lapl / sqr(rho[i]);
+            const Float Aij = m[j] * lapl / sqr(rho[j]);
+            matrix.insert(i, j, Aij);
+
+            divDv -= m[j] / rho[j] * dot(dv[j] - dv[i], grad);
+        }
+
+        /*if (neighs.size() < boundaryThreshold) {
+            for (const NeighbourRecord& n1 : neighs) {
+                const Size j1 = n1.index;
+                const Vector mirrorR = 2._f * r[i] - r[j1];
+                bool mirrorFound = false;
+                for (const NeighbourRecord& n2 : neighs) {
+                    const Size j2 = n2.index;
+                    if (getSqrLength(r[j2] - mirrorR) < 0.25_f * r[j2][H]) {
+                        mirrorFound = true;
+                        break;
+                    }
+                }
+                if (!mirrorFound) {
+                    const Vector grad = kernel.grad(r[i], mirrorR);
+                    const Float lapl = laplacian(1._f, grad, r[i] - mirrorR);
+                    Aii -= m[j1] * lapl / sqr(rho[i]);
+                }
+            }
+        }*/
+
+
+        if (neighs.size() < boundaryThreshold) {
+            // boundary -> dirichlet
+            Aii += 100._f * m[i] / sqr(rho[i]) * kernel.value(r[i], r[i]) / sqr(r[i][H]);
+        }
+
+        // add diagonal element and right-hand side
+        matrix.insert(i, i, Aii);
+        b[i] = divDv;
+    }
+    Expected<Array<Float>> X = matrix.solve(b, SparseMatrix::Solver::BICGSTAB);
+    if (!X) {
+        return X.error();
+    }
+#endif
+
+    ArrayView<Float> u = storage.getValue<Float>(QuantityId::ENERGY);
+    ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
+    for (Size matId = 0; matId < storage.getMaterialCnt(); matId++) {
+        MaterialView mat = storage.getMaterial(matId);
+        EosMaterial& eosMat = dynamic_cast<EosMaterial&>(mat.material());
+        const IEos& eos = eosMat.getEos();
+        for (Size i : mat.sequence()) {
+            p[i] = X.value()[i];
+            u[i] = eos.getInternalEnergy(rho[i], p[i]);
+        }
+    }
+
+    return SUCCESS;
+}
+
+#endif
 
 /// Derivative computing components of stress tensor from known displacement vectors.
 class DisplacementGradient : public DerivativeTemplate<DisplacementGradient> {
@@ -90,7 +272,7 @@ static EquationHolder getEquations(const EquationHolder& additional) {
     return additional + makeTerm<DisplacementTerm>() + makeTerm<ConstSmoothingLength>();
 }
 
-StaticSolver::StaticSolver(IScheduler& scheduler,
+EquilibriumStressSolver::EquilibriumStressSolver(IScheduler& scheduler,
     const RunSettings& settings,
     const EquationHolder& equations)
     : scheduler(scheduler)
@@ -101,9 +283,9 @@ StaticSolver::StaticSolver(IScheduler& scheduler,
     // settings.get<int>(RunSettingsId::BOUNDARY_THRESHOLD);
 }
 
-StaticSolver::~StaticSolver() = default;
+EquilibriumStressSolver::~EquilibriumStressSolver() = default;
 
-Outcome StaticSolver::solve(Storage& storage, Statistics& stats) {
+Outcome EquilibriumStressSolver::solve(Storage& storage, Statistics& stats) {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
 
     // build the neighbour finding structure
@@ -143,7 +325,7 @@ Outcome StaticSolver::solve(Storage& storage, Statistics& stats) {
 
     // fill the matrix with values
     Array<NeighbourRecord> neighs;
-    matrix.resize(r.size() * 3);
+    matrix.resize(r.size() * 3, r.size() * 3);
     for (Size i = 0; i < r.size(); ++i) {
         finder->findLowerRank(i, kernel.radius() * r[i][H], neighs);
 
@@ -216,7 +398,7 @@ Outcome StaticSolver::solve(Storage& storage, Statistics& stats) {
     return SUCCESS;
 }
 
-void StaticSolver::create(Storage& storage, IMaterial& material) {
+void EquilibriumStressSolver::create(Storage& storage, IMaterial& material) {
     ASSERT(storage.getMaterialCnt() == 1);
     equationSolver.create(storage, material);
 }

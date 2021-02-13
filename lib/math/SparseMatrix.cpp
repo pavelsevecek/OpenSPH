@@ -24,8 +24,8 @@ private:
     using SparseVector = Eigen::Matrix<Float, Eigen::Dynamic, 1>;
 
 public:
-    Impl(const Size n)
-        : matrix(n, n) {}
+    Impl(const Size rows, const Size cols)
+        : matrix(rows, cols) {}
 
     void insert(const Size i, const Size j, const Float value) {
         ASSERT(i < matrix.innerSize() && j < matrix.innerSize(), i, j);
@@ -84,7 +84,7 @@ public:
             a = solveImpl(solver, b);
             break;
         }
-        case SparseMatrix::Solver::BI_CG: {
+        case SparseMatrix::Solver::BICGSTAB: {
             Eigen::BiCGSTAB<Eigen::SparseMatrix<Float>> solver;
             if (tolerance > 0._f) {
                 solver.setTolerance(tolerance);
@@ -100,8 +100,8 @@ public:
             return makeUnexpected<Array<Float>>(a.error());
         }
         Array<Float> result;
-        result.resize(values.size());
-        for (Size i = 0; i < values.size(); ++i) {
+        result.resize(matrix.outerSize());
+        for (Size i = 0; i < result.size(); ++i) {
             result[i] = a.value()(i);
         }
         return result;
@@ -125,13 +125,13 @@ private:
 
 SparseMatrix::SparseMatrix() = default;
 
-SparseMatrix::SparseMatrix(const Size n)
-    : impl(makeAuto<Impl>(n)) {}
+SparseMatrix::SparseMatrix(const Size rows, const Size cols)
+    : impl(makeAuto<Impl>(rows, cols)) {}
 
 SparseMatrix::~SparseMatrix() = default;
 
-void SparseMatrix::resize(const Size n) {
-    impl = makeAuto<Impl>(n);
+void SparseMatrix::resize(const Size rows, const Size cols) {
+    impl = makeAuto<Impl>(rows, cols);
 }
 
 void SparseMatrix::insert(const Size i, const Size j, const Float value) {

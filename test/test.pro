@@ -117,11 +117,11 @@ SOURCES += \
     ../lib/sph/kernel/test/GravityKernel.cpp \
     ../lib/sph/kernel/test/Interpolation.cpp \
     ../lib/sph/kernel/test/Kernel.cpp \
+    ../lib/sph/solvers/test/EquilbriumSolver.cpp \
     ../lib/sph/solvers/test/GravitySolver.cpp \
     ../lib/sph/solvers/test/Impact.cpp \
     ../lib/sph/solvers/test/Solvers.cpp \
     ../lib/sph/solvers/test/StandardSets.cpp \
-    ../lib/sph/solvers/test/StaticSolver.cpp \
     ../lib/sph/solvers/test/AsymmetricSolver.cpp \
     ../lib/sph/test/Diagnostics.cpp \
     ../lib/system/test/ArgsParser.cpp \

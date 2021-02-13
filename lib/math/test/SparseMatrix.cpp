@@ -8,7 +8,7 @@ using namespace Sph;
 #ifdef SPH_USE_EIGEN
 
 static void testAnyMatrix(const SparseMatrix::Solver solver) {
-    SparseMatrix matrix(5);
+    SparseMatrix matrix(5, 5);
     REQUIRE_ASSERT(matrix.solve(Array<Float>{ 1.f }, solver));
     Array<Float> b{ 1.f, 2.f, 3.f, 4.f, 5.f };
     REQUIRE_FALSE(matrix.solve(b, solver));
@@ -37,7 +37,7 @@ static void testAnyMatrix(const SparseMatrix::Solver solver) {
 }
 
 static void testSymmetricMatrix(const SparseMatrix::Solver solver) {
-    SparseMatrix matrix(5);
+    SparseMatrix matrix(5, 5);
     float values[][5] = {
         { 1, 2, -1, 3, 5 }, { 2, 5, 0, 2, -1 }, { -1, 0, 4, -5, 1 }, { 3, 2, -5, -1, 2 }, { 5, -1, 1, 2, -2 }
     };
@@ -68,8 +68,8 @@ TEST_CASE("Invert matrix CG", "[sparsematrix]") {
 }
 
 TEST_CASE("Invert matrix BICG", "[sparsematrix]") {
-    testAnyMatrix(SparseMatrix::Solver::BI_CG);
-    testSymmetricMatrix(SparseMatrix::Solver::BI_CG);
+    testAnyMatrix(SparseMatrix::Solver::BICGSTAB);
+    testSymmetricMatrix(SparseMatrix::Solver::BICGSTAB);
 }
 
 #endif
