@@ -8,7 +8,6 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/times.h>
-#include <sys/vtimes.h>
 #include <unistd.h>
 
 NAMESPACE_SPH_BEGIN
