@@ -55,14 +55,12 @@ public:
             const Vector e = (r[i] - r[j]) / (getLength(r[i] - r[j]) + eps);
             const Float rho_bar = 0.5_f * (rho[i] + rho[j]);
             const Float vu_sig = sgn((p[i] - p[j]) * (u[i] - u[j])) * sqrt(abs(p[i] - p[j]) / rho_bar);
-            const Float v_sig = cs[i] + cs[j] - beta * dot(v[i] - v[j], e);
-            const Float a1 = alpha * vu_sig * (u[i] - u[j]);
-            const Float a2 = -0.5_f * alpha * v_sig * sqr(dot(v[i] - v[j], e));
-            const Float sum = (a1 + a2) * dot(e, grad);
-            du[i] += m[j] / rho_bar * sum;
+            const Float a = alpha * vu_sig * (u[i] - u[j]);
+            const Float heat = a * dot(e, grad) / rho_bar;
+            du[i] += m[j] * heat;
 
             if (Symmetrize) {
-                du[j] -= m[j] / rho_bar * sum;
+                du[j] -= m[j] * heat;
             }
         }
     };
