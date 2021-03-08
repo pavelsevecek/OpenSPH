@@ -49,6 +49,9 @@ public:
             case IVirtualEntry::Type::FLOAT:
                 entry.set(input.get<Float>(name));
                 break;
+            case IVirtualEntry::Type::INTERVAL:
+                entry.set(input.get<Interval>(name));
+                break;
             case IVirtualEntry::Type::VECTOR:
                 entry.set(input.get<Vector>(name));
                 break;
