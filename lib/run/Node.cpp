@@ -203,7 +203,7 @@ static std::string clonedName(const std::string& name) {
     }
 }
 
-SharedPtr<JobNode> cloneNode(const JobNode& node, const std::string& name) {
+AutoPtr<JobNode> cloneNode(const JobNode& node, const std::string& name) {
     RawPtr<IJobDesc> desc = getJobDesc(node.className());
     ASSERT(desc);
 
@@ -213,20 +213,20 @@ SharedPtr<JobNode> cloneNode(const JobNode& node, const std::string& name) {
     CopyEntriesProc proc(target);
     source.enumerate(proc);
 
-    return makeShared<JobNode>(std::move(worker));
+    return makeAuto<JobNode>(std::move(worker));
 }
 
-SharedPtr<JobNode> cloneHierarchy(JobNode& node, const std::string& prefix) {
+SharedPtr<JobNode> cloneHierarchy(JobNode& node, const Optional<std::string>& prefix) {
     // maps original node to cloned nodes
     FlatMap<SharedPtr<JobNode>, SharedPtr<JobNode>> nodeMap;
 
     // first, clone all nodes and build up the map
     node.enumerate([&nodeMap, &prefix](SharedPtr<JobNode> node, Size UNUSED(depth)) {
         std::string name;
-        if (prefix.empty()) {
+        if (!prefix) {
             name = clonedName(node->instanceName());
         } else {
-            name = prefix + node->instanceName();
+            name = prefix.value() + node->instanceName();
         }
         SharedPtr<JobNode> clonedNode = cloneNode(*node, name);
         nodeMap.insert(node, clonedNode);

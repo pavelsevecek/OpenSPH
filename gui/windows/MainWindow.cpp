@@ -687,7 +687,8 @@ wxMenu* MainWindow::createAnalysisMenu() {
 
 void MainWindow::addPage(SharedPtr<JobNode> node, const RunSettings& globals, const std::string pageName) {
     AutoPtr<Controller> controller = makeAuto<Controller>(notebook);
-    controller->start(node, globals);
+    // close all nodes to avoid touching the data while the simulation is running
+    controller->start(cloneHierarchy(*node, std::string("")), globals);
 
     const Size index = notebook->GetPageCount();
     RunPage* page = &*controller->getPage();
