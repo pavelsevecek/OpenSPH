@@ -288,14 +288,14 @@ void ContinuityEquation::finalize(IScheduler& scheduler, Storage& storage, const
             storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
         parallelFor(scheduler, 0, rho.size(), [&](const Size i) INL {
             if (reduce[i] > 0._f) {
-                drho[i] = -rho[i] * gradv[i].trace();
+                drho[i] += -rho[i] * gradv[i].trace();
             } else {
-                drho[i] = -rho[i] * divv[i];
+                drho[i] += -rho[i] * divv[i];
             }
         });
     } else {
         parallelFor(scheduler, 0, rho.size(), [&](const Size i) INL { //
-            drho[i] = -rho[i] * divv[i];
+            drho[i] += -rho[i] * divv[i];
         });
     }
 }
