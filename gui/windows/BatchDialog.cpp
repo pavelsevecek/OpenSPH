@@ -339,6 +339,7 @@ BatchDialog::BatchDialog(wxWindow* parent, const BatchManager& mgr, Array<Shared
         } else {
             grid->DeleteRows(newRunCount, oldRunCount - newRunCount);
         }
+        manager.resize(newRunCount, grid->GetNumberCols());
     });
     paramSpinner->Bind(wxEVT_SPINCTRL, [this](wxSpinEvent& evt) {
         const int newParamCount = max(evt.GetValue(), 1);

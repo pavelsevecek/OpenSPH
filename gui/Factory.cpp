@@ -233,6 +233,7 @@ static FlatMap<PaletteKey, PaletteDesc> paletteDescs = {
     { QuantityId::PHASE_ANGLE, { Interval(0._f, 10._f), PaletteScale::LINEAR } },
     { QuantityId::STRAIN_RATE_CORRECTION_TENSOR, { Interval(0._f, 5._f), PaletteScale::LINEAR } },
     { QuantityId::EPS_MIN, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
+    { QuantityId::DELTASPH_DENSITY_GRADIENT, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
     { QuantityId::NEIGHBOUR_CNT, { Interval(50._f, 150._f), PaletteScale::LINEAR } },
     { ColorizerId::VELOCITY, { Interval(0.1_f, 100._f), PaletteScale::LOGARITHMIC } },
     { ColorizerId::ACCELERATION, { Interval(0.1_f, 100._f), PaletteScale::LOGARITHMIC } },

@@ -116,6 +116,8 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Phase angle", L"\u03C6" /*phi*/, ValueEnum::VECTOR);
     case QuantityId::SMOOTHING_LENGTH:
         return QuantityMetadata("Smoothing length", L"h", ValueEnum::SCALAR);
+    case QuantityId::DELTASPH_DENSITY_GRADIENT:
+        return QuantityMetadata("Density gradient", L"\u2207\u03C1", ValueEnum::VECTOR);
     case QuantityId::UVW:
         return QuantityMetadata("Mapping coordinates", L"uvw", ValueEnum::VECTOR);
     default:

@@ -157,7 +157,9 @@ private:
             /// \todo here using average values instead of const values c_0, is that OK?
             const Float cbar = 0.5_f * (cs[i] + cs[j]);
             const Vector f = alpha * hbar * cbar * pi * grad;
+            const Float dh = dv[i][H];
             dv[i] += m[j] / rho[j] * f;
+            dv[i][H] = dh;
 
             if (Symmetrize) {
                 TODO("check sign!");

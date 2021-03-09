@@ -413,7 +413,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::SPH_XSPH_EPSILON,              "sph.xsph.epsilon",         1._f,
         "Epsilon parameter of XSPH modification." },
     { RunSettingsId::SPH_USE_DELTASPH,              "sph.deltasph.enable",          false,
-        "Enables the XSPH modification" },
+        "Enables the delta-SPH modification" },
     { RunSettingsId::SPH_DENSITY_DIFFUSION_DELTA,   "sph.deltasph.delta",       0.01_f,
         "Delta-coefficient of the delta-SPH modification, see Marrone et al. 2011." },
     { RunSettingsId::SPH_VELOCITY_DIFFUSION_ALPHA,  "sph.deltasph.alpha",       0.01_f,
