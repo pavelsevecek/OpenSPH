@@ -198,7 +198,7 @@ void IRunJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     overrides.addEntries(data->overrides);
 
     AutoPtr<IRun> run = this->getRun(overrides);
-    run->run(data->storage, callbacks);
+    data->stats = run->run(data->storage, callbacks);
     result = std::move(data);
 }
 
