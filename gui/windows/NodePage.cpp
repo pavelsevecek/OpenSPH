@@ -432,7 +432,8 @@ void NodeManager::load(Config& config) {
 }
 
 void NodeManager::startRun(JobNode& node) {
-    callbacks->startRun(node, globals);
+    // clone all nodes to avoid touching the data while the simulation is running
+    callbacks->startRun(Sph::cloneHierarchy(node, std::string("")), globals);
 }
 
 class BatchWorker : public IParticleJob {
@@ -485,7 +486,7 @@ void NodeManager::startBatch(JobNode& node) {
         batchNodes[i]->connect(root, "worker " + std::to_string(i));
     }
 
-    callbacks->startRun(*root, globals);
+    callbacks->startRun(root, globals);
 }
 
 void NodeManager::startAll() {
@@ -493,7 +494,7 @@ void NodeManager::startAll() {
     for (auto& element : nodes) {
         SharedPtr<JobNode> node = element.key;
         if (node->getDependentCnt() == 0) {
-            inputs.push(node);
+            inputs.push(Sph::cloneHierarchy(*node, std::string("")));
         }
     }
 
@@ -502,7 +503,7 @@ void NodeManager::startAll() {
         inputs[i]->connect(root, "worker " + std::to_string(i));
     }
 
-    callbacks->startRun(*root, globals);
+    callbacks->startRun(root, globals);
 }
 
 VirtualSettings NodeManager::getGlobalSettings() {

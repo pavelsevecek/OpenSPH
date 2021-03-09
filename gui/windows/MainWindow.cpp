@@ -94,8 +94,9 @@ public:
     NodeManagerCallbacks(MainWindow* window)
         : window(window) {}
 
-    virtual void startRun(JobNode& node, const RunSettings& globals) const override {
-        window->addPage(node.sharedFromThis(), globals, node.instanceName());
+    virtual void startRun(SharedPtr<JobNode> node, const RunSettings& globals) const override {
+        const std::string name = node->instanceName();
+        window->addPage(std::move(node), globals, name);
     }
 
     virtual void markUnsaved() const override {
@@ -687,8 +688,7 @@ wxMenu* MainWindow::createAnalysisMenu() {
 
 void MainWindow::addPage(SharedPtr<JobNode> node, const RunSettings& globals, const std::string pageName) {
     AutoPtr<Controller> controller = makeAuto<Controller>(notebook);
-    // close all nodes to avoid touching the data while the simulation is running
-    controller->start(cloneHierarchy(*node, std::string("")), globals);
+    controller->start(std::move(node), globals);
 
     const Size index = notebook->GetPageCount();
     RunPage* page = &*controller->getPage();

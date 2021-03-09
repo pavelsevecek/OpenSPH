@@ -56,7 +56,7 @@ using NodeMap = UnorderedMap<SharedPtr<JobNode>, VisNode>;
 
 class INodeManagerCallbacks : public Polymorphic {
 public:
-    virtual void startRun(JobNode& node, const RunSettings& settings) const = 0;
+    virtual void startRun(SharedPtr<JobNode> node, const RunSettings& settings) const = 0;
 
     virtual void markUnsaved() const = 0;
 };
