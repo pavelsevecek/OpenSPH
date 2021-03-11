@@ -1,6 +1,8 @@
 #include "io/LogWriter.h"
 #include "io/Logger.h"
+#include "objects/geometry/Box.h"
 #include "quantities/Storage.h"
+#include "quantities/Iterate.h"
 #include "system/Statistics.h"
 #include "system/Timer.h"
 #include "timestepping/TimeStepCriterion.h"
@@ -18,7 +20,6 @@ AutoPtr<ITrigger> ILogWriter::action(Storage& storage, Statistics& stats) {
     return nullptr;
 }
 
-
 template <typename T>
 void printStat(ILogger& logger,
     const Statistics& stats,
@@ -32,7 +33,6 @@ void printStat(ILogger& logger,
         logger.write(message, emptyValue);
     }
 }
-
 
 StandardLogWriter::StandardLogWriter(const SharedPtr<ILogger>& logger, const RunSettings& settings)
     : ILogWriter(logger, 0._f) {
@@ -58,15 +58,6 @@ void StandardLogWriter::write(const Storage& storage, const Statistics& stats) {
         }
     }
 
-    /* needs to be fixed
-     * if (stats.has(StatisticsId::ETA)) {
-        const int eta = stats.get<int>(StatisticsId::ETA);
-        const std::string formattedEta = getFormattedTime(eta);
-        logger->write(" - ETA:         ", formattedEta);
-    } else {
-        logger->write(" - ETA:         ", "N/A");
-    }*/
-
     // Timestepping info
     CriterionId id = stats.get<CriterionId>(StatisticsId::TIMESTEP_CRITERION);
     std::stringstream ss;
@@ -86,7 +77,7 @@ void StandardLogWriter::write(const Storage& storage, const Statistics& stats) {
     printStat<int>(*logger, stats, StatisticsId::GRAVITY_BUILD_TIME,           "    * tree construction:    ", "ms");
     printStat<int>(*logger, stats, StatisticsId::POSTPROCESS_EVAL_TIME,        "    * visualization:        ", "ms");
     logger->write(                                                             " - particles:   ", storage.getParticleCnt());
-    printStat<MinMaxMean>(*logger, stats, StatisticsId::NEIGHBOUR_COUNT,       " - neigbours:   ");
+    printStat<MinMaxMean>(*logger, stats, StatisticsId::NEIGHBOUR_COUNT,       " - neighbors:   ");
     printStat<int>(*logger, stats, StatisticsId::TOTAL_COLLISION_COUNT,        " - collisions:  ");
     printStat<int>(*logger, stats, StatisticsId::BOUNCE_COUNT,                 "    * bounces:  ");
     printStat<int>(*logger, stats, StatisticsId::MERGER_COUNT,                 "    * mergers:  ");
@@ -95,6 +86,63 @@ void StandardLogWriter::write(const Storage& storage, const Statistics& stats) {
     printStat<int>(*logger, stats, StatisticsId::AGGREGATE_COUNT,              " - aggregates:  ");
     printStat<int>(*logger, stats, StatisticsId::SOLVER_SUMMATION_ITERATIONS,  " - iteration #: ");
     // clang-format on
+}
+
+void VerboseLogWriter::write(const Storage& storage, const Statistics& stats) {
+    StandardLogWriter::write(storage, stats);
+
+    Box bbox;
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    for (std::size_t i = 0; i < r.size(); ++i) {
+        bbox.extend(r[i]);
+    }
+
+    logger->write(" - bounding box: ", bbox);
+    logger->write(" - min/max values:");
+    iterate<VisitorEnum::FIRST_ORDER>(storage, [&](QuantityId id, const auto& v, const auto& dv) {
+        Interval range, drange;
+        for (Size i = 0; i < v.size(); ++i) {
+            range.extend(Interval(minElement(v[i]), maxElement(v[i])));
+            drange.extend(Interval(minElement(dv[i]), maxElement(dv[i])));
+        }
+        std::string name = lowercase(getMetadata(id).quantityName);
+        logger->write("    * ", name, ":  ", range, " (derivative ", drange, ")");
+    });
+    iterate<VisitorEnum::SECOND_ORDER>(storage, [&](QuantityId id, const auto& v, const auto&, const auto& d2v) {
+        Interval range, drange;
+        for (Size i = 0; i < v.size(); ++i) {
+            range.extend(Interval(minElement(v[i]), maxElement(v[i])));
+            drange.extend(Interval(minElement(d2v[i]), maxElement(d2v[i])));
+        }
+        std::string name = lowercase(getMetadata(id).quantityName);
+        logger->write("    * ", name, ":  ", range, " (derivative ", drange, ")");
+    });
+    ArrayView<const Float> divv
+        = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
+    ArrayView<const SymmetricTensor> gradv
+        = storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
+    Interval divvRange, gradvRange;
+    for (Size i = 0; i < divv.size(); ++i) {
+        divvRange.extend(divv[i]);
+        gradvRange.extend(Interval(minElement(gradv[i]), maxElement(gradv[i])));
+    }
+    logger->write("    * velocity divergence:  ", divvRange);
+    logger->write("    * velocity gradient:    ", gradvRange);
+
+    // clang-format on
+}
+
+BriefLogWriter::BriefLogWriter(const SharedPtr<ILogger>& logger, const RunSettings& settings)
+    : ILogWriter(logger, 0._f) {
+    name = settings.get<std::string>(RunSettingsId::RUN_NAME);
+}
+
+void BriefLogWriter::write(const Storage& UNUSED(storage), const Statistics& stats) {
+    // Timestep number and current run time
+    const int index = stats.get<int>(StatisticsId::INDEX);
+    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
+    const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
+    logger->write(name, " #", index, ", time = ", time, ", step = ", dt);
 }
 
 

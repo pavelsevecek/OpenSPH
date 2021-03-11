@@ -891,6 +891,9 @@ enum class RunSettingsId {
     /// Path of a file where the log is printed, used only when selected logger is LoggerEnum::FILE
     RUN_LOGGER_FILE,
 
+    /// Number specifying log verbosity. Can be between 0 and 3, going from least to most verbose.
+    RUN_LOGGER_VERBOSITY,
+
     /// Enables verbose log of a simulation.
     RUN_VERBOSE_ENABLE,
 

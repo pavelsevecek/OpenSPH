@@ -47,6 +47,28 @@ public:
     virtual void write(const Storage& storage, const Statistics& stats) override;
 };
 
+/// \brief Extension of \ref StandardLogWriter, printing additional information abount quantities.
+///
+/// Mainly intended for debugging purposes.
+class VerboseLogWriter : public StandardLogWriter {
+public:
+    VerboseLogWriter(const SharedPtr<ILogger>& logger, const RunSettings& settings)
+        : StandardLogWriter(logger, settings) {}
+
+    virtual void write(const Storage& storage, const Statistics& stats) override;
+};
+
+/// \brief Writer logging only basic run information
+class BriefLogWriter : public ILogWriter {
+private:
+    std::string name;
+
+public:
+    BriefLogWriter(const SharedPtr<ILogger>& logger, const RunSettings& settings);
+
+    virtual void write(const Storage& storage, const Statistics& stats) override;
+};
+
 /// \brief Writer logging selected integrals of motion.
 ///
 /// Currently fixed to logging total momentum, total angular momentum and total energy.

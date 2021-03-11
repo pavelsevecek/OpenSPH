@@ -26,6 +26,7 @@ class ITimeStepCriterion;
 class IBoundaryCondition;
 class IMaterial;
 class ILogger;
+class ILogWriter;
 class IOutput;
 class IInput;
 class IScheduler;
@@ -46,6 +47,8 @@ namespace Factory {
 /// \addtogroup Code components
 
 AutoPtr<ILogger> getLogger(const RunSettings& settings);
+
+AutoPtr<ILogWriter> getLogWriter(SharedPtr<ILogger> logger, const RunSettings& settings);
 
 AutoPtr<IOutput> getOutput(const RunSettings& settings);
 

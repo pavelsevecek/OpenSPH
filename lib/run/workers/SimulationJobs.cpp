@@ -122,6 +122,7 @@ static void addLoggerCategory(VirtualSettings& connector, RunSettings& settings)
     loggerCat.connect<Path>("Log file", settings, RunSettingsId::RUN_LOGGER_FILE).setEnabler([&settings] {
         return settings.get<LoggerEnum>(RunSettingsId::RUN_LOGGER) == LoggerEnum::FILE;
     });
+    loggerCat.connect<int>("Log verbosity", settings, RunSettingsId::RUN_LOGGER_VERBOSITY);
 }
 
 

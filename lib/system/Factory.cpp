@@ -6,6 +6,7 @@
 #include "gravity/SphericalGravity.h"
 #include "gravity/SymmetricGravity.h"
 #include "io/Logger.h"
+#include "io/LogWriter.h"
 #include "io/Output.h"
 #include "math/rng/Rng.h"
 #include "objects/Exceptions.h"
@@ -517,6 +518,22 @@ AutoPtr<ILogger> Factory::getLogger(const RunSettings& settings) {
             FileLogger::Options::ADD_TIMESTAMP | FileLogger::Options::KEEP_OPENED;
         return makeAuto<FileLogger>(path, flags);
     }
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+AutoPtr<ILogWriter> Factory::getLogWriter(SharedPtr<ILogger> logger, const RunSettings& settings) {
+    const int verbosity = clamp(settings.get<int>(RunSettingsId::RUN_LOGGER_VERBOSITY), 0, 3);
+    switch (verbosity) {
+    case 0:
+        return makeAuto<NullLogWriter>();
+    case 1:
+       return makeAuto<BriefLogWriter>(logger, settings);
+    case 2:
+        return makeAuto<StandardLogWriter>(logger, settings);
+    case 3:
+        return makeAuto<VerboseLogWriter>(logger, settings);
     default:
         NOT_IMPLEMENTED;
     }

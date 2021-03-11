@@ -262,7 +262,7 @@ void IRun::setNullToDefaults(SharedPtr<Storage> storage) {
         logger = Factory::getLogger(settings);
     }
     if (!logWriter) {
-        logWriter = makeAuto<StandardLogWriter>(logger, settings);
+        logWriter = Factory::getLogWriter(logger, settings);
     }
     if (!timeStepping) {
         timeStepping = Factory::getTimeStepping(settings, storage);
