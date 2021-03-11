@@ -6,8 +6,11 @@ IMPLEMENT_APP(Sph::App);
 
 NAMESPACE_SPH_BEGIN
 
-
 bool App::OnInit() {
+#ifndef SPH_DEBUG
+    wxDisableAsserts();
+#endif
+
     this->Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(App::processEvents));
 
     if (wxTheApp->argc > 1) {
