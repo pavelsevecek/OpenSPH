@@ -717,9 +717,9 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
     /// Material properties
     { BodySettingsId::DENSITY,                 "material.density",             2700._f,
         "Initial density of the material." },
-    { BodySettingsId::DENSITY_RANGE,           "material.density.range",       Interval(10._f, INFTY),
+    { BodySettingsId::DENSITY_RANGE,           "material.density.range",       Interval(50._f, INFTY),
         "Allowed range of densities for this material." },
-    { BodySettingsId::DENSITY_MIN,             "material.density.min",         50._f,
+    { BodySettingsId::DENSITY_MIN,             "material.density.min",         100._f,
         "Scale value for density, used to determine the time step value from derivatives of density." },
     { BodySettingsId::ENERGY,                  "material.energy",              0._f,
         "Initial specific energy of the material." },
