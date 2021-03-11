@@ -27,7 +27,7 @@ public:
             .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::ELASTIC_BOUNCE)
             .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 1._f)
             .set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 1._f)
-            .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 1._f)
+            .set(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR, 1._f)
             .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::ACCELERATION)
             .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
 

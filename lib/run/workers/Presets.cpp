@@ -183,7 +183,7 @@ SharedPtr<JobNode> Presets::makeGalaxyCollision(UniqueNameManager& nameMgr,
         .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::REPEL)
         .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 1._f)
         .set(RunSettingsId::RUN_END_TIME, 30._f)
-        .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 1._f)
+        .set(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR, 1._f)
         .set(RunSettingsId::GRAVITY_CONSTANT,
             1._f); // should be already provided by GalaxyIc, but doesnt hurt settings explicitly
     SharedPtr<JobNode> run = makeNode<NBodyJob>(nameMgr.getName("N-body simulation"), settings);

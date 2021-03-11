@@ -559,15 +559,17 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
         "Initial time step of the simulation. "},
     { RunSettingsId::TIMESTEPPING_CRITERION,        "timestep.criterion",       TimeStepCriterionEnum::ALL,
         "Criteria limiting the value of the time step. Can be one or more values from:\n" + EnumMap::getDesc<TimeStepCriterionEnum>() },
-    { RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR,  "timestep.adaptive.factor", 0.2_f,
+    { RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR,  "timestep.derivative_factor", 0.2_f,
         "Multiplicative factor of the time step computed as a value-to-derivative ratio of time-dependent quantities."},
+    { RunSettingsId::TIMESTEPPING_DIVERGENCE_FACTOR,  "timestep.divergence_factor", 0.005_f,
+        "Multiplicative factor of the time step computed using reciprocal velocity divergence."},
     { RunSettingsId::TIMESTEPPING_MEAN_POWER,       "timestep.mean_power",      -INFTY,
         "Power of the generalized mean, used to compute the final timestep from timesteps of individual "
         "particles. Negative infinity means the minimal timestep is used. This value will also set statistics "
         "of the restricting particle, namely the particle index and the quantity value and corresponding "
         "derivative of the particle; these statistics are not saved for other powers." },
     { RunSettingsId::TIMESTEPPING_MAX_INCREASE,       "timestep.max_change",      INFTY,
-        "Maximum relative difference between time steps in subsequent iterations. Use to 'smooth' the integration and "
+        "Maximum relative growth of the time steps in subsequent iterations. Used to 'smooth' the integration and "
         "to avoid rapid changes of time steps."},
     { RunSettingsId::TIMESTEPPING_MIDPOINT_COUNT,   "timestep.midpoint_count",  5,
         "Applicable for modified midpoint method. Specified the number of sub-steps within one time step." },

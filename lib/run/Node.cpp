@@ -173,6 +173,12 @@ void JobNode::run(const RunSettings& global, IJobCallbacks& callbacks, std::set<
     } else {
         callbacks.onEnd(Storage(), Statistics());
     }
+
+    // release memory of providers
+    for (auto& element : providers) {
+        SharedPtr<JobNode> provider = element.value;
+        provider->job->getResult().release();
+    }
 }
 
 class CopyEntriesProc : public VirtualSettings::IEntryProc {

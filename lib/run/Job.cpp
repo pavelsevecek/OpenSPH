@@ -78,6 +78,10 @@ JobContext JobContext::clone() const {
     }
 }
 
+void JobContext::release() {
+    data.reset();
+}
+
 template <typename T>
 SharedPtr<T> IJob::getInput(const std::string& name) const {
     if (!inputs.contains(name)) {

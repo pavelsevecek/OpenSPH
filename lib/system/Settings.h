@@ -1150,8 +1150,11 @@ enum class RunSettingsId {
     /// smallest time step of all is selected.
     TIMESTEPPING_CRITERION,
 
-    /// Multiplicative factor k in timestep computation; dt = k * v / dv
-    TIMESTEPPING_ADAPTIVE_FACTOR,
+    /// Multiplicative factor k for the derivative criterion; dt = k * v / dv
+    TIMESTEPPING_DERIVATIVE_FACTOR,
+
+    /// Multiplicative factor for the divergence criterion
+    TIMESTEPPING_DIVERGENCE_FACTOR,
 
     /// Power of the generalized mean, used to compute the final timestep from timesteps of individual
     /// particles. Negative infinity means the minimal timestep is used. This value will also set statistics

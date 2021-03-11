@@ -187,10 +187,10 @@ TEST_CASE("Settings addEntries", "[settings]") {
 
     RunSettings overrides(EMPTY_SETTINGS);
     settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::PERFECT_MERGING);
-    settings.set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 1._f);
+    settings.set(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR, 1._f);
 
     settings.addEntries(overrides);
-    REQUIRE(settings.get<Float>(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR) == 1._f);
+    REQUIRE(settings.get<Float>(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR) == 1._f);
     REQUIRE(settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER) ==
             CollisionHandlerEnum::PERFECT_MERGING);
     REQUIRE(settings.get<OverlapEnum>(RunSettingsId::COLLISION_OVERLAP) == OverlapEnum::INTERNAL_BOUNCE);

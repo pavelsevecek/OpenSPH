@@ -17,6 +17,8 @@ class TracelessTensor {
     template <typename T>
     friend Float minElement(const T& t);
     template <typename T>
+    friend Float maxElement(const T& t);
+    template <typename T>
     friend auto abs(const T& t);
     template <typename T>
     friend T sqrtInv(const T& t);
@@ -301,6 +303,17 @@ INLINE Float minElement(const TracelessTensor& t) {
     ASSERT(isReal(result) && result <= 0._f);
     return result;
 }
+
+/// \brief Returns the maximal component of the traceless tensor.
+template <>
+INLINE Float maxElement(const TracelessTensor& t) {
+    /// \todo optimize
+    const Float vectorMax = max(max(t.m[0], t.m[1]), max(t.m[2], t.m[3]));
+    const Float result = max(vectorMax, t.m12, -t.m[0] - t.m[1]);
+    ASSERT(isReal(result) && result >= 0._f);
+    return result;
+}
+
 
 /// \brief Returns the tensor of absolute values form traceless tensor elements.
 ///

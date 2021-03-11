@@ -119,7 +119,7 @@ struct MeanStepTls {
 
 
 DerivativeCriterion::DerivativeCriterion(const RunSettings& settings) {
-    factor = settings.get<Float>(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR);
+    factor = settings.get<Float>(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR);
     power = settings.get<Float>(RunSettingsId::TIMESTEPPING_MEAN_POWER);
     ASSERT(power < 0._f); // currently not implemented for non-negative powers
 }
@@ -213,7 +213,7 @@ TimeStep DerivativeCriterion::computeImpl(IScheduler& scheduler,
 //-----------------------------------------------------------------------------------------------------------
 
 AccelerationCriterion::AccelerationCriterion(const RunSettings& settings) {
-    factor = settings.get<Float>(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR);
+    factor = settings.get<Float>(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR);
 }
 
 TimeStep AccelerationCriterion::compute(IScheduler& scheduler,
@@ -254,8 +254,7 @@ TimeStep AccelerationCriterion::compute(IScheduler& scheduler,
 //-----------------------------------------------------------------------------------------------------------
 
 DivergenceCriterion::DivergenceCriterion(const RunSettings& settings) {
-    /// \todo make into a separate parameter?
-    factor = 0.1 * settings.get<Float>(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR);
+    factor = settings.get<Float>(RunSettingsId::TIMESTEPPING_DIVERGENCE_FACTOR);
 }
 
 TimeStep DivergenceCriterion::compute(IScheduler& scheduler,
@@ -305,7 +304,6 @@ TimeStep CourantCriterion::compute(IScheduler& scheduler,
     Statistics& UNUSED(stats)) {
     VERBOSE_LOG
 
-    /// \todo AV contribution?
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<const Float> cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
     ArrayView<const Size> neighs;
@@ -387,8 +385,9 @@ TimeStep MultiCriterion::compute(IScheduler& scheduler,
 
     // smooth the timestep if required
     if (maxChange < INFTY) {
-        if (minStep > lastStep * (1._f + maxChange)) {
-            minStep = lastStep * (1._f + maxChange);
+        const Float maxStep = lastStep * (1._f + maxChange);
+        if (minStep > maxStep) {
+            minStep = maxStep;
             minId = CriterionId::MAX_CHANGE;
         }
         lastStep = minStep;

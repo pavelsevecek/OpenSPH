@@ -218,6 +218,12 @@ INLINE Float minElement(const Tensor& t) {
     return min(minElement(t.row(0)), minElement(t.row(1)), minElement(t.row(2)));
 }
 
+/// Returns the maximal element of the tensor.
+template <>
+INLINE Float maxElement(const Tensor& t) {
+    return max(maxElement(t.row(0)), maxElement(t.row(1)), maxElement(t.row(2)));
+}
+
 /// Component-wise minimum of two tensors.
 template <>
 INLINE Tensor min(const Tensor& t1, const Tensor& t2) {

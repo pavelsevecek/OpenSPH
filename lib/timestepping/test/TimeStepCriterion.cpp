@@ -76,7 +76,7 @@ TEST_CASE("Derivative Criterion minimum", "[timestepping]") {
     TimeStep step = criterion.compute(pool, storage, INFTY, stats);
 
     // this is quite imprecise due to approximative sqrt, but it doesn't really matter for timestep estimation
-    const Float factor = settings.get<Float>(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR);
+    const Float factor = settings.get<Float>(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR);
     REQUIRE(step.value == approx(factor * 3._f, 1.e-3_f));
     REQUIRE(step.id == CriterionId::DERIVATIVE);
     REQUIRE(stats.get<QuantityId>(StatisticsId::LIMITING_QUANTITY) == QuantityId::ENERGY);
@@ -112,7 +112,7 @@ TEST_CASE("Derivative Criterion mean", "[timestepping]") {
     for (Size i = 0; i < storage.getParticleCnt(); ++i) {
         expectedMean.accumulate((12._f + Sph::abs(i - MINIMAL_PARTICLE_IDX)) / 4._f);
     }
-    const Float factor = settings.get<Float>(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR);
+    const Float factor = settings.get<Float>(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR);
     REQUIRE(step.value == approx(factor * expectedMean.compute(), 0.02_f));
 
     REQUIRE(step.id == CriterionId::DERIVATIVE);
@@ -129,7 +129,7 @@ TEST_CASE("Derivative Criterion mean", "[timestepping]") {
 TEST_CASE("Acceleration Criterion", "[timestepping]") {
     RunSettings settings;
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    settings.set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 1._f);
+    settings.set(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR, 1._f);
     AccelerationCriterion criterion(settings);
     Storage storage = getStorage();
 

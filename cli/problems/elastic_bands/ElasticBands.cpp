@@ -30,7 +30,7 @@ public:
             .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
             .set(RunSettingsId::SPH_AV_BETA, 3._f)
             .set(RunSettingsId::SPH_KERNEL, KernelEnum::CUBIC_SPLINE)
-            .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
+            .set(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR, 0.2_f)
             .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 1._f)
             .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
             .set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, EMPTY_FLAGS)

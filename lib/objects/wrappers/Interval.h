@@ -114,8 +114,9 @@ INLINE T clamp(const T& v, const Interval& range) {
 }
 
 
-/// Returns clamped values and the value of derivative. The function is specialized for floats,
-/// returning zero derivative if the value is outside range.
+/// \brief Returns clamped values and the value of derivative.
+///
+/// The function is specialized for floats, returning zero derivative if the value is outside range.
 /// \todo clamp derivatives for all types? So far we don't clamp non-scalar quantities anyway ...
 template <typename T>
 INLINE Pair<T> clampWithDerivative(const T&, const T&, const Interval&) {

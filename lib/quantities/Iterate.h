@@ -197,6 +197,15 @@ struct StorageVisitor<VisitorEnum::HIGHEST_DERIVATIVES> {
             functor(id, q.getD2t<TValue>());
         }
     }
+    template <typename TValue, typename TFunctor>
+    void visit(const Quantity& q, const QuantityId id, TFunctor&& functor) {
+        const OrderEnum order = q.getOrderEnum();
+        if (order == OrderEnum::FIRST) {
+            functor(id, q.getDt<TValue>());
+        } else if (order == OrderEnum::SECOND) {
+            functor(id, q.getD2t<TValue>());
+        }
+    }
 };
 template <>
 struct StoragePairVisitor<VisitorEnum::HIGHEST_DERIVATIVES> {

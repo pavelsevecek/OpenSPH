@@ -75,6 +75,9 @@ public:
     /// Note that \ref WorkerContext has a pointer semantics, a copy will thus reference the same object as
     /// the original. Use this function to perform a deep copy and return an independent instance.
     JobContext clone() const;
+
+    /// \brief Releases all allocated data
+    void release();
 };
 
 /// \brief Base class for all object performing an operation in a simulation hierarchy.

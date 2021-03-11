@@ -54,6 +54,16 @@ static void addTimeSteppingCategory(VirtualSettings& connector, RunSettings& set
             settings.getFlags<TimeStepCriterionEnum>(RunSettingsId::TIMESTEPPING_CRITERION);
         return criteria.has(TimeStepCriterionEnum::COURANT);
     };
+    auto derivativeEnabler = [&settings] {
+        Flags<TimeStepCriterionEnum> criteria =
+            settings.getFlags<TimeStepCriterionEnum>(RunSettingsId::TIMESTEPPING_CRITERION);
+        return criteria.hasAny(TimeStepCriterionEnum::DERIVATIVES, TimeStepCriterionEnum::ACCELERATION);
+    };
+    auto divergenceEnabler = [&settings] {
+        Flags<TimeStepCriterionEnum> criteria =
+            settings.getFlags<TimeStepCriterionEnum>(RunSettingsId::TIMESTEPPING_CRITERION);
+        return criteria.has(TimeStepCriterionEnum::DIVERGENCE);
+    };
 
     VirtualSettings::Category& rangeCat = connector.addCategory("Integration");
     rangeCat.connect<Float>("Duration [s]", settings, RunSettingsId::RUN_END_TIME);
@@ -65,7 +75,11 @@ static void addTimeSteppingCategory(VirtualSettings& connector, RunSettings& set
         "Time step criteria", settings, RunSettingsId::TIMESTEPPING_CRITERION);
     rangeCat.connect<Float>("Courant number", settings, RunSettingsId::TIMESTEPPING_COURANT_NUMBER)
         .setEnabler(courantEnabler);
-    rangeCat.connect<Float>("Time step multiplier", settings, RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR);
+    rangeCat.connect<Float>("Derivative factor", settings, RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR)
+        .setEnabler(derivativeEnabler);
+    rangeCat.connect<Float>("Divergence factor", settings, RunSettingsId::TIMESTEPPING_DIVERGENCE_FACTOR)
+        .setEnabler(divergenceEnabler);
+    rangeCat.connect<Float>("Max step change", settings, RunSettingsId::TIMESTEPPING_MAX_INCREASE);
 }
 
 static void addGravityCategory(VirtualSettings& connector, RunSettings& settings) {
@@ -404,7 +418,7 @@ RunSettings NBodyJob::getDefaultSettings(const std::string& name) {
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 10._f)
         .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::ACCELERATION)
-        .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
+        .set(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR, 0.2_f)
         .set(RunSettingsId::RUN_START_TIME, timeRange.lower())
         .set(RunSettingsId::RUN_END_TIME, timeRange.upper())
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, timeRange.size() / 10)
