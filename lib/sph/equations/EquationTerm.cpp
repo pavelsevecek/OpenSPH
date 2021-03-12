@@ -3,6 +3,8 @@
 #include "sph/Materials.h"
 #include "sph/equations/DerivativeHelpers.h"
 #include "thread/Scheduler.h"
+#include "system/Factory.h"
+#include "sph/kernel/Kernel.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -259,6 +261,10 @@ void NavierStokesForce::create(Storage& storage, IMaterial& material) const {
 
 ContinuityEquation::ContinuityEquation(const RunSettings& settings) {
     useUndamaged = settings.get<bool>(RunSettingsId::SPH_CONTINUITY_USING_UNDAMAGED);
+
+    LutKernel<3> kernel = Factory::getKernel<3>(settings);
+    // central value of the kernel
+    w0 = kernel.valueImpl(0);
 }
 
 void ContinuityEquation::setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) {
@@ -303,7 +309,19 @@ void ContinuityEquation::finalize(IScheduler& scheduler, Storage& storage, const
 void ContinuityEquation::create(Storage& storage, IMaterial& material) const {
     const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, rho0);
-    material.setRange(QuantityId::DENSITY, BodySettingsId::DENSITY_RANGE, BodySettingsId::DENSITY_MIN);
+
+    // set minimal density based on masses and smoothing kernel
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    Float rhoLimit = LARGE;
+    for (Size i = 0; i < r.size(); ++i) {
+        rhoLimit = min(rhoLimit, m[i] * w0 / pow<3>(r[i][H]));
+    }
+    const Interval rhoRange = material.getParam<Interval>(BodySettingsId::DENSITY_RANGE);
+    const Float rhoSmall = material.getParam<Float>(BodySettingsId::DENSITY_MIN);
+    const Float rho_min = max(rhoLimit, rhoRange.lower());
+    const Float rho_max = rhoRange.upper();
+    material.setRange(QuantityId::DENSITY, Interval(rho_min, rho_max), rhoSmall);
 
     storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
 }

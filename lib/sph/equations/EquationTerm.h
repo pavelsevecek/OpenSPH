@@ -197,6 +197,7 @@ public:
 class ContinuityEquation : public IEquationTerm {
 private:
     bool useUndamaged;
+    Float w0;
 
 public:
     explicit ContinuityEquation(const RunSettings& settings);
