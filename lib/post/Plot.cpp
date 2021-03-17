@@ -234,7 +234,10 @@ void SfdPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
     params.components.flags = connect;
     params.velocityCutoff = 3.e3_f; // km/s  /// \todo generalize
     if (storage.getMaterialCnt() > 0) {
-        params.referenceDensity = storage.getMaterial(0)->getParam<Float>(BodySettingsId::DENSITY);
+        const BodySettings& body = storage.getMaterial(0)->getParams();
+        if (body.has(BodySettingsId::DENSITY)) {
+            params.referenceDensity = body.get<Float>(BodySettingsId::DENSITY);
+        }
     }
     Array<Post::HistPoint> points =
         Post::getCumulativeHistogram(storage, Post::HistogramId::EQUIVALENT_MASS_RADII, source, params);
