@@ -189,13 +189,13 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     body.set(BodySettingsId::EOS, EosEnum::TILLOTSON);
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::ELASTIC);
-    body.set(BodySettingsId::DENSITY_RANGE, Interval(4._f, 6._f));
+    body.set(BodySettingsId::DENSITY_RANGE, Interval(40._f, 60._f));
     body.set(BodySettingsId::DENSITY_MIN, 3._f);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 2._f), body);
 
     body.set(BodySettingsId::PARTICLE_COUNT, 20);
     body.set(BodySettingsId::EOS, EosEnum::IDEAL_GAS);
-    body.set(BodySettingsId::DENSITY_RANGE, Interval(1._f, 2._f));
+    body.set(BodySettingsId::DENSITY_RANGE, Interval(20._f, 40._f));
     body.set(BodySettingsId::DENSITY_MIN, 5._f);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), body);
 
@@ -208,6 +208,8 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
         solver->create(storage, storage.getMaterial(i));
     }
+    REQUIRE(storage.getMaterial(0)->range(QuantityId::DENSITY) == Interval(40._f, 60._f));
+    REQUIRE(storage.getMaterial(0)->minimal(QuantityId::DENSITY) == 3._f);
 
     RandomPathManager manager;
     Path path = manager.getPath("out");
@@ -241,14 +243,14 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     iteratePair<VisitorEnum::ALL_BUFFERS>(loaded, storage, [](auto& b1, auto& b2) { REQUIRE(b1 == b2); });
 
     MaterialView mat = loaded.getMaterial(0);
-    REQUIRE(mat->range(QuantityId::DENSITY) == Interval(4._f, 6._f));
+    REQUIRE(mat->range(QuantityId::DENSITY) == Interval(40._f, 60._f));
     REQUIRE(mat->minimal(QuantityId::DENSITY) == 3._f);
     REQUIRE(mat.sequence() == IndexSequence(0, 10));
     EosMaterial* eosMat = dynamic_cast<EosMaterial*>(&mat.material());
     REQUIRE(dynamic_cast<const TillotsonEos*>(&eosMat->getEos()));
 
     mat = loaded.getMaterial(1);
-    REQUIRE(mat->range(QuantityId::DENSITY) == Interval(1._f, 2._f));
+    REQUIRE(mat->range(QuantityId::DENSITY) == Interval(20._f, 40._f));
     REQUIRE(mat->minimal(QuantityId::DENSITY) == 5._f);
     REQUIRE(mat.sequence() == IndexSequence(10, 30));
     eosMat = dynamic_cast<EosMaterial*>(&mat.material());

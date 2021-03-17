@@ -26,7 +26,11 @@ Path UniquePathManager::getPath(const Path& expected) {
             ss.str("");
             ss << std::setw(3) << std::setfill('0') << i;
             path = Path(path.native() + "_" + ss.str());
-            path.replaceExtension(expected.extension().native());
+            if (!expected.extension().empty()) {
+                // add back previously removed extension
+                // note that replaceExtension would remove any other extensions the file might have
+                path = Path(path.native() + "." + expected.extension().native());
+            }
 
             // starting from i==2, the path are always consecutive, so we don't really have to find the path;
             // the speed different is quite small, though

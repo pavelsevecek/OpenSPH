@@ -59,7 +59,7 @@ TEST_CASE("Path extension", "[path]") {
     REQUIRE(Path("/usr/lib").extension() == Path());
     REQUIRE(Path("/usr/lib/").extension() == Path());
     REQUIRE(Path("file.txt").extension() == Path("txt"));
-    REQUIRE(Path("archive.tar.gz").extension() == Path("tar.gz"));
+    REQUIRE(Path("archive.tar.gz").extension() == Path("gz"));
     REQUIRE(Path(".gitignore").extension() == Path());
 }
 
@@ -68,7 +68,7 @@ TEST_CASE("Path replaceExtension", "[path]") {
     REQUIRE(Path("/").replaceExtension("tmp") == Path("/"));
     REQUIRE(Path("/usr/.").replaceExtension("tmp") == Path("/usr/."));
     REQUIRE(Path("/usr/file").replaceExtension("tmp") == Path("/usr/file.tmp"));
-    REQUIRE(Path("/usr/file.tar.gz").replaceExtension("zip") == Path("/usr/file.zip"));
+    REQUIRE(Path("/usr/file.tar.gz").replaceExtension("zip") == Path("/usr/file.tar.zip"));
     REQUIRE(Path("/usr/file.").replaceExtension("tmp") == Path("/usr/file.tmp"));
     REQUIRE(Path("/usr/.gitignore").replaceExtension("tmp") == Path("/usr/.gitignore.tmp"));
     REQUIRE(Path("/usr/local/..").replaceExtension("tmp") == Path("/usr/local/.."));
@@ -83,7 +83,8 @@ TEST_CASE("Path removeExtension", "[path]") {
     REQUIRE(Path("/").removeExtension() == Path("/"));
     REQUIRE(Path("/usr/.").removeExtension() == Path("/usr/."));
     REQUIRE(Path("/usr/file").removeExtension() == Path("/usr/file"));
-    REQUIRE(Path("/usr/file.tar.gz").removeExtension() == Path("/usr/file"));
+    REQUIRE(Path("/usr/file.tar.gz").removeExtension() == Path("/usr/file.tar"));
+    REQUIRE(Path("/usr/file.gz").removeExtension() == Path("/usr/file"));
     REQUIRE(Path("/usr/file.").removeExtension() == Path("/usr/file"));
     REQUIRE(Path("/usr/.gitignore").removeExtension() == Path("/usr/.gitignore"));
     REQUIRE(Path("/usr/local/..").removeExtension() == Path("/usr/local/.."));

@@ -63,11 +63,11 @@ public:
     /// \brief Returns the extension of the filename.
     ///
     /// This is an empty path for directories or for files without extensions. If the file has more than one
-    /// extension, returns all of them.
+    /// extension, returns only the last one.
     /// Example:
     ///   /usr/lib -> ""
     ///   file.txt -> "txt"
-    ///   archive.tar.gz -> tar.gz
+    ///   archive.tar.gz -> "gz"
     ///   .gitignore -> ""
     Path extension() const;
 
