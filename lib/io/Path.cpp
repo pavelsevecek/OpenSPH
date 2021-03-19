@@ -61,8 +61,8 @@ Path Path::extension() const {
     if (name.path.size() <= 1) {
         return Path();
     }
-    const std::size_t n = name.path.find('.', 1);
-    if (n == std::string::npos) {
+    const std::size_t n = name.path.find_last_of('.');
+    if (n == 0 || n == std::string::npos) {
         return Path();
     }
     return Path(name.path.substr(n + 1));
@@ -79,8 +79,8 @@ Path& Path::replaceExtension(const std::string& newExtension) {
         return *this;
     }
     // skip first character, files like '.gitignore' are hidden, not just extension without filename
-    const std::size_t n = name.path.find('.', 1);
-    if (n == std::string::npos) {
+    const std::size_t n = name.path.find_last_of('.');
+    if (n == 0 || n == std::string::npos) {
         // no extension, append the new one
         if (!newExtension.empty()) {
             path += "." + newExtension;
@@ -102,8 +102,8 @@ Path& Path::removeExtension() {
     if (name.empty() || name.path == "." || name.path == "..") {
         return *this;
     }
-    const std::size_t n = name.path.find('.', 1);
-    if (n == std::string::npos) {
+    const std::size_t n = name.path.find_last_of('.');
+    if (n == 0 || n == std::string::npos) {
         // no extension, do nothing
         return *this;
     } else {

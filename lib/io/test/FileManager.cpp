@@ -13,7 +13,7 @@ TEST_CASE("UniqueFileManager getPath", "[filemanager]") {
     REQUIRE(manager.getPath(Path("path.txt")) == Path("path.txt"));
     REQUIRE(manager.getPath(Path("path.txt")) == Path("path_001.txt"));
     REQUIRE(manager.getPath(Path("path.tar.gz")) == Path("path.tar.gz"));
-    REQUIRE(manager.getPath(Path("path.tar.gz")) == Path("path_001.tar.gz"));
+    REQUIRE(manager.getPath(Path("path.tar.gz")) == Path("path.tar_001.gz"));
 
     REQUIRE(manager.getPath(Path("/absolute/path")) == Path("/absolute/path"));
     REQUIRE(manager.getPath(Path("/absolute/path")) == Path("/absolute/path_001"));
