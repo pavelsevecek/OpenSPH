@@ -25,7 +25,7 @@ static void plotTimeStepping(const std::string name) {
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BRUTE_FORCE);
 
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(settings);
-    NBodySolver solver(*scheduler, settings);
+    HardSphereSolver solver(*scheduler, settings);
 
     TTimeStepping timestepping(storage, settings);
     Statistics stats;

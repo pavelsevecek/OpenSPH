@@ -465,14 +465,17 @@ VirtualSettings NBodyJob::getSettings() {
     auto collisionEnabler = [this] {
         return !useSoft && !settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE);
     };
-    auto mergeEnabler = [this] {
+    auto mergeLimitEnabler = [this] {
         if (useSoft) {
             return false;
         }
         const bool aggregates = settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE);
         const CollisionHandlerEnum handler =
             settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER);
-        return aggregates || handler != CollisionHandlerEnum::ELASTIC_BOUNCE;
+        const OverlapEnum overlap =
+            settings.get<OverlapEnum>(RunSettingsId::COLLISION_OVERLAP);
+        return aggregates || handler == CollisionHandlerEnum::MERGE_OR_BOUNCE ||
+               overlap == OverlapEnum::PASS_OR_MERGE || overlap == OverlapEnum::REPEL_OR_MERGE;
     };
 
     VirtualSettings::Category& collisionCat = connector.addCategory("Collisions");
@@ -486,10 +489,10 @@ VirtualSettings NBodyJob::getSettings() {
         .connect<Float>("Tangential restitution", settings, RunSettingsId::COLLISION_RESTITUTION_TANGENT)
         .setEnabler(collisionEnabler);
     collisionCat.connect<Float>("Merge velocity limit", settings, RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT)
-        .setEnabler(mergeEnabler);
+        .setEnabler(mergeLimitEnabler);
     collisionCat
         .connect<Float>("Merge rotation limit", settings, RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT)
-        .setEnabler(mergeEnabler);
+        .setEnabler(mergeLimitEnabler);
 
     addLoggerCategory(connector, settings);
     addOutputCategory(connector, settings);

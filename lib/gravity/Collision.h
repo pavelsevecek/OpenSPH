@@ -387,7 +387,7 @@ public:
 
 /// \brief Handler unconditionally merging the overlapping particles.
 ///
-/// Behaves similarly to collision handler \ref PerfectMergingHandler, but there is no check for relative
+/// Behaves similarly to collision handler \ref MergingCollisionHandler, but there is no check for relative
 /// velocities of particles nor angular frequency of the merger - particles are always merged.
 class MergeOverlapHandler : public IOverlapHandler {
 private:
