@@ -177,6 +177,16 @@ static void drawKey(IRenderContext& context,
     context.drawText(lineStart + Coords(0, 6), flags, scaleText + units);
 }
 
+void drawAxis(IRenderContext& context, const Rgba& color, const Vector& axis, const std::string& label) {
+    const float length = 40;
+    const Coords origin(50, context.size().y - 50);
+    const Coords dir = Coords(axis[0], axis[1]) * length;
+    context.setColor(color.brighten(0.25), ColorFlag::LINE);
+    context.drawLine(origin, origin - dir);
+    context.setColor(Rgba::white(), ColorFlag::TEXT);
+    context.drawText(origin - dir, TextAlign::TOP | TextAlign::HORIZONTAL_CENTER, label);
+}
+
 ParticleRenderer::ParticleRenderer(const GuiSettings& settings) {
     grid = float(settings.get<Float>(GuiSettingsId::VIEW_GRID_SIZE));
     shouldContinue = true;
@@ -348,6 +358,11 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
             lastRenderTimer.restart();
             drawKey(*context, stats, wtp.value(), fps, params.background);
         }
+
+        const AffineMatrix frame = params.camera->getFrame().inverse();
+        drawAxis(*context, Rgba::red(), frame.row(0), "x");
+        drawAxis(*context, Rgba::green(), frame.row(1), "y");
+        drawAxis(*context, Rgba::blue(), frame.row(2), "z");
     }
 
     // lastly black frame to draw on top of other stuff
