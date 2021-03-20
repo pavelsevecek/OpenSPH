@@ -449,9 +449,27 @@ static JobRegistrar sRegisterCollisionSetup(
 // SmoothedToSolidHandoff
 // ----------------------------------------------------------------------------------------------------------
 
+static RegisterEnum<HandoffRadius> sHandoffRadius({
+    { HandoffRadius::EQUAL_VOLUME,
+        "equal_volume",
+        "Assume equal volume for solid spheres; r_solid = m / (4/3 pi rho_sph)^(1/3)." },
+    { HandoffRadius::SMOOTHING_LENGTH,
+        "smoothing_length",
+        "Use a multiple of the smoothing length; r_solid = multiplier * h." },
+});
+
 VirtualSettings SmoothedToSolidHandoff::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
+
+    VirtualSettings::Category& category = connector.addCategory("Handoff options");
+    category.connect("Radius", "radius", type)
+        .setTooltip("Determines how to compute the radii of the solid spheres. Can be one of:\n" +
+                    EnumMap::getDesc<HandoffRadius>());
+    category.connect("Radius multiplier", "radiusMultiplier", radiusMultiplier).setEnabler([this] {
+        return HandoffRadius(type) == HandoffRadius::SMOOTHING_LENGTH;
+    });
+
     return connector;
 }
 
@@ -473,7 +491,16 @@ void SmoothedToSolidHandoff::evaluate(const RunSettings& UNUSED(global), IRunCal
     ArrayView<Vector> r_sphere = spheres.getValue<Vector>(QuantityId::POSITION);
     ASSERT(r_sphere.size() == rho.size());
     for (Size i = 0; i < r_sphere.size(); ++i) {
-        r_sphere[i][H] = cbrt(3._f * m[i] / (4._f * PI * rho[i]));
+        switch (HandoffRadius(type)) {
+        case (HandoffRadius::EQUAL_VOLUME):
+            r_sphere[i][H] = cbrt(3._f * m[i] / (4._f * PI * rho[i]));
+            break;
+        case (HandoffRadius::SMOOTHING_LENGTH):
+            r_sphere[i][H] = radiusMultiplier * r_sphere[i][H];
+            break;
+        default:
+            NOT_IMPLEMENTED;
+        }
     }
 
     // remove all sublimated particles

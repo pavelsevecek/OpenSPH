@@ -191,7 +191,24 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
+/// \brief Determines how to compute the radii of the spheres
+enum class HandoffRadius {
+    /// The created sphere has the same volume as the SPH particles (=mass/density)
+    EQUAL_VOLUME,
+
+    /// The radius is proportional to the smoothing length of the particles.
+    SMOOTHING_LENGTH,
+};
+
 class SmoothedToSolidHandoff : public IParticleJob {
+private:
+    EnumWrapper type = EnumWrapper(HandoffRadius::EQUAL_VOLUME);
+
+    /// \brief Conversion factor between smoothing length and particle radius.
+    ///
+    /// Used only for Radius::SMOOTHING_LENGTH.
+    Float radiusMultiplier = 0.333_f;
+
 public:
     explicit SmoothedToSolidHandoff(const std::string& name)
         : IParticleJob(name) {}
