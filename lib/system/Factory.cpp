@@ -186,8 +186,9 @@ SharedPtr<IScheduler> Factory::getScheduler(const RunSettings& settings) {
         scheduler->setGranularity(granularity);
         return scheduler;
 #elif SPH_USE_OPENMP
-        MARK_USED(granularity);
-        return OmpScheduler::getGlobalInstance();
+        SharedPtr<OmpScheduler> scheduler = OmpScheduler::getGlobalInstance();
+        scheduler->setGranularity(granularity);
+        return scheduler;
 #else
         static WeakPtr<ThreadPool> weakGlobal = ThreadPool::getGlobalInstance();
         if (SharedPtr<ThreadPool> global = weakGlobal.lock()) {
@@ -529,7 +530,7 @@ AutoPtr<ILogWriter> Factory::getLogWriter(SharedPtr<ILogger> logger, const RunSe
     case 0:
         return makeAuto<NullLogWriter>();
     case 1:
-       return makeAuto<BriefLogWriter>(logger, settings);
+        return makeAuto<BriefLogWriter>(logger, settings);
     case 2:
         return makeAuto<StandardLogWriter>(logger, settings);
     case 3:

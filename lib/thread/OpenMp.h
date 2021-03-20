@@ -11,8 +11,14 @@ class OmpScheduler : public IScheduler {
 private:
     static SharedPtr<OmpScheduler> globalInstance;
 
+    Size granularity = 100;
+
 public:
     OmpScheduler(const Size numThreads = 0);
+
+    void setGranularity(const Size newGranularity) {
+        granularity = newGranularity;
+    }
 
     virtual SharedPtr<ITask> submit(const Function<void()>& task) override;
 
