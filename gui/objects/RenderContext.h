@@ -52,11 +52,29 @@ public:
     virtual void drawText(const Coords p, const Flags<TextAlign> align, const std::string& s) = 0;
 
     virtual void drawText(const Coords p, const Flags<TextAlign> align, const std::wstring& s) = 0;
+
+    virtual Array<IRenderOutput::Label> getLabels() const {
+        return {};
+    }
 };
 
+struct OverridePixelOp {
+    INLINE Rgba operator()(const Rgba&, const Rgba& color) const {
+        return color;
+    }
+};
 
+struct OverPixelOp {
+    INLINE Rgba operator()(const Rgba& prev, const Rgba& color) const {
+        return color.over(prev);
+    }
+};
+
+template <typename PixelOp>
 class PreviewRenderContext : public IRenderContext {
 protected:
+    PixelOp pixelOp;
+
     Bitmap<Rgba>& bitmap;
 
     Array<IRenderOutput::Label> labels;
@@ -74,10 +92,6 @@ protected:
 public:
     explicit PreviewRenderContext(Bitmap<Rgba>& bitmap)
         : bitmap(bitmap) {}
-
-    Array<IRenderOutput::Label> getLabels() const {
-        return labels.clone();
-    }
 
     virtual Pixel size() const override {
         return bitmap.size();
@@ -103,21 +117,33 @@ public:
 
     virtual void drawText(const Coords p, const Flags<TextAlign> align, const std::wstring& s) override;
 
+    virtual Array<IRenderOutput::Label> getLabels() const override {
+        return labels.clone();
+    }
+
 private:
     void drawSafe(const Pixel p, const Rgba c) {
         if (p.x >= 0 && p.y >= 0 && p.x < bitmap.size().x && p.y < bitmap.size().y) {
-            bitmap[Pixel(p)] = c.over(bitmap[Pixel(p)]);
+            bitmap[p] = pixelOp(bitmap[p], c);
         }
     }
 
     void drawSafe(const Coords p, const Rgba c) {
         this->drawSafe(Pixel(p), c);
     }
+
+    void draw(const Pixel p, const Rgba c) {
+        bitmap[p] = pixelOp(bitmap[p], c);
+    }
+
+    void draw(const Coords p, const Rgba c) {
+        this->draw(Pixel(p), c);
+    }
 };
 
 /// \todo do not derive from PreviewRenderContext, rather some RenderContextBase; AA context is NOT a preview
 /// render context!
-class AntiAliasedRenderContext : public PreviewRenderContext {
+class AntiAliasedRenderContext : public PreviewRenderContext<OverPixelOp> {
 public:
     AntiAliasedRenderContext(Bitmap<Rgba>& bitmap)
         : PreviewRenderContext(bitmap) {}

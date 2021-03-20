@@ -2,7 +2,8 @@
 
 NAMESPACE_SPH_BEGIN
 
-void PreviewRenderContext::setColor(const Rgba& color, const Flags<ColorFlag> flags) {
+template <typename PixelOp>
+void PreviewRenderContext<PixelOp>::setColor(const Rgba& color, const Flags<ColorFlag> flags) {
     if (flags.has(ColorFlag::LINE)) {
         colors.line = color;
     }
@@ -15,19 +16,23 @@ void PreviewRenderContext::setColor(const Rgba& color, const Flags<ColorFlag> fl
     // ASSERT(colors.line.alpha() == 1.f);
 }
 
-void PreviewRenderContext::setThickness(const float newThickness) {
+template <typename PixelOp>
+void PreviewRenderContext<PixelOp>::setThickness(const float newThickness) {
     thickness = newThickness;
 }
 
-void PreviewRenderContext::setFontSize(const int newFontSize) {
+template <typename PixelOp>
+void PreviewRenderContext<PixelOp>::setFontSize(const int newFontSize) {
     fontSize = newFontSize;
 }
 
-void PreviewRenderContext::fill(const Rgba& color) {
+template <typename PixelOp>
+void PreviewRenderContext<PixelOp>::fill(const Rgba& color) {
     bitmap.fill(color);
 }
 
-void PreviewRenderContext::drawLine(Coords p1, Coords p2) {
+template <typename PixelOp>
+void PreviewRenderContext<PixelOp>::drawLine(Coords p1, Coords p2) {
     if (abs(p2.x - p1.x) > abs(p2.y - p1.y)) {
         if (p1.x > p2.x) {
             std::swap(p1, p2);
@@ -55,35 +60,43 @@ void PreviewRenderContext::drawLine(Coords p1, Coords p2) {
     }
 }
 
-void PreviewRenderContext::drawCircle(const Coords center, const float radius) {
+template <typename PixelOp>
+void PreviewRenderContext<PixelOp>::drawCircle(const Coords center, const float radius) {
     if (center.x < -radius || center.x > bitmap.size().x + radius || center.y < -radius ||
         center.y > bitmap.size().y + radius) {
         return;
     }
     const Pixel p(center);
     const int intRadius = min(int(radius), bitmap.size().x);
-    for (int y = -intRadius; y <= intRadius; ++y) {
-        for (int x = -intRadius; x <= +intRadius; ++x) {
-            const int rSqr = sqr(x) + sqr(y);
-            if (rSqr <= sqr(radius - 1)) {
-                drawSafe(p + Pixel(x, y), colors.fill);
-            } else if (rSqr <= sqr(radius)) {
-                drawSafe(p + Pixel(x, y), colors.line);
+    if (p.x >= intRadius && p.x < bitmap.size().x - intRadius - 1 && p.y >= intRadius &&
+        p.y < bitmap.size().y - intRadius - 1) {
+        // can draw without checking
+        for (int y = -intRadius; y <= intRadius; ++y) {
+            for (int x = -intRadius; x <= intRadius; ++x) {
+                const int rSqr = sqr(x) + sqr(y);
+                if (rSqr <= sqr(radius - 1)) {
+                    draw(p + Pixel(x, y), colors.fill);
+                } else if (rSqr <= sqr(radius)) {
+                    draw(p + Pixel(x, y), colors.line);
+                }
+            }
+        }
+    } else {
+        for (int y = -intRadius; y <= intRadius; ++y) {
+            for (int x = -intRadius; x <= intRadius; ++x) {
+                const int rSqr = sqr(x) + sqr(y);
+                if (rSqr <= sqr(radius - 1)) {
+                    drawSafe(p + Pixel(x, y), colors.fill);
+                } else if (rSqr <= sqr(radius)) {
+                    drawSafe(p + Pixel(x, y), colors.line);
+                }
             }
         }
     }
-    /*if (size < 0.5_f) {
-        // just a single pixel
-        dc.DrawPoint(p->point);
-    } else if (size < 1._f) {
-        // draw a 2x2 square - the circle would come out as 3x3 square
-        dc.DrawRectangle(p->point, wxSize(2, 2));
-    } else {
-        dc.DrawCircle(p->point, round(size));
-    }*/
 }
 
-void PreviewRenderContext::drawTriangle(const Coords p1, const Coords p2, const Coords p3) {
+template <typename PixelOp>
+void PreviewRenderContext<PixelOp>::drawTriangle(const Coords p1, const Coords p2, const Coords p3) {
     // http://www-users.mat.uni.torun.pl/~wrona/3d_tutor/tri_fillers.html
 
     StaticArray<Coords, 3> p{ p1, p2, p3 };
@@ -125,7 +138,8 @@ void PreviewRenderContext::drawTriangle(const Coords p1, const Coords p2, const 
     }
 }
 
-void PreviewRenderContext::drawBitmap(const Coords p, const Bitmap<Rgba>& subBitmap) {
+template <typename PixelOp>
+void PreviewRenderContext<PixelOp>::drawBitmap(const Coords p, const Bitmap<Rgba>& subBitmap) {
     for (int y = 0; y < subBitmap.size().y; ++y) {
         for (int x = 0; x < subBitmap.size().x; ++x) {
             drawSafe(Pixel(x, y) + Pixel(p), subBitmap[Pixel(x, y)]);
@@ -133,14 +147,23 @@ void PreviewRenderContext::drawBitmap(const Coords p, const Bitmap<Rgba>& subBit
     }
 }
 
-void PreviewRenderContext::drawText(const Coords p, const Flags<TextAlign> align, const std::string& s) {
+template <typename PixelOp>
+void PreviewRenderContext<PixelOp>::drawText(const Coords p,
+    const Flags<TextAlign> align,
+    const std::string& s) {
     std::wstring ws(s.begin(), s.end());
     this->drawText(p, align, ws);
 }
 
-void PreviewRenderContext::drawText(const Coords p, const Flags<TextAlign> align, const std::wstring& s) {
+template <typename PixelOp>
+void PreviewRenderContext<PixelOp>::drawText(const Coords p,
+    const Flags<TextAlign> align,
+    const std::wstring& s) {
     labels.push(IRenderOutput::Label{ s, colors.text, fontSize, align, Pixel(p) });
 }
+
+template class PreviewRenderContext<OverridePixelOp>;
+template class PreviewRenderContext<OverPixelOp>;
 
 void AntiAliasedRenderContext::drawCircle(const Coords center, const float radius) {
     if (center.x < -radius || center.x > bitmap.size().x + radius || center.y < -radius ||

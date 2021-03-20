@@ -266,7 +266,7 @@ void ParticleRenderer::initialize(const Storage& storage,
     cached.palette = colorizer.getPalette();
 }
 
-static AutoPtr<PreviewRenderContext> getContext(const RenderParams& params, Bitmap<Rgba>& bitmap) {
+static AutoPtr<IRenderContext> getContext(const RenderParams& params, Bitmap<Rgba>& bitmap) {
     if (params.particles.doAntialiasing) {
         if (params.particles.smoothed) {
             CubicSpline<2> kernel;
@@ -275,7 +275,11 @@ static AutoPtr<PreviewRenderContext> getContext(const RenderParams& params, Bitm
             return makeAuto<AntiAliasedRenderContext>(bitmap);
         }
     } else {
-        return makeAuto<PreviewRenderContext>(bitmap);
+        if (params.background.a() == 1.f) {
+            return makeAuto<PreviewRenderContext<OverridePixelOp>>(bitmap);
+        } else {
+            return makeAuto<PreviewRenderContext<OverPixelOp>>(bitmap);
+        }
     }
 }
 
@@ -283,7 +287,7 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
     MEASURE_SCOPE("ParticleRenderer::render");
 
     Bitmap<Rgba> bitmap(params.size);
-    AutoPtr<PreviewRenderContext> context = getContext(params, bitmap);
+    AutoPtr<IRenderContext> context = getContext(params, bitmap);
 
     // fill with the background color
     context->fill(params.background);

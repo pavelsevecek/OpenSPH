@@ -12,6 +12,7 @@
 NAMESPACE_SPH_BEGIN
 
 class Path;
+class IScheduler;
 
 template <typename Type>
 class Bitmap : public Noncopyable {
@@ -75,7 +76,7 @@ private:
     }
 };
 
-void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx);
+void toWxBitmap(IScheduler& scheduler, const Bitmap<Rgba>& bitmap, wxBitmap& wx);
 
 Bitmap<Rgba> toBitmap(wxBitmap& wx);
 

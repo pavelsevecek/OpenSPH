@@ -2,13 +2,14 @@
 #include "io/FileSystem.h"
 #include "io/Path.h"
 #include "objects/Exceptions.h"
+#include "thread/Scheduler.h"
 #include <wx/bitmap.h>
 #include <wx/log.h>
 #include <wx/rawbmp.h>
 
 NAMESPACE_SPH_BEGIN
 
-void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx) {
+void toWxBitmap(IScheduler& scheduler, const Bitmap<Rgba>& bitmap, wxBitmap& wx) {
     const Pixel size = bitmap.size();
     if (!wx.IsOk() || wx.GetSize() != wxSize(size.x, size.y)) {
         wx.Create(size.x, size.y, 32);
@@ -17,12 +18,11 @@ void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx) {
 
     wxAlphaPixelData pixels(wx);
     ASSERT(pixels);
-    wxAlphaPixelData::Iterator iterator(pixels);
-    ASSERT(iterator.IsOk());
-    static_assert(
-        std::is_same<std::decay_t<decltype(iterator.Red())>, unsigned char>::value, "expected unsigned char");
 
-    for (int y = 0; y < bitmap.size().y; ++y) {
+    parallelFor(scheduler, 0, bitmap.size().y, 10, [&pixels, &bitmap](int y) {
+        wxAlphaPixelData::Iterator iterator(pixels);
+        iterator.OffsetY(pixels, y);
+        ASSERT(iterator.IsOk());
         for (int x = 0; x < bitmap.size().x; ++x) {
             const Rgba rgba = bitmap[Pixel(x, y)];
             wxColour color(rgba);
@@ -33,7 +33,7 @@ void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx) {
 
             ++iterator;
         }
-    }
+    });
     ASSERT(wx.IsOk());
 }
 
@@ -64,7 +64,7 @@ void saveToFile(const wxBitmap& wx, const Path& path) {
 
 void saveToFile(const Bitmap<Rgba>& bitmap, const Path& path) {
     wxBitmap wx;
-    toWxBitmap(bitmap, wx);
+    toWxBitmap(SEQUENTIAL, bitmap, wx);
     saveToFile(wx, path);
 }
 

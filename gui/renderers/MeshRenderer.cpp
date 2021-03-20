@@ -72,7 +72,7 @@ void MeshRenderer::initialize(const Storage& storage,
 
 void MeshRenderer::render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const {
     Bitmap<Rgba> bitmap(params.size);
-    PreviewRenderContext context(bitmap);
+    PreviewRenderContext<OverPixelOp> context(bitmap);
 
     // draw black background
     context.fill(Rgba::transparent());

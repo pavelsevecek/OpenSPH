@@ -774,11 +774,14 @@ void Controller::startRenderThread() {
     private:
         Vis& vis;
         wxWeakRef<RunPage> page;
+        SharedPtr<IScheduler> scheduler;
 
     public:
         RenderOutput(Vis& vis, wxWeakRef<RunPage> page)
             : vis(vis)
-            , page(page) {}
+            , page(page) {
+            scheduler = Factory::getScheduler();
+        }
 
         virtual void update(const Bitmap<Rgba>& bitmap,
             Array<Label>&& labels,
@@ -790,7 +793,7 @@ void Controller::startRenderThread() {
 
             /// \todo is it ok to work with wx bitmaps outside main thread?
             AutoPtr<wxBitmap> newBitmap = makeAuto<wxBitmap>();
-            toWxBitmap(bitmap, *newBitmap);
+            toWxBitmap(*scheduler, bitmap, *newBitmap);
 
             // Capture page as weak ref as we need to check it first, this might not exit anymore!
             auto callback = [&vis = vis,
