@@ -23,7 +23,7 @@ private:
 public:
     /// \brief Creates an empty table
     ///
-    /// \param colSep Minimap number of characters between columns.
+    /// \param colSep Minimal number of characters between columns.
     /// \param minColWidth Minimal width of a column; the column gets strethed if needed.
     Table(const Size colSep = 1, const Size minColWidth = 5)
         : params{ colSep, minColWidth } {}
@@ -39,7 +39,7 @@ public:
         }
         // extend columns
         if (colIdx >= this->columnCnt()) {
-            for (const Row& row : rows) {
+            for (Row& row : rows) {
                 row.resize(colIdx + 1);
             }
         }
@@ -63,12 +63,11 @@ public:
         colWidths.fill(0);
         for (const Row& row : rows) {
             for (Size colIdx = 0; colIdx < row.size(); ++colIdx) {
-                colWidths[colIdx] = max(colWidths[colIdx], row[colIdx].size());
+                colWidths[colIdx] = max(colWidths[colIdx], Size(row[colIdx].size()));
             }
         }
         for (Size colIdx = 0; colIdx < rows[0].size(); ++colIdx) {
-            const Size sep = colIdx == rows[0].size() - 1 ? 0 : params.colSep;
-            colWidths[colIdx] = max(colWidths[colIdx] + sep, params.minColWidth);
+            colWidths[colIdx] = max(colWidths[colIdx] + params.colSep, params.minColWidth);
         }
         std::stringstream ss;
         for (const Row& row : rows) {

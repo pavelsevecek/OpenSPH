@@ -259,7 +259,8 @@ enum class BinaryIoVersion : int64_t {
     FIRST = 0,
     V2018_04_07 = 20180407, ///< serializing (incorrectly!!) enum type
     V2018_10_24 = 20181024, ///< reverted enum (storing zero instead of hash), storing type of simulation
-    LATEST = V2018_10_24,
+    V2021_03_20 = 20210320, ///< added wallclock time and build date
+    LATEST = V2021_03_20,
 };
 
 /// \brief Output saving data to binary data without loss of precision.
@@ -280,7 +281,9 @@ enum class BinaryIoVersion : int64_t {
 ///  - bytes 37-44: timestep when the snapshot has been created
 ///  - bytes 45-52: version of the file format, see enum \ref BinaryOutput::Version.
 ///  - bytes 53-68: string identifying a run type, see enum \ref RunTypeEnum.
-///  - bytes 69-256: padding (possibly will be used in the future)
+///  - bytes 69-84: string representing the build date
+///  - bytes 85-92: wallclock time of the simulation (if present in stats)
+///  - bytes 93-256: padding (possibly will be used in the future)
 ///
 /// Quantity info (summary) follows the header. It consist of quantityCnt triples of values
 ///  - ID of quantity [Size casted from QuantityId]
@@ -333,7 +336,7 @@ class BinaryOutput : public IOutput {
     friend class BinaryInput;
 
 private:
-    static constexpr Size PADDING_SIZE = 188;
+    static constexpr Size PADDING_SIZE = 164;
 
     RunTypeEnum runTypeId;
 
@@ -378,6 +381,9 @@ public:
         /// Run time of the snapshot
         Float runTime;
 
+        /// Wallclock time of the snapshot (in seconds)
+        Size wallclockTime;
+
         /// Current timestep of the run
         Float timeStep;
 
@@ -385,6 +391,11 @@ public:
         ///
         /// Not present in older versions of the format.
         Optional<RunTypeEnum> runType;
+
+        /// Date when the code that created the file was built
+        ///
+        /// Not present in older versions of the format.
+        Optional<std::string> buildDate;
 
         /// Format version of the file
         BinaryIoVersion version;

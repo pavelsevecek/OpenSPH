@@ -111,6 +111,9 @@ void drawTextWithSubscripts(wxDC& dc, const std::wstring& text, const wxPoint po
     dc.DrawText(text.substr(m), actPoint);
 }
 
+void drawTextWithSubscripts(wxDC& dc, const std::string& text, const wxPoint point) {
+    drawTextWithSubscripts(dc, std::wstring(text.begin(), text.end()), point);
+}
 
 std::wstring toPrintableString(const Float value, const Size precision, const Float decimalThreshold) {
     const Float absValue = abs(value);

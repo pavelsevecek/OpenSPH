@@ -152,7 +152,7 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const Color
     case ColorizerId::FLAG:
         return makeAuto<IndexColorizer>(QuantityId::FLAG, settings);
     case ColorizerId::MATERIAL_ID:
-        return makeAuto<IndexColorizer>(QuantityId::MATERIAL_ID, settings);
+        return makeAuto<MaterialColorizer>(settings);
     case ColorizerId::BEAUTY:
         return makeAuto<BeautyColorizer>();
     case ColorizerId::MARKER:

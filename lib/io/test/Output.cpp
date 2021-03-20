@@ -268,6 +268,7 @@ TEST_CASE("BinaryOutput dump stats", "[output]") {
     Statistics stats;
     stats.set(StatisticsId::RUN_TIME, 24._f);
     stats.set(StatisticsId::TIMESTEP_VALUE, 0.1_f);
+    stats.set(StatisticsId::WALLCLOCK_TIME, 24);
     RandomPathManager manager;
     Path path = manager.getPath("out");
     BinaryOutput output(path, RunTypeEnum::RUBBLE_PILE);
@@ -286,6 +287,7 @@ TEST_CASE("BinaryOutput dump stats", "[output]") {
     REQUIRE(info->timeStep == 0.1_f);
     REQUIRE(info->version == BinaryIoVersion::LATEST);
     REQUIRE(info->runType == RunTypeEnum::RUBBLE_PILE);
+    REQUIRE(info->wallclockTime == 24);
 }
 
 Storage generateLatestOutput() {
@@ -355,6 +357,7 @@ TEST_CASE("BinaryOutput backward compatibility", "[output]") {
     testVersion(BinaryIoVersion::FIRST);
     testVersion(BinaryIoVersion::V2018_04_07);
     testVersion(BinaryIoVersion::V2018_10_24);
+    testVersion(BinaryIoVersion::V2021_03_20);
 }
 
 static void testCompression(CompressionEnum compression) {

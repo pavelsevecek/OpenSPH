@@ -484,6 +484,19 @@ struct LoadBuffersVisitor {
         }
     }
 };
+
+void writeString(const std::string& s, Serializer<true>& serializer) {
+    char buffer[16];
+    for (Size i = 0; i < 16; ++i) {
+        if (i < s.size()) {
+            buffer[i] = s[i];
+        } else {
+            buffer[i] = '\0';
+        }
+    }
+    serializer.write(buffer);
+}
+
 } // namespace
 
 BinaryOutput::BinaryOutput(const OutputFile& fileMask, const RunTypeEnum runTypeId)
@@ -500,26 +513,27 @@ Expected<Path> BinaryOutput::dump(const Storage& storage, const Statistics& stat
             "Cannot create directory " + fileName.parentPath().native() + ": " + dirResult.error());
     }
 
-    const Float time = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
+    const Float runTime = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
+    const Size wallclockTime = stats.getOr<int>(StatisticsId::WALLCLOCK_TIME, 0._f);
 
     Serializer<true> serializer(fileName);
     // file format identifier
     const Size materialCnt = storage.getMaterialCnt();
     const Size quantityCnt = storage.getQuantityCnt() - int(storage.has(QuantityId::MATERIAL_ID));
     const Float timeStep = stats.getOr<Float>(StatisticsId::TIMESTEP_VALUE, 0.1_f);
-    serializer.write(
-        "SPH", time, storage.getParticleCnt(), quantityCnt, materialCnt, timeStep, BinaryIoVersion::LATEST);
+    serializer.write("SPH",
+        runTime,
+        storage.getParticleCnt(),
+        quantityCnt,
+        materialCnt,
+        timeStep,
+        BinaryIoVersion::LATEST);
     // write run type
-    char runTypeBuffer[16];
-    const std::string runTypeStr = EnumMap::toString(runTypeId);
-    for (Size i = 0; i < 16; ++i) {
-        if (i < runTypeStr.size()) {
-            runTypeBuffer[i] = runTypeStr[i];
-        } else {
-            runTypeBuffer[i] = '\0';
-        }
-    }
-    serializer.write(runTypeBuffer);
+    writeString(EnumMap::toString(runTypeId), serializer);
+    // write build date
+    writeString(__DATE__, serializer);
+    // write wallclock time for proper ETA of resumed simulation
+    serializer.write(wallclockTime);
 
     // zero bytes until 256 to allow extensions of the header
     serializer.addPadding(PADDING_SIZE);
@@ -687,17 +701,35 @@ static Optional<RunTypeEnum> readRunType(char* buffer, const BinaryIoVersion ver
     }
 }
 
+static Optional<std::string> readBuildDate(char* buffer, const BinaryIoVersion version) {
+    if (version >= BinaryIoVersion::V2021_03_20) {
+        return std::string(buffer);
+    } else {
+        return NOTHING;
+    }
+}
+
 Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats) {
     storage.removeAll();
     Deserializer<true> deserializer(path);
     std::string identifier;
     Float time, timeStep;
+    Size wallclockTime;
     Size particleCnt, quantityCnt, materialCnt;
     BinaryIoVersion version;
     char runTypeBuffer[16];
+    char buildDateBuffer[16];
     try {
-        deserializer.read(
-            identifier, time, particleCnt, quantityCnt, materialCnt, timeStep, version, runTypeBuffer);
+        deserializer.read(identifier,
+            time,
+            particleCnt,
+            quantityCnt,
+            materialCnt,
+            timeStep,
+            version,
+            runTypeBuffer,
+            buildDateBuffer,
+            wallclockTime);
     } catch (SerializerException&) {
         return "Invalid file format";
     }
@@ -706,6 +738,9 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
     }
     stats.set(StatisticsId::RUN_TIME, time);
     stats.set(StatisticsId::TIMESTEP_VALUE, timeStep);
+    if (version >= BinaryIoVersion::V2021_03_20) {
+        stats.set(StatisticsId::WALLCLOCK_TIME, int(wallclockTime));
+    }
     try {
         deserializer.skip(BinaryOutput::PADDING_SIZE);
     } catch (SerializerException&) {
@@ -773,6 +808,7 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
 Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) const {
     Info info;
     char runTypeBuffer[16];
+    char dateBuffer[16];
     std::string identifier;
     try {
         Deserializer<true> deserializer(path);
@@ -783,7 +819,9 @@ Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) const {
             info.materialCnt,
             info.timeStep,
             info.version,
-            runTypeBuffer);
+            runTypeBuffer,
+            dateBuffer,
+            info.wallclockTime);
     } catch (SerializerException&) {
         return makeUnexpected<Info>("Invalid file format");
     }
@@ -791,6 +829,7 @@ Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) const {
         return makeUnexpected<Info>("Invalid format specifier: expected SPH, got " + identifier);
     }
     info.runType = readRunType(runTypeBuffer, info.version);
+    info.buildDate = readBuildDate(dateBuffer, info.version);
     return std::move(info);
 }
 

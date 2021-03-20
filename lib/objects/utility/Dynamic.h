@@ -23,6 +23,7 @@ enum class DynamicId {
     SYMMETRIC_TENSOR,
     TRACELESS_TENSOR,
     MIN_MAX_MEAN,
+    STRING,
 };
 
 /// \brief Convenient object for storing a single value of different types

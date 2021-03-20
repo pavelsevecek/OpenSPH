@@ -30,17 +30,17 @@ struct ParticleVisitor {
 Particle::Particle(const Storage& storage, const Size idx)
     : idx(idx) {
     for (ConstStorageElement i : storage.getQuantities()) {
-        data.insert(i.id, InternalQuantityData{});
+        quantities.insert(i.id, InternalQuantityData{});
 
-        ParticleVisitor visitor{ data };
+        ParticleVisitor visitor{ quantities };
         dispatch(i.quantity.getValueEnum(), visitor, i.id, i.quantity, idx);
     }
 }
 
 Particle::Particle(const QuantityId id, const Dynamic& value, const Size idx)
     : idx(idx) {
-    data.insert(id, InternalQuantityData{});
-    data[id].value = value;
+    quantities.insert(id, InternalQuantityData{});
+    quantities[id].value = value;
 }
 
 Particle::Particle(const Particle& other) {
@@ -52,68 +52,86 @@ Particle::Particle(Particle&& other) {
 }
 
 Particle& Particle::operator=(const Particle& other) {
-    data = other.data.clone();
+    quantities = other.quantities.clone();
+    material = other.material.clone();
     idx = other.idx;
     return *this;
 }
 
 Particle& Particle::operator=(Particle&& other) {
-    data = std::move(other.data);
+    quantities = std::move(other.quantities);
+    material = std::move(other.material);
     idx = other.idx;
     return *this;
 }
 
 Particle& Particle::addValue(const QuantityId id, const Dynamic& value) {
-    if (!data.contains(id)) {
-        data.insert(id, InternalQuantityData{});
+    if (!quantities.contains(id)) {
+        quantities.insert(id, InternalQuantityData{});
     }
-    data[id].value = value;
+    quantities[id].value = value;
     return *this;
 }
 
 Particle& Particle::addDt(const QuantityId id, const Dynamic& value) {
-    if (!data.contains(id)) {
-        data.insert(id, InternalQuantityData{});
+    if (!quantities.contains(id)) {
+        quantities.insert(id, InternalQuantityData{});
     }
-    data[id].dt = value;
+    quantities[id].dt = value;
     return *this;
 }
 
 Particle& Particle::addD2t(const QuantityId id, const Dynamic& value) {
-    if (!data.contains(id)) {
-        data.insert(id, InternalQuantityData{});
+    if (!quantities.contains(id)) {
+        quantities.insert(id, InternalQuantityData{});
     }
-    data[id].d2t = value;
+    quantities[id].d2t = value;
     return *this;
 }
 
+Particle& Particle::addParameter(const BodySettingsId id, const Dynamic& value) {
+    if (!material.contains(id)) {
+        material.insert(id, NOTHING);
+    }
+    material[id] = value;
+    return *this;
+}
+
+
 Dynamic Particle::getValue(const QuantityId id) const {
-    Optional<const InternalQuantityData&> quantity = data.tryGet(id);
+    Optional<const InternalQuantityData&> quantity = quantities.tryGet(id);
     ASSERT(quantity);
     return quantity->value;
 }
 
 Dynamic Particle::getDt(const QuantityId id) const {
-    Optional<const InternalQuantityData&> quantity = data.tryGet(id);
+    Optional<const InternalQuantityData&> quantity = quantities.tryGet(id);
     ASSERT(quantity);
     return quantity->dt;
 }
 
 Dynamic Particle::getD2t(const QuantityId id) const {
-    Optional<const InternalQuantityData&> quantity = data.tryGet(id);
+    Optional<const InternalQuantityData&> quantity = quantities.tryGet(id);
     ASSERT(quantity);
     return quantity->d2t;
 }
 
-Particle::ValueIterator::ValueIterator(const ActIterator iterator)
+Dynamic Particle::getParameter(const BodySettingsId id) const {
+    Optional<const Dynamic&> value = material.tryGet(id);
+    ASSERT(value);
+    return value.value();
+}
+
+
+Particle::QuantityIterator::QuantityIterator(const ActIterator iterator)
     : iter(iterator) {}
 
-Particle::ValueIterator& Particle::ValueIterator::operator++() {
+Particle::QuantityIterator& Particle::QuantityIterator::operator++() {
     ++iter;
     return *this;
 }
 
-Particle::QuantityData Particle::ValueIterator::operator*() const {
+Particle::QuantityData Particle::QuantityIterator::operator*() const {
     const InternalQuantityData& internal = iter->value;
     DynamicId type;
     if (internal.value) {
@@ -130,16 +148,58 @@ Particle::QuantityData Particle::ValueIterator::operator*() const {
     return { iter->key, type, internal.value, internal.dt, internal.d2t };
 }
 
-bool Particle::ValueIterator::operator!=(const ValueIterator& other) const {
+bool Particle::QuantityIterator::operator!=(const QuantityIterator& other) const {
     return iter != other.iter;
 }
 
-Particle::ValueIterator Particle::begin() const {
-    return ValueIterator(data.begin());
+Particle::QuantitySequence::QuantitySequence(const Particle& particle)
+    : first(particle.quantities.begin())
+    , last(particle.quantities.end()) {}
+
+Particle::QuantityIterator Particle::QuantitySequence::begin() const {
+    return first;
 }
 
-Particle::ValueIterator Particle::end() const {
-    return ValueIterator(data.end());
+Particle::QuantityIterator Particle::QuantitySequence::end() const {
+    return last;
+}
+
+Particle::QuantitySequence Particle::getQuantities() const {
+    return QuantitySequence(*this);
+}
+
+
+Particle::ParamIterator::ParamIterator(const ActIterator iterator)
+    : iter(iterator) {}
+
+Particle::ParamIterator& Particle::ParamIterator::operator++() {
+    ++iter;
+    return *this;
+}
+
+Particle::ParamData Particle::ParamIterator::operator*() const {
+    return { iter->key, iter->value };
+}
+
+bool Particle::ParamIterator::operator!=(const ParamIterator& other) const {
+    return iter != other.iter;
+}
+
+
+Particle::ParamSequence::ParamSequence(const Particle& particle)
+    : first(particle.material.begin())
+    , last(particle.material.end()) {}
+
+Particle::ParamIterator Particle::ParamSequence::begin() const {
+    return first;
+}
+
+Particle::ParamIterator Particle::ParamSequence::end() const {
+    return last;
+}
+
+Particle::ParamSequence Particle::getParameters() const {
+    return ParamSequence(*this);
 }
 
 NAMESPACE_SPH_END

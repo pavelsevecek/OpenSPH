@@ -30,6 +30,8 @@ Optional<Path> doOpenFileDialog(const std::string& title, Array<FileFormat>&& fo
 /// character.
 void drawTextWithSubscripts(wxDC& dc, const std::wstring& text, const wxPoint point);
 
+void drawTextWithSubscripts(wxDC& dc, const std::string& text, const wxPoint point);
+
 /// Converts the value to a printable string.
 std::wstring toPrintableString(const Float value,
     const Size precision = 5,

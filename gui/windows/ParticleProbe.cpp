@@ -1,7 +1,16 @@
 #include "gui/windows/ParticleProbe.h"
+#include "objects/utility/StringUtils.h"
 #include "quantities/QuantityIds.h"
 
 NAMESPACE_SPH_BEGIN
+
+inline std::string toName(const std::string& s) {
+    return capitalize(replaceAll(s, "_", " "));
+}
+
+inline std::string toKey(const std::string& s) {
+    return split(s, '.').back();
+}
 
 void ParticleProbe::onMenu(wxCommandEvent& UNUSED(evt)) {
     if (!particle) {
@@ -13,7 +22,7 @@ void ParticleProbe::onMenu(wxCommandEvent& UNUSED(evt)) {
     }
     wxTheClipboard->Clear();
 
-    for (Particle::QuantityData data : particle.value()) {
+    for (Particle::QuantityData data : particle->getQuantities()) {
         std::stringstream ss;
         if (data.id == QuantityId::POSITION) {
             if (!data.dt.empty()) {
@@ -97,7 +106,7 @@ void ParticleProbe::onPaint(wxPaintEvent& UNUSED(evt)) {
     offset.y += 4 * config.lineSkip;
 
     // print other particle data
-    for (Particle::QuantityData data : particle.value()) {
+    for (Particle::QuantityData data : particle->getQuantities()) {
         if (data.id == QuantityId::POSITION) {
             // skip position info, already printed
             continue;
@@ -141,6 +150,19 @@ void ParticleProbe::onPaint(wxPaintEvent& UNUSED(evt)) {
 
         default:
             // don't throw, but don't print anything
+            break;
+        }
+    }
+
+    for (const Particle::ParamData& data : particle->getParameters()) {
+        std::string label = BodySettings::getEntryName(data.id).value();
+        const DynamicId id = data.value.getType();
+        switch (id) {
+        case DynamicId::STRING:
+            drawTextWithSubscripts(dc, toKey(label) + " = " + toName(data.value.get<std::string>()), offset);
+            offset.y += config.lineSkip;
+            break;
+        default:
             break;
         }
     }

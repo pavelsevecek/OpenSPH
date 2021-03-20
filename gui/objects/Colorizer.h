@@ -1161,7 +1161,6 @@ public:
     }
 };
 
-
 class IndexColorizer : public IdColorizerTemplate<IndexColorizer> {
 private:
     QuantityId id;
@@ -1186,6 +1185,42 @@ public:
 
     virtual std::string name() const override {
         return getMetadata(id).quantityName;
+    }
+};
+
+class MaterialColorizer : public IndexColorizer {
+private:
+    Array<std::string> eosNames;
+    Array<std::string> rheoNames;
+
+public:
+    MaterialColorizer(const GuiSettings& gui)
+        : IndexColorizer(QuantityId::MATERIAL_ID, gui) {}
+
+    virtual void initialize(const Storage& storage, const RefEnum ref) override {
+        IndexColorizer::initialize(storage, ref);
+
+        const Size matCnt = storage.getMaterialCnt();
+        eosNames.resize(matCnt);
+        rheoNames.resize(matCnt);
+        for (Size matId = 0; matId < matCnt; ++matId) {
+            const IMaterial& mat = storage.getMaterial(matId);
+            const EosEnum eos = mat.getParam<EosEnum>(BodySettingsId::EOS);
+            const YieldingEnum yield = mat.getParam<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
+            eosNames[matId] = EnumMap::toString(eos);
+            rheoNames[matId] = EnumMap::toString(yield);
+        }
+    }
+
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        Particle particle(idx);
+        const Optional<Size> id = IndexColorizer::evalId(idx);
+        if (id) {
+            particle.addValue(QuantityId::MATERIAL_ID, id.value());
+            particle.addParameter(BodySettingsId::EOS, eosNames[id.value()]);
+            particle.addParameter(BodySettingsId::RHEOLOGY_YIELDING, rheoNames[id.value()]);
+        }
+        return particle;
     }
 };
 

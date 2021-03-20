@@ -47,7 +47,7 @@ TEST_CASE("Particle iterate", "[particle]") {
     p.addDt(QuantityId::FLAG, Vector(2._f));
 
     Size i = 0;
-    for (Particle::QuantityData data : p) {
+    for (Particle::QuantityData data : p.getQuantities()) {
         REQUIRE(i < 3);
         switch (i) {
         case 0:
