@@ -128,6 +128,13 @@ MainWindow::MainWindow(const Path& openPath)
         wxDefaultSize,
         wxAUI_NB_DEFAULT_STYLE & ~wxAUI_NB_CLOSE_ON_ACTIVE_TAB);
     notebook->SetMinSize(wxSize(1024, 768));
+    notebook->Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& evt) {
+        const int code = evt.GetKeyCode();
+        if (evt.ControlDown() && code >= int('1') && code <= int('9')) {
+            notebook->SetSelection(code - int('1'));
+        }
+        evt.Skip();
+    });
 
     nodePage = new NodeWindow(notebook, makeShared<NodeManagerCallbacks>(this));
     notebook->AddPage(nodePage, "Unnamed session");
