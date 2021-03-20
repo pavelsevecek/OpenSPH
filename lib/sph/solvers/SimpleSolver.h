@@ -51,9 +51,9 @@ public:
         ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
         ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
         ArrayView<Float> cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
-        for (Size i = 0; i < p.size(); ++i) {
+        parallelFor(scheduler, 0, p.size(), [&](const Size i) { //
             tie(p[i], cs[i]) = eos.evaluate(rho[i], u[i]);
-        }
+        });
 
         // build the structure for finding neighbors
         ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);

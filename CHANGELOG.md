@@ -7,7 +7,8 @@
 - batch run now properly converts enum values from string
 - created opensph-info utility for quick inspection of .ssf files
 - added experimental modes of the continuity equation
-- added options for radii of spheres created by handoff 
+- added options for radii of spheres created by handoff
+- parallelized EoS evaluation in SimpleSolver
 
 ## 2021-03-19
 - proper enabling/disabling of merging criteria in UI
