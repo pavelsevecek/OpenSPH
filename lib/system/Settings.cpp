@@ -182,6 +182,22 @@ static RegisterEnum<SolverEnum> sSolver({
         "teaching, etc.)" },
 });
 
+static RegisterEnum<ContinuityEnum> sContinuity({
+    { ContinuityEnum::STANDARD,
+        "standard",
+        "Normal continuity equation, using velocity divergence "
+        "computed from all neighbors." },
+    { ContinuityEnum::SUM_ONLY_UNDAMAGED,
+        "sum_only_undamaged",
+        "Computes the velocity divergence using only undamaged neighbors. For fully damaged particle, the "
+        "standard continuity equation is used instead." },
+    { ContinuityEnum::DAMAGED_DECREASE_BULK_DENSITY,
+        "damaged_decrease_bulk_density",
+        "Adds bulk density, evolved using continuity equation like material density; however, when damaged "
+        "material expands, only the bulk density decreases, the material density is constant. The material "
+        "density can only grow when it is equal to the bulk density." },
+});
+
 static RegisterEnum<DiscretizationEnum> sFormulation({
     { DiscretizationEnum::STANDARD,
         "standard",
@@ -477,10 +493,8 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
         "If true, completely damaged particles (D=1) are excluded when computing strain rate and "
         "stress divergence. Solver also excludes particles of different bodies; when computing "
         "strain rate in target, particles in impactor are excluded from the sum." },
-    { RunSettingsId::SPH_CONTINUITY_USING_UNDAMAGED, "sph.continuity_using_undamaged", false,
-        "If true, the density derivative is computed from undamaged particles of the same body. Deformations of different bodies "
-        "(even though they are in contact with the evaluated particle) or damaged particles have no effect on the density. "
-        "Should be false, unless some problems in the simulation appear (instabilities, rapid growth of total energy, etc.)." },
+    { RunSettingsId::SPH_CONTINUITY_MODE,           "sph.continuity_mode",             ContinuityEnum::STANDARD,
+        "Specifies how the density is evolved. Can be one of the following:\n" + EnumMap::getDesc<ContinuityEnum>() },
     { RunSettingsId::SPH_DISCRETIZATION,            "sph.discretization",              DiscretizationEnum::STANDARD,
         "Specifies a discretization of SPH equations. Can be one of the following:\n" + EnumMap::getDesc<DiscretizationEnum>() },
     { RunSettingsId::SPH_STABILIZATION_DAMPING,     "sph.stabilization_damping",       0.1_f,

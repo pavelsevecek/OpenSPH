@@ -227,6 +227,7 @@ static FlatMap<PaletteKey, PaletteDesc> paletteDescs = {
     { QuantityId::VELOCITY_ROTATION, { Interval(0._f, 4._f), PaletteScale::LINEAR } },
     { QuantityId::SOUND_SPEED, { Interval(0._f, 5.e3_f), PaletteScale::LINEAR } },
     { QuantityId::VIBRATIONAL_VELOCITY, { Interval(0._f, 5.e3_f), PaletteScale::LINEAR } },
+    { QuantityId::BULK_DENSITY, { Interval(2650._f, 2750._f), PaletteScale::LINEAR } },
     { QuantityId::AV_STRESS, { Interval(0._f, 1.e8_f), PaletteScale::LINEAR } },
     { QuantityId::ANGULAR_FREQUENCY, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
     { QuantityId::MOMENT_OF_INERTIA, { Interval(0._f, 1.e10_f), PaletteScale::LINEAR } },
@@ -291,6 +292,7 @@ Palette Factory::getPalette(const ColorizerId id) {
                                { x0 + dx, Rgba(0.5f, 0.f, 0.f) } },
                 scale);
         case QuantityId::DENSITY:
+        case QuantityId::BULK_DENSITY:
         case QuantityId::VELOCITY_LAPLACIAN:
         case QuantityId::FRICTION:
         case QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE:

@@ -2,9 +2,9 @@
 #include "objects/Exceptions.h"
 #include "sph/Materials.h"
 #include "sph/equations/DerivativeHelpers.h"
-#include "thread/Scheduler.h"
-#include "system/Factory.h"
 #include "sph/kernel/Kernel.h"
+#include "system/Factory.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -260,7 +260,7 @@ void NavierStokesForce::create(Storage& storage, IMaterial& material) const {
 
 
 ContinuityEquation::ContinuityEquation(const RunSettings& settings) {
-    useUndamaged = settings.get<bool>(RunSettingsId::SPH_CONTINUITY_USING_UNDAMAGED);
+    mode = settings.get<ContinuityEnum>(RunSettingsId::SPH_CONTINUITY_MODE);
 
     LutKernel<3> kernel = Factory::getKernel<3>(settings);
     // central value of the kernel
@@ -275,20 +275,39 @@ void ContinuityEquation::setDerivatives(DerivativeHolder& derivatives, const Run
     if (forces.has(ForceEnum::SOLID_STRESS)) {
         const Flags<DerivativeFlag> flags = DerivativeFlag::CORRECTED | DerivativeFlag::SUM_ONLY_UNDAMAGED;
         derivatives.require(makeDerivative<VelocityGradient>(settings, flags));
+    } else if (mode == ContinuityEnum::SUM_ONLY_UNDAMAGED) {
+        throw InvalidSetup("This mode of the continuity equation requires stress tensor.");
     }
     derivatives.require(makeDerivative<VelocityDivergence>(settings));
 }
 
-void ContinuityEquation::initialize(IScheduler& UNUSED(scheduler),
-    Storage& UNUSED(storage),
-    const Float UNUSED(t)) {}
+void ContinuityEquation::initialize(IScheduler& scheduler, Storage& storage, const Float UNUSED(t)) {
+    if (mode == ContinuityEnum::DAMAGED_DECREASE_BULK_DENSITY) {
+        ArrayView<const Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
+        ArrayView<const Float> bulk = storage.getValue<Float>(QuantityId::BULK_DENSITY);
+        ArrayView<const Float> damage = storage.getValue<Float>(QuantityId::DAMAGE);
+        ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
+        parallelFor(scheduler, 0, rho.size(), [&](const Size i) INL {
+            if (bulk[i] < rho[i]) {
+                const Float D = pow<3>(damage[i]);
+                p[i] = (1._f - D) * p[i];
+            }
+        });
+    }
+}
 
 void ContinuityEquation::finalize(IScheduler& scheduler, Storage& storage, const Float UNUSED(t)) {
     ArrayView<Float> rho, drho;
     tie(rho, drho) = storage.getAll<Float>(QuantityId::DENSITY);
     ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
 
-    if (useUndamaged && storage.has(QuantityId::VELOCITY_GRADIENT)) {
+    switch (mode) {
+    case ContinuityEnum::STANDARD:
+        parallelFor(scheduler, 0, rho.size(), [&](const Size i) INL { //
+            drho[i] += -rho[i] * divv[i];
+        });
+        break;
+    case ContinuityEnum::SUM_ONLY_UNDAMAGED: {
         ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
         ArrayView<const SymmetricTensor> gradv =
             storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
@@ -299,10 +318,25 @@ void ContinuityEquation::finalize(IScheduler& scheduler, Storage& storage, const
                 drho[i] += -rho[i] * divv[i];
             }
         });
-    } else {
-        parallelFor(scheduler, 0, rho.size(), [&](const Size i) INL { //
-            drho[i] += -rho[i] * divv[i];
+        break;
+    }
+    case ContinuityEnum::DAMAGED_DECREASE_BULK_DENSITY: {
+        ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
+        ArrayView<Float> bulk, dbulk;
+        tie(bulk, dbulk) = storage.getAll<Float>(QuantityId::BULK_DENSITY);
+        parallelFor(scheduler, 0, rho.size(), [&](const Size i) INL {
+            if (bulk[i] >= rho[i] && divv[i] < 0._f) {
+                drho[i] += -rho[i] * divv[i];
+            } else {
+                drho[i] += -reduce[i] * rho[i] * divv[i];
+            }
+
+            dbulk[i] += -bulk[i] * divv[i];
         });
+        break;
+    }
+    default:
+        NOT_IMPLEMENTED;
     }
 }
 
@@ -324,6 +358,11 @@ void ContinuityEquation::create(Storage& storage, IMaterial& material) const {
     material.setRange(QuantityId::DENSITY, Interval(rho_min, rho_max), rhoSmall);
 
     storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
+
+    if (mode == ContinuityEnum::DAMAGED_DECREASE_BULK_DENSITY) {
+        storage.insert<Float>(QuantityId::BULK_DENSITY, OrderEnum::FIRST, rho0);
+        material.setRange(QuantityId::BULK_DENSITY, Interval(rho_min, rho_max), rhoSmall);
+    }
 }
 
 

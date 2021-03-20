@@ -94,7 +94,7 @@ TEMPLATE_TEST_CASE("Impact standard SPH", "[impact]]", SymmetricSolver<3>, Asymm
     settings.set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, EMPTY_FLAGS);
     settings.set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::STANDARD);
     // this is not default, but required to match SPH5 behavior
-    settings.set(RunSettingsId::SPH_CONTINUITY_USING_UNDAMAGED, true);
+    settings.set(RunSettingsId::SPH_CONTINUITY_MODE, ContinuityEnum::SUM_ONLY_UNDAMAGED);
 
     EquationHolder eqs = getStandardEquations(settings);
 
@@ -108,7 +108,7 @@ TEMPLATE_TEST_CASE("Impact B&A SPH", "[impact]]", SymmetricSolver<3>, Asymmetric
     settings.set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, EMPTY_FLAGS);
     settings.set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::BENZ_ASPHAUG);
     // this is not default, but required to match SPH5 behavior
-    settings.set(RunSettingsId::SPH_CONTINUITY_USING_UNDAMAGED, true);
+    settings.set(RunSettingsId::SPH_CONTINUITY_MODE, ContinuityEnum::SUM_ONLY_UNDAMAGED);
     EquationHolder eqs = getStandardEquations(settings);
 
     runImpact<TestType>(std::move(eqs), settings);

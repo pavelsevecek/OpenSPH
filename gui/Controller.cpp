@@ -427,6 +427,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         quantityColorizerIds.push(QuantityId::AV_STRESS);
         quantityColorizerIds.push(QuantityId::SOUND_SPEED);
         quantityColorizerIds.push(QuantityId::VIBRATIONAL_VELOCITY);
+        quantityColorizerIds.push(QuantityId::BULK_DENSITY);
         quantityColorizerIds.push(QuantityId::ANGULAR_FREQUENCY);
         quantityColorizerIds.push(QuantityId::MOMENT_OF_INERTIA);
         quantityColorizerIds.push(QuantityId::STRAIN_RATE_CORRECTION_TENSOR);

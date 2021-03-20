@@ -684,6 +684,20 @@ enum class SolverEnum {
     SIMPLE_SOLVER,
 };
 
+enum class ContinuityEnum {
+    /// Normal continuity equation, using velocity divergence computed from all neighbors.
+    STANDARD,
+
+    /// Computes the velocity divergence using only undamaged neighbors. For fully damaged particle, the
+    /// standard continuity equation is used instead.
+    SUM_ONLY_UNDAMAGED,
+
+    /// Adds bulk density, evolved using continuity equation like material density; however, when damaged
+    /// material expands, only the bulk density decreases, the material density is constant. The material
+    /// density can only grow when it is equal to the bulk density.
+    DAMAGED_DECREASE_BULK_DENSITY,
+};
+
 enum class DiscretizationEnum {
     /// P_i / rho_i^2 + P_j / rho_j^2
     STANDARD,
@@ -969,11 +983,8 @@ enum class RunSettingsId {
     /// flags.
     SPH_SUM_ONLY_UNDAMAGED,
 
-    /// If true, the density derivative is computed from undamaged particles of the same body. Deformations of
-    /// different bodies (even though they are in contact with the evaluated particle) or damaged particles
-    /// have no effect on the density. Should be false, unless some problems in the simulation appear
-    /// (instabilities, rapid growth of total energy, etc.).
-    SPH_CONTINUITY_USING_UNDAMAGED,
+    /// Specifies how the density is evolved, see \ref ContinuityEnum.
+    SPH_CONTINUITY_MODE,
 
     /// Evolve particle phase angle
     SPH_PHASE_ANGLE,

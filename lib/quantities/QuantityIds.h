@@ -84,11 +84,11 @@ enum class QuantityId {
     /// Ratio of the solid and bulk density (parameter alpha in P-alpha and eps-alpha models).
     DISTENTION = 17,
 
-    /// \todo
-    FRICTION_ANGLE = 18,
-
     /// Vibrational particle velocity, used by the block model of acoustic fluidization.
     VIBRATIONAL_VELOCITY = 47,
+
+    /// Bulk density, may be lower than the material density.
+    BULK_DENSITY = 48,
 
     ///@}
 

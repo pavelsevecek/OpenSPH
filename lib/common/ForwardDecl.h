@@ -59,5 +59,6 @@ struct Ghost;
 struct NeighbourRecord;
 class MaterialView;
 
+enum class ContinuityEnum;
 
 NAMESPACE_SPH_END

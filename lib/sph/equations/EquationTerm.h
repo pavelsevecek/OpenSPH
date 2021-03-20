@@ -184,19 +184,14 @@ public:
 /// \f]
 /// where \f$\vec v_i\f$ is the velocity of the particle.
 ///
-/// The equation has two modes - fluid and solid - differing in the particle set used in the sum
-/// of velocity divergence. The modes are specified by RunSettingsId::MODEL_FORCE_SOLID_STRESS
-/// boolean parameter. For fluid mode, the velocity divergence is computed from all particles,
-/// while for solid mode, it only sums velocities of undamaged particles from the same body, or
-/// fully damaged particles. This is needed to properly handle density derivatives in impact; it
-/// is undesirable to get increased density by merely moving the bodies closer to each other.
+/// Optionally, modifications of the equation are available, see enum \ref ContinuityEnum.
 ///
 /// Solver must use either this equation or some custom density computation, such as direct
 /// summation (see \ref SummationSolver) or SPH formulation without solving the density (see \ref
 /// DensityIndependentSolver).
 class ContinuityEquation : public IEquationTerm {
 private:
-    bool useUndamaged;
+    ContinuityEnum mode;
     Float w0;
 
 public:

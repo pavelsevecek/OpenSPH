@@ -248,6 +248,7 @@ VirtualSettings SphJob::getSettings() {
         .connect<bool>("Apply correction tensor", settings, RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR)
         .setEnabler(stressEnabler);
     solverCat.connect<bool>("Sum only undamaged particles", settings, RunSettingsId::SPH_SUM_ONLY_UNDAMAGED);
+    solverCat.connect<EnumWrapper>("Continuity mode", settings, RunSettingsId::SPH_CONTINUITY_MODE);
     solverCat.connect<EnumWrapper>("Neighbour finder", settings, RunSettingsId::SPH_FINDER);
     solverCat.connect<EnumWrapper>("Boundary condition", settings, RunSettingsId::DOMAIN_BOUNDARY);
 
@@ -472,8 +473,7 @@ VirtualSettings NBodyJob::getSettings() {
         const bool aggregates = settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE);
         const CollisionHandlerEnum handler =
             settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER);
-        const OverlapEnum overlap =
-            settings.get<OverlapEnum>(RunSettingsId::COLLISION_OVERLAP);
+        const OverlapEnum overlap = settings.get<OverlapEnum>(RunSettingsId::COLLISION_OVERLAP);
         return aggregates || handler == CollisionHandlerEnum::MERGE_OR_BOUNCE ||
                overlap == OverlapEnum::PASS_OR_MERGE || overlap == OverlapEnum::REPEL_OR_MERGE;
     };
