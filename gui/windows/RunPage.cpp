@@ -631,7 +631,7 @@ wxPanel* RunPage::createVisBar() {
     visbarSizer->Add(raytracerBox, 0, wxALL, 5);
     visbarSizer->AddSpacer(10);
 
-    wxRadioButton* contourButton =
+    /*wxRadioButton* contourButton =
         new wxRadioButton(visbarPanel, wxID_ANY, "Iso-lines", wxDefaultPosition, buttonSize, 0);
     visbarSizer->Add(contourButton);
     wxWindow* contourBox = this->createContourBox(visbarPanel);
@@ -641,13 +641,13 @@ wxPanel* RunPage::createVisBar() {
     wxRadioButton* meshButton =
         new wxRadioButton(visbarPanel, wxID_ANY, "Surface mesh", wxDefaultPosition, buttonSize, 0);
     visbarSizer->Add(meshButton);
-    visbarSizer->AddSpacer(6);
+    visbarSizer->AddSpacer(6);*/
 
 
     auto enableControls = [=](int renderIdx) {
         enableRecursive(particleBox, renderIdx == 0);
         enableRecursive(raytracerBox, renderIdx == 1);
-        enableRecursive(contourBox, renderIdx == 2);
+        // enableRecursive(contourBox, renderIdx == 2);
     };
     enableControls(0);
 
@@ -656,7 +656,7 @@ wxPanel* RunPage::createVisBar() {
         controller->setRenderer(makeAuto<ParticleRenderer>(gui));
         enableControls(0);
     });
-    meshButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
+    /*meshButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
         controller->setRenderer(makeAuto<MeshRenderer>(scheduler, gui));
@@ -667,7 +667,7 @@ wxPanel* RunPage::createVisBar() {
         SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
         controller->setRenderer(makeAuto<ContourRenderer>(scheduler, gui));
         enableControls(2);
-    });
+    });*/
     surfaceButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         try {
