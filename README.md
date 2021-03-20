@@ -112,6 +112,9 @@ Besides the orthographic and perspective projection, a fisheye
 camera for fulldome animations and a spherical 360° camera can be used.
 ![Fulldome camera](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/render/fisheye.mp4)
 
+## Changelog
+See [changelog](https://gitlab.com/sevecekp/sph/-/blob/devel/CHANGELOG.md)
+
 ## Documentation
 See [documentation](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/docs/index.html)
 
