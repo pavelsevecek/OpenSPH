@@ -384,8 +384,7 @@ wxMenu* MainWindow::createProjectMenu() {
     projectMenu->AppendSubMenu(recentMenu, "&Recent");
     projectMenu->Append(4, "&Shared properties");
     projectMenu->Append(5, "&Batch run\tCtrl+B");
-    projectMenu->Append(6, "&Undo\tCtrl+Z");
-    projectMenu->Append(7, "&Quit");
+    projectMenu->Append(6, "&Quit");
 
     SharedPtr<Array<Path>> recentSessions = makeShared<Array<Path>>();
     *recentSessions = getRecentSessions();
@@ -426,10 +425,10 @@ wxMenu* MainWindow::createProjectMenu() {
         case 5:
             nodePage->showBatchDialog();
             break;
+        // case 6:
+        //    nodePage->undo();
+        //    break;
         case 6:
-            nodePage->undo();
-            break;
-        case 7:
             this->Close();
             break;
         default:
