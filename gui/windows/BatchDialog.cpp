@@ -61,7 +61,14 @@ public:
     }
 
     void operator()(EnumWrapper& ew) {
-        ss >> ew.value;
+        const Optional<int> value = EnumMap::fromString(ss.str(), ew.typeHash);
+        if (value) {
+            ew.value = value.value();
+        } else {
+            throw InvalidSetup("Value '" + ss.str() +
+                               "' is invalid for this parameter. Possible values are:\n" +
+                               EnumMap::getDesc(ew.typeHash));
+        }
     }
 
     void operator()(ExtraEntry& extra) {

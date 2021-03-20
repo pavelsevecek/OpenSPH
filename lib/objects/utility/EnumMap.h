@@ -101,8 +101,11 @@ public:
 
     template <typename TEnum>
     static std::string getDesc() {
+        return getDesc(typeid(TEnum).hash_code());
+    }
+
+    static std::string getDesc(const std::size_t id) {
         EnumMap& instance = getInstance();
-        const std::size_t id = typeid(TEnum).hash_code();
         Optional<EnumRecord&> record = instance.records.tryGet(id);
         ASSERT(record);
         std::string desc;
