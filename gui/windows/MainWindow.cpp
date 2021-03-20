@@ -61,10 +61,10 @@ constexpr Size MAX_CACHE_SIZE = 8;
 static void addToRecentSessions(const Path& sessionPath) {
     ASSERT(!sessionPath.empty());
     Array<Path> sessions = getRecentSessions();
-    if (std::find(sessions.begin(), sessions.end(), sessionPath) != sessions.end()) {
-        // already in the list
-        /// \todo move to top?
-        return;
+    auto sessionIter = std::find(sessions.begin(), sessions.end(), sessionPath);
+    if (sessionIter != sessions.end()) {
+        // already in the list, remove to move it to the top
+        sessions.remove(sessionIter - sessions.begin());
     }
     sessions.insert(0, sessionPath);
     if (sessions.size() > MAX_CACHE_SIZE) {
@@ -269,6 +269,7 @@ void MainWindow::save() {
     config.save(projectPath);
 
     this->markSaved(true);
+    addToRecentSessions(FileSystem::getAbsolutePath(projectPath));
 }
 
 void MainWindow::open(const Path& openPath, const bool setDefaults) {
