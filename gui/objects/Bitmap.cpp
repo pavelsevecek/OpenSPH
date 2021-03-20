@@ -9,7 +9,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-void toWxBitmap(IScheduler& scheduler, const Bitmap<Rgba>& bitmap, wxBitmap& wx) {
+void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx) {
     const Pixel size = bitmap.size();
     if (!wx.IsOk() || wx.GetSize() != wxSize(size.x, size.y)) {
         wx.Create(size.x, size.y, 32);
@@ -19,10 +19,9 @@ void toWxBitmap(IScheduler& scheduler, const Bitmap<Rgba>& bitmap, wxBitmap& wx)
     wxAlphaPixelData pixels(wx);
     ASSERT(pixels);
 
-    parallelFor(scheduler, 0, bitmap.size().y, 10, [&pixels, &bitmap](int y) {
-        wxAlphaPixelData::Iterator iterator(pixels);
-        iterator.OffsetY(pixels, y);
-        ASSERT(iterator.IsOk());
+    wxAlphaPixelData::Iterator iterator(pixels);
+    ASSERT(iterator.IsOk());
+    for (int y = 0; y < bitmap.size().y; ++y) {
         for (int x = 0; x < bitmap.size().x; ++x) {
             const Rgba rgba = bitmap[Pixel(x, y)];
             wxColour color(rgba);
@@ -33,7 +32,7 @@ void toWxBitmap(IScheduler& scheduler, const Bitmap<Rgba>& bitmap, wxBitmap& wx)
 
             ++iterator;
         }
-    });
+    }
     ASSERT(wx.IsOk());
 }
 
@@ -64,7 +63,7 @@ void saveToFile(const wxBitmap& wx, const Path& path) {
 
 void saveToFile(const Bitmap<Rgba>& bitmap, const Path& path) {
     wxBitmap wx;
-    toWxBitmap(SEQUENTIAL, bitmap, wx);
+    toWxBitmap(bitmap, wx);
     saveToFile(wx, path);
 }
 

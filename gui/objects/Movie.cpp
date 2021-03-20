@@ -86,7 +86,7 @@ private:
     void updateMainThread(const Bitmap<Rgba>& bitmap, Array<Label>&& labels) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         wxBitmap wx;
-        toWxBitmap(SEQUENTIAL, bitmap, wx);
+        toWxBitmap(bitmap, wx);
         wxMemoryDC dc(wx);
         printLabels(dc, labels);
         dc.SelectObject(wxNullBitmap);
