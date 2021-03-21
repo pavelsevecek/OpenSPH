@@ -5,8 +5,8 @@
 #include "gravity/Collision.h"
 #include "gravity/SphericalGravity.h"
 #include "gravity/SymmetricGravity.h"
-#include "io/Logger.h"
 #include "io/LogWriter.h"
+#include "io/Logger.h"
 #include "io/Output.h"
 #include "math/rng/Rng.h"
 #include "objects/Exceptions.h"
@@ -584,6 +584,8 @@ AutoPtr<IInput> Factory::getInput(const Path& path) {
         return makeAuto<BinaryInput>();
     } else if (ext == "scf") {
         return makeAuto<CompressedInput>();
+    } else if (ext == "h5") {
+        return makeAuto<Hdf5Input>();
     } else if (ext == "tab") {
         return makeAuto<TabInput>();
     } else {

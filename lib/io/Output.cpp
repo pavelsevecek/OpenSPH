@@ -8,6 +8,10 @@
 #include "system/Factory.h"
 #include <fstream>
 
+#ifdef SPH_USE_HDF5
+#include <hdf5.h>
+#endif
+
 NAMESPACE_SPH_BEGIN
 
 // ----------------------------------------------------------------------------------------------------------
@@ -1122,6 +1126,124 @@ Expected<Path> VtkOutput::dump(const Storage& storage, const Statistics& stats) 
         return makeUnexpected<Path>("Cannot save file " + fileName.native() + ": " + e.what());
     }
 }
+
+// ----------------------------------------------------------------------------------------------------------
+// Hdf5Input
+// ----------------------------------------------------------------------------------------------------------
+
+#ifdef SPH_USE_HDF5
+
+template <typename T>
+Size typeDim;
+
+template <>
+Size typeDim<Float> = 1;
+template <>
+Size typeDim<Vector> = 3;
+
+template <typename T>
+T doubleToType(ArrayView<const double> data, const Size i);
+
+template <>
+Float doubleToType(ArrayView<const double> data, const Size i) {
+    return Float(data[i]);
+}
+template <>
+Vector doubleToType(ArrayView<const double> data, const Size i) {
+    return Vector(data[3 * i + 0], data[3 * i + 1], data[3 * i + 2]);
+}
+
+template <typename T>
+static void loadQuantity(const hid_t fileId,
+    const std::string& label,
+    const QuantityId id,
+    const OrderEnum order,
+    Storage& storage) {
+    const hid_t hid = H5Dopen(fileId, label.c_str(), H5P_DEFAULT);
+    if (hid < 0) {
+        throw IoError("Cannot read " + getMetadata(id).quantityName + " data");
+    }
+    const Size particleCnt = storage.getParticleCnt();
+    Array<double> data(typeDim<T> * particleCnt);
+    H5Dread(hid, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &data[0]);
+    H5Dclose(hid);
+
+    Array<T> values(particleCnt);
+    for (Size i = 0; i < particleCnt; ++i) {
+        values[i] = doubleToType<T>(data, i);
+    }
+    switch (order) {
+    case OrderEnum::ZERO:
+        storage.insert<T>(id, OrderEnum::ZERO, std::move(values));
+        break;
+    case OrderEnum::FIRST:
+        storage.getDt<T>(id) = std::move(values);
+        break;
+    case OrderEnum::SECOND:
+        storage.getD2t<T>(id) = std::move(values);
+        break;
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+Outcome Hdf5Input::load(const Path& path, Storage& storage, Statistics& stats) {
+    const hid_t fileId = H5Fopen(path.native().c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    if (fileId < 0) {
+        return makeFailed("Cannot open file '", path.native(), "'");
+    }
+
+    storage = Storage(Factory::getMaterial(BodySettings::getDefaults()));
+
+    const hid_t posId = H5Dopen(fileId, "/x", H5P_DEFAULT);
+    if (posId < 0) {
+        return makeFailed("Cannot read position data from file  '", path.native(), "'");
+    }
+    const hid_t dspace = H5Dget_space(posId);
+    const Size ndims = H5Sget_simple_extent_ndims(dspace);
+    Array<hsize_t> dims(ndims);
+    H5Sget_simple_extent_dims(dspace, &dims[0], nullptr);
+    const Size particleCnt = dims[0];
+    H5Dclose(posId);
+    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>(particleCnt));
+
+    const hid_t timeId = H5Dopen(fileId, "/time", H5P_DEFAULT);
+    if (timeId < 0) {
+        return makeFailed("Cannot read simulation time from file '", path.native(), "'");
+    }
+    double runTime;
+    H5Dread(timeId, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &runTime);
+    H5Dclose(timeId);
+    stats.set(StatisticsId::RUN_TIME, Float(runTime));
+
+    try {
+        loadQuantity<Vector>(fileId, "/x", QuantityId::POSITION, OrderEnum::ZERO, storage);
+        loadQuantity<Vector>(fileId, "/v", QuantityId::POSITION, OrderEnum::FIRST, storage);
+        loadQuantity<Float>(fileId, "/m", QuantityId::MASS, OrderEnum::ZERO, storage);
+        loadQuantity<Float>(fileId, "/p", QuantityId::PRESSURE, OrderEnum::ZERO, storage);
+        loadQuantity<Float>(fileId, "/rho", QuantityId::DENSITY, OrderEnum::ZERO, storage);
+        loadQuantity<Float>(fileId, "/e", QuantityId::ENERGY, OrderEnum::ZERO, storage);
+        loadQuantity<Float>(fileId, "/sml", QuantityId::SMOOTHING_LENGTH, OrderEnum::ZERO, storage);
+    } catch (const IoError& e) {
+        return makeFailed("Cannot read file '", path.native(), "'.\n", e.what());
+    }
+
+    // copy the smoothing lengths
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Float> h = storage.getValue<Float>(QuantityId::SMOOTHING_LENGTH);
+    for (Size i = 0; i < particleCnt; ++i) {
+        r[i][H] = h[i];
+    }
+    return SUCCESS;
+}
+
+
+#else
+
+Outcome Hdf5Input::load(const Path&, Storage&, Statistics&) {
+    return makeFailed("HDF5 support not enabled. Please rebuild the code with CONFIG+=use_hdf5.");
+}
+#endif
 
 // ----------------------------------------------------------------------------------------------------------
 // PkdgravOutput/Input

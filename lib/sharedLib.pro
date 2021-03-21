@@ -28,6 +28,11 @@ CONFIG(use_eigen) {
     INCLUDEPATH += /usr/include/eigen3
 }
 
+CONFIG(use_hdf5) {
+    DEFINES += SPH_USE_HDF5
+    LIBS += -lhdf5
+}
+
 CONFIG(use_chaiscript) {
     DEFINES += SPH_USE_CHAISCRIPT
     LIBS += -ldl

@@ -241,7 +241,7 @@ MainWindow::MainWindow(const Path& openPath)
     if (!openPath.empty()) {
         /// \todo generalize
         const std::string ext = openPath.extension().native();
-        if (ext == "ssf" || ext == "scf" || ext == "tab") {
+        if (ext == "ssf" || ext == "scf" || ext == "tab" || ext == "h5") {
             this->open(openPath, true);
         } else if (ext == "sph") {
             this->load(openPath);
@@ -287,7 +287,9 @@ void MainWindow::open(const Path& openPath, const bool setDefaults) {
         /// \todo generalize
         BinaryInput input;
         Expected<BinaryInput::Info> info = input.getInfo(openPath);
-        if (info && info->runType == RunTypeEnum::SPH) {
+        const bool isSphSim = info && info->runType == RunTypeEnum::SPH;
+        const bool isMiluphSim = openPath.extension() == Path("h5");
+        if (isSphSim || isMiluphSim) {
             Project::getInstance().getGuiSettings().set(GuiSettingsId::PARTICLE_RADIUS, 0.35);
         }
     }
@@ -458,6 +460,7 @@ wxMenu* MainWindow::createResultMenu() {
             Optional<Path> path = doOpenFileDialog("Open file",
                 { { "SPH state file", "ssf" },
                     { "SPH compressed file", "scf" },
+                    { "miluphcuda output files", "h5" },
                     { "Text .tab files", "tab" } });
             if (path) {
                 this->open(path.value(), false);
