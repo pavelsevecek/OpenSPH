@@ -1,5 +1,5 @@
 ## 2021-03-21
-- added a reader for .hdf5 files
+- added a reader for hdf5 (.h5) files
 
 ## 2021-03-20
 - hidden renderers that do not work properly from UI
