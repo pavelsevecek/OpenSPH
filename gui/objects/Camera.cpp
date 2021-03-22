@@ -111,8 +111,8 @@ Optional<CameraRay> OrthoCamera::unproject(const Coords& coords) const {
     const float ry = (data.imageSize.y * 0.5f - coords.y - 1) / fov;
     CameraRay ray;
     /// \todo TEMPORARY HACK, FIX!
-    ray.origin =
-        data.position + cached.u * rx + cached.v * ry + cached.w * (-1.e6_f); // data.clipping.lower();
+    const Float scale = data.imageSize.y / fov;
+    ray.origin = data.position + cached.u * rx + cached.v * ry - cached.w * scale;
     ray.target = ray.origin + cached.w;
     return ray;
 }

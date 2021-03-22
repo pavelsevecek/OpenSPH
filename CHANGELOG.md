@@ -1,5 +1,6 @@
 ## 2021-03-21
 - added a reader for .hdf5 files
+- generalized offset currently needed for OrthoCamera::unproject to work
 
 ## 2021-03-20
 - hidden renderers that do not work properly from UI
