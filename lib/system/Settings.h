@@ -764,6 +764,9 @@ enum class GravityKernelEnum {
 };
 
 enum class CollisionHandlerEnum {
+    /// No collision handling
+    NONE,
+
     /// All collided particles merge, creating larger spherical particles. Particles are merged
     /// unconditionally, regardless of their relative velocity or their angular frequencies.
     PERFECT_MERGING,

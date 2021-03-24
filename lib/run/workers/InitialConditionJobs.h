@@ -72,6 +72,7 @@ private:
     Vector v0 = Vector(0._f);
     Float mass = Constants::M_sun;
     Float radius = Constants::R_sun;
+    int flag = 0;
 
 public:
     explicit SingleParticleIc(const std::string& name)

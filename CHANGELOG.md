@@ -3,7 +3,10 @@
 - added a simple regression test to CI
 - fixed batch run causing crashes
 - tweaked presets
+- added multi-join operator for merging multiple particle sources
+- added option to disable collisions in N-body run
 - added accretion preset
+- added Solar System preset
 
 ## 2021-03-21
 - added a reader for hdf5 (.h5) files

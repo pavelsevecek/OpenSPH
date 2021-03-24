@@ -63,7 +63,7 @@ static JobRegistrar sRegisterCache(
     "data rather than evaluating the input every time.");
 
 //-----------------------------------------------------------------------------------------------------------
-// MergeParticlesWorker
+// JoinParticlesJob
 //-----------------------------------------------------------------------------------------------------------
 
 VirtualSettings JoinParticlesJob::getSettings() {
@@ -132,7 +132,54 @@ static JobRegistrar sRegisterParticleJoin(
 
 
 //-----------------------------------------------------------------------------------------------------------
-// TransformParticlesWorker
+// JoinParticlesJob
+//-----------------------------------------------------------------------------------------------------------
+
+VirtualSettings MultiJoinParticlesJob::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+
+    VirtualSettings::Category& defCat = connector.addCategory("Slots");
+    defCat.connect("Number of slots", "slot_cnt", slotCnt);
+
+    VirtualSettings::Category& cat = connector.addCategory("Merging");
+    cat.connect("Move to COM", "com", moveToCom)
+        .setTooltip(
+            "If true, the particles are moved so that their center of mass lies at the origin and their "
+            "velocities are modified so that the total momentum is zero.");
+
+    return connector;
+}
+
+void MultiJoinParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
+    SharedPtr<ParticleData> main = this->getInput<ParticleData>("particles 1");
+    for (int i = 1; i < slotCnt; ++i) {
+        SharedPtr<ParticleData> other = this->getInput<ParticleData>("particles " + std::to_string(i + 1));
+        main->storage.merge(std::move(other->storage));
+        other->storage.removeAll();
+    }
+
+    if (moveToCom) {
+        ArrayView<Vector> r, v, dv;
+        tie(r, v, dv) = main->storage.getAll<Vector>(QuantityId::POSITION);
+        ArrayView<const Float> m = main->storage.getValue<Float>(QuantityId::MASS);
+        moveToCenterOfMassSystem(m, r);
+        moveToCenterOfMassSystem(m, v);
+    }
+
+    result = main;
+    callbacks.onSetUp(result->storage, result->stats);
+}
+
+static JobRegistrar sRegisterParticleMultiJoin(
+    "multi join",
+    "particle operators",
+    [](const std::string& name) { return makeAuto<MultiJoinParticlesJob>(name); },
+    "Joins multiple particle sources into a single states.");
+
+
+//-----------------------------------------------------------------------------------------------------------
+// TransformParticlesJob
 //-----------------------------------------------------------------------------------------------------------
 
 VirtualSettings TransformParticlesJob::getSettings() {

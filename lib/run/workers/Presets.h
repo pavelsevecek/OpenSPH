@@ -23,6 +23,9 @@ SharedPtr<JobNode> makeGalaxyCollision(UniqueNameManager& nameMgr, const Size pa
 /// \brief Creates a node tree for accretion simulation
 SharedPtr<JobNode> makeAccretionDisk(UniqueNameManager& nameMgr, const Size particleCnt = 10000);
 
+/// \brief Creates a node tree for the Solar System
+SharedPtr<JobNode> makeSolarSystem(UniqueNameManager& nameMgr);
+
 } // namespace Presets
 
 NAMESPACE_SPH_END

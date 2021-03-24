@@ -259,6 +259,7 @@ static RegisterEnum<GravityKernelEnum> sGravityKernel({
 });
 
 static RegisterEnum<CollisionHandlerEnum> sCollisionHandler({
+    { CollisionHandlerEnum::NONE, "none", "No handling of collisions." },
     { CollisionHandlerEnum::PERFECT_MERGING,
         "perfect_merging",
         "All collided particles merge, creating larger spherical particles. Particles are merged "
