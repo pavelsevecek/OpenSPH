@@ -76,6 +76,8 @@ examples:
     - 06_heat_diffusion/06_heat_diffusion
 
 regression:
+  tags:
+    - opensph # might take a long time, do not run on shared runners
   stage: test
   script:
     - apt-get install -y gnuplot
@@ -85,7 +87,7 @@ regression:
     - make
     - cd ..
     - cd regression/impact
-    - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "fragmentation"
+    - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "save text file"
     - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "compare with reference"
     - gnuplot plot.plt
   artifacts:
