@@ -78,7 +78,7 @@ examples:
     paths:
       - examples_build/reaccumulated.ssf
 
-package:
+build_package:
   stage: deploy
   script:
     - apt-get install -y dpkg libtbb-dev
@@ -92,7 +92,7 @@ package:
     - cp gcc_deploy/cli/launcher/opensph-cli opensph_0.3.2-1/usr/local/bin/
     - cp gcc_deploy/cli/info/opensph-info    opensph_0.3.2-1/usr/local/bin/
     - mkdir -p opensph_0.3.2-1/DEBIAN
-    - cat "Package: opensph\nVersion: 0.3.2-1\nSection: base\nPriority: optional\nArchitecture: amd64\nDepends: libtbb-dev, libwxgtk3.0-dev\nMaintainer: Pavel Sevecek <sevecek at sirrah.troja.mff.cuni.cz>\nDescription: Program for astrophysical SPH/N-body simulations" > opensph_0.3.2-1/DEBIAN/control
+    - cp control opensph_0.3.2-1/DEBIAN/control
     - dpkg-deb --build opensph_0.3.2-1
   artifacts:
     paths:
