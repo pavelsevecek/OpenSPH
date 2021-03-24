@@ -73,12 +73,12 @@ where *version* can be one of:
 Use different build directory for each version!
 
 By default, OpenSPH uses a custom thread pool for parallelization. It is possible to use Intel TBB library 
-instead, by adding use_tbb flag:
+instead, by adding `use_tbb` flag:
 ```bash
 qmake CONFIG+=version CONFIG+=use_tbb ../sph.pro
 ```
 
-The project sph.pro builds command-line launcher and the GUI application that allows to set up and run 
+The project `sph.pro` builds command-line launcher and the GUI application that allows to set up and run 
 simulations, as well as view previously saved results.
 
 To further build the code examples, run:
@@ -95,10 +95,7 @@ Consider using pre-built executables, uploaded to a
 folder.
 
 ## Running a basic impact simulation
-A simulation can be started using a command-line launcher, located in cli/launcher directory.
-When a launcher is started for the first time, it generates configuration files 
-(with extension .cnf), which can be then modified to set up the simulation as needed.
-Simulation can be also set up in the graphical application, using a node-based editor.
+Simulation can be easily set up in the graphical application `opensph`, using a node-based editor.
 See category 'presets' on the right side of the editor for some basic simulations.
 
 Default simulation uses the following:
