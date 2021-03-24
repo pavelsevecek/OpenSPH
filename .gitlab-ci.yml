@@ -76,4 +76,4 @@ examples:
     - 06_heat_diffusion/06_heat_diffusion
   artifacts:
     paths:
-      - 05_fragmentation_reaccumulation/reaccumulated.ssf
+      - reaccumulated.ssf
