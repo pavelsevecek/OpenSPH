@@ -20,6 +20,9 @@ SharedPtr<JobNode> makeCratering(UniqueNameManager& nameMgr, const Size particle
 /// \brief Creates a node tree for galaxy collision.
 SharedPtr<JobNode> makeGalaxyCollision(UniqueNameManager& nameMgr, const Size particleCnt = 10000);
 
+/// \brief Creates a node tree for accretion simulation
+SharedPtr<JobNode> makeAccretionDisk(UniqueNameManager& nameMgr, const Size particleCnt = 10000);
+
 } // namespace Presets
 
 NAMESPACE_SPH_END

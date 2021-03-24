@@ -258,6 +258,7 @@ void SingleParticleIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
     result->storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>({ pos }));
     result->storage.getDt<Vector>(QuantityId::POSITION)[0] = v0;
     result->storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, mass);
+    result->storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, 0);
 }
 
 static JobRegistrar sRegisterSingleParticle(
