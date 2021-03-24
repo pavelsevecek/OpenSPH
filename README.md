@@ -24,9 +24,9 @@ Install it via:
 sudo dpkg -i opensph_0.3.2-1.deb
 ```
 The package contains three executables:
-- *opensph* - main program with graphical interface
-- *opensph-cli* - command-line utility allowing to run simulations set up by *opensph*
-- *opensph-info* - command-line utility for quick inspection of metadata of OpenSPH output files
+- `opensph` - main program with graphical interface
+- `opensph-cli` - command-line utility allowing to run simulations set up by `opensph`
+- `opensph-info` - command-line utility for quick inspection of metadata of OpenSPH output files
 
 ## Getting the code
 The code can be downloaded from <a href="https://gitlab.com/sevecekp/sph/tree/devel">GitLab repository</a>.
