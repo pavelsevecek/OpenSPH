@@ -1,3 +1,9 @@
+stages:
+  - build
+  - unit-tests
+  - regression-tests
+  - deploy
+
 before_script:  
 #- echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-4.0 main" >> /etc/apt/sources.list.d/llvm.list
 #- wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
@@ -38,7 +44,7 @@ clang_release:
     - make
 
 test_debug:
-  stage: test
+  stage: unit-tests
   script:
     - wget -P /usr/include/catch2/ "https://github.com/catchorg/Catch2/releases/download/v2.5.0/catch.hpp"
     - mkdir tests
@@ -50,7 +56,7 @@ test_debug:
 
 
 test_release:
-  stage: test
+  stage: unit-tests
   script:
     - wget -P /usr/include/catch2/ "https://github.com/catchorg/Catch2/releases/download/v2.5.0/catch.hpp" 
     - mkdir tests
@@ -61,7 +67,7 @@ test_release:
     - ./test -d yes exclude:[output] exclude:[filesystem] exclude:[path] exclude:[thread] exclude:[grid]
 
 examples:
-  stage: test
+  stage: unit-tests
   script:
     - mkdir examples_build
     - cd examples_build
@@ -74,9 +80,24 @@ examples:
     - 04_simple_collision/04_simple_collision
     - 05_fragmentation_reaccumulation/05_fragmentation_reaccumulation
     - 06_heat_diffusion/06_heat_diffusion
+
+regression:
+  stage: regression-tests
+  script:
+    - apt-get install -y gnuplot
+    - mkdir regression_build
+    - cd regression_build
+    - qmake -spec linux-g++ CONFIG+=release ../sph.pro
+    - make
+    - cd ..
+    - cd regression/impact
+    - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "fragmentation"
+    - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "compare with reference"
+    - gnuplot plot.plt
   artifacts:
     paths:
-      - examples_build/reaccumulated.ssf
+      - regression/impact/result.scf
+      - regression/impact/plot.png
 
 build_package:
   stage: deploy

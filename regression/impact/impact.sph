@@ -1,0 +1,349 @@
+"palettes" [
+]
+
+"gui" [
+  "renderer" = 1
+  "camera.type" = 0
+  "camera.position" =                    0                   0                   1
+  "camera.target" =                    0                   0                   0
+  "camera.up" =                    0                   1                   0
+  "camera.ortho.fov" = 15294.1
+  "camera.perspective.fov" = 1.0472
+  "camera.clip.near" = 1e-12
+  "camera.clip.far" = 1.79769e+308
+  "camera.autosetup" = 1
+  "camera.track_particle" = -1
+  "camera.track_median" = 0
+  "camera.tracking_offset" =                    0                   0                   0
+  "view.width" = 1024
+  "view.height" = 768
+  "view.max_framerate" = 100
+  "view.refresh_on_timestep" = 1
+  "view.grid_size" = 0
+  "background_color" =                    0                   0                   0
+  "show_key" = 1
+  "force_grayscale" = 0
+  "antialiased" = 0
+  "smooth_particles" = 0
+  "render_ghost_particles" = 1
+  "particle_radius" = 0.35
+  "camera.ortho.cutoff" = 200
+  "surface.resolution" = 100
+  "surface.level" = 0.13
+  "surface.sun_position" =      -0.549442246526     -0.137360561632      0.824163390257
+  "surface.sun_intentity" = 0.7
+  "surface.emission" = 1
+  "surface.ambient" = 0.1
+  "raytrace.subsampling" = 4
+  "raytrace.iteration_limit" = 10
+  "raytrace.hdri" = ""
+  "raytrace.texture_primary" = ""
+  "raytrace.texture_secondary" = ""
+  "raytrace.brdf" = 0
+  "raytrace.spheres" = 0
+  "contour.spacing" = 10
+  "contour.grid_size" = 100
+  "contour.show_labels" = 1
+  "window.title" = "OpenSPH"
+  "window.width" = 1600
+  "window.height" = 768
+  "plot.integrals" = 31
+  "plot.initial_period" = 60
+  "plot.overplot_sfd" = "/home/pavel/projects/astro/asteroids/hygiea/main_belt_families_2018/10_Hygiea/size_distribution/family.dat_hc"
+  "images.renderer" = 1
+  "images.width" = 1024
+  "images.height" = 768
+  "images.save" = 0
+  "images.path" = "imgs/"
+  "images.name" = "frag_%e_%d.png"
+  "images.first_index" = 0
+  "images.make_movie" = 0
+  "images.movie_name" = "frag_%e.avi"
+  "images.time_step" = 10
+]
+
+"globals" [
+  "sph.kernel" = 0
+  "run.thread.cnt" = 0
+  "run.thread.granularity" = 1000
+  "finder.leaf_size" = 25
+  "finder.max_parallel_depth" = 50
+  "run.rng" = 0
+  "run.rng.seed" = 1234
+  "misc.generate_uvws" = 0
+  "run.author" = "Pavel Sevecek"
+  "run.email" = "sevecek@sirrah.troja.mff.cuni.cz"
+  "run.comment" = ""
+]
+
+"nodes" [
+  "fragmentation" [
+    "class_name" = "SPH run"
+    "position" = 789 166
+    "particles" = "geometry"
+    "name" = "fragmentation"
+    "run.end_time" = 2
+    "is_resumed" = 0
+    "timestep.max_step" = 10
+    "timestep.initial" = 0.01
+    "timestep.integrator" = 3
+    "timestep.criterion" = 26
+    "timestep.courant_number" = 0.2
+    "timestep.derivative_factor" = 0.2
+    "timestep.divergence_factor" = 0.005
+    "timestep.max_change" = 1.79769e+308
+    "sph.solver.forces" = 35
+    "frame.constant_acceleration" =                    0                   0                   0
+    "frame.tides.mass" = 0
+    "frame.tides.position" =                    1                   0                   0
+    "sph.solver.type" = 1
+    "sph.discretization" = 0
+    "sph.adaptive_smoothing_length" = 0
+    "sph.smoothing_length.min" = 1e-05
+    "sph.neighbour.enforcing" = 0.2
+    "sph.neighbour.range" =                   25                 100
+    "sph.asymmetric.compute_radii_hash_map" = 0
+    "sph.correction_tensor" = 1
+    "sph.sum_only_undamaged" = 1
+    "sph.continuity_mode" = 0
+    "sph.finder" = 1
+    "domain.boundary" = 0
+    "sph.av.type" = 1
+    "sph.av.balsara.use" = 0
+    "sph.av.alpha" = 1.5
+    "sph.av.beta" = 3
+    "sph.av.stress.use" = 0
+    "sph.av.stress.factor" = 0.04
+    "sph.av.stress.exponent" = 4
+    "sph.ac.use" = 0
+    "sph.xsph.enable" = 0
+    "sph.xsph.epsilon" = 1
+    "sph.deltasph.enable" = 0
+    "sph.deltasph.alpha" = 0.01
+    "sph.deltasph.delta" = 0.01
+    "sph.script.enable" = 0
+    "sph.script.file" = "script.chai"
+    "sph.script.period" = 0
+    "sph.script.oneshot" = 0
+    "gravity.solver" = 2
+    "gravity.opening_angle" = 0.8
+    "gravity.multipole_order" = 3
+    "gravity.kernel" = 1
+    "gravity.recomputation_period" = 5
+    "run.output.type" = 0
+    "run.output.path" = "out"
+    "run.output.name" = "fragmentation_%d.ssf"
+    "run.output.quantitites" = 127
+    "run.output.interval" = 1
+    "run.logger" = 1
+    "run.logger.file" = "log.txt"
+    "run.logger.verbosity" = 2
+  ]
+  "geometry" [
+    "class_name" = "collision setup"
+    "position" = 602 165
+    "target" = "hydrostatic equilibrium"
+    "impactor" = "impactor body"
+    "name" = "geometry"
+    "impact.angle" = 60
+    "impact.speed" = 1
+    "impactor.offset" = 3
+    "center_of_mass_frame" = 1
+  ]
+  "target body" [
+    "class_name" = "create monolithic body"
+    "position" = 200 125
+    "material" = "material"
+    "name" = "target body"
+    "particles.count" = 10000
+    "sph.initial_distribution" = 0
+    "sph.eta" = 1.3
+    "sph.distribute_mode_sph5" = 0
+    "sph.center_particles" = 1
+    "useShapeSlot" = 0
+    "body.shape_type" = 1
+    "body.radius" = 1
+    "body.height" = 10
+    "body.dimensions" =                   10                  10                  10
+    "useMaterialSlot" = 1
+    "eos" = 4
+    "material.density" = 2700
+    "material.energy" = 1000
+    "material.damage" = 0
+    "rheology.yielding" = 2
+    "material.bulk_modulus" = 2.67e+10
+    "material.shear_modulus" = 2.27e+10
+    "material.elastic_modulus" = 8e+09
+    "rheology.elasticity_limit" = 3.5e+09
+    "rheology.melt_energy" = 3.4e+06
+    "rheology.internal_friction" = 2
+    "rheology.cohesion" = 9e+07
+    "rheology.dry_friction" = 0.8
+    "rheology.acoustic_fludization" = 0
+    "rheology.oscillation_decay_time" = 100
+    "rheology.oscillation_regeneration" = 0.5
+    "rheology.fludization_viscosity" = 88000
+    "rheology.damage" = 1
+    "material.weibull.exponent" = 9
+    "material.weibull.coefficient" = 4e+35
+    "material.weibull.sample_distributions" = 1
+    "sph.diehl.iteration_count" = 50
+    "sph.diehl.strength" = 0.1
+    "body.spin_rate" = 0
+  ]
+  "material" [
+    "class_name" = "material"
+    "position" = 0 200
+    "name" = "material"
+    "eos" = 4
+    "material.density" = 2700
+    "material.energy" = 0
+    "material.damage" = 0
+    "rheology.yielding" = 2
+    "material.bulk_modulus" = 2.67e+10
+    "material.shear_modulus" = 2.27e+10
+    "material.elastic_modulus" = 8e+09
+    "rheology.elasticity_limit" = 3.5e+09
+    "rheology.melt_energy" = 3.4e+06
+    "rheology.internal_friction" = 2
+    "rheology.cohesion" = 9e+07
+    "rheology.dry_friction" = 0.8
+    "rheology.acoustic_fludization" = 0
+    "rheology.oscillation_decay_time" = 100
+    "rheology.oscillation_regeneration" = 0.5
+    "rheology.fludization_viscosity" = 88000
+    "rheology.damage" = 1
+    "material.weibull.exponent" = 9
+    "material.weibull.coefficient" = 4e+35
+    "material.weibull.sample_distributions" = 0
+    "material.density.min" = 100
+    "material.energy.min" = 10
+    "material.stress_tensor.min" = 4e+06
+    "material.damage.min" = 0.25
+  ]
+  "impactor body" [
+    "class_name" = "create impactor"
+    "position" = 403 245
+    "target" = "target body"
+    "material" = "optimize impactor"
+    "name" = "impactor body"
+    "particles.min_count" = 20
+    "sph.initial_distribution" = 0
+    "sph.eta" = 1.3
+    "sph.distribute_mode_sph5" = 0
+    "useShapeSlot" = 0
+    "body.shape_type" = 1
+    "body.radius" = 0.05
+    "body.height" = 10
+    "body.dimensions" =                   10                  10                  10
+    "useMaterialSlot" = 1
+    "eos" = 4
+    "material.density" = 2700
+    "material.energy" = 1000
+    "material.damage" = 0
+    "rheology.yielding" = 2
+    "material.bulk_modulus" = 2.67e+10
+    "material.shear_modulus" = 2.27e+10
+    "material.elastic_modulus" = 8e+09
+    "rheology.elasticity_limit" = 3.5e+09
+    "rheology.melt_energy" = 3.4e+06
+    "rheology.internal_friction" = 2
+    "rheology.cohesion" = 9e+07
+    "rheology.dry_friction" = 0.8
+    "rheology.acoustic_fludization" = 0
+    "rheology.oscillation_decay_time" = 100
+    "rheology.oscillation_regeneration" = 0.5
+    "rheology.fludization_viscosity" = 88000
+    "rheology.damage" = 1
+    "material.weibull.exponent" = 9
+    "material.weibull.coefficient" = 4e+35
+    "material.weibull.sample_distributions" = 1
+    "sph.diehl.iteration_count" = 50
+    "sph.diehl.strength" = 0.1
+    "body.spin_rate" = 0
+  ]
+  "optimize impactor" [
+    "class_name" = "optimize timestepping"
+    "position" = 200 275
+    "material" = "material"
+    "name" = "optimize impactor"
+  ]
+  "save text file" [
+    "class_name" = "save file"
+    "position" = 639 465
+    "particles" = "save state"
+    "name" = "save text file"
+    "run.output.name" = "result.txt"
+    "run.output.type" = 1
+    "run.output.quantitites" = 355
+  ]
+  "save state" [
+    "class_name" = "save file"
+    "position" = 426 465
+    "particles" = "fragmentation"
+    "name" = "save state"
+    "run.output.name" = "result.scf"
+    "run.output.type" = 4
+    "run.output.quantitites" = 3
+  ]
+  "hydrostatic equilibrium" [
+    "class_name" = "set equilibrium energy"
+    "position" = 407 119
+    "particles" = "target body"
+    "name" = "hydrostatic equilibrium"
+    "solver" = 0
+    "threshold" = 40
+  ]
+  "compare with reference" [
+    "class_name" = "compare"
+    "position" = 588 672
+    "test particles" = "Load reference"
+    "reference particles" = "Load result"
+    "name" = "compare with reference"
+  ]
+  "Load result" [
+    "class_name" = "load file"
+    "position" = 307 733
+    "name" = "Load result"
+    "file" = "result.scf"
+  ]
+  "Load reference" [
+    "class_name" = "load file"
+    "position" = 307 634
+    "name" = "Load reference"
+    "file" = "reference.scf"
+  ]
+]
+
+"batch" [
+  "runCount" = 4
+  "paramCount" = 3
+  "params" [
+  ]
+  "runs" [
+    "run-0" = "Run 1"
+    "run-1" = "Run 2"
+    "run-2" = "Run 3"
+    "run-3" = "Run 4"
+  ]
+  "cells" [
+    "cell-0-0" = ""
+    "cell-1-0" = ""
+    "cell-2-0" = ""
+    "cell-0-1" = ""
+    "cell-1-1" = ""
+    "cell-2-1" = ""
+    "cell-0-2" = ""
+    "cell-1-2" = ""
+    "cell-2-2" = ""
+    "cell-0-3" = ""
+    "cell-1-3" = ""
+    "cell-2-3" = ""
+  ]
+]
+
+"editor_state" [
+  "offset" = 122 22
+  "zoom" = 1
+]
+

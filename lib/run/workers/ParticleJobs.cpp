@@ -3,6 +3,7 @@
 #include "io/Logger.h"
 #include "objects/geometry/Sphere.h"
 #include "post/Analysis.h"
+#include "quantities/Iterate.h"
 #include "quantities/Quantity.h"
 #include "run/IRun.h"
 #include "sph/Materials.h"
@@ -808,58 +809,98 @@ static JobRegistrar sRegisterSubsampler(
 
 
 // ----------------------------------------------------------------------------------------------------------
-// AnalysisWorker
+// CompareJob
 // ----------------------------------------------------------------------------------------------------------
 
-VirtualSettings AnalysisJob::getSettings() {
+VirtualSettings CompareJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
-    VirtualSettings::Category& outputCat = connector.addCategory("Output");
-    outputCat.connect("Output path", "output_path", outputPath);
     return connector;
 }
 
-void AnalysisJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
-    SharedPtr<ParticleData> input = this->getInput<ParticleData>("particles");
+void CompareJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+    Storage& test = this->getInput<ParticleData>("test particles")->storage;
+    Storage& ref = this->getInput<ParticleData>("reference particles")->storage;
 
-    /*FlatMap<Size, Path> fileMap = getFileSequence(sequence.firstFile);
-    if (fileMap.empty()) {
-        throw InvalidSetup("No files to render.");
+    if (test.getParticleCnt() != ref.getParticleCnt()) {
+        throw InvalidSetup("Different number of particles.\nTest has " +
+                           std::to_string(test.getParticleCnt()) + "\nReference has " +
+                           std::to_string(ref.getParticleCnt()));
     }
-    const Size firstKey = fileMap.begin()->key;
 
-    AutoPtr<IInput> input = Factory::getInput(sequence.firstFile);
-    for (auto& element : fileMap) {
-        Storage storage;
-        Statistics stats;
-        const Outcome result = input->load(element.value, storage, stats);
-        if (!result) {
-            /// \todo how to report this? (don't do modal dialog)
-            break;
+    if (test.getQuantityCnt() != ref.getQuantityCnt()) {
+        throw InvalidSetup("Different number of quantities.\nTest has " +
+                           std::to_string(test.getQuantityCnt()) + "\nReference has " +
+                           std::to_string(ref.getQuantityCnt()));
+    }
+
+    StringLogger log;
+    auto checkZeroOrder = [&](QuantityId id, const auto& px, const auto& cx) {
+        for (Size i = 0; i < px.size(); ++i) {
+            if (!almostEqual(px[i], cx[i], 1.e-6_f)) {
+                log.write("Difference in ", getMetadata(id).quantityName, "\n", px[i], " == ", cx[i], "\n\n");
+                break;
+            }
         }
+    };
+    iteratePair<VisitorEnum::ZERO_ORDER>(test, ref, checkZeroOrder);
 
-        stats.set(StatisticsId::RELATIVE_PROGRESS, Float(element.key - firstKey) / fileMap.size());
-        stats.set(StatisticsId::WALLCLOCK_TIME, int(renderTimer.elapsed(TimerUnit::MILLISECOND)));
-        if (element.key == firstKey) {
-            callbacks.onSetUp(storage, stats);
+    auto checkFirstOrder = [&](QuantityId id,
+                               const auto& px,
+                               const auto& pdx,
+                               const auto& cx,
+                               const auto& cdx) {
+        for (Size i = 0; i < px.size(); ++i) {
+            if (!almostEqual(px[i], cx[i], 1.e-6_f)) {
+                log.write("Difference in ", getMetadata(id).quantityName, "\n", px[i], " == ", cx[i], "\n\n");
+                break;
+            }
+            if (!almostEqual(pdx[i], cdx[i], 1.e-6_f)) {
+                log.write(
+                    "Difference in ", getMetadata(id).derivativeName, "\n", pdx[i], " == ", cdx[i], "\n\n");
+                break;
+            }
         }
-        callbacks.onTimeStep(storage, stats);
+    };
+    iteratePair<VisitorEnum::FIRST_ORDER>(test, ref, checkFirstOrder);
 
-        if (callbacks.shouldAbortRun()) {
-            break;
+    auto checkSecondOrder = [&](QuantityId id,
+                                const auto& px,
+                                const auto& pdx,
+                                const auto& pdv,
+                                const auto& cx,
+                                const auto& cdx,
+                                const auto& cdv) {
+        for (Size i = 0; i < px.size(); ++i) {
+            if (!almostEqual(px[i], cx[i], 1.e-6_f)) {
+                log.write("Difference in ", getMetadata(id).quantityName, "\n", px[i], " == ", cx[i], "\n\n");
+                break;
+            }
+            if (!almostEqual(pdx[i], cdx[i], 1.e-6_f)) {
+                log.write(
+                    "Difference in ", getMetadata(id).derivativeName, "\n", pdx[i], " == ", cdx[i], "\n\n");
+                break;
+            }
+            if (!almostEqual(pdv[i], cdv[i], 1.e-6_f)) {
+                log.write("Difference in ",
+                    getMetadata(id).secondDerivativeName,
+                    "\n",
+                    pdv[i],
+                    " == ",
+                    cdv[i],
+                    "\n\n");
+                break;
+            }
         }
-
-        movie.save(storage, stats);
-    }*/
-
-    result = input;
+    };
+    iteratePair<VisitorEnum::SECOND_ORDER>(test, ref, checkSecondOrder);
 }
 
-static JobRegistrar sRegisterAnalysis(
-    "analysis",
+static JobRegistrar sRegisterCompare(
+    "compare",
     "particle operators",
-    [](const std::string& name) { return makeAuto<AnalysisJob>(name); },
-    "TODO");
+    [](const std::string& name) { return makeAuto<CompareJob>(name); },
+    "Compares two states.");
 
 
 NAMESPACE_SPH_END

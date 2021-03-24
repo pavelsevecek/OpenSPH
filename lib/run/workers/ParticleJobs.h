@@ -342,20 +342,20 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class AnalysisJob : public IParticleJob {
-private:
-    Path outputPath = Path("report.txt");
-
+class CompareJob : public IParticleJob {
 public:
-    explicit AnalysisJob(const std::string& name)
+    explicit CompareJob(const std::string& name)
         : IParticleJob(name) {}
 
     virtual std::string className() const override {
-        return "analysis";
+        return "compare";
     }
 
     virtual UnorderedMap<std::string, JobType> getSlots() const override {
-        return { { "particles", JobType::PARTICLES } };
+        return {
+            { "test particles", JobType::PARTICLES },
+            { "reference particles", JobType::PARTICLES },
+        };
     }
 
     virtual VirtualSettings getSettings() override;

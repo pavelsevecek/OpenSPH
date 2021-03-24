@@ -189,6 +189,7 @@ SaveFileJob::SaveFileJob(const std::string& name)
 
 VirtualSettings SaveFileJob::getSettings() {
     VirtualSettings connector;
+    addGenericCategory(connector, instName);
 
     VirtualSettings::Category& outputCat = connector.addCategory("Output");
     outputCat.connect<Path>("File", settings, RunSettingsId::RUN_OUTPUT_NAME);
