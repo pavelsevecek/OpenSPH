@@ -75,3 +75,13 @@ examples:
     - 05_fragmentation_reaccumulation/05_fragmentation_reaccumulation
     - 06_heat_diffusion/06_heat_diffusion
 
+regression:
+  stage: deploy
+  script:
+    git clone https://gitlab.com/sevecekp/opensph-regression-testing regression
+    cd regression
+    touch README.md
+    git add README.md
+    git commit -m "test"
+    git push
+
