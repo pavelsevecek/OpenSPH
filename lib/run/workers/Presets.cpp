@@ -6,6 +6,7 @@
 #include "run/workers/MaterialJobs.h"
 #include "run/workers/ParticleJobs.h"
 #include "run/workers/SimulationJobs.h"
+#include "sph/Materials.h"
 #include "thread/CheckFunction.h"
 
 NAMESPACE_SPH_BEGIN
@@ -155,6 +156,59 @@ SharedPtr<JobNode> Presets::makeCratering(UniqueNameManager& nameMgr, const Size
     domain->connect(cratering, "boundary");
 
     return cratering;
+}
+
+SharedPtr<JobNode> Presets::makePlanetesimalMerging(UniqueNameManager& nameMgr, const Size particleCnt) {
+    SharedPtr<JobNode> planetesimal = makeNode<DifferentiatedBodyIc>(nameMgr.getName("planetesimal"));
+    VirtualSettings planetSettings = planetesimal->getSettings();
+    planetSettings.set(BodySettingsId::PARTICLE_COUNT, int(particleCnt));
+
+    SharedPtr<JobNode> olivine =
+        makeNode<MaterialJob>(nameMgr.getName("olivine"), getMaterial(MaterialEnum::OLIVINE)->getParams());
+    olivine->getSettings().set(BodySettingsId::RHEOLOGY_YIELDING, EnumWrapper(YieldingEnum::NONE));
+    SharedPtr<JobNode> iron =
+        makeNode<MaterialJob>(nameMgr.getName("iron"), getMaterial(MaterialEnum::IRON)->getParams());
+    iron->getSettings().set(BodySettingsId::RHEOLOGY_YIELDING, EnumWrapper(YieldingEnum::NONE));
+
+    SharedPtr<JobNode> surface = makeNode<SphereJob>("surface sphere");
+    surface->getSettings().set("radius", 1500._f); // km
+
+    SharedPtr<JobNode> core = makeNode<SphereJob>("core sphere");
+    core->getSettings().set("radius", 750._f); // km
+
+    surface->connect(planetesimal, "base shape");
+    olivine->connect(planetesimal, "base material");
+
+    core->connect(planetesimal, "shape 1");
+    iron->connect(planetesimal, "material 1");
+
+    SharedPtr<JobNode> equilibrium = makeNode<EquilibriumIc>("hydrostatic equilibrium");
+    planetesimal->connect(equilibrium, "particles");
+
+    SharedPtr<JobNode> stab = makeNode<SphStabilizationJob>(nameMgr.getName("stabilize"));
+    VirtualSettings stabSettings = stab->getSettings();
+    stabSettings.set(RunSettingsId::RUN_END_TIME, 1000._f);
+    const TimeStepCriterionEnum criteria = TimeStepCriterionEnum::COURANT;
+    stabSettings.set(RunSettingsId::TIMESTEPPING_CRITERION, EnumWrapper(criteria));
+    equilibrium->connect(stab, "particles");
+
+    SharedPtr<JobNode> merger = makeNode<JoinParticlesJob>(nameMgr.getName("merge"));
+    VirtualSettings mergerSettings = merger->getSettings();
+    mergerSettings.set("offset", Vector(5000._f, 1500._f, 0._f));
+    mergerSettings.set("velocity", Vector(-2.5_f, 0._f, 0._f));
+    mergerSettings.set("com", true);
+    mergerSettings.set("unique_flags", true);
+
+    stab->connect(merger, "particles A");
+    stab->connect(merger, "particles B");
+
+    SharedPtr<JobNode> sim = makeNode<SphJob>(nameMgr.getName("impact simulation"));
+    VirtualSettings simSettings = sim->getSettings();
+    simSettings.set(RunSettingsId::RUN_END_TIME, 15000._f);
+    simSettings.set(RunSettingsId::TIMESTEPPING_CRITERION, EnumWrapper(criteria));
+    merger->connect(sim, "particles");
+
+    return sim;
 }
 
 SharedPtr<JobNode> Presets::makeGalaxyCollision(UniqueNameManager& nameMgr, const Size particleCnt) {

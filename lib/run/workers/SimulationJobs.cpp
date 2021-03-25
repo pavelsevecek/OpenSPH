@@ -96,6 +96,11 @@ static void addGravityCategory(VirtualSettings& connector, RunSettings& settings
 }
 
 static void addOutputCategory(VirtualSettings& connector, RunSettings& settings) {
+    auto enabler = [&settings] {
+        const IoEnum type = settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
+        return type != IoEnum::NONE;
+    };
+
     VirtualSettings::Category& outputCat = connector.addCategory("Output");
     outputCat.connect<EnumWrapper>("Format", settings, RunSettingsId::RUN_OUTPUT_TYPE)
         .setAccessor([&settings](const IVirtualEntry::Value& value) {
@@ -106,14 +111,15 @@ static void addOutputCategory(VirtualSettings& connector, RunSettings& settings)
             }
             settings.set(RunSettingsId::RUN_OUTPUT_NAME, name.native());
         });
-    outputCat.connect<Path>("Directory", settings, RunSettingsId::RUN_OUTPUT_PATH);
-    outputCat.connect<std::string>("File mask", settings, RunSettingsId::RUN_OUTPUT_NAME);
+    outputCat.connect<Path>("Directory", settings, RunSettingsId::RUN_OUTPUT_PATH).setEnabler(enabler);
+    outputCat.connect<std::string>("File mask", settings, RunSettingsId::RUN_OUTPUT_NAME).setEnabler(enabler);
     outputCat.connect<Flags<OutputQuantityFlag>>("Quantities", settings, RunSettingsId::RUN_OUTPUT_QUANTITIES)
         .setEnabler([&settings] {
             const IoEnum type = settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
             return type == IoEnum::TEXT_FILE || type == IoEnum::VTK_FILE;
         });
-    outputCat.connect<Float>("Output interval [s]", settings, RunSettingsId::RUN_OUTPUT_INTERVAL);
+    outputCat.connect<Float>("Output interval [s]", settings, RunSettingsId::RUN_OUTPUT_INTERVAL)
+        .setEnabler(enabler);
 }
 
 static void addLoggerCategory(VirtualSettings& connector, RunSettings& settings) {

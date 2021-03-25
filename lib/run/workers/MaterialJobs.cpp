@@ -101,6 +101,26 @@ VirtualSettings MaterialJob::getSettings() {
     VirtualSettings::Category& materialCat = connector.addCategory("Material");
     this->addMaterialEntries(materialCat, nullptr);
 
+    auto tillotsonEnabler = [this] { return body.get<EosEnum>(BodySettingsId::EOS) == EosEnum::TILLOTSON; };
+
+    VirtualSettings::Category& tillotsonCat = connector.addCategory("Tillotson's parameters");
+    tillotsonCat.connect<Float>("Tillotson's a", body, BodySettingsId::TILLOTSON_SMALL_A)
+        .setEnabler(tillotsonEnabler);
+    tillotsonCat.connect<Float>("Tillotson's b", body, BodySettingsId::TILLOTSON_SMALL_B)
+        .setEnabler(tillotsonEnabler);
+    tillotsonCat.connect<Float>("Tillotson's B", body, BodySettingsId::TILLOTSON_NONLINEAR_B)
+        .setEnabler(tillotsonEnabler);
+    tillotsonCat.connect<Float>("Tillotson's alpha", body, BodySettingsId::TILLOTSON_ALPHA)
+        .setEnabler(tillotsonEnabler);
+    tillotsonCat.connect<Float>("Tillotson's beta", body, BodySettingsId::TILLOTSON_BETA)
+        .setEnabler(tillotsonEnabler);
+    tillotsonCat.connect<Float>("Incipient vaporization energy", body, BodySettingsId::TILLOTSON_ENERGY_IV)
+        .setEnabler(tillotsonEnabler);
+    tillotsonCat.connect<Float>("Complete vaporization energy", body, BodySettingsId::TILLOTSON_ENERGY_CV)
+        .setEnabler(tillotsonEnabler);
+    tillotsonCat.connect<Float>("Sublimation energy", body, BodySettingsId::TILLOTSON_SUBLIMATION)
+        .setEnabler(tillotsonEnabler);
+
     VirtualSettings::Category& integratorCat = connector.addCategory("Time step control");
     integratorCat.connect<Float>("Density coeff. [kg/m^3]", body, BodySettingsId::DENSITY_MIN);
     integratorCat.connect<Float>("Energy coeff. [J/kg]", body, BodySettingsId::ENERGY_MIN);

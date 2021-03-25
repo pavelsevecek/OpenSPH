@@ -1,3 +1,8 @@
+## 2021-03-25
+- added planetesimal merge preset
+- properly enabling parameters in output category
+- added Tillotson's parameters to material jobs
+
 ## 2021-03-24
 - added compare node
 - added a simple regression test to CI

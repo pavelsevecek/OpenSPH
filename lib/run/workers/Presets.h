@@ -17,6 +17,9 @@ SharedPtr<JobNode> makeFragmentationAndReaccumulation(UniqueNameManager& nameMgr
 /// \brief Creates a node tree for simulation of cratering.
 SharedPtr<JobNode> makeCratering(UniqueNameManager& nameMgr, const Size particleCnt = 10000);
 
+/// \brief Creates a node tree for simulation of planetesimal collision.
+SharedPtr<JobNode> makePlanetesimalMerging(UniqueNameManager& nameMgr, const Size particleCnt = 10000);
+
 /// \brief Creates a node tree for galaxy collision.
 SharedPtr<JobNode> makeGalaxyCollision(UniqueNameManager& nameMgr, const Size particleCnt = 10000);
 

@@ -772,7 +772,7 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
         "Coefficient k of Weibull distribution." },
     { BodySettingsId::WEIBULL_EXPONENT,        "material.weibull.exponent",    9._f,
         "Coefficienet m of Weibull distribution." },
-    { BodySettingsId::WEIBULL_SAMPLE_DISTRIBUTIONS, "material.weibull.sample_distributions", true,
+    { BodySettingsId::WEIBULL_SAMPLE_DISTRIBUTIONS, "material.weibull.sample_distributions", false,
         "If true, flaw counts and activation thresholds are samples from Poisson and exponential distribution, "
         "respectively. Otherwise, flaws and activation thresholds are accumulated for each particle until all "
         "particles have at least one flaw, as in Benz and Asphaug (1994). The latter is needed for reproducibility "

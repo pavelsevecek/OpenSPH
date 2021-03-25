@@ -1470,6 +1470,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
     wxTreeItemId presetsId = workerView->AppendItem(rootId, "presets");
     wxTreeItemId collisionsId = workerView->AppendItem(presetsId, "asteroid collision");
     wxTreeItemId fragAndReaccId = workerView->AppendItem(presetsId, "fragmentation & reaccumulation");
+    wxTreeItemId planetesimalId = workerView->AppendItem(presetsId, "planetesimal merge");
     wxTreeItemId crateringId = workerView->AppendItem(presetsId, "cratering");
     wxTreeItemId accretionId = workerView->AppendItem(presetsId, "accretion disk");
     wxTreeItemId galaxyId = workerView->AppendItem(presetsId, "galaxy collision");
@@ -1513,6 +1514,8 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             presetNode = Presets::makeGalaxyCollision(nameMgr);
         } else if (id == solarSystemId) {
             presetNode = Presets::makeSolarSystem(nameMgr);
+        } else if (id == planetesimalId) {
+            presetNode = Presets::makePlanetesimalMerging(nameMgr);
         }
         if (presetNode) {
             nodeMgr->addNodes(*presetNode);
