@@ -470,6 +470,15 @@ void NodeManager::startBatch(JobNode& node) {
     RawPtr<IJobDesc> desc = getJobDesc(node.className());
     ASSERT(desc);
 
+    // validate
+    for (Size col = 0; col < batch.getParamCount(); ++col) {
+        if (!batch.getParamNode(col)) {
+            wxMessageBox(std::string(
+                "Incomplete set up of batch run.\nSet up all parameters in Project / Batch Run."));
+            return;
+        }
+    }
+
     Array<SharedPtr<JobNode>> batchNodes;
     try {
         for (Size runIdx = 0; runIdx < batch.getRunCount(); ++runIdx) {
@@ -1462,7 +1471,9 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
     wxTreeItemId collisionsId = workerView->AppendItem(presetsId, "asteroid collision");
     wxTreeItemId fragAndReaccId = workerView->AppendItem(presetsId, "fragmentation & reaccumulation");
     wxTreeItemId crateringId = workerView->AppendItem(presetsId, "cratering");
+    wxTreeItemId accretionId = workerView->AppendItem(presetsId, "accretion disk");
     wxTreeItemId galaxyId = workerView->AppendItem(presetsId, "galaxy collision");
+    wxTreeItemId solarSystemId = workerView->AppendItem(presetsId, "solar system");
 
     workerView->Bind(wxEVT_MOTION, [workerView](wxMouseEvent& evt) {
         wxPoint pos = evt.GetPosition();
@@ -1489,18 +1500,22 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
     workerView->Bind(wxEVT_TREE_ITEM_ACTIVATED, [=](wxTreeEvent& evt) {
         wxTreeItemId id = evt.GetItem();
         UniqueNameManager nameMgr = nodeMgr->makeUniqueNameManager();
+        SharedPtr<JobNode> presetNode;
         if (id == fragAndReaccId) {
-            auto node = Presets::makeFragmentationAndReaccumulation(nameMgr);
-            nodeMgr->addNodes(*node);
+            presetNode = Presets::makeFragmentationAndReaccumulation(nameMgr);
         } else if (id == collisionsId) {
-            auto node = Presets::makeAsteroidCollision(nameMgr);
-            nodeMgr->addNodes(*node);
+            presetNode = Presets::makeAsteroidCollision(nameMgr);
         } else if (id == crateringId) {
-            auto node = Presets::makeCratering(nameMgr);
-            nodeMgr->addNodes(*node);
+            presetNode = Presets::makeCratering(nameMgr);
+        } else if (id == accretionId) {
+            presetNode = Presets::makeAccretionDisk(nameMgr);
         } else if (id == galaxyId) {
-            auto node = Presets::makeGalaxyCollision(nameMgr);
-            nodeMgr->addNodes(*node);
+            presetNode = Presets::makeGalaxyCollision(nameMgr);
+        } else if (id == solarSystemId) {
+            presetNode = Presets::makeSolarSystem(nameMgr);
+        }
+        if (presetNode) {
+            nodeMgr->addNodes(*presetNode);
         }
         WorkerTreeData* data = dynamic_cast<WorkerTreeData*>(workerView->GetItemData(id));
         if (data) {
@@ -1510,6 +1525,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
                     {
                         { "SPH state files", "ssf" },
                         { "SPH compressed files", "scf" },
+                        { "miluphcuda output files", "h5" },
                         { "Pkdgrav output files", "bt" },
                         { "Text .tab files", "tab" },
                     });
