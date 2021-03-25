@@ -7,6 +7,7 @@
 - added option to disable collisions in N-body run
 - added accretion preset
 - added Solar System preset
+- fixed missing parameter in transform node
 
 ## 2021-03-21
 - added a reader for hdf5 (.h5) files

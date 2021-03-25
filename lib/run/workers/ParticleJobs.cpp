@@ -193,8 +193,8 @@ VirtualSettings TransformParticlesJob::getSettings() {
     posCat.connect("Roll angle [deg]", "roll", positions.angles[2]).setUnits(DEG_TO_RAD);
 
     VirtualSettings::Category& velCat = connector.addCategory("Velocities");
-    velCat.connect("Add velocity [km/s]", "velocity", velocities.offset).setUnits(1.e3_f);
-    velCat.connect("Multiplier", "velocity", velocities.mult);
+    velCat.connect("Add velocity [km/s]", "velocity_offset", velocities.offset).setUnits(1.e3_f);
+    velCat.connect("Multiplier", "velocity_mult", velocities.mult);
 
     return connector;
 }
