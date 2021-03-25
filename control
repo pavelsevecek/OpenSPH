@@ -1,0 +1,8 @@
+Package: opensph
+Version: 0.3.2-1
+Section: base
+Priority: optional
+Architecture: amd64
+Depends: libtbb-dev, libwxgtk3.0-dev
+Maintainer: Pavel Sevecek <sevecek at sirrah.troja.mff.cuni.cz>
+Description: Program for astrophysical SPH/N-body simulations"

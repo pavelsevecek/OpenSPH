@@ -240,6 +240,7 @@ VirtualSettings SingleParticleIc::getSettings() {
     particleCat.connect("Radius [R_sun]", "radius", radius).setUnits(Constants::R_sun);
     particleCat.connect("Position [R_sun]", "r0", r0).setUnits(Constants::R_sun);
     particleCat.connect("Velocity [R_sun/yr]", "v0", v0).setUnits(Constants::R_sun / Constants::year);
+    particleCat.connect("Flag", "flag", flag);
 
     return connector;
 }
@@ -258,6 +259,7 @@ void SingleParticleIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
     result->storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>({ pos }));
     result->storage.getDt<Vector>(QuantityId::POSITION)[0] = v0;
     result->storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, mass);
+    result->storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, flag);
 }
 
 static JobRegistrar sRegisterSingleParticle(

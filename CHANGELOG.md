@@ -1,5 +1,17 @@
+## 2021-03-24
+- added compare node
+- added a simple regression test to CI
+- fixed batch run causing crashes
+- tweaked presets
+- added multi-join operator for merging multiple particle sources
+- added option to disable collisions in N-body run
+- added accretion preset
+- added Solar System preset
+- fixed missing parameter in transform node
+
 ## 2021-03-21
 - added a reader for hdf5 (.h5) files
+- generalized offset currently needed for OrthoCamera::unproject to work
 
 ## 2021-03-20
 - hidden renderers that do not work properly from UI

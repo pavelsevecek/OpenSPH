@@ -37,6 +37,9 @@ constexpr Float au = 149597870700._f; // m
 /// Parsec
 constexpr Float pc = 3.0856776e16_f; // m
 
+/// Number of seconds in a day
+constexpr Float day = 86400._f; // s
+
 /// Number of seconds in a year
 constexpr Float year = 3.154e7_f; // s
 

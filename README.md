@@ -17,6 +17,17 @@ on Astronomical Institute of Charles University in Prague. It aims to provide a 
 versatile and easily extensible SPH solver utilizing modern CPU features (SSE/AVX 
 instruction sets).
 
+## Quick start
+The latest version can be downloaded as a <a href="https://gitlab.com/sevecekp/sph/-/jobs/artifacts/devel/file/opensph_0.3.2-1.deb?job=build_package">Debian buster package</a>.
+Install it via:
+```
+sudo dpkg -i opensph_0.3.2-1.deb
+```
+The package contains three executables:
+- `opensph` - main program with graphical interface
+- `opensph-cli` - command-line utility allowing to run simulations set up by `opensph`
+- `opensph-info` - command-line utility for quick inspection of metadata of OpenSPH output files
+
 ## Getting the code
 The code can be downloaded from <a href="https://gitlab.com/sevecekp/sph/tree/devel">GitLab repository</a>.
 Using git, you can clone the code with
@@ -62,12 +73,12 @@ where *version* can be one of:
 Use different build directory for each version!
 
 By default, OpenSPH uses a custom thread pool for parallelization. It is possible to use Intel TBB library 
-instead, by adding use_tbb flag:
+instead, by adding `use_tbb` flag:
 ```bash
 qmake CONFIG+=version CONFIG+=use_tbb ../sph.pro
 ```
 
-The project sph.pro builds command-line launcher and the GUI application that allows to set up and run 
+The project `sph.pro` builds command-line launcher and the GUI application that allows to set up and run 
 simulations, as well as view previously saved results.
 
 To further build the code examples, run:
@@ -84,10 +95,7 @@ Consider using pre-built executables, uploaded to a
 folder.
 
 ## Running a basic impact simulation
-A simulation can be started using a command-line launcher, located in cli/launcher directory.
-When a launcher is started for the first time, it generates configuration files 
-(with extension .cnf), which can be then modified to set up the simulation as needed.
-Simulation can be also set up in the graphical application, using a node-based editor.
+Simulation can be easily set up in the graphical application `opensph`, using a node-based editor.
 See category 'presets' on the right side of the editor for some basic simulations.
 
 Default simulation uses the following:

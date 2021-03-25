@@ -361,6 +361,8 @@ AutoPtr<IGravity> Factory::getGravity(const RunSettings& settings) {
 AutoPtr<ICollisionHandler> Factory::getCollisionHandler(const RunSettings& settings) {
     const CollisionHandlerEnum id = settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER);
     switch (id) {
+    case CollisionHandlerEnum::NONE:
+        return nullptr;
     case CollisionHandlerEnum::ELASTIC_BOUNCE:
         return makeAuto<ElasticBounceHandler>(settings);
     case CollisionHandlerEnum::PERFECT_MERGING:

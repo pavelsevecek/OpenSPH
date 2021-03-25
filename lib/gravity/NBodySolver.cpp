@@ -228,6 +228,11 @@ struct CollisionRecord {
 void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     VERBOSE_LOG
 
+    if (!collision.handler) {
+        // ignore all collisions
+        return;
+    }
+
     Timer timer;
     if (rigidBody.use) {
         rotateLocalFrame(storage, dt);

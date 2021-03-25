@@ -75,3 +75,45 @@ examples:
     - 05_fragmentation_reaccumulation/05_fragmentation_reaccumulation
     - 06_heat_diffusion/06_heat_diffusion
 
+regression:
+  tags:
+    - opensph # might take a long time, do not run on shared runners
+  stage: test
+  script:
+    - apt-get install -y gnuplot
+    - mkdir regression_build
+    - cd regression_build
+    - qmake -spec linux-g++ CONFIG+=release ../sph.pro
+    - make
+    - cd ..
+    - cd regression/impact
+    - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "save text file"
+    - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "compare with reference"
+    - gnuplot plot.plt
+  artifacts:
+    paths:
+      - regression/impact/result.scf
+      - regression/impact/plot.png
+
+build_package:
+  stage: deploy
+  only:
+    refs:
+      - master
+  script:
+    - apt-get install -y dpkg libtbb-dev
+    - mkdir gcc_deploy
+    - cd gcc_deploy
+    - qmake -spec linux-g++ CONFIG+=release CONFIG+=use_tbb ../sph.pro
+    - make
+    - cd ..
+    - mkdir -p opensph_0.3.2-1/usr/local/bin
+    - cp gcc_deploy/gui/launcherGui/opensph  opensph_0.3.2-1/usr/local/bin/
+    - cp gcc_deploy/cli/launcher/opensph-cli opensph_0.3.2-1/usr/local/bin/
+    - cp gcc_deploy/cli/info/opensph-info    opensph_0.3.2-1/usr/local/bin/
+    - mkdir -p opensph_0.3.2-1/DEBIAN
+    - cp control opensph_0.3.2-1/DEBIAN/control
+    - dpkg-deb --build opensph_0.3.2-1
+  artifacts:
+    paths:
+      - opensph_0.3.2-1.deb
