@@ -97,6 +97,9 @@ regression:
 
 build_package:
   stage: deploy
+  only:
+    refs:
+      - master
   script:
     - apt-get install -y dpkg libtbb-dev
     - mkdir gcc_deploy
