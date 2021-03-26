@@ -86,14 +86,39 @@ regression:
     - qmake -spec linux-g++ CONFIG+=release ../sph.pro
     - make
     - cd ..
-    - cd regression/impact
+    - cd regression
+    - cd impact # impact simulation
     - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "save text file"
     - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "compare with reference"
     - gnuplot plot.plt
+    - cd ..
+    - cd nbody-merge # N-body run with perfect merging
+    - ../../regression_build/cli/launcher/opensph-cli -p nbody-merge.sph -n "save result"
+      #- ../../regression_build/cli/launcher/opensph-cli -p nbody-merge.sph -n "compare with reference"
+    - gnuplot plot.plt
+    - cd ..
+    - cd nbody-merge-or-bounce # N-body run with conditional merging
+    - ../../regression_build/cli/launcher/opensph-cli -p nbody-merge-or-bounce.sph -n "save result"
+      #- ../../regression_build/cli/launcher/opensph-cli -p nbody-merge-or-bounce.sph -n "compare with reference"
+    - gnuplot plot.plt
+    - cd ..
+    - cd nbody-bounce # N-body run with elastic bouncing
+    - ../../regression_build/cli/launcher/opensph-cli -p nbody-bounce.sph -n "save result"
+      #- ../../regression_build/cli/launcher/opensph-cli -p nbody-bounce.sph -n "compare with reference"
+    - gnuplot plot.plt
+    - cd ..
+
   artifacts:
     paths:
       - regression/impact/result.scf
       - regression/impact/plot.png
+      - regression/nbody-merge/result.scf
+      - regression/nbody-merge/plot.png
+      - regression/nbody-bounce/result.scf
+      - regression/nbody-bounce/plot.png
+      - regression/nbody-merge-or-bounce/result.scf
+      - regression/nbody-merge-or-bounce/plot.png
+
 
 build_package:
   stage: deploy

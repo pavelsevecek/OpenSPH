@@ -18,7 +18,7 @@ versatile and easily extensible SPH solver utilizing modern CPU features (SSE/AV
 instruction sets).
 
 ## Quick start
-The latest version can be downloaded as a <a href="https://gitlab.com/sevecekp/sph/-/jobs/artifacts/devel/file/opensph_0.3.2-1.deb?job=build_package">Debian buster package</a>.
+The latest version can be downloaded as a <a href="https://gitlab.com/sevecekp/sph/-/jobs/artifacts/master/file/opensph_0.3.2-1.deb?job=build_package">Debian buster package</a>.
 Install it via:
 ```
 sudo dpkg -i opensph_0.3.2-1.deb
