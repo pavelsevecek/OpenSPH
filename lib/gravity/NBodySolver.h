@@ -8,6 +8,7 @@
 #include "objects/containers/FlatSet.h"
 #include "thread/ThreadLocal.h"
 #include "timestepping/ISolver.h"
+#include <set>
 
 NAMESPACE_SPH_BEGIN
 
@@ -33,7 +34,7 @@ private:
         Array<NeighbourRecord> neighs;
 
         /// Collisions detected by this thread
-        FlatSet<CollisionRecord> collisions;
+        Array<CollisionRecord> collisions;
     };
 
     ThreadLocal<ThreadData> threadData;
@@ -47,7 +48,7 @@ private:
     FlatSet<Size> removed;
 
     /// Holds all detected collisions.
-    FlatSet<CollisionRecord> collisions;
+    std::set<CollisionRecord> collisions;
 
     /// Maximum distance to search for impactors, per particle.
     Array<Float> searchRadii;

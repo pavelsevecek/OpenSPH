@@ -2,6 +2,7 @@
 - added planetesimal merge preset
 - properly enabling parameters in output category
 - added Tillotson's parameters to material jobs
+- optimizations of HardSphereSolver for large number of collisions
 
 ## 2021-03-24
 - added compare node

@@ -253,8 +253,6 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
     collision.handler->initialize(storage);
     overlap.handler->initialize(storage);
 
-    // ignored.clear();
-    collisions.clear();
     searchRadii.resize(r.size());
     searchRadii.fill(0._f);
 
@@ -267,13 +265,13 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
         if (CollisionRecord col =
                 this->findClosestCollision(i, SearchEnum::FIND_LOWER_RANK, Interval(0._f, dt), data.neighs)) {
             ASSERT(isReal(col));
-            data.collisions.insert(col);
+            data.collisions.push(col);
         }
     });
+
+    collisions.clear();
     for (ThreadData& data : threadData) {
-        for (auto& col : data.collisions) {
-            collisions.insert(col);
-        }
+        collisions.insert(data.collisions.begin(), data.collisions.end());
     }
 
     CollisionStats cs(stats);
