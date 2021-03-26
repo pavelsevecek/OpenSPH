@@ -147,7 +147,7 @@ static void run(const ArgParser& parser, ILogger& logger) {
 
     /// \todo properly load globals
     RunSettings globals = EMPTY_SETTINGS;
-    globals.set(RunSettingsId::RUN_RNG, RngEnum::BENZ_ASPHAUG);
+    globals.set(RunSettingsId::RUN_RNG, RngEnum::UNIFORM);
     globals.set(RunSettingsId::RUN_RNG_SEED, 1234);
     NullJobCallbacks callbacks;
     runner.value()->run(globals, callbacks);
