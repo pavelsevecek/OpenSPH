@@ -56,6 +56,7 @@ public:
                 entry.set(input.get<Vector>(name));
                 break;
             case IVirtualEntry::Type::STRING:
+                entry.set(input.get<std::string>(name));
                 break;
             case IVirtualEntry::Type::PATH:
                 entry.set(input.get<Path>(name));

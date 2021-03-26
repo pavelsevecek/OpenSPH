@@ -92,11 +92,11 @@
     "velocity.dispersion" = 0.05
     "total_mass" = 1
   ]
-  "N-body run" [
+  "N-body bounce" [
     "class_name" = "N-body run"
     "position" = 733 428
     "particles" = "cloud"
-    "name" = "N-body run"
+    "name" = "N-body bounce"
     "run.end_time" = 4
     "is_resumed" = 0
     "timestep.max_step" = 0.01
@@ -135,7 +135,7 @@
   "save result" [
     "class_name" = "save file"
     "position" = 962 428
-    "particles" = "N-body run"
+    "particles" = "N-body bounce"
     "name" = "save result"
     "run.output.name" = "result.scf"
     "run.output.type" = 4
