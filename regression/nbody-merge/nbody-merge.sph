@@ -117,7 +117,7 @@
     "soft.enable" = 0
     "soft.repel_strength" = 1
     "soft.friction_strength" = 0.001
-    "collision.handler" = 0
+    "collision.handler" = 1
     "collision.overlap" = 1
     "collision.restitution_normal" = 0.5
     "collision.restitution_tangent" = 1
@@ -190,7 +190,7 @@
 ]
 
 "editor_state" [
-  "offset" = -312 -103
+  "offset" = -255 -138
   "zoom" = 1
 ]
 
