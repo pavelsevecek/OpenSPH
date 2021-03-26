@@ -1,0 +1,196 @@
+"palettes" [
+]
+
+"gui" [
+  "renderer" = 1
+  "camera.type" = 0
+  "camera.position" =                    0                   0                   1
+  "camera.target" =                    0                   0                   0
+  "camera.up" =                    0                   1                   0
+  "camera.ortho.fov" = 244296
+  "camera.perspective.fov" = 1.0472
+  "camera.clip.near" = 1e-12
+  "camera.clip.far" = 1.79769e+308
+  "camera.autosetup" = 0
+  "camera.track_particle" = -1
+  "camera.track_median" = 0
+  "camera.tracking_offset" =                    0                   0                   0
+  "view.width" = 1024
+  "view.height" = 768
+  "view.max_framerate" = 100
+  "view.refresh_on_timestep" = 1
+  "view.grid_size" = 0
+  "background_color" =                    0                   0                   0
+  "show_key" = 1
+  "force_grayscale" = 0
+  "antialiased" = 0
+  "smooth_particles" = 0
+  "render_ghost_particles" = 1
+  "particle_radius" = 1
+  "camera.ortho.cutoff" = 0
+  "surface.resolution" = 100
+  "surface.level" = 0.13
+  "surface.sun_position" =      -0.549442246526     -0.137360561632      0.824163390257
+  "surface.sun_intentity" = 0.7
+  "surface.emission" = 1
+  "surface.ambient" = 0.1
+  "raytrace.subsampling" = 4
+  "raytrace.iteration_limit" = 10
+  "raytrace.hdri" = ""
+  "raytrace.texture_primary" = ""
+  "raytrace.texture_secondary" = ""
+  "raytrace.brdf" = 0
+  "raytrace.spheres" = 0
+  "contour.spacing" = 10
+  "contour.grid_size" = 100
+  "contour.show_labels" = 1
+  "window.title" = "OpenSPH"
+  "window.width" = 1600
+  "window.height" = 768
+  "plot.integrals" = 31
+  "plot.initial_period" = 60
+  "plot.overplot_sfd" = "/home/pavel/projects/astro/asteroids/hygiea/main_belt_families_2018/10_Hygiea/size_distribution/family.dat_hc"
+  "images.renderer" = 1
+  "images.width" = 1024
+  "images.height" = 768
+  "images.save" = 0
+  "images.path" = "imgs/"
+  "images.name" = "frag_%e_%d.png"
+  "images.first_index" = 0
+  "images.make_movie" = 0
+  "images.movie_name" = "frag_%e.avi"
+  "images.time_step" = 10
+]
+
+"globals" [
+  "sph.kernel" = 0
+  "run.thread.cnt" = 0
+  "run.thread.granularity" = 1000
+  "finder.leaf_size" = 25
+  "finder.max_parallel_depth" = 50
+  "run.rng" = 0
+  "run.rng.seed" = 1234
+  "misc.generate_uvws" = 0
+  "run.author" = "Pavel Sevecek"
+  "run.email" = "sevecek@sirrah.troja.mff.cuni.cz"
+  "run.comment" = ""
+]
+
+"nodes" [
+  "cloud" [
+    "class_name" = "N-body ICs"
+    "position" = 501 430
+    "name" = "cloud"
+    "particles.count" = 10000
+    "domain.radius" = 100
+    "radial_profile" = 0.333
+    "height_scale" = 0.1
+    "min_size" = 250
+    "max_size" = 250
+    "power_law.exponent" = 2
+    "velocity.multiplier" = 1.5
+    "velocity.dispersion" = 0.05
+    "total_mass" = 1
+  ]
+  "N-body run" [
+    "class_name" = "N-body run"
+    "position" = 733 428
+    "particles" = "cloud"
+    "name" = "N-body run"
+    "run.end_time" = 4
+    "is_resumed" = 0
+    "timestep.max_step" = 0.01
+    "timestep.initial" = 0.001
+    "timestep.integrator" = 1
+    "timestep.criterion" = 8
+    "timestep.courant_number" = 0.2
+    "timestep.derivative_factor" = 0.1
+    "timestep.divergence_factor" = 0.005
+    "timestep.max_change" = 2
+    "gravity.solver" = 2
+    "gravity.opening_angle" = 0.8
+    "gravity.multipole_order" = 3
+    "gravity.kernel" = 2
+    "gravity.recomputation_period" = 0
+    "nbody.aggregates.enable" = 0
+    "nbody.aggregates.source" = 0
+    "soft.enable" = 0
+    "soft.repel_strength" = 1
+    "soft.friction_strength" = 0.001
+    "collision.handler" = 0
+    "collision.overlap" = 1
+    "collision.restitution_normal" = 0.5
+    "collision.restitution_tangent" = 1
+    "collision.merging_limit" = 4
+    "collision.rotation_merging_limit" = 1
+    "run.logger" = 1
+    "run.logger.file" = "log.txt"
+    "run.logger.verbosity" = 2
+    "run.output.type" = 1
+    "run.output.path" = "."
+    "run.output.name" = "result_%d.txt"
+    "run.output.quantitites" = 7
+    "run.output.interval" = 0.5
+  ]
+  "save result" [
+    "class_name" = "save file"
+    "position" = 960 431
+    "particles" = "N-body run"
+    "name" = "save result"
+    "run.output.name" = "result.scf"
+    "run.output.type" = 4
+    "run.output.quantitites" = 3
+  ]
+  "compare with reference" [
+    "class_name" = "compare"
+    "position" = 818 594
+    "test particles" = "Load 'result.scf'"
+    "reference particles" = "Load 'reference.scf'"
+    "name" = "compare with reference"
+  ]
+  "Load 'result.scf'" [
+    "class_name" = "load file"
+    "position" = 613 586
+    "name" = ""
+    "file" = "result.scf"
+  ]
+  "Load 'reference.scf'" [
+    "class_name" = "load file"
+    "position" = 614 680
+    "name" = ""
+    "file" = "reference.scf"
+  ]
+]
+
+"batch" [
+  "runCount" = 4
+  "paramCount" = 3
+  "params" [
+  ]
+  "runs" [
+    "run-0" = "Run 1"
+    "run-1" = "Run 2"
+    "run-2" = "Run 3"
+    "run-3" = "Run 4"
+  ]
+  "cells" [
+    "cell-0-0" = ""
+    "cell-1-0" = ""
+    "cell-2-0" = ""
+    "cell-0-1" = ""
+    "cell-1-1" = ""
+    "cell-2-1" = ""
+    "cell-0-2" = ""
+    "cell-1-2" = ""
+    "cell-2-2" = ""
+    "cell-0-3" = ""
+    "cell-1-3" = ""
+    "cell-2-3" = ""
+  ]
+]
+
+"editor_state" [
+  "offset" = -312 -103
+  "zoom" = 1
+]
+
