@@ -98,9 +98,6 @@ static void run(const ArgParser& parser, ILogger& logger) {
     Config config;
     config.load(projectPath);
 
-    /*SharedPtr<ConfigNode> inGlobals = config.getNode("globals");
-    VirtualSettings globalSettings = this->getGlobalSettings();
-    globalSettings.enumerate(LoadProc(*inGlobals));*/
     FlatMap<std::string, SharedPtr<JobNode>> nodes;
 
     SharedPtr<ConfigNode> inNodes = config.getNode("nodes");
@@ -148,7 +145,10 @@ static void run(const ArgParser& parser, ILogger& logger) {
         logger.write(std::string(depth * 3, ' '), " - ", node->instanceName());
     });
 
-    RunSettings globals = EMPTY_SETTINGS; /// \todo
+    /// \todo properly load globals
+    RunSettings globals = EMPTY_SETTINGS;
+    globals.set(RunSettingsId::RUN_RNG, RngEnum::BENZ_ASPHAUG);
+    globals.set(RunSettingsId::RUN_RNG_SEED, 1234);
     NullJobCallbacks callbacks;
     runner.value()->run(globals, callbacks);
 }
