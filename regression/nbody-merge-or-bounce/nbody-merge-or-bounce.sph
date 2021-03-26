@@ -125,7 +125,7 @@
     "collision.rotation_merging_limit" = 1
     "run.logger" = 1
     "run.logger.file" = "log.txt"
-    "run.logger.verbosity" = 2
+    "run.logger.verbosity" = 1
     "run.output.type" = 1
     "run.output.path" = "."
     "run.output.name" = "result_%d.txt"
