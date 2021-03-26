@@ -50,6 +50,17 @@ TEST_CASE("Set insert", "[flatset]") {
     REQUIRE(set[2].value == 7);
 }
 
+TEST_CASE("Set insert range", "[flatset]") {
+    FlatSet<int> set{ 1, 5, 9 };
+    Array<int> values = { 2, 10 };
+    set.insert(values.begin(), values.end());
+    REQUIRE(ArrayView<int>(set) == Array<int>({ 1, 2, 5, 9, 10 }).view());
+
+    values = { 3, 5, 3, 3, 1 };
+    set.insert(values.begin(), values.end());
+    REQUIRE(ArrayView<int>(set) == Array<int>({ 1, 2, 3, 5, 9, 10 }).view());
+}
+
 TEST_CASE("Set find", "[flatset]") {
     FlatSet<RecordType> set{ 7, 4, 3, 5, 9 }; // 3, 4, 5, 7, 9
     auto iter = set.find(5);

@@ -249,6 +249,29 @@ TEST_CASE("Array Remove multiple", "[array]") {
     REQUIRE(ar == Array<int>());
 }
 
+TEST_CASE("Array remove range", "[array]") {
+    Array<int> ar{ 0, 1, 2, 3, 4 };
+    ar.remove(ar.begin(), ar.begin() + 1);
+    REQUIRE(ar == Array<int>({ 1, 2, 3, 4 }));
+
+    ar.remove(ar.begin() + 2, ar.end());
+    REQUIRE(ar == Array<int>({ 1, 2 }));
+
+    ar.remove(ar.begin(), ar.end());
+    REQUIRE(ar == Array<int>());
+
+    ar = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+    ar.remove(ar.begin() + 1, ar.end() - 1);
+    REQUIRE(ar == Array<int>({ 0, 8 }));
+
+    ar = { 0, 1, 2 };
+    ar.remove(ar.begin(), ar.begin());
+    REQUIRE(ar == Array<int>({ 0, 1, 2 }));
+
+    ar = { 0, 1, 2 };
+    REQUIRE_ASSERT(ar.remove(ar.begin() + 1, ar.begin()));
+}
+
 TEST_CASE("Array clone", "[array]") {
     Array<RecordType> ar1{ 5, 6, 7 };
     Array<RecordType> ar2 = ar1.clone();

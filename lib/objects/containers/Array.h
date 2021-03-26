@@ -373,7 +373,7 @@ public:
         resize(actSize - 1);
     }
 
-    /// \brief Removes element specified by indices from the array.
+    /// \brief Removes elements specified by indices from the array.
     ///
     /// This is effectively the same as calling \ref remove with each index separately. The given array of
     /// indices must be sorted (from smallest to largest), checked by assert.
@@ -397,6 +397,22 @@ public:
         }
 
         resize(actSize - idxs.size());
+    }
+
+    /// \brief Removes all elements in given range.
+    template <typename TIter>
+    void remove(TIter first, TIter last) {
+        ASSERT(first <= last);
+        if (SPH_UNLIKELY(first == last)) {
+            return;
+        }
+        const Size count = last - first;
+        ASSERT(Size(first - begin()) + count <= actSize);
+
+        for (TIter iter = first; iter != end() - count; ++iter) {
+            *iter = std::move(*(iter + count));
+        }
+        resize(actSize - count);
     }
 
     /// \brief Removes all elements from the array, but does NOT release the memory.

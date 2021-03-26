@@ -7,6 +7,7 @@
 
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Optional.h"
+#include <algorithm>
 
 NAMESPACE_SPH_BEGIN
 
@@ -60,26 +61,24 @@ public:
         data.insert(from, std::forward<U>(value));
     }
 
+    template <typename TIter>
+    void insert(TIter first, TIter last) {
+        data.insert(data.size(), first, last);
+        std::sort(data.begin(), data.end(), TLess{});
+        data.remove(std::unique(data.begin(), data.end()), data.end());
+    }
+
     void reserve(const Size capacity) {
         data.reserve(capacity);
     }
 
     Iterator<T> find(const T& value) {
-        Size from = 0;
-        Size to = data.size();
-        Size mid = Size(-1);
-
-        while (from < to && from != mid) {
-            mid = (from + to) / 2;
-            if (less(data[mid], value)) {
-                from = mid + 1;
-            } else if (data[mid] == value) {
-                return this->begin() + mid;
-            } else {
-                to = mid;
-            }
+        auto iter = std::lower_bound(data.begin(), data.end(), value);
+        if (iter != data.end() && *iter == value) {
+            return iter;
+        } else {
+            return data.end();
         }
-        return this->end();
     }
 
     Iterator<const T> find(const T& value) const {
@@ -122,6 +121,14 @@ public:
 
     operator ArrayView<const T>() const {
         return data;
+    }
+
+    const Array<T>& array() const& {
+        return data;
+    }
+
+    Array<T> array() && {
+        return std::move(data);
     }
 
 private:

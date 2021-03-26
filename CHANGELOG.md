@@ -1,3 +1,7 @@
+## 2021-03-26
+- optimized collision handling
+- added few auxiliary functions to Array, FlatSet and FlatMap
+
 ## 2021-03-25
 - added planetesimal merge preset
 - properly enabling parameters in output category

@@ -198,21 +198,13 @@ public:
 private:
     /// Returns a pointer to the element with given key or nullptr if no such element exists.
     INLINE Element* find(const TKey& key) {
-        Size from = 0;
-        Size to = data.size();
-        Size mid = Size(-1);
-
-        while (from < to && from != mid) {
-            mid = (from + to) / 2;
-            if (compare(data[mid].key, key)) {
-                from = mid + 1;
-            } else if (data[mid].key == key) {
-                return &data[mid];
-            } else {
-                to = mid;
-            }
+        auto compare = [](const Element& element, const TKey& key) { return element.key < key; };
+        auto iter = std::lower_bound(data.begin(), data.end(), key, compare);
+        if (iter != data.end() && iter->key == key) {
+            return &*iter;
+        } else {
+            return nullptr;
         }
-        return nullptr;
     }
 
     INLINE const Element* find(const TKey& key) const {

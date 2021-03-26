@@ -42,32 +42,6 @@ HardSphereSolver::HardSphereSolver(IScheduler& scheduler,
 
 HardSphereSolver::~HardSphereSolver() = default;
 
-/*static void integrateOmega(Storage& storage) {
-    ArrayView<SymmetricTensor> I = storage.getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
-    ArrayView<Tensor> E = storage.getValue<Tensor>(QuantityId::LOCAL_FRAME);
-    ArrayView<Vector> w, dw;
-    tie(w, dw) = storage.getAll<Vector>(QuantityId::ANGULAR_VELOCITY);
-
-    for (Size i = 0; i < w.size(); ++i) {
-        if (w[i] == Vector(0._f)) {
-            continue;
-        }
-        SymmetricTensor Iinv = I[i].inverse();
-        // convert the angular frequency to the local frame;
-        // note the E is always orthogonal, so we can use transpose instead of inverse
-        AffineMatrix Em = convert<AffineMatrix>(E[i]);
-        ASSERT(Em.isOrthogonal());
-        const Vector w_loc = Em.transpose() * w[i];
-
-        // compute the change of angular velocity using Euler's equations
-        const Vector dw_loc = -Iinv * cross(w_loc, I[i] * w_loc);
-
-        // now dw[i] is also in local space, convert to inertial space
-        // (note that dw_in = dw_loc as omega x omega is obviously zero)
-        dw[i] = Em * dw_loc;
-    }
-}*/
-
 void HardSphereSolver::rotateLocalFrame(Storage& storage, const Float dt) {
     ArrayView<Tensor> E = storage.getValue<Tensor>(QuantityId::LOCAL_FRAME);
     ArrayView<Vector> L = storage.getValue<Vector>(QuantityId::ANGULAR_MOMENTUM);
@@ -198,6 +172,11 @@ struct CollisionRecord {
         , collisionTime(time)
         , overlap(overlap) {}
 
+    bool operator==(const CollisionRecord& other) const {
+        return i == other.i && j == other.j && collisionTime == other.collisionTime &&
+               overlap == other.overlap;
+    }
+
     bool operator<(const CollisionRecord& other) const {
         return std::make_tuple(collisionTime, -overlap, i, j) <
                std::make_tuple(other.collisionTime, -other.overlap, other.i, other.j);
@@ -269,9 +248,18 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
         }
     });
 
-    collisions.clear();
-    for (ThreadData& data : threadData) {
-        collisions.insert(data.collisions.begin(), data.collisions.end());
+    // reduce thread-local containers
+    {
+        Size collisionCnt = 0;
+        for (const ThreadData& data : threadData) {
+            collisionCnt += data.collisions.size();
+        }
+
+        collisions.clear();
+        collisions.reserve(collisionCnt);
+        for (const ThreadData& data : threadData) {
+            collisions.insert(collisions.size(), data.collisions.begin(), data.collisions.end());
+        }
     }
 
     CollisionStats cs(stats);
@@ -285,7 +273,19 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
 
     FlatSet<Size> invalidIdxs;
     while (!collisions.empty()) {
-        const CollisionRecord& col = *collisions.begin();
+        // const CollisionRecord& col = *collisions.begin();
+        // find first collision in the list
+        Float minTime = LARGE;
+        Size firstIdx = Size(-1);
+        for (Size idx = 0; idx < collisions.size(); ++idx) {
+            if (collisions[idx].collisionTime < minTime) {
+                minTime = collisions[idx].collisionTime;
+                firstIdx = idx;
+            }
+        }
+        ASSERT(firstIdx != Size(-1));
+        const CollisionRecord& col = collisions[firstIdx];
+
         const Float t_coll = col.collisionTime;
         ASSERT(t_coll < dt);
 
@@ -315,20 +315,22 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
 
         if (result == CollisionResult::NONE) {
             // no collision to process
-            collisions.erase(collisions.begin());
+            std::swap(collisions[firstIdx], collisions.back());
+            collisions.pop();
             continue;
         }
 
         // remove all collisions containing either i or j
         invalidIdxs.clear();
-        for (auto iter = collisions.begin(); iter != collisions.end();) {
-            const CollisionRecord& c = *iter;
+        for (Size idx = 0; idx < collisions.size();) {
+            const CollisionRecord& c = collisions[idx];
             if (c.i == i || c.i == j || c.j == i || c.j == j) {
                 invalidIdxs.insert(c.i);
                 invalidIdxs.insert(c.j);
-                iter = collisions.erase(iter);
+                std::swap(collisions[idx], collisions.back());
+                collisions.pop();
             } else {
-                ++iter;
+                ++idx;
             }
         }
 
@@ -347,7 +349,7 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
                         // don't process the same pair twice in a row
                         continue;
                     }
-                    collisions.insert(c);
+                    collisions.push(c);
                 }
             }
         }
