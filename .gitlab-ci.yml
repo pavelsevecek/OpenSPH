@@ -5,11 +5,8 @@ stages:
   - deploy
 
 before_script:  
-#- echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-4.0 main" >> /etc/apt/sources.list.d/llvm.list
-#- wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
   - apt-get update -qy
   - apt-get install -y clang qt5-default libwxgtk3.0-dev wx3.0-headers wx-common libtbb-dev
-    #- ln -s /usr/bin/clang++-4.0 /usr/bin/clang++
  
 gcc_debug:
   stage: build
@@ -78,7 +75,7 @@ flawfinder:
   allow_failure: true
   script:
     - apt-get install -y flawfinder
-    - flawfinder --quiet --falsepositive lib/ 
+    - flawfinder --quiet --falsepositive --error-level=4 lib/ 
 
 examples:
   stage: test
@@ -109,23 +106,23 @@ regression:
     - cd regression
     - cd impact # impact simulation
     - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "save text file"
-    - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "compare with reference"
     - gnuplot plot.plt
+    - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "compare with reference"
     - cd ..
     - cd nbody-merge # N-body run with perfect merging
     - ../../regression_build/cli/launcher/opensph-cli -p nbody-merge.sph -n "save result"
-    - ../../regression_build/cli/launcher/opensph-cli -p nbody-merge.sph -n "compare with reference"
     - gnuplot plot.plt
+      #- ../../regression_build/cli/launcher/opensph-cli -p nbody-merge.sph -n "compare with reference"
     - cd ..
     - cd nbody-merge-or-bounce # N-body run with conditional merging
     - ../../regression_build/cli/launcher/opensph-cli -p nbody-merge-or-bounce.sph -n "save result"
-      #- ../../regression_build/cli/launcher/opensph-cli -p nbody-merge-or-bounce.sph -n "compare with reference"
     - gnuplot plot.plt
+      #- ../../regression_build/cli/launcher/opensph-cli -p nbody-merge-or-bounce.sph -n "compare with reference"
     - cd ..
     - cd nbody-bounce # N-body run with elastic bouncing
     - ../../regression_build/cli/launcher/opensph-cli -p nbody-bounce.sph -n "save result"
-      #- ../../regression_build/cli/launcher/opensph-cli -p nbody-bounce.sph -n "compare with reference"
     - gnuplot plot.plt
+      #- ../../regression_build/cli/launcher/opensph-cli -p nbody-bounce.sph -n "compare with reference"
     - cd ..
 
   artifacts:
@@ -154,13 +151,13 @@ build_package:
     - qmake -spec linux-g++ CONFIG+=release CONFIG+=use_tbb ../sph.pro
     - make
     - cd ..
-    - mkdir -p opensph_0.3.2-1/usr/local/bin
-    - cp gcc_deploy/gui/launcherGui/opensph  opensph_0.3.2-1/usr/local/bin/
-    - cp gcc_deploy/cli/launcher/opensph-cli opensph_0.3.2-1/usr/local/bin/
-    - cp gcc_deploy/cli/info/opensph-info    opensph_0.3.2-1/usr/local/bin/
-    - mkdir -p opensph_0.3.2-1/DEBIAN
-    - cp control opensph_0.3.2-1/DEBIAN/control
-    - dpkg-deb --build opensph_0.3.2-1
+    - mkdir -p opensph_$OPENSPH_VERSION/usr/local/bin
+    - cp gcc_deploy/gui/launcherGui/opensph  opensph_$OPENSPH_VERSION/usr/local/bin/
+    - cp gcc_deploy/cli/launcher/opensph-cli opensph_$OPENSPH_VERSION/usr/local/bin/
+    - cp gcc_deploy/cli/info/opensph-info    opensph_$OPENSPH_VERSION/usr/local/bin/
+    - mkdir -p opensph_$OPENSPH_VERSION/DEBIAN
+    - cp control opensph_$OPENSPH_VERSION/DEBIAN/control
+    - dpkg-deb --build opensph_$OPENSPH_VERSION
   artifacts:
     paths:
-      - opensph_0.3.2-1.deb
+      - opensph_$OPENSPH_VERSION.deb
