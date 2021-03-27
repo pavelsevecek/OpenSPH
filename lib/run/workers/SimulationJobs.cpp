@@ -403,6 +403,8 @@ public:
 
         NullMaterial mtl(BodySettings::getDefaults());
         solver->create(*storage, mtl);
+
+        setPersistentIndices(*storage);
     }
 
     virtual void tearDown(const Storage& storage, const Statistics& stats) override {

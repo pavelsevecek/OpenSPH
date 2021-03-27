@@ -7,12 +7,21 @@
 NAMESPACE_SPH_BEGIN
 
 Pair<Vector> ParticleTracker::getTrackedPoint(const Storage& storage) const {
-    if (index < storage.getParticleCnt()) {
-        const Quantity& pos = storage.getQuantity(QuantityId::POSITION);
+    const Quantity& pos = storage.getQuantity(QuantityId::POSITION);
+    if (storage.has(QuantityId::PERSISTENT_INDEX)) {
+        // use persistent indices if available
+        ArrayView<const Size> pi = storage.getValue<Size>(QuantityId::PERSISTENT_INDEX);
+        auto iter = std::find(pi.begin(), pi.end(), index);
+        if (iter != pi.end()) {
+            const Size i = Size(iter - pi.begin());
+            return { pos.getValue<Vector>()[i], pos.getDt<Vector>()[i] };
+        }
+    } else if (index < storage.getParticleCnt()) {
+        // use storage index if valid
         return { pos.getValue<Vector>()[index], pos.getDt<Vector>()[index] };
-    } else {
-        return { Vector(0._f), Vector(0._f) };
     }
+    // fallback if no such particle exists
+    return { Vector(0._f), Vector(0._f) };
 }
 
 Pair<Vector> MedianTracker::getTrackedPoint(const Storage& storage) const {

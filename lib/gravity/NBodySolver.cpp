@@ -9,6 +9,8 @@
 #include "system/Settings.h"
 #include "system/Statistics.h"
 #include "system/Timer.h"
+#include <map>
+#include <set>
 
 NAMESPACE_SPH_BEGIN
 
@@ -288,6 +290,7 @@ private:
         ASSERT(false, "Collision not found");
     }
 
+#ifdef SPH_DEBUG
     void checkConsistency() const {
         ASSERT(2 * collisions.size() == indexToCollision.size());
         // all collisions are in the index-to-colision map
@@ -303,6 +306,9 @@ private:
             ASSERT(collisions.find(p.second) != collisions.end());
         }
     }
+#else
+    void checkConsistency() const {}
+#endif
 
     bool hasCollision(const CollisionRecord& col, const Size idx) const {
         Itc first, last;

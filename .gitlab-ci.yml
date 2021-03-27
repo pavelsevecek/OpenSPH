@@ -1,3 +1,9 @@
+stages:
+  - build
+  - test
+  - regression
+  - deploy
+
 before_script:  
 #- echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-4.0 main" >> /etc/apt/sources.list.d/llvm.list
 #- wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
@@ -60,6 +66,19 @@ test_release:
     - cd test
     - ./test -d yes exclude:[output] exclude:[filesystem] exclude:[path] exclude:[thread] exclude:[grid]
 
+cppcheck:
+  stage: test
+  allow_failure: true
+  script:
+    - apt-get install -y cppcheck
+    - cppcheck --language=c++ --std=c++14 --error-exitcode=1 --quiet --enable=all --suppress=internalAstError -DNAMESPACE_SPH_BEGIN -DNAMESPAC_SPH_END lib/
+
+flawfinder:
+  stage: test
+  allow_failure: true
+    - apt-get install -y flawfinder
+    - flawfinder --quiet --falsepositive lib/ 
+
 examples:
   stage: test
   script:
@@ -78,7 +97,7 @@ examples:
 regression:
   tags:
     - opensph # might take a long time, do not run on shared runners
-  stage: test
+  stage: regression
   script:
     - apt-get install -y gnuplot
     - mkdir regression_build

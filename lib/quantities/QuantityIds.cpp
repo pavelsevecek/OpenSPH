@@ -98,6 +98,8 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Flag", L"flag", ValueEnum::INDEX);
     case QuantityId::MATERIAL_ID:
         return QuantityMetadata("Material ID", L"matID", ValueEnum::INDEX);
+    case QuantityId::PERSISTENT_INDEX:
+        return QuantityMetadata("Original index", L"flag_0", ValueEnum::INDEX);
     case QuantityId::XSPH_VELOCITIES:
         return QuantityMetadata("XSPH correction", L"xsph", ValueEnum::VECTOR);
     case QuantityId::GRAD_H:

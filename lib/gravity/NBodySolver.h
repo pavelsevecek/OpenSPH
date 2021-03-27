@@ -8,8 +8,6 @@
 #include "objects/containers/FlatSet.h"
 #include "thread/ThreadLocal.h"
 #include "timestepping/ISolver.h"
-#include <map>
-#include <set>
 
 NAMESPACE_SPH_BEGIN
 

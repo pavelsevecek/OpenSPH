@@ -1002,19 +1002,37 @@ public:
 };
 
 class ParticleIdColorizer : public IdColorizerTemplate<ParticleIdColorizer> {
+private:
+    ArrayRef<const Size> persistentIdxs;
+
 public:
     using IdColorizerTemplate<ParticleIdColorizer>::IdColorizerTemplate;
 
     INLINE Optional<Size> evalId(const Size idx) const {
-        return idx;
+        if (!persistentIdxs.empty() && idx < persistentIdxs.size()) {
+            return persistentIdxs[idx];
+        } else {
+            return idx;
+        }
     }
 
-    virtual void initialize(const Storage& UNUSED(storage), const RefEnum UNUSED(ref)) override {
-        // no need to cache anything
+    virtual void initialize(const Storage& storage, const RefEnum ref) override {
+        if (storage.has(QuantityId::PERSISTENT_INDEX)) {
+            persistentIdxs = makeArrayRef(storage.getValue<Size>(QuantityId::PERSISTENT_INDEX), ref);
+        }
     }
 
     virtual bool isInitialized() const override {
         return true;
+    }
+
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        Particle particle(idx);
+        particle.addValue(QuantityId::FLAG, idx);
+        if (!persistentIdxs.empty() && idx < persistentIdxs.size()) {
+            particle.addValue(QuantityId::PERSISTENT_INDEX, persistentIdxs[idx]);
+        }
+        return particle;
     }
 
     virtual std::string name() const override {

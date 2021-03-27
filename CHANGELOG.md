@@ -1,5 +1,8 @@
 ## 2021-03-27
 - significant optimiazations of collisions
+- added persistent indices to N-body runs
+- using persistent indices for particle tracking
+- added cppcheck and flawfinder to CI
 
 ## 2021-03-26
 - optimized collision handling
