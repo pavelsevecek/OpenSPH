@@ -109,6 +109,7 @@ regression:
     - cd ..
 
   artifacts:
+    when: always
     paths:
       - regression/impact/result.scf
       - regression/impact/plot.png
