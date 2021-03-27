@@ -40,6 +40,7 @@ SOURCES += \
     physics/TimeFormat.cpp \
     physics/Units.cpp \
     post/Analysis.cpp \
+    post/Compare.cpp \
     post/MarchingCubes.cpp \
     post/Mesh.cpp \
     post/MeshFile.cpp \
@@ -225,6 +226,7 @@ HEADERS += \
     physics/TimeFormat.h \
     physics/Units.h \
     post/Analysis.h \
+    post/Compare.h \
     post/MarchingCubes.h \
     post/Mesh.h \
     post/MeshFile.h \

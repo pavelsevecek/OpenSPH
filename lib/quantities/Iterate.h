@@ -108,6 +108,15 @@ struct StoragePairVisitor<VisitorEnum::ZERO_ORDER> {
         ASSERT(q2.getOrderEnum() == OrderEnum::ZERO);
         functor(id, q1.getValue<TValue>(), q2.getValue<TValue>());
     }
+
+    template <typename TValue, typename TFunctor>
+    void visit(const Quantity& q1, const Quantity& q2, const QuantityId id, TFunctor&& functor) {
+        if (q1.getOrderEnum() != OrderEnum::ZERO) {
+            return;
+        }
+        ASSERT(q2.getOrderEnum() == OrderEnum::ZERO);
+        functor(id, q1.getValue<TValue>(), q2.getValue<TValue>());
+    }
 };
 
 
@@ -142,6 +151,15 @@ struct StoragePairVisitor<VisitorEnum::FIRST_ORDER> {
         ASSERT(q2.getOrderEnum() == OrderEnum::FIRST);
         functor(id, q1.getValue<TValue>(), q1.getDt<TValue>(), q2.getValue<TValue>(), q2.getDt<TValue>());
     }
+
+    template <typename TValue, typename TFunctor>
+    void visit(const Quantity& q1, const Quantity& q2, const QuantityId id, TFunctor&& functor) {
+        if (q1.getOrderEnum() != OrderEnum::FIRST) {
+            return;
+        }
+        ASSERT(q2.getOrderEnum() == OrderEnum::FIRST);
+        functor(id, q1.getValue<TValue>(), q1.getDt<TValue>(), q2.getValue<TValue>(), q2.getDt<TValue>());
+    }
 };
 
 /// Iterator over all second-order quantities. Functor is executed with three parameters: values, 1st
@@ -167,6 +185,21 @@ template <>
 struct StoragePairVisitor<VisitorEnum::SECOND_ORDER> {
     template <typename TValue, typename TFunctor>
     void visit(Quantity& q1, Quantity& q2, const QuantityId id, TFunctor&& functor) {
+        if (q1.getOrderEnum() != OrderEnum::SECOND) {
+            return;
+        }
+        ASSERT(q2.getOrderEnum() == OrderEnum::SECOND);
+        functor(id,
+            q1.getValue<TValue>(),
+            q1.getDt<TValue>(),
+            q1.getD2t<TValue>(),
+            q2.getValue<TValue>(),
+            q2.getDt<TValue>(),
+            q2.getD2t<TValue>());
+    }
+
+    template <typename TValue, typename TFunctor>
+    void visit(const Quantity& q1, const Quantity& q2, const QuantityId id, TFunctor&& functor) {
         if (q1.getOrderEnum() != OrderEnum::SECOND) {
             return;
         }
@@ -298,5 +331,27 @@ void iteratePair(Storage& storage1, Storage& storage2, TFunctor&& functor) {
         dispatch(q1.getValueEnum(), visitor, q1, q2, i.e1.id, functor);
     }
 }
+
+/// \copydoc iteratePair
+template <VisitorEnum Type, typename TFunctor>
+void iteratePair(const Storage& storage1, const Storage& storage2, TFunctor&& functor) {
+    ASSERT(storage1.getQuantityCnt() == storage2.getQuantityCnt(),
+        storage1.getQuantityCnt(),
+        storage2.getQuantityCnt());
+    StoragePairVisitor<Type> visitor;
+    struct Element {
+        ConstStorageElement e1;
+        ConstStorageElement e2;
+    };
+
+    for (auto i : iterateTuple<Element>(storage1.getQuantities(), storage2.getQuantities())) {
+        ASSERT(i.e1.id == i.e2.id);
+        const Quantity& q1 = i.e1.quantity;
+        const Quantity& q2 = i.e2.quantity;
+        ASSERT(q1.getValueEnum() == q2.getValueEnum());
+        dispatch(q1.getValueEnum(), visitor, q1, q2, i.e1.id, functor);
+    }
+}
+
 
 NAMESPACE_SPH_END

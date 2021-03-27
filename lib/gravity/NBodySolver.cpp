@@ -158,8 +158,8 @@ public:
 
 struct CollisionRecord {
     /// Indices of the collided particles.
-    Size i;
-    Size j;
+    Size i = Size(-1);
+    Size j = Size(-1);
 
     Float collisionTime = INFINITY;
     Float overlap = 0._f;
@@ -273,18 +273,16 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
 
     FlatSet<Size> invalidIdxs;
     while (!collisions.empty()) {
-        // const CollisionRecord& col = *collisions.begin();
         // find first collision in the list
-        Float minTime = LARGE;
+        CollisionRecord col;
         Size firstIdx = Size(-1);
         for (Size idx = 0; idx < collisions.size(); ++idx) {
-            if (collisions[idx].collisionTime < minTime) {
-                minTime = collisions[idx].collisionTime;
+            if (collisions[idx] < col) {
+                col = collisions[idx];
                 firstIdx = idx;
             }
         }
         ASSERT(firstIdx != Size(-1));
-        const CollisionRecord& col = collisions[firstIdx];
 
         const Float t_coll = col.collisionTime;
         ASSERT(t_coll < dt);

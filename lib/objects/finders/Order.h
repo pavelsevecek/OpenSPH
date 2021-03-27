@@ -98,9 +98,10 @@ public:
 /// \brief Finds the order of values in given array.
 ///
 /// The returned order, when applied on sorted values, gives the original (unsorted) values
-INLINE Order getOrder(ArrayView<const Float> values) {
+template <typename TLess = std::less<Float>>
+INLINE Order getOrder(ArrayView<const Float> values, const TLess less = TLess{}) {
     Order order(values.size());
-    order.shuffle([values](Size i, Size j) { return values[i] < values[j]; });
+    order.shuffle([values, &less](Size i, Size j) { return less(values[i], values[j]); });
     return order.getInverted();
 }
 

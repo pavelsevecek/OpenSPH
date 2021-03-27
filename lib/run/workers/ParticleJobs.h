@@ -368,7 +368,17 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
+enum class CompareMode {
+    PARTICLE_WISE,
+    LARGE_PARTICLES_ONLY,
+};
+
 class CompareJob : public IParticleJob {
+    EnumWrapper mode = EnumWrapper(CompareMode::PARTICLE_WISE);
+    Float eps = 1.e-6_f;
+    Float fraction = 0.2_f;
+    Float maxDeviation = 0.5_f;
+
 public:
     explicit CompareJob(const std::string& name)
         : IParticleJob(name) {}

@@ -3,7 +3,7 @@
 #include "io/Logger.h"
 #include "objects/geometry/Sphere.h"
 #include "post/Analysis.h"
-#include "quantities/Iterate.h"
+#include "post/Compare.h"
 #include "quantities/Quantity.h"
 #include "run/IRun.h"
 #include "sph/Materials.h"
@@ -859,9 +859,32 @@ static JobRegistrar sRegisterSubsampler(
 // CompareJob
 // ----------------------------------------------------------------------------------------------------------
 
+static RegisterEnum<CompareMode> sCompare({
+    { CompareMode::PARTICLE_WISE,
+        "particle_wise",
+        "States must have the same number of particles. Compares all quantities of particles at "
+        "corresponding indices. Viable for SPH simulations." },
+    { CompareMode::LARGE_PARTICLES_ONLY,
+        "large_particles_only",
+        "Compares only large particles in the states. The number of particles may be different and the "
+        "indices of particles do not have to match. Viable for N-body simulations with merging." },
+});
+
+
 VirtualSettings CompareJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
+
+    auto nbodyEnabler = [&] { return CompareMode(mode) == CompareMode::LARGE_PARTICLES_ONLY; };
+
+    VirtualSettings::Category& compareCat = connector.addCategory("Comparison");
+    compareCat.connect("Compare mode", "compare_mode", mode);
+    compareCat.connect("Tolerance", "eps", eps);
+    compareCat.connect("Fraction", "fraction", fraction).setEnabler(nbodyEnabler);
+    compareCat.connect("Max deviation [km]", "max_deviation", maxDeviation)
+        .setUnits(1.e3_f)
+        .setEnabler(nbodyEnabler);
+
     return connector;
 }
 
@@ -869,85 +892,27 @@ void CompareJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUS
     Storage& test = this->getInput<ParticleData>("test particles")->storage;
     Storage& ref = this->getInput<ParticleData>("reference particles")->storage;
 
-    if (test.getParticleCnt() != ref.getParticleCnt()) {
-        throw InvalidSetup("Different number of particles.\nTest has " +
-                           std::to_string(test.getParticleCnt()) + "\nReference has " +
-                           std::to_string(ref.getParticleCnt()));
+    Outcome result = SUCCESS;
+    switch (CompareMode(mode)) {
+    case CompareMode::PARTICLE_WISE:
+        result = Post::compareParticles(test, ref, eps);
+        break;
+    case CompareMode::LARGE_PARTICLES_ONLY:
+        result = Post::compareLargeSpheres(test, ref, fraction, maxDeviation, eps);
+        break;
+    default:
+        NOT_IMPLEMENTED;
     }
-
-    if (test.getQuantityCnt() != ref.getQuantityCnt()) {
-        throw InvalidSetup("Different number of quantities.\nTest has " +
-                           std::to_string(test.getQuantityCnt()) + "\nReference has " +
-                           std::to_string(ref.getQuantityCnt()));
+    if (!result) {
+        throw InvalidSetup(result.error());
     }
-
-    StringLogger log;
-    auto checkZeroOrder = [&](QuantityId id, const auto& px, const auto& cx) {
-        for (Size i = 0; i < px.size(); ++i) {
-            if (!almostEqual(px[i], cx[i], 1.e-6_f)) {
-                log.write("Difference in ", getMetadata(id).quantityName, "\n", px[i], " == ", cx[i], "\n\n");
-                break;
-            }
-        }
-    };
-    iteratePair<VisitorEnum::ZERO_ORDER>(test, ref, checkZeroOrder);
-
-    auto checkFirstOrder = [&](QuantityId id,
-                               const auto& px,
-                               const auto& pdx,
-                               const auto& cx,
-                               const auto& cdx) {
-        for (Size i = 0; i < px.size(); ++i) {
-            if (!almostEqual(px[i], cx[i], 1.e-6_f)) {
-                log.write("Difference in ", getMetadata(id).quantityName, "\n", px[i], " == ", cx[i], "\n\n");
-                break;
-            }
-            if (!almostEqual(pdx[i], cdx[i], 1.e-6_f)) {
-                log.write(
-                    "Difference in ", getMetadata(id).derivativeName, "\n", pdx[i], " == ", cdx[i], "\n\n");
-                break;
-            }
-        }
-    };
-    iteratePair<VisitorEnum::FIRST_ORDER>(test, ref, checkFirstOrder);
-
-    auto checkSecondOrder = [&](QuantityId id,
-                                const auto& px,
-                                const auto& pdx,
-                                const auto& pdv,
-                                const auto& cx,
-                                const auto& cdx,
-                                const auto& cdv) {
-        for (Size i = 0; i < px.size(); ++i) {
-            if (!almostEqual(px[i], cx[i], 1.e-6_f)) {
-                log.write("Difference in ", getMetadata(id).quantityName, "\n", px[i], " == ", cx[i], "\n\n");
-                break;
-            }
-            if (!almostEqual(pdx[i], cdx[i], 1.e-6_f)) {
-                log.write(
-                    "Difference in ", getMetadata(id).derivativeName, "\n", pdx[i], " == ", cdx[i], "\n\n");
-                break;
-            }
-            if (!almostEqual(pdv[i], cdv[i], 1.e-6_f)) {
-                log.write("Difference in ",
-                    getMetadata(id).secondDerivativeName,
-                    "\n",
-                    pdv[i],
-                    " == ",
-                    cdv[i],
-                    "\n\n");
-                break;
-            }
-        }
-    };
-    iteratePair<VisitorEnum::SECOND_ORDER>(test, ref, checkSecondOrder);
 }
 
 static JobRegistrar sRegisterCompare(
     "compare",
     "particle operators",
     [](const std::string& name) { return makeAuto<CompareJob>(name); },
-    "Compares two states.");
+    "Compares two states. If a difference is found, it is shown as an error dialog.");
 
 
 NAMESPACE_SPH_END
