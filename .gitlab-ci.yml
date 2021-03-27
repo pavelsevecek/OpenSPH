@@ -2,7 +2,7 @@ before_script:
 #- echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-4.0 main" >> /etc/apt/sources.list.d/llvm.list
 #- wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
   - apt-get update -qy
-  - apt-get install -y clang qt5-default libwxgtk3.0-dev wx3.0-headers wx-common
+  - apt-get install -y clang qt5-default libwxgtk3.0-dev wx3.0-headers wx-common libtbb-dev
     #- ln -s /usr/bin/clang++-4.0 /usr/bin/clang++
  
 gcc_debug:
@@ -83,7 +83,7 @@ regression:
     - apt-get install -y gnuplot
     - mkdir regression_build
     - cd regression_build
-    - qmake -spec linux-g++ CONFIG+=release ../sph.pro
+    - qmake -spec linux-g++ CONFIG+=release CONFIG+=use_tbb ../sph.pro
     - make
     - cd ..
     - cd regression
@@ -127,7 +127,7 @@ build_package:
     refs:
       - master
   script:
-    - apt-get install -y dpkg libtbb-dev
+    - apt-get install -y dpkg
     - mkdir gcc_deploy
     - cd gcc_deploy
     - qmake -spec linux-g++ CONFIG+=release CONFIG+=use_tbb ../sph.pro
