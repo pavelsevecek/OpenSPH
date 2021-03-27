@@ -109,12 +109,12 @@ regression:
     - cd regression
     - cd impact # impact simulation
     - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "save text file"
-      #- ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "compare with reference"
+    - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "compare with reference"
     - gnuplot plot.plt
     - cd ..
     - cd nbody-merge # N-body run with perfect merging
     - ../../regression_build/cli/launcher/opensph-cli -p nbody-merge.sph -n "save result"
-      #- ../../regression_build/cli/launcher/opensph-cli -p nbody-merge.sph -n "compare with reference"
+    - ../../regression_build/cli/launcher/opensph-cli -p nbody-merge.sph -n "compare with reference"
     - gnuplot plot.plt
     - cd ..
     - cd nbody-merge-or-bounce # N-body run with conditional merging

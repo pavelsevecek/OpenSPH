@@ -63,21 +63,6 @@ private:
     }
 };
 
-/*class SpinLock : public Noncopyable {
-    std::atomic_flag locked = ATOMIC_FLAG_INIT;
-
-public:
-    INLINE void lock() {
-        while (locked.test_and_set(std::memory_order_acquire)) {
-            _mm_pause();
-        }
-    }
-    INLINE void unlock() {
-        locked.clear(std::memory_order_release);
-    }
-};*/
-
-
 template <typename T>
 class OctreeNode {
 private:

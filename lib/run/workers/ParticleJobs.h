@@ -375,7 +375,7 @@ enum class CompareMode {
 
 class CompareJob : public IParticleJob {
     EnumWrapper mode = EnumWrapper(CompareMode::PARTICLE_WISE);
-    Float eps = 1.e-6_f;
+    Float eps = 1.e-4_f;
     Float fraction = 0.2_f;
     Float maxDeviation = 0.5_f;
 
