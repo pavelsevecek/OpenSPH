@@ -68,7 +68,11 @@ cppcheck:
   allow_failure: true
   script:
     - apt-get install -y cppcheck
-    - cppcheck --language=c++ --std=c++14 --error-exitcode=1 --quiet --enable=all --suppress=internalAstError -DNAMESPACE_SPH_BEGIN -DNAMESPAC_SPH_END lib/
+    - cppcheck --language=c++ --std=c++14 --error-exitcode=1 \
+               --quiet --enable=all \
+               -DNAMESPACE_SPH_BEGIN -DNAMESPACE_SPH_END -DASSERT \
+               lib \
+               `ls -d lib/*/test lib/*/*/test lib/*/*/*/test | awk '{printf("-i %s ", $0)}'` # exclude tests
 
 flawfinder:
   stage: test

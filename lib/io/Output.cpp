@@ -721,9 +721,9 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
     Size wallclockTime;
     Size particleCnt, quantityCnt, materialCnt;
     BinaryIoVersion version;
-    char runTypeBuffer[16];
-    char buildDateBuffer[16];
     try {
+        char runTypeBuffer[16];
+        char buildDateBuffer[16];
         deserializer.read(identifier,
             time,
             particleCnt,

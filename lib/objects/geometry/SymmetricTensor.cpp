@@ -22,7 +22,7 @@ SymmetricTensor SymmetricTensor::pseudoInverse(const Float eps) const {
         Vector(result(0, 0), result(1, 1), result(2, 2)), Vector(result(0, 1), result(0, 2), result(1, 2)));
 }
 
-constexpr int n = 3;
+constexpr int N = 3;
 
 INLINE static double hypot2(double x, double y) {
     ASSERT(isReal(x) && isReal(y), x, y);
@@ -31,16 +31,16 @@ INLINE static double hypot2(double x, double y) {
 
 // Symmetric Householder reduction to tridiagonal form.
 
-static void tred2(double V[n][n], double d[n], double e[n]) {
+static void tred2(double V[N][N], double d[N], double e[N]) {
     //  This is derived from the Algol procedures tred2 by
     //  Bowdler, Martin, Reinsch, and Wilkinson, Handbook for
     //  Auto. Comp., Vol.ii-Linear Algebra, and the corresponding
     //  Fortran subroutine in EISPACK.
-    for (int j = 0; j < n; j++) {
-        d[j] = V[n - 1][j];
+    for (int j = 0; j < N; j++) {
+        d[j] = V[N - 1][j];
     }
     // Householder reduction to tridiagonal form.
-    for (int i = n - 1; i > 0; i--) {
+    for (int i = N - 1; i > 0; i--) {
         // Scale to avoid under/overflow.
         double scale = 0.0;
         double h = 0.0;
@@ -108,8 +108,8 @@ static void tred2(double V[n][n], double d[n], double e[n]) {
     }
 
     // Accumulate transformations.
-    for (int i = 0; i < n - 1; i++) {
-        V[n - 1][i] = V[i][i];
+    for (int i = 0; i < N - 1; i++) {
+        V[N - 1][i] = V[i][i];
         V[i][i] = 1.0;
         double h = d[i + 1];
         if (h != 0.0) {
@@ -130,33 +130,33 @@ static void tred2(double V[n][n], double d[n], double e[n]) {
             V[k][i + 1] = 0.0;
         }
     }
-    for (int j = 0; j < n; j++) {
-        d[j] = V[n - 1][j];
-        V[n - 1][j] = 0.0;
+    for (int j = 0; j < N; j++) {
+        d[j] = V[N - 1][j];
+        V[N - 1][j] = 0.0;
     }
-    V[n - 1][n - 1] = 1.0;
+    V[N - 1][N - 1] = 1.0;
     e[0] = 0.0;
 }
 
 // Symmetric tridiagonal QL algorithm.
-static void tql2(double V[n][n], double d[n], double e[n]) {
+static void tql2(double V[N][N], double d[N], double e[N]) {
     //  This is derived from the Algol procedures tql2, by
     //  Bowdler, Martin, Reinsch, and Wilkinson, Handbook for
     //  Auto. Comp., Vol.ii-Linear Algebra, and the corresponding
     //  Fortran subroutine in EISPACK.
-    for (int i = 1; i < n; i++) {
+    for (int i = 1; i < N; i++) {
         e[i - 1] = e[i];
     }
-    e[n - 1] = 0.0;
+    e[N - 1] = 0.0;
 
     double f = 0.0;
     double tst1 = 0.0;
     double eps = pow(2.0, -52.0);
-    for (int l = 0; l < n; l++) {
+    for (int l = 0; l < N; l++) {
         // Find small subdiagonal element
         tst1 = max(tst1, fabs(d[l]) + fabs(e[l]));
         int m = l;
-        while (m < n) {
+        while (m < N) {
             if (fabs(e[m]) <= eps * tst1) {
                 break;
             }
@@ -181,7 +181,7 @@ static void tql2(double V[n][n], double d[n], double e[n]) {
                 d[l + 1] = e[l] * (p + r);
                 double dl1 = d[l + 1];
                 double h = g - d[l];
-                for (int i = l + 2; i < n; i++) {
+                for (int i = l + 2; i < N; i++) {
                     d[i] -= h;
                 }
                 f = f + h;
@@ -210,7 +210,7 @@ static void tql2(double V[n][n], double d[n], double e[n]) {
                     d[i + 1] = h + s * (c * g + s * d[i]);
 
                     // Accumulate transformation.
-                    for (int k = 0; k < n; k++) {
+                    for (int k = 0; k < N; k++) {
                         h = V[k][i + 1];
                         V[k][i + 1] = s * V[k][i] + c * h;
                         V[k][i] = c * V[k][i] - s * h;
@@ -225,10 +225,10 @@ static void tql2(double V[n][n], double d[n], double e[n]) {
         e[l] = 0.0;
     }
     // Sort eigenvalues and corresponding vectors.
-    for (int i = 0; i < n - 1; i++) {
+    for (int i = 0; i < N - 1; i++) {
         int k = i;
         double p = d[i];
-        for (int j = i + 1; j < n; j++) {
+        for (int j = i + 1; j < N; j++) {
             if (d[j] < p) {
                 k = j;
                 p = d[j];
@@ -237,7 +237,7 @@ static void tql2(double V[n][n], double d[n], double e[n]) {
         if (k != i) {
             d[k] = d[i];
             d[i] = p;
-            for (int j = 0; j < n; j++) {
+            for (int j = 0; j < N; j++) {
                 p = V[j][i];
                 V[j][i] = V[j][k];
                 V[j][k] = p;
@@ -255,11 +255,11 @@ Eigen eigenDecomposition(const SymmetricTensor& t) {
     }
     ASSERT(isReal(scale));
 
-    double e[n];
-    double d[n];
-    double V[n][n];
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
+    double e[N];
+    double d[N];
+    double V[N][N];
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
             V[i][j] = t(i, j);
         }
     }

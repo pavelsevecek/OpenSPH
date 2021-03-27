@@ -100,7 +100,7 @@ void HardSphereSolver::integrate(Storage& storage, Statistics& stats) {
     gravity->build(scheduler, storage);
 
     ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
-    ASSERT_UNEVAL(std::all_of(dv.begin(), dv.end(), [](Vector& a) { return a == Vector(0._f); }));
+    ASSERT_UNEVAL(std::all_of(dv.begin(), dv.end(), [](const Vector& a) { return a == Vector(0._f); }));
     gravity->evalAll(scheduler, dv, stats);
 
     // null all derivatives of smoothing lengths (particle radii)
@@ -129,7 +129,7 @@ public:
     /// Number of overlaps handled
     Size overlapCount = 0;
 
-    CollisionStats(Statistics& stats)
+    explicit CollisionStats(Statistics& stats)
         : stats(stats) {}
 
     ~CollisionStats() {
@@ -604,7 +604,7 @@ void SoftSphereSolver::integrate(Storage& storage, Statistics& stats) {
     ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-    ASSERT_UNEVAL(std::all_of(dv.begin(), dv.end(), [](Vector& a) { return a == Vector(0._f); }));
+    ASSERT_UNEVAL(std::all_of(dv.begin(), dv.end(), [](const Vector& a) { return a == Vector(0._f); }));
     gravity->evalAll(scheduler, dv, stats);
 
     stats.set(StatisticsId::GRAVITY_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
