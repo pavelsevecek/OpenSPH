@@ -89,7 +89,7 @@ regression:
     - cd regression
     - cd impact # impact simulation
     - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "save text file"
-    - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "compare with reference"
+      #- ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "compare with reference"
     - gnuplot plot.plt
     - cd ..
     - cd nbody-merge # N-body run with perfect merging
