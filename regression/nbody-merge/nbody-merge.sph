@@ -147,6 +147,10 @@
     "test particles" = "Load 'result.scf'"
     "reference particles" = "Load 'reference.scf'"
     "name" = "compare with reference"
+    "compare_mode" = 1
+    "eps" = 0.0001
+    "fraction" = 0.2
+    "max_deviation" = 0.5
   ]
   "Load 'result.scf'" [
     "class_name" = "load file"
