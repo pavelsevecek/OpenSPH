@@ -76,6 +76,7 @@ cppcheck:
 flawfinder:
   stage: test
   allow_failure: true
+  script:
     - apt-get install -y flawfinder
     - flawfinder --quiet --falsepositive lib/ 
 
