@@ -8,6 +8,8 @@
 #include "objects/containers/FlatSet.h"
 #include "thread/ThreadLocal.h"
 #include "timestepping/ISolver.h"
+#include <map>
+#include <set>
 
 NAMESPACE_SPH_BEGIN
 
@@ -45,9 +47,6 @@ private:
 
     /// Cached array of removed particles, used to avoid invalidating indices during collision handling.
     FlatSet<Size> removed;
-
-    /// Holds all detected collisions.
-    Array<CollisionRecord> collisions;
 
     /// Maximum distance to search for impactors, per particle.
     Array<Float> searchRadii;

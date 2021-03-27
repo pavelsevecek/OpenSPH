@@ -42,7 +42,7 @@ public:
     }
 
     template <typename U>
-    void insert(U&& value) {
+    bool insert(U&& value) {
         Size from = 0;
         Size to = data.size();
         Size mid = Size(-1);
@@ -55,10 +55,11 @@ public:
                 to = mid;
             } else {
                 // found the same value, skip
-                return;
+                return false;
             }
         }
         data.insert(from, std::forward<U>(value));
+        return true;
     }
 
     template <typename TIter>

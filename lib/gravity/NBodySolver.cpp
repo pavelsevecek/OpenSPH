@@ -204,6 +204,118 @@ struct CollisionRecord {
     }
 };
 
+class CollisionSet {
+public:
+    using Iterator = std::set<CollisionRecord>::const_iterator;
+
+private:
+    // holds all collisions
+    std::set<CollisionRecord> collisions;
+
+    // maps particles to the collisions
+    std::multimap<Size, CollisionRecord> indexToCollision;
+
+    using Itc = std::multimap<Size, CollisionRecord>::const_iterator;
+
+public:
+    void insert(const CollisionRecord& col) {
+        Iterator iter;
+        bool inserted;
+        std::tie(iter, inserted) = collisions.insert(col);
+        if (!inserted) {
+            return;
+        }
+        indexToCollision.insert(std::make_pair(col.i, col));
+        indexToCollision.insert(std::make_pair(col.j, col));
+    }
+
+    template <typename TIter>
+    void insert(TIter first, TIter last) {
+        for (TIter iter = first; iter != last; ++iter) {
+            insert(*iter);
+        }
+        checkConsistency();
+    }
+
+    const CollisionRecord& top() const {
+        return *collisions.begin();
+    }
+
+    bool empty() const {
+        ASSERT(collisions.empty() == indexToCollision.empty());
+        return collisions.empty();
+    }
+
+    bool has(const Size idx) const {
+        return indexToCollision.count(idx) > 0;
+    }
+
+    void removeByCollision(const CollisionRecord& col) {
+        removeIndex(col, col.i);
+        removeIndex(col, col.j);
+        const Size removed = collisions.erase(col);
+        ASSERT(removed == 1);
+        checkConsistency();
+    }
+
+    void removeByIndex(const Size idx, FlatSet<Size>& removed) {
+        Itc first, last;
+        removed.insert(idx);
+        std::tie(first, last) = indexToCollision.equal_range(idx);
+        // last iterator may be invalidated, so we need to be careful
+        for (Itc itc = first; itc->first == idx && itc != indexToCollision.end();) {
+            const Size otherIdx = (itc->second.i == idx) ? itc->second.j : itc->second.i;
+            removed.insert(otherIdx);
+            collisions.erase(itc->second);
+            // erase the other particle as well
+            removeIndex(itc->second, otherIdx);
+            itc = indexToCollision.erase(itc);
+        }
+        checkConsistency();
+    }
+
+private:
+    void removeIndex(const CollisionRecord& col, const Size idx) {
+        ASSERT(col.i == idx || col.j == idx);
+        Itc first, last;
+        std::tie(first, last) = indexToCollision.equal_range(idx);
+        for (Itc itc = first; itc != last; ++itc) {
+            if (itc->second == col) {
+                indexToCollision.erase(itc);
+                return;
+            }
+        }
+        ASSERT(false, "Collision not found");
+    }
+
+    void checkConsistency() const {
+        ASSERT(2 * collisions.size() == indexToCollision.size());
+        // all collisions are in the index-to-colision map
+        for (const CollisionRecord& col : collisions) {
+            ASSERT(indexToCollision.count(col.i));
+            ASSERT(indexToCollision.count(col.j));
+            ASSERT(hasCollision(col, col.i));
+            ASSERT(hasCollision(col, col.j));
+        }
+
+        // all entries in index-to-collision map have a corresponding collision
+        for (const auto& p : indexToCollision) {
+            ASSERT(collisions.find(p.second) != collisions.end());
+        }
+    }
+
+    bool hasCollision(const CollisionRecord& col, const Size idx) const {
+        Itc first, last;
+        std::tie(first, last) = indexToCollision.equal_range(idx);
+        for (Itc itc = first; itc != last; ++itc) {
+            if (itc->second == col) {
+                return true;
+            }
+        }
+        return false;
+    }
+};
+
 void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     VERBOSE_LOG
 
@@ -248,18 +360,13 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
         }
     });
 
-    // reduce thread-local containers
-    {
-        Size collisionCnt = 0;
-        for (const ThreadData& data : threadData) {
-            collisionCnt += data.collisions.size();
-        }
+    // Holds all detected collisions.
+    CollisionSet collisions;
 
-        collisions.clear();
-        collisions.reserve(collisionCnt);
-        for (const ThreadData& data : threadData) {
-            collisions.insert(collisions.size(), data.collisions.begin(), data.collisions.end());
-        }
+    // reduce thread-local containers
+    for (ThreadData& data : threadData) {
+        collisions.insert(data.collisions.begin(), data.collisions.end());
+        data.collisions.clear();
     }
 
     CollisionStats cs(stats);
@@ -274,16 +381,7 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
     FlatSet<Size> invalidIdxs;
     while (!collisions.empty()) {
         // find first collision in the list
-        CollisionRecord col;
-        Size firstIdx = Size(-1);
-        for (Size idx = 0; idx < collisions.size(); ++idx) {
-            if (collisions[idx] < col) {
-                col = collisions[idx];
-                firstIdx = idx;
-            }
-        }
-        ASSERT(firstIdx != Size(-1));
-
+        const CollisionRecord& col = collisions.top();
         const Float t_coll = col.collisionTime;
         ASSERT(t_coll < dt);
 
@@ -313,24 +411,16 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
 
         if (result == CollisionResult::NONE) {
             // no collision to process
-            std::swap(collisions[firstIdx], collisions.back());
-            collisions.pop();
+            collisions.removeByCollision(col);
             continue;
         }
 
         // remove all collisions containing either i or j
         invalidIdxs.clear();
-        for (Size idx = 0; idx < collisions.size();) {
-            const CollisionRecord& c = collisions[idx];
-            if (c.i == i || c.i == j || c.j == i || c.j == j) {
-                invalidIdxs.insert(c.i);
-                invalidIdxs.insert(c.j);
-                std::swap(collisions[idx], collisions.back());
-                collisions.pop();
-            } else {
-                ++idx;
-            }
-        }
+        collisions.removeByIndex(i, invalidIdxs);
+        collisions.removeByIndex(j, invalidIdxs);
+        ASSERT(!collisions.has(i));
+        ASSERT(!collisions.has(j));
 
         const Interval interval(t_coll + EPS, dt);
         if (!interval.empty()) {
@@ -347,7 +437,8 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
                         // don't process the same pair twice in a row
                         continue;
                     }
-                    collisions.push(c);
+
+                    collisions.insert(c);
                 }
             }
         }

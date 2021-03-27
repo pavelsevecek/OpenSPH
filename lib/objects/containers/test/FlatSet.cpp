@@ -27,23 +27,23 @@ TEST_CASE("Set initializer_list", "[flatset]") {
 
 TEST_CASE("Set insert", "[flatset]") {
     FlatSet<RecordType> set;
-    set.insert(5);
+    REQUIRE(set.insert(5));
     REQUIRE(set.size() == 1);
     REQUIRE(set[0].value == 5);
 
-    set.insert(3);
+    REQUIRE(set.insert(3));
     REQUIRE(set.size() == 2);
     REQUIRE(set[0].value == 3);
     REQUIRE(set[1].value == 5);
 
-    set.insert(7);
+    REQUIRE(set.insert(7));
     REQUIRE(set.size() == 3);
     REQUIRE(set[0].value == 3);
     REQUIRE(set[1].value == 5);
     REQUIRE(set[2].value == 7);
 
-    set.insert(5);
-    set.insert(3);
+    REQUIRE_FALSE(set.insert(5));
+    REQUIRE_FALSE(set.insert(3));
     REQUIRE(set.size() == 3);
     REQUIRE(set[0].value == 3);
     REQUIRE(set[1].value == 5);

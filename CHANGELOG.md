@@ -1,6 +1,11 @@
+## 2021-03-27
+- significant optimiazations of collisions
+
 ## 2021-03-26
 - optimized collision handling
 - added few auxiliary functions to Array, FlatSet and FlatMap
+- fixed loading string parameters in CLI launcher
+- tweaking CI regression testing
 
 ## 2021-03-25
 - added planetesimal merge preset
