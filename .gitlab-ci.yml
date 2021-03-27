@@ -130,7 +130,7 @@ regression:
 
   artifacts:
     when: always
-    expire_in: never
+    expire_in: 3 mos
     paths:
       - regression/impact/result.scf
       - regression/impact/plot.png

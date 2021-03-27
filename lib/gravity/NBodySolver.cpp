@@ -370,9 +370,20 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
     CollisionSet collisions;
 
     // reduce thread-local containers
-    for (ThreadData& data : threadData) {
-        collisions.insert(data.collisions.begin(), data.collisions.end());
-        data.collisions.clear();
+    {
+        ThreadData* main = nullptr;
+        for (ThreadData& data : threadData) {
+            if (!main) {
+                main = &data;
+            } else {
+                main->collisions.insert(
+                    main->collisions.size(), data.collisions.begin(), data.collisions.end());
+                data.collisions.clear();
+            }
+        }
+        // sort to get a deterministic order in index-to-collision maps
+        std::sort(main->collisions.begin(), main->collisions.end());
+        collisions.insert(main->collisions.begin(), main->collisions.end());
     }
 
     CollisionStats cs(stats);
@@ -599,7 +610,6 @@ void SoftSphereSolver::integrate(Storage& storage, Statistics& stats) {
     stats.set(StatisticsId::GRAVITY_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
     timer.restart();
     const IBasicFinder& finder = *gravity->getFinder();
-
 
     // precompute the search radii
     Float maxRadius = 0._f;
