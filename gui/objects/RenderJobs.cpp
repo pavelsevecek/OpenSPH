@@ -8,6 +8,8 @@
 #include "run/workers/IoJobs.h"
 #include "system/Factory.h"
 #include "system/Timer.h"
+#include "gravity/BarnesHut.h"
+#include "gravity/Moments.h"
 
 #ifdef SPH_USE_VDB
 #include "openvdb/openvdb.h"
@@ -32,7 +34,7 @@ static RegisterEnum<ColorizerFlag> sColorizers({
     { ColorizerFlag::BOUND_COMPONENT_ID, "bound components", "Components" },
     { ColorizerFlag::MASS, "clay", "Clay" },
     { ColorizerFlag::BEAUTY, "beauty", "Beauty" },
-    { ColorizerFlag::DEPTH, "depth", "Depth" },
+    { ColorizerFlag::GRAVITY, "gravity", "Gravity" },
     { ColorizerFlag::DAMAGE, "damage", "Damage" },
 });
 
@@ -106,6 +108,7 @@ VirtualSettings AnimationJob::getSettings() {
     VirtualSettings::Category& cameraCat = connector.addCategory("Camera");
     cameraCat.connect<EnumWrapper>("Camera type", gui, GuiSettingsId::CAMERA_TYPE);
     cameraCat.connect<Vector>("Position", gui, GuiSettingsId::CAMERA_POSITION);
+    cameraCat.connect<Vector>("Velocity", gui, GuiSettingsId::CAMERA_VELOCITY);
     cameraCat.connect<Vector>("Target", gui, GuiSettingsId::CAMERA_TARGET);
     cameraCat.connect<Vector>("Up-direction", gui, GuiSettingsId::CAMERA_UP);
     cameraCat.connect<Float>("Clip near", gui, GuiSettingsId::CAMERA_CLIP_NEAR);
@@ -144,6 +147,39 @@ VirtualSettings AnimationJob::getSettings() {
     return connector;
 }
 
+class GravityColorizer : public TypedColorizer<Vector> {
+private:
+    SharedPtr<IScheduler> scheduler;
+    BarnesHut gravity;
+    Array<Vector> dv;
+
+public:
+    explicit GravityColorizer(const SharedPtr<IScheduler>& scheduler, Palette palette)
+        : TypedColorizer<Vector>(QuantityId::POSITION, std::move(palette))
+        , scheduler(scheduler)
+        , gravity(0.8_f, MultipoleOrder::OCTUPOLE) {}
+
+    virtual void initialize(const Storage& storage, const RefEnum UNUSED(ref)) override {
+        gravity.build(*scheduler, storage);
+        Statistics stats;
+        dv.resize(storage.getParticleCnt());
+        dv.fill(Vector(0._f));
+        gravity.evalAll(*scheduler, dv, stats);
+    }
+
+    virtual Rgba evalColor(const Size idx) const override {
+        return palette(getLength(dv[idx]));
+    }
+
+    virtual Optional<Vector> evalVector(const Size UNUSED(idx)) const override {
+    return NOTHING;
+    }
+
+    virtual std::string name() const override {
+        return "Gravity";
+    }
+};
+
 void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     gui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f));
 
@@ -174,8 +210,12 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
     if (colorizers.has(ColorizerFlag::BEAUTY)) {
         colorizerArray.push(Factory::getColorizer(project, ColorizerId::BEAUTY));
     }
-    if (colorizers.has(ColorizerFlag::DEPTH)) {
-        colorizerArray.push(Factory::getColorizer(project, ColorizerId::DEPTH));
+    if (colorizers.has(ColorizerFlag::GRAVITY)) {
+        Palette palette;
+        if (!project.getPalette("Acceleration", palette)) {
+            palette = Factory::getPalette(ColorizerId::ACCELERATION);
+        }
+        colorizerArray.push(makeShared<GravityColorizer>(scheduler, palette));
     }
     if (colorizers.has(ColorizerFlag::DAMAGE)) {
         colorizerArray.push(Factory::getColorizer(project, ColorizerId(QuantityId::DAMAGE)));

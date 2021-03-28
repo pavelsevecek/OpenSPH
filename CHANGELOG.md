@@ -1,5 +1,7 @@
 ## 2021-03-28
 - added MpcorpInput
+- added camera velocity into AnimationJob
+- added gravity colorizer
 - fixed rotation of ortho camera
 - perspective camera no longer clamps particle radius to 1
 

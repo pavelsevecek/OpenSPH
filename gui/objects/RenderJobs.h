@@ -11,7 +11,7 @@ enum class ColorizerFlag {
     BOUND_COMPONENT_ID = 1 << 2,
     MASS = 1 << 3,
     BEAUTY = 1 << 4,
-    DEPTH = 1 << 5,
+    GRAVITY = 1 << 5,
     DAMAGE = 1 << 6,
 };
 

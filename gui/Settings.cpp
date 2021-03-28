@@ -13,6 +13,8 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Specifies the projection of the particles to the image. Can be one of the following:\n" + EnumMap::getDesc<CameraEnum>() },
     { GuiSettingsId::CAMERA_POSITION,       "camera.position",      Vector(0._f, 0._f, 1._f),
         "Position of the perspective camera in space." },
+    { GuiSettingsId::CAMERA_VELOCITY,       "camera.velocity",      Vector(0._f),
+        "Velocity of the perspective camera in space." },
     { GuiSettingsId::CAMERA_TARGET,         "camera.target",        Vector(0._f),
         "Look-at point of the perspective camera. Actual distance from the camera does not matter." },
     { GuiSettingsId::CAMERA_UP,             "camera.up",            Vector(0._f, 1._f, 0._f),
