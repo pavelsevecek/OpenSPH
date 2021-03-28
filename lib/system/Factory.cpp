@@ -590,6 +590,8 @@ AutoPtr<IInput> Factory::getInput(const Path& path) {
         return makeAuto<Hdf5Input>();
     } else if (ext == "tab") {
         return makeAuto<TabInput>();
+    } else if (ext == "dat") {
+        return makeAuto<MpcorpInput>();
     } else {
         if (ext.size() > 3 && ext.substr(ext.size() - 3) == ".bt") {
             return makeAuto<PkdgravInput>();

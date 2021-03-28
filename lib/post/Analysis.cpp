@@ -106,7 +106,6 @@ Size Post::findComponents(const Storage& storage,
     }
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-
     Size componentCnt = findComponentsImpl(*checker, r, radius, indices);
 
     if (flags.has(ComponentFlag::ESCAPE_VELOCITY)) {
@@ -124,7 +123,6 @@ Size Post::findComponents(const Storage& storage,
         volumes.fill(0._f);
 
         ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
 
         for (Size i = 0; i < r.size(); ++i) {

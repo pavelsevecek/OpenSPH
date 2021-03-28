@@ -1246,6 +1246,98 @@ Outcome Hdf5Input::load(const Path&, Storage&, Statistics&) {
 #endif
 
 // ----------------------------------------------------------------------------------------------------------
+// MpcorpInput
+// ----------------------------------------------------------------------------------------------------------
+
+static Float computeEccentricAnomaly(const Float M, const Float e) {
+    // solve Kepler's equation
+    Float E = M;
+    for (Size iter = 0; iter < 10; ++iter) {
+        E = E - (E - e * sin(E) - M) / (1._f - e * cos(E));
+    }
+    return E;
+}
+
+static Float computeRadius(const Float H, const Float albedo) {
+    // https://cneos.jpl.nasa.gov/tools/ast_size_est.html
+    const Float d = exp10(3.1236 - 0.5 * log10(albedo) - 0.2 * H);
+    return 0.5_f * d * 1.e3_f;
+}
+
+static void parseMpcorp(std::ifstream& ifs, Storage& storage, const Float rho, const Float albedo) {
+    std::string line;
+    // skip header
+    while (std::getline(ifs, line)) {
+        if (line.size() >= 5 && line.substr(0, 5) == "-----") {
+            break;
+        }
+    }
+
+    std::string dummy;
+    Array<Vector> positions, velocities;
+    Array<Float> masses;
+    while (std::getline(ifs, line)) {
+        if (line.empty()) {
+            continue;
+        }
+        std::stringstream ss(line);
+        Float mag;
+        ss >> dummy >> mag >> dummy >> dummy;
+        if (!ss.good()) {
+            continue;
+        }
+        Float M, omega, Omega, I, e, n, a;
+        ss >> M >> omega >> Omega >> I >> e >> n >> a;
+        M *= DEG_TO_RAD;
+        omega *= DEG_TO_RAD;
+        Omega *= DEG_TO_RAD;
+        I *= DEG_TO_RAD;
+        a *= Constants::au;
+        n *= DEG_TO_RAD / Constants::day;
+
+        const Float E = computeEccentricAnomaly(M, e);
+        const AffineMatrix R_Omega = AffineMatrix::rotateZ(Omega);
+        const AffineMatrix R_I = AffineMatrix::rotateX(I);
+        const AffineMatrix R_omega = AffineMatrix::rotateZ(omega);
+        const AffineMatrix R = R_Omega * R_I * R_omega;
+
+        Vector r = a * R * Vector(cos(E) - e, sqrt(1 - sqr(e)) * sin(E), 0);
+        ASSERT(isReal(r), r);
+        Vector v = a * R * n / (1 - e * cos(E)) * Vector(-sin(E), sqrt(1 - sqr(e)) * cos(E), 0);
+        ASSERT(isReal(v), v);
+        /*const Float r = a * (1 - sqr(e)) / (1 + e * cos(nu)) * Constants::au;
+        const Float x = r * (cos(Omega) * cos(omega + nu) - sin(Omega) * cos(I) * sin(omega + nu));
+        const Float y = r * (sin(Omega) * cos(omega + nu) + cos(Omega) * cos(I) * sin(omega + nu));
+        const Float z = r * sin(I) * sin(omega + nu);*/
+        r[H] = computeRadius(mag, albedo);
+        v[H] = 0._f;
+        positions.push(r);
+        velocities.push(v);
+
+        const Float m = sphereVolume(r[H]) * rho;
+        masses.push(m);
+    }
+
+    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(positions));
+    storage.getDt<Vector>(QuantityId::POSITION) = std::move(velocities);
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, std::move(masses));
+}
+
+Outcome MpcorpInput::load(const Path& path, Storage& storage, Statistics& UNUSED(stats)) {
+    try {
+        std::ifstream ifs(path.native());
+        if (!ifs) {
+            return makeFailed("Failed to open file '", path.native(), "'");
+        }
+        parseMpcorp(ifs, storage, rho, albedo);
+        return SUCCESS;
+    } catch (const std::exception& e) {
+        return makeFailed("Cannot load file '", path.native(), "'\n", e.what());
+    }
+}
+
+
+// ----------------------------------------------------------------------------------------------------------
 // PkdgravOutput/Input
 // ----------------------------------------------------------------------------------------------------------
 

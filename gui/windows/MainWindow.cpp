@@ -241,7 +241,7 @@ MainWindow::MainWindow(const Path& openPath)
     if (!openPath.empty()) {
         /// \todo generalize
         const std::string ext = openPath.extension().native();
-        if (ext == "ssf" || ext == "scf" || ext == "tab" || ext == "h5") {
+        if (getIoEnum(ext)) {
             this->open(openPath, true);
         } else if (ext == "sph") {
             this->load(openPath);

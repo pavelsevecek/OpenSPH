@@ -470,6 +470,23 @@ public:
     virtual Outcome load(const Path& path, Storage& storage, Statistics& stats) override;
 };
 
+/// \brief Reads data from Minor Planet Center Orbit Database exports.
+///
+/// Since the database does not include the densities of bodies, a stand-in density has to be specified to
+/// compute the masses. Similarly, an albedo has to be set for radius estimation.
+class MpcorpInput : public IInput {
+private:
+    Float rho;
+    Float albedo;
+
+public:
+    explicit MpcorpInput(const Float rho = 2700._f, const Float albedo = 0.2_f)
+        : rho(rho)
+        , albedo(albedo) {}
+
+    virtual Outcome load(const Path& path, Storage& storage, Statistics& stats) override;
+};
+
 struct PkdgravParams {
 
     /// Conversion formula from SPH particles to hard spheres in pkdgrav

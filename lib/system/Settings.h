@@ -841,6 +841,9 @@ enum class IoEnum {
     /// miluphcuda. Requires to build code with libhdf5.
     HDF5_FILE,
 
+    /// Export from Minor Planet Center Orbit Database
+    MPCORP_FILE,
+
     /// Pkdgrav input file.
     PKDGRAV_INPUT,
 };
@@ -849,6 +852,11 @@ enum class IoEnum {
 ///
 /// Result NOTHING indicates there is no particular extension associated with the IO type.
 Optional<std::string> getIoExtension(const IoEnum type);
+
+/// \brief Returns the file type from file extension.
+///
+/// Result NOTHING indicates there is no file type associated with the extension.
+Optional<IoEnum> getIoEnum(const std::string& ext);
 
 
 enum class RngEnum {
