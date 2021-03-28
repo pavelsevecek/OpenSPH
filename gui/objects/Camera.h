@@ -210,6 +210,8 @@ public:
 private:
     void update();
 
+    Optional<CameraRay> unprojectImpl(const Coords& coords, const bool adjustZ) const;
+
     float estimateFov(const Storage& storage) const;
 };
 

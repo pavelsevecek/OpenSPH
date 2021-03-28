@@ -114,16 +114,23 @@ Optional<ProjectedPoint> OrthoCamera::project(const Vector& r) const {
     return { { point, fov * float(r[H]) } };
 }
 
-Optional<CameraRay> OrthoCamera::unproject(const Coords& coords) const {
+Optional<CameraRay> OrthoCamera::unprojectImpl(const Coords& coords, const bool adjustZ) const {
     const float fov = data.ortho.fov;
     const float rx = (coords.x - data.imageSize.x * 0.5f) / fov;
     const float ry = (data.imageSize.y * 0.5f - coords.y - 1) / fov;
     CameraRay ray;
-    /// \todo TEMPORARY HACK, FIX!
-    const Float scale = data.imageSize.y / fov;
-    ray.origin = data.position + cached.u * rx + cached.v * ry - cached.w * scale;
+    ray.origin = data.position + cached.u * rx + cached.v * ry;
+    if (adjustZ) {
+        /// \todo TEMPORARY HACK, FIX!
+        const Float scale = data.imageSize.y / fov;
+        ray.origin -= cached.w * scale;
+    }
     ray.target = ray.origin + cached.w;
     return ray;
+}
+
+Optional<CameraRay> OrthoCamera::unproject(const Coords& coords) const {
+    return unprojectImpl(coords, true);
 }
 
 Pixel OrthoCamera::getSize() const {
@@ -153,9 +160,9 @@ void OrthoCamera::setCutoff(const Optional<float> newCutoff) {
 void OrthoCamera::zoom(const Pixel fixedPoint, const float magnitude) {
     ASSERT(magnitude > 0.f);
 
-    const Vector fixed1 = this->unproject(Coords(fixedPoint))->origin;
+    const Vector fixed1 = this->unprojectImpl(Coords(fixedPoint), false)->origin;
     data.ortho.fov *= magnitude;
-    const Vector fixed2 = this->unproject(Coords(fixedPoint))->origin;
+    const Vector fixed2 = this->unprojectImpl(Coords(fixedPoint), false)->origin;
     const Vector dp = fixed1 - fixed2;
     data.position += dp;
     data.target += dp;
@@ -247,8 +254,7 @@ Optional<ProjectedPoint> PerspectiveCamera::project(const Vector& r) const {
     const float hAtUnitDist = float(r[H] / proj);
     const float h = hAtUnitDist / float(leftLength) * float(data.imageSize.x);
 
-    // if (x >= -h && x < imageSize.x + h && y >= -h && y < imageSize.y )
-    return ProjectedPoint{ { x, data.imageSize.y - y - 1 }, max(float(h), 1.f) };
+    return ProjectedPoint{ { x, data.imageSize.y - y - 1 }, max(float(h), 1.e-6f) };
 }
 
 Optional<CameraRay> PerspectiveCamera::unproject(const Coords& coords) const {

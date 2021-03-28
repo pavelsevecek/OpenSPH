@@ -1276,6 +1276,7 @@ static void parseMpcorp(std::ifstream& ifs, Storage& storage, const Float rho, c
     std::string dummy;
     Array<Vector> positions, velocities;
     Array<Float> masses;
+    Array<Size> flags;
     while (std::getline(ifs, line)) {
         if (line.empty()) {
             continue;
@@ -1294,6 +1295,8 @@ static void parseMpcorp(std::ifstream& ifs, Storage& storage, const Float rho, c
         I *= DEG_TO_RAD;
         a *= Constants::au;
         n *= DEG_TO_RAD / Constants::day;
+        std::string flag;
+        ss >> dummy >> dummy >> dummy >> dummy >> dummy >> dummy >> dummy >> dummy >> dummy >> flag;
 
         const Float E = computeEccentricAnomaly(M, e);
         const AffineMatrix R_Omega = AffineMatrix::rotateZ(Omega);
@@ -1316,11 +1319,18 @@ static void parseMpcorp(std::ifstream& ifs, Storage& storage, const Float rho, c
 
         const Float m = sphereVolume(r[H]) * rho;
         masses.push(m);
+
+        if (std::isdigit(flag.back())) {
+            flags.push(flag.back() - '0');
+        } else {
+            flags.push(0);
+        }
     }
 
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(positions));
     storage.getDt<Vector>(QuantityId::POSITION) = std::move(velocities);
     storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, std::move(masses));
+    storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, std::move(flags));
 }
 
 Outcome MpcorpInput::load(const Path& path, Storage& storage, Statistics& UNUSED(stats)) {
