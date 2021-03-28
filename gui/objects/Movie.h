@@ -45,6 +45,9 @@ private:
 
     RenderParams params;
 
+    Vector cameraVelocity;
+    Float lastFrame = 0._f;
+
 public:
     Movie(const GuiSettings& settings,
         AutoPtr<IRenderer>&& renderer,

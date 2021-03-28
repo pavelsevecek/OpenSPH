@@ -1,5 +1,7 @@
 ## 2021-03-28
 - added MpcorpInput
+- added camera velocity into AnimationJob
+- added gravity colorizer
 
 ## 2021-03-27
 - significant optimiazations of collisions
