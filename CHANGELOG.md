@@ -1,5 +1,7 @@
 ## 2021-03-28
 - added MpcorpInput
+- fixed rotation of ortho camera
+- perspective camera no longer clamps particle radius to 1
 
 ## 2021-03-27
 - significant optimiazations of collisions
