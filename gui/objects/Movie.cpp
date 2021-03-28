@@ -11,10 +11,13 @@
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
 #include <condition_variable>
+#include <mutex>
 #include <wx/dcmemory.h>
 #include <wx/image.h>
 
 NAMESPACE_SPH_BEGIN
+
+std::once_flag initFlag;
 
 Movie::Movie(const GuiSettings& settings,
     AutoPtr<IRenderer>&& renderer,
@@ -34,11 +37,7 @@ Movie::Movie(const GuiSettings& settings,
     const Path animationName(settings.get<std::string>(GuiSettingsId::IMAGES_MOVIE_NAME));
     animationPath = directory / animationName;
 
-    static bool first = true;
-    if (first) {
-        wxInitAllImageHandlers();
-        first = false;
-    }
+    std::call_once(initFlag, wxInitAllImageHandlers);
     nextOutput = outputStep;
 }
 
