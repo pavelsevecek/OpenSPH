@@ -178,11 +178,8 @@ public:
     /// \param storage Particle storage to which the new body is added
     /// \param environment Base body, domain of which defines the body. No particles are generated outside
     ///                    of this domain. By default, all particles have the material given by this body.
-    /// \param bodies List of bodies created inside the main environemnt.
-    /// \return Array of n+1 BodyViews, where n is the size of \ref bodies parameter. The first one
-    ///         corresponds to the environment, the rest are the bodies inside the environment in the
-    ///         order they were passed in \ref bodies.
-    Array<BodyView> addHeterogeneousBody(Storage& storage,
+    /// \param bodies List of bodies created inside the main environment.
+    BodyView addHeterogeneousBody(Storage& storage,
         const BodySetup& environment,
         ArrayView<const BodySetup> bodies);
 

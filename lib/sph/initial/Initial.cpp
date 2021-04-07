@@ -26,20 +26,22 @@ BodyView& BodyView::displace(const Vector& dr) {
     actDr[H] = 0.f;
 
     ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
-    // Body created using InitialConditions always has a material
-    MaterialView material = storage->getMaterial(bodyIndex);
-    for (Size i : material.sequence()) {
-        r[i] += actDr;
+    ArrayView<Size> flag = storage->getValue<Size>(QuantityId::FLAG);
+    for (Size i = 0; i < r.size(); ++i) {
+        if (flag[i] == bodyIndex) {
+            r[i] += actDr;
+        }
     }
     return *this;
 }
 
 BodyView& BodyView::addVelocity(const Vector& velocity) {
     ArrayView<Vector> v = storage->getDt<Vector>(QuantityId::POSITION);
-    // Body created using InitialConditions always has a material
-    MaterialView material = storage->getMaterial(bodyIndex);
-    for (Size i : material.sequence()) {
-        v[i] += velocity;
+    ArrayView<Size> flag = storage->getValue<Size>(QuantityId::FLAG);
+    for (Size i = 0; i < v.size(); ++i) {
+        if (flag[i] == bodyIndex) {
+            v[i] += velocity;
+        }
     }
     return *this;
 }
@@ -47,9 +49,11 @@ BodyView& BodyView::addVelocity(const Vector& velocity) {
 BodyView& BodyView::addRotation(const Vector& omega, const Vector& origin) {
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
-    MaterialView material = storage->getMaterial(bodyIndex);
-    for (Size i : material.sequence()) {
-        v[i] += cross(omega, r[i] - origin);
+    ArrayView<Size> flag = storage->getValue<Size>(QuantityId::FLAG);
+    for (Size i = 0; i < r.size(); ++i) {
+        if (flag[i] == bodyIndex) {
+            v[i] += cross(omega, r[i] - origin);
+        }
     }
     return *this;
 }
@@ -153,7 +157,7 @@ InitialConditions::BodySetup::BodySetup() = default;
 InitialConditions::BodySetup::~BodySetup() = default;
 
 
-Array<BodyView> InitialConditions::addHeterogeneousBody(Storage& storage,
+BodyView InitialConditions::addHeterogeneousBody(Storage& storage,
     const BodySetup& environment,
     ArrayView<const BodySetup> bodies) {
     AutoPtr<IDistribution> distribution = Factory::getDistribution(environment.material->getParams());
@@ -185,9 +189,6 @@ Array<BodyView> InitialConditions::addHeterogeneousBody(Storage& storage,
         }
     }
 
-    // Return value
-    Array<BodyView> views;
-
     // Initialize storages
     Float environVolume = environment.domain->getVolume();
     for (Size i = 0; i < bodyStorages.size(); ++i) {
@@ -195,14 +196,12 @@ Array<BodyView> InitialConditions::addHeterogeneousBody(Storage& storage,
         const Float volume = bodies[i].domain->getVolume();
         const Vector center = bodies[i].domain->getCenter();
         this->setQuantities(bodyStorages[i], bodyStorages[i].getMaterial(0), center, volume);
-        views.emplaceBack(BodyView(storage, bodyIndex));
         environVolume -= volume;
     }
     ASSERT(environVolume >= 0._f);
     enviroStorage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(pos_env));
     const Vector environCenter = environment.domain->getCenter();
     this->setQuantities(enviroStorage, enviroStorage.getMaterial(0), environCenter, environVolume);
-    views.emplaceBack(BodyView(storage, bodyIndex++));
 
     // merge all storages
     storage.merge(std::move(enviroStorage));
@@ -210,7 +209,7 @@ Array<BodyView> InitialConditions::addHeterogeneousBody(Storage& storage,
         storage.merge(std::move(body));
     }
 
-    return views;
+    return BodyView(storage, bodyIndex++);
 }
 
 void InitialConditions::addRubblePileBody(Storage& storage,

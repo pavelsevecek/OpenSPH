@@ -163,12 +163,9 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
     bodies.emplaceBack(std::move(body1));
     bodies.emplaceBack(std::move(body2));
 
-    Array<BodyView> views = conds.addHeterogeneousBody(storage, std::move(environment), bodies);
-    REQUIRE(views.size() == 3);
-    const Vector v1(1._f, 2._f, 3._f);
-    const Vector v2(5._f, -1._f, 3._f);
-    views[1].addVelocity(v1);
-    views[2].addVelocity(v2);
+    BodyView view = conds.addHeterogeneousBody(storage, std::move(environment), bodies);
+    const Vector vel(1._f, 2._f, 3._f);
+    view.addVelocity(vel);
 
     REQUIRE(storage.getParticleCnt() == 1000);
     REQUIRE(storage.getMaterialCnt() == 3);
@@ -184,13 +181,10 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
     auto test = [&](const Size i) -> Outcome {
         if (dom1.contains(r[i])) {
             particlesBody1++;
-            return Outcome(flag[i] == 0 && v[i] == v1);
-        }
-        if (dom2.contains(r[i])) {
+        } else if (dom2.contains(r[i])) {
             particlesBody2++;
-            return Outcome(flag[i] == 0 && v[i] == v2);
         }
-        return Outcome(flag[i] == 0 && v[i] == Vector(0._f));
+        return Outcome(flag[i] == 0 && v[i] == vel);
     };
     REQUIRE_SEQUENCE(test, 0, r.size());
     REQUIRE(particlesBody1 >= 30);
