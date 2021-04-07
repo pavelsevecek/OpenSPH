@@ -147,7 +147,6 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
     bodySettings.set(BodySettingsId::PARTICLE_COUNT, 1000);
     // random to make sure we generate exactly 1000
     bodySettings.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::RANDOM);
-    RunSettings settings;
     Storage storage;
     InitialConditions conds(RunSettings::getDefaults());
 
@@ -189,9 +188,9 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
         }
         if (dom2.contains(r[i])) {
             particlesBody2++;
-            return Outcome(flag[i] == 1 && v[i] == v2);
+            return Outcome(flag[i] == 0 && v[i] == v2);
         }
-        return Outcome(flag[i] == 2 && v[i] == Vector(0._f));
+        return Outcome(flag[i] == 0 && v[i] == Vector(0._f));
     };
     REQUIRE_SEQUENCE(test, 0, r.size());
     REQUIRE(particlesBody1 >= 30);
