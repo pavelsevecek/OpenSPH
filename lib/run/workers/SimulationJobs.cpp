@@ -118,8 +118,20 @@ static void addOutputCategory(VirtualSettings& connector, RunSettings& settings)
             const IoEnum type = settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
             return type == IoEnum::TEXT_FILE || type == IoEnum::VTK_FILE;
         });
-    outputCat.connect<Float>("Output interval [s]", settings, RunSettingsId::RUN_OUTPUT_INTERVAL)
+    outputCat.connect<EnumWrapper>("Output spacing", settings, RunSettingsId::RUN_OUTPUT_SPACING)
         .setEnabler(enabler);
+    outputCat.connect<Float>("Output interval [s]", settings, RunSettingsId::RUN_OUTPUT_INTERVAL)
+        .setEnabler([&] {
+            const IoEnum type = settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
+            const OutputSpacing spacing = settings.get<OutputSpacing>(RunSettingsId::RUN_OUTPUT_SPACING);
+            return type != IoEnum::NONE && spacing != OutputSpacing::CUSTOM;
+        });
+    outputCat.connect<std::string>("Custom times [s]", settings, RunSettingsId::RUN_OUTPUT_CUSTOM_TIMES)
+        .setEnabler([&] {
+            const IoEnum type = settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
+            const OutputSpacing spacing = settings.get<OutputSpacing>(RunSettingsId::RUN_OUTPUT_SPACING);
+            return type != IoEnum::NONE && spacing == OutputSpacing::CUSTOM;
+        });
 }
 
 static void addLoggerCategory(VirtualSettings& connector, RunSettings& settings) {

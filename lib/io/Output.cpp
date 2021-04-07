@@ -1308,10 +1308,6 @@ static void parseMpcorp(std::ifstream& ifs, Storage& storage, const Float rho, c
         ASSERT(isReal(r), r);
         Vector v = a * R * n / (1 - e * cos(E)) * Vector(-sin(E), sqrt(1 - sqr(e)) * cos(E), 0);
         ASSERT(isReal(v), v);
-        /*const Float r = a * (1 - sqr(e)) / (1 + e * cos(nu)) * Constants::au;
-        const Float x = r * (cos(Omega) * cos(omega + nu) - sin(Omega) * cos(I) * sin(omega + nu));
-        const Float y = r * (sin(Omega) * cos(omega + nu) + cos(Omega) * cos(I) * sin(omega + nu));
-        const Float z = r * sin(I) * sin(omega + nu);*/
         r[H] = computeRadius(mag, albedo);
         v[H] = 0._f;
         positions.push(r);

@@ -63,7 +63,7 @@ void CorrectionTensor::evalNeighs(const Size i, ArrayView<const Size> neighs, Ar
             C[i] = C[i].inverse();
             ASSERT(C[i].determinant() > 0._f, C[i]);
         } else {
-            C[i] = SymmetricTensor::identity(); // C[i].pseudoInverse(1.e-3_f);
+            C[i] = C[i].pseudoInverse(1.e-3_f);
         }
     }
     ASSERT(C[i] != SymmetricTensor::null());

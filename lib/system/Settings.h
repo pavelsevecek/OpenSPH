@@ -858,6 +858,16 @@ Optional<std::string> getIoExtension(const IoEnum type);
 /// Result NOTHING indicates there is no file type associated with the extension.
 Optional<IoEnum> getIoEnum(const std::string& ext);
 
+enum class OutputSpacing {
+    /// Constant time between consecutive output times
+    LINEAR,
+
+    /// Constant ratio between consecutive output times
+    LOGARITHMIC,
+
+    /// User-defined list of output times
+    CUSTOM,
+};
 
 enum class RngEnum {
     /// Mersenne Twister PRNG from Standard library
@@ -893,6 +903,12 @@ enum class RunSettingsId {
 
     /// Time interval of dumping data to disk.
     RUN_OUTPUT_INTERVAL,
+
+    /// Type of output spacing in time, see enum OutputSpacing
+    RUN_OUTPUT_SPACING,
+
+    /// List of comma-separated output times, used when RUN_OUTPUT_SPACING is set to CUSTOM
+    RUN_OUTPUT_CUSTOM_TIMES,
 
     /// Index of the first generated output file. Might not be zero if the simulation is resumed.
     RUN_OUTPUT_FIRST_INDEX,

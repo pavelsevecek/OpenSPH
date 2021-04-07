@@ -1,0 +1,303 @@
+"palettes" [
+]
+
+"gui" [
+  "renderer" = 1
+  "camera.type" = 0
+  "camera.position" =                    0                   0                   1
+  "camera.velocity" =                    0                   0                   0
+  "camera.target" =                    0                   0                   0
+  "camera.up" =                    0                   1                   0
+  "camera.ortho.fov" = 100000
+  "camera.perspective.fov" = 1.0472
+  "camera.clip.near" = 1e-12
+  "camera.clip.far" = 1.79769e+308
+  "camera.autosetup" = 1
+  "camera.track_particle" = -1
+  "camera.track_median" = 0
+  "camera.tracking_offset" =                    0                   0                   0
+  "view.width" = 1024
+  "view.height" = 768
+  "view.max_framerate" = 100
+  "view.refresh_on_timestep" = 1
+  "view.grid_size" = 0
+  "background_color" =                    0                   0                   0
+  "show_key" = 1
+  "force_grayscale" = 0
+  "antialiased" = 0
+  "smooth_particles" = 0
+  "render_ghost_particles" = 1
+  "particle_radius" = 0.3
+  "camera.ortho.cutoff" = 0
+  "surface.resolution" = 100
+  "surface.level" = 0.13
+  "surface.sun_position" =      -0.549442246526     -0.137360561632      0.824163390257
+  "surface.sun_intentity" = 0.7
+  "surface.emission" = 1
+  "surface.ambient" = 0.1
+  "raytrace.subsampling" = 4
+  "raytrace.iteration_limit" = 10
+  "raytrace.hdri" = ""
+  "raytrace.texture_primary" = ""
+  "raytrace.texture_secondary" = ""
+  "raytrace.brdf" = 0
+  "raytrace.spheres" = 0
+  "contour.spacing" = 10
+  "contour.grid_size" = 100
+  "contour.show_labels" = 1
+  "window.title" = "OpenSPH"
+  "window.width" = 1600
+  "window.height" = 768
+  "plot.integrals" = 31
+  "plot.initial_period" = 0.0001
+  "plot.overplot_sfd" = "/home/pavel/projects/astro/asteroids/hygiea/main_belt_families_2018/10_Hygiea/size_distribution/family.dat_hc"
+  "images.renderer" = 1
+  "images.width" = 1024
+  "images.height" = 768
+  "images.save" = 0
+  "images.path" = "imgs/"
+  "images.name" = "frag_%e_%d.png"
+  "images.first_index" = 0
+  "images.make_movie" = 0
+  "images.movie_name" = "frag_%e.avi"
+  "images.time_step" = 10
+]
+
+"globals" [
+  "sph.kernel" = 0
+  "run.thread.cnt" = 0
+  "run.thread.granularity" = 1000
+  "finder.leaf_size" = 25
+  "finder.max_parallel_depth" = 50
+  "run.rng" = 0
+  "run.rng.seed" = 1234
+  "misc.generate_uvws" = 0
+  "run.author" = "Pavel Sevecek"
+  "run.email" = "sevecek@sirrah.troja.mff.cuni.cz"
+  "run.comment" = ""
+]
+
+"nodes" [
+  "object" [
+    "class_name" = "create differentiated body"
+    "position" = 617 380
+    "base shape" = "entire block"
+    "base material" = "heavy material"
+    "shape 1" = "subblock"
+    "material 1" = "light material"
+    "name" = "object"
+    "layer_cnt" = 1
+    "particles.count" = 1000
+    "sph.eta" = 1.3
+    "sph.initial_distribution" = 1
+  ]
+  "entire block" [
+    "class_name" = "block"
+    "position" = 375 290
+    "name" = "entire block"
+    "center" =                    0                   0                   0
+    "dimensions" =                  100                  15                  15
+  ]
+  "subblock" [
+    "class_name" = "block"
+    "position" = 367 470
+    "name" = "subblock"
+    "center" =                   25                   0                   0
+    "dimensions" =                   50                  15                  15
+  ]
+  "heavy material" [
+    "class_name" = "material"
+    "position" = 367 383
+    "name" = "heavy material"
+    "eos" = 5
+    "material.density" = 3000
+    "material.energy" = 0
+    "material.damage" = 0
+    "rheology.yielding" = 1
+    "material.bulk_modulus" = 2.67e+10
+    "material.shear_modulus" = 2.27e+10
+    "material.elastic_modulus" = 8e+09
+    "rheology.elasticity_limit" = 3.5e+09
+    "rheology.melt_energy" = 3.4e+06
+    "rheology.internal_friction" = 2
+    "rheology.cohesion" = 9e+07
+    "rheology.dry_friction" = 0.8
+    "rheology.acoustic_fludization" = 0
+    "rheology.oscillation_decay_time" = 100
+    "rheology.oscillation_regeneration" = 0.5
+    "rheology.fludization_viscosity" = 88000
+    "rheology.damage" = 0
+    "material.weibull.exponent" = 9
+    "material.weibull.coefficient" = 4e+35
+    "material.weibull.sample_distributions" = 0
+    "eos.tillotson.small_a" = 0.5
+    "eos.tillotson.small_b" = 1.5
+    "eos.tillotson.nonlinear_b" = 2.67e+10
+    "eos.tillotson.alpha" = 5
+    "eos.tillotson.beta" = 5
+    "eos.tillotson.energy_iv" = 4.72e+06
+    "eos.tillotson.energy_cv" = 1.82e+07
+    "eos.tillotson.sublimation" = 4.87e+08
+    "material.density.min" = 100
+    "material.energy.min" = 10
+    "material.stress_tensor.min" = 4e+06
+    "material.damage.min" = 0.25
+  ]
+  "light material" [
+    "class_name" = "material"
+    "position" = 376 560
+    "name" = "light material"
+    "eos" = 5
+    "material.density" = 3000
+    "material.energy" = 0
+    "material.damage" = 0
+    "rheology.yielding" = 1
+    "material.bulk_modulus" = 2.67e+10
+    "material.shear_modulus" = 2.27e+10
+    "material.elastic_modulus" = 8e+09
+    "rheology.elasticity_limit" = 3.5e+09
+    "rheology.melt_energy" = 3.4e+06
+    "rheology.internal_friction" = 2
+    "rheology.cohesion" = 9e+07
+    "rheology.dry_friction" = 0.8
+    "rheology.acoustic_fludization" = 0
+    "rheology.oscillation_decay_time" = 100
+    "rheology.oscillation_regeneration" = 0.5
+    "rheology.fludization_viscosity" = 88000
+    "rheology.damage" = 0
+    "material.weibull.exponent" = 9
+    "material.weibull.coefficient" = 4e+35
+    "material.weibull.sample_distributions" = 0
+    "eos.tillotson.small_a" = 0.5
+    "eos.tillotson.small_b" = 1.5
+    "eos.tillotson.nonlinear_b" = 2.67e+10
+    "eos.tillotson.alpha" = 5
+    "eos.tillotson.beta" = 5
+    "eos.tillotson.energy_iv" = 4.72e+06
+    "eos.tillotson.energy_cv" = 1.82e+07
+    "eos.tillotson.sublimation" = 4.87e+08
+    "material.density.min" = 100
+    "material.energy.min" = 10
+    "material.stress_tensor.min" = 4e+06
+    "material.damage.min" = 0.25
+  ]
+  "spin-up" [
+    "class_name" = "transform"
+    "position" = 833 381
+    "particles" = "object"
+    "name" = "spin-up"
+    "offset" =                    0                   0                   0
+    "yaw" = 0
+    "pitch" = 0
+    "roll" = 0
+    "velocity_offset" =                    0                   0                   0
+    "spin" =                    0                   0                  24
+    "velocity_mult" = 1
+  ]
+  "simulation" [
+    "class_name" = "SPH run"
+    "position" = 1021 380
+    "particles" = "spin-up"
+    "name" = "simulation"
+    "run.end_time" = 3600
+    "is_resumed" = 0
+    "timestep.max_step" = 10
+    "timestep.initial" = 0.01
+    "timestep.integrator" = 3
+    "timestep.criterion" = 26
+    "timestep.courant_number" = 0.2
+    "timestep.derivative_factor" = 0.2
+    "timestep.divergence_factor" = 0.005
+    "timestep.max_change" = 1.79769e+308
+    "sph.solver.forces" = 3
+    "frame.constant_acceleration" =                    0                   0                   0
+    "frame.tides.mass" = 0
+    "frame.tides.position" =                    1                   0                   0
+    "sph.solver.type" = 1
+    "sph.discretization" = 1
+    "sph.adaptive_smoothing_length" = 0
+    "sph.smoothing_length.min" = 1e-05
+    "sph.neighbour.enforcing" = 0.2
+    "sph.neighbour.range" =                   25                 100
+    "sph.asymmetric.compute_radii_hash_map" = 0
+    "sph.correction_tensor" = 1
+    "sph.sum_only_undamaged" = 1
+    "sph.continuity_mode" = 0
+    "sph.finder" = 1
+    "domain.boundary" = 0
+    "sph.av.type" = 1
+    "sph.av.balsara.use" = 0
+    "sph.av.alpha" = 1.5
+    "sph.av.beta" = 3
+    "sph.av.stress.use" = 0
+    "sph.av.stress.factor" = 0.04
+    "sph.av.stress.exponent" = 4
+    "sph.ac.use" = 0
+    "sph.xsph.enable" = 0
+    "sph.xsph.epsilon" = 1
+    "sph.deltasph.enable" = 0
+    "sph.deltasph.alpha" = 0.01
+    "sph.deltasph.delta" = 0.01
+    "sph.script.enable" = 0
+    "sph.script.file" = "script.chai"
+    "sph.script.period" = 0
+    "sph.script.oneshot" = 0
+    "gravity.solver" = 2
+    "gravity.opening_angle" = 0.8
+    "gravity.multipole_order" = 3
+    "gravity.kernel" = 1
+    "gravity.recomputation_period" = 5
+    "run.output.type" = 1
+    "run.output.path" = "."
+    "run.output.name" = "result_%d.txt"
+    "run.output.quantitites" = 15
+    "run.output.spacing" = 0
+    "run.output.interval" = 360
+    "run.output.custom_times" = "0, 0.5, 1, 2, 10"
+    "run.logger" = 1
+    "run.logger.file" = "log.txt"
+    "run.logger.verbosity" = 2
+  ]
+  "save result" [
+    "class_name" = "save file"
+    "position" = 1220 379
+    "particles" = "simulation"
+    "name" = "save result"
+    "run.output.name" = "result.scf"
+    "run.output.type" = 4
+    "run.output.quantitites" = 3
+  ]
+]
+
+"batch" [
+  "runCount" = 4
+  "paramCount" = 3
+  "params" [
+  ]
+  "runs" [
+    "run-0" = "Run 1"
+    "run-1" = "Run 2"
+    "run-2" = "Run 3"
+    "run-3" = "Run 4"
+  ]
+  "cells" [
+    "cell-0-0" = ""
+    "cell-1-0" = ""
+    "cell-2-0" = ""
+    "cell-0-1" = ""
+    "cell-1-1" = ""
+    "cell-2-1" = ""
+    "cell-0-2" = ""
+    "cell-1-2" = ""
+    "cell-2-2" = ""
+    "cell-0-3" = ""
+    "cell-1-3" = ""
+    "cell-2-3" = ""
+  ]
+]
+
+"editor_state" [
+  "offset" = -204 32
+  "zoom" = 1
+]
+

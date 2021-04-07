@@ -195,7 +195,7 @@ Array<BodyView> InitialConditions::addHeterogeneousBody(Storage& storage,
         const Float volume = bodies[i].domain->getVolume();
         const Vector center = bodies[i].domain->getCenter();
         this->setQuantities(bodyStorages[i], bodyStorages[i].getMaterial(0), center, volume);
-        views.emplaceBack(BodyView(storage, bodyIndex++));
+        views.emplaceBack(BodyView(storage, bodyIndex));
         environVolume -= volume;
     }
     ASSERT(environVolume >= 0._f);

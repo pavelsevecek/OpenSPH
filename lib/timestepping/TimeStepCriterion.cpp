@@ -262,6 +262,9 @@ TimeStep DivergenceCriterion::compute(IScheduler& scheduler,
     const Float maxStep,
     Statistics& UNUSED(stats)) {
     VERBOSE_LOG
+    if (!storage.has(QuantityId::VELOCITY_DIVERGENCE)) {
+        return { maxStep, CriterionId::MAXIMAL_VALUE };
+    }
     ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
     struct Tl {
         Float minStep = INFTY;

@@ -194,6 +194,7 @@ VirtualSettings TransformParticlesJob::getSettings() {
 
     VirtualSettings::Category& velCat = connector.addCategory("Velocities");
     velCat.connect("Add velocity [km/s]", "velocity_offset", velocities.offset).setUnits(1.e3_f);
+    velCat.connect("Add spin [rev/day]", "spin", spin).setUnits(2._f * PI / (3600._f * 24._f));
     velCat.connect("Multiplier", "velocity_mult", velocities.mult);
 
     return connector;
@@ -223,6 +224,13 @@ void TransformParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCall
 
         v[i] = velocityTm * v[i];
         v[i][H] = 0._f;
+    }
+
+    if (spin != Vector(0._f)) {
+        const Vector r_com = getCenterOfMass(result->storage);
+        for (Size i = 0; i < r.size(); ++i) {
+            v[i] += cross(spin, r[i] - r_com);
+        }
     }
 
     callbacks.onSetUp(result->storage, result->stats);

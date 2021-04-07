@@ -1,3 +1,10 @@
+## 2021-04-07
+- customizable spacing of output times
+- skipping divergence criterion if there is no divergence in the storage
+- particles of heterogeneous body are now connected (flag-wise)
+- added spin to the transform job
+- added a regression test for rotation
+
 ## 2021-03-28
 - added MpcorpInput
 - added camera velocity into AnimationJob

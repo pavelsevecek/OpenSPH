@@ -48,47 +48,6 @@ IRun::IRun() {
 
 IRun::~IRun() = default;
 
-/// \todo currently updates only once every 100 steps
-class EtaTrigger : public ITrigger {
-private:
-    Size stepCounter = 0;
-
-    int lastElapsed = 0;
-    Float lastProgress = 0._f;
-
-    Float speed = 0._f;
-
-    static constexpr Size RECOMPUTE_PERIOD = 100;
-
-public:
-    virtual TriggerEnum type() const override {
-        return TriggerEnum::REPEATING;
-    }
-
-    virtual bool condition(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {
-        return true;
-    }
-
-    virtual AutoPtr<ITrigger> action(Storage& UNUSED(storage), Statistics& stats) override {
-        const Float progress = stats.get<Float>(StatisticsId::RELATIVE_PROGRESS);
-
-        if (stepCounter++ == RECOMPUTE_PERIOD) {
-            const int elapsed = stats.get<int>(StatisticsId::WALLCLOCK_TIME);
-            speed = (elapsed - lastElapsed) / (progress - lastProgress);
-
-            lastElapsed = elapsed;
-            lastProgress = progress;
-            stepCounter = 0;
-        }
-
-        if (speed > 0._f) {
-            const Float eta = speed * (1._f - progress);
-            stats.set(StatisticsId::ETA, eta);
-        }
-        return nullptr;
-    }
-};
-
 class DiagnosticsTrigger : public PeriodicTrigger {
 private:
     ArrayView<const AutoPtr<IDiagnostic>> diagnostics;
@@ -135,6 +94,96 @@ public:
     }
 };
 
+class IOutputTime : public Polymorphic {
+public:
+    virtual Optional<Float> getNextTime() = 0;
+};
+
+class LinearOutputTime : public IOutputTime {
+private:
+    Float interval;
+    Float time;
+
+public:
+    LinearOutputTime(const RunSettings& settings) {
+        time = settings.get<Float>(RunSettingsId::RUN_START_TIME);
+        interval = settings.get<Float>(RunSettingsId::RUN_OUTPUT_INTERVAL);
+    }
+
+    virtual Optional<Float> getNextTime() override {
+        Float result = time;
+        time += interval;
+        return result;
+    }
+};
+
+class LogarithmicOutputTime : public IOutputTime {
+private:
+    Float interval;
+    Float time;
+
+public:
+    LogarithmicOutputTime(const RunSettings& settings) {
+        time = settings.get<Float>(RunSettingsId::RUN_START_TIME);
+        interval = settings.get<Float>(RunSettingsId::RUN_OUTPUT_INTERVAL);
+    }
+
+    virtual Optional<Float> getNextTime() override {
+        Float result = time;
+        if (time == 0) {
+            time += interval;
+        } else {
+            time *= 2;
+        }
+        return result;
+    }
+};
+
+class CustomOutputTime : public IOutputTime {
+private:
+    Array<Float> times;
+
+public:
+    CustomOutputTime(const RunSettings& settings) {
+        const std::string list = settings.get<std::string>(RunSettingsId::RUN_OUTPUT_CUSTOM_TIMES);
+        Array<std::string> items = split(list, ',');
+        for (const std::string& item : items) {
+            try {
+                times.push(std::stof(item));
+            } catch (const std::invalid_argument&) {
+                throw InvalidSetup("Cannot convert '" + item + "' to a number");
+            }
+        }
+        if (!std::is_sorted(times.begin(), times.end())) {
+            throw InvalidSetup("Output times must be in ascending order");
+        }
+    }
+
+    virtual Optional<Float> getNextTime() override {
+        if (!times.empty()) {
+            Float result = times.front();
+            times.remove(0);
+            return result;
+        } else {
+            return NOTHING;
+        }
+    }
+};
+
+AutoPtr<IOutputTime> getOutputTimes(const RunSettings& settings) {
+    const OutputSpacing spacing = settings.get<OutputSpacing>(RunSettingsId::RUN_OUTPUT_SPACING);
+    switch (spacing) {
+    case OutputSpacing::LINEAR:
+        return makeAuto<LinearOutputTime>(settings);
+    case OutputSpacing::LOGARITHMIC:
+        return makeAuto<LogarithmicOutputTime>(settings);
+    case OutputSpacing::CUSTOM:
+        return makeAuto<CustomOutputTime>(settings);
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
 Statistics IRun::run(Storage& input) {
     NullRunCallbacks callbacks;
     return this->run(input, callbacks);
@@ -160,11 +209,11 @@ Statistics IRun::run(Storage& input, IRunCallbacks& callbacks) {
     setNullToDefaults(storage);
 
     // fetch parameters of run from settings
-    const Float outputInterval = settings.get<Float>(RunSettingsId::RUN_OUTPUT_INTERVAL);
     const Interval timeRange(
         settings.get<Float>(RunSettingsId::RUN_START_TIME), settings.get<Float>(RunSettingsId::RUN_END_TIME));
+    AutoPtr<IOutputTime> outputTime = getOutputTimes(settings);
+    Optional<Float> nextOutput = outputTime->getNextTime();
 
-    Float nextOutput = timeRange.lower();
     logger->write(
         "Running ", settings.get<std::string>(RunSettingsId::RUN_NAME), " for ", timeRange.size(), " s");
     Timer runTimer;
@@ -192,12 +241,12 @@ Statistics IRun::run(Storage& input, IRunCallbacks& callbacks) {
         stats.set(StatisticsId::INDEX, (int)i);
 
         // dump output
-        if (output && t >= nextOutput) {
+        if (output && nextOutput && t >= nextOutput.value()) {
             Expected<Path> writtenFile = output->dump(*storage, stats);
             if (!writtenFile) {
                 logger->write(writtenFile.error());
             }
-            nextOutput += outputInterval;
+            nextOutput = outputTime->getNextTime();
         }
 
         // make time step

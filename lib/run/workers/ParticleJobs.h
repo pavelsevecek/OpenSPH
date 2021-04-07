@@ -92,6 +92,8 @@ private:
         Float mult = 1.;
     } velocities;
 
+    Vector spin = Vector(0._f);
+
 public:
     TransformParticlesJob(const std::string& name)
         : IParticleJob(name) {}
