@@ -116,5 +116,7 @@ INLINE TDerived assert_cast(TBase* value) {
     return static_cast<TDerived>(value);
 }
 
+#define SPH_STR(x) SPH_XSTR(x)
+#define SPH_XSTR(x) #x
 
 NAMESPACE_SPH_END

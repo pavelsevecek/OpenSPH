@@ -104,7 +104,7 @@ regression:
     - apt-get install -y gnuplot
     - mkdir regression_build
     - cd regression_build
-    - qmake -spec linux-g++ CONFIG+=release CONFIG+=use_tbb ../sph.pro
+    - qmake -spec linux-g++ CONFIG+=release CONFIG+=use_tbb DEFINES+=$OPENSPH_VERSION ../sph.pro
     - make
     - cd ..
     - cd regression
@@ -158,7 +158,7 @@ build_package:
     - apt-get install -y dpkg
     - mkdir gcc_deploy
     - cd gcc_deploy
-    - qmake -spec linux-g++ CONFIG+=release CONFIG+=use_tbb ../sph.pro
+    - qmake -spec linux-g++ CONFIG+=release CONFIG+=use_tbb DEFINES+=$OPENSPH_VERSION ../sph.pro
     - make
     - cd ..
     - mkdir -p opensph_$OPENSPH_VERSION/usr/local/bin

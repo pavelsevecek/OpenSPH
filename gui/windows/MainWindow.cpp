@@ -176,7 +176,11 @@ MainWindow::MainWindow(const Path& openPath)
         case 0: {
             wxAboutDialogInfo info;
             info.SetName("OpenSPH");
-            info.SetVersion("0.3.1");
+#ifdef SPH_VERSION
+            info.SetVersion(SPH_STR(SPH_VERSION));
+#else
+            info.SetVersion("unknown");
+#endif
 
             std::string desc;
 #ifdef SPH_DEBUG

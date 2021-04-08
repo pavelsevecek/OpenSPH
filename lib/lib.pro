@@ -18,8 +18,7 @@ SOURCES += \
     math/Curve.cpp \
     math/Morton.cpp \
     math/SparseMatrix.cpp \
-    math/rng/Rng.cpp \
-    mpi/Mpi.cpp \
+    math/rng/Rng.cpp \    
     objects/containers/String.cpp \
     objects/finders/Bvh.cpp \
     objects/finders/HashMapFinder.cpp \
@@ -142,10 +141,7 @@ HEADERS += \
     math/Quat.h \
     math/SparseMatrix.h \
     math/rng/Rng.h \
-    math/rng/VectorRng.h \
-    mpi/Mpi.h \
-    mpi/MpiScheduler.h \
-    mpi/Serializable.h \
+    math/rng/VectorRng.h \    
     objects/Exceptions.h \
     objects/Object.h \
     objects/containers/Allocators.h \

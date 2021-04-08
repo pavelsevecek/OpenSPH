@@ -97,6 +97,11 @@ static void registerRunners() {
 }
 
 static void run(const ArgParser& parser, ILogger& logger) {
+#ifdef SPH_VERSION
+    logger.write("Running opensph-cli (version ", SPH_STR(SPH_VERSION), ")");
+#else
+    logger.write("Running opensph-cli (unknown version)");
+#endif
     const Path projectPath(parser.getArg<std::string>("p"));
     const std::string nodeToRun(parser.getArg<std::string>("n"));
 
