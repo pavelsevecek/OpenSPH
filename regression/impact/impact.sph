@@ -137,7 +137,7 @@
     "run.output.interval" = 1
     "run.logger" = 1
     "run.logger.file" = "log.txt"
-    "run.logger.verbosity" = 1
+    "run.logger.verbosity" = 0
   ]
   "geometry" [
     "class_name" = "collision setup"

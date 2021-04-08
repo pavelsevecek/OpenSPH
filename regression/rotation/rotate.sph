@@ -256,7 +256,7 @@
     "run.output.custom_times" = "0, 0.5, 1, 2, 10"
     "run.logger" = 1
     "run.logger.file" = "log.txt"
-    "run.logger.verbosity" = 2
+    "run.logger.verbosity" = 0
   ]
   "save result" [
     "class_name" = "save file"

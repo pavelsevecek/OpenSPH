@@ -4,8 +4,10 @@
 #include "run/Config.h"
 #include "run/Node.h"
 #include "run/SpecialEntries.h"
+#include "run/workers/GeometryJobs.h"
 #include "run/workers/InitialConditionJobs.h"
 #include "run/workers/IoJobs.h"
+#include "run/workers/MaterialJobs.h"
 #include "run/workers/ParticleJobs.h"
 #include "run/workers/SimulationJobs.h"
 
@@ -90,6 +92,8 @@ static void registerRunners() {
     static CollisionGeometrySetup sSetup("");
     static MonolithicBodyIc sIc("");
     static SaveFileJob sIo("");
+    static BlockJob sBlock("");
+    static MaterialJob sMat("");
 }
 
 static void run(const ArgParser& parser, ILogger& logger) {
@@ -148,8 +152,12 @@ static void run(const ArgParser& parser, ILogger& logger) {
 
     /// \todo properly load globals
     RunSettings globals = EMPTY_SETTINGS;
+    globals.set(RunSettingsId::RUN_THREAD_CNT, 0);
+    globals.set(RunSettingsId::RUN_THREAD_GRANULARITY, 1000);
     globals.set(RunSettingsId::RUN_RNG, RngEnum::UNIFORM);
     globals.set(RunSettingsId::RUN_RNG_SEED, 1234);
+    globals.set(RunSettingsId::SPH_KERNEL, KernelEnum::CUBIC_SPLINE);
+    globals.set(RunSettingsId::GENERATE_UVWS, false);
     NullJobCallbacks callbacks;
     runner.value()->run(globals, callbacks);
 }
