@@ -33,10 +33,13 @@ class Particle;
 /// accomplished by \ref TypedColorizer.
 class IColorizer : public Polymorphic {
 public:
+    /// \brief Checks if the storage constains all data necessary to initialize the colorizer.
+    virtual bool hasData(const Storage& storage) const = 0;
+
     /// \brief Initialize the colorizer before by getting necessary quantities from storage.
     ///
-    /// Must be called before \ref evalColor is called, every time step as ArrayViews taken from storage might
-    /// be invalidated.
+    /// Can only be called if \ref hasData returns true. Must be called before \ref evalColor is called, every
+    /// time step as ArrayViews taken from storage might be invalidated.
     /// \param storage Particle storage containing source data to be drawn.
     /// \param ref Specifies how the object refereneces the data required for evaluation; either the buffers
     ///            are copied and stored in the colorizer, or only references to the the storage are kept.
@@ -144,7 +147,6 @@ enum class ColorizerId {
     YIELD_REDUCTION = -11,     ///< Reduction of stress tensor due to yielding (1 - f_vonMises)
     DAMAGE_ACTIVATION = -12,   ///< Ratio of the stress and the activation strain
     RADIUS = -13,              ///< Radii/smoothing lenghts of particles
-    DEPTH = -14,               ///< Z-depth of particles
     UVW = -15,                 ///< Shows UV mapping, u-coordinate in red and v-coordinate in blur
     BOUNDARY = -16,            ///< Shows boundary particles
     PARTICLE_ID = -17,         ///< Each particle drawn with different color
@@ -154,7 +156,6 @@ enum class ColorizerId {
     FLAG = -21,                ///< Particles of different bodies are colored differently
     MATERIAL_ID = -22,         ///< Particles with different materials are colored differently
     BEAUTY = -23,              ///< Attempts to show the real-world look
-    MARKER = -24, ///< Simple colorizer assigning given color to all particles, creating particle "mask".
 };
 
 /// \brief Default colorizer simply converting quantity value to color using defined palette.
@@ -171,6 +172,10 @@ public:
     TypedColorizer(const QuantityId id, Palette palette)
         : id(id)
         , palette(std::move(palette)) {}
+
+    virtual bool hasData(const Storage& storage) const override {
+        return storage.has(id);
+    }
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
         values = makeArrayRef(storage.getValue<Type>(id), ref);
@@ -210,11 +215,20 @@ public:
     }
 };
 
+inline bool hasVelocity(const Storage& storage) {
+    return storage.has<Vector>(QuantityId::POSITION, OrderEnum::FIRST) ||
+           storage.has<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
+}
+
 /// \brief Displays the magnitudes of particle velocities.
 class VelocityColorizer : public TypedColorizer<Vector> {
 public:
     explicit VelocityColorizer(Palette palette)
         : TypedColorizer<Vector>(QuantityId::POSITION, std::move(palette)) {}
+
+    virtual bool hasData(const Storage& storage) const override {
+        return hasVelocity(storage);
+    }
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
         values = makeArrayRef(storage.getDt<Vector>(QuantityId::POSITION), ref);
@@ -238,6 +252,10 @@ class AccelerationColorizer : public TypedColorizer<Vector> {
 public:
     explicit AccelerationColorizer(Palette palette)
         : TypedColorizer<Vector>(QuantityId::POSITION, std::move(palette)) {}
+
+    virtual bool hasData(const Storage& storage) const override {
+        return storage.has<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
+    }
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
         values = makeArrayRef(storage.getD2t<Vector>(QuantityId::POSITION), ref);
@@ -263,6 +281,10 @@ private:
 
 public:
     DirectionColorizer(const Vector& axis, const Palette& palette);
+
+    virtual bool hasData(const Storage& storage) const override {
+        return hasVelocity(storage);
+    }
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
         values = makeArrayRef(storage.getDt<Vector>(QuantityId::POSITION), ref);
@@ -315,6 +337,10 @@ public:
     explicit CorotatingVelocityColorizer(Palette palette)
         : palette(std::move(palette)) {}
 
+    virtual bool hasData(const Storage& storage) const override {
+        return hasVelocity(storage) && storage.has(QuantityId::MATERIAL_ID);
+    }
+
     virtual void initialize(const Storage& storage, const RefEnum ref) override;
 
     virtual bool isInitialized() const override {
@@ -362,6 +388,10 @@ private:
 public:
     explicit DensityPerturbationColorizer(Palette palette)
         : palette(std::move(palette)) {}
+
+    virtual bool hasData(const Storage& storage) const override {
+        return storage.has(QuantityId::DENSITY);
+    }
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
         rho = makeArrayRef(storage.getValue<Float>(QuantityId::DENSITY), ref);
@@ -411,6 +441,11 @@ private:
 public:
     SummedDensityColorizer(const RunSettings& settings, Palette palette);
 
+    virtual bool hasData(const Storage& UNUSED(storage)) const override {
+        // mass and positions must always be present
+        return true;
+    }
+
     virtual void initialize(const Storage& storage, const RefEnum ref) override;
 
     virtual bool isInitialized() const override {
@@ -453,6 +488,10 @@ class StressColorizer : public IColorizer {
 public:
     explicit StressColorizer(Palette palette)
         : palette(std::move(palette)) {}
+
+    virtual bool hasData(const Storage& storage) const override {
+        return storage.has(QuantityId::DEVIATORIC_STRESS) && storage.has(QuantityId::PRESSURE);
+    }
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
         s = makeArrayRef(storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS), ref);
@@ -506,6 +545,10 @@ public:
     explicit EnergyColorizer(Palette palette)
         : palette(std::move(palette)) {}
 
+    virtual bool hasData(const Storage& storage) const override {
+        return hasVelocity(storage) && storage.has(QuantityId::ENERGY);
+    }
+
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
         u = makeArrayRef(storage.getValue<Float>(QuantityId::ENERGY), ref);
         v = makeArrayRef(storage.getDt<Vector>(QuantityId::POSITION), ref);
@@ -552,6 +595,10 @@ class TemperatureColorizer : public TypedColorizer<Float> {
 public:
     explicit TemperatureColorizer()
         : TypedColorizer<Float>(QuantityId::ENERGY, getEmissionPalette(Interval(500, 10000))) {}
+
+    virtual bool hasData(const Storage& storage) const override {
+        return storage.has(QuantityId::ENERGY) && storage.getMaterialCnt() > 0;
+    }
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
         TypedColorizer<Float>::initialize(storage, ref);
@@ -605,6 +652,11 @@ private:
 public:
     explicit DamageActivationColorizer(Palette palette)
         : palette(std::move(palette)) {}
+
+    virtual bool hasData(const Storage& storage) const override {
+        return storage.has(QuantityId::DEVIATORIC_STRESS) && storage.has(QuantityId::PRESSURE) &&
+               storage.has(QuantityId::EPS_MIN) && storage.has(QuantityId::DAMAGE);
+    }
 
     virtual void initialize(const Storage& storage, const RefEnum UNUSED(ref)) override {
         ArrayView<const TracelessTensor> s = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
@@ -674,6 +726,10 @@ public:
             PaletteScale::LOGARITHMIC);
     }
 
+    virtual bool hasData(const Storage& storage) const override {
+        return storage.has(QuantityId::ENERGY);
+    }
+
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
         u = makeArrayRef(storage.getValue<Float>(QuantityId::ENERGY), ref);
     }
@@ -732,55 +788,15 @@ public:
     }
 };
 
-class DepthColorizer : public IColorizer {
-private:
-    Vector cameraPos;
-    Float mult = 1._f;
-    ArrayRef<const Vector> positions;
-
-public:
-    explicit DepthColorizer(const Vector& cameraPos, const Vector& cameraTarget)
-        : cameraPos(cameraPos) {
-        mult = 1._f / getLength(cameraPos - cameraTarget);
-    }
-
-    virtual void initialize(const Storage& storage, const RefEnum ref) override {
-        positions = makeArrayRef(storage.getValue<Vector>(QuantityId::POSITION), ref);
-    }
-
-    virtual bool isInitialized() const override {
-        return !positions.empty();
-    }
-
-    virtual Rgba evalColor(const Size idx) const override {
-        return Rgba(this->evalScalar(idx).value());
-    }
-
-    virtual Optional<float> evalScalar(const Size idx) const override {
-        return float(mult * getLength(positions[idx] - cameraPos));
-    }
-
-    virtual Optional<Particle> getParticle(const Size idx) const override {
-        return Particle(idx);
-    }
-
-    virtual Optional<Palette> getPalette() const override {
-        return NOTHING;
-    }
-
-    virtual void setPalette(const Palette& UNUSED(newPalette)) override {}
-
-    virtual std::string name() const override {
-        return "Depth";
-    }
-};
-
-
 class UvwColorizer : public IColorizer {
 private:
     ArrayRef<const Vector> uvws;
 
 public:
+    virtual bool hasData(const Storage& storage) const override {
+        return storage.has(QuantityId::UVW);
+    }
+
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
         uvws = makeArrayRef(storage.getValue<Vector>(QuantityId::UVW), ref);
     }
@@ -847,6 +863,14 @@ public:
         }
     }
 
+    virtual bool hasData(const Storage& storage) const override {
+        if (detection == Detection::NORMAL_BASED) {
+            return storage.has(QuantityId::SURFACE_NORMAL);
+        } else {
+            return storage.has(QuantityId::NEIGHBOUR_CNT);
+        }
+    }
+
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
         if (detection == Detection::NORMAL_BASED) {
             normals.values = makeArrayRef(storage.getValue<Vector>(QuantityId::SURFACE_NORMAL), ref);
@@ -895,39 +919,6 @@ private:
         default:
             NOT_IMPLEMENTED;
         }
-    }
-};
-
-class MarkerColorizer : public IColorizer {
-private:
-    Rgba color;
-
-public:
-    explicit MarkerColorizer(const Rgba& color)
-        : color(color) {}
-
-    virtual void initialize(const Storage& UNUSED(storage), const RefEnum UNUSED(ref)) override {}
-
-    virtual bool isInitialized() const override {
-        return true;
-    }
-
-    virtual Rgba evalColor(const Size UNUSED(idx)) const override {
-        return color;
-    }
-
-    virtual Optional<Particle> getParticle(const Size UNUSED(idx)) const override {
-        return NOTHING;
-    }
-
-    virtual Optional<Palette> getPalette() const override {
-        return NOTHING;
-    }
-
-    virtual void setPalette(const Palette& UNUSED(newPalette)) override {}
-
-    virtual std::string name() const override {
-        return "Marker";
     }
 };
 
@@ -1014,6 +1005,10 @@ public:
         } else {
             return idx;
         }
+    }
+
+    virtual bool hasData(const Storage& UNUSED(storage)) const override {
+        return true;
     }
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
@@ -1120,6 +1115,10 @@ public:
         return particle;
     }
 
+    virtual bool hasData(const Storage& storage) const override {
+        return hasVelocity(storage);
+    }
+
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
         const Array<Vector>& current = storage.getValue<Vector>(QuantityId::POSITION);
         if (current == cached.r) {
@@ -1166,6 +1165,10 @@ public:
         }
     }
 
+    virtual bool hasData(const Storage& storage) const override {
+        return storage.has(QuantityId::AGGREGATE_ID) && storage.getUserData() != nullptr;
+    }
+
     virtual void initialize(const Storage& storage, const RefEnum UNUSED(ref)) override {
         ids = storage.getValue<Size>(QuantityId::AGGREGATE_ID);
     }
@@ -1191,6 +1194,10 @@ public:
 
     INLINE Optional<Size> evalId(const Size idx) const {
         return idxs[idx];
+    }
+
+    virtual bool hasData(const Storage& storage) const override {
+        return storage.has(id);
     }
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {

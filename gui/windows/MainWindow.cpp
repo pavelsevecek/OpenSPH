@@ -728,12 +728,17 @@ bool MainWindow::removeAll() {
 }
 
 void MainWindow::onClose(wxCloseEvent& evt) {
-    for (Size i = 0; i < notebook->GetPageCount(); ++i) {
-        RunPage* page = dynamic_cast<RunPage*>(notebook->GetPage(i));
-        if (page) {
-            if (!page->close()) {
-                evt.Veto();
+    if (!savedFlag) {
+        const int retval = wxMessageBox("Save unsaved changes", "Save?", wxYES_NO | wxCANCEL | wxCENTRE);
+        if (retval == wxYES) {
+            if (projectPath.empty()) {
+                this->saveAs();
+            } else {
+                this->save();
             }
+        } else if (retval == wxCANCEL) {
+            evt.Veto();
+            return;
         }
     }
     this->Destroy();

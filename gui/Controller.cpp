@@ -329,7 +329,11 @@ void Controller::update(const Storage& storage, const Statistics& stats) {
         page->runStarted(storage, sph.path);
 
         // fill the combobox with available colorizer
-        page->setColorizerList(this->getColorizerList(storage, false));
+        Array<SharedPtr<IColorizer>> list = this->getColorizerList(storage);
+        if (!vis.colorizer->hasData(storage)) {
+            this->setColorizer(list.front());
+        }
+        page->setColorizerList(std::move(list));
         updateVar.notify_one();
     });
     updateVar.wait(lock);
@@ -349,123 +353,71 @@ bool Controller::isRunning() const {
     return status == RunStatus::RUNNING;
 }
 
-Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage, const bool forMovie) const {
+Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage) const {
     // Available colorizers for display and movie are currently hardcoded
     Array<ColorizerId> colorizerIds;
-    Array<QuantityId> quantityColorizerIds;
 
     /// \todo custom colorizer lists
 
-    colorizerIds.push(ColorizerId::COROTATING_VELOCITY);
-    if (storage.has(QuantityId::DENSITY)) {
-        colorizerIds.push(ColorizerId::DENSITY_PERTURBATION);
-    }
-    if (storage.has(QuantityId::DAMAGE)) {
-        colorizerIds.push(ColorizerId::DAMAGE_ACTIVATION);
-    }
-    if (storage.has(QuantityId::PRESSURE) && storage.has(QuantityId::DEVIATORIC_STRESS)) {
-        colorizerIds.push(ColorizerId::TOTAL_STRESS);
-    }
-    if (storage.has(QuantityId::ENERGY)) {
-        colorizerIds.push(ColorizerId::TOTAL_ENERGY);
-        colorizerIds.push(ColorizerId::BEAUTY);
-    }
+    auto col = [](QuantityId id) { return ColorizerId(id); };
 
-    if (!forMovie) {
-        if (storage.has(QuantityId::MASS)) {
-            colorizerIds.push(ColorizerId::SUMMED_DENSITY);
-        }
-        if (storage.has(QuantityId::STRESS_REDUCING)) {
-            colorizerIds.push(ColorizerId::YIELD_REDUCTION);
-        }
-        colorizerIds.push(ColorizerId::MOVEMENT_DIRECTION);
-        colorizerIds.push(ColorizerId::ACCELERATION);
-        colorizerIds.push(ColorizerId::RADIUS);
-        colorizerIds.push(ColorizerId::DEPTH);
-        colorizerIds.push(ColorizerId::PARTICLE_ID);
-        colorizerIds.push(ColorizerId::COMPONENT_ID);
-        colorizerIds.push(ColorizerId::MARKER);
-
-        if (storage.has(QuantityId::ENERGY) && storage.getMaterialCnt() > 0) {
-            colorizerIds.push(ColorizerId::TEMPERATURE);
-        }
-
-        if (storage.getUserData()) {
-            colorizerIds.push(ColorizerId::AGGREGATE_ID);
-        }
-
-        if (storage.has(QuantityId::FLAG)) {
-            colorizerIds.push(ColorizerId::FLAG);
-        }
-        if (storage.has(QuantityId::MATERIAL_ID)) {
-            colorizerIds.push(ColorizerId::MATERIAL_ID);
-        }
-
-        if (storage.has(QuantityId::UVW)) {
-            colorizerIds.push(ColorizerId::UVW);
-        }
-
-        if (storage.has(QuantityId::NEIGHBOUR_CNT)) {
-            colorizerIds.push(ColorizerId::BOUNDARY);
-        }
-    }
-
-    quantityColorizerIds.pushAll(Array<QuantityId>{
-        QuantityId::PRESSURE,
-        QuantityId::ENERGY,
-        QuantityId::DEVIATORIC_STRESS,
-        QuantityId::DAMAGE,
-        QuantityId::VELOCITY_DIVERGENCE,
-        QuantityId::FRICTION,
+    colorizerIds.pushAll({
+        ColorizerId::VELOCITY,
+        ColorizerId::ACCELERATION,
+        ColorizerId::COROTATING_VELOCITY,
+        col(QuantityId::VELOCITY_DIVERGENCE),
+        col(QuantityId::VELOCITY_ROTATION),
+        col(QuantityId::VELOCITY_GRADIENT),
+        col(QuantityId::VELOCITY_LAPLACIAN),
+        col(QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE),
+        col(QuantityId::ANGULAR_FREQUENCY),
+        col(QuantityId::PHASE_ANGLE),
+        //
+        col(QuantityId::ENERGY),
+        ColorizerId::TOTAL_ENERGY,
+        ColorizerId::TEMPERATURE,
+        //
+        col(QuantityId::DENSITY),
+        ColorizerId::DENSITY_PERTURBATION,
+        ColorizerId::SUMMED_DENSITY,
+        col(QuantityId::BULK_DENSITY),
+        col(QuantityId::MASS),
+        col(QuantityId::MOMENT_OF_INERTIA),
+        //
+        col(QuantityId::PRESSURE),
+        col(QuantityId::SOUND_SPEED),
+        col(QuantityId::DEVIATORIC_STRESS),
+        ColorizerId::TOTAL_STRESS,
+        col(QuantityId::DAMAGE),
+        ColorizerId::DAMAGE_ACTIVATION,
+        ColorizerId::YIELD_REDUCTION,
+        col(QuantityId::FRICTION),
+        col(QuantityId::VIBRATIONAL_VELOCITY),
+        col(QuantityId::STRAIN_RATE_CORRECTION_TENSOR),
+        //
+        col(QuantityId::AV_ALPHA),
+        col(QuantityId::AV_BALSARA),
+        col(QuantityId::AV_STRESS),
+        //
+        ColorizerId::RADIUS,
+        ColorizerId::PARTICLE_ID,
+        ColorizerId::COMPONENT_ID,
+        ColorizerId::AGGREGATE_ID,
+        ColorizerId::FLAG,
+        ColorizerId::MATERIAL_ID,
+        col(QuantityId::NEIGHBOUR_CNT),
+        ColorizerId::UVW,
+        ColorizerId::BOUNDARY,
+        //
+        ColorizerId::BEAUTY,
     });
 
-    if (!forMovie) {
-        quantityColorizerIds.push(QuantityId::DENSITY);
-        quantityColorizerIds.push(QuantityId::MASS);
-        quantityColorizerIds.push(QuantityId::AV_ALPHA);
-        quantityColorizerIds.push(QuantityId::AV_BALSARA);
-        quantityColorizerIds.push(QuantityId::AV_STRESS);
-        quantityColorizerIds.push(QuantityId::SOUND_SPEED);
-        quantityColorizerIds.push(QuantityId::VIBRATIONAL_VELOCITY);
-        quantityColorizerIds.push(QuantityId::BULK_DENSITY);
-        quantityColorizerIds.push(QuantityId::ANGULAR_FREQUENCY);
-        quantityColorizerIds.push(QuantityId::MOMENT_OF_INERTIA);
-        quantityColorizerIds.push(QuantityId::STRAIN_RATE_CORRECTION_TENSOR);
-        quantityColorizerIds.push(QuantityId::PHASE_ANGLE);
-        quantityColorizerIds.push(QuantityId::EPS_MIN);
-        quantityColorizerIds.push(QuantityId::NEIGHBOUR_CNT);
-        quantityColorizerIds.push(QuantityId::VELOCITY_GRADIENT);
-        quantityColorizerIds.push(QuantityId::VELOCITY_LAPLACIAN);
-        quantityColorizerIds.push(QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE);
-    }
-
     Array<SharedPtr<IColorizer>> colorizers;
-    // add velocity (always present)
-    if (vis.colorizer) {
-        IColorizer& colorizer = *vis.colorizer; // clang complains when dereferencing ptr inside typeid
-        if (typeid(colorizer) == typeid(VelocityColorizer)) {
-            // hack to avoid creating two velocity colorizers (they would have to somehow share the palette
-            // ...)
-            colorizers.push(vis.colorizer);
-        }
-    }
-
-    if (colorizers.empty()) {
-        colorizers.push(Factory::getColorizer(project, ColorizerId::VELOCITY));
-    }
-
-    // add all quantity colorizers (sorted by the key)
-    std::sort(quantityColorizerIds.begin(), quantityColorizerIds.end());
-    for (QuantityId id : quantityColorizerIds) {
-        if (storage.has(id)) {
-            colorizers.push(Factory::getColorizer(project, ColorizerId(id)));
-        }
-    }
-
-    // add all auxiliary colorizers (sorted by the key)
-    std::sort(colorizerIds.begin(), colorizerIds.end());
     for (ColorizerId id : colorizerIds) {
-        colorizers.push(Factory::getColorizer(project, id));
+        SharedPtr<IColorizer> colorizer = Factory::getColorizer(project, id);
+        if (colorizer->hasData(storage)) {
+            colorizers.push(colorizer);
+        }
     }
 
     return colorizers;
@@ -641,7 +593,7 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) const {
     // limit colorizer list for slower renderers
     switch (gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER)) {
     case RendererEnum::PARTICLE:
-        colorizers = this->getColorizerList(storage, true);
+        colorizers = this->getColorizerList(storage);
         break;
     case RendererEnum::MESH:
         colorizers = { Factory::getColorizer(project, ColorizerId::VELOCITY) };

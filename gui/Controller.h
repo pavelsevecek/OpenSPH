@@ -164,9 +164,7 @@ public:
 
     /// Returns a list of quantities that can be displayed.
     /// \param storage Particle storage containing data for the colorizer
-    /// \param forMovie Whether to return list of colorizers for image output or for interactive preview.
-    ///                 Some colorizers are skipped when create image files (boundary, ...)
-    Array<SharedPtr<IColorizer>> getColorizerList(const Storage& storage, const bool forMovie) const;
+    Array<SharedPtr<IColorizer>> getColorizerList(const Storage& storage) const;
 
     /// \brief Renders a bitmap of current view.
     ///

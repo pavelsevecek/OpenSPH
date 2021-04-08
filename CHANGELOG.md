@@ -1,3 +1,8 @@
+## 2021-04-08
+- showing the confirmation dialog when closing the window
+- sorted the colorizers
+- fixed simulation failing when a colorizer that cannot be used is selected
+
 ## 2021-04-07
 - customizable spacing of output times
 - skipping divergence criterion if there is no divergence in the storage

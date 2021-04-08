@@ -132,11 +132,6 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const Color
         return makeAuto<RadiusColorizer>(getPalette(id));
     case ColorizerId::BOUNDARY:
         return makeAuto<BoundaryColorizer>(BoundaryColorizer::Detection::NEIGBOUR_THRESHOLD, 40);
-    case ColorizerId::DEPTH: {
-        const Vector position = settings.get<Vector>(GuiSettingsId::CAMERA_POSITION);
-        const Vector target = settings.get<Vector>(GuiSettingsId::CAMERA_TARGET);
-        return makeAuto<DepthColorizer>(position, target);
-    }
     case ColorizerId::UVW:
         return makeAuto<UvwColorizer>();
     case ColorizerId::PARTICLE_ID:
@@ -155,8 +150,6 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const Color
         return makeAuto<MaterialColorizer>(settings);
     case ColorizerId::BEAUTY:
         return makeAuto<BeautyColorizer>();
-    case ColorizerId::MARKER:
-        return makeAuto<MarkerColorizer>(Rgba::gray(1.e6_f));
     default:
         QuantityId quantity = QuantityId(id);
         ASSERT(int(quantity) >= 0);
@@ -224,16 +217,21 @@ static FlatMap<PaletteKey, PaletteDesc> paletteDescs = {
     { QuantityId::DAMAGE, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
     { QuantityId::VELOCITY_DIVERGENCE, { Interval(-0.1_f, 0.1_f), PaletteScale::LINEAR } },
     { QuantityId::VELOCITY_GRADIENT, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
+    { QuantityId::VELOCITY_LAPLACIAN, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
+    { QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
     { QuantityId::VELOCITY_ROTATION, { Interval(0._f, 4._f), PaletteScale::LINEAR } },
     { QuantityId::SOUND_SPEED, { Interval(0._f, 5.e3_f), PaletteScale::LINEAR } },
     { QuantityId::VIBRATIONAL_VELOCITY, { Interval(0._f, 5.e3_f), PaletteScale::LINEAR } },
     { QuantityId::BULK_DENSITY, { Interval(2650._f, 2750._f), PaletteScale::LINEAR } },
+    { QuantityId::AV_ALPHA, { Interval(0.1_f, 1.5_f), PaletteScale::LINEAR } },
+    { QuantityId::AV_BALSARA, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
     { QuantityId::AV_STRESS, { Interval(0._f, 1.e8_f), PaletteScale::LINEAR } },
     { QuantityId::ANGULAR_FREQUENCY, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
     { QuantityId::MOMENT_OF_INERTIA, { Interval(0._f, 1.e10_f), PaletteScale::LINEAR } },
     { QuantityId::PHASE_ANGLE, { Interval(0._f, 10._f), PaletteScale::LINEAR } },
     { QuantityId::STRAIN_RATE_CORRECTION_TENSOR, { Interval(0._f, 5._f), PaletteScale::LINEAR } },
     { QuantityId::EPS_MIN, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
+    { QuantityId::FRICTION, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
     { QuantityId::DELTASPH_DENSITY_GRADIENT, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
     { QuantityId::NEIGHBOUR_CNT, { Interval(50._f, 150._f), PaletteScale::LINEAR } },
     { ColorizerId::VELOCITY, { Interval(0.1_f, 100._f), PaletteScale::LOGARITHMIC } },
