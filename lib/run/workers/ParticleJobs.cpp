@@ -439,8 +439,8 @@ VirtualSettings CollisionGeometrySetup::getSettings() {
 void CollisionGeometrySetup::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     Storage target = std::move(this->getInput<ParticleData>("target")->storage);
     Storage impactor = std::move(this->getInput<ParticleData>("impactor")->storage);
-    ASSERT(target.isValid());
-    ASSERT(impactor.isValid());
+    SPH_ASSERT(target.isValid());
+    SPH_ASSERT(impactor.isValid());
 
     const Sphere targetSphere = getBoundingSphere(target);
     const Sphere impactorSphere = getBoundingSphere(impactor);
@@ -453,7 +453,7 @@ void CollisionGeometrySetup::evaluate(const RunSettings& UNUSED(global), IRunCal
 
     const Float h = target.getValue<Vector>(QuantityId::POSITION)[0][H];
     const Float phi = geometry.get<Float>(CollisionGeometrySettingsId::IMPACT_ANGLE) * DEG_TO_RAD;
-    ASSERT(phi >= -PI && phi <= PI, phi);
+    SPH_ASSERT(phi >= -PI && phi <= PI, phi);
 
     const Float offset = geometry.get<Float>(CollisionGeometrySettingsId::IMPACTOR_OFFSET);
     const Float x = impactorDistance * cos(phi) + offset * h;
@@ -545,7 +545,7 @@ void SmoothedToSolidHandoff::evaluate(const RunSettings& UNUSED(global), IRunCal
     ArrayView<const Float> m = input.getValue<Float>(QuantityId::MASS);
     ArrayView<const Float> rho = input.getValue<Float>(QuantityId::DENSITY);
     ArrayView<Vector> r_sphere = spheres.getValue<Vector>(QuantityId::POSITION);
-    ASSERT(r_sphere.size() == rho.size());
+    SPH_ASSERT(r_sphere.size() == rho.size());
     for (Size i = 0; i < r_sphere.size(); ++i) {
         switch (HandoffRadius(type)) {
         case (HandoffRadius::EQUAL_VOLUME):

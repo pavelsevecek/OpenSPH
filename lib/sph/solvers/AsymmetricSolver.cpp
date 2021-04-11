@@ -173,7 +173,7 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
 
     auto functor = [this, r, &neighs, maxRadius, &symmetrizedKernel, &actFinder](Size i, ThreadData& data) {
         const Float radius = radiiMap ? radiiMap->getRadius(r[i]) : maxRadius;
-        ASSERT(radius > 0._f);
+        SPH_ASSERT(radius > 0._f);
 
         actFinder.findAll(i, radius, data.neighs);
         data.grads.clear();
@@ -181,13 +181,13 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
         for (auto& n : data.neighs) {
             const Size j = n.index;
             const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-            ASSERT(hbar > EPS, hbar);
+            SPH_ASSERT(hbar > EPS, hbar);
             if (i == j || n.distanceSqr >= sqr(kernel.radius() * hbar)) {
                 // aren't actual neighbours
                 continue;
             }
             const Vector gr = symmetrizedKernel.grad(r[i], r[j]);
-            ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) <= 0._f, gr, r[i] - r[j]);
+            SPH_ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) <= 0._f, gr, r[i] - r[j]);
             data.grads.emplaceBack(gr);
             data.idxs.emplaceBack(j);
         }

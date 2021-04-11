@@ -150,7 +150,7 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
 /// \todo do we really need to specialize the function here to avoid linker error?
 template <>
 const Settings<GuiSettingsId>& Settings<GuiSettingsId>::getDefaults() {
-    ASSERT(instance != nullptr);
+    SPH_ASSERT(instance != nullptr);
     return *instance;
 }
 

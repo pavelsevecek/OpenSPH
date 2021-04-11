@@ -80,7 +80,7 @@ Tuple<T, T> minMax(const T& t1, const T& t2) {
 
 template <typename T>
 INLINE T weightedAverage(const T& v1, const Float w1, const T& v2, const Float w2) {
-    ASSERT(w1 + w2 > 0._f, w1, w2);
+    SPH_ASSERT(w1 + w2 > 0._f, w1, w2);
     return (v1 * w1 + v2 * w2) / (w1 + w2);
 }
 
@@ -175,7 +175,7 @@ public:
         if (I) {
             // So far this is just an experimental branch, not intended to be used for "serious" simulations.
             // This assert is just a check that it does not get enabled by accident.
-            ASSERT(Assert::isTest);
+            SPH_ASSERT(Assert::isTest);
 
             // compute inertia tensors in inertial frame
             const SymmetricTensor I1 = transform(I[i], convert<AffineMatrix>(E[i]));
@@ -195,16 +195,16 @@ public:
             // compute the new local frame of the merger and inertia tensor in this frame
             Eigen eigen = eigenDecomposition(I_merger);
             I_merger = SymmetricTensor(eigen.values, Vector(0._f));
-            ASSERT(isReal(I_merger));
+            SPH_ASSERT(isReal(I_merger));
 
             E_merger = convert<Tensor>(eigen.vectors);
-            ASSERT(isReal(E_merger));
+            SPH_ASSERT(isReal(E_merger));
 
-            ASSERT(isReal(L_merger) && isReal(omega_merger), L_merger, omega_merger);
+            SPH_ASSERT(isReal(L_merger) && isReal(omega_merger), L_merger, omega_merger);
             /// \todo remove, we have unit tests for this
-            ASSERT(almostEqual(getSqrLength(E_merger.row(0)), 1._f, 1.e-6_f));
-            ASSERT(almostEqual(getSqrLength(E_merger.row(1)), 1._f, 1.e-6_f));
-            ASSERT(almostEqual(getSqrLength(E_merger.row(2)), 1._f, 1.e-6_f));
+            SPH_ASSERT(almostEqual(getSqrLength(E_merger.row(0)), 1._f, 1.e-6_f));
+            SPH_ASSERT(almostEqual(getSqrLength(E_merger.row(1)), 1._f, 1.e-6_f));
+            SPH_ASSERT(almostEqual(getSqrLength(E_merger.row(2)), 1._f, 1.e-6_f));
 
         } else {
             L_merger = m[i] * cross(r[i] - r_merger, v[i] - v_merger) + //
@@ -233,7 +233,7 @@ public:
             E[i] = E_merger;
         }
 
-        ASSERT(isReal(v[i]) && isReal(r[i]));
+        SPH_ASSERT(isReal(v[i]) && isReal(r[i]));
         toRemove.insert(j);
         return CollisionResult::MERGER;
     }
@@ -308,13 +308,13 @@ public:
         v[i][H] = 0._f;
         v[j][H] = 0._f;
 
-        ASSERT(isReal(v[i]) && isReal(v[j]));
+        SPH_ASSERT(isReal(v[i]) && isReal(v[j]));
         return CollisionResult::BOUNCE;
     }
 
 private:
     INLINE Vector reflect(const Vector& v, const Vector& v_com, const Vector& dir) {
-        ASSERT(almostEqual(getSqrLength(dir), 1._f), dir);
+        SPH_ASSERT(almostEqual(getSqrLength(dir), 1._f), dir);
         const Vector v_rel = v - v_com;
         const Float proj = dot(v_rel, dir);
         const Vector v_t = v_rel - proj * dir;
@@ -447,17 +447,17 @@ public:
         tieToTuple(dir, dist) = getNormalizedWithLength(r[i] - r[j]);
         dir[H] = 0._f; // don't mess up radii
         // can be only used for overlapping particles
-        ASSERT(dist < r[i][H] + r[j][H], dist, r[i][H] + r[i][H]);
+        SPH_ASSERT(dist < r[i][H] + r[j][H], dist, r[i][H] + r[i][H]);
         const Float x1 = (r[i][H] + r[j][H] - dist) / (1._f + m[i] / m[j]);
         const Float x2 = m[i] / m[j] * x1;
         r[i] += dir * x1;
         r[j] -= dir * x2;
-        ASSERT(almostEqual(getSqrLength(r[i] - r[j]), sqr(r[i][H] + r[j][H])),
+        SPH_ASSERT(almostEqual(getSqrLength(r[i] - r[j]), sqr(r[i][H] + r[j][H])),
             getSqrLength(r[i] - r[j]),
             sqr(r[i][H] + r[j][H]));
 
-        ASSERT(isReal(v[i]) && isReal(v[j]));
-        ASSERT(isReal(r[i]) && isReal(r[j]));
+        SPH_ASSERT(isReal(v[i]) && isReal(v[j]));
+        SPH_ASSERT(isReal(r[i]) && isReal(r[j]));
 
         // Now when the two particles are touching, handle the collision using the followup handler.
         handler.collide(i, j, toRemove);
@@ -480,7 +480,7 @@ public:
         : handler(settings) {
         // this handler allows overlaps of particles, so it should never be used with point particles, as we
         // could potentially get infinite accelerations
-        ASSERT(settings.get<GravityKernelEnum>(RunSettingsId::GRAVITY_KERNEL) !=
+        SPH_ASSERT(settings.get<GravityKernelEnum>(RunSettingsId::GRAVITY_KERNEL) !=
                GravityKernelEnum::POINT_PARTICLES);
     }
 

@@ -19,12 +19,12 @@ void ScalarGradyKippModel::setFlaws(Storage& storage,
     const MaterialInitialContext& context) const {
     VERBOSE_LOG
 
-    ASSERT(storage.getMaterialCnt() == 1);
+    SPH_ASSERT(storage.getMaterialCnt() == 1);
     storage.insert<Float>(
         QuantityId::DAMAGE, OrderEnum::FIRST, material.getParam<Float>(BodySettingsId::DAMAGE));
     material.setRange(QuantityId::DAMAGE, BodySettingsId::DAMAGE_RANGE, BodySettingsId::DAMAGE_MIN);
 
-    ASSERT(!storage.has(QuantityId::EPS_MIN) && !storage.has(QuantityId::M_ZERO) &&
+    SPH_ASSERT(!storage.has(QuantityId::EPS_MIN) && !storage.has(QuantityId::M_ZERO) &&
                !storage.has(QuantityId::EXPLICIT_GROWTH) && !storage.has(QuantityId::N_FLAWS),
         "Recreating flaws");
     storage.insert<Float>(QuantityId::EPS_MIN, OrderEnum::ZERO, 0._f);
@@ -61,14 +61,14 @@ void ScalarGradyKippModel::setFlaws(Storage& storage,
     for (Size i = 0; i < size; ++i) {
         V += m[i] / rho[i];
     }
-    ASSERT(V > 0._f);
+    SPH_ASSERT(V > 0._f);
     const Float k_weibull = material.getParam<Float>(BodySettingsId::WEIBULL_COEFFICIENT);
     const Float m_weibull = material.getParam<Float>(BodySettingsId::WEIBULL_EXPONENT);
     const bool sampleDistribution = material.getParam<bool>(BodySettingsId::WEIBULL_SAMPLE_DISTRIBUTIONS);
 
     // cannot use pow on k_weibull*V, leads to float overflow for larger V
     const Float denom = 1._f / (std::pow(k_weibull, 1._f / m_weibull) * std::pow(V, 1._f / m_weibull));
-    ASSERT(isReal(denom) && denom > 0._f);
+    SPH_ASSERT(isReal(denom) && denom > 0._f);
     Array<Float> eps_max(size);
 
     if (sampleDistribution) {
@@ -84,7 +84,7 @@ void ScalarGradyKippModel::setFlaws(Storage& storage,
 
             eps_min[i] = denom * std::pow(p1, 1._f / m_weibull);
             eps_max[i] = denom * std::pow(max(p1, p2), 1._f / m_weibull);
-            ASSERT(eps_min[i] > 0 && eps_min[i] <= eps_max[i], eps_min[i], eps_max[i]);
+            SPH_ASSERT(eps_min[i] > 0 && eps_min[i] <= eps_max[i], eps_min[i], eps_max[i]);
 
             // sample with Poisson distribution
             const Float mu = log(size);
@@ -93,20 +93,20 @@ void ScalarGradyKippModel::setFlaws(Storage& storage,
             // ensure that m_zero >= 1
             // n_flaws[i] = max(n_flaws[i], Size(ceil(eps_max[i] / eps_min[i])));
             eps_max[i] = min(eps_max[i], n_flaws[i] * eps_min[i]);
-            ASSERT(n_flaws[i] >= eps_max[i] / eps_min[i]);
+            SPH_ASSERT(n_flaws[i] >= eps_max[i] / eps_min[i]);
         }
     } else {
         Size flawedCnt = 0, p = 1;
         while (flawedCnt < size) {
             const Size i = Size(context.rng() * size);
             const Float eps = denom * std::pow(Float(p), 1._f / m_weibull);
-            ASSERT(isReal(eps) && eps > 0._f);
+            SPH_ASSERT(isReal(eps) && eps > 0._f);
             if (n_flaws[i] == 0) {
                 flawedCnt++;
                 eps_min[i] = eps;
             }
             eps_max[i] = eps;
-            ASSERT(eps_max[i] >= eps_min[i]);
+            SPH_ASSERT(eps_max[i] >= eps_min[i]);
             p++;
             n_flaws[i]++;
         }
@@ -117,10 +117,10 @@ void ScalarGradyKippModel::setFlaws(Storage& storage,
             m_zero[i] = 1._f;
         } else {
             const Float ratio = eps_max[i] / eps_min[i];
-            ASSERT(ratio >= 1._f, eps_min[i], eps_max[i]);
+            SPH_ASSERT(ratio >= 1._f, eps_min[i], eps_max[i]);
 
             m_zero[i] = log(n_flaws[i]) / log(ratio);
-            ASSERT(m_zero[i] >= 1._f, m_zero[i], n_flaws[i], eps_min[i], eps_max[i]);
+            SPH_ASSERT(m_zero[i] >= 1._f, m_zero[i], n_flaws[i], eps_min[i], eps_max[i]);
         }
     }
 }
@@ -160,12 +160,12 @@ void ScalarGradyKippModel::integrate(IScheduler& scheduler, Storage& storage, co
         const Float young_red = max((1._f - pow<3>(damage[i])) * young, 1.e-20_f);
         const Float strain = sigMax / young_red;
         const Float ratio = strain / eps_min[i];
-        ASSERT(isReal(ratio));
+        SPH_ASSERT(isReal(ratio));
         if (ratio <= 1._f) {
             return;
         }
         ddamage[i] = growth[i] * root<3>(min(std::pow(ratio, m_zero[i]), Float(n_flaws[i])));
-        ASSERT(ddamage[i] >= 0._f);
+        SPH_ASSERT(ddamage[i] >= 0._f);
     });
 }
 

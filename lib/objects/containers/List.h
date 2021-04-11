@@ -71,12 +71,12 @@ struct ListIterator {
     }
 
     INLINE T& operator*() const {
-        ASSERT(node);
+        SPH_ASSERT(node);
         return node->value;
     }
 
     INLINE RawPtr<T> operator->() const {
-        ASSERT(node);
+        SPH_ASSERT(node);
         return &node->value;
     }
 
@@ -187,7 +187,7 @@ public:
     /// \param iter Iterator to an element of the list. Must not be nullptr.
     template <typename U>
     void insert(const ListIterator<T> iter, U&& value) {
-        ASSERT(iter);
+        SPH_ASSERT(iter);
         RawPtr<ListNode<T>> node =
             alignedNew<ListNode<T>>(std::forward<U>(value), iter.node, iter.node->next);
         if (iter.node == last) {
@@ -203,7 +203,7 @@ public:
     /// \param iter Iterator to an element being erased. Must not be nullptr.
     /// \return Iterator pointing to the next element, or nullptr if the removed element was the last one.
     ListIterator<T> erase(const ListIterator<T> iter) {
-        ASSERT(iter);
+        SPH_ASSERT(iter);
         ListIterator<T> next = iter;
         ++next;
         RawPtr<ListNode<T>> node = iter.node;
@@ -232,25 +232,25 @@ public:
 
     /// Returns the reference to the first element in the list.
     INLINE T& front() {
-        ASSERT(!this->empty());
+        SPH_ASSERT(!this->empty());
         return first->value;
     }
 
     /// Returns the reference to the first element in the list.
     INLINE const T& front() const {
-        ASSERT(!this->empty());
+        SPH_ASSERT(!this->empty());
         return first->value;
     }
 
     /// Returns the reference to the last element in the list.
     INLINE T& back() {
-        ASSERT(!this->empty());
+        SPH_ASSERT(!this->empty());
         return last->value;
     }
 
     /// Returns the reference to the last element in the list.
     INLINE const T& back() const {
-        ASSERT(!this->empty());
+        SPH_ASSERT(!this->empty());
         return last->value;
     }
 

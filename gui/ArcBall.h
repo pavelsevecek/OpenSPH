@@ -48,7 +48,7 @@ public:
     /// \param pivot Center of rotation.
     /// \return New rotation matrix of the object
     AffineMatrix drag(const Pixel point, const Vector& pivot) {
-        ASSERT(isReal(start));
+        SPH_ASSERT(isReal(start));
         const Vector end = this->mapToSphere(point);
         const Vector perp = cross(start, end);
         if (getSqrLength(perp) > EPS) {
@@ -71,7 +71,7 @@ public:
 private:
     Vector mapToSphere(const Pixel point) {
         // rescale to <-1, 1> and invert y
-        ASSERT(size.x > 0 && size.y > 0);
+        SPH_ASSERT(size.x > 0 && size.y > 0);
         const Vector p(2.f * float(point.x) / size.x - 1.f, 1.f - 2.f * float(point.y) / size.y, 0._f);
 
         const Float lengthSqr = getSqrLength(p);

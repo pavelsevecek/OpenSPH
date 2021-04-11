@@ -34,7 +34,7 @@ public:
     /// The element must exists in the map, checked by assert.
     INLINE TValue& operator[](const TKey& key) {
         Element* element = this->find(key);
-        ASSERT(element);
+        SPH_ASSERT(element);
         return element->value;
     }
 
@@ -43,7 +43,7 @@ public:
     /// The element must exists in the map, checked by assert.
     INLINE const TValue& operator[](const TKey& key) const {
         const Element* element = this->find(key);
-        ASSERT(element);
+        SPH_ASSERT(element);
         return element->value;
     }
 
@@ -74,7 +74,7 @@ public:
     /// The element must exists in the map, checked by assert.
     INLINE void remove(const TKey& key) {
         Element* element = this->find(key);
-        ASSERT(element);
+        SPH_ASSERT(element);
         const Size index = element - &data[0];
         data.remove(index);
     }

@@ -59,7 +59,7 @@ static Array<Path> getRecentSessions() {
 constexpr Size MAX_CACHE_SIZE = 8;
 
 static void addToRecentSessions(const Path& sessionPath) {
-    ASSERT(!sessionPath.empty());
+    SPH_ASSERT(!sessionPath.empty());
     Array<Path> sessions = getRecentSessions();
     auto sessionIter = std::find(sessions.begin(), sessions.end(), sessionPath);
     if (sessionIter != sessions.end()) {

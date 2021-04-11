@@ -102,7 +102,7 @@ Size Tests::getClosestParticle(const Storage& storage, const Vector& p) {
             closestIdx = i;
         }
     }
-    ASSERT(closestDistSqr < INFTY);
+    SPH_ASSERT(closestDistSqr < INFTY);
     return closestIdx;
 }
 

@@ -210,7 +210,7 @@ wxPGWindowList CurveEditor::CreateControls(wxPropertyGrid* propgrid,
             wxPropertyGridEvent* changeEvent = new wxPropertyGridEvent(wxEVT_PG_CHANGED);
             changeEvent->SetProperty(property);
             CurveProperty* curveProp = dynamic_cast<CurveProperty*>(property);
-            ASSERT(curveProp);
+            SPH_ASSERT(curveProp);
             curveProp->setCurve(curve);
             propgrid->GetEventHandler()->ProcessEvent(*changeEvent);
         });

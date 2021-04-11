@@ -84,7 +84,7 @@ class BalsaraSwitch : public IEquationTerm {
         template <bool Symmetrize>
         INLINE Tuple<Vector, Float> eval(const Size i, const Size j, const Vector& grad) {
             const Float Pi = 0.5_f * (factor(i) + factor(j)) * av.evalAv(i, j);
-            ASSERT(isReal(Pi));
+            SPH_ASSERT(isReal(Pi));
             const Float heating = 0.5_f * Pi * dot(v[i] - v[j], grad);
             return { Pi * grad, heating };
         }

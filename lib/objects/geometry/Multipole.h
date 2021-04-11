@@ -102,7 +102,7 @@ public:
     INLINE Float value() const {
         static_assert(sizeof...(Idxs) == Order, "Number of indices must match the order");
         const Size idx = Detail::MultipoleMapping<Idxs...>::value;
-        ASSERT(idx < COMPONENT_CNT, idx);
+        SPH_ASSERT(idx < COMPONENT_CNT, idx);
         return *(&data[0] + idx);
     }
 
@@ -110,12 +110,12 @@ public:
     INLINE Float& value() {
         static_assert(sizeof...(Idxs) == Order, "Number of indices must match the order");
         const Size idx = Detail::MultipoleMapping<Idxs...>::value;
-        ASSERT(idx < COMPONENT_CNT, idx);
+        SPH_ASSERT(idx < COMPONENT_CNT, idx);
         return *(&data[0] + idx);
     }
 
     INLINE Float operator[](const Size idx) const {
-        ASSERT(idx < COMPONENT_CNT, idx);
+        SPH_ASSERT(idx < COMPONENT_CNT, idx);
         return data[idx];
     }
 
@@ -328,7 +328,7 @@ public:
     INLINE Float& value() {
         static_assert(sizeof...(Idxs) == Order, "Number of indices must match the order");
         const Size idx = Detail::TracelessMultipoleMapping<Idxs...>::value;
-        ASSERT(idx < COMPONENT_CNT, idx);
+        SPH_ASSERT(idx < COMPONENT_CNT, idx);
         return *(&data[0] + idx);
     }
 
@@ -336,17 +336,17 @@ public:
     INLINE constexpr Float valueImpl() const {
         static_assert(sizeof...(Idxs) == Order, "Number of indices must match the order");
         const Size idx = Detail::TracelessMultipoleMapping<Idxs...>::value;
-        ASSERT(idx < COMPONENT_CNT, idx, Idxs...);
+        SPH_ASSERT(idx < COMPONENT_CNT, idx, Idxs...);
         return *(&data[0] + idx);
     }
 
     INLINE constexpr Float operator[](const Size idx) const {
-        ASSERT(idx < COMPONENT_CNT, idx);
+        SPH_ASSERT(idx < COMPONENT_CNT, idx);
         return data[idx];
     }
 
     INLINE Float& operator[](const Size idx) {
-        ASSERT(idx < COMPONENT_CNT, idx);
+        SPH_ASSERT(idx < COMPONENT_CNT, idx);
         return data[idx];
     }
 
@@ -402,12 +402,12 @@ public:
     }
 
     INLINE Float operator[](const Size idx) const {
-        ASSERT(idx < 3, idx);
+        SPH_ASSERT(idx < 3, idx);
         return data[idx];
     }
 
     INLINE Float& operator[](const Size idx) {
-        ASSERT(idx < 3, idx);
+        SPH_ASSERT(idx < 3, idx);
         return data[idx];
     }
 
@@ -457,7 +457,7 @@ public:
     }
 
     INLINE Float operator[](const Size idx) const {
-        ASSERT(idx == 0);
+        SPH_ASSERT(idx == 0);
         return data;
     }
 
@@ -1064,7 +1064,7 @@ public:
     INLINE Float& value()(const Size idx, const TArgs... rest) {
         static_assert(sizeof...(T1Args) == Order - 1, "Number of indices must be equal to multipole
 order");
-        ASSERT(min(rest...) >= idx);
+        SPH_ASSERT(min(rest...) >= idx);
         switch (idx) {
         case Z:
             // other components must be all Zs
@@ -1179,7 +1179,7 @@ public:
         : data{ value, value, value } {}
 
     INLINE Multipole<0>& operator[](const Size idx) {
-        ASSERT(unsigned(idx) < 3);
+        SPH_ASSERT(unsigned(idx) < 3);
         return (Multipole<0>&)data[idx];
     }
 
@@ -1192,7 +1192,7 @@ public:
     }
 
     INLINE Multipole<0> operator[](const Size idx) const {
-        ASSERT(unsigned(idx) < 3);
+        SPH_ASSERT(unsigned(idx) < 3);
         return data[idx];
     }
 

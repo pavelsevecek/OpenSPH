@@ -121,12 +121,12 @@ public:
     }
 
     T& operator*() const {
-        ASSERT(ptr);
+        SPH_ASSERT(ptr);
         return *ptr;
     }
 
     RawPtr<T> operator->() const {
-        ASSERT(ptr);
+        SPH_ASSERT(ptr);
         return ptr.get();
     }
 

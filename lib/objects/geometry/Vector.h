@@ -79,13 +79,13 @@ public:
 
     /// Get component by given index.
     INLINE const float& operator[](const int i) const {
-        ASSERT(unsigned(i) < 4);
+        SPH_ASSERT(unsigned(i) < 4);
         return *(reinterpret_cast<const float*>(&data) + i);
     }
 
     /// Get component by given index.
     INLINE float& operator[](const int i) {
-        ASSERT(unsigned(i) < 4);
+        SPH_ASSERT(unsigned(i) < 4);
         return *(reinterpret_cast<float*>(&data) + i);
     }
 
@@ -170,7 +170,7 @@ public:
     }
 
     INLINE friend auto operator/(const BasicVector& v, const float f) {
-        ASSERT(f != 0.f);
+        SPH_ASSERT(f != 0.f);
         return BasicVector(_mm_div_ps(v.data, _mm_set1_ps(f)));
     }
 
@@ -231,13 +231,13 @@ public:
 
     /// Get component by given index.
     INLINE const double& operator[](const int i) const {
-        ASSERT(unsigned(i) < 4);
+        SPH_ASSERT(unsigned(i) < 4);
         return *(reinterpret_cast<const double*>(&data) + i);
     }
 
     /// Get component by given index.
     INLINE double& operator[](const int i) {
-        ASSERT(unsigned(i) < 4);
+        SPH_ASSERT(unsigned(i) < 4);
         return *(reinterpret_cast<double*>(&data) + i);
     }
 
@@ -317,7 +317,7 @@ public:
     }
 
     INLINE friend auto operator/(const BasicVector& v, const double f) {
-        ASSERT(f != 0.);
+        SPH_ASSERT(f != 0.);
         return BasicVector(_mm256_div_pd(v.data, _mm256_set1_pd(f)));
     }
 
@@ -393,13 +393,13 @@ public:
 
     /// Get component by given index.
     INLINE const double& operator[](const int i) const {
-        ASSERT(unsigned(i) < 4);
+        SPH_ASSERT(unsigned(i) < 4);
         return *(reinterpret_cast<const double*>(&data) + i);
     }
 
     /// Get component by given index.
     INLINE double& operator[](const int i) {
-        ASSERT(unsigned(i) < 4);
+        SPH_ASSERT(unsigned(i) < 4);
         return *(reinterpret_cast<double*>(&data) + i);
     }
 
@@ -497,7 +497,7 @@ public:
     }
 
     INLINE friend auto operator/(const BasicVector& v, const double f) {
-        ASSERT(f != 0.);
+        SPH_ASSERT(f != 0.);
         const __m128d value = _mm_set1_pd(f);
         return BasicVector(_mm_div_pd(v.data[0], value), _mm_div_pd(v.data[1], value));
     }
@@ -589,14 +589,14 @@ INLINE Float getLengthApprox(const Vector& v) {
 /// floating-point precision.
 INLINE Vector getNormalized(const Vector& v) {
     const Float length = getLength(v);
-    ASSERT(length != 0._f);
+    SPH_ASSERT(length != 0._f);
     return v / length;
 }
 
 /// Returns normalized vector and length of the input vector as tuple.
 INLINE Tuple<Vector, Float> getNormalizedWithLength(const Vector& v) {
     const Float length = getLength(v);
-    ASSERT(length != 0._f);
+    SPH_ASSERT(length != 0._f);
     return { v / length, length };
 }
 
@@ -656,7 +656,7 @@ INLINE bool almostEqual(const Vector& v1, const Vector& v2, const Float eps = EP
 template <>
 INLINE Float norm(const Vector& v) {
     const Float result = getLengthApprox(v);
-    ASSERT(isReal(result));
+    SPH_ASSERT(isReal(result));
     return result;
 }
 
@@ -664,7 +664,7 @@ INLINE Float norm(const Vector& v) {
 template <>
 INLINE Float normSqr(const Vector& v) {
     const Float result = getSqrLength(v);
-    ASSERT(isReal(result));
+    SPH_ASSERT(isReal(result));
     return result;
 }
 
@@ -825,7 +825,7 @@ INLINE Vector sphericalInversion(const Vector& v, const Vector& center, const Fl
 
 /// Returns the distance of vector from given axis. The axis is assumed to be normalized.
 INLINE Float distance(const Vector& r, const Vector& axis) {
-    ASSERT(almostEqual(getSqrLength(axis), 1._f));
+    SPH_ASSERT(almostEqual(getSqrLength(axis), 1._f));
     return getLength(r - dot(r, axis) * axis);
 }
 

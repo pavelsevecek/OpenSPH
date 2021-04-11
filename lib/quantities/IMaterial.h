@@ -36,18 +36,18 @@ public:
     INLINE MaterialView(RawPtr<IMaterial>&& material, IndexSequence seq)
         : mat(std::move(material))
         , seq(seq) {
-        ASSERT(material != nullptr);
+        SPH_ASSERT(material != nullptr);
     }
 
     /// Returns the reference to the material of the particles.
     INLINE IMaterial& material() {
-        ASSERT(mat != nullptr);
+        SPH_ASSERT(mat != nullptr);
         return *mat;
     }
 
     /// Returns the const reference to the material of the particles.
     INLINE IMaterial& material() const {
-        ASSERT(mat != nullptr);
+        SPH_ASSERT(mat != nullptr);
         return *mat;
     }
 

@@ -220,7 +220,7 @@ void ParticleRenderer::initialize(const Storage& storage,
 
             if (hasVectorData) {
                 Optional<Vector> v = colorizer.evalVector(i);
-                ASSERT(v);
+                SPH_ASSERT(v);
                 cached.vectors.push(v.value());
             }
         }
@@ -335,7 +335,7 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
         }
 
         const Optional<ProjectedPoint> p = params.camera->project(cached.positions[i]);
-        ASSERT(p); // cached values must be visible by the camera
+        SPH_ASSERT(p); // cached values must be visible by the camera
         const float size = min<float>(p->radius * params.particles.scale, context->size().x);
         context->drawCircle(p->coords, size);
     }

@@ -13,7 +13,7 @@ NAMESPACE_SPH_BEGIN
 template <typename TEnum>
 Settings<TEnum>::Settings(std::initializer_list<Entry> list) {
     for (auto& entry : list) {
-        ASSERT(!entries.contains(entry.id), "Duplicate settings ID ", int(entry.id));
+        SPH_ASSERT(!entries.contains(entry.id), "Duplicate settings ID ", int(entry.id));
         entries.insert(entry.id, entry);
     }
 }
@@ -335,7 +335,7 @@ Size Settings<TEnum>::size() const {
 
 template <typename TEnum>
 const Settings<TEnum>& Settings<TEnum>::getDefaults() {
-    ASSERT(instance != nullptr);
+    SPH_ASSERT(instance != nullptr);
     return *instance;
 }
 

@@ -25,7 +25,7 @@ void Holder<TValue>::swap(Holder& other, Flags<VisitorEnum> flags) {
 
 template <typename TValue>
 void Holder<TValue>::setOrder(const OrderEnum newOrder) {
-    ASSERT(Size(newOrder) > Size(order));
+    SPH_ASSERT(Size(newOrder) > Size(order));
     if (newOrder == OrderEnum::SECOND) {
         d2v_dt2.resize(v.size());
         d2v_dt2.fill(TValue(0._f));

@@ -17,7 +17,7 @@ TEST_CASE("Particle from storage", "[particle]") {
     REQUIRE(p.getValue(QuantityId::POSITION) == Vector(3._f, 2._f, 1._f));
     REQUIRE(p.getDt(QuantityId::POSITION) == Vector(1._f, 0._f, 0._f));
 
-    REQUIRE_ASSERT(p.getValue(QuantityId::DAMAGE));
+    REQUIRE_SPH_ASSERT(p.getValue(QuantityId::DAMAGE));
 }
 
 TEST_CASE("Particle from values", "[particle]") {
@@ -25,7 +25,7 @@ TEST_CASE("Particle from values", "[particle]") {
     REQUIRE(p.getIndex() == 3);
     REQUIRE(p.getValue(QuantityId::MASS) == Vector(4._f));
     REQUIRE(p.getDt(QuantityId::MASS).empty());
-    REQUIRE_ASSERT(p.getValue(QuantityId::DENSITY));
+    REQUIRE_SPH_ASSERT(p.getValue(QuantityId::DENSITY));
 }
 
 TEST_CASE("Particle explicit", "[particle]") {
@@ -37,7 +37,7 @@ TEST_CASE("Particle explicit", "[particle]") {
     REQUIRE(p.getValue(QuantityId::AV_ALPHA) == 5._f);
     REQUIRE(p.getD2t(QuantityId::DAMAGE) == SymmetricTensor(3._f));
     REQUIRE(p.getDt(QuantityId::DAMAGE).empty());
-    REQUIRE_ASSERT(p.getValue(QuantityId::ENERGY));
+    REQUIRE_SPH_ASSERT(p.getValue(QuantityId::ENERGY));
 }
 
 TEST_CASE("Particle iterate", "[particle]") {

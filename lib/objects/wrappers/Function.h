@@ -90,7 +90,7 @@ public:
     /// Calls the function, given argument list.
     template <typename... Ts>
     TReturn operator()(Ts&&... args) const {
-        ASSERT(holder);
+        SPH_ASSERT(holder);
         return (*holder)(std::forward<Ts>(args)...);
     }
 

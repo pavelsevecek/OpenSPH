@@ -66,14 +66,14 @@ public:
     /// This thread must belong the the thread pool given in constructor, checked by assert.
     INLINE Type& local() {
         const Optional<Size> idx = scheduler.getThreadIdx();
-        ASSERT(idx && idx.value() < locals.size());
+        SPH_ASSERT(idx && idx.value() < locals.size());
         return locals[idx.value()].value;
     }
 
     /// \copydoc local
     INLINE const Type& local() const {
         const Optional<Size> idx = scheduler.getThreadIdx();
-        ASSERT(idx && idx.value() < locals.size());
+        SPH_ASSERT(idx && idx.value() < locals.size());
         return locals[idx.value()].value;
     }
 
@@ -160,10 +160,10 @@ INLINE void parallelFor(IScheduler& scheduler,
     const Size to,
     const Size granularity,
     TFunctor&& functor) {
-    ASSERT(from <= to);
+    SPH_ASSERT(from <= to);
 
     scheduler.parallelFor(from, to, granularity, [&storage, &functor](Size n1, Size n2) {
-        ASSERT(n1 < n2);
+        SPH_ASSERT(n1 < n2);
         Type& value = storage.local();
         for (Size i = n1; i < n2; ++i) {
             functor(i, value);

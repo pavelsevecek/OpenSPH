@@ -101,7 +101,7 @@ TEST_CASE("HexaPacking sorted", "[initial]") {
     BlockDomain domain(Vector(-3._f), Vector(2._f));
     Array<Vector> r_sort = sorted.generate(SEQUENTIAL, 1000, domain);
     Array<Vector> r_unsort = unsorted.generate(SEQUENTIAL, 1000, domain);
-    ASSERT(r_sort.size() == r_unsort.size());
+    SPH_ASSERT(r_sort.size() == r_unsort.size());
 
 
     AutoPtr<ISymmetricFinder> finder_sort = Factory::getFinder(RunSettings::getDefaults());

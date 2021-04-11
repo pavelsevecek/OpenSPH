@@ -27,22 +27,22 @@ public:
     /// \param i Row index
     /// \param j Column index
     INLINE Float& operator()(const Size i, const Size j) {
-        ASSERT(i < 3 && j < 4, i, j);
+        SPH_ASSERT(i < 3 && j < 4, i, j);
         return v[i][j];
     }
 
     INLINE Float operator()(const Size i, const Size j) const {
-        ASSERT(i < 3 && j < 4, i, j);
+        SPH_ASSERT(i < 3 && j < 4, i, j);
         return v[i][j];
     }
 
     INLINE Vector column(const Size idx) const {
-        ASSERT(idx < 4, idx);
+        SPH_ASSERT(idx < 4, idx);
         return Vector(v[0][idx], v[1][idx], v[2][idx]);
     }
 
     INLINE Vector row(const Size idx) const {
-        ASSERT(idx < 3, idx);
+        SPH_ASSERT(idx < 3, idx);
         return v[idx];
     }
 
@@ -85,7 +85,7 @@ public:
 
     AffineMatrix inverse() const {
         const Float det = this->determinant();
-        ASSERT(det != 0._f);
+        SPH_ASSERT(det != 0._f);
 
         // from https://stackoverflow.com/questions/1148309/inverting-a-4x4-matrix
         AffineMatrix inv;
@@ -157,7 +157,7 @@ public:
     }
 
     static AffineMatrix rotateAxis(const Vector& axis, const Float angle) {
-        ASSERT(almostEqual(getSqrLength(axis), 1._f), getSqrLength(axis));
+        SPH_ASSERT(almostEqual(getSqrLength(axis), 1._f), getSqrLength(axis));
         const Float u = axis[0];
         const Float v = axis[1];
         const Float w = axis[2];
@@ -218,7 +218,7 @@ public:
     }
 
     INLINE friend AffineMatrix operator/(const AffineMatrix& t, const Float v) {
-        ASSERT(v != 0._f);
+        SPH_ASSERT(v != 0._f);
         return AffineMatrix(t.row(0) / v, t.row(1) / v, t.row(2) / v);
     }
 
@@ -246,7 +246,7 @@ public:
     }
 
     INLINE AffineMatrix& operator/=(const Float value) {
-        ASSERT(value != 0._f);
+        SPH_ASSERT(value != 0._f);
         v[0] /= value;
         v[1] /= value;
         v[2] /= value;

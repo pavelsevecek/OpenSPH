@@ -89,11 +89,11 @@ public:
             const Interval bounds = material->getParam<Interval>(BodySettingsId::AV_ALPHA_RANGE);
             for (Size i : material.sequence()) {
                 const Float tau = r[i][H] / (eps * cs[i]);
-                ASSERT(tau > 0._f);
+                SPH_ASSERT(tau > 0._f);
                 const Float decayTerm = -(alpha[i] - Float(bounds.lower())) / tau;
                 const Float sourceTerm = max(-(Float(bounds.upper()) - alpha[i]) * divv[i], 0._f);
                 dalpha[i] = decayTerm + sourceTerm;
-                ASSERT(isReal(dalpha[i]));
+                SPH_ASSERT(isReal(dalpha[i]));
             }
         }
     }

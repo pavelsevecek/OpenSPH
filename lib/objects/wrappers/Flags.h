@@ -62,7 +62,7 @@ public:
     ///
     /// The flag must be a power of 2.
     Flags& operator=(const TEnum flag) {
-        ASSERT(isPower2(TValue(flag)));
+        SPH_ASSERT(isPower2(TValue(flag)));
         data = TValue(flag);
         return *this;
     }
@@ -92,7 +92,7 @@ public:
 
     /// \brief Adds a single flag into the object. All previously stored flags are kept unchanged.
     INLINE void set(const TEnum flag) {
-        ASSERT(isPower2(TValue(flag)));
+        SPH_ASSERT(isPower2(TValue(flag)));
         data |= TValue(flag);
     }
 
@@ -100,13 +100,13 @@ public:
     ///
     /// If the flag is not stored, function does nothing.
     INLINE void unset(const TEnum flag) {
-        ASSERT(isPower2(TValue(flag)));
+        SPH_ASSERT(isPower2(TValue(flag)));
         data &= ~TValue(flag);
     }
 
     /// \brief Sets or removes given flag based given boolean value.
     INLINE void setIf(const TEnum flag, const bool use) {
-        ASSERT(isPower2(TValue(flag)));
+        SPH_ASSERT(isPower2(TValue(flag)));
         if (use) {
             data |= TValue(flag);
         } else {
@@ -121,7 +121,7 @@ public:
 
     /// \brief Returns a Flags object by adding a single flag to currently stored values.
     INLINE constexpr Flags operator|(const TEnum flag) const {
-        ASSERT(isPower2(TValue(flag)));
+        SPH_ASSERT(isPower2(TValue(flag)));
         Flags<TEnum> flags(*this);
         flags.set(flag);
         return flags;
@@ -149,7 +149,7 @@ private:
 
     template <typename... TArgs>
     INLINE constexpr TValue construct(const TEnum first, const TArgs... rest) {
-        ASSERT(TValue(first) == 0 || isPower2(TValue(first)));
+        SPH_ASSERT(TValue(first) == 0 || isPower2(TValue(first)));
         return TValue(first) | construct(rest...);
     }
 

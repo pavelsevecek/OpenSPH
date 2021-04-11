@@ -34,8 +34,8 @@ public:
     explicit CachedGravity(const Float recomputationPeriod, AutoPtr<IGravity>&& gravity)
         : gravity(std::move(gravity)) {
         period = recomputationPeriod;
-        ASSERT(period > 0._f);
-        ASSERT(this->gravity);
+        SPH_ASSERT(period > 0._f);
+        SPH_ASSERT(this->gravity);
     }
 
     virtual void build(IScheduler& scheduler, const Storage& storage) override {
@@ -46,7 +46,7 @@ public:
 
     virtual void evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const override {
         const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
-        ASSERT(t >= t_last);
+        SPH_ASSERT(t >= t_last);
         if (dv.size() == cachedDv.size() && t - t_last < period) {
             // we can re-use the cached accelerations
             stats.set(StatisticsId::GRAVITY_EVAL_TIME, 0);

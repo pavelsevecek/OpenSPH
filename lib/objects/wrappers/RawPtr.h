@@ -43,12 +43,12 @@ public:
     }
 
     INLINE T& operator*() const {
-        ASSERT(ptr);
+        SPH_ASSERT(ptr);
         return *ptr;
     }
 
     INLINE T* operator->() const {
-        ASSERT(ptr);
+        SPH_ASSERT(ptr);
         return ptr;
     }
 

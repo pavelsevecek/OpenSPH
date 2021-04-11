@@ -97,13 +97,13 @@ namespace Detail {
 /// This value is later converted to color, using provided palette.
 template <typename Type>
 INLINE float getColorizerValue(const Type& value) {
-    ASSERT(isReal(value));
+    SPH_ASSERT(isReal(value));
     return float(value);
 }
 template <>
 INLINE float getColorizerValue(const Vector& value) {
     const Float result = getLength(value);
-    ASSERT(isReal(result), value);
+    SPH_ASSERT(isReal(result), value);
     return float(result);
 }
 template <>
@@ -190,7 +190,7 @@ public:
     }
 
     virtual Optional<float> evalScalar(const Size idx) const override {
-        ASSERT(this->isInitialized());
+        SPH_ASSERT(this->isInitialized());
         return Detail::getColorizerValue(values[idx]);
     }
 
@@ -348,7 +348,7 @@ public:
     }
 
     virtual Rgba evalColor(const Size idx) const override {
-        ASSERT(!v.empty() && !r.empty());
+        SPH_ASSERT(!v.empty() && !r.empty());
         return palette(float(getLength(this->getCorotatingVelocity(idx))));
     }
 
@@ -407,7 +407,7 @@ public:
     }
 
     virtual Rgba evalColor(const Size idx) const override {
-        ASSERT(this->isInitialized());
+        SPH_ASSERT(this->isInitialized());
         return palette(float(rho[idx] / rho0[idx] - 1._f));
     }
 
@@ -507,7 +507,7 @@ public:
     }
 
     virtual Optional<float> evalScalar(const Size idx) const override {
-        ASSERT(this->isInitialized());
+        SPH_ASSERT(this->isInitialized());
         SymmetricTensor sigma = SymmetricTensor(s[idx]) - p[idx] * SymmetricTensor::identity();
         // StaticArray<Float, 3> eigens = findEigenvalues(sigma);
         // return max(abs(eigens[0]), abs(eigens[1]), abs(eigens[2]));
@@ -563,7 +563,7 @@ public:
     }
 
     virtual Optional<float> evalScalar(const Size idx) const override {
-        ASSERT(this->isInitialized());
+        SPH_ASSERT(this->isInitialized());
         return float(u[idx] + 0.5_f * getSqrLength(v[idx]));
     }
 
@@ -606,7 +606,7 @@ public:
     }
 
     virtual Optional<float> evalScalar(const Size idx) const override {
-        ASSERT(this->isInitialized());
+        SPH_ASSERT(this->isInitialized());
         return float(this->values[idx] / cp);
     }
 
@@ -634,8 +634,8 @@ public:
         : TypedColorizer<Float>(QuantityId::STRESS_REDUCING, std::move(palette)) {}
 
     virtual Rgba evalColor(const Size idx) const override {
-        ASSERT(this->isInitialized());
-        ASSERT(values[idx] >= 0._f && values[idx] <= 1._f);
+        SPH_ASSERT(this->isInitialized());
+        SPH_ASSERT(values[idx] >= 0._f && values[idx] <= 1._f);
         return palette(float(1._f - values[idx]));
     }
 
@@ -739,7 +739,7 @@ public:
     }
 
     virtual Rgba evalColor(const Size idx) const override {
-        ASSERT(this->isInitialized());
+        SPH_ASSERT(this->isInitialized());
         return palette(float(u[idx]));
     }
 
@@ -775,7 +775,7 @@ public:
     }
 
     virtual Rgba evalColor(const Size idx) const override {
-        ASSERT(this->isInitialized());
+        SPH_ASSERT(this->isInitialized());
         return palette(float(values[idx][H]));
     }
 
@@ -806,7 +806,7 @@ public:
     }
 
     virtual Rgba evalColor(const Size idx) const override {
-        ASSERT(this->isInitialized());
+        SPH_ASSERT(this->isInitialized());
         return Rgba(float(uvws[idx][X]), 0.f, float(uvws[idx][Y]));
     }
 
@@ -911,10 +911,10 @@ private:
     bool isBoundary(const Size idx) const {
         switch (detection) {
         case Detection::NEIGBOUR_THRESHOLD:
-            ASSERT(!neighbours.values.empty());
+            SPH_ASSERT(!neighbours.values.empty());
             return neighbours.values[idx] < neighbours.threshold;
         case Detection::NORMAL_BASED:
-            ASSERT(!normals.values.empty());
+            SPH_ASSERT(!normals.values.empty());
             return getLength(normals.values[idx]) > normals.threshold;
         default:
             NOT_IMPLEMENTED;

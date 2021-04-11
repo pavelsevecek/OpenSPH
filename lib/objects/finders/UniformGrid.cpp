@@ -36,7 +36,7 @@ Size UniformGridFinder::find(const Vector& pos,
     Vector diffUpper = voxel.upper() - pos;
     Vector diffLower = pos - voxel.lower();
 
-    ASSERT(lut.getDimensionSize() > 0);
+    SPH_ASSERT(lut.getDimensionSize() > 0);
     const int upperLimit = lut.getDimensionSize() - 1;
     while (upper[X] < upperLimit && diffUpper[X] < radius) {
         diffUpper[X] += size[X];

@@ -6,7 +6,7 @@ NAMESPACE_SPH_BEGIN
 Size String::npos = NumericLimits<Size>::max();
 
 Size String::find(const String& s, const Size pos) const {
-    ASSERT(pos < this->size() && !s.empty(), pos, this->size());
+    SPH_ASSERT(pos < this->size() && !s.empty(), pos, this->size());
     if (s.size() > this->size()) {
         return npos;
     }
@@ -36,7 +36,7 @@ Size String::findAny(ArrayView<String> ss, const Size pos) const {
 }
 
 Size String::findLast(const String& s) const {
-    ASSERT(!s.empty());
+    SPH_ASSERT(!s.empty());
     if (s.size() > this->size()) {
         return npos;
     }
@@ -58,7 +58,7 @@ Size String::findLast(const String& s) const {
 }
 
 void String::replace(const Size pos, const Size n, const String& s) {
-    ASSERT(pos + n <= this->size());
+    SPH_ASSERT(pos + n <= this->size());
     Array<char> replaced;
     replaced.reserve(data.size() + s.size() - n);
     for (Size i = 0; i < pos; ++i) {
@@ -82,7 +82,7 @@ void String::replace(const String& old, const String& s) {
 }
 
 String String::substr(const Size pos, const Size n) const {
-    ASSERT(pos < this->size());
+    SPH_ASSERT(pos < this->size());
     Array<char> ss;
     const Size m = min(n, this->size() - pos);
     ss.reserve(m + 1);
@@ -130,7 +130,7 @@ String getFormattedTime(const String& format) {
     char buffer[256];
     auto retval = strftime(buffer, sizeof(buffer), format.cStr(), std::localtime(&t));
     String s(buffer);
-    ASSERT(retval == s.size());
+    SPH_ASSERT(retval == s.size());
     return s;
 }
 

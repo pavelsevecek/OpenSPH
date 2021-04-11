@@ -46,7 +46,7 @@ public:
     /// Generates additional random numbers, can be viewed as extension of vector to more dimensions.
     /// \param i Index of dimension, must be at least 3 as first three dimensions belong to the vector.
     Float getAdditional(const Size i) {
-        ASSERT(i >= 3);
+        SPH_ASSERT(i >= 3);
         return rngImpl(i);
     }
 };
@@ -88,12 +88,12 @@ public:
             box.iterate(delta, [&](const Vector& v) { //
                 this->maxPdf = max(this->maxPdf, this->pdf(v) * this->jacobian(v));
             });
-            ASSERT(maxPdf > 0._f);
+            SPH_ASSERT(maxPdf > 0._f);
         }
     }
 
     Vector operator()() {
-        ASSERT(getLength(box.size()) > 0._f);
+        SPH_ASSERT(getLength(box.size()) > 0._f);
         for (Size i = 0; i < 10000; ++i) {
             Vector v = vectorRng() * box.size() + box.lower();
             const Float p = vectorRng.getAdditional(4) * maxPdf;
@@ -101,7 +101,7 @@ public:
                 return v;
             }
         }
-        ASSERT(false, "Couldn't generate vector in 1000 iterations");
+        SPH_ASSERT(false, "Couldn't generate vector in 1000 iterations");
         return Vector(0._f);
     }
 };

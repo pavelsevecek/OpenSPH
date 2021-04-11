@@ -29,7 +29,7 @@ public:
     /// \brief Default-construced gravity, assuming point-like particles
     BruteForceGravity(const Float gravityContant = Constants::gravity)
         : gravityConstant(gravityContant) {
-        ASSERT(kernel.radius() == 0._f);
+        SPH_ASSERT(kernel.radius() == 0._f);
     }
 
     /// \brief Constructs gravity using smoothing kernel
@@ -45,7 +45,7 @@ public:
     virtual void evalAll(IScheduler& scheduler,
         ArrayView<Vector> dv,
         Statistics& UNUSED(stats)) const override {
-        ASSERT(r.size() == dv.size());
+        SPH_ASSERT(r.size() == dv.size());
         SymmetrizeSmoothingLengths<const GravityLutKernel&> actKernel(kernel);
         parallelFor(scheduler, 0, r.size(), [&dv, &actKernel, this](const Size i) {
             dv[i] += this->evalImpl(actKernel, r[i], i);
@@ -83,7 +83,7 @@ public:
 private:
     template <typename TKernel>
     INLINE Vector evalImpl(const TKernel& actKernel, const Vector& r0, const Size idx) const {
-        ASSERT(r && m);
+        SPH_ASSERT(r && m);
         Vector a(0._f);
 
         if (idx != Size(-1)) {

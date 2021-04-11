@@ -5,7 +5,7 @@
 NAMESPACE_SPH_BEGIN
 
 Float Post::correlationCoefficient(ArrayView<const PlotPoint> points) {
-    ASSERT(points.size() >= 2);
+    SPH_ASSERT(points.size() >= 2);
     // find the mean
     PlotPoint mean(0._f, 0._f);
     for (PlotPoint p : points) {
@@ -31,10 +31,10 @@ Float Post::chiSquareDistribution(const Float chiSqr, const Float dof) {
 }
 
 Float Post::chiSquareTest(ArrayView<const Float> measured, ArrayView<const Float> expected) {
-    ASSERT(measured.size() == expected.size());
+    SPH_ASSERT(measured.size() == expected.size());
     Float chiSqr = 0._f;
     for (Size i = 0; i < measured.size(); ++i) {
-        ASSERT(measured[i] >= 0._f && expected[i] >= 0._f);
+        SPH_ASSERT(measured[i] >= 0._f && expected[i] >= 0._f);
         if (expected[i] == 0._f) {
             if (measured[i] == 0._f) {
                 continue;
@@ -81,7 +81,7 @@ static Array<PlotPoint> makeCdf(ArrayView<const Float> pdf) {
     for (Size i = 0; i < pdf.size(); ++i) {
         cdf[i] = { sortedPdf[i], i * step };
     }
-    ASSERT(cdf.front().y == 0 && cdf.back().y == 1);
+    SPH_ASSERT(cdf.front().y == 0 && cdf.back().y == 1);
     return cdf;
 }
 
@@ -91,7 +91,7 @@ static Float ksProb(const Float sqrtN, const Float D) {
 
 Post::KsResult Post::kolmogorovSmirnovTest(ArrayView<const Float> data,
     const Function<Float(Float)>& expectedCdf) {
-    ASSERT(data.size() >= 2);
+    SPH_ASSERT(data.size() >= 2);
     Array<PlotPoint> cdf = makeCdf(data);
 
     // find the maximum difference (Kolmogorov-Smirnov D)
@@ -104,7 +104,7 @@ Post::KsResult Post::kolmogorovSmirnovTest(ArrayView<const Float> data,
     }
     const Float sqrtN = sqrt(Float(data.size()));
     Float prob = ksProb(sqrtN, D);
-    ASSERT(prob >= 0._f && prob <= 1._f);
+    SPH_ASSERT(prob >= 0._f && prob <= 1._f);
     return { D, prob };
 }
 
@@ -125,7 +125,7 @@ Post::KsResult Post::kolmogorovSmirnovTest(ArrayView<const Float> data1, ArrayVi
 
     const Float sqrtNe = sqrt(Float(data1.size() * data2.size()) / (data1.size() + data2.size()));
     Float prob = ksProb(sqrtNe, D);
-    ASSERT(prob >= 0._f && prob <= 1._f);
+    SPH_ASSERT(prob >= 0._f && prob <= 1._f);
     return { D, prob };
 }
 
@@ -160,7 +160,7 @@ Post::KsResult Post::kolmogorovSmirnovTest(ArrayView<const PlotPoint> data, cons
     const Float r = correlationCoefficient(data);
     const Float prob =
         kolmogorovSmirnovDistribution(sqrtNe * D / (1._f + sqrt(1._f - sqr(r)) * (0.25_f - 0.75_f / sqrtNe)));
-    ASSERT(prob >= 0._f && prob <= 1._f);
+    SPH_ASSERT(prob >= 0._f && prob <= 1._f);
     return { D, prob };
 }
 

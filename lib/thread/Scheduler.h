@@ -115,7 +115,7 @@ INLINE void parallelFor(IScheduler& scheduler,
     const Size granularity,
     TFunctor&& functor) {
     scheduler.parallelFor(from, to, granularity, [&functor](Size n1, Size n2) {
-        ASSERT(n1 < n2);
+        SPH_ASSERT(n1 < n2);
         for (Size i = n1; i < n2; ++i) {
             functor(i);
         }

@@ -9,11 +9,11 @@ NAMESPACE_SPH_BEGIN
 Float TotalMass::evaluate(const Storage& storage) const {
     Float total(0._f);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-    ASSERT(!m.empty());
+    SPH_ASSERT(!m.empty());
     for (Size i = 0; i < m.size(); ++i) {
         total += m[i];
     }
-    ASSERT(isReal(total));
+    SPH_ASSERT(isReal(total));
     return total;
 }
 
@@ -26,11 +26,11 @@ Vector TotalMomentum::evaluate(const Storage& storage) const {
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-    ASSERT(!v.empty());
+    SPH_ASSERT(!v.empty());
     for (Size i = 0; i < v.size(); ++i) {
         total += vectorCast<double>(m[i] * (v[i] + cross(omega, r[i])));
     }
-    ASSERT(isReal(total));
+    SPH_ASSERT(isReal(total));
     return vectorCast<Float>(total);
 }
 
@@ -44,7 +44,7 @@ Vector TotalAngularMomentum::evaluate(const Storage& storage) const {
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
 
     // angular momentum with respect to origin
-    ASSERT(!v.empty());
+    SPH_ASSERT(!v.empty());
     for (Size i = 0; i < v.size(); ++i) {
         total += vectorCast<double>(m[i] * cross(r[i], (v[i] + cross(frameFrequency, r[i]))));
     }
@@ -59,7 +59,7 @@ Vector TotalAngularMomentum::evaluate(const Storage& storage) const {
         }
     }*/
 
-    ASSERT(isReal(total));
+    SPH_ASSERT(isReal(total));
     return vectorCast<Float>(total);
 }
 
@@ -73,7 +73,7 @@ Float TotalEnergy::evaluate(const Storage& storage) const {
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
     for (Size i = 0; i < v.size(); ++i) {
-        ASSERT(!v.empty());
+        SPH_ASSERT(!v.empty());
         total += 0.5 * m[i] * getSqrLength(v[i]);
     }
 
@@ -81,12 +81,12 @@ Float TotalEnergy::evaluate(const Storage& storage) const {
         // add internal energy
         ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
         for (Size i = 0; i < v.size(); ++i) {
-            ASSERT(!v.empty());
+            SPH_ASSERT(!v.empty());
             total += m[i] * u[i];
         }
     }
 
-    ASSERT(isReal(total));
+    SPH_ASSERT(isReal(total));
     return Float(total);
 }
 
@@ -99,10 +99,10 @@ Float TotalKineticEnergy::evaluate(const Storage& storage) const {
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
     for (Size i = 0; i < v.size(); ++i) {
-        ASSERT(!v.empty());
+        SPH_ASSERT(!v.empty());
         total += 0.5 * m[i] * getSqrLength(v[i]);
     }
-    ASSERT(isReal(total));
+    SPH_ASSERT(isReal(total));
     return Float(total);
 }
 
@@ -113,11 +113,11 @@ Float TotalInternalEnergy::evaluate(const Storage& storage) const {
     }
     ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-    ASSERT(!m.empty());
+    SPH_ASSERT(!m.empty());
     for (Size i = 0; i < m.size(); ++i) {
         total += double(m[i] * u[i]);
     }
-    ASSERT(isReal(total));
+    SPH_ASSERT(isReal(total));
     return Float(total);
 }
 
@@ -176,11 +176,11 @@ MinMaxMean QuantityMeans::evaluate(const Storage& storage) const {
     };
     if (quantity.getTypeIdx() == 0) {
         const QuantityId id = quantity.get<QuantityId>();
-        ASSERT(storage.has(id));
+        SPH_ASSERT(storage.has(id));
         ArrayView<const Float> q = storage.getValue<Float>(id);
         accumulate([&](const Size i) { return q[i]; });
     } else {
-        ASSERT(quantity.getTypeIdx() == 1);
+        SPH_ASSERT(quantity.getTypeIdx() == 1);
         const AutoPtr<IUserQuantity>& func = quantity;
         func->initialize(storage);
         accumulate([&](const Size i) { return func->evaluate(i); });

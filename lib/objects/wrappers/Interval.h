@@ -58,7 +58,7 @@ public:
 
     /// \brief Clamps the given value by the interval.
     INLINE Float clamp(const Float& value) const {
-        ASSERT(minBound <= maxBound);
+        SPH_ASSERT(minBound <= maxBound);
         return max(minBound, min(value, maxBound));
     }
 

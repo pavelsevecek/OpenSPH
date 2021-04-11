@@ -17,7 +17,7 @@ TEST_CASE("SparseGrid const", "[grid]") {
     REQUIRE(grid[Indices(2, 0, 0)] == -1);
     REQUIRE(RecordType::constructedNum == 3); // temporaries on the rhs
 
-    REQUIRE_ASSERT(grid[Indices(4, 0, 1)]);
+    REQUIRE_SPH_ASSERT(grid[Indices(4, 0, 1)]);
 }
 
 TEST_CASE("SparseGrid mutable", "[grid]") {

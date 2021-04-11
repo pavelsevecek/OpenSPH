@@ -86,7 +86,7 @@ Size Post::findComponents(const Storage& storage,
     const Float radius,
     const Flags<ComponentFlag> flags,
     Array<Size>& indices) {
-    ASSERT(radius > 0._f);
+    SPH_ASSERT(radius > 0._f);
 
     AutoPtr<ComponentChecker> checker = makeAuto<ComponentChecker>();
 
@@ -132,7 +132,7 @@ Size Post::findComponents(const Storage& storage,
             volumes[indices[i]] += pow<3>(r[i][H]);
         }
         for (Size k = 0; k < componentCnt; ++k) {
-            ASSERT(masses[k] > 0._f);
+            SPH_ASSERT(masses[k] > 0._f);
             positions[k] /= masses[k];
             positions[k][H] = cbrt(3._f * volumes[k] / (4._f * PI));
             velocities[k] /= masses[k];
@@ -170,7 +170,7 @@ Size Post::findComponents(const Storage& storage,
 
         // Last thing - we have to reindex the components found in the first step, using the indices from the
         // second step.
-        ASSERT(r.size() == indices.size());
+        SPH_ASSERT(r.size() == indices.size());
         for (Size i = 0; i < r.size(); ++i) {
             indices[i] = velocityIndices[indices[i]];
         }
@@ -181,10 +181,10 @@ Size Post::findComponents(const Storage& storage,
     for (Size i : indices) {
         uniqueIndices.insert(i);
     }
-    ASSERT(uniqueIndices.size() == componentCnt);
+    SPH_ASSERT(uniqueIndices.size() == componentCnt);
     Size counter = 0;
     for (Size i : uniqueIndices) {
-        ASSERT(i == counter);
+        SPH_ASSERT(i == counter);
         counter++;
     }
 
@@ -264,7 +264,7 @@ Array<Size> Post::findLargestComponent(const Storage& storage,
     for (Size i = 0; i < r.size(); ++i) {
         for (Size j = i + 1; j < r.size(); ++j) {
             W_tot += Constants::gravity * sqr(m) / getLength(r[i] - r[j]);
-            ASSERT(isReal(W_tot));
+            SPH_ASSERT(isReal(W_tot));
         }
     }
 
@@ -296,7 +296,7 @@ Array<Size> Post::findLargestComponent(const Storage& storage,
                 if (i != idx_largest) {
                     W_tot -= Constants::gravity * sqr(m) / getLength(r[i] - r[idx_largest]);
                 }
-                ASSERT(W_tot > 0._f);
+                SPH_ASSERT(W_tot > 0._f);
             }
 
             r.remove(idx_largest);
@@ -347,7 +347,7 @@ Storage Post::findFutureBodies(const Storage& storage, const Float particleRadiu
             v_new[indices[i]] += m[i] * v[i];
         }
         for (Size i = 0; i < numComponents; ++i) {
-            ASSERT(m_new[i] != 0._f);
+            SPH_ASSERT(m_new[i] != 0._f);
             r_new[i] /= m_new[i];
             r_new[i][H] = root<3>(h_new[i]);
             v_new[i] /= m_new[i];
@@ -417,8 +417,8 @@ Size Post::findMoonCount(ArrayView<const Float> m,
     const Size i,
     const Float radius,
     const Float limit) {
-    ASSERT(std::is_sorted(m.begin(), m.end(), std::greater<Float>{}));
-    ASSERT(r.size() == m.size());
+    SPH_ASSERT(std::is_sorted(m.begin(), m.end(), std::greater<Float>{}));
+    SPH_ASSERT(r.size() == m.size());
 
     Size count = 0;
     for (Size j = i + 1; j < r.size(); ++j) {
@@ -448,7 +448,7 @@ Array<Post::Tumbler> Post::findTumblers(const Storage& storage, const Float limi
             continue;
         }
         const Float cosBeta = dot(L, omega[i]) / (getLength(L) * getLength(omega[i]));
-        ASSERT(cosBeta >= -1._f && cosBeta <= 1._f);
+        SPH_ASSERT(cosBeta >= -1._f && cosBeta <= 1._f);
         const Float beta = acos(cosBeta);
         if (beta > limit) {
             tumblers.push(Tumbler{ i, beta });
@@ -533,7 +533,7 @@ Vector Post::getAngularFrequency(ArrayView<const Float> m,
     }
     // L = I * omega => omega = I^-1 * L)
     const SymmetricTensor I_inv = I.inverse();
-    ASSERT(isReal(I_inv));
+    SPH_ASSERT(isReal(I_inv));
     return I_inv * L;
 }
 
@@ -556,13 +556,13 @@ Float Post::getSphericity(IScheduler& scheduler, const Storage& storage, const F
     for (const Triangle& triangle : mesh) {
         area += triangle.area();
     }
-    ASSERT(area > 0._f);
+    SPH_ASSERT(area > 0._f);
 
     MeshParams params;
     params.precomputeInside = false;
     MeshDomain domain(scheduler, std::move(mesh), params);
     const Float volume = domain.getVolume();
-    ASSERT(volume > 0._f);
+    SPH_ASSERT(volume > 0._f);
 
     // https://en.wikipedia.org/wiki/Sphericity
     return pow(PI * sqr(6._f * volume), 1._f / 3._f) / area;
@@ -615,7 +615,7 @@ Optional<Post::KeplerianElements> Post::findKeplerEllipse(const Float M,
     elements.a = -Constants::gravity * mu * M / (2._f * E);
 
     const Vector L = mu * cross(r, v); // angular momentum
-    ASSERT(L != Vector(0._f));
+    SPH_ASSERT(L != Vector(0._f));
     elements.i = acos(L[Z] / getLength(L));
     elements.e = sqrt(1._f + 2._f * E * getSqrLength(L) / (sqr(Constants::gravity) * pow<3>(mu) * sqr(M)));
 
@@ -720,7 +720,7 @@ static Array<Float> getParticleValues(const Storage& storage,
     }
     default:
         const QuantityId quantityId = QuantityId(id);
-        ASSERT((int)quantityId >= 0);
+        SPH_ASSERT((int)quantityId >= 0);
         /// \todo allow also other types
         Array<Float> values = storage.getValue<Float>(quantityId).clone();
         return processParticleCutoffs(storage, params, [&values](Size i) { return values[i]; });
@@ -746,7 +746,7 @@ static Array<Size> processComponentCutoffs(const Storage& storage,
 
     Array<Size> toRemove;
     for (Size idx = 0; idx < numComponents; ++idx) {
-        ASSERT(masses[idx] > 0._f);
+        SPH_ASSERT(masses[idx] > 0._f);
         velocities[idx] /= masses[idx];
 
         if (masses[idx] < params.massCutoff || getLength(velocities[idx]) > params.velocityCutoff) {
@@ -806,7 +806,7 @@ static Array<Float> getComponentValues(const Storage& storage,
             } else {
                 density = rho[i];
             }
-            ASSERT(m[i] > 0._f && density > 0._f);
+            SPH_ASSERT(m[i] > 0._f && density > 0._f);
             values[components[i]] += m[i] / density;
         }
 
@@ -817,7 +817,7 @@ static Array<Float> getComponentValues(const Storage& storage,
         Array<Float> radii(values.size());
         for (Size i = 0; i < values.size(); ++i) {
             radii[i] = root<3>(3._f * values[i] / (4._f * PI));
-            ASSERT(isReal(radii[i]) && radii[i] > 0._f, values[i]);
+            SPH_ASSERT(isReal(radii[i]) && radii[i] > 0._f, values[i]);
         }
         return radii;
     }
@@ -841,7 +841,7 @@ static Array<Float> getComponentValues(const Storage& storage,
 
         Array<Float> velocities(sumV.size());
         for (Size i = 0; i < sumV.size(); ++i) {
-            ASSERT(weights[i] != 0._f);
+            SPH_ASSERT(weights[i] != 0._f);
             velocities[i] = getLength(sumV[i] / weights[i]);
         }
         return velocities;
@@ -859,10 +859,10 @@ static Array<Float> getValues(const Storage& storage,
     Array<Float> values;
     if (source == Post::HistogramSource::PARTICLES) {
         values = getParticleValues(storage, params, id);
-        ASSERT(values.size() <= storage.getParticleCnt()); // can be < due to cutoffs
+        SPH_ASSERT(values.size() <= storage.getParticleCnt()); // can be < due to cutoffs
     } else {
         values = getComponentValues(storage, params, id);
-        ASSERT(values.size() <= storage.getParticleCnt());
+        SPH_ASSERT(values.size() <= storage.getParticleCnt());
     }
     return values;
 }
@@ -884,7 +884,7 @@ Array<Post::HistPoint> Post::getCumulativeHistogram(const Storage& storage,
             range.extend(values[i]);
         }
     }
-    ASSERT(!range.empty());
+    SPH_ASSERT(!range.empty());
 
     Array<HistPoint> histogram;
     Size count = 1;
@@ -900,7 +900,7 @@ Array<Post::HistPoint> Post::getCumulativeHistogram(const Storage& storage,
         }
         count++;
     }
-    ASSERT(histogram.size() > 0);
+    SPH_ASSERT(histogram.size() > 0);
 
     return histogram;
 }
@@ -926,8 +926,8 @@ Array<Post::HistPoint> Post::getDifferentialHistogram(ArrayView<const Float> val
         range.extend(range.lower() - EPS * range.size());
         range.extend(range.upper() + EPS * range.size());
     }
-    ASSERT(!range.empty());
-    ASSERT(isReal(range.lower()) && isReal(range.upper()));
+    SPH_ASSERT(!range.empty());
+    SPH_ASSERT(isReal(range.lower()) && isReal(range.upper()));
 
     Size binCnt = params.binCnt;
     if (binCnt == 0) {
@@ -951,7 +951,7 @@ Array<Post::HistPoint> Post::getDifferentialHistogram(ArrayView<const Float> val
             } else {
                 // out of range, skip
                 // this should not happen if the range was determined
-                ASSERT(!params.range.empty(), floatIdx, binCnt);
+                SPH_ASSERT(!params.range.empty(), floatIdx, binCnt);
                 continue;
             }
         }
@@ -962,13 +962,13 @@ Array<Post::HistPoint> Post::getDifferentialHistogram(ArrayView<const Float> val
     for (Size i = 0; i < binCnt; ++i) {
         const Float centerIdx = i + int(params.centerBins) * 0.5_f;
         histogram[i] = { range.lower() + (centerIdx * range.size()) / binCnt, sfd[i] };
-        ASSERT(isReal(histogram[i].value), sfd[i], range);
+        SPH_ASSERT(isReal(histogram[i].value), sfd[i], range);
     }
     return histogram;
 }
 
 Post::LinearFunction Post::getLinearFit(ArrayView<const PlotPoint> points) {
-    ASSERT(points.size() >= 2);
+    SPH_ASSERT(points.size() >= 2);
     Float x = 0._f, x2 = 0._f;
     Float y = 0._f, y2 = 0._f;
     Float xy = 0._f;
@@ -982,14 +982,14 @@ Post::LinearFunction Post::getLinearFit(ArrayView<const PlotPoint> points) {
 
     const Size n = points.size();
     const Float denom = n * x2 - sqr(x);
-    ASSERT(denom > 0._f);
+    SPH_ASSERT(denom > 0._f);
     const Float b = (y * x2 - x * xy) / denom;
     const Float a = (n * xy - x * y) / denom;
     return LinearFunction(a, b);
 }
 
 Post::QuadraticFunction Post::getQuadraticFit(ArrayView<const PlotPoint> points) {
-    ASSERT(points.size() >= 3);
+    SPH_ASSERT(points.size() >= 3);
     Array<Vector> xs(points.size());
     Array<Float> ys(points.size());
     for (Size k = 0; k < xs.size(); ++k) {
@@ -1007,7 +1007,7 @@ Post::QuadraticFunction Post::getQuadraticFit(ArrayView<const PlotPoint> points)
             xTy[i] += xs[k][i] * ys[k];
         }
     }
-    ASSERT(xTx.determinant() != 0._f);
+    SPH_ASSERT(xTx.determinant() != 0._f);
 
     const Vector result = xTx.inverse() * xTy;
     return QuadraticFunction(result[2], result[1], result[0]);

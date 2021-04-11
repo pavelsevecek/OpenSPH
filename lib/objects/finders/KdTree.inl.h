@@ -37,7 +37,7 @@ void KdTree<TNode, TMetric>::buildImpl(IScheduler& scheduler, ArrayView<const Ve
     // shrink nodes to only the constructed ones
     nodes.resize(nodeCounter);
 
-    ASSERT(this->sanityCheck(), this->sanityCheck().error());
+    SPH_ASSERT(this->sanityCheck(), this->sanityCheck().error());
 }
 
 template <typename TNode, typename TMetric>
@@ -74,7 +74,7 @@ void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
                 if (boxSize == Vector(0._f)) {
                     // too many overlapping points, just split until they fit within a leaf,
                     // the code can handle this case, but it smells with an error ...
-                    ASSERT(false, "Too many overlapping points, something is probably wrong ...");
+                    SPH_ASSERT(false, "Too many overlapping points, something is probably wrong ...");
                     degeneratedBox = true;
                     break;
                 }
@@ -141,7 +141,7 @@ void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
         }
 
         // sanity check
-        ASSERT(this->checkBoxes(from, to, n1, box1, box2));
+        SPH_ASSERT(this->checkBoxes(from, to, n1, box1, box2));
 
         // add inner node and connect it to the parent
         const Size index = this->addInner(parent, child, splitPosition, splitIdx);
@@ -179,7 +179,7 @@ void KdTree<TNode, TMetric>::addLeaf(const Size parent, const KdChild child, con
 
     LeafNode<TNode>& node = (LeafNode<TNode>&)nodes[index];
     node.type = KdNode::Type::LEAF;
-    ASSERT(node.isLeaf());
+    SPH_ASSERT(node.isLeaf());
 
 #ifdef SPH_DEBUG
     node.from = node.to = -1;
@@ -199,12 +199,12 @@ void KdTree<TNode, TMetric>::addLeaf(const Size parent, const KdChild child, con
         return;
     }
     InnerNode<TNode>& parentNode = (InnerNode<TNode>&)nodes[parent];
-    ASSERT(!parentNode.isLeaf());
+    SPH_ASSERT(!parentNode.isLeaf());
     if (child == KdChild::LEFT) {
         // left child
         parentNode.left = index;
     } else {
-        ASSERT(child == KdChild::RIGHT);
+        SPH_ASSERT(child == KdChild::RIGHT);
         // right child
         parentNode.right = index;
     }
@@ -231,7 +231,7 @@ Size KdTree<TNode, TMetric>::addInner(const Size parent,
     auto releaseLock = finally([this] { nodesMutex.unlock_shared(); });
     InnerNode<TNode>& node = (InnerNode<TNode>&)nodes[index];
     node.type = KdNode::Type(splitIdx);
-    ASSERT(!node.isLeaf());
+    SPH_ASSERT(!node.isLeaf());
 
 #ifdef SPH_DEBUG
     node.left = node.right = -1;
@@ -247,12 +247,12 @@ Size KdTree<TNode, TMetric>::addInner(const Size parent,
     InnerNode<TNode>& parentNode = (InnerNode<TNode>&)nodes[parent];
     if (child == KdChild::LEFT) {
         // left child
-        ASSERT(parentNode.left == Size(-1));
+        SPH_ASSERT(parentNode.left == Size(-1));
         parentNode.left = index;
     } else {
-        ASSERT(child == KdChild::RIGHT);
+        SPH_ASSERT(child == KdChild::RIGHT);
         // right child
-        ASSERT(parentNode.right == Size(-1));
+        SPH_ASSERT(parentNode.right == Size(-1));
         parentNode.right = index;
     }
 
@@ -318,7 +318,7 @@ Size KdTree<TNode, TMetric>::find(const Vector& r0,
     const Float radius,
     Array<NeighbourRecord>& neighbours) const {
 
-    ASSERT(neighbours.empty());
+    SPH_ASSERT(neighbours.empty());
     const Float radiusSqr = sqr(radius);
     const Vector maxDistSqr = sqr(max(Vector(0._f), entireBox.lower() - r0, r0 - entireBox.upper()));
 
@@ -326,7 +326,7 @@ Size KdTree<TNode, TMetric>::find(const Vector& r0,
     const Float l1 = l1Norm(maxDistSqr);
     ProcessedNode node{ 0, maxDistSqr, l1 };
 
-    ASSERT(nodeStack.empty()); // not sure if there can be some nodes from previous search ...
+    SPH_ASSERT(nodeStack.empty()); // not sure if there can be some nodes from previous search ...
 
     TMetric metric;
     while (node.distanceSqr < radiusSqr) {
@@ -356,7 +356,7 @@ Size KdTree<TNode, TMetric>::find(const Vector& r0,
             // inner node
             const InnerNode<TNode>& inner = (InnerNode<TNode>&)nodes[node.idx];
             const Size splitDimension = Size(inner.type);
-            ASSERT(splitDimension < 3);
+            SPH_ASSERT(splitDimension < 3);
             const Float splitPosition = inner.splitPosition;
             if (r0[splitDimension] < splitPosition) {
                 // process left subtree, put right on stack

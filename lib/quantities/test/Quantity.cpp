@@ -8,10 +8,10 @@ using namespace Sph;
 
 TEST_CASE("Quantity default construct", "[quantity]") {
     Quantity q;
-    REQUIRE_ASSERT(q.size());
-    REQUIRE_ASSERT(q.getOrderEnum());
-    REQUIRE_ASSERT(q.getValueEnum());
-    REQUIRE_ASSERT(q.getValue<Float>());
+    REQUIRE_SPH_ASSERT(q.size());
+    REQUIRE_SPH_ASSERT(q.getOrderEnum());
+    REQUIRE_SPH_ASSERT(q.getValueEnum());
+    REQUIRE_SPH_ASSERT(q.getValue<Float>());
 }
 
 TEST_CASE("Quantity value construct", "[quantity]") {
@@ -20,9 +20,9 @@ TEST_CASE("Quantity value construct", "[quantity]") {
     REQUIRE(q1.getValueEnum() == ValueEnum::SCALAR);
     REQUIRE(q1.getOrderEnum() == OrderEnum::FIRST);
     REQUIRE(q1.getValue<Float>() == Array<Float>({ 4._f, 4._f, 4._f }));
-    REQUIRE_ASSERT(q1.getValue<Vector>());
+    REQUIRE_SPH_ASSERT(q1.getValue<Vector>());
     REQUIRE_NOTHROW(q1.getDt<Float>());
-    REQUIRE_ASSERT(q1.getD2t<Float>());
+    REQUIRE_SPH_ASSERT(q1.getD2t<Float>());
 
     Quantity q2(OrderEnum::SECOND, SymmetricTensor(2._f), 2);
     REQUIRE(q2.size() == 2);
@@ -31,7 +31,7 @@ TEST_CASE("Quantity value construct", "[quantity]") {
     REQUIRE_NOTHROW(q2.getValue<SymmetricTensor>());
     REQUIRE_NOTHROW(q2.getDt<SymmetricTensor>());
     REQUIRE_NOTHROW(q2.getD2t<SymmetricTensor>());
-    REQUIRE_ASSERT(q2.getValue<Vector>());
+    REQUIRE_SPH_ASSERT(q2.getValue<Vector>());
 }
 
 TEST_CASE("Quantity array construct", "[quantity]") {
@@ -41,7 +41,7 @@ TEST_CASE("Quantity array construct", "[quantity]") {
     REQUIRE(q1.getOrderEnum() == OrderEnum::FIRST);
     REQUIRE_NOTHROW(q1.getValue<Vector>());
     REQUIRE_NOTHROW(q1.getDt<Vector>());
-    REQUIRE_ASSERT(q1.getD2t<Vector>());
+    REQUIRE_SPH_ASSERT(q1.getD2t<Vector>());
 }
 
 TEST_CASE("Quantity move construct", "[quantity]") {
@@ -52,7 +52,7 @@ TEST_CASE("Quantity move construct", "[quantity]") {
     REQUIRE(q2.getOrderEnum() == OrderEnum::FIRST);
     REQUIRE_NOTHROW(q2.getValue<Float>());
     REQUIRE_NOTHROW(q2.getDt<Float>());
-    REQUIRE_ASSERT(q2.getD2t<Float>());
+    REQUIRE_SPH_ASSERT(q2.getD2t<Float>());
 }
 
 static Pair<Quantity> makeTestQuantities() {
@@ -73,7 +73,7 @@ static Array<Float> extractAll(Quantity& q) {
 TEST_CASE("Quantity swap", "[quantity]") {
     Quantity q1(OrderEnum::FIRST, 2._f, 2);
     Quantity q2(OrderEnum::FIRST, Vector(1._f), 2);
-    REQUIRE_ASSERT(q1.swap(q2, VisitorEnum::ALL_BUFFERS));
+    REQUIRE_SPH_ASSERT(q1.swap(q2, VisitorEnum::ALL_BUFFERS));
 
     tie(q1, q2) = makeTestQuantities();
     // sanity check

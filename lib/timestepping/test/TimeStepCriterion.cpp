@@ -123,7 +123,7 @@ TEST_CASE("Derivative Criterion mean", "[timestepping]") {
 
     settings.set(RunSettingsId::TIMESTEPPING_MEAN_POWER, 1._f);
     // not implemented for positive powers (nor it makes sense, really)
-    REQUIRE_ASSERT(DerivativeCriterion(settings));
+    REQUIRE_SPH_ASSERT(DerivativeCriterion(settings));
 }
 
 TEST_CASE("Acceleration Criterion", "[timestepping]") {

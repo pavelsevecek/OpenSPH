@@ -57,12 +57,12 @@ public:
     }
 
     INLINE T& operator*() const {
-        ASSERT(ptr);
+        SPH_ASSERT(ptr);
         return *ptr;
     }
 
     INLINE T* operator->() const {
-        ASSERT(ptr);
+        SPH_ASSERT(ptr);
         return ptr;
     }
 
@@ -80,7 +80,7 @@ public:
 
     template <typename... TArgs>
     INLINE decltype(auto) operator()(TArgs&&... args) const {
-        ASSERT(ptr);
+        SPH_ASSERT(ptr);
         return (*ptr)(std::forward<TArgs>(args)...);
     }
 

@@ -300,7 +300,7 @@ const Size IDXS2[12] = { 1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7 };
 template <typename TFunctor>
 bool MarchingCubes::iterateWithIndices(const Box& box, const Vector& step, TFunctor&& functor) {
     MEASURE_SCOPE("MC - evaluating field");
-    ASSERT(box != Box::EMPTY());
+    SPH_ASSERT(box != Box::EMPTY());
 
     Size reportCnt = max(Size(box.size()[Z] / step[Z]), 1u);
     Size reportStep = max(reportCnt / 100, 1u);
@@ -342,13 +342,13 @@ void MarchingCubes::addComponent(const Box& box, const Float gridResolution) {
     cached.phi.clear();
     // multiply by (1 + EPS) to handle case where box size is divisible by dr
     Indices cnts((1._f + EPS) * box.size() / dr);
-    ASSERT(cnts[X] >= 1 && cnts[Y] >= 1 && cnts[Z] >= 1);
+    SPH_ASSERT(cnts[X] >= 1 && cnts[Y] >= 1 && cnts[Z] >= 1);
 
     // find values of grid nodes
     auto mapping = [&cnts](const Indices& idxs) {
-        ASSERT(idxs[X] >= 0 && idxs[X] <= cnts[X], idxs[X], cnts[X]);
-        ASSERT(idxs[Y] >= 0 && idxs[Y] <= cnts[Y], idxs[Y], cnts[Y]);
-        ASSERT(idxs[Z] >= 0 && idxs[Z] <= cnts[Z], idxs[Z], idxs[Z]);
+        SPH_ASSERT(idxs[X] >= 0 && idxs[X] <= cnts[X], idxs[X], cnts[X]);
+        SPH_ASSERT(idxs[Y] >= 0 && idxs[Y] <= cnts[Y], idxs[Y], cnts[Y]);
+        SPH_ASSERT(idxs[Z] >= 0 && idxs[Z] <= cnts[Z], idxs[Z], idxs[Z]);
         return idxs[X] + (cnts[X] + 1) * idxs[Y] + (cnts[X] + 1) * (cnts[Y] + 1) * idxs[Z];
     };
     cached.phi.resize((cnts[X] + 1) * (cnts[Y] + 1) * (cnts[Z] + 1));
@@ -452,7 +452,7 @@ INLINE Vector MarchingCubes::interpolate(const Vector& v1,
     }
 
     Float mu = (p1 - surfaceLevel) / (p1 - p2);
-    ASSERT(mu >= 0._f && mu <= 1._f);
+    SPH_ASSERT(mu >= 0._f && mu <= 1._f);
     return v1 + mu * (v2 - v1);
 }
 
@@ -504,7 +504,7 @@ public:
     }
 
     virtual Float operator()(const Vector& pos) override {
-        ASSERT(maxH > 0._f);
+        SPH_ASSERT(maxH > 0._f);
         Array<NeighbourRecord>& neighsTl = neighs.local();
         /// \todo for now let's just search some random multiple of smoothing length, we should use the
         /// largest singular value here
@@ -565,7 +565,7 @@ public:
     }
 
     virtual Float operator()(const Vector& pos) override {
-        ASSERT(maxH > 0._f);
+        SPH_ASSERT(maxH > 0._f);
         Array<NeighbourRecord>& neighsTl = neighs.local();
         /// \todo for now let's just search some random multiple of smoothing length, we should use the
         /// largest singular value here

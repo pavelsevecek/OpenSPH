@@ -283,7 +283,7 @@ struct FamilyAsteroid {
 };
 
 static Array<FamilyAsteroid> loadFamilies(std::ifstream& ifs) {
-    ASSERT(ifs);
+    SPH_ASSERT(ifs);
     Array<FamilyAsteroid> asteroids;
     std::string line;
     bool firstLine = true;
@@ -311,7 +311,7 @@ static Array<FamilyAsteroid> loadFamilies(std::ifstream& ifs) {
             asteroids.push(FamilyAsteroid{ fromString<Size>(number), NOTHING });
         }
         // check that we have at least one information
-        ASSERT(asteroids.back().name || asteroids.back().number);
+        SPH_ASSERT(asteroids.back().name || asteroids.back().number);
     }
     return asteroids;
 }
@@ -347,7 +347,7 @@ static Optional<Post::KsResult> printDvsOmega(const Path& familyData,
     Array<PlotPoint>& outPoints) {
 
     std::ifstream ifs(familyData.native());
-    ASSERT(ifs);
+    SPH_ASSERT(ifs);
     Array<FamilyAsteroid> family = loadFamilies(ifs);
     Array<HarrisAsteroid> found;
     Interval rangePeriod;
@@ -366,7 +366,7 @@ static Optional<Post::KsResult> printDvsOmega(const Path& familyData,
 
     FileSystem::createDirectory(outputPath.parentPath());
     std::ofstream ofs(outputPath.native());
-    ASSERT(ofs);
+    SPH_ASSERT(ofs);
 
     auto compare = [](HarrisAsteroid& ast1, HarrisAsteroid& ast2) {
         return ast1.radius.value() < ast2.radius.value();
@@ -416,7 +416,7 @@ static Optional<Post::KsResult> printDvsOmega(const Path& familyData,
 }
 
 static std::string elliptize(const std::string& s, const Size maxSize) {
-    ASSERT(maxSize >= 5);
+    SPH_ASSERT(maxSize >= 5);
     if (s.size() < maxSize) {
         return s;
     }
@@ -461,7 +461,7 @@ void processHarrisFile() {
     if (count > 0) {
         std::cout << "Average period for R>100km: " << avgPeriod / count << std::endl;
     } else {
-        ASSERT(false);
+        SPH_ASSERT(false);
     }
 
     Array<PlotPoint> points;
@@ -506,7 +506,7 @@ void processHarrisFile() {
         // make plot
         Process gnuplot(Path("/bin/gnuplot"), { "doplot.plt" });
         gnuplot.wait();
-        ASSERT(FileSystem::pathExists(Path("plot.png")));
+        SPH_ASSERT(FileSystem::pathExists(Path("plot.png")));
         FileSystem::copyFile(Path("plot.png"), uniquePaths.getPath(Path(targetPath).replaceExtension("png")));
 
         if (points.size() > 25) {
@@ -514,7 +514,7 @@ void processHarrisFile() {
             FileSystem::copyFile(histPath, Path("hist.txt"));
             Process gnuplot2(Path("/bin/gnuplot"), { "dohistogram.plt" });
             gnuplot2.wait();
-            ASSERT(FileSystem::pathExists(Path("hist.png")));
+            SPH_ASSERT(FileSystem::pathExists(Path("hist.png")));
             FileSystem::copyFile(
                 Path("hist.png"), uniquePaths.getPath(Path(histPath).replaceExtension("png")));
         }
@@ -626,7 +626,7 @@ void origComponents(const Path& lastDumpPath, const Path& firstDumpPath, const P
         lastDump, 2._f, Post::ComponentFlag::ESCAPE_VELOCITY | Post::ComponentFlag::SORT_BY_MASS, components);
 
     // "colorize" the flag quantity using the components
-    ASSERT(firstDump.getParticleCnt() == components.size());
+    SPH_ASSERT(firstDump.getParticleCnt() == components.size());
     firstDump.getValue<Size>(QuantityId::FLAG) = components.clone();
 
     // save as new file
@@ -686,7 +686,7 @@ void extractLr(const Path& inputPath, const Path& outputPath) {
     std::cout << "period = " << 2._f * PI / omega / 3600._f << "h" << std::endl;
 
     SymmetricTensor I = Post::getInertiaTensor(m, r);
-    ASSERT(isReal(I), I);
+    SPH_ASSERT(isReal(I), I);
     Eigen e = eigenDecomposition(I);
     /*std::cout << "I = " << I << std::endl;
     std::cout << "matrix = " << e.vectors << std::endl;
@@ -697,7 +697,7 @@ void extractLr(const Path& inputPath, const Path& outputPath) {
     const Float a = sqrt(B + C - A);
     const Float b = sqrt(A + C - B);
     const Float c = sqrt(A + B - C);
-    ASSERT(a > 0._f && b > 0._f && c > 0._f, a, b, c);
+    SPH_ASSERT(a > 0._f && b > 0._f && c > 0._f, a, b, c);
     std::cout << "a/b = " << a / b << std::endl;
     std::cout << "b/c = " << b / c << std::endl;
 }

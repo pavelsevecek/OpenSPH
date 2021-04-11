@@ -448,7 +448,7 @@ AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& se
     case BoundaryEnum::NONE:
         return makeAuto<NullBoundaryCondition>();
     case BoundaryEnum::GHOST_PARTICLES:
-        ASSERT(domain != nullptr);
+        SPH_ASSERT(domain != nullptr);
         return makeAuto<GhostParticles>(std::move(domain), settings);
     case BoundaryEnum::FIXED_PARTICLES:
         throw InvalidSetup("FixedParticles cannot be create from Factory, use manual setup.");
@@ -460,7 +460,7 @@ AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& se
             return makeAuto<FrozenParticles>();
         }
     case BoundaryEnum::WIND_TUNNEL: {
-        ASSERT(domain != nullptr);
+        SPH_ASSERT(domain != nullptr);
         const Float radius = settings.get<Float>(RunSettingsId::DOMAIN_FROZEN_DIST);
         return makeAuto<WindTunnel>(std::move(domain), radius);
     }
@@ -471,10 +471,10 @@ AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& se
     case BoundaryEnum::SYMMETRIC:
         return makeAuto<SymmetricBoundary>();
     case BoundaryEnum::KILL_ESCAPERS:
-        ASSERT(domain != nullptr);
+        SPH_ASSERT(domain != nullptr);
         return makeAuto<KillEscapersBoundary>(domain);
     case BoundaryEnum::PROJECT_1D: {
-        ASSERT(domain != nullptr);
+        SPH_ASSERT(domain != nullptr);
         const Box box = domain->getBoundingBox();
         return makeAuto<Projection1D>(Interval(box.lower()[X], box.upper()[X]));
     }
@@ -628,19 +628,19 @@ LutKernel<D> Factory::getKernel(const RunSettings& settings) {
     case KernelEnum::TRIANGLE:
         return TriangleKernel<D>();
     case KernelEnum::CORE_TRIANGLE:
-        ASSERT(D == 3);
+        SPH_ASSERT(D == 3);
         // original core triangle has radius 1, rescale to 2 for drop-in replacement of cubic spline
         return ScalingKernel<3, CoreTriangle>(2._f);
     case KernelEnum::THOMAS_COUCHMAN:
         return ThomasCouchmanKernel<D>();
     case KernelEnum::WENDLAND_C2:
-        ASSERT(D == 3);
+        SPH_ASSERT(D == 3);
         return WendlandC2();
     case KernelEnum::WENDLAND_C4:
-        ASSERT(D == 3);
+        SPH_ASSERT(D == 3);
         return WendlandC4();
     case KernelEnum::WENDLAND_C6:
-        ASSERT(D == 3);
+        SPH_ASSERT(D == 3);
         return WendlandC6();
     default:
         NOT_IMPLEMENTED;

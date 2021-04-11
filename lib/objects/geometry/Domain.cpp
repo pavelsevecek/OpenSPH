@@ -68,7 +68,7 @@ void SphericalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> in
             const Float h = v[H];
             v = getNormalized(v - this->center) * (1._f - EPS) * radius + this->center;
             v[H] = h;
-            ASSERT(isInsideImpl(v)); // these asserts are quite reduntant since we have unit tests for that
+            SPH_ASSERT(isInsideImpl(v)); // these asserts are quite reduntant since we have unit tests for that
         }
     };
     if (indices) {
@@ -86,7 +86,7 @@ void SphericalDomain::addGhosts(ArrayView<const Vector> vs,
     Array<Ghost>& ghosts,
     const Float eta,
     const Float eps) const {
-    ASSERT(eps < eta);
+    SPH_ASSERT(eps < eta);
     ghosts.clear();
     // iterate using indices as the array can reallocate during the loop
     for (Size i = 0; i < vs.size(); ++i) {
@@ -114,7 +114,7 @@ EllipsoidalDomain::EllipsoidalDomain(const Vector& center, const Vector& axes)
     : center(center)
     , radii(axes) {
     effectiveRadius = cbrt(radii[X] * radii[Y] * radii[Z]);
-    ASSERT(isReal(effectiveRadius));
+    SPH_ASSERT(isReal(effectiveRadius));
 }
 
 Vector EllipsoidalDomain::getCenter() const {
@@ -179,7 +179,7 @@ void EllipsoidalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> 
             /// \todo test
             v = getNormalized((v - this->center) / radii) * radii + this->center;
             v[H] = h;
-            ASSERT(isInsideImpl(v));
+            SPH_ASSERT(isInsideImpl(v));
         }
     };
     if (indices) {
@@ -197,7 +197,7 @@ void EllipsoidalDomain::addGhosts(ArrayView<const Vector> UNUSED(vs),
     Array<Ghost>& ghosts,
     const Float eta,
     const Float eps) const {
-    ASSERT(eps < eta);
+    SPH_ASSERT(eps < eta);
     ghosts.clear();
     NOT_IMPLEMENTED;
 }
@@ -267,7 +267,7 @@ void BlockDomain::getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>
                 minDist = d2[i];
             }
         }
-        ASSERT(minDist < INFTY);
+        SPH_ASSERT(minDist < INFTY);
         distances.push(minDist);
     }
 }
@@ -278,7 +278,7 @@ void BlockDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indice
             const Float h = v[H];
             v = box.clamp(v);
             v[H] = h;
-            ASSERT(box.contains(v));
+            SPH_ASSERT(box.contains(v));
         }
     };
     if (indices) {
@@ -296,7 +296,7 @@ void BlockDomain::addGhosts(ArrayView<const Vector> vs,
     Array<Ghost>& ghosts,
     const Float eta,
     const Float eps) const {
-    ASSERT(eps < eta);
+    SPH_ASSERT(eps < eta);
     ghosts.clear();
 
     for (Size i = 0; i < vs.size(); ++i) {
@@ -407,7 +407,7 @@ void CylindricalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> 
                 v[Z] = clamp(v[Z], this->center[Z] - halfHeight, this->center[Z] + halfHeight);
             }
             v[H] = h;
-            ASSERT(isInsideImpl(v));
+            SPH_ASSERT(isInsideImpl(v));
         }
     };
     if (indices) {
@@ -426,7 +426,7 @@ void CylindricalDomain::addGhosts(ArrayView<const Vector> vs,
     const Float eta,
     const Float eps) const {
     ghosts.clear();
-    ASSERT(eps < eta);
+    SPH_ASSERT(eps < eta);
     for (Size i = 0; i < vs.size(); ++i) {
         if (!isInsideImpl(vs[i])) {
             continue;
@@ -436,7 +436,7 @@ void CylindricalDomain::addGhosts(ArrayView<const Vector> vs,
         tieToTuple(normalized, length) =
             getNormalizedWithLength(Vector(vs[i][X], vs[i][Y], this->center[Z]) - this->center);
         const Float h = vs[i][H];
-        ASSERT(radius - length >= 0._f);
+        SPH_ASSERT(radius - length >= 0._f);
         Float diff = max(eps * h, radius - length);
         if (diff < h * eta) {
             Vector v = vs[i] + 2._f * diff * normalized;
@@ -528,7 +528,7 @@ void HexagonalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> in
                 const Float halfHeight = 0.5_f * (1._f - EPS) * height;
                 v[Z] = clamp(v[Z], this->center[Z] - halfHeight, this->center[Z] + halfHeight);
             }
-            ASSERT(isInsideImpl(v));
+            SPH_ASSERT(isInsideImpl(v));
         }
     };
     if (indices) {
@@ -547,7 +547,7 @@ void HexagonalDomain::addGhosts(ArrayView<const Vector> vs,
     const Float eta,
     const Float eps) const {
     ghosts.clear();
-    ASSERT(eps < eta);
+    SPH_ASSERT(eps < eta);
     /// \todo almost identical to cylinder domain, remove duplication
     for (Size i = 0; i < vs.size(); ++i) {
         if (!isInsideImpl(vs[i])) {
@@ -558,7 +558,7 @@ void HexagonalDomain::addGhosts(ArrayView<const Vector> vs,
         tieToTuple(normalized, length) =
             getNormalizedWithLength(Vector(vs[i][X], vs[i][Y], this->center[Z]) - this->center);
         const Float h = vs[i][H];
-        ASSERT(outerRadius - length >= 0._f);
+        SPH_ASSERT(outerRadius - length >= 0._f);
         const Float phi = atan2(vs[i][Y], vs[i][X]);
         const Float r = outerRadius * hexagon(phi);
         Float diff = max(eps * h, r - length);
@@ -730,7 +730,7 @@ void HalfSpaceDomain::addGhosts(ArrayView<const Vector> vs,
     Array<Ghost>& ghosts,
     const Float eta,
     const Float eps) const {
-    ASSERT(eps < eta);
+    SPH_ASSERT(eps < eta);
     ghosts.clear();
     for (Size i = 0; i < vs.size(); ++i) {
         if (!this->contains(vs[i])) {
@@ -738,7 +738,7 @@ void HalfSpaceDomain::addGhosts(ArrayView<const Vector> vs,
         }
 
         const Float dist = vs[i][Z];
-        ASSERT(dist > 0._f);
+        SPH_ASSERT(dist > 0._f);
         if (dist < vs[i][H] * eta) {
             Vector g = vs[i];
             g[Z] -= 2._f * dist;

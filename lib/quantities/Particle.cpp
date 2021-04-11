@@ -100,25 +100,25 @@ Particle& Particle::addParameter(const BodySettingsId id, const Dynamic& value) 
 
 Dynamic Particle::getValue(const QuantityId id) const {
     Optional<const InternalQuantityData&> quantity = quantities.tryGet(id);
-    ASSERT(quantity);
+    SPH_ASSERT(quantity);
     return quantity->value;
 }
 
 Dynamic Particle::getDt(const QuantityId id) const {
     Optional<const InternalQuantityData&> quantity = quantities.tryGet(id);
-    ASSERT(quantity);
+    SPH_ASSERT(quantity);
     return quantity->dt;
 }
 
 Dynamic Particle::getD2t(const QuantityId id) const {
     Optional<const InternalQuantityData&> quantity = quantities.tryGet(id);
-    ASSERT(quantity);
+    SPH_ASSERT(quantity);
     return quantity->d2t;
 }
 
 Dynamic Particle::getParameter(const BodySettingsId id) const {
     Optional<const Dynamic&> value = material.tryGet(id);
-    ASSERT(value);
+    SPH_ASSERT(value);
     return value.value();
 }
 
@@ -136,13 +136,13 @@ Particle::QuantityData Particle::QuantityIterator::operator*() const {
     DynamicId type;
     if (internal.value) {
         type = internal.value.getType();
-        ASSERT(internal.dt.empty() || internal.dt.getType() == type);
-        ASSERT(internal.d2t.empty() || internal.d2t.getType() == type);
+        SPH_ASSERT(internal.dt.empty() || internal.dt.getType() == type);
+        SPH_ASSERT(internal.d2t.empty() || internal.d2t.getType() == type);
     } else if (internal.dt) {
         type = internal.dt.getType();
-        ASSERT(internal.d2t.empty() || internal.d2t.getType() == type);
+        SPH_ASSERT(internal.d2t.empty() || internal.d2t.getType() == type);
     } else {
-        ASSERT(internal.d2t);
+        SPH_ASSERT(internal.d2t);
         type = internal.d2t.getType();
     }
     return { iter->key, type, internal.value, internal.dt, internal.d2t };

@@ -51,7 +51,7 @@ public:
     }
 
     void add(const Size idx) {
-        ASSERT(!idxs.contains(idx));
+        SPH_ASSERT(!idxs.contains(idx));
         idxs.insert(idx);
         //        this->fixVelocities();
     }
@@ -94,7 +94,7 @@ public:
         }
         r_com /= m_ag;
         v_com /= m_ag;
-        ASSERT(isReal(r_com) && getLength(r_com) < LARGE, r_com);
+        SPH_ASSERT(isReal(r_com) && getLength(r_com) < LARGE, r_com);
 
         const Vector omega = clamp(w[persistentId], -MAX_SPIN, MAX_SPIN);
         AffineMatrix rotationMatrix = AffineMatrix::identity();
@@ -108,7 +108,7 @@ public:
         }
 
         for (Size i : idxs) {
-            ASSERT(alpha[i] == Vector(0._f));
+            SPH_ASSERT(alpha[i] == Vector(0._f));
             Float h = r[i][H];
             r[i] = r_com + rotationMatrix * (r[i] - r_com);
             v[i] += cross(omega, r[i] - r_com);
@@ -119,7 +119,7 @@ public:
 
     /// Saves angular frequency, sets velocities to COM movement
     void integrate() {
-        ASSERT(this->size() > 0);
+        SPH_ASSERT(this->size() > 0);
         if (this->size() == 1) {
             return;
         }
@@ -179,7 +179,7 @@ public:
             dv[i] = dv_com;
             w[i] = omega;
 
-            ASSERT(alpha[i] == Vector(0._f));
+            SPH_ASSERT(alpha[i] == Vector(0._f));
         }
         alpha[persistentId] = Vector(0._f);
         dalpha[persistentId] = w[persistentId];
@@ -221,7 +221,7 @@ public:
     }
 
     void displace(const Vector& offset) {
-        ASSERT(offset[H] == 0._f);
+        SPH_ASSERT(offset[H] == 0._f);
 
         ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
         for (Size i : idxs) {
@@ -355,14 +355,14 @@ public:
     /// \brief Returns the aggregate holding the given particle.
     Aggregate& getAggregate(const Size particleIdx) {
         Aggregate& ag = *particleToAggregate[particleIdx];
-        ASSERT(ag.contains(particleIdx));
+        SPH_ASSERT(ag.contains(particleIdx));
         return ag;
     }
 
     /// \copydoc getAggregate
     const Aggregate& getAggregate(const Size particleIdx) const {
         const Aggregate& ag = *particleToAggregate[particleIdx];
-        ASSERT(ag.contains(particleIdx));
+        SPH_ASSERT(ag.contains(particleIdx));
         return ag;
     }
 
@@ -376,7 +376,7 @@ public:
          } else {
              ag2.merge(ag1);
          }
-         // ASSERT(ag1.contains(ag1.getId()));
+         // SPH_ASSERT(ag1.contains(ag1.getId()));
          // relink pointers of ag2 particles to ag1
          for (Size i : ag2) {
              particleToAggregate[i] = addressOf(ag1);
@@ -386,7 +386,7 @@ public:
          // for simplicity, otherwise we would have to shift the aggregates in the array, invalidating the
          // pointers held in particleToAggregate.
          ag2.clear();
-         ASSERT(ag2.size() == 0);
+         SPH_ASSERT(ag2.size() == 0);
      }*/
 
     void merge(Aggregate& ag1, Aggregate& ag2) {
@@ -395,7 +395,7 @@ public:
             return;
         }
 
-        ASSERT(ag1.size() >= ag2.size());
+        SPH_ASSERT(ag1.size() >= ag2.size());
         // accumulate single particle
         if (ag2.size() == 1) {
             const Size id = ag2.getId();
@@ -502,7 +502,7 @@ public:
 
     virtual void initialize(Storage& storage) override {
         holder = dynamicCast<AggregateHolder>(storage.getUserData().get());
-        ASSERT(holder);
+        SPH_ASSERT(holder);
 
         r = storage.getValue<Vector>(QuantityId::POSITION);
         v = storage.getDt<Vector>(QuantityId::POSITION);
@@ -565,7 +565,7 @@ public:
 private:
     /// \todo copied from bounce handler, deduplicate!!
     INLINE Vector reflect(const Vector& v, const Vector& v_com, const Vector& dir) const {
-        ASSERT(almostEqual(getSqrLength(dir), 1._f), dir);
+        SPH_ASSERT(almostEqual(getSqrLength(dir), 1._f), dir);
         const Vector v_rel = v - v_com;
         const Float proj = dot(v_rel, dir);
         const Vector v_t = v_rel - proj * dir;
@@ -590,7 +590,7 @@ public:
 
     virtual void initialize(Storage& storage) override {
         holder = dynamicCast<AggregateHolder>(storage.getUserData().get());
-        ASSERT(holder);
+        SPH_ASSERT(holder);
 
         handler.initialize(storage);
         m = storage.getValue<Float>(QuantityId::MASS);

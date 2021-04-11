@@ -131,7 +131,7 @@ TEST_CASE("Storage resize heterogeneous", "[storage]") {
     storage1.merge(std::move(storage2));
     REQUIRE(storage1.getMaterialCnt() == 2);
 
-    REQUIRE_ASSERT(storage1.resize(5));
+    REQUIRE_SPH_ASSERT(storage1.resize(5));
 }
 
 TEST_CASE("Storage clone", "[storage]") {
@@ -417,7 +417,7 @@ TEST_CASE("Storage removeAll", "[storage]") {
 
 TEST_CASE("Storage addDependent", "[storage]") {
     SharedPtr<Storage> storage1 = makeShared<Storage>();
-    REQUIRE_ASSERT(storage1->addDependent(storage1));
+    REQUIRE_SPH_ASSERT(storage1->addDependent(storage1));
 
     storage1->insert<Float>(QuantityId::FLAG, OrderEnum::ZERO, Array<Float>{ 0 }); // dummy unit
     SharedPtr<Storage> storage2 = makeShared<Storage>(storage1->clone(VisitorEnum::ALL_BUFFERS));
@@ -434,7 +434,7 @@ TEST_CASE("Storage addDependent", "[storage]") {
     REQUIRE(storage1->getParticleCnt() == 5);
     REQUIRE(storage2->getParticleCnt() == 8);
 
-    REQUIRE_ASSERT(storage2->addDependent(storage1));
+    REQUIRE_SPH_ASSERT(storage2->addDependent(storage1));
 }
 
 TEST_CASE("Storage isValid", "[storage]") {

@@ -53,11 +53,11 @@ public:
         return derived * value;
     }
     TDerived operator/(const Float value) const {
-        ASSERT(value != 0._f);
+        SPH_ASSERT(value != 0._f);
         return derived() * (1._f / value);
     }
     TDerived& operator/=(const Float value) {
-        ASSERT(value != 0._f);
+        SPH_ASSERT(value != 0._f);
         return derived().operator*=(1._f / value);
     }
 

@@ -180,7 +180,7 @@ INLINE AntisymmetricTensor max(const AntisymmetricTensor& t1, const Antisymmetri
 /// Clamping all components by range.
 template <>
 INLINE AntisymmetricTensor clamp(const AntisymmetricTensor& t, const Interval& range) {
-    ASSERT(range.contains(0._f));
+    SPH_ASSERT(range.contains(0._f));
     const Float upper = max(-range.lower(), range.upper());
     return AntisymmetricTensor(clamp(t.components(), Interval(-upper, upper)));
 }

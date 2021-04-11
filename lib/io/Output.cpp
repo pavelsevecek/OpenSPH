@@ -21,11 +21,11 @@ NAMESPACE_SPH_BEGIN
 OutputFile::OutputFile(const Path& pathMask, const Size firstDumpIdx)
     : pathMask(pathMask) {
     dumpNum = firstDumpIdx;
-    ASSERT(!pathMask.empty());
+    SPH_ASSERT(!pathMask.empty());
 }
 
 Path OutputFile::getNextPath(const Statistics& stats) const {
-    ASSERT(!pathMask.empty());
+    SPH_ASSERT(!pathMask.empty());
     std::string path = pathMask.native();
     std::size_t n = path.find("%d");
     if (n != std::string::npos) {
@@ -60,7 +60,7 @@ Optional<Size> OutputFile::getDumpIdx(const Path& path) {
                 Size index = std::stoul(s.substr(i, 4));
                 return index;
             } catch (std::exception& e) {
-                ASSERT(false, e.what());
+                SPH_ASSERT(false, e.what());
                 return NOTHING;
             }
         }
@@ -96,7 +96,7 @@ Path OutputFile::getMask() const {
 
 IOutput::IOutput(const OutputFile& fileMask)
     : paths(fileMask) {
-    ASSERT(!fileMask.getMask().empty());
+    SPH_ASSERT(!fileMask.getMask().empty());
 }
 
 // ----------------------------------------------------------------------------------------------------------
@@ -206,7 +206,7 @@ Expected<Path> TextOutput::dump(const Storage& storage, const Statistics& stats)
         }
     }
 
-    ASSERT(!columns.empty(), "No column added to TextOutput");
+    SPH_ASSERT(!columns.empty(), "No column added to TextOutput");
     const Path fileName = paths.getNextPath(stats);
 
     Outcome dirResult = FileSystem::createDirectory(fileName.parentPath());
@@ -700,7 +700,7 @@ static Optional<RunTypeEnum> readRunType(char* buffer, const BinaryIoVersion ver
     if (!runTypeStr.empty()) {
         return EnumMap::fromString<RunTypeEnum>(runTypeStr).value();
     } else {
-        ASSERT(version < BinaryIoVersion::V2018_10_24);
+        SPH_ASSERT(version < BinaryIoVersion::V2018_10_24);
         return NOTHING;
     }
 }
@@ -885,7 +885,7 @@ static void compressQuantity(Serializer<false>& serializer,
             dispatcher(count);
         }
     } else {
-        ASSERT(compression == CompressionEnum::NONE);
+        SPH_ASSERT(compression == CompressionEnum::NONE);
         for (Size i = 0; i < values.size(); ++i) {
             dispatcher(values[i]);
         }
@@ -915,7 +915,7 @@ static void decompressQuantity(Deserializer<false>& deserializer,
             } else {
                 Size count;
                 dispatcher(count);
-                ASSERT(i + count <= values.size());
+                SPH_ASSERT(i + count <= values.size());
                 for (Size j = 0; j < count; ++j) {
                     values[i++] = lastValue;
                 }
@@ -1020,7 +1020,7 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
         return e.what();
     }
 
-    ASSERT(storage.isValid());
+    SPH_ASSERT(storage.isValid());
 
     return SUCCESS;
 }
@@ -1305,9 +1305,9 @@ static void parseMpcorp(std::ifstream& ifs, Storage& storage, const Float rho, c
         const AffineMatrix R = R_Omega * R_I * R_omega;
 
         Vector r = a * R * Vector(cos(E) - e, sqrt(1 - sqr(e)) * sin(E), 0);
-        ASSERT(isReal(r), r);
+        SPH_ASSERT(isReal(r), r);
         Vector v = a * R * n / (1 - e * cos(E)) * Vector(-sin(E), sqrt(1 - sqr(e)) * cos(E), 0);
-        ASSERT(isReal(v), v);
+        SPH_ASSERT(isReal(v), v);
         r[H] = computeRadius(mag, albedo);
         v[H] = 0._f;
         positions.push(r);
@@ -1350,7 +1350,7 @@ Outcome MpcorpInput::load(const Path& path, Storage& storage, Statistics& UNUSED
 PkdgravOutput::PkdgravOutput(const OutputFile& fileMask, PkdgravParams&& params)
     : IOutput(fileMask)
     , params(std::move(params)) {
-    ASSERT(almostEqual(this->params.conversion.velocity, 2.97853e4_f, 1.e-4_f));
+    SPH_ASSERT(almostEqual(this->params.conversion.velocity, 2.97853e4_f, 1.e-4_f));
 }
 
 Expected<Path> PkdgravOutput::dump(const Storage& storage, const Statistics& stats) {
@@ -1373,7 +1373,7 @@ Expected<Path> PkdgravOutput::dump(const Storage& storage, const Statistics& sta
         }
         const Float radius = this->getRadius(r[idx][H], m[idx], rho[idx]);
         const Vector v_in = v[idx] + cross(params.omega, r[idx]);
-        ASSERT(flags[idx] < params.colors.size(), flags[idx], params.colors.size());
+        SPH_ASSERT(flags[idx] < params.colors.size(), flags[idx], params.colors.size());
         ofs << std::setw(25) << idx <<                                   //
             std::setw(25) << idx <<                                      //
             std::setw(25) << m[idx] / params.conversion.mass <<          //
@@ -1443,7 +1443,7 @@ Outcome PkdgravInput::load(const Path& path, Storage& storage, Statistics& stats
     }
 
     // whole code assumes positions is a 2nd order quantity, so we have to add the acceleration
-    ASSERT(storage.has<Vector>(QuantityId::POSITION, OrderEnum::FIRST));
+    SPH_ASSERT(storage.has<Vector>(QuantityId::POSITION, OrderEnum::FIRST));
     storage.getQuantity(QuantityId::POSITION).setOrder(OrderEnum::SECOND);
 
     // Convert units -- assuming default conversion values

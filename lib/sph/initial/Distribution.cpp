@@ -95,13 +95,13 @@ Array<Vector> CubicPacking::generate(IScheduler& UNUSED(scheduler),
     const Size n,
     const IDomain& domain) const {
     PROFILE_SCOPE("CubicPacking::generate")
-    ASSERT(n > 0);
+    SPH_ASSERT(n > 0);
     const Float volume = domain.getVolume();
     const Float particleDensity = Float(n) / volume;
 
     // interparticle distance based on density
     const Float h = 1._f / root<3>(particleDensity);
-    ASSERT(isReal(h));
+    SPH_ASSERT(isReal(h));
 
     const Box boundingBox = domain.getBoundingBox();
     const Vector step(h);
@@ -131,7 +131,7 @@ Array<Vector> HexagonalPacking::generate(IScheduler& UNUSED(scheduler),
     const Size n,
     const IDomain& domain) const {
     VERBOSE_LOG
-    ASSERT(n > 0);
+    SPH_ASSERT(n > 0);
     const Float volume = domain.getVolume();
     const Float particleDensity = Float(n) / volume;
 
@@ -142,7 +142,7 @@ Array<Vector> HexagonalPacking::generate(IScheduler& UNUSED(scheduler),
     const Float dz = sqrt(6._f) / 3._f * dx;
 
     const Box boundingBox = domain.getBoundingBox();
-    ASSERT(boundingBox.volume() > 0._f && boundingBox.volume() < pow<3>(LARGE));
+    SPH_ASSERT(boundingBox.volume() > 0._f && boundingBox.volume() < pow<3>(LARGE));
     const Vector step(dx, dy, dz);
     const Box box = flags.has(Options::SPH5_COMPATIBILITY)
                         ? boundingBox
@@ -182,7 +182,7 @@ Array<Vector> HexagonalPacking::generate(IScheduler& UNUSED(scheduler),
         });
     }
     if (flags.has(Options::CENTER)) {
-        ASSERT(!vecs.empty());
+        SPH_ASSERT(!vecs.empty());
         Vector com(0._f);
         for (const Vector& v : vecs) {
             com += v;
@@ -285,7 +285,7 @@ static auto renormalizeDensity(const IDomain& domain, Size& n, const Size error,
     Float particleCnt;
     for (particleCnt = mc.integrate(actDensity); abs(particleCnt - n) > error;) {
         const Float ratio = n / max(particleCnt, 1._f);
-        ASSERT(ratio > EPS, ratio);
+        SPH_ASSERT(ratio > EPS, ratio);
         multiplier *= ratio;
         particleCnt = mc.integrate(actDensity);
         if (cnt++ > 100) { // break potential infinite loop
@@ -317,7 +317,7 @@ static Storage generateInitial(const IDomain& domain, const Size N, TDensity&& d
         Vector pos = rng();
         const Float n = density(pos);
         pos[H] = 1._f / root<3>(n);
-        ASSERT(isReal(pos));
+        SPH_ASSERT(isReal(pos));
         r.push(pos);
     }
 
@@ -334,7 +334,7 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
 
     Size N = expectedN;
     auto actDensity = renormalizeDensity(domain, N, params.maxDifference, params.particleDensity);
-    ASSERT(abs(int(N) - int(expectedN)) <= int(params.maxDifference));
+    SPH_ASSERT(abs(int(N) - int(expectedN)) <= int(params.maxDifference));
 
     // generate initial particle positions
     Storage storage = generateInitial(domain, N, actDensity);
@@ -395,13 +395,13 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
                 }
                 const Float hSqrInv = 1._f / (h * h);
                 const Float length = getLength(diff);
-                ASSERT(length != 0._f);
+                SPH_ASSERT(length != 0._f);
                 const Vector diffUnit = diff / length;
                 const Float t =
                     converg * h *
                     (params.strength / (params.small + getSqrLength(diff) * hSqrInv) - correction);
                 deltas[i] += diffUnit * min(t, h); // clamp the displacement to particle distance
-                ASSERT(isReal(deltas[i]));
+                SPH_ASSERT(isReal(deltas[i]));
             }
             deltas[i][H] = 0._f; // do not affect smoothing lengths
         };
@@ -423,7 +423,7 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
 
 #ifdef SPH_DEBUG
     for (Size i = 0; i < N; ++i) {
-        ASSERT(isReal(r[i]) && r[i][H] > 1.e-20_f);
+        SPH_ASSERT(isReal(r[i]) && r[i][H] > 1.e-20_f);
     }
 #endif
     // extract the buffers from the storage
@@ -455,7 +455,7 @@ Array<Vector> ParametrizedSpiralingDistribution::generate(IScheduler& UNUSED(sch
         shells[i] = sqr((i + 1) * h);
         total += shells[i];
     }
-    ASSERT(isReal(total));
+    SPH_ASSERT(isReal(total));
 
     Float mult = Float(n) / total;
     for (Size i = 0; i < numShells; ++i) {
@@ -478,7 +478,7 @@ Array<Vector> ParametrizedSpiralingDistribution::generate(IScheduler& UNUSED(sch
             Vector v = center + rotator * sphericalToCartesian(r, theta, phi);
             if (domain.contains(v)) {
                 v[H] = h; // 0.66_f * sqrt(sphereSurfaceArea(r) / m);
-                ASSERT(isReal(v));
+                SPH_ASSERT(isReal(v));
                 pos.push(v);
             }
         }

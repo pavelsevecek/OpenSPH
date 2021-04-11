@@ -459,7 +459,7 @@ TEST_CASE("Collision repel", "[nbody]") {
 
     r[1] = Vector(10._f, 0._f, 0._f, 0.2_f);
     repel.initialize(storage);
-    REQUIRE_ASSERT(repel.handle(0, 1, dummy));
+    REQUIRE_SPH_ASSERT(repel.handle(0, 1, dummy));
 }
 
 template <typename TTimestepping>

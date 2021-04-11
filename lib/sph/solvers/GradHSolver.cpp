@@ -22,11 +22,11 @@ public:
         ArrayView<const Size> neighs,
         ArrayView<const Vector> gradi,
         ArrayView<const Vector> gradj) override {
-        ASSERT(neighs.size() == gradi.size() && neighs.size() == gradj.size());
+        SPH_ASSERT(neighs.size() == gradi.size() && neighs.size() == gradj.size());
         for (Size k = 0; k < neighs.size(); ++k) {
             const Size j = neighs[k];
             const Vector f = p[i] / sqr(rho[i]) * gradi[k] + p[j] / sqr(rho[j]) * gradj[k];
-            ASSERT(isReal(f));
+            SPH_ASSERT(isReal(f));
             dv[i] -= m[j] * f;
         }
     }
@@ -65,7 +65,7 @@ public:
         omega[i] = 1._f + r[i][H] / (3._f * rho[i]) * sum;
         // For const smoothing lengths, omega should be 1. Possibly relax this assert if the real values are
         // outside the expected range.
-        ASSERT(isReal(omega[i]) && omega[i] > 0.5_f && omega[i] < 2._f);
+        SPH_ASSERT(isReal(omega[i]) && omega[i] > 0.5_f && omega[i] < 2._f);
     }
 };
 
@@ -124,9 +124,9 @@ void GradHSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
         for (auto& n : data.neighs) {
             const Size j = n.index;
             const Vector gradi = 1._f / omega[i] * kernel.grad(r[i] - r[j], r[i][H]);
-            ASSERT(isReal(gradi) && dot(gradi, r[i] - r[j]) <= 0._f, gradi, r[i] - r[j]);
+            SPH_ASSERT(isReal(gradi) && dot(gradi, r[i] - r[j]) <= 0._f, gradi, r[i] - r[j]);
             const Vector gradj = 1._f / omega[j] * kernel.grad(r[j] - r[i], r[j][H]);
-            ASSERT(isReal(gradj) && dot(gradj, r[j] - r[i]) <= 0._f, gradj, r[j] - r[i]);
+            SPH_ASSERT(isReal(gradj) && dot(gradj, r[j] - r[i]) <= 0._f, gradj, r[j] - r[i]);
             data.idxs.emplaceBack(j);
             data.grads.emplaceBack(gradi);
             secondGrads.emplaceBack(gradj);

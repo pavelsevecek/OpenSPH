@@ -75,8 +75,8 @@ private:
         const Size v2 = v1 + 1;
         const float a = float(textureUvw[X] - u1);
         const float b = float(textureUvw[Y] - v1);
-        ASSERT(a >= 0.f && a < 1.f, a);
-        ASSERT(b >= 0.f && b < 1.f, b);
+        SPH_ASSERT(a >= 0.f && a < 1.f, a);
+        SPH_ASSERT(b >= 0.f && b < 1.f, b);
 
         return Rgba(bitmap[Pixel(u1, v1)]) * (1.f - a) * (1.f - b) +
                Rgba(bitmap[Pixel(u2, v1)]) * a * (1.f - b) + //

@@ -27,22 +27,22 @@ public:
     /// \param i Row index
     /// \param j Column index
     INLINE Float& operator()(const Size i, const Size j) {
-        ASSERT(i < 3 && j < 3, i, j);
+        SPH_ASSERT(i < 3 && j < 3, i, j);
         return v[i][j];
     }
 
     INLINE Float operator()(const Size i, const Size j) const {
-        ASSERT(i < 3 && j < 3, i, j);
+        SPH_ASSERT(i < 3 && j < 3, i, j);
         return v[i][j];
     }
 
     INLINE Vector column(const Size idx) const {
-        ASSERT(idx < 3, idx);
+        SPH_ASSERT(idx < 3, idx);
         return Vector(v[0][idx], v[1][idx], v[2][idx]);
     }
 
     INLINE Vector row(const Size idx) const {
-        ASSERT(idx < 3, idx);
+        SPH_ASSERT(idx < 3, idx);
         return v[idx];
     }
 
@@ -58,7 +58,7 @@ public:
 
      Tensor inverse() const {
          const Float det = this->determinant();
-         ASSERT(det != 0._f);
+         SPH_ASSERT(det != 0._f);
          const Float invdet = 1._f / det;
 
          Tensor inv;
@@ -137,7 +137,7 @@ public:
     }
 
     INLINE Tensor& operator/=(const Float value) {
-        ASSERT(value != 0._f);
+        SPH_ASSERT(value != 0._f);
         v[0] /= value;
         v[1] /= value;
         v[2] /= value;
@@ -195,7 +195,7 @@ INLINE bool almostEqual(const Tensor& t1, const Tensor& t2, const Float eps = EP
 template <>
 INLINE Float norm(const Tensor& t) {
     const Vector v = max(t.row(0), t.row(1), t.row(2));
-    ASSERT(isReal(v));
+    SPH_ASSERT(isReal(v));
     return norm(v);
 }
 

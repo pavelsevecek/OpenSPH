@@ -36,7 +36,7 @@ static AffineMatrix extractRotation(const AffineMatrix& a,
             Float angle;
             tieToTuple(dir, angle) = getNormalizedWithLength(omega);
             r = AffineMatrix::rotateAxis(dir, angle) * r;
-            ASSERT(isReal(r.row(0)) && isReal(r.row(1)) && isReal(r.row(2)));
+            SPH_ASSERT(isReal(r.row(0)) && isReal(r.row(1)) && isReal(r.row(2)));
         }
     }
 
@@ -83,7 +83,7 @@ void ElasticDeformationSolver::integrate(Storage& storage, Statistics& UNUSED(st
 
             finder->findAll(i, maxH * kernel.radius(), neighs);
 
-            ASSERT(C[i] == SymmetricTensor::identity());
+            SPH_ASSERT(C[i] == SymmetricTensor::identity());
             C[i] = SymmetricTensor::null();
             for (NeighbourRecord& n : neighs) {
                 const Size j = n.index;
@@ -106,7 +106,7 @@ void ElasticDeformationSolver::integrate(Storage& storage, Statistics& UNUSED(st
 #ifdef SPH_DEBUG
         for (Size i = 0; i < r.size(); ++i) {
             for (Size j : neighsPerParticle[i]) {
-                ASSERT(std::find(neighsPerParticle[j].begin(), neighsPerParticle[j].end(), i) !=
+                SPH_ASSERT(std::find(neighsPerParticle[j].begin(), neighsPerParticle[j].end(), i) !=
                        neighsPerParticle[j].end());
             }
         }

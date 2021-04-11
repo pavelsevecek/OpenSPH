@@ -28,14 +28,14 @@ public:
         : matrix(rows, cols) {}
 
     void insert(const Size i, const Size j, const Float value) {
-        ASSERT(i < matrix.innerSize() && j < matrix.innerSize(), i, j);
+        SPH_ASSERT(i < matrix.innerSize() && j < matrix.innerSize(), i, j);
         triplets.push(Eigen::Triplet<Float>(i, j, value));
     }
 
     Expected<Array<Float>> solve(const Array<Float>& values,
         const SparseMatrix::Solver solver,
         const Float tolerance) {
-        ASSERT(values.size() == matrix.innerSize());
+        SPH_ASSERT(values.size() == matrix.innerSize());
         // this is takes straigh from Eigen documentation
         // (http://eigen.tuxfamily.org/dox-devel/group__TopicSparseSystems.html)
 
@@ -64,7 +64,7 @@ public:
                     for (Size j = i; j < n; ++j) {
                         const Float mij = matrix.coeff(i, j);
                         const Float mji = matrix.coeff(j, i);
-                        ASSERT(almostEqual(mij, mji), mij, mji);
+                        SPH_ASSERT(almostEqual(mij, mji), mij, mji);
                     }
                 }
             }

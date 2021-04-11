@@ -69,7 +69,7 @@ void FileLogger::writeString(const std::string& s) {
             stream->close();
         }
     } else {
-        ASSERT(stream->is_open());
+        SPH_ASSERT(stream->is_open());
         write(s);
     }
 }
@@ -115,11 +115,11 @@ VerboseLogGuard::~VerboseLogGuard() {
     const std::string prefix = std::string(4 * context.indent, ' ');
     context.logger->writeString(
         prefix + "  took " + std::to_string(int(timer.elapsed(TimerUnit::MILLISECOND))) + "ms\n");
-    ASSERT(context.indent >= 0);
+    SPH_ASSERT(context.indent >= 0);
 }
 
 void setVerboseLogger(AutoPtr<ILogger>&& logger) {
-    ASSERT(context.indent == 0);
+    SPH_ASSERT(context.indent == 0);
     context.logger = std::move(logger);
     context.indent = 0;
 }

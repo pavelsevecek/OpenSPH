@@ -131,7 +131,7 @@ public:
         Proxy(const SharedPtr<T>& ptr, Detail::LockingControlBlock<T>* block)
             : ptr(ptr.get())
             , lock(*block) {
-            ASSERT(ptr != nullptr);
+            SPH_ASSERT(ptr != nullptr);
         }
 
     public:
@@ -140,12 +140,12 @@ public:
             , lock(std::move(proxy.lock)) {}
 
         RawPtr<T> operator->() {
-            ASSERT(ptr != nullptr);
+            SPH_ASSERT(ptr != nullptr);
             return ptr;
         }
 
         T& operator*() {
-            ASSERT(ptr != nullptr);
+            SPH_ASSERT(ptr != nullptr);
             return *ptr;
         }
 
@@ -182,12 +182,12 @@ public:
     }
 
     Proxy operator->() const {
-        ASSERT(resource);
+        SPH_ASSERT(resource);
         return Proxy(resource, block);
     }
 
     ProxyRef operator*() const {
-        ASSERT(resource);
+        SPH_ASSERT(resource);
         return ProxyRef{ Proxy(resource, block) };
     }
 

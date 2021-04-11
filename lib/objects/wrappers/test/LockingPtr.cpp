@@ -9,11 +9,11 @@ using namespace Sph;
 TEST_CASE("LockingPtr default construct", "[lockingptr]") {
     RecordType::resetStats();
     LockingPtr<RecordType> l;
-    REQUIRE_ASSERT(l->value);
+    REQUIRE_SPH_ASSERT(l->value);
     REQUIRE(RecordType::constructedNum == 0);
     auto proxy = l.lock();
     REQUIRE(proxy.get() == nullptr);
-    REQUIRE_ASSERT(proxy->value);
+    REQUIRE_SPH_ASSERT(proxy->value);
     REQUIRE_FALSE(proxy.isLocked());
     REQUIRE_NOTHROW(proxy.release());
 }

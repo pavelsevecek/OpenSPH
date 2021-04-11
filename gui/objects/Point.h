@@ -22,12 +22,12 @@ struct BasicPoint {
         , y(y) {}
 
     T& operator[](const Size index) {
-        ASSERT(index < 2);
+        SPH_ASSERT(index < 2);
         return reinterpret_cast<T*>(this)[index];
     }
 
     const T& operator[](const Size index) const {
-        ASSERT(index < 2);
+        SPH_ASSERT(index < 2);
         return reinterpret_cast<const T*>(this)[index];
     }
 
@@ -133,7 +133,7 @@ struct Coords : public BasicPoint<float, Coords> {
 
     Coords operator/(const Coords& other) const {
         Coords res = *this;
-        ASSERT(other.x != 0.f && other.y != 0.f);
+        SPH_ASSERT(other.x != 0.f && other.y != 0.f);
         res.x /= other.x;
         res.y /= other.y;
         return res;

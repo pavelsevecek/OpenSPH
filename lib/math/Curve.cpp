@@ -12,7 +12,7 @@ public:
         : v{ x1, x2, x3, x4 } {}
 
     INLINE Float operator[](const Size i) const {
-        ASSERT(unsigned(i) < 4);
+        SPH_ASSERT(unsigned(i) < 4);
         return v[i];
     }
 };

@@ -14,8 +14,8 @@ TEST_CASE("Dynamic construct", "[dynamic]") {
     REQUIRE(value2);
     REQUIRE(value2.getType() == DynamicId::FLOAT);
     REQUIRE(Float(value2) == 5._f);
-    REQUIRE_ASSERT(Size(value2));
-    REQUIRE_ASSERT(value2.get<Vector>());
+    REQUIRE_SPH_ASSERT(Size(value2));
+    REQUIRE_SPH_ASSERT(value2.get<Vector>());
 
     Dynamic value3(Vector(2.f, 1.f, 4.f));
     REQUIRE(value3.getType() == DynamicId::VECTOR);
@@ -38,7 +38,7 @@ TEST_CASE("Dynamic get", "[dynamic]") {
     Dynamic value1(Size(8));
     REQUIRE(value1.getType() == DynamicId::SIZE);
     REQUIRE(value1.get<Size>() == 8);
-    REQUIRE_ASSERT(value1.get<SymmetricTensor>());
+    REQUIRE_SPH_ASSERT(value1.get<SymmetricTensor>());
     value1.get<Size>() = 2;
     REQUIRE(Size(value1) == 2);
 
@@ -61,10 +61,10 @@ TEST_CASE("Dynamic comparison", "[dynamic]") {
     Dynamic value(5._f);
     REQUIRE(value == 5._f);
     REQUIRE_FALSE(value == 4._f);
-    REQUIRE_ASSERT(value == Vector(3._f));
+    REQUIRE_SPH_ASSERT(value == Vector(3._f));
 
     value = Vector(3._f);
-    REQUIRE_ASSERT(value == 5._f);
+    REQUIRE_SPH_ASSERT(value == 5._f);
     REQUIRE(value == Vector(3._f));
     REQUIRE_FALSE(value == Vector(3._f, 3._f, 4._f));
 }

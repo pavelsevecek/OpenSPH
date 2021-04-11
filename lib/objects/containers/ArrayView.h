@@ -69,32 +69,32 @@ public:
     }
 
     INLINE T& operator[](const TCounter idx) {
-        ASSERT(unsigned(idx) < unsigned(actSize), idx, actSize);
+        SPH_ASSERT(unsigned(idx) < unsigned(actSize), idx, actSize);
         return data[idx];
     }
 
     INLINE const T& operator[](const TCounter idx) const {
-        ASSERT(unsigned(idx) < unsigned(actSize), idx, actSize);
+        SPH_ASSERT(unsigned(idx) < unsigned(actSize), idx, actSize);
         return data[idx];
     }
 
     INLINE T& front() {
-        ASSERT(actSize > 0);
+        SPH_ASSERT(actSize > 0);
         return data[0];
     }
 
     INLINE const T& front() const {
-        ASSERT(actSize > 0);
+        SPH_ASSERT(actSize > 0);
         return data[0];
     }
 
     INLINE T& back() {
-        ASSERT(actSize > 0);
+        SPH_ASSERT(actSize > 0);
         return data[actSize - 1];
     }
 
     INLINE const T& back() const {
-        ASSERT(actSize > 0);
+        SPH_ASSERT(actSize > 0);
         return data[actSize - 1];
     }
 
@@ -108,7 +108,7 @@ public:
 
     /// \brief Returns a subset of the arrayview.
     INLINE ArrayView subset(const TCounter start, const TCounter length) const {
-        ASSERT(start + length <= size());
+        SPH_ASSERT(start + length <= size());
         return ArrayView(data + start, length);
     }
 

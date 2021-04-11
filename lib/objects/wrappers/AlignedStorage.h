@@ -17,7 +17,7 @@ INLINE T* alignedNew(TArgs&&... args) {
     constexpr Size size = sizeof(T);
     constexpr Size alignment = alignof(T);
     void* ptr = _mm_malloc(size, alignment);
-    ASSERT(ptr);
+    SPH_ASSERT(ptr);
     return new (ptr) T(std::forward<TArgs>(args)...);
 }
 

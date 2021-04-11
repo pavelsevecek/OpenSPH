@@ -301,7 +301,7 @@ INLINE Vector computeMultipoleAcceleration(const MultipoleExpansion<N>& ms,
     const Float Q0 = computeMultipolePotential<0>(q, dr).value();
     const Vector Q1 = (N > 0) ? computeMultipolePotential<1>(q, dr).vector() : Vector(0._f);
     const Vector a = gamma[M + 1] * dr * Q0 + gamma[M] * Q1;
-    ASSERT(isReal(a), dr, Q0, Q1, gamma);
+    SPH_ASSERT(isReal(a), dr, Q0, Q1, gamma);
     return a;
 }
 
@@ -336,7 +336,7 @@ Vector evaluateGravity(const Vector& dr, const MultipoleExpansion<N>& ms, const 
         NOT_IMPLEMENTED;
     };
 
-    ASSERT(isReal(a) && getSqrLength(a) > 0._f);
+    SPH_ASSERT(isReal(a) && getSqrLength(a) > 0._f);
     return a;
 }
 

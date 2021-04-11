@@ -39,13 +39,13 @@ private:
 
         INLINE Size operator()(const Indices& v) const {
             const Size idx = map(v);
-            ASSERT(unsigned(idx) < unsigned(storage.size()));
+            SPH_ASSERT(unsigned(idx) < unsigned(storage.size()));
             return storage[idx];
         }
 
         INLINE Size& operator()(const Indices& v) {
             const Size idx = map(v);
-            ASSERT(unsigned(idx) < unsigned(storage.size()));
+            SPH_ASSERT(unsigned(idx) < unsigned(storage.size()));
             return storage[idx];
         }
     };

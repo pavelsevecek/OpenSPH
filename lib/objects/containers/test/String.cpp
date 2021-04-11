@@ -9,7 +9,7 @@ TEST_CASE("String default construct", "[string]") {
     String s0;
     REQUIRE(s0.size() == 0);
     REQUIRE(s0.empty());
-    REQUIRE_ASSERT(s0[0]);
+    REQUIRE_SPH_ASSERT(s0[0]);
 
     REQUIRE(s0.begin() == s0.end());
 }
@@ -27,7 +27,7 @@ TEST_CASE("String copy construct", "[string]") {
     REQUIRE(s2[1] == 'e');
     REQUIRE(s2[2] == 's');
     REQUIRE(s2[3] == 't');
-    REQUIRE_ASSERT(s2[4]);
+    REQUIRE_SPH_ASSERT(s2[4]);
 
     String s3(s2);
     REQUIRE(s3.size() == 4);
@@ -45,7 +45,7 @@ TEST_CASE("String move construct", "[string]") {
 
 TEST_CASE("String construct from buffer", "[string]") {
     Array<char> buffer1{ 'a', 'b', 'c' };
-    REQUIRE_ASSERT(String(std::move(buffer1)));
+    REQUIRE_SPH_ASSERT(String(std::move(buffer1)));
 
     Array<char> buffer2{ 'a', 'b', 'c', '\0' };
     String s2(std::move(buffer2));
@@ -121,8 +121,8 @@ TEST_CASE("String find", "[string]") {
     REQUIRE(s2.find("a") == 0);
     REQUIRE(s2.find("a", 2) == 2);
 
-    REQUIRE_ASSERT(s2.find(""));
-    REQUIRE_ASSERT(s2.find("a", 4));
+    REQUIRE_SPH_ASSERT(s2.find(""));
+    REQUIRE_SPH_ASSERT(s2.find("a", 4));
 }
 
 TEST_CASE("String find last", "[string]") {
@@ -133,7 +133,7 @@ TEST_CASE("String find last", "[string]") {
     REQUIRE(s1.findLast("abc") == 4);
     REQUIRE(s1.findLast("def") == String::npos);
     REQUIRE(s1.findLast("abc abc abc") == String::npos);
-    REQUIRE_ASSERT(s1.findLast(""));
+    REQUIRE_SPH_ASSERT(s1.findLast(""));
 
     String s2("hello world");
     REQUIRE(s2.findLast("l") == 9);
@@ -143,7 +143,7 @@ TEST_CASE("String replace", "[string]") {
     String s1("hello world");
     s1.replace(0, 2, "a");
     REQUIRE(s1 == "allo world");
-    REQUIRE_ASSERT(s1.replace(0, 1000, "test"));
+    REQUIRE_SPH_ASSERT(s1.replace(0, 1000, "test"));
     s1.replace(0, s1.size(), "test");
     REQUIRE(s1 == "test");
     s1.replace(0, 1, "the larg");
@@ -159,7 +159,7 @@ TEST_CASE("String substr", "[string]") {
     REQUIRE(s1.substr(0, 5) == "hello");
     REQUIRE(s1.substr(6) == "world");
     REQUIRE(s1.substr(2, 888) == "llo world");
-    REQUIRE_ASSERT(s1.substr(888));
+    REQUIRE_SPH_ASSERT(s1.substr(888));
 }
 
 TEST_CASE("String trim", "[string]") {

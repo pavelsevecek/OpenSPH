@@ -52,7 +52,7 @@ TEST_CASE("Map default construct", "[flatmap]") {
     REQUIRE(map.begin() == map.end());
     REQUIRE_FALSE(map.tryGet(5));
     REQUIRE_FALSE(map.contains(2));
-    REQUIRE_ASSERT(map[0]);
+    REQUIRE_SPH_ASSERT(map[0]);
 }
 
 TEST_CASE("Map insert lower key", "[flatmap]") {
@@ -72,9 +72,9 @@ TEST_CASE("Map insert lower key", "[flatmap]") {
     REQUIRE_FALSE(map.empty());
     REQUIRE(map.contains(2));
     REQUIRE(map.contains(5));
-    REQUIRE_ASSERT(map[0]);
+    REQUIRE_SPH_ASSERT(map[0]);
     REQUIRE(map[2].value == 4);
-    REQUIRE_ASSERT(map[4]);
+    REQUIRE_SPH_ASSERT(map[4]);
     REQUIRE(map[5].value == 2);
 
     REQUIRE(isSorted(map));
@@ -89,9 +89,9 @@ TEST_CASE("Map insert greater key", "[flatmap]") {
     REQUIRE_FALSE(map.empty());
     REQUIRE(map.contains(5));
     REQUIRE(map.contains(8));
-    REQUIRE_ASSERT(map[0]);
+    REQUIRE_SPH_ASSERT(map[0]);
     REQUIRE(map[5].value == 2);
-    REQUIRE_ASSERT(map[4]);
+    REQUIRE_SPH_ASSERT(map[4]);
     REQUIRE(map[8].value == 4);
 
     REQUIRE(isSorted(map));
@@ -131,8 +131,8 @@ TEST_CASE("Map insert multiple", "[flatmap]") {
         }
         return true;
     }());
-    REQUIRE_ASSERT(map[-501]);
-    REQUIRE_ASSERT(map[500]);
+    REQUIRE_SPH_ASSERT(map[-501]);
+    REQUIRE_SPH_ASSERT(map[500]);
 }
 
 TEST_CASE("Map remove", "[flatmap]") {
@@ -146,16 +146,16 @@ TEST_CASE("Map remove", "[flatmap]") {
 
     map.insert(2, RecordType(4));
     map.insert(5, RecordType(3));
-    REQUIRE_ASSERT(map.remove(3));
+    REQUIRE_SPH_ASSERT(map.remove(3));
     map.remove(5);
     REQUIRE(map.size() == 1);
-    REQUIRE_ASSERT(map[5]);
+    REQUIRE_SPH_ASSERT(map[5]);
     REQUIRE(map[2].value == 4);
 
     map.insert(1, RecordType(6));
     map.remove(1);
     REQUIRE(map.size() == 1);
-    REQUIRE_ASSERT(map[1]);
+    REQUIRE_SPH_ASSERT(map[1]);
     REQUIRE(map[2].value == 4);
 }
 

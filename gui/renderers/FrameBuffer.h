@@ -25,7 +25,7 @@ public:
     }
 
     void accumulate(const Bitmap<Rgba>& pass) {
-        ASSERT(pass.size() == values.size());
+        SPH_ASSERT(pass.size() == values.size());
         for (int y = 0; y < values.size().y; ++y) {
             for (int x = 0; x < values.size().x; ++x) {
                 Pixel p(x, y);

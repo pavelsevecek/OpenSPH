@@ -34,7 +34,7 @@ public:
     INLINE Box(const Vector& minBound, const Vector& maxBound)
         : minBound(minBound)
         , maxBound(maxBound) {
-        ASSERT(isValid());
+        SPH_ASSERT(isValid());
     }
 
     /// \brief Syntactic sugar, returns a default-constructed (empty) box
@@ -74,43 +74,43 @@ public:
 
     /// \brief Clamps all components of the vector to fit within the box
     INLINE Vector clamp(const Vector& v) const {
-        ASSERT(isValid());
+        SPH_ASSERT(isValid());
         return Sph::clamp(v, minBound, maxBound);
     }
 
     /// \brief Returns lower bounds of the box.
     INLINE const Vector& lower() const {
-        ASSERT(isValid());
+        SPH_ASSERT(isValid());
         return minBound;
     }
 
     /// \brief Returns lower bounds of the box.
     INLINE Vector& lower() {
-        ASSERT(isValid());
+        SPH_ASSERT(isValid());
         return minBound;
     }
 
     /// \brief Returns upper bounds of the box
     INLINE const Vector& upper() const {
-        ASSERT(isValid());
+        SPH_ASSERT(isValid());
         return maxBound;
     }
 
     /// \brief Returns upper bounds of the box
     INLINE Vector& upper() {
-        ASSERT(isValid());
+        SPH_ASSERT(isValid());
         return maxBound;
     }
 
     /// \brief Returns box dimensions.
     INLINE Vector size() const {
-        ASSERT(isValid());
+        SPH_ASSERT(isValid());
         return maxBound - minBound;
     }
 
     /// \brief Returns the center of the box.
     INLINE Vector center() const {
-        ASSERT(isValid());
+        SPH_ASSERT(isValid());
         return 0.5_f * (minBound + maxBound);
     }
 
@@ -142,9 +142,9 @@ public:
     /// \param x Coordinate in given dimension used for the split
     /// \return Two boxes created by the split.
     INLINE Pair<Box> split(const Size dim, const Float x) const {
-        ASSERT(isValid());
-        ASSERT(dim < 3);
-        ASSERT(x >= minBound[dim] && x <= maxBound[dim]);
+        SPH_ASSERT(isValid());
+        SPH_ASSERT(dim < 3);
+        SPH_ASSERT(x >= minBound[dim] && x <= maxBound[dim]);
         Box b1 = *this, b2 = *this;
         b1.maxBound[dim] = x;
         b2.minBound[dim] = x;
@@ -167,7 +167,7 @@ public:
     /// \brief Execute functor for all possible values of vector (with constant stepping)
     template <typename TFunctor>
     void iterate(const Vector& step, TFunctor&& functor) const {
-        ASSERT(isValid());
+        SPH_ASSERT(isValid());
         for (Float x = minBound[X]; x <= maxBound[X]; x += step[X]) {
             for (Float y = minBound[Y]; y <= maxBound[Y]; y += step[Y]) {
                 for (Float z = minBound[Z]; z <= maxBound[Z]; z += step[Z]) {
@@ -181,7 +181,7 @@ public:
     /// indices together with the vector
     template <typename TFunctor>
     void iterateWithIndices(const Vector& step, TFunctor&& functor) const {
-        ASSERT(isValid());
+        SPH_ASSERT(isValid());
         Size i = 0, j = 0, k = 0;
         for (Float z = minBound[Z]; z <= maxBound[Z]; z += step[Z], k++) {
             i = 0;

@@ -8,12 +8,12 @@ template <typename T, typename = void>
 class UnitAdapter {
 public:
     INLINE const T& get(const T& input, const Float mult) const {
-        ASSERT(mult == 1._f, "Units not implemented for entries other than float or vector");
+        SPH_ASSERT(mult == 1._f, "Units not implemented for entries other than float or vector");
         return input;
     }
 
     INLINE const T& set(const T& input, const Float mult) const {
-        ASSERT(mult == 1._f, "Units not implemented for entries other than float or vector");
+        SPH_ASSERT(mult == 1._f, "Units not implemented for entries other than float or vector");
         return input;
     }
 };

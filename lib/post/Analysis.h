@@ -371,7 +371,7 @@ public:
     ///
     /// Slope of the function must not be zero.
     Float solve(const Float y) const {
-        ASSERT(a != 0._f);
+        SPH_ASSERT(a != 0._f);
         return (y - b) / a;
     }
 };
@@ -413,7 +413,7 @@ public:
     /// Returned array contains 0, 1 or 2 values, depending on the number of real solutions of the equation.
     /// If two solutions exist, the first element of the array is always the smaller solution.
     StaticArray<Float, 2> solve(const Float y) const {
-        ASSERT(a != 0);
+        SPH_ASSERT(a != 0);
         const Float disc = sqr(b) - 4._f * a * (c - y);
         if (disc < 0._f) {
             return EMPTY_ARRAY;

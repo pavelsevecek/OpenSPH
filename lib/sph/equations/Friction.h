@@ -48,8 +48,8 @@ private:
             MaterialView mat0 = input.getMaterial(0);
             eta = mat0->getParam<Float>(BodySettingsId::SHEAR_VISCOSITY);
             zeta = mat0->getParam<Float>(BodySettingsId::BULK_VISCOSITY);
-            ASSERT(input.isHomogeneous(BodySettingsId::SHEAR_VISCOSITY));
-            ASSERT(input.isHomogeneous(BodySettingsId::BULK_VISCOSITY));
+            SPH_ASSERT(input.isHomogeneous(BodySettingsId::SHEAR_VISCOSITY));
+            SPH_ASSERT(input.isHomogeneous(BodySettingsId::BULK_VISCOSITY));
         }
 
         INLINE bool additionalEquals(const Derivative& other) const {
@@ -120,7 +120,7 @@ private:
             frict = results.getBuffer<Vector>(QuantityId::FRICTION, OrderEnum::ZERO);
 
             eta = input.getMaterial(0)->getParam<Float>(BodySettingsId::SHEAR_VISCOSITY);
-            ASSERT(input.isHomogeneous(BodySettingsId::SHEAR_VISCOSITY));
+            SPH_ASSERT(input.isHomogeneous(BodySettingsId::SHEAR_VISCOSITY));
         }
 
         INLINE bool additionalEquals(const Derivative& other) const {

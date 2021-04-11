@@ -85,12 +85,12 @@ struct PowerLawSfd {
     /// For x=0 and x=1, interval.lower() and interval.upper() is returned, respectively. Input value must lie
     /// in unit interval, checked by assert.
     INLINE Float operator()(const Float x) const {
-        ASSERT(x >= 0._f && x <= 1._f);
-        ASSERT(exponent != 1._f);
+        SPH_ASSERT(x >= 0._f && x <= 1._f);
+        SPH_ASSERT(exponent != 1._f);
         const Float Rmin = pow(interval.lower(), 1._f - exponent);
         const Float Rmax = pow(interval.upper(), 1._f - exponent);
         const Float R = pow((Rmax - Rmin) * x + Rmin, 1._f / (1._f - exponent));
-        ASSERT(R >= interval.lower() && R <= interval.upper(), R);
+        SPH_ASSERT(R >= interval.lower() && R <= interval.upper(), R);
         return R;
     }
 };

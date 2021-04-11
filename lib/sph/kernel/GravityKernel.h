@@ -36,7 +36,7 @@ public:
     }
 
     INLINE Float value(const Vector& r, const Float h) const {
-        ASSERT(h >= 0._f);
+        SPH_ASSERT(h >= 0._f);
         const Float hInv = 1._f / h;
         const Float qSqr = getSqrLength(r * hInv);
         if (qSqr + EPS >= sqr(close.radius())) {
@@ -44,20 +44,20 @@ public:
         } else {
             // LUT kernel returns 0 for qSqr >= radiusSqr
             const Float value = close.valueImpl(qSqr);
-            ASSERT(value < 0._f);
+            SPH_ASSERT(value < 0._f);
             return hInv * value;
         }
     }
 
     INLINE Vector grad(const Vector& r, const Float h) const {
-        ASSERT(h >= 0._f);
+        SPH_ASSERT(h >= 0._f);
         const Float hInv = 1._f / h;
         const Float qSqr = getSqrLength(r * hInv);
         if (qSqr + EPS >= sqr(close.radius())) {
             return r / pow<3>(getLength(r));
         } else {
             const Float grad = close.gradImpl(qSqr);
-            ASSERT(grad != 0._f);
+            SPH_ASSERT(grad != 0._f);
             return pow<3>(hInv) * r * grad;
         }
     }
@@ -77,7 +77,7 @@ public:
     }
 
     INLINE Float valueImpl(const Float qSqr) const {
-        ASSERT(qSqr >= 0._f && qSqr <= sqr(radius()));
+        SPH_ASSERT(qSqr >= 0._f && qSqr <= sqr(radius()));
         const Float q = sqrt(qSqr);
         if (q < 1._f) {
             return 2._f / 3._f * qSqr - 3._f / 10._f * pow<4>(q) + 1._f / 10._f * pow<5>(q) - 7._f / 5._f;
@@ -88,7 +88,7 @@ public:
     }
 
     INLINE Float gradImpl(const Float qSqr) const {
-        ASSERT(qSqr >= 0._f && qSqr <= sqr(radius()));
+        SPH_ASSERT(qSqr >= 0._f && qSqr <= sqr(radius()));
         const Float q = sqrt(qSqr);
         if (q == 0._f) {
             return 4._f / 3._f;

@@ -48,7 +48,7 @@ private:
 
 public:
     INLINE Block allocate(const Size size) noexcept {
-        ASSERT(size > 0);
+        SPH_ASSERT(size > 0);
 
         const Size actSize = roundToAlignment(size);
         if (pos - data + actSize > TSize) {

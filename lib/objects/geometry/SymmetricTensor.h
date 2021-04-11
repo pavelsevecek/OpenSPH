@@ -42,9 +42,9 @@ public:
     ///
     /// Matrix represented by the vectors MUST be symmetric, checked by assert.
     INLINE SymmetricTensor(const Vector& v0, const Vector& v1, const Vector& v2) {
-        ASSERT(v0[1] == v1[0], v0[1], v1[0]);
-        ASSERT(v0[2] == v2[0], v0[2], v2[0]);
-        ASSERT(v1[2] == v2[1], v1[2], v2[1]);
+        SPH_ASSERT(v0[1] == v1[0], v0[1], v1[0]);
+        SPH_ASSERT(v0[2] == v2[0], v0[2], v2[0]);
+        SPH_ASSERT(v1[2] == v2[1], v1[2], v2[1]);
         diag = Vector(v0[0], v1[1], v2[2]);
         off = Vector(v0[1], v0[2], v1[2]);
     }
@@ -57,7 +57,7 @@ public:
 
     /// Returns a row of the matrix.
     INLINE Vector row(const Size idx) const {
-        ASSERT(idx < 3);
+        SPH_ASSERT(idx < 3);
         switch (idx) {
         case 0:
             return Vector(diag[0], off[0], off[1]);
@@ -218,7 +218,7 @@ public:
 
     INLINE SymmetricTensor inverse() const {
         const Float det = determinant();
-        ASSERT(det != 0._f);
+        SPH_ASSERT(det != 0._f);
         Vector invDiag, invOff;
         /// \todo optimize using SSE
         invDiag[0] = diag[1] * diag[2] - sqr(off[2]);
@@ -255,7 +255,7 @@ T1 convert(const T2& matrix);
 
 template <>
 INLINE SymmetricTensor convert(const AffineMatrix& matrix) {
-    ASSERT(almostEqual(matrix(0, 1), matrix(1, 0), 1.e-6_f) &&
+    SPH_ASSERT(almostEqual(matrix(0, 1), matrix(1, 0), 1.e-6_f) &&
            almostEqual(matrix(0, 2), matrix(2, 0), 1.e-6_f) &&
            almostEqual(matrix(1, 2), matrix(2, 1), 1.e-6_f));
     return SymmetricTensor(
@@ -265,9 +265,9 @@ INLINE SymmetricTensor convert(const AffineMatrix& matrix) {
 template <>
 INLINE AffineMatrix convert(const SymmetricTensor& t) {
     // make sure there is no 'accidental' translation in the matrix
-    ASSERT(t.row(0)[H] == 0._f);
-    ASSERT(t.row(1)[H] == 0._f);
-    ASSERT(t.row(2)[H] == 0._f);
+    SPH_ASSERT(t.row(0)[H] == 0._f);
+    SPH_ASSERT(t.row(1)[H] == 0._f);
+    SPH_ASSERT(t.row(2)[H] == 0._f);
     return AffineMatrix(t.row(0), t.row(1), t.row(2));
 }
 
@@ -288,7 +288,7 @@ INLINE bool almostEqual(const SymmetricTensor& t1, const SymmetricTensor& t2, co
 template <>
 INLINE Float norm(const SymmetricTensor& t) {
     const Vector v = max(t.diagonal(), t.offDiagonal());
-    ASSERT(isReal(v));
+    SPH_ASSERT(isReal(v));
     return norm(v);
 }
 
@@ -382,7 +382,7 @@ INLINE StaticArray<Float, 3> findEigenvalues(const SymmetricTensor& t) {
     if (0.25_f * b * b + aCub >= 0._f) {
         return { 0._f, 0._f, 0._f };
     }
-    ASSERT(a < 0._f);
+    SPH_ASSERT(a < 0._f);
     const Float t1 = 2._f * sqrt(-a / 3._f);
     const Float phi = acos(-0.5_f * b / sqrt(-aCub));
     const Vector v(phi / 3._f, (phi + 2 * PI) / 3._f, (phi + 4 * PI) / 3._f);

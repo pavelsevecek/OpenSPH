@@ -88,7 +88,7 @@ public:
     ///
     /// If the index is out of bounds, an assert is issued.
     INLINE T& operator[](const TCounter idx) {
-        ASSERT(idx < this->size());
+        SPH_ASSERT(idx < this->size());
         return data[first + idx];
     }
 
@@ -96,7 +96,7 @@ public:
     ///
     /// If the index is out of bounds, an assert is issued.
     INLINE const T& operator[](const TCounter idx) const {
-        ASSERT(idx < this->size());
+        SPH_ASSERT(idx < this->size());
         return data[first + idx];
     }
 
@@ -104,7 +104,7 @@ public:
     ///
     /// If the queue contains no elements, an assert is issued.
     INLINE T& front() {
-        ASSERT(!this->empty());
+        SPH_ASSERT(!this->empty());
         return data[first];
     }
 
@@ -112,7 +112,7 @@ public:
     ///
     /// If the queue contains no elements, an assert is issued.
     INLINE const T& front() const {
-        ASSERT(!this->empty());
+        SPH_ASSERT(!this->empty());
         return data[first];
     }
 
@@ -120,7 +120,7 @@ public:
     ///
     /// If the queue contains no elements, an assert is issued.
     INLINE T& back() {
-        ASSERT(!this->empty());
+        SPH_ASSERT(!this->empty());
         return data[last - 1];
     }
 
@@ -128,7 +128,7 @@ public:
     ///
     /// If the queue contains no elements, an assert is issued.
     INLINE const T& back() const {
-        ASSERT(!this->empty());
+        SPH_ASSERT(!this->empty());
         return data[last - 1];
     }
 
@@ -154,7 +154,7 @@ public:
             // no place for new elements, needs to resize
             this->reserveFront(1);
         }
-        ASSERT(first > 0);
+        SPH_ASSERT(first > 0);
         --first;
         new (data + first) StorageType();
         data[first] = value;
@@ -168,7 +168,7 @@ public:
             // no place for new elements, needs to resize
             this->reserveBack(1);
         }
-        ASSERT(last < maxSize);
+        SPH_ASSERT(last < maxSize);
         ++last;
         new (data + last - 1) StorageType();
         data[last - 1] = value;
@@ -178,7 +178,7 @@ public:
     ///
     /// \return The value of the removed element.
     T popFront() {
-        ASSERT(!this->empty());
+        SPH_ASSERT(!this->empty());
         T value = this->front();
         data[first].~StorageType();
         ++first;
@@ -189,7 +189,7 @@ public:
     ///
     /// \return The value of the removed element.
     T popBack() {
-        ASSERT(!this->empty());
+        SPH_ASSERT(!this->empty());
         T value = this->back();
         data[last - 1].~StorageType();
         --last;
@@ -255,7 +255,7 @@ private:
             newQueue.alloc(this->size(), max(num, this->size()), min(maxSize - last, this->size()));
             this->moveElements(std::move(newQueue));
         }
-        ASSERT(num <= first);
+        SPH_ASSERT(num <= first);
     }
 
     /// If there is currently less than num free elements in the back, reallocates the queue, adding at least
@@ -266,13 +266,13 @@ private:
             newQueue.alloc(this->size(), min(first, this->size()), max(num, this->size()));
             this->moveElements(std::move(newQueue));
         }
-        ASSERT(num <= maxSize - last);
+        SPH_ASSERT(num <= maxSize - last);
     }
 
     /// Moves all elements from this queue to a new one, assuming enough memory is allocated.
     void moveElements(Queue&& newQueue) {
         newQueue.last = newQueue.first + this->size();
-        ASSERT(newQueue.last <= newQueue.maxSize);
+        SPH_ASSERT(newQueue.last <= newQueue.maxSize);
 
         // construct all element in the new queue using move constructor
         for (TCounter i = 0; i < this->size(); ++i) {

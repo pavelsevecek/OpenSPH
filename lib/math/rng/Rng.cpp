@@ -77,7 +77,7 @@ HaltonQrng::HaltonQrng(HaltonQrng&& other)
     , c(std::move(other.c)) {}
 
 Float HaltonQrng::operator()(const int s) {
-    ASSERT(s < 6);
+    SPH_ASSERT(s < 6);
     return radicalInverse(primes[s], c[s]++);
 }
 

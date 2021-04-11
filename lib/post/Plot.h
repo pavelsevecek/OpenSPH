@@ -216,7 +216,7 @@ public:
     TemporalPlot(const IntegralWrapper& integral, const Params& params)
         : integral(integral)
         , params(params) {
-        ASSERT(params.segment > 0._f);
+        SPH_ASSERT(params.segment > 0._f);
         actPeriod = params.period;
     }
 

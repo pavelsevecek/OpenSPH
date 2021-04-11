@@ -27,8 +27,8 @@ BarnesHut::BarnesHut(const Float theta,
     // use default-constructed kernel; it works, because by default LutKernel has zero radius and functions
     // valueImpl and gradImpl are never called.
     // Check by assert to make sure this trick will work
-    ASSERT(kernel.radius() == 0._f);
-    ASSERT(theta > 0._f, theta);
+    SPH_ASSERT(kernel.radius() == 0._f);
+    SPH_ASSERT(theta > 0._f, theta);
 }
 
 BarnesHut::BarnesHut(const Float theta,
@@ -43,7 +43,7 @@ BarnesHut::BarnesHut(const Float theta,
     , order(order)
     , maxDepth(maxDepth)
     , gravityConstant(gravityConstant) {
-    ASSERT(theta > 0._f, theta);
+    SPH_ASSERT(theta > 0._f, theta);
 }
 
 void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
@@ -67,11 +67,11 @@ void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
     // constructs nodes
     auto functor = [this](BarnesHutNode& node, BarnesHutNode* left, BarnesHutNode* right) INL {
         if (node.isLeaf()) {
-            ASSERT(left == nullptr && right == nullptr);
+            SPH_ASSERT(left == nullptr && right == nullptr);
             buildLeaf(node);
 
         } else {
-            ASSERT(left != nullptr && right != nullptr);
+            SPH_ASSERT(left != nullptr && right != nullptr);
             buildInner(node, *left, *right);
         }
         return true;
@@ -118,7 +118,7 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx) const {
         }
         const Float boxSizeSqr = getSqrLength(node.box.size());
         const Float boxDistSqr = getSqrLength(node.box.center() - r0);
-        ASSERT(isReal(boxDistSqr));
+        SPH_ASSERT(isReal(boxDistSqr));
 
         if (!node.box.contains(r0) && boxSizeSqr > 0._f &&
             boxSizeSqr / (boxDistSqr + EPS) < 1._f / sqr(thetaInv)) {
@@ -194,19 +194,19 @@ void BarnesHut::evalNode(IScheduler& scheduler,
     if (box == Box::EMPTY()) {
         // no particles in the box, skip
         /// \todo ASSERT FIRED !
-        ASSERT(evaluatedNode.isLeaf());
+        SPH_ASSERT(evaluatedNode.isLeaf());
         return;
     }
 
     // we cannot use range-based for loop because we need the iterator for erasing the element
     for (auto iter = data.checkList.begin(); iter != data.checkList.end();) {
-        ASSERT(areElementsUnique(data.checkList), data.checkList);
+        SPH_ASSERT(areElementsUnique(data.checkList), data.checkList);
 
         const Size idx = *iter;
         const BarnesHutNode& node = kdTree.getNode(idx);
         if (node.r_open == 0._f) {
             // either empty node or a single particle in a leaf, just add it to particle list
-            ASSERT(node.isLeaf());
+            SPH_ASSERT(node.isLeaf());
             data.particleList.push(idx);
             iter = data.checkList.erase(iter);
             continue;
@@ -240,13 +240,13 @@ void BarnesHut::evalNode(IScheduler& scheduler,
             continue;
         }
         // for leafs we have to move all nodes from the checklist to one of interaction lists
-        ASSERT(!evaluatedNode.isLeaf());
+        SPH_ASSERT(!evaluatedNode.isLeaf());
         ++iter;
     }
 
     if (evaluatedNode.isLeaf()) {
         // checklist must be empty, otherwise we forgot something
-        ASSERT(data.checkList.empty(), data.checkList);
+        SPH_ASSERT(data.checkList.empty(), data.checkList);
         const LeafNode<BarnesHutNode>& leaf = reinterpret_cast<const LeafNode<BarnesHutNode>&>(evaluatedNode);
 
         // 1) evaluate the particle list:
@@ -292,18 +292,18 @@ void BarnesHut::evalParticleList(const LeafNode<BarnesHutNode>& leaf,
     SymmetrizeSmoothingLengths<const GravityLutKernel&> actKernel(kernel);
     // go through all nodes in the list and compute the pair-wise interactions
     LeafIndexSequence seq1 = kdTree.getLeafIndices(leaf);
-    ASSERT(areElementsUnique(particleList), particleList);
+    SPH_ASSERT(areElementsUnique(particleList), particleList);
     for (Size idx : particleList) {
         // the particle lists do not have to be necessarily symmetric, we have to do each node separately
-        ASSERT(idx < kdTree.getNodeCnt(), idx, kdTree.getNodeCnt());
+        SPH_ASSERT(idx < kdTree.getNodeCnt(), idx, kdTree.getNodeCnt());
         const BarnesHutNode& node = kdTree.getNode(idx);
-        ASSERT(node.isLeaf());
+        SPH_ASSERT(node.isLeaf());
         LeafIndexSequence seq2 =
             kdTree.getLeafIndices(reinterpret_cast<const LeafNode<BarnesHutNode>&>(node));
         for (Size i : seq1) {
-            ASSERT(r[i][H] > 0._f, r[i][H]);
+            SPH_ASSERT(r[i][H] > 0._f, r[i][H]);
             for (Size j : seq2) {
-                ASSERT(r[j][H] > 0._f, r[j][H]);
+                SPH_ASSERT(r[j][H] > 0._f, r[j][H]);
                 const Vector grad = actKernel.grad(r[j], r[i]);
                 dv[i] += m[j] * grad;
             }
@@ -325,11 +325,11 @@ void BarnesHut::evalParticleList(const LeafNode<BarnesHutNode>& leaf,
 void BarnesHut::evalNodeList(const LeafNode<BarnesHutNode>& leaf,
     ArrayView<Size> nodeList,
     ArrayView<Vector> dv) const {
-    ASSERT(areElementsUnique(nodeList), nodeList);
+    SPH_ASSERT(areElementsUnique(nodeList), nodeList);
     LeafIndexSequence seq1 = kdTree.getLeafIndices(leaf);
     for (Size idx : nodeList) {
         const BarnesHutNode& node = kdTree.getNode(idx);
-        ASSERT(seq1.size() > 0);
+        SPH_ASSERT(seq1.size() > 0);
         for (Size i : seq1) {
             dv[i] += evaluateGravity(r[i] - node.com, node.moments, order);
         }
@@ -384,18 +384,18 @@ void BarnesHut::buildLeaf(BarnesHutNode& node) {
         // extend the bounding box
         leaf.box.extend(r[i]);
     }
-    ASSERT(m_leaf > 0._f, m_leaf);
+    SPH_ASSERT(m_leaf > 0._f, m_leaf);
     leaf.com /= m_leaf;
-    ASSERT(isReal(leaf.com) && getLength(leaf.com) < LARGE, leaf.com);
+    SPH_ASSERT(isReal(leaf.com) && getLength(leaf.com) < LARGE, leaf.com);
 
     // compute opening radius using Eq. (2.36) of Stadel Phd Thesis
     const Vector r_max = max(leaf.com - leaf.box.lower(), leaf.box.upper() - leaf.com);
-    ASSERT(minElement(r_max) >= 0._f, r_max);
+    SPH_ASSERT(minElement(r_max) >= 0._f, r_max);
     leaf.r_open = 2._f / sqrt(3._f) * thetaInv * getLength(r_max);
 
     // compute gravitational moments from individual particles
     // M0 is a sum of particle masses, M1 is a dipole moment = zero around center of mass
-    ASSERT(computeMultipole<0>(r, m, leaf.com, sequence).value() == m_leaf);
+    SPH_ASSERT(computeMultipole<0>(r, m, leaf.com, sequence).value() == m_leaf);
     const Multipole<2> m2 = computeMultipole<2>(r, m, leaf.com, sequence);
     const Multipole<3> m3 = computeMultipole<3>(r, m, leaf.com, sequence);
 
@@ -435,11 +435,11 @@ void BarnesHut::buildInner(BarnesHutNode& node, BarnesHutNode& left, BarnesHutNo
     }
 
     inner.com = (ml * left.com + mr * right.com) / (ml + mr);
-    ASSERT(isReal(inner.com) && getLength(inner.com) < LARGE, inner.com);
+    SPH_ASSERT(isReal(inner.com) && getLength(inner.com) < LARGE, inner.com);
 
     // compute opening radius
     const Vector r_max = max(inner.com - inner.box.lower(), inner.box.upper() - inner.com);
-    ASSERT(minElement(r_max) >= 0._f, r_max);
+    SPH_ASSERT(minElement(r_max) >= 0._f, r_max);
     inner.r_open = 2._f / sqrt(3._f) * thetaInv * getLength(r_max);
 
     inner.moments.order<0>() = ml + mr;
@@ -468,7 +468,7 @@ MultipoleExpansion<3> BarnesHut::getMoments() const {
 }
 
 RawPtr<const IBasicFinder> BarnesHut::getFinder() const {
-    ASSERT(kdTree.getNodeCnt() > 0 && kdTree.sanityCheck(), kdTree.sanityCheck());
+    SPH_ASSERT(kdTree.getNodeCnt() > 0 && kdTree.sanityCheck(), kdTree.sanityCheck());
     return &kdTree;
 }
 

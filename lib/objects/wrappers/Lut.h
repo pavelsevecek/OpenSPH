@@ -43,7 +43,7 @@ public:
             return data.front();
         } else {
             const TScalar ratio = fidx - idx1;
-            ASSERT(ratio >= TScalar(0) && ratio < TScalar(1));
+            SPH_ASSERT(ratio >= TScalar(0) && ratio < TScalar(1));
             return lerp(data[idx1], data[idx2], ratio);
         }
     }

@@ -111,7 +111,7 @@ bool MeshDomain::containImpl(const Vector& v) const {
             outsideCnt++;
         }
     }
-    ASSERT(insideCnt + outsideCnt == 6);
+    SPH_ASSERT(insideCnt + outsideCnt == 6);
     return insideCnt >= outsideCnt;
 }
 

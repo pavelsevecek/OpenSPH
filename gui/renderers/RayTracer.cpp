@@ -129,7 +129,7 @@ void RayTracer::initialize(const Storage& storage,
 
 void RayTracer::render(const RenderParams& params, Statistics& UNUSED(stats), IRenderOutput& output) const {
     shouldContinue = true;
-    ASSERT(finder && bvh.getBoundingBox().volume() > 0._f);
+    SPH_ASSERT(finder && bvh.getBoundingBox().volume() > 0._f);
     FrameBuffer fb(params.size);
     for (Size iteration = 0; iteration < fixed.iterationLimit && shouldContinue; ++iteration) {
         this->refine(params, iteration, fb);
@@ -266,10 +266,10 @@ Optional<Vector> RayTracer::getSurfaceHit(ThreadData& data,
 
     const Size i = context.index;
     const Ray& ray = context.ray;
-    ASSERT(almostEqual(getSqrLength(ray.direction()), 1._f), getSqrLength(ray.direction()));
+    SPH_ASSERT(almostEqual(getSqrLength(ray.direction()), 1._f), getSqrLength(ray.direction()));
     Vector v1 = ray.origin() + ray.direction() * context.t_min;
     // the sphere hit should be always above the surface
-    // ASSERT(this->evalField(data.neighs, v1) < 0._f);
+    // SPH_ASSERT(this->evalField(data.neighs, v1) < 0._f);
     // look for the intersection up to hit + 4H; if we don't find it, we should reject the hit and look for
     // the next intersection - the surface can be non-convex!!
     const Float limit = 2._f * cached.r[i][H];
@@ -314,7 +314,7 @@ Rgba RayTracer::shade(ThreadData& data,
     Rgba diffuse = Rgba::white();
     if (!fixed.textures.empty() && !cached.uvws.empty()) {
         Size textureIdx = cached.flags[index] & ~BLEND_ALL_FLAG;
-        ASSERT(textureIdx <= 10); // just sanity check, increase if necessary
+        SPH_ASSERT(textureIdx <= 10); // just sanity check, increase if necessary
         if (textureIdx >= fixed.textures.size()) {
             textureIdx = 0;
         }
@@ -335,7 +335,7 @@ Rgba RayTracer::shade(ThreadData& data,
 
     // compute normal = gradient of the field
     const Vector n = fixed.renderSpheres ? cached.r[index] - hit : this->evalGradient(data.neighs, hit);
-    ASSERT(n != Vector(0._f));
+    SPH_ASSERT(n != Vector(0._f));
     const Vector n_norm = getNormalized(n);
     const Float cosPhi = dot(n_norm, fixed.dirToSun);
     if (cosPhi <= 0._f) {
@@ -360,7 +360,7 @@ Rgba RayTracer::shade(ThreadData& data,
 }
 
 Float RayTracer::evalField(ArrayView<const Size> neighs, const Vector& pos1) const {
-    ASSERT(!neighs.empty());
+    SPH_ASSERT(!neighs.empty());
     Float value = 0._f;
     for (Size index : neighs) {
         const Vector& pos2 = cached.r[index];
@@ -382,7 +382,7 @@ Vector RayTracer::evalGradient(ArrayView<const Size> neighs, const Vector& pos1)
 }
 
 Rgba RayTracer::evalColor(ArrayView<const Size> neighs, const Vector& pos1) const {
-    ASSERT(!neighs.empty());
+    SPH_ASSERT(!neighs.empty());
     Rgba color = Rgba::black();
     float weightSum = 0.f;
     for (Size index : neighs) {
@@ -392,14 +392,14 @@ Rgba RayTracer::evalColor(ArrayView<const Size> neighs, const Vector& pos1) cons
         color += cached.colors[index] * w;
         weightSum += w;
     }
-    ASSERT(weightSum != 0._f);
+    SPH_ASSERT(weightSum != 0._f);
     return color / weightSum;
 }
 
 constexpr Float SEAM_WIDTH = 0.1_f;
 
 Vector RayTracer::evalUvws(ArrayView<const Size> neighs, const Vector& pos1) const {
-    ASSERT(!neighs.empty());
+    SPH_ASSERT(!neighs.empty());
     Vector uvws(0._f);
     Float weightSum = 0._f;
     int seamFlag = 0;
@@ -425,12 +425,12 @@ Vector RayTracer::evalUvws(ArrayView<const Size> neighs, const Vector& pos1) con
             uvws += uvw * weight;
             weightSum += weight;
         }
-        ASSERT(weightSum != 0._f);
+        SPH_ASSERT(weightSum != 0._f);
         uvws /= weightSum;
         uvws[X] += (uvws[X] < 0._f) ? 1._f : 0._f;
         return uvws;
     } else {
-        ASSERT(weightSum != 0._f);
+        SPH_ASSERT(weightSum != 0._f);
         return uvws / weightSum;
     }
 }

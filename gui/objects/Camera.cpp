@@ -79,7 +79,7 @@ float OrthoCamera::estimateFov(const Storage& storage) const {
         m_sum += m[i];
         r_com += m[i] * r[i];
     }
-    ASSERT(m_sum > 0._f);
+    SPH_ASSERT(m_sum > 0._f);
     r_com /= m_sum;
 
     Array<Float> distances(r.size());
@@ -158,7 +158,7 @@ void OrthoCamera::setCutoff(const Optional<float> newCutoff) {
 }
 
 void OrthoCamera::zoom(const Pixel fixedPoint, const float magnitude) {
-    ASSERT(magnitude > 0.f);
+    SPH_ASSERT(magnitude > 0.f);
 
     const Vector fixed1 = this->unprojectImpl(Coords(fixedPoint), false)->origin;
     data.ortho.fov *= magnitude;
@@ -214,7 +214,7 @@ void OrthoCamera::resize(const Pixel newSize) {
 
 PerspectiveCamera::PerspectiveCamera(const CameraData& data)
     : data(data) {
-    ASSERT(data.clipping.lower() > 0._f && data.clipping.size() > EPS);
+    SPH_ASSERT(data.clipping.lower() > 0._f && data.clipping.size() > EPS);
 
     this->update();
 }
@@ -292,7 +292,7 @@ Optional<float> PerspectiveCamera::getWorldToPixel() const {
 void PerspectiveCamera::setCutoff(const Optional<float> UNUSED(newCutoff)) {}
 
 void PerspectiveCamera::zoom(const Pixel UNUSED(fixedPoint), const float magnitude) {
-    ASSERT(magnitude > 0.f);
+    SPH_ASSERT(magnitude > 0.f);
     // data.perspective.fov *= 1._f + 0.01_f * magnitude;
     // this->transform(//cached.matrix);
 }
@@ -337,10 +337,10 @@ void PerspectiveCamera::update() {
     // make sure the up vector is perpendicular
     Vector up = data.up;
     up = getNormalized(up - dot(up, cached.dir) * cached.dir);
-    ASSERT(abs(dot(up, cached.dir)) < EPS);
+    SPH_ASSERT(abs(dot(up, cached.dir)) < EPS);
 
     const Float aspect = Float(data.imageSize.x) / Float(data.imageSize.y);
-    ASSERT(aspect >= 1._f); // not really required, using for simplicity
+    SPH_ASSERT(aspect >= 1._f); // not really required, using for simplicity
     const Float tgfov = tan(0.5_f * data.perspective.fov);
     cached.up = tgfov / aspect * up;
     cached.left = tgfov * getNormalized(cross(cached.up, cached.dir));
@@ -352,7 +352,7 @@ void PerspectiveCamera::update() {
 
 PanoCameraBase::PanoCameraBase(const CameraData& data)
     : data(data) {
-    ASSERT(data.clipping.lower() > 0._f && data.clipping.size() > EPS);
+    SPH_ASSERT(data.clipping.lower() > 0._f && data.clipping.size() > EPS);
 }
 
 void PanoCameraBase::autoSetup(const Storage& storage) {
@@ -423,7 +423,7 @@ void PanoCameraBase::update() {
 
     // make sure the up vector is perpendicular
     const Vector up = getNormalized(data.up - dot(data.up, dir) * dir);
-    ASSERT(abs(dot(up, dir)) < EPS);
+    SPH_ASSERT(abs(dot(up, dir)) < EPS);
 
     const Vector left = getNormalized(cross(up, dir));
 
@@ -463,7 +463,7 @@ void FisheyeCamera::update() {
 
     // make sure the up vector is perpendicular
     const Vector up = getNormalized(data.up - dot(data.up, dir) * dir);
-    ASSERT(abs(dot(up, dir)) < EPS);
+    SPH_ASSERT(abs(dot(up, dir)) < EPS);
 
     const Vector left = getNormalized(cross(up, dir));
 

@@ -170,7 +170,7 @@ public:
     ///
     /// Object must be already initialized.
     INLINE Type& value() {
-        ASSERT(used);
+        SPH_ASSERT(used);
         return storage;
     }
 
@@ -178,7 +178,7 @@ public:
     ///
     /// Object must be already initialized.
     INLINE const Type& value() const {
-        ASSERT(used);
+        SPH_ASSERT(used);
         return storage;
     }
 
@@ -197,7 +197,7 @@ public:
     ///
     /// The value must be initialized.
     INLINE const RawType* operator->() const {
-        ASSERT(used);
+        SPH_ASSERT(used);
         return std::addressof(value());
     }
 
@@ -205,7 +205,7 @@ public:
     ///
     /// The value must be initialized.
     INLINE RawType* operator->() {
-        ASSERT(used);
+        SPH_ASSERT(used);
         return std::addressof(value());
     }
 

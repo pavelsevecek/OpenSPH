@@ -85,7 +85,7 @@ INLINE bool operator==(const SequenceSuccessful, const SequenceTest<Test>& seque
 
 template <typename Test>
 SequenceTest<Test> testSequence(Test& test, const Size from, const Size to) {
-    ASSERT(from < to);
+    SPH_ASSERT(from < to);
     SequenceTest<Test> sequenceTest(test);
     for (Size idx = from; idx < to; ++idx) {
         if (!sequenceTest.performTest(idx)) {

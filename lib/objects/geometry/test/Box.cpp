@@ -137,9 +137,9 @@ TEST_CASE("Box split", "[box]") {
     REQUIRE(b1 == Box(Vector(0._f), Vector(2._f, 4._f, 4._f)));
     REQUIRE(b2 == Box(Vector(0._f, 0._f, 4._f), Vector(2._f, 4._f, 6._f)));
 
-    REQUIRE_ASSERT(box.split(X, 3._f));
-    REQUIRE_ASSERT(box.split(4, 2._f));
-    REQUIRE_ASSERT(Box().split(X, 0._f));
+    REQUIRE_SPH_ASSERT(box.split(X, 3._f));
+    REQUIRE_SPH_ASSERT(box.split(4, 2._f));
+    REQUIRE_SPH_ASSERT(Box().split(X, 0._f));
 }
 
 TEST_CASE("Box intersect", "[box]") {

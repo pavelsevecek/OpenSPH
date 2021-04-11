@@ -48,7 +48,7 @@ static void stepFirstOrder(Storage& storage, IScheduler& scheduler, const TFunc&
 
     // note that derivatives are not advanced in time, but cannot be const as they might be clamped
     auto process = [&](const QuantityId id, auto& x, auto& dx) {
-        ASSERT(x.size() == dx.size());
+        SPH_ASSERT(x.size() == dx.size());
 
         parallelFor(scheduler, 0, x.size(), [&](const Size i) INL {
             stepper(x[i], asConst(dx[i]));
@@ -66,7 +66,7 @@ template <typename TFunc>
 static void stepSecondOrder(Storage& storage, IScheduler& scheduler, const TFunc& stepper) {
 
     auto process = [&](const QuantityId id, auto& r, auto& v, const auto& dv) {
-        ASSERT(r.size() == v.size() && r.size() == dv.size());
+        SPH_ASSERT(r.size() == v.size() && r.size() == dv.size());
 
         parallelFor(scheduler, 0, r.size(), [&](const Size i) INL {
             stepper(r[i], v[i], dv[i]);
@@ -88,9 +88,9 @@ static void stepFirstOrder(Storage& storage1,
     const TFunc& stepper) {
 
     auto processPair = [&](QuantityId id, auto& px, auto& pdx, const auto& cx, const auto& cdx) {
-        ASSERT(px.size() == pdx.size());
-        ASSERT(cdx.size() == px.size());
-        ASSERT(cx.empty());
+        SPH_ASSERT(px.size() == pdx.size());
+        SPH_ASSERT(cdx.size() == px.size());
+        SPH_ASSERT(cx.empty());
 
         parallelFor(scheduler, 0, px.size(), [&](const Size i) {
             stepper(px[i], pdx[i], cdx[i]);
@@ -113,9 +113,9 @@ static void stepPairFirstOrder(Storage& storage1,
     const TFunc& stepper) {
 
     auto processPair = [&](QuantityId id, auto& px, auto& pdx, const auto& cx, const auto& cdx) {
-        ASSERT(px.size() == pdx.size());
-        ASSERT(cdx.size() == px.size());
-        ASSERT(cx.size() == cdx.size());
+        SPH_ASSERT(px.size() == pdx.size());
+        SPH_ASSERT(cdx.size() == px.size());
+        SPH_ASSERT(cx.size() == cdx.size());
 
         parallelFor(scheduler, 0, px.size(), [&](const Size i) {
             stepper(px[i], pdx[i], cx[i], cdx[i]);
@@ -143,10 +143,10 @@ static void stepSecondOrder(Storage& storage1,
                            const auto& cr,
                            const auto& cv,
                            const auto& cdv) {
-        ASSERT(pr.size() == pv.size() && pr.size() == pdv.size());
-        ASSERT(cdv.size() == pr.size());
-        ASSERT(cr.empty());
-        ASSERT(cv.empty());
+        SPH_ASSERT(pr.size() == pv.size() && pr.size() == pdv.size());
+        SPH_ASSERT(cdv.size() == pr.size());
+        SPH_ASSERT(cr.empty());
+        SPH_ASSERT(cv.empty());
 
         parallelFor(scheduler, 0, pr.size(), [&](const Size i) {
             stepper(pr[i], pv[i], pdv[i], cdv[i]);
@@ -174,10 +174,10 @@ static void stepPairSecondOrder(Storage& storage1,
                            const auto& cr,
                            const auto& cv,
                            const auto& cdv) {
-        ASSERT(pr.size() == pv.size() && pr.size() == pdv.size());
-        ASSERT(cdv.size() == pr.size());
-        ASSERT(cr.size() == cdv.size());
-        ASSERT(cv.size() == cdv.size());
+        SPH_ASSERT(pr.size() == pv.size() && pr.size() == pdv.size());
+        SPH_ASSERT(cdv.size() == pr.size());
+        SPH_ASSERT(cr.size() == cdv.size());
+        SPH_ASSERT(cv.size() == cdv.size());
 
         parallelFor(scheduler, 0, pr.size(), [&](const Size i) {
             stepper(pr[i], pv[i], pdv[i], cr[i], cv[i], cdv[i]);
@@ -227,7 +227,7 @@ void EulerExplicit::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics&
         x += Type(dx * dt);
     });
 
-    ASSERT(storage->isValid());
+    SPH_ASSERT(storage->isValid());
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -236,7 +236,7 @@ void EulerExplicit::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics&
 
 PredictorCorrector::PredictorCorrector(const SharedPtr<Storage>& storage, const RunSettings& settings)
     : ITimeStepping(storage, settings) {
-    ASSERT(storage->getQuantityCnt() > 0); // quantities must already been emplaced
+    SPH_ASSERT(storage->getQuantityCnt() > 0); // quantities must already been emplaced
 
     // we need to keep a copy of the highest derivatives (predictions)
     predictions = makeShared<Storage>(storage->clone(VisitorEnum::HIGHEST_DERIVATIVES));
@@ -300,14 +300,14 @@ void PredictorCorrector::stepImpl(IScheduler& scheduler, ISolver& solver, Statis
 
     // compute derivatives
     solver.integrate(*storage, stats);
-    ASSERT(storage->getParticleCnt() == predictions->getParticleCnt(),
+    SPH_ASSERT(storage->getParticleCnt() == predictions->getParticleCnt(),
         storage->getParticleCnt(),
         predictions->getParticleCnt());
 
     // make corrections
     this->makeCorrections(scheduler);
 
-    ASSERT(storage->isValid());
+    SPH_ASSERT(storage->isValid());
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -352,7 +352,7 @@ void LeapFrog::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stat
         r += Type(v * 0.5_f * dt);
     });
 
-    ASSERT(storage->isValid());
+    SPH_ASSERT(storage->isValid());
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -361,7 +361,7 @@ void LeapFrog::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stat
 
 RungeKutta::RungeKutta(const SharedPtr<Storage>& storage, const RunSettings& settings)
     : ITimeStepping(storage, settings) {
-    ASSERT(storage->getQuantityCnt() > 0); // quantities must already been emplaced
+    SPH_ASSERT(storage->getQuantityCnt() > 0); // quantities must already been emplaced
     k1 = makeShared<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
     k2 = makeShared<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
     k3 = makeShared<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
@@ -473,7 +473,7 @@ void ModifiedMidpointMethod::stepImpl(IScheduler& scheduler, ISolver& solver, St
             using Type = typename std::decay_t<decltype(cv)>;
             pv = Type(cv + h * cdv);
             pr = Type(cr + h * cv);
-            ASSERT(isReal(pv) && isReal(pr));
+            SPH_ASSERT(isReal(pv) && isReal(pr));
         });
     stepPairFirstOrder(*mid,
         *storage,
@@ -481,7 +481,7 @@ void ModifiedMidpointMethod::stepImpl(IScheduler& scheduler, ISolver& solver, St
         [h](auto& px, const auto& UNUSED(pdx), const auto& cx, const auto& cdx) INL { //
             using Type = typename std::decay_t<decltype(cx)>;
             px = Type(cx + h * cdx);
-            ASSERT(isReal(px));
+            SPH_ASSERT(isReal(px));
         });
 
     mid->zeroHighestDerivatives();
@@ -505,7 +505,7 @@ void ModifiedMidpointMethod::stepImpl(IScheduler& scheduler, ISolver& solver, St
                 using Type = typename std::decay_t<decltype(pr)>;
                 pv += Type(2._f * h * cdv);
                 pr += Type(2._f * h * cv);
-                ASSERT(isReal(pv) && isReal(pr));
+                SPH_ASSERT(isReal(pv) && isReal(pr));
             });
         stepPairFirstOrder(*storage,
             *mid,
@@ -513,7 +513,7 @@ void ModifiedMidpointMethod::stepImpl(IScheduler& scheduler, ISolver& solver, St
             [h](auto& px, const auto& UNUSED(pdx), const auto& UNUSED(cx), const auto& cdx) INL { //
                 using Type = typename std::decay_t<decltype(px)>;
                 px += Type(2._f * h * cdx);
-                ASSERT(isReal(px));
+                SPH_ASSERT(isReal(px));
             });
         storage->swap(*mid, VisitorEnum::ALL_BUFFERS);
         mid->zeroHighestDerivatives();
@@ -529,7 +529,7 @@ void ModifiedMidpointMethod::stepImpl(IScheduler& scheduler, ISolver& solver, St
             using Type = typename std::decay_t<decltype(pr)>;
             pv = Type(0.5_f * (pv + cv + h * cdv));
             pr = Type(0.5_f * (pr + cr + h * cv));
-            ASSERT(isReal(pv) && isReal(pr));
+            SPH_ASSERT(isReal(pv) && isReal(pr));
         });
     stepPairFirstOrder(*storage,
         *mid,
@@ -537,7 +537,7 @@ void ModifiedMidpointMethod::stepImpl(IScheduler& scheduler, ISolver& solver, St
         [h](auto& px, const auto& UNUSED(pdx), const auto& cx, const auto& cdx) INL {
             using Type = typename std::decay_t<decltype(px)>;
             px = Type(0.5_f * (px + cx + h * cdx));
-            ASSERT(isReal(px));
+            SPH_ASSERT(isReal(px));
         });
 }
 
@@ -586,12 +586,12 @@ BulirschStoer::BulirschStoer(const SharedPtr<Storage>& storage, const RunSetting
     Size rowNumber = 0;
     (void)rowNumber;
     for (Size i = 1; i < BS_SIZE; ++i) {
-        ASSERT(isReal(alpha[i - 1][i]));
+        SPH_ASSERT(isReal(alpha[i - 1][i]));
         if (A[i + 1] > A[i] * alpha[i - 1][i]) {
             rowNumber = i;
         }
     }
-    ASSERT(rowNumber > 0._f);
+    SPH_ASSERT(rowNumber > 0._f);
 }
 
 void BulirschStoer::stepImpl(IScheduler& UNUSED(scheduler), ISolver& solver, Statistics& stats) {

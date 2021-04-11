@@ -34,7 +34,7 @@ void SpatialPlot<TDerived>::onTimeStep(const Storage& storage, const Statistics&
     if (!binCnt) {
         points = std::move(particlePoints);
     } else {
-        ASSERT(binCnt.value() >= 1);
+        SPH_ASSERT(binCnt.value() >= 1);
         points.resize(binCnt.value());
         Array<Size> weights(binCnt.value());
         points.fill(PlotPoint(0.f, 0.f));
@@ -52,7 +52,7 @@ void SpatialPlot<TDerived>::onTimeStep(const Storage& storage, const Statistics&
                 points[i].x /= weights[i];
                 points[i].y /= weights[i];
             } else {
-                ASSERT(points[i] == PlotPoint(0.f, 0.f));
+                SPH_ASSERT(points[i] == PlotPoint(0.f, 0.f));
             }
         }
     }
@@ -125,7 +125,7 @@ void TemporalPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
     // make sure the y-range is larger than the minimal allowed value
     if (ranges.y.size() < params.minRangeY) {
         const Float dy = 0.5_f * (params.minRangeY - ranges.y.size());
-        ASSERT(dy >= 0._f, params.minRangeY, ranges.y);
+        SPH_ASSERT(dy >= 0._f, params.minRangeY, ranges.y);
         ranges.y.extend(ranges.y.upper() + dy);
         ranges.y.extend(ranges.y.lower() - dy);
     }
@@ -246,7 +246,7 @@ void SfdPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
     sfd.clear();
     sfd.reserve(points.size());
     for (Post::HistPoint& p : points) {
-        ASSERT(p.value > 0._f && p.count > 0);
+        SPH_ASSERT(p.value > 0._f && p.count > 0);
         const Float value = log10(p.value);
         const Float count = log10(Float(p.count));
         ranges.x.extend(value);
@@ -336,7 +336,7 @@ Array<Float> getLinearTics(const Interval& interval, const Size minCount) {
     Float step;
     while (true) {
         step = pow(10._f, order);
-        ASSERT(step >= std::numeric_limits<Float>::denorm_min());
+        SPH_ASSERT(step >= std::numeric_limits<Float>::denorm_min());
         if (getTicsInterval(step).size() < step * minCount) {
             order--;
         } else {
@@ -357,15 +357,15 @@ Array<Float> getLinearTics(const Interval& interval, const Size minCount) {
     for (Float x = ticsInterval.lower(); x <= ticsInterval.upper() + EPS * step; x += step) {
         tics.push(x);
     }
-    ASSERT(tics.size() >= minCount && tics.size() < 10 * minCount);
+    SPH_ASSERT(tics.size() >= minCount && tics.size() < 10 * minCount);
     return tics;
 }
 
 Array<Float> getLogTics(const Interval& interval, const Size minCount) {
-    ASSERT(interval.lower() > EPS); // could be relaxed if we need to plot some very low quantities
+    SPH_ASSERT(interval.lower() > EPS); // could be relaxed if we need to plot some very low quantities
     const Float fromOrder = floor(log10(interval.lower()));
     const Float toOrder = ceil(log10(interval.upper()));
-    ASSERT(isReal(fromOrder) && isReal(toOrder) && toOrder >= fromOrder);
+    SPH_ASSERT(isReal(fromOrder) && isReal(toOrder) && toOrder >= fromOrder);
 
     std::set<Float> tics;
     // try stepping in integer orders (1, 10, 100, ...)
@@ -391,7 +391,7 @@ Array<Float> getLogTics(const Interval& interval, const Size minCount) {
 
     // sanity check that we do not create a large number of tics - increase the 20 if more tics is ever
     // actually needed
-    ASSERT(tics.size() >= minCount && tics.size() < 20);
+    SPH_ASSERT(tics.size() >= minCount && tics.size() < 20);
 
     Array<Float> result;
     for (Float t : tics) {

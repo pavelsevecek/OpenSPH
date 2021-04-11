@@ -262,13 +262,13 @@ public:
 
     /// Arithmetics
     Unit& operator+=(const Unit& other) {
-        ASSERT(dimensions == other.dimensions);
+        SPH_ASSERT(dimensions == other.dimensions);
         data += other.data;
         return *this;
     }
 
     Unit& operator-=(const Unit& other) {
-        ASSERT(dimensions == other.dimensions);
+        SPH_ASSERT(dimensions == other.dimensions);
         data -= other.data;
         return *this;
     }
@@ -298,7 +298,7 @@ public:
     }
 
     bool operator==(const Unit& other) const {
-        ASSERT(dimensions == other.dimensions);
+        SPH_ASSERT(dimensions == other.dimensions);
         return data == other.data;
     }
 
@@ -307,12 +307,12 @@ public:
     }
 
     bool operator<(const Unit& other) const {
-        ASSERT(dimensions == other.dimensions);
+        SPH_ASSERT(dimensions == other.dimensions);
         return data < other.data;
     }
 
     bool operator<=(const Unit& other) const {
-        ASSERT(dimensions == other.dimensions);
+        SPH_ASSERT(dimensions == other.dimensions);
         return data <= other.data;
     }
 
@@ -347,7 +347,7 @@ public:
     }
 
     friend bool almostEqual(const Unit& u1, const Unit& u2, const Float eps) {
-        ASSERT(u1.dimensions == u2.dimensions);
+        SPH_ASSERT(u1.dimensions == u2.dimensions);
         return Sph::almostEqual(u1.data, u2.data, eps);
     }
 

@@ -127,7 +127,7 @@ INLINE Float sampleNormalDistribution(TRng& rng, const Float mu, const Float sig
     } while (u1 <= epsilon);
 
     const Float z1 = sqrt(-2._f * log(u1)) * cos(2._f * PI * u2);
-    ASSERT(isReal(z1));
+    SPH_ASSERT(isReal(z1));
     return z1 * sigma + mu;
 }
 
@@ -186,7 +186,7 @@ INLINE Float sampleDistribution(TRng& rng, const Interval& range, const Float up
         const Float x = range.lower() + rng() * range.size();
         const Float y = rng() * upperBound;
         const Float pdf = func(x);
-        ASSERT(pdf >= 0._f && pdf < upperBound, pdf);
+        SPH_ASSERT(pdf >= 0._f && pdf < upperBound, pdf);
         if (y < pdf) {
             return x;
         }
@@ -205,7 +205,7 @@ INLINE Vector sampleDistribution(TRng& rng, const Box& box, const Float upperBou
         const Vector r = box.lower() + Vector(rng(), rng(), rng()) * box.size();
         const Float y = rng() * upperBound;
         const Float pdf = func(r);
-        ASSERT(pdf >= 0._f && pdf < upperBound, pdf);
+        SPH_ASSERT(pdf >= 0._f && pdf < upperBound, pdf);
         if (y < pdf) {
             return r;
         }

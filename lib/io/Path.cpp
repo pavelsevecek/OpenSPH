@@ -140,7 +140,7 @@ Path& Path::makeRelative() {
         return *this;
     }
     Path wd = Path::currentPath();
-    ASSERT(wd.isAbsolute() && this->isAbsolute());
+    SPH_ASSERT(wd.isAbsolute() && this->isAbsolute());
     std::size_t n = 0;
     // find shared part of the path
     while (true) {
@@ -234,7 +234,7 @@ std::size_t Path::findFolder(const std::string& folder) {
 }
 
 Path operator"" _path(const char* nativePath, const std::size_t size) {
-    ASSERT(size > 0);
+    SPH_ASSERT(size > 0);
     return Path(nativePath);
 }
 

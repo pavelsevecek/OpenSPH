@@ -27,7 +27,7 @@ public:
 
     String(Array<char>&& buffer)
         : data(std::move(buffer)) {
-        ASSERT(sanityCheck());
+        SPH_ASSERT(sanityCheck());
     }
 
     String(const char* s) {
@@ -53,7 +53,7 @@ public:
     String& operator+=(const String& other) {
         data.pop();               // pop terminating zero
         data.pushAll(other.data); // push all characters including terminating zero
-        ASSERT(sanityCheck());
+        SPH_ASSERT(sanityCheck());
         return *this;
     }
 
@@ -83,7 +83,7 @@ public:
     }
 
     INLINE char operator[](const Size idx) const {
-        ASSERT(idx < this->size());
+        SPH_ASSERT(idx < this->size());
         return data[idx];
     }
 

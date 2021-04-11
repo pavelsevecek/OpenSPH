@@ -22,7 +22,7 @@ Task::Task(const Function<void()>& callable)
     : callable(callable) {}
 
 Task::~Task() {
-    ASSERT(this->completed());
+    SPH_ASSERT(this->completed());
 }
 
 void Task::wait() {
@@ -38,7 +38,7 @@ void Task::wait() {
             waitVar.wait(lock, [this] { return tasksLeft == 0; });
         }
     }
-    ASSERT(tasksLeft == 0);
+    SPH_ASSERT(tasksLeft == 0);
 
     if (caughtException) {
         std::rethrow_exception(caughtException);
@@ -65,7 +65,7 @@ void Task::setParent(SharedPtr<Task> task) {
     parent = task;
 
     // sanity check to avoid circular dependency
-    ASSERT(!parent || parent->getParent().get() != RawPtr<Task>(this));
+    SPH_ASSERT(!parent || parent->getParent().get() != RawPtr<Task>(this));
 
     if (task) {
         task->addReference();
@@ -100,14 +100,14 @@ void Task::runAndNotify() {
 
 void Task::addReference() {
     std::unique_lock<std::mutex> lock(waitMutex);
-    ASSERT(tasksLeft > 0);
+    SPH_ASSERT(tasksLeft > 0);
     tasksLeft++;
 }
 
 void Task::removeReference() {
     std::unique_lock<std::mutex> lock(waitMutex);
     tasksLeft--;
-    ASSERT(tasksLeft >= 0);
+    SPH_ASSERT(tasksLeft >= 0);
 
     if (tasksLeft == 0) {
         if (!this->isRoot()) {
@@ -120,7 +120,7 @@ void Task::removeReference() {
 ThreadPool::ThreadPool(const Size numThreads, const Size granularity)
     : threads(numThreads == 0 ? std::thread::hardware_concurrency() : numThreads)
     , granularity(granularity) {
-    ASSERT(!threads.empty());
+    SPH_ASSERT(!threads.empty());
     auto loop = [this](const Size index) {
         // setup the thread
         threadLocalContext.parentPool = this;
@@ -179,7 +179,7 @@ void ThreadPool::processTask(const bool wait) {
         std::unique_lock<std::mutex> lock(waitMutex);
         --tasksLeft;
     } else {
-        ASSERT(!wait || stop);
+        SPH_ASSERT(!wait || stop);
     }
     waitVar.notify_one();
 }
@@ -189,7 +189,7 @@ void ThreadPool::waitForAll() {
     if (tasksLeft > 0) {
         waitVar.wait(lock, [this] { return tasksLeft == 0; });
     }
-    ASSERT(tasks.empty() && tasksLeft == 0);
+    SPH_ASSERT(tasks.empty() && tasksLeft == 0);
 }
 
 Size ThreadPool::getRecommendedGranularity() const {

@@ -47,8 +47,8 @@ void IScheduler::parallelFor(const Size from,
     const Size to,
     const Size granularity,
     const Function<void(Size n1, Size n2)>& functor) {
-    ASSERT(to > from);
-    ASSERT(granularity > 0);
+    SPH_ASSERT(to > from);
+    SPH_ASSERT(granularity > 0);
 
     SharedPtr<ITask> handle = this->submit([this, from, to, granularity, &functor] {
         for (Size n = from; n < to; n += granularity) {
@@ -58,7 +58,7 @@ void IScheduler::parallelFor(const Size from,
         }
     });
     handle->wait();
-    ASSERT(handle->completed());
+    SPH_ASSERT(handle->completed());
 }
 
 NAMESPACE_SPH_END

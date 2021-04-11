@@ -86,7 +86,7 @@ public:
     ///
     /// If the object contains success (no error), asserts.
     INLINE const TError& error() const {
-        ASSERT(!success());
+        SPH_ASSERT(!success());
         return e.value();
     }
 
@@ -157,7 +157,7 @@ template <typename... TArgs>
 INLINE Outcome makeFailed(TArgs&&... args) {
     std::stringstream ss;
     Detail::printArgs(ss, std::forward<TArgs>(args)...);
-    ASSERT(!ss.str().empty());
+    SPH_ASSERT(!ss.str().empty());
     return Outcome(ss.str());
 }
 
@@ -171,7 +171,7 @@ INLINE Outcome makeOutcome(const bool condition, TArgs&&... args) {
     } else {
         std::stringstream ss;
         Detail::printArgs(ss, std::forward<TArgs>(args)...);
-        ASSERT(!ss.str().empty());
+        SPH_ASSERT(!ss.str().empty());
         return Outcome(ss.str());
     }
 }

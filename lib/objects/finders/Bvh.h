@@ -131,7 +131,7 @@ public:
         : center(center)
         , r(radius)
         , rSqr(radius * radius) {
-        ASSERT(r > 0._f);
+        SPH_ASSERT(r > 0._f);
     }
 
     INLINE bool getIntersection(const Ray& ray, IntersectionInfo& intersection) const {

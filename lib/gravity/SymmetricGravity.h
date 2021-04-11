@@ -22,7 +22,7 @@ private:
 public:
     explicit SymmetricGravity(AutoPtr<IGravity>&& gravity)
         : gravity(std::move(gravity)) {
-        ASSERT(this->gravity);
+        SPH_ASSERT(this->gravity);
     }
 
     virtual void build(IScheduler& scheduler, const Storage& storage) override {

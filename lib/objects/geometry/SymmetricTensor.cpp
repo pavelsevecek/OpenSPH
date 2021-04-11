@@ -15,9 +15,9 @@ SymmetricTensor SymmetricTensor::pseudoInverse(const Float eps) const {
     AffineMatrix S = AffineMatrix::scale(svd.S);
     AffineMatrix result = svd.V * S * svd.U.transpose();
     // result is ALMOST symmetric, but symmetric tensor assumes ABSOLUTELY symmetric input
-    /*ASSERT(almostEqual(result(0, 1), result(1, 0), 1.e-4f), result);
-    ASSERT(almostEqual(result(0, 2), result(2, 0), 1.e-4f), result);
-    ASSERT(almostEqual(result(1, 2), result(2, 1), 1.e-4f), result);*/
+    /*SPH_ASSERT(almostEqual(result(0, 1), result(1, 0), 1.e-4f), result);
+    SPH_ASSERT(almostEqual(result(0, 2), result(2, 0), 1.e-4f), result);
+    SPH_ASSERT(almostEqual(result(1, 2), result(2, 1), 1.e-4f), result);*/
     return SymmetricTensor(
         Vector(result(0, 0), result(1, 1), result(2, 2)), Vector(result(0, 1), result(0, 2), result(1, 2)));
 }
@@ -25,7 +25,7 @@ SymmetricTensor SymmetricTensor::pseudoInverse(const Float eps) const {
 constexpr int N = 3;
 
 INLINE static double hypot2(double x, double y) {
-    ASSERT(isReal(x) && isReal(y), x, y);
+    SPH_ASSERT(isReal(x) && isReal(y), x, y);
     return sqrt(x * x + y * y);
 }
 
@@ -61,7 +61,7 @@ static void tred2(double V[N][N], double d[N], double e[N]) {
                 h += d[k] * d[k];
             }
             double f = d[i - 1];
-            ASSERT(h >= 0._f, h);
+            SPH_ASSERT(h >= 0._f, h);
             double g = sqrt(h);
             if (f > 0) {
                 g = -g;
@@ -85,7 +85,7 @@ static void tred2(double V[N][N], double d[N], double e[N]) {
                 e[j] = g;
             }
             f = 0.0;
-            ASSERT(h != 0._f);
+            SPH_ASSERT(h != 0._f);
             for (int j = 0; j < i; j++) {
                 e[j] /= h;
                 f += e[j] * d[j];
@@ -172,7 +172,7 @@ static void tql2(double V[N][N], double d[N], double e[N]) {
                 // Compute implicit shift
                 double g = d[l];
                 double p = (d[l + 1] - g) / (2.0 * e[l]);
-                ASSERT(isReal(p), p, e[l]);
+                SPH_ASSERT(isReal(p), p, e[l]);
                 double r = hypot2(p, 1.0);
                 if (p < 0) {
                     r = -r;
@@ -188,7 +188,7 @@ static void tql2(double V[N][N], double d[N], double e[N]) {
 
                 // Implicit QL transformation.
                 p = d[m];
-                ASSERT(isReal(p), p);
+                SPH_ASSERT(isReal(p), p);
                 double c = 1.0;
                 double c2 = c;
                 double c3 = c;
@@ -206,7 +206,7 @@ static void tql2(double V[N][N], double d[N], double e[N]) {
                     s = e[i] / r;
                     c = p / r;
                     p = c * d[i] - s * g;
-                    ASSERT(isReal(p), p);
+                    SPH_ASSERT(isReal(p), p);
                     d[i + 1] = h + s * (c * g + s * d[i]);
 
                     // Accumulate transformation.
@@ -247,13 +247,13 @@ static void tql2(double V[N][N], double d[N], double e[N]) {
 }
 
 Eigen eigenDecomposition(const SymmetricTensor& t) {
-    ASSERT(isReal(t), t);
+    SPH_ASSERT(isReal(t), t);
     const Float scale = maxElement(abs(t));
     if (scale < 1.e-20_f) {
         // algorithm is unstable for very small values, just return the diagonal elements + identity matrix
         return Eigen{ AffineMatrix::identity(), t.diagonal() };
     }
-    ASSERT(isReal(scale));
+    SPH_ASSERT(isReal(scale));
 
     double e[N];
     double d[N];
@@ -280,11 +280,11 @@ INLINE static double PYTHAG(double a, double b) {
 
     if (at > bt) {
         ct = bt / at;
-        ASSERT(isReal(ct));
+        SPH_ASSERT(isReal(ct));
         result = at * sqrt(1.0 + ct * ct);
     } else if (bt > 0.0) {
         ct = at / bt;
-        ASSERT(isReal(ct));
+        SPH_ASSERT(isReal(ct));
         result = bt * sqrt(1.0 + ct * ct);
     } else {
         result = 0.0;
@@ -300,7 +300,7 @@ int dsvd(float (&a)[3][3], float* w, float (&v)[3][3]) {
     double anorm = 0.0, g = 0.0, scale = 0.0;
     double* rv1;
 
-    ASSERT(m >= n, "#rows must be > #cols");
+    SPH_ASSERT(m >= n, "#rows must be > #cols");
 
     rv1 = (double*)malloc((unsigned int)n * sizeof(double));
 
@@ -318,7 +318,7 @@ int dsvd(float (&a)[3][3], float* w, float (&v)[3][3]) {
                     a[k][i] = (float)((double)a[k][i] / scale);
                     s += ((double)a[k][i] * (double)a[k][i]);
                 }
-                ASSERT(s >= 0._f, s);
+                SPH_ASSERT(s >= 0._f, s);
                 f = (double)a[i][i];
                 g = -SIGN(sqrt(s), f);
                 h = f * g - s;
@@ -348,7 +348,7 @@ int dsvd(float (&a)[3][3], float* w, float (&v)[3][3]) {
                     a[i][k] = (float)((double)a[i][k] / scale);
                     s += ((double)a[i][k] * (double)a[i][k]);
                 }
-                ASSERT(s >= 0._f, s);
+                SPH_ASSERT(s >= 0._f, s);
                 f = (double)a[i][l];
                 g = -SIGN(sqrt(s), f);
                 h = f * g - s;
@@ -462,7 +462,7 @@ int dsvd(float (&a)[3][3], float* w, float (&v)[3][3]) {
                 }
                 break;
             }
-            ASSERT(its < 30, "No convergence after 30,000! iterations ");
+            SPH_ASSERT(its < 30, "No convergence after 30,000! iterations ");
 
 
             /* shift from bottom 2 x 2 minor */

@@ -32,7 +32,7 @@ float Palette::linearToPalette(const float value) const {
     default:
         NOT_IMPLEMENTED;
     }
-    ASSERT(isReal(palette), value);
+    SPH_ASSERT(isReal(palette), value);
     return palette;
 }
 
@@ -71,13 +71,13 @@ Palette::Palette(Array<Point>&& controlPoints, const PaletteScale scale)
     : points(std::move(controlPoints))
     , scale(scale) {
 #ifdef SPH_DEBUG
-    ASSERT(points.size() >= 2);
+    SPH_ASSERT(points.size() >= 2);
     if (scale == PaletteScale::LOGARITHMIC) {
-        ASSERT(points[0].value >= 0.f);
+        SPH_ASSERT(points[0].value >= 0.f);
     }
     // sanity check, points must be sorted
     for (Size i = 0; i < points.size() - 1; ++i) {
-        ASSERT(points[i].value < points[i + 1].value);
+        SPH_ASSERT(points[i].value < points[i + 1].value);
     }
 #endif
     // save range before converting scale
@@ -88,7 +88,7 @@ Palette::Palette(Array<Point>&& controlPoints, const PaletteScale scale)
 }
 
 Interval Palette::getInterval() const {
-    ASSERT(points.size() >= 2);
+    SPH_ASSERT(points.size() >= 2);
     return range;
 }
 
@@ -109,7 +109,7 @@ PaletteScale Palette::getScale() const {
 }
 
 Rgba Palette::operator()(const float value) const {
-    ASSERT(points.size() >= 2);
+    SPH_ASSERT(points.size() >= 2);
     if (scale == PaletteScale::LOGARITHMIC && value <= 0.f) {
         return points[0].color;
     }
@@ -139,7 +139,7 @@ Palette Palette::transform(Function<Rgba(const Rgba&)> func) const {
 }
 
 float Palette::relativeToPalette(const float value) const {
-    ASSERT(value >= 0.f && value <= 1.f);
+    SPH_ASSERT(value >= 0.f && value <= 1.f);
     const float interpol = points[0].value * (1.f - value) + points.back().value * value;
     switch (scale) {
     case PaletteScale::LINEAR:

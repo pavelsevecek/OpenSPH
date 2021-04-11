@@ -55,7 +55,7 @@ public:
             m_tot += m[i];
             r_com += m[i] * r[i];
         }
-        ASSERT(m_tot != 0._f);
+        SPH_ASSERT(m_tot != 0._f);
         return r_com / m_tot;
     }
 
@@ -145,7 +145,7 @@ Storage convertSphToSpheres(const Storage& sph, const RunSettings& settings, con
     // radii handoff
     ArrayView<const Float> m_sph = sph.getValue<Float>(QuantityId::MASS);
     ArrayView<const Float> rho_sph = sph.getValue<Float>(QuantityId::DENSITY);
-    ASSERT(r_nbody.size() == rho_sph.size());
+    SPH_ASSERT(r_nbody.size() == rho_sph.size());
     for (Size i = 0; i < r_nbody.size(); ++i) {
         switch (params.radius) {
         case HandoffParams::Radius::EQUAL_VOLUME:
@@ -179,7 +179,7 @@ Storage convertSphToSpheres(const Storage& sph, const RunSettings& settings, con
 
     if (params.largestRemnant) {
         Array<Size> idxs = Post::findLargestComponent(sph, 2._f, EMPTY_FLAGS);
-        ASSERT(std::is_sorted(idxs.begin(), idxs.end()));
+        SPH_ASSERT(std::is_sorted(idxs.begin(), idxs.end()));
 
         // find mass, COM and velocity of the largest remnant
         Float m_tot = 0._f;

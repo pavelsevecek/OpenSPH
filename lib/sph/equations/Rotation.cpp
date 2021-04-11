@@ -45,13 +45,13 @@ public:
         const TracelessTensor t = Term::term(s, rho, i, j);
         const Vector force = t * grad;
         const Vector torque = 0.5_f * cross(r[j] - r[i], force);
-        ASSERT(isReal(force) && isReal(torque));
+        SPH_ASSERT(isReal(force) && isReal(torque));
         domega[i] += m[i] / I[i] * m[j] * torque;
-        ASSERT(isReal(domega[i]));
+        SPH_ASSERT(isReal(domega[i]));
 
         if (Symmetrize) {
             domega[j] += m[j] / I[j] * m[i] * torque;
-            ASSERT(isReal(domega[j]));
+            SPH_ASSERT(isReal(domega[j]));
         }
     }
 };
@@ -96,10 +96,10 @@ public:
     virtual void evalNeighs(const Size idx,
         ArrayView<const Size> neighs,
         ArrayView<const Vector> grads) override {
-        ASSERT(neighs.size() == grads.size());
+        SPH_ASSERT(neighs.size() == grads.size());
         if (useCorrectionTensor) {
             for (Size k = 0; k < neighs.size(); ++k) {
-                ASSERT(C[idx] != SymmetricTensor::null()); // check that it has been computed
+                SPH_ASSERT(C[idx] != SymmetricTensor::null()); // check that it has been computed
                 static_cast<TDerived*>(this)->template eval<false>(idx, neighs[k], C[idx] * grads[k]);
             }
         } else {
@@ -112,8 +112,8 @@ public:
     virtual void evalSymmetric(const Size idx,
         ArrayView<const Size> neighs,
         ArrayView<const Vector> grads) override {
-        ASSERT(neighs.size() == grads.size());
-        ASSERT(!useCorrectionTensor);
+        SPH_ASSERT(neighs.size() == grads.size());
+        SPH_ASSERT(!useCorrectionTensor);
         for (Size k = 0; k < neighs.size(); ++k) {
             static_cast<TDerived*>(this)->template eval<true>(idx, neighs[k], grads[k]);
         }
@@ -138,7 +138,7 @@ public:
         const Vector dr = r[j] - r[i];
         const Vector dvj = cross(omega[j], dr);
         const SymmetricTensor tj = outer(dvj, grad);
-        ASSERT(isReal(tj));
+        SPH_ASSERT(isReal(tj));
         gradv[i] -= m[j] / rho[j] * tj;
         if (Symmetrize) {
             const Vector dvi = cross(omega[i], dr);
@@ -162,7 +162,7 @@ public:
         const Vector dr = r[j] - r[i];
         const Vector dvj = cross(omega[j], dr);
         const SymmetricTensor tj = outer(dvj, grad);
-        ASSERT(isReal(tj));
+        SPH_ASSERT(isReal(tj));
         gradv[i] -= m[j] * tj;
         if (Symmetrize) {
             const Vector dvi = cross(omega[i], dr);
@@ -208,7 +208,7 @@ void BenzAsphaugSph::SolidStressTorque::initialize(Storage& storage) {
     ArrayView<Float> I = storage.getValue<Float>(QuantityId::MOMENT_OF_INERTIA);
     for (Size i = 0; i < r.size(); ++i) {
         I[i] = inertia * m[i] * sqr(r[i][H]);
-        ASSERT(isReal(I[i]) && I[i] > EPS);
+        SPH_ASSERT(isReal(I[i]) && I[i] > EPS);
     }
 }
 
@@ -219,7 +219,7 @@ void BenzAsphaugSph::SolidStressTorque::finalize(Storage& storage) {
         ArrayView<Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
         for (Size i = 0; i < omega.size(); ++i) {
             dphi[i] = omega[i];
-            ASSERT(maxElement(abs(omega[i])) < 1.e6_f, omega[i]);
+            SPH_ASSERT(maxElement(abs(omega[i])) < 1.e6_f, omega[i]);
         }
     }
 }

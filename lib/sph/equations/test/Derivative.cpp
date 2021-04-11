@@ -81,7 +81,7 @@ TEST_CASE("Derivative unique buffer", "[derivative]") {
 
     Storage storage;
     storage.insert<Float>(QuantityId::POSITION, OrderEnum::FIRST, Array<Float>{ 1._f, 2._f, 3._f });
-    REQUIRE_ASSERT(derivatives.initialize(storage));
+    REQUIRE_SPH_ASSERT(derivatives.initialize(storage));
 }
 
 TEST_CASE("Derivative shared buffer", "[derivative]") {

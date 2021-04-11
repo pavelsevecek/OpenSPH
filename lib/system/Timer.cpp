@@ -110,7 +110,7 @@ TimerThread::TimerThread() {
 
 TimerThread::~TimerThread() {
     closingDown = true;
-    ASSERT(thread.joinable());
+    SPH_ASSERT(thread.joinable());
     thread.join();
 }
 

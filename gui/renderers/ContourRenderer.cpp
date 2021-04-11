@@ -156,15 +156,15 @@ void ContourRenderer::render(const RenderParams& params,
                     const Pixel p21 = p + ps2.first;
                     const Pixel p22 = p + ps2.second;
 
-                    ASSERT((grid[p11] > iso) != (grid[p12] > iso));
-                    ASSERT((grid[p21] > iso) != (grid[p22] > iso));
+                    SPH_ASSERT((grid[p11] > iso) != (grid[p12] > iso));
+                    SPH_ASSERT((grid[p21] > iso) != (grid[p22] > iso));
 
                     const float rati1 = (grid[p11] - iso) / (grid[p11] - grid[p12]);
-                    ASSERT(rati1 >= 0.f && rati1 <= 1.f, rati1);
+                    SPH_ASSERT(rati1 >= 0.f && rati1 <= 1.f, rati1);
                     const Coords c1 = lerp(Coords(p11), Coords(p12), rati1) * gridToPixel;
 
                     const float rati2 = (grid[p21] - iso) / (grid[p21] - grid[p22]);
-                    ASSERT(rati2 >= 0.f && rati2 <= 1.f, rati2);
+                    SPH_ASSERT(rati2 >= 0.f && rati2 <= 1.f, rati2);
                     const Coords c2 = lerp(Coords(p21), Coords(p22), rati2) * gridToPixel;
                     context.drawLine(c1, c2);
 

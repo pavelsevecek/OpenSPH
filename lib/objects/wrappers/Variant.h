@@ -25,7 +25,7 @@ public:
     /// Does not check whether another object has already been created.
     template <typename T, typename... Ts>
     INLINE void emplace(Ts&&... args) {
-        ASSERT(isAligned(storage));
+        SPH_ASSERT(isAligned(storage));
         new (&storage) T(std::forward<Ts>(args)...);
     }
 
@@ -157,7 +157,7 @@ template <typename T0>
 struct VariantIterator<T0> {
     template <typename TVisitor, typename... Ts>
     static void visit(Size idx, TVisitor&& visitor, Ts&&... args) {
-        ASSERT(idx == 0);
+        SPH_ASSERT(idx == 0);
         visitor.template visit<T0>(std::forward<Ts>(args)...);
     }
 };
@@ -206,7 +206,7 @@ public:
     /// Useful for (de)serialization of variant.
     Variant(const ConstructTypeIdxTag, const Size typeIdx)
         : typeIdx(typeIdx) {
-        ASSERT(typeIdx < sizeof...(TArgs));
+        SPH_ASSERT(typeIdx < sizeof...(TArgs));
         VariantHelpers::DefaultCreate<TArgs...> creator{ storage };
         VariantIterator<TArgs...>::visit(typeIdx, creator);
     }
@@ -288,7 +288,7 @@ public:
     ///
     /// Both variants must hold the value of the same type, checked by assert.
     void swap(Variant& other) {
-        ASSERT(typeIdx == other.typeIdx);
+        SPH_ASSERT(typeIdx == other.typeIdx);
         VariantHelpers::Swap<TArgs...> swapper{ storage };
         VariantIterator<TArgs...>::visit(typeIdx, swapper, other);
     }
@@ -335,7 +335,7 @@ public:
     INLINE T& get() {
         constexpr int idx = getTypeIndex<std::decay_t<T>, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
-        ASSERT(typeIdx == idx);
+        SPH_ASSERT(typeIdx == idx);
         return storage.template get<T>();
     }
 
@@ -344,7 +344,7 @@ public:
     INLINE const T& get() const {
         constexpr int idx = getTypeIndex<std::decay_t<T>, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
-        ASSERT(typeIdx == idx);
+        SPH_ASSERT(typeIdx == idx);
         return storage.template get<T>();
     }
 

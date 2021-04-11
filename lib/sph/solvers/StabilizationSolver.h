@@ -65,7 +65,7 @@ public:
         if (!data) {
             computeBodyData(storage);
         }
-        ASSERT(data);
+        SPH_ASSERT(data);
 
         // damp velocities
         ArrayView<Vector> r, v, dv;
@@ -83,7 +83,7 @@ public:
             // we have to dump only the deviation of velocities, not the initial rotation!
             v[i] = (v[i] - v_local) / factor + v_local;
             v[i][H] = 0._f;
-            ASSERT(isReal(v[i]));
+            SPH_ASSERT(isReal(v[i]));
         }
 
         if (storage.has(QuantityId::DAMAGE)) {

@@ -126,7 +126,7 @@ public:
     Unit(const std::string& name, const Function func)
         : name(name)
         , function(func) {
-        ASSERT(function != nullptr);
+        SPH_ASSERT(function != nullptr);
     }
 
     const std::string& getName() const {

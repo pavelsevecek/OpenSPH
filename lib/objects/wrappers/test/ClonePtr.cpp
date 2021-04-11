@@ -13,8 +13,8 @@ TEST_CASE("ClonePtr default construct", "[cloneptr]") {
     REQUIRE(p1 == nullptr);
     REQUIRE(!p1);
     REQUIRE_FALSE(p1);
-    REQUIRE_ASSERT(*p1);
-    REQUIRE_ASSERT(p1->value);
+    REQUIRE_SPH_ASSERT(*p1);
+    REQUIRE_SPH_ASSERT(p1->value);
     REQUIRE_FALSE(p1.clone());
 }
 

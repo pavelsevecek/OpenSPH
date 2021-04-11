@@ -61,7 +61,7 @@ public:
     template <bool Symmetric>
     INLINE Tuple<Vector, Float> eval(const Size i, const Size j, const Vector& grad) {
         const Vector f = discr.eval(i, j, p[i], p[j]) * grad;
-        ASSERT(isReal(f));
+        SPH_ASSERT(isReal(f));
         return { -f, 0._f };
     }
 };
@@ -94,7 +94,7 @@ void PressureForce::finalize(IScheduler& scheduler, Storage& storage, const Floa
     ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
     parallelFor(scheduler, 0, du.size(), [&](const Size i) INL { //
         du[i] -= p[i] / rho[i] * divv[i];
-        ASSERT(isReal(du[i]));
+        SPH_ASSERT(isReal(du[i]));
     });
 }
 
@@ -134,7 +134,7 @@ public:
     template <bool Symmetrize>
     INLINE Tuple<Vector, Float> eval(const Size i, const Size j, const Vector& grad) {
         const Vector f = discr.eval(i, j, s[i], s[j]) * grad;
-        ASSERT(isReal(f));
+        SPH_ASSERT(isReal(f));
         return { f, 0._f };
     }
 };
@@ -196,7 +196,7 @@ void SolidStressForce::finalize(IScheduler& scheduler, Storage& storage, const F
             // Hooke's law
             TracelessTensor dev(gradv[i] - SymmetricTensor::identity() * gradv[i].trace() / 3._f);
             ds[i] += 2._f * mu * dev;
-            ASSERT(isReal(du[i]) && isReal(ds[i]));
+            SPH_ASSERT(isReal(du[i]) && isReal(ds[i]));
         });
     }
 }
@@ -246,13 +246,13 @@ void NavierStokesForce::finalize(IScheduler& UNUSED(scheduler), Storage& storage
             /// \todo rotation rate tensor?
             TracelessTensor dev(gradv[i] - SymmetricTensor::identity() * gradv[i].trace() / 3._f);
             ds[i] += 2._f * mu * dev;
-            ASSERT(isReal(du[i]) && isReal(ds[i]));
+            SPH_ASSERT(isReal(du[i]) && isReal(ds[i]));
         }
     }
 }
 
 void NavierStokesForce::create(Storage& storage, IMaterial& material) const {
-    ASSERT(storage.has(QuantityId::ENERGY) && storage.has(QuantityId::PRESSURE));
+    SPH_ASSERT(storage.has(QuantityId::ENERGY) && storage.has(QuantityId::PRESSURE));
     storage.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS,
         OrderEnum::ZERO,
         material.getParam<TracelessTensor>(BodySettingsId::STRESS_TENSOR));
@@ -431,7 +431,7 @@ INLINE void AdaptiveSmoothingLength::enforce(const Size i,
 
     // check upper limit of neighbour count
     const Float dn1 = neighCnt[i] - enforcing.range.upper();
-    ASSERT(dn1 < neighCnt.size());
+    SPH_ASSERT(dn1 < neighCnt.size());
     if (dn1 > 0._f) {
         // sound speed is used to add correct dimensions to the term
         v[i][H] -= exp(enforcing.strength * dn1) * cs[i];
@@ -439,12 +439,12 @@ INLINE void AdaptiveSmoothingLength::enforce(const Size i,
     }
     // check lower limit of neighbour count
     const Float dn2 = enforcing.range.lower() - neighCnt[i];
-    ASSERT(dn2 < neighCnt.size());
+    SPH_ASSERT(dn2 < neighCnt.size());
     if (dn2 > 0._f) {
         v[i][H] += exp(enforcing.strength * dn2) * cs[i];
     }
 
-    ASSERT(isReal(v[i]));
+    SPH_ASSERT(isReal(v[i]));
 }
 
 void ConstSmoothingLength::setDerivatives(DerivativeHolder& UNUSED(derivatives),

@@ -38,7 +38,7 @@ private:
         template <bool Symmetrize>
         INLINE void eval(const Size i, const Size j, const Vector& UNUSED(grad)) {
             // there is no need to use this in asymmetric solver, since we already know all the neighbours
-            ASSERT(Symmetrize);
+            SPH_ASSERT(Symmetrize);
             neighCnts[i]++;
             if (Symmetrize) {
                 neighCnts[j]++;

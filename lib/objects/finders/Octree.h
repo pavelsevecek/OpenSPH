@@ -60,8 +60,8 @@ public:
         const Float radius,
         Array<NeighbourRecord>& neighbours) const override {
         PROFILE_SCOPE("Octree::findNeighbours");
-        ASSERT(neighbours.empty())
-        ASSERT(root);
+        SPH_ASSERT(neighbours.empty())
+        SPH_ASSERT(root);
         findNeighboursInNode(*root, index, radius, neighbours);
         return neighbours.size();
     }
@@ -71,7 +71,7 @@ public:
         Array<NeighbourRecord>& neighbours) const override {
         PROFILE_SCOPE("Octree::findNeighbours");
         neighbours.clear();
-        ASSERT(root);
+        SPH_ASSERT(root);
         findNeighboursInNode(*root, 0, radius, neighbours);
         NOT_IMPLEMENTED;
         return neighbours.size();
@@ -137,7 +137,7 @@ private:
                     OctreeNode& child = *node.children[i];
                     const bool intersect = (i == code) ? true : sphereIntersectsBox(p, radius, child.voxel);
                     if (intersect) {
-                        ASSERT(node.children[i]);
+                        SPH_ASSERT(node.children[i]);
                         this->findNeighboursInNode(child, index, radius, neighbours);
                     }
                 }
@@ -151,11 +151,11 @@ private:
         node->voxel = voxel;
         if (idxs.size() <= MAX_CHILDREN_PER_LEAF) {
             node->setPoints(std::forward<TIdxs>(idxs));
-            ASSERT(node->isLeaf);
+            SPH_ASSERT(node->isLeaf);
         } else {
             StaticArray<Array<Size>, 8> octants;
             for (Size i : idxs) {
-                ASSERT(voxel.contains(points[i]));
+                SPH_ASSERT(voxel.contains(points[i]));
                 const Size idx = getCode(points[i], voxel);
                 octants[idx].push(i);
             }
@@ -163,7 +163,7 @@ private:
             for (Size j = 0; j < node->children.size(); ++j) {
                 node->children[j] = makeNode(this->getVoxel(j, voxel), points, std::move(octants[j]));
             }
-            ASSERT(!node->isLeaf);
+            SPH_ASSERT(!node->isLeaf);
         }
         return node;
     }
@@ -221,7 +221,7 @@ private:
         if (p[Z] > center[Z]) {
             code |= 0x04;
         }
-        ASSERT(code < 8);
+        SPH_ASSERT(code < 8);
         return code;
     }
 };*/

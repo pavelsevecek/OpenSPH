@@ -11,8 +11,8 @@ TEST_CASE("SharedPtr default construct", "[sharedptr]") {
     SharedPtr<RecordType> s1;
     REQUIRE(!s1);
     REQUIRE_FALSE(s1);
-    REQUIRE_ASSERT(s1->value);
-    REQUIRE_ASSERT(*s1);
+    REQUIRE_SPH_ASSERT(s1->value);
+    REQUIRE_SPH_ASSERT(*s1);
     REQUIRE(s1.get() == nullptr);
     REQUIRE(s1.getUseCount() == 0);
     REQUIRE(RecordType::constructedNum == 0);
@@ -243,7 +243,7 @@ TEST_CASE("ShareFromThis", "[sharedptr]") {
     class Derived : public ShareFromThis<Derived> {};
 
     Derived value;
-    REQUIRE_ASSERT(value.sharedFromThis());
+    REQUIRE_SPH_ASSERT(value.sharedFromThis());
 
     SharedPtr<Derived> ptr1 = makeShared<Derived>();
     SharedPtr<Derived> ptr2 = ptr1->sharedFromThis();
@@ -254,7 +254,7 @@ TEST_CASE("ShareFromThis", "[sharedptr]") {
     value = *ptr1;
     REQUIRE(value.sharedFromThis());
     ptr1 = nullptr;
-    REQUIRE_ASSERT(value.sharedFromThis());
+    REQUIRE_SPH_ASSERT(value.sharedFromThis());
     REQUIRE_FALSE(value.weakFromThis());
 }
 
@@ -268,7 +268,7 @@ TEST_CASE("ShareFromThis copy", "[sharedptr]") {
     REQUIRE(ptr2->sharedFromThis() == ptr2);
     Derived value = *ptr2;
     ptr2 = nullptr;
-    REQUIRE_ASSERT(ptr2->sharedFromThis());
+    REQUIRE_SPH_ASSERT(ptr2->sharedFromThis());
 }
 
 TEST_CASE("ShareFromThis derived", "[sharedptr]") {

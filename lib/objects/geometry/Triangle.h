@@ -19,7 +19,7 @@ public:
 
     Triangle(const Vector& v1, const Vector& v2, const Vector& v3)
         : v{ v1, v2, v3 } {
-        ASSERT(isValid());
+        SPH_ASSERT(isValid());
     }
 
     INLINE Vector& operator[](const Size idx) {
@@ -35,14 +35,14 @@ public:
     }
 
     INLINE Vector normal() const {
-        ASSERT(this->isValid());
+        SPH_ASSERT(this->isValid());
         const Vector v12 = v[2] - v[1];
         const Vector v02 = v[2] - v[0];
         return getNormalized(cross(v12, v02));
     }
 
     INLINE Float area() const {
-        ASSERT(this->isValid());
+        SPH_ASSERT(this->isValid());
         const Vector v12 = v[2] - v[1];
         const Vector v02 = v[2] - v[0];
         return 0.5_f * getLength(cross(v12, v02));

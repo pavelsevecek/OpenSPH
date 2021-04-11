@@ -6,7 +6,7 @@ using namespace Sph;
 
 TEST_CASE("Sphere constructor", "[sphere]") {
     REQUIRE_NOTHROW(Sphere(Vector(0._f), 1._f));
-    REQUIRE_ASSERT(Sphere(Vector(0._f), -1._f));
+    REQUIRE_SPH_ASSERT(Sphere(Vector(0._f), -1._f));
 }
 
 TEST_CASE("Sphere contains", "[sphere]") {

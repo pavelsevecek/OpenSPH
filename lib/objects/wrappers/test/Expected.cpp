@@ -10,7 +10,7 @@ TEST_CASE("Expected default constructor", "[expected]") {
     REQUIRE(e);
     REQUIRE(e->wasDefaultConstructed);
     REQUIRE_FALSE(!e);
-    REQUIRE_ASSERT(e.error());
+    REQUIRE_SPH_ASSERT(e.error());
 }
 
 TEST_CASE("Expected construct expected", "[expected]") {
@@ -30,8 +30,8 @@ TEST_CASE("Expected construct unexpected", "[expected]") {
     REQUIRE_FALSE(e);
     REQUIRE(!e);
     REQUIRE(e.error() == "error");
-    REQUIRE_ASSERT(e->value);
-    REQUIRE_ASSERT(e.value());
+    REQUIRE_SPH_ASSERT(e->value);
+    REQUIRE_SPH_ASSERT(e.value());
 }
 
 TEST_CASE("Expected copy/move constuct", "[expected]") {
@@ -76,7 +76,7 @@ TEST_CASE("Expected same types", "[expected]") {
     Expected<std::string> e("test");
     REQUIRE(e);
     REQUIRE(e.value() == "test");
-    REQUIRE_ASSERT(e.error());
+    REQUIRE_SPH_ASSERT(e.error());
 
     e = Expected<std::string>(UNEXPECTED, "error");
     REQUIRE(!e);

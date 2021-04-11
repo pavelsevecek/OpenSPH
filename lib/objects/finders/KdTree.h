@@ -105,7 +105,7 @@ public:
     INLINE LeafIndexSequence(const Size from, const Size to, ArrayView<const Size> mapping)
         : IndexSequence(from, to)
         , mapping(mapping) {
-        ASSERT(to <= mapping.size());
+        SPH_ASSERT(to <= mapping.size());
     }
 
     INLINE LeafIndexIterator begin() const {
@@ -157,7 +157,7 @@ private:
 
 public:
     explicit KdTree(const Size leafSize = 25, const Size maxParallelDepth = 50) {
-        ASSERT(leafSize >= 1);
+        SPH_ASSERT(leafSize >= 1);
         config.leafSize = leafSize;
         config.maxParallelDepth = maxParallelDepth;
     }

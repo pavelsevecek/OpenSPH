@@ -38,7 +38,7 @@ public:
 
     template <bool Symmetrize>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        ASSERT(Symmetrize == false);
+        SPH_ASSERT(Symmetrize == false);
         const Vector f = (rho[j] - rho[i]) * grad;
         drho[i] += m[j] / rho[j] * f;
         if (Symmetrize) {

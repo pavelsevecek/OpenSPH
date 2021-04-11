@@ -76,7 +76,7 @@ INLINE constexpr bool isPower2(const Size n) noexcept {
 /// Return a squared root of a value.
 template <typename T>
 INLINE T sqrt(const T f) {
-    ASSERT(f >= T(0), f);
+    SPH_ASSERT(f >= T(0), f);
     return std::sqrt(f);
 }
 
@@ -227,7 +227,7 @@ INLINE T pow(const T value, const T power) {
 ///
 /// Expected error is about 5 %. Works only for positive values and positive powers.
 INLINE Float powFastest(const Float value, const Float power) {
-    ASSERT(value > 0._f && power > 0._f, value, power);
+    SPH_ASSERT(value > 0._f && power > 0._f, value, power);
     // https://martin.ankerl.com/2012/01/25/optimized-approximative-pow-in-c-and-cpp/
     // this type-punning through union is undefined behavior according to C++ standard, but most compilers
     // behave expectably ...
@@ -244,7 +244,7 @@ INLINE Float powFastest(const Float value, const Float power) {
 ///
 /// Expected error is about 2 %. Works only for positive values and positive powers.
 INLINE Float powFast(Float value, const Float power) {
-    ASSERT(value > 0._f && power > 0._f, value, power);
+    SPH_ASSERT(value > 0._f && power > 0._f, value, power);
     // https://martin.ankerl.com/2012/01/25/optimized-approximative-pow-in-c-and-cpp/
     int e = (int)power;
     union {

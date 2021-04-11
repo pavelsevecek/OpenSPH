@@ -18,14 +18,14 @@ NAMESPACE_SPH_BEGIN
 
 GhostParticles::GhostParticles(SharedPtr<IDomain> domain, const Float searchRadius, const Float minimalDist)
     : domain(std::move(domain)) {
-    ASSERT(this->domain);
+    SPH_ASSERT(this->domain);
     params.searchRadius = searchRadius;
     params.minimalDist = minimalDist;
 }
 
 GhostParticles::GhostParticles(SharedPtr<IDomain> domain, const RunSettings& settings)
     : domain(std::move(domain)) {
-    ASSERT(this->domain);
+    SPH_ASSERT(this->domain);
     params.searchRadius = Factory::getKernel<3>(settings).radius();
     params.minimalDist = settings.get<Float>(RunSettingsId::DOMAIN_GHOST_MIN_DIST);
 }
@@ -38,7 +38,7 @@ void GhostParticles::initialize(Storage& storage) {
 
     storage.setUserData(nullptr); // clear previous data
 
-    ASSERT(ghosts.empty() && ghostIdxs.empty());
+    SPH_ASSERT(ghosts.empty() && ghostIdxs.empty());
 
     // project particles outside of the domain on the boundary
     Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
@@ -56,7 +56,7 @@ void GhostParticles::initialize(Storage& storage) {
     ghostIdxs = storage.duplicate(idxs);
 
     // set correct positions of ghosts
-    ASSERT(ghostIdxs.size() == ghosts.size());
+    SPH_ASSERT(ghostIdxs.size() == ghosts.size());
     for (Size i = 0; i < ghosts.size(); ++i) {
         const Size ghostIdx = ghostIdxs[i];
         r[ghostIdx] = ghosts[i].position;
@@ -69,7 +69,7 @@ void GhostParticles::initialize(Storage& storage) {
             const Size ghostIdx = ghostIdxs[i];
             // offset between particle and its ghost
             const Vector deltaR = r[ghosts[i].index] - ghosts[i].position;
-            ASSERT(getLength(deltaR) > 0._f);
+            SPH_ASSERT(getLength(deltaR) > 0._f);
             const Vector normal = getNormalized(deltaR);
             const Float perp = dot(normal, v[ghosts[i].index]);
             // mirror vector by copying parallel component and inverting perpendicular component
@@ -79,7 +79,7 @@ void GhostParticles::initialize(Storage& storage) {
             } else {
                 v[ghostIdx] = v0;
             }
-            ASSERT(getLength(v[ghostIdx]) < 1.e50_f);
+            SPH_ASSERT(getLength(v[ghostIdx]) < 1.e50_f);
         }
     }
 
@@ -92,7 +92,7 @@ void GhostParticles::initialize(Storage& storage) {
         }
     }
 
-    ASSERT(storage.isValid());
+    SPH_ASSERT(storage.isValid());
 
     particleCnt = storage.getParticleCnt();
 }
@@ -102,7 +102,7 @@ void GhostParticles::setVelocityOverride(Function<Optional<Vector>(const Vector&
 }
 
 void GhostParticles::finalize(Storage& storage) {
-    ASSERT(storage.getParticleCnt() == particleCnt,
+    SPH_ASSERT(storage.getParticleCnt() == particleCnt,
         "Solver changed the number of particles. This is currently not consistent with the implementation of "
         "GhostParticles");
 
@@ -119,7 +119,7 @@ void GhostParticles::finalize(Storage& storage) {
 
 FixedParticles::FixedParticles(const RunSettings& settings, Params&& params)
     : fixedParticles(std::move(params.material)) {
-    ASSERT(isReal(params.thickness));
+    SPH_ASSERT(isReal(params.thickness));
     Box box = params.domain->getBoundingBox();
     box.extend(box.lower() - Vector(params.thickness));
     box.extend(box.upper() + Vector(params.thickness));
@@ -164,8 +164,8 @@ FixedParticles::FixedParticles(const RunSettings& settings, Params&& params)
 void FixedParticles::initialize(Storage& storage) {
     // add all fixed particles into the storage
     storage.merge(fixedParticles.clone(VisitorEnum::ALL_BUFFERS));
-    ASSERT(storage.isValid());
-    ASSERT(storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS).size() ==
+    SPH_ASSERT(storage.isValid());
+    SPH_ASSERT(storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS).size() ==
            storage.getValue<Vector>(QuantityId::POSITION).size());
 }
 
@@ -180,7 +180,7 @@ void FixedParticles::finalize(Storage& storage) {
     }
 
     storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED);
-    ASSERT(storage.isValid());
+    SPH_ASSERT(storage.isValid());
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -218,7 +218,7 @@ void FrozenParticles::finalize(Storage& storage) {
         // freeze particles close to the boundary
         domain->getDistanceToBoundary(r, distances);
         for (Size i = 0; i < r.size(); ++i) {
-            ASSERT(distances[i] >= -EPS);
+            SPH_ASSERT(distances[i] >= -EPS);
             if (distances[i] < radius * r[i][H]) {
                 idxs.push(i);
             }
@@ -273,7 +273,7 @@ void WindTunnel::finalize(Storage& storage) {
              z1 = r[i][Z];
          }
      }
-     ASSERT(z2 > -INFTY && z1 > z2 + 0.1_f * r[0][H]);
+     SPH_ASSERT(z2 > -INFTY && z1 > z2 + 0.1_f * r[0][H]);
      const Float dz = z1 - z2;
      if (z1 + 2._f * dz < this->domain->getBoundingBox().upper()[Z]) {
          // find indices of upper two layers
@@ -284,7 +284,7 @@ void WindTunnel::finalize(Storage& storage) {
                  idxs.push(i);
              }
          }
-         ASSERT(!idxs.empty());
+         SPH_ASSERT(!idxs.empty());
          // copy all quantities
          iterate<VisitorEnum::ALL_BUFFERS>(storage, [&idxs](auto& v) {
              for (Size i : idxs) {
@@ -298,7 +298,7 @@ void WindTunnel::finalize(Storage& storage) {
              r[i] += offset;
          }
      }*/
-    ASSERT(storage.isValid());
+    SPH_ASSERT(storage.isValid());
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -316,7 +316,7 @@ static const StaticArray<Vector, 3> UNIT = {
 
 void PeriodicBoundary::initialize(Storage& storage) {
     storage.setUserData(nullptr); // clear previous data
-    ASSERT(ghostIdxs.empty() && ghosts.empty());
+    SPH_ASSERT(ghostIdxs.empty() && ghosts.empty());
 
     Array<Size> duplIdxs;
     Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
@@ -349,7 +349,7 @@ void PeriodicBoundary::initialize(Storage& storage) {
     }
 
     ghostIdxs = storage.duplicate(duplIdxs);
-    ASSERT(ghostIdxs.size() == duplIdxs.size());
+    SPH_ASSERT(ghostIdxs.size() == duplIdxs.size());
 
     for (Size i = 0; i < ghostIdxs.size(); ++i) {
         r[ghostIdxs[i]] = ghosts[i].position;
@@ -378,7 +378,7 @@ void PeriodicBoundary::finalize(Storage& storage) {
 
 void SymmetricBoundary::initialize(Storage& storage) {
     storage.setUserData(nullptr); // clear previous data
-    ASSERT(ghostIdxs.empty() && ghosts.empty());
+    SPH_ASSERT(ghostIdxs.empty() && ghosts.empty());
 
     Array<Size> duplIdxs;
     Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
@@ -399,7 +399,7 @@ void SymmetricBoundary::initialize(Storage& storage) {
     }
 
     ghostIdxs = storage.duplicate(duplIdxs);
-    ASSERT(ghostIdxs.size() == duplIdxs.size());
+    SPH_ASSERT(ghostIdxs.size() == duplIdxs.size());
 
     for (Size i = 0; i < ghostIdxs.size(); ++i) {
         r[ghostIdxs[i]] = ghosts[i].position;

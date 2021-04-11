@@ -90,7 +90,7 @@ void Session::run(int argc, char* argv[]) {
                 if (params.flags.has(Flag::RUN_AGAINST_BASELINE)) {
                     if (baseline.isRecorded(b->getName())) {
                         Result result = baseline[b->getName()];
-                        ASSERT(result.iterateCnt == act->iterateCnt, result.iterateCnt, act->iterateCnt);
+                        SPH_ASSERT(result.iterateCnt == act->iterateCnt, result.iterateCnt, act->iterateCnt);
                         this->log(b->getName() + " ran " + std::to_string(act->iterateCnt) + " iterations");
                         this->compareResults(act.value(), result);
                     } else {
@@ -172,7 +172,7 @@ Group& Session::getGroupByName(const std::string& groupName) {
 Outcome Session::parseArgs(int argc, char* argv[]) {
     for (int i = 1; i < argc; ++i) { // first arg is path to the executable
         std::string arg = argv[i];
-        ASSERT(!arg.empty());
+        SPH_ASSERT(!arg.empty());
         if (arg == "-b") {
             params.flags.set(Flag::MAKE_BASELINE);
         } else if (arg == "-r") {

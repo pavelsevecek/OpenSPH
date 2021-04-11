@@ -13,13 +13,13 @@
 #include <mutex>
 
 #ifdef SPH_DEBUG
-#define REQUIRE_ASSERT(func)                                                                                 \
+#define REQUIRE_SPH_ASSERT(func)                                                                                 \
     {                                                                                                        \
         Sph::Assert::ScopedAssertExceptionEnabler enabler;                                                   \
         REQUIRE_THROWS_AS((void)(func), Sph::Assert::Exception);                                             \
     }
 #else
-#define REQUIRE_ASSERT(func)
+#define REQUIRE_SPH_ASSERT(func)
 #endif
 
 extern std::mutex globalTestMutex;

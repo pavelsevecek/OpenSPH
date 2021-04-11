@@ -127,7 +127,7 @@ public:
     /// Works only for arrays of same size, for simplicity.
     template <typename U, typename = std::enable_if_t<std::is_lvalue_reference<T>::value, U>>
     Array& operator=(Array<U>&& other) {
-        ASSERT(this->size() == other.size());
+        SPH_ASSERT(this->size() == other.size());
         for (TCounter i = 0; i < other.size(); ++i) {
             (*this)[i] = std::forward<U>(other[i]);
         }
@@ -147,32 +147,32 @@ public:
     }
 
     INLINE T& operator[](const TCounter idx) noexcept {
-        ASSERT(unsigned(idx) < unsigned(actSize), idx, actSize);
+        SPH_ASSERT(unsigned(idx) < unsigned(actSize), idx, actSize);
         return data[idx];
     }
 
     INLINE const T& operator[](const TCounter idx) const noexcept {
-        ASSERT(unsigned(idx) < unsigned(actSize), idx, actSize);
+        SPH_ASSERT(unsigned(idx) < unsigned(actSize), idx, actSize);
         return data[idx];
     }
 
     INLINE T& front() noexcept {
-        ASSERT(actSize > 0);
+        SPH_ASSERT(actSize > 0);
         return data[0];
     }
 
     INLINE const T& front() const noexcept {
-        ASSERT(actSize > 0);
+        SPH_ASSERT(actSize > 0);
         return data[0];
     }
 
     INLINE T& back() noexcept {
-        ASSERT(actSize > 0);
+        SPH_ASSERT(actSize > 0);
         return data[actSize - 1];
     }
 
     INLINE const T& back() const noexcept {
-        ASSERT(actSize > 0);
+        SPH_ASSERT(actSize > 0);
         return data[actSize - 1];
     }
 
@@ -203,7 +203,7 @@ public:
     /// elements of the array.
     void resize(const TCounter newSize) {
         // check suspiciously high values
-        ASSERT(newSize < (NumericLimits<TCounter>::max() >> 1));
+        SPH_ASSERT(newSize < (NumericLimits<TCounter>::max() >> 1));
         if (newSize <= maxSize) {
             // enough elements is already allocated
             if (newSize >= actSize) {
@@ -266,7 +266,7 @@ public:
     /// \attention This invalidates all references, pointers, iterators, array views, etc. pointed to the
     /// elements of the array.
     void reserve(const TCounter newMaxSize) {
-        ASSERT(newMaxSize < (NumericLimits<TCounter>::max() >> 1));
+        SPH_ASSERT(newMaxSize < (NumericLimits<TCounter>::max() >> 1));
         if (newMaxSize > maxSize) {
             const TCounter actNewSize = max(2 * maxSize, newMaxSize);
             Array newArray;
@@ -320,9 +320,9 @@ public:
     template <typename... TArgs>
     StorageType& emplaceBack(TArgs&&... args) {
         reserve(actSize + 1);
-        ASSERT(maxSize > actSize);
+        SPH_ASSERT(maxSize > actSize);
         StorageType* ptr = new (data + actSize) StorageType(std::forward<TArgs>(args)...);
-        ASSERT(ptr);
+        SPH_ASSERT(ptr);
         actSize++;
         return *ptr;
     }
@@ -332,7 +332,7 @@ public:
     /// All the existing elements after the given positions are moved using move operator.
     template <typename U>
     void insert(const TCounter position, U&& value) {
-        ASSERT(position <= actSize);
+        SPH_ASSERT(position <= actSize);
         this->resize(actSize + 1);
         std::move_backward(this->begin() + position, this->end() - 1, this->end());
         data[position] = std::forward<U>(value);
@@ -344,7 +344,7 @@ public:
     /// elements after the given positions are moved using move operator.
     template <typename TIterator>
     void insert(const TCounter position, const TIterator first, const TIterator last) {
-        ASSERT(position <= actSize);
+        SPH_ASSERT(position <= actSize);
         const Size count = std::distance(first, last);
         this->resize(actSize + count);
         std::move_backward(this->begin() + position, this->end() - count, this->end());
@@ -358,7 +358,7 @@ public:
     ///
     /// Asserts if the array is empty.
     INLINE T pop() {
-        ASSERT(actSize > 0);
+        SPH_ASSERT(actSize > 0);
         T value = data[actSize - 1];
         resize(actSize - 1);
         return value;
@@ -366,7 +366,7 @@ public:
 
     /// \brief Removes an element with given index from the array.
     void remove(const TCounter idx) {
-        ASSERT(idx < actSize);
+        SPH_ASSERT(idx < actSize);
         for (TCounter i = idx; i < actSize - 1; ++i) {
             data[i] = std::move(data[i + 1]);
         }
@@ -385,7 +385,7 @@ public:
 
         // move all elements between indices
         for (Size k = 0; k < idxs.size() - 1; ++k) {
-            ASSERT(idxs[k] < idxs[k + 1]);
+            SPH_ASSERT(idxs[k] < idxs[k + 1]);
             for (TCounter i = idxs[k]; i < idxs[k + 1] - 1; ++i) {
                 data[i - shift] = std::move(data[i + 1]);
             }
@@ -402,12 +402,12 @@ public:
     /// \brief Removes all elements in given range.
     template <typename TIter>
     void remove(TIter first, TIter last) {
-        ASSERT(first <= last);
+        SPH_ASSERT(first <= last);
         if (SPH_UNLIKELY(first == last)) {
             return;
         }
         const Size count = last - first;
-        ASSERT(Size(first - begin()) + count <= actSize);
+        SPH_ASSERT(Size(first - begin()) + count <= actSize);
 
         for (TIter iter = first; iter != end() - count; ++iter) {
             *iter = std::move(*(iter + count));

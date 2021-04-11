@@ -62,10 +62,10 @@ public:
         template <bool Symmetrize>
         INLINE Tuple<Vector, Float> eval(const Size i, const Size j, const Vector& grad) {
             const Float av = evalAv(i, j);
-            ASSERT(isReal(av) && av >= 0._f);
+            SPH_ASSERT(isReal(av) && av >= 0._f);
             const Vector Pi = av * grad;
             const Float heating = 0.5_f * av * dot(v[i] - v[j], grad);
-            ASSERT(isReal(heating) && heating >= 0._f);
+            SPH_ASSERT(isReal(heating) && heating >= 0._f);
             return { -Pi, heating };
         }
 

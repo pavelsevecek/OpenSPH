@@ -28,11 +28,11 @@ public:
 
         // now compute the pressure
         const Float p = max(R * T / (v - b) - a / sqr(v), EPS);
-        ASSERT(isReal(p));
+        SPH_ASSERT(isReal(p));
 
         /// \todo correct sound speed
         const Float cs = sqrt(gamma * p / rho);
-        ASSERT(isReal(cs));
+        SPH_ASSERT(isReal(cs));
 
         return { p, cs };
     }

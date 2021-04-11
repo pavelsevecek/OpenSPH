@@ -77,12 +77,12 @@ public:
     }
 
     INLINE int& operator[](const int idx) {
-        ASSERT(unsigned(idx) < 4);
+        SPH_ASSERT(unsigned(idx) < 4);
         return *(reinterpret_cast<int*>(&data) + idx);
     }
 
     INLINE int operator[](const int idx) const {
-        ASSERT(unsigned(idx) < 4);
+        SPH_ASSERT(unsigned(idx) < 4);
         return *(reinterpret_cast<const int*>(&data) + idx);
     }
 

@@ -47,7 +47,7 @@ public:
     /// constructed from initializer_list using copy constructor.
     StaticArray(std::initializer_list<StorageType> list) {
         actSize = 0;
-        ASSERT(list.size() <= N);
+        SPH_ASSERT(list.size() <= N);
         for (auto& i : list) {
             data[actSize++].emplace(i);
         }
@@ -96,7 +96,7 @@ public:
     /// (i.e. number of arguments is not known at compile time).
     template <typename U, int M, typename = std::enable_if_t<std::is_lvalue_reference<T>::value, U>>
     StaticArray& operator=(StaticArray<U, M>&& other) {
-        ASSERT(this->size() == other.size());
+        SPH_ASSERT(this->size() == other.size());
         for (TCounter i = 0; i < other.size(); ++i) {
             (*this)[i] = std::forward<U>(other[i]);
         }
@@ -125,13 +125,13 @@ public:
 
     /// \brief Returns the element with given index.
     INLINE T& operator[](const TCounter idx) noexcept {
-        ASSERT(idx >= 0 && idx < actSize, idx, actSize);
+        SPH_ASSERT(idx >= 0 && idx < actSize, idx, actSize);
         return data[idx].get();
     }
 
     /// \brief Returns the element with given index.
     INLINE const T& operator[](const TCounter idx) const noexcept {
-        ASSERT(idx >= 0 && idx < actSize, idx, actSize);
+        SPH_ASSERT(idx >= 0 && idx < actSize, idx, actSize);
         return data[idx].get();
     }
 
@@ -159,7 +159,7 @@ public:
     /// The current size of the array must be less than N, checked by assert.
     template <typename U, typename = std::enable_if_t<std::is_constructible<StorageType, U>::value>>
     INLINE void push(U&& value) {
-        ASSERT(actSize < N);
+        SPH_ASSERT(actSize < N);
         data[actSize++].emplace(std::forward<U>(value));
     }
 
@@ -167,7 +167,7 @@ public:
     ///
     /// The removed element is returned from the function. Array must not be empty, checked by assert.
     INLINE T pop() {
-        ASSERT(actSize > 0);
+        SPH_ASSERT(actSize > 0);
         T value = data[actSize - 1];
         data[actSize - 1].destroy();
         actSize--;
@@ -179,7 +179,7 @@ public:
     /// New size must be between 0 and N. If the array is shrinked, elements from the end of the array are
     /// destroyed; if the array is enlarged, new elements are created using default constructor.
     void resize(const TCounter newSize) {
-        ASSERT(unsigned(newSize) <= N);
+        SPH_ASSERT(unsigned(newSize) <= N);
         if (!std::is_trivially_default_constructible<T>::value) {
             if (newSize > actSize) {
                 for (TCounter i = actSize; i < newSize; ++i) {

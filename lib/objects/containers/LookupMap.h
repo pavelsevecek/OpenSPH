@@ -61,13 +61,13 @@ public:
 
     INLINE const Array<Size>& operator()(const Indices& idxs) const {
         const Size idx = idxs[X] * sqr(dimensionSize) + idxs[Y] * dimensionSize + idxs[Z];
-        ASSERT(unsigned(idx) < unsigned(storage.size()));
+        SPH_ASSERT(unsigned(idx) < unsigned(storage.size()));
         return storage[idx];
     }
 
     INLINE Array<Size>& operator()(const Indices& idxs) {
         const Size idx = idxs[X] * sqr(dimensionSize) + idxs[Y] * dimensionSize + idxs[Z];
-        ASSERT(unsigned(idx) < unsigned(storage.size()));
+        SPH_ASSERT(unsigned(idx) < unsigned(storage.size()));
         return storage[idx];
     }
 
@@ -86,8 +86,8 @@ public:
     }
 
     INLINE Indices map(const Vector& v) const {
-        ASSERT(boundingBox.size()[X] > 0._f && boundingBox.size()[Y] > 0._f && boundingBox.size()[Z] > 0._f);
-        ASSERT(dimensionSize >= 1);
+        SPH_ASSERT(boundingBox.size()[X] > 0._f && boundingBox.size()[Y] > 0._f && boundingBox.size()[Z] > 0._f);
+        SPH_ASSERT(dimensionSize >= 1);
         Vector idxs = (v - boundingBox.lower()) / (boundingBox.size()) * dimensionSize;
         // Ordinarily, idxs are never <0 or >=dimensionSize, BUT in case the points are slightly move, this
         // can happen. In this case, we want to return a valid result rather than crashing, even though some

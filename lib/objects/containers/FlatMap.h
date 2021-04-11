@@ -48,7 +48,7 @@ public:
     FlatMap(std::initializer_list<Element> list)
         : data(list) {
         std::sort(data.begin(), data.end(), [](Element& e1, Element& e2) {
-            ASSERT(e1.key != e2.key); // keys must be unique
+            SPH_ASSERT(e1.key != e2.key); // keys must be unique
             return compare(e1.key, e2.key);
         });
     }
@@ -58,7 +58,7 @@ public:
     /// The element must exists in the map, checked by assert.
     INLINE TValue& operator[](const TKey& key) {
         Element* element = this->find(key);
-        ASSERT(element);
+        SPH_ASSERT(element);
         return element->value;
     }
 
@@ -67,7 +67,7 @@ public:
     /// The element must exists in the map, checked by assert.
     INLINE const TValue& operator[](const TKey& key) const {
         const Element* element = this->find(key);
-        ASSERT(element);
+        SPH_ASSERT(element);
         return element->value;
     }
 
@@ -98,7 +98,7 @@ public:
     /// The element must exists in the map, checked by assert.
     INLINE void remove(const TKey& key) {
         Element* element = this->find(key);
-        ASSERT(element);
+        SPH_ASSERT(element);
         const Size index = element - &data[0];
         data.remove(index);
     }
@@ -220,7 +220,7 @@ private:
 
         while (from < to && from != mid) {
             mid = (from + to) / 2;
-            ASSERT(data[mid].key != key);
+            SPH_ASSERT(data[mid].key != key);
             if (compare(data[mid].key, key)) {
                 from = mid + 1;
             } else {

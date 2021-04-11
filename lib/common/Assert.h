@@ -84,27 +84,27 @@ struct Assert {
 #define TODO(x) Assert::todo(x, __FUNCTION__, __LINE__);
 
 #ifdef SPH_DEBUG
-#define ASSERT(x, ...)                                                                                       \
+#define SPH_ASSERT(x, ...)                                                                                       \
     if (!bool(x)) {                                                                                          \
         Assert::fire(#x, __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);                                   \
     }
-#define CONSTEXPR_ASSERT(x) assert(x)
-#define ASSERT_UNEVAL(x, ...) ASSERT(x, ##__VA_ARGS__)
+#define CONSTEXPR_SPH_ASSERT(x) assert(x)
+#define SPH_ASSERT_UNEVAL(x, ...) SPH_ASSERT(x, ##__VA_ARGS__)
 #else
-#define ASSERT(x, ...) MARK_USED(x)
-#define CONSTEXPR_ASSERT(x) MARK_USED(x)
-#define ASSERT_UNEVAL(x, ...)
+#define SPH_ASSERT(x, ...) MARK_USED(x)
+#define CONSTEXPR_SPH_ASSERT(x) MARK_USED(x)
+#define SPH_ASSERT_UNEVAL(x, ...)
 #endif
 
 /// Helper macro marking missing implementation
 #define NOT_IMPLEMENTED                                                                                      \
-    ASSERT(false, "not implemented");                                                                        \
+    SPH_ASSERT(false, "not implemented");                                                                        \
     throw Assert::Exception(std::string("Functionality not implemented in function ") + __PRETTY_FUNCTION__);
 
 /// Helper macro marking code that should never be executed (default branch of switch where there is finite
 /// number of options, for example)
 #define STOP                                                                                                 \
-    ASSERT(false, "stop");                                                                                   \
+    SPH_ASSERT(false, "stop");                                                                                   \
     throw std::exception();
 
 /// Helper cast, performing a static_cast, but checking that the cast is valid using dynamic_cast in assert
@@ -112,7 +112,7 @@ struct Assert {
 template <typename TDerived, typename TBase>
 INLINE TDerived assert_cast(TBase* value) {
     static_assert(std::is_pointer<TDerived>::value, "Must be a pointer type");
-    ASSERT(!value || dynamic_cast<TDerived>(value) != nullptr, value);
+    SPH_ASSERT(!value || dynamic_cast<TDerived>(value) != nullptr, value);
     return static_cast<TDerived>(value);
 }
 

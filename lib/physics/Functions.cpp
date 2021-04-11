@@ -20,7 +20,7 @@ Float getImpactEnergy(const Float R, const Float r, const Float v) {
 }
 
 Float getEffectiveImpactArea(const Float R, const Float r, const Float phi) {
-    ASSERT(phi >= 0._f && phi <= PI / 2._f);
+    SPH_ASSERT(phi >= 0._f && phi <= PI / 2._f);
     const Float d = (r + R) * sin(phi);
     if (d < R - r) {
         return 1._f;

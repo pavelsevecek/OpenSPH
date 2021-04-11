@@ -65,7 +65,7 @@ public:
         LutKernel<3>&& kernel)
         : finder(std::move(finder))
         , kernel(std::move(kernel)) {
-        ASSERT(this->finder);
+        SPH_ASSERT(this->finder);
         r = storage.getValue<Vector>(QuantityId::POSITION);
         tie(m, rho) = storage.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
         quantity = storage.getAll<Type>(id)[int(deriv)];

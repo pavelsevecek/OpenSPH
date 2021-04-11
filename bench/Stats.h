@@ -26,7 +26,7 @@ public:
     }
 
     INLINE Float mean() const {
-        ASSERT(cnt != 0);
+        SPH_ASSERT(cnt != 0);
         return sum / cnt;
     }
 

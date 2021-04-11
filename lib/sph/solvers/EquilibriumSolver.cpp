@@ -71,7 +71,7 @@ Outcome EquilibriumEnergySolver::solve(Storage& storage, Statistics& stats) {
         for (const NeighbourRecord& n : neighs) {
             const Size j = n.index;
             const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-            ASSERT(hbar > EPS, hbar);
+            SPH_ASSERT(hbar > EPS, hbar);
             if (i == j || n.distanceSqr >= sqr(kernel.radius() * hbar)) {
                 // aren't actual neighbours
                 continue;
@@ -124,7 +124,7 @@ Outcome EquilibriumEnergySolver::solve(Storage& storage, Statistics& stats) {
         for (const NeighbourRecord& n : neighs) {
             const Size j = n.index;
             const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-            ASSERT(hbar > EPS, hbar);
+            SPH_ASSERT(hbar > EPS, hbar);
             if (i == j || n.distanceSqr >= sqr(kernel.radius() * hbar)) {
                 // aren't actual neighbours
                 continue;
@@ -318,7 +318,7 @@ Outcome EquilibriumStressSolver::solve(Storage& storage, Statistics& stats) {
     // (\lambda + \mu) \nabla (\nabla \cdot u) + \mu \nabla^2 u + f = 0
     // where \lambda, \mu are Lame's coefficient, u is the displacement vector and f is the external force
 
-    ASSERT(storage.getMaterialCnt() == 1); /// \todo generalize for heterogeneous bodies
+    SPH_ASSERT(storage.getMaterialCnt() == 1); /// \todo generalize for heterogeneous bodies
     IMaterial& material = storage.getMaterial(0);
     const Float lambda = material.getParam<Float>(BodySettingsId::ELASTIC_MODULUS);
     const Float mu = material.getParam<Float>(BodySettingsId::SHEAR_MODULUS);
@@ -335,10 +335,10 @@ Outcome EquilibriumStressSolver::solve(Storage& storage, Statistics& stats) {
             const Vector dr = r[i] - r[j];
             const Float f = dot(dr, grad) / getSqrLength(dr);
             const Vector dr0 = getNormalized(dr);
-            ASSERT(isReal(f));
+            SPH_ASSERT(isReal(f));
             SymmetricTensor lhs = -5._f * (lambda + mu) * symmetricOuter(dr0, dr0) +
                                   (lambda - mu) * SymmetricTensor::identity();
-            ASSERT(isReal(lhs));
+            SPH_ASSERT(isReal(lhs));
 
             SymmetricTensor mij = m[j] / rho[j] * lhs * f;
             SymmetricTensor mji = m[i] / rho[i] * lhs * f;
@@ -392,14 +392,14 @@ Outcome EquilibriumStressSolver::solve(Storage& storage, Statistics& stats) {
         EosMaterial& eosMat = dynamic_cast<EosMaterial&>(mat.material());
         for (Size i : mat.sequence()) {
             e[i] = eosMat.getEos().getInternalEnergy(rho[i], p[i]);
-            ASSERT(isReal(e[i])); // && e[i] >= 0._f, e[i]);
+            SPH_ASSERT(isReal(e[i])); // && e[i] >= 0._f, e[i]);
         }
     }
     return SUCCESS;
 }
 
 void EquilibriumStressSolver::create(Storage& storage, IMaterial& material) {
-    ASSERT(storage.getMaterialCnt() == 1);
+    SPH_ASSERT(storage.getMaterialCnt() == 1);
     equationSolver.create(storage, material);
 }
 

@@ -66,7 +66,7 @@ public:
             if (u_ji != 0._f) {
                 const Float A = e[k] / u_ji;
                 const Float B = (A >= 0._f) ? A / m[i] : A / m[j];
-                ASSERT(isReal(A) && isReal(B));
+                SPH_ASSERT(isReal(A) && isReal(B));
                 if (abs(B) <= 1._f) {
                     f[k] = max(0, sgn(B));
                     continue;
@@ -78,7 +78,7 @@ public:
             }
             // either abs(B) > 1 or u_ji == 0
             f[k] = m[i] / e[k] * ((e[k] + m[i] * u[i] + m[j] * u[j]) / (m[i] + m[j]) - u[i]);
-            ASSERT(isReal(f[k]), e[k], u[i], u[j]);
+            SPH_ASSERT(isReal(f[k]), e[k], u[i], u[j]);
         }
     }
 };
@@ -112,7 +112,7 @@ public:
             Float f2;
             secondary.compute(i, getSingleValueView(j), getSingleValueView(e[k]), getSingleValueView(f2));
             f[k] = lerp(f1, f2, chi);
-            ASSERT(f[k] >= 0._f && f[k] <= 1._f, f[k]);
+            SPH_ASSERT(f[k] >= 0._f && f[k] <= 1._f, f[k]);
         }
     }
 };
@@ -170,13 +170,13 @@ void EnergyConservingSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
         for (auto& n : data.neighs) {
             const Size j = n.index;
             const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-            ASSERT(hbar > EPS, hbar);
+            SPH_ASSERT(hbar > EPS, hbar);
             if (i == j || getSqrLength(r[i] - r[j]) >= sqr(kernel.radius() * hbar)) {
                 // aren't actual neighbours
                 continue;
             }
             const Vector gr = symmetrizedKernel.grad(r[i], r[j]);
-            ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) < 0._f, gr, r[i] - r[j]);
+            SPH_ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) < 0._f, gr, r[i] - r[j]);
 
             neighList[i].push(j);
             gradList[i].push(gr);
@@ -242,7 +242,7 @@ void EnergyConservingSolver::afterLoop(Storage& storage, Statistics& stats) {
         for (Size k = 0; k < neighList[i].size(); ++k) {
             du[i] += data.partitions[k] * data.energyChange[k] / m[i];
         }
-        ASSERT(isReal(du[i]));
+        SPH_ASSERT(isReal(du[i]));
     };
     parallelFor(scheduler, threadData, 0, r.size(), evalAccelerations);
 }

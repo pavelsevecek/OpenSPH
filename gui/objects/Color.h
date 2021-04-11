@@ -117,7 +117,7 @@ public:
             // blending two fully transparent colors
             return transparent();
         }
-        ASSERT(ar > 0.f);
+        SPH_ASSERT(ar > 0.f);
         Rgba color = (data * a2 + other.data * a1 * (1.f - a2)) / ar;
         color.a() = ar;
         return color;
@@ -127,7 +127,7 @@ public:
     ///
     /// \param amount Value in interval [0, 1], where 0 = current color, 1 = black.
     Rgba darken(const float amount) const {
-        ASSERT(amount >= 0.f && amount <= 1.f);
+        SPH_ASSERT(amount >= 0.f && amount <= 1.f);
         return preserveAlpha(*this * (1.f - amount));
     }
 
@@ -135,7 +135,7 @@ public:
     ///
     /// \param amount Value in interval [0, INFTY], where 0 = current color, 1 = 100% more brighter, etc.
     Rgba brighten(const float amount) const {
-        ASSERT(amount >= 0.f);
+        SPH_ASSERT(amount >= 0.f);
         return preserveAlpha(*this * (1.f + amount));
     }
 
@@ -216,7 +216,7 @@ public:
         : data(h, s, v) {}
 
     float& operator[](const int index) {
-        ASSERT(index < 3);
+        SPH_ASSERT(index < 3);
         return data[index];
     }
 

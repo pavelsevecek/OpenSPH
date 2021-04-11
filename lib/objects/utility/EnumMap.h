@@ -42,7 +42,7 @@ public:
             map.insert(int(value.id), EnumValue{ value.value, value.desc });
         }
         const std::size_t id = typeid(TEnum).hash_code();
-        // ASSERT(!instance.records.contains(id));
+        // SPH_ASSERT(!instance.records.contains(id));
         instance.records.insert(id, std::move(map));
         return instance;
     }
@@ -55,7 +55,7 @@ public:
     static std::string toString(const int value, const std::size_t id) {
         EnumMap& instance = getInstance();
         Optional<EnumRecord&> record = instance.records.tryGet(id);
-        ASSERT(record);
+        SPH_ASSERT(record);
         if (Optional<EnumValue&> e = record->tryGet(value)) {
             // this is one of the enum values, return the text value
             return e->value;
@@ -67,7 +67,7 @@ public:
                     continue;
                 }
                 Optional<EnumValue&> pair = record->tryGet(i);
-                ASSERT(pair, i, value);
+                SPH_ASSERT(pair, i, value);
                 if (!result.empty()) {
                     result += " | ";
                 }
@@ -90,7 +90,7 @@ public:
     static Optional<int> fromString(const std::string& value, const std::size_t id) {
         EnumMap& instance = getInstance();
         Optional<EnumRecord&> record = instance.records.tryGet(id);
-        ASSERT(record);
+        SPH_ASSERT(record);
         for (auto pair : record.value()) {
             if (pair.value.value == value) { // erm ...
                 return pair.key;
@@ -107,7 +107,7 @@ public:
     static std::string getDesc(const std::size_t id) {
         EnumMap& instance = getInstance();
         Optional<EnumRecord&> record = instance.records.tryGet(id);
-        ASSERT(record);
+        SPH_ASSERT(record);
         std::string desc;
         Size idx = 0;
         for (auto pair : record.value()) {
@@ -125,7 +125,7 @@ public:
         EnumMap& instance = getInstance();
         const std::size_t id = typeid(TEnum).hash_code();
         Optional<EnumRecord&> record = instance.records.tryGet(id);
-        ASSERT(record);
+        SPH_ASSERT(record);
 
         Array<TEnum> enums;
         for (auto pair : record.value()) {
@@ -138,7 +138,7 @@ public:
     static Array<int> getAll(const std::size_t id) {
         EnumMap& instance = getInstance();
         Optional<EnumRecord&> record = instance.records.tryGet(id);
-        ASSERT(record);
+        SPH_ASSERT(record);
 
         Array<int> enums;
         for (auto pair : record.value()) {

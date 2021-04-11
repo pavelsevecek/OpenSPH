@@ -19,11 +19,11 @@ void Accumulated::insert(const QuantityId id, const OrderEnum order, const Buffe
     if (recordIter == records.end()) {
         records.push(QuantityRecord{ id, source == BufferSource::UNIQUE });
     } else {
-        ASSERT(recordIter->id == id);
+        SPH_ASSERT(recordIter->id == id);
         if (source == BufferSource::UNIQUE || recordIter->unique) {
             // either the previous record was unique and we are adding another one, or the previous one
             // was shared and now we are adding unique
-            ASSERT(false, "Another derivatives accumulates to quantity marked as unique");
+            SPH_ASSERT(false, "Another derivatives accumulates to quantity marked as unique");
         }
     }
 }
@@ -43,7 +43,7 @@ void Accumulated::initialize(const Size size) {
                 values.fill(T(0._f));
             } else {
                 // check that the array is really cleared
-                ASSERT(std::count(values.begin(), values.end(), T(0._f)) == values.size());
+                SPH_ASSERT(std::count(values.begin(), values.end(), T(0._f)) == values.size());
             }
         });
     }
@@ -53,9 +53,9 @@ template <typename TValue>
 Array<TValue>& Accumulated::getBuffer(const QuantityId id, const OrderEnum order) {
     for (Element& e : buffers) {
         if (e.id == id) {
-            ASSERT(e.order == order);
+            SPH_ASSERT(e.order == order);
             Array<TValue>& values = e.buffer;
-            ASSERT(!values.empty());
+            SPH_ASSERT(!values.empty());
             return values;
         }
     }
@@ -89,8 +89,8 @@ void Accumulated::store(Storage& storage) {
             using T = typename std::decay_t<decltype(buffer)>::Type;
             // storage must already have the quantity, we cannot add quantities during the run because of
             // timestepping
-            ASSERT(storage.has(e.id), getMetadata(e.id).quantityName);
-            ASSERT(Size(storage.getQuantity(e.id).getOrderEnum()) >= Size(e.order));
+            SPH_ASSERT(storage.has(e.id), getMetadata(e.id).quantityName);
+            SPH_ASSERT(Size(storage.getQuantity(e.id).getOrderEnum()) >= Size(e.order));
             storage.getAll<T>(e.id)[Size(e.order)] = std::move(buffer);
             buffer.fill(T(0._f));
         });
@@ -108,7 +108,7 @@ Array<Iterator<Type>> Accumulated::getBufferIterators(const QuantityId id, Array
         auto iter = std::find_if(other->buffers.begin(), other->buffers.end(), [id](const Element& e) { //
             return e.id == id;
         });
-        ASSERT(iter != other->buffers.end());
+        SPH_ASSERT(iter != other->buffers.end());
         Array<Type>& buffer2 = iter->buffer;
         iterators.push(buffer2.begin());
     }
@@ -156,7 +156,7 @@ bool Accumulated::hasBuffer(const QuantityId id, const OrderEnum order) const {
     for (const Element& e : buffers) {
         if (e.id == id) {
             // already used
-            ASSERT(e.order == order, "Cannot accumulate both values and derivatives of quantity");
+            SPH_ASSERT(e.order == order, "Cannot accumulate both values and derivatives of quantity");
             return true;
         }
     }

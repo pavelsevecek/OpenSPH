@@ -55,7 +55,7 @@ public:
     }
 
     INLINE Atomic& operator/=(const Type f) {
-        ASSERT(f != 0._f);
+        SPH_ASSERT(f != 0._f);
         atomicOp(f, [](const Type lhs, const Type rhs) { return lhs / rhs; });
         return *this;
     }
@@ -73,7 +73,7 @@ public:
     }
 
     INLINE Type operator/(const Type f) const {
-        ASSERT(f != 0._f);
+        SPH_ASSERT(f != 0._f);
         return value.load() / f;
     }
 

@@ -291,7 +291,7 @@ static Float getTargetDensity(const Storage& storage) {
         volume += m[i] / rho[i];
     }
 
-    ASSERT(volume > 0._f, volume);
+    SPH_ASSERT(volume > 0._f, volume);
     return m.size() / volume;
 }
 
@@ -384,7 +384,7 @@ static Array<Float> integratePressure(const Storage& storage, const Vector& r0) 
         const Size i = massInRadius[k].get<0>();
         const Float r = massInRadius[k].get<1>();
         const Float dr = r - massInRadius[k - 1].get<1>();
-        ASSERT(dr >= 0._f);
+        SPH_ASSERT(dr >= 0._f);
         const Float M = massInRadius[k].get<2>();
 
         p[i] = p0 - Constants::gravity * M * rho[i] / sqr(r) * dr;
@@ -416,7 +416,7 @@ static void solveSpherical(Storage& storage) {
     for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
         MaterialView mat = storage.getMaterial(matId);
         RawPtr<EosMaterial> eosMat = dynamicCast<EosMaterial>(addressOf(mat.material()));
-        ASSERT(eosMat);
+        SPH_ASSERT(eosMat);
         for (Size i : mat.sequence()) {
             p[i] = solution[i];
             u[i] = eosMat->getEos().getInternalEnergy(rho[i], p[i]);
@@ -643,7 +643,7 @@ void NoiseQuantityIc::randomize(IRunCallbacks& callbacks,
         for (Size dim = 0; dim < Dims; ++dim) {
             const Vector pos = (r[i] - box.lower()) / box.size() * GRID_DIMS;
             const Float value = mean + magnitude * perlin(gradients[dim], pos);
-            ASSERT(isReal(value));
+            SPH_ASSERT(isReal(value));
             setter(value, i, dim);
         }
 
@@ -837,7 +837,7 @@ void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     Array<Vector> velocities(positions.size());
     for (Size i = 0; i < positions.size(); ++i) {
         masses[i] *= totalMass / m_sum;
-        ASSERT(masses[i] > 0._f);
+        SPH_ASSERT(masses[i] > 0._f);
 
         const Float r0 = getLength(positions[i]);
         const Float m0 = totalMass * sphereVolume(r0) / sphereVolume(radius);

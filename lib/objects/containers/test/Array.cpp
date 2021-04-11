@@ -29,8 +29,8 @@ TEST_CASE("Array Construction", "[array]") {
 
 TEST_CASE("Array Random access", "[array]") {
     Array<float> ar{ 1.f, 2.f, 2.5f, 3.6f };
-    // REQUIRE_ASSERT(ar[-1]);  calls terminate for some reason, wtf?
-    // REQUIRE_ASSERT(ar[4]);
+    // REQUIRE_SPH_ASSERT(ar[-1]);  calls terminate for some reason, wtf?
+    // REQUIRE_SPH_ASSERT(ar[4]);
     REQUIRE(ar[2] == 2.5f);
     ar[2] = 1.f;
     REQUIRE(ar == makeArray(1.f, 2.f, 1.f, 3.6f));
@@ -39,7 +39,7 @@ TEST_CASE("Array Random access", "[array]") {
 TEST_CASE("Array Reserve", "[array]") {
     RecordType::resetStats();
     Array<RecordType> ar;
-    REQUIRE_ASSERT(ar.reserve(-1));
+    REQUIRE_SPH_ASSERT(ar.reserve(-1));
     REQUIRE_NOTHROW(ar.reserve(5));
     ar = { RecordType(5), RecordType(2) };
     REQUIRE(ar[0].wasCopyConstructed);
@@ -65,7 +65,7 @@ TEST_CASE("Array Resize", "[array]") {
     Array<RecordType> ar;
     REQUIRE(ar.size() == 0);
     REQUIRE_NOTHROW(ar.resize(0));
-    REQUIRE_ASSERT(ar.resize(-1));
+    REQUIRE_SPH_ASSERT(ar.resize(-1));
     ar.resize(3);
     REQUIRE(RecordType::constructedNum == 3);
     REQUIRE(ar.size() == 3);
@@ -129,7 +129,7 @@ TEST_CASE("Array Push & Pop", "[array]") {
     REQUIRE(ar.pop().value == 5);
     REQUIRE(RecordType::existingNum() == 1);
     REQUIRE(ar.size() == 0);
-    REQUIRE_ASSERT(ar.pop());
+    REQUIRE_SPH_ASSERT(ar.pop());
 
     ar.push(RecordType(8)); // push into allocated array
     REQUIRE(RecordType::existingNum() == 2);
@@ -185,7 +185,7 @@ TEST_CASE("Array Insert", "[array]") {
     ar.insert(3, -1);
     REQUIRE(ar == Array<RecordType>({ 0, 1, 2, -1, 3, 4, 5, 6 }));
 
-    REQUIRE_ASSERT(ar.insert(9, 5));
+    REQUIRE_SPH_ASSERT(ar.insert(9, 5));
 }
 
 TEST_CASE("Array Insert range", "[array]") {
@@ -215,8 +215,8 @@ TEST_CASE("Array Remove by index", "[array]") {
     REQUIRE(ar == Array<int>({ 5, 3, 6, 2 }));
     ar.remove(2);
     REQUIRE(ar == Array<int>({ 5, 3, 2 }));
-    REQUIRE_ASSERT(ar.remove(4));
-    REQUIRE_ASSERT(ar.remove(-1));
+    REQUIRE_SPH_ASSERT(ar.remove(4));
+    REQUIRE_SPH_ASSERT(ar.remove(-1));
 }
 
 TEST_CASE("Array Remove multiple", "[array]") {
@@ -269,7 +269,7 @@ TEST_CASE("Array remove range", "[array]") {
     REQUIRE(ar == Array<int>({ 0, 1, 2 }));
 
     ar = { 0, 1, 2 };
-    REQUIRE_ASSERT(ar.remove(ar.begin() + 1, ar.begin()));
+    REQUIRE_SPH_ASSERT(ar.remove(ar.begin() + 1, ar.begin()));
 }
 
 TEST_CASE("Array clone", "[array]") {

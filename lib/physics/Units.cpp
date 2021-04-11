@@ -59,7 +59,7 @@ std::ostream& operator<<(std::ostream& stream, const Unit& u) {
                 break;
             }
         }
-        ASSERT(dim != BasicDimension(-1));
+        SPH_ASSERT(dim != BasicDimension(-1));
 
         UnitSystem system = CODE_UNITS;
         Optional<UnitDesc> selectedDesc;
@@ -95,7 +95,7 @@ Expected<Unit> parseUnit(const std::string& text) {
         if (valueAndPower.size() > 2) {
             return makeUnexpected<Unit>("More than one exponent");
         }
-        ASSERT(valueAndPower.size() == 1 || valueAndPower.size() == 2);
+        SPH_ASSERT(valueAndPower.size() == 1 || valueAndPower.size() == 2);
         int power;
         if (valueAndPower.size() == 1) {
             // just unit without any power

@@ -107,7 +107,7 @@ void NodeManager::cloneHierarchy(JobNode& node) {
     clonedRoot->enumerate([&clonedTree](SharedPtr<JobNode> node, Size UNUSED(depth)) { //
         clonedTree.push(node);
     });
-    ASSERT(origTree.size() == clonedTree.size());
+    SPH_ASSERT(origTree.size() == clonedTree.size());
 
     for (Size i = 0; i < origTree.size(); ++i) {
         nodes[clonedTree[i]].position = nodes[origTree[i]].position + offset;
@@ -468,7 +468,7 @@ public:
 
 void NodeManager::startBatch(JobNode& node) {
     RawPtr<IJobDesc> desc = getJobDesc(node.className());
-    ASSERT(desc);
+    SPH_ASSERT(desc);
 
     // validate
     for (Size col = 0; col < batch.getParamCount(); ++col) {
@@ -681,11 +681,11 @@ static bool canConnectSlots(const NodeSlot& from, const NodeSlot& to) {
     }
 
     if (to.index == NodeSlot::RESULT_SLOT) {
-        ASSERT(from.index != NodeSlot::RESULT_SLOT);
+        SPH_ASSERT(from.index != NodeSlot::RESULT_SLOT);
         SlotData fromSlot = from.vis->node->getSlot(from.index);
         return fromSlot.used && to.vis->node->provides() == fromSlot.type;
     } else {
-        ASSERT(to.index != NodeSlot::RESULT_SLOT);
+        SPH_ASSERT(to.index != NodeSlot::RESULT_SLOT);
         SlotData toSlot = to.vis->node->getSlot(to.index);
         return toSlot.used && from.vis->node->provides() == toSlot.type;
     }
@@ -1268,7 +1268,7 @@ public:
 
     wxPGProperty* addExtra(const std::string& name, const ExtraEntry& extra) const {
         RawPtr<CurveEntry> entry = dynamicCast<CurveEntry>(extra.getEntry());
-        ASSERT(entry);
+        SPH_ASSERT(entry);
         return grid->Append(new CurveProperty(name, entry->getCurve()));
     }
 
@@ -1338,7 +1338,7 @@ public:
 
         propertyEntryMap.insert(prop, &entry);
 
-        ASSERT(propertyEntryMap[prop]->enabled() ||
+        SPH_ASSERT(propertyEntryMap[prop]->enabled() ||
                propertyEntryMap[prop]->getType() != IVirtualEntry::Type(20)); // dummy call
     }
 };
@@ -1364,7 +1364,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         }
 
         IVirtualEntry* entry = propertyEntryMap[prop];
-        ASSERT(entry != nullptr);
+        SPH_ASSERT(entry != nullptr);
         wxVariant value = prop->GetValue();
 
         switch (entry->getType()) {
@@ -1379,13 +1379,13 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             break;
         case IVirtualEntry::Type::VECTOR: {
             VectorProperty* vector = dynamic_cast<VectorProperty*>(prop);
-            ASSERT(vector);
+            SPH_ASSERT(vector);
             entry->set(vector->getVector());
             break;
         }
         case IVirtualEntry::Type::INTERVAL: {
             IntervalProperty* i = dynamic_cast<IntervalProperty*>(prop);
-            ASSERT(i);
+            SPH_ASSERT(i);
             entry->set(i->getInterval());
             break;
         }
@@ -1411,7 +1411,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         }
         case IVirtualEntry::Type::EXTRA: {
             CurveProperty* curveProp = dynamic_cast<CurveProperty*>(prop);
-            ASSERT(curveProp != nullptr);
+            SPH_ASSERT(curveProp != nullptr);
             Curve curve = curveProp->getCurve();
             ExtraEntry extra(makeAuto<CurveEntry>(curve));
             entry->set(extra);
@@ -1647,7 +1647,7 @@ void NodeWindow::updateProperties() {
         AddParamsProc proc(grid, propertyEntryMap);
         settings.enumerate(proc);
     } catch (Exception& e) {
-        ASSERT(false, e.what());
+        SPH_ASSERT(false, e.what());
     }
     this->updateEnabled(grid);
 
@@ -1663,7 +1663,7 @@ void NodeWindow::updateEnabled(wxPropertyGrid* grid) {
         }
 
         IVirtualEntry* entry = propertyEntryMap[prop];
-        ASSERT(entry != nullptr);
+        SPH_ASSERT(entry != nullptr);
         const bool enabled = entry->enabled();
         prop->Enable(enabled);
     }

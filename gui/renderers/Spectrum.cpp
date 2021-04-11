@@ -15,7 +15,7 @@ public:
         : data(x, y, z) {}
 
     float& operator[](const int index) {
-        ASSERT(index < 3);
+        SPH_ASSERT(index < 3);
         return data[index];
     }
 
@@ -175,9 +175,9 @@ inline float spectralRadiance(const float wavelength, const float temperature) {
     constexpr Float factor2 =
         Constants::planckConstant * Constants::speedOfLight / Constants::boltzmann * 1.e9_f;
     const Float denom = exp(factor2 / (wavelength * temperature)) - 1._f;
-    ASSERT(isReal(denom));
+    SPH_ASSERT(isReal(denom));
     const Float result = factor1 / pow<5>(wavelength) * 1._f / denom;
-    ASSERT(isReal(result));
+    SPH_ASSERT(isReal(result));
     return float(result);
 }
 
@@ -191,7 +191,7 @@ inline Xyz getBlackBodyColor(const float temperature) {
         result += xyz * B;
         weight += B;
     }
-    ASSERT(weight > 0.f);
+    SPH_ASSERT(weight > 0.f);
     return result / weight;
 }
 

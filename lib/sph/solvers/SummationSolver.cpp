@@ -25,7 +25,7 @@ static EquationHolder getEquations(const RunSettings& settings) {
     // so make sure it does not change outside the solver
     equations += makeTerm<ConstSmoothingLength>();
 
-    ASSERT(!forces.has(ForceEnum::SELF_GRAVITY), "Summation solver cannot be currently used with gravity");
+    SPH_ASSERT(!forces.has(ForceEnum::SELF_GRAVITY), "Summation solver cannot be currently used with gravity");
 
     return equations;
 }
@@ -74,7 +74,7 @@ void SummationSolver<Dim>::beforeLoop(Storage& storage, Statistics& stats) {
     h.resize(r.size());
     for (Size i = 0; i < r.size(); ++i) {
         h[i] = r[i][H];
-        ASSERT(h[i] > 0._f);
+        SPH_ASSERT(h[i] > 0._f);
     }
 
     Float eta = 0._f;
@@ -88,7 +88,7 @@ void SummationSolver<Dim>::beforeLoop(Storage& storage, Statistics& stats) {
         /// \todo do we have to recompute neighbours in every iteration?
         // find all neighbours
         this->finder->findAll(i, h[i] * densityKernel.radius(), data.neighs);
-        ASSERT(data.neighs.size() > 0, data.neighs.size());
+        SPH_ASSERT(data.neighs.size() > 0, data.neighs.size());
         // find density and smoothing length by self-consistent solution.
         const Float rho0 = rho[i];
         rho[i] = 0._f;
@@ -97,9 +97,9 @@ void SummationSolver<Dim>::beforeLoop(Storage& storage, Statistics& stats) {
             /// \todo can this be generally different kernel than the one used for derivatives?
             rho[i] += m[j] * densityKernel.value(r[i] - r[j], h[i]);
         }
-        ASSERT(rho[i] > 0._f, rho[i]);
+        SPH_ASSERT(rho[i] > 0._f, rho[i]);
         h[i] = eta * root<Dim>(m[i] / rho[i]);
-        ASSERT(h[i] > 0._f);
+        SPH_ASSERT(h[i] > 0._f);
         totalDiff += abs(rho[i] - rho0) / (rho[i] + rho0);
     };
 
@@ -118,7 +118,7 @@ void SummationSolver<Dim>::beforeLoop(Storage& storage, Statistics& stats) {
     if (adaptiveH) {
         for (Size i = 0; i < r.size(); ++i) {
             r[i][H] = h[i];
-            ASSERT(r[i][H] > 0._f);
+            SPH_ASSERT(r[i][H] > 0._f);
         }
     }
 }

@@ -105,7 +105,7 @@ struct MeanStepTls {
     INLINE Optional<Float> getStep() const {
         if (mean.count() > 0) {
             const Float step = mean.compute();
-            ASSERT(isReal(step) || step == INFTY, step);
+            SPH_ASSERT(isReal(step) || step == INFTY, step);
             return step;
         } else {
             return NOTHING;
@@ -121,7 +121,7 @@ struct MeanStepTls {
 DerivativeCriterion::DerivativeCriterion(const RunSettings& settings) {
     factor = settings.get<Float>(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR);
     power = settings.get<Float>(RunSettingsId::TIMESTEPPING_MEAN_POWER);
-    ASSERT(power < 0._f); // currently not implemented for non-negative powers
+    SPH_ASSERT(power < 0._f); // currently not implemented for non-negative powers
 }
 
 TimeStep DerivativeCriterion::compute(IScheduler& scheduler,
@@ -148,7 +148,7 @@ TimeStep DerivativeCriterion::computeImpl(IScheduler& scheduler,
 
     // for each first-order quantity ...
     iterate<VisitorEnum::FIRST_ORDER>(storage, [&](const QuantityId id, auto& v, auto& dv) {
-        ASSERT(v.size() == dv.size());
+        SPH_ASSERT(v.size() == dv.size());
         using T = typename std::decay_t<decltype(v)>::Type;
 
         // ... and for each particle ...
@@ -159,18 +159,18 @@ TimeStep DerivativeCriterion::computeImpl(IScheduler& scheduler,
             const auto absdv = abs(dv[i]);
             const auto absv = abs(v[i]);
             const Float minValue = storage.getMaterialOfParticle(i)->minimal(id);
-            ASSERT(minValue > 0._f); // some nonzero minimal value must be set for all quantities
+            SPH_ASSERT(minValue > 0._f); // some nonzero minimal value must be set for all quantities
 
             StaticArray<Float, 6> vs = getComponents(absv);
             StaticArray<Float, 6> dvs = getComponents(absdv);
-            ASSERT(vs.size() == dvs.size());
+            SPH_ASSERT(vs.size() == dvs.size());
 
             for (Size j = 0; j < vs.size(); ++j) {
                 if (abs(vs[j]) < 2._f * minValue) {
                     continue;
                 }
                 const Float value = factor * (vs[j] + minValue) / (dvs[j] + EPS);
-                ASSERT(isReal(value));
+                SPH_ASSERT(isReal(value));
                 tls.add(value, v[i], dv[i], i);
             }
         };
@@ -198,7 +198,7 @@ TimeStep DerivativeCriterion::computeImpl(IScheduler& scheduler,
             cnt++;
         }
     }
-    ASSERT(cnt == 1);
+    SPH_ASSERT(cnt == 1);
 #endif
 
     if (totalMinStep > maxStep) {
@@ -231,7 +231,7 @@ TimeStep AccelerationCriterion::compute(IScheduler& scheduler,
         const Float dvNorm = getSqrLength(dv[i]);
         if (dvNorm > EPS) {
             const Float step = factor * root<4>(sqr(r[i][H]) / dvNorm);
-            ASSERT(isReal(step) && step > 0._f && step < INFTY);
+            SPH_ASSERT(isReal(step) && step > 0._f && step < INFTY);
             tl.minStep = min(tl.minStep, step);
         }
     };
@@ -274,7 +274,7 @@ TimeStep DivergenceCriterion::compute(IScheduler& scheduler,
         const Float dv = abs(divv[i]);
         if (dv > EPS) {
             const Float step = factor / dv;
-            ASSERT(isReal(step) && step > 0._f && step < INFTY);
+            SPH_ASSERT(isReal(step) && step > 0._f && step < INFTY);
             tl.minStep = min(tl.minStep, step);
         }
     };
@@ -321,7 +321,7 @@ TimeStep CourantCriterion::compute(IScheduler& scheduler,
     auto functor = [&](const Size i, Tl& tl) {
         if (cs[i] > 0._f) {
             const Float value = courant * r[i][H] / cs[i];
-            ASSERT(isReal(value) && value > 0._f && value < INFTY);
+            SPH_ASSERT(isReal(value) && value > 0._f && value < INFTY);
             tl.minStep = min(tl.minStep, value);
         }
     };
@@ -375,7 +375,7 @@ TimeStep MultiCriterion::compute(IScheduler& scheduler,
     const Float maxStep,
     Statistics& stats) {
     VERBOSE_LOG
-    ASSERT(!criteria.empty());
+    SPH_ASSERT(!criteria.empty());
     Float minStep = INFTY;
     CriterionId minId = CriterionId::INITIAL_VALUE;
     for (auto& crit : criteria) {
@@ -397,7 +397,7 @@ TimeStep MultiCriterion::compute(IScheduler& scheduler,
     }
 
     // we don't have to limit by maxStep as each criterion is limited separately
-    ASSERT(minStep < INFTY);
+    SPH_ASSERT(minStep < INFTY);
     return { minStep, minId };
 }
 

@@ -12,7 +12,7 @@ NAMESPACE_SPH_BEGIN
 ILogWriter::ILogWriter(const SharedPtr<ILogger>& logger, const Float period)
     : PeriodicTrigger(period, 0._f)
     , logger(logger) {
-    ASSERT(this->logger);
+    SPH_ASSERT(this->logger);
 }
 
 AutoPtr<ITrigger> ILogWriter::action(Storage& storage, Statistics& stats) {

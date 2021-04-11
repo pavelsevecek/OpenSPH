@@ -93,7 +93,7 @@ private:
         for (Size i = 0; i < s.size() + 1; ++i) {
             bytes[size + i] = c[i];
         }
-        ASSERT(bytes[bytes.size() - 1] == '\0');
+        SPH_ASSERT(bytes[bytes.size() - 1] == '\0');
         this->serializeImpl(bytes, args...);
     }
 

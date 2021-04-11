@@ -13,7 +13,7 @@ void PreviewRenderContext<PixelOp>::setColor(const Rgba& color, const Flags<Colo
     if (flags.has(ColorFlag::TEXT)) {
         colors.text = color;
     }
-    // ASSERT(colors.line.alpha() == 1.f);
+    // SPH_ASSERT(colors.line.alpha() == 1.f);
 }
 
 template <typename PixelOp>
@@ -101,7 +101,7 @@ void PreviewRenderContext<PixelOp>::drawTriangle(const Coords p1, const Coords p
 
     StaticArray<Coords, 3> p{ p1, p2, p3 };
     std::sort(p.begin(), p.end(), [](Coords p1, Coords p2) { return p1.y < p2.y; });
-    ASSERT(p[0].y <= p[1].y && p[1].y <= p[2].y); // sanity check
+    SPH_ASSERT(p[0].y <= p[1].y && p[1].y <= p[2].y); // sanity check
     Coords a = p[0];
     Coords b = p[1];
     Coords c = p[2];

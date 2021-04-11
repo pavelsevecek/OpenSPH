@@ -11,13 +11,13 @@ TEST_CASE("Matrix rows&columns", "[affinematrix]") {
     REQUIRE(m.row(0) == Vector(1, 2, 3));
     REQUIRE(m.row(1) == Vector(5, 6, 7));
     REQUIRE(m.row(2) == Vector(9, 10, 11));
-    REQUIRE_ASSERT(m.row(3));
+    REQUIRE_SPH_ASSERT(m.row(3));
 
     REQUIRE(m.column(0) == Vector(1, 5, 9));
     REQUIRE(m.column(1) == Vector(2, 6, 10));
     REQUIRE(m.column(2) == Vector(3, 7, 11));
     REQUIRE(m.column(3) == Vector(4, 8, 12));
-    REQUIRE_ASSERT(m.column(4));
+    REQUIRE_SPH_ASSERT(m.column(4));
 
     REQUIRE(m.translation() == Vector(4, 8, 12));
 }
@@ -37,8 +37,8 @@ TEST_CASE("Matrix elements", "[affinematrix]") {
     REQUIRE(m(2, 2) == 11);
     REQUIRE(m(2, 3) == 12);
 
-    REQUIRE_ASSERT(m(3, 0));
-    REQUIRE_ASSERT(m(0, 4));
+    REQUIRE_SPH_ASSERT(m(3, 0));
+    REQUIRE_SPH_ASSERT(m(0, 4));
 }
 
 TEST_CASE("Matrix operations", "[affinematrix]") {
@@ -107,7 +107,7 @@ TEST_CASE("Matrix inverse", "[affinematrix]") {
     REQUIRE(m.inverse() == m_inv);
 
 
-    REQUIRE_ASSERT(AffineMatrix::null().inverse());
+    REQUIRE_SPH_ASSERT(AffineMatrix::null().inverse());
 }
 
 TEST_CASE("Matrix isOrthogonal", "[affinematrix]") {

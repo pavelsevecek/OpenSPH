@@ -56,9 +56,9 @@ public:
 
 private:
     INLINE uint64_t map(const Indices idxs) const {
-        ASSERT(idxs[X] >= 0 && idxs[X] < dimensions[X]);
-        ASSERT(idxs[Y] >= 0 && idxs[Y] < dimensions[Y]);
-        ASSERT(idxs[Z] >= 0 && idxs[Z] < dimensions[Z]);
+        SPH_ASSERT(idxs[X] >= 0 && idxs[X] < dimensions[X]);
+        SPH_ASSERT(idxs[Y] >= 0 && idxs[Y] < dimensions[Y]);
+        SPH_ASSERT(idxs[Z] >= 0 && idxs[Z] < dimensions[Z]);
         return idxs[X] * dimensions[Y] * dimensions[Z] + idxs[Y] * dimensions[Z] + idxs[Z];
     }
 };
@@ -94,9 +94,9 @@ public:
     };
 
     Variant<T*, Hint> find(const Indices& idxs, const Size dim) {
-        ASSERT(idxs[X] >= 0 && idxs[X] < int(dim), idxs, dim);
-        ASSERT(idxs[Y] >= 0 && idxs[Y] < int(dim), idxs, dim);
-        ASSERT(idxs[Z] >= 0 && idxs[Z] < int(dim), idxs, dim);
+        SPH_ASSERT(idxs[X] >= 0 && idxs[X] < int(dim), idxs, dim);
+        SPH_ASSERT(idxs[Y] >= 0 && idxs[Y] < int(dim), idxs, dim);
+        SPH_ASSERT(idxs[Z] >= 0 && idxs[Z] < int(dim), idxs, dim);
         if (this->isLeaf()) {
             return std::addressof(data.template get<T>());
         } else {
@@ -125,7 +125,7 @@ public:
     template <typename TFunctor>
     void iterate(const Indices& from, const Indices& to, const TFunctor& functor) {
         if (this->isLeaf()) {
-            ASSERT(all(to - from == Indices(1)));
+            SPH_ASSERT(all(to - from == Indices(1)));
             functor(data.template get<T>(), from);
             return;
         }
@@ -162,7 +162,7 @@ public:
 
 private:
     INLINE Tuple<Size, Indices> getCodeAndChildIdxs(const Indices& idxs, const Size dim) const {
-        ASSERT(dim > 1);
+        SPH_ASSERT(dim > 1);
         const int half = int(dim / 2);
         Indices child = idxs;
         Size code = 0;
@@ -178,7 +178,7 @@ private:
             code |= 0x04;
             child[Z] -= half;
         }
-        ASSERT(code < 8);
+        SPH_ASSERT(code < 8);
         return { code, child };
     }
 };
@@ -197,7 +197,7 @@ public:
     SparseGrid(const Size dimensions, const T& value = T())
         : dimensions(dimensions)
         , defaultValue(value) {
-        ASSERT(isPower2(dimensions));
+        SPH_ASSERT(isPower2(dimensions));
     }
 
     INLINE T& operator[](const Indices& idxs) {

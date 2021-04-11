@@ -38,23 +38,23 @@ public:
         , end(end)
 #endif
     {
-        ASSERT(end >= begin, begin, end);
+        SPH_ASSERT(end >= begin, begin, end);
     }
 
     INLINE const TValue& operator*() const {
-        ASSERT_UNEVAL(data >= begin && data < end);
+        SPH_ASSERT_UNEVAL(data >= begin && data < end);
         return *data;
     }
     INLINE TValue& operator*() {
-        ASSERT_UNEVAL(data >= begin && data < end);
+        SPH_ASSERT_UNEVAL(data >= begin && data < end);
         return *data;
     }
     INLINE T* operator->() {
-        ASSERT_UNEVAL(data >= begin && data < end);
+        SPH_ASSERT_UNEVAL(data >= begin && data < end);
         return data;
     }
     INLINE const T* operator->() const {
-        ASSERT_UNEVAL(data >= begin && data < end);
+        SPH_ASSERT_UNEVAL(data >= begin && data < end);
         return data;
     }
 
@@ -98,7 +98,7 @@ public:
         return tmp;
     }
     INLINE Size operator-(const Iterator& iter) const {
-        ASSERT(data >= iter.data);
+        SPH_ASSERT(data >= iter.data);
         return data - iter.data;
     }
     INLINE bool operator<(const Iterator& iter) const {

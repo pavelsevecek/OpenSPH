@@ -13,7 +13,7 @@ NAMESPACE_SPH_BEGIN
 EosMaterial::EosMaterial(const BodySettings& body, AutoPtr<IEos>&& eos)
     : IMaterial(body)
     , eos(std::move(eos)) {
-    ASSERT(this->eos);
+    SPH_ASSERT(this->eos);
 }
 
 EosMaterial::EosMaterial(const BodySettings& body)

@@ -93,10 +93,10 @@ public:
     virtual void evalNeighs(const Size idx,
         ArrayView<const Size> neighs,
         ArrayView<const Vector> grads) override {
-        ASSERT(neighs.size() == grads.size());
+        SPH_ASSERT(neighs.size() == grads.size());
         if (C) {
             sum(idx, neighs, grads, [this](Size i, Size j, const Vector& grad) INL {
-                ASSERT(C[i] != SymmetricTensor::null());
+                SPH_ASSERT(C[i] != SymmetricTensor::null());
                 derived()->template eval<false>(i, j, C[i] * grad);
             });
         } else {
@@ -109,8 +109,8 @@ public:
     virtual void evalSymmetric(const Size idx,
         ArrayView<const Size> neighs,
         ArrayView<const Vector> grads) override {
-        ASSERT(neighs.size() == grads.size());
-        ASSERT(!flags.has(DerivativeFlag::CORRECTED));
+        SPH_ASSERT(neighs.size() == grads.size());
+        SPH_ASSERT(!flags.has(DerivativeFlag::CORRECTED));
         sum(idx, neighs, grads, [this](Size i, Size j, const Vector& grad) INL {
             derived()->template eval<true>(i, j, grad);
         });
@@ -168,7 +168,7 @@ private:
 public:
     explicit AccelerationTemplate(const RunSettings& settings,
         const Flags<DerivativeFlag> flags = EMPTY_FLAGS) {
-        ASSERT(!flags.has(DerivativeFlag::CORRECTED), "Forces should be never corrected");
+        SPH_ASSERT(!flags.has(DerivativeFlag::CORRECTED), "Forces should be never corrected");
 
         // sum only undamaged if specified by the flag and it is specified by the 'global' override
         sumOnlyUndamaged = flags.has(DerivativeFlag::SUM_ONLY_UNDAMAGED) &&
@@ -209,7 +209,7 @@ public:
     virtual void evalNeighs(const Size idx,
         ArrayView<const Size> neighs,
         ArrayView<const Vector> grads) override {
-        ASSERT(neighs.size() == grads.size());
+        SPH_ASSERT(neighs.size() == grads.size());
         sum(idx, neighs, grads, [this](Size UNUSED(k), Size i, Size j, const Vector& grad) INL {
             Vector f;
             Float de;
@@ -222,7 +222,7 @@ public:
     virtual void evalSymmetric(const Size idx,
         ArrayView<const Size> neighs,
         ArrayView<const Vector> grads) override {
-        ASSERT(neighs.size() == grads.size());
+        SPH_ASSERT(neighs.size() == grads.size());
         sum(idx, neighs, grads, [this](Size UNUSED(k), Size i, Size j, const Vector& grad) INL {
             Vector f;
             Float de;
@@ -238,7 +238,7 @@ public:
         ArrayView<const Size> neighs,
         ArrayView<const Vector> grads,
         ArrayView<Vector> dv) override {
-        ASSERT(neighs.size() == grads.size() && neighs.size() == dv.size());
+        SPH_ASSERT(neighs.size() == grads.size() && neighs.size() == dv.size());
         sum(idx, neighs, grads, [this, &dv](Size k, Size i, Size j, const Vector& grad) INL {
             Vector f;
             tieToTuple(f, IGNORE) = derived()->template eval<false>(i, j, grad);

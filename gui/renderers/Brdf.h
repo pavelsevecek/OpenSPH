@@ -64,7 +64,7 @@ public:
         const Vector& dir_out) const override {
         const Float mu_i = dot(normal, dir_in);
         const Float mu_e = dot(normal, dir_out);
-        ASSERT(mu_i > 0._f && mu_e > 0._f, mu_i, mu_e);
+        SPH_ASSERT(mu_i > 0._f && mu_e > 0._f, mu_i, mu_e);
         NOT_IMPLEMENTED;
         const Float alpha = 0._f;
         return albedo / (mu_i + mu_e) * ((1._f + B(alpha)) * P(alpha) + H(mu_i) * H(mu_e) - 1._f) *

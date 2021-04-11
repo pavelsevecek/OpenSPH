@@ -152,7 +152,7 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const Color
         return makeAuto<BeautyColorizer>();
     default:
         QuantityId quantity = QuantityId(id);
-        ASSERT(int(quantity) >= 0);
+        SPH_ASSERT(int(quantity) >= 0);
 
         Palette palette = getPalette(id);
         switch (getMetadata(quantity).expectedType) {
@@ -267,7 +267,7 @@ Palette Factory::getPalette(const ColorizerId id) {
         QuantityId quantity = QuantityId(id);
         switch (quantity) {
         case QuantityId::PRESSURE:
-            ASSERT(x0 < -1.f);
+            SPH_ASSERT(x0 < -1.f);
             return Palette({ { x0, Rgba(0.3f, 0.3f, 0.8f) },
                                { -1.e4f, Rgba(0.f, 0.f, 0.2f) },
                                { 0.f, Rgba(0.2f, 0.2f, 0.2f) },
@@ -305,7 +305,7 @@ Palette Factory::getPalette(const ColorizerId id) {
         case QuantityId::MASS:
             return Palette({ { x0, Rgba(0.1f, 0.1f, 0.1f) }, { x0 + dx, Rgba(0.9f, 0.9f, 0.9f) } }, scale);
         case QuantityId::VELOCITY_DIVERGENCE:
-            ASSERT(x0 < 0._f);
+            SPH_ASSERT(x0 < 0._f);
             return Palette({ { x0, Rgba(0.3f, 0.3f, 0.8f) },
                                { 0.1f * x0, Rgba(0.f, 0.f, 0.2f) },
                                { 0.f, Rgba(0.2f, 0.2f, 0.2f) },
@@ -313,7 +313,7 @@ Palette Factory::getPalette(const ColorizerId id) {
                                { x0 + dx, Rgba(1.0f, 0.6f, 0.f) } },
                 scale);
         case QuantityId::VELOCITY_GRADIENT:
-            ASSERT(x0 == 0._f);
+            SPH_ASSERT(x0 == 0._f);
             return Palette({ { 0._f, Rgba(0.3f, 0.3f, 0.8f) },
                                { 0.01f * dx, Rgba(0.f, 0.f, 0.2f) },
                                { 0.05f * dx, Rgba(0.2f, 0.2f, 0.2f) },
@@ -321,7 +321,7 @@ Palette Factory::getPalette(const ColorizerId id) {
                                { dx, Rgba(1.0f, 0.6f, 0.f) } },
                 scale);
         case QuantityId::ANGULAR_FREQUENCY:
-            ASSERT(x0 == 0._f);
+            SPH_ASSERT(x0 == 0._f);
             return Palette({ { 0._f, Rgba(0.3f, 0.3f, 0.8f) },
                                { 0.25f * dx, Rgba(0.f, 0.f, 0.2f) },
                                { 0.5f * dx, Rgba(0.2f, 0.2f, 0.2f) },
@@ -371,7 +371,7 @@ Palette Factory::getPalette(const ColorizerId id) {
                                { x0 + dx, Rgba(1.0f, 1.0f, 0.2f) } },
                 scale);
         case ColorizerId::MOVEMENT_DIRECTION: {
-            ASSERT(range == Interval(0.f, 2._f * PI)); // in radians
+            SPH_ASSERT(range == Interval(0.f, 2._f * PI)); // in radians
             const float pi = float(PI);
             return Palette({ { 0.f, Rgba(0.1f, 0.1f, 1.f) },
                                { pi / 3.f, Rgba(1.f, 0.1f, 1.f) },

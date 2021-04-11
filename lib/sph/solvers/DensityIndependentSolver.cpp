@@ -43,13 +43,13 @@ public:
 
     template <bool Symmetrize>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        ASSERT(!Symmetrize);
+        SPH_ASSERT(!Symmetrize);
 
         dv[i] += Y[i] * Y[j] / m[i] * (1._f / y[i] + 1._f / y[j]) * grad;
-        ASSERT(getSqrLength(dv[i]) < LARGE, dv[i]);
+        SPH_ASSERT(getSqrLength(dv[i]) < LARGE, dv[i]);
 
         du[i] += Y[i] * Y[j] / m[i] / y[i] * dot(v[i] - v[j], grad);
-        ASSERT(abs(du[i]) < LARGE, du[i]);
+        SPH_ASSERT(abs(du[i]) < LARGE, du[i]);
     }
 };
 
@@ -63,7 +63,7 @@ public:
         // EoS can return negative pressure, which is not allowed in DISPH, so we have to clamp it
         ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
         for (Size i = 0; i < p.size(); ++i) {
-            ASSERT(p[i] >= 100._f);
+            SPH_ASSERT(p[i] >= 100._f);
             p[i] = max(p[i], 100._f); /// \todo generalize the min value
         }
     }
@@ -111,7 +111,7 @@ void DensityIndependentSolver::integrate(Storage& storage, Statistics& stats) {
     ArrayView<Float> y = storage.getValue<Float>(QuantityId::GENERALIZED_PRESSURE);
     for (Size i = 0; i < r.size(); ++i) {
         rho[i] = m[i] * y[i] / Y[i];
-        ASSERT(rho[i] > 1._f && rho[i] < 1.e4_f, rho[i]);
+        SPH_ASSERT(rho[i] > 1._f && rho[i] < 1.e4_f, rho[i]);
     }
 
     // step 2: using computed density, get the non-smoothed pressure from equation of state
@@ -128,7 +128,7 @@ void DensityIndependentSolver::integrate(Storage& storage, Statistics& stats) {
 
     for (Size i = 0; i < r.size(); ++i) {
         Y[i] = m[i] * /*pow(p[i], config.alpha) */ p[i] / rho[i];
-        ASSERT(Y[i] > EPS && Y[i] < LARGE, Y[i]);
+        SPH_ASSERT(Y[i] > EPS && Y[i] < LARGE, Y[i]);
     }
 
     const Float radius = kernel.radius() * r[0][H]; /// \todo do correctly
@@ -143,10 +143,10 @@ void DensityIndependentSolver::integrate(Storage& storage, Statistics& stats) {
             const Size j = n.index;
             y[i] += Y[j] * kernel.value(r[i], r[j]);
         }
-        ASSERT(y[i] > 0._f);
+        SPH_ASSERT(y[i] > 0._f);
 
         //        y[i] = pow(y[i], 1._f / config.alpha - 2._f);
-        ASSERT(y[i] > EPS && y[i] < LARGE, y[i]);
+        SPH_ASSERT(y[i] > EPS && y[i] < LARGE, y[i]);
     };
     parallelFor(scheduler, threadData, 0, r.size(), pressureFunc);
 
@@ -161,14 +161,14 @@ void DensityIndependentSolver::integrate(Storage& storage, Statistics& stats) {
         for (NeighbourRecord& n : data.neighs) {
             const Size j = n.index;
             const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-            ASSERT(hbar > EPS, hbar);
+            SPH_ASSERT(hbar > EPS, hbar);
             if (i == j || n.distanceSqr >= sqr(kernel.radius() * hbar)) {
                 // aren't actual neighbours
                 continue;
             }
 
             const Vector gr = kernel.grad(r[i], r[j]);
-            ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) <= 0._f, gr, r[i] - r[j]);
+            SPH_ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) <= 0._f, gr, r[i] - r[j]);
             data.grads.emplaceBack(gr);
             data.idxs.emplaceBack(j);
         }
@@ -187,11 +187,11 @@ void DensityIndependentSolver::integrate(Storage& storage, Statistics& stats) {
     ArrayView<const Float> du = storage.getDt<Float>(QuantityId::ENERGY);
     for (Size i = 0; i < r.size(); ++i) {
         const Float gamma = rho[i] / p[i] * sqr(cs[i]);
-        ASSERT(gamma > 0._f);
+        SPH_ASSERT(gamma > 0._f);
         // y[i] = pow(y[i], 1._f / (1._f / config.alpha - 2._f)); /// \todo
         // const Float y1 = pow(y[i], 1._f - 1._f / config.alpha);
         dY[i] = 0._f * (/*config.alpha * */ gamma - 1._f) * m[i] * du[i];
-        ASSERT(isReal(dY[i]) && abs(dY[i]) < LARGE);
+        SPH_ASSERT(isReal(dY[i]) && abs(dY[i]) < LARGE);
     }
 
     for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {

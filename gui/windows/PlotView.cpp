@@ -93,7 +93,7 @@ void PlotView::onRightUp(wxMouseEvent& UNUSED(evt)) {
 
 void PlotView::onDoubleClick(wxMouseEvent& UNUSED(evt)) {
     wxAuiNotebook* notebook = findNotebook(); /// \todo detach dependency via callback?
-    ASSERT(notebook);
+    SPH_ASSERT(notebook);
 
     PlotPage* page = new PlotPage(notebook, wxSize(800, 600), wxSize(25, 25), cached.plot);
 
@@ -107,7 +107,7 @@ void PlotView::onDoubleClick(wxMouseEvent& UNUSED(evt)) {
 void PlotView::onMenu(wxCommandEvent& evt) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     const Size index = evt.GetId();
-    ASSERT(index < list->size());
+    SPH_ASSERT(index < list->size());
     this->updatePlot(index);
     this->Refresh();
 }
@@ -164,7 +164,7 @@ void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) 
         dc.DrawLine(dcX, size.y - padding.y, dcX, padding.y);
         if (ticsParams) {
             Array<Float> tics = getLinearTics(rangeY, ticsParams->minCnt);
-            ASSERT(tics.size() >= ticsParams->minCnt);
+            SPH_ASSERT(tics.size() >= ticsParams->minCnt);
             for (const Float tic : tics) {
                 const PlotPoint plotPoint(0, tic);
                 const PlotPoint imagePoint = matrix.transformPoint(plotPoint);
@@ -365,7 +365,7 @@ public:
 };
 
 void PlotPage::saveData(const Path& path) {
-    ASSERT(path.extension() == Path("txt"));
+    SPH_ASSERT(path.extension() == Path("txt"));
     auto proxy = plot.lock();
     TextContext context(path);
     proxy->plot(context);

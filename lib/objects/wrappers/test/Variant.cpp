@@ -83,7 +83,7 @@ TEST_CASE("Variant index construct", "[variant]") {
     Variant<int, std::string, Dummy> variant4(CONSTRUCT_TYPE_IDX, 2);
     REQUIRE(variant4.get<Dummy>().s == "hello");
 
-    REQUIRE_ASSERT((Variant<int, float>(CONSTRUCT_TYPE_IDX, 2)));
+    REQUIRE_SPH_ASSERT((Variant<int, float>(CONSTRUCT_TYPE_IDX, 2)));
 }
 
 TEST_CASE("Variant assignemt", "[variant]") {
@@ -237,7 +237,7 @@ TEST_CASE("Variant swap", "[variant]") {
 
     variant1 = 6;
     variant2 = RecordType(5);
-    REQUIRE_ASSERT(std::swap(variant1, variant2));
+    REQUIRE_SPH_ASSERT(std::swap(variant1, variant2));
 }
 
 TEST_CASE("Variant empty string", "[variant]") {

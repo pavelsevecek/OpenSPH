@@ -98,7 +98,7 @@ protected:
 public:
     PositiveMean(const Float power)
         : power(power) {
-        ASSERT(power > 0._f);
+        SPH_ASSERT(power > 0._f);
     }
 
     INLINE void accumulate(const Float value) {
@@ -107,7 +107,7 @@ public:
     }
 
     INLINE void accumulate(const PositiveMean& other) {
-        ASSERT(power == other.power); // it only makes sense to sum up same means
+        SPH_ASSERT(power == other.power); // it only makes sense to sum up same means
         sum += other.sum;
         weight += other.weight;
     }
@@ -140,7 +140,7 @@ public:
         : PositiveMean(-power) {}
 
     INLINE void accumulate(const Float value) {
-        ASSERT(value > 0._f, value);
+        SPH_ASSERT(value > 0._f, value);
         const Float p = pow(value, power);
         if (p == INFTY) {
             weight++; // just increase weight
@@ -151,14 +151,14 @@ public:
     }
 
     INLINE void accumulate(const NegativeMean& other) {
-        ASSERT(power == other.power);
+        SPH_ASSERT(power == other.power);
         sum += other.sum;
         weight += other.weight;
     }
 
     INLINE Float compute() const {
         Float avg = sum / weight;
-        ASSERT(isReal(avg), avg, sum, weight);
+        SPH_ASSERT(isReal(avg), avg, sum, weight);
         Float avgPow = pow(avg, 1._f / power);
         if (avgPow == 0._f) {
             return INFINITY;

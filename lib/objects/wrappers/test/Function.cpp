@@ -8,7 +8,7 @@ using namespace Sph;
 TEST_CASE("Function default construct", "[function]") {
     Function<void(int)> func;
     REQUIRE_FALSE(func);
-    REQUIRE_ASSERT(func(5));
+    REQUIRE_SPH_ASSERT(func(5));
 }
 
 TEST_CASE("Function functor construct", "[function]") {

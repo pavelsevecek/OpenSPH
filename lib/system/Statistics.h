@@ -87,7 +87,7 @@ public:
     template <typename TValue>
     TValue get(const StatisticsId idx) const {
         Optional<const ValueType&> entry = entries.tryGet(idx);
-        ASSERT(entry, int(idx));
+        SPH_ASSERT(entry, int(idx));
         using StoreType = ConvertToSize<TValue>;
         const StoreType& value = entry->template get<StoreType>();
         return TValue(value);

@@ -48,8 +48,8 @@ TEST_CASE("Unit product and div", "[units]") {
 TEST_CASE("Unit invalid operations", "[units]") {
     Unit u1 = 6._m;
     Unit u2 = 3._s;
-    REQUIRE_ASSERT(u1 + u2);
-    REQUIRE_ASSERT(u1 - u2);
+    REQUIRE_SPH_ASSERT(u1 + u2);
+    REQUIRE_SPH_ASSERT(u1 - u2);
 }
 
 TEST_CASE("Unit parseUnit", "[units]") {

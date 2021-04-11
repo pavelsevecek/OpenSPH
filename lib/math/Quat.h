@@ -24,7 +24,7 @@ public:
     ///
     /// Axis does not have to be normalized.
     Quat(const Vector& axis, const Float angle) {
-        ASSERT(getSqrLength(axis) > 0._f);
+        SPH_ASSERT(getSqrLength(axis) > 0._f);
         Vector normAxis;
         Float length;
         tieToTuple(normAxis, length) = getNormalizedWithLength(axis);
@@ -40,8 +40,8 @@ public:
     ///
     /// The matrix must be orthogonal with det(matrix) = 1
     explicit Quat(const AffineMatrix& m) {
-        ASSERT(m.translation() == Vector(0._f));
-        ASSERT(m.isOrthogonal());
+        SPH_ASSERT(m.translation() == Vector(0._f));
+        SPH_ASSERT(m.isOrthogonal());
         const Float w = 0.5_f * sqrt(1._f + m(0, 0) + m(1, 1) + m(2, 2));
         const Float n = 0.25_f / w;
         v[X] = (m(2, 1) - m(1, 2)) * n;
@@ -52,7 +52,7 @@ public:
 
     /// \brief Returns the normalized rotational axis.
     INLINE Vector axis() const {
-        ASSERT(v[H] != 1._f);
+        SPH_ASSERT(v[H] != 1._f);
         return v / sqrt(1._f - sqr(v[H]));
     }
 

@@ -69,7 +69,7 @@ struct StoragePairVisitor<VisitorEnum::ALL_BUFFERS> {
     void visit(Quantity& q1, Quantity& q2, const QuantityId UNUSED(id), TFunctor&& functor) {
         auto values1 = q1.template getAll<TValue>();
         auto values2 = q2.template getAll<TValue>();
-        ASSERT(values1.size() == values2.size());
+        SPH_ASSERT(values1.size() == values2.size());
         for (Size j = 0; j < values1.size(); ++j) {
             functor(values1[j], values2[j]);
         }
@@ -105,7 +105,7 @@ struct StoragePairVisitor<VisitorEnum::ZERO_ORDER> {
         if (q1.getOrderEnum() != OrderEnum::ZERO) {
             return;
         }
-        ASSERT(q2.getOrderEnum() == OrderEnum::ZERO);
+        SPH_ASSERT(q2.getOrderEnum() == OrderEnum::ZERO);
         functor(id, q1.getValue<TValue>(), q2.getValue<TValue>());
     }
 
@@ -114,7 +114,7 @@ struct StoragePairVisitor<VisitorEnum::ZERO_ORDER> {
         if (q1.getOrderEnum() != OrderEnum::ZERO) {
             return;
         }
-        ASSERT(q2.getOrderEnum() == OrderEnum::ZERO);
+        SPH_ASSERT(q2.getOrderEnum() == OrderEnum::ZERO);
         functor(id, q1.getValue<TValue>(), q2.getValue<TValue>());
     }
 };
@@ -148,7 +148,7 @@ struct StoragePairVisitor<VisitorEnum::FIRST_ORDER> {
         if (q1.getOrderEnum() != OrderEnum::FIRST) {
             return;
         }
-        ASSERT(q2.getOrderEnum() == OrderEnum::FIRST);
+        SPH_ASSERT(q2.getOrderEnum() == OrderEnum::FIRST);
         functor(id, q1.getValue<TValue>(), q1.getDt<TValue>(), q2.getValue<TValue>(), q2.getDt<TValue>());
     }
 
@@ -157,7 +157,7 @@ struct StoragePairVisitor<VisitorEnum::FIRST_ORDER> {
         if (q1.getOrderEnum() != OrderEnum::FIRST) {
             return;
         }
-        ASSERT(q2.getOrderEnum() == OrderEnum::FIRST);
+        SPH_ASSERT(q2.getOrderEnum() == OrderEnum::FIRST);
         functor(id, q1.getValue<TValue>(), q1.getDt<TValue>(), q2.getValue<TValue>(), q2.getDt<TValue>());
     }
 };
@@ -188,7 +188,7 @@ struct StoragePairVisitor<VisitorEnum::SECOND_ORDER> {
         if (q1.getOrderEnum() != OrderEnum::SECOND) {
             return;
         }
-        ASSERT(q2.getOrderEnum() == OrderEnum::SECOND);
+        SPH_ASSERT(q2.getOrderEnum() == OrderEnum::SECOND);
         functor(id,
             q1.getValue<TValue>(),
             q1.getDt<TValue>(),
@@ -203,7 +203,7 @@ struct StoragePairVisitor<VisitorEnum::SECOND_ORDER> {
         if (q1.getOrderEnum() != OrderEnum::SECOND) {
             return;
         }
-        ASSERT(q2.getOrderEnum() == OrderEnum::SECOND);
+        SPH_ASSERT(q2.getOrderEnum() == OrderEnum::SECOND);
         functor(id,
             q1.getValue<TValue>(),
             q1.getDt<TValue>(),
@@ -245,7 +245,7 @@ struct StoragePairVisitor<VisitorEnum::HIGHEST_DERIVATIVES> {
     template <typename TValue, typename TFunctor>
     void visit(Quantity& q1, Quantity& q2, TFunctor&& functor) {
         const OrderEnum order1 = q1.getOrderEnum();
-        ASSERT(order1 == q2.getOrderEnum());
+        SPH_ASSERT(order1 == q2.getOrderEnum());
         if (order1 == OrderEnum::FIRST) {
             functor(q1.getDt<TValue>(), q2.getDt<TValue>());
         } else if (order1 == OrderEnum::SECOND) {
@@ -314,7 +314,7 @@ void iterateWithPositions(Storage& storage, TFunctor&& functor) {
 /// Iterate over given type of quantities in two storage views and executes functor for each pair.
 template <VisitorEnum Type, typename TFunctor>
 void iteratePair(Storage& storage1, Storage& storage2, TFunctor&& functor) {
-    ASSERT(storage1.getQuantityCnt() == storage2.getQuantityCnt(),
+    SPH_ASSERT(storage1.getQuantityCnt() == storage2.getQuantityCnt(),
         storage1.getQuantityCnt(),
         storage2.getQuantityCnt());
     StoragePairVisitor<Type> visitor;
@@ -324,10 +324,10 @@ void iteratePair(Storage& storage1, Storage& storage2, TFunctor&& functor) {
     };
 
     for (auto i : iterateTuple<Element>(storage1.getQuantities(), storage2.getQuantities())) {
-        ASSERT(i.e1.id == i.e2.id);
+        SPH_ASSERT(i.e1.id == i.e2.id);
         Quantity& q1 = i.e1.quantity;
         Quantity& q2 = i.e2.quantity;
-        ASSERT(q1.getValueEnum() == q2.getValueEnum());
+        SPH_ASSERT(q1.getValueEnum() == q2.getValueEnum());
         dispatch(q1.getValueEnum(), visitor, q1, q2, i.e1.id, functor);
     }
 }
@@ -335,7 +335,7 @@ void iteratePair(Storage& storage1, Storage& storage2, TFunctor&& functor) {
 /// \copydoc iteratePair
 template <VisitorEnum Type, typename TFunctor>
 void iteratePair(const Storage& storage1, const Storage& storage2, TFunctor&& functor) {
-    ASSERT(storage1.getQuantityCnt() == storage2.getQuantityCnt(),
+    SPH_ASSERT(storage1.getQuantityCnt() == storage2.getQuantityCnt(),
         storage1.getQuantityCnt(),
         storage2.getQuantityCnt());
     StoragePairVisitor<Type> visitor;
@@ -345,10 +345,10 @@ void iteratePair(const Storage& storage1, const Storage& storage2, TFunctor&& fu
     };
 
     for (auto i : iterateTuple<Element>(storage1.getQuantities(), storage2.getQuantities())) {
-        ASSERT(i.e1.id == i.e2.id);
+        SPH_ASSERT(i.e1.id == i.e2.id);
         const Quantity& q1 = i.e1.quantity;
         const Quantity& q2 = i.e2.quantity;
-        ASSERT(q1.getValueEnum() == q2.getValueEnum());
+        SPH_ASSERT(q1.getValueEnum() == q2.getValueEnum());
         dispatch(q1.getValueEnum(), visitor, q1, q2, i.e1.id, functor);
     }
 }

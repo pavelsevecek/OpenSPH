@@ -266,14 +266,14 @@ public:
     bool operator==(const TupleIterator& other) const {
         const bool result = iterators.template get<0>() == other.iterators.template get<0>();
         // check that all iterators return the same result (all containers have the same size)
-        ASSERT(checkEqual(result, other, std::index_sequence_for<TIterator...>{}));
+        SPH_ASSERT(checkEqual(result, other, std::index_sequence_for<TIterator...>{}));
         return result;
     }
 
     bool operator!=(const TupleIterator& other) const {
         const bool result = iterators.template get<0>() != other.iterators.template get<0>();
         // check that all iterators return the same result (all containers have the same size)
-        ASSERT(checkEqual(!result, other, std::index_sequence_for<TIterator...>{}));
+        SPH_ASSERT(checkEqual(!result, other, std::index_sequence_for<TIterator...>{}));
         return result;
     }
 
@@ -309,7 +309,7 @@ private:
 public:
     TupleAdapter(TContainers&&... containers)
         : tuple(std::forward<TContainers>(containers)...) {
-        ASSERT(tuple.size() > 1);
+        SPH_ASSERT(tuple.size() > 1);
     }
 
     auto begin() {
@@ -462,7 +462,7 @@ private:
 public:
     template <typename TContainer>
     explicit SubRange(const TContainer& container, const Size firstIdx, const Size lastIdx) {
-        ASSERT(lastIdx <= container.size());
+        SPH_ASSERT(lastIdx <= container.size());
         first = container.begin() + firstIdx;
         last = container.begin() + lastIdx;
     }
@@ -512,12 +512,12 @@ public:
     }
 
     INLINE decltype(auto) operator*() {
-        ASSERT(iter != end);
+        SPH_ASSERT(iter != end);
         return *iter;
     }
 
     INLINE decltype(auto) operator*() const {
-        ASSERT(iter != end);
+        SPH_ASSERT(iter != end);
         return *iter;
     }
 
@@ -599,7 +599,7 @@ public:
     INLINE IndexSequence(const Size from, const Size to)
         : from(from)
         , to(to) {
-        ASSERT(from <= to);
+        SPH_ASSERT(from <= to);
     }
 
     INLINE IndexIterator begin() const {

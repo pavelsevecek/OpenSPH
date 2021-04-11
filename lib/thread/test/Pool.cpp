@@ -232,8 +232,8 @@ TEST_CASE("WaitForAll", "[thread]") {
 TEST_CASE("ParallelFor assert", "[thread]") {
     ThreadPool pool(2);
     // throw from worker thread
-    auto lambda = [](Size) { ASSERT(false); };
+    auto lambda = [](Size) { SPH_ASSERT(false); };
 
-    REQUIRE_ASSERT(parallelFor(pool, 1, 2, lambda));
+    REQUIRE_SPH_ASSERT(parallelFor(pool, 1, 2, lambda));
 }
 #endif

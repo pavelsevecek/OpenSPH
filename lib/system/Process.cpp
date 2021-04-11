@@ -41,7 +41,7 @@ Process::Process(const Path& path, Array<std::string>&& args) {
         // execl replaces the current process with a new one, so we should never get past the call
         throw ProcessException("Cannot execute file " + fileName);
     } else {
-        ASSERT(pid > 0);
+        SPH_ASSERT(pid > 0);
         // parent process, save the child pid
         childPid = pid;
     }

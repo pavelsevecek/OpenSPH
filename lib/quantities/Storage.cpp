@@ -100,7 +100,7 @@ Storage::MatRange::MatRange(const SharedPtr<IMaterial>& material, const Size fro
     : material(material)
     , from(from)
     , to(to) {
-    ASSERT(from < to || (from == 0 && to == 0));
+    SPH_ASSERT(from < to || (from == 0 && to == 0));
 }
 
 Storage::Storage() = default;
@@ -268,7 +268,7 @@ template const Array<Tensor>& Storage::getD2t(const QuantityId) const;
 
 template <typename TValue>
 Quantity& Storage::insert(const QuantityId key, const OrderEnum order, const TValue& defaultValue) {
-    ASSERT(isReal(defaultValue));
+    SPH_ASSERT(isReal(defaultValue));
     if (this->has(key)) {
         Quantity& q = this->getQuantity(key);
         checkStorageAccess(q.getValueEnum() == GetValueEnum<TValue>::type,
@@ -321,7 +321,7 @@ Quantity& Storage::insert(const QuantityId key, const OrderEnum order, Array<TVa
             // this is the first inserted quantity, initialize the 'internal' matId quantity
             Quantity& quantity = this->insert<Size>(QuantityId::MATERIAL_ID, OrderEnum::ZERO, 0);
             matIds = quantity.getValue<Size>();
-            ASSERT(this->getMaterialCnt() == 1);
+            SPH_ASSERT(this->getMaterialCnt() == 1);
             mats[0].from = 0;
             mats[0].to = this->getParticleCnt();
         }
@@ -353,10 +353,10 @@ void Storage::addDependent(const WeakPtr<Storage>& other) {
         }
         return true;
     };
-    ASSERT(checkDependent(*this));
+    SPH_ASSERT(checkDependent(*this));
     if (SharedPtr<Storage> sharedPtr = other.lock()) {
-        ASSERT(&*sharedPtr != this);
-        ASSERT(checkDependent(*sharedPtr));
+        SPH_ASSERT(&*sharedPtr != this);
+        SPH_ASSERT(checkDependent(*sharedPtr));
     }
 #endif
 
@@ -364,13 +364,13 @@ void Storage::addDependent(const WeakPtr<Storage>& other) {
 }
 
 MaterialView Storage::getMaterial(const Size matId) const {
-    ASSERT(!mats.empty());
+    SPH_ASSERT(!mats.empty());
     const MatRange& mat = mats[matId];
     return MaterialView(mat.material.get(), IndexSequence(mat.from, mat.to));
 }
 
 MaterialView Storage::getMaterialOfParticle(const Size particleIdx) const {
-    ASSERT(!mats.empty() && particleIdx < matIds.size());
+    SPH_ASSERT(!mats.empty() && particleIdx < matIds.size());
     return this->getMaterial(matIds[particleIdx]);
 }
 
@@ -400,7 +400,7 @@ bool Storage::isHomogeneous(const BodySettingsId param) const {
 }
 
 Interval Storage::getRange(const QuantityId id, const Size matIdx) const {
-    ASSERT(matIdx < mats.size());
+    SPH_ASSERT(matIdx < mats.size());
     return mats[matIdx].material->range(id);
 }
 
@@ -470,7 +470,7 @@ void Storage::addMissingBuffers(const Storage& source) {
 }
 
 void Storage::merge(Storage&& other) {
-    ASSERT(!userData && !other.userData, "Merging storages with user data is currently not supported");
+    SPH_ASSERT(!userData && !other.userData, "Merging storages with user data is currently not supported");
 
     // allow merging into empty storage for convenience
     if (this->getQuantityCnt() == 0) {
@@ -482,7 +482,7 @@ void Storage::merge(Storage&& other) {
     this->addMissingBuffers(other);
     other.addMissingBuffers(*this);
 
-    ASSERT(this->isValid() && other.isValid());
+    SPH_ASSERT(this->isValid() && other.isValid());
 
 
     // make sure that either both have materials or neither
@@ -550,7 +550,7 @@ void Storage::merge(Storage&& other) {
     other.removeAll();
 
     // sanity check
-    ASSERT(this->isValid());
+    SPH_ASSERT(this->isValid());
 }
 
 void Storage::zeroHighestDerivatives() {
@@ -561,7 +561,7 @@ void Storage::zeroHighestDerivatives() {
 }
 
 Storage Storage::clone(const Flags<VisitorEnum> buffers) const {
-    ASSERT(!userData, "Cloning storages with user data is currently not supported");
+    SPH_ASSERT(!userData, "Cloning storages with user data is currently not supported");
     Storage cloned;
     for (const auto& q : quantities) {
         cloned.quantities.insert(q.key, q.value.clone(buffers));
@@ -577,8 +577,8 @@ Storage Storage::clone(const Flags<VisitorEnum> buffers) const {
 }
 
 void Storage::resize(const Size newParticleCnt, const Flags<ResizeFlag> flags) {
-    ASSERT(getQuantityCnt() > 0 && getMaterialCnt() <= 1);
-    ASSERT(!userData, "Cloning storages with user data is currently not supported");
+    SPH_ASSERT(getQuantityCnt() > 0 && getMaterialCnt() <= 1);
+    SPH_ASSERT(!userData, "Cloning storages with user data is currently not supported");
 
     iterate<VisitorEnum::ALL_BUFFERS>(*this, [newParticleCnt, flags](auto& buffer) { //
         if (!flags.has(ResizeFlag::KEEP_EMPTY_UNCHANGED) || !buffer.empty()) {
@@ -595,12 +595,12 @@ void Storage::resize(const Size newParticleCnt, const Flags<ResizeFlag> flags) {
     this->propagate([newParticleCnt, flags](Storage& storage) { storage.resize(newParticleCnt, flags); });
 
     this->update();
-    ASSERT(this->isValid(
+    SPH_ASSERT(this->isValid(
         flags.has(ResizeFlag::KEEP_EMPTY_UNCHANGED) ? Flags<ValidFlag>() : ValidFlag::COMPLETE));
 }
 
 void Storage::swap(Storage& other, const Flags<VisitorEnum> flags) {
-    ASSERT(this->getQuantityCnt() == other.getQuantityCnt());
+    SPH_ASSERT(this->getQuantityCnt() == other.getQuantityCnt());
     for (auto i1 = quantities.begin(), i2 = other.quantities.begin(); i1 != quantities.end(); ++i1, ++i2) {
         i1->value.swap(i2->value, flags);
     }
@@ -662,12 +662,12 @@ Outcome Storage::isValid(const Flags<ValidFlag> flags) const {
 }
 
 Array<Size> Storage::duplicate(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags) {
-    ASSERT(!userData, "Duplicating particles in storages with user data is currently not supported");
+    SPH_ASSERT(!userData, "Duplicating particles in storages with user data is currently not supported");
     MEASURE_SCOPE("Storage::duplicate");
     Array<Size> sortedHolder;
     ArrayView<const Size> sorted;
     if (flags.has(IndicesFlag::INDICES_SORTED)) {
-        ASSERT(std::is_sorted(idxs.begin(), idxs.end()));
+        SPH_ASSERT(std::is_sorted(idxs.begin(), idxs.end()));
         sorted = idxs;
     } else {
         sortedHolder.reserve(idxs.size());
@@ -712,7 +712,7 @@ Array<Size> Storage::duplicate(ArrayView<const Size> idxs, const Flags<IndicesFl
         }
 
         // fix material ranges
-        ASSERT(std::is_sorted(matIdsRef.begin(), matIdsRef.end()));
+        SPH_ASSERT(std::is_sorted(matIdsRef.begin(), matIdsRef.end()));
         for (Size matId = 0; matId < this->getMaterialCnt(); ++matId) {
             std::pair<Iterator<Size>, Iterator<Size>> range =
                 std::equal_range(matIdsRef.begin(), matIdsRef.end(), matId);
@@ -737,14 +737,14 @@ Array<Size> Storage::duplicate(ArrayView<const Size> idxs, const Flags<IndicesFl
     }
 
     this->update();
-    ASSERT(this->isValid(), this->isValid().error());
+    SPH_ASSERT(this->isValid(), this->isValid().error());
 
     std::sort(createdIdxs.begin(), createdIdxs.end());
     return createdIdxs;
 }
 
 void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags) {
-    ASSERT(!userData, "Removing particles from storages with user data is currently not supported");
+    SPH_ASSERT(!userData, "Removing particles from storages with user data is currently not supported");
     if (idxs.empty()) {
         // job well done!
         return;
@@ -753,7 +753,7 @@ void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags)
     ArrayView<const Size> sortedIdxs;
     Array<Size> sortedHolder;
     if (flags.has(IndicesFlag::INDICES_SORTED)) {
-        ASSERT(std::is_sorted(idxs.begin(), idxs.end()));
+        SPH_ASSERT(std::is_sorted(idxs.begin(), idxs.end()));
         sortedIdxs = idxs;
     } else {
         sortedHolder.pushAll(idxs.begin(), idxs.end());
@@ -784,7 +784,7 @@ void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags)
         mats.remove(matsToRemove);
 
     } else {
-        ASSERT(mats.empty());
+        SPH_ASSERT(mats.empty());
     }
 
     // in case some materials have been removed, we need to re-assign matIds
@@ -794,11 +794,11 @@ void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags)
         }
     }
 
-    ASSERT(this->isValid(), this->isValid().error());
+    SPH_ASSERT(this->isValid(), this->isValid().error());
 }
 
 void Storage::removeAll() {
-    ASSERT(!userData, "Removing particles from storages with user data is currently not supported");
+    SPH_ASSERT(!userData, "Removing particles from storages with user data is currently not supported");
     this->propagate([](Storage& storage) { storage.removeAll(); });
     *this = Storage();
 }

@@ -94,7 +94,7 @@ FlatMap<Size, Path> getFileSequence(const Path& firstFile) {
     }
 
     Optional<Size> firstIndex = OutputFile::getDumpIdx(firstFile);
-    ASSERT(firstIndex); // already checked above
+    SPH_ASSERT(firstIndex); // already checked above
 
     const Path dir = firstFile.parentPath();
     for (Path relativePath : FileSystem::iterateDirectory(dir)) {
@@ -103,7 +103,7 @@ FlatMap<Size, Path> getFileSequence(const Path& firstFile) {
         if (pathMask && pathMask->getMask() == referenceMask->getMask()) {
             // belongs to the same file sequence
             Optional<Size> index = OutputFile::getDumpIdx(path);
-            ASSERT(index);
+            SPH_ASSERT(index);
 
             if (index.value() >= firstIndex.value()) {
                 fileMap.insert(index.value(), path);

@@ -57,7 +57,7 @@ public:
         , selectedIdx(idx) {}
 
     virtual Float evaluate(const Storage& UNUSED(storage)) const override {
-        ASSERT(colorizer->isInitialized(), colorizer->name());
+        SPH_ASSERT(colorizer->isInitialized(), colorizer->name());
         return colorizer->evalScalar(selectedIdx).valueOr(0.f);
     }
 
@@ -249,7 +249,7 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
 
     // connect event handlers
     wxAuiNotebook* notebook = findNotebook();
-    ASSERT(notebook);
+    SPH_ASSERT(notebook);
 }
 
 RunPage::~RunPage() {
@@ -1022,7 +1022,7 @@ void RunPage::addComponentIdBar(wxWindow* parent, wxSizer* sizer, SharedPtr<ICol
     highlightBox->Bind(wxEVT_CHECKBOX, [this, colorizer, componentId, highlightIndex](wxCommandEvent& evt) {
         const bool value = evt.IsChecked();
 
-        ASSERT(componentId);
+        SPH_ASSERT(componentId);
         if (value) {
             componentId->setHighlightIdx(highlightIndex->GetValue());
         } else {
@@ -1147,7 +1147,7 @@ void RunPage::onTimeStep(const Storage& storage, const Statistics& stats) {
         }
 
         executeOnMainThread([this] {
-            ASSERT(firstPlot && secondPlot);
+            SPH_ASSERT(firstPlot && secondPlot);
             firstPlot->Refresh();
             secondPlot->Refresh();
         });

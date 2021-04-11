@@ -76,8 +76,8 @@ BodyView& BodyView::addRotation(const Vector& omega, const RotationOrigin origin
 
 /// \brief Generates mapping coordinates and saves then as QuantityId::UVW quantity.
 static void setUvws(Storage& storage, const Vector& center) {
-    ASSERT(!storage.has(QuantityId::UVW));
-    ASSERT(storage.getMaterialCnt() == 1);
+    SPH_ASSERT(!storage.has(QuantityId::UVW));
+    SPH_ASSERT(storage.getMaterialCnt() == 1);
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     Array<Vector> uvws(r.size());
@@ -86,8 +86,8 @@ static void setUvws(Storage& storage, const Vector& center) {
         const Vector xyz = r[i] - center;
         SphericalCoords spherical = cartensianToSpherical(Vector(xyz[X], xyz[Z], xyz[Y]));
         uvws[i] = Vector(spherical.phi / (2._f * PI) + 0.5_f, spherical.theta / PI, 0._f);
-        ASSERT(uvws[i][X] >= 0._f && uvws[i][X] <= 1._f, uvws[i][X]);
-        ASSERT(uvws[i][Y] >= 0._f && uvws[i][Y] <= 1._f, uvws[i][Y]);
+        SPH_ASSERT(uvws[i][X] >= 0._f && uvws[i][X] <= 1._f, uvws[i][X]);
+        SPH_ASSERT(uvws[i][Y] >= 0._f && uvws[i][Y] <= 1._f, uvws[i][Y]);
     }
 
     storage.insert<Vector>(QuantityId::UVW, OrderEnum::ZERO, std::move(uvws));
@@ -128,7 +128,7 @@ BodyView InitialConditions::addMonolithicBody(Storage& storage,
 
     // Generate positions of particles
     Array<Vector> positions = distribution.generate(*context.scheduler, n, domain);
-    ASSERT(positions.size() > 0);
+    SPH_ASSERT(positions.size() > 0);
     body.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(positions));
 
     this->setQuantities(body, *material, domain.getCenter(), domain.getVolume());
@@ -137,7 +137,7 @@ BodyView InitialConditions::addMonolithicBody(Storage& storage,
 
     /// \todo refactor
     storage.propagate([&particleCnt, &storage](Storage& act) { //
-        ASSERT(&act != &storage);
+        SPH_ASSERT(&act != &storage);
         (void)storage;
         act.resize(particleCnt, Storage::ResizeFlag::KEEP_EMPTY_UNCHANGED);
     });
@@ -198,7 +198,7 @@ BodyView InitialConditions::addHeterogeneousBody(Storage& storage,
         this->setQuantities(bodyStorages[i], bodyStorages[i].getMaterial(0), center, volume);
         environVolume -= volume;
     }
-    ASSERT(environVolume >= 0._f);
+    SPH_ASSERT(environVolume >= 0._f);
     enviroStorage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(pos_env));
     const Vector environCenter = environment.domain->getCenter();
     this->setQuantities(enviroStorage, enviroStorage.getMaterial(0), environCenter, environVolume);
@@ -219,7 +219,7 @@ void InitialConditions::addRubblePileBody(Storage& storage,
     const Size n = bodySettings.get<int>(BodySettingsId::PARTICLE_COUNT);
     const Size minN = bodySettings.get<int>(BodySettingsId::MIN_PARTICLE_COUNT);
 
-    ASSERT(context.rng);
+    SPH_ASSERT(context.rng);
     VectorRng<IRng&> rng(*context.rng);
 
     // stack of generated spheres, to check for overlap
@@ -306,7 +306,7 @@ void InitialConditions::addRubblePileBody(Storage& storage,
         bailoutCounter = 0;
     }
 
-    ASSERT(!spheres.empty());
+    SPH_ASSERT(!spheres.empty());
 }
 
 /// \brief Creates array of particles masses, assuming relation m ~ h^3.
@@ -339,7 +339,7 @@ void InitialConditions::setQuantities(Storage& storage,
 
     const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
     const Float totalM = volume * rho0; // m = rho * V
-    ASSERT(totalM > 0._f);
+    SPH_ASSERT(totalM > 0._f);
 
     // Add masses (possibly heterogeneous, depending on generated smoothing lengths)
     storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, getMasses(r, totalM));
@@ -385,7 +385,7 @@ void repelParticles(ArrayView<Vector> r, const Float radius) {
 }
 
 Vector moveToCenterOfMassSystem(ArrayView<const Float> m, ArrayView<Vector> r) {
-    ASSERT(m.size() == r.size());
+    SPH_ASSERT(m.size() == r.size());
     Vector r_com(0._f);
     Float m_tot = 0._f;
     for (Size i = 0; i < r.size(); ++i) {

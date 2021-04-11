@@ -71,13 +71,13 @@ public:
 
     /// \brief Returns the given component of the matrix
     Float& operator()(const Size i, const Size j) {
-        ASSERT(i < 2 && j < 3);
+        SPH_ASSERT(i < 2 && j < 3);
         return data[3 * i + j];
     }
 
     /// \brief Returns the given component of the matrix
     Float operator()(const Size i, const Size j) const {
-        ASSERT(i < 2 && j < 3);
+        SPH_ASSERT(i < 2 && j < 3);
         return data[3 * i + j];
     }
 
@@ -114,7 +114,7 @@ public:
 
         const Float det = a * d - b * c;
         const Float detInv = 1._f / det;
-        ASSERT(det != 0._f);
+        SPH_ASSERT(det != 0._f);
 
         return AffineMatrix2(d * detInv,
             -b * detInv,

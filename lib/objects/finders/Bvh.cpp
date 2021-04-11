@@ -17,10 +17,10 @@ bool intersectBox(const Box& box, const Ray& ray, Float& t_min, Float& t_max) {
     StaticArray<Vector, 2> b = { box.lower(), box.upper() };
     Float tmin = (b[ray.signs[X]][X] - ray.orig[X]) * ray.invDir[X];
     Float tmax = (b[1 - ray.signs[X]][X] - ray.orig[X]) * ray.invDir[X];
-    ASSERT(!std::isnan(tmin) && !std::isnan(tmax)); // they may be inf though
+    SPH_ASSERT(!std::isnan(tmin) && !std::isnan(tmax)); // they may be inf though
     const Float tymin = (b[ray.signs[Y]][Y] - ray.orig[Y]) * ray.invDir[Y];
     const Float tymax = (b[1 - ray.signs[Y]][Y] - ray.orig[Y]) * ray.invDir[Y];
-    ASSERT(!std::isnan(tymin) && !std::isnan(tymax));
+    SPH_ASSERT(!std::isnan(tymin) && !std::isnan(tymax));
 
     if ((tmin > tymax) || (tymin > tmax)) {
         return false;
@@ -30,7 +30,7 @@ bool intersectBox(const Box& box, const Ray& ray, Float& t_min, Float& t_max) {
 
     const Float tzmin = (b[ray.signs[Z]][Z] - ray.orig[Z]) * ray.invDir[Z];
     const Float tzmax = (b[1 - ray.signs[Z]][Z] - ray.orig[Z]) * ray.invDir[Z];
-    ASSERT(!std::isnan(tzmin) && !std::isnan(tzmax));
+    SPH_ASSERT(!std::isnan(tzmin) && !std::isnan(tzmax));
 
     if ((tmin > tzmax) || (tzmin > tmax)) {
         return false;
@@ -146,7 +146,7 @@ bool Bvh<TBvhObject>::isOccluded(const Ray& ray) const {
 template <typename TBvhObject>
 void Bvh<TBvhObject>::build(Array<TBvhObject>&& objs) {
     objects = std::move(objs);
-    ASSERT(!objects.empty());
+    SPH_ASSERT(!objects.empty());
     nodeCnt = 0;
     leafCnt = 0;
 
@@ -223,7 +223,7 @@ void Bvh<TBvhObject>::build(Array<TBvhObject>&& objs) {
         stack[stackIdx++] = { nodeCnt - 1, start, mid };
     }
 
-    ASSERT(buildNodes.size() == nodeCnt);
+    SPH_ASSERT(buildNodes.size() == nodeCnt);
     nodes = std::move(buildNodes);
 }
 

@@ -11,8 +11,8 @@ TEST_CASE("Empty list", "[list]") {
     REQUIRE(list.size() == 0);
     REQUIRE(list.begin() == list.end());
 
-    REQUIRE_ASSERT(list.front());
-    REQUIRE_ASSERT(list.back());
+    REQUIRE_SPH_ASSERT(list.front());
+    REQUIRE_SPH_ASSERT(list.back());
 }
 
 TEST_CASE("List push one", "[list]") {
@@ -104,7 +104,7 @@ TEST_CASE("List forward iteration", "[list]") {
     ++iter;
     REQUIRE(!iter);
     REQUIRE_FALSE(iter);
-    REQUIRE_ASSERT(*iter);
+    REQUIRE_SPH_ASSERT(*iter);
 }
 
 TEST_CASE("List backward iteration", "[list]") {
@@ -121,7 +121,7 @@ TEST_CASE("List backward iteration", "[list]") {
     --iter;
     REQUIRE(!iter);
     REQUIRE_FALSE(iter);
-    REQUIRE_ASSERT(*iter);
+    REQUIRE_SPH_ASSERT(*iter);
 }
 
 TEST_CASE("List range-based for empty", "[list]") {
@@ -174,7 +174,7 @@ TEST_CASE("List insert", "[list]") {
     list.insert(iter, 99);
     REQUIRE(list.back().value == 99);
 
-    REQUIRE_ASSERT(list.insert(list.end(), 16));
+    REQUIRE_SPH_ASSERT(list.insert(list.end(), 16));
 }
 
 TEST_CASE("List erase", "[list]") {
@@ -251,8 +251,8 @@ TEST_CASE("List clear", "[list]") {
     REQUIRE(list.size() == 0);
     REQUIRE(list.empty());
     REQUIRE(list.begin() == list.end());
-    REQUIRE_ASSERT(list.front());
-    REQUIRE_ASSERT(list.back());
+    REQUIRE_SPH_ASSERT(list.front());
+    REQUIRE_SPH_ASSERT(list.back());
 
     list.pushBack(5);
     REQUIRE(list.size() == 1);

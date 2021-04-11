@@ -65,7 +65,7 @@ public:
         m[M02] = off[1];
         m12 = off[2];
         // assert after we set variables to shut up gcc's "maybe uninitialized" warning
-        ASSERT(abs(other.trace()) <= 1.e-3_f * getLength(other.diagonal()) + EPS, *this, other);
+        SPH_ASSERT(abs(other.trace()) <= 1.e-3_f * getLength(other.diagonal()) + EPS, *this, other);
     }
 
     /// \brief Initialize all components of the tensor to given value, excluding last element of the diagonal,
@@ -85,10 +85,10 @@ public:
     ///
     /// Matrix represented by the vectors MUST be symmetric and traceless, checked by assert.
     INLINE TracelessTensor(const Vector& v0, const Vector& v1, const Vector& v2) {
-        ASSERT(v0[1] == v1[0]);
-        ASSERT(v0[2] == v2[0]);
-        ASSERT(v1[2] == v2[1]);
-        ASSERT(abs(v0[0] + v1[1] + v2[2]) < EPS * (norm(v0) + norm(v1) + norm(v2)));
+        SPH_ASSERT(v0[1] == v1[0]);
+        SPH_ASSERT(v0[2] == v2[0]);
+        SPH_ASSERT(v1[2] == v2[1]);
+        SPH_ASSERT(abs(v0[0] + v1[1] + v2[2]) < EPS * (norm(v0) + norm(v1) + norm(v2)));
         m = Vector(v0[0], v1[1], v0[1], v0[2]);
         m12 = v1[2];
     }
@@ -111,7 +111,7 @@ public:
 
     /// \brief Returns a row of the matrix.
     INLINE Vector row(const int idx) const {
-        ASSERT(unsigned(idx) < 3);
+        SPH_ASSERT(unsigned(idx) < 3);
         switch (idx) {
         case 0:
             return Vector(m[M00], m[M01], m[M02]);
@@ -255,18 +255,18 @@ public:
 
 template <>
 INLINE TracelessTensor convert(const AffineMatrix& m) {
-    ASSERT(almostEqual(m(0, 1), m(1, 0), 1.e-6_f) && almostEqual(m(0, 2), m(2, 0), 1.e-6_f) &&
+    SPH_ASSERT(almostEqual(m(0, 1), m(1, 0), 1.e-6_f) && almostEqual(m(0, 2), m(2, 0), 1.e-6_f) &&
            almostEqual(m(1, 2), m(2, 1), 1.e-6_f));
-    ASSERT(almostEqual(m(0, 0) + m(1, 1) + m(2, 2), 0._f, 1.e-6_f));
+    SPH_ASSERT(almostEqual(m(0, 0) + m(1, 1) + m(2, 2), 0._f, 1.e-6_f));
     return TracelessTensor(m(0, 0), m(1, 1), m(0, 1), m(0, 2), m(1, 2));
 }
 
 template <>
 INLINE AffineMatrix convert(const TracelessTensor& t) {
     // make sure there is no 'accidental' translation in the matrix
-    ASSERT(t.row(0)[H] == 0._f);
-    ASSERT(t.row(1)[H] == 0._f);
-    ASSERT(t.row(2)[H] == 0._f);
+    SPH_ASSERT(t.row(0)[H] == 0._f);
+    SPH_ASSERT(t.row(1)[H] == 0._f);
+    SPH_ASSERT(t.row(2)[H] == 0._f);
     return AffineMatrix(t.row(0), t.row(1), t.row(2));
 }
 
@@ -282,7 +282,7 @@ template <>
 INLINE Float norm(const TracelessTensor& t) {
     /// \todo optimize
     const Vector v = max(t.diagonal(), t.offDiagonal());
-    ASSERT(isReal(v));
+    SPH_ASSERT(isReal(v));
     return norm(v);
 }
 
@@ -290,7 +290,7 @@ INLINE Float norm(const TracelessTensor& t) {
 template <>
 INLINE Float normSqr(const TracelessTensor& t) {
     const Vector v = max(t.diagonal(), t.offDiagonal());
-    ASSERT(isReal(v));
+    SPH_ASSERT(isReal(v));
     return normSqr(v);
 }
 
@@ -300,7 +300,7 @@ INLINE Float minElement(const TracelessTensor& t) {
     /// \todo optimize
     const Float vectorMin = min(min(t.m[0], t.m[1]), min(t.m[2], t.m[3]));
     const Float result = min(vectorMin, t.m12, -t.m[0] - t.m[1]);
-    ASSERT(isReal(result) && result <= 0._f);
+    SPH_ASSERT(isReal(result) && result <= 0._f);
     return result;
 }
 
@@ -310,7 +310,7 @@ INLINE Float maxElement(const TracelessTensor& t) {
     /// \todo optimize
     const Float vectorMax = max(max(t.m[0], t.m[1]), max(t.m[2], t.m[3]));
     const Float result = max(vectorMax, t.m12, -t.m[0] - t.m[1]);
-    ASSERT(isReal(result) && result >= 0._f);
+    SPH_ASSERT(isReal(result) && result >= 0._f);
     return result;
 }
 

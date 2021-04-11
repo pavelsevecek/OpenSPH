@@ -67,7 +67,7 @@ public:
     ///
     /// Object must not contain unexpected value, checked by assert.
     Type& value() {
-        ASSERT(isExpected());
+        SPH_ASSERT(isExpected());
         return data.template get<Type>();
     }
 
@@ -75,7 +75,7 @@ public:
     ///
     /// Object must not contain unexpected value, checked by assert.
     const Type& value() const {
-        ASSERT(isExpected());
+        SPH_ASSERT(isExpected());
         return data.template get<Type>();
     }
 
@@ -92,7 +92,7 @@ public:
     ///
     /// Object must contain unexpected value, checked by assert.
     const Error& error() const {
-        ASSERT(!isExpected());
+        SPH_ASSERT(!isExpected());
         return data.template get<UnexpectedWrapper>().error;
     }
 
@@ -100,13 +100,13 @@ public:
     ///
     /// If the object contains unexpected, throws an assert.
     Type* operator->() {
-        ASSERT(isExpected());
+        SPH_ASSERT(isExpected());
         return &value();
     }
 
     /// \copydoc Type* operator->()
     const Type* operator->() const {
-        ASSERT(isExpected());
+        SPH_ASSERT(isExpected());
         return &value();
     }
 

@@ -39,7 +39,7 @@ public:
 
 IRun::IRun() {
 #ifndef SPH_DEBUG
-    ASSERT(false, "Invalid configuration, asserts should be only enabled in debug builds");
+    SPH_ASSERT(false, "Invalid configuration, asserts should be only enabled in debug builds");
 #endif
 
     // setup the default scheduler, this can be overriden in \ref setUp if needed
@@ -236,7 +236,7 @@ Statistics IRun::run(Storage& input, IRunCallbacks& callbacks) {
         stats.set(StatisticsId::RUN_TIME, t);
         stats.set(StatisticsId::WALLCLOCK_TIME, int(runTimer.elapsed(TimerUnit::MILLISECOND)));
         const Float progress = t / timeRange.upper();
-        ASSERT(progress >= 0._f && progress <= 1._f);
+        SPH_ASSERT(progress >= 0._f && progress <= 1._f);
         stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
         stats.set(StatisticsId::INDEX, (int)i);
 
@@ -295,7 +295,7 @@ Statistics IRun::run(Storage& input, IRunCallbacks& callbacks) {
 
 
 void IRun::setNullToDefaults(SharedPtr<Storage> storage) {
-    ASSERT(storage != nullptr);
+    SPH_ASSERT(storage != nullptr);
     if (!scheduler) {
         // default to global thread pool
         scheduler = ThreadPool::getGlobalInstance();

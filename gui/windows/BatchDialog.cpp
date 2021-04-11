@@ -214,7 +214,7 @@ public:
 
         nodeBox->Bind(wxEVT_COMBOBOX, [this, nodes](wxCommandEvent& UNUSED(evt)) {
             const int idx = nodeBox->GetSelection();
-            ASSERT(idx < int(nodes.size()));
+            SPH_ASSERT(idx < int(nodes.size()));
             VirtualSettings settings = nodes[idx]->getSettings();
             wxArrayString items;
             settings.enumerate(AddParamProc(items, cached.keys));
@@ -369,8 +369,8 @@ BatchDialog::~BatchDialog() {}
 void BatchDialog::update() {
     const Size runCnt = manager.getRunCount();
     const Size paramCnt = manager.getParamCount();
-    ASSERT(grid->GetNumberCols() == int(paramCnt));
-    ASSERT(grid->GetNumberRows() == int(runCnt));
+    SPH_ASSERT(grid->GetNumberCols() == int(paramCnt));
+    SPH_ASSERT(grid->GetNumberRows() == int(runCnt));
     for (Size j = 0; j < runCnt; ++j) {
         grid->SetRowLabelValue(j, manager.getRunName(j));
     }

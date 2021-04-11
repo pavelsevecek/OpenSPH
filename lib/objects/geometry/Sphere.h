@@ -31,7 +31,7 @@ public:
     Sphere(const Vector& center, const Float radius)
         : p(center)
         , r(radius) {
-        ASSERT(radius >= 0._f);
+        SPH_ASSERT(radius >= 0._f);
     }
 
     INLINE Vector center() const {
@@ -81,7 +81,7 @@ public:
     /// \brief Checks the intersection of the sphere with a box
     /// \todo not all branches are actually needed by TreeWalk, possibly optimize by some constexpr flag
     INLINE IntersectResult intersectsBox(const Box& box) const {
-        ASSERT(box != Box::EMPTY());
+        SPH_ASSERT(box != Box::EMPTY());
         if (!this->overlaps(box)) {
             return IntersectResult::BOX_OUTSIDE_SPHERE;
         }

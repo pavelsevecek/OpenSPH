@@ -27,7 +27,7 @@ std::map<int, Path> getSequenceFiles(const Path& inputPath) {
         // check if part of the same sequence
         if (deducedMask && deducedMask->getMask() == fileMask) {
             const Optional<Size> index = OutputFile::getDumpIdx(dir / file);
-            ASSERT(index);
+            SPH_ASSERT(index);
             fileMap[index.value()] = dir / file;
         }
     }
@@ -78,7 +78,7 @@ void TimeLinePanel::setFrame(const Size newFrame) {
 
 void TimeLinePanel::setPrevious() {
     auto iter = fileMap.find(currentFrame);
-    ASSERT(iter != fileMap.end());
+    SPH_ASSERT(iter != fileMap.end());
     if (iter != fileMap.begin()) {
         --iter;
         currentFrame = iter->first;
@@ -92,7 +92,7 @@ void TimeLinePanel::startSequence() {
 
 void TimeLinePanel::setNext() {
     auto iter = fileMap.find(currentFrame);
-    ASSERT(iter != fileMap.end());
+    SPH_ASSERT(iter != fileMap.end());
     ++iter;
     if (iter != fileMap.end()) {
         currentFrame = iter->first;

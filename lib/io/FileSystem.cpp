@@ -28,7 +28,7 @@ bool FileSystem::pathExists(const Path& path) {
 
 Size FileSystem::fileSize(const Path& path) {
     std::ifstream ifs(path.native(), std::ifstream::ate | std::ifstream::binary);
-    ASSERT(ifs);
+    SPH_ASSERT(ifs);
     return ifs.tellg();
 }
 
@@ -74,7 +74,7 @@ Expected<FileSystem::PathType> FileSystem::pathType(const Path& path) {
 
 
 static Outcome createSingleDirectory(const Path& path, const Flags<FileSystem::CreateDirectoryFlag> flags) {
-    ASSERT(!path.empty());
+    SPH_ASSERT(!path.empty());
     const bool result = mkdir(path.native().c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
     if (!result) {
         switch (errno) {
@@ -209,7 +209,7 @@ Outcome FileSystem::removePath(const Path& path, const Flags<RemovePathFlag> fla
 }
 
 Outcome FileSystem::copyFile(const Path& from, const Path& to) {
-    ASSERT(pathType(from).valueOr(PathType::OTHER) == PathType::FILE);
+    SPH_ASSERT(pathType(from).valueOr(PathType::OTHER) == PathType::FILE);
     // there doesn't seem to be any system function for copying, so let's do it by hand
     std::ifstream ifs(from.native().c_str());
     if (!ifs) {
@@ -237,7 +237,7 @@ Outcome FileSystem::copyFile(const Path& from, const Path& to) {
 
 
 Outcome FileSystem::copyDirectory(const Path& from, const Path& to) {
-    ASSERT(pathType(from).valueOr(PathType::OTHER) == PathType::DIRECTORY);
+    SPH_ASSERT(pathType(from).valueOr(PathType::OTHER) == PathType::DIRECTORY);
     Outcome result = createDirectory(to);
     if (!result) {
         return result;
@@ -263,7 +263,7 @@ Outcome FileSystem::copyDirectory(const Path& from, const Path& to) {
 }
 
 void FileSystem::setWorkingDirectory(const Path& path) {
-    ASSERT(pathType(path).valueOr(PathType::OTHER) == PathType::DIRECTORY);
+    SPH_ASSERT(pathType(path).valueOr(PathType::OTHER) == PathType::DIRECTORY);
     chdir(path.native().c_str());
 }
 
@@ -286,7 +286,7 @@ FileSystem::DirectoryIterator& FileSystem::DirectoryIterator::operator++() {
 }
 
 Path FileSystem::DirectoryIterator::operator*() const {
-    ASSERT(entry);
+    SPH_ASSERT(entry);
     return Path(entry->d_name);
 }
 
@@ -300,7 +300,7 @@ bool FileSystem::DirectoryIterator::operator!=(const DirectoryIterator& other) c
 }
 
 FileSystem::DirectoryAdapter::DirectoryAdapter(const Path& directory) {
-    ASSERT(pathType(directory).valueOr(PathType::OTHER) == PathType::DIRECTORY);
+    SPH_ASSERT(pathType(directory).valueOr(PathType::OTHER) == PathType::DIRECTORY);
     if (!pathExists(directory)) {
         dir = nullptr;
         return;

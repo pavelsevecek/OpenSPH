@@ -28,7 +28,7 @@ private:
 public:
     INLINE Float valueImpl(const Float qSqr) const {
         const Float q = sqrt(qSqr);
-        ASSERT(q >= 0);
+        SPH_ASSERT(q >= 0);
 
         if (q < 0.5_f) {
             return normalization * (2._f * pow<3>(1._f - q) * pow<3>(q) - 1._f / 64._f);
@@ -89,7 +89,7 @@ public:
 
         // cohesive term + surface area normalizing term
         const Vector f = -gamma * C * dr - gamma * (n[i] - n[j]);
-        ASSERT(isReal(f));
+        SPH_ASSERT(isReal(f));
 
         return { f, 0._f }; /// \todo heating?
     }

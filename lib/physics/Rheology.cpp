@@ -17,7 +17,7 @@ VonMisesRheology::VonMisesRheology()
 
 VonMisesRheology::VonMisesRheology(AutoPtr<IFractureModel>&& damage)
     : damage(std::move(damage)) {
-    ASSERT(this->damage != nullptr);
+    SPH_ASSERT(this->damage != nullptr);
 }
 
 VonMisesRheology::~VonMisesRheology() = default;
@@ -27,7 +27,7 @@ void VonMisesRheology::create(Storage& storage,
     const MaterialInitialContext& context) const {
     VERBOSE_LOG
 
-    ASSERT(storage.getMaterialCnt() == 1);
+    SPH_ASSERT(storage.getMaterialCnt() == 1);
     storage.insert<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO, 1._f);
 
     damage->setFlaws(storage, material, context);
@@ -46,7 +46,7 @@ void VonMisesRheology::initialize(IScheduler& scheduler, Storage& storage, const
     }
 
     const Float limit = material->getParam<Float>(BodySettingsId::ELASTICITY_LIMIT);
-    ASSERT(limit > 0._f);
+    SPH_ASSERT(limit > 0._f);
 
     const Float u_melt = material->getParam<Float>(BodySettingsId::MELT_ENERGY);
     IndexSequence seq = material.sequence();
@@ -71,14 +71,14 @@ void VonMisesRheology::initialize(IScheduler& scheduler, Storage& storage, const
         }
         // compute second invariant using damaged stress tensor
         const Float J2 = 0.5_f * ddot(S[i], S[i]) + eps;
-        ASSERT(isReal(J2) && J2 > 0._f);
+        SPH_ASSERT(isReal(J2) && J2 > 0._f);
         const Float red = min(Y / sqrt(3._f * J2), 1._f);
-        ASSERT(red >= 0._f && red <= 1._f);
+        SPH_ASSERT(red >= 0._f && red <= 1._f);
         reducing[i] = red;
 
         // apply yield reduction in place
         S[i] = S[i] * red;
-        ASSERT(isReal(S[i]));
+        SPH_ASSERT(isReal(S[i]));
     });
 }
 
@@ -96,7 +96,7 @@ DruckerPragerRheology::DruckerPragerRheology()
 
 DruckerPragerRheology::DruckerPragerRheology(AutoPtr<IFractureModel>&& damage)
     : damage(std::move(damage)) {
-    ASSERT(this->damage != nullptr);
+    SPH_ASSERT(this->damage != nullptr);
 }
 
 DruckerPragerRheology::~DruckerPragerRheology() = default;
@@ -105,7 +105,7 @@ void DruckerPragerRheology::create(Storage& storage,
     IMaterial& material,
     const MaterialInitialContext& context) const {
     VERBOSE_LOG
-    ASSERT(storage.getMaterialCnt() == 1);
+    SPH_ASSERT(storage.getMaterialCnt() == 1);
     storage.insert<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO, 1._f);
     if (material.getParam<bool>(BodySettingsId::USE_ACOUSTIC_FLUDIZATION)) {
         storage.insert<Float>(QuantityId::VIBRATIONAL_VELOCITY, OrderEnum::FIRST, 0._f);
@@ -178,12 +178,12 @@ void DruckerPragerRheology::initialize(IScheduler& scheduler, Storage& storage, 
 
         const Float J2 = 0.5_f * ddot(S[i], S[i]) + EPS;
         const Float red = min(Y / sqrt(J2), 1._f);
-        ASSERT(red >= 0._f && red <= 1._f, red);
+        SPH_ASSERT(red >= 0._f && red <= 1._f, red);
         reducing[i] = red;
 
         // apply yield reduction in place
         S[i] = S[i] * red;
-        ASSERT(isReal(S[i]));
+        SPH_ASSERT(isReal(S[i]));
     });
 }
 
@@ -216,7 +216,7 @@ void DruckerPragerRheology::integrate(IScheduler& scheduler, Storage& storage, c
 void ElasticRheology::create(Storage& storage,
     IMaterial& UNUSED(material),
     const MaterialInitialContext& UNUSED(context)) const {
-    ASSERT(storage.getMaterialCnt() == 1);
+    SPH_ASSERT(storage.getMaterialCnt() == 1);
     storage.insert<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO, 1._f);
 }
 

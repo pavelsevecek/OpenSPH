@@ -48,7 +48,7 @@ std::string DateFormat::get() const {
         ss << std::setw(2) << std::setfill('0');
         if (*c == '%') {
             c++;
-            ASSERT(*c != 0); // invalid format
+            SPH_ASSERT(*c != 0); // invalid format
             switch (*c) {
             case 'Y': // year
                 ss << Y;

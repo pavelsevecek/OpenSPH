@@ -49,7 +49,7 @@ public:
     ~TestFile() {
         if (!path.empty()) {
             Outcome result = FileSystem::removePath(path);
-            ASSERT(result);
+            SPH_ASSERT(result);
         }
     }
 
@@ -82,7 +82,7 @@ public:
     ~TestDirectory() {
         if (!path.empty()) {
             Outcome result = FileSystem::removePath(path, FileSystem::RemovePathFlag::RECURSIVE);
-            ASSERT(result);
+            SPH_ASSERT(result);
         }
     }
 

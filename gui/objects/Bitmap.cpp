@@ -14,13 +14,13 @@ void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx) {
     if (!wx.IsOk() || wx.GetSize() != wxSize(size.x, size.y)) {
         wx.Create(size.x, size.y, 32);
     }
-    ASSERT(wx.IsOk());
+    SPH_ASSERT(wx.IsOk());
 
     wxAlphaPixelData pixels(wx);
-    ASSERT(pixels);
+    SPH_ASSERT(pixels);
 
     wxAlphaPixelData::Iterator iterator(pixels);
-    ASSERT(iterator.IsOk());
+    SPH_ASSERT(iterator.IsOk());
     for (int y = 0; y < bitmap.size().y; ++y) {
         for (int x = 0; x < bitmap.size().x; ++x) {
             const Rgba rgba = bitmap[Pixel(x, y)];
@@ -33,16 +33,16 @@ void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx) {
             ++iterator;
         }
     }
-    ASSERT(wx.IsOk());
+    SPH_ASSERT(wx.IsOk());
 }
 
 Bitmap<Rgba> toBitmap(wxBitmap& wx) {
     Bitmap<Rgba> bitmap(Pixel(wx.GetWidth(), wx.GetHeight()));
 
     wxNativePixelData pixels(wx);
-    ASSERT(pixels);
+    SPH_ASSERT(pixels);
     wxNativePixelData::Iterator iterator(pixels);
-    ASSERT(iterator.IsOk());
+    SPH_ASSERT(iterator.IsOk());
     static_assert(
         std::is_same<std::decay_t<decltype(iterator.Red())>, unsigned char>::value, "expected unsigned char");
 

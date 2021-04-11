@@ -34,7 +34,7 @@ void CorrectionTensor::initialize(const Storage& input, Accumulated& results) {
 }
 
 void CorrectionTensor::evalNeighs(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
-    ASSERT(neighs.size() == grads.size());
+    SPH_ASSERT(neighs.size() == grads.size());
     C[i] = SymmetricTensor::null();
     if (reduce) {
         for (Size k = 0; k < neighs.size(); ++k) {
@@ -58,10 +58,10 @@ void CorrectionTensor::evalNeighs(const Size i, ArrayView<const Size> neighs, Ar
         C[i] = SymmetricTensor::identity();
     } else {
         // sanity check that we are not getting 'weird' tensors with non-positive values on diagonal
-        ASSERT(minElement(C[i].diagonal()) >= 0._f, C[i]);
+        SPH_ASSERT(minElement(C[i].diagonal()) >= 0._f, C[i]);
         if (C[i].determinant() > 0.01_f) {
             C[i] = C[i].inverse();
-            ASSERT(C[i].determinant() > 0._f, C[i]);
+            SPH_ASSERT(C[i].determinant() > 0._f, C[i]);
         } else {
             /*C[i] = C[i].pseudoInverse(1.e-3_f);
             if (C[i] == SymmetricTensor::null()) {
@@ -70,7 +70,7 @@ void CorrectionTensor::evalNeighs(const Size i, ArrayView<const Size> neighs, Ar
             C[i] = SymmetricTensor::identity();
         }
     }
-    ASSERT(C[i] != SymmetricTensor::null());
+    SPH_ASSERT(C[i] != SymmetricTensor::null());
 }
 
 
@@ -111,7 +111,7 @@ void DerivativeHolder::initialize(const Storage& input) {
 }
 
 void DerivativeHolder::eval(const Size idx, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
-    ASSERT(neighs.size() == grads.size());
+    SPH_ASSERT(neighs.size() == grads.size());
     for (const auto& deriv : derivatives) {
         deriv->evalNeighs(idx, neighs, grads);
     }
@@ -120,8 +120,8 @@ void DerivativeHolder::eval(const Size idx, ArrayView<const Size> neighs, ArrayV
 void DerivativeHolder::evalSymmetric(const Size idx,
     ArrayView<const Size> neighs,
     ArrayView<const Vector> grads) {
-    ASSERT(neighs.size() == grads.size());
-    ASSERT(isSymmetric());
+    SPH_ASSERT(neighs.size() == grads.size());
+    SPH_ASSERT(isSymmetric());
     for (const auto& deriv : derivatives) {
         ISymmetricDerivative* symmetric = assert_cast<ISymmetricDerivative*>(&*deriv);
         symmetric->evalSymmetric(idx, neighs, grads);
@@ -144,7 +144,7 @@ bool DerivativeHolder::isSymmetric() const {
         deriv->create(a);
         if (a.hasBuffer(id, order)) {
             // required since we don't sort the returned values by phase
-            ASSERT(deriv->phase() == DerivativePhase::EVALUATION);
+            SPH_ASSERT(deriv->phase() == DerivativePhase::EVALUATION);
             subset.derivatives.insert(deriv);
         }
     }

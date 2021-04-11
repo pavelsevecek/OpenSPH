@@ -211,7 +211,7 @@ static std::string clonedName(const std::string& name) {
 
 AutoPtr<JobNode> cloneNode(const JobNode& node, const std::string& name) {
     RawPtr<IJobDesc> desc = getJobDesc(node.className());
-    ASSERT(desc);
+    SPH_ASSERT(desc);
 
     AutoPtr<IJob> worker = desc->create(name.empty() ? clonedName(node.instanceName()) : name);
     VirtualSettings target = worker->getSettings();

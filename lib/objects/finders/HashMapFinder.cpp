@@ -37,7 +37,7 @@ Size HashMapFinder::find(const Vector& pos,
     const Size index,
     const Float radius,
     Array<NeighbourRecord>& neighs) const {
-    ASSERT(neighs.empty());
+    SPH_ASSERT(neighs.empty());
     const Indices idxs0 = floor(pos / cellSize);
     Sphere sphere(pos, radius);
     for (int x = -1; x <= 1; ++x) {

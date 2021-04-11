@@ -124,13 +124,13 @@ void SymmetricSolver<Dim>::loop(Storage& storage, Statistics& UNUSED(stats)) {
         for (auto& n : data.neighs) {
             const Size j = n.index;
             const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-            ASSERT(hbar > EPS && hbar <= r[i][H], hbar, r[i][H]);
+            SPH_ASSERT(hbar > EPS && hbar <= r[i][H], hbar, r[i][H]);
             if (getSqrLength(r[i] - r[j]) >= sqr(kernel.radius() * hbar)) {
                 // aren't actual neighbours
                 continue;
             }
             const Vector gr = symmetrizedKernel.grad(r[i], r[j]);
-            ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) <= 0._f, gr, getLength(r[i] - r[j]));
+            SPH_ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) <= 0._f, gr, getLength(r[i] - r[j]));
             data.grads.emplaceBack(gr);
             data.idxs.emplaceBack(j);
         }
@@ -159,11 +159,11 @@ void SymmetricSolver<Dim>::afterLoop(Storage& storage, Statistics& stats) {
         if (!first) {
             first = &data.derivatives.getAccumulated();
         } else {
-            ASSERT(first != nullptr);
+            SPH_ASSERT(first != nullptr);
             threadLocalAccumulated.push(&data.derivatives.getAccumulated());
         }
     }
-    ASSERT(first != nullptr);
+    SPH_ASSERT(first != nullptr);
     first->sum(scheduler, threadLocalAccumulated);
 
     // store them to storage

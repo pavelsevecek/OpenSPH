@@ -57,7 +57,7 @@ struct EnumWrapper {
 
     template <typename T, typename = std::enable_if_t<std::is_enum<T>::value>>
     explicit operator T() const {
-        ASSERT(typeid(T).hash_code() == typeHash);
+        SPH_ASSERT(typeid(T).hash_code() == typeHash);
         return T(value);
     }
 

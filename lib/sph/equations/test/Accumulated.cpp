@@ -11,7 +11,7 @@ using namespace Sph;
 
 TEST_CASE("Accumulated sum simple", "[accumulated]") {
     Accumulated ac1;
-    REQUIRE_ASSERT(ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
+    REQUIRE_SPH_ASSERT(ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
     REQUIRE(ac1.getBufferCnt() == 0);
     ac1.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, BufferSource::SHARED);
     REQUIRE(ac1.getBufferCnt() == 1);
@@ -23,8 +23,8 @@ TEST_CASE("Accumulated sum simple", "[accumulated]") {
     ArrayView<Size> buffer1 = ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
     REQUIRE(buffer1.size() == 5);
     REQUIRE_NOTHROW(ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
-    REQUIRE_ASSERT(ac1.getBuffer<Float>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
-    REQUIRE_ASSERT(ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::FIRST));
+    REQUIRE_SPH_ASSERT(ac1.getBuffer<Float>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
+    REQUIRE_SPH_ASSERT(ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::FIRST));
     REQUIRE(ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO).size() == 5);
     REQUIRE(ac1.getBufferCnt() == 1);
 
@@ -121,7 +121,7 @@ TEST_CASE("Accumulate store second derivative", "[accumulated]") {
 
     Storage storage;
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST, makeArray(Vector(0._f)));
-    REQUIRE_ASSERT(ac.store(storage));
+    REQUIRE_SPH_ASSERT(ac.store(storage));
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, Vector(0._f));
     REQUIRE_NOTHROW(ac.store(storage));
     dv = storage.getD2t<Vector>(QuantityId::POSITION);
@@ -131,6 +131,6 @@ TEST_CASE("Accumulate store second derivative", "[accumulated]") {
 TEST_CASE("Accumulated insert two orders", "[accumulated]") {
     Accumulated ac;
     ac.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
-    REQUIRE_ASSERT(ac.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST, BufferSource::SHARED));
-    REQUIRE_ASSERT(ac.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::FIRST));
+    REQUIRE_SPH_ASSERT(ac.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST, BufferSource::SHARED));
+    REQUIRE_SPH_ASSERT(ac.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::FIRST));
 }

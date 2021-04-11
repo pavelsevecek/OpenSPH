@@ -47,7 +47,7 @@ int main(int, char** argv) {
                         getRunName(targetRadius, impactorRadius, period, impactSpeed / 1000._f, impactAngle);
 
                     cp.outputPath = Path(runName);
-                    ASSERT(!FileSystem::pathExists(cp.outputPath));
+                    SPH_ASSERT(!FileSystem::pathExists(cp.outputPath));
 
                     PhaseParams pp;
                     pp.outputPath = Path(runName);

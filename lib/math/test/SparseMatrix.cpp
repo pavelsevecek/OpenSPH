@@ -9,7 +9,7 @@ using namespace Sph;
 
 static void testAnyMatrix(const SparseMatrix::Solver solver) {
     SparseMatrix matrix(5, 5);
-    REQUIRE_ASSERT(matrix.solve(Array<Float>{ 1.f }, solver));
+    REQUIRE_SPH_ASSERT(matrix.solve(Array<Float>{ 1.f }, solver));
     Array<Float> b{ 1.f, 2.f, 3.f, 4.f, 5.f };
     REQUIRE_FALSE(matrix.solve(b, solver));
 
@@ -24,7 +24,7 @@ static void testAnyMatrix(const SparseMatrix::Solver solver) {
 
     if (solver == SparseMatrix::Solver::CG) {
         // CG only works for symmetric matrices
-        REQUIRE_ASSERT(matrix.solve(b, solver));
+        REQUIRE_SPH_ASSERT(matrix.solve(b, solver));
         return;
     }
     Expected<Array<Float>> a = matrix.solve(b, solver);

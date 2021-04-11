@@ -24,7 +24,7 @@ public:
 
     INLINE int increaseUseCnt() {
         const int cnt = ++useCnt;
-        ASSERT(cnt > 0);
+        SPH_ASSERT(cnt > 0);
         return cnt;
     }
 
@@ -34,7 +34,7 @@ public:
 
     INLINE int increaseWeakCnt() {
         const int cnt = ++weakCnt;
-        ASSERT(cnt > 0);
+        SPH_ASSERT(cnt > 0);
         return cnt;
     }
 
@@ -49,7 +49,7 @@ public:
 
     INLINE void decreaseUseCnt() {
         const int cnt = --useCnt;
-        ASSERT(cnt >= 0);
+        SPH_ASSERT(cnt >= 0);
         if (cnt == 0) {
             this->deletePtr();
         }
@@ -57,7 +57,7 @@ public:
 
     INLINE void decreaseWeakCnt() {
         const int cnt = --weakCnt;
-        ASSERT(cnt >= 0);
+        SPH_ASSERT(cnt >= 0);
         if (cnt == 0) {
             this->deleteBlock();
         }
@@ -82,7 +82,7 @@ public:
         : ptr(ptr) {}
 
     INLINE virtual void* getPtr() override {
-        ASSERT(ptr);
+        SPH_ASSERT(ptr);
         return ptr;
     }
 
@@ -201,12 +201,12 @@ public:
     }
 
     INLINE T* operator->() const {
-        ASSERT(ptr);
+        SPH_ASSERT(ptr);
         return ptr;
     }
 
     INLINE T& operator*() const {
-        ASSERT(ptr);
+        SPH_ASSERT(ptr);
         return *ptr;
     }
 
@@ -251,7 +251,7 @@ public:
 
     template <typename... TArgs>
     INLINE decltype(auto) operator()(TArgs&&... args) const {
-        ASSERT(ptr);
+        SPH_ASSERT(ptr);
         return (*ptr)(std::forward<TArgs>(args)...);
     }
 
@@ -259,7 +259,7 @@ private:
     template <typename T2>
     INLINE void copyBlock(const SharedPtr<T2>& other) {
         if (other.block) {
-            ASSERT(ptr != nullptr);
+            SPH_ASSERT(ptr != nullptr);
             block = other.block;
             block->increaseUseCnt();
             block->increaseWeakCnt();
@@ -423,7 +423,7 @@ public:
 
     SharedPtr<T> sharedFromThis() {
         SharedPtr<T> sharedPtr = ptr.lock();
-        ASSERT(sharedPtr);
+        SPH_ASSERT(sharedPtr);
         return sharedPtr;
     }
 

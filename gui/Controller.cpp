@@ -73,7 +73,7 @@ void Controller::Vis::refresh() {
 void Controller::start(SharedPtr<JobNode> run, const RunSettings& globals) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
     // sanity check that we don't override ALL the settings; increase if necessary
-    ASSERT(globals.size() < 15);
+    SPH_ASSERT(globals.size() < 15);
 
     // stop the current one
     this->stop(true);
@@ -90,7 +90,7 @@ void Controller::start(SharedPtr<JobNode> run, const RunSettings& globals) {
 
 void Controller::open(const Path& path, const bool sequence) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
-    ASSERT(!path.empty());
+    SPH_ASSERT(!path.empty());
     sph.path = path;
     page->showTimeLine(true);
 
@@ -138,7 +138,7 @@ void Controller::stop(const bool waitForFinish) {
 
     if (waitForFinish && sph.thread.joinable()) {
         sph.thread.join();
-        ASSERT(status == RunStatus::STOPPED);
+        SPH_ASSERT(status == RunStatus::STOPPED);
     }
 }
 
@@ -157,7 +157,7 @@ void Controller::saveState(const Path& path) {
                                               OutputQuantityFlag::SMOOTHING_LENGTH;
             output = makeAuto<VtkOutput>(path, flags);
         } else {
-            ASSERT(path.extension() == Path("txt"));
+            SPH_ASSERT(path.extension() == Path("txt"));
             Flags<OutputQuantityFlag> flags = OutputQuantityFlag::INDEX | OutputQuantityFlag::POSITION |
                                               OutputQuantityFlag::VELOCITY | OutputQuantityFlag::MASS;
             output = makeAuto<TextOutput>(path, "unnamed", flags);
@@ -217,7 +217,7 @@ void Controller::setAutoZoom(const bool enable) {
     }
     gui.set(GuiSettingsId::CAMERA_AUTOSETUP, enable);
     wxWindow* window = wxWindow::FindWindowByLabel("Auto-zoom", page.get());
-    ASSERT(window != nullptr);
+    SPH_ASSERT(window != nullptr);
     wxCheckBox* checkbox = dynamic_cast<wxCheckBox*>(window);
     checkbox->SetValue(enable);
 }
@@ -256,7 +256,7 @@ void Controller::onEnd(const Storage& storage, const Statistics& stats) {
 }
 
 void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
-    // ASSERT(std::this_thread::get_id() == sph.thread.get_id()); - can be actually called from worker thread,
+    // SPH_ASSERT(std::this_thread::get_id() == sph.thread.get_id()); - can be actually called from worker thread,
     // but that should not matter, as long as there is not a concurrent access from different thread
 
     if (status == RunStatus::QUITTING) {
@@ -279,7 +279,7 @@ void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
     page->onTimeStep(storage, stats);
 
     // check current time and possibly save images
-    ASSERT(movie);
+    SPH_ASSERT(movie);
     movie->onTimeStep(storage, stats);
 
     // executed all waiting callbacks (before redrawing as it is used to change renderers)
@@ -430,7 +430,7 @@ const wxBitmap& Controller::getRenderedBitmap() const {
 }
 
 SharedPtr<IColorizer> Controller::getCurrentColorizer() const {
-    ASSERT(vis.colorizer != nullptr);
+    SPH_ASSERT(vis.colorizer != nullptr);
     return vis.colorizer;
 }
 
@@ -522,7 +522,7 @@ void Controller::setRenderer(AutoPtr<IRenderer>&& newRenderer) {
 
     auto func = [this, renderer = std::move(newRenderer)](
                     const Storage& storage, const Statistics& UNUSED(stats)) mutable {
-        ASSERT(sph.run);
+        SPH_ASSERT(sph.run);
         std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
         vis.renderer = std::move(renderer);
         vis.colorizer->initialize(storage, RefEnum::STRONG);
@@ -577,7 +577,7 @@ const Storage& Controller::getStorage() const {
 }
 
 SharedPtr<Movie> Controller::createMovie(const Storage& storage) const {
-    ASSERT(sph.run);
+    SPH_ASSERT(sph.run);
     RenderParams params;
     const GuiSettings& gui = project.getGuiSettings();
     params.particles.scale = float(gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS));
@@ -628,11 +628,11 @@ void Controller::redraw(const Storage& storage, const Statistics& stats) {
     vis.positions = copyable(storage.getValue<Vector>(QuantityId::POSITION));
 
     // initialize the currently selected colorizer
-    ASSERT(vis.isInitialized());
+    SPH_ASSERT(vis.isInitialized());
     vis.colorizer->initialize(storage, RefEnum::STRONG);
 
     // setup camera
-    ASSERT(vis.camera);
+    SPH_ASSERT(vis.camera);
     vis.cameraMutex.lock();
     if (project.getGuiSettings().get<bool>(GuiSettingsId::CAMERA_AUTOSETUP)) {
         vis.camera->autoSetup(storage); /// we do autoSetup here AND in orthoPane to get consistent states
@@ -735,7 +735,7 @@ void Controller::startRenderThread() {
         virtual void update(const Bitmap<Rgba>& bitmap,
             Array<Label>&& labels,
             const bool UNUSED(isFinal)) override {
-            ASSERT(!bitmap.empty());
+            SPH_ASSERT(!bitmap.empty());
             if (vis.refreshPending) {
                 return;
             }

@@ -12,7 +12,7 @@ TEST_CASE("Set default construct", "[flatset]") {
     REQUIRE(set.size() == 0);
     REQUIRE(set.empty());
     REQUIRE(set.begin() == set.end());
-    // REQUIRE_ASSERT(set[0]); /// \todo causes terminate, wtf?
+    // REQUIRE_SPH_ASSERT(set[0]); /// \todo causes terminate, wtf?
 }
 
 TEST_CASE("Set initializer_list", "[flatset]") {
@@ -92,7 +92,7 @@ TEST_CASE("Set erase", "[flatset]") {
 
     REQUIRE(set.erase(set.begin() + 1) == set.begin() + 1);
 
-    REQUIRE_ASSERT(set.erase(set.begin() + 3));
+    REQUIRE_SPH_ASSERT(set.erase(set.begin() + 3));
 }
 
 TEST_CASE("Set erase loop", "[flatset]") {

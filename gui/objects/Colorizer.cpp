@@ -5,7 +5,7 @@ NAMESPACE_SPH_BEGIN
 DirectionColorizer::DirectionColorizer(const Vector& axis, const Palette& palette)
     : palette(palette)
     , axis(axis) {
-    ASSERT(almostEqual(getLength(axis), 1._f));
+    SPH_ASSERT(almostEqual(getLength(axis), 1._f));
     // compute 2 perpendicular directions
     Vector ref;
     if (almostEqual(axis, Vector(0._f, 0._f, 1._f)) || almostEqual(axis, Vector(0._f, 0._f, -1._f))) {
@@ -15,11 +15,11 @@ DirectionColorizer::DirectionColorizer(const Vector& axis, const Palette& palett
     }
     dir1 = getNormalized(cross(axis, ref));
     dir2 = cross(axis, dir1);
-    ASSERT(almostEqual(getLength(dir2), 1._f));
+    SPH_ASSERT(almostEqual(getLength(dir2), 1._f));
 }
 
 Optional<float> DirectionColorizer::evalScalar(const Size idx) const {
-    ASSERT(this->isInitialized());
+    SPH_ASSERT(this->isInitialized());
     const Vector projected = values[idx] - dot(values[idx], axis) * axis;
     const Float x = dot(projected, dir1);
     const Float y = dot(projected - x * dir1, dir2);

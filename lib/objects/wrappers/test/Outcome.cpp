@@ -9,7 +9,7 @@ TEST_CASE("Oucome success", "[outcome]") {
     REQUIRE(o1);
     REQUIRE_FALSE(!o1);
     REQUIRE(o1.success());
-    REQUIRE_ASSERT(o1.error());
+    REQUIRE_SPH_ASSERT(o1.error());
 
     Outcome o2(true);
     REQUIRE(o2);

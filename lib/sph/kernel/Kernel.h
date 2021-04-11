@@ -23,13 +23,13 @@ public:
     /// this should be called only once for a pair of particles as there is expensive division
     /// \todo Potentially precompute the 3rd power ...
     INLINE Float value(const Vector& r, const Float h) const noexcept {
-        ASSERT(h > 0._f);
+        SPH_ASSERT(h > 0._f);
         const Float hInv = 1._f / h;
         return pow<D>(hInv) * impl().valueImpl(getSqrLength(r) * sqr(hInv));
     }
 
     INLINE Vector grad(const Vector& r, const Float h) const noexcept {
-        ASSERT(h > 0._f);
+        SPH_ASSERT(h > 0._f);
         const Float hInv = 1._f / h;
         return r * pow<D + 2>(hInv) * impl().gradImpl(getSqrLength(r) * sqr(hInv));
     }
@@ -90,7 +90,7 @@ public:
     LutKernel(TKernel&& source) {
         rad = source.radius();
 
-        ASSERT(rad > 0._f);
+        SPH_ASSERT(rad > 0._f);
         const Float radInvSqr = 1._f / (rad * rad);
         qSqrToIdx = Float(NEntries) * radInvSqr;
         for (Size i = 0; i < NEntries; ++i) {
@@ -110,8 +110,8 @@ public:
     }
 
     INLINE Float valueImpl(const Float qSqr) const noexcept {
-        ASSERT(qSqr >= 0._f);
-        ASSERT(isInit());
+        SPH_ASSERT(qSqr >= 0._f);
+        SPH_ASSERT(isInit());
         if (SPH_UNLIKELY(qSqr >= sqr(rad))) {
             // outside of kernel support
             return 0._f;
@@ -119,27 +119,27 @@ public:
         // linear interpolation of stored values
         const Float floatIdx = qSqrToIdx * qSqr;
         const Size idx1 = Size(floatIdx);
-        ASSERT(idx1 < NEntries);
+        SPH_ASSERT(idx1 < NEntries);
         const Size idx2 = idx1 + 1;
         const Float ratio = floatIdx - Float(idx1);
-        ASSERT(ratio >= 0._f && ratio < 1._f);
+        SPH_ASSERT(ratio >= 0._f && ratio < 1._f);
 
         return values[idx1] * (1._f - ratio) + (int(idx2 < NEntries) * values[idx2]) * ratio;
     }
 
     INLINE Float gradImpl(const Float qSqr) const noexcept {
-        ASSERT(qSqr >= 0._f);
-        ASSERT(isInit());
+        SPH_ASSERT(qSqr >= 0._f);
+        SPH_ASSERT(isInit());
         if (SPH_UNLIKELY(qSqr >= sqr(rad))) {
             // outside of kernel support
             return 0._f;
         }
         const Float floatIdx = qSqrToIdx * qSqr;
         const Size idx1 = Size(floatIdx);
-        ASSERT(unsigned(idx1) < unsigned(NEntries));
+        SPH_ASSERT(unsigned(idx1) < unsigned(NEntries));
         const Size idx2 = idx1 + 1;
         const Float ratio = floatIdx - Float(idx1);
-        ASSERT(ratio >= 0._f && ratio < 1._f);
+        SPH_ASSERT(ratio >= 0._f && ratio < 1._f);
 
         return grads[idx1] * (1._f - ratio) + (int(idx2 < NEntries) * grads[idx2]) * ratio;
     }
@@ -160,7 +160,7 @@ public:
     // template <bool TApprox = false>
     INLINE Float valueImpl(const Float qSqr) const {
         const Float q = sqrt(qSqr);
-        ASSERT(q >= 0);
+        SPH_ASSERT(q >= 0);
         if (q < 1._f) {
             return normalization[D - 1] * (0.25_f * pow<3>(2._f - q) - pow<3>(1._f - q));
         }
@@ -204,7 +204,7 @@ public:
     // template <bool TApprox = false>
     INLINE Float valueImpl(const Float qSqr) const {
         const Float q = sqrt(qSqr);
-        ASSERT(q >= 0);
+        SPH_ASSERT(q >= 0);
         if (q < 0.5_f) {
             return normalization[D - 1] *
                    (pow<4>(2.5_f - q) - 5._f * pow<4>(1.5_f - q) + 10._f * pow<4>(0.5_f - q));
@@ -332,7 +332,7 @@ public:
 
     INLINE Float valueImpl(const Float qSqr) const {
         const Float q = sqrt(qSqr);
-        ASSERT(q >= 0);
+        SPH_ASSERT(q >= 0);
         if (q < 2._f) {
             return normalization * pow<4>(1._f - 0.5_f * q) * (2._f * q + 1._f);
         }
@@ -362,7 +362,7 @@ public:
 
     INLINE Float valueImpl(const Float qSqr) const {
         const Float q = sqrt(qSqr);
-        ASSERT(q >= 0);
+        SPH_ASSERT(q >= 0);
         if (q < 2._f) {
             return normalization * pow<6>(1._f - 0.5_f * q) * (35._f / 12._f * pow<2>(q) + 3._f * q + 1._f);
         }
@@ -395,7 +395,7 @@ public:
 
     INLINE Float valueImpl(const Float qSqr) const {
         const Float q = sqrt(qSqr);
-        ASSERT(q >= 0);
+        SPH_ASSERT(q >= 0);
         if (q < 2._f) {
             return normalization * pow<8>(1._f - 0.5_f * q) *
                    (4._f * pow<3>(q) + 25._f / 4._f * pow<2>(q) + 4._f * q + 1._f);
@@ -520,7 +520,7 @@ public:
 /// W(r[j]-r[i]).
 template <typename T>
 INLINE T laplacian(const T& value, const Vector& grad, const Vector& dr) {
-    ASSERT(dr != Vector(0._f));
+    SPH_ASSERT(dr != Vector(0._f));
     return 2._f * value * dot(dr, grad) / getSqrLength(dr);
 }
 
@@ -528,7 +528,7 @@ INLINE T laplacian(const T& value, const Vector& grad, const Vector& dr) {
 ///
 /// Doesn't make sense for scalar quantities. See Price 2010 \cite Price_2010
 INLINE Vector gradientOfDivergence(const Vector& value, const Vector& grad, const Vector& dr) {
-    ASSERT(dr != Vector(0._f));
+    SPH_ASSERT(dr != Vector(0._f));
     const Float rSqr = getSqrLength(dr);
     const Float f = dot(dr, grad) / rSqr;
     return (DIMENSIONS + 2) * dot(value, dr) * dr * f / rSqr - value * f;
@@ -549,12 +549,12 @@ public:
         : kernel(std::forward<TArgs>(args)...) {}
 
     INLINE Float value(const Vector& r1, const Vector& r2) const {
-        ASSERT(r1[H] > 0 && r2[H] > 0, r1[H], r2[H]);
+        SPH_ASSERT(r1[H] > 0 && r2[H] > 0, r1[H], r2[H]);
         return 0.5_f * (kernel.value(r1 - r2, r1[H]) + kernel.value(r1 - r2, r2[H]));
     }
 
     INLINE Vector grad(const Vector& r1, const Vector& r2) const {
-        ASSERT(r1[H] > 0 && r2[H] > 0, r1[H], r2[H]);
+        SPH_ASSERT(r1[H] > 0 && r2[H] > 0, r1[H], r2[H]);
         return 0.5_f * (kernel.grad(r1 - r2, r1[H]) + kernel.grad(r1 - r2, r2[H]));
     }
 
@@ -574,12 +574,12 @@ public:
         : kernel(std::forward<TArgs>(args)...) {}
 
     INLINE Float value(const Vector& r1, const Vector& r2) const {
-        ASSERT(r1[H] > 0 && r2[H] > 0, r1[H], r2[H]);
+        SPH_ASSERT(r1[H] > 0 && r2[H] > 0, r1[H], r2[H]);
         return kernel.value(r1 - r2, 0.5_f * (r1[H] + r2[H]));
     }
 
     INLINE Vector grad(const Vector& r1, const Vector& r2) const {
-        ASSERT(r1[H] > 0 && r2[H] > 0, r1[H], r2[H]);
+        SPH_ASSERT(r1[H] > 0 && r2[H] > 0, r1[H], r2[H]);
         return kernel.grad(r1 - r2, 0.5_f * (r1[H] + r2[H]));
     }
 

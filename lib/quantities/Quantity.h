@@ -106,22 +106,22 @@ public:
     }
 
     INLINE Array<TValue>& getDt() {
-        ASSERT(order == OrderEnum::FIRST || order == OrderEnum::SECOND);
+        SPH_ASSERT(order == OrderEnum::FIRST || order == OrderEnum::SECOND);
         return dv_dt;
     }
 
     INLINE const Array<TValue>& getDt() const {
-        ASSERT(order == OrderEnum::FIRST || order == OrderEnum::SECOND);
+        SPH_ASSERT(order == OrderEnum::FIRST || order == OrderEnum::SECOND);
         return dv_dt;
     }
 
     INLINE Array<TValue>& getD2t() {
-        ASSERT(order == OrderEnum::SECOND);
+        SPH_ASSERT(order == OrderEnum::SECOND);
         return d2v_dt2;
     }
 
     INLINE const Array<TValue>& getD2t() const {
-        ASSERT(order == OrderEnum::SECOND);
+        SPH_ASSERT(order == OrderEnum::SECOND);
         return d2v_dt2;
     }
 
@@ -244,7 +244,7 @@ public:
 
     /// \brief Returns the value order of the quantity.
     ValueEnum getValueEnum() const {
-        ASSERT(data.getTypeIdx() != 0);
+        SPH_ASSERT(data.getTypeIdx() != 0);
         return ValueEnum(data.getTypeIdx() - 1);
     }
 
@@ -267,7 +267,7 @@ public:
     /// Swapping only part of quantity (only derivatives for example) can be useful for some timestepping
     /// algorithms, such as predictor-corrector.
     void swap(Quantity& other, const Flags<VisitorEnum> flags) {
-        ASSERT(this->getValueEnum() == other.getValueEnum());
+        SPH_ASSERT(this->getValueEnum() == other.getValueEnum());
         forValue(data, [flags, &other](auto& holder) {
             using Type = std::decay_t<decltype(holder)>;
             return holder.swap(other.data.get<Type>(), flags);

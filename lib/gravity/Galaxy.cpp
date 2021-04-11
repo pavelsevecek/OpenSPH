@@ -68,7 +68,7 @@ INLINE Float haloPdf(const Float r, const Float r0, const Float g0) {
 
 INLINE Float maxHaloPdf(const Float r0, const Float g0) {
     const Float x2 = 0.5_f * (sqrt(sqr(g0) * (sqr(g0) + 4._f * sqr(r0))) - sqr(g0));
-    ASSERT(x2 > 0._f);
+    SPH_ASSERT(x2 > 0._f);
     return haloPdf(sqrt(x2), r0, g0);
 }
 
@@ -233,7 +233,7 @@ static Array<Pair<Float>> computeCumulativeMass(const GalaxySettings& settings, 
     for (Size i = 0; i < r.size(); ++i) {
         const Float radius = getLength(r[i]);
         const Size binIdx = Size(radius * MASS_BINS / haloCutoff);
-        ASSERT(binIdx < MASS_BINS);
+        SPH_ASSERT(binIdx < MASS_BINS);
 
         differentialDist[min(binIdx, MASS_BINS - 1)] += m[i];
     }
@@ -294,37 +294,37 @@ static void computeDiskVelocities(IScheduler& scheduler,
             count++;
         }
     }
-    ASSERT(count > 0);
+    SPH_ASSERT(count > 0);
 
     sigma = sigma * Q / count;
 
     const Float A = sqr(sigma) / diskSurfaceDensity(r_ref, r0, m_disk);
-    ASSERT(A >= 0._f, A);
+    SPH_ASSERT(A >= 0._f, A);
 
     for (Size i : sequence) {
         const Float radius = sqrt(sqr(r[i][X]) + sqr(r[i][Y]));
         const Float vz2 = PI * z0 * diskSurfaceDensity(sqrt(sqr(radius) + 2._f * sqr(as)), r0, m_disk);
         const Float vz = sampleNormalDistribution(rng, 0._f, vz2);
-        ASSERT(vz2 > 0._f);
+        SPH_ASSERT(vz2 > 0._f);
 
         const Float vr2 = A * vz2 / (PI * z0);
         const Float vr = sampleNormalDistribution(rng, 0._f, vr2);
-        ASSERT(vr2 > 0._f);
+        SPH_ASSERT(vr2 > 0._f);
 
         const Vector a = dv[i];
         const Float ar = (a[X] * r[i][X] + a[Y] * r[i][Y]) / radius;
-        ASSERT(isReal(ar));
+        SPH_ASSERT(isReal(ar));
 
         const Float omega = sqrt(abs(ar) / radius);
-        ASSERT(isReal(omega));
+        SPH_ASSERT(isReal(omega));
 
         const Float kappa = getEpicyclicFrequency(gravity, r[i], dv[i], dr);
-        ASSERT(isReal(kappa));
+        SPH_ASSERT(isReal(kappa));
 
         //  circular velocity
         const Float v_c = omega * radius;
         Float va = sqrt(abs(sqr(v_c) + vr2 * (1._f - sqr(kappa) / (4._f * sqr(omega)) - 2._f * radius / r0)));
-        ASSERT(isReal(va));
+        SPH_ASSERT(isReal(va));
 
         const Float sigma2 = vr2 * sqr(kappa) / (4._f * sqr(omega));
         va += sampleNormalDistribution(rng, 0._f, sigma2);
@@ -410,7 +410,7 @@ Storage Galaxy::generateIc(const RunSettings& globals, const GalaxySettings& set
     storage.merge(generateBulge(rng, settings));
 
     ArrayView<const Size> flag = storage.getValue<Size>(QuantityId::FLAG);
-    ASSERT(std::is_sorted(flag.begin(), flag.end()));
+    SPH_ASSERT(std::is_sorted(flag.begin(), flag.end()));
 
     Array<Pair<Float>> massDist = computeCumulativeMass(settings, storage);
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(globals);

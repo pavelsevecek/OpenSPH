@@ -34,11 +34,11 @@ public:
     }
 
     ~TbbTask() noexcept { // needs noexcept because of tbb::task_group member
-        ASSERT(this->completed());
+        SPH_ASSERT(this->completed());
     }
 
     virtual void wait() override {
-        ASSERT(!tbbThreadContext.task, "waiting on child tasks is currently not implemented");
+        SPH_ASSERT(!tbbThreadContext.task, "waiting on child tasks is currently not implemented");
         arena.execute([this] { group.wait(); });
     }
 
@@ -59,7 +59,7 @@ public:
     }
 
     void submitChild(const Function<void()>& task) {
-        ASSERT(!this->completed()); // cannot add children to already finished task
+        SPH_ASSERT(!this->completed()); // cannot add children to already finished task
         taskCnt++;
         this->submit(task);
     }

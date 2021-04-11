@@ -63,7 +63,7 @@ void HardSphereSolver::rotateLocalFrame(Storage& storage, const Float dt) {
             // (almost) isotropic particle, we can skip the substepping and omega integration
             const Vector dir = getNormalized(w[i]);
             AffineMatrix rotation = AffineMatrix::rotateAxis(dir, dphi);
-            ASSERT(Em.isOrthogonal());
+            SPH_ASSERT(Em.isOrthogonal());
             E[i] = convert<Tensor>(rotation * Em);
             continue;
         }
@@ -80,7 +80,7 @@ void HardSphereSolver::rotateLocalFrame(Storage& storage, const Float dt) {
             const Float rot = min(rigidBody.maxAngle, dphi - totalRot);
             AffineMatrix rotation = AffineMatrix::rotateAxis(dir, rot);
 
-            ASSERT(Em.isOrthogonal());
+            SPH_ASSERT(Em.isOrthogonal());
             Em = rotation * Em;
 
             // compute new angular velocity, to keep angular velocity consistent with angular momentum
@@ -100,7 +100,7 @@ void HardSphereSolver::integrate(Storage& storage, Statistics& stats) {
     gravity->build(scheduler, storage);
 
     ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
-    ASSERT_UNEVAL(std::all_of(dv.begin(), dv.end(), [](const Vector& a) { return a == Vector(0._f); }));
+    SPH_ASSERT_UNEVAL(std::all_of(dv.begin(), dv.end(), [](const Vector& a) { return a == Vector(0._f); }));
     gravity->evalAll(scheduler, dv, stats);
 
     // null all derivatives of smoothing lengths (particle radii)
@@ -244,7 +244,7 @@ public:
     }
 
     bool empty() const {
-        ASSERT(collisions.empty() == indexToCollision.empty());
+        SPH_ASSERT(collisions.empty() == indexToCollision.empty());
         return collisions.empty();
     }
 
@@ -256,7 +256,7 @@ public:
         removeIndex(col, col.i);
         removeIndex(col, col.j);
         const Size removed = collisions.erase(col);
-        ASSERT(removed == 1);
+        SPH_ASSERT(removed == 1);
         checkConsistency();
     }
 
@@ -278,7 +278,7 @@ public:
 
 private:
     void removeIndex(const CollisionRecord& col, const Size idx) {
-        ASSERT(col.i == idx || col.j == idx);
+        SPH_ASSERT(col.i == idx || col.j == idx);
         Itc first, last;
         std::tie(first, last) = indexToCollision.equal_range(idx);
         for (Itc itc = first; itc != last; ++itc) {
@@ -287,23 +287,23 @@ private:
                 return;
             }
         }
-        ASSERT(false, "Collision not found");
+        SPH_ASSERT(false, "Collision not found");
     }
 
 #ifdef SPH_DEBUG
     void checkConsistency() const {
-        ASSERT(2 * collisions.size() == indexToCollision.size());
+        SPH_ASSERT(2 * collisions.size() == indexToCollision.size());
         // all collisions are in the index-to-colision map
         for (const CollisionRecord& col : collisions) {
-            ASSERT(indexToCollision.count(col.i));
-            ASSERT(indexToCollision.count(col.j));
-            ASSERT(hasCollision(col, col.i));
-            ASSERT(hasCollision(col, col.j));
+            SPH_ASSERT(indexToCollision.count(col.i));
+            SPH_ASSERT(indexToCollision.count(col.j));
+            SPH_ASSERT(hasCollision(col, col.i));
+            SPH_ASSERT(hasCollision(col, col.j));
         }
 
         // all entries in index-to-collision map have a corresponding collision
         for (const auto& p : indexToCollision) {
-            ASSERT(collisions.find(p.second) != collisions.end());
+            SPH_ASSERT(collisions.find(p.second) != collisions.end());
         }
     }
 #else
@@ -361,7 +361,7 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
     parallelFor(scheduler, threadData, 0, r.size(), [&](const Size i, ThreadData& data) {
         if (CollisionRecord col =
                 this->findClosestCollision(i, SearchEnum::FIND_LOWER_RANK, Interval(0._f, dt), data.neighs)) {
-            ASSERT(isReal(col));
+            SPH_ASSERT(isReal(col));
             data.collisions.push(col);
         }
     });
@@ -400,7 +400,7 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
         // find first collision in the list
         const CollisionRecord& col = collisions.top();
         const Float t_coll = col.collisionTime;
-        ASSERT(t_coll < dt);
+        SPH_ASSERT(t_coll < dt);
 
         Size i = col.i;
         Size j = col.j;
@@ -408,7 +408,7 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
         // advance the positions of collided particles to the collision time
         r[i] += v[i] * t_coll;
         r[j] += v[j] * t_coll;
-        ASSERT(isReal(r[i]) && isReal(r[j]));
+        SPH_ASSERT(isReal(r[i]) && isReal(r[j]));
 
         // check and handle overlaps
         CollisionResult result;
@@ -424,7 +424,7 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
         // move the positions back to the beginning of the timestep
         r[i] -= v[i] * t_coll;
         r[j] -= v[j] * t_coll;
-        ASSERT(isReal(r[i]) && isReal(r[j]));
+        SPH_ASSERT(isReal(r[i]) && isReal(r[j]));
 
         if (result == CollisionResult::NONE) {
             // no collision to process
@@ -436,8 +436,8 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
         invalidIdxs.clear();
         collisions.removeByIndex(i, invalidIdxs);
         collisions.removeByIndex(j, invalidIdxs);
-        ASSERT(!collisions.has(i));
-        ASSERT(!collisions.has(j));
+        SPH_ASSERT(!collisions.has(i));
+        SPH_ASSERT(!collisions.has(j));
 
         const Interval interval(t_coll + EPS, dt);
         if (!interval.empty()) {
@@ -448,8 +448,8 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
                 }
                 if (CollisionRecord c =
                         this->findClosestCollision(idx, SearchEnum::USE_RADII, interval, neighs)) {
-                    ASSERT(isReal(c));
-                    ASSERT(removed.find(c.i) == removed.end() && removed.find(c.j) == removed.end());
+                    SPH_ASSERT(isReal(c));
+                    SPH_ASSERT(removed.find(c.i) == removed.end() && removed.find(c.j) == removed.end());
                     if ((c.i == i && c.j == j) || (c.j == i && c.i == j)) {
                         // don't process the same pair twice in a row
                         continue;
@@ -467,7 +467,7 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
         // remove it also from all dependent storages, since this is a permanent action
         storage.propagate([this](Storage& dependent) { dependent.remove(removed); });
     }
-    ASSERT(storage.isValid());
+    SPH_ASSERT(storage.isValid());
 
     stats.set(StatisticsId::COLLISION_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
 }
@@ -498,13 +498,13 @@ CollisionRecord HardSphereSolver::findClosestCollision(const Size i,
     const SearchEnum opt,
     const Interval interval,
     Array<NeighbourRecord>& neighs) {
-    ASSERT(!interval.empty());
+    SPH_ASSERT(!interval.empty());
     if (opt == SearchEnum::FIND_LOWER_RANK) {
         // maximum travel of i-th particle
         const Float radius = r[i][H] + getLength(v[i]) * interval.upper();
         collision.finder->findLowerRank(i, 2._f * radius, neighs);
     } else {
-        ASSERT(isReal(searchRadii[i]));
+        SPH_ASSERT(isReal(searchRadii[i]));
         if (searchRadii[i] > 0._f) {
             collision.finder->findAll(i, 2._f * searchRadii[i], neighs);
         } else {
@@ -560,16 +560,16 @@ Optional<Float> HardSphereSolver::checkCollision(const Vector& r1,
     }
 
     const Vector dr_perp = dr - dot(dv, dr) * dv / getSqrLength(dv);
-    ASSERT(getSqrLength(dr_perp) < (1._f + EPS) * getSqrLength(dr), dr_perp, dr);
+    SPH_ASSERT(getSqrLength(dr_perp) < (1._f + EPS) * getSqrLength(dr), dr_perp, dr);
     if (getSqrLength(dr_perp) <= sqr(r1[H] + r2[H])) {
         // on collision trajectory, find the collision time
         const Float dv2 = getSqrLength(dv);
         const Float det = 1._f - (getSqrLength(dr) - sqr(r1[H] + r2[H])) / sqr(dvdr) * dv2;
-        // ASSERT(det >= 0._f);
+        // SPH_ASSERT(det >= 0._f);
         const Float sqrtDet = sqrt(max(0._f, det));
         const Float root = (det > 1._f) ? 1._f + sqrtDet : 1._f - sqrtDet;
         const Float t_coll = -dvdr / dv2 * root;
-        ASSERT(isReal(t_coll) && t_coll >= 0._f);
+        SPH_ASSERT(isReal(t_coll) && t_coll >= 0._f);
 
         // t_coll can never be negative (which we check by assert), so only check if it is lower than the
         // interval size
@@ -604,7 +604,7 @@ void SoftSphereSolver::integrate(Storage& storage, Statistics& stats) {
     ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-    ASSERT_UNEVAL(std::all_of(dv.begin(), dv.end(), [](const Vector& a) { return a == Vector(0._f); }));
+    SPH_ASSERT_UNEVAL(std::all_of(dv.begin(), dv.end(), [](const Vector& a) { return a == Vector(0._f); }));
     gravity->evalAll(scheduler, dv, stats);
 
     stats.set(StatisticsId::GRAVITY_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));

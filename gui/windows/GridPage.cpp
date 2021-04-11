@@ -254,7 +254,7 @@ static Pair<Float> getSemiaxisRatios(const Storage& storage) {
     const Float a = sqrt(B + C - A);
     const Float b = sqrt(A + C - B);
     const Float c = sqrt(A + B - C);
-    ASSERT(a > 0._f && b > 0._f && c > 0._f, a, b, c);
+    SPH_ASSERT(a > 0._f && b > 0._f && c > 0._f, a, b, c);
     return { c / b, b / a };
 }
 
@@ -420,7 +420,7 @@ void GridPage::updateCell(const Size rowIdx, const Size colIdx, const T& value) 
 
 wxCheckBox* GridPage::getCheck(const CheckFlag check) const {
     wxCheckBox* box = dynamic_cast<wxCheckBox*>(this->FindWindow(int(check)));
-    ASSERT(box);
+    SPH_ASSERT(box);
     return box;
 }
 
@@ -437,7 +437,7 @@ Size GridPage::getCheckedCount() const {
         CheckFlag::SPHERICITY,
         CheckFlag::MOONS,
     };
-    ASSERT(allIds.size() == CHECK_COUNT);
+    SPH_ASSERT(allIds.size() == CHECK_COUNT);
 
     for (CheckFlag id : allIds) {
         count += int(this->getCheck(id)->GetValue());

@@ -115,7 +115,7 @@ void ParticleProbe::onPaint(wxPaintEvent& UNUSED(evt)) {
         /// \todo Currently the only displayed derivatvies are velocities and they are already printed, so
         /// although we can assume there are only quantity values, generalize it for future uses.
 
-        ASSERT(!data.value.empty());
+        SPH_ASSERT(!data.value.empty());
         const DynamicId id = data.value.getType();
         const std::wstring label = getMetadata(data.id).label;
         switch (id) {
