@@ -39,7 +39,6 @@ SOURCES += \
     ../lib/math/test/SparseMatrix.cpp \
     ../lib/objects/containers/test/Array.cpp \
     ../lib/objects/containers/test/ArrayRef.cpp \
-    ../lib/objects/containers/test/BufferedArray.cpp \
     ../lib/objects/containers/test/FlatMap.cpp \
     ../lib/objects/containers/test/FlatSet.cpp \
     ../lib/objects/containers/test/Grid.cpp \
