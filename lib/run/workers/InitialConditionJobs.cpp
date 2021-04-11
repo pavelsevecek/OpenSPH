@@ -98,6 +98,9 @@ VirtualSettings MonolithicBodyIc::getSettings() {
     VirtualSettings::Category& dynamicsCat = connector.addCategory("Dynamics");
     dynamicsCat.connect<Float>("Spin rate [rev/day]", body, BodySettingsId::BODY_SPIN_RATE);
 
+    VirtualSettings::Category& visCat = connector.addCategory("Visualization");
+    visCat.connect<Path>("Texture path", body, BodySettingsId::VISUALIZATION_TEXTURE);
+
     return connector;
 }
 
@@ -117,10 +120,40 @@ public:
     }
 };
 
+class DiehlReporter {
+    IRunCallbacks& callbacks;
+    int iterCnt;
+
+public:
+    DiehlReporter(IRunCallbacks& callbacks, const int iterCnt)
+        : callbacks(callbacks)
+        , iterCnt(iterCnt) {}
+
+    bool operator()(const Size i, const ArrayView<const Vector> positions) const {
+        Storage storage;
+        Array<Vector> r;
+        r.pushAll(positions.begin(), positions.end());
+        storage.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST, std::move(r));
+        Statistics stats;
+        stats.set(StatisticsId::INDEX, int(i));
+        stats.set(StatisticsId::RELATIVE_PROGRESS, Float(i) / iterCnt);
+
+        if (i == 0) {
+            callbacks.onSetUp(storage, stats);
+        }
+        callbacks.onTimeStep(storage, stats);
+        return !callbacks.shouldAbortRun();
+    }
+};
+
 void MonolithicBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     SharedPtr<IDomain> domain = slotUsage.shape ? this->getInput<IDomain>("shape") : Factory::getDomain(body);
     SharedPtr<IMaterial> material =
         slotUsage.material ? this->getInput<IMaterial>("material") : Factory::getMaterial(body);
+
+    // override the material texture
+    std::string texturePath = body.get<std::string>(BodySettingsId::VISUALIZATION_TEXTURE);
+    material->setParam(BodySettingsId::VISUALIZATION_TEXTURE, std::move(texturePath));
 
     const DistributionEnum distType = body.get<DistributionEnum>(BodySettingsId::INITIAL_DISTRIBUTION);
     AutoPtr<IDistribution> distribution;
@@ -128,22 +161,7 @@ void MonolithicBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callba
         DiehlParams diehl;
         diehl.numOfIters = body.get<int>(BodySettingsId::DIEHL_ITERATION_COUNT);
         diehl.strength = body.get<Float>(BodySettingsId::DIEHL_STRENGTH);
-        diehl.onIteration = [&callbacks, iterCnt = diehl.numOfIters](
-                                const Size i, const ArrayView<const Vector> positions) {
-            Storage storage;
-            Array<Vector> r;
-            r.pushAll(positions.begin(), positions.end());
-            storage.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST, std::move(r));
-            Statistics stats;
-            stats.set(StatisticsId::INDEX, int(i));
-            stats.set(StatisticsId::RELATIVE_PROGRESS, Float(i) / iterCnt);
-
-            if (i == 0) {
-                callbacks.onSetUp(storage, stats);
-            }
-            callbacks.onTimeStep(storage, stats);
-            return !callbacks.shouldAbortRun();
-        };
+        diehl.onIteration = DiehlReporter(callbacks, diehl.numOfIters);
 
         distribution = makeAuto<DiehlDistribution>(diehl);
     } else {

@@ -1,3 +1,6 @@
+## 2021-04-11
+- moved textures to material
+
 ## 2021-04-08
 - showing the confirmation dialog when closing the window
 - sorted the colorizers

@@ -4,6 +4,7 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/renderers/FrameBuffer.h"
+#include "objects/containers/FlatMap.h"
 #include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
@@ -32,18 +33,6 @@ RayTracer::RayTracer(SharedPtr<IScheduler> scheduler, const GuiSettings& setting
     std::string hdriPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_HDRI);
     if (!hdriPath.empty()) {
         fixed.enviro.hdri = Texture(Path(hdriPath), TextureFiltering::BILINEAR);
-    }
-
-    std::string primaryPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY);
-    if (!primaryPath.empty()) {
-        fixed.textures.emplaceBack(Path(primaryPath), TextureFiltering::BILINEAR);
-
-        std::string secondaryPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY);
-        if (!secondaryPath.empty()) {
-            fixed.textures.emplaceBack(Path(secondaryPath), TextureFiltering::BILINEAR);
-        } else {
-            fixed.textures.emplaceBack(fixed.textures.front().clone());
-        }
     }
 
     fixed.renderSpheres = settings.get<bool>(GuiSettingsId::RAYTRACE_SPHERES);
@@ -81,6 +70,32 @@ void RayTracer::initialize(const Storage& storage,
         }
     } else {
         cached.flags.fill(0);
+    }
+
+    cached.materialIDs.resize(particleCnt);
+    cached.materialIDs.fill(0);
+    const bool loadTextures = cached.textures.empty();
+    if (loadTextures) {
+        cached.textures.resize(storage.getMaterialCnt());
+    }
+    FlatMap<std::string, SharedPtr<Texture>> textureMap;
+    for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
+        MaterialView body = storage.getMaterial(matId);
+        for (Size i : body.sequence()) {
+            cached.materialIDs[i] = matId;
+        }
+
+        std::string texturePath = body->getParam<std::string>(BodySettingsId::VISUALIZATION_TEXTURE);
+        if (loadTextures && !texturePath.empty()) {
+            if (textureMap.contains(texturePath)) {
+                cached.textures[matId] = textureMap[texturePath];
+            } else {
+                SharedPtr<Texture> texture =
+                    makeShared<Texture>(Path(texturePath), TextureFiltering::BILINEAR);
+                textureMap.insert(texturePath, texture);
+                cached.textures[matId] = texture;
+            }
+        }
     }
 
     cached.v.resize(particleCnt);
@@ -312,14 +327,16 @@ Rgba RayTracer::shade(ThreadData& data,
     const Vector& hit,
     const Vector& dir) const {
     Rgba diffuse = Rgba::white();
-    if (!fixed.textures.empty() && !cached.uvws.empty()) {
-        Size textureIdx = cached.flags[index] & ~BLEND_ALL_FLAG;
+    if (!cached.textures.empty() && !cached.uvws.empty()) {
+        Size textureIdx = cached.materialIDs[index];
         SPH_ASSERT(textureIdx <= 10); // just sanity check, increase if necessary
-        if (textureIdx >= fixed.textures.size()) {
+        if (textureIdx >= cached.textures.size()) {
             textureIdx = 0;
         }
-        const Vector uvw = this->evalUvws(data.neighs, hit);
-        diffuse = fixed.textures[textureIdx].eval(uvw);
+        if (cached.textures[textureIdx]) {
+            const Vector uvw = this->evalUvws(data.neighs, hit);
+            diffuse = cached.textures[textureIdx]->eval(uvw);
+        }
     }
 
     // evaluate color before checking for occlusion as that invalidates the neighbour list

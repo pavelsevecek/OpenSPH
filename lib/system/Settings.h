@@ -1538,6 +1538,8 @@ enum class BodySettingsId {
 
     BODY_SPIN_RATE = 70,
 
+    VISUALIZATION_TEXTURE = 80,
+
     /// Arbitrary string identifying this material
     IDENTIFIER = 99,
 };

@@ -148,7 +148,6 @@ HEADERS += \
     objects/containers/Array.h \
     objects/containers/ArrayRef.h \
     objects/containers/ArrayView.h \
-    objects/containers/BufferedArray.h \
     objects/containers/FlatMap.h \
     objects/containers/FlatSet.h \
     objects/containers/Grid.h \

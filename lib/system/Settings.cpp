@@ -879,6 +879,10 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
     { BodySettingsId::BODY_SPIN_RATE,           "body.spin_rate",               0._f,
          "Spin rate of the body along z-axis in units rev/day." },
 
+    /// Visualization
+    { BodySettingsId::VISUALIZATION_TEXTURE,    "visualization.texture",        std::string(),
+         "Path to the texture used by a renderer. May be empty." },
+
     /// Metadata
     { BodySettingsId::IDENTIFIER, "identifier", std::string("basalt"),
       "Arbitrary string identifying this material" },

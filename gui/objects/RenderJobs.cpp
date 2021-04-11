@@ -1,4 +1,6 @@
 #include "gui/objects/RenderJobs.h"
+#include "gravity/BarnesHut.h"
+#include "gravity/Moments.h"
 #include "gui/Factory.h"
 #include "gui/Project.h"
 #include "gui/objects/Camera.h"
@@ -8,8 +10,6 @@
 #include "run/workers/IoJobs.h"
 #include "system/Factory.h"
 #include "system/Timer.h"
-#include "gravity/BarnesHut.h"
-#include "gravity/Moments.h"
 
 #ifdef SPH_USE_VDB
 #include "openvdb/openvdb.h"
@@ -91,10 +91,6 @@ VirtualSettings AnimationJob::getSettings() {
     });
 
     VirtualSettings::Category& textureCat = connector.addCategory("Texture paths");
-    textureCat.connect<std::string>("Body 1", gui, GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY)
-        .setEnabler(raytracerEnabler);
-    textureCat.connect<std::string>("Body 2", gui, GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY)
-        .setEnabler(raytracerEnabler);
     textureCat.connect<std::string>("Background", gui, GuiSettingsId::RAYTRACE_HDRI)
         .setEnabler(raytracerEnabler);
 
@@ -172,7 +168,7 @@ public:
     }
 
     virtual Optional<Vector> evalVector(const Size UNUSED(idx)) const override {
-    return NOTHING;
+        return NOTHING;
     }
 
     virtual std::string name() const override {

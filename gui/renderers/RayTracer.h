@@ -46,10 +46,6 @@ private:
 
         } enviro;
 
-        /// Textures of the rendered bodies. Can be empty. The textures are assigned to the bodies using their
-        /// flags (not material IDs).
-        Array<Texture> textures;
-
         /// Cast shadows
         bool shadows = false;
 
@@ -99,6 +95,13 @@ private:
 
         /// Particle indices
         Array<Size> flags;
+
+        /// Material ID for each particle
+        Array<Size> materialIDs;
+
+        /// Textures of the rendered bodies. Can be empty. The textures are assigned to the bodies using their
+        /// material IDs.
+        Array<SharedPtr<Texture>> textures;
 
         /// If true, the colors are used for emission, otherwise for diffuse reflectance.
         bool doEmission;
