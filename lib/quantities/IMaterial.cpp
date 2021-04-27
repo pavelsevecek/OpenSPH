@@ -11,7 +11,7 @@ MaterialInitialContext::MaterialInitialContext(const RunSettings& settings) {
     rng = Factory::getRng(settings);
     scheduler = Factory::getScheduler(settings);
     kernelRadius = Factory::getKernel<3>(settings).radius();
-    generateUvws = settings.get<bool>(RunSettingsId::GENERATE_UVWS);
+    uvMap = Factory::getUvMapping(settings);
 }
 
 void IMaterial::setRange(const QuantityId id, const Interval& range, const Float minimal) {

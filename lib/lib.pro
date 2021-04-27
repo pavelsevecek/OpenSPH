@@ -141,7 +141,8 @@ HEADERS += \
     math/Quat.h \
     math/SparseMatrix.h \
     math/rng/Rng.h \
-    math/rng/VectorRng.h \    
+    math/rng/VectorRng.h \
+    sph/initial/UvMapping.h \
     objects/Exceptions.h \
     objects/Object.h \
     objects/containers/Allocators.h \

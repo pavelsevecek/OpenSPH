@@ -533,6 +533,7 @@ VirtualSettings NodeManager::getGlobalSettings() {
 
     VirtualSettings::Category& renderCat = settings.addCategory("Rendering");
     renderCat.connect<bool>("Enable textures", globals, RunSettingsId::GENERATE_UVWS);
+    renderCat.connect<EnumWrapper>("UV mapping", globals, RunSettingsId::UVW_MAPPING);
 
     VirtualSettings::Category& authorCat = settings.addCategory("Run metadata");
     authorCat.connect<std::string>("Author name", globals, RunSettingsId::RUN_AUTHOR);

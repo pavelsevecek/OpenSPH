@@ -73,26 +73,6 @@ BodyView& BodyView::addRotation(const Vector& omega, const RotationOrigin origin
     return this->addRotation(omega, this->getOrigin(origin));
 }
 
-
-/// \brief Generates mapping coordinates and saves then as QuantityId::UVW quantity.
-static void setUvws(Storage& storage, const Vector& center) {
-    SPH_ASSERT(!storage.has(QuantityId::UVW));
-    SPH_ASSERT(storage.getMaterialCnt() == 1);
-
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    Array<Vector> uvws(r.size());
-
-    for (Size i = 0; i < r.size(); ++i) {
-        const Vector xyz = r[i] - center;
-        SphericalCoords spherical = cartensianToSpherical(Vector(xyz[X], xyz[Z], xyz[Y]));
-        uvws[i] = Vector(spherical.phi / (2._f * PI) + 0.5_f, spherical.theta / PI, 0._f);
-        SPH_ASSERT(uvws[i][X] >= 0._f && uvws[i][X] <= 1._f, uvws[i][X]);
-        SPH_ASSERT(uvws[i][Y] >= 0._f && uvws[i][Y] <= 1._f, uvws[i][Y]);
-    }
-
-    storage.insert<Vector>(QuantityId::UVW, OrderEnum::ZERO, std::move(uvws));
-}
-
 InitialConditions::InitialConditions(const RunSettings& settings)
     : context(settings) {}
 
@@ -131,7 +111,7 @@ BodyView InitialConditions::addMonolithicBody(Storage& storage,
     SPH_ASSERT(positions.size() > 0);
     body.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(positions));
 
-    this->setQuantities(body, *material, domain.getCenter(), domain.getVolume());
+    this->setQuantities(body, *material, domain.getVolume());
     storage.merge(std::move(body));
     const Size particleCnt = storage.getParticleCnt();
 
@@ -194,14 +174,12 @@ BodyView InitialConditions::addHeterogeneousBody(Storage& storage,
     for (Size i = 0; i < bodyStorages.size(); ++i) {
         bodyStorages[i].insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(pos_bodies[i]));
         const Float volume = bodies[i].domain->getVolume();
-        const Vector center = bodies[i].domain->getCenter();
-        this->setQuantities(bodyStorages[i], bodyStorages[i].getMaterial(0), center, volume);
+        this->setQuantities(bodyStorages[i], bodyStorages[i].getMaterial(0), volume);
         environVolume -= volume;
     }
     SPH_ASSERT(environVolume >= 0._f);
     enviroStorage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(pos_env));
-    const Vector environCenter = environment.domain->getCenter();
-    this->setQuantities(enviroStorage, enviroStorage.getMaterial(0), environCenter, environVolume);
+    this->setQuantities(enviroStorage, enviroStorage.getMaterial(0), environVolume);
 
     // merge all storages
     storage.merge(std::move(enviroStorage));
@@ -296,7 +274,7 @@ void InitialConditions::addRubblePileBody(Storage& storage,
         // create the body
         Storage body(material);
         body.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(spherePositions));
-        this->setQuantities(body, *material, sphere.center(), sphere.volume());
+        this->setQuantities(body, *material, sphere.volume());
 
         // add it to the storage
         storage.merge(std::move(body));
@@ -327,10 +305,7 @@ static Array<Float> getMasses(ArrayView<const Vector> r, const Float totalM) {
     return m;
 }
 
-void InitialConditions::setQuantities(Storage& storage,
-    IMaterial& material,
-    const Vector& center,
-    const Float volume) {
+void InitialConditions::setQuantities(Storage& storage, IMaterial& material, const Float volume) {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     const Float eta = material.getParam<Float>(BodySettingsId::SMOOTHING_LENGTH_ETA);
     for (Size i = 0; i < r.size(); ++i) {
@@ -351,8 +326,9 @@ void InitialConditions::setQuantities(Storage& storage,
     material.create(storage, context);
 
     // Generate mapping coordinates for textures
-    if (context.generateUvws) {
-        setUvws(storage, center);
+    if (context.uvMap) {
+        Array<Vector> uvws = context.uvMap->generate(storage);
+        storage.insert<Vector>(QuantityId::UVW, OrderEnum::ZERO, std::move(uvws));
     }
 }
 

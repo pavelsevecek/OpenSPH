@@ -206,7 +206,7 @@ public:
 
 private:
     /// \brief Sets up necessary quantities in the body.
-    void setQuantities(Storage& storage, IMaterial& material, const Vector& center, const Float volume);
+    void setQuantities(Storage& storage, IMaterial& material, const Float volume);
 };
 
 /// \brief Displaces particles so that no two particles overlap.

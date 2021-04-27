@@ -10,6 +10,7 @@
 #include "objects/utility/IteratorAdapters.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "quantities/QuantityIds.h"
+#include "sph/initial/UvMapping.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
@@ -17,7 +18,6 @@ NAMESPACE_SPH_BEGIN
 class Storage;
 class IMaterial;
 class IScheduler;
-
 
 /// \brief Non-owning wrapper of a material and particles with this material.
 ///
@@ -95,8 +95,8 @@ struct MaterialInitialContext {
     /// \brief Kernel radius in units of smoothing length.
     Float kernelRadius = 2._f;
 
-    /// If true, texture mapping coordinates are generated using spherical mapping.
-    bool generateUvws = false;
+    /// If used, texture mapping coordinates are generated provided mapping.
+    AutoPtr<IUvMapping> uvMap = nullptr;
 
     MaterialInitialContext() = default;
 

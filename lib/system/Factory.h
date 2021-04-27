@@ -33,6 +33,7 @@ class IScheduler;
 class IRng;
 class IEquationTerm;
 class IScheduler;
+class IUvMapping;
 class Storage;
 class EquationHolder;
 enum class FinderFlag;
@@ -98,6 +99,7 @@ AutoPtr<ISymmetricFinder> getFinder(const RunSettings& settings);
 
 SharedPtr<IScheduler> getScheduler(const RunSettings& settings = RunSettings::getDefaults());
 
+AutoPtr<IUvMapping> getUvMapping(const RunSettings& settings);
 
 /// \addtogroup Material components
 

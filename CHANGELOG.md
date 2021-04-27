@@ -1,3 +1,6 @@
+## 2021-04-27
+- added planar UV mapping
+
 ## 2021-04-11
 - moved textures to material
 

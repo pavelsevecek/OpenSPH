@@ -183,6 +183,52 @@ int ssfToOmega(const Path& filePath,
     return 0;
 }
 
+
+int ssfToVelocity(const Path& filePath, const Path& outPath) {
+    std::cout << "Processing SPH file ... " << std::endl;
+    AutoPtr<IInput> input = Factory::getInput(filePath);
+    Storage storage;
+    Statistics stats;
+    Outcome outcome = input->load(filePath, storage, stats);
+    if (!outcome) {
+        std::cout << "Cannot load particle data, " << outcome.error() << std::endl;
+        return -1;
+    }
+
+    // convert to system with center at LR
+    Array<Size> idxs = Post::findLargestComponent(storage, 2._f, EMPTY_FLAGS);
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    ArrayView<Vector> r, v, dv;
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+    Vector r0(0._f);
+    Vector v0(0._f);
+    Float m0 = 0._f;
+    for (Size i : idxs) {
+        m0 += m[i];
+        r0 += m[i] * r[i];
+        v0 += m[i] * v[i];
+    }
+    r0 /= m0;
+    v0 /= m0;
+
+    for (Size i = 0; i < r.size(); ++i) {
+        r[i] -= r0;
+        v[i] -= v0;
+    }
+
+    Post::HistogramParams params;
+    params.binCnt = 2000;
+    Array<Post::HistPoint> hist = Post::getDifferentialHistogram(
+        storage, Post::HistogramId::VELOCITIES, Post::HistogramSource::COMPONENTS, params);
+
+    FileLogger logSfd(outPath, FileLogger::Options::KEEP_OPENED);
+    for (Post::HistPoint& p : hist) {
+        logSfd.write(p.value, "  ", p.count);
+    }
+
+    return 0;
+}
+
 void ssfToVelDir(const Path& filePath, const Path& outPath) {
     std::cout << "Processing SPH file ... " << std::endl;
     BinaryInput input;
@@ -712,6 +758,7 @@ void printHelp() {
                  "output file"
               << std::endl
               << "- ssfToSfd - computes the cumulative SFD from SPH output file" << std::endl
+              << "- ssfToVelocity - computes the velocity distribution from SPH output file" << std::endl
               << "- harris - TODO" << std::endl
               << "- stats - prints ejected mass and the period of the largest remnant" << std::endl
               << "- swift - makes yarko.in, yorp.in and spin.in input file for swift" << std::endl;
@@ -754,6 +801,8 @@ int main(int argc, char** argv) {
             } else {
                 return ssfToSfd(Post::HistogramSource::PARTICLES, Path(argv[2]), Path(argv[3]));
             }
+        } else if (mode == "ssfToVelocity") {
+            return ssfToVelocity(Path(argv[2]), Path(argv[3]));
         } else if (mode == "ssfToOmega") {
             if (argc < 6) {
                 std::cout << "Expected parameters: post ssfToOmega output.ssf omega.txt omega_D.txt "

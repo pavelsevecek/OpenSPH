@@ -26,6 +26,7 @@
 #include "sph/equations/av/Riemann.h"
 #include "sph/equations/av/Standard.h"
 #include "sph/initial/Distribution.h"
+#include "sph/initial/UvMapping.h"
 #include "sph/kernel/GravityKernel.h"
 #include "sph/solvers/AsymmetricSolver.h"
 #include "sph/solvers/DensityIndependentSolver.h"
@@ -204,6 +205,23 @@ SharedPtr<IScheduler> Factory::getScheduler(const RunSettings& settings) {
         weakGlobal = newPool;
         return newPool;
 #endif
+    }
+}
+
+AutoPtr<IUvMapping> Factory::getUvMapping(const RunSettings& settings) {
+    const bool enableUvws = settings.get<bool>(RunSettingsId::GENERATE_UVWS);
+    if (!enableUvws) {
+        return nullptr;
+    }
+
+    const UvMapEnum type = settings.get<UvMapEnum>(RunSettingsId::UVW_MAPPING);
+    switch (type) {
+    case UvMapEnum::PLANAR:
+        return makeAuto<PlanarUvMapping>();
+    case UvMapEnum::SPHERICAL:
+        return makeAuto<SphericalUvMapping>();
+    default:
+        NOT_IMPLEMENTED;
     }
 }
 

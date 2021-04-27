@@ -880,6 +880,14 @@ enum class RngEnum {
     BENZ_ASPHAUG
 };
 
+enum class UvMapEnum {
+    /// Planar mapping
+    PLANAR,
+
+    /// Spherical mapping
+    SPHERICAL,
+};
+
 /// Settings relevant for whole run of the simulation
 enum class RunSettingsId {
     /// User-specified name of the run, used in some output files
@@ -1262,6 +1270,9 @@ enum class RunSettingsId {
 
     /// If true, the mapping coordinates will be computed and saved for all bodies in the simulation.
     GENERATE_UVWS,
+
+    /// Type of the UV mapping
+    UVW_MAPPING,
 };
 
 

@@ -384,6 +384,11 @@ static RegisterEnum<RngEnum> sRng({
     { RngEnum::BENZ_ASPHAUG, "benz_asphaug", "RNG used in code SPH5, used for 1-1 comparison of codes." },
 });
 
+static RegisterEnum<UvMapEnum> sUv({
+    { UvMapEnum::PLANAR, "planar", "Plannar mapping." },
+    { UvMapEnum::SPHERICAL, "spherical", "Spherical mapping." },
+});
+
 
 // clang-format off
 template<>
@@ -677,6 +682,8 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::GENERATE_UVWS,     "misc.generate_uvws",   false,
         "If true, the mapping coordinates will be generated and saved for all bodies in the simulation. "
         "Useful to visualize the simulation results with surface textures." },
+    { RunSettingsId::UVW_MAPPING,       "misc.uvw_mapping",     UvMapEnum::SPHERICAL,
+        "Type of the UV mapping" },
 
 });
 
