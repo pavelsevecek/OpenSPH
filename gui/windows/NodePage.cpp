@@ -52,6 +52,7 @@ NodeManager::NodeManager(NodeEditor* editor, SharedPtr<INodeManagerCallbacks> ca
     , callbacks(callbacks) {
     globals.set(RunSettingsId::SPH_KERNEL, KernelEnum::CUBIC_SPLINE)
         .set(RunSettingsId::GENERATE_UVWS, false)
+        .set(RunSettingsId::UVW_MAPPING, UvMapEnum::SPHERICAL)
         .set(RunSettingsId::RUN_RNG, RngEnum::UNIFORM)
         .set(RunSettingsId::RUN_RNG_SEED, 1234)
         .set(RunSettingsId::RUN_THREAD_CNT, 0)
