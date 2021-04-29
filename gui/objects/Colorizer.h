@@ -713,17 +713,21 @@ private:
     ArrayRef<const Float> u;
     Palette palette;
 
+    const float u_0 = 3.e4f;
     const float u_red = 3.e5f;
-    const float u_yellow = 5.e6f;
     const float u_glow = 0.5f * u_red;
+    const float u_yellow = 5.e6f;
+
+    float f_glow;
 
 public:
     BeautyColorizer() {
-        palette = Palette({ { 0.1f * u_red, Rgba(0.5f, 0.5f, 0.5) },
+        palette = Palette({ { u_0, Rgba(0.5f, 0.5f, 0.5) },
                               { u_glow, Rgba(0.5f, 0.5f, 0.5f) },
                               { u_red, Rgba(0.8f, 0.f, 0.f) },
                               { u_yellow, Rgba(1.f, 1.f, 0.6f) } },
             PaletteScale::LOGARITHMIC);
+        f_glow = (log10(u_glow) - log10(u_0)) / (log10(u_yellow) - log10(u_0));
     }
 
     virtual bool hasData(const Storage& storage) const override {
@@ -744,10 +748,8 @@ public:
     }
 
     virtual Optional<float> evalScalar(const Size idx) const override {
-        // palette might be rescaled, compute new values
-        const float u1_red = 10.f * palette.getInterval().lower();
-        const float u1_glow = 0.5f * u1_red;
-        return float(max(0._f, (u[idx] - u1_glow) / u1_red));
+        const float f = palette.paletteToRelative(u[idx]);
+        return max(0.f, (f - f_glow) / (1.f - f_glow));
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
