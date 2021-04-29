@@ -744,7 +744,10 @@ public:
     }
 
     virtual Optional<float> evalScalar(const Size idx) const override {
-        return float(max(0._f, (u[idx] - u_glow) / u_red));
+        // palette might be rescaled, compute new values
+        const float u1_red = 10.f * palette.getInterval().lower();
+        const float u1_glow = 0.5f * u1_red;
+        return float(max(0._f, (u[idx] - u1_glow) / u1_red));
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
