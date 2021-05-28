@@ -7,7 +7,42 @@ NAMESPACE_SPH_BEGIN
 struct Mesh {
     Array<Vector> vertices;
 
-    using Face = std::array<Size, 3>;
+    class Face {
+    private:
+        StaticArray<Size, 3> idxs;
+
+    public:
+        Face() = default;
+
+        Face(const Face& other)
+            : idxs{ other[0], other[1], other[2] } {}
+
+        Face(const Size a, const Size b, const Size c)
+            : idxs{ a, b, c } {}
+
+        Face& operator=(const Face& other) {
+            idxs[0] = other[0];
+            idxs[1] = other[1];
+            idxs[2] = other[2];
+            return *this;
+        }
+
+        Size& operator[](const int i) {
+            return idxs[i];
+        }
+
+        Size operator[](const int i) const {
+            return idxs[i];
+        }
+
+        bool operator==(const Face& other) const {
+            return idxs == other.idxs;
+        }
+
+        bool operator!=(const Face& other) const {
+            return idxs != other.idxs;
+        }
+    };
 
     Array<Face> faces;
 };
