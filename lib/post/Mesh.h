@@ -34,6 +34,14 @@ struct Mesh {
         Size operator[](const int i) const {
             return idxs[i];
         }
+
+        bool operator==(const Face& other) const {
+            return idxs == other.idxs;
+        }
+
+        bool operator!=(const Face& other) const {
+            return idxs != other.idxs;
+        }
     };
 
     Array<Face> faces;
