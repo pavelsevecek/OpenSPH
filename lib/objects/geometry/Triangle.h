@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2019
 
+#include "objects/containers/StaticArray.h"
 #include "objects/geometry/Box.h"
 
 NAMESPACE_SPH_BEGIN
@@ -12,7 +13,7 @@ NAMESPACE_SPH_BEGIN
 /// \brief Represents three vertices of the triangle
 class Triangle {
 private:
-    Vector v[3];
+    StaticArray<Vector, 3> v;
 
 public:
     Triangle() = default;
@@ -20,6 +21,16 @@ public:
     Triangle(const Vector& v1, const Vector& v2, const Vector& v3)
         : v{ v1, v2, v3 } {
         ASSERT(isValid());
+    }
+
+    Triangle(const Triangle& other)
+        : v{ other[0], other[1], other[2] } {}
+
+    Triangle& operator=(const Triangle& other) {
+        v[0] = other[0];
+        v[1] = other[1];
+        v[2] = other[2];
+        return *this;
     }
 
     INLINE Vector& operator[](const Size idx) {
