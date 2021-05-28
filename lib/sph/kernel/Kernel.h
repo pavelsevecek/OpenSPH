@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz))
 /// \date 2016-2019
 
+#include "objects/containers/Array.h"
 #include "objects/geometry/Vector.h"
 
 NAMESPACE_SPH_BEGIN
@@ -51,24 +52,14 @@ class LutKernel : public Kernel<LutKernel<D>, D> {
 private:
     static constexpr Size NEntries = 40000;
 
-    /// \todo replace with StaticArray?
-    Float values[NEntries];
-    Float grads[NEntries];
+    Array<Float> values;
+    Array<Float> grads;
 
     Float rad = 0._f;
     Float qSqrToIdx = 0.f;
 
 public:
-    LutKernel() {
-        /// \todo initialize, otherwise compiler complains about using uninitialized values
-        qSqrToIdx = NAN;
-        for (Float& v : values) {
-            v = NAN;
-        }
-        for (Float& g : grads) {
-            g = NAN;
-        }
-    }
+    LutKernel() = default;
 
     LutKernel(const LutKernel& other) {
         *this = other;
@@ -77,12 +68,12 @@ public:
     LutKernel& operator=(const LutKernel& other) {
         rad = other.rad;
         qSqrToIdx = other.qSqrToIdx;
-        for (Size i = 0; i < NEntries; ++i) {
-            values[i] = other.values[i];
-            grads[i] = other.grads[i];
-        }
+        values = copyable(other.values);
+        grads = copyable(other.grads);
         return *this;
     }
+
+    LutKernel& operator=(LutKernel&& other) = default;
 
     /// \brief Constructs LUT kernel given an exact SPH kernel.
     template <typename TKernel,
@@ -93,6 +84,8 @@ public:
         ASSERT(rad > 0._f);
         const Float radInvSqr = 1._f / (rad * rad);
         qSqrToIdx = Float(NEntries) * radInvSqr;
+        values.resize(NEntries);
+        grads.resize(NEntries);
         for (Size i = 0; i < NEntries; ++i) {
             const Float qSqr = Float(i) / qSqrToIdx;
             values[i] = source.valueImpl(qSqr);

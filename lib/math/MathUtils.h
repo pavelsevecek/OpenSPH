@@ -308,6 +308,16 @@ INLINE T asin(const T f) {
 }
 
 template <typename T>
+INLINE T exp10(const T f) {
+    return std::pow(10._f, f);
+}
+
+template <typename T>
+INLINE T log10(const T f) {
+    return std::log10(f);
+}
+
+template <typename T>
 INLINE int sgn(const T val) {
     return (T(0) < val) - (val < T(0));
 }
