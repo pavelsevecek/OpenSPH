@@ -84,9 +84,11 @@ public:
         ASSERT(rad > 0._f);
         const Float radInvSqr = 1._f / (rad * rad);
         qSqrToIdx = Float(NEntries) * radInvSqr;
-        values.resize(NEntries);
-        grads.resize(NEntries);
-        for (Size i = 0; i < NEntries; ++i) {
+
+        // allocate and set NEntries + 1 for correct interpolation of the last value
+        values.resize(NEntries + 1);
+        grads.resize(NEntries + 1);
+        for (Size i = 0; i < NEntries + 1; ++i) {
             const Float qSqr = Float(i) / qSqrToIdx;
             values[i] = source.valueImpl(qSqr);
             grads[i] = source.gradImpl(qSqr);
@@ -117,7 +119,7 @@ public:
         const Float ratio = floatIdx - Float(idx1);
         ASSERT(ratio >= 0._f && ratio < 1._f);
 
-        return values[idx1] * (1._f - ratio) + (int(idx2 < NEntries) * values[idx2]) * ratio;
+        return values[idx1] * (1._f - ratio) + values[idx2] * ratio;
     }
 
     INLINE Float gradImpl(const Float qSqr) const noexcept {
@@ -134,7 +136,7 @@ public:
         const Float ratio = floatIdx - Float(idx1);
         ASSERT(ratio >= 0._f && ratio < 1._f);
 
-        return grads[idx1] * (1._f - ratio) + (int(idx2 < NEntries) * grads[idx2]) * ratio;
+        return grads[idx1] * (1._f - ratio) + grads[idx2] * ratio;
     }
 };
 

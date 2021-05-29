@@ -1,5 +1,6 @@
 ## 2021-05-29
 - made compilable on FreeBSD 13
+- fixed incorrect interpolation of GravityLutKernel at the last close bin
 
 ## 2021-04-08
 - showing the confirmation dialog when closing the window
