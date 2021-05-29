@@ -37,6 +37,7 @@ private:
 
     Path projectPath;
     bool savedFlag = true;
+    wxMenu* runMenu;
 
 public:
     MainWindow(const Path& openPath = Path());
@@ -69,6 +70,10 @@ private:
     void onClose(wxCloseEvent& evt);
 
     void enableMenus(const Size id);
+
+    void enableRunMenu(const bool enable);
+
+    bool closeRun(const Size id);
 };
 
 NAMESPACE_SPH_END

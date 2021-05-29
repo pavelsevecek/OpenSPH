@@ -1,4 +1,7 @@
 ## 2021-05-29
+- added run select dialog
+- properly closing run controllers
+- disabled Analysis menu in node page
 - made compilable on FreeBSD 13
 - fixed incorrect interpolation of GravityLutKernel at the last close bin
 

@@ -38,6 +38,7 @@ SOURCES += \
     renderers/RayTracer.cpp \
     renderers/Spectrum.cpp \
     windows/BatchDialog.cpp \
+    windows/RunSelectDialog.cpp \
     windows/CurveDialog.cpp \
     windows/GridPage.cpp \
     windows/OrthoPane.cpp \
@@ -81,6 +82,7 @@ HEADERS += \
     renderers/RayTracer.h \
     renderers/Spectrum.h \
     windows/BatchDialog.h \
+    windows/RunSelectDialog.h \
     windows/CurveDialog.h \
     windows/GridPage.h \
     windows/IGraphicsPane.h \

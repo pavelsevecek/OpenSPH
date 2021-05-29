@@ -4,6 +4,7 @@
 #include "gui/objects/RenderJobs.h"
 #include "gui/windows/BatchDialog.h"
 #include "gui/windows/CurveDialog.h"
+#include "gui/windows/RunSelectDialog.h"
 #include "io/FileSystem.h"
 #include "objects/utility/IteratorAdapters.h"
 #include "run/Config.h"
@@ -516,6 +517,17 @@ void NodeManager::startAll() {
     callbacks->startRun(root, globals);
 }
 
+Array<SharedPtr<JobNode>> NodeManager::getTopLevelNodes() const {
+    Array<SharedPtr<JobNode>> inputs;
+    for (auto& element : nodes) {
+        SharedPtr<JobNode> node = element.key;
+        if (node->getDependentCnt() == 0) {
+            inputs.push(node);
+        }
+    }
+    return inputs;
+}
+
 VirtualSettings NodeManager::getGlobalSettings() {
     VirtualSettings settings;
 
@@ -564,6 +576,40 @@ void NodeManager::showBatchDialog() {
         batch = batchDialog->getBatch().clone();
         callbacks->markUnsaved();
     }
+    batchDialog->Destroy();
+}
+
+void NodeManager::selectRun() {
+    SharedPtr<JobNode> node = activeNode.lock();
+    if (node) {
+        callbacks->startRun(node, globals);
+        return;
+    }
+
+    Array<SharedPtr<JobNode>> nodeList = getTopLevelNodes();
+    if (nodeList.empty()) {
+        wxMessageBox(std::string("No simulation nodes added. First, create a simulation by double-clicking "
+                                 "an item in the node list on the right side."),
+            "No runs",
+            wxOK);
+        return;
+    }
+
+    if (nodeList.size() == 1) {
+        // only a single node, no need for run select dialog
+        callbacks->startRun(nodeList.front(), globals);
+        return;
+    }
+
+    RunSelectDialog* dialog = new RunSelectDialog(editor, std::move(nodeList));
+    if (dialog->ShowModal() == wxID_OK) {
+        node = dialog->selectedNode();
+        if (dialog->remember()) {
+            activeNode = node;
+        }
+        callbacks->startRun(node, globals);
+    }
+    dialog->Destroy();
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -935,15 +981,6 @@ void NodeEditor::onLeftDown(wxMouseEvent& evt) {
 
 void NodeEditor::onLeftUp(wxMouseEvent& evt) {
     const Pixel mousePosition(evt.GetPosition());
-    if (state.selected != nullptr) {
-        const Pixel offset = (mousePosition - state.mouseDownPos) / state.zoom;
-        nodeMgr->addToUndo([this, node = state.selected, offset] {
-            node->position -= offset;
-            this->Refresh();
-            callbacks->markUnsaved();
-        });
-    }
-
     state.selected = nullptr;
 
     if (!state.connectingSlot) {
@@ -1341,7 +1378,7 @@ public:
         propertyEntryMap.insert(prop, &entry);
 
         SPH_ASSERT(propertyEntryMap[prop]->enabled() ||
-               propertyEntryMap[prop]->getType() != IVirtualEntry::Type(20)); // dummy call
+                   propertyEntryMap[prop]->getType() != IVirtualEntry::Type(20)); // dummy call
     }
 };
 
@@ -1615,6 +1652,10 @@ void NodeWindow::showGlobals() {
 
 void NodeWindow::showBatchDialog() {
     nodeMgr->showBatchDialog();
+}
+
+void NodeWindow::selectRun() {
+    nodeMgr->selectRun();
 }
 
 void NodeWindow::reset() {

@@ -142,6 +142,10 @@ void Controller::stop(const bool waitForFinish) {
     }
 }
 
+RunStatus Controller::getStatus() const {
+    return status;
+}
+
 void Controller::saveState(const Path& path) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     auto dump = [path](const Storage& storage, const Statistics& stats) {
@@ -256,8 +260,8 @@ void Controller::onEnd(const Storage& storage, const Statistics& stats) {
 }
 
 void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
-    // SPH_ASSERT(std::this_thread::get_id() == sph.thread.get_id()); - can be actually called from worker thread,
-    // but that should not matter, as long as there is not a concurrent access from different thread
+    // SPH_ASSERT(std::this_thread::get_id() == sph.thread.get_id()); - can be actually called from worker
+    // thread, but that should not matter, as long as there is not a concurrent access from different thread
 
     if (status == RunStatus::QUITTING) {
         return;

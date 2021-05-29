@@ -246,10 +246,6 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
 
 
     manager->Update();
-
-    // connect event handlers
-    wxAuiNotebook* notebook = findNotebook();
-    SPH_ASSERT(notebook);
 }
 
 RunPage::~RunPage() {
@@ -1207,7 +1203,6 @@ public:
 
 bool RunPage::close() {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
-    // veto the event, we will close the window ourselves
     if (controller->isRunning()) {
         const int retval =
             wxMessageBox("Simulation is currently in progress. Do you want to stop it and close the window?",
@@ -1218,10 +1213,10 @@ bool RunPage::close() {
             waitingDialog = new WaitDialog(this);
             waitingDialog->ShowModal();
             controller->quit(true);
-            wxAuiNotebook* notebook = findNotebook();
-            notebook->DeletePage(notebook->GetPageIndex(this));
+            return true;
+        } else {
+            return false;
         }
-        return false;
     } else {
         return true;
     }

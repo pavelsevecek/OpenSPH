@@ -149,16 +149,14 @@ MainWindow::MainWindow(const Path& openPath)
     wxMenu* projectMenu = this->createProjectMenu();
     bar->Append(projectMenu, "&Project");
 
-    wxMenu* runMenu = this->createRunMenu();
+    runMenu = this->createRunMenu();
     bar->Append(runMenu, "&Simulation");
-    bar->EnableTop(bar->GetMenuCount() - 1, false);
 
     wxMenu* analysisMenu = this->createAnalysisMenu();
     bar->Append(analysisMenu, "&Analysis");
 
     wxMenu* resultMenu = this->createResultMenu();
     bar->Append(resultMenu, "&Result");
-    // bar->EnableTop(bar->GetMenuCount() - 1, false);
 
     wxMenu* viewMenu = new wxMenu();
     viewMenu->Append(NodeWindow::ID_PROPERTIES, "&Node properties");
@@ -225,13 +223,14 @@ MainWindow::MainWindow(const Path& openPath)
     });
 
     this->SetMenuBar(bar);
+    this->enableMenus(0);
 
     notebook->Bind(wxEVT_AUINOTEBOOK_PAGE_CLOSE, [this](wxAuiNotebookEvent& evt) {
         const int pageId = evt.GetSelection();
         wxWindow* page = notebook->GetPage(pageId);
         RunPage* runPage = dynamic_cast<RunPage*>(page);
         NodeWindow* nodePage = dynamic_cast<NodeWindow*>(page);
-        if (nodePage || (runPage && !runPage->close())) {
+        if (nodePage || (runPage && !closeRun(pageId))) {
             evt.Veto();
         }
     });
@@ -439,9 +438,6 @@ wxMenu* MainWindow::createProjectMenu() {
         case 5:
             nodePage->showBatchDialog();
             break;
-        // case 6:
-        //    nodePage->undo();
-        //    break;
         case 6:
             this->Close();
             break;
@@ -453,7 +449,6 @@ wxMenu* MainWindow::createProjectMenu() {
 }
 
 wxMenu* MainWindow::createResultMenu() {
-
     wxMenu* fileMenu = new wxMenu();
     fileMenu->Append(0, "&Open\tCtrl+O");
     fileMenu->Append(1, "&Close current\tCtrl+W");
@@ -478,14 +473,7 @@ wxMenu* MainWindow::createResultMenu() {
                 break;
             }
 
-            bool canClose = true;
-            if (RunPage* runPage = dynamic_cast<RunPage*>(page)) {
-                canClose = runPage->close();
-            }
-
-            if (canClose) {
-                notebook->DeletePage(notebook->GetPageIndex(page));
-            }
+            closeRun(notebook->GetPageIndex(page));
             break;
         }
         default:
@@ -555,15 +543,22 @@ static Array<Post::HistPoint> getOverplotSfd(const GuiSettings& gui) {
 
 wxMenu* MainWindow::createRunMenu() {
     wxMenu* runMenu = new wxMenu();
-    runMenu->Append(0, "&Restart");
-    runMenu->Append(1, "&Pause");
-    runMenu->Append(2, "&Stop");
-    runMenu->Append(3, "&Save state");
-    runMenu->Append(4, "Create &node from state");
-    runMenu->Append(5, "&Close current\tCtrl+W");
-    runMenu->Append(6, "Close all");
+    runMenu->Append(0, "S&tart\tCtrl+R");
+    runMenu->Append(1, "&Restart");
+    runMenu->Append(2, "&Pause");
+    runMenu->Append(3, "St&op");
+    runMenu->Append(4, "&Save state");
+    runMenu->Append(5, "Create &node from state");
+    runMenu->Append(6, "&Close current\tCtrl+W");
+    runMenu->Append(7, "Close all");
 
-    runMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& evt) { //
+    runMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this, runMenu](wxCommandEvent& evt) { //
+        if (evt.GetId() == 0) {
+            // only option not related to a particular controller
+            nodePage->selectRun();
+            return;
+        }
+
         RunPage* page = dynamic_cast<RunPage*>(notebook->GetCurrentPage());
         if (!page) {
             return;
@@ -571,16 +566,26 @@ wxMenu* MainWindow::createRunMenu() {
         RawPtr<Controller> controller = runs[page].controller.get();
 
         switch (evt.GetId()) {
-        case 0:
+        case 1:
+            controller->stop(true);
             controller->restart();
             break;
-        case 1:
-            controller->pause();
+        case 2: {
+            RunStatus status = controller->getStatus();
+            wxMenuItem* item = runMenu->FindItem(2);
+            if (status == RunStatus::PAUSED) {
+                controller->restart();
+                item->SetItemLabel("&Pause");
+            } else {
+                controller->pause();
+                item->SetItemLabel("Un&pause");
+            }
             break;
-        case 2:
+        }
+        case 3:
             controller->stop();
             break;
-        case 3: {
+        case 4: {
             static Array<FileFormat> fileFormats = {
                 { "SPH state file", "ssf" },
                 { "SPH compressed file", "scf" },
@@ -594,7 +599,7 @@ wxMenu* MainWindow::createRunMenu() {
             controller->saveState(path.value());
             break;
         }
-        case 4: {
+        case 5: {
             const Storage& storage = controller->getStorage();
             const std::string text("cached " + notebook->GetPageText(notebook->GetSelection()));
             AutoPtr<CachedParticlesJob> worker = makeAuto<CachedParticlesJob>(text, storage);
@@ -602,12 +607,10 @@ wxMenu* MainWindow::createRunMenu() {
             notebook->SetSelection(notebook->GetPageIndex(nodePage));
             break;
         }
-        case 5:
-            if (page->close()) {
-                notebook->DeletePage(notebook->GetPageIndex(page));
-            }
-            break;
         case 6:
+            closeRun(notebook->GetPageIndex(page));
+            break;
+        case 7:
             this->removeAll();
             break;
         default:
@@ -719,13 +722,8 @@ void MainWindow::addPage(SharedPtr<JobNode> node, const RunSettings& globals, co
 
 bool MainWindow::removeAll() {
     for (int i = notebook->GetPageCount() - 1; i >= 0; --i) {
-        if (RunPage* page = dynamic_cast<RunPage*>(notebook->GetPage(i))) {
-            const bool canClose = page->close();
-            if (canClose) {
-                notebook->DeletePage(i);
-            } else {
-                return false;
-            }
+        if (!closeRun(i)) {
+            return false;
         }
     }
     return true;
@@ -749,20 +747,44 @@ void MainWindow::onClose(wxCloseEvent& evt) {
 }
 
 void MainWindow::enableMenus(const Size id) {
+    /// \todo avoid hardcoded indices
+
     wxMenuBar* bar = this->GetMenuBar();
     RunPage* page = dynamic_cast<RunPage*>(notebook->GetPage(id));
     if (!runs.contains(page)) {
-        bar->EnableTop(1, false);
-        // bar->EnableTop(2, false);
+        enableRunMenu(false);
+        // disable analysis
+        bar->EnableTop(2, false);
         return;
     }
     const bool enableRun = page && runs[page].isRun;
-    // const bool enableResult = page && !runs[page].isRun;
 
-    /// \todo avoid hardcoded indices
+    enableRunMenu(enableRun);
+    // enable/disable analysis
+    bar->EnableTop(2, enableRun);
+}
 
-    bar->EnableTop(1, enableRun);
-    //    bar->EnableTop(2, enableResult);
+void MainWindow::enableRunMenu(const bool enable) {
+    wxMenuItemList& list = runMenu->GetMenuItems();
+    // enable/disable all but the first item ("Start")
+    for (Size i = 1; i < list.size(); ++i) {
+        list[i]->Enable(enable);
+    }
+}
+
+bool MainWindow::closeRun(const Size id) {
+    wxWindow* page = notebook->GetPage(id);
+    if (RunPage* runPage = dynamic_cast<RunPage*>(page)) {
+        if (!runPage->close()) {
+            // veto'd
+            return false;
+        }
+
+        // destroy the associated controller
+        runs.remove(runPage);
+    }
+    notebook->DeletePage(id);
+    return true;
 }
 
 NAMESPACE_SPH_END

@@ -281,6 +281,9 @@ public:
     ///                      function is nonblocking.
     void stop(const bool waitForFinish = false);
 
+    /// \brief Returns the current status of the run.
+    RunStatus getStatus() const;
+
     /// \brief Saves the state of the current run to the disk.
     ///
     /// \param path Path to the file where the run state is saved (as binary data).

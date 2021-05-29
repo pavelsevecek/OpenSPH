@@ -73,7 +73,7 @@ private:
 
     SharedPtr<INodeManagerCallbacks> callbacks;
 
-    Array<Function<void()>> undoStack;
+    WeakPtr<JobNode> activeNode;
 
 public:
     NodeManager(NodeEditor* editor, SharedPtr<INodeManagerCallbacks> callbacks);
@@ -112,19 +112,13 @@ public:
 
     void startAll();
 
-    void addToUndo(Function<void()> func) {
-        undoStack.push(func);
-    }
-
-    void undo() {
-        if (!undoStack.empty()) {
-            undoStack.pop()();
-        }
-    }
+    Array<SharedPtr<JobNode>> getTopLevelNodes() const;
 
     VirtualSettings getGlobalSettings();
 
     void showBatchDialog();
+
+    void selectRun();
 
     UniqueNameManager makeUniqueNameManager() const;
 };
@@ -248,15 +242,13 @@ public:
 
     void showBatchDialog();
 
+    void selectRun();
+
     void save(Config& config);
 
     void load(Config& config);
 
     SharedPtr<JobNode> addNode(AutoPtr<IJob>&& worker);
-
-    void undo() {
-        nodeMgr->undo();
-    }
 
     void reset();
 
