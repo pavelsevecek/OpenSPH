@@ -215,8 +215,7 @@ wxPGWindowList CurveEditor::CreateControls(wxPropertyGrid* propgrid,
             propgrid->GetEventHandler()->ProcessEvent(*changeEvent);
         });
     dialog->Show();
-    // wxPGWindowList list(new wxWindow(propgrid, wxID_ANY), new CurvePanel(propgrid));
-    return {};
+    return wxPGWindowList(nullptr);
 }
 
 void CurveEditor::UpdateControl(wxPGProperty* property, wxWindow* ctrl) const {

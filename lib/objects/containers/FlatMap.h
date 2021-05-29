@@ -47,10 +47,7 @@ public:
     /// i.e. each key has to be present at most once. This is checked by assert.
     FlatMap(std::initializer_list<Element> list)
         : data(list) {
-        std::sort(data.begin(), data.end(), [](Element& e1, Element& e2) {
-            SPH_ASSERT(e1.key != e2.key); // keys must be unique
-            return compare(e1.key, e2.key);
-        });
+        std::sort(data.begin(), data.end(), [](Element& e1, Element& e2) { return compare(e1.key, e2.key); });
     }
 
     /// \brief Returns a reference to the element, given its key.
