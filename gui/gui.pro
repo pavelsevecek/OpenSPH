@@ -3,7 +3,7 @@ CONFIG += c++14 staticlib thread silent
 CONFIG -= app_bundle
 CONFIG -= qt
 
-INCLUDEPATH += /usr/include/wx-3.0 ../lib/ ..
+INCLUDEPATH += $$PREFIX/include/wx-3.0 ../lib/ ..
 DEPENDPATH += ../lib ../test
 PRE_TARGETDEPS += ../lib/liblib.a
 LIBS += ../lib/liblib.a

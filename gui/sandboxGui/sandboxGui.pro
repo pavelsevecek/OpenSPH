@@ -3,7 +3,7 @@ CONFIG += c++14 thread silent
 CONFIG -= app_bundle
 CONFIG -= qt
 
-INCLUDEPATH += ../../lib ../.. /usr/include/wx-3.0
+INCLUDEPATH += ../../lib ../.. $$PREFIX/include/wx-3.0
 DEPENDPATH += .. ../../lib ../../gui
 PRE_TARGETDEPS += ../../lib/liblib.a ../../gui/libgui.a
 LIBS += ../../gui/libgui.a

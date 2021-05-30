@@ -9,7 +9,7 @@ CONFIG(devel) {
     DEFINES += SPH_CONFIG_SET
 }
 
-INCLUDEPATH += ../lib /usr/include/catch2
+INCLUDEPATH += ../lib $$PREFIX/include/catch2
 DEPENDPATH += . ../lib
 LIBS += ../lib/liblib.a
 PRE_TARGETDEPS += ../lib/liblib.a

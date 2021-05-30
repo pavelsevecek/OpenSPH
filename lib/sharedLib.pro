@@ -11,9 +11,13 @@ linux-g++ {
     QMAKE_CXXFLAGS += -Wno-redundant-move
 }
 
+isEmpty(PREFIX) {
+    PREFIX = /usr
+}
+
 CONFIG(use_tbb) {
     DEFINES += SPH_USE_TBB
-    INCLUDEPATH += /usr/include/tbb
+    INCLUDEPATH += $$PREFIX/include/tbb
     LIBS += -ltbb -ltbbmalloc
 }
 
@@ -25,7 +29,7 @@ CONFIG(use_openmp) {
 
 CONFIG(use_eigen) {
     DEFINES += SPH_USE_EIGEN
-    INCLUDEPATH += /usr/include/eigen3
+    INCLUDEPATH += $$PREFIX/include/eigen3
 }
 
 CONFIG(use_hdf5) {

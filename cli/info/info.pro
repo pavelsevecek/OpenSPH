@@ -9,7 +9,7 @@ PRE_TARGETDEPS += ../../lib/liblib.a
 LIBS += ../../lib/liblib.a
 
 TARGET = opensph-info
-target.path = /usr/bin/
+target.path = $$PREFIX/bin/
 INSTALLS += target
 
 include(../../lib/sharedLib.pro)

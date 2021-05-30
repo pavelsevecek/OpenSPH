@@ -1,3 +1,7 @@
+## 2021-05-30
+- replaced /usr with $$PREFIX in .pro files
+- fixed linking of OpenVDB
+
 ## 2021-05-29
 - added run select dialog
 - properly closing run controllers
