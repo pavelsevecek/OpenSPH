@@ -9,12 +9,12 @@ CONFIG(devel) {
     DEFINES += SPH_CONFIG_SET
 }
 
+include(../lib/sharedLib.pro)
+
 INCLUDEPATH += ../lib $$PREFIX/include/catch2
 DEPENDPATH += . ../lib
 LIBS += ../lib/liblib.a
 PRE_TARGETDEPS += ../lib/liblib.a
-
-include(../lib/sharedLib.pro)
 
 
 SOURCES += \

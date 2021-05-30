@@ -6,6 +6,7 @@
 /// \date 2016-2019
 
 #include "gui/objects/Point.h"
+#include "math/AffineMatrix.h"
 #include "math/Quat.h"
 
 NAMESPACE_SPH_BEGIN

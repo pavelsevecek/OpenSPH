@@ -3,6 +3,5 @@ LIBS += `wx-config --libs std propgrid aui`
 
 CONFIG(use_vdb) {
     DEFINES += SPH_USE_VDB
-    INCLUDEPATH += $$PREFIX/include/openvdb
     LIBS += -ltbb -lImath -lopenvdb
 }

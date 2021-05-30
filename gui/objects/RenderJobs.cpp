@@ -12,7 +12,7 @@
 #include "system/Timer.h"
 
 #ifdef SPH_USE_VDB
-#include "openvdb/openvdb.h"
+#include <openvdb/openvdb.h>
 #endif
 
 
