@@ -58,14 +58,14 @@ public:
         for (auto value : input) {
             map.insert(int(value.id), EnumValue{ value.value, value.desc });
         }
-        const EnumIndex index = typeid(TEnum);
+        const EnumIndex index = std::type_index(typeid(TEnum));
         instance.records.insert(index, std::move(map));
         return instance;
     }
 
     template <typename TEnum>
     static std::string toString(const TEnum value) {
-        return toString(int(value), typeid(TEnum));
+        return toString(int(value), std::type_index(typeid(TEnum)));
     }
 
     static std::string toString(const int value, const EnumIndex& index) {
@@ -99,7 +99,7 @@ public:
 
     template <typename TEnum>
     static Optional<TEnum> fromString(const std::string& value) {
-        Optional<int> id = fromString(value, typeid(TEnum));
+        Optional<int> id = fromString(value, std::type_index(typeid(TEnum)));
         return optionalCast<TEnum>(id);
     }
 
@@ -117,7 +117,7 @@ public:
 
     template <typename TEnum>
     static std::string getDesc() {
-        return getDesc(typeid(TEnum));
+        return getDesc(std::type_index(typeid(TEnum)));
     }
 
     static std::string getDesc(const EnumIndex& index) {
@@ -139,7 +139,7 @@ public:
     template <typename TEnum>
     static Array<TEnum> getAll() {
         EnumMap& instance = getInstance();
-        const EnumIndex index = typeid(TEnum);
+        const EnumIndex index = std::type_index(typeid(TEnum));
         Optional<EnumRecord&> record = instance.records.tryGet(index);
         SPH_ASSERT(record);
 
