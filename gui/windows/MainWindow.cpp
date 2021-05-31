@@ -722,7 +722,7 @@ void MainWindow::addPage(SharedPtr<JobNode> node, const RunSettings& globals, co
 
 bool MainWindow::removeAll() {
     for (int i = notebook->GetPageCount() - 1; i >= 0; --i) {
-        if (!closeRun(i)) {
+        if (dynamic_cast<RunPage*>(notebook->GetPage(i)) && !closeRun(i)) {
             return false;
         }
     }
