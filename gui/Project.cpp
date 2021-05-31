@@ -77,7 +77,7 @@ template <>
 INLINE auto configToSettingsValue(const EnumWrapper& original, const int& value) {
     EnumWrapper ew;
     ew.value = value;
-    ew.typeHash = original.typeHash;
+    ew.index = original.index;
     return ew;
 }
 

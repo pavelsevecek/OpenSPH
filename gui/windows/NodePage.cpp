@@ -1287,8 +1287,8 @@ public:
 
     wxPGProperty* addEnum(const std::string& name, const EnumWrapper wrapper) const {
         wxArrayString values;
-        for (int id : EnumMap::getAll(wrapper.typeHash)) {
-            const std::string rawName = EnumMap::toString(id, wrapper.typeHash);
+        for (int id : EnumMap::getAll(wrapper.index)) {
+            const std::string rawName = EnumMap::toString(id, wrapper.index);
             values.Add(capitalize(replaceAll(rawName, "_", " ")));
         }
         return grid->Append(new wxEnumProperty(name, wxPG_LABEL, values, wxArrayInt(), wrapper.value));
@@ -1297,8 +1297,8 @@ public:
     wxPGProperty* addFlags(const std::string& name, const EnumWrapper wrapper) const {
         wxArrayString values;
         wxArrayInt flags;
-        for (int id : EnumMap::getAll(wrapper.typeHash)) {
-            const std::string rawName = EnumMap::toString(id, wrapper.typeHash);
+        for (int id : EnumMap::getAll(wrapper.index)) {
+            const std::string rawName = EnumMap::toString(id, wrapper.index);
             values.Add(capitalize(replaceAll(rawName, "_", " ")));
             flags.Add(int(id));
         }

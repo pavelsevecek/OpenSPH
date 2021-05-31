@@ -61,13 +61,13 @@ public:
     }
 
     void operator()(EnumWrapper& ew) {
-        const Optional<int> value = EnumMap::fromString(ss.str(), ew.typeHash);
+        const Optional<int> value = EnumMap::fromString(ss.str(), ew.index);
         if (value) {
             ew.value = value.value();
         } else {
             throw InvalidSetup("Value '" + ss.str() +
                                "' is invalid for this parameter. Possible values are:\n" +
-                               EnumMap::getDesc(ew.typeHash));
+                               EnumMap::getDesc(ew.index));
         }
     }
 

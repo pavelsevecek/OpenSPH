@@ -18,8 +18,13 @@ struct EnumValue {
     std::string desc;
 };
 
-
+/// Maps a numerical value to a string value and description.
 using EnumRecord = FlatMap<int, EnumValue>;
+
+/// Unique identifier of an enum type.
+///
+/// Made optional to be default-constructible and usable in FlatMap.
+using EnumIndex = Optional<std::type_index>;
 
 template <typename TEnum>
 struct EnumInputValue {
@@ -30,7 +35,19 @@ struct EnumInputValue {
 
 class EnumMap {
 private:
-    FlatMap<std::size_t, EnumRecord> records;
+    struct CompareEnums {
+        INLINE bool operator()(const EnumIndex& key1, const EnumIndex& key2) const {
+            if (key1 && key2) {
+                return key1.value() < key2.value();
+            } else if (key2) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+    };
+
+    FlatMap<EnumIndex, EnumRecord, CompareEnums> records;
 
 public:
     template <typename TEnum>
@@ -41,20 +58,19 @@ public:
         for (auto value : input) {
             map.insert(int(value.id), EnumValue{ value.value, value.desc });
         }
-        const std::size_t id = typeid(TEnum).hash_code();
-        // SPH_ASSERT(!instance.records.contains(id));
-        instance.records.insert(id, std::move(map));
+        const EnumIndex index = typeid(TEnum);
+        instance.records.insert(index, std::move(map));
         return instance;
     }
 
     template <typename TEnum>
     static std::string toString(const TEnum value) {
-        return toString(int(value), typeid(TEnum).hash_code());
+        return toString(int(value), typeid(TEnum));
     }
 
-    static std::string toString(const int value, const std::size_t id) {
+    static std::string toString(const int value, const EnumIndex& index) {
         EnumMap& instance = getInstance();
-        Optional<EnumRecord&> record = instance.records.tryGet(id);
+        Optional<EnumRecord&> record = instance.records.tryGet(index);
         SPH_ASSERT(record);
         if (Optional<EnumValue&> e = record->tryGet(value)) {
             // this is one of the enum values, return the text value
@@ -83,13 +99,13 @@ public:
 
     template <typename TEnum>
     static Optional<TEnum> fromString(const std::string& value) {
-        Optional<int> id = fromString(value, typeid(TEnum).hash_code());
+        Optional<int> id = fromString(value, typeid(TEnum));
         return optionalCast<TEnum>(id);
     }
 
-    static Optional<int> fromString(const std::string& value, const std::size_t id) {
+    static Optional<int> fromString(const std::string& value, const EnumIndex& index) {
         EnumMap& instance = getInstance();
-        Optional<EnumRecord&> record = instance.records.tryGet(id);
+        Optional<EnumRecord&> record = instance.records.tryGet(index);
         SPH_ASSERT(record);
         for (auto pair : record.value()) {
             if (pair.value.value == value) { // erm ...
@@ -101,12 +117,12 @@ public:
 
     template <typename TEnum>
     static std::string getDesc() {
-        return getDesc(typeid(TEnum).hash_code());
+        return getDesc(typeid(TEnum));
     }
 
-    static std::string getDesc(const std::size_t id) {
+    static std::string getDesc(const EnumIndex& index) {
         EnumMap& instance = getInstance();
-        Optional<EnumRecord&> record = instance.records.tryGet(id);
+        Optional<EnumRecord&> record = instance.records.tryGet(index);
         SPH_ASSERT(record);
         std::string desc;
         Size idx = 0;
@@ -123,8 +139,8 @@ public:
     template <typename TEnum>
     static Array<TEnum> getAll() {
         EnumMap& instance = getInstance();
-        const std::size_t id = typeid(TEnum).hash_code();
-        Optional<EnumRecord&> record = instance.records.tryGet(id);
+        const EnumIndex index = typeid(TEnum);
+        Optional<EnumRecord&> record = instance.records.tryGet(index);
         SPH_ASSERT(record);
 
         Array<TEnum> enums;
@@ -135,9 +151,9 @@ public:
     }
 
 
-    static Array<int> getAll(const std::size_t id) {
+    static Array<int> getAll(const EnumIndex& index) {
         EnumMap& instance = getInstance();
-        Optional<EnumRecord&> record = instance.records.tryGet(id);
+        Optional<EnumRecord&> record = instance.records.tryGet(index);
         SPH_ASSERT(record);
 
         Array<int> enums;

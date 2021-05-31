@@ -33,23 +33,24 @@ const EmptySettingsTag EMPTY_SETTINGS;
 
 /// \brief Wrapper of an enum.
 ///
-/// Used to store an enum in settings while keeping (to some degree) the type safety.
+/// Used to store an enum in settings while keeping the type safety.
 struct EnumWrapper {
     int value;
-    std::size_t typeHash;
+
+    EnumIndex index;
 
     EnumWrapper() = default;
 
     template <typename TEnum>
     explicit EnumWrapper(TEnum e)
         : value(int(e))
-        , typeHash(typeid(TEnum).hash_code()) {
+        , index(typeid(TEnum)) {
         static_assert(std::is_enum<TEnum>::value, "Can be used only for enums");
     }
 
-    EnumWrapper(const int value, const std::size_t hash)
+    EnumWrapper(const int value, const EnumIndex& index)
         : value(value)
-        , typeHash(hash) {}
+        , index(index) {}
 
     explicit operator int() const {
         return value;
@@ -57,16 +58,16 @@ struct EnumWrapper {
 
     template <typename T, typename = std::enable_if_t<std::is_enum<T>::value>>
     explicit operator T() const {
-        SPH_ASSERT(typeid(T).hash_code() == typeHash);
+        SPH_ASSERT(std::type_index(typeid(T)) == index);
         return T(value);
     }
 
     bool operator==(const EnumWrapper& other) const {
-        return value == other.value && typeHash == other.typeHash;
+        return value == other.value && index == other.index;
     }
 
     friend std::ostream& operator<<(std::ostream& ofs, const EnumWrapper& e) {
-        ofs << e.value << " (" << e.typeHash << ")";
+        ofs << e.value << " (" << (e.index ? e.index->hash_code() : 0) << ")";
         return ofs;
     }
 };
@@ -180,7 +181,7 @@ private:
 
         template <typename T>
         INLINE bool hasType(std::enable_if_t<std::is_enum<T>::value, int> = 0) const {
-            return value.has<EnumWrapper>() && value.get<EnumWrapper>().typeHash == typeid(T).hash_code();
+            return value.has<EnumWrapper>() && value.get<EnumWrapper>().index == std::type_index(typeid(T));
         }
     };
 
@@ -281,7 +282,7 @@ public:
         Optional<Entry&> entry = entries.tryGet(idx);
         if (entry) {
             Optional<EnumWrapper> current = entry->value.template tryGet<EnumWrapper>();
-            checkSettingsAccess(current && current->typeHash == ew.typeHash, idx);
+            checkSettingsAccess(current && current->index == ew.index, idx);
         }
         this->set(idx, ew, 0); // zero needed to call the other overload
         return *this;
@@ -334,7 +335,7 @@ public:
         checkSettingsAccess(entry && entry->value.template has<EnumWrapper>(), idx);
 
         const EnumWrapper wrapper = entry->value.template get<EnumWrapper>();
-        checkSettingsAccess(wrapper.typeHash == typeid(TValue).hash_code(), idx);
+        checkSettingsAccess(wrapper.index == std::type_index(typeid(TValue)), idx);
         return TValue(wrapper.value);
     }
 

@@ -1,5 +1,6 @@
 ## 2021-05-31
 - palettes are now saved directly into the .sph file
+- replaced hashes with std::type_index in EnumWrapper
 
 ## 2021-05-30
 - replaced /usr with $$PREFIX in .pro files
