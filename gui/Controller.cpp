@@ -719,8 +719,10 @@ void Controller::startRunThread() {
             });
         }
 
-        // set status to finished
-        status = RunStatus::STOPPED;
+        // set status to finished (if not already quitting)
+        if (status != RunStatus::QUITTING) {
+            status = RunStatus::STOPPED;
+        }
     });
 }
 

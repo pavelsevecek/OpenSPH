@@ -3,6 +3,7 @@
 - fixed linking of OpenVDB
 - fixed segfault when opening a new session
 - fixed button positioning in "Select Run" dialog
+- fixed potential deadlock when closing the run
 
 ## 2021-05-29
 - added run select dialog
