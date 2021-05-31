@@ -140,7 +140,7 @@ TEST_CASE("Settings save/load basic", "[settings]") {
     settings.set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE);
 
     RandomPathManager manager;
-    Path path = manager.getPath("sph");
+    Path path = manager.getPath("tmp");
     settings.saveToFile(path);
 
     RunSettings loadedSettings;
@@ -155,16 +155,16 @@ TEST_CASE("Settings save/load basic", "[settings]") {
     const IoEnum output = loadedSettings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
     REQUIRE(output == IoEnum::BINARY_FILE);
 
-    REQUIRE_FALSE(loadedSettings.loadFromFile(Path("nonexistingFile.sph")));
+    REQUIRE_FALSE(loadedSettings.loadFromFile(Path("nonexistingFile.tmp")));
 
     BodySettings body;
     // just test that body settings also work without asserts, otherwise the system is the same
-    REQUIRE_NOTHROW(body.saveToFile(manager.getPath("sph")));
+    REQUIRE_NOTHROW(body.saveToFile(manager.getPath("tmp")));
 }
 
 TEST_CASE("Settings save/load flags", "[settings]") {
     RandomPathManager manager;
-    Path path = manager.getPath("sph");
+    Path path = manager.getPath("tmp");
     RunSettings settings;
     settings.set(RunSettingsId::TIMESTEPPING_CRITERION,
         TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::ACCELERATION);
@@ -247,7 +247,7 @@ static bool areSettingsEqual(RunSettings& settings1, RunSettings& settings2) {
 
 TEST_CASE("Settings save/load complete", "[settings]") {
     RandomPathManager manager;
-    Path path = manager.getPath("sph");
+    Path path = manager.getPath("tmp");
 
     RunSettings settings1;
     settings1.set(RunSettingsId::DOMAIN_RADIUS, 3.5_f);
