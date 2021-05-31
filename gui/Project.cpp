@@ -104,9 +104,10 @@ void Project::savePalettes(Config& config) {
         paletteNode->set("upper", palette.getInterval().upper());
         paletteNode->set("scale", int(palette.getScale()));
 
-        const std::string path = getIdentifier(element.key) + ".csv";
-        paletteNode->set("file", path);
-        palette.saveToFile(Path(path));
+        std::stringstream ss;
+        palette.saveToStream(ss);
+        std::string data = replaceAll(ss.str(), "\n", ";");
+        paletteNode->set("data", data);
     }
 }
 
@@ -125,7 +126,7 @@ void Project::loadGui(Config& config) {
                 const Type loadedValue = guiNode->get<Type>(key.value());
                 gui.set(entry.id, configToSettingsValue(value, loadedValue));
             } catch (ConfigException& UNUSED(e)) {
-                /// \todo log the error somewhere - we don't want to bail out here to allow laoding older
+                /// \todo log the error somewhere - we don't want to bail out here to allow loading older
                 /// sessions
             }
         });
@@ -149,11 +150,20 @@ void Project::loadPalettes(Config& config) {
         const float lower = float(paletteNode.get<Float>("lower"));
         const float upper = float(paletteNode.get<Float>("upper"));
         const PaletteScale scale = PaletteScale(paletteNode.get<int>("scale"));
-        const std::string path = paletteNode.get<std::string>("file");
         Palette palette({ { lower, Rgba::black() }, { upper, Rgba::white() } }, scale);
 
-        if (palette.loadFromFile(Path(path))) {
-            palettes.insert(name, palette);
+        if (paletteNode.contains("data")) {
+            std::string data = paletteNode.get<std::string>("data");
+            data = replaceAll(data, ";", "\n");
+            std::stringstream ss(data);
+            if (palette.loadFromStream(ss)) {
+                palettes.insert(name, palette);
+            }
+        } else { // older format, palettes in separate files
+            const std::string path = paletteNode.get<std::string>("file");
+            if (palette.loadFromFile(Path(path))) {
+                palettes.insert(name, palette);
+            }
         }
     });
 }

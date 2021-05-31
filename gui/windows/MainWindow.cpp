@@ -266,6 +266,7 @@ void MainWindow::saveAs() {
 }
 
 void MainWindow::save() {
+    SPH_ASSERT(!projectPath.empty());
     BusyCursor wait(this);
 
     Config config;

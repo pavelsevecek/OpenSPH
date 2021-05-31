@@ -1,3 +1,6 @@
+## 2021-05-31
+- palettes are now saved directly into the .sph file
+
 ## 2021-05-30
 - replaced /usr with $$PREFIX in .pro files
 - fixed linking of OpenVDB
