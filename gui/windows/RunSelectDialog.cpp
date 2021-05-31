@@ -14,13 +14,14 @@ RunSelectDialog::RunSelectDialog(wxWindow* parent, Array<SharedPtr<JobNode>>&& n
 
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     sizer->Add(new wxStaticText(this, wxID_ANY, "Select run:"));
-    wxListCtrl* list =
-        new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxSize(800, 420), wxLC_REPORT | wxLC_SINGLE_SEL);
-    int width = list->GetSize().x / 2 - 5;
+    const int listHeight = this->GetClientSize().y - 70;
+    wxListCtrl* list = new wxListCtrl(
+        this, wxID_ANY, wxDefaultPosition, wxSize(800, listHeight), wxLC_REPORT | wxLC_SINGLE_SEL);
+    const int columnWidth = list->GetSize().x / 2 - 5;
     list->AppendColumn("Name");
     list->AppendColumn("Type");
-    list->SetColumnWidth(0, width);
-    list->SetColumnWidth(1, width);
+    list->SetColumnWidth(0, columnWidth);
+    list->SetColumnWidth(1, columnWidth);
     int index = 0;
     for (auto& node : this->nodes) {
         wxListItem item;

@@ -2,6 +2,7 @@
 - replaced /usr with $$PREFIX in .pro files
 - fixed linking of OpenVDB
 - fixed segfault when opening a new session
+- fixed button positioning in "Select Run" dialog
 
 ## 2021-05-29
 - added run select dialog
