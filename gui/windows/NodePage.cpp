@@ -90,6 +90,7 @@ void NodeManager::addNodes(JobNode& node) {
         nodes.insert(node, VisNode(node.get(), Pixel(0, 0)));
     });
     this->layoutNodes(node, Pixel(800, 200) - editor->offset());
+    callbacks->markUnsaved(true);
 }
 
 void NodeManager::cloneHierarchy(JobNode& node) {
@@ -163,7 +164,7 @@ void NodeManager::layoutNodes(JobNode& node, const Pixel position) {
     }
 
     editor->Refresh();
-    callbacks->markUnsaved();
+    callbacks->markUnsaved(true);
 }
 
 void NodeManager::deleteNode(JobNode& node) {
@@ -174,7 +175,7 @@ void NodeManager::deleteNode(JobNode& node) {
     }
     node.disconnectAll();
     nodes.remove(node.sharedFromThis());
-    callbacks->markUnsaved();
+    callbacks->markUnsaved(true);
 }
 
 void NodeManager::deleteTree(JobNode& node) {
@@ -183,13 +184,13 @@ void NodeManager::deleteTree(JobNode& node) {
     for (SharedPtr<JobNode> n : toRemove) {
         nodes.remove(n);
     }
-    callbacks->markUnsaved();
+    callbacks->markUnsaved(true);
 }
 
 void NodeManager::deleteAll() {
     nodes.clear();
     editor->Refresh();
-    callbacks->markUnsaved();
+    callbacks->markUnsaved(true);
 }
 
 VisNode* NodeManager::getSelectedNode(const Pixel position) {
@@ -574,7 +575,7 @@ void NodeManager::showBatchDialog() {
     BatchDialog* batchDialog = new BatchDialog(editor, batch, std::move(nodeList));
     if (batchDialog->ShowModal() == wxID_OK) {
         batch = batchDialog->getBatch().clone();
-        callbacks->markUnsaved();
+        callbacks->markUnsaved(true);
     }
     batchDialog->Destroy();
 }
@@ -932,7 +933,7 @@ void NodeEditor::onMouseMotion(wxMouseEvent& evt) {
             state.offset += mousePosition - state.mousePosition;
         }
         this->Refresh();
-        callbacks->markUnsaved();
+        callbacks->markUnsaved(false);
     } else {
         const NodeSlot slot = nodeMgr->getSlotAtPosition(this->transform(mousePosition));
         if (slot != state.lastSlot) {
@@ -956,7 +957,7 @@ void NodeEditor::onMouseWheel(wxMouseEvent& evt) {
         state.offset += (position - state.offset) * (1.f - amount);
     }
     this->Refresh();
-    callbacks->markUnsaved();
+    callbacks->markUnsaved(false);
 }
 
 void NodeEditor::onLeftDown(wxMouseEvent& evt) {
@@ -1008,7 +1009,7 @@ void NodeEditor::onLeftUp(wxMouseEvent& evt) {
         // connect to the new slot
         sourceNode->connect(targetNode->sharedFromThis(), slotData.name);
 
-        callbacks->markUnsaved();
+        callbacks->markUnsaved(true);
     }
 
     state.connectingSlot = NOTHING;
@@ -1469,7 +1470,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             this->updateEnabled(grid);
         }
         nodeEditor->Refresh();
-        callbacks->markUnsaved();
+        callbacks->markUnsaved(true);
     });
 
 
@@ -1506,14 +1507,14 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             categoryItemIdMap.insert(cat, catId);
         }
     }
+
     wxTreeItemId presetsId = workerView->AppendItem(rootId, "presets");
-    wxTreeItemId collisionsId = workerView->AppendItem(presetsId, "asteroid collision");
-    wxTreeItemId fragAndReaccId = workerView->AppendItem(presetsId, "fragmentation & reaccumulation");
-    wxTreeItemId planetesimalId = workerView->AppendItem(presetsId, "planetesimal merge");
-    wxTreeItemId crateringId = workerView->AppendItem(presetsId, "cratering");
-    wxTreeItemId accretionId = workerView->AppendItem(presetsId, "accretion disk");
-    wxTreeItemId galaxyId = workerView->AppendItem(presetsId, "galaxy collision");
-    wxTreeItemId solarSystemId = workerView->AppendItem(presetsId, "solar system");
+    std::map<wxTreeItemId, Presets::Id> presetsIdMap;
+    for (Presets::Id id : EnumMap::getAll<Presets::Id>()) {
+        std::string name = replaceAll(EnumMap::toString(id), "_", " ");
+        wxTreeItemId itemId = workerView->AppendItem(presetsId, name);
+        presetsIdMap[itemId] = id;
+    }
 
     workerView->Bind(wxEVT_MOTION, [workerView](wxMouseEvent& evt) {
         wxPoint pos = evt.GetPosition();
@@ -1540,25 +1541,11 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
     workerView->Bind(wxEVT_TREE_ITEM_ACTIVATED, [=](wxTreeEvent& evt) {
         wxTreeItemId id = evt.GetItem();
         UniqueNameManager nameMgr = nodeMgr->makeUniqueNameManager();
-        SharedPtr<JobNode> presetNode;
-        if (id == fragAndReaccId) {
-            presetNode = Presets::makeFragmentationAndReaccumulation(nameMgr);
-        } else if (id == collisionsId) {
-            presetNode = Presets::makeAsteroidCollision(nameMgr);
-        } else if (id == crateringId) {
-            presetNode = Presets::makeCratering(nameMgr);
-        } else if (id == accretionId) {
-            presetNode = Presets::makeAccretionDisk(nameMgr);
-        } else if (id == galaxyId) {
-            presetNode = Presets::makeGalaxyCollision(nameMgr);
-        } else if (id == solarSystemId) {
-            presetNode = Presets::makeSolarSystem(nameMgr);
-        } else if (id == planetesimalId) {
-            presetNode = Presets::makePlanetesimalMerging(nameMgr);
-        }
-        if (presetNode) {
+        if (presetsIdMap.find(id) != presetsIdMap.end()) {
+            SharedPtr<JobNode> presetNode = Presets::make(presetsIdMap.at(id), nameMgr);
             nodeMgr->addNodes(*presetNode);
         }
+
         WorkerTreeData* data = dynamic_cast<WorkerTreeData*>(workerView->GetItemData(id));
         if (data) {
             AutoPtr<IJob> worker = data->create();
@@ -1594,7 +1581,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             VisNode* vis = nodeMgr->addNode(node);
             nodeEditor->activate(vis);
             this->selectNode(*node);
-            callbacks->markUnsaved();
+            callbacks->markUnsaved(true);
         }
     });
 
@@ -1675,7 +1662,16 @@ void NodeWindow::load(Config& config) {
     nodeEditor->load(config);
 }
 
-SharedPtr<JobNode> NodeWindow::addNode(AutoPtr<IJob>&& worker) {
+void NodeWindow::addNode(const SharedPtr<JobNode>& node) {
+    nodeMgr->addNode(node);
+}
+
+void NodeWindow::addNodes(JobNode& node) {
+    nodeMgr->addNodes(node);
+}
+
+
+SharedPtr<JobNode> NodeWindow::createNode(AutoPtr<IJob>&& worker) {
     SharedPtr<JobNode> node = makeShared<JobNode>(std::move(worker));
     nodeMgr->addNode(node);
     return node;
@@ -1710,6 +1706,10 @@ void NodeWindow::updateEnabled(wxPropertyGrid* grid) {
         const bool enabled = entry->enabled();
         prop->Enable(enabled);
     }
+}
+
+UniqueNameManager NodeWindow::makeUniqueNameManager() const {
+    return nodeMgr->makeUniqueNameManager();
 }
 
 NAMESPACE_SPH_END

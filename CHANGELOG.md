@@ -1,3 +1,7 @@
+## 2021-06-03
+- added "create session" dialog
+- throwing exception in HalfSpaceDomain::getVolume and getSurfaceArea 
+
 ## 2021-05-31
 - palettes are now saved directly into the .sph file
 - replaced hashes with std::type_index in EnumWrapper

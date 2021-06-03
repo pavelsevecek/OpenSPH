@@ -74,6 +74,8 @@ private:
     void enableRunMenu(const bool enable);
 
     bool closeRun(const Size id);
+
+    int checkUnsavedSession();
 };
 
 NAMESPACE_SPH_END

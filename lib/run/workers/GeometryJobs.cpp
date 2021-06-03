@@ -161,7 +161,7 @@ static JobRegistrar sRegisterMaclaurin(
     "spheroid",
     "geometry",
     [](const std::string& name) { return makeAuto<MaclaurinSpheroidJob>(name); },
-    "Creates a Maclaurin spheroid, given density and spin rate of the body.");
+    "Creates a Maclaurin spheroid, given the density and the spin rate of the body.");
 
 //-----------------------------------------------------------------------------------------------------------
 // HalfSpaceJob

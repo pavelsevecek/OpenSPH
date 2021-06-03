@@ -6,6 +6,7 @@
 #include "gui/windows/NodePage.h"
 #include "gui/windows/PlotView.h"
 #include "gui/windows/RunPage.h"
+#include "gui/windows/SessionDialog.h"
 #include "io/FileSystem.h"
 #include "objects/utility/IteratorAdapters.h"
 #include "post/Plot.h"
@@ -99,7 +100,7 @@ public:
         window->addPage(std::move(node), globals, name);
     }
 
-    virtual void markUnsaved() const override {
+    virtual void markUnsaved(bool UNUSED(addToUndo)) const override {
         window->markSaved(false);
     }
 };
@@ -412,12 +413,28 @@ wxMenu* MainWindow::createProjectMenu() {
 
     projectMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& evt) { //
         switch (evt.GetId()) {
-        case 0:
-            if (this->removeAll()) {
+        case 0: {
+            // end running simulations
+            if (!this->removeAll()) {
+                break;
+            }
+            // ask user if unsaved
+            if (checkUnsavedSession() == wxCANCEL) {
+                break;
+            }
+            auto nameMgr = nodePage->makeUniqueNameManager();
+            SessionDialog* dialog = new SessionDialog(this, nameMgr);
+            if (dialog->ShowModal() == wxID_OK) {
                 this->setProjectPath(Path());
                 nodePage->reset();
+                auto node = dialog->selectedPreset();
+                if (node) {
+                    nodePage->addNodes(*node);
+                }
             }
+            dialog->Destroy();
             break;
+        }
         case 1: {
             if (projectPath.empty()) {
                 this->saveAs();
@@ -604,7 +621,7 @@ wxMenu* MainWindow::createRunMenu() {
             const Storage& storage = controller->getStorage();
             const std::string text("cached " + notebook->GetPageText(notebook->GetSelection()));
             AutoPtr<CachedParticlesJob> worker = makeAuto<CachedParticlesJob>(text, storage);
-            nodePage->addNode(std::move(worker));
+            nodePage->createNode(std::move(worker));
             notebook->SetSelection(notebook->GetPageIndex(nodePage));
             break;
         }
@@ -731,18 +748,8 @@ bool MainWindow::removeAll() {
 }
 
 void MainWindow::onClose(wxCloseEvent& evt) {
-    if (!savedFlag) {
-        const int retval = wxMessageBox("Save unsaved changes", "Save?", wxYES_NO | wxCANCEL | wxCENTRE);
-        if (retval == wxYES) {
-            if (projectPath.empty()) {
-                this->saveAs();
-            } else {
-                this->save();
-            }
-        } else if (retval == wxCANCEL) {
-            evt.Veto();
-            return;
-        }
+    if (checkUnsavedSession() == wxCANCEL) {
+        evt.Veto();
     }
     this->Destroy();
 }
@@ -788,4 +795,18 @@ bool MainWindow::closeRun(const Size id) {
     return true;
 }
 
+int MainWindow::checkUnsavedSession() {
+    if (savedFlag) {
+        return true;
+    }
+    const int retval = wxMessageBox("Save unsaved changes", "Save?", wxYES_NO | wxCANCEL | wxCENTRE);
+    if (retval == wxYES) {
+        if (projectPath.empty()) {
+            this->saveAs();
+        } else {
+            this->save();
+        }
+    }
+    return retval;
+}
 NAMESPACE_SPH_END
