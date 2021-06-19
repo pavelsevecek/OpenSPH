@@ -41,12 +41,14 @@ public:
 };
 
 
-// either string or EnumWrapper
+// either string, Path, or EnumWrapper
 template <>
 void Node::setParam(const std::string& key, const std::string value) {
     IVirtualEntry::Value current = settings.get(key);
     if (current.has<std::string>()) {
         settings.set(key, value);
+    } else if (current.has<Path>()) {
+        settings.set(key, Path(value));
     } else if (current.has<EnumWrapper>()) {
         EnumWrapper ew = current.get<EnumWrapper>();
         Optional<int> enumValue = EnumMap::fromString(value, ew.index);
