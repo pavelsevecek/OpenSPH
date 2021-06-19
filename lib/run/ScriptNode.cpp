@@ -32,8 +32,7 @@ public:
         settings.set(key, value);
     }
 
-    void run(const std::string& name) {
-        settings.set("name", name);
+    void run() {
         if (!callbacks.shouldAbortRun()) {
             node->run(global, callbacks);
         }
