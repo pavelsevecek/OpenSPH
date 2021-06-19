@@ -52,7 +52,7 @@ private:
         std::thread thread;
 
         /// Root node of the simulation
-        SharedPtr<JobNode> run;
+        SharedPtr<INode> run;
 
         RunSettings globals;
 
@@ -257,7 +257,7 @@ public:
     /// Must be called before any other run-related functions can be called. If a simulation is currently
     /// running, it waits until the simulation stops and then starts the new simulation.
     /// \param run New simulation to start
-    void start(SharedPtr<JobNode> run, const RunSettings& globals);
+    void start(SharedPtr<INode> run, const RunSettings& globals);
 
     void open(const Path& path, const bool sequence = false);
 

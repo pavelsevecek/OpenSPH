@@ -141,7 +141,23 @@ public:
         : settings(settings)
         , name(name)
         , id(id) {
-        tooltip = settings.getEntryDesc(id).valueOr("");
+        Optional<std::string> key = Settings<TEnum>::getEntryName(id);
+        Optional<int> type = Settings<TEnum>::getEntryType(id);
+        std::string scriptTooltip;
+        if (key) {
+            std::string typeName = Settings<TEnum>::typeToString(type.value());
+            scriptTooltip = "Script name: " + key.value() + " (" + typeName + ")";
+        }
+
+        Optional<std::string> desc = Settings<TEnum>::getEntryDesc(id);
+        if (desc) {
+            tooltip = desc.value();
+            if (key) {
+                tooltip += "\n\n" + scriptTooltip;
+            }
+        } else {
+            tooltip = scriptTooltip;
+        }
     }
 
     virtual void set(const Value& value) override {

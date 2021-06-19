@@ -95,8 +95,9 @@ public:
     NodeManagerCallbacks(MainWindow* window)
         : window(window) {}
 
-    virtual void startRun(SharedPtr<JobNode> node, const RunSettings& globals) const override {
-        const std::string name = node->instanceName();
+    virtual void startRun(SharedPtr<INode> node,
+        const RunSettings& globals,
+        const std::string& name) const override {
         window->addPage(std::move(node), globals, name);
     }
 
@@ -561,19 +562,30 @@ static Array<Post::HistPoint> getOverplotSfd(const GuiSettings& gui) {
 
 wxMenu* MainWindow::createRunMenu() {
     wxMenu* runMenu = new wxMenu();
-    runMenu->Append(0, "S&tart\tCtrl+R");
-    runMenu->Append(1, "&Restart");
-    runMenu->Append(2, "&Pause");
-    runMenu->Append(3, "St&op");
-    runMenu->Append(4, "&Save state");
-    runMenu->Append(5, "Create &node from state");
-    runMenu->Append(6, "&Close current\tCtrl+W");
-    runMenu->Append(7, "Close all");
+    runMenu->Append(0, "S&tart run\tCtrl+R");
+    runMenu->Append(1, "Start script");
+    runMenu->Append(2, "&Restart");
+    runMenu->Append(3, "&Pause");
+    runMenu->Append(4, "St&op");
+    runMenu->Append(5, "&Save state");
+    runMenu->Append(6, "Create &node from state");
+    runMenu->Append(7, "&Close current\tCtrl+W");
+    runMenu->Append(8, "Close all");
 
     runMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this, runMenu](wxCommandEvent& evt) { //
+        // options not related to a particular controller
         if (evt.GetId() == 0) {
-            // only option not related to a particular controller
             nodePage->selectRun();
+            return;
+        } else if (evt.GetId() == 1) {
+#ifdef SPH_USE_CHAISCRIPT
+            Optional<Path> scriptPath = doOpenFileDialog("Chai script", { { "Chai script", "chai" } });
+            if (scriptPath) {
+                nodePage->startScript(scriptPath.value());
+            }
+#else
+            wxMessageBox("The code needs to be compiled with ChaiScript support.", "No ChaiScript", wxOK);
+#endif
             return;
         }
 
@@ -584,11 +596,11 @@ wxMenu* MainWindow::createRunMenu() {
         RawPtr<Controller> controller = runs[page].controller.get();
 
         switch (evt.GetId()) {
-        case 1:
+        case 2:
             controller->stop(true);
             controller->restart();
             break;
-        case 2: {
+        case 3: {
             RunStatus status = controller->getStatus();
             wxMenuItem* item = runMenu->FindItem(2);
             if (status == RunStatus::PAUSED) {
@@ -600,10 +612,10 @@ wxMenu* MainWindow::createRunMenu() {
             }
             break;
         }
-        case 3:
+        case 4:
             controller->stop();
             break;
-        case 4: {
+        case 5: {
             static Array<FileFormat> fileFormats = {
                 { "SPH state file", "ssf" },
                 { "SPH compressed file", "scf" },
@@ -617,7 +629,7 @@ wxMenu* MainWindow::createRunMenu() {
             controller->saveState(path.value());
             break;
         }
-        case 5: {
+        case 6: {
             const Storage& storage = controller->getStorage();
             const std::string text("cached " + notebook->GetPageText(notebook->GetSelection()));
             AutoPtr<CachedParticlesJob> worker = makeAuto<CachedParticlesJob>(text, storage);
@@ -625,10 +637,10 @@ wxMenu* MainWindow::createRunMenu() {
             notebook->SetSelection(notebook->GetPageIndex(nodePage));
             break;
         }
-        case 6:
+        case 7:
             closeRun(notebook->GetPageIndex(page));
             break;
-        case 7:
+        case 8:
             this->removeAll();
             break;
         default:
@@ -721,7 +733,7 @@ wxMenu* MainWindow::createAnalysisMenu() {
     return analysisMenu;
 }
 
-void MainWindow::addPage(SharedPtr<JobNode> node, const RunSettings& globals, const std::string pageName) {
+void MainWindow::addPage(SharedPtr<INode> node, const RunSettings& globals, const std::string pageName) {
     AutoPtr<Controller> controller = makeAuto<Controller>(notebook);
     controller->start(std::move(node), globals);
 
@@ -750,6 +762,7 @@ bool MainWindow::removeAll() {
 void MainWindow::onClose(wxCloseEvent& evt) {
     if (checkUnsavedSession() == wxCANCEL) {
         evt.Veto();
+        return;
     }
     this->Destroy();
 }
@@ -774,8 +787,8 @@ void MainWindow::enableMenus(const Size id) {
 
 void MainWindow::enableRunMenu(const bool enable) {
     wxMenuItemList& list = runMenu->GetMenuItems();
-    // enable/disable all but the first item ("Start")
-    for (Size i = 1; i < list.size(); ++i) {
+    // enable/disable all but the first two items ("Start run" and "Start script")
+    for (Size i = 2; i < list.size(); ++i) {
         list[i]->Enable(enable);
     }
 }

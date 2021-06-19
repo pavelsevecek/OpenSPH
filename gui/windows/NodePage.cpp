@@ -8,6 +8,7 @@
 #include "io/FileSystem.h"
 #include "objects/utility/IteratorAdapters.h"
 #include "run/Config.h"
+#include "run/ScriptNode.h"
 #include "run/SpecialEntries.h"
 #include "run/workers/IoJobs.h"
 #include "run/workers/Presets.h"
@@ -436,15 +437,16 @@ void NodeManager::load(Config& config) {
 
 void NodeManager::startRun(JobNode& node) {
     // clone all nodes to avoid touching the data while the simulation is running
-    callbacks->startRun(Sph::cloneHierarchy(node, std::string("")), globals);
+    callbacks->startRun(Sph::cloneHierarchy(node, std::string("")), globals, node.instanceName());
 }
 
-class BatchWorker : public IParticleJob {
+/// \todo refactor, derive from INode instead
+class BatchJob : public IParticleJob {
 private:
     Size runCnt;
 
 public:
-    BatchWorker(const std::string& name, const Size runCnt)
+    BatchJob(const std::string& name, const Size runCnt)
         : IParticleJob(name)
         , runCnt(runCnt) {}
 
@@ -493,12 +495,28 @@ void NodeManager::startBatch(JobNode& node) {
         wxMessageBox(std::string("Cannot start batch run.\n\n") + e.what(), "Error", wxOK);
     }
 
-    SharedPtr<JobNode> root = makeNode<BatchWorker>("batch", batchNodes.size());
+    SharedPtr<JobNode> root = makeNode<BatchJob>("batch", batchNodes.size());
     for (Size i = 0; i < batchNodes.size(); ++i) {
         batchNodes[i]->connect(root, "worker " + std::to_string(i));
     }
 
-    callbacks->startRun(root, globals);
+    callbacks->startRun(root, globals, root->instanceName());
+}
+
+void NodeManager::startScript(const Path& file) {
+#ifdef SPH_USE_CHAISCRIPT
+    Array<SharedPtr<JobNode>> rootNodes = getRootNodes();
+    Array<SharedPtr<JobNode>> clonedNodes;
+    for (const auto& node : rootNodes) {
+        SharedPtr<JobNode> cloned = Sph::cloneHierarchy(*node, std::string());
+        cloned->enumerate([&](SharedPtr<JobNode> job, Size UNUSED(depth)) { clonedNodes.push(job); });
+    }
+    SharedPtr<ScriptNode> node = makeShared<ScriptNode>(file, std::move(clonedNodes));
+
+    callbacks->startRun(node, globals, "Script '" + file.native() + "'");
+#else
+    throw InvalidSetup("Cannot start script '" + file.native() + "', no ChaiScript support.");
+#endif
 }
 
 void NodeManager::startAll() {
@@ -510,15 +528,15 @@ void NodeManager::startAll() {
         }
     }
 
-    SharedPtr<JobNode> root = makeNode<BatchWorker>("batch", inputs.size());
+    SharedPtr<JobNode> root = makeNode<BatchJob>("batch", inputs.size());
     for (Size i = 0; i < inputs.size(); ++i) {
         inputs[i]->connect(root, "worker " + std::to_string(i));
     }
 
-    callbacks->startRun(root, globals);
+    callbacks->startRun(root, globals, root->instanceName());
 }
 
-Array<SharedPtr<JobNode>> NodeManager::getTopLevelNodes() const {
+Array<SharedPtr<JobNode>> NodeManager::getRootNodes() const {
     Array<SharedPtr<JobNode>> inputs;
     for (auto& element : nodes) {
         SharedPtr<JobNode> node = element.key;
@@ -583,11 +601,11 @@ void NodeManager::showBatchDialog() {
 void NodeManager::selectRun() {
     SharedPtr<JobNode> node = activeNode.lock();
     if (node) {
-        callbacks->startRun(node, globals);
+        callbacks->startRun(node, globals, node->instanceName());
         return;
     }
 
-    Array<SharedPtr<JobNode>> nodeList = getTopLevelNodes();
+    Array<SharedPtr<JobNode>> nodeList = getRootNodes();
     if (nodeList.empty()) {
         wxMessageBox(std::string("No simulation nodes added. First, create a simulation by double-clicking "
                                  "an item in the node list on the right side."),
@@ -598,7 +616,8 @@ void NodeManager::selectRun() {
 
     if (nodeList.size() == 1) {
         // only a single node, no need for run select dialog
-        callbacks->startRun(nodeList.front(), globals);
+        SharedPtr<JobNode> node = nodeList.front();
+        callbacks->startRun(node, globals, node->instanceName());
         return;
     }
 
@@ -608,7 +627,7 @@ void NodeManager::selectRun() {
         if (dialog->remember()) {
             activeNode = node;
         }
-        callbacks->startRun(node, globals);
+        callbacks->startRun(node, globals, node->instanceName());
     }
     dialog->Destroy();
 }
@@ -1643,6 +1662,10 @@ void NodeWindow::showBatchDialog() {
 
 void NodeWindow::selectRun() {
     nodeMgr->selectRun();
+}
+
+void NodeWindow::startScript(const Path& file) {
+    nodeMgr->startScript(file);
 }
 
 void NodeWindow::reset() {

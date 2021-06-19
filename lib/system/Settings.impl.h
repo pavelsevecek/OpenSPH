@@ -319,6 +319,26 @@ bool Settings<TEnum>::tryLoadFileOrSaveCurrent(const Path& path, const Settings&
 }
 
 template <typename TEnum>
+std::string Settings<TEnum>::typeToString(const int type) {
+    static StaticArray<std::string, 9> names = {
+        "bool",
+        "int",
+        "float",
+        "interval",
+        "string",
+        "vector",
+        "symmetric_tensor",
+        "traceless_tensor",
+        "enum",
+    };
+    if (type >= 0 && type < int(names.size())) {
+        return names[type];
+    } else {
+        throw Exception("Unknown settings type " + std::to_string(type));
+    }
+}
+
+template <typename TEnum>
 SettingsIterator<TEnum> Settings<TEnum>::begin() const {
     return SettingsIterator<TEnum>(entries.begin());
 }

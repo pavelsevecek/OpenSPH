@@ -24,6 +24,7 @@
 #include "sph/equations/EquationTerm.h"
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"
+#include "sph/kernel/Interpolation.h"
 #include "sph/kernel/Kernel.h"
 #include "sph/solvers/AsymmetricSolver.h"
 #include "sph/solvers/StandardSets.h"

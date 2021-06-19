@@ -56,7 +56,9 @@ using NodeMap = UnorderedMap<SharedPtr<JobNode>, VisNode>;
 
 class INodeManagerCallbacks : public Polymorphic {
 public:
-    virtual void startRun(SharedPtr<JobNode> node, const RunSettings& settings) const = 0;
+    virtual void startRun(SharedPtr<INode> node,
+        const RunSettings& settings,
+        const std::string& name) const = 0;
 
     virtual void markUnsaved(bool addToUndo) const = 0;
 };
@@ -110,9 +112,11 @@ public:
 
     void startBatch(JobNode& node);
 
+    void startScript(const Path& file);
+
     void startAll();
 
-    Array<SharedPtr<JobNode>> getTopLevelNodes() const;
+    Array<SharedPtr<JobNode>> getRootNodes() const;
 
     VirtualSettings getGlobalSettings();
 
@@ -243,6 +247,8 @@ public:
     void showBatchDialog();
 
     void selectRun();
+
+    void startScript(const Path& file);
 
     void save(Config& config);
 

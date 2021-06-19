@@ -7,7 +7,6 @@
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
-#include <iostream>
 
 NAMESPACE_SPH_BEGIN
 

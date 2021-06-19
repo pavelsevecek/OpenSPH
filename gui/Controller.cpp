@@ -70,7 +70,7 @@ void Controller::Vis::refresh() {
     renderThreadVar.notify_one();
 }
 
-void Controller::start(SharedPtr<JobNode> run, const RunSettings& globals) {
+void Controller::start(SharedPtr<INode> run, const RunSettings& globals) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
     // sanity check that we don't override ALL the settings; increase if necessary
     SPH_ASSERT(globals.size() < 15);

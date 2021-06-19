@@ -16,8 +16,7 @@ class Controller;
 class IPluginControls;
 class RunPage;
 class NodeWindow;
-class JobNode;
-
+class INode;
 
 wxAuiNotebook* findNotebook();
 
@@ -51,7 +50,7 @@ private:
 
     wxMenu* createResultMenu();
 
-    void addPage(SharedPtr<JobNode> node, const RunSettings& globals, const std::string pageName);
+    void addPage(SharedPtr<INode> node, const RunSettings& globals, const std::string pageName);
 
     bool removeAll();
 

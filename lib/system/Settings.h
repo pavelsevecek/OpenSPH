@@ -78,7 +78,9 @@ public:
     template <typename TEnum>
     explicit InvalidSettingsAccess(const TEnum key)
         : Exception("Error accessing parameter '" +
-                    Settings<TEnum>::getEntryName(key).valueOr("unknown parameter") + "'") {}
+                    Settings<TEnum>::getEntryName(key).valueOr("unknown parameter") + "'") {
+        static_assert(std::is_enum<TEnum>::value, "InvalidSettingsAccess can only be used with enums");
+    }
 };
 
 template <typename TEnum>
@@ -362,6 +364,24 @@ public:
             return NOTHING;
         }
     }
+
+    /// \brief Returns the type of the entry with given index.
+    ///
+    /// If the index does not correspond to any parameter, returns NOTHING.
+    static Optional<int> getEntryType(const TEnum idx) {
+        const Settings& settings = getDefaults();
+        Optional<const Entry&> entry = settings.entries.tryGet(idx);
+        if (entry) {
+            return entry->value.getTypeIdx();
+        } else {
+            return NOTHING;
+        }
+    }
+
+    /// \brief Returns the string name for given type index.
+    ///
+    /// \throw Exception for unknown type index
+    static std::string typeToString(const int type);
 
     /// \brief Returns a description of the entry with given index.
     ///
