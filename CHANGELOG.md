@@ -2,6 +2,7 @@
 - added a way to start simulations from chaiscript
 - creating AV from setting in SummationSolver
 - fixed closing the window despite 'cancel' being pressed
+- added an alternative signal speed to ArtificialConductivity
 
 ## 2021-06-03
 - added "create session" dialog

@@ -761,6 +761,14 @@ enum class SmoothingLengthEnum {
     SOUND_SPEED_ENFORCING = 1 << 2
 };
 
+enum class SignalSpeedEnum {
+    /// Signal speed given by the absolute value of pressure difference, as in Price (2008)
+    PRESSURE_DIFFERENCE,
+
+    /// Signal speed given by relative velocity projected to the positive vector, as in Valdarnini (2018),
+    VELOCITY_DIFFERENCE,
+};
+
 enum class GravityEnum {
     /// Approximated gravity, assuming the matter is a simple homogeneous sphere.
     SPHERICAL,
@@ -1085,6 +1093,9 @@ enum class RunSettingsId {
 
     /// Artificial conductivity beta coefficient
     SPH_AC_BETA,
+
+    /// Type of the signal speed used by artificial conductivity
+    SPH_AC_SIGNAL_SPEED,
 
     /// Turn on the XSPH correction
     SPH_USE_XSPH,

@@ -23,11 +23,14 @@ public:
         ArrayView<const Float> m, rho, u, p, cs;
         ArrayView<Float> du;
 
+        SignalSpeedEnum sig;
+
     public:
         explicit Derivative(const RunSettings& settings)
             : DerivativeTemplate<Derivative>(settings) {
             alpha = settings.get<Float>(RunSettingsId::SPH_AC_ALPHA);
             beta = settings.get<Float>(RunSettingsId::SPH_AC_BETA);
+            sig = settings.get<SignalSpeedEnum>(RunSettingsId::SPH_AC_SIGNAL_SPEED);
         }
 
         INLINE void additionalCreate(Accumulated& results) {
@@ -46,7 +49,7 @@ public:
         }
 
         INLINE bool additionalEquals(const Derivative& other) const {
-            return alpha == other.alpha && beta == other.beta;
+            return alpha == other.alpha && beta == other.beta && sig == other.sig;
         }
 
         template <bool Symmetrize>
@@ -54,7 +57,13 @@ public:
             const Float eps = 1.e-6_f;
             const Vector e = (r[i] - r[j]) / (getLength(r[i] - r[j]) + eps);
             const Float rho_bar = 0.5_f * (rho[i] + rho[j]);
-            const Float vu_sig = sgn((p[i] - p[j]) * (u[i] - u[j])) * sqrt(abs(p[i] - p[j]) / rho_bar);
+            Float vu_sig;
+            if (sig == SignalSpeedEnum::PRESSURE_DIFFERENCE) {
+                vu_sig = sgn((p[i] - p[j]) * (u[i] - u[j])) * sqrt(abs(p[i] - p[j]) / rho_bar);
+            } else {
+                SPH_ASSERT(sig == SignalSpeedEnum::VELOCITY_DIFFERENCE);
+                vu_sig = abs(dot(v[i] - v[j], e));
+            }
             const Float a = alpha * vu_sig * (u[i] - u[j]);
             const Float heat = a * dot(e, grad) / rho_bar;
             du[i] += m[j] * heat;
@@ -66,10 +75,12 @@ public:
     };
 
     ArtificialConductivity(const RunSettings& settings) {
+        const SignalSpeedEnum sig = settings.get<SignalSpeedEnum>(RunSettingsId::SPH_AC_SIGNAL_SPEED);
         const Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES);
-        if (forces != ForceEnum::PRESSURE) {
+        if (sig == SignalSpeedEnum::PRESSURE_DIFFERENCE && forces != ForceEnum::PRESSURE) {
             throw InvalidSetup(
-                "Artificial conductivity cannot be used with forces other than pressure gradient.");
+                "Artificial conductivity with pressure-based signal speed cannot be used with forces other "
+                "than pressure gradient. Consider using the velocity-based signal speed instead.");
         }
     }
 
