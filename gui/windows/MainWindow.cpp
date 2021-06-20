@@ -560,24 +560,36 @@ static Array<Post::HistPoint> getOverplotSfd(const GuiSettings& gui) {
     return overplotSfd;
 }
 
+enum RunMenuId {
+    RUN_START,
+    RUN_START_SCRIPT,
+    RUN_RESTART,
+    RUN_PAUSE,
+    RUN_STOP,
+    RUN_SAVE_STATE,
+    RUN_CREATE_NODE,
+    RUN_CLOSE_CURRENT,
+    RUN_CLOSE_ALL,
+};
+
 wxMenu* MainWindow::createRunMenu() {
     wxMenu* runMenu = new wxMenu();
-    runMenu->Append(0, "S&tart run\tCtrl+R");
-    runMenu->Append(1, "Start script");
-    runMenu->Append(2, "&Restart");
-    runMenu->Append(3, "&Pause");
-    runMenu->Append(4, "St&op");
-    runMenu->Append(5, "&Save state");
-    runMenu->Append(6, "Create &node from state");
-    runMenu->Append(7, "&Close current\tCtrl+W");
-    runMenu->Append(8, "Close all");
+    runMenu->Append(RUN_START, "S&tart run\tCtrl+R");
+    runMenu->Append(RUN_START_SCRIPT, "Start script");
+    runMenu->Append(RUN_RESTART, "&Restart");
+    runMenu->Append(RUN_PAUSE, "&Pause");
+    runMenu->Append(RUN_STOP, "St&op");
+    runMenu->Append(RUN_SAVE_STATE, "&Save state");
+    runMenu->Append(RUN_CREATE_NODE, "Create &node from state");
+    runMenu->Append(RUN_CLOSE_CURRENT, "&Close current\tCtrl+W");
+    runMenu->Append(RUN_CLOSE_ALL, "Close all");
 
     runMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this, runMenu](wxCommandEvent& evt) { //
         // options not related to a particular controller
-        if (evt.GetId() == 0) {
+        if (evt.GetId() == RUN_START) {
             nodePage->selectRun();
             return;
-        } else if (evt.GetId() == 1) {
+        } else if (evt.GetId() == RUN_START_SCRIPT) {
 #ifdef SPH_USE_CHAISCRIPT
             Optional<Path> scriptPath = doOpenFileDialog("Chai script", { { "Chai script", "chai" } });
             if (scriptPath) {
@@ -596,13 +608,13 @@ wxMenu* MainWindow::createRunMenu() {
         RawPtr<Controller> controller = runs[page].controller.get();
 
         switch (evt.GetId()) {
-        case 2:
+        case RUN_RESTART:
             controller->stop(true);
             controller->restart();
             break;
-        case 3: {
+        case RUN_PAUSE: {
             RunStatus status = controller->getStatus();
-            wxMenuItem* item = runMenu->FindItem(2);
+            wxMenuItem* item = runMenu->FindItem(RUN_PAUSE);
             if (status == RunStatus::PAUSED) {
                 controller->restart();
                 item->SetItemLabel("&Pause");
@@ -612,10 +624,10 @@ wxMenu* MainWindow::createRunMenu() {
             }
             break;
         }
-        case 4:
+        case RUN_STOP:
             controller->stop();
             break;
-        case 5: {
+        case RUN_SAVE_STATE: {
             static Array<FileFormat> fileFormats = {
                 { "SPH state file", "ssf" },
                 { "SPH compressed file", "scf" },
@@ -629,7 +641,7 @@ wxMenu* MainWindow::createRunMenu() {
             controller->saveState(path.value());
             break;
         }
-        case 6: {
+        case RUN_CREATE_NODE: {
             const Storage& storage = controller->getStorage();
             const std::string text("cached " + notebook->GetPageText(notebook->GetSelection()));
             AutoPtr<CachedParticlesJob> worker = makeAuto<CachedParticlesJob>(text, storage);
@@ -637,10 +649,10 @@ wxMenu* MainWindow::createRunMenu() {
             notebook->SetSelection(notebook->GetPageIndex(nodePage));
             break;
         }
-        case 7:
+        case RUN_CLOSE_CURRENT:
             closeRun(notebook->GetPageIndex(page));
             break;
-        case 8:
+        case RUN_CLOSE_ALL:
             this->removeAll();
             break;
         default:
@@ -787,9 +799,10 @@ void MainWindow::enableMenus(const Size id) {
 
 void MainWindow::enableRunMenu(const bool enable) {
     wxMenuItemList& list = runMenu->GetMenuItems();
-    // enable/disable all but the first two items ("Start run" and "Start script")
-    for (Size i = 2; i < list.size(); ++i) {
-        list[i]->Enable(enable);
+    for (Size i = 0; i < list.size(); ++i) {
+        if (i != RUN_START && i != RUN_START_SCRIPT) {
+            list[i]->Enable(enable);
+        }
     }
 }
 
