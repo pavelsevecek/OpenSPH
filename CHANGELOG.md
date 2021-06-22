@@ -1,3 +1,7 @@
+## 2021-06-23
+- added a node for removing damaged/expanded particles
+- fixed radius colorizer missing in the combobox
+
 ## 2021-06-19
 - added a way to start simulations from chaiscript
 - creating AV from setting in SummationSolver

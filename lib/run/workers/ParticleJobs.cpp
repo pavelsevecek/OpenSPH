@@ -649,6 +649,61 @@ static JobRegistrar sRegisterExtractComponent(
     "remnant or the largest fragment in the result of a simulation.");
 
 // ----------------------------------------------------------------------------------------------------------
+// RemoveParticleJob
+// ----------------------------------------------------------------------------------------------------------
+
+VirtualSettings RemoveParticlesJob::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+
+    VirtualSettings::Category& category = connector.addCategory("Removal");
+    category.connect("Remove damaged", "damaged.use", removeDamaged);
+    category.connect("Damage limit", "damaged.limit", damageLimit).setEnabler([&] { //
+        return removeDamaged;
+    });
+    category.connect("Remove expanded", "expanded.use", removeExpanded);
+    category.connect("Energy limit", "expanded.limit", energyLimit).setEnabler([&] {
+        return removeExpanded;
+    });
+    return connector;
+}
+
+void RemoveParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+    Storage storage = std::move(this->getInput<ParticleData>("particles")->storage);
+    std::set<Size> removeSet;
+    if (removeDamaged) {
+        ArrayView<const Float> d = storage.getValue<Float>(QuantityId::DAMAGE);
+        for (Size i = 0; i < d.size(); ++i) {
+            if (d[i] >= damageLimit) {
+                removeSet.insert(i);
+            }
+        }
+    }
+    if (removeExpanded) {
+        ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
+        for (Size i = 0; i < u.size(); ++i) {
+            if (u[i] >= energyLimit) {
+                removeSet.insert(i);
+            }
+        }
+    }
+    Array<Size> toRemove(removeSet.size());
+    std::copy(removeSet.begin(), removeSet.end(), toRemove.begin());
+    storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED);
+
+    result = makeShared<ParticleData>();
+    result->storage = std::move(storage);
+}
+
+static JobRegistrar sRemoveParticles(
+    "remove particles",
+    "remover",
+    "particle operators",
+    [](const std::string& name) { return makeAuto<RemoveParticlesJob>(name); },
+    "Removes all particles matching given conditions.");
+
+
+// ----------------------------------------------------------------------------------------------------------
 // MergeComponentsWorker
 // ----------------------------------------------------------------------------------------------------------
 
