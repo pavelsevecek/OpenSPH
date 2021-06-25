@@ -19,7 +19,6 @@ class Order : public Noncopyable {
 private:
     Array<Size> storage;
 
-
     /// Private constructor from size_t storage
     Order(Array<Size>&& other)
         : storage(std::move(other)) {}

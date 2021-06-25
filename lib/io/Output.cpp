@@ -414,7 +414,8 @@ struct DeserializerDispatcher {
         deserializer.read(t(0, 0), t(0, 1), t(0, 2), t(1, 0), t(1, 1), t(1, 2), t(2, 0), t(2, 1), t(2, 2));
     }
     void operator()(EnumWrapper& e) {
-        deserializer.read(e.value, e.typeHash);
+        int dummy;
+        deserializer.read(e.value, dummy);
     }
 };
 
@@ -604,16 +605,16 @@ Expected<Path> BinaryOutput::dump(const Storage& storage, const Statistics& stat
 }
 
 template <typename T>
-static void setTypeHash(const BodySettings& UNUSED(settings),
+static void setEnumIndex(const BodySettings& UNUSED(settings),
     const BodySettingsId UNUSED(paramId),
     T& UNUSED(entry)) {
     // do nothing for other types
 }
 
 template <>
-void setTypeHash(const BodySettings& settings, const BodySettingsId paramId, EnumWrapper& entry) {
+void setEnumIndex(const BodySettings& settings, const BodySettingsId paramId, EnumWrapper& entry) {
     EnumWrapper current = settings.get<EnumWrapper>(paramId);
-    entry.typeHash = current.typeHash;
+    entry.index = current.index;
 }
 
 
@@ -659,10 +660,10 @@ static Expected<Storage> loadMaterial(const Size matIdx,
 
         forValue(iteratorValue.value, [&deserializer, &body, paramId](auto& entry) {
             DeserializerDispatcher<true>{ deserializer }(entry);
-            // little hack: EnumWrapper is loaded with typeHash 0 (as it cannot be serialized, so we have to
-            // set it to correct value, otherwise it would trigger asserts in set function.
+            // little hack: EnumWrapper is loaded with no type index (as it cannot be serialized), so we have
+            // to set it to the correct value, otherwise it would trigger asserts in set function.
             try {
-                setTypeHash(body, paramId, entry);
+                setEnumIndex(body, paramId, entry);
                 body.set(paramId, entry);
             } catch (Exception& UNUSED(e)) {
                 // can be a parameter from newer version, silence the exception for backwards compatibility

@@ -4,6 +4,7 @@
 #ifdef SPH_GCC
 #if __GNUC__ >= 7
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
+#pragma GCC diagnostic ignored "-Wduplicated-branches"
 #endif
 #endif
 

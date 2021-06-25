@@ -234,6 +234,18 @@ static RegisterEnum<SmoothingLengthEnum> sSmoothingLength({
         "length, scaled by local sound speed." },
 });
 
+static RegisterEnum<SignalSpeedEnum> sSignalSpeed({
+    { SignalSpeedEnum::PRESSURE_DIFFERENCE,
+        "pressure_difference",
+        "Signal speed given by the absolute value of pressure difference, as in Price (2008). Cannot be used "
+        "in simulations with gravity." },
+
+    { SignalSpeedEnum::VELOCITY_DIFFERENCE,
+        "velocity_difference",
+        "Signal speed given by relative velocity projected to the positive vector, as in Valdarnini "
+        "(2018)." },
+});
+
 static RegisterEnum<GravityEnum> sGravity({
     { GravityEnum::SPHERICAL,
         "spherical",
@@ -525,6 +537,8 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
         "Artificial conductivity alpha coefficient." },
     { RunSettingsId::SPH_AC_BETA,                   "sph.ac.beta",              1.5_f,
         "Artificial conductivity beta coefficient." },
+    { RunSettingsId::SPH_AC_SIGNAL_SPEED, "sph.ac.signal_speed", SignalSpeedEnum::PRESSURE_DIFFERENCE,
+        "Type of the signal speed used by artificial conductivity. Can be one of the following:\n" +  EnumMap::getDesc<SignalSpeedEnum>() },
     { RunSettingsId::SPH_SMOOTHING_LENGTH_MIN,      "sph.smoothing_length.min",         1e-5_f,
         "Minimal value of the smoothing length (in meters). "},
     { RunSettingsId::SPH_PHASE_ANGLE,               "sph.phase_angle",                  false,

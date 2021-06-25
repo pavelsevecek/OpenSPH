@@ -77,8 +77,14 @@ public:
     /// \brief Inverse transform to \ref relativeToPalette.
     float paletteToRelative(const float value) const;
 
+    /// \brief Loads the palette from given input stream.
+    Outcome loadFromStream(std::istream& ifs);
+
     /// \brief Loads the palette from given .csv file.
     Outcome loadFromFile(const Path& path);
+
+    /// \brief Saves the palettes into given output stream.
+    Outcome saveToStream(std::ostream& ofs, const Size lineCnt = 256) const;
 
     /// \brief Saves the palette to a .csv file.
     Outcome saveToFile(const Path& path, const Size lineCnt = 256) const;

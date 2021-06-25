@@ -284,6 +284,8 @@ VirtualSettings SphJob::getSettings() {
     avCat.connect<Float>("Artificial stress exponent", settings, RunSettingsId::SPH_AV_STRESS_EXPONENT)
         .setEnabler(asEnabler);
     avCat.connect<bool>("Apply artificial conductivity", settings, RunSettingsId::SPH_USE_AC);
+    avCat.connect<EnumWrapper>("Signal speed", settings, RunSettingsId::SPH_AC_SIGNAL_SPEED)
+        .setEnabler([this] { return settings.get<bool>(RunSettingsId::SPH_USE_AC); });
 
     VirtualSettings::Category& modCat = connector.addCategory("SPH modifications");
     modCat.connect<bool>("Enable XPSH", settings, RunSettingsId::SPH_USE_XSPH);

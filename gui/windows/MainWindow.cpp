@@ -6,6 +6,7 @@
 #include "gui/windows/NodePage.h"
 #include "gui/windows/PlotView.h"
 #include "gui/windows/RunPage.h"
+#include "gui/windows/SessionDialog.h"
 #include "io/FileSystem.h"
 #include "objects/utility/IteratorAdapters.h"
 #include "post/Plot.h"
@@ -94,12 +95,13 @@ public:
     NodeManagerCallbacks(MainWindow* window)
         : window(window) {}
 
-    virtual void startRun(SharedPtr<JobNode> node, const RunSettings& globals) const override {
-        const std::string name = node->instanceName();
+    virtual void startRun(SharedPtr<INode> node,
+        const RunSettings& globals,
+        const std::string& name) const override {
         window->addPage(std::move(node), globals, name);
     }
 
-    virtual void markUnsaved() const override {
+    virtual void markUnsaved(bool UNUSED(addToUndo)) const override {
         window->markSaved(false);
     }
 };
@@ -266,6 +268,7 @@ void MainWindow::saveAs() {
 }
 
 void MainWindow::save() {
+    SPH_ASSERT(!projectPath.empty());
     BusyCursor wait(this);
 
     Config config;
@@ -411,12 +414,28 @@ wxMenu* MainWindow::createProjectMenu() {
 
     projectMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& evt) { //
         switch (evt.GetId()) {
-        case 0:
-            if (this->removeAll()) {
+        case 0: {
+            // end running simulations
+            if (!this->removeAll()) {
+                break;
+            }
+            // ask user if unsaved
+            if (checkUnsavedSession() == wxCANCEL) {
+                break;
+            }
+            auto nameMgr = nodePage->makeUniqueNameManager();
+            SessionDialog* dialog = new SessionDialog(this, nameMgr);
+            if (dialog->ShowModal() == wxID_OK) {
                 this->setProjectPath(Path());
                 nodePage->reset();
+                auto node = dialog->selectedPreset();
+                if (node) {
+                    nodePage->addNodes(*node);
+                }
             }
+            dialog->Destroy();
             break;
+        }
         case 1: {
             if (projectPath.empty()) {
                 this->saveAs();
@@ -541,21 +560,44 @@ static Array<Post::HistPoint> getOverplotSfd(const GuiSettings& gui) {
     return overplotSfd;
 }
 
+enum RunMenuId {
+    RUN_START,
+    RUN_START_SCRIPT,
+    RUN_RESTART,
+    RUN_PAUSE,
+    RUN_STOP,
+    RUN_SAVE_STATE,
+    RUN_CREATE_NODE,
+    RUN_CLOSE_CURRENT,
+    RUN_CLOSE_ALL,
+};
+
 wxMenu* MainWindow::createRunMenu() {
     wxMenu* runMenu = new wxMenu();
-    runMenu->Append(0, "S&tart\tCtrl+R");
-    runMenu->Append(1, "&Restart");
-    runMenu->Append(2, "&Pause");
-    runMenu->Append(3, "St&op");
-    runMenu->Append(4, "&Save state");
-    runMenu->Append(5, "Create &node from state");
-    runMenu->Append(6, "&Close current\tCtrl+W");
-    runMenu->Append(7, "Close all");
+    runMenu->Append(RUN_START, "S&tart run\tCtrl+R");
+    runMenu->Append(RUN_START_SCRIPT, "Start script");
+    runMenu->Append(RUN_RESTART, "&Restart");
+    runMenu->Append(RUN_PAUSE, "&Pause");
+    runMenu->Append(RUN_STOP, "St&op");
+    runMenu->Append(RUN_SAVE_STATE, "&Save state");
+    runMenu->Append(RUN_CREATE_NODE, "Create &node from state");
+    runMenu->Append(RUN_CLOSE_CURRENT, "&Close current\tCtrl+W");
+    runMenu->Append(RUN_CLOSE_ALL, "Close all");
 
     runMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this, runMenu](wxCommandEvent& evt) { //
-        if (evt.GetId() == 0) {
-            // only option not related to a particular controller
+        // options not related to a particular controller
+        if (evt.GetId() == RUN_START) {
             nodePage->selectRun();
+            return;
+        } else if (evt.GetId() == RUN_START_SCRIPT) {
+#ifdef SPH_USE_CHAISCRIPT
+            Optional<Path> scriptPath = doOpenFileDialog("Chai script", { { "Chai script", "chai" } });
+            if (scriptPath) {
+                nodePage->startScript(scriptPath.value());
+            }
+#else
+            wxMessageBox("The code needs to be compiled with ChaiScript support.", "No ChaiScript", wxOK);
+#endif
             return;
         }
 
@@ -566,13 +608,13 @@ wxMenu* MainWindow::createRunMenu() {
         RawPtr<Controller> controller = runs[page].controller.get();
 
         switch (evt.GetId()) {
-        case 1:
+        case RUN_RESTART:
             controller->stop(true);
             controller->restart();
             break;
-        case 2: {
+        case RUN_PAUSE: {
             RunStatus status = controller->getStatus();
-            wxMenuItem* item = runMenu->FindItem(2);
+            wxMenuItem* item = runMenu->FindItem(RUN_PAUSE);
             if (status == RunStatus::PAUSED) {
                 controller->restart();
                 item->SetItemLabel("&Pause");
@@ -582,10 +624,10 @@ wxMenu* MainWindow::createRunMenu() {
             }
             break;
         }
-        case 3:
+        case RUN_STOP:
             controller->stop();
             break;
-        case 4: {
+        case RUN_SAVE_STATE: {
             static Array<FileFormat> fileFormats = {
                 { "SPH state file", "ssf" },
                 { "SPH compressed file", "scf" },
@@ -599,18 +641,18 @@ wxMenu* MainWindow::createRunMenu() {
             controller->saveState(path.value());
             break;
         }
-        case 5: {
+        case RUN_CREATE_NODE: {
             const Storage& storage = controller->getStorage();
             const std::string text("cached " + notebook->GetPageText(notebook->GetSelection()));
             AutoPtr<CachedParticlesJob> worker = makeAuto<CachedParticlesJob>(text, storage);
-            nodePage->addNode(std::move(worker));
+            nodePage->createNode(std::move(worker));
             notebook->SetSelection(notebook->GetPageIndex(nodePage));
             break;
         }
-        case 6:
+        case RUN_CLOSE_CURRENT:
             closeRun(notebook->GetPageIndex(page));
             break;
-        case 7:
+        case RUN_CLOSE_ALL:
             this->removeAll();
             break;
         default:
@@ -703,7 +745,7 @@ wxMenu* MainWindow::createAnalysisMenu() {
     return analysisMenu;
 }
 
-void MainWindow::addPage(SharedPtr<JobNode> node, const RunSettings& globals, const std::string pageName) {
+void MainWindow::addPage(SharedPtr<INode> node, const RunSettings& globals, const std::string pageName) {
     AutoPtr<Controller> controller = makeAuto<Controller>(notebook);
     controller->start(std::move(node), globals);
 
@@ -730,18 +772,9 @@ bool MainWindow::removeAll() {
 }
 
 void MainWindow::onClose(wxCloseEvent& evt) {
-    if (!savedFlag) {
-        const int retval = wxMessageBox("Save unsaved changes", "Save?", wxYES_NO | wxCANCEL | wxCENTRE);
-        if (retval == wxYES) {
-            if (projectPath.empty()) {
-                this->saveAs();
-            } else {
-                this->save();
-            }
-        } else if (retval == wxCANCEL) {
-            evt.Veto();
-            return;
-        }
+    if (checkUnsavedSession() == wxCANCEL) {
+        evt.Veto();
+        return;
     }
     this->Destroy();
 }
@@ -766,9 +799,10 @@ void MainWindow::enableMenus(const Size id) {
 
 void MainWindow::enableRunMenu(const bool enable) {
     wxMenuItemList& list = runMenu->GetMenuItems();
-    // enable/disable all but the first item ("Start")
-    for (Size i = 1; i < list.size(); ++i) {
-        list[i]->Enable(enable);
+    for (Size i = 0; i < list.size(); ++i) {
+        if (i != RUN_START && i != RUN_START_SCRIPT) {
+            list[i]->Enable(enable);
+        }
     }
 }
 
@@ -787,4 +821,18 @@ bool MainWindow::closeRun(const Size id) {
     return true;
 }
 
+int MainWindow::checkUnsavedSession() {
+    if (savedFlag) {
+        return true;
+    }
+    const int retval = wxMessageBox("Save unsaved changes", "Save?", wxYES_NO | wxCANCEL | wxCENTRE);
+    if (retval == wxYES) {
+        if (projectPath.empty()) {
+            this->saveAs();
+        } else {
+            this->save();
+        }
+    }
+    return retval;
+}
 NAMESPACE_SPH_END

@@ -277,6 +277,32 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
+
+class RemoveParticlesJob : public IParticleJob {
+private:
+    bool removeDamaged = true;
+    bool removeExpanded = false;
+    Float damageLimit = 1._f;
+    Float energyLimit = 1.e6_f;
+
+
+public:
+    explicit RemoveParticlesJob(const std::string& name)
+        : IParticleJob(name) {}
+
+    virtual std::string className() const override {
+        return "remove particles";
+    }
+
+    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
+};
+
 enum class ConnectivityEnum {
     OVERLAP,
     ESCAPE_VELOCITY,

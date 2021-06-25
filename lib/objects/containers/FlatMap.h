@@ -11,21 +11,12 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// \brief Comparator of keys, returning true if first key has lower value than the second one.
-///
-/// The function can be specialized for types without < operator. The relation has to have the properties of
-/// order, though, namely transitive property (a < b && b < c => a < c).
-template <typename TKey>
-INLINE constexpr bool compare(const TKey& key1, const TKey& key2) {
-    return key1 < key2;
-}
-
 /// \brief Container of key-value pairs.
 ///
 /// Elements are stored in an array sorted according to key. The value look-up is O(log(N)), while inserting
 /// or deletion of elements is currently O(N).
-template <typename TKey, typename TValue>
-class FlatMap : public Noncopyable {
+template <typename TKey, typename TValue, typename TLess = std::less<TKey>>
+class FlatMap : TLess, Noncopyable {
 public:
     /// Element of the container.
     struct Element {
@@ -47,7 +38,9 @@ public:
     /// i.e. each key has to be present at most once. This is checked by assert.
     FlatMap(std::initializer_list<Element> list)
         : data(list) {
-        std::sort(data.begin(), data.end(), [](Element& e1, Element& e2) { return compare(e1.key, e2.key); });
+        std::sort(data.begin(), data.end(), [this](const Element& e1, const Element& e2) {
+            return less(e1.key, e2.key);
+        });
     }
 
     /// \brief Returns a reference to the element, given its key.
@@ -193,9 +186,13 @@ public:
     }
 
 private:
+    INLINE bool less(const TKey& key1, const TKey& key2) const {
+        return TLess::operator()(key1, key2);
+    }
+
     /// Returns a pointer to the element with given key or nullptr if no such element exists.
     INLINE Element* find(const TKey& key) {
-        auto compare = [](const Element& element, const TKey& key) { return element.key < key; };
+        auto compare = [this](const Element& element, const TKey& key) { return less(element.key, key); };
         auto iter = std::lower_bound(data.begin(), data.end(), key, compare);
         if (iter != data.end() && iter->key == key) {
             return &*iter;
@@ -217,17 +214,14 @@ private:
 
         while (from < to && from != mid) {
             mid = (from + to) / 2;
-            SPH_ASSERT(data[mid].key != key);
-            if (compare(data[mid].key, key)) {
+            SPH_ASSERT(less(data[mid].key, key) || less(key, data[mid].key));
+            if (less(data[mid].key, key)) {
                 from = mid + 1;
             } else {
                 to = mid;
             }
         }
-        /// \todo add insert into Array
-        data.resize(data.size() + 1);
-        std::move_backward(data.begin() + from, data.end() - 1, data.end());
-        data[from] = Element{ key, std::forward<T>(value) };
+        data.insert(from, Element{ key, std::forward<T>(value) });
         return data[from].value;
     }
 };
