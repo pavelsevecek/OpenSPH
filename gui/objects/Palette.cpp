@@ -164,11 +164,9 @@ float Palette::paletteToRelative(const float value) const {
     return (linear - points[0].value) / (points.back().value - points[0].value);
 }
 
-
-Outcome Palette::loadFromFile(const Path& path) {
+Outcome Palette::loadFromStream(std::istream& ifs) {
     try {
         Array<Rgba> colors;
-        std::ifstream ifs(path.native());
         std::string line;
         while (std::getline(ifs, line)) {
             std::stringstream ss(replaceAll(line, ",", " "));
@@ -193,15 +191,19 @@ Outcome Palette::loadFromFile(const Path& path) {
             // yes, do not use linearToPalette, we want to map the palette in linear, not on quantities
             points[i].value = from + float(i) * (to - from) / (points.size() - 1);
         }
+        return SUCCESS;
     } catch (std::exception& e) {
         return std::string("Cannot load palette: ") + e.what();
     }
-    return SUCCESS;
 }
 
-Outcome Palette::saveToFile(const Path& path, const Size lineCnt) const {
+Outcome Palette::loadFromFile(const Path& path) {
+    std::ifstream ifs(path.native());
+    return loadFromStream(ifs);
+}
+
+Outcome Palette::saveToStream(std::ostream& ofs, const Size lineCnt) const {
     try {
-        std::ofstream ofs(path.native());
         for (Size i = 0; i < lineCnt; ++i) {
             const float value = this->relativeToPalette(float(i) / (lineCnt - 1));
             const Rgba color = operator()(value);
@@ -214,6 +216,11 @@ Outcome Palette::saveToFile(const Path& path, const Size lineCnt) const {
     } catch (std::exception& e) {
         return std::string("Cannot save palette: ") + e.what();
     }
+}
+
+Outcome Palette::saveToFile(const Path& path, const Size lineCnt) const {
+    std::ofstream os(path.native());
+    return this->saveToStream(os, lineCnt);
 }
 
 NAMESPACE_SPH_END

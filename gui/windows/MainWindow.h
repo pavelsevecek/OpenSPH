@@ -16,8 +16,7 @@ class Controller;
 class IPluginControls;
 class RunPage;
 class NodeWindow;
-class JobNode;
-
+class INode;
 
 wxAuiNotebook* findNotebook();
 
@@ -51,7 +50,7 @@ private:
 
     wxMenu* createResultMenu();
 
-    void addPage(SharedPtr<JobNode> node, const RunSettings& globals, const std::string pageName);
+    void addPage(SharedPtr<INode> node, const RunSettings& globals, const std::string pageName);
 
     bool removeAll();
 
@@ -74,6 +73,8 @@ private:
     void enableRunMenu(const bool enable);
 
     bool closeRun(const Size id);
+
+    int checkUnsavedSession();
 };
 
 NAMESPACE_SPH_END

@@ -18,7 +18,7 @@ SOURCES += \
     math/Curve.cpp \
     math/Morton.cpp \
     math/SparseMatrix.cpp \
-    math/rng/Rng.cpp \    
+    math/rng/Rng.cpp \
     objects/containers/String.cpp \
     objects/finders/Bvh.cpp \
     objects/finders/HashMapFinder.cpp \
@@ -53,6 +53,7 @@ SOURCES += \
     run/IRun.cpp \
     run/Job.cpp \
     run/Node.cpp \
+    run/ScriptNode.cpp \
     run/ScriptUtils.cpp \
     run/SpecialEntries.cpp \
     run/VirtualSettings.cpp \
@@ -240,6 +241,7 @@ HEADERS += \
     run/IRun.h \
     run/Job.h \
     run/Node.h \
+    run/ScriptNode.h \
     run/ScriptUtils.h \
     run/Trigger.h \
     run/workers/GeometryJobs.h \

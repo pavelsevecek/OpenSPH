@@ -40,6 +40,7 @@ SOURCES += \
     renderers/Spectrum.cpp \
     windows/BatchDialog.cpp \
     windows/RunSelectDialog.cpp \
+    windows/SessionDialog.cpp \
     windows/CurveDialog.cpp \
     windows/GridPage.cpp \
     windows/OrthoPane.cpp \
@@ -84,6 +85,7 @@ HEADERS += \
     renderers/Spectrum.h \
     windows/BatchDialog.h \
     windows/RunSelectDialog.h \
+    windows/SessionDialog.h \
     windows/CurveDialog.h \
     windows/GridPage.h \
     windows/IGraphicsPane.h \

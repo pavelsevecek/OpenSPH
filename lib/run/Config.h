@@ -239,6 +239,11 @@ public:
         return reader.get();
     }
 
+    /// \brief Checks if the node contains an entry of given name.
+    bool contains(const std::string& name) {
+        return entries.contains(name);
+    }
+
     /// \brief Returns the number of entries stored in the node.
     Size size() const;
 

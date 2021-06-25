@@ -11,6 +11,52 @@
 
 NAMESPACE_SPH_BEGIN
 
+namespace Presets {
+
+static RegisterEnum<Id> sPresetsId({
+    { Id::COLLISION, "collision", "Simple simulation of a two-body collision." },
+    { Id::FRAGMENTATION_REACCUMULATION,
+        "fragmentation_and_reaccumulation",
+        "SPH simulation of an impact and fragmentation followed by an N-body simulation of gravitational "
+        "reaccumulation of fragments." },
+    { Id::CRATERING,
+        "cratering",
+        "Meteoroid impact to a horizontal surface enclosed by boundary conditions." },
+    { Id::PLANETESIMAL_MERGING,
+        "planetesimal_merging",
+        "Two equal-sized planetesimals with iron core colliding and merging." },
+    { Id::GALAXY_COLLISION, "galaxy_collision", "Simulation of two interacting galaxies." },
+    { Id::ACCRETION_DISK,
+        "accretion_disk",
+        "Gas giant orbiting a neutron star and creating an accretion disk." },
+    { Id::SOLAR_SYSTEM,
+        "solar_system",
+        "N-body simulation of the Sun and eight planets of our Solar System." },
+});
+
+}
+
+SharedPtr<JobNode> Presets::make(const Id id, UniqueNameManager& nameMgr) {
+    switch (id) {
+    case Id::COLLISION:
+        return makeAsteroidCollision(nameMgr);
+    case Id::FRAGMENTATION_REACCUMULATION:
+        return makeFragmentationAndReaccumulation(nameMgr);
+    case Id::CRATERING:
+        return makeCratering(nameMgr);
+    case Id::PLANETESIMAL_MERGING:
+        return makePlanetesimalMerging(nameMgr);
+    case Id::GALAXY_COLLISION:
+        return makeGalaxyCollision(nameMgr);
+    case Id::ACCRETION_DISK:
+        return makeAccretionDisk(nameMgr);
+    case Id::SOLAR_SYSTEM:
+        return makeSolarSystem(nameMgr);
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
 SharedPtr<JobNode> Presets::makeAsteroidCollision(UniqueNameManager& nameMgr, const Size particleCnt) {
     SharedPtr<JobNode> targetMaterial = makeNode<MaterialJob>(nameMgr.getName("material"), EMPTY_SETTINGS);
     SharedPtr<JobNode> impactorMaterial =

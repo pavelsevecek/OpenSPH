@@ -48,6 +48,12 @@ public:
     }
 };
 
+/// \brief Provides an interface for running a simulation.
+class INode : public Polymorphic {
+public:
+    virtual void run(const RunSettings& global, IJobCallbacks& callbacks) = 0;
+};
+
 struct SlotData {
     /// \brief Identifier of the slot, used by the worker to obtain the provided data.
     std::string name;
@@ -70,7 +76,7 @@ struct SlotData {
 /// \brief Building block of a simulation hierarchy.
 ///
 /// Each node can have any number of providers (preconditions of the worker).
-class JobNode : public ShareFromThis<JobNode> {
+class JobNode : public ShareFromThis<JobNode>, public INode {
     /// Maps slot names to connected providers
     UnorderedMap<std::string, SharedPtr<JobNode>> providers;
 
@@ -84,11 +90,11 @@ public:
     /// \brief Creates a new node, given a worker object.
     JobNode(AutoPtr<IJob>&& job);
 
-    /// \brief Returns the class name of the worker.
-    std::string className() const;
-
     /// \brief Returns the instance name of the worker.
     std::string instanceName() const;
+
+    /// \brief Returns the class name of the worker.
+    std::string className() const;
 
     /// \brief Returns settings object allowing to access and modify the state of the worker.
     VirtualSettings getSettings() const;
@@ -136,7 +142,7 @@ public:
     /// have been set up.
     /// \param global Global settings, used by all nodes in the hierarchy.
     /// \param callbacks Interface allowing to get a feedback from evaluated nodes, see \ref IWorkerCallbacks.
-    void run(const RunSettings& global, IJobCallbacks& callbacks);
+    virtual void run(const RunSettings& global, IJobCallbacks& callbacks) override;
 
 private:
     void enumerate(Function<void(SharedPtr<JobNode> job, Size depth)> func,

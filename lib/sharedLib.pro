@@ -16,7 +16,7 @@ isEmpty(PREFIX) {
 }
 
 CONFIG(use_tbb) {
-    DEFINES += SPH_USE_TBB
+    DEFINES += SPH_USE_TBB TBB_SUPPRESS_DEPRECATED_MESSAGES
     INCLUDEPATH += $$PREFIX/include/tbb
     LIBS += -ltbb -ltbbmalloc
 }

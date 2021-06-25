@@ -19,13 +19,16 @@ static EquationHolder getEquations(const RunSettings& settings) {
     if (forces.has(ForceEnum::SOLID_STRESS)) {
         equations += makeTerm<SolidStressForce>(settings);
     }
-    equations += makeTerm<StandardAV>();
+    if (auto av = Factory::getArtificialViscosity(settings)) {
+        equations += EquationHolder(std::move(av));
+    }
 
     // we evolve density and smoothing length ourselves (outside the equation framework),
     // so make sure it does not change outside the solver
     equations += makeTerm<ConstSmoothingLength>();
 
-    SPH_ASSERT(!forces.has(ForceEnum::SELF_GRAVITY), "Summation solver cannot be currently used with gravity");
+    SPH_ASSERT(
+        !forces.has(ForceEnum::SELF_GRAVITY), "Summation solver cannot be currently used with gravity");
 
     return equations;
 }

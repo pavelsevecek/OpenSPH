@@ -1,4 +1,5 @@
 #include "objects/geometry/Domain.h"
+#include "objects/Exceptions.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -668,11 +669,11 @@ Vector HalfSpaceDomain::getCenter() const {
 }
 
 Float HalfSpaceDomain::getVolume() const {
-    return INFTY;
+    throw InvalidSetup("HalfSpace domain has an undefined volume.");
 }
 
 Float HalfSpaceDomain::getSurfaceArea() const {
-    return INFTY;
+    throw InvalidSetup("HalfSpace domain has an undefined surface area.");
 }
 
 Box HalfSpaceDomain::getBoundingBox() const {

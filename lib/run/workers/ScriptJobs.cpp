@@ -95,8 +95,6 @@ void ChaiScriptJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& c
     const Chai::Particles& particles = chaiscript::boxed_cast<const Chai::Particles&>(scriptValue);
     result = makeShared<ParticleData>();
     result->storage = particles.store().clone(VisitorEnum::ALL_BUFFERS);
-    // SPH_ASSERT(result->storage.isValid(), result->storage.isValid().error());
-    std::cout << std::endl;
 }
 
 static JobRegistrar sRegisterChaiWorker(

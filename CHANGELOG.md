@@ -1,8 +1,27 @@
+## 2021-06-23
+- added a node for removing damaged/expanded particles
+- fixed radius colorizer missing in the combobox
+
+## 2021-06-19
+- added a way to start simulations from chaiscript
+- creating AV from setting in SummationSolver
+- fixed closing the window despite 'cancel' being pressed
+- added an alternative signal speed to ArtificialConductivity
+
+## 2021-06-03
+- added "create session" dialog
+- throwing exception in HalfSpaceDomain::getVolume and getSurfaceArea 
+
+## 2021-05-31
+- palettes are now saved directly into the .sph file
+- replaced hashes with std::type_index in EnumWrapper
+
 ## 2021-05-30
 - replaced /usr with $$PREFIX in .pro files
 - fixed linking of OpenVDB
 - fixed segfault when opening a new session
 - fixed button positioning in "Select Run" dialog
+- fixed potential deadlock when closing the run
 
 ## 2021-05-29
 - added run select dialog

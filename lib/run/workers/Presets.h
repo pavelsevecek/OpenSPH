@@ -6,6 +6,19 @@ NAMESPACE_SPH_BEGIN
 
 namespace Presets {
 
+enum class Id {
+    COLLISION,
+    FRAGMENTATION_REACCUMULATION,
+    CRATERING,
+    PLANETESIMAL_MERGING,
+    GALAXY_COLLISION,
+    ACCRETION_DISK,
+    SOLAR_SYSTEM,
+};
+
+/// \brief Creates a node tree for the preset with given ID.
+SharedPtr<JobNode> make(const Id id, UniqueNameManager& nameMgr);
+
 /// \brief Creates a node tree for basic collision simulation.
 SharedPtr<JobNode> makeAsteroidCollision(UniqueNameManager& nameMgr, const Size particleCnt = 10000);
 

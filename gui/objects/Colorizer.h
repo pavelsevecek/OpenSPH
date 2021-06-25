@@ -769,7 +769,6 @@ public:
     }
 };
 
-
 class RadiusColorizer : public TypedColorizer<Vector> {
 public:
     explicit RadiusColorizer(Palette palette)
@@ -786,6 +785,11 @@ public:
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
         return Particle(idx).addValue(QuantityId::SMOOTHING_LENGTH, values[idx][H]);
+    }
+
+    virtual bool hasData(const Storage& UNUSED(storage)) const override {
+        // radii are always present
+        return true;
     }
 
     virtual std::string name() const override {

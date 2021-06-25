@@ -129,6 +129,28 @@ inline EntryControl& VirtualSettings::Category::connect(const std::string& name,
 
 namespace Detail {
 
+template <typename TEnum>
+inline std::string makeTooltip(const TEnum id) {
+    Optional<std::string> key = Settings<TEnum>::getEntryName(id);
+    Optional<int> type = Settings<TEnum>::getEntryType(id);
+    std::string scriptTooltip;
+    if (key) {
+        std::string typeName = Settings<TEnum>::typeToString(type.value());
+        scriptTooltip = "Script name: " + key.value() + " (" + typeName + ")";
+    }
+
+    Optional<std::string> desc = Settings<TEnum>::getEntryDesc(id);
+    if (desc) {
+        std::string tooltip = desc.value();
+        if (key) {
+            tooltip += "\n\n" + scriptTooltip;
+        }
+        return tooltip;
+    } else {
+        return scriptTooltip;
+    }
+}
+
 template <typename TValue, typename TEnum, typename TEnabler = void>
 class SettingsEntry : public EntryControl {
 private:
@@ -141,7 +163,7 @@ public:
         : settings(settings)
         , name(name)
         , id(id) {
-        tooltip = settings.getEntryDesc(id).valueOr("");
+        tooltip = makeTooltip(id);
     }
 
     virtual void set(const Value& value) override {
@@ -179,7 +201,7 @@ public:
         : settings(settings)
         , name(name)
         , id(id) {
-        tooltip = settings.getEntryDesc(id).valueOr("");
+        tooltip = makeTooltip(id);
     }
 
     virtual void set(const Value& value) override {
@@ -215,7 +237,7 @@ public:
         : settings(settings)
         , name(name)
         , id(id) {
-        tooltip = settings.getEntryDesc(id).valueOr("");
+        tooltip = makeTooltip(id);
     }
 
     virtual void set(const Value& value) override {

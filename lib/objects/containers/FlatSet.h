@@ -12,7 +12,7 @@
 NAMESPACE_SPH_BEGIN
 
 template <typename T, typename TLess = std::less<T>>
-class FlatSet : TLess {
+class FlatSet : TLess, Noncopyable {
 private:
     Array<T> data;
 

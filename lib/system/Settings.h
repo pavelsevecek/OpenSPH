@@ -33,23 +33,24 @@ const EmptySettingsTag EMPTY_SETTINGS;
 
 /// \brief Wrapper of an enum.
 ///
-/// Used to store an enum in settings while keeping (to some degree) the type safety.
+/// Used to store an enum in settings while keeping the type safety.
 struct EnumWrapper {
     int value;
-    std::size_t typeHash;
+
+    EnumIndex index;
 
     EnumWrapper() = default;
 
     template <typename TEnum>
     explicit EnumWrapper(TEnum e)
         : value(int(e))
-        , typeHash(typeid(TEnum).hash_code()) {
+        , index(typeid(TEnum)) {
         static_assert(std::is_enum<TEnum>::value, "Can be used only for enums");
     }
 
-    EnumWrapper(const int value, const std::size_t hash)
+    EnumWrapper(const int value, const EnumIndex& index)
         : value(value)
-        , typeHash(hash) {}
+        , index(index) {}
 
     explicit operator int() const {
         return value;
@@ -57,16 +58,16 @@ struct EnumWrapper {
 
     template <typename T, typename = std::enable_if_t<std::is_enum<T>::value>>
     explicit operator T() const {
-        SPH_ASSERT(typeid(T).hash_code() == typeHash);
+        SPH_ASSERT(std::type_index(typeid(T)) == index);
         return T(value);
     }
 
     bool operator==(const EnumWrapper& other) const {
-        return value == other.value && typeHash == other.typeHash;
+        return value == other.value && index == other.index;
     }
 
     friend std::ostream& operator<<(std::ostream& ofs, const EnumWrapper& e) {
-        ofs << e.value << " (" << e.typeHash << ")";
+        ofs << e.value << " (" << (e.index ? e.index->hash_code() : 0) << ")";
         return ofs;
     }
 };
@@ -77,7 +78,9 @@ public:
     template <typename TEnum>
     explicit InvalidSettingsAccess(const TEnum key)
         : Exception("Error accessing parameter '" +
-                    Settings<TEnum>::getEntryName(key).valueOr("unknown parameter") + "'") {}
+                    Settings<TEnum>::getEntryName(key).valueOr("unknown parameter") + "'") {
+        static_assert(std::is_enum<TEnum>::value, "InvalidSettingsAccess can only be used with enums");
+    }
 };
 
 template <typename TEnum>
@@ -180,7 +183,7 @@ private:
 
         template <typename T>
         INLINE bool hasType(std::enable_if_t<std::is_enum<T>::value, int> = 0) const {
-            return value.has<EnumWrapper>() && value.get<EnumWrapper>().typeHash == typeid(T).hash_code();
+            return value.has<EnumWrapper>() && value.get<EnumWrapper>().index == std::type_index(typeid(T));
         }
     };
 
@@ -281,7 +284,7 @@ public:
         Optional<Entry&> entry = entries.tryGet(idx);
         if (entry) {
             Optional<EnumWrapper> current = entry->value.template tryGet<EnumWrapper>();
-            checkSettingsAccess(current && current->typeHash == ew.typeHash, idx);
+            checkSettingsAccess(current && current->index == ew.index, idx);
         }
         this->set(idx, ew, 0); // zero needed to call the other overload
         return *this;
@@ -334,7 +337,7 @@ public:
         checkSettingsAccess(entry && entry->value.template has<EnumWrapper>(), idx);
 
         const EnumWrapper wrapper = entry->value.template get<EnumWrapper>();
-        checkSettingsAccess(wrapper.typeHash == typeid(TValue).hash_code(), idx);
+        checkSettingsAccess(wrapper.index == std::type_index(typeid(TValue)), idx);
         return TValue(wrapper.value);
     }
 
@@ -361,6 +364,24 @@ public:
             return NOTHING;
         }
     }
+
+    /// \brief Returns the type of the entry with given index.
+    ///
+    /// If the index does not correspond to any parameter, returns NOTHING.
+    static Optional<int> getEntryType(const TEnum idx) {
+        const Settings& settings = getDefaults();
+        Optional<const Entry&> entry = settings.entries.tryGet(idx);
+        if (entry) {
+            return entry->value.getTypeIdx();
+        } else {
+            return NOTHING;
+        }
+    }
+
+    /// \brief Returns the string name for given type index.
+    ///
+    /// \throw Exception for unknown type index
+    static std::string typeToString(const int type);
 
     /// \brief Returns a description of the entry with given index.
     ///
@@ -740,6 +761,14 @@ enum class SmoothingLengthEnum {
     SOUND_SPEED_ENFORCING = 1 << 2
 };
 
+enum class SignalSpeedEnum {
+    /// Signal speed given by the absolute value of pressure difference, as in Price (2008)
+    PRESSURE_DIFFERENCE,
+
+    /// Signal speed given by relative velocity projected to the positive vector, as in Valdarnini (2018),
+    VELOCITY_DIFFERENCE,
+};
+
 enum class GravityEnum {
     /// Approximated gravity, assuming the matter is a simple homogeneous sphere.
     SPHERICAL,
@@ -1064,6 +1093,9 @@ enum class RunSettingsId {
 
     /// Artificial conductivity beta coefficient
     SPH_AC_BETA,
+
+    /// Type of the signal speed used by artificial conductivity
+    SPH_AC_SIGNAL_SPEED,
 
     /// Turn on the XSPH correction
     SPH_USE_XSPH,

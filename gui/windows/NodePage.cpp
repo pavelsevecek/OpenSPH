@@ -8,6 +8,7 @@
 #include "io/FileSystem.h"
 #include "objects/utility/IteratorAdapters.h"
 #include "run/Config.h"
+#include "run/ScriptNode.h"
 #include "run/SpecialEntries.h"
 #include "run/workers/IoJobs.h"
 #include "run/workers/Presets.h"
@@ -90,6 +91,7 @@ void NodeManager::addNodes(JobNode& node) {
         nodes.insert(node, VisNode(node.get(), Pixel(0, 0)));
     });
     this->layoutNodes(node, Pixel(800, 200) - editor->offset());
+    callbacks->markUnsaved(true);
 }
 
 void NodeManager::cloneHierarchy(JobNode& node) {
@@ -163,7 +165,7 @@ void NodeManager::layoutNodes(JobNode& node, const Pixel position) {
     }
 
     editor->Refresh();
-    callbacks->markUnsaved();
+    callbacks->markUnsaved(true);
 }
 
 void NodeManager::deleteNode(JobNode& node) {
@@ -174,7 +176,7 @@ void NodeManager::deleteNode(JobNode& node) {
     }
     node.disconnectAll();
     nodes.remove(node.sharedFromThis());
-    callbacks->markUnsaved();
+    callbacks->markUnsaved(true);
 }
 
 void NodeManager::deleteTree(JobNode& node) {
@@ -183,13 +185,13 @@ void NodeManager::deleteTree(JobNode& node) {
     for (SharedPtr<JobNode> n : toRemove) {
         nodes.remove(n);
     }
-    callbacks->markUnsaved();
+    callbacks->markUnsaved(true);
 }
 
 void NodeManager::deleteAll() {
     nodes.clear();
     editor->Refresh();
-    callbacks->markUnsaved();
+    callbacks->markUnsaved(true);
 }
 
 VisNode* NodeManager::getSelectedNode(const Pixel position) {
@@ -435,15 +437,16 @@ void NodeManager::load(Config& config) {
 
 void NodeManager::startRun(JobNode& node) {
     // clone all nodes to avoid touching the data while the simulation is running
-    callbacks->startRun(Sph::cloneHierarchy(node, std::string("")), globals);
+    callbacks->startRun(Sph::cloneHierarchy(node, std::string("")), globals, node.instanceName());
 }
 
-class BatchWorker : public IParticleJob {
+/// \todo refactor, derive from INode instead
+class BatchJob : public IParticleJob {
 private:
     Size runCnt;
 
 public:
-    BatchWorker(const std::string& name, const Size runCnt)
+    BatchJob(const std::string& name, const Size runCnt)
         : IParticleJob(name)
         , runCnt(runCnt) {}
 
@@ -492,12 +495,28 @@ void NodeManager::startBatch(JobNode& node) {
         wxMessageBox(std::string("Cannot start batch run.\n\n") + e.what(), "Error", wxOK);
     }
 
-    SharedPtr<JobNode> root = makeNode<BatchWorker>("batch", batchNodes.size());
+    SharedPtr<JobNode> root = makeNode<BatchJob>("batch", batchNodes.size());
     for (Size i = 0; i < batchNodes.size(); ++i) {
         batchNodes[i]->connect(root, "worker " + std::to_string(i));
     }
 
-    callbacks->startRun(root, globals);
+    callbacks->startRun(root, globals, root->instanceName());
+}
+
+void NodeManager::startScript(const Path& file) {
+#ifdef SPH_USE_CHAISCRIPT
+    Array<SharedPtr<JobNode>> rootNodes = getRootNodes();
+    Array<SharedPtr<JobNode>> clonedNodes;
+    for (const auto& node : rootNodes) {
+        SharedPtr<JobNode> cloned = Sph::cloneHierarchy(*node, std::string());
+        cloned->enumerate([&](SharedPtr<JobNode> job, Size UNUSED(depth)) { clonedNodes.push(job); });
+    }
+    SharedPtr<ScriptNode> node = makeShared<ScriptNode>(file, std::move(clonedNodes));
+
+    callbacks->startRun(node, globals, "Script '" + file.native() + "'");
+#else
+    throw InvalidSetup("Cannot start script '" + file.native() + "', no ChaiScript support.");
+#endif
 }
 
 void NodeManager::startAll() {
@@ -509,15 +528,15 @@ void NodeManager::startAll() {
         }
     }
 
-    SharedPtr<JobNode> root = makeNode<BatchWorker>("batch", inputs.size());
+    SharedPtr<JobNode> root = makeNode<BatchJob>("batch", inputs.size());
     for (Size i = 0; i < inputs.size(); ++i) {
         inputs[i]->connect(root, "worker " + std::to_string(i));
     }
 
-    callbacks->startRun(root, globals);
+    callbacks->startRun(root, globals, root->instanceName());
 }
 
-Array<SharedPtr<JobNode>> NodeManager::getTopLevelNodes() const {
+Array<SharedPtr<JobNode>> NodeManager::getRootNodes() const {
     Array<SharedPtr<JobNode>> inputs;
     for (auto& element : nodes) {
         SharedPtr<JobNode> node = element.key;
@@ -574,7 +593,7 @@ void NodeManager::showBatchDialog() {
     BatchDialog* batchDialog = new BatchDialog(editor, batch, std::move(nodeList));
     if (batchDialog->ShowModal() == wxID_OK) {
         batch = batchDialog->getBatch().clone();
-        callbacks->markUnsaved();
+        callbacks->markUnsaved(true);
     }
     batchDialog->Destroy();
 }
@@ -582,11 +601,11 @@ void NodeManager::showBatchDialog() {
 void NodeManager::selectRun() {
     SharedPtr<JobNode> node = activeNode.lock();
     if (node) {
-        callbacks->startRun(node, globals);
+        callbacks->startRun(node, globals, node->instanceName());
         return;
     }
 
-    Array<SharedPtr<JobNode>> nodeList = getTopLevelNodes();
+    Array<SharedPtr<JobNode>> nodeList = getRootNodes();
     if (nodeList.empty()) {
         wxMessageBox(std::string("No simulation nodes added. First, create a simulation by double-clicking "
                                  "an item in the node list on the right side."),
@@ -597,7 +616,8 @@ void NodeManager::selectRun() {
 
     if (nodeList.size() == 1) {
         // only a single node, no need for run select dialog
-        callbacks->startRun(nodeList.front(), globals);
+        SharedPtr<JobNode> node = nodeList.front();
+        callbacks->startRun(node, globals, node->instanceName());
         return;
     }
 
@@ -607,7 +627,7 @@ void NodeManager::selectRun() {
         if (dialog->remember()) {
             activeNode = node;
         }
-        callbacks->startRun(node, globals);
+        callbacks->startRun(node, globals, node->instanceName());
     }
     dialog->Destroy();
 }
@@ -932,7 +952,7 @@ void NodeEditor::onMouseMotion(wxMouseEvent& evt) {
             state.offset += mousePosition - state.mousePosition;
         }
         this->Refresh();
-        callbacks->markUnsaved();
+        callbacks->markUnsaved(false);
     } else {
         const NodeSlot slot = nodeMgr->getSlotAtPosition(this->transform(mousePosition));
         if (slot != state.lastSlot) {
@@ -956,7 +976,7 @@ void NodeEditor::onMouseWheel(wxMouseEvent& evt) {
         state.offset += (position - state.offset) * (1.f - amount);
     }
     this->Refresh();
-    callbacks->markUnsaved();
+    callbacks->markUnsaved(false);
 }
 
 void NodeEditor::onLeftDown(wxMouseEvent& evt) {
@@ -1008,7 +1028,7 @@ void NodeEditor::onLeftUp(wxMouseEvent& evt) {
         // connect to the new slot
         sourceNode->connect(targetNode->sharedFromThis(), slotData.name);
 
-        callbacks->markUnsaved();
+        callbacks->markUnsaved(true);
     }
 
     state.connectingSlot = NOTHING;
@@ -1287,8 +1307,8 @@ public:
 
     wxPGProperty* addEnum(const std::string& name, const EnumWrapper wrapper) const {
         wxArrayString values;
-        for (int id : EnumMap::getAll(wrapper.typeHash)) {
-            const std::string rawName = EnumMap::toString(id, wrapper.typeHash);
+        for (int id : EnumMap::getAll(wrapper.index)) {
+            const std::string rawName = EnumMap::toString(id, wrapper.index);
             values.Add(capitalize(replaceAll(rawName, "_", " ")));
         }
         return grid->Append(new wxEnumProperty(name, wxPG_LABEL, values, wxArrayInt(), wrapper.value));
@@ -1297,8 +1317,8 @@ public:
     wxPGProperty* addFlags(const std::string& name, const EnumWrapper wrapper) const {
         wxArrayString values;
         wxArrayInt flags;
-        for (int id : EnumMap::getAll(wrapper.typeHash)) {
-            const std::string rawName = EnumMap::toString(id, wrapper.typeHash);
+        for (int id : EnumMap::getAll(wrapper.index)) {
+            const std::string rawName = EnumMap::toString(id, wrapper.index);
             values.Add(capitalize(replaceAll(rawName, "_", " ")));
             flags.Add(int(id));
         }
@@ -1469,7 +1489,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             this->updateEnabled(grid);
         }
         nodeEditor->Refresh();
-        callbacks->markUnsaved();
+        callbacks->markUnsaved(true);
     });
 
 
@@ -1506,14 +1526,14 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             categoryItemIdMap.insert(cat, catId);
         }
     }
+
     wxTreeItemId presetsId = workerView->AppendItem(rootId, "presets");
-    wxTreeItemId collisionsId = workerView->AppendItem(presetsId, "asteroid collision");
-    wxTreeItemId fragAndReaccId = workerView->AppendItem(presetsId, "fragmentation & reaccumulation");
-    wxTreeItemId planetesimalId = workerView->AppendItem(presetsId, "planetesimal merge");
-    wxTreeItemId crateringId = workerView->AppendItem(presetsId, "cratering");
-    wxTreeItemId accretionId = workerView->AppendItem(presetsId, "accretion disk");
-    wxTreeItemId galaxyId = workerView->AppendItem(presetsId, "galaxy collision");
-    wxTreeItemId solarSystemId = workerView->AppendItem(presetsId, "solar system");
+    std::map<wxTreeItemId, Presets::Id> presetsIdMap;
+    for (Presets::Id id : EnumMap::getAll<Presets::Id>()) {
+        std::string name = replaceAll(EnumMap::toString(id), "_", " ");
+        wxTreeItemId itemId = workerView->AppendItem(presetsId, name);
+        presetsIdMap[itemId] = id;
+    }
 
     workerView->Bind(wxEVT_MOTION, [workerView](wxMouseEvent& evt) {
         wxPoint pos = evt.GetPosition();
@@ -1540,25 +1560,11 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
     workerView->Bind(wxEVT_TREE_ITEM_ACTIVATED, [=](wxTreeEvent& evt) {
         wxTreeItemId id = evt.GetItem();
         UniqueNameManager nameMgr = nodeMgr->makeUniqueNameManager();
-        SharedPtr<JobNode> presetNode;
-        if (id == fragAndReaccId) {
-            presetNode = Presets::makeFragmentationAndReaccumulation(nameMgr);
-        } else if (id == collisionsId) {
-            presetNode = Presets::makeAsteroidCollision(nameMgr);
-        } else if (id == crateringId) {
-            presetNode = Presets::makeCratering(nameMgr);
-        } else if (id == accretionId) {
-            presetNode = Presets::makeAccretionDisk(nameMgr);
-        } else if (id == galaxyId) {
-            presetNode = Presets::makeGalaxyCollision(nameMgr);
-        } else if (id == solarSystemId) {
-            presetNode = Presets::makeSolarSystem(nameMgr);
-        } else if (id == planetesimalId) {
-            presetNode = Presets::makePlanetesimalMerging(nameMgr);
-        }
-        if (presetNode) {
+        if (presetsIdMap.find(id) != presetsIdMap.end()) {
+            SharedPtr<JobNode> presetNode = Presets::make(presetsIdMap.at(id), nameMgr);
             nodeMgr->addNodes(*presetNode);
         }
+
         WorkerTreeData* data = dynamic_cast<WorkerTreeData*>(workerView->GetItemData(id));
         if (data) {
             AutoPtr<IJob> worker = data->create();
@@ -1594,7 +1600,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             VisNode* vis = nodeMgr->addNode(node);
             nodeEditor->activate(vis);
             this->selectNode(*node);
-            callbacks->markUnsaved();
+            callbacks->markUnsaved(true);
         }
     });
 
@@ -1658,6 +1664,10 @@ void NodeWindow::selectRun() {
     nodeMgr->selectRun();
 }
 
+void NodeWindow::startScript(const Path& file) {
+    nodeMgr->startScript(file);
+}
+
 void NodeWindow::reset() {
     nodeMgr->deleteAll();
     this->clearGrid();
@@ -1675,7 +1685,16 @@ void NodeWindow::load(Config& config) {
     nodeEditor->load(config);
 }
 
-SharedPtr<JobNode> NodeWindow::addNode(AutoPtr<IJob>&& worker) {
+void NodeWindow::addNode(const SharedPtr<JobNode>& node) {
+    nodeMgr->addNode(node);
+}
+
+void NodeWindow::addNodes(JobNode& node) {
+    nodeMgr->addNodes(node);
+}
+
+
+SharedPtr<JobNode> NodeWindow::createNode(AutoPtr<IJob>&& worker) {
     SharedPtr<JobNode> node = makeShared<JobNode>(std::move(worker));
     nodeMgr->addNode(node);
     return node;
@@ -1710,6 +1729,10 @@ void NodeWindow::updateEnabled(wxPropertyGrid* grid) {
         const bool enabled = entry->enabled();
         prop->Enable(enabled);
     }
+}
+
+UniqueNameManager NodeWindow::makeUniqueNameManager() const {
+    return nodeMgr->makeUniqueNameManager();
 }
 
 NAMESPACE_SPH_END

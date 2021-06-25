@@ -158,7 +158,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Value& defaultValue, co
             return true;
         }
     case ENUM: {
-        const std::size_t id = defaultValue.template get<EnumWrapper>().typeHash;
+        const EnumIndex index = defaultValue.template get<EnumWrapper>().index;
         std::string textValue;
         int flags = 0;
         while (true) {
@@ -177,7 +177,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Value& defaultValue, co
                     return false;
                 }
             }
-            Optional<int> value = EnumMap::fromString(textValue, id);
+            Optional<int> value = EnumMap::fromString(textValue, index);
             if (!value) {
                 return false;
             } else {
@@ -188,7 +188,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Value& defaultValue, co
                 break;
             }
         }
-        entry.value = EnumWrapper(flags, id);
+        entry.value = EnumWrapper(flags, index);
         return true;
     }
     default:
@@ -285,7 +285,7 @@ Outcome Settings<TEnum>::saveToFile(const Path& path) const {
                 break;
             case ENUM: {
                 EnumWrapper e = entry.value.template get<EnumWrapper>();
-                ofs << EnumMap::toString(e.value, e.typeHash);
+                ofs << EnumMap::toString(e.value, e.index);
                 break;
             }
             default:
@@ -315,6 +315,26 @@ bool Settings<TEnum>::tryLoadFileOrSaveCurrent(const Path& path, const Settings&
         this->addEntries(overrides);
         this->saveToFile(path);
         return false;
+    }
+}
+
+template <typename TEnum>
+std::string Settings<TEnum>::typeToString(const int type) {
+    static StaticArray<std::string, 9> names = {
+        "bool",
+        "int",
+        "float",
+        "interval",
+        "string",
+        "vector",
+        "symmetric_tensor",
+        "traceless_tensor",
+        "enum",
+    };
+    if (type >= 0 && type < int(names.size())) {
+        return names[type];
+    } else {
+        throw Exception("Unknown settings type " + std::to_string(type));
     }
 }
 
