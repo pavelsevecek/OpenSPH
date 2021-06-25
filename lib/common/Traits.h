@@ -6,6 +6,7 @@
 /// \date 2016-2019
 
 #include "common/Globals.h"
+#include <memory>
 #include <type_traits>
 
 NAMESPACE_SPH_BEGIN

@@ -2,6 +2,7 @@
 
 #include "objects/containers/ArrayView.h"
 #include "objects/wrappers/AlignedStorage.h"
+#include <initializer_list>
 
 NAMESPACE_SPH_BEGIN
 
