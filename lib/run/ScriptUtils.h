@@ -134,7 +134,7 @@ private:
 
     /// Overrides specified by the script.
     std::vector<Vec3> positions, velocities, accelerations;
-    std::vector<Float> masses, energies, radii;
+    std::vector<Float> masses, energies, densities, radii;
 
 public:
     Particles() = default;
@@ -154,6 +154,8 @@ public:
     std::vector<Float>& getMasses();
 
     std::vector<Float>& getEnergies();
+
+    std::vector<Float>& getDensities();
 
     std::vector<Float>& getRadii();
 
