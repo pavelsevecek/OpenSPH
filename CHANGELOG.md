@@ -1,3 +1,6 @@
+## 2021-06-26
+- added particle densities to Chaiscript functions
+
 ## 2021-06-23
 - added a node for removing damaged/expanded particles
 - fixed radius colorizer missing in the combobox
