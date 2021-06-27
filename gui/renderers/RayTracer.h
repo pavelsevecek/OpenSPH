@@ -13,10 +13,10 @@
 NAMESPACE_SPH_BEGIN
 
 class FrameBuffer;
-struct Seeder;
 class IBrdf;
+class IColorMap;
 
-class RayTracer : public IRenderer {
+class RayMarcher : public IRenderer {
 private:
     /// BVH for finding intersections of rays with particles
     Bvh<BvhSphere> bvh;
@@ -36,6 +36,9 @@ private:
 
         /// BRDF used to get the surface reflectance.
         AutoPtr<IBrdf> brdf;
+
+        /// Color mapping operator
+        AutoPtr<IColorMap> colorMap;
 
         struct {
 
@@ -75,7 +78,7 @@ private:
         /// Random-number generator for this thread.
         UniformRng rng;
 
-        ThreadData(Seeder& seeder);
+        ThreadData(int seed);
     };
 
     mutable ThreadLocal<ThreadData> threadData;
@@ -111,9 +114,9 @@ private:
     mutable std::atomic_bool shouldContinue;
 
 public:
-    RayTracer(SharedPtr<IScheduler> scheduler, const GuiSettings& settings);
+    RayMarcher(SharedPtr<IScheduler> scheduler, const GuiSettings& settings);
 
-    ~RayTracer();
+    ~RayMarcher();
 
     virtual void initialize(const Storage& storage,
         const IColorizer& colorizer,

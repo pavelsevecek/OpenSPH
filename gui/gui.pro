@@ -36,6 +36,7 @@ SOURCES += \
     renderers/IRenderer.cpp \
     renderers/MeshRenderer.cpp \
     renderers/ParticleRenderer.cpp \
+    renderers/VolumeRenderer.cpp \
     renderers/RayTracer.cpp \
     renderers/Spectrum.cpp \
     windows/BatchDialog.cpp \
@@ -81,6 +82,7 @@ HEADERS += \
     renderers/IRenderer.h \
     renderers/MeshRenderer.h \
     renderers/ParticleRenderer.h \
+    renderers/VolumeRenderer.h \
     renderers/RayTracer.h \
     renderers/Spectrum.h \
     windows/BatchDialog.h \

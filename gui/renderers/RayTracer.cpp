@@ -9,23 +9,20 @@
 
 NAMESPACE_SPH_BEGIN
 
-struct Seeder {
-    int seed = 1337;
+inline auto seeder() {
+    return [seed = 1337]() mutable { return seed++; };
+}
 
-    operator int() {
-        return seed++;
-    }
-};
+RayMarcher::ThreadData::ThreadData(const int seed)
+    : rng(seed) {}
 
-RayTracer::ThreadData::ThreadData(Seeder& seeder)
-    : rng(seeder) {}
-
-RayTracer::RayTracer(SharedPtr<IScheduler> scheduler, const GuiSettings& settings)
+RayMarcher::RayMarcher(SharedPtr<IScheduler> scheduler, const GuiSettings& settings)
     : scheduler(scheduler)
-    , threadData(*scheduler, Seeder{}) {
+    , threadData(*scheduler, seeder()) {
     kernel = CubicSpline<3>();
     fixed.dirToSun = getNormalized(settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION));
     fixed.brdf = Factory::getBrdf(settings);
+    fixed.colorMap = Factory::getColorMap(settings);
     fixed.subsampling = settings.get<int>(GuiSettingsId::RAYTRACE_SUBSAMPLING);
     fixed.iterationLimit = settings.get<int>(GuiSettingsId::RAYTRACE_ITERATION_LIMIT);
 
@@ -40,11 +37,11 @@ RayTracer::RayTracer(SharedPtr<IScheduler> scheduler, const GuiSettings& setting
     shouldContinue = true;
 }
 
-RayTracer::~RayTracer() = default;
+RayMarcher::~RayMarcher() = default;
 
 constexpr Size BLEND_ALL_FLAG = 0x80;
 
-void RayTracer::initialize(const Storage& storage,
+void RayMarcher::initialize(const Storage& storage,
     const IColorizer& colorizer,
     const ICamera& UNUSED(camera)) {
     MEASURE_SCOPE("Building BVH");
@@ -142,13 +139,20 @@ void RayTracer::initialize(const Storage& storage,
     shouldContinue = true;
 }
 
-void RayTracer::render(const RenderParams& params, Statistics& UNUSED(stats), IRenderOutput& output) const {
+void RayMarcher::render(const RenderParams& params, Statistics& UNUSED(stats), IRenderOutput& output) const {
     shouldContinue = true;
     SPH_ASSERT(finder && bvh.getBoundingBox().volume() > 0._f);
     FrameBuffer fb(params.size);
     for (Size iteration = 0; iteration < fixed.iterationLimit && shouldContinue; ++iteration) {
         this->refine(params, iteration, fb);
-        output.update(fb.getBitmap(), {}, iteration == fixed.iterationLimit - 1);
+
+        const bool isFinal = (iteration == fixed.iterationLimit - 1);
+        if (fixed.colorMap) {
+            Bitmap<Rgba> bitmap = fixed.colorMap->map(fb.getBitmap());
+            output.update(bitmap, {}, isFinal);
+        } else {
+            output.update(fb.getBitmap(), {}, isFinal);
+        }
     }
 }
 
@@ -171,7 +175,7 @@ INLINE Coords sampleTent2d(const Size level, const float halfWidth, UniformRng& 
     }
 }
 
-void RayTracer::refine(const RenderParams& params, const Size iteration, FrameBuffer& fb) const {
+void RayMarcher::refine(const RenderParams& params, const Size iteration, FrameBuffer& fb) const {
     MEASURE_SCOPE("Rendering frame");
     const Size level = 1 << max(int(fixed.subsampling) - int(iteration), 0);
     Pixel actSize;
@@ -228,7 +232,7 @@ void RayTracer::refine(const RenderParams& params, const Size iteration, FrameBu
     }
 }
 
-ArrayView<const Size> RayTracer::getNeighbourList(ThreadData& data, const Size index) const {
+ArrayView<const Size> RayMarcher::getNeighbourList(ThreadData& data, const Size index) const {
     // look for neighbours only if the intersected particle differs from the previous one
     if (index != data.previousIdx) {
         Array<NeighbourRecord> neighs;
@@ -248,7 +252,7 @@ ArrayView<const Size> RayTracer::getNeighbourList(ThreadData& data, const Size i
     return data.neighs;
 }
 
-Optional<Vector> RayTracer::intersect(ThreadData& data,
+Optional<Vector> RayMarcher::intersect(ThreadData& data,
     const Ray& ray,
     const Float surfaceLevel,
     const bool occlusion) const {
@@ -269,7 +273,7 @@ Optional<Vector> RayTracer::intersect(ThreadData& data,
     return NOTHING;
 }
 
-Optional<Vector> RayTracer::getSurfaceHit(ThreadData& data,
+Optional<Vector> RayMarcher::getSurfaceHit(ThreadData& data,
     const IntersectContext& context,
     bool occlusion) const {
     if (fixed.renderSpheres) {
@@ -321,7 +325,7 @@ Optional<Vector> RayTracer::getSurfaceHit(ThreadData& data,
     }
 }
 
-Rgba RayTracer::shade(ThreadData& data,
+Rgba RayMarcher::shade(ThreadData& data,
     const RenderParams& params,
     const Size index,
     const Vector& hit,
@@ -376,7 +380,7 @@ Rgba RayTracer::shade(ThreadData& data,
            emission;
 }
 
-Float RayTracer::evalField(ArrayView<const Size> neighs, const Vector& pos1) const {
+Float RayMarcher::evalField(ArrayView<const Size> neighs, const Vector& pos1) const {
     SPH_ASSERT(!neighs.empty());
     Float value = 0._f;
     for (Size index : neighs) {
@@ -388,7 +392,7 @@ Float RayTracer::evalField(ArrayView<const Size> neighs, const Vector& pos1) con
     return value;
 }
 
-Vector RayTracer::evalGradient(ArrayView<const Size> neighs, const Vector& pos1) const {
+Vector RayMarcher::evalGradient(ArrayView<const Size> neighs, const Vector& pos1) const {
     Vector value(0._f);
     for (Size index : neighs) {
         const Vector& pos2 = cached.r[index];
@@ -398,7 +402,7 @@ Vector RayTracer::evalGradient(ArrayView<const Size> neighs, const Vector& pos1)
     return value;
 }
 
-Rgba RayTracer::evalColor(ArrayView<const Size> neighs, const Vector& pos1) const {
+Rgba RayMarcher::evalColor(ArrayView<const Size> neighs, const Vector& pos1) const {
     SPH_ASSERT(!neighs.empty());
     Rgba color = Rgba::black();
     float weightSum = 0.f;
@@ -415,7 +419,7 @@ Rgba RayTracer::evalColor(ArrayView<const Size> neighs, const Vector& pos1) cons
 
 constexpr Float SEAM_WIDTH = 0.1_f;
 
-Vector RayTracer::evalUvws(ArrayView<const Size> neighs, const Vector& pos1) const {
+Vector RayMarcher::evalUvws(ArrayView<const Size> neighs, const Vector& pos1) const {
     SPH_ASSERT(!neighs.empty());
     Vector uvws(0._f);
     Float weightSum = 0._f;
@@ -452,7 +456,7 @@ Vector RayTracer::evalUvws(ArrayView<const Size> neighs, const Vector& pos1) con
     }
 }
 
-Rgba RayTracer::getEnviroColor(const Ray& ray) const {
+Rgba RayMarcher::getEnviroColor(const Ray& ray) const {
     if (fixed.enviro.hdri.empty()) {
         return fixed.enviro.color;
     } else {

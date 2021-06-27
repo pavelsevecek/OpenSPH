@@ -371,7 +371,7 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     return particleBox;
 }
 
-wxWindow* RunPage::createRaytracerBox(wxPanel* parent) {
+wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
     wxStaticBox* raytraceBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 150));
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* levelSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -621,9 +621,9 @@ wxPanel* RunPage::createVisBar() {
 
 
     wxRadioButton* surfaceButton =
-        new wxRadioButton(visbarPanel, wxID_ANY, "Raytraced surface", wxDefaultPosition, buttonSize, 0);
+        new wxRadioButton(visbarPanel, wxID_ANY, "Raymarched surface", wxDefaultPosition, buttonSize, 0);
     visbarSizer->Add(surfaceButton);
-    wxWindow* raytracerBox = this->createRaytracerBox(visbarPanel);
+    wxWindow* raytracerBox = this->createRaymarcherBox(visbarPanel);
     visbarSizer->Add(raytracerBox, 0, wxALL, 5);
     visbarSizer->AddSpacer(10);
 
@@ -668,7 +668,7 @@ wxPanel* RunPage::createVisBar() {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         try {
             SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
-            controller->setRenderer(makeAuto<RayTracer>(scheduler, gui));
+            controller->setRenderer(makeAuto<RayMarcher>(scheduler, gui));
             enableControls(1);
         } catch (std::exception& e) {
             wxMessageBox(std::string("Cannot initialize raytracer.\n\n") + e.what(), "Error", wxOK);

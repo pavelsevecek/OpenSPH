@@ -12,6 +12,22 @@
 
 NAMESPACE_SPH_BEGIN
 
+namespace Detail {
+
+struct ValueInitTag {};
+struct FunctorInitTag {};
+
+template <typename... TArgs>
+struct ParamTraits {
+    using Tag = ValueInitTag;
+};
+template <typename TArg>
+struct ParamTraits<TArg> {
+    using Tag = std::conditional_t<IsCallable<TArg>::value, FunctorInitTag, ValueInitTag>;
+};
+
+} // namespace Detail
+
 /// \brief Template for storing a copy of a value for every thread in given scheduler.
 ///
 /// While C++ provides thread_local keyword for creating thread-local storages with static duration,
@@ -46,19 +62,24 @@ private:
     };
 
 public:
-    /// \brief Constructs a thread-local storage.
+    /// \brief Constructs a thread-local storage from a list of values
     ///
     /// \param scheduler Scheduler associated with the object.
     /// \param args List of parameters that are passed into the constructor of each thread-local storage.
     template <typename... TArgs>
     ThreadLocal(IScheduler& scheduler, TArgs&&... args)
         : scheduler(scheduler) {
-        const Size threadCnt = scheduler.getThreadCnt();
-        locals.reserve(threadCnt);
-        for (Size i = 0; i < threadCnt; ++i) {
-            // intentionally not forwarded, we cannot move parameters if we have more than one object
-            locals.emplaceBack(args...);
-        }
+        initialize(typename Detail::ParamTraits<TArgs...>::Tag{}, std::forward<TArgs>(args)...);
+    }
+
+    /// \brief Constructs a thread-local storage using a functor.
+    ///
+    /// \param scheduler Scheduler associated with the object.
+    /// \param functor Functor used to initialize each thread-local object.
+    template <typename TFunctor>
+    ThreadLocal(IScheduler& scheduler, TFunctor&& functor)
+        : scheduler(scheduler) {
+        initialize(typename Detail::ParamTraits<TFunctor>::Tag{}, std::forward<TFunctor>(functor));
     }
 
     /// \brief Return a value for current thread.
@@ -138,6 +159,26 @@ public:
     /// \copydoc end
     LocalIterator<const Local> end() const {
         return locals.end();
+    }
+
+private:
+    template <typename... TArgs>
+    void initialize(Detail::ValueInitTag, TArgs&&... args) {
+        const Size threadCnt = scheduler.getThreadCnt();
+        locals.reserve(threadCnt);
+        for (Size i = 0; i < threadCnt; ++i) {
+            // intentionally not forwarded, we cannot move parameters if we have more than one object
+            locals.emplaceBack(args...);
+        }
+    }
+
+    template <typename TFunctor>
+    void initialize(Detail::FunctorInitTag, TFunctor&& functor) {
+        const Size threadCnt = scheduler.getThreadCnt();
+        locals.reserve(threadCnt);
+        for (Size i = 0; i < threadCnt; ++i) {
+            locals.emplaceBack(functor());
+        }
     }
 };
 

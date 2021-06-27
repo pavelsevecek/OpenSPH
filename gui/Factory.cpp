@@ -4,9 +4,11 @@
 #include "gui/objects/Colorizer.h"
 #include "gui/renderers/Brdf.h"
 #include "gui/renderers/ContourRenderer.h"
+#include "gui/renderers/FrameBuffer.h"
 #include "gui/renderers/MeshRenderer.h"
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/renderers/RayTracer.h"
+#include "gui/renderers/VolumeRenderer.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -76,8 +78,11 @@ AutoPtr<IRenderer> Factory::getRenderer(SharedPtr<IScheduler> scheduler, const G
     case RendererEnum::MESH:
         renderer = makeAuto<MeshRenderer>(scheduler, settings);
         break;
-    case RendererEnum::RAYTRACER:
-        renderer = makeAuto<RayTracer>(scheduler, settings);
+    case RendererEnum::RAYMARCHER:
+        renderer = makeAuto<RayMarcher>(scheduler, settings);
+        break;
+    case RendererEnum::VOLUME:
+        renderer = makeAuto<VolumeRenderer>(scheduler, settings);
         break;
     case RendererEnum::CONTOUR:
         renderer = makeAuto<ContourRenderer>(scheduler, settings);
@@ -96,6 +101,20 @@ AutoPtr<IBrdf> Factory::getBrdf(const GuiSettings& settings) {
         return makeAuto<LambertBrdf>(1._f);
     case BrdfEnum::PHONG:
         return makeAuto<PhongBrdf>(1._f);
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+AutoPtr<IColorMap> Factory::getColorMap(const GuiSettings& settings) {
+    const ColorMapEnum id = settings.get<ColorMapEnum>(GuiSettingsId::COLORMAP);
+    switch (id) {
+    case ColorMapEnum::LINEAR:
+        return nullptr;
+    case ColorMapEnum::LOGARITHMIC:
+        return makeAuto<LogarithmicColorMap>();
+    case ColorMapEnum::FILMIC:
+        return makeAuto<FilmicColorMap>();
     default:
         NOT_IMPLEMENTED;
     }

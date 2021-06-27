@@ -5,16 +5,36 @@
 
 NAMESPACE_SPH_BEGIN
 
-class FrameBuffer : public Noncopyable {
+class IColorMap : public Polymorphic {
+public:
+    virtual Bitmap<Rgba> map(const Bitmap<Rgba>& values) const = 0;
+};
+
+class LogarithmicColorMap : public IColorMap {
+public:
+    virtual Bitmap<Rgba> map(const Bitmap<Rgba>& values) const override {
+        Bitmap<Rgba> colormapped(values.size());
+        for (int y = 0; y < values.size().y; ++y) {
+            for (int x = 0; x < values.size().x; ++x) {
+                const Rgba color = values[Pixel(x, y)];
+                colormapped[Pixel(x, y)] = Rgba(map(color.r()), map(color.g()), map(color.b()), color.a());
+            }
+        }
+        return colormapped;
+    }
+
+private:
+    inline float map(const float x) const {
+        return log(1.f + x);
+    }
+};
+
+class FilmicColorMap : public IColorMap {
 private:
     FilmicMapping filmic;
-    Bitmap<Rgba> values;
-    Size passCnt = 0;
 
 public:
-    explicit FrameBuffer(const Pixel resolution) {
-        values.resize(resolution, Rgba::transparent());
-
+    FilmicColorMap() {
         FilmicMapping::UserParams params;
         params.toeStrength = 0.1f;
         params.toeLength = 0.1f;
@@ -22,6 +42,29 @@ public:
         params.shoulderLength = 0.4f;
         params.shoulderAngle = 0.f;
         filmic.create(params);
+    }
+
+    virtual Bitmap<Rgba> map(const Bitmap<Rgba>& values) const override {
+        Bitmap<Rgba> colormapped(values.size());
+        for (int y = 0; y < values.size().y; ++y) {
+            for (int x = 0; x < values.size().x; ++x) {
+                const Rgba color = values[Pixel(x, y)];
+                colormapped[Pixel(x, y)] =
+                    Rgba(filmic(color.r()), filmic(color.g()), filmic(color.b()), color.a());
+            }
+        }
+        return colormapped;
+    }
+};
+
+class FrameBuffer : public Noncopyable {
+private:
+    Bitmap<Rgba> values;
+    Size passCnt = 0;
+
+public:
+    FrameBuffer(const Pixel resolution) {
+        values.resize(resolution, Rgba::transparent());
     }
 
     void accumulate(const Bitmap<Rgba>& pass) {
@@ -41,16 +84,8 @@ public:
         passCnt = 1;
     }
 
-    Bitmap<Rgba> getBitmap() const {
-        Bitmap<Rgba> colormapped(values.size());
-        for (int y = 0; y < values.size().y; ++y) {
-            for (int x = 0; x < values.size().x; ++x) {
-                const Rgba color = values[Pixel(x, y)];
-                colormapped[Pixel(x, y)] =
-                    Rgba(filmic(color.r()), filmic(color.g()), filmic(color.b()), color.a());
-            }
-        }
-        return colormapped;
+    const Bitmap<Rgba>& getBitmap() const {
+        return values;
     }
 };
 

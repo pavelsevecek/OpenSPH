@@ -3,6 +3,62 @@
 
 NAMESPACE_SPH_BEGIN
 
+static RegisterEnum<RendererEnum> sRenderer({
+    { RendererEnum::NONE, "none", "No particle visualization" },
+    { RendererEnum::PARTICLE, "particle", "Particles are visualized as circles. No shading." },
+    { RendererEnum::MESH,
+        "mesh",
+        "Surfaces of bodies are meshed using Marching cubes and drawed as triangles." },
+    { RendererEnum::RAYMARCHER,
+        "raymarcher",
+        "Use raymarching to find intersections with implicit surface." },
+    { RendererEnum::VOLUME, "volumetric", "Use raytracing to find total emission along the ray." },
+    { RendererEnum::CONTOUR, "contour", "Draws contours (iso-lines) of quantities" },
+});
+
+static RegisterEnum<CameraEnum> sCamera({
+    { CameraEnum::ORTHO, "ortho", "Orthographic projection" },
+    { CameraEnum::PERSPECTIVE, "perspective", "Perspective projection" },
+    { CameraEnum::FISHEYE, "fisheye", "Fisheye equidistant projection" },
+    { CameraEnum::SPHERICAL, "spherical", "Spherical 360° projection" },
+});
+
+static RegisterEnum<PlotEnum> sPlot({
+    { PlotEnum::INTERNAL_ENERGY, "internal_energy", "Plots the total internal energy." },
+    { PlotEnum::KINETIC_ENERGY, "kinetic_energy", "Plots the total kinetic energy." },
+    { PlotEnum::TOTAL_ENERGY, "total_energy", "Plots the sum of the internal and kinetic energy." },
+    { PlotEnum::TOTAL_MOMENTUM, "total_momentum", "Plots the total momentum." },
+    { PlotEnum::TOTAL_ANGULAR_MOMENTUM, "total_angular_momentum", "Plots the total angular momentum." },
+    /* { PlotEnum::PARTICLE_SFD,
+         "particle_sfd",
+         "Current cumulative size-frequency distribution of bodies in the simulation." },
+     { PlotEnum::PREDICTED_SFD,
+         "predicted_sfd",
+         "Size-frequency distribution that would be realized if we merged all particles that are currently "
+         "gravitationally bounded. It allows to roughly predict the final SFD after reaccumulation. Useful "
+         "for both NBody solvers and SPH solvers." },
+     { PlotEnum::CURRENT_SFD,
+         "current_sfd",
+         "Size-frequency distribution of particle components, i.e. groups of particles in mutual contact. "
+         "Useful for both NBody solvers and SPH solvers. Note that construcing the SFD has non-negligible "
+         "overhead, so it is recommended to specify plot period significantly larger than the time step." },*/
+    { PlotEnum::SELECTED_PARTICLE,
+        "selected_particle",
+        "Plots the current quantity of the selected particle." },
+});
+
+static RegisterEnum<BrdfEnum> sBrdf({
+    { BrdfEnum::LAMBERT, "lambert", "Lambert shading" },
+    { BrdfEnum::PHONG, "phong", "Phong shading" },
+});
+
+static RegisterEnum<ColorMapEnum> sColorMap({
+    { ColorMapEnum::LINEAR, "linear", "No colormapping transform" },
+    { ColorMapEnum::LOGARITHMIC, "logarithmic", "Uses logarithmic transform for color mapping" },
+    { ColorMapEnum::FILMIC, "filmic", "Uses filmic color mapping" },
+});
+
+
 // clang-format off
 template<>
 AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings<GuiSettingsId> {
@@ -74,15 +130,19 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Number of iterations of the render, including the subsampled iterations. " },
     { GuiSettingsId::RAYTRACE_HDRI,         "raytrace.hdri",        std::string(""),
         "Optional spherical bitmap used as an environment. Empty means the environment is black." },
-    { GuiSettingsId::RAYTRACE_BRDF,                 "raytrace.brdf",                BrdfEnum::LAMBERT,
+    { GuiSettingsId::RAYTRACE_BRDF,         "raytrace.brdf",        BrdfEnum::LAMBERT,
         "Surface BRDF. Applicable for raytracer. "},
-    { GuiSettingsId::RAYTRACE_SPHERES,              "raytrace.spheres",             false,
+    { GuiSettingsId::RAYTRACE_SPHERES,      "raytrace.spheres",     false,
         "If true, raytraced surface is given by spheres centered at particles, "
         "otherwise isosurface of a colorfield is rendered." },
+    { GuiSettingsId::VOLUME_EMISSION,       "volume.emission",      1._f,
+        "Medium emission per unit length. Used by volumetric renderer." },
     { GuiSettingsId::RENDER_GHOST_PARTICLES, "render_ghost_particles", true,
         "If true, ghost particles will be displayed as transparent circles, otherwise they are hidden." },
     { GuiSettingsId::BACKGROUND_COLOR,      "background_color",     Vector(0._f, 0._f, 0._f, 1._f),
         "Background color of the rendered image." },
+    { GuiSettingsId::COLORMAP,              "colormap",             ColorMapEnum::LINEAR,
+        "Color mapping applied on the rendered image." },
     { GuiSettingsId::SHOW_KEY,              "show_key",             true,
         "Include a color pallete and a distance scale in the rendered image." },
     { GuiSettingsId::FORCE_GRAYSCALE,       "force_grayscale",      false,

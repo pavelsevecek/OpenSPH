@@ -67,6 +67,10 @@ Optional<double> fromString(const std::string& s) {
     }
 }
 
+bool startsWith(const std::string& s, const std::string& start) {
+    return s.size() >= start.size() && s.substr(0, start.size()) == start;
+}
+
 std::string trim(const std::string& s) {
     Size i1 = 0;
     for (; i1 < s.size(); ++i1) {

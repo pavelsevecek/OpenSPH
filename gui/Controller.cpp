@@ -602,7 +602,7 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) const {
     case RendererEnum::MESH:
         colorizers = { Factory::getColorizer(project, ColorizerId::VELOCITY) };
         break;
-    case RendererEnum::RAYTRACER:
+    case RendererEnum::RAYMARCHER:
         colorizers = { Factory::getColorizer(project, ColorizerId::VELOCITY) };
         break;
     default:

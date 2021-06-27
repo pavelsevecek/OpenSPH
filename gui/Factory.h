@@ -14,6 +14,7 @@ struct Pixel;
 class Interval;
 class ITracker;
 class IBrdf;
+class IColorMap;
 class IScheduler;
 class Project;
 enum class ColorizerId;
@@ -31,6 +32,8 @@ AutoPtr<IRenderer> getRenderer(const GuiSettings& settings);
 AutoPtr<IRenderer> getRenderer(SharedPtr<IScheduler> scheduler, const GuiSettings& settings);
 
 AutoPtr<IBrdf> getBrdf(const GuiSettings& settings);
+
+AutoPtr<IColorMap> getColorMap(const GuiSettings& settings);
 
 AutoPtr<IColorizer> getColorizer(const Project& project, const ColorizerId id);
 

@@ -7,9 +7,9 @@
 
 using namespace Sph;
 
-#if defined(SPH_USE_TBB) && defined(SPH_USE_OPENMP)
+#if defined(SPH_USE_TBB)
 
-TEMPLATE_TEST_CASE("ThreadLocal", "[thread]", ThreadPool, Tbb, OmpScheduler) {
+TEMPLATE_TEST_CASE("ThreadLocal sum", "[thread]", ThreadPool, Tbb) {
     TestType& scheduler = *TestType::getGlobalInstance();
     ThreadLocal<uint64_t> partialSum(scheduler);
     parallelFor(scheduler, 1, 100000, 10, [&partialSum](Size i) {
@@ -42,7 +42,7 @@ TEMPLATE_TEST_CASE("ThreadLocal", "[thread]", ThreadPool, Tbb, OmpScheduler) {
     // REQUIRE_THREAD_SAFE(pool.remainingTaskCnt() == 0);
 }
 
-TEMPLATE_TEST_CASE("ThreadLocal parallelFor", "[thread]", ThreadPool, Tbb, OmpScheduler) {
+TEMPLATE_TEST_CASE("ThreadLocal parallelFor", "[thread]", ThreadPool, Tbb) {
     TestType& scheduler = *TestType::getGlobalInstance();
     const Size N = 100000;
     ThreadLocal<Array<Size>> partial(scheduler, N);
@@ -77,9 +77,9 @@ TEMPLATE_TEST_CASE("ThreadLocal parallelFor", "[thread]", ThreadPool, Tbb, OmpSc
     REQUIRE_THREAD_SAFE(areAllMatching(sum, [](const Size v) { return v == 1; }));
 }
 
-TEMPLATE_TEST_CASE("ThreadLocal accumulate", "[thread]", ThreadPool, Tbb, OmpScheduler) {
+TEMPLATE_TEST_CASE("ThreadLocal accumulate", "[thread]", ThreadPool, Tbb) {
     TestType& scheduler = *TestType::getGlobalInstance();
-    ThreadLocal<int64_t> sumTl(scheduler, 0._f);
+    ThreadLocal<int64_t> sumTl(scheduler, 0);
     parallelFor(scheduler, sumTl, 0, 10000, 10, [](Size i, int64_t& value) { value += i; });
     const int64_t sum = sumTl.accumulate(12);
     const int64_t expectedSum = 49995012;
@@ -90,7 +90,7 @@ TEMPLATE_TEST_CASE("ThreadLocal accumulate", "[thread]", ThreadPool, Tbb, OmpSch
     REQUIRE_THREAD_SAFE(sum2 == expectedSum2);
 }
 
-TEMPLATE_TEST_CASE("Nested parallelFor", "[thread]", ThreadPool, Tbb, OmpScheduler) {
+TEMPLATE_TEST_CASE("Nested parallelFor", "[thread]", ThreadPool, Tbb) {
     TestType& scheduler = *TestType::getGlobalInstance();
     std::atomic<uint64_t> sum{ 0 };
     parallelFor(scheduler, 0, 1000, 1, [&sum, &scheduler](Size i) {
@@ -101,6 +101,21 @@ TEMPLATE_TEST_CASE("Nested parallelFor", "[thread]", ThreadPool, Tbb, OmpSchedul
 }
 #endif
 
+TEST_CASE("ThreadLocal value initialization", "[thread]") {
+    ThreadPool scheduler;
+    ThreadLocal<Size> tl(scheduler, 5);
+    for (Size i = 0; i < scheduler.getThreadCnt(); ++i) {
+        REQUIRE(tl.value(i) == 5);
+    }
+}
+
+TEST_CASE("ThreadLocal function initialization", "[thread]") {
+    ThreadPool scheduler;
+    ThreadLocal<Size> tl(scheduler, [value = 2]() mutable { return value++; });
+    for (Size i = 0; i < scheduler.getThreadCnt(); ++i) {
+        REQUIRE(tl.value(i) == i + 2);
+    }
+}
 
 TEST_CASE("Concurrent parallelFor", "[thread]") {
     /// \todo the same for TBBs !!

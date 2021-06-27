@@ -12,6 +12,9 @@ NAMESPACE_SPH_BEGIN
 template <typename T>
 Optional<T> fromString(const std::string& s);
 
+/// Checks if the given string starts with given substring.
+bool startsWith(const std::string& s, const std::string& start);
+
 /// Removes all leading and trailing spaces from a string.
 std::string trim(const std::string& s);
 
@@ -36,6 +39,10 @@ Pair<std::string> splitByFirst(const std::string& s, const char delimiter);
 /// Capitalizes first letters of all words in the string, except for words like 'and', 'or', etc.
 std::string capitalize(const std::string& s);
 
+/// Helper class for generating unique names.
+///
+/// Calling \ref getName stores the name in the object. If the function is called with the same parameter for
+/// the second time, the name is made unique by appending a suitable suffix.
 class UniqueNameManager {
 private:
     std::set<std::string> names;

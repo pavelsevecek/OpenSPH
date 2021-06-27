@@ -56,11 +56,11 @@ VirtualSettings AnimationJob::getSettings() {
         return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::PARTICLE;
     };
     auto raytracerEnabler = [this] {
-        return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::RAYTRACER;
+        return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::RAYMARCHER;
     };
     auto surfaceEnabler = [this] {
         const RendererEnum type = gui.get<RendererEnum>(GuiSettingsId::RENDERER);
-        return type == RendererEnum::RAYTRACER || type == RendererEnum::MESH;
+        return type == RendererEnum::RAYMARCHER || type == RendererEnum::MESH;
     };
 
     VirtualSettings::Category& rendererCat = connector.addCategory("Rendering");
@@ -69,10 +69,16 @@ VirtualSettings AnimationJob::getSettings() {
     rendererCat.connect<int>("Image width", gui, GuiSettingsId::IMAGES_WIDTH);
     rendererCat.connect<int>("Image height", gui, GuiSettingsId::IMAGES_HEIGHT);
     rendererCat.connect<bool>("Transparent background", "transparent", transparentBackground);
+    rendererCat.connect<EnumWrapper>("Color mapping", gui, GuiSettingsId::COLORMAP);
     rendererCat.connect<Float>("Particle radius", gui, GuiSettingsId::PARTICLE_RADIUS)
         .setEnabler(particleEnabler);
     rendererCat.connect<bool>("Antialiasing", gui, GuiSettingsId::ANTIALIASED).setEnabler(particleEnabler);
     rendererCat.connect<bool>("Show key", gui, GuiSettingsId::SHOW_KEY).setEnabler(particleEnabler);
+    rendererCat.connect<int>("Interation count", gui, GuiSettingsId::RAYTRACE_ITERATION_LIMIT)
+        .setEnabler([&] {
+            const RendererEnum type = gui.get<RendererEnum>(GuiSettingsId::RENDERER);
+            return type == RendererEnum::RAYMARCHER || type == RendererEnum::VOLUME;
+        });
     rendererCat.connect<Float>("Surface level", gui, GuiSettingsId::SURFACE_LEVEL).setEnabler(surfaceEnabler);
     rendererCat.connect<Vector>("Sun position", gui, GuiSettingsId::SURFACE_SUN_POSITION)
         .setEnabler(surfaceEnabler);
@@ -80,12 +86,15 @@ VirtualSettings AnimationJob::getSettings() {
         .setEnabler(surfaceEnabler);
     rendererCat.connect<Float>("Ambient intensity", gui, GuiSettingsId::SURFACE_AMBIENT)
         .setEnabler(surfaceEnabler);
-    rendererCat.connect<Float>("Emission", gui, GuiSettingsId::SURFACE_EMISSION).setEnabler(raytracerEnabler);
-    rendererCat.connect<int>("Interation count", gui, GuiSettingsId::RAYTRACE_ITERATION_LIMIT)
+    rendererCat.connect<Float>("Surface emission", gui, GuiSettingsId::SURFACE_EMISSION)
         .setEnabler(raytracerEnabler);
     rendererCat.connect<EnumWrapper>("BRDF", gui, GuiSettingsId::RAYTRACE_BRDF).setEnabler(raytracerEnabler);
     rendererCat.connect<bool>("Render as spheres", gui, GuiSettingsId::RAYTRACE_SPHERES)
         .setEnabler(raytracerEnabler);
+    rendererCat.connect<Float>("Medium emission [km^-1]", gui, GuiSettingsId::VOLUME_EMISSION)
+        .setUnits(1.e-3_f)
+        .setEnabler(
+            [this] { return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::VOLUME; });
     rendererCat.connect<Float>("Cell size", gui, GuiSettingsId::SURFACE_RESOLUTION).setEnabler([this] {
         return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::MESH;
     });

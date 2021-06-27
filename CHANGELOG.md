@@ -1,5 +1,7 @@
 ## 2021-06-26
 - added particle densities to Chaiscript functions
+- added volumetric renderer (job-only)
+- added colormapping options
 
 ## 2021-06-23
 - added a node for removing damaged/expanded particles

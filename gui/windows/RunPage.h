@@ -125,7 +125,7 @@ private:
     wxPanel* createStatsBar();
 
     wxWindow* createParticleBox(wxPanel* parent);
-    wxWindow* createRaytracerBox(wxPanel* parent);
+    wxWindow* createRaymarcherBox(wxPanel* parent);
     wxWindow* createContourBox(wxPanel* parent);
 
 
