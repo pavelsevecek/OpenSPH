@@ -200,5 +200,17 @@ Pair<Float> MurnaghanEos::evaluate(const Float rho, const Float UNUSED(u)) const
     return { p, cs };
 }
 
+//-----------------------------------------------------------------------------------------------------------
+// Aneos implementation
+//-----------------------------------------------------------------------------------------------------------
+
+Aneos::Aneos(const BodySettings& settings) {
+    (void)settings;
+}
+
+Pair<Float> Aneos::evaluate(const Float rho, const Float u) const {
+    NOT_IMPLEMENTED;
+    return { rho, u };
+}
 
 NAMESPACE_SPH_END

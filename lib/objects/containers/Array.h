@@ -6,12 +6,12 @@
 /// \date 2016-2019
 
 #include "math/MathBasic.h"
+#include "objects/containers/Allocators.h"
 #include "objects/containers/ArrayView.h"
-#include <mm_malloc.h>
 
 NAMESPACE_SPH_BEGIN
 
-template <typename T, typename TCounter = Size>
+template <typename T, typename TAllocator = Mallocator, typename TCounter = Size>
 class CopyableArray;
 
 /// \brief Helper class, used to avoid including large header limits.h
@@ -35,8 +35,8 @@ struct NumericLimits<uint32_t> {
 /// \brief Generic dynamically allocated resizable storage.
 ///
 /// Can also be used with STL algorithms.
-template <typename T, typename TCounter = Size>
-class Array : public Noncopyable {
+template <typename T, typename TAllocator = Mallocator, typename TCounter = Size>
+class Array : public TAllocator, public Noncopyable {
 private:
     using StorageType = typename WrapReferenceType<T>::Type;
     StorageType* data = nullptr;
@@ -73,7 +73,7 @@ public:
     Array(std::initializer_list<StorageType> list) {
         actSize = list.size();
         maxSize = actSize;
-        data = (StorageType*)_mm_malloc(maxSize * sizeof(StorageType), alignof(StorageType));
+        data = (StorageType*)TAllocator::allocate(maxSize * sizeof(StorageType), alignof(StorageType)).ptr;
         TCounter i = 0;
         for (auto& l : list) {
             new (data + i) StorageType(l);
@@ -96,7 +96,8 @@ public:
             }
         }
         if (data) {
-            _mm_free(data);
+            Block block{ data, maxSize * sizeof(StorageType) };
+            TAllocator::deallocate(block);
             data = nullptr;
         }
     }
@@ -113,7 +114,7 @@ public:
     /// This is only way to copy elements, as for Array object deep-copying of elements is forbidden as it is
     /// rarely needed and deleting copy constructor helps us avoid accidental deep-copy, for example when
     /// passing array as an argument of function.
-    Array& operator=(const CopyableArray<T, TCounter>& other) {
+    Array& operator=(const CopyableArray<T, TAllocator, TCounter>& other) {
         const Array& rhs = other;
         this->resize(rhs.size());
         for (TCounter i = 0; i < rhs.size(); ++i) {
@@ -426,7 +427,7 @@ public:
     }
 
     /// \brief Swaps content of two arrays
-    void swap(Array<T, TCounter>& other) {
+    void swap(Array& other) {
         std::swap(data, other.data);
         std::swap(maxSize, other.maxSize);
         std::swap(actSize, other.actSize);
@@ -508,28 +509,28 @@ private:
             maxSize = actSize;
         }
         // allocate maxSize elements
-        data = (StorageType*)_mm_malloc(maxSize * sizeof(StorageType), alignof(StorageType));
+        data = (StorageType*)TAllocator::allocate(maxSize * sizeof(StorageType), alignof(StorageType)).ptr;
     }
 };
 
-template <typename T, typename TCounter>
+template <typename T, typename TAllocator, typename TCounter>
 class CopyableArray {
 private:
-    const Array<T, TCounter>& array;
+    const Array<T, TAllocator, TCounter>& array;
 
 public:
-    CopyableArray(const Array<T, TCounter>& array)
+    CopyableArray(const Array<T, TAllocator, TCounter>& array)
         : array(array) {}
 
-    operator const Array<T, TCounter>&() const {
+    operator const Array<T, TAllocator, TCounter>&() const {
         return array;
     }
 };
 
 /// \todo test
-template <typename T, typename TCounter>
-INLINE CopyableArray<T, TCounter> copyable(const Array<T, TCounter>& array) {
-    return CopyableArray<T, TCounter>(array);
+template <typename T, typename TAllocator, typename TCounter>
+INLINE CopyableArray<T, TAllocator, TCounter> copyable(const Array<T, TAllocator, TCounter>& array) {
+    return CopyableArray<T, TAllocator, TCounter>(array);
 }
 
 /// \brief Creates an array from a list of parameters.

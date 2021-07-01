@@ -15,7 +15,7 @@ NAMESPACE_SPH_BEGIN
 template <typename T>
 class Grid {
 private:
-    Array<T, uint64_t> data;
+    Array<T, Mallocator, uint64_t> data;
     Indices dimensions = Indices(0);
 
 public:

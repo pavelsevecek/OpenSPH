@@ -1,3 +1,8 @@
+## 2021-07-01
+- added allocators to Array and List
+- added isothermal sphere IC
+- made parameters of SoftSphereSolver dimensionless
+
 ## 2021-06-26
 - added particle densities to Chaiscript functions
 - added volumetric renderer (job-only)

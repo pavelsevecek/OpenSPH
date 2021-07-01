@@ -5,7 +5,8 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2019
 
-#include "objects/wrappers/AlignedStorage.h"
+#include "common/Traits.h"
+#include "objects/containers/Allocators.h"
 #include "objects/wrappers/RawPtr.h"
 
 NAMESPACE_SPH_BEGIN
@@ -102,8 +103,8 @@ struct ListIterator {
 /// Random access is not implemented, as it would be highly ineffective anyway.
 ///
 /// \todo Possibly allow a memory pool as an allocator to improve locality of nodes.
-template <typename T>
-class List : public Noncopyable {
+template <typename T, typename TAllocator = Mallocator>
+class List : public TAllocator, public Noncopyable {
 private:
     using StorageType = typename WrapReferenceType<T>::Type;
 
@@ -162,7 +163,7 @@ public:
     /// Element is copied or moved, based on the type of the value.
     template <typename U>
     void pushBack(U&& value) {
-        RawPtr<ListNode<T>> node = alignedNew<ListNode<T>>(std::forward<U>(value), last, nullptr);
+        RawPtr<ListNode<T>> node = newNode(std::forward<U>(value), last, nullptr);
         last = node;
         if (first == nullptr) {
             // this is the first element, update also first ptr.
@@ -175,7 +176,7 @@ public:
     /// Element is copied or moved, based on the type of the value.
     template <typename U>
     void pushFront(U&& value) {
-        RawPtr<ListNode<T>> node = alignedNew<ListNode<T>>(std::forward<U>(value), nullptr, first);
+        RawPtr<ListNode<T>> node = newNode(std::forward<U>(value), nullptr, first);
         first = node;
         if (last == nullptr) {
             // this is the first element, update also last ptr.
@@ -188,8 +189,7 @@ public:
     template <typename U>
     void insert(const ListIterator<T> iter, U&& value) {
         SPH_ASSERT(iter);
-        RawPtr<ListNode<T>> node =
-            alignedNew<ListNode<T>>(std::forward<U>(value), iter.node, iter.node->next);
+        RawPtr<ListNode<T>> node = newNode(std::forward<U>(value), iter.node, iter.node->next);
         if (iter.node == last) {
             // we added to the back of the list, update the pointer
             last = node;
@@ -216,7 +216,7 @@ public:
             // erasing last element, adjust pointer
             last = last->prev;
         }
-        alignedDelete(node.get());
+        deleteNode(node);
         return next;
     }
 
@@ -224,7 +224,7 @@ public:
     void clear() {
         for (RawPtr<ListNode<T>> ptr = first; ptr != nullptr;) {
             RawPtr<ListNode<T>> next = ptr->next;
-            alignedDelete(ptr.get());
+            deleteNode(next);
             ptr = next;
         }
         first = last = nullptr;
@@ -255,8 +255,8 @@ public:
     }
 
     /// Creates a copy of the list.
-    List<T> clone() const {
-        List<T> copy;
+    List clone() const {
+        List copy;
         for (auto& value : *this) {
             copy.pushBack(value);
         }
@@ -291,6 +291,19 @@ public:
             stream << t << std::endl;
         }
         return stream;
+    }
+
+private:
+    template <typename... TArgs>
+    RawPtr<ListNode<T>> newNode(TArgs&&... args) {
+        Block block = TAllocator::allocate(sizeof(ListNode<T>), alignof(ListNode<T>));
+        return new (block.ptr) ListNode<T>(std::forward<TArgs>(args)...);
+    }
+
+    void deleteNode(RawPtr<ListNode<T>> node) {
+        node->~ListNode<T>();
+        Block block{ node.get(), sizeof(ListNode<T>) };
+        TAllocator::deallocate(block);
     }
 };
 

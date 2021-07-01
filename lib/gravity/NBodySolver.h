@@ -147,8 +147,11 @@ class SoftSphereSolver : public ISolver {
 
     ThreadLocal<ThreadData> threadData;
 
-    Float repel;
-    Float friction;
+    /// Dimensionless parameters defining interparticle forces
+    struct {
+        Float repel;
+        Float friction;
+    } force;
 
 public:
     SoftSphereSolver(IScheduler& scheduler, const RunSettings& settings);

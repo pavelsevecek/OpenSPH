@@ -589,8 +589,8 @@ SoftSphereSolver::SoftSphereSolver(IScheduler& scheduler,
     : gravity(std::move(gravity))
     , scheduler(scheduler)
     , threadData(scheduler) {
-    repel = settings.get<Float>(RunSettingsId::SOFT_REPEL_STRENGTH);
-    friction = settings.get<Float>(RunSettingsId::SOFT_FRICTION_STRENGTH);
+    force.repel = settings.get<Float>(RunSettingsId::SOFT_REPEL_STRENGTH);
+    force.friction = settings.get<Float>(RunSettingsId::SOFT_FRICTION_STRENGTH);
 }
 
 SoftSphereSolver::~SoftSphereSolver() = default;
@@ -628,16 +628,18 @@ void SoftSphereSolver::integrate(Storage& storage, Statistics& stats) {
                 // aren't actual neighbours
                 continue;
             }
-            Float rm = m[j] / (m[i] + m[j]);
+            const Float hbar = 0.5_f * (hi + hj);
+            // dimensionless acceleration to SI
+            const Float unit = Constants::gravity / sqr(hbar);
             const Float dist = sqrt(n.distanceSqr);
-            const Float radialForce = repel / pow<6>(dist / (hi + hj));
+            const Float radialForce = force.repel * pow<6>((hi + hj) / dist);
             const Vector dir = getNormalized(r[i] - r[j]);
-            f += rm * dir * radialForce;
+            f += unit * m[j] * dir * radialForce;
+
             const Float vsqr = getSqrLength(v[i] - v[j]);
             if (vsqr > EPS) {
-                const Vector velocity = getNormalized(v[i] - v[j]);
-                const Float frictionForce = friction * vsqr;
-                f -= rm * velocity * frictionForce;
+                const Vector velocityDir = getNormalized(v[i] - v[j]);
+                f -= unit * m[j] * velocityDir * force.friction;
             }
         }
         dv[i] += f;

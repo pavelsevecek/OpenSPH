@@ -620,7 +620,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     /// Parameters of the soft-body solver
     { RunSettingsId::SOFT_REPEL_STRENGTH,       "soft.repel_strength",    1._f,
         "Repel strength used by the soft-body solver" },
-    { RunSettingsId::SOFT_FRICTION_STRENGTH,    "soft.friction_strength",  1.e-3_f,
+    { RunSettingsId::SOFT_FRICTION_STRENGTH,    "soft.friction_strength",  0.01_f,
         "Friction strength used by the soft-body solver" },
 
     /// Timestepping parameters

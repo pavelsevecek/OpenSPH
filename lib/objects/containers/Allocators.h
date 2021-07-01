@@ -6,12 +6,13 @@
 /// \date 2016-2019
 
 #include "common/Assert.h"
+#include <mm_malloc.h>
 
 NAMESPACE_SPH_BEGIN
 
 struct Block {
     void* ptr;
-    Size size;
+    std::size_t size;
 
     INLINE static Block EMPTY() {
         return { nullptr, 0 };
@@ -20,9 +21,9 @@ struct Block {
 
 class Mallocator {
 public:
-    INLINE Block allocate(const Size size) noexcept {
+    INLINE Block allocate(const std::size_t size, const std::size_t align) noexcept {
         Block block;
-        block.ptr = malloc(size);
+        block.ptr = _mm_malloc(size, align);
         if (!block.ptr) {
             block.size = 0;
         } else {
@@ -32,25 +33,25 @@ public:
     }
 
     INLINE void deallocate(Block& block) noexcept {
-        free(block.ptr);
+        _mm_free(block.ptr);
         block.ptr = nullptr;
     }
 };
 
 
-template <Size TSize, Size TAlign = 16>
+template <std::size_t TSize, Size TAlign = 16>
 class StackAllocator : public Immovable, Local {
 private:
     alignas(TAlign) char data[TSize];
 
     /// Current position in the buffer
-    char* pos = data;
+    uint8_t* pos = data;
 
 public:
-    INLINE Block allocate(const Size size) noexcept {
+    INLINE Block allocate(const std::size_t size, const std::size_t UNUSED(align)) noexcept {
         SPH_ASSERT(size > 0);
 
-        const Size actSize = roundToAlignment(size);
+        const std::size_t actSize = roundToAlignment(size);
         if (pos - data + actSize > TSize) {
             return Block::EMPTY();
         }
@@ -64,16 +65,16 @@ public:
         if (!block.ptr) {
             return;
         }
-        if ((char*)block.ptr + block.size == pos) {
-            pos = static_cast<char*>(block.ptr);
+        if ((uint8_t*)block.ptr + block.size == pos) {
+            pos = static_cast<uint8_t*>(block.ptr);
         }
         block = Block::EMPTY();
     }
 
 
 private:
-    INLINE constexpr static Size roundToAlignment(const Size value) noexcept {
-        const Size remainder = value % TAlign;
+    INLINE constexpr static std::size_t roundToAlignment(const std::size_t value) noexcept {
+        const std::size_t remainder = value % TAlign;
         return value + ((remainder == 0) ? 0 : (TAlign - remainder));
     }
 };
@@ -87,12 +88,12 @@ private:
 template <typename TPrimary, typename TFallback>
 class FallbackAllocator : private TPrimary, private TFallback {
 public:
-    INLINE Block allocate(const Size size) noexcept {
-        Block block = TPrimary::allocate(size);
+    INLINE Block allocate(const std::size_t size, const std::size_t align) noexcept {
+        Block block = TPrimary::allocate(size, align);
         if (block.ptr) {
             return block;
         } else {
-            return TFallback::allocate(size);
+            return TFallback::allocate(size, align);
         }
     }
 
@@ -105,14 +106,14 @@ public:
     }
 };
 
-template <Size TLimit, typename TSmall, typename TLarge>
+template <std::size_t TLimit, typename TSmall, typename TLarge>
 class Segregator : private TSmall, private TLarge {
 public:
-    INLINE Block allocate(const Size size) noexcept {
+    INLINE Block allocate(const std::size_t size, const std::size_t align) noexcept {
         if (size <= TLimit) {
-            return TSmall::allocate(size);
+            return TSmall::allocate(size, align);
         } else {
-            return TLarge::allocate(size);
+            return TLarge::allocate(size, align);
         }
     }
 
@@ -122,6 +123,48 @@ public:
         } else {
             TLarge::deallocate(block);
         }
+    }
+};
+
+class MemoryResourceAllocator {
+private:
+    Block resource;
+    std::size_t allocated = 0;
+
+public:
+    explicit MemoryResourceAllocator(const Block& resource)
+        : resource(resource) {}
+
+    INLINE Block allocate(const std::size_t size, const Size UNUSED(align)) noexcept {
+        if (allocated + size <= resource.size) {
+            Block block;
+            block.ptr = (uint8_t*)resource.ptr + allocated;
+            block.size = size;
+            allocated += size;
+            return block;
+        } else {
+            return Block::EMPTY();
+        }
+    }
+
+    INLINE void deallocate(Block& UNUSED(block)) noexcept {}
+};
+
+template <typename TAllocator>
+class MemoryResource : public TAllocator {
+    Block resource;
+
+public:
+    explicit MemoryResource(const std::size_t size, std::size_t align) {
+        resource = TAllocator::allocate(size, align);
+    }
+
+    ~MemoryResource() {
+        TAllocator::deallocate(resource);
+    }
+
+    Block block() const {
+        return resource;
     }
 };
 

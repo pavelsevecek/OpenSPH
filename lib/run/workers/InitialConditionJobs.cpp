@@ -884,6 +884,74 @@ static JobRegistrar sRegisterNBodyIc(
 
 
 // ----------------------------------------------------------------------------------------------------------
+// IsothermalSphereICs
+// ----------------------------------------------------------------------------------------------------------
+
+IsothermalSphereIc::IsothermalSphereIc(const std::string& name)
+    : IParticleJob(name) {}
+
+VirtualSettings IsothermalSphereIc::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+
+    VirtualSettings::Category& sphereCat = connector.addCategory("Sphere");
+    sphereCat.connect("Particle count", "particleCnt", particleCnt);
+    sphereCat.connect("Radius [km]", "radius", radius).setUnits(1.e3_f);
+    sphereCat.connect("Central density [kg/m^3]", "density", centralDensity);
+    sphereCat.connect("Central energy [J/kg]", "energy", centralEnergy);
+    sphereCat.connect("Adiabatic index []", "gamma", gamma);
+
+    return connector;
+}
+
+void IsothermalSphereIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
+    BodySettings body;
+    body.set(BodySettingsId::DENSITY, centralDensity);
+    body.set(BodySettingsId::ENERGY, centralEnergy);
+    body.set(BodySettingsId::ADIABATIC_INDEX, gamma);
+    SharedPtr<IMaterial> material = makeShared<EosMaterial>(body);
+    Storage storage(material);
+    DiehlParams params;
+    Float r0 = 0.1_f * radius;
+    params.numOfIters = 50;
+    params.onIteration = DiehlReporter(callbacks, params.numOfIters);
+    params.particleDensity = [r0](const Vector& r) {
+        // does not have to be normalized
+        return 1._f / (1._f + getSqrLength(r) / sqr(r0));
+    };
+
+    DiehlDistribution dist(params);
+    SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
+    SphericalDomain domain(Vector(0._f), radius);
+    storage.insert(QuantityId::POSITION, OrderEnum::SECOND, dist.generate(*scheduler, particleCnt, domain));
+    const Float K = (gamma - 1._f) * centralEnergy;
+    const Float M_tot = 2._f * PI * K * radius / Constants::gravity;
+    storage.insert(QuantityId::MASS, OrderEnum::ZERO, M_tot / particleCnt);
+    storage.insert(QuantityId::ENERGY, OrderEnum::FIRST, centralEnergy);
+    storage.insert(QuantityId::DENSITY, OrderEnum::FIRST, centralEnergy);
+    ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    const Float kingRadius = sqrt(9._f * K / (4._f * PI * Constants::gravity * centralDensity));
+    for (Size i = 0; i < rho.size(); ++i) {
+        rho[i] = centralDensity / (1._f + getSqrLength(r[i]) / sqr(kingRadius));
+    }
+
+    MaterialInitialContext context(global);
+    material->create(storage, context);
+
+    result = makeShared<ParticleData>();
+    result->storage = std::move(storage);
+}
+
+
+static JobRegistrar sRegisterIsothermalSphereIc(
+    "isothermal sphere ICs",
+    "star ICs",
+    "initial conditions",
+    [](const std::string& name) { return makeAuto<IsothermalSphereIc>(name); },
+    "Creates a single isothermal sphere.");
+
+// ----------------------------------------------------------------------------------------------------------
 // GalaxyICs
 // ----------------------------------------------------------------------------------------------------------
 
@@ -935,7 +1003,6 @@ void GalaxyIc::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbac
     /// \todo generalize units
     result->overrides.set(RunSettingsId::GRAVITY_CONSTANT, 1._f);
 }
-
 
 static JobRegistrar sRegisterGalaxyIc(
     "galaxy ICs",
