@@ -1,4 +1,5 @@
 ## 2021-07-01
+- added basic cmake buildsystem
 - added allocators to Array and List
 - added isothermal sphere IC
 - made parameters of SoftSphereSolver dimensionless
