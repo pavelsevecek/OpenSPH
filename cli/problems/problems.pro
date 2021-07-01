@@ -22,6 +22,7 @@ SOURCES += \
     collision/Collision.cpp \
     galaxy/Galaxy.cpp \
     kelvin_helmholtz/KelvinHelmholtz.cpp \
+    boundary/Boundary.cpp \
     rotating_rod/RotatingRod.cpp \
     Common.cpp
 
