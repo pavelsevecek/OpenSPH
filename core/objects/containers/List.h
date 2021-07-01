@@ -216,7 +216,9 @@ public:
             // erasing last element, adjust pointer
             last = last->prev;
         }
-        deleteNode(node);
+        if (node) {
+            deleteNode(node.get());
+        }
         return next;
     }
 
@@ -224,7 +226,9 @@ public:
     void clear() {
         for (RawPtr<ListNode<T>> ptr = first; ptr != nullptr;) {
             RawPtr<ListNode<T>> next = ptr->next;
-            deleteNode(next);
+            if (ptr) {
+                deleteNode(ptr.get());
+            }
             ptr = next;
         }
         first = last = nullptr;
@@ -300,9 +304,9 @@ private:
         return new (block.ptr) ListNode<T>(std::forward<TArgs>(args)...);
     }
 
-    void deleteNode(RawPtr<ListNode<T>> node) {
+    void deleteNode(ListNode<T>* node) {
         node->~ListNode<T>();
-        Block block{ node.get(), sizeof(ListNode<T>) };
+        Block block{ node, sizeof(ListNode<T>) };
         TAllocator::deallocate(block);
     }
 };

@@ -2,7 +2,7 @@ TEMPLATE = lib
 CONFIG += c++14 staticlib thread silent
 CONFIG -= app_bundle qt
 
-include(sharedLib.pro)
+include(sharedCore.pro)
 
 SOURCES += \
     common/Assert.cpp \

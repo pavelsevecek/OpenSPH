@@ -3,11 +3,11 @@ CONFIG += c++14 thread silent
 CONFIG -= app_bundle
 CONFIG -= qt
 
-INCLUDEPATH += ../lib
-DEPENDPATH += . ../lib
-LIBS += ../lib/liblib.a
-PRE_TARGETDEPS += ../lib/liblib.a
+INCLUDEPATH += ../core
+DEPENDPATH += . ../core
+LIBS += ../core/libcore.a
+PRE_TARGETDEPS += ../core/libcore.a
 
-include(../lib/sharedLib.pro)
+include(../core/sharedCore.pro)
 
 SOURCES += main.cpp

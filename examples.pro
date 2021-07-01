@@ -2,7 +2,7 @@ TEMPLATE = subdirs
 
 CONFIG += ordered
 
-SUBDIRS = lib \
+SUBDIRS = core \
           examples/01_hello_asteroid \
           examples/02_death_star \
           examples/03_van_der_waals \
@@ -10,9 +10,9 @@ SUBDIRS = lib \
           examples/05_fragmentation_reaccumulation \
           examples/06_heat_diffusion \
 
-01_hello_asteroid.depends = lib
-02_death_star.depends = lib
-03_van_der_waals.depends = lib
-04_simple_collision = lib
-05_fragmentation_reaccumulation = lib
-06_heat_diffusion = lib
+01_hello_asteroid.depends = core
+02_death_star.depends = core
+03_van_der_waals.depends = core
+04_simple_collision = core
+05_fragmentation_reaccumulation = core
+06_heat_diffusion = core

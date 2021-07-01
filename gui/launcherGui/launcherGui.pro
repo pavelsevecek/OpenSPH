@@ -3,15 +3,15 @@ CONFIG += c++14 thread silent
 CONFIG -= app_bundle
 CONFIG -= qt
 
-DEPENDPATH += .. ../../lib ../../gui
-PRE_TARGETDEPS += ../../lib/liblib.a ../../gui/libgui.a
+DEPENDPATH += .. ../../core ../../gui
+PRE_TARGETDEPS += ../../core/libcore.a ../../gui/libgui.a
 LIBS += ../../gui/libgui.a
-LIBS += ../../lib/liblib.a # must be used after libgui
+LIBS += ../../core/libcore.a # must be used after libgui
 
-include(../../lib/sharedLib.pro)
+include(../../core/sharedCore.pro)
 include(../sharedGui.pro)
 
-INCLUDEPATH += ../../lib ../.. $$PREFIX/include/wx-3.0
+INCLUDEPATH += ../../core ../.. $$PREFIX/include/wx-3.0
 
 TARGET = opensph
 target.path = $$PREFIX/bin/

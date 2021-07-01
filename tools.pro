@@ -2,7 +2,7 @@ TEMPLATE = subdirs
 
 CONFIG += ordered
 
-SUBDIRS = lib \
+SUBDIRS = core \
           gui \
           cli/ssftovdb \
           cli/meshtossf \
@@ -11,11 +11,11 @@ SUBDIRS = lib \
           cli/ssftoout \
           gui/ssftopng
 
-gui.depends = lib
-ssftovdb.depends = lib
-meshtossf.depends = lib
-ssftotxt.depends = lib
-ssftoscf.depends = lib
-ssftoout.depends = lib
-ssftopng.depends = lib gui
+gui.depends = core
+ssftovdb.depends = core
+meshtossf.depends = core
+ssftotxt.depends = core
+ssftoscf.depends = core
+ssftoout.depends = core
+ssftopng.depends = core gui
 

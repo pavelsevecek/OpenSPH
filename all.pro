@@ -2,7 +2,7 @@ TEMPLATE = subdirs
 
 CONFIG += ordered
 
-SUBDIRS = lib \
+SUBDIRS = core \
           cli/launcher \
           cli/impact \
           cli/info \
@@ -22,21 +22,21 @@ SUBDIRS = lib \
           examples/05_fragmentation_reaccumulation \
           examples/06_heat_diffusion
 
-run.depends = lib
-launcher.depends = lib
-impact.depends = lib
-info.depends = lib
-batch.depends = lib
-problems.depends = lib
-sandbox.depends = lib
-gui.depends = lib
-launcherGui.depends = lib gui
-sandboxGui.depends = lib gui
-test.depends = lib
-bench.depends = lib
-01_hello_asteroid.depends = lib
-02_death_star.depends = lib
-03_van_der_waals.depends = lib
-04_simple_collision = lib
-05_fragmentation_reaccumulation = lib
-06_heat_diffusion = lib
+run.depends = core
+launcher.depends = core
+impact.depends = core
+info.depends = core
+batch.depends = core
+problems.depends = core
+sandbox.depends = core
+gui.depends = core
+launcherGui.depends = core gui
+sandboxGui.depends = core gui
+test.depends = core
+bench.depends = core
+01_hello_asteroid.depends = core
+02_death_star.depends = core
+03_van_der_waals.depends = core
+04_simple_collision = core
+05_fragmentation_reaccumulation = core
+06_heat_diffusion = core

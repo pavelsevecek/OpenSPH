@@ -3,12 +3,12 @@ CONFIG += c++14 thread silent
 CONFIG -= app_bundle
 CONFIG -= qt
 
-INCLUDEPATH += ../../lib
-DEPENDPATH += . ../../lib
-PRE_TARGETDEPS += ../../lib/liblib.a
-LIBS += ../../lib/liblib.a
+INCLUDEPATH += ../../core
+DEPENDPATH += . ../../core
+PRE_TARGETDEPS += ../../core/libcore.a
+LIBS += ../../core/libcore.a
 
-include(../../lib/sharedLib.pro)
+include(../../core/sharedCore.pro)
 
 SOURCES += SimpleCollision.cpp
 

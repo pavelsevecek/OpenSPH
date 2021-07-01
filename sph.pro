@@ -2,13 +2,13 @@ TEMPLATE = subdirs
 
 CONFIG += ordered
 
-SUBDIRS = lib \
+SUBDIRS = core \
           gui \
           cli/launcher \
           cli/info \
           gui/launcherGui \
 
-gui.depends = lib
-launcher.depends = lib
-info.depends = lib
-launcherGui.depends = lib gui
+gui.depends = core
+launcher.depends = core
+info.depends = core
+launcherGui.depends = core gui

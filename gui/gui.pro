@@ -3,14 +3,14 @@ CONFIG += c++14 staticlib thread silent
 CONFIG -= app_bundle
 CONFIG -= qt
 
-DEPENDPATH += ../lib ../test
-PRE_TARGETDEPS += ../lib/liblib.a
-LIBS += ../lib/liblib.a
+DEPENDPATH += ../core ../test
+PRE_TARGETDEPS += ../core/libcore.a
+LIBS += ../core/libcore.a
 
-include(../lib/sharedLib.pro)
+include(../core/sharedCore.pro)
 include(sharedGui.pro)
 
-INCLUDEPATH += $$PREFIX/include/wx-3.0 ../lib/ ..
+INCLUDEPATH += $$PREFIX/include/wx-3.0 ../core/ ..
 
 linux-g++ {
     # disabling maybe-uninitialized because of Factory::getCamera, either gcc bug or some weird behavior

@@ -4,7 +4,7 @@ TEMPLATE = subdirs
 
 CONFIG += ordered
 
-SUBDIRS = lib \
+SUBDIRS = core \
           test
 
-test.depends = lib
+test.depends = core
