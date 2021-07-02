@@ -59,7 +59,7 @@ Optional<Size> OutputFile::getDumpIdx(const Path& path) {
             try {
                 Size index = std::stoul(s.substr(i, 4));
                 return index;
-            } catch (std::exception& e) {
+            } catch (const std::exception& e) {
                 SPH_ASSERT(false, e.what());
                 return NOTHING;
             }
@@ -242,7 +242,7 @@ Expected<Path> TextOutput::dump(const Storage& storage, const Statistics& stats)
         }
         ofs.close();
         return fileName;
-    } catch (std::exception& e) {
+    } catch (const std::exception& e) {
         return makeUnexpected<Path>("Cannot save output file " + fileName.native() + ": " + e.what());
     }
 }
@@ -260,7 +260,7 @@ Outcome TextInput::load(const Path& path, Storage& storage, Statistics& UNUSED(s
     try {
         std::ifstream ifs(path.native());
         if (!ifs) {
-            return "Failed to open the file";
+            return makeFailed("Failed to open the file");
         }
         std::string line;
         storage.removeAll();
@@ -317,11 +317,11 @@ Outcome TextInput::load(const Path& path, Storage& storage, Statistics& UNUSED(s
 
         // sanity check
         if (storage.getParticleCnt() != particleCnt || !storage.isValid()) {
-            return "Loaded storage is not valid";
+            return makeFailed("Loaded storage is not valid");
         }
 
-    } catch (std::exception& e) {
-        return e.what();
+    } catch (const std::exception& e) {
+        return makeFailed(e.what());
     }
     return SUCCESS;
 }
@@ -665,7 +665,7 @@ static Expected<Storage> loadMaterial(const Size matIdx,
             try {
                 setEnumIndex(body, paramId, entry);
                 body.set(paramId, entry);
-            } catch (Exception& UNUSED(e)) {
+            } catch (const Exception& UNUSED(e)) {
                 // can be a parameter from newer version, silence the exception for backwards compatibility
                 /// \todo report as some warning
             }
@@ -736,10 +736,10 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
             buildDateBuffer,
             wallclockTime);
     } catch (SerializerException&) {
-        return "Invalid file format";
+        return makeFailed("Invalid file format");
     }
     if (identifier != "SPH") {
-        return "Invalid format specifier: expected SPH, got " + identifier;
+        return makeFailed("Invalid format specifier: expected SPH, got ", identifier);
     }
     stats.set(StatisticsId::RUN_TIME, time);
     stats.set(StatisticsId::TIMESTEP_VALUE, timeStep);
@@ -749,7 +749,7 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
     try {
         deserializer.skip(BinaryOutput::PADDING_SIZE);
     } catch (SerializerException&) {
-        return "Incorrect header size";
+        return makeFailed("Incorrect header size");
     }
     Array<QuantityId> quantityIds(quantityCnt);
     Array<OrderEnum> orders(quantityCnt);
@@ -759,7 +759,7 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
             deserializer.read(quantityIds[i], orders[i], valueTypes[i]);
         }
     } catch (SerializerException& e) {
-        return e.what();
+        return makeFailed(e.what());
     }
 
     // Size loadedQuantities = 0;
@@ -770,21 +770,21 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
             try {
                 Expected<Storage> loadedStorage = loadMaterial(matIdx, deserializer, quantityIds, version);
                 if (!loadedStorage) {
-                    return loadedStorage.error();
+                    return makeFailed(loadedStorage.error());
                 } else {
                     bodyStorage = std::move(loadedStorage.value());
                 }
             } catch (SerializerException& e) {
-                return e.what();
+                return makeFailed(e.what());
             }
         } else {
             try {
                 deserializer.read(identifier);
             } catch (SerializerException& e) {
-                return e.what();
+                return makeFailed(e.what());
             }
             if (identifier != "NOMAT") {
-                return "Unexpected missing material identifier, expected NOMAT, got " + identifier;
+                return makeFailed("Unexpected missing material identifier, expected NOMAT, got ", identifier);
             }
         }
 
@@ -802,7 +802,7 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
                     orders[i]);
             }
         } catch (SerializerException& e) {
-            return e.what();
+            return makeFailed(e.what());
         }
         storage.merge(std::move(bodyStorage));
     }
@@ -987,16 +987,16 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
     try {
         deserializer.read(identifier, time, particleCnt, compression, version, runTypeId);
     } catch (SerializerException&) {
-        return "Invalid file format";
+        return makeFailed("Invalid file format");
     }
     if (identifier != "CPRSPH") {
-        return "Invalid format specifier: expected CPRSPH, got " + identifier;
+        return makeFailed("Invalid format specifier: expected CPRSPH, got ", identifier);
     }
     stats.set(StatisticsId::RUN_TIME, time);
     try {
         deserializer.skip(230);
     } catch (SerializerException&) {
-        return "Incorrect header size";
+        return makeFailed("Incorrect header size");
     }
 
     try {
@@ -1018,7 +1018,7 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
             storage.insert<Float>(id, OrderEnum::ZERO, std::move(values));
         }
     } catch (SerializerException& e) {
-        return e.what();
+        return makeFailed(e.what());
     }
 
     SPH_ASSERT(storage.isValid());
@@ -1123,7 +1123,7 @@ Expected<Path> VtkOutput::dump(const Storage& storage, const Statistics& stats) 
 </VTKFile>)";
 
         return fileName;
-    } catch (std::exception& e) {
+    } catch (const std::exception& e) {
         return makeUnexpected<Path>("Cannot save file " + fileName.native() + ": " + e.what());
     }
 }

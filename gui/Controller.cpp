@@ -712,7 +712,7 @@ void Controller::startRunThread() {
             // run the simulation
             sph.run->run(sph.globals, *this);
 
-        } catch (std::exception& e) {
+        } catch (const std::exception& e) {
             executeOnMainThread([desc = std::string(e.what())] { //
                 wxMessageBox(
                     std::string("Error encountered during the run: \n") + desc, "Fail", wxOK | wxCENTRE);

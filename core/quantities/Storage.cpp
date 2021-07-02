@@ -612,9 +612,10 @@ Outcome Storage::isValid(const Flags<ValidFlag> flags) const {
     // check that all buffers have the same number of particles
     iterate<VisitorEnum::ALL_BUFFERS>(*this, [cnt, &result, flags](const auto& buffer) {
         if (buffer.size() != cnt && (flags.has(ValidFlag::COMPLETE) || !buffer.empty())) {
-            result =
-                "One or more buffers have different number of particles:\nExpected: " + std::to_string(cnt) +
-                ", actual: " + std::to_string(buffer.size());
+            result = makeFailed("One or more buffers have different number of particles:\nExpected: ",
+                cnt,
+                ", actual: ",
+                buffer.size());
         }
     });
     if (!result) {
@@ -630,32 +631,41 @@ Outcome Storage::isValid(const Flags<ValidFlag> flags) const {
         // checks that either both matIds and quantity MATERIAL_ID exist, or neither of them do;
         // if we cloned just some buffers, quantity MATERIAL_ID might not be there even though the storage has
         // materials, so we don't report it as an error.
-        return "MaterialID view not present";
+        return makeFailed("MaterialID view not present");
     }
 
     if (ArrayView<const Size>(matIds) != this->getValue<Size>(QuantityId::MATERIAL_ID)) {
         // WTF did I cache?
-        return "Cached view of MaterialID does not reference the stored quantity. Did you forget to call "
-               "update?";
+        return makeFailed(
+            "Cached view of MaterialID does not reference the stored quantity. Did you forget to call "
+            "update?");
     }
 
     for (Size matId = 0; matId < mats.size(); ++matId) {
         const MatRange& mat = mats[matId];
         for (Size i = mat.from; i < mat.to; ++i) {
             if (matIds[i] != matId) {
-                return "MaterialID of particle does not belong to the material range.\nExpected: " +
-                       std::to_string(matId) + ", actual: " + std::to_string(matIds[i]);
+                return makeFailed("MaterialID of particle does not belong to the material range.\nExpected: ",
+                    matId,
+                    ", actual: ",
+                    matIds[i]);
             }
         }
         if ((matId != mats.size() - 1) && (mat.to != mats[matId + 1].from)) {
-            return "Material are not stored consecutively.\nLast index: " + std::to_string(mat.to) +
-                   ", first index: " + std::to_string(mats[matId + 1].from);
+            return makeFailed("Material are not stored consecutively.\nLast index: ",
+                mat.to,
+                ", first index: ",
+                mats[matId + 1].from);
         }
     }
     if (mats[0].from != 0 || mats[mats.size() - 1].to != cnt) {
-        return "Materials do not cover all particles.\nFirst: " + std::to_string(mats[0].from) +
-               ", last: " + std::to_string(mats[mats.size() - 1].to) + " (size: " + std::to_string(cnt) +
-               ").";
+        return makeFailed("Materials do not cover all particles.\nFirst: ",
+            mats[0].from,
+            ", last: ",
+            mats[mats.size() - 1].to,
+            " (size: ",
+            cnt,
+            ").");
     }
 
     return SUCCESS;

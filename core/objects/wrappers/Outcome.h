@@ -64,7 +64,7 @@ public:
 
     /// \brief Constructs object given error message.
     template <typename T, typename = std::enable_if_t<std::is_constructible<TError, T>::value>>
-    INLINE BasicOutcome(T&& error)
+    INLINE explicit BasicOutcome(T&& error)
         : e(std::forward<T>(error)) {}
 
     /// \brief Checks whether the object contains success, i.e. no error is stored.

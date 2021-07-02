@@ -40,7 +40,7 @@ DiagnosticsReport ParticlePairingDiagnostic::check(const Storage& storage,
             error.offendingParticles[p.i1]; /// \todo some message? compare it to the limit?
             error.offendingParticles[p.i2];
         }
-        return error;
+        return DiagnosticsReport(error);
     }
 }
 
@@ -77,7 +77,7 @@ DiagnosticsReport SmoothingDiscontinuityDiagnostic::check(const Storage& storage
             error.offendingParticles[p.i1] = message;
             error.offendingParticles[p.i2] = message;
         }
-        return error;
+        return DiagnosticsReport(error);
     }
 }
 
@@ -101,7 +101,7 @@ DiagnosticsReport CourantInstabilityDiagnostic::check(const Storage& storage,
     if (error.offendingParticles.empty()) {
         return SUCCESS;
     } else {
-        return error;
+        return DiagnosticsReport(error);
     }
 }
 
@@ -125,7 +125,7 @@ DiagnosticsReport OvercoolingDiagnostic::check(const Storage& storage, const Sta
     if (error.offendingParticles.empty()) {
         return SUCCESS;
     } else {
-        return error;
+        return DiagnosticsReport(error);
     }
 }
 

@@ -30,7 +30,7 @@ Outcome sendMail(const std::string& to,
     NOT_IMPLEMENTED; // somehow doesn't work
     FILE* mailpipe = popen("/usr/bin/sendmail -t", "w");
     if (mailpipe == nullptr) {
-        return "Cannot invoke sendmail";
+        return makeFailed("Cannot invoke sendmail");
     }
     fprintf(mailpipe, "To: %s\n", to.c_str());
     fprintf(mailpipe, "From: %s\n", from.c_str());
@@ -46,7 +46,7 @@ Outcome showNotification(const std::string& title, const std::string& message) {
     if (system(command.c_str())) {
         return SUCCESS;
     } else {
-        return "Command failed";
+        return makeFailed("Command failed");
     }
 }
 
@@ -56,7 +56,7 @@ Outcome sendPushNotification(const std::string& key, const std::string& title, c
     if (system(command.c_str())) {
         return SUCCESS;
     } else {
-        return "Command failed";
+        return makeFailed("Command failed");
     }
 }
 

@@ -178,7 +178,7 @@ Outcome Palette::loadFromStream(std::istream& ifs) {
             }
         }
         if (colors.size() < 2) {
-            return "No data loaded";
+            return makeFailed("No data loaded");
         }
 
         // preserve the interval of values
@@ -192,8 +192,8 @@ Outcome Palette::loadFromStream(std::istream& ifs) {
             points[i].value = from + float(i) * (to - from) / (points.size() - 1);
         }
         return SUCCESS;
-    } catch (std::exception& e) {
-        return std::string("Cannot load palette: ") + e.what();
+    } catch (const std::exception& e) {
+        return makeFailed("Cannot load palette: ", e.what());
     }
 }
 
@@ -213,8 +213,8 @@ Outcome Palette::saveToStream(std::ostream& ofs, const Size lineCnt) const {
             }
         }
         return SUCCESS;
-    } catch (std::exception& e) {
-        return std::string("Cannot save palette: ") + e.what();
+    } catch (const std::exception& e) {
+        return makeFailed("Cannot save palette: ", e.what());
     }
 }
 

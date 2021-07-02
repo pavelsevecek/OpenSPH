@@ -670,7 +670,7 @@ wxPanel* RunPage::createVisBar() {
             SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
             controller->setRenderer(makeAuto<RayMarcher>(scheduler, gui));
             enableControls(1);
-        } catch (std::exception& e) {
+        } catch (const std::exception& e) {
             wxMessageBox(std::string("Cannot initialize raytracer.\n\n") + e.what(), "Error", wxOK);
 
             // switch to particle renderer (fallback option)

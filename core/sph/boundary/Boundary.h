@@ -50,7 +50,7 @@ private:
     Array<Ghost> ghosts;
 
 public:
-    GhostParticlesData(Array<Ghost>&& ghosts)
+    explicit GhostParticlesData(Array<Ghost>&& ghosts)
         : ghosts(std::move(ghosts)) {}
 
     /// \brief Returns the reference to ghost particle with given index.
@@ -261,7 +261,7 @@ private:
 
 public:
     /// Constructs using range as 1D domain
-    Projection1D(const Interval& domain);
+    explicit Projection1D(const Interval& domain);
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
 

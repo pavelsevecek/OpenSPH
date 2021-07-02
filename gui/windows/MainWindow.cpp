@@ -50,7 +50,7 @@ static Array<Path> getRecentSessions() {
                 }
                 return paths;
             }
-        } catch (std::exception& UNUSED(e)) {
+        } catch (const std::exception& UNUSED(e)) {
             // do nothing
         }
     }
@@ -82,7 +82,7 @@ static void addToRecentSessions(const Path& sessionPath) {
                     ofs << ",";
                 }
             }
-        } catch (std::exception& UNUSED(e)) {
+        } catch (const std::exception& UNUSED(e)) {
         }
     }
 }
@@ -345,7 +345,7 @@ void MainWindow::load(const Path& openPath) {
     Config config;
     try {
         config.load(pathToLoad);
-    } catch (Exception& e) {
+    } catch (const Exception& e) {
         wxMessageBox(std::string("Cannot load: ") + e.what(), "Error", wxOK);
         return;
     }
@@ -354,7 +354,7 @@ void MainWindow::load(const Path& openPath) {
         Project& project = Project::getInstance();
         project.load(config);
         nodePage->load(config);
-    } catch (Exception& e) {
+    } catch (const Exception& e) {
         wxMessageBox(std::string("Cannot load: ") + e.what(), "Error", wxOK);
         return;
     }

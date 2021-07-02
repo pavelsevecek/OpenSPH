@@ -279,7 +279,7 @@ public:
     ///
     /// All particles of the storage will have the same material. To create a heterogeneous storage, it is
     /// necessary to merge another storage object into this one, using \ref merge function.
-    Storage(const SharedPtr<IMaterial>& material);
+    explicit Storage(const SharedPtr<IMaterial>& material);
 
     ~Storage();
 

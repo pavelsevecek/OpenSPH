@@ -17,7 +17,7 @@ Optional<int> fromString(const std::string& s) {
         } else {
             return NOTHING;
         }
-    } catch (std::exception&) {
+    } catch (const std::exception&) {
         return NOTHING;
     }
 }
@@ -32,7 +32,7 @@ Optional<Size> fromString(const std::string& s) {
         } else {
             return NOTHING;
         }
-    } catch (std::exception&) {
+    } catch (const std::exception&) {
         return NOTHING;
     }
 }
@@ -47,7 +47,7 @@ Optional<float> fromString(const std::string& s) {
         } else {
             return NOTHING;
         }
-    } catch (std::exception&) {
+    } catch (const std::exception&) {
         return NOTHING;
     }
 }
@@ -62,7 +62,7 @@ Optional<double> fromString(const std::string& s) {
         } else {
             return NOTHING;
         }
-    } catch (std::exception&) {
+    } catch (const std::exception&) {
         return NOTHING;
     }
 }

@@ -79,33 +79,38 @@ static Outcome createSingleDirectory(const Path& path, const Flags<FileSystem::C
     if (!result) {
         switch (errno) {
         case EACCES:
-            return "Search permission is denied on a component of the path prefix, or write permission "
-                   "is denied on the parent directory of the directory to be created.";
+            return makeFailed(
+                "Search permission is denied on a component of the path prefix, or write permission is "
+                "denied on the parent directory of the directory to be created.");
         case EEXIST:
             if (flags.has(FileSystem::CreateDirectoryFlag::ALLOW_EXISTING)) {
                 return SUCCESS;
             } else {
-                return "The named file exists.";
+                return makeFailed("The named file exists.");
             }
         case ELOOP:
-            return "A loop exists in symbolic links encountered during resolution of the path argument.";
+            return makeFailed(
+                "A loop exists in symbolic links encountered during resolution of the path argument.");
         case EMLINK:
-            return "The link count of the parent directory would exceed {LINK_MAX}.";
+            return makeFailed("The link count of the parent directory would exceed {LINK_MAX}.");
         case ENAMETOOLONG:
-            return "The length of the path argument exceeds {PATH_MAX} or a pathname component is longer "
-                   "than {NAME_MAX}.";
+            return makeFailed(
+                "The length of the path argument exceeds {PATH_MAX} or a pathname component is longer "
+                "than {NAME_MAX}.");
         case ENOENT:
-            return "A component of the path prefix specified by path does not name an existing directory "
-                   "or path is an empty string.";
+            return makeFailed(
+                "A component of the path prefix specified by path does not name an existing directory "
+                "or path is an empty string.");
         case ENOSPC:
-            return "The file system does not contain enough space to hold the contents of the new "
-                   "directory or to extend the parent directory of the new directory.";
+            return makeFailed(
+                "The file system does not contain enough space to hold the contents of the new "
+                "directory or to extend the parent directory of the new directory.");
         case ENOTDIR:
-            return "A component of the path prefix is not a directory.";
+            return makeFailed("A component of the path prefix is not a directory.");
         case EROFS:
-            return "The parent directory resides on a read-only file system.";
+            return makeFailed("The parent directory resides on a read-only file system.");
         default:
-            return "Unknown error";
+            return makeFailed("Unknown error");
         }
     }
     return SUCCESS;
@@ -139,17 +144,17 @@ Outcome FileSystem::removePath(const Path& path, const Flags<RemovePathFlag> fla
     return SUCCESS;
 #else
     if (path.empty()) {
-        return "Attempting to remove an empty path";
+        return makeFailed("Attempting to remove an empty path");
     }
     if (path.isRoot()) {
-        return "Attemping to remove root. Pls, don't ...";
+        return makeFailed("Attemping to remove root. Pls, don't ...");
     }
     if (!pathExists(path)) {
-        return "Attemping to remove nonexisting path";
+        return makeFailed("Attemping to remove nonexisting path");
     }
     const Expected<PathType> type = pathType(path);
     if (!type) {
-        return type.error();
+        return makeFailed(type.error());
     }
     if (type.value() == PathType::DIRECTORY && flags.has(RemovePathFlag::RECURSIVE)) {
         for (Path child : iterateDirectory(path)) {
@@ -164,44 +169,47 @@ Outcome FileSystem::removePath(const Path& path, const Flags<RemovePathFlag> fla
     if (!result) {
         switch (errno) {
         case EACCES:
-            return "Write access to the directory containing pathname was not allowed, or one of the "
-                   "directories in the path prefix of pathname did not allow search permission.";
+            return makeFailed(
+                "Write access to the directory containing pathname was not allowed, or one of the "
+                "directories in the path prefix of pathname did not allow search permission.");
         case EBUSY:
-            return "Path " + path.native() +
-                   "is currently in use by the system or some process that prevents its removal.On "
-                   "Linux this means pathname is currently used as a mount point or is the root directory of "
-                   "the calling process.";
+            return makeFailed(
+                "Path " + path.native() +
+                "is currently in use by the system or some process that prevents its removal.On "
+                "Linux this means pathname is currently used as a mount point or is the root directory of "
+                "the calling process.");
         case EFAULT:
-            return "Path " + path.native() + " points outside your accessible address space.";
+            return makeFailed("Path " + path.native() + " points outside your accessible address space.");
         case EINVAL:
-            return "Path " + path.native() + " has . as last component.";
+            return makeFailed("Path " + path.native() + " has . as last component.");
         case ELOOP:
-            return "Too many symbolic links were encountered in resolving path " + path.native();
+            return makeFailed("Too many symbolic links were encountered in resolving path " + path.native());
         case ENAMETOOLONG:
-            return "Path " + path.native() + " was too long.";
+            return makeFailed("Path " + path.native() + " was too long.");
         case ENOENT:
-            return "A directory component in path " + path.native() +
-                   " does not exist or is a dangling symbolic link.";
+            return makeFailed("A directory component in path " + path.native() +
+                              " does not exist or is a dangling symbolic link.");
         case ENOMEM:
-            return "Insufficient kernel memory was available.";
+            return makeFailed("Insufficient kernel memory was available.");
         case ENOTDIR:
-            return "Path " + path.native() +
-                   " or a component used as a directory in pathname, is not, in fact, a directory.";
+            return makeFailed(
+                "Path " + path.native() +
+                " or a component used as a directory in pathname, is not, in fact, a directory.");
         case ENOTEMPTY:
-            return "Path " + path.native() +
-                   " contains entries other than . and ..; or, pathname has .. as its final component.";
+            return makeFailed(
+                "Path " + path.native() +
+                " contains entries other than . and ..; or, pathname has .. as its final component.");
         case EPERM:
-            return "The directory containing path " + path.native() +
-                   " has the sticky bit(S_ISVTX) set and the process's "
-                   "effective user ID is neither the user ID of the file to be deleted nor that of the "
-                   "directory containing it, and the process is not privileged (Linux: does not have the "
-                   "CAP_FOWNER capability).";
-        /*case EPERM:
-            "The file system containing pathname does not support the removal of directories.";*/
+            return makeFailed(
+                "The directory containing path " + path.native() +
+                " has the sticky bit(S_ISVTX) set and the process's "
+                "effective user ID is neither the user ID of the file to be deleted nor that of the "
+                "directory containing it, and the process is not privileged (Linux: does not have the "
+                "CAP_FOWNER capability).");
         case EROFS:
-            return "Path " + path.native() + " refers to a directory on a read-only file system.";
+            return makeFailed("Path " + path.native() + " refers to a directory on a read-only file system.");
         default:
-            return "Unknown error for path " + path.native();
+            return makeFailed("Unknown error for path " + path.native());
         }
     }
     return SUCCESS;
@@ -213,7 +221,7 @@ Outcome FileSystem::copyFile(const Path& from, const Path& to) {
     // there doesn't seem to be any system function for copying, so let's do it by hand
     std::ifstream ifs(from.native().c_str());
     if (!ifs) {
-        return "Cannon open file " + from.native() + " for reading";
+        return makeFailed("Cannon open file " + from.native() + " for reading");
     }
     Outcome result = createDirectory(to.parentPath());
     if (!result) {
@@ -221,7 +229,7 @@ Outcome FileSystem::copyFile(const Path& from, const Path& to) {
     }
     std::ofstream ofs(to.native());
     if (!ofs) {
-        return "Cannot open file " + to.native() + " for writing";
+        return makeFailed("Cannot open file " + to.native() + " for writing");
     }
 
     StaticArray<char, 1024> buffer;
@@ -229,7 +237,7 @@ Outcome FileSystem::copyFile(const Path& from, const Path& to) {
         ifs.read(&buffer[0], buffer.size());
         ofs.write(&buffer[0], ifs.gcount());
         if (!ofs) {
-            return "Failed from copy the file";
+            return makeFailed("Failed from copy the file");
         }
     } while (ifs);
     return SUCCESS;

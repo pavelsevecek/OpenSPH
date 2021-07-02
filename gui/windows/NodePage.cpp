@@ -311,7 +311,7 @@ void NodeManager::save(Config& config) {
 
         batch.save(config);
 
-    } catch (Exception& e) {
+    } catch (const Exception& e) {
         wxMessageBox(std::string("Cannot save file.\n\n") + e.what(), "Error", wxOK);
     }
 }
@@ -369,7 +369,7 @@ public:
             default:
                 NOT_IMPLEMENTED;
             }
-        } catch (Exception& e) {
+        } catch (const Exception& e) {
             /// \todo better logging
             std::cout << "Failed to load value, keeping the default.\n" << e.what() << std::endl;
         }
@@ -397,7 +397,7 @@ void NodeManager::load(Config& config) {
                 if (!desc) {
                     throw Exception("cannot find desc for node '" + className + "'");
                 }
-            } catch (Exception& e) {
+            } catch (const Exception& e) {
                 wxMessageBox(e.what(), "Error", wxOK);
                 return;
             }
@@ -430,7 +430,7 @@ void NodeManager::load(Config& config) {
         }
         batch.load(config, nodeList);
 
-    } catch (Exception& e) {
+    } catch (const Exception& e) {
         wxMessageBox(std::string("Cannot load file.\n\n") + e.what(), "Error", wxOK);
     }
 }
@@ -491,7 +491,7 @@ void NodeManager::startBatch(JobNode& node) {
             batch.modifyHierarchy(runIdx, *runNode);
             batchNodes.push(runNode);
         }
-    } catch (Exception& e) {
+    } catch (const Exception& e) {
         wxMessageBox(std::string("Cannot start batch run.\n\n") + e.what(), "Error", wxOK);
     }
 
@@ -1062,7 +1062,7 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
         case 0:
             try {
                 nodeMgr->startRun(*vis->node);
-            } catch (Exception& e) {
+            } catch (const Exception& e) {
                 wxMessageBox(std::string("Cannot run the node: ") + e.what(), "Error", wxOK);
             }
             break;
@@ -1708,7 +1708,7 @@ void NodeWindow::updateProperties() {
     try {
         AddParamsProc proc(grid, propertyEntryMap);
         settings.enumerate(proc);
-    } catch (Exception& e) {
+    } catch (const Exception& e) {
         SPH_ASSERT(false, e.what());
     }
     this->updateEnabled(grid);

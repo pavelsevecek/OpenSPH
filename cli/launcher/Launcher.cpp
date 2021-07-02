@@ -80,7 +80,7 @@ public:
             default:
                 NOT_IMPLEMENTED;
             }
-        } catch (Exception& e) {
+        } catch (const Exception& e) {
             logger.write("Failed to load value, keeping the default.\n", e.what());
         }
     }
@@ -183,7 +183,7 @@ int main(int argc, char* argv[]) {
         printBanner(logger);
         logger.write(e.what());
         return 0;
-    } catch (Exception& e) {
+    } catch (const Exception& e) {
         logger.write("Run failed!\n", e.what());
         return -1;
     }

@@ -274,7 +274,7 @@ Statistics IRun::run(Storage& input, IRunCallbacks& callbacks) {
         // callbacks
         callbacks.onTimeStep(*storage, stats);
         if (callbacks.shouldAbortRun()) {
-            result = "Aborted by user";
+            result = makeFailed("Aborted by user");
             break;
         }
         i++;

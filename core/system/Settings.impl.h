@@ -200,7 +200,7 @@ template <typename TEnum>
 Outcome Settings<TEnum>::loadFromFile(const Path& path) {
     std::ifstream ifs(path.native());
     if (!ifs) {
-        return "File " + path.native() + " cannot be opened for reading.";
+        return makeFailed("File ", path.native(), " cannot be opened for reading.");
     }
     std::string line;
     const Settings& descriptors = getDefaults();
@@ -210,7 +210,7 @@ Outcome Settings<TEnum>::loadFromFile(const Path& path) {
         }
         const std::size_t idx = line.find("=", 0);
         if (idx == std::string::npos) {
-            return "Invalid format of the file, didn't find separating '='";
+            return makeFailed("Invalid format of the file, didn't find separating '='");
         }
         std::string key = line.substr(0, idx);
         std::string value = line.substr(idx + 1);
@@ -223,14 +223,14 @@ Outcome Settings<TEnum>::loadFromFile(const Path& path) {
             if (e.value.name == trimmedKey) {
                 entries.insert(e.value.id, e.value);
                 if (!setValueByType(entries[e.value.id], e.value.value, value)) {
-                    return "Invalid value of key " + trimmedKey + ": " + value;
+                    return makeFailed("Invalid value of key ", trimmedKey, ": ", value);
                 }
                 found = true;
                 break;
             }
         }
         if (!found) {
-            return "Key " + trimmedKey + " was not find in settings";
+            return makeFailed("Key ", trimmedKey, " was not find in settings");
         }
     }
     ifs.close();
@@ -241,7 +241,7 @@ template <typename TEnum>
 Outcome Settings<TEnum>::saveToFile(const Path& path) const {
     const Outcome dirCreated = FileSystem::createDirectory(path.parentPath());
     if (!dirCreated) {
-        return "Cannot save settings: " + dirCreated.error();
+        return makeFailed("Cannot save settings: ", dirCreated.error());
     }
 
     const Settings& descriptors = getDefaults();
@@ -295,8 +295,8 @@ Outcome Settings<TEnum>::saveToFile(const Path& path) const {
         }
         ofs.close();
         return SUCCESS;
-    } catch (std::exception& e) {
-        return std::string("Cannot save settings: ") + e.what();
+    } catch (const std::exception& e) {
+        return makeFailed("Cannot save settings: ", e.what());
     }
 }
 

@@ -117,7 +117,7 @@ void Session::run(int argc, char* argv[]) {
                     }
                 }
             }
-        } catch (std::exception& e) {
+        } catch (const std::exception& e) {
             this->logError("Exception caught in benchmark " + b->getName() + ":\n" + e.what());
             return;
         }

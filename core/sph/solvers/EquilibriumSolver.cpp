@@ -169,7 +169,7 @@ Outcome EquilibriumEnergySolver::solve(Storage& storage, Statistics& stats) {
     }
     Expected<Array<Float>> X = matrix.solve(b, SparseMatrix::Solver::BICGSTAB);
     if (!X) {
-        return X.error();
+        return makeFailed(X.error());
     }
 #endif
 
@@ -364,7 +364,7 @@ Outcome EquilibriumStressSolver::solve(Storage& storage, Statistics& stats) {
     Expected<Array<Float>> a = matrix.solve(b, SparseMatrix::Solver::LSCG, 0.1_f);
     if (!a) {
         // somehow cannot solve the system of equations, report the error
-        return a.error();
+        return makeFailed(a.error());
     }
 
     // fill the displacement array with computed values

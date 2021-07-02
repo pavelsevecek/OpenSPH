@@ -51,16 +51,14 @@ private:
 public:
     INLINE TracelessTensor() = default;
 
-    INLINE TracelessTensor(const TracelessTensor& other)
-        : m(other.m)
-        , m12(other.m12) {}
+    INLINE TracelessTensor(const TracelessTensor& other) = default;
 
     /// \brief Construct traceless tensor using other tensor (not traceless in general).
     ///
     /// "Tracelessness" of the tensor is checked by assert.
     INLINE explicit TracelessTensor(const SymmetricTensor& other) {
         m = other.diagonal();
-        const Vector off = other.offDiagonal();
+        const Vector& off = other.offDiagonal();
         m[M01] = off[0];
         m[M02] = off[1];
         m12 = off[2];
@@ -256,7 +254,7 @@ public:
 template <>
 INLINE TracelessTensor convert(const AffineMatrix& m) {
     SPH_ASSERT(almostEqual(m(0, 1), m(1, 0), 1.e-6_f) && almostEqual(m(0, 2), m(2, 0), 1.e-6_f) &&
-           almostEqual(m(1, 2), m(2, 1), 1.e-6_f));
+               almostEqual(m(1, 2), m(2, 1), 1.e-6_f));
     SPH_ASSERT(almostEqual(m(0, 0) + m(1, 1) + m(2, 2), 0._f, 1.e-6_f));
     return TracelessTensor(m(0, 0), m(1, 1), m(0, 1), m(0, 2), m(1, 2));
 }

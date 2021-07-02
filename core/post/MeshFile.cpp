@@ -31,8 +31,8 @@ Outcome PlyFile::save(const Path& path, ArrayView<const Triangle> triangles) {
                 << std::endl;
         }
         return SUCCESS;
-    } catch (std::exception& e) {
-        return e.what();
+    } catch (const std::exception& e) {
+        return makeFailed(e.what());
     }
 }
 
@@ -130,7 +130,7 @@ Expected<Array<Triangle>> PlyFile::load(const Path& path) {
         }
         return std::move(triangles);
 
-    } catch (std::exception& e) {
+    } catch (const std::exception& e) {
         return makeUnexpected<Array<Triangle>>(e.what());
     }
 }
@@ -171,7 +171,7 @@ Expected<Array<Triangle>> TabFile::load(const Path& path) {
         }
         return std::move(triangles);
 
-    } catch (std::exception& e) {
+    } catch (const std::exception& e) {
         return makeUnexpected<Array<Triangle>>(e.what());
     }
 }
@@ -204,7 +204,7 @@ Expected<Array<Triangle>> ObjFile::load(const Path& path) {
 
         return std::move(triangles);
 
-    } catch (std::exception& e) {
+    } catch (const std::exception& e) {
         return makeUnexpected<Array<Triangle>>(e.what());
     }
 }
