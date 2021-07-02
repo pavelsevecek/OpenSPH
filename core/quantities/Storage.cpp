@@ -8,7 +8,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-StorageIterator::StorageIterator(const ActIterator iterator)
+StorageIterator::StorageIterator(const ActIterator iterator, Badge<StorageSequence>)
     : iter(iterator) {}
 
 StorageIterator& StorageIterator::operator++() {
@@ -28,7 +28,7 @@ bool StorageIterator::operator!=(const StorageIterator& other) const {
     return iter != other.iter;
 }
 
-ConstStorageIterator::ConstStorageIterator(const ActIterator iterator)
+ConstStorageIterator::ConstStorageIterator(const ActIterator iterator, Badge<ConstStorageSequence>)
     : iter(iterator) {}
 
 ConstStorageIterator& ConstStorageIterator::operator++() {
@@ -48,34 +48,34 @@ bool ConstStorageIterator::operator!=(const ConstStorageIterator& other) const {
     return iter != other.iter;
 }
 
-StorageSequence::StorageSequence(Storage& storage)
-    : storage(storage) {}
+StorageSequence::StorageSequence(FlatMap<QuantityId, Quantity>& quantities, Badge<Storage>)
+    : quantities(quantities) {}
 
 StorageIterator StorageSequence::begin() {
-    return storage.quantities.begin();
+    return StorageIterator(quantities.begin(), {});
 }
 
 StorageIterator StorageSequence::end() {
-    return storage.quantities.end();
+    return StorageIterator(quantities.end(), {});
 }
 
 Size StorageSequence::size() const {
-    return storage.getQuantityCnt();
+    return quantities.size();
 }
 
-ConstStorageSequence::ConstStorageSequence(const Storage& storage)
-    : storage(storage) {}
+ConstStorageSequence::ConstStorageSequence(const FlatMap<QuantityId, Quantity>& quantities, Badge<Storage>)
+    : quantities(quantities) {}
 
 ConstStorageIterator ConstStorageSequence::begin() {
-    return storage.quantities.begin();
+    return ConstStorageIterator(quantities.begin(), {});
 }
 
 ConstStorageIterator ConstStorageSequence::end() {
-    return storage.quantities.end();
+    return ConstStorageIterator(quantities.end(), {});
 }
 
 Size ConstStorageSequence::size() const {
-    return storage.getQuantityCnt();
+    return quantities.size();
 }
 
 InvalidStorageAccess::InvalidStorageAccess(const QuantityId id)
@@ -414,11 +414,11 @@ Array<TValue> Storage::getMaterialParams(const BodySettingsId param) const {
 }
 
 StorageSequence Storage::getQuantities() {
-    return *this;
+    return StorageSequence(quantities, {});
 }
 
 ConstStorageSequence Storage::getQuantities() const {
-    return *this;
+    return ConstStorageSequence(quantities, {});
 }
 
 void Storage::propagate(const Function<void(Storage& storage)>& functor) {

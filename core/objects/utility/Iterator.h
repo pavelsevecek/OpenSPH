@@ -29,6 +29,12 @@ protected:
         : data(data) {}
 #endif
 public:
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type = T;
+    using difference_type = ptrdiff_t;
+    using pointer = T*;
+    using reference = T&;
+
     Iterator() = default;
 
     Iterator(T* data, const T* begin, const T* end)
@@ -126,12 +132,6 @@ public:
         return Iterator<const T>(data, nullptr, nullptr);
 #endif
     }
-
-    using iterator_category = std::random_access_iterator_tag;
-    using value_type = T;
-    using difference_type = Size;
-    using pointer = T*;
-    using reference = T&;
 };
 
 NAMESPACE_SPH_END

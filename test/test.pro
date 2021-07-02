@@ -37,6 +37,7 @@ SOURCES += \
     ../core/math/test/Morton.cpp \
     ../core/math/test/Quat.cpp \
     ../core/math/test/SparseMatrix.cpp \
+    ../core/objects/containers/test/Allocators.cpp \
     ../core/objects/containers/test/Array.cpp \
     ../core/objects/containers/test/ArrayRef.cpp \
     ../core/objects/containers/test/FlatMap.cpp \

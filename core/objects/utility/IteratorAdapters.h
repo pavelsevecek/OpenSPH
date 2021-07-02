@@ -124,6 +124,12 @@ private:
     using RawT = std::decay_t<T>;
 
 public:
+    using iterator_category = typename TIterator::iterator_category;
+    using value_type = RawT;
+    using difference_type = std::ptrdiff_t;
+    using pointer = RawT*;
+    using reference = RawT&;
+
     ComponentIterator() = default;
 
     ComponentIterator(const TIterator& iterator, const int component)
@@ -192,12 +198,6 @@ public:
     bool operator!=(const ComponentIterator& other) {
         return iterator != other.iterator;
     }
-
-    using iterator_category = std::random_access_iterator_tag;
-    using value_type = RawT;
-    using difference_type = Size;
-    using pointer = RawT*;
-    using reference = RawT&;
 };
 
 

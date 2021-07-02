@@ -36,7 +36,7 @@ struct NumericLimits<uint32_t> {
 ///
 /// Can also be used with STL algorithms.
 template <typename T, typename TAllocator = Mallocator, typename TCounter = Size>
-class Array : public TAllocator, public Noncopyable {
+class Array : private TAllocator, public Noncopyable {
 private:
     using StorageType = typename WrapReferenceType<T>::Type;
     StorageType* data = nullptr;
@@ -73,7 +73,9 @@ public:
     Array(std::initializer_list<StorageType> list) {
         actSize = list.size();
         maxSize = actSize;
-        data = (StorageType*)TAllocator::allocate(maxSize * sizeof(StorageType), alignof(StorageType)).ptr;
+        MemoryBlock block = TAllocator::allocate(maxSize * sizeof(StorageType), alignof(StorageType));
+        SPH_ASSERT(block.ptr);
+        data = (StorageType*)block.ptr;
         TCounter i = 0;
         for (auto& l : list) {
             new (data + i) StorageType(l);
@@ -96,7 +98,7 @@ public:
             }
         }
         if (data) {
-            Block block{ data, maxSize * sizeof(StorageType) };
+            MemoryBlock block{ data, maxSize * sizeof(StorageType) };
             TAllocator::deallocate(block);
             data = nullptr;
         }
@@ -457,6 +459,16 @@ public:
         return Iterator<const StorageType, TCounter>(data + actSize, data, data + actSize);
     }
 
+    /// \brief Returns the interface to the allocator.
+    const TAllocator& allocator() const {
+        return *this;
+    }
+
+    /// \brief Returns the interface to the allocator.
+    TAllocator& allocator() {
+        return *this;
+    }
+
     /// \brief  Implicit conversion to arrayview.
     INLINE operator ArrayView<T, TCounter>() noexcept {
         return ArrayView<T, TCounter>(data, actSize);
@@ -509,7 +521,9 @@ private:
             maxSize = actSize;
         }
         // allocate maxSize elements
-        data = (StorageType*)TAllocator::allocate(maxSize * sizeof(StorageType), alignof(StorageType)).ptr;
+        MemoryBlock block = TAllocator::allocate(maxSize * sizeof(StorageType), alignof(StorageType));
+        SPH_ASSERT(block.ptr);
+        data = (StorageType*)block.ptr;
     }
 };
 

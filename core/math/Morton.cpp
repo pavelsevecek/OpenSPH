@@ -4,7 +4,7 @@
 NAMESPACE_SPH_BEGIN
 
 // https://devblogs.nvidia.com/parallelforall/thinking-parallel-part-iii-tree-construction-gpu/
-Size expandBits(Size v) {
+inline Size expandBits(Size v) {
     v = (v * 0x00010001u) & 0xFF0000FFu;
     v = (v * 0x00000101u) & 0x0F00F00Fu;
     v = (v * 0x00000011u) & 0xC30C30C3u;
@@ -24,6 +24,10 @@ Size morton(const Vector& v) {
     const int yy = expandBits(y);
     const int zz = expandBits(z);
     return xx * 4 + yy * 2 + zz;
+}
+
+Size morton(const Vector& v, const Box& box) {
+    return morton((v - box.lower()) / box.size());
 }
 
 NAMESPACE_SPH_END

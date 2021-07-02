@@ -23,9 +23,6 @@ class ThreadPool;
 template <typename T>
 class ThreadLocal;
 
-template <typename T, typename TAllocator>
-class List;
-
 template <typename T>
 class Flags;
 

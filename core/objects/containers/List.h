@@ -11,6 +11,9 @@
 
 NAMESPACE_SPH_BEGIN
 
+template <typename T, typename TAllocator = Mallocator>
+class List;
+
 template <typename T>
 struct ListNode {
     using StorageType = typename WrapReferenceType<T>::Type;
@@ -51,8 +54,19 @@ struct ListNode {
 };
 
 template <typename T>
-struct ListIterator {
+class ListIterator {
+    template <typename, typename>
+    friend class List;
+
+private:
     RawPtr<ListNode<T>> node;
+
+public:
+    using iterator_category = std::bidirectional_iterator_tag;
+    using value_type = T;
+    using difference_type = std::ptrdiff_t;
+    using pointer = T*;
+    using reference = T&;
 
     explicit ListIterator(RawPtr<ListNode<T>> node)
         : node(node) {}
@@ -64,11 +78,23 @@ struct ListIterator {
         return *this;
     }
 
+    INLINE ListIterator operator++(int) {
+        ListIterator next = *this;
+        ++next;
+        return next;
+    }
+
     INLINE ListIterator& operator--() {
         if (node) {
             node = node->prev;
         }
         return *this;
+    }
+
+    INLINE ListIterator operator--(int) {
+        ListIterator prev = *this;
+        --prev;
+        return prev;
     }
 
     INLINE T& operator*() const {
@@ -101,10 +127,8 @@ struct ListIterator {
 /// \brief Doubly-linked list
 ///
 /// Random access is not implemented, as it would be highly ineffective anyway.
-///
-/// \todo Possibly allow a memory pool as an allocator to improve locality of nodes.
-template <typename T, typename TAllocator = Mallocator>
-class List : public TAllocator, public Noncopyable {
+template <typename T, typename TAllocator>
+class List : private TAllocator, public Noncopyable {
 private:
     using StorageType = typename WrapReferenceType<T>::Type;
 
@@ -284,8 +308,19 @@ public:
         return ListIterator<T>(nullptr);
     }
 
+    /// Returns a bidirectional iterator pointing to the one-past-last element of the list.
     ListIterator<const T> end() const {
         return ListIterator<const T>(nullptr);
+    }
+
+    /// Returns the interface to the allocator.
+    const TAllocator& allocator() const {
+        return *this;
+    }
+
+    /// Returns the interface to the allocator.
+    TAllocator& allocator() {
+        return *this;
     }
 
     /// Prints content of the list to stream. Stored values must have overloaded << operator.
@@ -300,13 +335,14 @@ public:
 private:
     template <typename... TArgs>
     RawPtr<ListNode<T>> newNode(TArgs&&... args) {
-        Block block = TAllocator::allocate(sizeof(ListNode<T>), alignof(ListNode<T>));
+        MemoryBlock block = TAllocator::allocate(sizeof(ListNode<T>), alignof(ListNode<T>));
+        SPH_ASSERT(block.ptr);
         return new (block.ptr) ListNode<T>(std::forward<TArgs>(args)...);
     }
 
     void deleteNode(ListNode<T>* node) {
         node->~ListNode<T>();
-        Block block{ node, sizeof(ListNode<T>) };
+        MemoryBlock block{ node, sizeof(ListNode<T>) };
         TAllocator::deallocate(block);
     }
 };

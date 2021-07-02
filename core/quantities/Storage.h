@@ -20,6 +20,8 @@ NAMESPACE_SPH_BEGIN
 class IMaterial;
 class Quantity;
 class Box;
+class StorageSequence;
+class ConstStorageSequence;
 enum class OrderEnum;
 enum class VisitorEnum;
 
@@ -42,7 +44,7 @@ private:
     ActIterator iter;
 
 public:
-    StorageIterator(const ActIterator iterator);
+    StorageIterator(const ActIterator iterator, Badge<StorageSequence>);
 
     StorageIterator& operator++();
 
@@ -61,7 +63,7 @@ private:
     ActIterator iter;
 
 public:
-    ConstStorageIterator(const ActIterator iterator);
+    ConstStorageIterator(const ActIterator iterator, Badge<ConstStorageSequence>);
 
     ConstStorageIterator& operator++();
 
@@ -76,10 +78,10 @@ public:
 /// quantity in \ref Storage, respectively.
 class StorageSequence {
 private:
-    Storage& storage;
+    FlatMap<QuantityId, Quantity>& quantities;
 
 public:
-    StorageSequence(Storage& storage);
+    StorageSequence(FlatMap<QuantityId, Quantity>& quantities, Badge<Storage>);
 
     /// \brief Returns iterator pointing to the beginning of the quantity storage.
     ///
@@ -98,10 +100,10 @@ public:
 /// and last quantity in \ref Storage, respectively.
 class ConstStorageSequence {
 private:
-    const Storage& storage;
+    const FlatMap<QuantityId, Quantity>& quantities;
 
 public:
-    ConstStorageSequence(const Storage& storage);
+    ConstStorageSequence(const FlatMap<QuantityId, Quantity>& quantities, Badge<Storage>);
 
     /// \brief Returns iterator pointing to the beginning of the quantity storage.
     ///
@@ -226,9 +228,6 @@ public:
 /// \endcode
 /// Note that arguments of the provided functor differ for each \ref VisitorEnum.
 class Storage : public Noncopyable {
-    friend class StorageSequence;
-    friend class ConstStorageSequence;
-
 private:
     /// \brief Stored quantities (array of arrays). All arrays must be the same size at all times.
     FlatMap<QuantityId, Quantity> quantities;

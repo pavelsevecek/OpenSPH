@@ -340,12 +340,12 @@ std::string Settings<TEnum>::typeToString(const int type) {
 
 template <typename TEnum>
 SettingsIterator<TEnum> Settings<TEnum>::begin() const {
-    return SettingsIterator<TEnum>(entries.begin());
+    return SettingsIterator<TEnum>(entries.begin(), {});
 }
 
 template <typename TEnum>
 SettingsIterator<TEnum> Settings<TEnum>::end() const {
-    return SettingsIterator<TEnum>(entries.end());
+    return SettingsIterator<TEnum>(entries.end(), {});
 }
 
 template <typename TEnum>
@@ -360,7 +360,7 @@ const Settings<TEnum>& Settings<TEnum>::getDefaults() {
 }
 
 template <typename TEnum>
-SettingsIterator<TEnum>::SettingsIterator(const ActIterator& iter)
+SettingsIterator<TEnum>::SettingsIterator(const ActIterator& iter, Badge<Settings<TEnum>>)
     : iter(iter) {}
 
 template <typename TEnum>

@@ -151,7 +151,7 @@ public:
         /// \brief Constructs the iterator from internal type.
         ///
         /// Cannot be constructed directly, use \ref Particle::getQuantities instead.
-        QuantityIterator(const ActIterator iterator);
+        QuantityIterator(const ActIterator iterator, Badge<Particle>);
 
         /// Advances the iterator to next quantity.
         QuantityIterator& operator++();
@@ -203,7 +203,7 @@ public:
         /// \brief Constructs the iterator from internal type.
         ///
         /// Cannot be constructed directly, use \ref Particle::getParameters instead.
-        ParamIterator(const ActIterator iterator);
+        ParamIterator(const ActIterator iterator, Badge<Particle>);
 
         /// Advances the iterator to next quantity.
         ParamIterator& operator++();

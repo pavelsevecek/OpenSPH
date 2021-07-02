@@ -478,7 +478,7 @@ private:
 
 public:
     /// Constructs an iterator from iternal implementation; use Settings::begin and Settings::end.
-    SettingsIterator(const ActIterator& iter);
+    SettingsIterator(const ActIterator& iter, Badge<Settings<TEnum>>);
 
     struct IteratorValue {
         /// ID of settings entry

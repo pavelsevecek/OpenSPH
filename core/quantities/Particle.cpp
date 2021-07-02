@@ -123,7 +123,7 @@ Dynamic Particle::getParameter(const BodySettingsId id) const {
 }
 
 
-Particle::QuantityIterator::QuantityIterator(const ActIterator iterator)
+Particle::QuantityIterator::QuantityIterator(const ActIterator iterator, Badge<Particle>)
     : iter(iterator) {}
 
 Particle::QuantityIterator& Particle::QuantityIterator::operator++() {
@@ -153,8 +153,8 @@ bool Particle::QuantityIterator::operator!=(const QuantityIterator& other) const
 }
 
 Particle::QuantitySequence::QuantitySequence(const Particle& particle)
-    : first(particle.quantities.begin())
-    , last(particle.quantities.end()) {}
+    : first(particle.quantities.begin(), {})
+    , last(particle.quantities.end(), {}) {}
 
 Particle::QuantityIterator Particle::QuantitySequence::begin() const {
     return first;
@@ -169,7 +169,7 @@ Particle::QuantitySequence Particle::getQuantities() const {
 }
 
 
-Particle::ParamIterator::ParamIterator(const ActIterator iterator)
+Particle::ParamIterator::ParamIterator(const ActIterator iterator, Badge<Particle>)
     : iter(iterator) {}
 
 Particle::ParamIterator& Particle::ParamIterator::operator++() {
@@ -187,8 +187,8 @@ bool Particle::ParamIterator::operator!=(const ParamIterator& other) const {
 
 
 Particle::ParamSequence::ParamSequence(const Particle& particle)
-    : first(particle.material.begin())
-    , last(particle.material.end()) {}
+    : first(particle.material.begin(), {})
+    , last(particle.material.end(), {}) {}
 
 Particle::ParamIterator Particle::ParamSequence::begin() const {
     return first;

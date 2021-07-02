@@ -55,11 +55,8 @@ struct Noncopyable {
     Noncopyable() = default;
 
     Noncopyable(const Noncopyable&) = delete;
-
     Noncopyable(Noncopyable&&) = default;
-
     Noncopyable& operator=(const Noncopyable&) = delete;
-
     Noncopyable& operator=(Noncopyable&&) = default;
 };
 
@@ -68,9 +65,10 @@ struct Immovable {
     Immovable() = default;
 
 private:
-    Immovable(const Noncopyable&) = delete;
-
-    Immovable& operator=(const Noncopyable&) = delete;
+    Immovable(const Immovable&) = delete;
+    Immovable(Immovable&&) = delete;
+    Immovable& operator=(const Immovable&) = delete;
+    Immovable& operator=(Immovable&&) = delete;
 };
 
 
@@ -92,6 +90,14 @@ struct Polymorphic {
     virtual ~Polymorphic() {}
 };
 
+/// \brief Helper class used to allow calling a function only from within T.
+template <typename T>
+class Badge {
+private:
+    friend T;
+
+    Badge() {}
+};
 
 namespace Detail {
 template <std::size_t N1, std::size_t N2>

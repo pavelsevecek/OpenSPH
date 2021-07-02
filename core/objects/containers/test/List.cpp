@@ -186,7 +186,7 @@ TEST_CASE("List erase", "[list]") {
     REQUIRE(list.size() == 3);
     REQUIRE(list.front().value == 2);
     REQUIRE(iter->value == 2); // not invalidated
-    REQUIRE(iter.node->prev == nullptr);
+    REQUIRE_FALSE(iter--);
 
     ++iter;
     list.erase(iter);
