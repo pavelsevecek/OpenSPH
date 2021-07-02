@@ -209,13 +209,21 @@ public:
     }
 
     INLINE MemoryBlock allocate(const std::size_t size, const Size align) noexcept {
-        return resource->allocate(size, align);
+        if (resource) {
+            return resource->allocate(size, align);
+        } else {
+            return MemoryBlock::EMPTY();
+        }
     }
 
     INLINE void deallocate(MemoryBlock& UNUSED(block)) noexcept {}
 
     INLINE bool owns(const MemoryBlock& block) const noexcept {
-        return resource->owns(block);
+        if (resource) {
+            return resource->owns(block);
+        } else {
+            return false;
+        }
     }
 };
 
