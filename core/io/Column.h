@@ -3,7 +3,7 @@
 /// \file Column.h
 /// \brief Object for printing quantity values into output
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "objects/utility/Dynamic.h"
 #include "quantities/Quantity.h"
@@ -75,7 +75,7 @@ private:
     QuantityId id;
 
 public:
-    ValueColumn(const QuantityId id)
+    explicit ValueColumn(const QuantityId id)
         : id(id) {}
 
     virtual Dynamic evaluate(const Storage& storage,
@@ -117,7 +117,7 @@ private:
     QuantityId id;
 
 public:
-    DerivativeColumn(const QuantityId id)
+    explicit DerivativeColumn(const QuantityId id)
         : id(id) {}
 
     virtual Dynamic evaluate(const Storage& storage,
@@ -163,7 +163,7 @@ private:
     QuantityId id;
 
 public:
-    SecondDerivativeColumn(const QuantityId id)
+    explicit SecondDerivativeColumn(const QuantityId id)
         : id(id) {}
 
     virtual Dynamic evaluate(const Storage& storage,

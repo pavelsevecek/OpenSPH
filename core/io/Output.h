@@ -3,7 +3,7 @@
 /// \file Output.h
 /// \brief Saving and loading particle data
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "io/Path.h"
 #include "objects/utility/EnumMap.h"

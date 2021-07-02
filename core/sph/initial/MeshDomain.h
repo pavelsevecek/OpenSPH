@@ -3,7 +3,7 @@
 /// \file MeshDomain.h
 /// \brief Domain represented by triangular mesh.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "objects/containers/Volume.h"
 #include "objects/finders/Bvh.h"

@@ -3,7 +3,7 @@
 /// \file AffineMatrix.h
 /// \brief Three-dimensional affine matrix
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "objects/geometry/Vector.h"
 
@@ -112,7 +112,7 @@ public:
         for (Size i = 0; i < 3; ++i) {
             for (Size j = 0; j < 3; ++j) {
                 const Float x = dot(v[i], v[j]);
-                if (!almostEqual(x, i == j, 1.e-6_f)) {
+                if (!almostEqual(x, i == j ? 1._f : 0._f, 1.e-6_f)) {
                     return false;
                 }
             }

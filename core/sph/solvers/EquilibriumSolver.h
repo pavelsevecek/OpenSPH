@@ -3,7 +3,7 @@
 /// \file EquilibriumSolver.h
 /// \brief Computes quantities to get equilibrium state
 /// \author Pavel Sevecek
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "math/SparseMatrix.h"
 #include "objects/wrappers/Outcome.h"

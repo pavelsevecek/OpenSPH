@@ -3,7 +3,7 @@
 /// \file EquationTerm.h
 /// \brief Right-hand side term of SPH equations
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "common/ForwardDecl.h"
 #include "objects/utility/IteratorAdapters.h"
@@ -264,7 +264,7 @@ public:
     template <typename Term>
     bool contains() const {
         static_assert(std::is_base_of<IEquationTerm, Term>::value, "Can be used only for terms");
-        for (auto& ptr : terms) {
+        for (const auto& ptr : terms) {
             IEquationTerm& term = *ptr;
             if (typeid(term) == typeid(Term)) {
                 return true;
@@ -275,14 +275,14 @@ public:
 
     /// \brief Calls \ref EquationTerm::setDerivatives for all stored equation terms.
     void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) const {
-        for (auto& term : terms) {
+        for (const auto& term : terms) {
             term->setDerivatives(derivatives, settings);
         }
     }
 
     /// \brief Calls \ref EquationTerm::initialize for all stored equation terms.
     void initialize(IScheduler& scheduler, Storage& storage, const Float t) {
-        for (auto& term : terms) {
+        for (const auto& term : terms) {
             term->initialize(scheduler, storage, t);
         }
     }
@@ -291,14 +291,14 @@ public:
     ///
     /// The order is reversed compared to \ref initialize call.
     void finalize(IScheduler& scheduler, Storage& storage, const Float t) {
-        for (auto& term : reverse(terms)) {
+        for (const auto& term : reverse(terms)) {
             term->finalize(scheduler, storage, t);
         }
     }
 
     /// \brief Calls \ref EquationTerm::create for all stored equation terms.
     void create(Storage& storage, IMaterial& material) const {
-        for (auto& term : terms) {
+        for (const auto& term : terms) {
             term->create(storage, material);
         }
     }

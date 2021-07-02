@@ -3,7 +3,7 @@
 /// \file BruteForceGravity.h
 /// \brief Simple gravity solver evaluating all particle pairs
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "gravity/IGravity.h"
 #include "physics/Constants.h"

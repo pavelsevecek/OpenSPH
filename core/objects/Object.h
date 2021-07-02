@@ -3,9 +3,9 @@
 /// \file Object.h
 /// \brief Common macros and basic objects.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
-#include <stdint.h>
+#include <cstdint>
 #include <utility>
 
 #define NAMESPACE_SPH_BEGIN namespace Sph {
@@ -64,7 +64,6 @@ struct Noncopyable {
 struct Immovable {
     Immovable() = default;
 
-private:
     Immovable(const Immovable&) = delete;
     Immovable(Immovable&&) = delete;
     Immovable& operator=(const Immovable&) = delete;

@@ -3,7 +3,7 @@
 /// \file Diagnostics.h
 /// \brief Looking for problems in SPH simulation and reporting potential errors
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "objects/wrappers/Outcome.h"
 #include "quantities/Storage.h"

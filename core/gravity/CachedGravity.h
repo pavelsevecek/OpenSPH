@@ -3,7 +3,7 @@
 /// \file CachedGravity.h
 /// \brief Wrapper of other IGravity object that uses cached accelerations to speed-up the evaluation
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "gravity/IGravity.h"
 #include "system/Settings.h"

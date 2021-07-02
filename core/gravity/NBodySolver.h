@@ -3,7 +3,7 @@
 /// \file NBodySolver.h
 /// \brief Solver performing N-body simulation
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "objects/containers/FlatSet.h"
 #include "thread/ThreadLocal.h"
@@ -96,7 +96,7 @@ public:
         AutoPtr<ICollisionHandler>&& collisionHandler,
         AutoPtr<IOverlapHandler>&& overlapHandler);
 
-    ~HardSphereSolver();
+    ~HardSphereSolver() override;
 
     virtual void integrate(Storage& storage, Statistics& stats) override;
 
@@ -158,7 +158,7 @@ public:
 
     SoftSphereSolver(IScheduler& scheduler, const RunSettings& settings, AutoPtr<IGravity>&& gravity);
 
-    ~SoftSphereSolver();
+    ~SoftSphereSolver() override;
 
     virtual void integrate(Storage& storage, Statistics& stats) override;
 

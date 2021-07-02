@@ -3,7 +3,7 @@
 /// \file UniformGrid.h
 /// \brief Simple algorithm for finding nearest neighbours using spatial partitioning of particles
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz))
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "objects/containers/LookupMap.h"
 #include "objects/finders/NeighbourFinder.h"

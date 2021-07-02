@@ -3,7 +3,7 @@
 /// \file IGravity.h
 /// \brief Base class for solvers of gravity
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "common/ForwardDecl.h"
 #include "objects/geometry/Vector.h"

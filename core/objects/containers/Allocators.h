@@ -3,7 +3,7 @@
 /// \file Allocators.h
 /// \brief Allocators used by containers
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "common/Assert.h"
 #include <memory>
@@ -255,7 +255,7 @@ public:
     }
 
     INLINE bool owns(const MemoryBlock& block) const noexcept {
-        return block.ptr >= resource.ptr && block.ptr < resource.ptr + resource.size;
+        return block.ptr >= resource.ptr && block.ptr < (uint8_t*)resource.ptr + resource.size;
     }
 };
 

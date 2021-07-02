@@ -3,7 +3,7 @@
 /// \file Kernel.h
 /// \brief SPH kernels
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz))
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "objects/containers/Array.h"
 #include "objects/geometry/Vector.h"
@@ -56,13 +56,17 @@ private:
     Array<Float> grads;
 
     Float rad = 0._f;
-    Float qSqrToIdx = 0.f;
+    Float qSqrToIdx = 0._f;
 
 public:
     LutKernel() = default;
 
     LutKernel(const LutKernel& other) {
         *this = other;
+    }
+
+    LutKernel(LutKernel&& other) {
+        *this = std::move(other);
     }
 
     LutKernel& operator=(const LutKernel& other) {
@@ -190,8 +194,6 @@ private:
     const Float normalization[3] = { 1._f / 24._f, 96._f / (1199._f * PI), 1._f / (20._f * PI) };
 
 public:
-    FourthOrderSpline() = default;
-
     INLINE Float radius() const {
         return 2.5_f;
     }
@@ -486,7 +488,7 @@ private:
     Float scaling;
 
 public:
-    ScalingKernel(const Float newRadius) {
+    explicit ScalingKernel(const Float newRadius) {
         scaling = newRadius / kernel.radius();
     }
 

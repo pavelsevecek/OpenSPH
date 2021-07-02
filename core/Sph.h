@@ -1,7 +1,9 @@
+#pragma once
+
 /// \file Sph.h
 /// \brief Includes common headers
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "gravity/Galaxy.h"
 #include "gravity/NBodySolver.h"

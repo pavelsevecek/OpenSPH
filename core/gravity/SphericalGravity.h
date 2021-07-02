@@ -3,7 +3,7 @@
 /// \file SphericalGravity.h
 /// \brief Simple model of gravity, valid only for homogeneous spheres
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "gravity/IGravity.h"
 #include "physics/Functions.h"

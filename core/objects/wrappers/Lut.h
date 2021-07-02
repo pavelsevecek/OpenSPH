@@ -3,7 +3,7 @@
 /// \file Lut.h
 /// \brief Approximation of generic function by look-up table
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Interval.h"

@@ -3,7 +3,7 @@
 /// \file ScriptUtils.h
 /// \brief Utility functions and classes exposed to the embedded scripting language.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "post/Analysis.h"
 #include "quantities/Quantity.h"

@@ -3,7 +3,7 @@
 /// \file PlotView.h
 /// \brief Drawing of plots
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "gui/objects/GraphicsContext.h"
 #include "gui/objects/Point.h"

@@ -3,7 +3,7 @@
 /// \file Utils.h
 /// \brief Random utility functions for drawing stuff to DC
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "common/Globals.h"
 #include "gui/renderers/IRenderer.h"

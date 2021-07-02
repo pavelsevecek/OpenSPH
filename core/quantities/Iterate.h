@@ -3,7 +3,7 @@
 /// \file Iterate.h
 /// \brief Functions for iterating over individual quantities in Storage
 /// \author Pavel Sevecek
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "objects/utility/IteratorAdapters.h"
 #include "quantities/Quantity.h"

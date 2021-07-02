@@ -3,7 +3,7 @@
 /// \file Iterator.h
 /// \brief Ordinary iterator for custom containers.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "common/Assert.h"
 #include "common/Traits.h"

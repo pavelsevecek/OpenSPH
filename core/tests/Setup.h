@@ -3,7 +3,7 @@
 /// \file Setup.h
 /// \brief Helper functions performing common tasks in unit testing and benchmarks
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "objects/geometry/Domain.h"
 #include "quantities/IMaterial.h"

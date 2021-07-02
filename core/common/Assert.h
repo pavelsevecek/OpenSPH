@@ -3,7 +3,7 @@
 /// \file Assert.h
 /// \brief Custom assertions
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "common/Globals.h"
 #include <exception>
@@ -84,7 +84,7 @@ struct Assert {
 #define TODO(x) Assert::todo(x, __FUNCTION__, __LINE__);
 
 #ifdef SPH_DEBUG
-#define SPH_ASSERT(x, ...)                                                                                       \
+#define SPH_ASSERT(x, ...)                                                                                   \
     if (!bool(x)) {                                                                                          \
         Assert::fire(#x, __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);                                   \
     }
@@ -98,13 +98,13 @@ struct Assert {
 
 /// Helper macro marking missing implementation
 #define NOT_IMPLEMENTED                                                                                      \
-    SPH_ASSERT(false, "not implemented");                                                                        \
+    SPH_ASSERT(false, "not implemented");                                                                    \
     throw Assert::Exception(std::string("Functionality not implemented in function ") + __PRETTY_FUNCTION__);
 
 /// Helper macro marking code that should never be executed (default branch of switch where there is finite
 /// number of options, for example)
 #define STOP                                                                                                 \
-    SPH_ASSERT(false, "stop");                                                                                   \
+    SPH_ASSERT(false, "stop");                                                                               \
     throw std::exception();
 
 /// Helper cast, performing a static_cast, but checking that the cast is valid using dynamic_cast in assert

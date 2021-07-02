@@ -3,7 +3,7 @@
 /// \file StandardSets.h
 /// \brief Standard SPH formulation that uses continuity equation for solution of density
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "sph/equations/EquationTerm.h"
 

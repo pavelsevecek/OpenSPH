@@ -3,7 +3,7 @@
 /// \file ParticleRenderer.h
 /// \brief Renderer drawing individual particles as dots
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "gui/Settings.h"
 #include "gui/objects/Bitmap.h"

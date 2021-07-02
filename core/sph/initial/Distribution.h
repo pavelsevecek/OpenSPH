@@ -3,7 +3,7 @@
 /// \file Distribution.h
 /// \brief Filling spatial domain with SPH particles
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "math/rng/Rng.h"
 #include "objects/containers/Array.h"
@@ -97,7 +97,7 @@ private:
     Function<bool(Float)> progressCallback;
 
 public:
-    HexagonalPacking(const Flags<Options> flags = Options::CENTER);
+    explicit HexagonalPacking(const Flags<Options> flags = Options::CENTER);
 
     HexagonalPacking(const Flags<Options> flags, Function<bool(Float)> progressCallback);
 
@@ -152,7 +152,7 @@ private:
 
 public:
     /// \brief Constructs the distribution.
-    DiehlDistribution(const DiehlParams& params);
+    explicit DiehlDistribution(const DiehlParams& params);
 
     /// \brief Returns generated particle distribution.
     ///
@@ -168,7 +168,7 @@ private:
     Size seed;
 
 public:
-    ParametrizedSpiralingDistribution(const Size seed);
+    explicit ParametrizedSpiralingDistribution(const Size seed);
 
     virtual Array<Vector> generate(IScheduler& scheduler, const Size n, const IDomain& domain) const override;
 };

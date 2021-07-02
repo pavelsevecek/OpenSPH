@@ -50,7 +50,6 @@ set(GUI_HEADERS
     objects/DelayedCallback.h 
     objects/Filmic.h 
     objects/GraphicsContext.h 
-    objects/Interpolation.h 
     objects/Movie.h 
     objects/Palette.h 
     objects/Point.h 
@@ -86,7 +85,7 @@ set(GUI_HEADERS
     windows/Widgets.h)
 
 add_library(gui SHARED ${GUI_HEADERS} ${GUI_SOURCES})
-target_include_directories(gui PUBLIC ../lib ..)
+target_include_directories(gui PUBLIC ../core ..)
 
 execute_process(COMMAND wx-config --cxxflags
     OUTPUT_VARIABLE WX_FLAGS_OUTPUT

@@ -3,7 +3,7 @@
 /// \file GradHSolver.h
 /// \brief Extension of SPH solver taking into account the gradient of smoothing lengths
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "sph/solvers/AsymmetricSolver.h"
 

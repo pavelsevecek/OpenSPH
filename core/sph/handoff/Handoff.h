@@ -3,7 +3,7 @@
 /// \file Handoff.h
 /// \brief Utility functions for handing-off the results of SPH simulations to N-body integrator
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "quantities/Storage.h"
 

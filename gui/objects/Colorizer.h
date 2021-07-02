@@ -3,7 +3,7 @@
 /// \file Colorizer.h
 /// \brief Object converting quantity values of particles into colors.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "gravity/AggregateSolver.h"
 #include "gui/Settings.h"

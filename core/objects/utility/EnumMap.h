@@ -3,7 +3,7 @@
 /// \file EnumMap.h
 /// \brief Helper object for converting enums to string, listing all available values of enum, etc.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "objects/containers/FlatMap.h"
 #include <typeindex>

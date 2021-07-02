@@ -3,7 +3,7 @@
 /// \file Settings.h
 /// \brief Generic storage and input/output routines of settings.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "objects/Exceptions.h"
 #include "objects/geometry/TracelessTensor.h"

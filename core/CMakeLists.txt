@@ -299,7 +299,6 @@ set(CORE_HEADERS
     thread/OpenMp.h 
     thread/Pool.h 
     thread/Scheduler.h 
-    thread/SpinMutex.h 
     thread/Tbb.h 
     thread/ThreadLocal.h 
     timestepping/ISolver.h 

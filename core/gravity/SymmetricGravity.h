@@ -3,7 +3,7 @@
 /// \file SymmetricGravity.h
 /// \brief Wrapper of gravity implementation to be used with symmetric boundary conditions.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "gravity/IGravity.h"
 #include "quantities/Quantity.h"

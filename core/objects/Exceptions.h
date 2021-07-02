@@ -12,7 +12,7 @@ private:
     std::string message;
 
 public:
-    Exception(const std::string& message)
+    explicit Exception(const std::string& message)
         : message(message) {}
 
     virtual const char* what() const noexcept {
@@ -23,14 +23,14 @@ public:
 /// \brief Thrown when components of the run are mutually incompatible.
 class InvalidSetup : public Exception {
 public:
-    InvalidSetup(const std::string& message)
+    explicit InvalidSetup(const std::string& message)
         : Exception(message) {}
 };
 
 /// \brief Exception thrown when file cannot be read, it has invalid format, etc.
 class IoError : public Exception {
 public:
-    IoError(const std::string& message)
+    explicit IoError(const std::string& message)
         : Exception(message) {}
 };
 

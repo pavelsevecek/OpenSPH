@@ -3,7 +3,7 @@
 /// \file GraphicsContext.h
 /// \brief Implementation of IDrawingContext using wxGraphicsContext
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "gui/objects/Color.h"
 #include "post/Plot.h"

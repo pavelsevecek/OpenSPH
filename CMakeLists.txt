@@ -7,7 +7,7 @@ option(WITH_EIGEN "Enable additional algorithms using Eigen" OFF)
 option(WITH_CHAISCRIPT "Enable scripting tools" OFF)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -28,10 +28,10 @@ endif()
 
 if (WITH_CHAISCRIPT)
     add_definitions(-DSPH_USE_CHAISCRIPT)
-endif(()
+endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 
-add_subdirectory(lib)
+add_subdirectory(core)
 add_subdirectory(gui)
 add_subdirectory(gui/launcherGui)

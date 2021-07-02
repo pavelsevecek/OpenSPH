@@ -3,7 +3,7 @@
 /// \file MorrisMonaghan.h
 /// \brief Time-dependent artificial viscosity by Morris & Monaghan (1997).
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "quantities/IMaterial.h"
 #include "quantities/Storage.h"

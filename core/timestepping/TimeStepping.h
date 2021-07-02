@@ -3,7 +3,7 @@
 /// \file TimeStepping.h
 /// \brief Algorithms for temporal evolution of the physical model.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "common/ForwardDecl.h"
 #include "objects/containers/Array.h"
@@ -71,7 +71,7 @@ public:
         const RunSettings& settings,
         AutoPtr<ITimeStepCriterion>&& criterion);
 
-    virtual ~ITimeStepping();
+    ~ITimeStepping() override;
 
     INLINE Float getTimeStep() const {
         return timeStep;
@@ -103,7 +103,7 @@ private:
 public:
     PredictorCorrector(const SharedPtr<Storage>& storage, const RunSettings& settings);
 
-    ~PredictorCorrector();
+    ~PredictorCorrector() override;
 
 protected:
     virtual void stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
@@ -133,7 +133,7 @@ private:
 public:
     RungeKutta(const SharedPtr<Storage>& storage, const RunSettings& settings);
 
-    ~RungeKutta();
+    ~RungeKutta() override;
 
 protected:
     virtual void stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;

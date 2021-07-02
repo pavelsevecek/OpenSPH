@@ -3,7 +3,7 @@
 /// \file QuantityHelpers.h
 /// \brief Conversions for quantity enums
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "objects/geometry/Tensor.h"
 #include "objects/geometry/TracelessTensor.h"

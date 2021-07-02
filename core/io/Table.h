@@ -3,7 +3,7 @@
 /// \file Table.h
 /// \brief Helper container allowing to store strings in cells and print them into table
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "objects/containers/Array.h"
 

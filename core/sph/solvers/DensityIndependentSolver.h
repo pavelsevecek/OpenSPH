@@ -3,7 +3,7 @@
 /// \file DensityIndependentSolver.h
 /// \brief Density-independent formulation of SPH
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "sph/equations/DerivativeHelpers.h"
 #include "sph/equations/EquationTerm.h"

@@ -3,7 +3,7 @@
 /// \file ContourRenderer.h
 /// \brief Renderer drawing iso-contours of specified quantity
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "gui/objects/Palette.h"
 #include "gui/renderers/IRenderer.h"

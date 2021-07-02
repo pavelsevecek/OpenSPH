@@ -3,7 +3,7 @@
 /// \file Rng.h
 /// \brief Random number generators
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "objects/containers/Array.h"
 #include "objects/geometry/Box.h"
@@ -23,7 +23,7 @@ private:
     std::uniform_real_distribution<Float> dist;
 
 public:
-    UniformRng(const int seed = 1234) {
+    explicit UniformRng(const int seed = 1234) {
         mt = std::mt19937_64(seed);
     }
 
@@ -63,7 +63,7 @@ private:
     int idum;
 
 public:
-    BenzAsphaugRng(const int seed);
+    explicit BenzAsphaugRng(const int seed);
 
     BenzAsphaugRng(BenzAsphaugRng&& other);
 
@@ -72,7 +72,7 @@ public:
 
 /// \brief Quasi-random number generator.
 class HaltonQrng : public Noncopyable {
-protected:
+private:
     static const int dimension = 6;
     StaticArray<int, dimension> primes; /// \todo extend in case more is necessary
     StaticArray<int, dimension> c;
@@ -100,7 +100,7 @@ private:
 
 public:
     template <typename... TArgs>
-    RngWrapper(TArgs&&... args)
+    explicit RngWrapper(TArgs&&... args)
         : rng(std::forward<TArgs>(args)...) {}
 
     virtual Float operator()(const int s) override {

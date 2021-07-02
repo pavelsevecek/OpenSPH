@@ -3,7 +3,7 @@
 /// \file Analysis.h
 /// \brief Various function for interpretation of the results of a simulation
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "objects/finders/NeighbourFinder.h"
 #include "objects/wrappers/Expected.h"

@@ -3,7 +3,7 @@
 /// \file Collision.h
 /// \brief Collision handling
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "objects/containers/FlatSet.h"
 #include "physics/Functions.h"

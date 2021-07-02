@@ -3,7 +3,7 @@
 /// \file Path.h
 /// \brief Object representing a path on a filesystem, similar to std::filesystem::path in c++17
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "common/Assert.h"
 #include <unistd.h>

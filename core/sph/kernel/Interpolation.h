@@ -3,7 +3,7 @@
 /// \file Interpolation.h
 /// \brief Computes interpolated values of quantities between SPH particles
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "objects/finders/NeighbourFinder.h"
 #include "objects/wrappers/SharedPtr.h"
@@ -40,7 +40,7 @@ protected:
 
     AutoPtr<IBasicFinder> finder;
     LutKernel<3> kernel;
-    Float searchRadius;
+    Float searchRadius = 0._f;
 
 public:
     /// \brief Constructs the interpolation object from settings.
@@ -102,7 +102,6 @@ private:
 /// not decrease to zero at the domain boundary, instead there is a discontinuity of the interpolant.
 template <typename Type>
 class CorrectedSphInterpolant : public SphInterpolant<Type> {
-private:
 public:
     using SphInterpolant<Type>::SphInterpolant;
 
