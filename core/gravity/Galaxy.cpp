@@ -286,13 +286,18 @@ static void computeDiskVelocities(IScheduler& scheduler,
 
     Float sigma = 0._f;
     Size count = 0;
-    for (Size i : sequence) {
-        const Float radius = sqrt(sqr(r[i][X]) + sqr(r[i][Y]));
-        if (abs(radius - r_ref) < dr) {
-            const Float kappa = getEpicyclicFrequency(gravity, r[i], dv[i], 0.05_f * dr);
-            sigma += 3.36_f * diskSurfaceDensity(radius, r0, m_disk) / kappa;
-            count++;
+    Float annulus = dr;
+    while (count == 0._f) {
+        for (Size i : sequence) {
+            const Float radius = sqrt(sqr(r[i][X]) + sqr(r[i][Y]));
+            if (abs(radius - r_ref) < annulus) {
+                const Float kappa = getEpicyclicFrequency(gravity, r[i], dv[i], 0.05_f * annulus);
+                sigma += 3.36_f * diskSurfaceDensity(radius, r0, m_disk) / kappa;
+                count++;
+            }
         }
+        // if no particle lies in the annulus, try again with larger value
+        annulus *= 2._f;
     }
     SPH_ASSERT(count > 0);
 

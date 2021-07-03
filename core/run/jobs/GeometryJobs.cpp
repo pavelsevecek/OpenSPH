@@ -1,4 +1,4 @@
-#include "run/workers/GeometryJobs.h"
+#include "run/jobs/GeometryJobs.h"
 #include "math/Functional.h"
 #include "math/rng/VectorRng.h"
 #include "objects/geometry/Sphere.h"

@@ -60,7 +60,7 @@ public:
 /// \brief Represents a virtual entry in the settings.
 ///
 /// This entry may be connected to a single reference, an entry in \ref Settings object or other user-defined
-/// value. It provides an abstraction through which state of workers can be queried and modified.
+/// value. It provides an abstraction through which state of jobs can be queried and modified.
 class IVirtualEntry : public Polymorphic {
 public:
     enum class Type { BOOL, INT, FLOAT, VECTOR, INTERVAL, STRING, PATH, ENUM, EXTRA, FLAGS };

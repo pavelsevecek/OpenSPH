@@ -2,9 +2,9 @@
 #include "io/FileSystem.h"
 #include "io/Output.h"
 #include "run/Node.h"
-#include "run/workers/InitialConditionJobs.h"
-#include "run/workers/Presets.h"
-#include "run/workers/SimulationJobs.h"
+#include "run/jobs/InitialConditionJobs.h"
+#include "run/jobs/Presets.h"
+#include "run/jobs/SimulationJobs.h"
 #include "tests/Setup.h"
 #include "utils/Utils.h"
 
@@ -51,7 +51,7 @@ public:
         return setUpCalled;
     }
 
-    virtual void onStart(const IJob& UNUSED(worker)) override {}
+    virtual void onStart(const IJob& UNUSED(job)) override {}
 
     virtual void onEnd(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {}
 
@@ -69,7 +69,7 @@ public:
     }
 };
 
-TEMPLATE_TEST_CASE("New run", "[worker]", SphJob, SphStabilizationJob, NBodyJob) {
+TEMPLATE_TEST_CASE("New run", "[job]", SphJob, SphStabilizationJob, NBodyJob) {
     SharedPtr<JobNode> runNode = makeNode<TestType>("simulation");
     SharedPtr<JobNode> icNode = makeNode<TestCreateParticles>("ic", 0._f);
     icNode->connect(runNode, "particles");
@@ -85,7 +85,7 @@ TEMPLATE_TEST_CASE("New run", "[worker]", SphJob, SphStabilizationJob, NBodyJob)
     REQUIRE(callbacks.wasSetUpCalled());
 }
 
-TEMPLATE_TEST_CASE("Resumed run", "[worker]", SphJob, SphStabilizationJob, NBodyJob) {
+TEMPLATE_TEST_CASE("Resumed run", "[job]", SphJob, SphStabilizationJob, NBodyJob) {
     const Float startTime = 20._f;
     SharedPtr<JobNode> runNode = makeNode<TestType>("simulation");
     SharedPtr<JobNode> icNode = makeNode<TestCreateParticles>("ic", startTime);
@@ -102,24 +102,23 @@ TEMPLATE_TEST_CASE("Resumed run", "[worker]", SphJob, SphStabilizationJob, NBody
     REQUIRE(callbacks.wasSetUpCalled());
 }
 
-TEST_CASE("Simple collision run", "[worker]") {
+TEST_CASE("Preset runs", "[job]") {
     UniqueNameManager mgr;
-    SharedPtr<JobNode> node = Presets::makeAsteroidCollision(mgr, 100);
+    for (Presets::Id id : EnumMap::getAll<Presets::Id>()) {
+        INFO("Testing preset " + EnumMap::toString(id));
+        SharedPtr<JobNode> node = Presets::make(id, mgr, 100);
 
-    // just test that everything runs without exceptions/asserts
-    RunSettings overrides = EMPTY_SETTINGS;
-    overrides.set(RunSettingsId::RUN_END_TIME, EPS).set(RunSettingsId::RUN_LOGGER, LoggerEnum::NONE);
-    NullJobCallbacks callbacks;
-    REQUIRE_NOTHROW(node->run(overrides, callbacks));
-}
-
-TEST_CASE("Fragmentation reaccumulation run", "[worker]") {
-    UniqueNameManager mgr;
-    SharedPtr<JobNode> node = Presets::makeFragmentationAndReaccumulation(mgr, 100);
-
-    // just test that everything runs without exceptions/asserts
-    RunSettings overrides = EMPTY_SETTINGS;
-    overrides.set(RunSettingsId::RUN_END_TIME, EPS).set(RunSettingsId::RUN_LOGGER, LoggerEnum::NONE);
-    NullJobCallbacks callbacks;
-    REQUIRE_NOTHROW(node->run(overrides, callbacks));
+        // just test that everything runs without exceptions/asserts
+        RunSettings globals = EMPTY_SETTINGS;
+        globals.set(RunSettingsId::RUN_END_TIME, EPS)
+            .set(RunSettingsId::RUN_LOGGER, LoggerEnum::NONE)
+            .set(RunSettingsId::RUN_RNG, RngEnum::BENZ_ASPHAUG)
+            .set(RunSettingsId::RUN_RNG_SEED, 1234)
+            .set(RunSettingsId::RUN_THREAD_CNT, 0)
+            .set(RunSettingsId::RUN_THREAD_GRANULARITY, 20)
+            .set(RunSettingsId::SPH_KERNEL, KernelEnum::CUBIC_SPLINE)
+            .set(RunSettingsId::GENERATE_UVWS, false);
+        NullJobCallbacks callbacks;
+        REQUIRE_NOTHROW(node->run(globals, callbacks));
+    }
 }

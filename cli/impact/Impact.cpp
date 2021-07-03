@@ -2,11 +2,11 @@
 
 #include "Sph.h"
 #include "run/Node.h"
-#include "run/workers/InitialConditionJobs.h"
-#include "run/workers/IoJobs.h"
-#include "run/workers/MaterialJobs.h"
-#include "run/workers/ParticleJobs.h"
-#include "run/workers/SimulationJobs.h"
+#include "run/jobs/InitialConditionJobs.h"
+#include "run/jobs/IoJobs.h"
+#include "run/jobs/MaterialJobs.h"
+#include "run/jobs/ParticleJobs.h"
+#include "run/jobs/SimulationJobs.h"
 
 using namespace Sph;
 

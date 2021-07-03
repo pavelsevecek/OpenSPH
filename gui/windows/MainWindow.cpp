@@ -10,9 +10,9 @@
 #include "io/FileSystem.h"
 #include "objects/utility/IteratorAdapters.h"
 #include "post/Plot.h"
-#include "run/workers/GeometryJobs.h"
-#include "run/workers/IoJobs.h"
-#include "run/workers/ParticleJobs.h"
+#include "run/jobs/GeometryJobs.h"
+#include "run/jobs/IoJobs.h"
+#include "run/jobs/ParticleJobs.h"
 #include <fstream>
 #include <wx/aboutdlg.h>
 #include <wx/aui/auibook.h>

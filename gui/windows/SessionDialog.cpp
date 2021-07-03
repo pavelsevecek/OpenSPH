@@ -1,5 +1,5 @@
 #include "gui/windows/SessionDialog.h"
-#include "run/workers/Presets.h"
+#include "run/jobs/Presets.h"
 #include <wx/button.h>
 #include <wx/listbox.h>
 #include <wx/msgdlg.h>

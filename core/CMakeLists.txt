@@ -52,13 +52,13 @@ set(CORE_SOURCES
     run/ScriptUtils.cpp 
     run/SpecialEntries.cpp 
     run/VirtualSettings.cpp 
-    run/workers/GeometryJobs.cpp 
-    run/workers/InitialConditionJobs.cpp 
-    run/workers/IoJobs.cpp 
-    run/workers/MaterialJobs.cpp 
-    run/workers/ParticleJobs.cpp 
-    run/workers/ScriptJobs.cpp 
-    run/workers/SimulationJobs.cpp 
+    run/jobs/GeometryJobs.cpp 
+    run/jobs/InitialConditionJobs.cpp 
+    run/jobs/IoJobs.cpp 
+    run/jobs/MaterialJobs.cpp 
+    run/jobs/ParticleJobs.cpp 
+    run/jobs/ScriptJobs.cpp 
+    run/jobs/SimulationJobs.cpp 
     sph/Diagnostics.cpp 
     sph/Material.cpp 
     sph/boundary/Boundary.cpp 
@@ -99,7 +99,7 @@ set(CORE_SOURCES
     sph/solvers/ElasticDeformationSolver.cpp 
     sph/solvers/DensityIndependentSolver.cpp 
     run/Config.cpp 
-    run/workers/Presets.cpp)
+    run/jobs/Presets.cpp)
 
 set(CORE_HEADERS 
     Sph.h 
@@ -233,13 +233,13 @@ set(CORE_HEADERS
     run/ScriptNode.h 
     run/ScriptUtils.h 
     run/Trigger.h 
-    run/workers/GeometryJobs.h 
-    run/workers/InitialConditionJobs.h 
-    run/workers/IoJobs.h 
-    run/workers/MaterialJobs.h 
-    run/workers/ParticleJobs.h 
-    run/workers/ScriptJobs.h 
-    run/workers/SimulationJobs.h 
+    run/jobs/GeometryJobs.h 
+    run/jobs/InitialConditionJobs.h 
+    run/jobs/IoJobs.h 
+    run/jobs/MaterialJobs.h 
+    run/jobs/ParticleJobs.h 
+    run/jobs/ScriptJobs.h 
+    run/jobs/SimulationJobs.h 
     sph/Diagnostics.h 
     sph/Materials.h 
     sph/boundary/Boundary.h 
@@ -311,7 +311,7 @@ set(CORE_HEADERS
     objects/containers/UnorderedMap.h 
     run/VirtualSettings.inl.h 
     run/Config.h 
-    run/workers/Presets.h 
+    run/jobs/Presets.h 
     run/SpecialEntries.h)
 
 

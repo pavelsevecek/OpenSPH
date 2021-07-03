@@ -1,4 +1,4 @@
-#include "run/workers/ParticleJobs.h"
+#include "run/jobs/ParticleJobs.h"
 #include "io/LogWriter.h"
 #include "io/Logger.h"
 #include "objects/geometry/Sphere.h"

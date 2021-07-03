@@ -17,7 +17,7 @@ enum class Id {
 };
 
 /// \brief Creates a node tree for the preset with given ID.
-SharedPtr<JobNode> make(const Id id, UniqueNameManager& nameMgr);
+SharedPtr<JobNode> make(const Id id, UniqueNameManager& nameMgr, const Size particleCnt = 100000);
 
 /// \brief Creates a node tree for basic collision simulation.
 SharedPtr<JobNode> makeAsteroidCollision(UniqueNameManager& nameMgr, const Size particleCnt = 10000);

@@ -2,7 +2,7 @@
 
 #include "gravity/Galaxy.h"
 #include "objects/containers/Grid.h"
-#include "run/workers/MaterialJobs.h"
+#include "run/jobs/MaterialJobs.h"
 
 NAMESPACE_SPH_BEGIN
 

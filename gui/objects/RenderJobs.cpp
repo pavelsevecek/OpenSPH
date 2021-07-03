@@ -7,7 +7,7 @@
 #include "gui/objects/Colorizer.h"
 #include "gui/objects/Movie.h"
 #include "run/IRun.h"
-#include "run/workers/IoJobs.h"
+#include "run/jobs/IoJobs.h"
 #include "system/Factory.h"
 #include "system/Timer.h"
 

@@ -1,11 +1,11 @@
-#include "run/workers/Presets.h"
+#include "run/jobs/Presets.h"
 #include "io/FileSystem.h"
-#include "run/workers/GeometryJobs.h"
-#include "run/workers/InitialConditionJobs.h"
-#include "run/workers/IoJobs.h"
-#include "run/workers/MaterialJobs.h"
-#include "run/workers/ParticleJobs.h"
-#include "run/workers/SimulationJobs.h"
+#include "run/jobs/GeometryJobs.h"
+#include "run/jobs/InitialConditionJobs.h"
+#include "run/jobs/IoJobs.h"
+#include "run/jobs/MaterialJobs.h"
+#include "run/jobs/ParticleJobs.h"
+#include "run/jobs/SimulationJobs.h"
 #include "sph/Materials.h"
 #include "thread/CheckFunction.h"
 
@@ -36,20 +36,20 @@ static RegisterEnum<Id> sPresetsId({
 
 }
 
-SharedPtr<JobNode> Presets::make(const Id id, UniqueNameManager& nameMgr) {
+SharedPtr<JobNode> Presets::make(const Id id, UniqueNameManager& nameMgr, const Size particleCnt) {
     switch (id) {
     case Id::COLLISION:
-        return makeAsteroidCollision(nameMgr);
+        return makeAsteroidCollision(nameMgr, particleCnt);
     case Id::FRAGMENTATION_REACCUMULATION:
-        return makeFragmentationAndReaccumulation(nameMgr);
+        return makeFragmentationAndReaccumulation(nameMgr, particleCnt);
     case Id::CRATERING:
-        return makeCratering(nameMgr);
+        return makeCratering(nameMgr, particleCnt);
     case Id::PLANETESIMAL_MERGING:
-        return makePlanetesimalMerging(nameMgr);
+        return makePlanetesimalMerging(nameMgr, particleCnt);
     case Id::GALAXY_COLLISION:
-        return makeGalaxyCollision(nameMgr);
+        return makeGalaxyCollision(nameMgr, particleCnt);
     case Id::ACCRETION_DISK:
-        return makeAccretionDisk(nameMgr);
+        return makeAccretionDisk(nameMgr, particleCnt);
     case Id::SOLAR_SYSTEM:
         return makeSolarSystem(nameMgr);
     default:

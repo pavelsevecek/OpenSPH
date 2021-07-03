@@ -1,7 +1,7 @@
 #include "run/Node.h"
 #include "catch.hpp"
-#include "run/workers/InitialConditionJobs.h"
-#include "run/workers/MaterialJobs.h"
+#include "run/jobs/InitialConditionJobs.h"
+#include "run/jobs/MaterialJobs.h"
 
 using namespace Sph;
 

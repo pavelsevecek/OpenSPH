@@ -11,9 +11,9 @@
 #include "run/Config.h"
 #include "run/ScriptNode.h"
 #include "run/SpecialEntries.h"
-#include "run/workers/IoJobs.h"
-#include "run/workers/Presets.h"
-#include "run/workers/ScriptJobs.h"
+#include "run/jobs/IoJobs.h"
+#include "run/jobs/Presets.h"
+#include "run/jobs/ScriptJobs.h"
 #include "thread/CheckFunction.h"
 #include <wx/dcclient.h>
 #include <wx/dirdlg.h>

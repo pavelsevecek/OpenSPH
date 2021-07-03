@@ -16,7 +16,7 @@ JobContext JobContext::clone() const {
         clonedData->stats = particleData->stats;
         return clonedData;
     } else {
-        // materials and domains are currently never modified by workers, so we can share them
+        // materials and domains are currently never modified by jobs, so we can share them
         return *this;
     }
 }

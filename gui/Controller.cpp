@@ -10,7 +10,7 @@
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/windows/RunPage.h"
 #include "run/Node.h"
-#include "run/workers/IoJobs.h"
+#include "run/jobs/IoJobs.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
 #include "system/Timer.h"

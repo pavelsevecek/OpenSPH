@@ -100,7 +100,7 @@ SOURCES += \
     ../core/quantities/test/QuantityHelpers.cpp \
     ../core/quantities/test/Storage.cpp \
     ../core/run/test/Config.cpp \
-    ../core/run/test/Workers.cpp \
+    ../core/run/test/Jobs.cpp \
     ../core/sph/boundary/test/Boundary.cpp \
     ../core/sph/equations/av/test/AV.cpp \
     ../core/sph/equations/av/test/Balsara.cpp \
