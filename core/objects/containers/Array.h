@@ -9,6 +9,10 @@
 #include "objects/containers/Allocators.h"
 #include "objects/containers/ArrayView.h"
 
+#ifdef SPH_GCC
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+
 NAMESPACE_SPH_BEGIN
 
 template <typename T, typename TAllocator = Mallocator, typename TCounter = Size>

@@ -157,6 +157,7 @@ private:
     void readImpl(T0& t0, TArgs&... args) {
         static_assert(!std::is_array<T0>::value, "String must be read as std::string");
         using ActType = Detail::Serialized<Precise, T0>;
+        static_assert(sizeof(ActType) > 0, "Invalid size of ActType");
         buffer.resize(sizeof(ActType));
         if (!ifs.read(&buffer[0], sizeof(ActType))) {
             /// \todo maybe print the name of the primitive?
