@@ -157,8 +157,6 @@ private:
 
         NodeSlot lastSlot;
 
-        Pixel mouseDownPos = Pixel(0, 0);
-
     } state;
 
 public:

@@ -645,15 +645,12 @@ NodeEditor::NodeEditor(NodeWindow* parent, SharedPtr<INodeManagerCallbacks> call
     this->SetMinSize(wxSize(1024, 768));
 
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(NodeEditor::onPaint));
-    this->Connect(wxEVT_MOTION, wxMouseEventHandler(NodeEditor::onMouseMotion));
     this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(NodeEditor::onMouseWheel));
     this->Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(NodeEditor::onLeftDown));
     this->Connect(wxEVT_LEFT_UP, wxMouseEventHandler(NodeEditor::onLeftUp));
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(NodeEditor::onRightUp));
+    this->Connect(wxEVT_MOTION, wxMouseEventHandler(NodeEditor::onMouseMotion));
     this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(NodeEditor::onDoubleClick));
-
-    this->Bind(wxEVT_SET_FOCUS,
-        [this](wxFocusEvent&) { state.mousePosition = Pixel(ScreenToClient(wxGetMousePosition())); });
 }
 
 static void drawCenteredText(wxGraphicsContext* gc,
@@ -1011,7 +1008,7 @@ void NodeEditor::onLeftDown(wxMouseEvent& evt) {
     } else {
         state.selected = nodeMgr->getSelectedNode(position);
     }
-    state.mouseDownPos = mousePosition;
+    state.mousePosition = mousePosition;
 }
 
 void NodeEditor::onLeftUp(wxMouseEvent& evt) {
