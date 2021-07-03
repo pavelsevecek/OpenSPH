@@ -2,13 +2,10 @@
 
 #include "gui/Settings.h"
 #include "gui/objects/Color.h"
-#include "gui/objects/Texture.h"
 #include "gui/renderers/Brdf.h"
 #include "gui/renderers/IRenderer.h"
 #include "objects/finders/Bvh.h"
 #include "sph/kernel/Kernel.h"
-#include "thread/ThreadLocal.h"
-#include <atomic>
 
 NAMESPACE_SPH_BEGIN
 
@@ -16,7 +13,7 @@ class FrameBuffer;
 class IBrdf;
 class IColorMap;
 
-class RayMarcher : public IRenderer {
+class RayMarcher : public IRaytracer {
 private:
     /// BVH for finding intersections of rays with particles
     Bvh<BvhSphere> bvh;
@@ -37,35 +34,15 @@ private:
         /// BRDF used to get the surface reflectance.
         AutoPtr<IBrdf> brdf;
 
-        /// Color mapping operator
-        AutoPtr<IColorMap> colorMap;
-
-        struct {
-
-            Rgba color = Rgba::black();
-
-            /// HDRI for the background. Can be empty.
-            Texture hdri;
-
-        } enviro;
-
         /// Cast shadows
         bool shadows = false;
 
         /// Render surface of spheres instead of an isosurface.
         bool renderSpheres = true;
 
-        /// Number of iterations of the progressive renderer.
-        Size iterationLimit;
-
-        /// Number of subsampled iterations.
-        Size subsampling;
-
     } fixed;
 
-    SharedPtr<IScheduler> scheduler;
-
-    struct ThreadData {
+    struct MarchData {
         /// Neighbour indices of the current particle
         Array<Size> neighs;
 
@@ -75,13 +52,16 @@ private:
         /// Cached index of the previously evaluated particle, used for optimizations.
         Size previousIdx;
 
-        /// Random-number generator for this thread.
-        UniformRng rng;
-
-        ThreadData(int seed);
+        MarchData() = default;
+        MarchData(MarchData&& other) = default;
+        MarchData(const MarchData& other)
+            : neighs(other.neighs.clone())
+            , intersections(other.intersections)
+            , previousIdx(other.previousIdx) {
+            // needed to be used in Any, but never should be actually called
+            SPH_ASSERT(false);
+        }
     };
-
-    mutable ThreadLocal<ThreadData> threadData;
 
     struct {
         /// Particle positions
@@ -111,36 +91,30 @@ private:
 
     } cached;
 
-    mutable std::atomic_bool shouldContinue;
-
 public:
     RayMarcher(SharedPtr<IScheduler> scheduler, const GuiSettings& settings);
 
-    ~RayMarcher();
+    ~RayMarcher() override;
 
     virtual void initialize(const Storage& storage,
         const IColorizer& colorizer,
         const ICamera& camera) override;
 
-    virtual void render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const override;
-
-    virtual void cancelRender() override {
-        shouldContinue = false;
-    }
-
 private:
-    void refine(const RenderParams& params, const Size iteration, FrameBuffer& fb) const;
+    virtual Rgba shade(const RenderParams& params,
+        const CameraRay& cameraRay,
+        ThreadData& data) const override;
 
     /// \param Creates a neighbour list for given particle.
     ///
     /// The neighbour list is cached and can be reused by the calling thread next time the function is called.
     /// \return View on the cached neighbour light.
-    ArrayView<const Size> getNeighbourList(ThreadData& data, const Size index) const;
+    ArrayView<const Size> getNeighbourList(MarchData& data, const Size index) const;
 
     /// \brief Returns the intersection of the iso-surface.
     ///
     /// If no intersection exists, function returns NOTHING.
-    Optional<Vector> intersect(ThreadData& data,
+    Optional<Vector> intersect(MarchData& data,
         const Ray& ray,
         const Float surfaceLevel,
         const bool occlusion) const;
@@ -162,18 +136,16 @@ private:
     /// \brief Finds the actual surface point for given shade context.
     ///
     /// If no such point exists, function returns NOTHING.
-    Optional<Vector> getSurfaceHit(ThreadData& data,
+    Optional<Vector> getSurfaceHit(MarchData& data,
         const IntersectContext& context,
         const bool occlusion) const;
 
     /// \brief Returns the color of given hit point.
-    Rgba shade(ThreadData& data,
+    Rgba getSurfaceColor(MarchData& data,
         const RenderParams& params,
         const Size index,
         const Vector& hit,
         const Vector& dir) const;
-
-    Rgba getEnviroColor(const Ray& ray) const;
 
     Float evalField(ArrayView<const Size> neighs, const Vector& pos) const;
 

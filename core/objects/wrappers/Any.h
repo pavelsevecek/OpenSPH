@@ -22,15 +22,22 @@ private:
 
     template <typename Type>
     class Holder : public AbstractHolder {
+        static_assert(!std::is_reference<Type>::value, "Cannot store references in Any");
+
     private:
         Type value;
 
     public:
         Holder(const Type& value)
             : value(value) {}
+
+        Holder(Type&& value)
+            : value(std::move(value)) {}
+
         virtual const std::type_info& getTypeInfo() const {
             return typeid(value);
         }
+
         virtual AutoPtr<AbstractHolder> clone() const {
             return makeAuto<Holder>(value);
         }
@@ -47,38 +54,121 @@ private:
     AutoPtr<AbstractHolder> data;
 
     template <typename Type>
-    auto* cast() {
-        using RawT = std::decay_t<Type>;
-        return dynamic_cast<Holder<RawT>*>(&*data);
+    using HolderType = Holder<std::decay_t<Type>>;
+
+    template <typename Type>
+    HolderType<Type>* safeCast() {
+        if (data) {
+            return dynamic_cast<HolderType<Type>*>(&*data);
+        } else {
+            return nullptr;
+        }
     }
 
     template <typename Type>
-    const auto* cast() const {
-        using RawT = std::decay_t<Type>;
-        return dynamic_cast<const Holder<RawT>*>(&*data);
+    const HolderType<Type>* safeCast() const {
+        if (data) {
+            return dynamic_cast<const HolderType<Type>*>(&*data);
+        } else {
+            return nullptr;
+        }
     }
+
+    template <typename Type>
+    HolderType<Type>* cast() {
+        SPH_ASSERT(data);
+        return assert_cast<HolderType<Type>*>(&*data);
+    }
+
+    template <typename Type>
+    const HolderType<Type>* cast() const {
+        SPH_ASSERT(data);
+        return assert_cast<const HolderType<Type>*>(&*data);
+    }
+
 
 public:
+    /// Constructs an empty Any.
     Any() = default;
 
-    /// Constructs Any from given value, type is deduced.
-    template <typename Type>
-    Any(Type&& value) {
-        data = makeAuto<Holder<Type>>(std::forward<Type>(value));
+    /// Copies the value from another Any.
+    Any(const Any& other) {
+        *this = other;
     }
 
-    /// Tries to extract value of given type from Any. On success returns the value, otherwise NOTHING.
+    /// Moves the value from another Any.
+    Any(Any&& other) {
+        *this = std::move(other);
+    }
+
+    /// Constructs Any from given value, type is deduced.
+    template <typename Type, typename = std::enable_if_t<!std::is_same<Any, std::decay_t<Type>>::value>>
+    Any(Type&& value) {
+        *this = std::forward<Type>(value);
+    }
+
+    /// Copies the value from another Any.
+    Any& operator=(const Any& other) {
+        if (other.data) {
+            data = other.data->clone();
+        } else {
+            data = nullptr;
+        }
+        return *this;
+    }
+
+    /// Moves the value from another Any.
+    Any& operator=(Any&& other) {
+        data = std::move(other.data);
+        return *this;
+    }
+
+    /// Assigns given value to Any, type is deduced.
+    template <typename Type, typename = std::enable_if_t<!std::is_same<Any, std::decay_t<Type>>::value>>
+    Any& operator=(Type&& value) {
+        data = makeAuto<HolderType<Type>>(std::forward<Type>(value));
+        return *this;
+    }
+
+    /// \brief Returns the value from Any.
+    ///
+    /// If Any does not store any value or the value has different type, the result is undefined. In debug
+    /// build, it is checked by assert.
+    template <typename Type>
+    explicit operator const Type&() const {
+        return cast<Type>()->get();
+    }
+
+    /// \brief Returns the reference to the stored value in Any.
+    ///
+    /// If Any does not store any value or the value has different type, the result is undefined. In debug
+    /// build, it is checked by assert.
+    template <typename Type>
+    explicit operator Type&() {
+        return cast<Type>()->get();
+    }
+
+    /// \brief Checks if Any currently holds a values.
+    bool hasValue() const {
+        return bool(data);
+    }
+
+    /// \brief Tries to extract value of given type from Any.
+    ///
+    /// On success returns the value, otherwise NOTHING.
     template <typename Type>
     friend Optional<Type> anyCast(const Any& any);
 
-    /// Compares Any with another value. Returns true if and only if both types and values are equal.
-    template <typename Type>
+    /// \brief Compares Any with another value.
+    ///
+    /// Returns true if and only if both types and values are equal.
+    template <typename Type, typename = std::enable_if_t<!std::is_same<Any, std::decay_t<Type>>::value>>
     bool operator==(Type&& value) const {
-        auto casted = cast<Type>();
+        auto casted = safeCast<Type>();
         return casted && casted->get() == value;
     }
 
-    template <typename Type>
+    template <typename Type, typename = std::enable_if_t<!std::is_same<Any, std::decay_t<Type>>::value>>
     bool operator!=(Type&& value) const {
         return !(*this == std::forward<Type>(value));
     }
@@ -86,13 +176,12 @@ public:
 
 template <typename Type>
 Optional<Type> anyCast(const Any& any) {
-    const Any::Holder<Type>* casted = any.cast<Type>();
+    const Any::Holder<Type>* casted = any.safeCast<Type>();
     if (casted == nullptr) {
         // either nothing stored or different type
         return NOTHING;
     }
     return casted->get();
 }
-
 
 NAMESPACE_SPH_END

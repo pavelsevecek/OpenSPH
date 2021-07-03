@@ -135,8 +135,8 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
     { GuiSettingsId::RAYTRACE_SPHERES,      "raytrace.spheres",     false,
         "If true, raytraced surface is given by spheres centered at particles, "
         "otherwise isosurface of a colorfield is rendered." },
-    { GuiSettingsId::VOLUME_EMISSION,       "volume.emission",      1._f,
-        "Medium emission per unit length. Used by volumetric renderer." },
+    { GuiSettingsId::VOLUME_EMISSION,       "volume.emission",      1.e-3_f,
+        "Volume emission per unit length. Used by volumetric renderer." },
     { GuiSettingsId::RENDER_GHOST_PARTICLES, "render_ghost_particles", true,
         "If true, ghost particles will be displayed as transparent circles, otherwise they are hidden." },
     { GuiSettingsId::BACKGROUND_COLOR,      "background_color",     Vector(0._f, 0._f, 0._f, 1._f),

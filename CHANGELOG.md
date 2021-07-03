@@ -1,6 +1,8 @@
 ## 2021-07-03
 - detached cameras from Animation node
-- "save file", "save mesh" and animation nodes do not produce data anymore
+- added volumetric renderer to UI
+- fixed Any class
+- deduplicated raytracing code
 
 ## 2021-07-01
 - added basic cmake buildsystem

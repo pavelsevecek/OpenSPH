@@ -7,17 +7,21 @@
 
 #include "gui/objects/Color.h"
 #include "gui/objects/Point.h"
-#include "objects/wrappers/ClonePtr.h"
+#include "gui/objects/Texture.h"
+#include "objects/wrappers/Any.h"
 #include "objects/wrappers/Flags.h"
 #include "quantities/Particle.h"
+#include "thread/ThreadLocal.h"
+#include <atomic>
 
 NAMESPACE_SPH_BEGIN
 
-template <typename T>
-class Bitmap;
 class ICamera;
+class CameraRay;
 class ITracker;
 class IColorizer;
+class IColorMap;
+class FrameBuffer;
 class Statistics;
 class GuiSettings;
 
@@ -127,6 +131,12 @@ struct RenderParams {
 
     } surface;
 
+    /// \brief Parameters of volumetric renderer
+    struct {
+        /// \brief Emission per unit distance [m^-1]
+        float emission = 1.f;
+    } volume;
+
     struct {
 
         /// \brief Step between subsequent iso-lines
@@ -169,8 +179,71 @@ public:
     ///              (time used in rendering, framerate, ...)
     virtual void render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const = 0;
 
-    /// \todo
+    /// \brief Stops the rendering if it is currently in progress.
     virtual void cancelRender() = 0;
+};
+
+/// \brief Base class for renderers based on raytracing
+class IRaytracer : public IRenderer {
+protected:
+    SharedPtr<IScheduler> scheduler;
+
+    struct ThreadData {
+        /// Random-number generator for this thread.
+        UniformRng rng;
+
+        /// Additional data used by the implementation
+        Any data;
+
+        ThreadData(int seed);
+    };
+
+    mutable ThreadLocal<ThreadData> threadData;
+
+    mutable std::atomic_bool shouldContinue;
+
+private:
+    /// \brief Parameters fixed for the renderer.
+    ///
+    /// Note that additional parameters which can differ for each rendered image are passed to \ref render.
+    struct {
+
+        /// Color mapping operator
+        AutoPtr<IColorMap> colorMap;
+
+        struct {
+
+            Rgba color = Rgba::black();
+
+            /// HDRI for the background. Can be empty.
+            Texture hdri;
+
+        } enviro;
+
+        /// Number of iterations of the progressive renderer.
+        Size iterationLimit;
+
+        /// Number of subsampled iterations.
+        Size subsampling;
+
+    } fixed;
+
+public:
+    IRaytracer(SharedPtr<IScheduler> scheduler, const GuiSettings& gui);
+
+    virtual void render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const final;
+
+    virtual void cancelRender() override {
+        shouldContinue = false;
+    }
+
+protected:
+    virtual Rgba shade(const RenderParams& params, const CameraRay& ray, ThreadData& data) const = 0;
+
+    Rgba getEnviroColor(const CameraRay& ray) const;
+
+private:
+    void refine(const RenderParams& params, const Size iteration, FrameBuffer& fb) const;
 };
 
 NAMESPACE_SPH_END
