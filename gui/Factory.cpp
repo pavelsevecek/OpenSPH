@@ -135,8 +135,7 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const ExtCo
     case ColorizerId::DENSITY_PERTURBATION:
         return makeAuto<DensityPerturbationColorizer>(getPalette(id));
     case ColorizerId::SUMMED_DENSITY:
-        return makeAuto<SummedDensityColorizer>(
-            RunSettings::getDefaults(), getPalette(ColorizerId(QuantityId::DENSITY)));
+        return makeAuto<SummedDensityColorizer>(RunSettings::getDefaults(), getPalette(QuantityId::DENSITY));
     case ColorizerId::TOTAL_ENERGY:
         return makeAuto<EnergyColorizer>(getPalette(id));
     case ColorizerId::TEMPERATURE:

@@ -34,6 +34,10 @@ endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -msse4.1")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -mtune=native -ffast-math")
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_definitions(-DSPH_DEBUG)
+endif()
+
 add_subdirectory(core)
 add_subdirectory(gui)
 add_subdirectory(gui/launcherGui)

@@ -128,7 +128,7 @@ Expected<Array<Triangle>> PlyFile::load(const Path& path) {
             }
             triangles.emplaceBack(vertices[i], vertices[j], vertices[k]);
         }
-        return std::move(triangles);
+        return Expected<Array<Triangle>>(std::move(triangles));
 
     } catch (const std::exception& e) {
         return makeUnexpected<Array<Triangle>>(e.what());
@@ -169,7 +169,7 @@ Expected<Array<Triangle>> TabFile::load(const Path& path) {
             // indices start at 1 in .tab
             triangles.emplaceBack(vertices[i - 1], vertices[j - 1], vertices[k - 1]);
         }
-        return std::move(triangles);
+        return Expected<Array<Triangle>>(std::move(triangles));
 
     } catch (const std::exception& e) {
         return makeUnexpected<Array<Triangle>>(e.what());
@@ -202,7 +202,7 @@ Expected<Array<Triangle>> ObjFile::load(const Path& path) {
             }
         }
 
-        return std::move(triangles);
+        return Expected<Array<Triangle>>(std::move(triangles));
 
     } catch (const std::exception& e) {
         return makeUnexpected<Array<Triangle>>(e.what());
