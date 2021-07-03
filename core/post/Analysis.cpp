@@ -853,7 +853,7 @@ static Array<Float> getComponentValues(const Storage& storage,
 
 /// \brief Returns the values of particles or components of particles
 static Array<Float> getValues(const Storage& storage,
-    const Post::HistogramId id,
+    const Post::ExtHistogramId id,
     const Post::HistogramSource source,
     const Post::HistogramParams& params) {
     Array<Float> values;
@@ -868,7 +868,7 @@ static Array<Float> getValues(const Storage& storage,
 }
 
 Array<Post::HistPoint> Post::getCumulativeHistogram(const Storage& storage,
-    const HistogramId id,
+    const ExtHistogramId id,
     const HistogramSource source,
     const Post::HistogramParams& params) {
 
@@ -906,7 +906,7 @@ Array<Post::HistPoint> Post::getCumulativeHistogram(const Storage& storage,
 }
 
 Array<Post::HistPoint> Post::getDifferentialHistogram(const Storage& storage,
-    const HistogramId id,
+    const ExtHistogramId id,
     const HistogramSource source,
     const HistogramParams& params) {
 

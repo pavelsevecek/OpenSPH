@@ -24,7 +24,7 @@ public:
         return "custom script";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override;
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override;
 
     virtual VirtualSettings getSettings() override;
 

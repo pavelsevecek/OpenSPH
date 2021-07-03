@@ -242,7 +242,7 @@ private:
 class HistogramPlot : public IPlot {
 protected:
     /// ID of a quantity from which the histogram is constructed.
-    Post::HistogramId id;
+    Post::ExtHistogramId id;
 
     /// Points representing the histogram
     Array<Post::HistPoint> points;
@@ -256,15 +256,13 @@ protected:
     std::string name;
 
 public:
-    explicit HistogramPlot(const Post::HistogramId id,
-        const Optional<Interval> interval,
-        const std::string& name)
+    HistogramPlot(const Post::HistogramId id, const Optional<Interval> interval, const std::string& name)
         : id(id)
         , interval(interval)
         , name(name) {}
 
-    explicit HistogramPlot(const QuantityId id, const Optional<Interval> interval)
-        : id(Post::HistogramId(id))
+    HistogramPlot(const QuantityId id, const Optional<Interval> interval)
+        : id(id)
         , interval(interval) {
         name = getMetadata(id).quantityName;
     }

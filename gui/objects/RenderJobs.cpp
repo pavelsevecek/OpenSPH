@@ -39,7 +39,7 @@ static RegisterEnum<ColorizerFlag> sColorizers({
 });
 
 AnimationJob::AnimationJob(const std::string& name)
-    : IParticleJob(name) {
+    : INullJob(name) {
     animationType = EnumWrapper(AnimationType::SINGLE_FRAME);
     gui.set(GuiSettingsId::IMAGES_SAVE, true);
 }
@@ -66,8 +66,6 @@ VirtualSettings AnimationJob::getSettings() {
     VirtualSettings::Category& rendererCat = connector.addCategory("Rendering");
     rendererCat.connect<EnumWrapper>("Renderer", gui, GuiSettingsId::RENDERER);
     rendererCat.connect("Quantities", "quantities", colorizers);
-    rendererCat.connect<int>("Image width", gui, GuiSettingsId::IMAGES_WIDTH);
-    rendererCat.connect<int>("Image height", gui, GuiSettingsId::IMAGES_HEIGHT);
     rendererCat.connect<bool>("Transparent background", "transparent", transparentBackground);
     rendererCat.connect<EnumWrapper>("Color mapping", gui, GuiSettingsId::COLORMAP);
     rendererCat.connect<Float>("Particle radius", gui, GuiSettingsId::PARTICLE_RADIUS)
@@ -102,38 +100,6 @@ VirtualSettings AnimationJob::getSettings() {
     VirtualSettings::Category& textureCat = connector.addCategory("Texture paths");
     textureCat.connect<std::string>("Background", gui, GuiSettingsId::RAYTRACE_HDRI)
         .setEnabler(raytracerEnabler);
-
-    auto orthoEnabler = [this] {
-        return gui.get<CameraEnum>(GuiSettingsId::CAMERA_TYPE) == CameraEnum::ORTHO;
-    };
-    auto persEnabler = [this] {
-        return gui.get<CameraEnum>(GuiSettingsId::CAMERA_TYPE) == CameraEnum::PERSPECTIVE;
-    };
-
-    VirtualSettings::Category& cameraCat = connector.addCategory("Camera");
-    cameraCat.connect<EnumWrapper>("Camera type", gui, GuiSettingsId::CAMERA_TYPE);
-    cameraCat.connect<Vector>("Position", gui, GuiSettingsId::CAMERA_POSITION);
-    cameraCat.connect<Vector>("Velocity", gui, GuiSettingsId::CAMERA_VELOCITY);
-    cameraCat.connect<Vector>("Target", gui, GuiSettingsId::CAMERA_TARGET);
-    cameraCat.connect<Vector>("Up-direction", gui, GuiSettingsId::CAMERA_UP);
-    cameraCat.connect<Float>("Clip near", gui, GuiSettingsId::CAMERA_CLIP_NEAR);
-    cameraCat.connect<Float>("Clip far", gui, GuiSettingsId::CAMERA_CLIP_FAR);
-    cameraCat.connect<Float>("Field of view [deg]", gui, GuiSettingsId::CAMERA_PERSPECTIVE_FOV)
-        .setUnits(DEG_TO_RAD)
-        .setEnabler(persEnabler);
-    cameraCat.connect<Float>("Ortho FoV [km]", gui, GuiSettingsId::CAMERA_ORTHO_FOV)
-        .setUnits(1.e3_f)
-        .setEnabler(orthoEnabler);
-    cameraCat.connect<int>("Track particle", gui, GuiSettingsId::CAMERA_TRACK_PARTICLE);
-    cameraCat.connect<bool>("Track median", gui, GuiSettingsId::CAMERA_TRACK_MEDIAN).setEnabler([this] {
-        return gui.get<int>(GuiSettingsId::CAMERA_TRACK_PARTICLE) == -1;
-    });
-    cameraCat.connect<Vector>("Tracking offset", gui, GuiSettingsId::CAMERA_TRACKING_OFFSET)
-        .setEnabler([this] { return gui.get<bool>(GuiSettingsId::CAMERA_TRACK_MEDIAN); });
-    cameraCat.connect<Float>("Cutoff distance [km]", gui, GuiSettingsId::CAMERA_ORTHO_CUTOFF)
-        .setUnits(1.e3_f)
-        .setEnabler(orthoEnabler);
-
 
     auto orbitEnabler = [this] { return AnimationType(animationType) == AnimationType::ORBIT; };
 
@@ -191,9 +157,10 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
     AutoPtr<IRenderer> renderer = Factory::getRenderer(scheduler, gui);
 
+    SharedPtr<ICamera> camera = getInput<ICamera>("camera");
     RenderParams params;
-    params.size = { gui.get<int>(GuiSettingsId::IMAGES_WIDTH), gui.get<int>(GuiSettingsId::IMAGES_HEIGHT) };
-    params.camera = Factory::getCamera(gui, params.size);
+    params.size = camera->getSize();
+    params.camera = camera->clone();
     params.tracker = Factory::getTracker(gui);
     params.initialize(gui);
 
@@ -204,13 +171,13 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
         colorizerArray.push(Factory::getColorizer(project, ColorizerId::VELOCITY));
     }
     if (colorizers.has(ColorizerFlag::ENERGY)) {
-        colorizerArray.push(Factory::getColorizer(project, ColorizerId(QuantityId::ENERGY)));
+        colorizerArray.push(Factory::getColorizer(project, QuantityId::ENERGY));
     }
     if (colorizers.has(ColorizerFlag::BOUND_COMPONENT_ID)) {
         colorizerArray.push(Factory::getColorizer(project, ColorizerId::BOUND_COMPONENT_ID));
     }
     if (colorizers.has(ColorizerFlag::MASS)) {
-        colorizerArray.push(Factory::getColorizer(project, ColorizerId(QuantityId::MASS)));
+        colorizerArray.push(Factory::getColorizer(project, QuantityId::MASS));
     }
     if (colorizers.has(ColorizerFlag::BEAUTY)) {
         colorizerArray.push(Factory::getColorizer(project, ColorizerId::BEAUTY));
@@ -223,7 +190,7 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
         colorizerArray.push(makeShared<GravityColorizer>(scheduler, palette));
     }
     if (colorizers.has(ColorizerFlag::DAMAGE)) {
-        colorizerArray.push(Factory::getColorizer(project, ColorizerId(QuantityId::DAMAGE)));
+        colorizerArray.push(Factory::getColorizer(project, QuantityId::DAMAGE));
     }
 
     if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE) {
@@ -361,6 +328,7 @@ VirtualSettings VdbJob::getSettings() {
 
 void VdbJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     openvdb::initialize();
+    auto deinit = finally([] { openvdb::uninitialize(); });
 
     if (sequence.enabled) {
         FlatMap<Size, Path> fileMap = getFileSequence(sequence.firstFile);
@@ -397,7 +365,6 @@ void VdbJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
         Storage& storage = getInput<ParticleData>("particles")->storage;
         this->generate(storage, global, path);
     }
-    openvdb::uninitialize();
 }
 
 void VdbJob::generate(Storage& storage, const RunSettings& global, const Path& outputPath) {

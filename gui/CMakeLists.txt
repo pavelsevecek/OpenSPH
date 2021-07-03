@@ -7,6 +7,7 @@ set(GUI_SOURCES
     Utils.cpp 
     objects/Bitmap.cpp 
     objects/Camera.cpp 
+    objects/CameraJobs.cpp
     objects/Colorizer.cpp 
     objects/Filmic.cpp 
     objects/Movie.cpp 
@@ -45,6 +46,7 @@ set(GUI_HEADERS
     Utils.h 
     objects/Bitmap.h 
     objects/Camera.h 
+    objects/CameraJobs.h
     objects/Color.h 
     objects/Colorizer.h 
     objects/DelayedCallback.h 

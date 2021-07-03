@@ -26,6 +26,7 @@ SOURCES += \
     Utils.cpp \
     objects/Bitmap.cpp \
     objects/Camera.cpp \
+    objects/CameraJobs.cpp \
     objects/Colorizer.cpp \
     objects/Filmic.cpp \
     objects/Movie.cpp \
@@ -65,6 +66,7 @@ HEADERS += \
     Utils.h \
     objects/Bitmap.h \
     objects/Camera.h \
+    objects/CameraJobs.h \
     objects/Color.h \
     objects/Colorizer.h \
     objects/DelayedCallback.h \

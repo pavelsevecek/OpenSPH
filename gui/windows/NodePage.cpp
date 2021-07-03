@@ -1,5 +1,6 @@
 #include "gui/windows/NodePage.h"
 #include "gui/Utils.h"
+#include "gui/objects/CameraJobs.h"
 #include "gui/objects/DelayedCallback.h"
 #include "gui/objects/RenderJobs.h"
 #include "gui/windows/BatchDialog.h"
@@ -40,6 +41,7 @@ constexpr int SLOT_RADIUS = 6;
 
 /// \todo figure out why this is needed
 static AnimationJob animationDummy("dummy");
+static PerspectiveCameraJob cameraDummy("dummy");
 
 #ifdef SPH_USE_CHAISCRIPT
 static ChaiScriptJob scriptDummy("dummy");
@@ -454,8 +456,8 @@ public:
         return "batch run";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
-        UnorderedMap<std::string, JobType> map;
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+        UnorderedMap<std::string, ExtJobType> map;
         for (Size i = 0; i < runCnt; ++i) {
             map.insert("worker " + std::to_string(i), JobType::PARTICLES);
         }
@@ -649,6 +651,9 @@ NodeEditor::NodeEditor(NodeWindow* parent, SharedPtr<INodeManagerCallbacks> call
     this->Connect(wxEVT_LEFT_UP, wxMouseEventHandler(NodeEditor::onLeftUp));
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(NodeEditor::onRightUp));
     this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(NodeEditor::onDoubleClick));
+
+    this->Bind(wxEVT_SET_FOCUS,
+        [this](wxFocusEvent&) { state.mousePosition = Pixel(ScreenToClient(wxGetMousePosition())); });
 }
 
 static void drawCenteredText(wxGraphicsContext* gc,
@@ -680,9 +685,8 @@ static wxColour getLineColor(const Rgba& background) {
     }
 }
 
-
-static FlatMap<JobType, wxPen> NODE_PENS_DARK = [] {
-    FlatMap<JobType, wxPen> pens;
+static FlatMap<ExtJobType, wxPen> NODE_PENS_DARK = [] {
+    FlatMap<ExtJobType, wxPen> pens;
     wxPen& storagePen = pens.insert(JobType::PARTICLES, *wxBLACK_PEN);
     storagePen.SetColour(wxColour(230, 230, 230));
 
@@ -693,11 +697,15 @@ static FlatMap<JobType, wxPen> NODE_PENS_DARK = [] {
     wxPen& geometryPen = pens.insert(JobType::GEOMETRY, *wxBLACK_PEN);
     geometryPen.SetColour(wxColour(60, 120, 255));
     geometryPen.SetStyle(wxPENSTYLE_SHORT_DASH);
+
+    wxPen& cameraPen = pens.insert(GuiJobType::CAMERA, *wxBLACK_PEN);
+    cameraPen.SetColour(wxColour(150, 225, 100));
+    cameraPen.SetStyle(wxPENSTYLE_SHORT_DASH);
     return pens;
 }();
 
-static FlatMap<JobType, wxPen> NODE_PENS_LIGHT = [] {
-    FlatMap<JobType, wxPen> pens;
+static FlatMap<ExtJobType, wxPen> NODE_PENS_LIGHT = [] {
+    FlatMap<ExtJobType, wxPen> pens;
     wxPen& storagePen = pens.insert(JobType::PARTICLES, *wxBLACK_PEN);
     storagePen.SetColour(wxColour(30, 30, 30));
 
@@ -706,12 +714,16 @@ static FlatMap<JobType, wxPen> NODE_PENS_LIGHT = [] {
     materialPen.SetStyle(wxPENSTYLE_SHORT_DASH);
 
     wxPen& geometryPen = pens.insert(JobType::GEOMETRY, *wxBLACK_PEN);
-    geometryPen.SetColour(wxColour(0, 20, 150));
+    geometryPen.SetColour(wxColour(0, 20, 80));
     geometryPen.SetStyle(wxPENSTYLE_SHORT_DASH);
+
+    wxPen& cameraPen = pens.insert(GuiJobType::CAMERA, *wxBLACK_PEN);
+    cameraPen.SetColour(wxColour(80, 10, 10));
+    cameraPen.SetStyle(wxPENSTYLE_SHORT_DASH);
     return pens;
 }();
 
-static wxPen& getNodePen(const JobType type, const bool isLightTheme) {
+static wxPen& getNodePen(const ExtJobType type, const bool isLightTheme) {
     if (isLightTheme) {
         return NODE_PENS_LIGHT[type];
     } else {
@@ -750,12 +762,14 @@ static bool canConnectSlots(const NodeSlot& from, const NodeSlot& to) {
 
     if (to.index == NodeSlot::RESULT_SLOT) {
         SPH_ASSERT(from.index != NodeSlot::RESULT_SLOT);
-        SlotData fromSlot = from.vis->node->getSlot(from.index);
-        return fromSlot.used && to.vis->node->provides() == fromSlot.type;
+        const SlotData fromSlot = from.vis->node->getSlot(from.index);
+        const Optional<ExtJobType> provided = to.vis->node->provides();
+        return fromSlot.used && provided && provided.value() == fromSlot.type;
     } else {
         SPH_ASSERT(to.index != NodeSlot::RESULT_SLOT);
-        SlotData toSlot = to.vis->node->getSlot(to.index);
-        return toSlot.used && from.vis->node->provides() == toSlot.type;
+        const SlotData toSlot = to.vis->node->getSlot(to.index);
+        const Optional<ExtJobType> provided = from.vis->node->provides();
+        return toSlot.used && provided && provided.value() == toSlot.type;
     }
 }
 
@@ -780,21 +794,19 @@ wxColour NodeEditor::getSlotColor(const NodeSlot& slot, const Rgba& background) 
 void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const VisNode& vis) {
     const Pixel position = vis.position;
     const Pixel size = vis.size();
-
+    const Optional<ExtJobType> provided = vis.node->provides();
     // setup pen and brush
     const bool isLightTheme = background.intensity() > 0.5f;
+    wxPen pen = getNodePen(provided.valueOr(JobType::PARTICLES), isLightTheme);
     wxBrush brush = *wxBLACK_BRUSH;
     Rgba brushColor;
-    if (vis.node->provides() == JobType::PARTICLES) {
+    if (!provided || provided.value() == JobType::PARTICLES) {
         brushColor = decreaseContrast(background, 0.1f, isLightTheme);
     } else {
-        wxPen pen = getNodePen(vis.node->provides(), isLightTheme);
         brushColor = background.blend(Rgba(pen.GetColour()), 0.2f);
     }
     brush.SetColour(wxColour(brushColor));
     gc->SetBrush(brush);
-
-    wxPen pen = getNodePen(vis.node->provides(), isLightTheme);
     gc->SetPen(pen);
 
     const wxFont font = wxSystemSettings::GetFont(wxSYS_SYSTEM_FONT);
@@ -823,7 +835,7 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
 
     // separating line for particle nodes
     pen = *wxBLACK_PEN;
-    if (vis.node->provides() == JobType::PARTICLES) {
+    if (!provided || provided.value() == JobType::PARTICLES) {
         pen.SetColour(isLightTheme ? wxColour(160, 160, 160) : wxColour(20, 20, 20));
         gc->SetPen(pen);
         const int lineY = 44;
@@ -838,6 +850,7 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
             position.y + lineY + 1);
     }
 
+    // input slots
     for (Size i = 0; i < vis.node->getSlotCnt(); ++i) {
         SlotData slot = vis.node->getSlot(i);
         const Pixel p1 = NodeSlot{ &vis, i }.position();
@@ -859,17 +872,19 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
         gc->DrawText(slot.name, p1.x + 14, p1.y - 10);
     }
 
+    // result slot
+    if (provided) {
+        const Pixel resultSlot(position.x + size.x, position.y + FIRST_SLOT_Y);
+        brush.SetColour(this->getSlotColor(NodeSlot{ &vis, NodeSlot::RESULT_SLOT }, background));
+        gc->SetBrush(brush);
 
-    const Pixel resultSlot(position.x + size.x, position.y + FIRST_SLOT_Y);
-
-    brush.SetColour(this->getSlotColor(NodeSlot{ &vis, NodeSlot::RESULT_SLOT }, background));
-    gc->SetBrush(brush);
-
-    pen = getNodePen(vis.node->provides(), isLightTheme);
-    pen.SetStyle(wxPENSTYLE_SOLID);
-    pen.SetWidth(1);
-    gc->SetPen(pen);
-    gc->DrawEllipse(resultSlot.x - SLOT_RADIUS, resultSlot.y - SLOT_RADIUS, 2 * SLOT_RADIUS, 2 * SLOT_RADIUS);
+        pen = getNodePen(provided.value(), isLightTheme);
+        pen.SetStyle(wxPENSTYLE_SOLID);
+        pen.SetWidth(1);
+        gc->SetPen(pen);
+        gc->DrawEllipse(
+            resultSlot.x - SLOT_RADIUS, resultSlot.y - SLOT_RADIUS, 2 * SLOT_RADIUS, 2 * SLOT_RADIUS);
+    }
 }
 
 void NodeEditor::save(Config& config) {
@@ -995,8 +1010,8 @@ void NodeEditor::onLeftDown(wxMouseEvent& evt) {
         }
     } else {
         state.selected = nodeMgr->getSelectedNode(position);
-        state.mouseDownPos = mousePosition;
     }
+    state.mouseDownPos = mousePosition;
 }
 
 void NodeEditor::onLeftUp(wxMouseEvent& evt) {
@@ -1040,9 +1055,12 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
 
     wxMenu menu;
     VisNode* vis = nodeMgr->getSelectedNode(position);
-    if (vis != nullptr && vis->node->provides() == JobType::PARTICLES) {
-        menu.Append(0, "Evaluate"); // there is no visible result of other types
-        menu.Append(1, "Evaluate batch");
+    if (vis != nullptr) {
+        const Optional<ExtJobType> provided = vis->node->provides();
+        if (!provided || provided.value() == JobType::PARTICLES) {
+            menu.Append(0, "Evaluate"); // there is no visible result of other types
+            menu.Append(1, "Evaluate batch");
+        }
     }
 
     menu.Append(2, "Evaluate all");

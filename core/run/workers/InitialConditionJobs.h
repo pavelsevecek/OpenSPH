@@ -21,9 +21,10 @@ public:
         return "create monolithic body";
     }
 
-    virtual UnorderedMap<std::string, JobType> requires() const override;
+    virtual UnorderedMap<std::string, ExtJobType>
+    requires() const override;
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "shape", JobType::GEOMETRY }, { "material", JobType::MATERIAL } };
     }
 
@@ -49,8 +50,8 @@ public:
         return "create differentiated body";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
-        UnorderedMap<std::string, JobType> slots = {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+        UnorderedMap<std::string, ExtJobType> slots = {
             { "base shape", JobType::GEOMETRY },
             { "base material", JobType::MATERIAL },
         };
@@ -82,7 +83,7 @@ public:
         return "create single particle";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -100,13 +101,14 @@ public:
         return "create impactor";
     }
 
-    virtual UnorderedMap<std::string, JobType> requires() const override {
-        UnorderedMap<std::string, JobType> map = MonolithicBodyIc::requires();
+    virtual UnorderedMap<std::string, ExtJobType>
+    requires() const override {
+        UnorderedMap<std::string, ExtJobType> map = MonolithicBodyIc::requires();
         map.insert("target", JobType::PARTICLES);
         return map;
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return {
             { "target", JobType::PARTICLES },
             { "shape", JobType::GEOMETRY },
@@ -132,7 +134,7 @@ public:
         return "set equilibrium energy";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
@@ -158,7 +160,7 @@ public:
         return "modify quantity";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
@@ -181,7 +183,7 @@ public:
         return "Perlin noise";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
@@ -223,7 +225,7 @@ public:
         return "N-body ICs";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "shape", JobType::GEOMETRY } };
     }
 
@@ -248,7 +250,7 @@ public:
         return "isothermal sphere ICs";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -268,7 +270,7 @@ public:
         return "galaxy ICs";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return {};
     }
 

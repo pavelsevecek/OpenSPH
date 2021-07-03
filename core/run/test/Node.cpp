@@ -29,7 +29,7 @@ public:
         return "test worker";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES }, { "material", JobType::MATERIAL } };
     }
 
@@ -102,7 +102,7 @@ public:
         return "multiple body worker";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "body A", JobType::PARTICLES }, { "body B", JobType::PARTICLES } };
     }
 

@@ -359,49 +359,47 @@ bool Controller::isRunning() const {
 
 Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage) const {
     // Available colorizers for display and movie are currently hardcoded
-    Array<ColorizerId> colorizerIds;
+    Array<ExtColorizerId> colorizerIds;
 
     /// \todo custom colorizer lists
-
-    auto col = [](QuantityId id) { return ColorizerId(id); };
 
     colorizerIds.pushAll({
         ColorizerId::VELOCITY,
         ColorizerId::ACCELERATION,
         ColorizerId::COROTATING_VELOCITY,
-        col(QuantityId::VELOCITY_DIVERGENCE),
-        col(QuantityId::VELOCITY_ROTATION),
-        col(QuantityId::VELOCITY_GRADIENT),
-        col(QuantityId::VELOCITY_LAPLACIAN),
-        col(QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE),
-        col(QuantityId::ANGULAR_FREQUENCY),
-        col(QuantityId::PHASE_ANGLE),
+        QuantityId::VELOCITY_DIVERGENCE,
+        QuantityId::VELOCITY_ROTATION,
+        QuantityId::VELOCITY_GRADIENT,
+        QuantityId::VELOCITY_LAPLACIAN,
+        QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE,
+        QuantityId::ANGULAR_FREQUENCY,
+        QuantityId::PHASE_ANGLE,
         //
-        col(QuantityId::ENERGY),
+        QuantityId::ENERGY,
         ColorizerId::TOTAL_ENERGY,
         ColorizerId::TEMPERATURE,
         //
-        col(QuantityId::DENSITY),
+        QuantityId::DENSITY,
         ColorizerId::DENSITY_PERTURBATION,
         ColorizerId::SUMMED_DENSITY,
-        col(QuantityId::BULK_DENSITY),
-        col(QuantityId::MASS),
-        col(QuantityId::MOMENT_OF_INERTIA),
+        QuantityId::BULK_DENSITY,
+        QuantityId::MASS,
+        QuantityId::MOMENT_OF_INERTIA,
         //
-        col(QuantityId::PRESSURE),
-        col(QuantityId::SOUND_SPEED),
-        col(QuantityId::DEVIATORIC_STRESS),
+        QuantityId::PRESSURE,
+        QuantityId::SOUND_SPEED,
+        QuantityId::DEVIATORIC_STRESS,
         ColorizerId::TOTAL_STRESS,
-        col(QuantityId::DAMAGE),
+        QuantityId::DAMAGE,
         ColorizerId::DAMAGE_ACTIVATION,
         ColorizerId::YIELD_REDUCTION,
-        col(QuantityId::FRICTION),
-        col(QuantityId::VIBRATIONAL_VELOCITY),
-        col(QuantityId::STRAIN_RATE_CORRECTION_TENSOR),
+        QuantityId::FRICTION,
+        QuantityId::VIBRATIONAL_VELOCITY,
+        QuantityId::STRAIN_RATE_CORRECTION_TENSOR,
         //
-        col(QuantityId::AV_ALPHA),
-        col(QuantityId::AV_BALSARA),
-        col(QuantityId::AV_STRESS),
+        QuantityId::AV_ALPHA,
+        QuantityId::AV_BALSARA,
+        QuantityId::AV_STRESS,
         //
         ColorizerId::RADIUS,
         ColorizerId::PARTICLE_ID,
@@ -409,7 +407,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         ColorizerId::AGGREGATE_ID,
         ColorizerId::FLAG,
         ColorizerId::MATERIAL_ID,
-        col(QuantityId::NEIGHBOUR_CNT),
+        QuantityId::NEIGHBOUR_CNT,
         ColorizerId::UVW,
         ColorizerId::BOUNDARY,
         //
@@ -417,7 +415,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
     });
 
     Array<SharedPtr<IColorizer>> colorizers;
-    for (ColorizerId id : colorizerIds) {
+    for (ExtColorizerId id : colorizerIds) {
         SharedPtr<IColorizer> colorizer = Factory::getColorizer(project, id);
         if (colorizer->hasData(storage)) {
             colorizers.push(colorizer);

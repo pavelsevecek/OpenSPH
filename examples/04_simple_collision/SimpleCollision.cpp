@@ -52,7 +52,7 @@ int main() {
         Collision simulation;
         Storage storage;
         simulation.run(storage);
-    } const (const Exception& e) {
+    } catch (const Exception& e) {
         std::cout << "Error during simulation: " << e.what() << std::endl;
         return -1;
     }

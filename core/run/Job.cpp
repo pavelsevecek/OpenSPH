@@ -8,63 +8,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-class IJobData : public Polymorphic {};
-
-template <typename TValue>
-class WorkerData : public IJobData {
-private:
-    static_assert(std::is_same<TValue, ParticleData>::value || std::is_same<TValue, IDomain>::value ||
-                      std::is_same<TValue, IMaterial>::value,
-        "Invalid type");
-
-    SharedPtr<TValue> value;
-
-public:
-    explicit WorkerData(SharedPtr<TValue> value)
-        : value(value) {}
-
-    SharedPtr<TValue> getValue() const {
-        return value;
-    }
-};
-
-template <typename TValue>
-JobContext::JobContext(SharedPtr<TValue> value) {
-    data = makeShared<WorkerData<TValue>>(value);
-}
-
-template JobContext::JobContext(SharedPtr<ParticleData> value);
-template JobContext::JobContext(SharedPtr<IDomain> value);
-template JobContext::JobContext(SharedPtr<IMaterial> value);
-
-template <typename TValue>
-SharedPtr<TValue> JobContext::getValue() const {
-    SharedPtr<TValue> value = this->tryGetValue<TValue>();
-    if (value) {
-        return value;
-    } else {
-        throw InvalidSetup("Expected different type when accessing worker context.");
-    }
-}
-
-template SharedPtr<ParticleData> JobContext::getValue() const;
-template SharedPtr<IDomain> JobContext::getValue() const;
-template SharedPtr<IMaterial> JobContext::getValue() const;
-
-template <typename TValue>
-SharedPtr<TValue> JobContext::tryGetValue() const {
-    RawPtr<WorkerData<TValue>> typedData = dynamicCast<WorkerData<TValue>>(data.get());
-    if (typedData != nullptr) {
-        return typedData->getValue();
-    } else {
-        return nullptr;
-    }
-}
-
-template SharedPtr<ParticleData> JobContext::tryGetValue() const;
-template SharedPtr<IDomain> JobContext::tryGetValue() const;
-template SharedPtr<IMaterial> JobContext::tryGetValue() const;
-
 JobContext JobContext::clone() const {
     if (SharedPtr<ParticleData> particleData = this->tryGetValue<ParticleData>()) {
         SharedPtr<ParticleData> clonedData = makeShared<ParticleData>();
@@ -81,22 +24,6 @@ JobContext JobContext::clone() const {
 void JobContext::release() {
     data.reset();
 }
-
-template <typename T>
-SharedPtr<T> IJob::getInput(const std::string& name) const {
-    if (!inputs.contains(name)) {
-        throw InvalidSetup(
-            "Input '" + name + "' for worker '" + instName +
-            "' was not found, either it was not connected or the node has not been successfully evaluated.");
-    }
-
-    JobContext context = inputs[name];
-    return context.getValue<T>();
-}
-
-template SharedPtr<ParticleData> IJob::getInput<ParticleData>(const std::string& name) const;
-template SharedPtr<IDomain> IJob::getInput<IDomain>(const std::string& name) const;
-template SharedPtr<IMaterial> IJob::getInput<IMaterial>(const std::string& name) const;
 
 static Array<AutoPtr<IJobDesc>> sRegisteredJobs;
 

@@ -26,7 +26,7 @@ public:
         return "load file";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -57,7 +57,7 @@ public:
         return "load sequence";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -67,7 +67,7 @@ public:
 };
 
 
-class SaveFileJob : public IParticleJob {
+class SaveFileJob : public INullJob {
 private:
     RunSettings settings;
 
@@ -87,7 +87,7 @@ public:
         return "save file";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
@@ -96,7 +96,7 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class SaveMeshJob : public IParticleJob {
+class SaveMeshJob : public INullJob {
 private:
     Path path = Path("surface.ply");
     Float resolution = 1.e4_f;
@@ -108,13 +108,13 @@ private:
 
 public:
     explicit SaveMeshJob(const std::string& name)
-        : IParticleJob(name) {}
+        : INullJob(name) {}
 
     virtual std::string className() const override {
         return "save mesh";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 

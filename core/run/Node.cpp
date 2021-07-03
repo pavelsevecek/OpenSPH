@@ -19,14 +19,18 @@ VirtualSettings JobNode::getSettings() const {
     return job->getSettings();
 }
 
-JobType JobNode::provides() const {
+Optional<ExtJobType> JobNode::provides() const {
     return job->provides();
 }
 
 void JobNode::connect(SharedPtr<JobNode> node, const std::string& slotName) {
-    UnorderedMap<std::string, JobType> slots = node->job->getSlots();
+    UnorderedMap<std::string, ExtJobType> slots = node->job->getSlots();
     if (slots.contains(slotName)) {
-        if (job->provides() != slots[slotName]) {
+        const Optional<ExtJobType> provided = job->provides();
+        if (!provided) {
+            throw InvalidSetup(
+                "Cannot connect node '" + job->instanceName() + "', it is not return any data.");
+        } else if (provided.value() != slots[slotName]) {
             throw InvalidSetup("Cannot connect node '" + job->instanceName() + "' to slot '" + slotName +
                                "' of node '" + node->instanceName() +
                                "', the slot expects different type of node.");
@@ -89,8 +93,8 @@ Size JobNode::getSlotCnt() const {
 }
 
 SlotData JobNode::getSlot(const Size index) const {
-    const UnorderedMap<std::string, JobType> slots = job->getSlots();
-    const UnorderedMap<std::string, JobType> required = job->requires();
+    const UnorderedMap<std::string, ExtJobType> slots = job->getSlots();
+    const UnorderedMap<std::string, ExtJobType> required = job->requires();
     if (index >= slots.size()) {
         throw InvalidSetup("Cannot query slot #" + std::to_string(index) + ", node '" + job->instanceName() +
                            "' has only " + std::to_string(slots.size()) + " slots");

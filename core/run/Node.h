@@ -59,7 +59,7 @@ struct SlotData {
     std::string name;
 
     /// \brief Specifies the type of the slot, or the type of the node connecting to it.
-    JobType type;
+    ExtJobType type;
 
     /// \brief Whether the node is used by the worker.
     ///
@@ -88,7 +88,7 @@ class JobNode : public ShareFromThis<JobNode>, public INode {
 
 public:
     /// \brief Creates a new node, given a worker object.
-    JobNode(AutoPtr<IJob>&& job);
+    explicit JobNode(AutoPtr<IJob>&& job);
 
     /// \brief Returns the instance name of the worker.
     std::string instanceName() const;
@@ -100,7 +100,7 @@ public:
     VirtualSettings getSettings() const;
 
     /// \brief Returns the type of the worker.
-    JobType provides() const;
+    Optional<ExtJobType> provides() const;
 
     /// \brief Connects this node to given dependent node.
     ///

@@ -18,12 +18,13 @@ public:
         return "SPH run";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES }, { "boundary", JobType::GEOMETRY } };
     }
 
-    virtual UnorderedMap<std::string, JobType> requires() const override {
-        UnorderedMap<std::string, JobType> map{ { "particles", JobType::PARTICLES } };
+    virtual UnorderedMap<std::string, ExtJobType>
+    requires() const override {
+        UnorderedMap<std::string, ExtJobType> map{ { "particles", JobType::PARTICLES } };
         if (settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY) != BoundaryEnum::NONE) {
             map.insert("boundary", JobType::GEOMETRY);
         }
@@ -63,7 +64,7 @@ public:
         return "N-body run";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 

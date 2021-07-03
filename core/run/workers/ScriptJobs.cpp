@@ -24,8 +24,8 @@ ChaiScriptJob::ChaiScriptJob(const std::string& name)
     }
 }
 
-UnorderedMap<std::string, JobType> ChaiScriptJob::getSlots() const {
-    UnorderedMap<std::string, JobType> slots;
+UnorderedMap<std::string, ExtJobType> ChaiScriptJob::getSlots() const {
+    UnorderedMap<std::string, ExtJobType> slots;
     for (int i = 0; i < min<int>(inputCnt, slotNames.maxSize()); ++i) {
         slots.insert(slotNames[i], JobType::PARTICLES);
     }

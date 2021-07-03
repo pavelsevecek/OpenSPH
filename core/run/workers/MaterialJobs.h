@@ -23,7 +23,7 @@ public:
         return "material";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -41,7 +41,7 @@ public:
         return "optimize timestepping";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "material", JobType::MATERIAL } };
     }
 

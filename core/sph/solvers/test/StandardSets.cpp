@@ -193,10 +193,10 @@ TEMPLATE_TEST_CASE("StandardSets constant smoothing length",
 
     auto test = [&](const Size i) -> Outcome {
         if (r[i] == initialPositions[i]) {
-            return "Particle didn't move";
+            return makeFailed("Particle didn't move");
         }
         if (r[i][H] != initialPositions[i][H]) {
-            return "Smoothing length CHANGED!";
+            return makeFailed("Smoothing length CHANGED!");
         }
         return SUCCESS;
     };

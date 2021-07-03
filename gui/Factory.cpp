@@ -120,7 +120,7 @@ AutoPtr<IColorMap> Factory::getColorMap(const GuiSettings& settings) {
     }
 }
 
-static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const ColorizerId id) {
+static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const ExtColorizerId id) {
     using Factory::getPalette;
 
     switch (id) {
@@ -191,7 +191,7 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const Color
     }
 }
 
-AutoPtr<IColorizer> Factory::getColorizer(const Project& project, const ColorizerId id) {
+AutoPtr<IColorizer> Factory::getColorizer(const Project& project, const ExtColorizerId id) {
     AutoPtr<IColorizer> colorizer = Sph::getColorizer(project.getGuiSettings(), id);
     Optional<Palette> palette = colorizer->getPalette();
     if (palette && project.getPalette(colorizer->name(), palette.value())) {
@@ -200,34 +200,12 @@ AutoPtr<IColorizer> Factory::getColorizer(const Project& project, const Colorize
     return colorizer;
 }
 
-class PaletteKey {
-private:
-    int key;
-
-public:
-    PaletteKey(const QuantityId id)
-        : key(int(id)) {}
-
-    PaletteKey(const ColorizerId id)
-        : key(int(id)) {}
-
-    bool operator<(const PaletteKey& other) const {
-        return key < other.key;
-    }
-    bool operator==(const PaletteKey& other) const {
-        return key == other.key;
-    }
-    bool operator!=(const PaletteKey& other) const {
-        return key != other.key;
-    }
-};
-
 struct PaletteDesc {
     Interval range;
     PaletteScale scale;
 };
 
-static FlatMap<PaletteKey, PaletteDesc> paletteDescs = {
+static FlatMap<ExtColorizerId, PaletteDesc> paletteDescs = {
     { QuantityId::DENSITY, { Interval(2650._f, 2750._f), PaletteScale::LINEAR } },
     { QuantityId::MASS, { Interval(0._f, 1.e10_f), PaletteScale::LINEAR } },
     { QuantityId::PRESSURE, { Interval(-1.e5_f, 1.e10_f), PaletteScale::HYBRID } },
@@ -276,13 +254,13 @@ static Palette getDefaultPalette(const Interval range) {
         PaletteScale::LINEAR);
 }
 
-Palette Factory::getPalette(const ColorizerId id) {
+Palette Factory::getPalette(const ExtColorizerId id) {
     const PaletteDesc desc = paletteDescs[id];
     const Interval range = desc.range;
     const PaletteScale scale = desc.scale;
     const float x0 = float(range.lower());
     const float dx = float(range.size());
-    if (int(id) >= 0) {
+    if (id.extended()) {
         QuantityId quantity = QuantityId(id);
         switch (quantity) {
         case QuantityId::PRESSURE:

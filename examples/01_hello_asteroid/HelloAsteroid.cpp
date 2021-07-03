@@ -52,7 +52,7 @@ int main() {
         Storage storage;
         simulation.run(storage);
 
-    } const (const Exception& e) {
+    } catch (const Exception& e) {
         // An exception may be thrown either from user-defined setUp or tearDown function, but also
         // while running the simulation, so we should always catch it.
         std::cout << "Error in simulation: " << e.what() << std::endl;

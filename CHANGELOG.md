@@ -1,3 +1,7 @@
+## 2021-07-03
+- detached cameras from Animation node
+- "save file", "save mesh" and animation nodes do not produce data anymore
+
 ## 2021-07-01
 - added basic cmake buildsystem
 - added allocators to Array and List

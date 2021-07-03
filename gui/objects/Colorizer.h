@@ -158,6 +158,10 @@ enum class ColorizerId {
     BEAUTY = -23,              ///< Attempts to show the real-world look
 };
 
+using ExtColorizerId = ExtendedEnum<ColorizerId>;
+
+SPH_EXTEND_ENUM(QuantityId, ColorizerId);
+
 /// \brief Default colorizer simply converting quantity value to color using defined palette.
 ///
 /// Vector and tensor quantities are converted to floats using suitable norm.

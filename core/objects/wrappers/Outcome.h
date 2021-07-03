@@ -112,22 +112,22 @@ public:
     /// If both values contain an error message, they are concatenated.
     friend BasicOutcome operator||(const BasicOutcome& o1, const BasicOutcome& o2) {
         if (!o1 && !o2) {
-            return OutcomeTraits<TError>::concatenate(o1.error(), o2.error());
+            return BasicOutcome(OutcomeTraits<TError>::concatenate(o1.error(), o2.error()));
         }
         return SuccessTag{};
     }
 
     /// \brief Logical 'and' operator, returning SUCCESS if both values are SUCCESS.
     ///
-    /// Returns the error message if one of the values contains an error message. /// If both values contain
-    /// an error message, they are concatenated.
+    /// Returns the error message if one of the values contains an error message.
+    /// If both values contain an error message, they are concatenated.
     friend BasicOutcome operator&&(const BasicOutcome& o1, const BasicOutcome& o2) {
         if (!o1 && !o2) {
-            return OutcomeTraits<TError>::concatenate(o1.error(), o2.error());
+            return BasicOutcome(OutcomeTraits<TError>::concatenate(o1.error(), o2.error()));
         } else if (!o1) {
-            return o1.error();
+            return BasicOutcome(o1.error());
         } else if (!o2) {
-            return o2.error();
+            return BasicOutcome(o2.error());
         } else {
             return SuccessTag{};
         }

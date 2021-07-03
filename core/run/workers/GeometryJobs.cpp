@@ -21,7 +21,7 @@ std::string SphereJob::className() const {
     return "sphere";
 }
 
-UnorderedMap<std::string, JobType> SphereJob::getSlots() const {
+UnorderedMap<std::string, ExtJobType> SphereJob::getSlots() const {
     return {};
 }
 
@@ -99,7 +99,7 @@ std::string CylinderJob::className() const {
     return "cylinder";
 }
 
-UnorderedMap<std::string, JobType> CylinderJob::getSlots() const {
+UnorderedMap<std::string, ExtJobType> CylinderJob::getSlots() const {
     return {};
 }
 
@@ -221,7 +221,7 @@ std::string MeshGeometryJob::className() const {
     return "triangle mesh";
 }
 
-UnorderedMap<std::string, JobType> MeshGeometryJob::getSlots() const {
+UnorderedMap<std::string, ExtJobType> MeshGeometryJob::getSlots() const {
     return {};
 }
 

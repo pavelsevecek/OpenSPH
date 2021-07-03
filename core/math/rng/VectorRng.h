@@ -25,8 +25,9 @@ public:
         static_assert(!std::is_reference<TScalarRng>::value, "Cannot be used for references");
     }
 
-    VectorRng(TScalarRng&& rng)
-        : rngImpl(std::forward<TScalarRng>(rng)) {}
+    template <typename... TArgs>
+    explicit VectorRng(TArgs&&... args)
+        : rngImpl(std::forward<TArgs>(args)...) {}
 
     VectorRng(VectorRng&& other)
         : rngImpl(std::move(other.rngImpl)) {
@@ -72,7 +73,8 @@ public:
     /// \param jacobian Used Jacobian if other coordinate system is to be used. Default is cartesian system.
     /// \param maximalPdf Maximal value of given PDF. By default, the value is estimated from the function
     /// itself.
-    VectorPdfRng(const Box& box,
+    VectorPdfRng(
+        const Box& box,
         const Function<Float(const Vector&)>& pdf = [](const Vector&) { return 1._f; },
         const Function<Float(const Vector&)>& jacobian = [](const Vector&) { return 1._f; },
         const Float maximalPdf = 0._f)

@@ -71,6 +71,7 @@ SOURCES += \
     ../core/objects/wrappers/test/AutoPtr.cpp \
     ../core/objects/wrappers/test/ClonePtr.cpp \
     ../core/objects/wrappers/test/Expected.cpp \
+    ../core/objects/wrappers/test/ExtendedEnum.cpp \
     ../core/objects/wrappers/test/Finally.cpp \
     ../core/objects/wrappers/test/Flags.cpp \
     ../core/objects/wrappers/test/Function.cpp \

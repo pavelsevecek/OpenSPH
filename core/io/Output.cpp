@@ -835,7 +835,7 @@ Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) const {
     }
     info.runType = readRunType(runTypeBuffer, info.version);
     info.buildDate = readBuildDate(dateBuffer, info.version);
-    return std::move(info);
+    return Expected<Info>(std::move(info));
 }
 
 // ----------------------------------------------------------------------------------------------------------

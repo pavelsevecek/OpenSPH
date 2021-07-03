@@ -179,7 +179,7 @@ static JobRegistrar sRegisterFileSequence(
 // ----------------------------------------------------------------------------------------------------------
 
 SaveFileJob::SaveFileJob(const std::string& name)
-    : IParticleJob(name) {
+    : INullJob(name) {
     settings.set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
         .set(RunSettingsId::RUN_OUTPUT_PATH, std::string(""))
         .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("final.ssf"))
@@ -208,8 +208,6 @@ void SaveFileJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNU
 
     AutoPtr<IOutput> output = Factory::getOutput(settings);
     output->dump(data->storage, data->stats);
-
-    result = data;
 }
 
 static JobRegistrar sRegisterOutput(
@@ -283,8 +281,6 @@ void SaveMeshJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) 
     if (!outcome) {
         throw InvalidSetup("Saving mesh failed.\n\n" + outcome.error());
     }
-
-    result = data;
 }
 
 static JobRegistrar sRegisterMeshSaver(

@@ -45,7 +45,7 @@ TEST_CASE("Outcome copy/move", "[outcome]") {
     REQUIRE(o4.error() == "error message");
 
     Outcome o5(true);
-    o5 = "error2";
+    o5 = Outcome("error2");
     REQUIRE(!o5);
     REQUIRE(o5.error() == "error2");
 }

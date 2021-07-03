@@ -7,6 +7,7 @@
 
 #include "objects/finders/NeighbourFinder.h"
 #include "objects/wrappers/Expected.h"
+#include "objects/wrappers/ExtendedEnum.h"
 #include "objects/wrappers/Function.h"
 #include "system/Settings.h"
 
@@ -16,6 +17,12 @@ class Storage;
 class Path;
 class ILogger;
 struct PlotPoint;
+enum class QuantityId;
+namespace Post {
+enum class HistogramId;
+}
+
+SPH_EXTEND_ENUM(QuantityId, Post::HistogramId);
 
 namespace Post {
 
@@ -244,6 +251,8 @@ enum class HistogramId {
     ROTATIONAL_AXIS = -6,
 };
 
+using ExtHistogramId = ExtendedEnum<HistogramId>;
+
 /// \brief Source data used to construct the histogram.
 enum class HistogramSource {
     /// Equivalent radii of connected chunks of particles (SPH framework)
@@ -322,7 +331,7 @@ Array<HistPoint> getDifferentialHistogram(ArrayView<const Float> values, const H
 
 /// \brief Computes the differential histogram of particles in the storage.
 Array<HistPoint> getDifferentialHistogram(const Storage& storage,
-    const HistogramId id,
+    const ExtHistogramId id,
     const HistogramSource source,
     const HistogramParams& params);
 
@@ -333,7 +342,7 @@ Array<HistPoint> getDifferentialHistogram(const Storage& storage,
 /// \param source Specifies the input bodies, see \ref HistogramSource.
 /// \param params Parameters of the histogram.
 Array<HistPoint> getCumulativeHistogram(const Storage& storage,
-    const HistogramId id,
+    const ExtHistogramId id,
     const HistogramSource source,
     const HistogramParams& params);
 

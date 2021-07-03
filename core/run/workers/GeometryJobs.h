@@ -13,7 +13,7 @@ public:
 
     virtual std::string className() const override;
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override;
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override;
 
     virtual VirtualSettings getSettings() override;
 
@@ -33,7 +33,7 @@ public:
         return "block";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -54,7 +54,7 @@ public:
         return "ellipsoid";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -73,7 +73,7 @@ public:
 
     virtual std::string className() const override;
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override;
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override;
 
     virtual VirtualSettings getSettings() override;
 
@@ -94,7 +94,7 @@ public:
         return "Maclaurin spheroid";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -112,7 +112,7 @@ public:
         return "half space";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -135,7 +135,7 @@ public:
         return "Gaussian sphere";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -156,7 +156,7 @@ public:
 
     virtual std::string className() const override;
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override;
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override;
 
     virtual VirtualSettings getSettings() override;
 
@@ -177,7 +177,7 @@ public:
         return "particle geometry";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
@@ -195,7 +195,7 @@ public:
         return "spheres geometry";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "spheres", JobType::PARTICLES } };
     }
 
@@ -213,7 +213,7 @@ public:
         return "invert geometry";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "geometry", JobType::GEOMETRY } };
     }
 
@@ -235,7 +235,7 @@ public:
         return "transform geometry";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "geometry", JobType::GEOMETRY } };
     }
 
@@ -270,7 +270,7 @@ public:
         return "boolean";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "operand A", JobType::GEOMETRY }, { "operand B", JobType::GEOMETRY } };
     }
 

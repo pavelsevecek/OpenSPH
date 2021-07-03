@@ -28,8 +28,8 @@ MonolithicBodyIc::MonolithicBodyIc(const std::string& name, const BodySettings& 
     body.set(BodySettingsId::SMOOTHING_LENGTH_ETA, 1.3_f).set(BodySettingsId::DISTRIBUTE_MODE_SPH5, false);
 }
 
-UnorderedMap<std::string, JobType> MonolithicBodyIc::requires() const {
-    UnorderedMap<std::string, JobType> map;
+UnorderedMap<std::string, ExtJobType> MonolithicBodyIc::requires() const {
+    UnorderedMap<std::string, ExtJobType> map;
     if (slotUsage.shape) {
         map.insert("shape", JobType::GEOMETRY);
     }
