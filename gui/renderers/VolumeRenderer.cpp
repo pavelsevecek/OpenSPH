@@ -51,7 +51,8 @@ Rgba VolumeRenderer::shade(const RenderParams& params, const CameraRay& cameraRa
         const Vector center = cached.r[i];
         const Vector toCenter = getNormalized(center - hit);
         const Float cosPhi = abs(dot(toCenter, ray.direction()));
-        const Float secant = 2._f * getLength(center - hit) * cosPhi;
+        // 4th power to give more weight to the sphere center
+        const Float secant = 2._f * getLength(center - hit) * pow<4>(cosPhi);
         result += cached.colors[i] * params.volume.emission * secant;
     }
     return result;

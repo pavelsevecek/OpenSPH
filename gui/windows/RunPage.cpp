@@ -258,7 +258,7 @@ const wxSize spinnerSize(100, -1);
 const int boxPadding = 10;
 
 wxWindow* RunPage::createParticleBox(wxPanel* parent) {
-    wxStaticBox* particleBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 160));
+    wxStaticBox* particleBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 135));
 
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
 
@@ -298,18 +298,6 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
 
     wxBoxSizer* grayscaleSizer = new wxBoxSizer(wxHORIZONTAL);
     grayscaleSizer->AddSpacer(boxPadding);
-    wxCheckBox* grayscaleBox = new wxCheckBox(particleBox, wxID_ANY, "Force grayscale");
-    grayscaleBox->SetToolTip(
-        "Draws the particles in grayscale, useful to see how the image would look if printed using "
-        "black-and-white printer.");
-    grayscaleBox->SetValue(gui.get<bool>(GuiSettingsId::FORCE_GRAYSCALE));
-    grayscaleBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
-        const bool value = evt.IsChecked();
-        gui.set(GuiSettingsId::FORCE_GRAYSCALE, value);
-        controller->tryRedraw();
-    });
-    grayscaleSizer->Add(grayscaleBox);
-    boxSizer->Add(grayscaleSizer);
 
     wxBoxSizer* keySizer = new wxBoxSizer(wxHORIZONTAL);
     keySizer->AddSpacer(boxPadding);
@@ -438,14 +426,14 @@ wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
 }
 
 wxWindow* RunPage::createVolumeBox(wxPanel* parent) {
-    wxStaticBox* volumeBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 150));
+    wxStaticBox* volumeBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 60));
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* emissionSizer = new wxBoxSizer(wxHORIZONTAL);
     emissionSizer->AddSpacer(boxPadding);
     wxStaticText* text = new wxStaticText(volumeBox, wxID_ANY, "Emission ");
     emissionSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
     const Float emission = gui.get<Float>(GuiSettingsId::VOLUME_EMISSION);
-    FloatTextCtrl* emissionCtrl = new FloatTextCtrl(volumeBox, emission * 1.e3_f, Interval(0._f, 1.e6_f));
+    FloatTextCtrl* emissionCtrl = new FloatTextCtrl(volumeBox, emission * 1.e3_f, Interval(0._f, 1.e8_f));
     emissionCtrl->onValueChanged = [this](const Float value) {
         GuiSettings& gui = controller->getParams();
         // value in spinner is in [km^-1]

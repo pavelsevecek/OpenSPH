@@ -3,6 +3,7 @@
 - added volumetric renderer to UI
 - fixed Any class
 - deduplicated raytracing code
+- removed "force grayscale" from UI
 
 ## 2021-07-01
 - added basic cmake buildsystem
