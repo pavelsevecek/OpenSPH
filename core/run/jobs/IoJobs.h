@@ -67,7 +67,7 @@ public:
 };
 
 
-class SaveFileJob : public INullJob {
+class SaveFileJob : public IParticleJob {
 private:
     RunSettings settings;
 
@@ -93,10 +93,10 @@ public:
 
     virtual VirtualSettings getSettings() override;
 
-    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
-class SaveMeshJob : public INullJob {
+class SaveMeshJob : public IParticleJob {
 private:
     Path path = Path("surface.ply");
     Float resolution = 1.e4_f;
@@ -108,7 +108,7 @@ private:
 
 public:
     explicit SaveMeshJob(const std::string& name)
-        : INullJob(name) {}
+        : IParticleJob(name) {}
 
     virtual std::string className() const override {
         return "save mesh";

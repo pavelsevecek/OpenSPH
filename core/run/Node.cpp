@@ -29,7 +29,7 @@ void JobNode::connect(SharedPtr<JobNode> node, const std::string& slotName) {
         const Optional<ExtJobType> provided = job->provides();
         if (!provided) {
             throw InvalidSetup(
-                "Cannot connect node '" + job->instanceName() + "', it is not return any data.");
+                "Cannot connect node '" + job->instanceName() + "', it does not return any data.");
         } else if (provided.value() != slots[slotName]) {
             throw InvalidSetup("Cannot connect node '" + job->instanceName() + "' to slot '" + slotName +
                                "' of node '" + node->instanceName() +
