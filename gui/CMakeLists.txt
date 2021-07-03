@@ -86,7 +86,7 @@ set(GUI_HEADERS
     windows/ProgressPanel.h 
     windows/Widgets.h)
 
-add_library(gui SHARED ${GUI_HEADERS} ${GUI_SOURCES})
+add_library(gui STATIC ${GUI_HEADERS} ${GUI_SOURCES})
 target_include_directories(gui PUBLIC ../core ..)
 
 execute_process(COMMAND wx-config --cxxflags

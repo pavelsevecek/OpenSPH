@@ -315,7 +315,7 @@ set(CORE_HEADERS
     run/SpecialEntries.h)
 
 
-add_library(core SHARED ${CORE_HEADERS} ${CORE_SOURCES})
+add_library(core STATIC ${CORE_HEADERS} ${CORE_SOURCES})
 
 set(CORE_LIBRARIES -pthread ${TBB_LIBRARIES} ${CHAISCRIPT_LIBRARIES})
 
