@@ -771,7 +771,12 @@ static bool canConnectSlots(const NodeSlot& from, const NodeSlot& to) {
 }
 
 wxColour NodeEditor::getSlotColor(const NodeSlot& slot, const Rgba& background) {
-    const Pixel mousePosition = this->transform(state.mousePosition);
+    if (!state.mousePosition) {
+        // paint event called before any mouse event happened, just return the default
+        return wxColour(background);
+    }
+
+    const Pixel mousePosition = this->transform(state.mousePosition.value());
 
     if (state.connectingSlot == slot) {
         // connecting source slot, always valid color
@@ -904,8 +909,8 @@ void NodeEditor::paintCurves(wxGraphicsContext* gc, const Rgba& background, cons
     pen.SetColour(getLineColor(background));
     gc->SetPen(pen);
 
-    if (state.connectingSlot && state.connectingSlot->vis == addressOf(vis)) {
-        const Pixel mousePosition = this->transform(state.mousePosition);
+    if (state.mousePosition && state.connectingSlot && state.connectingSlot->vis == addressOf(vis)) {
+        const Pixel mousePosition = this->transform(state.mousePosition.value());
         const Pixel sourcePoint = state.connectingSlot->position();
         drawCurve(gc, sourcePoint, mousePosition);
     }
@@ -956,12 +961,18 @@ void NodeEditor::onPaint(wxPaintEvent& UNUSED(evt)) {
 void NodeEditor::onMouseMotion(wxMouseEvent& evt) {
     const Pixel mousePosition(evt.GetPosition());
     if (evt.Dragging()) {
+        if (!state.mousePosition) {
+            // unknown position, cannot compute the offset
+            state.mousePosition = mousePosition;
+            return;
+        }
+
         if (state.selected) {
             // moving a node
-            state.selected->position += (mousePosition - state.mousePosition) / state.zoom;
+            state.selected->position += (mousePosition - state.mousePosition.value()) / state.zoom;
         } else if (!state.connectingSlot) {
             // just drag the editor
-            state.offset += mousePosition - state.mousePosition;
+            state.offset += mousePosition - state.mousePosition.value();
         }
         this->Refresh();
         callbacks->markUnsaved(false);
@@ -1550,7 +1561,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         presetsIdMap[itemId] = id;
     }
 
-    workerView->Bind(wxEVT_MOTION, [workerView](wxMouseEvent& evt) {
+    workerView->Bind(wxEVT_MOTION, [this, workerView](wxMouseEvent& evt) {
         wxPoint pos = evt.GetPosition();
         int flags;
         wxTreeItemId id = workerView->HitTest(pos, flags);
@@ -1559,12 +1570,14 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         if (flags & wxTREE_HITTEST_ONITEMLABEL) {
             WorkerTreeData* data = dynamic_cast<WorkerTreeData*>(workerView->GetItemData(id));
             if (data) {
-                callback.start(600, [workerView, id, data, pos] {
+                callback.start(600, [this, workerView, id, data, pos] {
                     const wxString name = workerView->GetItemText(id);
                     wxRichToolTip tip(name, setLineBreak(data->tooltip(), 50));
                     const wxRect rect(pos, pos);
                     tip.ShowFor(workerView, &rect);
                     tip.SetTimeout(1e6);
+
+                    nodeEditor->invalidateMousePosition();
                 });
             }
         } else {
