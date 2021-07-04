@@ -525,9 +525,14 @@ void NodeManager::startAll() {
     Array<SharedPtr<JobNode>> inputs;
     for (auto& element : nodes) {
         SharedPtr<JobNode> node = element.key;
-        if (node->getDependentCnt() == 0) {
+        Optional<ExtJobType> provided = node->provides();
+        if ((!provided || provided.value() == JobType::PARTICLES) && node->getDependentCnt() == 0) {
             inputs.push(Sph::cloneHierarchy(*node, std::string("")));
         }
+    }
+    if (inputs.empty()) {
+        wxMessageBox("No simulations to start.");
+        return;
     }
 
     SharedPtr<JobNode> root = makeNode<BatchJob>("batch", inputs.size());
@@ -542,7 +547,8 @@ Array<SharedPtr<JobNode>> NodeManager::getRootNodes() const {
     Array<SharedPtr<JobNode>> inputs;
     for (auto& element : nodes) {
         SharedPtr<JobNode> node = element.key;
-        if (node->getDependentCnt() == 0) {
+        Optional<ExtJobType> provided = node->provides();
+        if ((!provided || provided.value() == JobType::PARTICLES) && node->getDependentCnt() == 0) {
             inputs.push(node);
         }
     }

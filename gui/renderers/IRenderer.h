@@ -17,7 +17,7 @@
 NAMESPACE_SPH_BEGIN
 
 class ICamera;
-class CameraRay;
+struct CameraRay;
 class ITracker;
 class IColorizer;
 class IColorMap;

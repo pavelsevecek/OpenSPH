@@ -342,7 +342,7 @@ private:
 
     void deleteNode(ListNode<T>* node) {
         node->~ListNode<T>();
-        MemoryBlock block{ node, sizeof(ListNode<T>) };
+        MemoryBlock block(node, sizeof(ListNode<T>));
         TAllocator::deallocate(block);
     }
 };

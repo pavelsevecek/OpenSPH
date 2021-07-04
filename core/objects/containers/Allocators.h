@@ -15,6 +15,11 @@ struct MemoryBlock {
     void* ptr;
     std::size_t size;
 
+    MemoryBlock() = default;
+    MemoryBlock(void* ptr, const std::size_t size)
+        : ptr(ptr)
+        , size(size) {}
+
     INLINE static MemoryBlock EMPTY() {
         return { nullptr, 0 };
     }

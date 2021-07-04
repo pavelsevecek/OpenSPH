@@ -102,7 +102,7 @@ public:
             }
         }
         if (data) {
-            MemoryBlock block{ data, maxSize * sizeof(StorageType) };
+            MemoryBlock block(data, maxSize * sizeof(StorageType));
             TAllocator::deallocate(block);
             data = nullptr;
         }
