@@ -4,32 +4,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-class CachedParticlesJob : public IParticleJob {
-private:
-    ParticleData cached;
-    bool doSwitch = false;
-    bool useCached = false;
-
-public:
-    CachedParticlesJob(const std::string& name, const Storage& storage = {});
-
-    virtual std::string className() const override {
-        return "cache";
-    }
-
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
-        if (useCached) {
-            return {};
-        } else {
-            return { { "particles", JobType::PARTICLES } };
-        }
-    }
-
-    virtual VirtualSettings getSettings() override;
-
-    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
-};
-
 class JoinParticlesJob : public IParticleJob {
 private:
     Vector offset = Vector(0._f);

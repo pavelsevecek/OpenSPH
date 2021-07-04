@@ -60,4 +60,15 @@ public:
     virtual VirtualSettings getSettings() override;
 };
 
+class FisheyeCameraJob : public ICameraJob {
+public:
+    explicit FisheyeCameraJob(const std::string& name);
+
+    virtual std::string className() const override {
+        return "fisheye camera";
+    }
+
+    virtual VirtualSettings getSettings() override;
+};
+
 NAMESPACE_SPH_END

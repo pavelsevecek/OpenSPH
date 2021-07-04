@@ -14,55 +14,6 @@
 NAMESPACE_SPH_BEGIN
 
 //-----------------------------------------------------------------------------------------------------------
-// CachedParticlesWorker
-//-----------------------------------------------------------------------------------------------------------
-
-CachedParticlesJob::CachedParticlesJob(const std::string& name, const Storage& storage)
-    : IParticleJob(name) {
-    if (!storage.empty()) {
-        cached.storage = storage.clone(VisitorEnum::ALL_BUFFERS);
-        useCached = true;
-    }
-}
-
-VirtualSettings CachedParticlesJob::getSettings() {
-    VirtualSettings connector;
-    addGenericCategory(connector, instName);
-    VirtualSettings::Category& cacheCat = connector.addCategory("Caching");
-    cacheCat.connect("Use cached data", "use_cache", useCached);
-    cacheCat.connect("Switch to cached on eval", "do_cache", doSwitch);
-
-    return connector;
-}
-
-void CachedParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
-    result = makeShared<ParticleData>();
-    if (useCached) {
-        result->storage = cached.storage.clone(VisitorEnum::ALL_BUFFERS);
-        result->overrides = cached.overrides;
-        result->stats = cached.stats;
-    } else {
-        SharedPtr<ParticleData> input = this->getInput<ParticleData>("particles");
-        cached.storage = input->storage.clone(VisitorEnum::ALL_BUFFERS);
-        cached.overrides = input->overrides;
-        cached.stats = input->stats;
-        result = input;
-
-        /// \todo how to signal the grid?
-        if (doSwitch) {
-            useCached = true;
-        }
-    }
-}
-
-static JobRegistrar sRegisterCache(
-    "cache",
-    "particle operators",
-    [](const std::string& name) { return makeAuto<CachedParticlesJob>(name); },
-    "Stores the input particle state when evaluated. Subsequent evaluations then simply reuse the stored "
-    "data rather than evaluating the input every time.");
-
-//-----------------------------------------------------------------------------------------------------------
 // JoinParticlesJob
 //-----------------------------------------------------------------------------------------------------------
 

@@ -4,6 +4,8 @@
 - fixed Any class
 - deduplicated raytracing code
 - removed "force grayscale" from UI
+- added menu entry for creating camera from current view
+- removed "cache" node
 
 ## 2021-07-01
 - added basic cmake buildsystem

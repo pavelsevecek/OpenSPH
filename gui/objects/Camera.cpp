@@ -138,7 +138,7 @@ Pixel OrthoCamera::getSize() const {
 }
 
 AffineMatrix OrthoCamera::getFrame() const {
-    return AffineMatrix(cached.u, cached.v, cached.w).translate(data.position);
+    return AffineMatrix(cached.u, cached.v, cached.w).removeTranslation().translate(data.position);
 }
 
 Vector OrthoCamera::getTarget() const {
@@ -273,7 +273,7 @@ Pixel PerspectiveCamera::getSize() const {
 }
 
 AffineMatrix PerspectiveCamera::getFrame() const {
-    return AffineMatrix(cached.left, cached.up, cached.dir).translate(data.position);
+    return AffineMatrix(cached.left, cached.up, cached.dir).removeTranslation().translate(data.position);
 }
 
 Vector PerspectiveCamera::getTarget() const {
@@ -366,8 +366,7 @@ void PanoCameraBase::autoSetup(const Storage& storage) {
 }
 
 Optional<ProjectedPoint> PanoCameraBase::project(const Vector& UNUSED(r)) const {
-    /// \todo
-    return NOTHING;
+    NOT_IMPLEMENTED;
 }
 
 Pixel PanoCameraBase::getSize() const {

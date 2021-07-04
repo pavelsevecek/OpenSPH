@@ -3,12 +3,15 @@
 
 NAMESPACE_SPH_BEGIN
 
-
 void ICameraJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     const int width = gui.get<int>(GuiSettingsId::IMAGES_WIDTH);
     const int height = gui.get<int>(GuiSettingsId::IMAGES_HEIGHT);
     camera = Factory::getCamera(gui, Pixel(width, height));
 }
+
+// ----------------------------------------------------------------------------------------------------------
+// OrthoCameraJob
+// ----------------------------------------------------------------------------------------------------------
 
 OrthoCameraJob::OrthoCameraJob(const std::string& name)
     : ICameraJob(name) {
@@ -55,13 +58,16 @@ VirtualSettings OrthoCameraJob::getSettings() {
     return connector;
 }
 
-
 JobRegistrar sRegisterOrtho(
     "orthographic camera",
     "camera",
     "rendering",
     [](const std::string& name) { return makeAuto<OrthoCameraJob>(name); },
     "Creates an orthographic camera");
+
+// ----------------------------------------------------------------------------------------------------------
+// PerspectiveCameraJob
+// ----------------------------------------------------------------------------------------------------------
 
 PerspectiveCameraJob::PerspectiveCameraJob(const std::string& name)
     : ICameraJob(name) {
@@ -87,5 +93,29 @@ JobRegistrar sRegisterPerspective(
     "rendering",
     [](const std::string& name) { return makeAuto<PerspectiveCameraJob>(name); },
     "Creates a perspective (pinhole) camera.");
+
+// ----------------------------------------------------------------------------------------------------------
+// FisheyeCameraJob
+// ----------------------------------------------------------------------------------------------------------
+
+FisheyeCameraJob::FisheyeCameraJob(const std::string& name)
+    : ICameraJob(name) {
+    gui.set(GuiSettingsId::CAMERA_TYPE, CameraEnum::FISHEYE);
+}
+
+VirtualSettings FisheyeCameraJob::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+    addResolutionCategory(connector, gui);
+    addTrackingCategory(connector, gui);
+    return connector;
+}
+
+JobRegistrar sRegisterFisheye(
+    "fisheye camera",
+    "camera",
+    "rendering",
+    [](const std::string& name) { return makeAuto<FisheyeCameraJob>(name); },
+    "Creates a fisheye camera.");
 
 NAMESPACE_SPH_END

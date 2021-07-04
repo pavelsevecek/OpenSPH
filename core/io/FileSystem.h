@@ -61,7 +61,6 @@ enum class CreateDirectoryFlag {
 Outcome createDirectory(const Path& path,
     const Flags<CreateDirectoryFlag> flags = CreateDirectoryFlag::ALLOW_EXISTING);
 
-
 enum class RemovePathFlag {
     /// Removes also all subdirectories. If not used, removing non-empty directory will return an error.
     /// Option has no effect for files.

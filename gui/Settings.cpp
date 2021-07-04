@@ -81,7 +81,7 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Farthest distance that can be projected by the perspective camera" },
     { GuiSettingsId::CAMERA_PERSPECTIVE_FOV,   "camera.perspective.fov",   PI / 3._f,
         "Field of view of the perspective camera (in radians)." },
-    { GuiSettingsId::CAMERA_ORTHO_CUTOFF,   "camera.ortho.cutoff",      0.1_f,
+    { GuiSettingsId::CAMERA_ORTHO_CUTOFF,   "camera.ortho.cutoff",      0._f,
         "Cut-off distance from center plane. Particles further away are not drawn. Used by particle renderer." },
     { GuiSettingsId::CAMERA_ORTHO_FOV,      "camera.ortho.fov",         1.e5_f,
         "Field of view of the orthographic camera. Specified as distance (not an angle)."},

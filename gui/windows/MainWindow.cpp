@@ -2,6 +2,7 @@
 #include "gui/Controller.h"
 #include "gui/Settings.h"
 #include "gui/Utils.h"
+#include "gui/objects/CameraJobs.h"
 #include "gui/windows/GridPage.h"
 #include "gui/windows/NodePage.h"
 #include "gui/windows/PlotView.h"
@@ -394,7 +395,7 @@ wxMenu* MainWindow::createProjectMenu() {
     projectMenu->Append(0, "&New session\tCtrl+N");
     projectMenu->Append(1, "&Save session\tCtrl+S");
     projectMenu->Append(2, "&Save session as");
-    projectMenu->Append(3, "&Open session\tCtrl+O");
+    projectMenu->Append(3, "&Open session\tCtrl+Shift+O");
 
     wxMenu* recentMenu = new wxMenu();
     projectMenu->AppendSubMenu(recentMenu, "&Recent");
@@ -567,7 +568,7 @@ enum RunMenuId {
     RUN_PAUSE,
     RUN_STOP,
     RUN_SAVE_STATE,
-    RUN_CREATE_NODE,
+    RUN_CREATE_CAMERA,
     RUN_CLOSE_CURRENT,
     RUN_CLOSE_ALL,
 };
@@ -579,8 +580,8 @@ wxMenu* MainWindow::createRunMenu() {
     runMenu->Append(RUN_RESTART, "&Restart");
     runMenu->Append(RUN_PAUSE, "&Pause");
     runMenu->Append(RUN_STOP, "St&op");
-    runMenu->Append(RUN_SAVE_STATE, "&Save state");
-    runMenu->Append(RUN_CREATE_NODE, "Create &node from state");
+    runMenu->Append(RUN_SAVE_STATE, "&Save current state");
+    runMenu->Append(RUN_CREATE_CAMERA, "Make camera node");
     runMenu->Append(RUN_CLOSE_CURRENT, "&Close current\tCtrl+W");
     runMenu->Append(RUN_CLOSE_ALL, "Close all");
 
@@ -641,11 +642,22 @@ wxMenu* MainWindow::createRunMenu() {
             controller->saveState(path.value());
             break;
         }
-        case RUN_CREATE_NODE: {
-            const Storage& storage = controller->getStorage();
-            const std::string text("cached " + notebook->GetPageText(notebook->GetSelection()));
-            AutoPtr<CachedParticlesJob> worker = makeAuto<CachedParticlesJob>(text, storage);
-            nodePage->createNode(std::move(worker));
+        case RUN_CREATE_CAMERA: {
+            AutoPtr<ICamera> camera = controller->getCurrentCamera();
+            auto nameMgr = nodePage->makeUniqueNameManager();
+            AutoPtr<OrthoCameraJob> job = makeAuto<OrthoCameraJob>(nameMgr.getName("hand-held camera"));
+            VirtualSettings settings = job->getSettings();
+            AffineMatrix frame = camera->getFrame();
+            const Vector posKm = frame.translation() * 1.e-3_f;
+
+            settings.set(GuiSettingsId::CAMERA_POSITION, posKm);
+            settings.set(GuiSettingsId::CAMERA_UP, frame.row(1));
+            settings.set(GuiSettingsId::CAMERA_TARGET, posKm + frame.row(2));
+            const Optional<float> wtp = camera->getWorldToPixel();
+            if (wtp) {
+                settings.set(GuiSettingsId::CAMERA_ORTHO_FOV, 1.e-3_f * camera->getSize().y / wtp.value());
+            }
+            nodePage->createNode(std::move(job));
             notebook->SetSelection(notebook->GetPageIndex(nodePage));
             break;
         }
