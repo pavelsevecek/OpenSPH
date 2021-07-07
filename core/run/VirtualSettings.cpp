@@ -12,14 +12,41 @@ EntryControl& EntryControl::setUnits(const Float newMult) {
     return *this;
 }
 
-EntryControl& EntryControl::setEnabler(Function<bool()> newEnabler) {
+EntryControl& EntryControl::setEnabler(const Enabler& newEnabler) {
     enabler = newEnabler;
     return *this;
 }
 
-EntryControl& EntryControl::setAccessor(Function<void(const Value& newValue)> newAccessor) {
+EntryControl& EntryControl::setAccessor(const Accessor& newAccessor) {
     accessor = newAccessor;
     return *this;
+}
+
+EntryControl& EntryControl::setValidator(const Validator& newValidator) {
+    validator = newValidator;
+    return *this;
+}
+
+EntryControl& EntryControl::setPathType(const PathType& newType) {
+    pathType = newType;
+    return *this;
+}
+
+EntryControl& EntryControl::setFileFormats(Array<FileFormat>&& formats) {
+    fileFormats = std::move(formats);
+    return *this;
+}
+
+Optional<IVirtualEntry::PathType> EntryControl::getPathType() const {
+    return pathType;
+}
+
+Array<IVirtualEntry::FileFormat> EntryControl::getFileFormats() const {
+    return fileFormats.clone();
+}
+
+bool EntryControl::isValid(const Value& value) const {
+    return !validator || validator(value);
 }
 
 bool EntryControl::enabled() const {
@@ -32,6 +59,16 @@ std::string EntryControl::getTooltip() const {
 
 bool EntryControl::hasSideEffect() const {
     return bool(accessor);
+}
+
+void EntryControl::set(const Value& value) {
+    if (!this->isValid(value)) {
+        return;
+    }
+    this->setImpl(value);
+    if (accessor) {
+        accessor(value);
+    }
 }
 
 
@@ -67,6 +104,27 @@ void VirtualSettings::enumerate(const IEntryProc& proc) {
             proc.onEntry(entry.key, *entry.value);
         }
     }
+}
+
+static Array<IVirtualEntry::FileFormat> getFormats(const IoCapability capability) {
+    Array<IVirtualEntry::FileFormat> formats;
+    for (IoEnum id : EnumMap::getAll<IoEnum>()) {
+        if (getIoCapabilities(id).has(capability)) {
+            IVirtualEntry::FileFormat format;
+            format.description = getIoDescription(id);
+            format.extension = getIoExtension(id).value();
+            formats.push(format);
+        }
+    }
+    return formats;
+}
+
+Array<IVirtualEntry::FileFormat> getInputFormats() {
+    return getFormats(IoCapability::INPUT);
+}
+
+Array<IVirtualEntry::FileFormat> getOutputFormats() {
+    return getFormats(IoCapability::OUTPUT);
 }
 
 NAMESPACE_SPH_END

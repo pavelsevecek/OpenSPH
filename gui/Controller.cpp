@@ -149,24 +149,22 @@ RunStatus Controller::getStatus() const {
 void Controller::saveState(const Path& path) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     auto dump = [path](const Storage& storage, const Statistics& stats) {
-        AutoPtr<IOutput> output;
-        if (path.extension() == Path("ssf")) {
-            /// \todo run type!
-            output = makeAuto<BinaryOutput>(path);
-        } else if (path.extension() == Path("scf")) {
-            output = makeAuto<CompressedOutput>(path, CompressionEnum::RLE, RunTypeEnum::SPH);
-        } else if (path.extension() == Path("vtu")) {
-            Flags<OutputQuantityFlag> flags = OutputQuantityFlag::VELOCITY | OutputQuantityFlag::DENSITY |
-                                              OutputQuantityFlag::ENERGY | OutputQuantityFlag::DAMAGE |
-                                              OutputQuantityFlag::SMOOTHING_LENGTH;
-            output = makeAuto<VtkOutput>(path, flags);
-        } else {
-            SPH_ASSERT(path.extension() == Path("txt"));
-            Flags<OutputQuantityFlag> flags = OutputQuantityFlag::INDEX | OutputQuantityFlag::POSITION |
-                                              OutputQuantityFlag::VELOCITY | OutputQuantityFlag::MASS;
-            output = makeAuto<TextOutput>(path, "unnamed", flags);
+        const Optional<IoEnum> type = getIoEnum(path.extension().native());
+        if (!type) {
+            wxMessageBox("Unknown type of file '" + path.native() + "'", "Fail", wxOK | wxCENTRE);
+            return;
         }
+        RunSettings settings;
+        settings.set(RunSettingsId::RUN_OUTPUT_TYPE, type.value());
+        settings.set(RunSettingsId::RUN_OUTPUT_NAME, path.native());
+        settings.set(RunSettingsId::RUN_OUTPUT_PATH, std::string(""));
+        Flags<OutputQuantityFlag> flags = OutputQuantityFlag::POSITION | OutputQuantityFlag::MASS |
+                                          OutputQuantityFlag::VELOCITY | OutputQuantityFlag::DENSITY |
+                                          OutputQuantityFlag::ENERGY | OutputQuantityFlag::DAMAGE |
+                                          OutputQuantityFlag::SMOOTHING_LENGTH;
+        settings.set(RunSettingsId::RUN_OUTPUT_QUANTITIES, flags);
 
+        AutoPtr<IOutput> output = Factory::getOutput(settings);
         Expected<Path> result = output->dump(storage, stats);
         if (!result) {
             wxMessageBox("Cannot save the file.\n\n" + result.error(), "Fail", wxOK | wxCENTRE);

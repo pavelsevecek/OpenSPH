@@ -50,7 +50,9 @@ VirtualSettings ChaiScriptJob::getSettings() {
     }
 
     VirtualSettings::Category& scriptCat = connector.addCategory("Script");
-    scriptCat.connect<Path>("Script file", "file", file);
+    scriptCat.connect<Path>("Script file", "file", file)
+        .setPathType(IVirtualEntry::PathType::INPUT_FILE)
+        .setFileFormats({ { "Chaiscript script", "chai" } });
 
     return connector;
 }

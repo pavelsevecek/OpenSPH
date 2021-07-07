@@ -20,7 +20,9 @@ VirtualSettings LoadFileJob::getSettings() {
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& cat = connector.addCategory("Input");
-    cat.connect("File", "file", path);
+    cat.connect("File", "file", path)
+        .setPathType(IVirtualEntry::PathType::INPUT_FILE)
+        .setFileFormats(getInputFormats());
     return connector;
 }
 
@@ -68,15 +70,10 @@ VirtualSettings FileSequenceJob::getSettings() {
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& inputCat = connector.addCategory("Input");
-    inputCat.connect("First file", "first_file", firstFile);
+    inputCat.connect("First file", "first_file", firstFile)
+        .setPathType(IVirtualEntry::PathType::INPUT_FILE)
+        .setFileFormats(getInputFormats());
     inputCat.connect("Maximum framerate", "max_fps", maxFps);
-
-    VirtualSettings::Category& cacheCat = connector.addCategory("Cache");
-    cacheCat.connect("Cache loaded file", "do_caching", cache.use)
-        .setTooltip(
-            "If true, loaded files are kept in memory, allowing to run the sequence much faster in the "
-            "following evaluations.\n\nCurrently only particle positions, velocities and radii are cached in "
-            "order to reduce the memory of loaded files.");
 
     return connector;
 }
@@ -126,17 +123,9 @@ void FileSequenceJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks&
         const Size index = element.key;
 
         Timer frameTimer;
-        if (cache.use && cache.data.contains(index)) {
-            storage = Storage(cache.data[index]);
-        } else {
-            Outcome outcome = input->load(element.value, storage, stats);
-            if (!outcome) {
-                throw InvalidSetup(outcome.error());
-            }
-
-            if (cache.use) {
-                cache.data.insert(index, CompressedStorage(storage));
-            }
+        Outcome outcome = input->load(element.value, storage, stats);
+        if (!outcome) {
+            throw InvalidSetup(outcome.error());
         }
 
         stats.set(StatisticsId::INDEX, int(index));
@@ -192,7 +181,9 @@ VirtualSettings SaveFileJob::getSettings() {
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& outputCat = connector.addCategory("Output");
-    outputCat.connect<Path>("File", settings, RunSettingsId::RUN_OUTPUT_NAME);
+    outputCat.connect<Path>("File", settings, RunSettingsId::RUN_OUTPUT_NAME)
+        .setPathType(IVirtualEntry::PathType::OUTPUT_FILE)
+        .setFileFormats(getOutputFormats());
     outputCat.connect<EnumWrapper>("Format", settings, RunSettingsId::RUN_OUTPUT_TYPE);
     outputCat.connect<Flags<OutputQuantityFlag>>("Quantities", settings, RunSettingsId::RUN_OUTPUT_QUANTITIES)
         .setEnabler([this] {
@@ -227,7 +218,12 @@ VirtualSettings SaveMeshJob::getSettings() {
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& outputCat = connector.addCategory("Output");
-    outputCat.connect("File", "file", path);
+    outputCat.connect("File", "file", path)
+        .setPathType(IVirtualEntry::PathType::INPUT_FILE)
+        .setFileFormats({
+            { "Wavefront OBJ file", "obj" },
+            { "Stanford PLY file", "ply" },
+        });
 
     VirtualSettings::Category& meshCat = connector.addCategory("Mesh parameters");
     meshCat.connect<Float>("Resolution", "resolution", resolution);

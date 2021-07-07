@@ -384,6 +384,56 @@ Optional<IoEnum> getIoEnum(const std::string& ext) {
     }
 }
 
+std::string getIoDescription(const IoEnum type) {
+    switch (type) {
+    case IoEnum::NONE:
+        NOT_IMPLEMENTED;
+    case IoEnum::TEXT_FILE:
+        return "Plain text file";
+    case IoEnum::GNUPLOT_OUTPUT:
+        return "Gnuplot image";
+    case IoEnum::BINARY_FILE:
+        return "SPH state file";
+    case IoEnum::COMPRESSED_FILE:
+        return "SPH compressed file";
+    case IoEnum::PKDGRAV_INPUT:
+        return "Pkdgrav output files";
+    case IoEnum::VTK_FILE:
+        return "VTK unstructured grid";
+    case IoEnum::HDF5_FILE:
+        return "miluphcuda output file";
+    case IoEnum::MPCORP_FILE:
+        return "mpcorp dump";
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+Flags<IoCapability> getIoCapabilities(const IoEnum type) {
+    switch (type) {
+    case IoEnum::NONE:
+        return EMPTY_FLAGS;
+    case IoEnum::TEXT_FILE:
+        return IoCapability::INPUT | IoCapability::OUTPUT;
+    case IoEnum::GNUPLOT_OUTPUT:
+        return IoCapability::OUTPUT;
+    case IoEnum::BINARY_FILE:
+        return IoCapability::INPUT | IoCapability::OUTPUT;
+    case IoEnum::COMPRESSED_FILE:
+        return IoCapability::INPUT | IoCapability::OUTPUT;
+    case IoEnum::PKDGRAV_INPUT:
+        return IoCapability::INPUT | IoCapability::OUTPUT;
+    case IoEnum::VTK_FILE:
+        return IoCapability::OUTPUT;
+    case IoEnum::HDF5_FILE:
+        return IoCapability::INPUT;
+    case IoEnum::MPCORP_FILE:
+        return IoCapability::INPUT;
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
 static RegisterEnum<OutputSpacing> sSpacing({
     { OutputSpacing::LINEAR, "linear", "Constant time between consecutive output times" },
     { OutputSpacing::LOGARITHMIC, "logarithmic", "Constant ratio between consecutive output times" },

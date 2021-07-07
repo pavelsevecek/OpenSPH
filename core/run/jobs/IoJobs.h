@@ -43,11 +43,6 @@ private:
 
     int maxFps = 10;
 
-    struct {
-        FlatMap<Size, CompressedStorage> data;
-        bool use = false;
-    } cache;
-
 public:
     FileSequenceJob(const std::string& name, const Path& firstFile = Path("file_0000.ssf"))
         : IParticleJob(name)
@@ -65,7 +60,6 @@ public:
 
     virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
-
 
 class SaveFileJob : public IParticleJob {
 private:

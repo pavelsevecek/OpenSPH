@@ -9,6 +9,7 @@
 #include "gui/renderers/IRenderer.h"
 #include "objects/Object.h"
 #include "objects/wrappers/Flags.h"
+#include "run/VirtualSettings.h"
 #include <wx/window.h>
 
 class wxDC;
@@ -17,10 +18,7 @@ NAMESPACE_SPH_BEGIN
 
 class Path;
 
-struct FileFormat {
-    std::string desc;
-    std::string ext;
-};
+using FileFormat = IVirtualEntry::FileFormat;
 
 Optional<Path> doSaveFileDialog(const std::string& title, Array<FileFormat>&& formats);
 

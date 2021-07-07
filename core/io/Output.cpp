@@ -939,7 +939,7 @@ Expected<Path> CompressedOutput::dump(const Storage& storage, const Statistics& 
             "Cannot create directory " + fileName.parentPath().native() + ": " + dirResult.error());
     }
 
-    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
+    const Float time = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
 
     Serializer<false> serializer(fileName);
     serializer.write("CPRSPH", time, storage.getParticleCnt(), compression, CompressedIoVersion::FIRST);

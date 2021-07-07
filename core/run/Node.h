@@ -138,8 +138,7 @@ public:
 
     /// \brief Evaluates the node and all its providers.
     ///
-    /// The worker of this node its evaluated after all the providers finished and all inputs of the worker
-    /// have been set up.
+    /// The job is evaluated after all the providers finished and all inputs of the job have been set up.
     /// \param global Global settings, used by all nodes in the hierarchy.
     /// \param callbacks Interface allowing to get a feedback from evaluated nodes, see \ref IWorkerCallbacks.
     virtual void run(const RunSettings& global, IJobCallbacks& callbacks) override;
