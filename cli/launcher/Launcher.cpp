@@ -7,6 +7,7 @@
 #include "run/jobs/GeometryJobs.h"
 #include "run/jobs/InitialConditionJobs.h"
 #include "run/jobs/IoJobs.h"
+#include "run/jobs/ScriptJobs.h"
 #include "run/jobs/MaterialJobs.h"
 #include "run/jobs/ParticleJobs.h"
 #include "run/jobs/SimulationJobs.h"
@@ -94,6 +95,10 @@ static void registerRunners() {
     static SaveFileJob sIo("");
     static BlockJob sBlock("");
     static MaterialJob sMat("");
+
+#ifdef SPH_USE_CHAISCRIPT
+    static ChaiScriptJob sScript("");
+#endif
 }
 
 static void run(const ArgParser& parser, ILogger& logger) {

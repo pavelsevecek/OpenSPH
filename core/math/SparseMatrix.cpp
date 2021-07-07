@@ -105,7 +105,7 @@ public:
         for (Size i = 0; i < result.size(); ++i) {
             result[i] = a.value()(i);
         }
-        return result;
+        return Expected<Array<Float>>(std::move(result));
     }
 
 private:
