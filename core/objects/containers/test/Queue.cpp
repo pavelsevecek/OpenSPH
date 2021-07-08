@@ -11,8 +11,8 @@ TEST_CASE("Queue default-construct", "[queue]") {
     REQUIRE(q.size() == 0);
     REQUIRE(q.empty());
     REQUIRE(RecordType::constructedNum == 0);
-    REQUIRE_ASSERT(q.front());
-    REQUIRE_ASSERT(q.back());
+    REQUIRE_SPH_ASSERT(q.front());
+    REQUIRE_SPH_ASSERT(q.back());
 }
 
 TEST_CASE("Queue size construct", "[queue]") {
@@ -32,14 +32,14 @@ TEST_CASE("Queue initializer_list construct", "[queue]") {
     REQUIRE(q.size() == 3);
     REQUIRE_FALSE(q.empty());
     REQUIRE(RecordType::constructedNum == 6); // 3 temporaries
-    for (Size i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i) {
         REQUIRE(q[i].wasCopyConstructed);
         REQUIRE(q[i].value == i + 1);
     }
     REQUIRE(q.front().value == 1);
     REQUIRE(q.back().value == 3);
 
-    REQUIRE_ASSERT(q[3]);
+    REQUIRE_SPH_ASSERT(q[3]);
 }
 
 TEST_CASE("Queue move construct", "[queue]") {
@@ -53,7 +53,7 @@ TEST_CASE("Queue move construct", "[queue]") {
     REQUIRE(q2[0].value == 4);
     REQUIRE(q2[1].value == 6);
     REQUIRE(q2[2].value == 7);
-    for (Size i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i) {
         REQUIRE(q2[i].wasCopyConstructed);
         // shouldn't actually move the elements
         REQUIRE_FALSE(q2[i].wasMoveConstructed);
@@ -100,7 +100,7 @@ TEST_CASE("Queue pushBack", "[queue]") {
     q.pushBack(8);
     q.pushBack(9);
     REQUIRE(q.size() == 5);
-    for (Size i = 0; i < 5; ++i) {
+    for (int i = 0; i < 5; ++i) {
         REQUIRE(((q[i].wasDefaultConstructed && q[i].wasCopyAssigned) || q[i].wasMoveConstructed));
         REQUIRE(q[i].value == 5 + i);
     }
@@ -125,7 +125,7 @@ TEST_CASE("Queue pushFront", "[queue]") {
     q.pushFront(6);
     q.pushFront(5);
     REQUIRE(q.size() == 5);
-    for (Size i = 0; i < 5; ++i) {
+    for (int i = 0; i < 5; ++i) {
         REQUIRE(((q[i].wasDefaultConstructed && q[i].wasCopyAssigned) || q[i].wasMoveConstructed));
         REQUIRE(q[i].value == 5 + i);
     }
@@ -140,7 +140,7 @@ TEST_CASE("Queue popBack", "[queue]") {
     REQUIRE(q[0].value == 2);
     REQUIRE(q[1].value == 4);
     REQUIRE(RecordType::existingNum() == 3);
-    REQUIRE_ASSERT(q[2]);
+    REQUIRE_SPH_ASSERT(q[2]);
 
     r = q.popBack();
     REQUIRE(r.value == 4);
@@ -150,7 +150,7 @@ TEST_CASE("Queue popBack", "[queue]") {
     REQUIRE(r.value == 2);
     REQUIRE(q.size() == 0);
     REQUIRE(RecordType::existingNum() == 1);
-    REQUIRE_ASSERT(q.popBack());
+    REQUIRE_SPH_ASSERT(q.popBack());
 }
 
 TEST_CASE("Queue popFront", "[queue]") {
@@ -162,7 +162,7 @@ TEST_CASE("Queue popFront", "[queue]") {
     REQUIRE(q[0].value == 4);
     REQUIRE(q[1].value == 6);
     REQUIRE(RecordType::existingNum() == 3);
-    REQUIRE_ASSERT(q[2]);
+    REQUIRE_SPH_ASSERT(q[2]);
 
     r = q.popFront();
     REQUIRE(r.value == 4);
@@ -172,7 +172,7 @@ TEST_CASE("Queue popFront", "[queue]") {
     REQUIRE(r.value == 6);
     REQUIRE(q.size() == 0);
     REQUIRE(RecordType::existingNum() == 1);
-    REQUIRE_ASSERT(q.popBack());
+    REQUIRE_SPH_ASSERT(q.popBack());
 }
 
 TEST_CASE("Queue clear", "[queue]") {
@@ -195,7 +195,7 @@ TEST_CASE("Queue clear", "[queue]") {
 
 TEST_CASE("Queue forward push/pop", "[queue]") {
     Queue<RecordType> q({ 1, 2, 3 });
-    for (Size i = 4; i < 1000; ++i) {
+    for (int i = 4; i < 1000; ++i) {
         q.pushBack(i);
         q.popFront();
     }
@@ -207,7 +207,7 @@ TEST_CASE("Queue forward push/pop", "[queue]") {
 
 TEST_CASE("Queue backward push/pop", "[queue]") {
     Queue<RecordType> q({ 3, 2, 1 });
-    for (Size i = 4; i < 1000; ++i) {
+    for (int i = 4; i < 1000; ++i) {
         q.pushFront(i);
         q.popBack();
     }
@@ -219,7 +219,7 @@ TEST_CASE("Queue backward push/pop", "[queue]") {
 
 TEST_CASE("Queue forward backward combine", "[queue]") {
     Queue<RecordType> q;
-    for (Size i = 0; i < 50; ++i) {
+    for (int i = 0; i < 50; ++i) {
         if (i % 2 == 0) {
             q.pushBack(i);
         } else {
@@ -230,7 +230,7 @@ TEST_CASE("Queue forward backward combine", "[queue]") {
     REQUIRE(q.front().value == 49);
     REQUIRE(q.back().value == 48);
 
-    for (Size i = 0; i < 25; ++i) {
+    for (int i = 0; i < 25; ++i) {
         if (i % 2 == 0) {
             q.popFront();
         } else {
@@ -239,7 +239,7 @@ TEST_CASE("Queue forward backward combine", "[queue]") {
     }
     REQUIRE(q.size() == 25);
 
-    for (Size i = 0; i < 75; ++i) {
+    for (int i = 0; i < 75; ++i) {
         if (i % 5 == 0) {
             q.pushBack(i);
         } else {
@@ -254,12 +254,12 @@ TEST_CASE("Queue forward backward combine", "[queue]") {
 TEST_CASE("Queue iterate", "[queue]") {
     // create some non-trivial queue
     Queue<RecordType> q({ 1, 2, 3, 4, 5 });
-    for (Size i = 6; i < 1000; ++i) {
+    for (int i = 6; i < 1000; ++i) {
         q.pushBack(i);
         q.popFront();
     }
     REQUIRE(q.size() == 5);
-    Size i = 0;
+    int i = 0;
     for (RecordType& r : q) {
         REQUIRE(&r == &q[i]);
         REQUIRE(r.value == 995 + i);

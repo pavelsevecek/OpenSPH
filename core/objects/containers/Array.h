@@ -194,6 +194,10 @@ public:
         return actSize;
     }
 
+    INLINE TCounter capacity() const noexcept {
+        return maxSize;
+    }
+
     INLINE bool empty() const noexcept {
         return actSize == 0;
     }

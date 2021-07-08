@@ -143,6 +143,7 @@ HEADERS += \
     math/SparseMatrix.h \
     math/rng/Rng.h \
     math/rng/VectorRng.h \
+    objects/containers/CircularArray.h \
     objects/wrappers/ExtendedEnum.h \
     run/Job.inl.h \
     sph/initial/UvMapping.h \

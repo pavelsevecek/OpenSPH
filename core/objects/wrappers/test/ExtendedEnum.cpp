@@ -7,17 +7,17 @@ using namespace Sph;
 
 namespace Sph {
 enum class Food {
-    EGG,
-    BACON,
+    EGG = 0,
+    BACON = 1,
 };
 enum class Drink {
-    MILK,
+    MILK = -1,
 };
 SPH_EXTEND_ENUM(Drink, Food);
 } // namespace Sph
 
 enum class Unrelated {
-    VALUE,
+    VALUE = -1,
 };
 
 static_assert(std::is_convertible<Food, ExtendedEnum<Food>>::value, "ExtendedEnum static test failed");

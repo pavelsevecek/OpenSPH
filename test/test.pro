@@ -40,12 +40,14 @@ SOURCES += \
     ../core/objects/containers/test/Allocators.cpp \
     ../core/objects/containers/test/Array.cpp \
     ../core/objects/containers/test/ArrayRef.cpp \
+    ../core/objects/containers/test/CircularArray.cpp \
     ../core/objects/containers/test/FlatMap.cpp \
     ../core/objects/containers/test/FlatSet.cpp \
     ../core/objects/containers/test/Grid.cpp \
     ../core/objects/containers/test/List.cpp \
     ../core/objects/containers/test/StaticArray.cpp \
     ../core/objects/containers/test/String.cpp \
+    ../core/objects/containers/test/Queue.cpp \
     ../core/objects/containers/test/Tuple.cpp \
     ../core/objects/finders/test/BruteForceFinder.cpp \
     ../core/objects/finders/test/Finders.cpp \
