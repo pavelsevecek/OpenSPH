@@ -3,6 +3,14 @@
 - added option to set the default colorizer
 - removed strict type safety from ExtendedEnum
 
+## 2021-07-06
+- explicitly setting path type for all path entries
+- added validator to entries
+- using validator to limit available output types
+- unified available input/output formats
+- removed splitter adjustment when selection a node
+- fixed crash in CompressedOutput when run time is not specified
+
 ## 2021-07-03
 - detached cameras from Animation node
 - added volumetric renderer to UI

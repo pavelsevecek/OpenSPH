@@ -103,6 +103,10 @@ static void addOutputCategory(VirtualSettings& connector, RunSettings& settings)
 
     VirtualSettings::Category& outputCat = connector.addCategory("Output");
     outputCat.connect<EnumWrapper>("Format", settings, RunSettingsId::RUN_OUTPUT_TYPE)
+        .setValidator([](const IVirtualEntry::Value& value) {
+            const IoEnum type = IoEnum(value.get<EnumWrapper>());
+            return type == IoEnum::NONE || getIoCapabilities(type).has(IoCapability::OUTPUT);
+        })
         .setAccessor([&settings](const IVirtualEntry::Value& value) {
             const IoEnum type = IoEnum(value.get<EnumWrapper>());
             Path name = Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
@@ -111,7 +115,9 @@ static void addOutputCategory(VirtualSettings& connector, RunSettings& settings)
             }
             settings.set(RunSettingsId::RUN_OUTPUT_NAME, name.native());
         });
-    outputCat.connect<Path>("Directory", settings, RunSettingsId::RUN_OUTPUT_PATH).setEnabler(enabler);
+    outputCat.connect<Path>("Directory", settings, RunSettingsId::RUN_OUTPUT_PATH)
+        .setEnabler(enabler)
+        .setPathType(IVirtualEntry::PathType::DIRECTORY);
     outputCat.connect<std::string>("File mask", settings, RunSettingsId::RUN_OUTPUT_NAME).setEnabler(enabler);
     outputCat.connect<Flags<OutputQuantityFlag>>("Quantities", settings, RunSettingsId::RUN_OUTPUT_QUANTITIES)
         .setEnabler([&settings] {
@@ -137,9 +143,10 @@ static void addOutputCategory(VirtualSettings& connector, RunSettings& settings)
 static void addLoggerCategory(VirtualSettings& connector, RunSettings& settings) {
     VirtualSettings::Category& loggerCat = connector.addCategory("Logging");
     loggerCat.connect<EnumWrapper>("Logger", settings, RunSettingsId::RUN_LOGGER);
-    loggerCat.connect<Path>("Log file", settings, RunSettingsId::RUN_LOGGER_FILE).setEnabler([&settings] {
-        return settings.get<LoggerEnum>(RunSettingsId::RUN_LOGGER) == LoggerEnum::FILE;
-    });
+    loggerCat.connect<Path>("Log file", settings, RunSettingsId::RUN_LOGGER_FILE)
+        .setPathType(IVirtualEntry::PathType::OUTPUT_FILE)
+        .setEnabler(
+            [&settings] { return settings.get<LoggerEnum>(RunSettingsId::RUN_LOGGER) == LoggerEnum::FILE; });
     loggerCat.connect<int>("Log verbosity", settings, RunSettingsId::RUN_LOGGER_VERBOSITY);
 }
 
@@ -303,7 +310,9 @@ VirtualSettings SphJob::getSettings() {
     VirtualSettings::Category& scriptCat = connector.addCategory("Scripts");
     scriptCat.connect<bool>("Enable script", settings, RunSettingsId::SPH_SCRIPT_ENABLE);
     scriptCat.connect<Path>("Script file", settings, RunSettingsId::SPH_SCRIPT_FILE)
-        .setEnabler(scriptEnabler);
+        .setEnabler(scriptEnabler)
+        .setPathType(IVirtualEntry::PathType::INPUT_FILE)
+        .setFileFormats({ { "Chaiscript script", "chai" } });
     scriptCat.connect<Float>("Script period [s]", settings, RunSettingsId::SPH_SCRIPT_PERIOD)
         .setEnabler(scriptEnabler);
     scriptCat.connect<bool>("Run only once", settings, RunSettingsId::SPH_SCRIPT_ONESHOT)

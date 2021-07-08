@@ -88,7 +88,7 @@ public:
 };
 
 /// \todo AVOID THIS
-static void registerRunners() {
+static void registerJobs() {
     static SphJob sSph("");
     static CollisionGeometrySetup sSetup("");
     static MonolithicBodyIc sIc("");
@@ -174,7 +174,7 @@ static void run(const ArgParser& parser, ILogger& logger) {
 
 int main(int argc, char* argv[]) {
     StdOutLogger logger;
-    registerRunners();
+    registerJobs();
 
     try {
         ArgParser parser(params);

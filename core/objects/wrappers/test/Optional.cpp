@@ -126,6 +126,20 @@ TEST_CASE("Optional get", "[optional]") {
     REQUIRE(o1->value == 3);
 }
 
+TEST_CASE("Optional valueOr", "[optional]") {
+    Optional<RecordType> o1(4);
+    REQUIRE(o1.valueOr(6).value == 4);
+    Optional<RecordType> o2;
+    REQUIRE(o2.valueOr(3).value == 3);
+}
+
+TEST_CASE("Optional valueOrThrow", "[optional]") {
+    Optional<RecordType> o1(4);
+    REQUIRE(o1.valueOrThrow<std::runtime_error>("test").value == 4);
+    Optional<RecordType> o2;
+    REQUIRE_THROWS_AS(o2.valueOrThrow<std::runtime_error>("test"), std::runtime_error);
+}
+
 TEST_CASE("Optional references", "[optional]") {
     Optional<RecordType&> o1;
     REQUIRE(!o1);
@@ -149,7 +163,6 @@ TEST_CASE("Optional references", "[optional]") {
     o4 = NOTHING;
     REQUIRE(!o4);
 }
-
 
 TEST_CASE("Optional cast", "[optional]") {
     Optional<int> o1(5);

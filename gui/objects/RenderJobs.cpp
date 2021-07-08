@@ -49,7 +49,8 @@ VirtualSettings AnimationJob::getSettings() {
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& outputCat = connector.addCategory("Output");
-    outputCat.connect<Path>("Directory", gui, GuiSettingsId::IMAGES_PATH);
+    outputCat.connect<Path>("Directory", gui, GuiSettingsId::IMAGES_PATH)
+        .setPathType(IVirtualEntry::PathType::DIRECTORY);
     outputCat.connect<std::string>("File mask", gui, GuiSettingsId::IMAGES_NAME);
 
     auto particleEnabler = [this] {
@@ -111,9 +112,10 @@ VirtualSettings AnimationJob::getSettings() {
     animationCat.connect<Float>("Final angle", "final_angle", orbit.finalAngle)
         .setUnits(DEG_TO_RAD)
         .setEnabler(orbitEnabler);
-    animationCat.connect<Path>("First file", "first_file", sequence.firstFile).setEnabler([this] {
-        return AnimationType(animationType) == AnimationType::FILE_SEQUENCE;
-    });
+    animationCat.connect<Path>("First file", "first_file", sequence.firstFile)
+        .setPathType(IVirtualEntry::PathType::INPUT_FILE)
+        .setFileFormats(getInputFormats())
+        .setEnabler([this] { return AnimationType(animationType) == AnimationType::FILE_SEQUENCE; });
 
     return connector;
 }
@@ -316,12 +318,16 @@ VirtualSettings VdbJob::getSettings() {
 
     VirtualSettings::Category& inputCat = connector.addCategory("Input files");
     inputCat.connect("Enable", "enable_sequence", sequence.enabled);
-    inputCat.connect("First file", "first_file", sequence.firstFile).setEnabler([this] {
-        return sequence.enabled;
-    });
+    inputCat.connect("First file", "first_file", sequence.firstFile)
+        .setPathType(IVirtualEntry::PathType::INPUT_FILE)
+        .setFileFormats(getInputFormats())
+        .setEnabler([this] { return sequence.enabled; });
 
     VirtualSettings::Category& outputCat = connector.addCategory("Output");
-    outputCat.connect("VDB File", "file", path).setEnabler([this] { return !sequence.enabled; });
+    outputCat.connect("VDB File", "file", path)
+        .setPathType(IVirtualEntry::PathType::OUTPUT_FILE)
+        .setFileFormats({ { "OpenVDB grid file", "vdb" } })
+        .setEnabler([this] { return !sequence.enabled; });
 
     return connector;
 }

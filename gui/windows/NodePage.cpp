@@ -1146,14 +1146,12 @@ void NodeEditor::onDoubleClick(wxMouseEvent& evt) {
 // NodeWindow
 //-----------------------------------------------------------------------------------------------------------
 
-class DialogAdapter : public wxPGEditorDialogAdapter {
+class DirDialogAdapter : public wxPGEditorDialogAdapter {
 public:
     virtual bool DoShowDialog(wxPropertyGrid* UNUSED(propGrid), wxPGProperty* property) override {
         wxDirDialog dialog(nullptr, "Choose directory", "", wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
         if (dialog.ShowModal() == wxID_OK) {
             wxString path = dialog.GetPath();
-            std::cout << property->GetLabel() << "  " << path << std::endl;
-
             property->SetValue(path);
             this->SetValue(path);
             return true;
@@ -1163,12 +1161,59 @@ public:
     }
 };
 
-class DirProperty : public wxFileProperty {
+class SaveFileDialogAdapter : public wxPGEditorDialogAdapter {
+private:
+    Array<FileFormat> formats;
+
+public:
+    explicit SaveFileDialogAdapter(Array<FileFormat>&& formats)
+        : formats(std::move(formats)) {}
+
+    virtual bool DoShowDialog(wxPropertyGrid* UNUSED(propGrid), wxPGProperty* property) override {
+        Optional<Path> file = doSaveFileDialog("Save file...", formats.clone());
+        if (file) {
+            property->SetValue(file->native());
+            this->SetValue(file->native());
+            return true;
+        } else {
+            return false;
+        }
+    }
+};
+
+
+class OpenFileDialogAdapter : public wxPGEditorDialogAdapter {
+private:
+    Array<FileFormat> formats;
+
+public:
+    explicit OpenFileDialogAdapter(Array<FileFormat>&& formats)
+        : formats(std::move(formats)) {}
+
+    virtual bool DoShowDialog(wxPropertyGrid* UNUSED(propGrid), wxPGProperty* property) override {
+        Optional<Path> file = doOpenFileDialog("Save file...", formats.clone());
+        if (file) {
+            property->SetValue(file->native());
+            this->SetValue(file->native());
+            return true;
+        } else {
+            return false;
+        }
+    }
+};
+
+class FileProperty : public wxFileProperty {
+    Function<wxPGEditorDialogAdapter*()> makeAdapter;
+
 public:
     using wxFileProperty::wxFileProperty;
 
+    void setFunc(Function<wxPGEditorDialogAdapter*()> func) {
+        makeAdapter = func;
+    }
+
     virtual wxPGEditorDialogAdapter* GetEditorDialog() const override {
-        return new DialogAdapter();
+        return makeAdapter();
     }
 };
 
@@ -1326,35 +1371,31 @@ public:
         return grid->Append(new wxStringProperty(name, wxPG_LABEL, value));
     }
 
-    wxPGProperty* addPath(const std::string& name, const Path& value) const {
-        /// \todo needs better way to determine whether to use save file/load file/directory dialog
-        wxPGProperty* prop;
-        if (value.extension().empty()) {
-            prop = new DirProperty(name, wxPG_LABEL, value.native());
+    wxPGProperty* addPath(const std::string& name,
+        const Path& value,
+        const IVirtualEntry::PathType type,
+        Array<IVirtualEntry::FileFormat>&& formats) const {
+        FileProperty* prop = new FileProperty(name, wxPG_LABEL, value.native());
+        if (type != IVirtualEntry::PathType::DIRECTORY) {
+            prop->setFunc([type, formats = std::move(formats)]() -> wxPGEditorDialogAdapter* {
+                if (type == IVirtualEntry::PathType::INPUT_FILE) {
+                    return new OpenFileDialogAdapter(formats.clone());
+                } else {
+                    return new SaveFileDialogAdapter(formats.clone());
+                }
+            });
         } else {
-            prop = new wxFileProperty(name, wxPG_LABEL, value.native());
+            prop->setFunc([] { return new DirDialogAdapter(); });
         }
         return grid->Append(prop);
     }
 
-    wxPGProperty* addEnum(const std::string& name, const EnumWrapper wrapper) const {
-        wxArrayString values;
-        for (int id : EnumMap::getAll(wrapper.index)) {
-            const std::string rawName = EnumMap::toString(id, wrapper.index);
-            values.Add(capitalize(replaceAll(rawName, "_", " ")));
-        }
-        return grid->Append(new wxEnumProperty(name, wxPG_LABEL, values, wxArrayInt(), wrapper.value));
+    wxPGProperty* addEnum(const std::string& name, const IVirtualEntry& entry) const {
+        return addEnum<wxEnumProperty>(name, entry);
     }
 
-    wxPGProperty* addFlags(const std::string& name, const EnumWrapper wrapper) const {
-        wxArrayString values;
-        wxArrayInt flags;
-        for (int id : EnumMap::getAll(wrapper.index)) {
-            const std::string rawName = EnumMap::toString(id, wrapper.index);
-            values.Add(capitalize(replaceAll(rawName, "_", " ")));
-            flags.Add(int(id));
-        }
-        return grid->Append(new wxFlagsProperty(name, wxPG_LABEL, values, flags, wrapper.value));
+    wxPGProperty* addFlags(const std::string& name, const IVirtualEntry& entry) const {
+        return addEnum<wxFlagsProperty>(name, entry);
     }
 
     wxPGProperty* addExtra(const std::string& name, const ExtraEntry& extra) const {
@@ -1365,6 +1406,24 @@ public:
 
     void setTooltip(wxPGProperty* prop, const std::string& tooltip) const {
         grid->SetPropertyHelpString(prop, tooltip);
+    }
+
+private:
+    template <typename TProperty>
+    wxPGProperty* addEnum(const std::string& name, const IVirtualEntry& entry) const {
+        wxArrayString values;
+        wxArrayInt flags;
+        EnumWrapper wrapper = entry.get();
+        for (int id : EnumMap::getAll(wrapper.index)) {
+            EnumWrapper option(id, wrapper.index);
+            if (!entry.isValid(option)) {
+                continue;
+            }
+            const std::string rawName = EnumMap::toString(option.value, option.index);
+            values.Add(capitalize(replaceAll(rawName, "_", " ")));
+            flags.Add(option.value);
+        }
+        return grid->Append(new TProperty(name, wxPG_LABEL, values, flags, wrapper.value));
     }
 };
 
@@ -1406,14 +1465,18 @@ public:
         case IVirtualEntry::Type::STRING:
             prop = wrapper.addString(name, entry.get());
             break;
-        case IVirtualEntry::Type::PATH:
-            prop = wrapper.addPath(name, entry.get());
+        case IVirtualEntry::Type::PATH: {
+            const Optional<IVirtualEntry::PathType> type = entry.getPathType();
+            SPH_ASSERT(type, "No path type set for entry '" + entry.getName() + "'");
+            Array<IVirtualEntry::FileFormat> formats = entry.getFileFormats();
+            prop = wrapper.addPath(name, entry.get(), type.value(), std::move(formats));
             break;
+        }
         case IVirtualEntry::Type::ENUM:
-            prop = wrapper.addEnum(name, entry.get());
+            prop = wrapper.addEnum(name, entry);
             break;
         case IVirtualEntry::Type::FLAGS:
-            prop = wrapper.addFlags(name, entry.get());
+            prop = wrapper.addFlags(name, entry);
             break;
         case IVirtualEntry::Type::EXTRA:
             prop = wrapper.addExtra(name, entry.get());
@@ -1603,14 +1666,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         if (data) {
             AutoPtr<IJob> worker = data->create();
             if (RawPtr<LoadFileJob> loader = dynamicCast<LoadFileJob>(worker.get())) {
-                Optional<Path> path = doOpenFileDialog("Load file",
-                    {
-                        { "SPH state files", "ssf" },
-                        { "SPH compressed files", "scf" },
-                        { "miluphcuda output files", "h5" },
-                        { "Pkdgrav output files", "bt" },
-                        { "Text .tab files", "tab" },
-                    });
+                Optional<Path> path = doOpenFileDialog("Load file", getInputFormats());
                 if (path) {
                     VirtualSettings settings = loader->getSettings();
                     settings.set("file", path.value());
@@ -1618,12 +1674,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
                 }
             }
             if (RawPtr<SaveFileJob> saver = dynamicCast<SaveFileJob>(worker.get())) {
-                Optional<Path> path = doSaveFileDialog("Save file",
-                    {
-                        { "SPH state file", "ssf" },
-                        { "SPH compressed file", "scf" },
-                        { "VTK grid file", "vtu" },
-                    });
+                Optional<Path> path = doSaveFileDialog("Save file", getOutputFormats());
                 if (path) {
                     VirtualSettings settings = saver->getSettings();
                     settings.set("run.output.name", path.value());
@@ -1747,7 +1798,6 @@ void NodeWindow::updateProperties() {
     }
     this->updateEnabled(grid);
 
-    grid->SetSplitterPosition(int(0.55 * grid->GetSize().x));
     grid->RestoreEditableState(states, wxPropertyGrid::ScrollPosState);
 }
 

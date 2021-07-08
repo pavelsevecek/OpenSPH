@@ -260,6 +260,7 @@ public:
     /// \param run New simulation to start
     void start(SharedPtr<INode> run, const RunSettings& globals);
 
+    /// \brief Opens a simulation snapshot from given file.
     void open(const Path& path, const bool sequence = false);
 
     /// \brief Starts the simulation with current setup.

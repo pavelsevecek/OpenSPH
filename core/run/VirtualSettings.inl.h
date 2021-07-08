@@ -49,12 +49,9 @@ public:
         : ref(ref)
         , name(name) {}
 
-    virtual void set(const Value& value) override {
+    virtual void setImpl(const Value& value) override {
         UnitAdapter<TValue> adapter;
         ref = adapter.set(value.get<TValue>(), mult);
-        if (accessor) {
-            accessor(value);
-        }
     }
 
     virtual Value get() const override {
@@ -94,11 +91,8 @@ public:
         : ref(ref)
         , name(name) {}
 
-    virtual void set(const Value& value) override {
+    virtual void setImpl(const Value& value) override {
         ref = TValue::fromValue(value.get<EnumWrapper>().value);
-        if (accessor) {
-            accessor(value);
-        }
     }
 
     virtual Value get() const override {
@@ -166,12 +160,9 @@ public:
         tooltip = makeTooltip(id);
     }
 
-    virtual void set(const Value& value) override {
+    virtual void setImpl(const Value& value) override {
         UnitAdapter<TValue> adapter;
         settings.set(id, adapter.set(value.get<TValue>(), mult));
-        if (accessor) {
-            accessor(value);
-        }
     }
 
     virtual Value get() const override {
@@ -204,11 +195,8 @@ public:
         tooltip = makeTooltip(id);
     }
 
-    virtual void set(const Value& value) override {
+    virtual void setImpl(const Value& value) override {
         settings.set(id, value.get<EnumWrapper>());
-        if (accessor) {
-            accessor(value);
-        }
     }
 
     virtual Value get() const override {
@@ -240,11 +228,8 @@ public:
         tooltip = makeTooltip(id);
     }
 
-    virtual void set(const Value& value) override {
+    virtual void setImpl(const Value& value) override {
         settings.set(id, value.get<Path>().native());
-        if (accessor) {
-            accessor(value);
-        }
     }
 
     virtual Value get() const override {

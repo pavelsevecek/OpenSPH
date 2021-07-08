@@ -24,7 +24,6 @@ private:
     std::string name;
     IntervalBound bound;
 
-
 public:
     IntervalEntry(Settings<TEnum>& settings,
         const TEnum id,
@@ -58,6 +57,10 @@ public:
         } else {
             return i.upper();
         }
+    }
+
+    virtual bool isValid(const Value& UNUSED(value)) const override {
+        return true;
     }
 
     virtual Type getType() const override {

@@ -229,7 +229,12 @@ VirtualSettings MeshGeometryJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& pathCat = connector.addCategory("Mesh source");
-    pathCat.connect("Path", "path", path);
+    pathCat.connect("Path", "path", path)
+        .setPathType(IVirtualEntry::PathType::INPUT_FILE)
+        .setFileFormats({
+            { "Wavefront OBJ file", "obj" },
+            { "Stanford PLY file", "ply" },
+        });
     pathCat.connect("Scaling factor", "scale", scale);
     pathCat.connect("Precompute", "precompute", precompute);
     return connector;

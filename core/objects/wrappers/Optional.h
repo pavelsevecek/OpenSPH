@@ -193,6 +193,17 @@ public:
         }
     }
 
+    /// \brief Returns the stored value if the object has been initialized, otherwise throws an exception,
+    /// constructed with the provided list of arguments.
+    template <typename TException, typename... TArgs>
+    INLINE Type valueOrThrow(TArgs&&... args) {
+        if (used) {
+            return storage;
+        } else {
+            throw TException(std::forward<TArgs>(args)...);
+        }
+    }
+
     /// \brief Used to access members of the stored value.
     ///
     /// The value must be initialized.

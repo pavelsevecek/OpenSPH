@@ -579,13 +579,7 @@ wxMenu* MainWindow::createRunMenu() {
             controller->stop();
             break;
         case RUN_SAVE_STATE: {
-            static Array<FileFormat> fileFormats = {
-                { "SPH state file", "ssf" },
-                { "SPH compressed file", "scf" },
-                { "VTK unstructured grid", "vtu" },
-                { "Text file", "txt" },
-            };
-            Optional<Path> path = doSaveFileDialog("Save state file", fileFormats.clone());
+            Optional<Path> path = doSaveFileDialog("Save state file", getOutputFormats());
             if (!path) {
                 return;
             }

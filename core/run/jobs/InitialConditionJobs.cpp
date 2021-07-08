@@ -99,7 +99,13 @@ VirtualSettings MonolithicBodyIc::getSettings() {
     dynamicsCat.connect<Float>("Spin rate [rev/day]", body, BodySettingsId::BODY_SPIN_RATE);
 
     VirtualSettings::Category& visCat = connector.addCategory("Visualization");
-    visCat.connect<Path>("Texture path", body, BodySettingsId::VISUALIZATION_TEXTURE);
+    visCat.connect<Path>("Texture path", body, BodySettingsId::VISUALIZATION_TEXTURE)
+        .setPathType(IVirtualEntry::PathType::INPUT_FILE)
+        .setFileFormats({
+            { "JPEG image", "jpg" },
+            { "PNG image", "png" },
+            { "TIFF image", "tif" },
+        });
 
     return connector;
 }

@@ -82,6 +82,9 @@ public:
     /// \brief Returns the currently stored value.
     virtual Value get() const = 0;
 
+    /// \brief Checks if the given value is a valid input for this entry.
+    virtual bool isValid(const Value& value) const = 0;
+
     /// \brief Returns the type of this entry.
     virtual Type getType() const = 0;
 
@@ -105,6 +108,32 @@ public:
     virtual bool hasSideEffect() const {
         return false;
     }
+
+    enum class PathType {
+        DIRECTORY,
+        INPUT_FILE,
+        OUTPUT_FILE,
+    };
+
+    /// \brief Returns the type of the path.
+    ///
+    /// Used only if type of the entry is PATH, otherwise returns NOTHING.
+    virtual Optional<PathType> getPathType() const {
+        return NOTHING;
+    }
+
+    struct FileFormat {
+        std::string description;
+        std::string extension;
+    };
+
+    /// \brief Returns the allowed file format for this file entry.
+    ///
+    /// Used only for file entry (i.e. getPathType returns INPUT_FILE or OUTPUT_FILE). The returned array
+    /// contains pairs of the file format description and the corresponding extension (i.e. 'txt').
+    virtual Array<FileFormat> getFileFormats() const {
+        return {};
+    }
 };
 
 /// \brief Helper object, allowing to add units, tooltips and additional properties into the entry created
@@ -117,11 +146,19 @@ public:
 ///
 /// It partially implements the \ref IVirtualEntry interface to avoid code duplication.
 class EntryControl : public IVirtualEntry {
+public:
+    using Enabler = Function<bool()>;
+    using Accessor = Function<void(const Value& newValue)>;
+    using Validator = Function<bool(const Value& newValue)>;
+
 protected:
     std::string tooltip;
     Float mult = 1._f;
+    Optional<PathType> pathType = NOTHING;
+    Array<FileFormat> fileFormats;
     Function<bool()> enabler = nullptr;
-    Function<void(const Value& newValue)> accessor = nullptr;
+    Accessor accessor = nullptr;
+    Validator validator = nullptr;
 
 public:
     /// \brief Adds or replaces the previous tooltip associanted with the entry.
@@ -140,18 +177,40 @@ public:
     /// has no meaning in the context of the current settings. For example, enabler should returns false for
     /// entries associated with parameters of the boundary if there are no boundary conditions in the
     /// simulations.
-    EntryControl& setEnabler(Function<bool()> newEnabler);
+    EntryControl& setEnabler(const Enabler& newEnabler);
 
-    /// \brief Adds or replaces the previous functor called when the entry changes, i.e. when \ref set
-    /// function is called.
-    EntryControl& setAccessor(Function<void(const Value& newValue)> newAccessor);
+    /// \brief Adds or replaces the functor called when the entry changes, i.e. when \ref set function is
+    /// called.
+    EntryControl& setAccessor(const Accessor& newAccessor);
+
+    /// \brief Adds or replaces the functor called to validate the new value.
+    ///
+    /// If the functor returns false, the value is unchanged.
+    EntryControl& setValidator(const Validator& newValidator);
+
+    /// \brief Sets the type of the path.
+    EntryControl& setPathType(const PathType& newType);
+
+    /// \brief Sets the allowed file formats.
+    EntryControl& setFileFormats(Array<FileFormat>&& formats);
 
 protected:
-    virtual bool enabled() const override;
+    virtual bool enabled() const override final;
 
-    virtual std::string getTooltip() const override;
+    virtual std::string getTooltip() const override final;
 
-    virtual bool hasSideEffect() const override;
+    virtual bool hasSideEffect() const override final;
+
+    virtual Optional<PathType> getPathType() const override final;
+
+    virtual Array<FileFormat> getFileFormats() const override final;
+
+    virtual bool isValid(const Value& value) const override final;
+
+    virtual void setImpl(const Value& value) = 0;
+
+private:
+    virtual void set(const Value& value) override final;
 };
 
 /// \brief Holds a map of virtual entries, associated with a unique name.
@@ -241,6 +300,12 @@ public:
     /// \brief Enumerates all entries stored in the settings.
     void enumerate(const IEntryProc& proc);
 };
+
+/// \brief Convenience function, returning the list of input file formats defined by IoEnum.
+Array<IVirtualEntry::FileFormat> getInputFormats();
+
+/// \brief Convenience function, returning the list of output file formats defined by IoEnum.
+Array<IVirtualEntry::FileFormat> getOutputFormats();
 
 NAMESPACE_SPH_END
 

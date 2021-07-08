@@ -2,8 +2,13 @@
 #include "io/FileSystem.h"
 #include "io/Output.h"
 #include "run/Node.h"
+#include "run/jobs/GeometryJobs.h"
 #include "run/jobs/InitialConditionJobs.h"
+#include "run/jobs/IoJobs.h"
+#include "run/jobs/MaterialJobs.h"
+#include "run/jobs/ParticleJobs.h"
 #include "run/jobs/Presets.h"
+#include "run/jobs/ScriptJobs.h"
 #include "run/jobs/SimulationJobs.h"
 #include "tests/Setup.h"
 #include "utils/Utils.h"
@@ -120,5 +125,48 @@ TEST_CASE("Preset runs", "[job]") {
             .set(RunSettingsId::GENERATE_UVWS, false);
         NullJobCallbacks callbacks;
         REQUIRE_NOTHROW(node->run(globals, callbacks));
+    }
+}
+
+class TestProc : public VirtualSettings::IEntryProc {
+public:
+    virtual void onCategory(const std::string& UNUSED(name)) const override {}
+
+    virtual void onEntry(const std::string& UNUSED(key), IVirtualEntry& entry) const override {
+        // check self-consistency
+        if (!entry.isValid(entry.get())) {
+            throw InvalidSetup("Entry '" + entry.getName() + "' not valid.");
+        }
+
+        if (entry.getType() == IVirtualEntry::Type::PATH) {
+            if (!entry.getPathType()) {
+                throw InvalidSetup("Entry '" + entry.getName() + "' has no assigned path type.");
+            }
+        }
+    }
+};
+
+static void registerJobs() {
+    static SphJob sSph("");
+    static CollisionGeometrySetup sSetup("");
+    static MonolithicBodyIc sIc("");
+    static SaveFileJob sIo("");
+    static BlockJob sBlock("");
+    static MaterialJob sMat("");
+
+#ifdef SPH_USE_CHAISCRIPT
+    static ChaiScriptJob sScript("");
+#endif
+}
+
+TEST_CASE("Check registered jobs", "[job]") {
+    registerJobs();
+
+    ArrayView<const AutoPtr<IJobDesc>> jobDescs = enumerateRegisteredJobs();
+    for (const AutoPtr<IJobDesc>& desc : jobDescs) {
+        AutoPtr<IJob> job = desc->create(NOTHING);
+        VirtualSettings settings = job->getSettings();
+        TestProc proc;
+        REQUIRE_NOTHROW(settings.enumerate(proc));
     }
 }

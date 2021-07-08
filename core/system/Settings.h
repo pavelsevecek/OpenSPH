@@ -887,6 +887,21 @@ Optional<std::string> getIoExtension(const IoEnum type);
 /// Result NOTHING indicates there is no file type associated with the extension.
 Optional<IoEnum> getIoEnum(const std::string& ext);
 
+/// \brief Returns a short description of the file format.
+std::string getIoDescription(const IoEnum type);
+
+enum class IoCapability {
+    /// The format can be used as file input
+    INPUT = 1 << 1,
+
+    /// The format can be used as file output
+    OUTPUT = 1 << 2,
+};
+
+/// \brief Returns the capabilities of given file format.
+Flags<IoCapability> getIoCapabilities(const IoEnum type);
+
+
 enum class OutputSpacing {
     /// Constant time between consecutive output times
     LINEAR,
