@@ -4,6 +4,7 @@
 #include "gui/Utils.h"
 #include "gui/objects/CameraJobs.h"
 #include "gui/windows/GridPage.h"
+#include "gui/windows/GuiSettingsDialog.h"
 #include "gui/windows/NodePage.h"
 #include "gui/windows/PlotView.h"
 #include "gui/windows/RunPage.h"
@@ -399,9 +400,10 @@ wxMenu* MainWindow::createProjectMenu() {
 
     wxMenu* recentMenu = new wxMenu();
     projectMenu->AppendSubMenu(recentMenu, "&Recent");
-    projectMenu->Append(4, "&Shared properties");
-    projectMenu->Append(5, "&Batch run\tCtrl+B");
-    projectMenu->Append(6, "&Quit");
+    projectMenu->Append(4, "&Visualization settings...");
+    projectMenu->Append(5, "&Shared properties...");
+    projectMenu->Append(6, "&Batch run\tCtrl+B");
+    projectMenu->Append(7, "&Quit");
 
     SharedPtr<Array<Path>> recentSessions = makeShared<Array<Path>>();
     *recentSessions = getRecentSessions();
@@ -451,14 +453,19 @@ wxMenu* MainWindow::createProjectMenu() {
         case 3:
             this->load();
             break;
-        case 4:
+        case 4: {
+            GuiSettingsDialog* dialog = new GuiSettingsDialog(this);
+            dialog->ShowModal();
+            break;
+        }
+        case 5:
             notebook->SetSelection(0);
             nodePage->showGlobals();
             break;
-        case 5:
+        case 6:
             nodePage->showBatchDialog();
             break;
-        case 6:
+        case 7:
             this->Close();
             break;
         default:
@@ -502,63 +509,6 @@ wxMenu* MainWindow::createResultMenu() {
 
     });
     return fileMenu;
-}
-
-
-/// \brief Helper object used for drawing multiple plots into the same device.
-class MultiPlot : public IPlot {
-private:
-    Array<AutoPtr<IPlot>> plots;
-
-public:
-    explicit MultiPlot(Array<AutoPtr<IPlot>>&& plots)
-        : plots(std::move(plots)) {}
-
-    virtual std::string getCaption() const override {
-        return plots[0]->getCaption(); /// ??
-    }
-
-    virtual void onTimeStep(const Storage& storage, const Statistics& stats) override {
-        ranges.x = ranges.y = Interval();
-        for (auto& plot : plots) {
-            plot->onTimeStep(storage, stats);
-            ranges.x.extend(plot->rangeX());
-            ranges.y.extend(plot->rangeY());
-        }
-    }
-
-    virtual void clear() override {
-        ranges.x = ranges.y = Interval();
-        for (auto& plot : plots) {
-            plot->clear();
-        }
-    }
-
-    virtual void plot(IDrawingContext& dc) const override {
-        for (auto plotAndIndex : iterateWithIndex(plots)) {
-            dc.setStyle(plotAndIndex.index());
-            plotAndIndex.value()->plot(dc);
-        }
-    }
-};
-
-static Array<Post::HistPoint> getOverplotSfd(const GuiSettings& gui) {
-    const Path overplotPath(gui.get<std::string>(GuiSettingsId::PLOT_OVERPLOT_SFD));
-    if (overplotPath.empty() || !FileSystem::pathExists(overplotPath)) {
-        return {};
-    }
-    Array<Post::HistPoint> overplotSfd;
-    std::ifstream is(overplotPath.native());
-    while (true) {
-        float value, count;
-        is >> value >> count;
-        if (!is) {
-            break;
-        }
-        value *= 0.5f /*D->R*/ * 1000.f /*km->m*/; // super-specific, should be generalized somehow
-        overplotSfd.emplaceBack(Post::HistPoint{ value, Size(round(count)) });
-    };
-    return overplotSfd;
 }
 
 enum RunMenuId {
@@ -712,18 +662,17 @@ wxMenu* MainWindow::createAnalysisMenu() {
 
             Array<AutoPtr<IPlot>> multiplot;
             multiplot.emplaceBack(makeAuto<SfdPlot>(flag, 0._f));
-
             Project& project = Project::getInstance();
-            Array<Post::HistPoint> overplotSfd = getOverplotSfd(project.getGuiSettings());
+            const std::string overplotSfd =
+                project.getGuiSettings().get<std::string>(GuiSettingsId::PLOT_OVERPLOT_SFD);
             if (!overplotSfd.empty()) {
-                multiplot.emplaceBack(
-                    makeAuto<DataPlot>(overplotSfd, AxisScaleEnum::LOG_X | AxisScaleEnum::LOG_Y, "Overplot"));
+                multiplot.emplaceBack(getDataPlot(Path(overplotSfd), "overplot"));
             }
             plot = makeLocking<MultiPlot>(std::move(multiplot));
             break;
         }
         case 2:
-            plot = makeLocking<HistogramPlot>(Post::HistogramId::VELOCITIES, NOTHING, "Velocity");
+            plot = makeLocking<HistogramPlot>(Post::HistogramId::VELOCITIES, NOTHING, 0._f, "Velocity");
             break;
         case 3:
             plot = makeLocking<RadialDistributionPlot>(QuantityId::DENSITY);

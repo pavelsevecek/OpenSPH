@@ -53,7 +53,9 @@ SOURCES += \
     windows/NodePage.cpp \
     windows/MainWindow.cpp \
     windows/TimeLine.cpp \
-    windows/Widgets.cpp
+    windows/Widgets.cpp \
+    windows/GuiSettingsDialog.cpp \
+    objects/Plots.cpp
 
 HEADERS += \
     ArcBall.h \
@@ -104,4 +106,6 @@ HEADERS += \
     windows/MainWindow.h \
     windows/TimeLine.h \
     windows/ProgressPanel.h \
-    windows/Widgets.h
+    windows/Widgets.h \
+    windows/GuiSettingsDialog.h \
+    objects/Plots.h

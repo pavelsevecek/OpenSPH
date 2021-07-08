@@ -172,7 +172,13 @@ bool TemporalPlot::isExpired(const Float x, const Float t) const {
 // HistogramPlot
 // ----------------------------------------------------------------------------------------------------------
 
-void HistogramPlot::onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) {
+void HistogramPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
+    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
+    if (time - lastTime < period) {
+        return;
+    }
+    lastTime = time;
+
     Post::HistogramParams params;
     params.binCnt = 20;
     if (interval) {
@@ -185,6 +191,8 @@ void HistogramPlot::onTimeStep(const Storage& storage, const Statistics& UNUSED(
         ranges.x.extend(p.value);
         ranges.y.extend(p.count);
     }
+    // always include y=0
+    ranges.y.extend(0);
 }
 
 void HistogramPlot::clear() {
@@ -319,6 +327,33 @@ void DataPlot::plot(IDrawingContext& dc) const {
         dc.drawPoint(values.back());
         path->addPoint(values.back());
         path->endPath();
+    }
+}
+
+// ----------------------------------------------------------------------------------------------------------
+// MultiPlot
+// ----------------------------------------------------------------------------------------------------------
+
+void MultiPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
+    ranges.x = ranges.y = Interval();
+    for (auto& plot : plots) {
+        plot->onTimeStep(storage, stats);
+        ranges.x.extend(plot->rangeX());
+        ranges.y.extend(plot->rangeY());
+    }
+}
+
+void MultiPlot::clear() {
+    ranges.x = ranges.y = Interval();
+    for (auto& plot : plots) {
+        plot->clear();
+    }
+}
+
+void MultiPlot::plot(IDrawingContext& dc) const {
+    for (auto plotAndIndex : iterateWithIndex(plots)) {
+        dc.setStyle(plotAndIndex.index());
+        plotAndIndex.value()->plot(dc);
     }
 }
 

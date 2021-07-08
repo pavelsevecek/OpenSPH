@@ -5,6 +5,7 @@
 #include "gui/objects/Point.h"
 #include "objects/geometry/Vector.h"
 #include "objects/utility/EnumMap.h"
+#include "objects/wrappers/ExtendedEnum.h"
 #include "objects/wrappers/Function.h"
 #include "system/Settings.h"
 
@@ -55,11 +56,25 @@ enum class PlotEnum {
     /// Evolution of the total angular momentum in time
     TOTAL_ANGULAR_MOMENTUM = 1 << 4,
 
+    /// Relative change of total energy
+    RELATIVE_ENERGY_CHANGE = 1 << 5,
+
+    /// Current size-frequency distribution
+    CURRENT_SFD = 1 << 6,
+
+    /// Predicted size-frequency distribution
+    PREDICTED_SFD = 1 << 7,
+
+    /// Speed histogram
+    SPEED_HISTOGRAM = 1 << 8,
+
+    /// Angular histogram (in x-y plane) of velocity directions
+    ANGULAR_HISTOGRAM_OF_VELOCITIES = 1 << 9,
+
     /// Evolution of the selected quantity for the selected particle in time.
     SELECTED_PARTICLE = 1 << 10,
 
-    ALL = INTERNAL_ENERGY | KINETIC_ENERGY | TOTAL_ENERGY | TOTAL_MOMENTUM | TOTAL_ANGULAR_MOMENTUM |
-          SELECTED_PARTICLE,
+    ALL = INTERNAL_ENERGY | KINETIC_ENERGY | TOTAL_ENERGY | TOTAL_MOMENTUM | TOTAL_ANGULAR_MOMENTUM,
 };
 
 enum class BrdfEnum {
@@ -169,6 +184,8 @@ enum class GuiSettingsId {
     CONTOUR_GRID_SIZE,
 
     CONTOUR_SHOW_LABELS,
+
+    DEFAULT_COLORIZER,
 
     /// Title of the window appearing on taskbar
     WINDOW_TITLE,

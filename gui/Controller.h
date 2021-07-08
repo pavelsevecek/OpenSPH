@@ -28,6 +28,7 @@ class IRenderer;
 class ICamera;
 class IColorizer;
 enum class ColorizerId;
+using ExtColorizerId = ExtendedEnum<ColorizerId>;
 
 /// \brief Status of the code
 enum class RunStatus {
@@ -322,5 +323,8 @@ private:
 
     void startRenderThread();
 };
+
+/// \brief Returns IDs of all colorizers available in the application.
+Array<ExtColorizerId> getColorizerIds();
 
 NAMESPACE_SPH_END

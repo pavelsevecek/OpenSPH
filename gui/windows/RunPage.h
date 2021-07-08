@@ -60,7 +60,6 @@ private:
     PlotView* firstPlot = nullptr;
     PlotView* secondPlot = nullptr;
 
-
     LockingPtr<SelectedParticlePlot> selectedParticlePlot;
 
     wxTextCtrl* statsText = nullptr;

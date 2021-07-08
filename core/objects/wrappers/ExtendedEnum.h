@@ -25,67 +25,62 @@ class ExtendedEnum {
 private:
     using TValue = std::underlying_type_t<TBase>;
     TValue value = 0;
-    bool ext = false;
 
 public:
+    using BaseType = TBase;
+
     ExtendedEnum() = default;
 
     /// Implicit constructor from base
     ExtendedEnum(const TBase value)
-        : value(TValue(value))
-        , ext(false) {}
+        : value(TValue(value)) {}
 
     /// Implicit constructor from derived
     template <typename TDerived, typename = std::enable_if_t<IsExtended<TDerived, TBase>::value>>
     ExtendedEnum(const TDerived value)
-        : value(TValue(value))
-        , ext(true) {}
-
-    /// Checks if the object currently holds extended (derived) value.
-    bool extended() const {
-        return ext;
-    }
+        : value(TValue(value)) {}
 
     /// Implicit conversion to base
     operator TBase() const {
-        if (!ext) {
-            return TBase(value);
-        } else {
-            return TBase(std::numeric_limits<TValue>::max());
-        }
+        return TBase(value);
     }
 
     /// Explicit conversion to derived
     template <typename TDerived, typename = std::enable_if_t<IsExtended<TDerived, TBase>::value>>
     explicit operator TDerived() const {
-        if (ext) {
-            return TDerived(value);
-        } else {
-            using TDerivedValue = std::underlying_type_t<TBase>;
-            return TDerived(std::numeric_limits<TDerivedValue>::max());
-        }
+        return TDerived(value);
     }
 
     bool operator<(const ExtendedEnum& other) const {
-        return std::tie(ext, value) < std::tie(other.ext, other.value);
+        return value < other.value;
     }
 
     bool operator==(const ExtendedEnum& other) const {
-        return ext == other.ext && value == other.value;
+        return value == other.value;
     }
 
     bool operator==(const TBase& other) const {
-        return !ext && TBase(value) == other;
+        return TBase(value) == other;
     }
 
     template <typename TDerived, typename = std::enable_if_t<IsExtended<TDerived, TBase>::value>>
     bool operator==(const TDerived& other) const {
-        return ext && TDerived(value) == other;
+        return TDerived(value) == other;
     }
 
     bool operator!=(const ExtendedEnum& other) const {
         return value != other.value;
     }
+};
+
+template <typename T>
+struct IsExtendedEnum {
+    static constexpr bool value = false;
+};
+
+template <typename TEnum>
+struct IsExtendedEnum<ExtendedEnum<TEnum>> {
+    static constexpr bool value = true;
 };
 
 NAMESPACE_SPH_END

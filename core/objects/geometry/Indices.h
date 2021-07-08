@@ -153,6 +153,6 @@ template <>
 class std::hash<Sph::Indices> {
 public:
     INLINE size_t operator()(const Sph::Indices& idxs) const {
-        return (idxs[0] * 73856093ull) ^ (idxs[1] * 19349663ull) ^ (idxs[2] ^ 83492791ull);
+        return (idxs[0] * 73856093ull) ^ (idxs[1] * 19349663ull) ^ (idxs[2] * 83492791ull);
     }
 };

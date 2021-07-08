@@ -252,18 +252,28 @@ protected:
     /// If NOTHING, the interval is created by enclosing all x values.
     Optional<Interval> interval;
 
+    /// Period of redrawing the histogram. Zero means the histogram is drawn every time step.
+    Float period;
+
     /// Displayed name of the histogram.
     std::string name;
 
+    Float lastTime = -INFTY;
+
 public:
-    HistogramPlot(const Post::HistogramId id, const Optional<Interval> interval, const std::string& name)
+    HistogramPlot(const Post::HistogramId id,
+        const Optional<Interval> interval,
+        const Float period,
+        const std::string& name)
         : id(id)
         , interval(interval)
+        , period(period)
         , name(name) {}
 
-    HistogramPlot(const QuantityId id, const Optional<Interval> interval)
+    HistogramPlot(const QuantityId id, const Optional<Interval> interval, const Float period)
         : id(id)
-        , interval(interval) {
+        , interval(interval)
+        , period(period) {
         name = getMetadata(id).quantityName;
     }
 
@@ -285,7 +295,7 @@ private:
     Float period;
     std::string name;
 
-    Float lastTime = 0._f;
+    Float lastTime = -INFTY;
     Array<PlotPoint> sfd;
 
 public:
@@ -319,6 +329,26 @@ public:
     DataPlot(const Array<Post::HistPoint>& points, const Flags<AxisScaleEnum> scale, const std::string& name);
 
     virtual std::string getCaption() const override;
+
+    virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;
+
+    virtual void clear() override;
+
+    virtual void plot(IDrawingContext& dc) const override;
+};
+
+/// \brief Helper object used for drawing multiple plots into the same device.
+class MultiPlot : public IPlot {
+private:
+    Array<AutoPtr<IPlot>> plots;
+
+public:
+    explicit MultiPlot(Array<AutoPtr<IPlot>>&& plots)
+        : plots(std::move(plots)) {}
+
+    virtual std::string getCaption() const override {
+        return plots[0]->getCaption(); /// ??
+    }
 
     virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;
 

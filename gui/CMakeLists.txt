@@ -12,6 +12,7 @@ set(GUI_SOURCES
     objects/Filmic.cpp 
     objects/Movie.cpp 
     objects/Palette.cpp 
+    objects/Plots.cpp 
     objects/RenderContext.cpp 
     objects/RenderJobs.cpp 
     renderers/ContourRenderer.cpp 
@@ -24,6 +25,7 @@ set(GUI_SOURCES
     windows/BatchDialog.cpp 
     windows/RunSelectDialog.cpp 
     windows/SessionDialog.cpp 
+    windows/GuiSettingsDialog.cpp 
     windows/CurveDialog.cpp 
     windows/GridPage.cpp 
     windows/OrthoPane.cpp 
@@ -55,6 +57,7 @@ set(GUI_HEADERS
     objects/Movie.h 
     objects/Palette.h 
     objects/Point.h 
+    objects/Plots.h 
     objects/RenderContext.h 
     objects/RenderJobs.h 
     objects/SvgContext.h 
@@ -70,6 +73,7 @@ set(GUI_HEADERS
     windows/BatchDialog.h 
     windows/RunSelectDialog.h 
     windows/SessionDialog.h 
+    windows/GuiSettingsDialog.h 
     windows/CurveDialog.h 
     windows/GridPage.h 
     windows/IGraphicsPane.h 

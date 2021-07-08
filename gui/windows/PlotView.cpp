@@ -92,6 +92,10 @@ void PlotView::onRightUp(wxMouseEvent& UNUSED(evt)) {
 }
 
 void PlotView::onDoubleClick(wxMouseEvent& UNUSED(evt)) {
+    if (!cached.plot) {
+        // no plot
+        return;
+    }
     wxAuiNotebook* notebook = findNotebook(); /// \todo detach dependency via callback?
     SPH_ASSERT(notebook);
 

@@ -1,3 +1,8 @@
+## 2021-07-08
+- added GUI settings dialog
+- added option to set the default colorizer
+- removed strict type safety from ExtendedEnum
+
 ## 2021-07-03
 - detached cameras from Animation node
 - added volumetric renderer to UI

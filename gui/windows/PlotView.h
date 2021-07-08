@@ -6,10 +6,9 @@
 /// \date 2016-2021
 
 #include "gui/objects/GraphicsContext.h"
+#include "gui/objects/Plots.h"
 #include "gui/objects/Point.h"
-#include "objects/wrappers/LockingPtr.h"
 #include "physics/Integrals.h"
-#include "post/Plot.h"
 #include "thread/CheckFunction.h"
 #include <wx/frame.h>
 #include <wx/panel.h>
@@ -17,14 +16,6 @@
 class wxBoxSizer;
 
 NAMESPACE_SPH_BEGIN
-
-struct PlotData {
-    /// Plot to be drawn with associated mutex
-    LockingPtr<IPlot> plot;
-
-    /// Color of the plot
-    Rgba color;
-};
 
 class PlotPage;
 

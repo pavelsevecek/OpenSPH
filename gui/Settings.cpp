@@ -1,4 +1,5 @@
 #include "gui/Settings.h"
+#include "gui/objects/Colorizer.h"
 #include "system/Settings.impl.h"
 
 NAMESPACE_SPH_BEGIN
@@ -159,6 +160,8 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "TODO" },
     { GuiSettingsId::CONTOUR_SHOW_LABELS,   "contour.show_labels",  true,
         "TODO" },
+    { GuiSettingsId::DEFAULT_COLORIZER,     "default_colorizer",    ColorizerId::ACCELERATION,
+        "Default colorizer shown when the simulation starts." },
 
     /// Window settings
     { GuiSettingsId::WINDOW_TITLE,          "window.title",         std::string("OpenSPH"),

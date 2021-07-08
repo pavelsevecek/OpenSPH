@@ -357,13 +357,8 @@ bool Controller::isRunning() const {
     return status == RunStatus::RUNNING;
 }
 
-Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage) const {
-    // Available colorizers for display and movie are currently hardcoded
-    Array<ExtColorizerId> colorizerIds;
-
-    /// \todo custom colorizer lists
-
-    colorizerIds.pushAll({
+Array<ExtColorizerId> getColorizerIds() {
+    static Array<ExtColorizerId> colorizerIds = {
         ColorizerId::VELOCITY,
         ColorizerId::ACCELERATION,
         ColorizerId::COROTATING_VELOCITY,
@@ -412,16 +407,27 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         ColorizerId::BOUNDARY,
         //
         ColorizerId::BEAUTY,
-    });
+    };
 
+    return colorizerIds.clone();
+}
+
+Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage) const {
+    const GuiSettings& gui = project.getGuiSettings();
+    const ExtColorizerId defaultId = gui.get<ColorizerId>(GuiSettingsId::DEFAULT_COLORIZER);
+    Array<ExtColorizerId> colorizerIds = getColorizerIds();
     Array<SharedPtr<IColorizer>> colorizers;
     for (ExtColorizerId id : colorizerIds) {
         SharedPtr<IColorizer> colorizer = Factory::getColorizer(project, id);
-        if (colorizer->hasData(storage)) {
+        if (!colorizer->hasData(storage)) {
+            continue;
+        }
+        if (id == defaultId) {
+            colorizers.insert(0, colorizer);
+        } else {
             colorizers.push(colorizer);
         }
     }
-
     return colorizers;
 }
 
@@ -749,7 +755,7 @@ void Controller::startRenderThread() {
             toWxBitmap(bitmap, *newBitmap);
 
             // Capture page as weak ref as we need to check it first, this might not exit anymore!
-            auto callback = [&vis = vis,
+            auto callback = [& vis = vis,
                                 page = page,
                                 bitmap = std::move(newBitmap),
                                 labels = std::move(labels)]() mutable {
