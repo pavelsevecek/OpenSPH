@@ -6,7 +6,14 @@ NAMESPACE_SPH_BEGIN
 void ICameraJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     const int width = gui.get<int>(GuiSettingsId::IMAGES_WIDTH);
     const int height = gui.get<int>(GuiSettingsId::IMAGES_HEIGHT);
-    camera = Factory::getCamera(gui, Pixel(width, height));
+    AutoPtr<ICamera> camera = Factory::getCamera(gui, Pixel(width, height));
+    AutoPtr<ITracker> tracker = Factory::getTracker(gui);
+
+    result = makeShared<CameraData>();
+    result->camera = std::move(camera);
+    result->tracker = std::move(tracker);
+    result->overrides.set(GuiSettingsId::CAMERA_VELOCITY, gui.get<Vector>(GuiSettingsId::CAMERA_VELOCITY));
+    result->overrides.set(GuiSettingsId::CAMERA_ORBIT, gui.get<Float>(GuiSettingsId::CAMERA_ORBIT));
 }
 
 // ----------------------------------------------------------------------------------------------------------
@@ -27,12 +34,18 @@ static VirtualSettings::Category& addResolutionCategory(VirtualSettings& connect
 
 static VirtualSettings::Category& addTransformCategory(VirtualSettings& connector, GuiSettings& gui) {
     VirtualSettings::Category& transformCat = connector.addCategory("Transform");
-    transformCat.connect<Vector>("Position", gui, GuiSettingsId::CAMERA_POSITION);
-    transformCat.connect<Vector>("Velocity", gui, GuiSettingsId::CAMERA_VELOCITY);
-    transformCat.connect<Vector>("Target", gui, GuiSettingsId::CAMERA_TARGET);
+    transformCat.connect<Vector>("Position [km]", gui, GuiSettingsId::CAMERA_POSITION).setUnits(1.e3_f);
+    transformCat.connect<Vector>("Velocity [km/s]", gui, GuiSettingsId::CAMERA_VELOCITY)
+        .setUnits(1.e3_f)
+        .setEnabler([&gui] {
+            return gui.get<int>(GuiSettingsId::CAMERA_TRACK_PARTICLE) == -1 &&
+                   !gui.get<bool>(GuiSettingsId::CAMERA_TRACK_MEDIAN);
+        });
+    transformCat.connect<Float>("Orbit speed [s^-1]", gui, GuiSettingsId::CAMERA_ORBIT);
+    transformCat.connect<Vector>("Target [km]", gui, GuiSettingsId::CAMERA_TARGET).setUnits(1.e3_f);
     transformCat.connect<Vector>("Up-direction", gui, GuiSettingsId::CAMERA_UP);
-    transformCat.connect<Float>("Clip near", gui, GuiSettingsId::CAMERA_CLIP_NEAR);
-    transformCat.connect<Float>("Clip far", gui, GuiSettingsId::CAMERA_CLIP_FAR);
+    transformCat.connect<Float>("Clip near [km]", gui, GuiSettingsId::CAMERA_CLIP_NEAR).setUnits(1.e3_f);
+    transformCat.connect<Float>("Clip far [km]", gui, GuiSettingsId::CAMERA_CLIP_FAR).setUnits(1.e3_f);
     return transformCat;
 }
 
@@ -107,6 +120,7 @@ VirtualSettings FisheyeCameraJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     addResolutionCategory(connector, gui);
+    addTransformCategory(connector, gui);
     addTrackingCategory(connector, gui);
     return connector;
 }

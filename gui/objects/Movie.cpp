@@ -30,6 +30,8 @@ Movie::Movie(const GuiSettings& settings,
     makeAnimation = settings.get<bool>(GuiSettingsId::IMAGES_MAKE_MOVIE);
     outputStep = settings.get<Float>(GuiSettingsId::IMAGES_TIMESTEP);
     cameraVelocity = settings.get<Vector>(GuiSettingsId::CAMERA_VELOCITY);
+    cameraOrbit = settings.get<Float>(GuiSettingsId::CAMERA_ORBIT);
+
     const Path directory(settings.get<std::string>(GuiSettingsId::IMAGES_PATH));
     const Path name(settings.get<std::string>(GuiSettingsId::IMAGES_NAME));
     const Size firstIndex(settings.get<int>(GuiSettingsId::IMAGES_FIRST_INDEX));
@@ -104,24 +106,30 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
 }
 
 void Movie::save(const Storage& storage, Statistics& stats) {
+    const Float time = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
+    const Float dt = time - lastFrame;
+
+    const Vector target = params.camera->getTarget();
+    const Vector cameraPos = params.camera->getFrame().translation();
+    Vector dir = cameraPos - target;
+    dir[H] = 0._f;
+    if (cameraOrbit != 0._f) {
+        const Vector up = params.camera->getUpVector();
+        AffineMatrix rotation = AffineMatrix::rotateAxis(up, cameraOrbit * dt);
+        dir = rotation * dir;
+    }
+
     // move the camera (shared for all colorizers)
     if (params.tracker != nullptr) {
         Vector trackedPos, trackedVel;
         tie(trackedPos, trackedVel) = params.tracker->getTrackedPoint(storage);
-        const Vector target = params.camera->getTarget();
-        const Vector cameraPos = params.camera->getFrame().translation();
-        const Vector newPos = trackedPos - target + cameraPos;
-        params.camera->setPosition(newPos);
+        params.camera->setPosition(trackedPos + dir);
         params.camera->setTarget(trackedPos);
     } else {
-        const Float time = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
-        const Float dt = time - lastFrame;
-        const Vector target = params.camera->getTarget();
-        const Vector cameraPos = params.camera->getFrame().translation();
-        params.camera->setPosition(cameraPos + dt * cameraVelocity);
         params.camera->setTarget(target + dt * cameraVelocity);
-        lastFrame = time;
+        params.camera->setPosition(target + dir + dt * cameraVelocity);
     }
+    lastFrame = time;
 
     const Path path = paths.getNextPath(stats);
     FileSystem::createDirectory(path.parentPath());

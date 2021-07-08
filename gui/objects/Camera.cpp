@@ -46,7 +46,7 @@ Pair<Vector> MedianTracker::getTrackedPoint(const Storage& storage) const {
 // OrthoCamera
 // ----------------------------------------------------------------------------------------------------------
 
-OrthoCamera::OrthoCamera(const CameraData& data)
+OrthoCamera::OrthoCamera(const CameraParams& data)
     : data(data) {
     this->update();
     // world units to world-to-pixel
@@ -145,6 +145,10 @@ Vector OrthoCamera::getTarget() const {
     return data.target;
 }
 
+Vector OrthoCamera::getUpVector() const {
+    return getNormalized(data.up);
+}
+
 Optional<float> OrthoCamera::getCutoff() const {
     return data.ortho.cutoff;
 }
@@ -212,7 +216,7 @@ void OrthoCamera::resize(const Pixel newSize) {
 // PerspectiveCamera
 // ----------------------------------------------------------------------------------------------------------
 
-PerspectiveCamera::PerspectiveCamera(const CameraData& data)
+PerspectiveCamera::PerspectiveCamera(const CameraParams& data)
     : data(data) {
     SPH_ASSERT(data.clipping.lower() > 0._f && data.clipping.size() > EPS);
 
@@ -273,7 +277,9 @@ Pixel PerspectiveCamera::getSize() const {
 }
 
 AffineMatrix PerspectiveCamera::getFrame() const {
-    return AffineMatrix(cached.left, cached.up, cached.dir).removeTranslation().translate(data.position);
+    return AffineMatrix(getNormalized(cached.left), getNormalized(cached.up), getNormalized(cached.dir))
+        .removeTranslation()
+        .translate(data.position);
 }
 
 Vector PerspectiveCamera::getTarget() const {
@@ -298,15 +304,17 @@ void PerspectiveCamera::zoom(const Pixel UNUSED(fixedPoint), const float magnitu
 }
 
 void PerspectiveCamera::setPosition(const Vector& newPosition) {
-    const Vector offset = newPosition - data.position;
-    data.position += offset;
+    data.position = newPosition;
     this->update();
 }
 
 void PerspectiveCamera::setTarget(const Vector& newTarget) {
-    const Vector offset = newTarget - data.target;
-    data.target += offset;
+    data.target = newTarget;
     this->update();
+}
+
+Vector PerspectiveCamera::getUpVector() const {
+    return getNormalized(data.up);
 }
 
 void PerspectiveCamera::transform(const AffineMatrix& matrix) {
@@ -350,7 +358,7 @@ void PerspectiveCamera::update() {
 // PanoCameraBase
 // ----------------------------------------------------------------------------------------------------------
 
-PanoCameraBase::PanoCameraBase(const CameraData& data)
+PanoCameraBase::PanoCameraBase(const CameraParams& data)
     : data(data) {
     SPH_ASSERT(data.clipping.lower() > 0._f && data.clipping.size() > EPS);
 }
@@ -379,6 +387,10 @@ AffineMatrix PanoCameraBase::getFrame() const {
 
 Vector PanoCameraBase::getTarget() const {
     return data.target;
+}
+
+Vector PanoCameraBase::getUpVector() const {
+    return getNormalized(data.up);
 }
 
 Optional<float> PanoCameraBase::getCutoff() const {
@@ -433,7 +445,7 @@ void PanoCameraBase::update() {
 // FisheyeCamera
 // ----------------------------------------------------------------------------------------------------------
 
-FisheyeCamera::FisheyeCamera(const CameraData& data)
+FisheyeCamera::FisheyeCamera(const CameraParams& data)
     : PanoCameraBase(data) {
     this->update();
 }
@@ -476,7 +488,7 @@ void FisheyeCamera::update() {
 // SphericalCamera
 // ----------------------------------------------------------------------------------------------------------
 
-SphericalCamera::SphericalCamera(const CameraData& data)
+SphericalCamera::SphericalCamera(const CameraParams& data)
     : PanoCameraBase(data) {
     this->update();
 }

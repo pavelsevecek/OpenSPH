@@ -222,7 +222,6 @@ public:
         return AffineMatrix(t.row(0) / v, t.row(1) / v, t.row(2) / v);
     }
 
-
     INLINE AffineMatrix& operator+=(const AffineMatrix& other) {
         v[0] += other.v[0];
         v[1] += other.v[1];

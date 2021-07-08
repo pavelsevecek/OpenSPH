@@ -495,7 +495,9 @@ VirtualSettings NBodyJob::getSettings() {
         .setEnabler([this] { return useSoft; });
 
     auto collisionEnabler = [this] {
-        return !useSoft && !settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE);
+        return !useSoft && !settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE) &&
+               settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER) !=
+                   CollisionHandlerEnum::NONE;
     };
     auto mergeLimitEnabler = [this] {
         if (useSoft) {
@@ -511,7 +513,9 @@ VirtualSettings NBodyJob::getSettings() {
 
     VirtualSettings::Category& collisionCat = connector.addCategory("Collisions");
     collisionCat.connect<EnumWrapper>("Collision handler", settings, RunSettingsId::COLLISION_HANDLER)
-        .setEnabler(collisionEnabler);
+        .setEnabler([this] { //
+            return !useSoft && !settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE);
+        });
     collisionCat.connect<EnumWrapper>("Overlap handler", settings, RunSettingsId::COLLISION_OVERLAP)
         .setEnabler(collisionEnabler);
     collisionCat.connect<Float>("Normal restitution", settings, RunSettingsId::COLLISION_RESTITUTION_NORMAL)

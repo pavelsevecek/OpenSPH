@@ -159,11 +159,12 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
     AutoPtr<IRenderer> renderer = Factory::getRenderer(scheduler, gui);
 
-    SharedPtr<ICamera> camera = getInput<ICamera>("camera");
+    SharedPtr<CameraData> camera = getInput<CameraData>("camera");
     RenderParams params;
-    params.size = camera->getSize();
-    params.camera = camera->clone();
-    params.tracker = Factory::getTracker(gui);
+    params.size = camera->camera->getSize();
+    params.camera = camera->camera->clone();
+    params.tracker = std::move(camera->tracker);
+    gui.addEntries(camera->overrides);
     params.initialize(gui);
 
     Project project = Project::getInstance().clone();

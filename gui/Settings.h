@@ -98,6 +98,8 @@ enum class GuiSettingsId {
 
     CAMERA_VELOCITY,
 
+    CAMERA_ORBIT,
+
     CAMERA_TARGET,
 
     CAMERA_UP,

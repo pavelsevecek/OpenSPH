@@ -46,6 +46,8 @@ private:
     RenderParams params;
 
     Vector cameraVelocity;
+    Float cameraOrbit;
+
     Float lastFrame = 0._f;
 
 public:

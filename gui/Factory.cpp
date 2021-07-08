@@ -27,7 +27,7 @@ AutoPtr<ITracker> Factory::getTracker(const GuiSettings& settings) {
 
 AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Pixel size) {
     CameraEnum cameraId = settings.get<CameraEnum>(GuiSettingsId::CAMERA_TYPE);
-    CameraData data;
+    CameraParams data;
     data.imageSize = size;
     data.position = settings.get<Vector>(GuiSettingsId::CAMERA_POSITION);
     data.target = settings.get<Vector>(GuiSettingsId::CAMERA_TARGET);

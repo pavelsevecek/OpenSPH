@@ -12,9 +12,16 @@ enum class GuiJobType {
 
 SPH_EXTEND_ENUM(GuiJobType, JobType);
 
+struct CameraData {
+    AutoPtr<ICamera> camera;
+    AutoPtr<ITracker> tracker;
+
+    GuiSettings overrides = EMPTY_SETTINGS;
+};
+
 class ICameraJob : public IJob {
 private:
-    SharedPtr<ICamera> camera;
+    SharedPtr<CameraData> result;
 
 protected:
     GuiSettings gui;
@@ -28,7 +35,7 @@ public:
     }
 
     virtual JobContext getResult() const override final {
-        return camera;
+        return result;
     }
 
     virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
