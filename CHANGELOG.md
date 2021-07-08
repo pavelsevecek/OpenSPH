@@ -2,6 +2,7 @@
 - added GUI settings dialog
 - added option to set the default colorizer
 - removed strict type safety from ExtendedEnum
+- added angular histogram
 
 ## 2021-07-06
 - explicitly setting path type for all path entries

@@ -932,7 +932,7 @@ Array<Post::HistPoint> Post::getDifferentialHistogram(ArrayView<const Float> val
     Size binCnt = params.binCnt;
     if (binCnt == 0) {
         // estimate initial bin count as sqrt of component count
-        binCnt = Size(sqrt(Float(values.size())));
+        binCnt = Size(0.5 * sqrt(Float(values.size())));
     }
 
     Array<Size> sfd(binCnt);

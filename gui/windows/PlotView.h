@@ -43,7 +43,6 @@ public:
     /// Include zero in y-range
     bool addZeroY = false;
 
-
     PlotView(wxWindow* parent,
         const wxSize size,
         const wxSize padding,

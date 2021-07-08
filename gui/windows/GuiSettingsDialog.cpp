@@ -24,7 +24,7 @@ const static FlatMap<PlotEnum, wxString> sPlotTypes = {
     { PlotEnum::CURRENT_SFD, "Current SFD" },
     { PlotEnum::PREDICTED_SFD, "Predicted SFD" },
     { PlotEnum::SPEED_HISTOGRAM, "Speed histogram" },
-    //{ PlotEnum::ANGULAR_HISTOGRAM_OF_VELOCITIES, "Angular histogram of velocities" },
+    { PlotEnum::ANGULAR_HISTOGRAM_OF_VELOCITIES, "Angular histogram of velocities" },
     { PlotEnum::SELECTED_PARTICLE, "Selected particle" },
 };
 
@@ -60,8 +60,8 @@ GuiSettingsDialog::GuiSettingsDialog(wxWindow* parent)
     wxStaticBoxSizer* plotBox = new wxStaticBoxSizer(wxVERTICAL, this, "Plots");
     wxGridSizer* plotGrid = new wxGridSizer(2, 1, 1);
     const Flags<PlotEnum> plotFlags = gui.getFlags<PlotEnum>(GuiSettingsId::PLOT_INTEGRALS);
-    wxCheckBox* sfdCheck1;
-    wxCheckBox* sfdCheck2;
+    wxCheckBox* sfdCheck1 = nullptr;
+    wxCheckBox* sfdCheck2 = nullptr;
     for (const auto& p : sPlotTypes) {
         wxCheckBox* check = new wxCheckBox(plotBox->GetStaticBox(), wxID_ANY, p.value);
         check->SetValue(plotFlags.has(p.key));

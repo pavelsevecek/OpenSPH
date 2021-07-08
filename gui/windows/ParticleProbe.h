@@ -40,9 +40,7 @@ private:
 public:
     ParticleProbe(wxWindow* parent, const wxSize size)
         : wxPanel(parent, wxID_ANY, wxDefaultPosition, size) {
-
         this->SetMinSize(size);
-        this->SetMaxSize(size);
 
         // Connect handlers
         Connect(wxEVT_PAINT, wxPaintEventHandler(ParticleProbe::onPaint));

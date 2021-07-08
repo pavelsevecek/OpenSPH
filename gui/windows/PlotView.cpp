@@ -24,7 +24,7 @@ PlotView::PlotView(wxWindow* parent,
     , padding(padding)
     , list(list)
     , ticsParams(ticsParams) {
-    this->SetMaxSize(size);
+    this->SetMinSize(size);
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(PlotView::onPaint));
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(PlotView::onRightUp));
     this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(PlotView::onDoubleClick));
@@ -33,8 +33,8 @@ PlotView::PlotView(wxWindow* parent,
 }
 
 void PlotView::resize(const Pixel size) {
-    //    this->SetMaxSize(wxSize(size.x, size.y));
-    this->SetSize(wxSize(size.x, size.y));
+    this->SetMinSize(wxSize(size.x, size.y));
+    // this->SetSize(wxSize(size.x, size.y));
 }
 
 static Interval extendRange(const Interval& range, const bool addZero) {
@@ -99,7 +99,9 @@ void PlotView::onDoubleClick(wxMouseEvent& UNUSED(evt)) {
     wxAuiNotebook* notebook = findNotebook(); /// \todo detach dependency via callback?
     SPH_ASSERT(notebook);
 
-    PlotPage* page = new PlotPage(notebook, wxSize(800, 600), wxSize(25, 25), cached.plot);
+    const wxSize pad(25, 25);
+    const wxSize size = notebook->GetClientSize() - wxSize(15, 60);
+    PlotPage* page = new PlotPage(notebook, size, pad, cached.plot);
 
     const Size index = notebook->GetPageCount();
     // needs to be called before, AddPage calls onPaint, which locks the mutex
@@ -245,8 +247,11 @@ wxBoxSizer* PlotPage::createToolbar(const Size UNUSED(toolbarHeight)) {
 
     wxButton* savePlotButton = new wxButton(this, wxID_ANY, "Save Plot");
     savePlotButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
-        Optional<Path> path =
-            doSaveFileDialog("Save image", { { "PNG image", "png" }, { "SVG image", "svg" } });
+        Optional<Path> path = doSaveFileDialog("Save image",
+            {
+                { "PNG image", "png" },
+                { "SVG image", "svg" },
+            });
         if (path) {
             this->saveImage(path.value());
         }
@@ -255,7 +260,10 @@ wxBoxSizer* PlotPage::createToolbar(const Size UNUSED(toolbarHeight)) {
 
     wxButton* saveDataButton = new wxButton(this, wxID_ANY, "Save Data");
     saveDataButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
-        Optional<Path> path = doSaveFileDialog("Save data", { { "Text file", "txt" } });
+        Optional<Path> path = doSaveFileDialog("Save data",
+            {
+                { "Text file", "txt" },
+            });
         if (path) {
             this->saveData(path.value());
         }

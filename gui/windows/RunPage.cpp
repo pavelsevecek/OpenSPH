@@ -554,7 +554,7 @@ wxPanel* RunPage::createPlotBar() {
     wxPanel* sidebarPanel = new wxPanel(this);
     wxBoxSizer* sidebarSizer = new wxBoxSizer(wxVERTICAL);
     probe = new ParticleProbe(sidebarPanel, wxSize(300, 155));
-    sidebarSizer->Add(probe.get(), 0, wxALIGN_TOP);
+    sidebarSizer->Add(probe.get(), 1, wxALIGN_TOP | wxEXPAND);
     sidebarSizer->AddSpacer(5);
 
     SharedPtr<Array<PlotData>> list = makeShared<Array<PlotData>>(getPlotList(gui));
@@ -566,11 +566,11 @@ wxPanel* RunPage::createPlotBar() {
     tics.minCnt = 2;
     tics.digits = 1;
     firstPlot = new PlotView(sidebarPanel, wxSize(300, 200), wxSize(10, 10), list, 0, tics);
-    sidebarSizer->Add(firstPlot, 0, wxALIGN_TOP);
+    sidebarSizer->Add(firstPlot, 1, wxALIGN_TOP | wxEXPAND);
     sidebarSizer->AddSpacer(5);
 
     secondPlot = new PlotView(sidebarPanel, wxSize(300, 200), wxSize(10, 10), list, 1, tics);
-    sidebarSizer->Add(secondPlot, 0, wxALIGN_TOP);
+    sidebarSizer->Add(secondPlot, 1, wxALIGN_TOP | wxEXPAND);
 
     sidebarPanel->SetSizerAndFit(sidebarSizer);
     return sidebarPanel;

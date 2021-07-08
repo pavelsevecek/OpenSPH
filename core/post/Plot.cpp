@@ -180,7 +180,7 @@ void HistogramPlot::onTimeStep(const Storage& storage, const Statistics& stats) 
     lastTime = time;
 
     Post::HistogramParams params;
-    params.binCnt = 20;
+    params.binCnt = 0;
     if (interval) {
         params.range = interval.value();
     }
@@ -209,6 +209,65 @@ void HistogramPlot::plot(IDrawingContext& dc) const {
         dc.drawLine({ points[i + 1].value, Float(points[i].count) },
             { points[i + 1].value, Float(points[i + 1].count) });
     }
+}
+
+// ----------------------------------------------------------------------------------------------------------
+// AngularHistogramPlot
+// ----------------------------------------------------------------------------------------------------------
+
+AngularHistogramPlot::AngularHistogramPlot(const Float period)
+    : period(period) {}
+
+void AngularHistogramPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
+    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
+    if (time - lastTime < period) {
+        return;
+    }
+    lastTime = time;
+
+    ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+    Array<Float> angles(v.size());
+    for (Size i = 0; i < v.size(); ++i) {
+        angles[i] = atan2(v[i][Y], v[i][X]);
+    }
+
+    Post::HistogramParams params;
+    params.binCnt = 0;
+    params.range = Interval(-PI, PI);
+    Array<Post::HistPoint> hist = Post::getDifferentialHistogram(angles, params);
+
+    this->clear();
+    points.clear();
+    for (const Post::HistPoint& p : hist) {
+        const Float x = p.count * cos(p.value);
+        const Float y = p.count * sin(p.value);
+        points.push(PlotPoint{ x, y });
+        ranges.x.extend(x);
+        ranges.y.extend(y);
+    }
+
+    // include (0,0)
+    ranges.x.extend(0._f);
+    ranges.y.extend(0._f);
+
+    // make square
+    ranges.x.extend(ranges.y);
+    ranges.y.extend(ranges.x);
+}
+
+void AngularHistogramPlot::clear() {
+    ranges.x = Interval();
+    ranges.y = Interval();
+}
+
+void AngularHistogramPlot::plot(IDrawingContext& dc) const {
+    if (points.size() <= 1) {
+        return;
+    }
+    for (Size i = 0; i < points.size() - 1; ++i) {
+        dc.drawLine(points[i], points[i + 1]);
+    }
+    dc.drawLine(points.back(), points.front());
 }
 
 // ----------------------------------------------------------------------------------------------------------

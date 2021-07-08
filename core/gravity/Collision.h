@@ -167,7 +167,7 @@ public:
         Vector omega_merger;
         SymmetricTensor I_merger;
         Vector L_merger;
-        Tensor E_merger;
+        Tensor E_merger = Tensor::identity();
 
         // Never modify particle values below UNTIL we know the collision is accepted; save the preliminary
         // values to _merger variables!
@@ -481,7 +481,7 @@ public:
         // this handler allows overlaps of particles, so it should never be used with point particles, as we
         // could potentially get infinite accelerations
         SPH_ASSERT(settings.get<GravityKernelEnum>(RunSettingsId::GRAVITY_KERNEL) !=
-               GravityKernelEnum::POINT_PARTICLES);
+                   GravityKernelEnum::POINT_PARTICLES);
     }
 
     virtual void initialize(Storage& storage) override {

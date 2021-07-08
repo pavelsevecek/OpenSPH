@@ -216,6 +216,13 @@ Array<PlotData> getPlotList(const GuiSettings& gui) {
         list.push(data);
     }
 
+    if (flags.has(PlotEnum::ANGULAR_HISTOGRAM_OF_VELOCITIES)) {
+        data.plot = makeLocking<AngularHistogramPlot>(params.period);
+        data.color = Rgba(wxColour(250, 100, 50));
+        list.push(data);
+    }
+
+
     /*if (flags.has(PlotEnum::PERIOD_HISTOGRAM)) {
         data.plot = makeLocking<HistogramPlot>(
             Post::HistogramId::ROTATIONAL_PERIOD, Interval(0._f, 10._f), "Rotational periods");

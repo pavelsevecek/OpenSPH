@@ -288,6 +288,31 @@ public:
     virtual void plot(IDrawingContext& dc) const override;
 };
 
+/// \brief Differential histogram of angular distribution.
+///
+/// Currently fixed for velocities.
+class AngularHistogramPlot : public IPlot {
+    /// Histogram points
+    Array<PlotPoint> points;
+
+    Float period;
+
+    Float lastTime = -INFTY;
+
+public:
+    explicit AngularHistogramPlot(const Float period);
+
+    virtual std::string getCaption() const override {
+        return "Angular histogram of velocities";
+    }
+
+    virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;
+
+    virtual void clear() override;
+
+    virtual void plot(IDrawingContext& dc) const override;
+};
+
 class SfdPlot : public IPlot {
 private:
     Post::HistogramSource source;
