@@ -7,6 +7,8 @@
 - fixed camera tracking and camera velocity
 - added camera orbit to camera jobs
 - added units to camera parameters
+- switched the default colorizer to velocity
+- properly selecting the default colorizer
 
 ## 2021-07-06
 - explicitly setting path type for all path entries

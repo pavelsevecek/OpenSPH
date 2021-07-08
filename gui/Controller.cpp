@@ -55,7 +55,8 @@ void Controller::Vis::initialize(const Project& project) {
     const GuiSettings& gui = project.getGuiSettings();
 
     renderer = Factory::getRenderer(gui);
-    colorizer = Factory::getColorizer(project, ColorizerId::VELOCITY);
+    const ColorizerId id = gui.get<ColorizerId>(GuiSettingsId::DEFAULT_COLORIZER);
+    colorizer = Factory::getColorizer(project, id);
     timer = makeAuto<Timer>(gui.get<int>(GuiSettingsId::VIEW_MAX_FRAMERATE), TimerFlags::START_EXPIRED);
     const Pixel size(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
     camera = Factory::getCamera(gui, size);
@@ -753,7 +754,7 @@ void Controller::startRenderThread() {
             toWxBitmap(bitmap, *newBitmap);
 
             // Capture page as weak ref as we need to check it first, this might not exit anymore!
-            auto callback = [& vis = vis,
+            auto callback = [&vis = vis,
                                 page = page,
                                 bitmap = std::move(newBitmap),
                                 labels = std::move(labels)]() mutable {

@@ -162,7 +162,7 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "TODO" },
     { GuiSettingsId::CONTOUR_SHOW_LABELS,   "contour.show_labels",  true,
         "TODO" },
-    { GuiSettingsId::DEFAULT_COLORIZER,     "default_colorizer",    ColorizerId::ACCELERATION,
+    { GuiSettingsId::DEFAULT_COLORIZER,     "default_colorizer",    ColorizerId::VELOCITY,
         "Default colorizer shown when the simulation starts." },
 
     /// Window settings
