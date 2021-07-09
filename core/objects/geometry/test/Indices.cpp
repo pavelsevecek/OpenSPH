@@ -58,10 +58,6 @@ TEST_CASE("Indices comparison", "[indices]") {
 
 TEST_CASE("Indices conversion", "[indices]") {
     Vector v(1.5_f, 2.4_f, 5._f);
-
-    /// \todo get rid of necessity to call Indices::init
-    Indices::init();
-
     Indices i(v);
 
     REQUIRE(i[0] == 1);
@@ -72,26 +68,30 @@ TEST_CASE("Indices conversion", "[indices]") {
     REQUIRE(v2 == Vector(1._f, 2._f, 5._f));
 }
 
-/*TEST_CASE("GetByMultiIndex", "[indices]") {
-    Array<Indices> values(0, 3);
-    for (int i = 0; i < 3; ++i) {
-        values.push(Indices(1, 1, 1));
-    }
-    auto refs = getByMultiIndex(values, Indices(1, 0, 2));
-    refs      = Indices(5, 6, 7);
-    REQUIRE(values[0] == Indices(1, 6, 1));
-    REQUIRE(values[1] == Indices(5, 1, 1));
-    REQUIRE(values[2] == Indices(1, 1, 7));
+TEST_CASE("Indices random access", "[indices]") {
+    Indices i(4, 5, 6);
+    i[2]++;
+    REQUIRE(all(i == Indices(4, 5, 7)));
+    REQUIRE(i[0] == 4);
+    REQUIRE(i[1] == 5);
+    REQUIRE(i[2] == 7);
+    REQUIRE(i[3] == 0);
+
+    i[1]--;
+    REQUIRE(all(i == Indices(4, 4, 7)));
+    REQUIRE(i[0] == 4);
+    REQUIRE(i[1] == 4);
+    REQUIRE(i[2] == 7);
+    REQUIRE(i[3] == 0);
+
+    REQUIRE_SPH_ASSERT(i[4]);
 }
 
-TEST_CASE("GetByMultiIndex 2", "[indices]") {
-    Array<Vector> values(0, 3);
-    for (int i = 0; i < 3; ++i) {
-        values.push(Vector(1.f, 1.f, 1.f));
-    }
-    auto refs = getByMultiIndex(values, Indices(1, 0, 2));
-    refs      = makeIndices(5.f, 6.f, 7.f);
-    REQUIRE(values[0] == Vector(1.f, 6.f, 1.f));
-    REQUIRE(values[1] == Vector(5.f, 1.f, 1.f));
-    REQUIRE(values[2] == Vector(1.f, 1.f, 7.f));
-}*/
+TEST_CASE("Indices arithmetics", "[indices]") {
+    Indices i1(2, 4, 3);
+    Indices i2(5, -1, 2);
+    REQUIRE(all(i1 + i2 == Indices(7, 3, 5)));
+    REQUIRE(all(i1 - i2 == Indices(-3, 5, 1)));
+    REQUIRE(all(i1.max(i2) == Indices(5, 4, 3)));
+    REQUIRE(all(i1.min(i2) == Indices(2, -1, 2)));
+}

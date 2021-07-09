@@ -15,21 +15,28 @@ NAMESPACE_SPH_BEGIN
 /// Helper object for storing three (possibly four) int or bool values.
 class Indices {
 private:
-    __m128i data;
+    union {
+        __m128i i;
+        int a[4];
+    } data;
+
 
 public:
     INLINE Indices() = default;
 
-    INLINE Indices(__m128i data)
-        : data(data) {}
+    INLINE Indices(__m128i i) {
+        data.i = i;
+    }
 
     /// Constructs indices from single value by copying it to all components.
-    INLINE explicit Indices(const int value)
-        : data(_mm_set1_epi32(value)) {}
+    INLINE explicit Indices(const int value) {
+        data.i = _mm_set1_epi32(value);
+    }
 
     /// Constructs indices from values. Fourth component is optional.
-    INLINE Indices(const int i, const int j, const int k, const int l = 0)
-        : data(_mm_set_epi32(l, k, j, i)) {}
+    INLINE Indices(const int i, const int j, const int k, const int l = 0) {
+        data.i = _mm_set_epi32(l, k, j, i);
+    }
 
 /// Constructs indices by casting components of vectors to ints
 #ifndef SPH_NO_ROUNDING_MODE
@@ -78,44 +85,44 @@ public:
 
     INLINE int& operator[](const int idx) {
         SPH_ASSERT(unsigned(idx) < 4);
-        return *(reinterpret_cast<int*>(&data) + idx);
+        return data.a[idx];
     }
 
     INLINE int operator[](const int idx) const {
         SPH_ASSERT(unsigned(idx) < 4);
-        return *(reinterpret_cast<const int*>(&data) + idx);
+        return data.a[idx];
     }
 
     INLINE Indices operator==(const Indices& other) const {
-        return _mm_cmpeq_epi32(data, other.data);
+        return _mm_cmpeq_epi32(data.i, other.data.i);
     }
 
     INLINE Indices operator!=(const Indices& other) {
-        return _mm_xor_si128(_mm_cmpeq_epi32(data, other.data), _mm_set1_epi32(-1));
+        return _mm_xor_si128(_mm_cmpeq_epi32(data.i, other.data.i), _mm_set1_epi32(-1));
     }
 
     INLINE Indices operator>(const Indices& other) const {
-        return _mm_cmpgt_epi32(data, other.data);
+        return _mm_cmpgt_epi32(data.i, other.data.i);
     }
 
     INLINE Indices operator<(const Indices& other) const {
-        return _mm_cmplt_epi32(data, other.data);
+        return _mm_cmplt_epi32(data.i, other.data.i);
     }
 
     INLINE Indices operator+(const Indices& other) const {
-        return _mm_add_epi32(data, other.data);
+        return _mm_add_epi32(data.i, other.data.i);
     }
 
     INLINE Indices operator-(const Indices& other) const {
-        return _mm_sub_epi32(data, other.data);
+        return _mm_sub_epi32(data.i, other.data.i);
     }
 
     INLINE Indices max(const Indices& other) const {
-        return _mm_max_epi32(data, other.data);
+        return _mm_max_epi32(data.i, other.data.i);
     }
 
     INLINE Indices min(const Indices& other) const {
-        return _mm_min_epi32(data, other.data);
+        return _mm_min_epi32(data.i, other.data.i);
     }
 
     friend std::ostream& operator<<(std::ostream& stream, const Indices& idxs) {

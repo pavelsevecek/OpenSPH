@@ -9,6 +9,7 @@
 - added units to camera parameters
 - switched the default colorizer to velocity
 - properly selecting the default colorizer
+- fixed bugged Perlin noise
 
 ## 2021-07-06
 - explicitly setting path type for all path entries
