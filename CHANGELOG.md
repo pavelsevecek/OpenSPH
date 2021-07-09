@@ -1,5 +1,7 @@
 ## 2021-07-09
 - optimized NBodyIc
+- optimized GalaxyIc
+- fixed crash when closing paused simulation
 
 ## 2021-07-08
 - added GUI settings dialog

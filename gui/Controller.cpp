@@ -353,7 +353,7 @@ bool Controller::shouldAbortRun() const {
 }
 
 bool Controller::isRunning() const {
-    return status == RunStatus::RUNNING;
+    return status == RunStatus::RUNNING || status == RunStatus::PAUSED;
 }
 
 Array<ExtColorizerId> getColorizerIds() {

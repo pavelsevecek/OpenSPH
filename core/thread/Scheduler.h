@@ -6,6 +6,7 @@
 /// \date 2016-2021
 
 #include "common/ForwardDecl.h"
+#include "objects/utility/IteratorAdapters.h"
 #include "objects/wrappers/Function.h"
 
 NAMESPACE_SPH_BEGIN
@@ -120,6 +121,14 @@ INLINE void parallelFor(IScheduler& scheduler,
             functor(i);
         }
     });
+}
+
+/// \brief Executes a functor concurrently from all available threads.
+///
+/// Overload using an index sequence.
+template <typename TFunctor>
+INLINE void parallelFor(IScheduler& scheduler, const IndexSequence& sequence, TFunctor&& functor) {
+    parallelFor(scheduler, *sequence.begin(), *sequence.end(), std::forward<TFunctor>(functor));
 }
 
 

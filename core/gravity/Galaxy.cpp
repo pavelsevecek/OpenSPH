@@ -277,7 +277,7 @@ static void computeDiskVelocities(IScheduler& scheduler,
 
     const IndexSequence sequence = getPartSequence(storage, Galaxy::PartEnum::DISK);
 
-    BarnesHut gravity(0.5_f, MultipoleOrder::OCTUPOLE, SolidSphereKernel{}, 25, 50, 1._f);
+    BarnesHut gravity(0.8_f, MultipoleOrder::OCTUPOLE, SolidSphereKernel{}, 25, 50, 1._f);
     // BruteForceGravity gravity(SolidSphereKernel{}, 1._f);
     gravity.build(scheduler, storage);
     Statistics stats;
@@ -306,7 +306,7 @@ static void computeDiskVelocities(IScheduler& scheduler,
     const Float A = sqr(sigma) / diskSurfaceDensity(r_ref, r0, m_disk);
     SPH_ASSERT(A >= 0._f, A);
 
-    for (Size i : sequence) {
+    parallelFor(scheduler, sequence, [&](const Size i) {
         const Float radius = sqrt(sqr(r[i][X]) + sqr(r[i][Y]));
         const Float vz2 = PI * z0 * diskSurfaceDensity(sqrt(sqr(radius) + 2._f * sqr(as)), r0, m_disk);
         const Float vz = sampleNormalDistribution(rng, 0._f, vz2);
@@ -340,7 +340,7 @@ static void computeDiskVelocities(IScheduler& scheduler,
         v[i][X] = vr * c - va * s;
         v[i][Y] = vr * s + va * c;
         v[i][Z] = vz;
-    }
+    });
 }
 
 template <typename TFunc>
