@@ -52,20 +52,20 @@ public:
         return ArrayView<const T, TCounter>(data, actSize);
     }
 
-    INLINE Iterator<StorageType, TCounter> begin() {
-        return Iterator<StorageType, TCounter>(data, data, data + actSize);
+    INLINE Iterator<StorageType> begin() {
+        return Iterator<StorageType>(data, data, data + actSize);
     }
 
-    INLINE Iterator<const StorageType, TCounter> begin() const {
-        return Iterator<const StorageType, TCounter>(data, data, data + actSize);
+    INLINE Iterator<const StorageType> begin() const {
+        return Iterator<const StorageType>(data, data, data + actSize);
     }
 
-    INLINE Iterator<StorageType, TCounter> end() {
-        return Iterator<StorageType, TCounter>(data + actSize, data, data + actSize);
+    INLINE Iterator<StorageType> end() {
+        return Iterator<StorageType>(data + actSize, data, data + actSize);
     }
 
-    INLINE Iterator<const StorageType, TCounter> end() const {
-        return Iterator<const StorageType, TCounter>(data + actSize, data, data + actSize);
+    INLINE Iterator<const StorageType> end() const {
+        return Iterator<const StorageType>(data + actSize, data, data + actSize);
     }
 
     INLINE T& operator[](const TCounter idx) {

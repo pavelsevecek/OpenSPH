@@ -14,7 +14,7 @@ NAMESPACE_SPH_BEGIN
 /// \brief Simple (forward) iterator over continuous array of objects of type T.
 ///
 /// Can be used with STL algorithms.
-template <typename T, typename TCounter = Size>
+template <typename T>
 class Iterator {
 protected:
     using TValue = typename UnwrapReferenceType<T>::Type;
@@ -29,6 +29,8 @@ protected:
         : data(data) {}
 #endif
 public:
+    using TCounter = ptrdiff_t;
+
     using iterator_category = std::random_access_iterator_tag;
     using value_type = T;
     using difference_type = ptrdiff_t;
@@ -103,7 +105,7 @@ public:
         operator--();
         return tmp;
     }
-    INLINE Size operator-(const Iterator& iter) const {
+    INLINE difference_type operator-(const Iterator& iter) const {
         SPH_ASSERT(data >= iter.data);
         return data - iter.data;
     }

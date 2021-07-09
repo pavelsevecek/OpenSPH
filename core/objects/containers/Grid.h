@@ -46,11 +46,11 @@ public:
         return dimensions[X] * dimensions[Y] * dimensions[Z];
     }
 
-    Iterator<T, uint64_t> begin() {
+    Iterator<T> begin() {
         return data.begin();
     }
 
-    Iterator<T, uint64_t> end() {
+    Iterator<T> end() {
         return data.end();
     }
 

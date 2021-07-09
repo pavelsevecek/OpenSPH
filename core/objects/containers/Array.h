@@ -443,28 +443,28 @@ public:
         std::swap(actSize, other.actSize);
     }
 
-    INLINE Iterator<StorageType, TCounter> begin() noexcept {
-        return Iterator<StorageType, TCounter>(data, data, data + actSize);
+    INLINE Iterator<StorageType> begin() noexcept {
+        return Iterator<StorageType>(data, data, data + actSize);
     }
 
-    INLINE Iterator<const StorageType, TCounter> begin() const noexcept {
-        return Iterator<const StorageType, TCounter>(data, data, data + actSize);
+    INLINE Iterator<const StorageType> begin() const noexcept {
+        return Iterator<const StorageType>(data, data, data + actSize);
     }
 
-    INLINE Iterator<const StorageType, TCounter> cbegin() const noexcept {
-        return Iterator<const StorageType, TCounter>(data, data, data + actSize);
+    INLINE Iterator<const StorageType> cbegin() const noexcept {
+        return Iterator<const StorageType>(data, data, data + actSize);
     }
 
-    INLINE Iterator<StorageType, TCounter> end() noexcept {
-        return Iterator<StorageType, TCounter>(data + actSize, data, data + actSize);
+    INLINE Iterator<StorageType> end() noexcept {
+        return Iterator<StorageType>(data + actSize, data, data + actSize);
     }
 
-    INLINE Iterator<const StorageType, TCounter> end() const noexcept {
-        return Iterator<const StorageType, TCounter>(data + actSize, data, data + actSize);
+    INLINE Iterator<const StorageType> end() const noexcept {
+        return Iterator<const StorageType>(data + actSize, data, data + actSize);
     }
 
-    INLINE Iterator<const StorageType, TCounter> cend() const noexcept {
-        return Iterator<const StorageType, TCounter>(data + actSize, data, data + actSize);
+    INLINE Iterator<const StorageType> cend() const noexcept {
+        return Iterator<const StorageType>(data + actSize, data, data + actSize);
     }
 
     /// \brief Returns the interface to the allocator.
