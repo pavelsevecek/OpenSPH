@@ -21,8 +21,9 @@ set(CORE_SOURCES
     objects/finders/NeighbourFinder.cpp 
     objects/finders/PeriodicFinder.cpp 
     objects/finders/UniformGrid.cpp 
-    objects/geometry/Domain.cpp 
-    objects/geometry/SymmetricTensor.cpp 
+    objects/finders/PointCloud.cpp
+    objects/geometry/Domain.cpp
+    objects/geometry/SymmetricTensor.cpp
     objects/utility/Dynamic.cpp 
     objects/utility/StringUtils.cpp 
     objects/wrappers/Interval.cpp 
@@ -163,6 +164,7 @@ set(CORE_HEADERS
     objects/finders/NeighbourFinder.h 
     objects/finders/Octree.h 
     objects/finders/Order.h 
+    objects/finders/PointCloud.h
     objects/finders/UniformGrid.h 
     objects/geometry/AntisymmetricTensor.h 
     objects/geometry/Box.h 

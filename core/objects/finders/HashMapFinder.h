@@ -24,13 +24,6 @@ public:
     };
 
 private:
-    class IndicesEqual {
-    public:
-        INLINE bool operator()(const Indices& i1, const Indices& i2) const {
-            return all(i1 == i2);
-        }
-    };
-
     std::unordered_map<Indices, Cell, std::hash<Indices>, IndicesEqual> map;
     Float cellSize;
     Float kernelRadius;

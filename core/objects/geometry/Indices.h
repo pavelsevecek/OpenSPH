@@ -154,6 +154,12 @@ INLINE auto floor(const Vector& v) {
     return Indices(int(std::floor(v[X])), int(std::floor(v[Y])), int(std::floor(v[Z])));
 }
 
+struct IndicesEqual {
+    INLINE bool operator()(const Indices& i1, const Indices& i2) const {
+        return all(i1 == i2);
+    }
+};
+
 NAMESPACE_SPH_END
 
 template <>

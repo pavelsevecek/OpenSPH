@@ -1,3 +1,6 @@
+## 2021-07-09
+- optimized NBodyIc
+
 ## 2021-07-08
 - added GUI settings dialog
 - added option to set the default colorizer

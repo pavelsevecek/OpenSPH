@@ -25,6 +25,7 @@ SOURCES += \
     objects/finders/KdTree.cpp \
     objects/finders/NeighbourFinder.cpp \
     objects/finders/PeriodicFinder.cpp \
+    objects/finders/PointCloud.cpp \
     objects/finders/UniformGrid.cpp \
     objects/geometry/Domain.cpp \
     objects/geometry/SymmetricTensor.cpp \
@@ -167,6 +168,7 @@ HEADERS += \
     objects/finders/BruteForceFinder.h \
     objects/finders/Bvh.h \
     objects/finders/HashMapFinder.h \
+    objects/finders/PointCloud.h \
     objects/finders/KdTree.h \
     objects/finders/KdTree.inl.h \
     objects/finders/LinkedList.h \

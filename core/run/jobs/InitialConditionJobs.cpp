@@ -1,5 +1,6 @@
 #include "run/jobs/InitialConditionJobs.h"
 #include "gravity/IGravity.h"
+#include "objects/finders/PointCloud.h"
 #include "objects/geometry/Sphere.h"
 #include "physics/Eos.h"
 #include "physics/Functions.h"
@@ -815,7 +816,7 @@ void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     const PowerLawSfd sfd{ sizeExponent, interval };
 
     AutoPtr<IRng> rng = Factory::getRng(global);
-    Array<Vector> positions;
+    PointCloud cloud(radius / 10);
     Size bailoutCounter = 0;
     const Float sep = 1._f;
     const Size reportStep = max(particleCnt / 1000, 1u);
@@ -825,30 +826,28 @@ void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
         v[H] = sfd(rng(3));
 
         // check for intersections
-        bool intersection = false;
-        for (Size i = 0; i < positions.size(); ++i) {
-            if (Sphere(v, sep * v[H]).intersects(Sphere(positions[i], sep * positions[i][H]))) {
-                intersection = true;
-                break;
-            }
-        }
-        if (intersection) {
+        if (cloud.getClosePointsCount(v, sep * v[H]) > 0) {
             // discard
             bailoutCounter++;
             continue;
         }
-        positions.push(v);
+        cloud.push(v);
         bailoutCounter = 0;
 
-        if (positions.size() % reportStep == reportStep - 1) {
+        if (cloud.size() % reportStep == reportStep - 1) {
             Statistics stats;
-            stats.set(StatisticsId::RELATIVE_PROGRESS, Float(positions.size()) / particleCnt);
+            stats.set(StatisticsId::RELATIVE_PROGRESS, Float(cloud.size()) / particleCnt);
             callbacks.onTimeStep(Storage(), stats);
+
+            if (callbacks.shouldAbortRun()) {
+                return;
+            }
         }
 
-    } while (positions.size() < particleCnt && bailoutCounter < 1000);
+    } while (cloud.size() < particleCnt && bailoutCounter < 1000);
 
     // assign masses
+    Array<Vector> positions = cloud.array();
     Array<Float> masses(positions.size());
 
     Float m_sum = 0._f;

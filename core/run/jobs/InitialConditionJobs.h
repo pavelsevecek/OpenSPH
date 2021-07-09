@@ -226,7 +226,7 @@ public:
     }
 
     virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
-        return { { "shape", JobType::GEOMETRY } };
+        return {};
     }
 
 
