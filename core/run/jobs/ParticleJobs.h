@@ -20,7 +20,10 @@ public:
     }
 
     virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
-        return { { "particles A", JobType::PARTICLES }, { "particles B", JobType::PARTICLES } };
+        return {
+            { "particles A", JobType::PARTICLES },
+            { "particles B", JobType::PARTICLES },
+        };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -32,6 +35,7 @@ class MultiJoinParticlesJob : public IParticleJob {
 private:
     int slotCnt = 3;
     bool moveToCom = false;
+    bool uniqueFlags = false;
 
 public:
     MultiJoinParticlesJob(const std::string& name)

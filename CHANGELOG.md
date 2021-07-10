@@ -1,3 +1,9 @@
+## 2021-07-10
+- added basic polytrope model
+- fixed limited range of float entries in property grid
+- made mass palette logarithmic
+- added flag renumbering in multi-join
+
 ## 2021-07-09
 - optimized NBodyIc
 - optimized GalaxyIc

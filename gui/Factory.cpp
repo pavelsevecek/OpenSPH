@@ -206,7 +206,7 @@ struct PaletteDesc {
 
 static FlatMap<ExtColorizerId, PaletteDesc> paletteDescs = {
     { QuantityId::DENSITY, { Interval(2650._f, 2750._f), PaletteScale::LINEAR } },
-    { QuantityId::MASS, { Interval(0._f, 1.e10_f), PaletteScale::LINEAR } },
+    { QuantityId::MASS, { Interval(1.e5_f, 1.e10_f), PaletteScale::LOGARITHMIC } },
     { QuantityId::PRESSURE, { Interval(-1.e5_f, 1.e10_f), PaletteScale::HYBRID } },
     { QuantityId::ENERGY, { Interval(1._f, 1.e6_f), PaletteScale::LOGARITHMIC } },
     { QuantityId::DEVIATORIC_STRESS, { Interval(0._f, 1.e10_f), PaletteScale::LINEAR } },

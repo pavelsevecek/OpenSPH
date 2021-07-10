@@ -8,7 +8,6 @@ SOURCES += \
     common/Assert.cpp \
     gravity/AggregateSolver.cpp \
     gravity/BarnesHut.cpp \
-    gravity/Galaxy.cpp \
     gravity/NBodySolver.cpp \
     io/FileManager.cpp \
     io/FileSystem.cpp \
@@ -66,7 +65,7 @@ SOURCES += \
     run/jobs/ScriptJobs.cpp \
     run/jobs/SimulationJobs.cpp \
     sph/Diagnostics.cpp \
-    sph/Material.cpp \
+    sph/Materials.cpp \
     sph/boundary/Boundary.cpp \
     sph/equations/Accumulated.cpp \
     sph/equations/Derivative.cpp \
@@ -77,6 +76,8 @@ SOURCES += \
     sph/initial/Distribution.cpp \
     sph/initial/Initial.cpp \
     sph/initial/MeshDomain.cpp \
+    sph/initial/Galaxy.cpp \
+    sph/initial/Stellar.cpp \
     sph/solvers/AsymmetricSolver.cpp \
     sph/solvers/EnergyConservingSolver.cpp \
     sph/solvers/EquilibriumSolver.cpp \
@@ -118,7 +119,6 @@ HEADERS += \
     gravity/BruteForceGravity.h \
     gravity/CachedGravity.h \
     gravity/Collision.h \
-    gravity/Galaxy.h \
     gravity/IGravity.h \
     gravity/Moments.h \
     gravity/NBodySolver.h \
@@ -284,6 +284,8 @@ HEADERS += \
     sph/initial/Distribution.h \
     sph/initial/Initial.h \
     sph/initial/MeshDomain.h \
+    sph/initial/Stellar.h \
+    sph/initial/Galaxy.h \
     sph/kernel/GravityKernel.h \
     sph/kernel/Interpolation.h \
     sph/kernel/Kernel.h \
@@ -309,7 +311,6 @@ HEADERS += \
     system/Platform.h \
     system/Process.h \
     system/Profiler.h \
-    system/RunCallbacks.h \
     system/ScriptUtils.h \
     system/Settings.h \
     system/Settings.impl.h \

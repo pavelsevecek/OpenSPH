@@ -29,7 +29,7 @@ public:
 /// Equation of state for ideal gas.
 class IdealGasEos : public IEos {
 private:
-    const Float gamma;
+    Float gamma;
 
 public:
     explicit IdealGasEos(const Float gamma);

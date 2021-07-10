@@ -11,6 +11,7 @@
 #include "sph/Materials.h"
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"
+#include "sph/initial/Stellar.h"
 #include "sph/solvers/EquilibriumSolver.h"
 #include "system/Factory.h"
 #include "system/Settings.impl.h"
@@ -887,6 +888,40 @@ static JobRegistrar sRegisterNBodyIc(
     [](const std::string& name) { return makeAuto<NBodyIc>(name); },
     "Creates a spherical or ellipsoidal cloud of particles.");
 
+
+// ----------------------------------------------------------------------------------------------------------
+// PolytropicStarICs
+// ----------------------------------------------------------------------------------------------------------
+
+PolytropicStarIc::PolytropicStarIc(const std::string& name)
+    : IParticleJob(name) {}
+
+VirtualSettings PolytropicStarIc::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+
+    VirtualSettings::Category& starCat = connector.addCategory("Star parameters");
+    starCat.connect("Particle count", "particleCnt", particleCnt);
+    starCat.connect("Radius [R_sun]", "radius", radius).setUnits(Constants::R_sun);
+    starCat.connect("Mass [M_sun]", "mass", mass).setUnits(Constants::M_sun);
+    starCat.connect("Polytrope index", "polytrope_index", n);
+
+    return connector;
+}
+
+void PolytropicStarIc::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) {
+    Storage storage = Stellar::generateIc(global, particleCnt, radius, mass, n);
+
+    result = makeShared<ParticleData>();
+    result->storage = std::move(storage);
+}
+
+static JobRegistrar sRegisterPolytropeIc(
+    "polytrope ICs",
+    "star ICs",
+    "initial conditions",
+    [](const std::string& name) { return makeAuto<PolytropicStarIc>(name); },
+    "Creates a single polytropic star.");
 
 // ----------------------------------------------------------------------------------------------------------
 // IsothermalSphereICs

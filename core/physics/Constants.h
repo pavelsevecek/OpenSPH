@@ -31,6 +31,9 @@ constexpr Float gravity = 6.67408e-11_f; // m^3 kg^-1 s^-2
 /// Speed of light in vacuum (exactly)
 constexpr Float speedOfLight = 299792458._f; // ms^-1
 
+/// Radiation density constant 'a'.
+constexpr Float radiationDensity = 4._f * stefanBoltzmann / speedOfLight; // J m^-3 K^-4
+
 /// Astronomical unit (exactly)
 constexpr Float au = 149597870700._f; // m
 

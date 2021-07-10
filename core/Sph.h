@@ -5,7 +5,6 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2021
 
-#include "gravity/Galaxy.h"
 #include "gravity/NBodySolver.h"
 #include "io/Column.h"
 #include "io/FileSystem.h"
@@ -25,7 +24,9 @@
 #include "sph/equations/Derivative.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/initial/Distribution.h"
+#include "sph/initial/Galaxy.h"
 #include "sph/initial/Initial.h"
+#include "sph/initial/Stellar.h"
 #include "sph/kernel/Interpolation.h"
 #include "sph/kernel/Kernel.h"
 #include "sph/solvers/AsymmetricSolver.h"

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "gravity/Galaxy.h"
 #include "objects/containers/Grid.h"
 #include "run/jobs/MaterialJobs.h"
+#include "sph/initial/Galaxy.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -229,6 +229,28 @@ public:
         return {};
     }
 
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+};
+
+class PolytropicStarIc : public IParticleJob {
+private:
+    int particleCnt = 10000;
+    Float radius = Constants::R_sun;
+    Float mass = Constants::M_sun;
+    Float n = 3._f;
+
+public:
+    explicit PolytropicStarIc(const std::string& name);
+
+    virtual std::string className() const override {
+        return "polytrope ICs";
+    }
+
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+        return {};
+    }
 
     virtual VirtualSettings getSettings() override;
 
@@ -244,7 +266,7 @@ private:
     int particleCnt = 10000;
 
 public:
-    IsothermalSphereIc(const std::string& name);
+    explicit IsothermalSphereIc(const std::string& name);
 
     virtual std::string className() const override {
         return "isothermal sphere ICs";
@@ -264,7 +286,7 @@ private:
     GalaxySettings settings;
 
 public:
-    GalaxyIc(const std::string& name, const GalaxySettings& overrides = EMPTY_SETTINGS);
+    explicit GalaxyIc(const std::string& name, const GalaxySettings& overrides = EMPTY_SETTINGS);
 
     virtual std::string className() const override {
         return "galaxy ICs";

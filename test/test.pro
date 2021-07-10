@@ -118,6 +118,7 @@ SOURCES += \
     ../core/sph/equations/test/XSph.cpp \
     ../core/sph/initial/test/Distribution.cpp \
     ../core/sph/initial/test/Initial.cpp \
+    ../core/sph/initial/test/Stellar.cpp \
     ../core/sph/kernel/test/GravityKernel.cpp \
     ../core/sph/kernel/test/Interpolation.cpp \
     ../core/sph/kernel/test/Kernel.cpp \

@@ -3,7 +3,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2021
 
-#include "gravity/Galaxy.h"
+#include "sph/initial/Galaxy.h"
 #include "Common.h"
 #include "catch.hpp"
 

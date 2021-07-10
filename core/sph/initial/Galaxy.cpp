@@ -1,4 +1,4 @@
-#include "gravity/Galaxy.h"
+#include "sph/initial/Galaxy.h"
 #include "gravity/BarnesHut.h"
 #include "gravity/BruteForceGravity.h"
 #include "gravity/Moments.h"

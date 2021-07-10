@@ -1352,7 +1352,7 @@ public:
     }
 
     wxPGProperty* addFloat(const std::string& name, const Float value) const {
-        return grid->Append(new wxFloatProperty(name, wxPG_LABEL, float(value)));
+        return grid->Append(new wxFloatProperty(name, wxPG_LABEL, value));
     }
 
     wxPGProperty* addVector(const std::string& name, const Vector& value) const {

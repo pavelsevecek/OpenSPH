@@ -13,6 +13,16 @@
 
 NAMESPACE_SPH_BEGIN
 
+static void renumberFlags(const Storage& main, Storage& other) {
+    ArrayView<const Size> flags1 = main.getValue<Size>(QuantityId::FLAG);
+    const Size offset = *std::max_element(flags1.begin(), flags1.end()) + 1;
+
+    ArrayView<Size> flags2 = other.getValue<Size>(QuantityId::FLAG);
+    for (Size& f : flags2) {
+        f += offset;
+    }
+}
+
 //-----------------------------------------------------------------------------------------------------------
 // JoinParticlesJob
 //-----------------------------------------------------------------------------------------------------------
@@ -50,13 +60,7 @@ void JoinParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
     }
 
     if (uniqueFlags) {
-        ArrayView<Size> flags1 = input1->storage.getValue<Size>(QuantityId::FLAG);
-        ArrayView<Size> flags2 = input2->storage.getValue<Size>(QuantityId::FLAG);
-
-        const Size flagOffset = Size(*std::max_element(flags1.begin(), flags1.end())) + 1;
-        for (Size i = 0; i < flags2.size(); ++i) {
-            flags2[i] += flagOffset;
-        }
+        renumberFlags(input1->storage, input2->storage);
     }
 
     input1->storage.merge(std::move(input2->storage));
@@ -98,6 +102,10 @@ VirtualSettings MultiJoinParticlesJob::getSettings() {
         .setTooltip(
             "If true, the particles are moved so that their center of mass lies at the origin and their "
             "velocities are modified so that the total momentum is zero.");
+    cat.connect("Make flags unique", "unique_flags", uniqueFlags)
+        .setTooltip(
+            "If true, the particle flags of the states are renumbered to avoid overlap with "
+            "flags of other inputs. This is necessary to properly separate the input bodies.");
 
     return connector;
 }
@@ -106,6 +114,9 @@ void MultiJoinParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCall
     SharedPtr<ParticleData> main = this->getInput<ParticleData>("particles 1");
     for (int i = 1; i < slotCnt; ++i) {
         SharedPtr<ParticleData> other = this->getInput<ParticleData>("particles " + std::to_string(i + 1));
+        if (uniqueFlags) {
+            renumberFlags(main->storage, other->storage);
+        }
         main->storage.merge(std::move(other->storage));
         other->storage.removeAll();
     }

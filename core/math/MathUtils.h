@@ -363,7 +363,7 @@ INLINE constexpr Float sphereSurfaceArea(const Float radius) {
 
 /// Checks if two values are equal to some given accuracy.
 /// \note We use <= rather than < on purpose as EPS for integral types is zero.
-INLINE auto almostEqual(const Float& f1, const Float& f2, const Float& eps = EPS) {
+INLINE bool almostEqual(const Float& f1, const Float& f2, const Float& eps = EPS) {
     return abs(f1 - f2) <= eps * (1._f + max(abs(f1), abs(f2)));
 }
 
