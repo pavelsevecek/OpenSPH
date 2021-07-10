@@ -943,9 +943,10 @@ static uint64_t getHash(const Size value, const Size seed) {
     constexpr int FIRST = 37;
 
     uint64_t hash = FIRST + seed;
-    uint8_t* ptr = (uint8_t*)&value;
+    StaticArray<uint8_t, sizeof(Size)> data;
+    std::memcpy(&data[0], &value, data.size());
     for (uint i = 0; i < sizeof(uint64_t); ++i) {
-        hash = (hash * A) ^ (*ptr++ * B);
+        hash = (hash * A) ^ (data[i] * B);
     }
     return hash;
 }

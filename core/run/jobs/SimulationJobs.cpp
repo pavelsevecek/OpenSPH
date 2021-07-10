@@ -503,9 +503,12 @@ VirtualSettings NBodyJob::getSettings() {
         if (useSoft) {
             return false;
         }
-        const bool aggregates = settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE);
         const CollisionHandlerEnum handler =
             settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER);
+        if (handler == CollisionHandlerEnum::NONE) {
+            return false;
+        }
+        const bool aggregates = settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE);
         const OverlapEnum overlap = settings.get<OverlapEnum>(RunSettingsId::COLLISION_OVERLAP);
         return aggregates || handler == CollisionHandlerEnum::MERGE_OR_BOUNCE ||
                overlap == OverlapEnum::PASS_OR_MERGE || overlap == OverlapEnum::REPEL_OR_MERGE;
