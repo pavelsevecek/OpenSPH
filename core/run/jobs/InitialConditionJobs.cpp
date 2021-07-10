@@ -902,6 +902,7 @@ VirtualSettings PolytropicStarIc::getSettings() {
 
     VirtualSettings::Category& starCat = connector.addCategory("Star parameters");
     starCat.connect("Particle count", "particleCnt", particleCnt);
+    starCat.connect("Distribution", "distribution", distId);
     starCat.connect("Radius [R_sun]", "radius", radius).setUnits(Constants::R_sun);
     starCat.connect("Mass [M_sun]", "mass", mass).setUnits(Constants::M_sun);
     starCat.connect("Polytrope index", "polytrope_index", n);
@@ -909,8 +910,11 @@ VirtualSettings PolytropicStarIc::getSettings() {
     return connector;
 }
 
-void PolytropicStarIc::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) {
-    Storage storage = Stellar::generateIc(global, particleCnt, radius, mass, n);
+void PolytropicStarIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+    BodySettings body;
+    body.set(BodySettingsId::INITIAL_DISTRIBUTION, distId);
+    AutoPtr<IDistribution> distribution = Factory::getDistribution(body);
+    Storage storage = Stellar::generateIc(*distribution, particleCnt, radius, mass, n);
 
     result = makeShared<ParticleData>();
     result->storage = std::move(storage);

@@ -7,6 +7,7 @@
 #include "sph/Materials.h"
 #include "sph/initial/Distribution.h"
 #include "system/Factory.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -63,26 +64,26 @@ Stellar::Star Stellar::polytropicStar(const Float radius, const Float mass, cons
     return star;
 }
 
-Storage Stellar::generateIc(const RunSettings& globals,
+Storage Stellar::generateIc(const IDistribution& distribution,
     const Size N,
     const Float radius,
     const Float mass,
     const Float n) {
-    SharedPtr<IScheduler> scheduler = Factory::getScheduler(globals);
     SphericalDomain domain(Vector(0._f), radius);
-    ParametrizedSpiralingDistribution distr(1234);
-    Array<Vector> points = distr.generate(*scheduler, N, domain);
+    Array<Vector> points = distribution.generate(SEQUENTIAL, N, domain);
 
     Star star = polytropicStar(radius, mass, n);
 
     Array<Float> m(points.size());
     Array<Float> rho(points.size());
     Array<Float> u(points.size());
+    Array<Float> p(points.size());
     const Float v = domain.getVolume() / points.size();
     for (Size i = 0; i < points.size(); ++i) {
         const Float r = getLength(points[i]);
         rho[i] = star.rho(r);
         u[i] = star.u(r);
+        p[i] = star.p(r);
         m[i] = rho[i] * v;
     }
 
@@ -91,6 +92,7 @@ Storage Stellar::generateIc(const RunSettings& globals,
     body.set(BodySettingsId::ADIABATIC_INDEX, (n + 1._f) / n);
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
+    body.set(BodySettingsId::DENSITY_RANGE, Interval(1._f, INFTY));
 
     /// \todo add to params
     const Float eta = body.get<Float>(BodySettingsId::SMOOTHING_LENGTH_ETA);
@@ -104,9 +106,8 @@ Storage Stellar::generateIc(const RunSettings& globals,
     storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, std::move(m));
     storage.insert<Float>(QuantityId::ENERGY, OrderEnum::ZERO, std::move(u));
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, std::move(rho));
-
-    MaterialInitialContext context(globals);
-    storage.getMaterial(0)->create(storage, context);
+    storage.insert<Float>(QuantityId::PRESSURE, OrderEnum::ZERO, std::move(p));
+    storage.insert<Float>(QuantityId::SOUND_SPEED, OrderEnum::ZERO, 100._f);
 
     return storage;
 }

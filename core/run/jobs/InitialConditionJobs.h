@@ -237,6 +237,8 @@ public:
 class PolytropicStarIc : public IParticleJob {
 private:
     int particleCnt = 10000;
+    EnumWrapper distId = EnumWrapper(DistributionEnum::PARAMETRIZED_SPIRALING);
+
     Float radius = Constants::R_sun;
     Float mass = Constants::M_sun;
     Float n = 3._f;

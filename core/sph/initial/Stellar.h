@@ -19,8 +19,15 @@ struct Star {
 /// \brief Computes radial profiles of state quantities for a polytropic star.
 Star polytropicStar(const Float radius, const Float mass, const Float n);
 
-Storage generateIc(const RunSettings& globals,
-    const Size N,
+/// \brief Creates a spherical polytropic star.
+///
+/// \param distribution Distribution used to generate particles
+/// \param particleCnt Number of particles
+/// \param radius Radius of the star
+/// \param mass Total mass of the star
+/// \param n Polytropic index (0 <= n <= 5)
+Storage generateIc(const IDistribution& distribution,
+    const Size particleCnt,
     const Float radius,
     const Float mass,
     const Float n);

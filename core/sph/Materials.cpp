@@ -1,9 +1,9 @@
+#include "sph/Materials.h"
 #include "io/Logger.h"
 #include "physics/Eos.h"
 #include "physics/Rheology.h"
 #include "quantities/Quantity.h"
 #include "quantities/Storage.h"
-#include "sph/Materials.h"
 #include "system/Factory.h"
 #include "thread/CheckFunction.h"
 #include "thread/Scheduler.h"
@@ -30,17 +30,21 @@ const IEos& EosMaterial::getEos() const {
 void EosMaterial::create(Storage& storage, const MaterialInitialContext& UNUSED(context)) {
     VERBOSE_LOG
 
+    // set to defaults if not yet created
     const Float rho0 = this->getParam<Float>(BodySettingsId::DENSITY);
     const Float u0 = this->getParam<Float>(BodySettingsId::ENERGY);
+    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, rho0);
+    storage.insert<Float>(QuantityId::ENERGY, OrderEnum::ZERO, u0);
+
+    ArrayView<const Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
+    ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
     const Size n = storage.getParticleCnt();
     Array<Float> p(n), cs(n);
     for (Size i = 0; i < n; ++i) {
-        tie(p[i], cs[i]) = eos->evaluate(rho0, u0);
+        tie(p[i], cs[i]) = eos->evaluate(rho[i], u[i]);
     }
     storage.insert<Float>(QuantityId::PRESSURE, OrderEnum::ZERO, std::move(p));
     storage.insert<Float>(QuantityId::SOUND_SPEED, OrderEnum::ZERO, std::move(cs));
-    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, rho0);
-    storage.insert<Float>(QuantityId::ENERGY, OrderEnum::ZERO, u0);
 }
 
 void EosMaterial::initialize(IScheduler& scheduler, Storage& storage, const IndexSequence sequence) {
