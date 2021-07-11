@@ -3,7 +3,7 @@
 /// \file Movie.h
 /// \brief Periodically saves rendered images to disk
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "common/Globals.h"
 #include "gui/Settings.h"
@@ -46,6 +46,8 @@ private:
     RenderParams params;
 
     Vector cameraVelocity;
+    Float cameraOrbit;
+
     Float lastFrame = 0._f;
 
 public:

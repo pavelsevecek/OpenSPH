@@ -216,16 +216,16 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
     this->setDefaultPaletteList();
 }
 
-static FlatMap<ColorizerId, std::string> PALETTE_ID_LIST = {
+static FlatMap<ExtColorizerId, std::string> PALETTE_ID_LIST = {
     { ColorizerId::VELOCITY, "Velocity" },
     { ColorizerId::TEMPERATURE, "Temperature" },
-    { ColorizerId(QuantityId::DEVIATORIC_STRESS), "Stress" },
-    { ColorizerId(QuantityId::DAMAGE), "Damage" },
+    { QuantityId::DEVIATORIC_STRESS, "Stress" },
+    { QuantityId::DAMAGE, "Damage" },
     { ColorizerId::MOVEMENT_DIRECTION, "Periodic" },
     { ColorizerId::DENSITY_PERTURBATION, "Diverging 1" },
-    { ColorizerId(QuantityId::DENSITY), "Diverging 2" },
-    { ColorizerId(QuantityId::VELOCITY_DIVERGENCE), "Diverging 3" },
-    { ColorizerId(QuantityId::ANGULAR_FREQUENCY), "Extremes" },
+    { QuantityId::DENSITY, "Diverging 2" },
+    { QuantityId::VELOCITY_DIVERGENCE, "Diverging 3" },
+    { QuantityId::ANGULAR_FREQUENCY, "Extremes" },
 };
 
 // some extra palettes

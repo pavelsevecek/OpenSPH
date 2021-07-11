@@ -2,10 +2,10 @@ TEMPLATE = subdirs
 
 CONFIG += ordered
 
-SUBDIRS = lib \
+SUBDIRS = core \
           cli/launcher \
           cli/batch
 
-gui.depends = lib
-launcher.depends = lib
-batch.depends = lib
+gui.depends = core
+launcher.depends = core
+batch.depends = core

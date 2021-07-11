@@ -2,7 +2,9 @@
 #include "gui/Controller.h"
 #include "gui/Settings.h"
 #include "gui/Utils.h"
+#include "gui/objects/CameraJobs.h"
 #include "gui/windows/GridPage.h"
+#include "gui/windows/GuiSettingsDialog.h"
 #include "gui/windows/NodePage.h"
 #include "gui/windows/PlotView.h"
 #include "gui/windows/RunPage.h"
@@ -10,9 +12,9 @@
 #include "io/FileSystem.h"
 #include "objects/utility/IteratorAdapters.h"
 #include "post/Plot.h"
-#include "run/workers/GeometryJobs.h"
-#include "run/workers/IoJobs.h"
-#include "run/workers/ParticleJobs.h"
+#include "run/jobs/GeometryJobs.h"
+#include "run/jobs/IoJobs.h"
+#include "run/jobs/ParticleJobs.h"
 #include <fstream>
 #include <wx/aboutdlg.h>
 #include <wx/aui/auibook.h>
@@ -50,7 +52,7 @@ static Array<Path> getRecentSessions() {
                 }
                 return paths;
             }
-        } catch (std::exception& UNUSED(e)) {
+        } catch (const std::exception& UNUSED(e)) {
             // do nothing
         }
     }
@@ -82,7 +84,7 @@ static void addToRecentSessions(const Path& sessionPath) {
                     ofs << ",";
                 }
             }
-        } catch (std::exception& UNUSED(e)) {
+        } catch (const std::exception& UNUSED(e)) {
         }
     }
 }
@@ -345,7 +347,7 @@ void MainWindow::load(const Path& openPath) {
     Config config;
     try {
         config.load(pathToLoad);
-    } catch (Exception& e) {
+    } catch (const Exception& e) {
         wxMessageBox(std::string("Cannot load: ") + e.what(), "Error", wxOK);
         return;
     }
@@ -354,7 +356,7 @@ void MainWindow::load(const Path& openPath) {
         Project& project = Project::getInstance();
         project.load(config);
         nodePage->load(config);
-    } catch (Exception& e) {
+    } catch (const Exception& e) {
         wxMessageBox(std::string("Cannot load: ") + e.what(), "Error", wxOK);
         return;
     }
@@ -394,13 +396,14 @@ wxMenu* MainWindow::createProjectMenu() {
     projectMenu->Append(0, "&New session\tCtrl+N");
     projectMenu->Append(1, "&Save session\tCtrl+S");
     projectMenu->Append(2, "&Save session as");
-    projectMenu->Append(3, "&Open session\tCtrl+O");
+    projectMenu->Append(3, "&Open session\tCtrl+Shift+O");
 
     wxMenu* recentMenu = new wxMenu();
     projectMenu->AppendSubMenu(recentMenu, "&Recent");
-    projectMenu->Append(4, "&Shared properties");
-    projectMenu->Append(5, "&Batch run\tCtrl+B");
-    projectMenu->Append(6, "&Quit");
+    projectMenu->Append(4, "&Visualization settings...");
+    projectMenu->Append(5, "&Shared properties...");
+    projectMenu->Append(6, "&Batch run\tCtrl+B");
+    projectMenu->Append(7, "&Quit");
 
     SharedPtr<Array<Path>> recentSessions = makeShared<Array<Path>>();
     *recentSessions = getRecentSessions();
@@ -450,14 +453,19 @@ wxMenu* MainWindow::createProjectMenu() {
         case 3:
             this->load();
             break;
-        case 4:
+        case 4: {
+            GuiSettingsDialog* dialog = new GuiSettingsDialog(this);
+            dialog->ShowModal();
+            break;
+        }
+        case 5:
             notebook->SetSelection(0);
             nodePage->showGlobals();
             break;
-        case 5:
+        case 6:
             nodePage->showBatchDialog();
             break;
-        case 6:
+        case 7:
             this->Close();
             break;
         default:
@@ -503,63 +511,6 @@ wxMenu* MainWindow::createResultMenu() {
     return fileMenu;
 }
 
-
-/// \brief Helper object used for drawing multiple plots into the same device.
-class MultiPlot : public IPlot {
-private:
-    Array<AutoPtr<IPlot>> plots;
-
-public:
-    explicit MultiPlot(Array<AutoPtr<IPlot>>&& plots)
-        : plots(std::move(plots)) {}
-
-    virtual std::string getCaption() const override {
-        return plots[0]->getCaption(); /// ??
-    }
-
-    virtual void onTimeStep(const Storage& storage, const Statistics& stats) override {
-        ranges.x = ranges.y = Interval();
-        for (auto& plot : plots) {
-            plot->onTimeStep(storage, stats);
-            ranges.x.extend(plot->rangeX());
-            ranges.y.extend(plot->rangeY());
-        }
-    }
-
-    virtual void clear() override {
-        ranges.x = ranges.y = Interval();
-        for (auto& plot : plots) {
-            plot->clear();
-        }
-    }
-
-    virtual void plot(IDrawingContext& dc) const override {
-        for (auto plotAndIndex : iterateWithIndex(plots)) {
-            dc.setStyle(plotAndIndex.index());
-            plotAndIndex.value()->plot(dc);
-        }
-    }
-};
-
-static Array<Post::HistPoint> getOverplotSfd(const GuiSettings& gui) {
-    const Path overplotPath(gui.get<std::string>(GuiSettingsId::PLOT_OVERPLOT_SFD));
-    if (overplotPath.empty() || !FileSystem::pathExists(overplotPath)) {
-        return {};
-    }
-    Array<Post::HistPoint> overplotSfd;
-    std::ifstream is(overplotPath.native());
-    while (true) {
-        float value, count;
-        is >> value >> count;
-        if (!is) {
-            break;
-        }
-        value *= 0.5f /*D->R*/ * 1000.f /*km->m*/; // super-specific, should be generalized somehow
-        overplotSfd.emplaceBack(Post::HistPoint{ value, Size(round(count)) });
-    };
-    return overplotSfd;
-}
-
 enum RunMenuId {
     RUN_START,
     RUN_START_SCRIPT,
@@ -567,7 +518,7 @@ enum RunMenuId {
     RUN_PAUSE,
     RUN_STOP,
     RUN_SAVE_STATE,
-    RUN_CREATE_NODE,
+    RUN_CREATE_CAMERA,
     RUN_CLOSE_CURRENT,
     RUN_CLOSE_ALL,
 };
@@ -579,8 +530,8 @@ wxMenu* MainWindow::createRunMenu() {
     runMenu->Append(RUN_RESTART, "&Restart");
     runMenu->Append(RUN_PAUSE, "&Pause");
     runMenu->Append(RUN_STOP, "St&op");
-    runMenu->Append(RUN_SAVE_STATE, "&Save state");
-    runMenu->Append(RUN_CREATE_NODE, "Create &node from state");
+    runMenu->Append(RUN_SAVE_STATE, "&Save current state");
+    runMenu->Append(RUN_CREATE_CAMERA, "Make camera node");
     runMenu->Append(RUN_CLOSE_CURRENT, "&Close current\tCtrl+W");
     runMenu->Append(RUN_CLOSE_ALL, "Close all");
 
@@ -628,24 +579,29 @@ wxMenu* MainWindow::createRunMenu() {
             controller->stop();
             break;
         case RUN_SAVE_STATE: {
-            static Array<FileFormat> fileFormats = {
-                { "SPH state file", "ssf" },
-                { "SPH compressed file", "scf" },
-                { "VTK unstructured grid", "vtu" },
-                { "Text file", "txt" },
-            };
-            Optional<Path> path = doSaveFileDialog("Save state file", fileFormats.clone());
+            Optional<Path> path = doSaveFileDialog("Save state file", getOutputFormats());
             if (!path) {
                 return;
             }
             controller->saveState(path.value());
             break;
         }
-        case RUN_CREATE_NODE: {
-            const Storage& storage = controller->getStorage();
-            const std::string text("cached " + notebook->GetPageText(notebook->GetSelection()));
-            AutoPtr<CachedParticlesJob> worker = makeAuto<CachedParticlesJob>(text, storage);
-            nodePage->createNode(std::move(worker));
+        case RUN_CREATE_CAMERA: {
+            AutoPtr<ICamera> camera = controller->getCurrentCamera();
+            auto nameMgr = nodePage->makeUniqueNameManager();
+            AutoPtr<OrthoCameraJob> job = makeAuto<OrthoCameraJob>(nameMgr.getName("hand-held camera"));
+            VirtualSettings settings = job->getSettings();
+            AffineMatrix frame = camera->getFrame();
+            const Vector posKm = frame.translation() * 1.e-3_f;
+
+            settings.set(GuiSettingsId::CAMERA_POSITION, posKm);
+            settings.set(GuiSettingsId::CAMERA_UP, frame.row(1));
+            settings.set(GuiSettingsId::CAMERA_TARGET, posKm + frame.row(2));
+            const Optional<float> wtp = camera->getWorldToPixel();
+            if (wtp) {
+                settings.set(GuiSettingsId::CAMERA_ORTHO_FOV, 1.e-3_f * camera->getSize().y / wtp.value());
+            }
+            nodePage->createNode(std::move(job));
             notebook->SetSelection(notebook->GetPageIndex(nodePage));
             break;
         }
@@ -700,18 +656,17 @@ wxMenu* MainWindow::createAnalysisMenu() {
 
             Array<AutoPtr<IPlot>> multiplot;
             multiplot.emplaceBack(makeAuto<SfdPlot>(flag, 0._f));
-
             Project& project = Project::getInstance();
-            Array<Post::HistPoint> overplotSfd = getOverplotSfd(project.getGuiSettings());
+            const std::string overplotSfd =
+                project.getGuiSettings().get<std::string>(GuiSettingsId::PLOT_OVERPLOT_SFD);
             if (!overplotSfd.empty()) {
-                multiplot.emplaceBack(
-                    makeAuto<DataPlot>(overplotSfd, AxisScaleEnum::LOG_X | AxisScaleEnum::LOG_Y, "Overplot"));
+                multiplot.emplaceBack(getDataPlot(Path(overplotSfd), "overplot"));
             }
             plot = makeLocking<MultiPlot>(std::move(multiplot));
             break;
         }
         case 2:
-            plot = makeLocking<HistogramPlot>(Post::HistogramId::VELOCITIES, NOTHING, "Velocity");
+            plot = makeLocking<HistogramPlot>(Post::HistogramId::VELOCITIES, NOTHING, 0._f, "Velocity");
             break;
         case 3:
             plot = makeLocking<RadialDistributionPlot>(QuantityId::DENSITY);

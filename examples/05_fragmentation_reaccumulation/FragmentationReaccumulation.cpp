@@ -191,7 +191,7 @@ int main() {
         Reaccumulation reaccumulation;
         reaccumulation.run(storage);
 
-    } catch (Exception& e) {
+    } catch (const Exception& e) {
         std::cout << "Error during simulation: " << e.what() << std::endl;
         return -1;
     }

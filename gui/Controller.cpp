@@ -10,7 +10,7 @@
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/windows/RunPage.h"
 #include "run/Node.h"
-#include "run/workers/IoJobs.h"
+#include "run/jobs/IoJobs.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
 #include "system/Timer.h"
@@ -55,7 +55,8 @@ void Controller::Vis::initialize(const Project& project) {
     const GuiSettings& gui = project.getGuiSettings();
 
     renderer = Factory::getRenderer(gui);
-    colorizer = Factory::getColorizer(project, ColorizerId::VELOCITY);
+    const ColorizerId id = gui.get<ColorizerId>(GuiSettingsId::DEFAULT_COLORIZER);
+    colorizer = Factory::getColorizer(project, id);
     timer = makeAuto<Timer>(gui.get<int>(GuiSettingsId::VIEW_MAX_FRAMERATE), TimerFlags::START_EXPIRED);
     const Pixel size(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
     camera = Factory::getCamera(gui, size);
@@ -149,24 +150,22 @@ RunStatus Controller::getStatus() const {
 void Controller::saveState(const Path& path) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     auto dump = [path](const Storage& storage, const Statistics& stats) {
-        AutoPtr<IOutput> output;
-        if (path.extension() == Path("ssf")) {
-            /// \todo run type!
-            output = makeAuto<BinaryOutput>(path);
-        } else if (path.extension() == Path("scf")) {
-            output = makeAuto<CompressedOutput>(path, CompressionEnum::RLE, RunTypeEnum::SPH);
-        } else if (path.extension() == Path("vtu")) {
-            Flags<OutputQuantityFlag> flags = OutputQuantityFlag::VELOCITY | OutputQuantityFlag::DENSITY |
-                                              OutputQuantityFlag::ENERGY | OutputQuantityFlag::DAMAGE |
-                                              OutputQuantityFlag::SMOOTHING_LENGTH;
-            output = makeAuto<VtkOutput>(path, flags);
-        } else {
-            SPH_ASSERT(path.extension() == Path("txt"));
-            Flags<OutputQuantityFlag> flags = OutputQuantityFlag::INDEX | OutputQuantityFlag::POSITION |
-                                              OutputQuantityFlag::VELOCITY | OutputQuantityFlag::MASS;
-            output = makeAuto<TextOutput>(path, "unnamed", flags);
+        const Optional<IoEnum> type = getIoEnum(path.extension().native());
+        if (!type) {
+            wxMessageBox("Unknown type of file '" + path.native() + "'", "Fail", wxOK | wxCENTRE);
+            return;
         }
+        RunSettings settings;
+        settings.set(RunSettingsId::RUN_OUTPUT_TYPE, type.value());
+        settings.set(RunSettingsId::RUN_OUTPUT_NAME, path.native());
+        settings.set(RunSettingsId::RUN_OUTPUT_PATH, std::string(""));
+        Flags<OutputQuantityFlag> flags = OutputQuantityFlag::POSITION | OutputQuantityFlag::MASS |
+                                          OutputQuantityFlag::VELOCITY | OutputQuantityFlag::DENSITY |
+                                          OutputQuantityFlag::ENERGY | OutputQuantityFlag::DAMAGE |
+                                          OutputQuantityFlag::SMOOTHING_LENGTH;
+        settings.set(RunSettingsId::RUN_OUTPUT_QUANTITIES, flags);
 
+        AutoPtr<IOutput> output = Factory::getOutput(settings);
         Expected<Path> result = output->dump(storage, stats);
         if (!result) {
             wxMessageBox("Cannot save the file.\n\n" + result.error(), "Fail", wxOK | wxCENTRE);
@@ -354,54 +353,47 @@ bool Controller::shouldAbortRun() const {
 }
 
 bool Controller::isRunning() const {
-    return status == RunStatus::RUNNING;
+    return status == RunStatus::RUNNING || status == RunStatus::PAUSED;
 }
 
-Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage) const {
-    // Available colorizers for display and movie are currently hardcoded
-    Array<ColorizerId> colorizerIds;
-
-    /// \todo custom colorizer lists
-
-    auto col = [](QuantityId id) { return ColorizerId(id); };
-
-    colorizerIds.pushAll({
+Array<ExtColorizerId> getColorizerIds() {
+    static Array<ExtColorizerId> colorizerIds = {
         ColorizerId::VELOCITY,
         ColorizerId::ACCELERATION,
         ColorizerId::COROTATING_VELOCITY,
-        col(QuantityId::VELOCITY_DIVERGENCE),
-        col(QuantityId::VELOCITY_ROTATION),
-        col(QuantityId::VELOCITY_GRADIENT),
-        col(QuantityId::VELOCITY_LAPLACIAN),
-        col(QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE),
-        col(QuantityId::ANGULAR_FREQUENCY),
-        col(QuantityId::PHASE_ANGLE),
+        QuantityId::VELOCITY_DIVERGENCE,
+        QuantityId::VELOCITY_ROTATION,
+        QuantityId::VELOCITY_GRADIENT,
+        QuantityId::VELOCITY_LAPLACIAN,
+        QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE,
+        QuantityId::ANGULAR_FREQUENCY,
+        QuantityId::PHASE_ANGLE,
         //
-        col(QuantityId::ENERGY),
+        QuantityId::ENERGY,
         ColorizerId::TOTAL_ENERGY,
         ColorizerId::TEMPERATURE,
         //
-        col(QuantityId::DENSITY),
+        QuantityId::DENSITY,
         ColorizerId::DENSITY_PERTURBATION,
         ColorizerId::SUMMED_DENSITY,
-        col(QuantityId::BULK_DENSITY),
-        col(QuantityId::MASS),
-        col(QuantityId::MOMENT_OF_INERTIA),
+        QuantityId::BULK_DENSITY,
+        QuantityId::MASS,
+        QuantityId::MOMENT_OF_INERTIA,
         //
-        col(QuantityId::PRESSURE),
-        col(QuantityId::SOUND_SPEED),
-        col(QuantityId::DEVIATORIC_STRESS),
+        QuantityId::PRESSURE,
+        QuantityId::SOUND_SPEED,
+        QuantityId::DEVIATORIC_STRESS,
         ColorizerId::TOTAL_STRESS,
-        col(QuantityId::DAMAGE),
+        QuantityId::DAMAGE,
         ColorizerId::DAMAGE_ACTIVATION,
         ColorizerId::YIELD_REDUCTION,
-        col(QuantityId::FRICTION),
-        col(QuantityId::VIBRATIONAL_VELOCITY),
-        col(QuantityId::STRAIN_RATE_CORRECTION_TENSOR),
+        QuantityId::FRICTION,
+        QuantityId::VIBRATIONAL_VELOCITY,
+        QuantityId::STRAIN_RATE_CORRECTION_TENSOR,
         //
-        col(QuantityId::AV_ALPHA),
-        col(QuantityId::AV_BALSARA),
-        col(QuantityId::AV_STRESS),
+        QuantityId::AV_ALPHA,
+        QuantityId::AV_BALSARA,
+        QuantityId::AV_STRESS,
         //
         ColorizerId::RADIUS,
         ColorizerId::PARTICLE_ID,
@@ -409,21 +401,32 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         ColorizerId::AGGREGATE_ID,
         ColorizerId::FLAG,
         ColorizerId::MATERIAL_ID,
-        col(QuantityId::NEIGHBOUR_CNT),
+        QuantityId::NEIGHBOUR_CNT,
         ColorizerId::UVW,
         ColorizerId::BOUNDARY,
         //
         ColorizerId::BEAUTY,
-    });
+    };
 
+    return colorizerIds.clone();
+}
+
+Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage) const {
+    const GuiSettings& gui = project.getGuiSettings();
+    const ExtColorizerId defaultId = gui.get<ColorizerId>(GuiSettingsId::DEFAULT_COLORIZER);
+    Array<ExtColorizerId> colorizerIds = getColorizerIds();
     Array<SharedPtr<IColorizer>> colorizers;
-    for (ColorizerId id : colorizerIds) {
+    for (ExtColorizerId id : colorizerIds) {
         SharedPtr<IColorizer> colorizer = Factory::getColorizer(project, id);
-        if (colorizer->hasData(storage)) {
+        if (!colorizer->hasData(storage)) {
+            continue;
+        }
+        if (id == defaultId) {
+            colorizers.insert(0, colorizer);
+        } else {
             colorizers.push(colorizer);
         }
     }
-
     return colorizers;
 }
 
@@ -602,7 +605,7 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) const {
     case RendererEnum::MESH:
         colorizers = { Factory::getColorizer(project, ColorizerId::VELOCITY) };
         break;
-    case RendererEnum::RAYTRACER:
+    case RendererEnum::RAYMARCHER:
         colorizers = { Factory::getColorizer(project, ColorizerId::VELOCITY) };
         break;
     default:
@@ -712,7 +715,7 @@ void Controller::startRunThread() {
             // run the simulation
             sph.run->run(sph.globals, *this);
 
-        } catch (std::exception& e) {
+        } catch (const std::exception& e) {
             executeOnMainThread([desc = std::string(e.what())] { //
                 wxMessageBox(
                     std::string("Error encountered during the run: \n") + desc, "Fail", wxOK | wxCENTRE);

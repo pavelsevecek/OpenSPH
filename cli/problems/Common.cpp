@@ -5,10 +5,10 @@ NAMESPACE_SPH_BEGIN
 
 Outcome areFilesIdentical(const Path& path1, const Path& path2) {
     if (!FileSystem::pathExists(path1) || !FileSystem::pathExists(path2)) {
-        return "One or both files do not exist";
+        return makeFailed("One or both files do not exist");
     }
     if (FileSystem::fileSize(path1) != FileSystem::fileSize(path2)) {
-        return "Files have different sizes";
+        return makeFailed("Files have different sizes");
     }
     std::ifstream ifs1(path1.native());
     std::ifstream ifs2(path2.native());
@@ -19,7 +19,7 @@ Outcome areFilesIdentical(const Path& path1, const Path& path2) {
         ifs2.read(&buffer2[0], buffer2.size());
 
         if (buffer1 != buffer2) {
-            return "Difference found at position " + std::to_string(ifs1.tellg());
+            return makeFailed("Difference found at position ", ifs1.tellg());
         }
     }
 
@@ -36,13 +36,13 @@ Outcome areFilesApproxEqual(const Path& path1, const Path& path2) {
         return o1 && o2;
     }
     if (storage1.getParticleCnt() != storage2.getParticleCnt()) {
-        return "Different particle counts";
+        return makeFailed("Different particle counts");
     }
     if (storage1.getMaterialCnt() != storage2.getMaterialCnt()) {
-        return "Different material counts";
+        return makeFailed("Different material counts");
     }
     if (storage1.getQuantityCnt() != storage2.getQuantityCnt()) {
-        return "Different quantity counts";
+        return makeFailed("Different quantity counts");
     }
 
     bool buffersEqual = true;
@@ -58,7 +58,7 @@ Outcome areFilesApproxEqual(const Path& path1, const Path& path2) {
 
     /// \todo also materials
     if (!buffersEqual) {
-        return "Different quantity values";
+        return makeFailed("Different quantity values");
     } else {
         return SUCCESS;
     }

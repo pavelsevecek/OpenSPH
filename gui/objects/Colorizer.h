@@ -3,7 +3,7 @@
 /// \file Colorizer.h
 /// \brief Object converting quantity values of particles into colors.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "gravity/AggregateSolver.h"
 #include "gui/Settings.h"
@@ -157,6 +157,10 @@ enum class ColorizerId {
     MATERIAL_ID = -22,         ///< Particles with different materials are colored differently
     BEAUTY = -23,              ///< Attempts to show the real-world look
 };
+
+using ExtColorizerId = ExtendedEnum<ColorizerId>;
+
+SPH_EXTEND_ENUM(QuantityId, ColorizerId);
 
 /// \brief Default colorizer simply converting quantity value to color using defined palette.
 ///
@@ -932,16 +936,17 @@ private:
 };
 
 /// \todo possibly move elsewhere
-static uint64_t getHash(const Size value, const Size seed) {
+static uint64_t getHash(const uint64_t value, const Size seed) {
     // https://stackoverflow.com/questions/8317508/hash-function-for-a-string
     constexpr int A = 54059;
     constexpr int B = 76963;
     constexpr int FIRST = 37;
 
     uint64_t hash = FIRST + seed;
-    uint8_t* ptr = (uint8_t*)&value;
+    StaticArray<uint8_t, sizeof(uint64_t)> data;
+    std::memcpy(&data[0], &value, data.size());
     for (uint i = 0; i < sizeof(uint64_t); ++i) {
-        hash = (hash * A) ^ (*ptr++ * B);
+        hash = (hash * A) ^ (data[i] * B);
     }
     return hash;
 }

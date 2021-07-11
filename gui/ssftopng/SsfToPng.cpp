@@ -86,7 +86,7 @@ bool SsfToPngApp::OnInit() {
             movie.save(storage, stats);
             std::cout << int(phi * 100 / totalRotation) << std::endl;
         }
-    } catch (std::exception& e) {
+    } catch (const std::exception& e) {
         std::cout << "Failed: " << e.what() << std::endl;
         return -1;
     }
@@ -132,7 +132,7 @@ bool SsfToPngApp::OnInit() {
 
             movie.save(storage, stats);
 
-        } catch (std::exception& e) {
+        } catch (const std::exception& e) {
             std::cout << "Failed: " << e.what() << std::endl;
             return -1;
         }

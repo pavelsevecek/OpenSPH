@@ -4,9 +4,11 @@
 #include "gui/objects/Colorizer.h"
 #include "gui/renderers/Brdf.h"
 #include "gui/renderers/ContourRenderer.h"
+#include "gui/renderers/FrameBuffer.h"
 #include "gui/renderers/MeshRenderer.h"
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/renderers/RayTracer.h"
+#include "gui/renderers/VolumeRenderer.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -25,7 +27,7 @@ AutoPtr<ITracker> Factory::getTracker(const GuiSettings& settings) {
 
 AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Pixel size) {
     CameraEnum cameraId = settings.get<CameraEnum>(GuiSettingsId::CAMERA_TYPE);
-    CameraData data;
+    CameraParams data;
     data.imageSize = size;
     data.position = settings.get<Vector>(GuiSettingsId::CAMERA_POSITION);
     data.target = settings.get<Vector>(GuiSettingsId::CAMERA_TARGET);
@@ -76,8 +78,11 @@ AutoPtr<IRenderer> Factory::getRenderer(SharedPtr<IScheduler> scheduler, const G
     case RendererEnum::MESH:
         renderer = makeAuto<MeshRenderer>(scheduler, settings);
         break;
-    case RendererEnum::RAYTRACER:
-        renderer = makeAuto<RayTracer>(scheduler, settings);
+    case RendererEnum::RAYMARCHER:
+        renderer = makeAuto<RayMarcher>(scheduler, settings);
+        break;
+    case RendererEnum::VOLUME:
+        renderer = makeAuto<VolumeRenderer>(scheduler, settings);
         break;
     case RendererEnum::CONTOUR:
         renderer = makeAuto<ContourRenderer>(scheduler, settings);
@@ -101,7 +106,21 @@ AutoPtr<IBrdf> Factory::getBrdf(const GuiSettings& settings) {
     }
 }
 
-static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const ColorizerId id) {
+AutoPtr<IColorMap> Factory::getColorMap(const GuiSettings& settings) {
+    const ColorMapEnum id = settings.get<ColorMapEnum>(GuiSettingsId::COLORMAP);
+    switch (id) {
+    case ColorMapEnum::LINEAR:
+        return nullptr;
+    case ColorMapEnum::LOGARITHMIC:
+        return makeAuto<LogarithmicColorMap>();
+    case ColorMapEnum::FILMIC:
+        return makeAuto<FilmicColorMap>();
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const ExtColorizerId id) {
     using Factory::getPalette;
 
     switch (id) {
@@ -116,8 +135,7 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const Color
     case ColorizerId::DENSITY_PERTURBATION:
         return makeAuto<DensityPerturbationColorizer>(getPalette(id));
     case ColorizerId::SUMMED_DENSITY:
-        return makeAuto<SummedDensityColorizer>(
-            RunSettings::getDefaults(), getPalette(ColorizerId(QuantityId::DENSITY)));
+        return makeAuto<SummedDensityColorizer>(RunSettings::getDefaults(), getPalette(QuantityId::DENSITY));
     case ColorizerId::TOTAL_ENERGY:
         return makeAuto<EnergyColorizer>(getPalette(id));
     case ColorizerId::TEMPERATURE:
@@ -172,7 +190,7 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const Color
     }
 }
 
-AutoPtr<IColorizer> Factory::getColorizer(const Project& project, const ColorizerId id) {
+AutoPtr<IColorizer> Factory::getColorizer(const Project& project, const ExtColorizerId id) {
     AutoPtr<IColorizer> colorizer = Sph::getColorizer(project.getGuiSettings(), id);
     Optional<Palette> palette = colorizer->getPalette();
     if (palette && project.getPalette(colorizer->name(), palette.value())) {
@@ -181,36 +199,14 @@ AutoPtr<IColorizer> Factory::getColorizer(const Project& project, const Colorize
     return colorizer;
 }
 
-class PaletteKey {
-private:
-    int key;
-
-public:
-    PaletteKey(const QuantityId id)
-        : key(int(id)) {}
-
-    PaletteKey(const ColorizerId id)
-        : key(int(id)) {}
-
-    bool operator<(const PaletteKey& other) const {
-        return key < other.key;
-    }
-    bool operator==(const PaletteKey& other) const {
-        return key == other.key;
-    }
-    bool operator!=(const PaletteKey& other) const {
-        return key != other.key;
-    }
-};
-
 struct PaletteDesc {
     Interval range;
     PaletteScale scale;
 };
 
-static FlatMap<PaletteKey, PaletteDesc> paletteDescs = {
+static FlatMap<ExtColorizerId, PaletteDesc> paletteDescs = {
     { QuantityId::DENSITY, { Interval(2650._f, 2750._f), PaletteScale::LINEAR } },
-    { QuantityId::MASS, { Interval(0._f, 1.e10_f), PaletteScale::LINEAR } },
+    { QuantityId::MASS, { Interval(1.e5_f, 1.e10_f), PaletteScale::LOGARITHMIC } },
     { QuantityId::PRESSURE, { Interval(-1.e5_f, 1.e10_f), PaletteScale::HYBRID } },
     { QuantityId::ENERGY, { Interval(1._f, 1.e6_f), PaletteScale::LOGARITHMIC } },
     { QuantityId::DEVIATORIC_STRESS, { Interval(0._f, 1.e10_f), PaletteScale::LINEAR } },
@@ -257,15 +253,73 @@ static Palette getDefaultPalette(const Interval range) {
         PaletteScale::LINEAR);
 }
 
-Palette Factory::getPalette(const ColorizerId id) {
+Palette Factory::getPalette(const ExtColorizerId id) {
     const PaletteDesc desc = paletteDescs[id];
     const Interval range = desc.range;
     const PaletteScale scale = desc.scale;
     const float x0 = float(range.lower());
     const float dx = float(range.size());
-    if (int(id) >= 0) {
-        QuantityId quantity = QuantityId(id);
-        switch (quantity) {
+    switch (id) {
+    case ColorizerId::VELOCITY:
+        return Palette({ { x0, Rgba(0.5f, 0.5f, 0.5f) },
+                           { x0 + 0.001f * dx, Rgba(0.0f, 0.0f, 0.2f) },
+                           { x0 + 0.01f * dx, Rgba(0.0f, 0.0f, 1.0f) },
+                           { x0 + 0.1f * dx, Rgba(1.0f, 0.0f, 0.2f) },
+                           { x0 + dx, Rgba(1.0f, 1.0f, 0.2f) } },
+            scale);
+    case ColorizerId::ACCELERATION:
+        return Palette({ { x0, Rgba(0.5f, 0.5f, 0.5f) },
+                           { x0 + 0.001f * dx, Rgba(0.0f, 0.0f, 0.2f) },
+                           { x0 + 0.01f * dx, Rgba(0.0f, 0.0f, 1.0f) },
+                           { x0 + 0.1f * dx, Rgba(1.0f, 0.0f, 0.2f) },
+                           { x0 + dx, Rgba(1.0f, 1.0f, 0.2f) } },
+            scale);
+    case ColorizerId::MOVEMENT_DIRECTION: {
+        SPH_ASSERT(range == Interval(0.f, 2._f * PI)); // in radians
+        const float pi = float(PI);
+        return Palette({ { 0.f, Rgba(0.1f, 0.1f, 1.f) },
+                           { pi / 3.f, Rgba(1.f, 0.1f, 1.f) },
+                           { 2.f * pi / 3.f, Rgba(1.f, 0.1f, 0.1f) },
+                           { 3.f * pi / 3.f, Rgba(1.f, 1.f, 0.1f) },
+                           { 4.f * pi / 3.f, Rgba(0.1f, 1.f, 0.1f) },
+                           { 5.f * pi / 3.f, Rgba(0.1f, 1.f, 1.f) },
+                           { 2.f * pi, Rgba(0.1f, 0.1f, 1.f) } },
+            scale);
+    }
+    case ColorizerId::DENSITY_PERTURBATION:
+        return Palette({ { x0, Rgba(0.1f, 0.1f, 1.f) },
+                           { x0 + 0.5f * dx, Rgba(0.7f, 0.7f, 0.7f) },
+                           { x0 + dx, Rgba(1.f, 0.1f, 0.1f) } },
+            scale);
+    case ColorizerId::TOTAL_ENERGY:
+        return Palette({ { x0, Rgba(0.f, 0.f, 0.6f) },
+                           { x0 + 0.01f * dx, Rgba(0.1f, 0.1f, 0.1f) },
+                           { x0 + 0.05f * dx, Rgba(0.9f, 0.9f, 0.9f) },
+                           { x0 + 0.2f * dx, Rgba(1.f, 1.f, 0.f) },
+                           { x0 + dx, Rgba(0.6f, 0.f, 0.f) } },
+            scale);
+    case ColorizerId::TEMPERATURE:
+        return Palette({ { x0, Rgba(0.1f, 0.1f, 0.1f) },
+                           { x0 + 0.001f * dx, Rgba(0.1f, 0.1f, 1.f) },
+                           { x0 + 0.01f * dx, Rgba(1.f, 0.f, 0.f) },
+                           { x0 + 0.1f * dx, Rgba(1.0f, 0.6f, 0.4f) },
+                           { x0 + dx, Rgba(1.f, 1.f, 0.f) } },
+            scale);
+    case ColorizerId::YIELD_REDUCTION:
+        return Palette({ { 0._f, Rgba(0.1f, 0.1f, 0.1f) }, { 1._f, Rgba(0.9f, 0.9f, 0.9f) } }, scale);
+    case ColorizerId::DAMAGE_ACTIVATION:
+        return Palette({ { x0, Rgba(0.1f, 0.1f, 1.f) },
+                           { x0 + 0.5f * dx, Rgba(0.7f, 0.7f, 0.7f) },
+                           { x0 + dx, Rgba(1.f, 0.1f, 0.1f) } },
+            scale);
+    case ColorizerId::RADIUS:
+        return Palette({ { x0, Rgba(0.1f, 0.1f, 1.f) },
+                           { x0 + 0.5f * dx, Rgba(0.7f, 0.7f, 0.7f) },
+                           { x0 + dx, Rgba(1.f, 0.1f, 0.1f) } },
+            scale);
+    default:
+        // check extended values
+        switch (QuantityId(id)) {
         case QuantityId::PRESSURE:
             SPH_ASSERT(x0 < -1.f);
             return Palette({ { x0, Rgba(0.3f, 0.3f, 0.8f) },
@@ -347,68 +401,6 @@ Palette Factory::getPalette(const ColorizerId id) {
                                { x0 + dx, Rgba(1.f, 0.1f, 0.1f) } },
                 scale);
         case QuantityId::MOMENT_OF_INERTIA:
-            return Palette({ { x0, Rgba(0.1f, 0.1f, 1.f) },
-                               { x0 + 0.5f * dx, Rgba(0.7f, 0.7f, 0.7f) },
-                               { x0 + dx, Rgba(1.f, 0.1f, 0.1f) } },
-                scale);
-        default:
-            return getDefaultPalette(Interval(x0, x0 + dx));
-        }
-    } else {
-        switch (id) {
-        case ColorizerId::VELOCITY:
-            return Palette({ { x0, Rgba(0.5f, 0.5f, 0.5f) },
-                               { x0 + 0.001f * dx, Rgba(0.0f, 0.0f, 0.2f) },
-                               { x0 + 0.01f * dx, Rgba(0.0f, 0.0f, 1.0f) },
-                               { x0 + 0.1f * dx, Rgba(1.0f, 0.0f, 0.2f) },
-                               { x0 + dx, Rgba(1.0f, 1.0f, 0.2f) } },
-                scale);
-        case ColorizerId::ACCELERATION:
-            return Palette({ { x0, Rgba(0.5f, 0.5f, 0.5f) },
-                               { x0 + 0.001f * dx, Rgba(0.0f, 0.0f, 0.2f) },
-                               { x0 + 0.01f * dx, Rgba(0.0f, 0.0f, 1.0f) },
-                               { x0 + 0.1f * dx, Rgba(1.0f, 0.0f, 0.2f) },
-                               { x0 + dx, Rgba(1.0f, 1.0f, 0.2f) } },
-                scale);
-        case ColorizerId::MOVEMENT_DIRECTION: {
-            SPH_ASSERT(range == Interval(0.f, 2._f * PI)); // in radians
-            const float pi = float(PI);
-            return Palette({ { 0.f, Rgba(0.1f, 0.1f, 1.f) },
-                               { pi / 3.f, Rgba(1.f, 0.1f, 1.f) },
-                               { 2.f * pi / 3.f, Rgba(1.f, 0.1f, 0.1f) },
-                               { 3.f * pi / 3.f, Rgba(1.f, 1.f, 0.1f) },
-                               { 4.f * pi / 3.f, Rgba(0.1f, 1.f, 0.1f) },
-                               { 5.f * pi / 3.f, Rgba(0.1f, 1.f, 1.f) },
-                               { 2.f * pi, Rgba(0.1f, 0.1f, 1.f) } },
-                scale);
-        }
-        case ColorizerId::DENSITY_PERTURBATION:
-            return Palette({ { x0, Rgba(0.1f, 0.1f, 1.f) },
-                               { x0 + 0.5f * dx, Rgba(0.7f, 0.7f, 0.7f) },
-                               { x0 + dx, Rgba(1.f, 0.1f, 0.1f) } },
-                scale);
-        case ColorizerId::TOTAL_ENERGY:
-            return Palette({ { x0, Rgba(0.f, 0.f, 0.6f) },
-                               { x0 + 0.01f * dx, Rgba(0.1f, 0.1f, 0.1f) },
-                               { x0 + 0.05f * dx, Rgba(0.9f, 0.9f, 0.9f) },
-                               { x0 + 0.2f * dx, Rgba(1.f, 1.f, 0.f) },
-                               { x0 + dx, Rgba(0.6f, 0.f, 0.f) } },
-                scale);
-        case ColorizerId::TEMPERATURE:
-            return Palette({ { x0, Rgba(0.1f, 0.1f, 0.1f) },
-                               { x0 + 0.001f * dx, Rgba(0.1f, 0.1f, 1.f) },
-                               { x0 + 0.01f * dx, Rgba(1.f, 0.f, 0.f) },
-                               { x0 + 0.1f * dx, Rgba(1.0f, 0.6f, 0.4f) },
-                               { x0 + dx, Rgba(1.f, 1.f, 0.f) } },
-                scale);
-        case ColorizerId::YIELD_REDUCTION:
-            return Palette({ { 0._f, Rgba(0.1f, 0.1f, 0.1f) }, { 1._f, Rgba(0.9f, 0.9f, 0.9f) } }, scale);
-        case ColorizerId::DAMAGE_ACTIVATION:
-            return Palette({ { x0, Rgba(0.1f, 0.1f, 1.f) },
-                               { x0 + 0.5f * dx, Rgba(0.7f, 0.7f, 0.7f) },
-                               { x0 + dx, Rgba(1.f, 0.1f, 0.1f) } },
-                scale);
-        case ColorizerId::RADIUS:
             return Palette({ { x0, Rgba(0.1f, 0.1f, 1.f) },
                                { x0 + 0.5f * dx, Rgba(0.7f, 0.7f, 0.7f) },
                                { x0 + dx, Rgba(1.f, 0.1f, 0.1f) } },

@@ -1,5 +1,9 @@
 #include "gui/renderers/IRenderer.h"
+#include "gui/Factory.h"
 #include "gui/Settings.h"
+#include "gui/objects/Camera.h"
+#include "gui/renderers/FrameBuffer.h"
+#include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -15,9 +19,129 @@ void RenderParams::initialize(const GuiSettings& gui) {
     surface.ambientLight = float(gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT));
     surface.sunLight = float(gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY));
     surface.emission = float(gui.get<Float>(GuiSettingsId::SURFACE_EMISSION));
+    volume.emission = float(gui.get<Float>(GuiSettingsId::VOLUME_EMISSION));
     contours.isoStep = float(gui.get<Float>(GuiSettingsId::CONTOUR_SPACING));
     contours.gridSize = gui.get<int>(GuiSettingsId::CONTOUR_GRID_SIZE);
     contours.showLabels = gui.get<bool>(GuiSettingsId::CONTOUR_SHOW_LABELS);
 }
+
+inline auto seeder() {
+    return [seed = 1337]() mutable { return seed++; };
+}
+
+IRaytracer::ThreadData::ThreadData(const int seed)
+    : rng(seed) {}
+
+IRaytracer::IRaytracer(SharedPtr<IScheduler> scheduler, const GuiSettings& settings)
+    : scheduler(scheduler)
+    , threadData(*scheduler, seeder()) {
+    fixed.colorMap = Factory::getColorMap(settings);
+    fixed.subsampling = settings.get<int>(GuiSettingsId::RAYTRACE_SUBSAMPLING);
+    fixed.iterationLimit = settings.get<int>(GuiSettingsId::RAYTRACE_ITERATION_LIMIT);
+
+    fixed.enviro.color = settings.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
+    std::string hdriPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_HDRI);
+    if (!hdriPath.empty()) {
+        fixed.enviro.hdri = Texture(Path(hdriPath), TextureFiltering::BILINEAR);
+    }
+
+    shouldContinue = true;
+}
+
+void IRaytracer::render(const RenderParams& params, Statistics& UNUSED(stats), IRenderOutput& output) const {
+    shouldContinue = true;
+
+    FrameBuffer fb(params.size);
+    for (Size iteration = 0; iteration < fixed.iterationLimit && shouldContinue; ++iteration) {
+        this->refine(params, iteration, fb);
+
+        const bool isFinal = (iteration == fixed.iterationLimit - 1);
+        if (fixed.colorMap) {
+            Bitmap<Rgba> bitmap = fixed.colorMap->map(fb.getBitmap());
+            output.update(bitmap, {}, isFinal);
+        } else {
+            output.update(fb.getBitmap(), {}, isFinal);
+        }
+    }
+}
+
+INLINE float sampleTent(const float x) {
+    if (x < 0.5f) {
+        return sqrt(2.f * x) - 1.f;
+    } else {
+        return 1.f - sqrt(1.f - 2.f * (x - 0.5f));
+    }
+}
+
+INLINE Coords sampleTent2d(const Size level, const float halfWidth, UniformRng& rng) {
+    if (level == 1) {
+        const float x = 0.5f + sampleTent(float(rng())) * halfWidth;
+        const float y = 0.5f + sampleTent(float(rng())) * halfWidth;
+        return Coords(x, y);
+    } else {
+        // center of the pixel
+        return Coords(0.5f, 0.5f);
+    }
+}
+
+void IRaytracer::refine(const RenderParams& params, const Size iteration, FrameBuffer& fb) const {
+    MEASURE_SCOPE("Rendering frame");
+    const Size level = 1 << max(int(fixed.subsampling) - int(iteration), 0);
+    Pixel actSize;
+    actSize.x = params.size.x / level + sgn(params.size.x % level);
+    actSize.y = params.size.y / level + sgn(params.size.y % level);
+    Bitmap<Rgba> bitmap(actSize);
+
+    const bool first = (iteration == 0);
+    parallelFor(*scheduler,
+        threadData,
+        0,
+        Size(bitmap.size().y),
+        1,
+        [this, &bitmap, &params, level, first](Size y, ThreadData& data) {
+            if (!shouldContinue && !first) {
+                return;
+            }
+            for (Size x = 0; x < Size(bitmap.size().x); ++x) {
+                const Coords pixel = Coords(x * level, y * level) +
+                                     sampleTent2d(level, params.surface.filterWidth / 2.f, data.rng);
+                const Optional<CameraRay> cameraRay = params.camera->unproject(pixel);
+                if (!cameraRay) {
+                    bitmap[Pixel(x, y)] = Rgba::black();
+                    continue;
+                }
+
+                bitmap[Pixel(x, y)] = this->shade(params, cameraRay.value(), data);
+            }
+        });
+
+    if (!shouldContinue && !first) {
+        return;
+    }
+    if (level == 1) {
+        fb.accumulate(bitmap);
+    } else {
+        Bitmap<Rgba> full(params.size);
+        for (Size y = 0; y < Size(full.size().y); ++y) {
+            for (Size x = 0; x < Size(full.size().x); ++x) {
+                full[Pixel(x, y)] = bitmap[Pixel(x / level, y / level)];
+            }
+        }
+        fb.override(std::move(full));
+    }
+}
+
+Rgba IRaytracer::getEnviroColor(const CameraRay& ray) const {
+    if (fixed.enviro.hdri.empty()) {
+        return fixed.enviro.color;
+    } else {
+        const Vector dir = ray.target - ray.origin;
+        /// \todo deduplicate with setupUvws
+        const SphericalCoords spherical = cartensianToSpherical(Vector(dir[X], dir[Z], dir[Y]));
+        const Vector uvw(spherical.phi / (2._f * PI) + 0.5_f, spherical.theta / PI, 0._f);
+        return fixed.enviro.hdri.eval(uvw);
+    }
+}
+
 
 NAMESPACE_SPH_END

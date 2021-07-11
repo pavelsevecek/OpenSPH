@@ -3,7 +3,7 @@
 /// \file ParticleProbe.h
 /// \brief Frame showing information about selected particle
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "gui/Utils.h"
 #include "gui/objects/Color.h"
@@ -40,9 +40,7 @@ private:
 public:
     ParticleProbe(wxWindow* parent, const wxSize size)
         : wxPanel(parent, wxID_ANY, wxDefaultPosition, size) {
-
         this->SetMinSize(size);
-        this->SetMaxSize(size);
 
         // Connect handlers
         Connect(wxEVT_PAINT, wxPaintEventHandler(ParticleProbe::onPaint));

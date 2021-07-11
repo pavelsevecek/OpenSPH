@@ -3,6 +3,7 @@
 #include "gui/Settings.h"
 #include "objects/containers/FlatMap.h"
 #include "objects/wrappers/AutoPtr.h"
+#include "objects/wrappers/ExtendedEnum.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -14,9 +15,11 @@ struct Pixel;
 class Interval;
 class ITracker;
 class IBrdf;
+class IColorMap;
 class IScheduler;
 class Project;
 enum class ColorizerId;
+using ExtColorizerId = ExtendedEnum<ColorizerId>;
 
 namespace Factory {
 
@@ -32,9 +35,11 @@ AutoPtr<IRenderer> getRenderer(SharedPtr<IScheduler> scheduler, const GuiSetting
 
 AutoPtr<IBrdf> getBrdf(const GuiSettings& settings);
 
-AutoPtr<IColorizer> getColorizer(const Project& project, const ColorizerId id);
+AutoPtr<IColorMap> getColorMap(const GuiSettings& settings);
 
-Palette getPalette(const ColorizerId id);
+AutoPtr<IColorizer> getColorizer(const Project& project, const ExtColorizerId id);
+
+Palette getPalette(const ExtColorizerId id);
 
 } // namespace Factory
 

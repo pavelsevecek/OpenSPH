@@ -6,7 +6,7 @@
 /// \file SequenceTest.h
 /// \brief Helper class for perfoming larger number of related tests.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 NAMESPACE_SPH_BEGIN
 

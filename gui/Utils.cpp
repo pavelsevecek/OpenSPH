@@ -14,7 +14,7 @@ static std::string getDesc(ArrayView<const FileFormat> formats, const bool doAll
     if (doAll && formats.size() > 1) {
         desc += "All supported formats|";
         for (const FileFormat& format : formats) {
-            desc += "*." + format.ext + ";";
+            desc += "*." + format.extension + ";";
         }
         isFirst = false;
     }
@@ -23,7 +23,7 @@ static std::string getDesc(ArrayView<const FileFormat> formats, const bool doAll
             desc += "|";
         }
         isFirst = false;
-        desc += format.desc + " (*." + format.ext + ")|*." + format.ext;
+        desc += format.description + " (*." + format.extension + ")|*." + format.extension;
     }
     return desc;
 }
@@ -39,7 +39,7 @@ static Optional<std::pair<Path, int>> doFileDialog(const std::string& title,
     std::string s(dialog.GetPath());
     Path path(std::move(s));
     defaultDir = path.parentPath().native();
-    return std::make_pair(path, dialog.GetFilterIndex());
+    return std::make_pair(path, !fileMask.empty() ? dialog.GetFilterIndex() : -1);
 }
 
 Optional<Path> doOpenFileDialog(const std::string& title, Array<FileFormat>&& formats) {
@@ -58,8 +58,11 @@ Optional<Path> doSaveFileDialog(const std::string& title, Array<FileFormat>&& fo
     Optional<std::pair<Path, int>> pathAndIndex =
         doFileDialog(title, getDesc(formats, false), defaultDir, wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (pathAndIndex) {
-        const std::string ext = formats[pathAndIndex->second].ext;
-        pathAndIndex->first.replaceExtension(ext);
+        const int index = pathAndIndex->second;
+        if (index >= 0) {
+            const std::string ext = formats[index].extension;
+            pathAndIndex->first.replaceExtension(ext);
+        }
         return pathAndIndex->first;
     } else {
         return NOTHING;

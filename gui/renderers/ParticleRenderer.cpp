@@ -180,11 +180,11 @@ static void drawKey(IRenderContext& context,
 void drawAxis(IRenderContext& context, const Rgba& color, const Vector& axis, const std::string& label) {
     const float length = 40;
     const Coords origin(50, context.size().y - 50);
-    const Coords dir = Coords(axis[0], axis[1]) * length;
+    const Coords dir = Coords(-axis[0], axis[1]) * length;
     context.setColor(color.brighten(0.25), ColorFlag::LINE);
-    context.drawLine(origin, origin - dir);
+    context.drawLine(origin, origin + dir);
     context.setColor(Rgba::white(), ColorFlag::TEXT);
-    context.drawText(origin - dir, TextAlign::TOP | TextAlign::HORIZONTAL_CENTER, label);
+    context.drawText(origin + dir, TextAlign::TOP | TextAlign::HORIZONTAL_CENTER, label);
 }
 
 ParticleRenderer::ParticleRenderer(const GuiSettings& settings) {
@@ -365,7 +365,7 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
 
         const AffineMatrix frame = params.camera->getFrame().inverse();
         drawAxis(*context, Rgba::red(), frame.row(0), "x");
-        drawAxis(*context, Rgba::green(), frame.row(1), "y");
+        drawAxis(*context, Rgba::green(), -frame.row(1), "y");
         drawAxis(*context, Rgba::blue(), frame.row(2), "z");
     }
 

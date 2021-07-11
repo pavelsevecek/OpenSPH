@@ -3,21 +3,21 @@ CONFIG += c++14 thread silent
 CONFIG -= app_bundle
 CONFIG -= qt
 
-INCLUDEPATH += ../lib ..
-DEPENDPATH += ../lib
-LIBS += ../lib/liblib.a
-PRE_TARGETDEPS += ../lib/liblib.a
+INCLUDEPATH += ../core ..
+DEPENDPATH += ../core
+LIBS += ../core/libcore.a
+PRE_TARGETDEPS += ../core/libcore.a
 
-include(../lib/sharedLib.pro)
+include(../core/sharedCore.pro)
 
 SOURCES += main.cpp \
     Session.cpp \
     examples/TestBenchmark.cpp \
-    ../lib/objects/finders/benchmark/Finders.cpp \
-    ../lib/sph/kernel/benchmark/Kernel.cpp \
-    ../lib/gravity/benchmark/Gravity.cpp \
-    ../lib/objects/containers/benchmark/Map.cpp \
-    ../lib/sph/solvers/benchmark/Solvers.cpp
+    ../core/objects/finders/benchmark/Finders.cpp \
+    ../core/sph/kernel/benchmark/Kernel.cpp \
+    ../core/gravity/benchmark/Gravity.cpp \
+    ../core/objects/containers/benchmark/Map.cpp \
+    ../core/sph/solvers/benchmark/Solvers.cpp
 
 HEADERS += \
     Session.h \

@@ -5,6 +5,7 @@
 #include "gui/objects/Point.h"
 #include "objects/geometry/Vector.h"
 #include "objects/utility/EnumMap.h"
+#include "objects/wrappers/ExtendedEnum.h"
 #include "objects/wrappers/Function.h"
 #include "system/Settings.h"
 
@@ -20,22 +21,16 @@ enum class RendererEnum {
     /// Surfaces of bodies are meshed using Marching cubes and drawed as triangles.
     MESH,
 
-    /// Raytracer that computes intersections with implicit surface.
-    RAYTRACER,
+    /// Raymarcher that computes intersections with implicit surface.
+    RAYMARCHER,
+
+    /// Volumetric renderer
+    VOLUME,
 
     /// Draws contours (iso-lines) of quantities
     CONTOUR,
 
 };
-static RegisterEnum<RendererEnum> sRenderer({
-    { RendererEnum::NONE, "none", "No particle visualization" },
-    { RendererEnum::PARTICLE, "particle", "Particles are visualized as circles. No shading." },
-    { RendererEnum::MESH,
-        "mesh",
-        "Surfaces of bodies are meshed using Marching cubes and drawed as triangles." },
-    { RendererEnum::RAYTRACER, "raytracer", "Use raytracing to find intersections with implicit surface." },
-    { RendererEnum::CONTOUR, "contour", "Draws contours (iso-lines) of quantities" },
-});
 
 enum class CameraEnum {
     ORTHO,
@@ -43,20 +38,6 @@ enum class CameraEnum {
     FISHEYE,
     SPHERICAL,
 };
-static RegisterEnum<CameraEnum> sCamera({
-    { CameraEnum::ORTHO, "ortho", "Orthographic projection" },
-    { CameraEnum::PERSPECTIVE, "perspective", "Perspective projection" },
-    { CameraEnum::FISHEYE, "fisheye", "Fisheye equidistant projection" },
-    { CameraEnum::SPHERICAL, "spherical", "Spherical 360° projection" },
-});
-
-enum class OrthoEnum { XY, XZ, YZ };
-/// \todo replace with up and dir
-static RegisterEnum<OrthoEnum> sOrtho({
-    { OrthoEnum::XY, "xy", "XY plane" },
-    { OrthoEnum::XZ, "xz", "XZ plane" },
-    { OrthoEnum::YZ, "yz", "YZ plane" },
-});
 
 enum class PlotEnum {
     /// Evolution of the total internal energy in time
@@ -75,48 +56,37 @@ enum class PlotEnum {
     /// Evolution of the total angular momentum in time
     TOTAL_ANGULAR_MOMENTUM = 1 << 4,
 
+    /// Relative change of total energy
+    RELATIVE_ENERGY_CHANGE = 1 << 5,
+
+    /// Current size-frequency distribution
+    CURRENT_SFD = 1 << 6,
+
+    /// Predicted size-frequency distribution
+    PREDICTED_SFD = 1 << 7,
+
+    /// Speed histogram
+    SPEED_HISTOGRAM = 1 << 8,
+
+    /// Angular histogram (in x-y plane) of velocity directions
+    ANGULAR_HISTOGRAM_OF_VELOCITIES = 1 << 9,
+
     /// Evolution of the selected quantity for the selected particle in time.
     SELECTED_PARTICLE = 1 << 10,
 
-    ALL = INTERNAL_ENERGY | KINETIC_ENERGY | TOTAL_ENERGY | TOTAL_MOMENTUM | TOTAL_ANGULAR_MOMENTUM |
-          SELECTED_PARTICLE,
+    ALL = INTERNAL_ENERGY | KINETIC_ENERGY | TOTAL_ENERGY | TOTAL_MOMENTUM | TOTAL_ANGULAR_MOMENTUM,
 };
-static RegisterEnum<PlotEnum> sPlot({
-    { PlotEnum::INTERNAL_ENERGY, "internal_energy", "Plots the total internal energy." },
-    { PlotEnum::KINETIC_ENERGY, "kinetic_energy", "Plots the total kinetic energy." },
-    { PlotEnum::TOTAL_ENERGY, "total_energy", "Plots the sum of the internal and kinetic energy." },
-    { PlotEnum::TOTAL_MOMENTUM, "total_momentum", "Plots the total momentum." },
-    { PlotEnum::TOTAL_ANGULAR_MOMENTUM, "total_angular_momentum", "Plots the total angular momentum." },
-    /* { PlotEnum::PARTICLE_SFD,
-         "particle_sfd",
-         "Current cumulative size-frequency distribution of bodies in the simulation." },
-     { PlotEnum::PREDICTED_SFD,
-         "predicted_sfd",
-         "Size-frequency distribution that would be realized if we merged all particles that are currently "
-         "gravitationally bounded. It allows to roughly predict the final SFD after reaccumulation. Useful "
-         "for both NBody solvers and SPH solvers." },
-     { PlotEnum::CURRENT_SFD,
-         "current_sfd",
-         "Size-frequency distribution of particle components, i.e. groups of particles in mutual contact. "
-         "Useful for both NBody solvers and SPH solvers. Note that construcing the SFD has non-negligible "
-         "overhead, so it is recommended to specify plot period significantly larger than the time step." },*/
-    { PlotEnum::SELECTED_PARTICLE,
-        "selected_particle",
-        "Plots the current quantity of the selected particle." },
-});
-
-/// \todo generic ortho projection (x,y,z) -> (u,v)
 
 enum class BrdfEnum {
     LAMBERT,
     PHONG,
 };
 
-static RegisterEnum<BrdfEnum> sBrdf({
-    { BrdfEnum::LAMBERT, "lambert", "Lambert shading" },
-    { BrdfEnum::PHONG, "phong", "Phong shading" },
-});
-
+enum class ColorMapEnum {
+    LINEAR,
+    LOGARITHMIC,
+    FILMIC,
+};
 
 enum class GuiSettingsId {
     /// Selected renderer
@@ -127,6 +97,8 @@ enum class GuiSettingsId {
     CAMERA_POSITION,
 
     CAMERA_VELOCITY,
+
+    CAMERA_ORBIT,
 
     CAMERA_TARGET,
 
@@ -161,6 +133,8 @@ enum class GuiSettingsId {
     VIEW_GRID_SIZE,
 
     BACKGROUND_COLOR,
+
+    COLORMAP,
 
     SHOW_KEY,
 
@@ -205,11 +179,15 @@ enum class GuiSettingsId {
 
     RAYTRACE_SPHERES,
 
+    VOLUME_EMISSION,
+
     CONTOUR_SPACING,
 
     CONTOUR_GRID_SIZE,
 
     CONTOUR_SHOW_LABELS,
+
+    DEFAULT_COLORIZER,
 
     /// Title of the window appearing on taskbar
     WINDOW_TITLE,

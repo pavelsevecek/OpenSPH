@@ -1,9 +1,9 @@
 /// \file Galaxy.cpp
 /// \brief Initial conditions and the evolution of a galaxy
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
-#include "gravity/Galaxy.h"
+#include "sph/initial/Galaxy.h"
 #include "Common.h"
 #include "catch.hpp"
 

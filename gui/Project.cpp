@@ -26,9 +26,7 @@ Project::Project() {
         .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"))
         .set(GuiSettingsId::IMAGES_TIMESTEP, 10._f)
         .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 60._f)
-        .set(GuiSettingsId::PLOT_OVERPLOT_SFD,
-            std::string("/home/pavel/projects/astro/asteroids/hygiea/main_belt_families_2018/10_Hygiea/"
-                        "size_distribution/family.dat_hc"))
+        .set(GuiSettingsId::PLOT_OVERPLOT_SFD, std::string("reference_sfd.txt"))
         .set(GuiSettingsId::PLOT_INTEGRALS,
             PlotEnum::KINETIC_ENERGY | PlotEnum::TOTAL_ENERGY | PlotEnum::INTERNAL_ENERGY |
                 PlotEnum::TOTAL_ANGULAR_MOMENTUM | PlotEnum::TOTAL_MOMENTUM);

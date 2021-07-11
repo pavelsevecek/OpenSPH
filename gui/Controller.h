@@ -28,6 +28,7 @@ class IRenderer;
 class ICamera;
 class IColorizer;
 enum class ColorizerId;
+using ExtColorizerId = ExtendedEnum<ColorizerId>;
 
 /// \brief Status of the code
 enum class RunStatus {
@@ -259,6 +260,7 @@ public:
     /// \param run New simulation to start
     void start(SharedPtr<INode> run, const RunSettings& globals);
 
+    /// \brief Opens a simulation snapshot from given file.
     void open(const Path& path, const bool sequence = false);
 
     /// \brief Starts the simulation with current setup.
@@ -322,5 +324,8 @@ private:
 
     void startRenderThread();
 };
+
+/// \brief Returns IDs of all colorizers available in the application.
+Array<ExtColorizerId> getColorizerIds();
 
 NAMESPACE_SPH_END

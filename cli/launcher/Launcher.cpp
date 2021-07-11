@@ -4,12 +4,13 @@
 #include "run/Config.h"
 #include "run/Node.h"
 #include "run/SpecialEntries.h"
-#include "run/workers/GeometryJobs.h"
-#include "run/workers/InitialConditionJobs.h"
-#include "run/workers/IoJobs.h"
-#include "run/workers/MaterialJobs.h"
-#include "run/workers/ParticleJobs.h"
-#include "run/workers/SimulationJobs.h"
+#include "run/jobs/GeometryJobs.h"
+#include "run/jobs/InitialConditionJobs.h"
+#include "run/jobs/IoJobs.h"
+#include "run/jobs/ScriptJobs.h"
+#include "run/jobs/MaterialJobs.h"
+#include "run/jobs/ParticleJobs.h"
+#include "run/jobs/SimulationJobs.h"
 
 using namespace Sph;
 
@@ -80,20 +81,24 @@ public:
             default:
                 NOT_IMPLEMENTED;
             }
-        } catch (Exception& e) {
+        } catch (const Exception& e) {
             logger.write("Failed to load value, keeping the default.\n", e.what());
         }
     }
 };
 
 /// \todo AVOID THIS
-static void registerRunners() {
+static void registerJobs() {
     static SphJob sSph("");
     static CollisionGeometrySetup sSetup("");
     static MonolithicBodyIc sIc("");
     static SaveFileJob sIo("");
     static BlockJob sBlock("");
     static MaterialJob sMat("");
+
+#ifdef SPH_USE_CHAISCRIPT
+    static ChaiScriptJob sScript("");
+#endif
 }
 
 static void run(const ArgParser& parser, ILogger& logger) {
@@ -169,7 +174,7 @@ static void run(const ArgParser& parser, ILogger& logger) {
 
 int main(int argc, char* argv[]) {
     StdOutLogger logger;
-    registerRunners();
+    registerJobs();
 
     try {
         ArgParser parser(params);
@@ -183,7 +188,7 @@ int main(int argc, char* argv[]) {
         printBanner(logger);
         logger.write(e.what());
         return 0;
-    } catch (Exception& e) {
+    } catch (const Exception& e) {
         logger.write("Run failed!\n", e.what());
         return -1;
     }

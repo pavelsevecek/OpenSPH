@@ -56,7 +56,7 @@ void TimeLinePanel::update(const Path& inputFile) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
     try {
         fileMap = getSequenceFiles(inputFile);
-    } catch (Exception& UNUSED(e)) {
+    } catch (const Exception& UNUSED(e)) {
         // we already show one message box in Run, silence the error here
         fileMap.clear();
         currentFrame = 0;

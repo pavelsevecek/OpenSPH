@@ -1,7 +1,7 @@
 /// \file CliffCollapse.cpp
 /// \brief Cliff collapse test
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "Common.h"
 #include "catch.hpp"

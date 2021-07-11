@@ -1,5 +1,6 @@
 #include "gui/windows/NodePage.h"
 #include "gui/Utils.h"
+#include "gui/objects/CameraJobs.h"
 #include "gui/objects/DelayedCallback.h"
 #include "gui/objects/RenderJobs.h"
 #include "gui/windows/BatchDialog.h"
@@ -10,9 +11,9 @@
 #include "run/Config.h"
 #include "run/ScriptNode.h"
 #include "run/SpecialEntries.h"
-#include "run/workers/IoJobs.h"
-#include "run/workers/Presets.h"
-#include "run/workers/ScriptJobs.h"
+#include "run/jobs/IoJobs.h"
+#include "run/jobs/Presets.h"
+#include "run/jobs/ScriptJobs.h"
 #include "thread/CheckFunction.h"
 #include <wx/dcclient.h>
 #include <wx/dirdlg.h>
@@ -40,6 +41,7 @@ constexpr int SLOT_RADIUS = 6;
 
 /// \todo figure out why this is needed
 static AnimationJob animationDummy("dummy");
+static PerspectiveCameraJob cameraDummy("dummy");
 
 #ifdef SPH_USE_CHAISCRIPT
 static ChaiScriptJob scriptDummy("dummy");
@@ -311,7 +313,7 @@ void NodeManager::save(Config& config) {
 
         batch.save(config);
 
-    } catch (Exception& e) {
+    } catch (const Exception& e) {
         wxMessageBox(std::string("Cannot save file.\n\n") + e.what(), "Error", wxOK);
     }
 }
@@ -369,7 +371,7 @@ public:
             default:
                 NOT_IMPLEMENTED;
             }
-        } catch (Exception& e) {
+        } catch (const Exception& e) {
             /// \todo better logging
             std::cout << "Failed to load value, keeping the default.\n" << e.what() << std::endl;
         }
@@ -397,7 +399,7 @@ void NodeManager::load(Config& config) {
                 if (!desc) {
                     throw Exception("cannot find desc for node '" + className + "'");
                 }
-            } catch (Exception& e) {
+            } catch (const Exception& e) {
                 wxMessageBox(e.what(), "Error", wxOK);
                 return;
             }
@@ -430,7 +432,7 @@ void NodeManager::load(Config& config) {
         }
         batch.load(config, nodeList);
 
-    } catch (Exception& e) {
+    } catch (const Exception& e) {
         wxMessageBox(std::string("Cannot load file.\n\n") + e.what(), "Error", wxOK);
     }
 }
@@ -454,8 +456,8 @@ public:
         return "batch run";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
-        UnorderedMap<std::string, JobType> map;
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+        UnorderedMap<std::string, ExtJobType> map;
         for (Size i = 0; i < runCnt; ++i) {
             map.insert("worker " + std::to_string(i), JobType::PARTICLES);
         }
@@ -491,7 +493,7 @@ void NodeManager::startBatch(JobNode& node) {
             batch.modifyHierarchy(runIdx, *runNode);
             batchNodes.push(runNode);
         }
-    } catch (Exception& e) {
+    } catch (const Exception& e) {
         wxMessageBox(std::string("Cannot start batch run.\n\n") + e.what(), "Error", wxOK);
     }
 
@@ -523,9 +525,14 @@ void NodeManager::startAll() {
     Array<SharedPtr<JobNode>> inputs;
     for (auto& element : nodes) {
         SharedPtr<JobNode> node = element.key;
-        if (node->getDependentCnt() == 0) {
+        Optional<ExtJobType> provided = node->provides();
+        if ((!provided || provided.value() == JobType::PARTICLES) && node->getDependentCnt() == 0) {
             inputs.push(Sph::cloneHierarchy(*node, std::string("")));
         }
+    }
+    if (inputs.empty()) {
+        wxMessageBox("No simulations to start.");
+        return;
     }
 
     SharedPtr<JobNode> root = makeNode<BatchJob>("batch", inputs.size());
@@ -540,7 +547,8 @@ Array<SharedPtr<JobNode>> NodeManager::getRootNodes() const {
     Array<SharedPtr<JobNode>> inputs;
     for (auto& element : nodes) {
         SharedPtr<JobNode> node = element.key;
-        if (node->getDependentCnt() == 0) {
+        Optional<ExtJobType> provided = node->provides();
+        if ((!provided || provided.value() == JobType::PARTICLES) && node->getDependentCnt() == 0) {
             inputs.push(node);
         }
     }
@@ -643,11 +651,11 @@ NodeEditor::NodeEditor(NodeWindow* parent, SharedPtr<INodeManagerCallbacks> call
     this->SetMinSize(wxSize(1024, 768));
 
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(NodeEditor::onPaint));
-    this->Connect(wxEVT_MOTION, wxMouseEventHandler(NodeEditor::onMouseMotion));
     this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(NodeEditor::onMouseWheel));
     this->Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(NodeEditor::onLeftDown));
     this->Connect(wxEVT_LEFT_UP, wxMouseEventHandler(NodeEditor::onLeftUp));
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(NodeEditor::onRightUp));
+    this->Connect(wxEVT_MOTION, wxMouseEventHandler(NodeEditor::onMouseMotion));
     this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(NodeEditor::onDoubleClick));
 }
 
@@ -680,9 +688,8 @@ static wxColour getLineColor(const Rgba& background) {
     }
 }
 
-
-static FlatMap<JobType, wxPen> NODE_PENS_DARK = [] {
-    FlatMap<JobType, wxPen> pens;
+static FlatMap<ExtJobType, wxPen> NODE_PENS_DARK = [] {
+    FlatMap<ExtJobType, wxPen> pens;
     wxPen& storagePen = pens.insert(JobType::PARTICLES, *wxBLACK_PEN);
     storagePen.SetColour(wxColour(230, 230, 230));
 
@@ -693,11 +700,15 @@ static FlatMap<JobType, wxPen> NODE_PENS_DARK = [] {
     wxPen& geometryPen = pens.insert(JobType::GEOMETRY, *wxBLACK_PEN);
     geometryPen.SetColour(wxColour(60, 120, 255));
     geometryPen.SetStyle(wxPENSTYLE_SHORT_DASH);
+
+    wxPen& cameraPen = pens.insert(GuiJobType::CAMERA, *wxBLACK_PEN);
+    cameraPen.SetColour(wxColour(150, 225, 100));
+    cameraPen.SetStyle(wxPENSTYLE_SHORT_DASH);
     return pens;
 }();
 
-static FlatMap<JobType, wxPen> NODE_PENS_LIGHT = [] {
-    FlatMap<JobType, wxPen> pens;
+static FlatMap<ExtJobType, wxPen> NODE_PENS_LIGHT = [] {
+    FlatMap<ExtJobType, wxPen> pens;
     wxPen& storagePen = pens.insert(JobType::PARTICLES, *wxBLACK_PEN);
     storagePen.SetColour(wxColour(30, 30, 30));
 
@@ -706,12 +717,16 @@ static FlatMap<JobType, wxPen> NODE_PENS_LIGHT = [] {
     materialPen.SetStyle(wxPENSTYLE_SHORT_DASH);
 
     wxPen& geometryPen = pens.insert(JobType::GEOMETRY, *wxBLACK_PEN);
-    geometryPen.SetColour(wxColour(0, 20, 150));
+    geometryPen.SetColour(wxColour(0, 20, 80));
     geometryPen.SetStyle(wxPENSTYLE_SHORT_DASH);
+
+    wxPen& cameraPen = pens.insert(GuiJobType::CAMERA, *wxBLACK_PEN);
+    cameraPen.SetColour(wxColour(80, 10, 10));
+    cameraPen.SetStyle(wxPENSTYLE_SHORT_DASH);
     return pens;
 }();
 
-static wxPen& getNodePen(const JobType type, const bool isLightTheme) {
+static wxPen& getNodePen(const ExtJobType type, const bool isLightTheme) {
     if (isLightTheme) {
         return NODE_PENS_LIGHT[type];
     } else {
@@ -750,17 +765,24 @@ static bool canConnectSlots(const NodeSlot& from, const NodeSlot& to) {
 
     if (to.index == NodeSlot::RESULT_SLOT) {
         SPH_ASSERT(from.index != NodeSlot::RESULT_SLOT);
-        SlotData fromSlot = from.vis->node->getSlot(from.index);
-        return fromSlot.used && to.vis->node->provides() == fromSlot.type;
+        const SlotData fromSlot = from.vis->node->getSlot(from.index);
+        const Optional<ExtJobType> provided = to.vis->node->provides();
+        return fromSlot.used && provided && provided.value() == fromSlot.type;
     } else {
         SPH_ASSERT(to.index != NodeSlot::RESULT_SLOT);
-        SlotData toSlot = to.vis->node->getSlot(to.index);
-        return toSlot.used && from.vis->node->provides() == toSlot.type;
+        const SlotData toSlot = to.vis->node->getSlot(to.index);
+        const Optional<ExtJobType> provided = from.vis->node->provides();
+        return toSlot.used && provided && provided.value() == toSlot.type;
     }
 }
 
 wxColour NodeEditor::getSlotColor(const NodeSlot& slot, const Rgba& background) {
-    const Pixel mousePosition = this->transform(state.mousePosition);
+    if (!state.mousePosition) {
+        // paint event called before any mouse event happened, just return the default
+        return wxColour(background);
+    }
+
+    const Pixel mousePosition = this->transform(state.mousePosition.value());
 
     if (state.connectingSlot == slot) {
         // connecting source slot, always valid color
@@ -780,21 +802,19 @@ wxColour NodeEditor::getSlotColor(const NodeSlot& slot, const Rgba& background) 
 void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const VisNode& vis) {
     const Pixel position = vis.position;
     const Pixel size = vis.size();
-
+    const Optional<ExtJobType> provided = vis.node->provides();
     // setup pen and brush
     const bool isLightTheme = background.intensity() > 0.5f;
+    wxPen pen = getNodePen(provided.valueOr(JobType::PARTICLES), isLightTheme);
     wxBrush brush = *wxBLACK_BRUSH;
     Rgba brushColor;
-    if (vis.node->provides() == JobType::PARTICLES) {
+    if (!provided || provided.value() == JobType::PARTICLES) {
         brushColor = decreaseContrast(background, 0.1f, isLightTheme);
     } else {
-        wxPen pen = getNodePen(vis.node->provides(), isLightTheme);
         brushColor = background.blend(Rgba(pen.GetColour()), 0.2f);
     }
     brush.SetColour(wxColour(brushColor));
     gc->SetBrush(brush);
-
-    wxPen pen = getNodePen(vis.node->provides(), isLightTheme);
     gc->SetPen(pen);
 
     const wxFont font = wxSystemSettings::GetFont(wxSYS_SYSTEM_FONT);
@@ -823,7 +843,7 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
 
     // separating line for particle nodes
     pen = *wxBLACK_PEN;
-    if (vis.node->provides() == JobType::PARTICLES) {
+    if (!provided || provided.value() == JobType::PARTICLES) {
         pen.SetColour(isLightTheme ? wxColour(160, 160, 160) : wxColour(20, 20, 20));
         gc->SetPen(pen);
         const int lineY = 44;
@@ -838,6 +858,7 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
             position.y + lineY + 1);
     }
 
+    // input slots
     for (Size i = 0; i < vis.node->getSlotCnt(); ++i) {
         SlotData slot = vis.node->getSlot(i);
         const Pixel p1 = NodeSlot{ &vis, i }.position();
@@ -859,17 +880,19 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
         gc->DrawText(slot.name, p1.x + 14, p1.y - 10);
     }
 
+    // result slot
+    if (provided) {
+        const Pixel resultSlot(position.x + size.x, position.y + FIRST_SLOT_Y);
+        brush.SetColour(this->getSlotColor(NodeSlot{ &vis, NodeSlot::RESULT_SLOT }, background));
+        gc->SetBrush(brush);
 
-    const Pixel resultSlot(position.x + size.x, position.y + FIRST_SLOT_Y);
-
-    brush.SetColour(this->getSlotColor(NodeSlot{ &vis, NodeSlot::RESULT_SLOT }, background));
-    gc->SetBrush(brush);
-
-    pen = getNodePen(vis.node->provides(), isLightTheme);
-    pen.SetStyle(wxPENSTYLE_SOLID);
-    pen.SetWidth(1);
-    gc->SetPen(pen);
-    gc->DrawEllipse(resultSlot.x - SLOT_RADIUS, resultSlot.y - SLOT_RADIUS, 2 * SLOT_RADIUS, 2 * SLOT_RADIUS);
+        pen = getNodePen(provided.value(), isLightTheme);
+        pen.SetStyle(wxPENSTYLE_SOLID);
+        pen.SetWidth(1);
+        gc->SetPen(pen);
+        gc->DrawEllipse(
+            resultSlot.x - SLOT_RADIUS, resultSlot.y - SLOT_RADIUS, 2 * SLOT_RADIUS, 2 * SLOT_RADIUS);
+    }
 }
 
 void NodeEditor::save(Config& config) {
@@ -892,8 +915,8 @@ void NodeEditor::paintCurves(wxGraphicsContext* gc, const Rgba& background, cons
     pen.SetColour(getLineColor(background));
     gc->SetPen(pen);
 
-    if (state.connectingSlot && state.connectingSlot->vis == addressOf(vis)) {
-        const Pixel mousePosition = this->transform(state.mousePosition);
+    if (state.mousePosition && state.connectingSlot && state.connectingSlot->vis == addressOf(vis)) {
+        const Pixel mousePosition = this->transform(state.mousePosition.value());
         const Pixel sourcePoint = state.connectingSlot->position();
         drawCurve(gc, sourcePoint, mousePosition);
     }
@@ -944,12 +967,18 @@ void NodeEditor::onPaint(wxPaintEvent& UNUSED(evt)) {
 void NodeEditor::onMouseMotion(wxMouseEvent& evt) {
     const Pixel mousePosition(evt.GetPosition());
     if (evt.Dragging()) {
+        if (!state.mousePosition) {
+            // unknown position, cannot compute the offset
+            state.mousePosition = mousePosition;
+            return;
+        }
+
         if (state.selected) {
             // moving a node
-            state.selected->position += (mousePosition - state.mousePosition) / state.zoom;
+            state.selected->position += (mousePosition - state.mousePosition.value()) / state.zoom;
         } else if (!state.connectingSlot) {
             // just drag the editor
-            state.offset += mousePosition - state.mousePosition;
+            state.offset += mousePosition - state.mousePosition.value();
         }
         this->Refresh();
         callbacks->markUnsaved(false);
@@ -995,8 +1024,8 @@ void NodeEditor::onLeftDown(wxMouseEvent& evt) {
         }
     } else {
         state.selected = nodeMgr->getSelectedNode(position);
-        state.mouseDownPos = mousePosition;
     }
+    state.mousePosition = mousePosition;
 }
 
 void NodeEditor::onLeftUp(wxMouseEvent& evt) {
@@ -1040,9 +1069,12 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
 
     wxMenu menu;
     VisNode* vis = nodeMgr->getSelectedNode(position);
-    if (vis != nullptr && vis->node->provides() == JobType::PARTICLES) {
-        menu.Append(0, "Evaluate"); // there is no visible result of other types
-        menu.Append(1, "Evaluate batch");
+    if (vis != nullptr) {
+        const Optional<ExtJobType> provided = vis->node->provides();
+        if (!provided || provided.value() == JobType::PARTICLES) {
+            menu.Append(0, "Evaluate"); // there is no visible result of other types
+            menu.Append(1, "Evaluate batch");
+        }
     }
 
     menu.Append(2, "Evaluate all");
@@ -1062,7 +1094,7 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
         case 0:
             try {
                 nodeMgr->startRun(*vis->node);
-            } catch (Exception& e) {
+            } catch (const Exception& e) {
                 wxMessageBox(std::string("Cannot run the node: ") + e.what(), "Error", wxOK);
             }
             break;
@@ -1114,14 +1146,12 @@ void NodeEditor::onDoubleClick(wxMouseEvent& evt) {
 // NodeWindow
 //-----------------------------------------------------------------------------------------------------------
 
-class DialogAdapter : public wxPGEditorDialogAdapter {
+class DirDialogAdapter : public wxPGEditorDialogAdapter {
 public:
     virtual bool DoShowDialog(wxPropertyGrid* UNUSED(propGrid), wxPGProperty* property) override {
         wxDirDialog dialog(nullptr, "Choose directory", "", wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
         if (dialog.ShowModal() == wxID_OK) {
             wxString path = dialog.GetPath();
-            std::cout << property->GetLabel() << "  " << path << std::endl;
-
             property->SetValue(path);
             this->SetValue(path);
             return true;
@@ -1131,12 +1161,59 @@ public:
     }
 };
 
-class DirProperty : public wxFileProperty {
+class SaveFileDialogAdapter : public wxPGEditorDialogAdapter {
+private:
+    Array<FileFormat> formats;
+
+public:
+    explicit SaveFileDialogAdapter(Array<FileFormat>&& formats)
+        : formats(std::move(formats)) {}
+
+    virtual bool DoShowDialog(wxPropertyGrid* UNUSED(propGrid), wxPGProperty* property) override {
+        Optional<Path> file = doSaveFileDialog("Save file...", formats.clone());
+        if (file) {
+            property->SetValue(file->native());
+            this->SetValue(file->native());
+            return true;
+        } else {
+            return false;
+        }
+    }
+};
+
+
+class OpenFileDialogAdapter : public wxPGEditorDialogAdapter {
+private:
+    Array<FileFormat> formats;
+
+public:
+    explicit OpenFileDialogAdapter(Array<FileFormat>&& formats)
+        : formats(std::move(formats)) {}
+
+    virtual bool DoShowDialog(wxPropertyGrid* UNUSED(propGrid), wxPGProperty* property) override {
+        Optional<Path> file = doOpenFileDialog("Save file...", formats.clone());
+        if (file) {
+            property->SetValue(file->native());
+            this->SetValue(file->native());
+            return true;
+        } else {
+            return false;
+        }
+    }
+};
+
+class FileProperty : public wxFileProperty {
+    Function<wxPGEditorDialogAdapter*()> makeAdapter;
+
 public:
     using wxFileProperty::wxFileProperty;
 
+    void setFunc(Function<wxPGEditorDialogAdapter*()> func) {
+        makeAdapter = func;
+    }
+
     virtual wxPGEditorDialogAdapter* GetEditorDialog() const override {
-        return new DialogAdapter();
+        return makeAdapter();
     }
 };
 
@@ -1275,7 +1352,7 @@ public:
     }
 
     wxPGProperty* addFloat(const std::string& name, const Float value) const {
-        return grid->Append(new wxFloatProperty(name, wxPG_LABEL, float(value)));
+        return grid->Append(new wxFloatProperty(name, wxPG_LABEL, value));
     }
 
     wxPGProperty* addVector(const std::string& name, const Vector& value) const {
@@ -1294,35 +1371,31 @@ public:
         return grid->Append(new wxStringProperty(name, wxPG_LABEL, value));
     }
 
-    wxPGProperty* addPath(const std::string& name, const Path& value) const {
-        /// \todo needs better way to determine whether to use save file/load file/directory dialog
-        wxPGProperty* prop;
-        if (value.extension().empty()) {
-            prop = new DirProperty(name, wxPG_LABEL, value.native());
+    wxPGProperty* addPath(const std::string& name,
+        const Path& value,
+        const IVirtualEntry::PathType type,
+        Array<IVirtualEntry::FileFormat>&& formats) const {
+        FileProperty* prop = new FileProperty(name, wxPG_LABEL, value.native());
+        if (type != IVirtualEntry::PathType::DIRECTORY) {
+            prop->setFunc([type, formats = std::move(formats)]() -> wxPGEditorDialogAdapter* {
+                if (type == IVirtualEntry::PathType::INPUT_FILE) {
+                    return new OpenFileDialogAdapter(formats.clone());
+                } else {
+                    return new SaveFileDialogAdapter(formats.clone());
+                }
+            });
         } else {
-            prop = new wxFileProperty(name, wxPG_LABEL, value.native());
+            prop->setFunc([] { return new DirDialogAdapter(); });
         }
         return grid->Append(prop);
     }
 
-    wxPGProperty* addEnum(const std::string& name, const EnumWrapper wrapper) const {
-        wxArrayString values;
-        for (int id : EnumMap::getAll(wrapper.index)) {
-            const std::string rawName = EnumMap::toString(id, wrapper.index);
-            values.Add(capitalize(replaceAll(rawName, "_", " ")));
-        }
-        return grid->Append(new wxEnumProperty(name, wxPG_LABEL, values, wxArrayInt(), wrapper.value));
+    wxPGProperty* addEnum(const std::string& name, const IVirtualEntry& entry) const {
+        return addEnum<wxEnumProperty>(name, entry);
     }
 
-    wxPGProperty* addFlags(const std::string& name, const EnumWrapper wrapper) const {
-        wxArrayString values;
-        wxArrayInt flags;
-        for (int id : EnumMap::getAll(wrapper.index)) {
-            const std::string rawName = EnumMap::toString(id, wrapper.index);
-            values.Add(capitalize(replaceAll(rawName, "_", " ")));
-            flags.Add(int(id));
-        }
-        return grid->Append(new wxFlagsProperty(name, wxPG_LABEL, values, flags, wrapper.value));
+    wxPGProperty* addFlags(const std::string& name, const IVirtualEntry& entry) const {
+        return addEnum<wxFlagsProperty>(name, entry);
     }
 
     wxPGProperty* addExtra(const std::string& name, const ExtraEntry& extra) const {
@@ -1333,6 +1406,24 @@ public:
 
     void setTooltip(wxPGProperty* prop, const std::string& tooltip) const {
         grid->SetPropertyHelpString(prop, tooltip);
+    }
+
+private:
+    template <typename TProperty>
+    wxPGProperty* addEnum(const std::string& name, const IVirtualEntry& entry) const {
+        wxArrayString values;
+        wxArrayInt flags;
+        EnumWrapper wrapper = entry.get();
+        for (int id : EnumMap::getAll(wrapper.index)) {
+            EnumWrapper option(id, wrapper.index);
+            if (!entry.isValid(option)) {
+                continue;
+            }
+            const std::string rawName = EnumMap::toString(option.value, option.index);
+            values.Add(capitalize(replaceAll(rawName, "_", " ")));
+            flags.Add(option.value);
+        }
+        return grid->Append(new TProperty(name, wxPG_LABEL, values, flags, wrapper.value));
     }
 };
 
@@ -1374,14 +1465,18 @@ public:
         case IVirtualEntry::Type::STRING:
             prop = wrapper.addString(name, entry.get());
             break;
-        case IVirtualEntry::Type::PATH:
-            prop = wrapper.addPath(name, entry.get());
+        case IVirtualEntry::Type::PATH: {
+            const Optional<IVirtualEntry::PathType> type = entry.getPathType();
+            SPH_ASSERT(type, "No path type set for entry '" + entry.getName() + "'");
+            Array<IVirtualEntry::FileFormat> formats = entry.getFileFormats();
+            prop = wrapper.addPath(name, entry.get(), type.value(), std::move(formats));
             break;
+        }
         case IVirtualEntry::Type::ENUM:
-            prop = wrapper.addEnum(name, entry.get());
+            prop = wrapper.addEnum(name, entry);
             break;
         case IVirtualEntry::Type::FLAGS:
-            prop = wrapper.addFlags(name, entry.get());
+            prop = wrapper.addFlags(name, entry);
             break;
         case IVirtualEntry::Type::EXTRA:
             prop = wrapper.addExtra(name, entry.get());
@@ -1535,7 +1630,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         presetsIdMap[itemId] = id;
     }
 
-    workerView->Bind(wxEVT_MOTION, [workerView](wxMouseEvent& evt) {
+    workerView->Bind(wxEVT_MOTION, [this, workerView](wxMouseEvent& evt) {
         wxPoint pos = evt.GetPosition();
         int flags;
         wxTreeItemId id = workerView->HitTest(pos, flags);
@@ -1544,12 +1639,14 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         if (flags & wxTREE_HITTEST_ONITEMLABEL) {
             WorkerTreeData* data = dynamic_cast<WorkerTreeData*>(workerView->GetItemData(id));
             if (data) {
-                callback.start(600, [workerView, id, data, pos] {
+                callback.start(600, [this, workerView, id, data, pos] {
                     const wxString name = workerView->GetItemText(id);
                     wxRichToolTip tip(name, setLineBreak(data->tooltip(), 50));
                     const wxRect rect(pos, pos);
                     tip.ShowFor(workerView, &rect);
                     tip.SetTimeout(1e6);
+
+                    nodeEditor->invalidateMousePosition();
                 });
             }
         } else {
@@ -1569,14 +1666,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         if (data) {
             AutoPtr<IJob> worker = data->create();
             if (RawPtr<LoadFileJob> loader = dynamicCast<LoadFileJob>(worker.get())) {
-                Optional<Path> path = doOpenFileDialog("Load file",
-                    {
-                        { "SPH state files", "ssf" },
-                        { "SPH compressed files", "scf" },
-                        { "miluphcuda output files", "h5" },
-                        { "Pkdgrav output files", "bt" },
-                        { "Text .tab files", "tab" },
-                    });
+                Optional<Path> path = doOpenFileDialog("Load file", getInputFormats());
                 if (path) {
                     VirtualSettings settings = loader->getSettings();
                     settings.set("file", path.value());
@@ -1584,12 +1674,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
                 }
             }
             if (RawPtr<SaveFileJob> saver = dynamicCast<SaveFileJob>(worker.get())) {
-                Optional<Path> path = doSaveFileDialog("Save file",
-                    {
-                        { "SPH state file", "ssf" },
-                        { "SPH compressed file", "scf" },
-                        { "VTK grid file", "vtu" },
-                    });
+                Optional<Path> path = doSaveFileDialog("Save file", getOutputFormats());
                 if (path) {
                     VirtualSettings settings = saver->getSettings();
                     settings.set("run.output.name", path.value());
@@ -1708,12 +1793,11 @@ void NodeWindow::updateProperties() {
     try {
         AddParamsProc proc(grid, propertyEntryMap);
         settings.enumerate(proc);
-    } catch (Exception& e) {
+    } catch (const Exception& e) {
         SPH_ASSERT(false, e.what());
     }
     this->updateEnabled(grid);
 
-    grid->SetSplitterPosition(int(0.55 * grid->GetSize().x));
     grid->RestoreEditableState(states, wxPropertyGrid::ScrollPosState);
 }
 

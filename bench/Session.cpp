@@ -26,7 +26,7 @@ Session& Session::getInstance() {
 void Session::registerBenchmark(const SharedPtr<Unit>& benchmark, const std::string& groupName) {
     for (SharedPtr<Unit>& b : benchmarks) {
         if (b->getName() == benchmark->getName()) {
-            status = "Benchmark " + b->getName() + " defined more than once";
+            status = makeFailed("Benchmark " + b->getName() + " defined more than once");
             return;
         }
     }
@@ -117,7 +117,7 @@ void Session::run(int argc, char* argv[]) {
                     }
                 }
             }
-        } catch (std::exception& e) {
+        } catch (const std::exception& e) {
             this->logError("Exception caught in benchmark " + b->getName() + ":\n" + e.what());
             return;
         }
@@ -183,7 +183,7 @@ Outcome Session::parseArgs(int argc, char* argv[]) {
             }
         } else if (arg == "--help") {
             this->printHelp();
-            return ""; // empty error message to quit the program
+            return Outcome(""); // empty error message to quit the program
         } else if (arg[0] != '-') {
             // not starting with '-', it must be a name of the benchmark or group to run
             if (arg[0] == '[' && arg[arg.size() - 1] == ']') {

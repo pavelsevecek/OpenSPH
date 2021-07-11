@@ -3,12 +3,12 @@ CONFIG += c++14 thread silent static
 CONFIG -= app_bundle
 CONFIG -= qt
 
-DEPENDPATH += . ../../lib
-INCLUDEPATH += ../../lib
-PRE_TARGETDEPS += ../../lib/liblib.a
-LIBS += ../../lib/liblib.a
+DEPENDPATH += . ../../core
+INCLUDEPATH += ../../core
+PRE_TARGETDEPS += ../../core/libcore.a
+LIBS += ../../core/libcore.a
 
-include(../../lib/sharedLib.pro)
+include(../../core/sharedCore.pro)
 
 SOURCES += \
     Batch.cpp

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui/Settings.h"
-#include "run/Job.h"
+#include "gui/objects/CameraJobs.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -21,7 +21,7 @@ enum class AnimationType {
     FILE_SEQUENCE,
 };
 
-class AnimationJob : public IParticleJob {
+class AnimationJob : public INullJob {
 private:
     GuiSettings gui;
     Flags<ColorizerFlag> colorizers = ColorizerFlag::VELOCITY;
@@ -40,21 +40,25 @@ private:
     } sequence;
 
 public:
-    AnimationJob(const std::string& name);
+    explicit AnimationJob(const std::string& name);
 
     virtual std::string className() const override {
         return "render animation";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
-        return { { "particles", JobType::PARTICLES } };
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+        return {
+            { "particles", JobType::PARTICLES },
+            { "camera", GuiJobType::CAMERA },
+        };
     }
 
-    virtual UnorderedMap<std::string, JobType> requires() const override {
+    virtual UnorderedMap<std::string, ExtJobType>
+    requires() const override {
         if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE) {
-            return {};
+            return { { "camera", GuiJobType::CAMERA } };
         } else {
-            return { { "particles", JobType::PARTICLES } };
+            return this->getSlots();
         }
     }
 
@@ -63,7 +67,7 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class VdbJob : public IParticleJob {
+class VdbJob : public INullJob {
 private:
     Vector gridStart = Vector(-1.e5_f);
     Vector gridEnd = Vector(1.e5_f);
@@ -79,17 +83,18 @@ private:
 
 public:
     VdbJob(const std::string& name)
-        : IParticleJob(name) {}
+        : INullJob(name) {}
 
     virtual std::string className() const override {
         return "save VDB grid";
     }
 
-    virtual UnorderedMap<std::string, JobType> getSlots() const override {
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
-    virtual UnorderedMap<std::string, JobType> requires() const override {
+    virtual UnorderedMap<std::string, ExtJobType>
+    requires() const override {
         if (sequence.enabled) {
             return {};
         } else {

@@ -1,3 +1,58 @@
+## 2021-07-11
+- implemented softening kernels for other SPH kernels
+
+## 2021-07-10
+- added basic polytrope model
+- fixed limited range of float entries in property grid
+- made mass palette logarithmic
+- added flag renumbering in multi-join
+
+## 2021-07-09
+- optimized NBodyIc
+- optimized GalaxyIc
+- fixed crash when closing paused simulation
+
+## 2021-07-08
+- added GUI settings dialog
+- added option to set the default colorizer
+- removed strict type safety from ExtendedEnum
+- added angular histogram
+- fixed XYZ axes being mirrored
+- fixed camera tracking and camera velocity
+- added camera orbit to camera jobs
+- added units to camera parameters
+- switched the default colorizer to velocity
+- properly selecting the default colorizer
+- fixed bugged Perlin noise
+
+## 2021-07-06
+- explicitly setting path type for all path entries
+- added validator to entries
+- using validator to limit available output types
+- unified available input/output formats
+- removed splitter adjustment when selection a node
+- fixed crash in CompressedOutput when run time is not specified
+
+## 2021-07-03
+- detached cameras from Animation node
+- added volumetric renderer to UI
+- fixed Any class
+- deduplicated raytracing code
+- removed "force grayscale" from UI
+- added menu entry for creating camera from current view
+- removed "cache" node
+
+## 2021-07-01
+- added basic cmake buildsystem
+- added allocators to Array and List
+- added isothermal sphere IC
+- made parameters of SoftSphereSolver dimensionless
+
+## 2021-06-26
+- added particle densities to Chaiscript functions
+- added volumetric renderer (job-only)
+- added colormapping options
+
 ## 2021-06-23
 - added a node for removing damaged/expanded particles
 - fixed radius colorizer missing in the combobox

@@ -60,7 +60,6 @@ private:
     PlotView* firstPlot = nullptr;
     PlotView* secondPlot = nullptr;
 
-
     LockingPtr<SelectedParticlePlot> selectedParticlePlot;
 
     wxTextCtrl* statsText = nullptr;
@@ -125,8 +124,8 @@ private:
     wxPanel* createStatsBar();
 
     wxWindow* createParticleBox(wxPanel* parent);
-    wxWindow* createRaytracerBox(wxPanel* parent);
-    wxWindow* createContourBox(wxPanel* parent);
+    wxWindow* createRaymarcherBox(wxPanel* parent);
+    wxWindow* createVolumeBox(wxPanel* parent);
 
 
     void makeStatsText(const Size particleCnt, const Statistics& stats);

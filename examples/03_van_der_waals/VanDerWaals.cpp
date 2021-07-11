@@ -82,7 +82,7 @@ int main() {
         VanDerWallsSimulation simulation;
         Storage storage;
         simulation.run(storage);
-    } catch (Exception& e) {
+    } catch (const Exception& e) {
         std::cout << "Error in simulation: " << e.what() << std::endl;
         return -1;
     }

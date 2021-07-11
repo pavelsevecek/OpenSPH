@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
     PkdgravOutput output(outputPath, PkdgravParams{});
     try {
         output.dump(storage, stats);
-    } catch (std::exception& e) {
+    } catch (const std::exception& e) {
         std::cout << "Cannot save text file: " << std::endl << e.what() << std::endl;
         return -2;
     }

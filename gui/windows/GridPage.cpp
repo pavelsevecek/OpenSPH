@@ -330,7 +330,7 @@ void GridPage::update(const Storage& storage, const Config& config) {
     thread = std::thread([this, &storage, fragmentCnt, checks, config] {
         try {
             this->updateAsync(storage, fragmentCnt, checks, config);
-        } catch (std::exception& e) {
+        } catch (const std::exception& e) {
             executeOnMainThread([message = std::string(e.what())] {
                 wxMessageBox("Failed to compute fragment parameters.\n\n" + message, "Fail", wxOK | wxCENTRE);
             });

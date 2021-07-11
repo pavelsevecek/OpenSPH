@@ -3,7 +3,7 @@
 /// \file Camera.h
 /// \brief Defines projection transforming 3D particles onto 2D screen
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mf.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "gui/objects/Point.h"
 #include "math/AffineMatrix.h"
@@ -81,7 +81,11 @@ public:
     /// and x-axis is perpendicular, i.e. left-vector.
     virtual AffineMatrix getFrame() const = 0;
 
+    /// \brief Returns the current target point of the camera.
     virtual Vector getTarget() const = 0;
+
+    /// \brief Returns the reference "up" direction of the camera.
+    virtual Vector getUpVector() const = 0;
 
     /// \brief Returns the clipping distance from plane passing through origin, perpendicular to camera
     /// direction.
@@ -127,7 +131,7 @@ public:
     virtual AutoPtr<ICamera> clone() const = 0;
 };
 
-struct CameraData {
+struct CameraParams {
     /// Size of the image
     Pixel imageSize = Pixel(1024, 768);
 
@@ -163,7 +167,7 @@ struct CameraData {
 /// \brief Orthographic camera.
 class OrthoCamera : public ICamera {
 private:
-    CameraData data;
+    CameraParams data;
 
     /// Cached transformed values
     struct {
@@ -171,7 +175,7 @@ private:
     } cached;
 
 public:
-    OrthoCamera(const CameraData& data);
+    explicit OrthoCamera(const CameraParams& data);
 
     virtual void autoSetup(const Storage& storage) override;
 
@@ -184,6 +188,8 @@ public:
     virtual AffineMatrix getFrame() const override;
 
     virtual Vector getTarget() const override;
+
+    virtual Vector getUpVector() const override;
 
     virtual Optional<float> getCutoff() const override;
 
@@ -218,7 +224,7 @@ private:
 /// \brief Perspective camera
 class PerspectiveCamera : public ICamera {
 private:
-    CameraData data;
+    CameraParams data;
 
     struct {
         /// Unit direction of the camera
@@ -235,7 +241,7 @@ private:
     } cached;
 
 public:
-    PerspectiveCamera(const CameraData& data);
+    PerspectiveCamera(const CameraParams& data);
 
     virtual void autoSetup(const Storage& storage) override;
 
@@ -248,6 +254,8 @@ public:
     virtual AffineMatrix getFrame() const override;
 
     virtual Vector getTarget() const override;
+
+    virtual Vector getUpVector() const override;
 
     virtual Optional<float> getCutoff() const override;
 
@@ -278,11 +286,11 @@ private:
 /// \brief Common base for panoramic cameras.
 class PanoCameraBase : public ICamera {
 protected:
-    CameraData data;
+    CameraParams data;
     AffineMatrix matrix;
 
 public:
-    explicit PanoCameraBase(const CameraData& data);
+    explicit PanoCameraBase(const CameraParams& data);
 
     virtual void autoSetup(const Storage& storage) override;
 
@@ -293,6 +301,8 @@ public:
     virtual AffineMatrix getFrame() const override;
 
     virtual Vector getTarget() const override;
+
+    virtual Vector getUpVector() const override;
 
     virtual Optional<float> getCutoff() const override;
 
@@ -326,7 +336,7 @@ private:
     } cached;
 
 public:
-    explicit FisheyeCamera(const CameraData& data);
+    explicit FisheyeCamera(const CameraParams& data);
 
     virtual Optional<CameraRay> unproject(const Coords& coords) const override;
 
@@ -341,7 +351,7 @@ private:
 /// \brief Spherical camera
 class SphericalCamera : public PanoCameraBase {
 public:
-    explicit SphericalCamera(const CameraData& data);
+    explicit SphericalCamera(const CameraParams& data);
 
     virtual Optional<CameraRay> unproject(const Coords& coords) const override;
 

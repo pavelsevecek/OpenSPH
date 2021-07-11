@@ -5,10 +5,9 @@
 #include "gui/Utils.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
-#include "gui/renderers/ContourRenderer.h"
-#include "gui/renderers/MeshRenderer.h"
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/renderers/RayTracer.h"
+#include "gui/renderers/VolumeRenderer.h"
 #include "gui/windows/MainWindow.h"
 #include "gui/windows/OrthoPane.h"
 #include "gui/windows/ParticleProbe.h"
@@ -45,131 +44,6 @@
 // needs to be included after framemanager
 #include <wx/aui/dockart.h>
 NAMESPACE_SPH_BEGIN
-
-class SelectedParticleIntegral : public IIntegral<Float> {
-private:
-    SharedPtr<IColorizer> colorizer;
-    Size selectedIdx;
-
-public:
-    SelectedParticleIntegral(SharedPtr<IColorizer> colorizer, const Size idx)
-        : colorizer(colorizer)
-        , selectedIdx(idx) {}
-
-    virtual Float evaluate(const Storage& UNUSED(storage)) const override {
-        SPH_ASSERT(colorizer->isInitialized(), colorizer->name());
-        return colorizer->evalScalar(selectedIdx).valueOr(0.f);
-    }
-
-    virtual std::string getName() const override {
-        return colorizer->name() + " " + std::to_string(selectedIdx);
-    }
-};
-
-/// \brief Temporal plot of currently selected particle.
-///
-/// Uses current colorizer as a source quantity. If either colorizer or selected particle changes, plot is
-/// cleared. It also holds a cache of previously selected particles, so that if a previously plotted particle
-/// is re-selected, the cached data are redrawn.
-class SelectedParticlePlot : public IPlot {
-private:
-    // Currently used plot (actual implementation); may be nullptr
-    SharedPtr<TemporalPlot> currentPlot;
-
-    // Selected particle; if NOTHING, no plot is drawn
-    Optional<Size> selectedIdx;
-
-    // Colorizer used to get the scalar value of the selected particle
-    SharedPtr<IColorizer> colorizer;
-
-    // Cache of previously selected particles. Cleared every time a new colorizer is selected.
-    FlatMap<Size, SharedPtr<TemporalPlot>> plotCache;
-
-public:
-    void selectParticle(const Optional<Size> idx) {
-        if (selectedIdx.valueOr(-1) == idx.valueOr(-1)) {
-            // either the same particle or deselecting when nothing was selected; do nothing
-            return;
-        }
-        if (selectedIdx && currentPlot) {
-            // save the current plot to cache
-            plotCache.insert(selectedIdx.value(), currentPlot);
-        }
-        selectedIdx = idx;
-
-        if (idx) {
-            // try to get the plot from the cache
-            Optional<SharedPtr<TemporalPlot>&> cachedPlot = plotCache.tryGet(idx.value());
-            if (cachedPlot) {
-                // reuse the cached plot
-                currentPlot = cachedPlot.value();
-                return;
-            }
-        }
-        // either deselecting or no cached plot found; clear the plot
-        this->clear();
-    }
-
-    void setColorizer(const SharedPtr<IColorizer>& newColorizer) {
-        if (colorizer != newColorizer) {
-            colorizer = newColorizer;
-            this->clear();
-            plotCache.clear();
-        }
-    }
-
-    virtual std::string getCaption() const override {
-        if (currentPlot) {
-            return currentPlot->getCaption();
-        } else {
-            return "Selected particle";
-        }
-    }
-
-    virtual void onTimeStep(const Storage& storage, const Statistics& stats) override {
-        if (selectedIdx && currentPlot) {
-            currentPlot->onTimeStep(storage, stats);
-        } else {
-            currentPlot.reset();
-        }
-        // also do onTimeStep for all cached plots
-        for (auto& plot : plotCache) {
-            plot.value->onTimeStep(storage, stats);
-        }
-        this->syncRanges();
-    }
-
-    virtual void clear() override {
-        if (selectedIdx) {
-            AutoPtr<SelectedParticleIntegral> integral =
-                makeAuto<SelectedParticleIntegral>(colorizer, selectedIdx.value());
-            TemporalPlot::Params params;
-            params.minRangeY = EPS;
-            params.shrinkY = false;
-            params.period = 0.01_f;
-            params.maxPointCnt = 1000;
-            currentPlot = makeAuto<TemporalPlot>(std::move(integral), params);
-        } else {
-            currentPlot.reset();
-        }
-        this->syncRanges();
-    }
-
-    virtual void plot(IDrawingContext& dc) const override {
-        if (currentPlot) {
-            currentPlot->plot(dc);
-        }
-    }
-
-private:
-    /// Since range getters are not virtual, we have to update ranges manually.
-    void syncRanges() {
-        if (currentPlot) {
-            ranges.x = currentPlot->rangeX();
-            ranges.y = currentPlot->rangeY();
-        }
-    }
-};
 
 class TimeLineCallbacks : public ITimeLineCallbacks {
 private:
@@ -259,7 +133,7 @@ const wxSize spinnerSize(100, -1);
 const int boxPadding = 10;
 
 wxWindow* RunPage::createParticleBox(wxPanel* parent) {
-    wxStaticBox* particleBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 160));
+    wxStaticBox* particleBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 135));
 
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
 
@@ -299,18 +173,6 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
 
     wxBoxSizer* grayscaleSizer = new wxBoxSizer(wxHORIZONTAL);
     grayscaleSizer->AddSpacer(boxPadding);
-    wxCheckBox* grayscaleBox = new wxCheckBox(particleBox, wxID_ANY, "Force grayscale");
-    grayscaleBox->SetToolTip(
-        "Draws the particles in grayscale, useful to see how the image would look if printed using "
-        "black-and-white printer.");
-    grayscaleBox->SetValue(gui.get<bool>(GuiSettingsId::FORCE_GRAYSCALE));
-    grayscaleBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
-        const bool value = evt.IsChecked();
-        gui.set(GuiSettingsId::FORCE_GRAYSCALE, value);
-        controller->tryRedraw();
-    });
-    grayscaleSizer->Add(grayscaleBox);
-    boxSizer->Add(grayscaleSizer);
 
     wxBoxSizer* keySizer = new wxBoxSizer(wxHORIZONTAL);
     keySizer->AddSpacer(boxPadding);
@@ -371,7 +233,7 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     return particleBox;
 }
 
-wxWindow* RunPage::createRaytracerBox(wxPanel* parent) {
+wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
     wxStaticBox* raytraceBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 150));
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* levelSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -438,55 +300,27 @@ wxWindow* RunPage::createRaytracerBox(wxPanel* parent) {
     return raytraceBox;
 }
 
-wxWindow* RunPage::createContourBox(wxPanel* parent) {
-    wxStaticBox* contourBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 110));
+wxWindow* RunPage::createVolumeBox(wxPanel* parent) {
+    wxStaticBox* volumeBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 60));
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
-
-    wxBoxSizer* levelSizer = new wxBoxSizer(wxHORIZONTAL);
-    levelSizer->AddSpacer(boxPadding);
-    wxStaticText* text = new wxStaticText(contourBox, wxID_ANY, "Contour spacing");
-    levelSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
-    const Float level = gui.get<Float>(GuiSettingsId::CONTOUR_SPACING);
-    FloatTextCtrl* levelCtrl = new FloatTextCtrl(contourBox, level, Interval(1.e-6_f, 1.e6_f));
-    levelCtrl->onValueChanged = [this](const Float value) {
+    wxBoxSizer* emissionSizer = new wxBoxSizer(wxHORIZONTAL);
+    emissionSizer->AddSpacer(boxPadding);
+    wxStaticText* text = new wxStaticText(volumeBox, wxID_ANY, "Emission ");
+    emissionSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
+    const Float emission = gui.get<Float>(GuiSettingsId::VOLUME_EMISSION);
+    FloatTextCtrl* emissionCtrl = new FloatTextCtrl(volumeBox, emission * 1.e3_f, Interval(0._f, 1.e8_f));
+    emissionCtrl->onValueChanged = [this](const Float value) {
         GuiSettings& gui = controller->getParams();
-        gui.set(GuiSettingsId::CONTOUR_SPACING, value);
+        // value in spinner is in [km^-1]
+        gui.set(GuiSettingsId::VOLUME_EMISSION, value / 1.e3_f);
         controller->tryRedraw();
     };
-    levelSizer->Add(levelCtrl, 1, wxALIGN_CENTER_VERTICAL);
-    levelSizer->AddSpacer(boxPadding);
-    boxSizer->Add(levelSizer);
+    emissionSizer->Add(emissionCtrl, 1, wxALIGN_CENTER_VERTICAL);
+    emissionSizer->AddSpacer(boxPadding);
+    boxSizer->Add(emissionSizer);
 
-    wxBoxSizer* gridSizer = new wxBoxSizer(wxHORIZONTAL);
-    gridSizer->AddSpacer(boxPadding);
-    text = new wxStaticText(contourBox, wxID_ANY, "Grid resolution");
-    gridSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
-    const int gridSize = gui.get<int>(GuiSettingsId::CONTOUR_GRID_SIZE);
-    FloatTextCtrl* gridCtrl = new FloatTextCtrl(contourBox, gridSize, Interval(10._f, 1000._f));
-    gridCtrl->onValueChanged = [this](const Float value) {
-        GuiSettings& gui = controller->getParams();
-        gui.set(GuiSettingsId::CONTOUR_GRID_SIZE, int(value));
-        controller->tryRedraw();
-    };
-    gridSizer->Add(gridCtrl, 1, wxALIGN_CENTER_VERTICAL);
-    gridSizer->AddSpacer(boxPadding);
-    boxSizer->Add(gridSizer);
-
-    wxBoxSizer* labelSizer = new wxBoxSizer(wxHORIZONTAL);
-    labelSizer->AddSpacer(boxPadding);
-    wxCheckBox* labelBox = new wxCheckBox(contourBox, wxID_ANY, "Show values");
-    labelBox->SetValue(gui.get<bool>(GuiSettingsId::CONTOUR_SHOW_LABELS));
-    labelSizer->Add(labelBox);
-    boxSizer->Add(labelSizer);
-    labelBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
-        const bool value = evt.IsChecked();
-        gui.set(GuiSettingsId::CONTOUR_SHOW_LABELS, value);
-        controller->tryRedraw();
-    });
-
-
-    contourBox->SetSizer(boxSizer);
-    return contourBox;
+    volumeBox->SetSizer(boxSizer);
+    return volumeBox;
 }
 
 static void enableRecursive(wxWindow* window, const bool enable) {
@@ -621,10 +455,17 @@ wxPanel* RunPage::createVisBar() {
 
 
     wxRadioButton* surfaceButton =
-        new wxRadioButton(visbarPanel, wxID_ANY, "Raytraced surface", wxDefaultPosition, buttonSize, 0);
+        new wxRadioButton(visbarPanel, wxID_ANY, "Raymarched surface", wxDefaultPosition, buttonSize, 0);
     visbarSizer->Add(surfaceButton);
-    wxWindow* raytracerBox = this->createRaytracerBox(visbarPanel);
+    wxWindow* raytracerBox = this->createRaymarcherBox(visbarPanel);
     visbarSizer->Add(raytracerBox, 0, wxALL, 5);
+    visbarSizer->AddSpacer(10);
+
+    wxRadioButton* volumeButton =
+        new wxRadioButton(visbarPanel, wxID_ANY, "Volumetric raytracer", wxDefaultPosition, buttonSize, 0);
+    visbarSizer->Add(volumeButton);
+    wxWindow* volumeBox = this->createVolumeBox(visbarPanel);
+    visbarSizer->Add(volumeBox, 0, wxALL, 5);
     visbarSizer->AddSpacer(10);
 
     /*wxRadioButton* contourButton =
@@ -643,7 +484,7 @@ wxPanel* RunPage::createVisBar() {
     auto enableControls = [=](int renderIdx) {
         enableRecursive(particleBox, renderIdx == 0);
         enableRecursive(raytracerBox, renderIdx == 1);
-        // enableRecursive(contourBox, renderIdx == 2);
+        enableRecursive(volumeBox, renderIdx == 2);
     };
     enableControls(0);
 
@@ -668,9 +509,9 @@ wxPanel* RunPage::createVisBar() {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         try {
             SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
-            controller->setRenderer(makeAuto<RayTracer>(scheduler, gui));
+            controller->setRenderer(makeAuto<RayMarcher>(scheduler, gui));
             enableControls(1);
-        } catch (std::exception& e) {
+        } catch (const std::exception& e) {
             wxMessageBox(std::string("Cannot initialize raytracer.\n\n") + e.what(), "Error", wxOK);
 
             // switch to particle renderer (fallback option)
@@ -678,6 +519,14 @@ wxPanel* RunPage::createVisBar() {
             controller->setRenderer(makeAuto<ParticleRenderer>(gui));
             enableControls(0);
         }
+    });
+    volumeButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
+        CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+        SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
+        GuiSettings volumeGui = gui;
+        volumeGui.set(GuiSettingsId::COLORMAP, ColorMapEnum::LOGARITHMIC);
+        controller->setRenderer(makeAuto<VolumeRenderer>(scheduler, volumeGui));
+        enableControls(2);
     });
 
     visbarSizer->AddSpacer(16);
@@ -705,156 +554,23 @@ wxPanel* RunPage::createPlotBar() {
     wxPanel* sidebarPanel = new wxPanel(this);
     wxBoxSizer* sidebarSizer = new wxBoxSizer(wxVERTICAL);
     probe = new ParticleProbe(sidebarPanel, wxSize(300, 155));
-    sidebarSizer->Add(probe.get(), 0, wxALIGN_TOP);
+    sidebarSizer->Add(probe.get(), 1, wxALIGN_TOP | wxEXPAND);
     sidebarSizer->AddSpacer(5);
 
-    // the list of all available integrals to plot
-    // shared between plotviews, so that they can switch plot through context menu
-    SharedPtr<Array<PlotData>> list = makeShared<Array<PlotData>>();
-
-    TemporalPlot::Params params;
-    params.minRangeY = 1.4_f;
-    params.shrinkY = false;
-    params.period = gui.get<Float>(GuiSettingsId::PLOT_INITIAL_PERIOD);
-
-    PlotData data;
-    IntegralWrapper integral;
-    Flags<PlotEnum> flags = gui.getFlags<PlotEnum>(GuiSettingsId::PLOT_INTEGRALS);
-
-    /// \todo this plots should really be set somewhere outside of main window, they are problem-specific
-    if (flags.has(PlotEnum::TOTAL_ENERGY)) {
-        integral = makeAuto<TotalEnergy>();
-        data.plot = makeLocking<TemporalPlot>(integral, params);
-        plots.push(data.plot);
-        data.color = Rgba(wxColour(240, 255, 80));
-        list->push(data);
+    SharedPtr<Array<PlotData>> list = makeShared<Array<PlotData>>(getPlotList(gui));
+    for (const auto& plotData : *list) {
+        plots.push(plotData.plot);
     }
-
-    if (flags.has(PlotEnum::KINETIC_ENERGY)) {
-        integral = makeAuto<TotalKineticEnergy>();
-        data.plot = makeLocking<TemporalPlot>(integral, params);
-        plots.push(data.plot);
-        data.color = Rgba(wxColour(200, 0, 0));
-        list->push(data);
-    }
-
-    if (flags.has(PlotEnum::INTERNAL_ENERGY)) {
-        integral = makeAuto<TotalInternalEnergy>();
-        data.plot = makeLocking<TemporalPlot>(integral, params);
-        plots.push(data.plot);
-        data.color = Rgba(wxColour(255, 50, 50));
-        list->push(data);
-    }
-
-    if (flags.has(PlotEnum::TOTAL_MOMENTUM)) {
-        integral = makeAuto<TotalMomentum>();
-        // params.minRangeY = 1.e6_f;
-        data.plot = makeLocking<TemporalPlot>(integral, params);
-        plots.push(data.plot);
-        data.color = Rgba(wxColour(100, 200, 0));
-        list->push(data);
-    }
-
-    if (flags.has(PlotEnum::TOTAL_ANGULAR_MOMENTUM)) {
-        integral = makeAuto<TotalAngularMomentum>();
-        data.plot = makeLocking<TemporalPlot>(integral, params);
-        plots.push(data.plot);
-        data.color = Rgba(wxColour(130, 80, 255));
-        list->push(data);
-    }
-
-    /*  if (flags.has(PlotEnum::PARTICLE_SFD)) {
-          data.plot = makeLocking<SfdPlot>(0._f);
-          plots.push(data.plot);
-          data.color = Rgba(wxColour(0, 190, 255));
-          list->push(data);
-      }
-
-      if (flags.has(PlotEnum::CURRENT_SFD)) {
-          Array<AutoPtr<IPlot>> multiplot;
-          multiplot.emplaceBack(makeAuto<SfdPlot>(Post::ComponentFlag::OVERLAP, params.period));
-          if (!overplotSfd.empty()) {
-              multiplot.emplaceBack(
-                  makeAuto<DataPlot>(overplotSfd, AxisScaleEnum::LOG_X | AxisScaleEnum::LOG_Y, "Overplot"));
-          }
-          data.plot = makeLocking<MultiPlot>(std::move(multiplot));
-          plots.push(data.plot);
-          data.color = Rgba(wxColour(255, 40, 255));
-          list->push(data);
-      }
-
-      if (flags.has(PlotEnum::PREDICTED_SFD)) {
-          /// \todo could be deduplicated a bit
-          Array<AutoPtr<IPlot>> multiplot;
-          multiplot.emplaceBack(makeAuto<SfdPlot>(Post::ComponentFlag::ESCAPE_VELOCITY, params.period));
-          if (!overplotSfd.empty()) {
-              multiplot.emplaceBack(
-                  makeAuto<DataPlot>(overplotSfd, AxisScaleEnum::LOG_X | AxisScaleEnum::LOG_Y, "Overplot"));
-          }
-          data.plot = makeLocking<MultiPlot>(std::move(multiplot));
-          plots.push(data.plot);
-          data.color = Rgba(wxColour(80, 150, 255));
-          list->push(data);
-      }
-
-      if (flags.has(PlotEnum::PERIOD_HISTOGRAM)) {
-          data.plot = makeLocking<HistogramPlot>(
-              Post::HistogramId::ROTATIONAL_PERIOD, Interval(0._f, 10._f), "Rotational periods");
-          plots.push(data.plot);
-          data.color = Rgba(wxColour(255, 255, 0));
-          list->push(data);
-      }
-
-      if (flags.has(PlotEnum::LARGEST_REMNANT_ROTATION)) {
-          class LargestRemnantRotation : public IIntegral<Float> {
-          public:
-              virtual Float evaluate(const Storage& storage) const override {
-                  ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-                  if (!storage.has(QuantityId::ANGULAR_FREQUENCY)) {
-                      return 0._f;
-                  }
-                  ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
-
-                  const Size largestRemnantIdx = std::distance(m.begin(), std::max_element(m.begin(),
-      m.end())); const Float w = getLength(omega[largestRemnantIdx]); if (w == 0._f) { return 0._f; } else {
-                      return 2._f * PI / (3600._f * w);
-                  }
-              }
-
-              virtual std::string getName() const override {
-                  return "Largest remnant period";
-              }
-          };
-          integral = makeAuto<LargestRemnantRotation>();
-          auto clonedParams = params;
-          clonedParams.minRangeY = 1.e-2_f;
-          data.plot = makeLocking<TemporalPlot>(integral, clonedParams);
-          plots.push(data.plot);
-          data.color = Rgba(wxColour(255, 0, 255));
-          list->push(data);
-      }*/
-
-    if (flags.has(PlotEnum::SELECTED_PARTICLE)) {
-        selectedParticlePlot = makeLocking<SelectedParticlePlot>();
-        data.plot = selectedParticlePlot;
-        plots.push(data.plot);
-        data.color = Rgba(wxColour(255, 255, 255));
-        list->push(data);
-    } else {
-        selectedParticlePlot.reset();
-    }
-
 
     TicsParams tics;
     tics.minCnt = 2;
     tics.digits = 1;
     firstPlot = new PlotView(sidebarPanel, wxSize(300, 200), wxSize(10, 10), list, 0, tics);
-    sidebarSizer->Add(firstPlot, 0, wxALIGN_TOP);
+    sidebarSizer->Add(firstPlot, 1, wxALIGN_TOP | wxEXPAND);
     sidebarSizer->AddSpacer(5);
 
-    secondPlot =
-        new PlotView(sidebarPanel, wxSize(300, 200), wxSize(10, 10), list, list->size() == 1 ? 0 : 1, tics);
-    sidebarSizer->Add(secondPlot, 0, wxALIGN_TOP);
+    secondPlot = new PlotView(sidebarPanel, wxSize(300, 200), wxSize(10, 10), list, 1, tics);
+    sidebarSizer->Add(secondPlot, 1, wxALIGN_TOP | wxEXPAND);
 
     sidebarPanel->SetSizerAndFit(sidebarSizer);
     return sidebarPanel;

@@ -1,7 +1,7 @@
 /// \file Sedov.cpp
 /// \brief Sedov blast test
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2019
+/// \date 2016-2021
 
 #include "Sph.h"
 #include "catch.hpp"
@@ -44,11 +44,12 @@ public:
             .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)
             .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-5_f)
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.1_f)
-            .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.5_f)
+            .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.2_f)
             .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
             .set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE)
+            .set(RunSettingsId::SPH_USE_AC, true)
             .set(RunSettingsId::SPH_FINDER, FinderEnum::UNIFORM_GRID)
-            .set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, EMPTY_FLAGS)
+            .set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION)
             .set(RunSettingsId::DOMAIN_TYPE, DomainEnum::BLOCK)
             //.set(RunSettingsId::DOMAIN_BOUNDARY, BoundaryEnum::FROZEN_PARTICLES)
             .set(RunSettingsId::DOMAIN_SIZE, Vector(1._f));
@@ -63,13 +64,13 @@ public:
             .set(BodySettingsId::EOS, EosEnum::IDEAL_GAS)
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE)
             .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE)
-            .set(BodySettingsId::ADIABATIC_INDEX, 1.4_f)
+            .set(BodySettingsId::ADIABATIC_INDEX, 1.6666666666_f)
             .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
 
         *storage = Storage(Factory::getMaterial(body));
         AutoPtr<IDistribution> dist = makeAuto<PlanarDistribution>(); // Factory::getDistribution(body);
         BlockDomain domain(Vector(0._f), Vector(1._f, 1._f, 1.e-3_f));
-        Array<Vector> pos = dist->generate(*scheduler, 10000, domain);
+        Array<Vector> pos = dist->generate(*scheduler, 100000, domain);
         const Float eta = 1.5_f;
         for (Size i = 0; i < pos.size(); ++i) {
             pos[i][H] *= eta;

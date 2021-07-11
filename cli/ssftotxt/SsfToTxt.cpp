@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
     TextOutput output(outputPath, "ssftotxt", EMPTY_FLAGS, TextOutput::Options::DUMP_ALL);
     try {
         output.dump(storage, stats);
-    } catch (std::exception& e) {
+    } catch (const std::exception& e) {
         std::cout << "Cannot save text file: " << std::endl << e.what() << std::endl;
         return -2;
     }

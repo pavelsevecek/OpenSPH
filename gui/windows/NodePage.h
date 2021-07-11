@@ -144,7 +144,7 @@ private:
         /// Zoom of the panel.
         float zoom = 1.f;
 
-        Pixel mousePosition = Pixel(0, 0);
+        Optional<Pixel> mousePosition = NOTHING;
 
         /// Node currently selected by mouse (clicked, dragged, etc.)
         VisNode* selected = nullptr;
@@ -156,8 +156,6 @@ private:
         Optional<NodeSlot> connectingSlot;
 
         NodeSlot lastSlot;
-
-        Pixel mouseDownPos = Pixel(0, 0);
 
     } state;
 
@@ -178,6 +176,10 @@ public:
 
     void activate(VisNode* vis) {
         state.activated = vis;
+    }
+
+    void invalidateMousePosition() {
+        state.mousePosition = NOTHING;
     }
 
     void save(Config& config);

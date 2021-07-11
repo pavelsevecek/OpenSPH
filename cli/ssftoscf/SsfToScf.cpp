@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
     CompressedOutput output(outputPath, CompressionEnum::NONE, info->runType.valueOr(RunTypeEnum::SPH));
     try {
         output.dump(storage, stats);
-    } catch (std::exception& e) {
+    } catch (const std::exception& e) {
         std::cout << "Cannot save compressed file: " << std::endl << e.what() << std::endl;
         return -2;
     }

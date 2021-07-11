@@ -5,7 +5,7 @@
 using namespace Sph;
 
 int main(int, char**) {
-    CameraData data;
+    CameraParams data;
     data.imageSize = Pixel(1000, 1000);
     data.target = Vector(0, 1, 1);
     data.position = Vector(0, 0, 0);
