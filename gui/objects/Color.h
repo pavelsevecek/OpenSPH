@@ -103,6 +103,14 @@ public:
         return *this;
     }
 
+    bool operator==(const Rgba& other) const {
+        return data == other.data;
+    }
+
+    bool operator!=(const Rgba& other) const {
+        return data != other.data;
+    }
+
     /// \brief Returns the average intensity of the color.
     float intensity() const {
         return 0.2126f * data[0] + 0.7152f * data[1] + 0.0722f * data[2];

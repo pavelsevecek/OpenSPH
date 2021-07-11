@@ -7,7 +7,6 @@
 #include "system/Timer.h"
 #include <wx/panel.h>
 
-class wxComboBox;
 class wxBoxSizer;
 class wxGauge;
 class wxCheckBox;
@@ -36,6 +35,7 @@ struct DiagnosticsError;
 class SelectedParticlePlot;
 class TimeLine;
 class ProgressPanel;
+class ComboBox;
 
 /// \brief Main frame of the application.
 ///
@@ -68,7 +68,7 @@ private:
     wxDialog* waitingDialog = nullptr;
 
     /// Additional wx controls
-    wxComboBox* quantityBox;
+    ComboBox* quantityBox;
     Size selectedIdx = 0;
     wxPanel* quantityPanel;
     wxSizer* quantityPanelSizer;

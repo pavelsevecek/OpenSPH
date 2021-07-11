@@ -2,6 +2,7 @@
 
 #include "objects/wrappers/Function.h"
 #include "objects/wrappers/Interval.h"
+#include <wx/combobox.h>
 #include <wx/textctrl.h>
 
 NAMESPACE_SPH_BEGIN
@@ -23,6 +24,12 @@ public:
 
 private:
     void validate();
+};
+
+class ComboBox : public wxComboBox {
+public:
+    ComboBox(wxWindow* parent, const wxString& title, const wxSize& size = { -1, -1 })
+        : wxComboBox(parent, wxID_ANY, title, wxDefaultPosition, size, {}, wxCB_READONLY) {}
 };
 
 NAMESPACE_SPH_END

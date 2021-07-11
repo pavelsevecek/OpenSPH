@@ -216,12 +216,16 @@ private:
 /// \param radius Radius of the particles in units of smoothing length.
 void repelParticles(ArrayView<Vector> r, const Float radius);
 
-/// \brief Modifies particle positions so that their center of mass lies at origin.
+/// \brief Modifies particle positions so that their center of mass lies at the origin.
 ///
 /// Function can be also used for particle velocities, modifying them so that the total momentum is zero.
 /// \param m Particle masses; must be positive values
 /// \param r Particle positions (or velocities)
 /// \return Computed center of mass, subtracted from positions.
 Vector moveToCenterOfMassSystem(ArrayView<const Float> m, ArrayView<Vector> r);
+
+/// \brief Modifies particle positions and velocities so that the center of mass is at the origin and the
+/// total momentum is zero.
+void moveToCenterOfMassSystem(Storage& storage);
 
 NAMESPACE_SPH_END

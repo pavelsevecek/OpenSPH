@@ -124,7 +124,7 @@ class GravityColorizer : public TypedColorizer<Vector> {
 private:
     SharedPtr<IScheduler> scheduler;
     BarnesHut gravity;
-    Array<Vector> dv;
+    Array<Float> acc;
 
 public:
     explicit GravityColorizer(const SharedPtr<IScheduler>& scheduler, Palette palette)
@@ -133,15 +133,27 @@ public:
         , gravity(0.8_f, MultipoleOrder::OCTUPOLE) {}
 
     virtual void initialize(const Storage& storage, const RefEnum UNUSED(ref)) override {
+        acc.resize(storage.getParticleCnt());
+        acc.fill(0._f);
+
+        // gravitation acceleration from other particles
         gravity.build(*scheduler, storage);
-        Statistics stats;
-        dv.resize(storage.getParticleCnt());
+
+        Array<Vector> dv(storage.getParticleCnt());
         dv.fill(Vector(0._f));
+        Statistics stats;
         gravity.evalAll(*scheduler, dv, stats);
+
+        // add surface gravity of each particle
+        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        for (Size i = 0; i < r.size(); ++i) {
+            acc[i] = getLength(dv[i]) + Constants::gravity * m[i] / sqr(r[i][H]);
+        }
     }
 
     virtual Rgba evalColor(const Size idx) const override {
-        return palette(getLength(dv[idx]));
+        return palette(acc[idx]);
     }
 
     virtual Optional<Vector> evalVector(const Size UNUSED(idx)) const override {
@@ -281,7 +293,7 @@ JobRegistrar sRegisterAnimation(
     "Renders an image or a sequence of images from given particle input(s)");
 
 //-----------------------------------------------------------------------------------------------------------
-// VdbWorker
+// VdbJob
 //-----------------------------------------------------------------------------------------------------------
 
 #ifdef SPH_USE_VDB
@@ -357,7 +369,7 @@ void VdbJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
             outputPath.replaceExtension("vdb");
             this->generate(storage, global, outputPath);
 
-            /// \todo deduplicate with AnimationWorker
+            /// \todo deduplicate with AnimationJob
             stats.set(StatisticsId::RELATIVE_PROGRESS, Float(element.key - firstKey) / fileMap.size());
             if (element.key == firstKey) {
                 callbacks.onSetUp(storage, stats);

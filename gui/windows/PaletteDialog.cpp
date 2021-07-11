@@ -120,8 +120,7 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
     mainSizer->Add(canvas, 0, wxALIGN_CENTER_HORIZONTAL);
 
     wxBoxSizer* selectionSizer = new wxBoxSizer(wxHORIZONTAL);
-    paletteBox = new wxComboBox(this, wxID_ANY, "Select palette ...");
-    paletteBox->SetWindowStyle(wxCB_SIMPLE | wxCB_READONLY);
+    paletteBox = new ComboBox(this, "Select palette ...");
     selectionSizer->Add(paletteBox);
 
     wxButton* loadButton = new wxButton(this, wxID_ANY, "Load");

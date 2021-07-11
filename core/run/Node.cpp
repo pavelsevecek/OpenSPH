@@ -4,8 +4,8 @@
 
 NAMESPACE_SPH_BEGIN
 
-JobNode::JobNode(AutoPtr<IJob>&& worker)
-    : job(std::move(worker)) {}
+JobNode::JobNode(AutoPtr<IJob>&& job)
+    : job(std::move(job)) {}
 
 std::string JobNode::className() const {
     return job->className();
@@ -146,7 +146,7 @@ void JobNode::run(const RunSettings& global, IJobCallbacks& callbacks, std::set<
     // first, run all dependencies
     for (auto& element : providers) {
         if (!job->requires().contains(element.key)) {
-            // worker may change its requirements during (or before) the run, in this case it's not a real
+            // job may change its requirements during (or before) the run, in this case it's not a real
             // dependency
             continue;
         }
@@ -217,13 +217,13 @@ AutoPtr<JobNode> cloneNode(const JobNode& node, const std::string& name) {
     RawPtr<IJobDesc> desc = getJobDesc(node.className());
     SPH_ASSERT(desc);
 
-    AutoPtr<IJob> worker = desc->create(name.empty() ? clonedName(node.instanceName()) : name);
-    VirtualSettings target = worker->getSettings();
+    AutoPtr<IJob> job = desc->create(name.empty() ? clonedName(node.instanceName()) : name);
+    VirtualSettings target = job->getSettings();
     VirtualSettings source = node.getSettings();
     CopyEntriesProc proc(target);
     source.enumerate(proc);
 
-    return makeAuto<JobNode>(std::move(worker));
+    return makeAuto<JobNode>(std::move(job));
 }
 
 SharedPtr<JobNode> cloneHierarchy(JobNode& node, const Optional<std::string>& prefix) {

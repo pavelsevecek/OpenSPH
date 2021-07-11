@@ -24,7 +24,7 @@ static Pair<Float> computeCharacteristics(const SodConfig& sod,
     }
 }
 
-static Pair<Float> RiemannProblem(const SodConfig& sod) {
+static Pair<Float> solveRiemannProblem(const SodConfig& sod) {
     const Float c_l = sqrt(sod.gamma * sod.P_l / sod.rho_l);
     const Float c_r = sqrt(sod.gamma * sod.P_r / sod.rho_r);
 
@@ -34,9 +34,10 @@ static Pair<Float> RiemannProblem(const SodConfig& sod) {
                           (c_l / pow(sod.P_l, beta) + c_r / pow(sod.P_r, beta)),
         1. / beta);
     Float P3 = 0.5 * (sod.P_r + sod.P_l);
-    Float f_L, f_R, dfdp_L, dfdp_R;
+    Float f_L = 0._f, f_R = 0._f;
     while (fabs(P3 - P_new) > 1e-6) {
         P3 = P_new;
+        Float dfdp_L, dfdp_R;
         tie(f_L, dfdp_L) = computeCharacteristics(sod, P3, sod.P_l, c_l);
         tie(f_R, dfdp_R) = computeCharacteristics(sod, P3, sod.P_r, c_r);
         const Float f = f_L + f_R + (sod.u_r - sod.u_l);
@@ -59,7 +60,7 @@ Storage analyticSod(const SodConfig& sod, const Float t) {
 
     Float P_post;
     Float v_post;
-    tie(P_post, v_post) = RiemannProblem(sod);
+    tie(P_post, v_post) = solveRiemannProblem(sod);
 
     const Float rho_post = sod.rho_r * (((P_post / sod.P_r) + sqr(mu)) / (1 + mu * mu * (P_post / sod.P_r)));
     const Float v_shock = v_post * ((rho_post / sod.rho_r) / ((rho_post / sod.rho_r) - 1));

@@ -428,7 +428,7 @@ wxPanel* RunPage::createVisBar() {
     wxBoxSizer* quantitySizer = new wxBoxSizer(wxHORIZONTAL);
 
     quantitySizer->Add(new wxStaticText(visbarPanel, wxID_ANY, "Quantity: "), 10, wxALIGN_CENTER_VERTICAL);
-    quantityBox = new wxComboBox(visbarPanel, wxID_ANY, "", wxDefaultPosition, wxSize(200, -1));
+    quantityBox = new ComboBox(visbarPanel, "", wxSize(200, -1));
     quantityBox->SetToolTip(
         "Selects which quantity to visualize using associated color scale. Quantity values can be also "
         "obtained by left-clicking on a particle.");

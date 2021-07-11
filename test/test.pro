@@ -40,6 +40,7 @@ SOURCES += \
     ../core/objects/containers/test/Allocators.cpp \
     ../core/objects/containers/test/Array.cpp \
     ../core/objects/containers/test/ArrayRef.cpp \
+    ../core/objects/containers/test/ArrayView.cpp \
     ../core/objects/containers/test/CircularArray.cpp \
     ../core/objects/containers/test/FlatMap.cpp \
     ../core/objects/containers/test/FlatSet.cpp \
@@ -92,6 +93,7 @@ SOURCES += \
     ../core/physics/test/TimeFormat.cpp \
     ../core/physics/test/Yielding.cpp \
     ../core/post/test/Analysis.cpp \
+    ../core/post/test/TwoBody.cpp \
     ../core/post/test/MarchingCubes.cpp \
     ../core/post/test/MeshFile.cpp \
     ../core/post/test/Point.cpp \

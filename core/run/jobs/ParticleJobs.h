@@ -9,10 +9,10 @@ private:
     Vector offset = Vector(0._f);
     Vector velocity = Vector(0._f);
     bool moveToCom = false;
-    bool uniqueFlags = false;
+    bool uniqueFlags = true;
 
 public:
-    JoinParticlesJob(const std::string& name)
+    explicit JoinParticlesJob(const std::string& name)
         : IParticleJob(name) {}
 
     virtual std::string className() const override {
@@ -31,14 +31,40 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
+class OrbitParticlesJob : public IParticleJob {
+private:
+    Float a = 1.e6_f;
+    Float e = 0._f;
+    Float v = 0._f;
+
+public:
+    explicit OrbitParticlesJob(const std::string& name)
+        : IParticleJob(name) {}
+
+    virtual std::string className() const override {
+        return "orbit";
+    }
+
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+        return {
+            { "particles A", JobType::PARTICLES },
+            { "particles B", JobType::PARTICLES },
+        };
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
+};
+
 class MultiJoinParticlesJob : public IParticleJob {
 private:
     int slotCnt = 3;
     bool moveToCom = false;
-    bool uniqueFlags = false;
+    bool uniqueFlags = true;
 
 public:
-    MultiJoinParticlesJob(const std::string& name)
+    explicit MultiJoinParticlesJob(const std::string& name)
         : IParticleJob(name) {}
 
     virtual std::string className() const override {
@@ -73,7 +99,7 @@ private:
     Vector spin = Vector(0._f);
 
 public:
-    TransformParticlesJob(const std::string& name)
+    explicit TransformParticlesJob(const std::string& name)
         : IParticleJob(name) {}
 
     virtual std::string className() const override {
@@ -95,7 +121,7 @@ private:
     bool centerVelocities = false;
 
 public:
-    CenterParticlesJob(const std::string& name)
+    explicit CenterParticlesJob(const std::string& name)
         : IParticleJob(name) {}
 
     virtual std::string className() const override {
@@ -123,7 +149,7 @@ private:
     int matId = 0;
 
 public:
-    ChangeMaterialJob(const std::string& name)
+    explicit ChangeMaterialJob(const std::string& name)
         : IParticleJob(name) {}
 
     virtual std::string className() const override {
@@ -182,7 +208,7 @@ private:
     CollisionGeometrySettings geometry;
 
 public:
-    CollisionGeometrySetup(const std::string& name,
+    explicit CollisionGeometrySetup(const std::string& name,
         const CollisionGeometrySettings& overrides = EMPTY_SETTINGS);
 
     virtual std::string className() const override {

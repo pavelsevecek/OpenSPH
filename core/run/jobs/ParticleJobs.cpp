@@ -4,6 +4,7 @@
 #include "objects/geometry/Sphere.h"
 #include "post/Analysis.h"
 #include "post/Compare.h"
+#include "post/TwoBody.h"
 #include "quantities/Quantity.h"
 #include "run/IRun.h"
 #include "sph/Materials.h"
@@ -14,6 +15,10 @@
 NAMESPACE_SPH_BEGIN
 
 static void renumberFlags(const Storage& main, Storage& other) {
+    if (!other.has(QuantityId::FLAG)) {
+        return;
+    }
+
     ArrayView<const Size> flags1 = main.getValue<Size>(QuantityId::FLAG);
     const Size offset = *std::max_element(flags1.begin(), flags1.end()) + 1;
 
@@ -66,11 +71,7 @@ void JoinParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
     input1->storage.merge(std::move(input2->storage));
 
     if (moveToCom) {
-        ArrayView<Vector> v, dv;
-        tie(r, v, dv) = input1->storage.getAll<Vector>(QuantityId::POSITION);
-        ArrayView<const Float> m = input1->storage.getValue<Float>(QuantityId::MASS);
-        moveToCenterOfMassSystem(m, r);
-        moveToCenterOfMassSystem(m, v);
+        moveToCenterOfMassSystem(input1->storage);
     }
 
     result = input1;
@@ -84,6 +85,62 @@ static JobRegistrar sRegisterParticleJoin(
     [](const std::string& name) { return makeAuto<JoinParticlesJob>(name); },
     "Simply adds particles from two inputs into a single particle state. Optionally, positions and "
     "velocities of particles in the second state may be shifted.");
+
+//-----------------------------------------------------------------------------------------------------------
+// OrbitParticlesJob
+//-----------------------------------------------------------------------------------------------------------
+
+VirtualSettings OrbitParticlesJob::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+
+    VirtualSettings::Category& cat = connector.addCategory("Ellipse");
+    cat.connect("semi-major axis [km]", "a", a).setUnits(1.e3_f);
+    cat.connect("eccentricity []", "e", e);
+    cat.connect("initial proper anomaly [deg]", "v", v).setUnits(RAD_TO_DEG);
+
+    return connector;
+}
+
+void OrbitParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
+    SharedPtr<ParticleData> input1 = this->getInput<ParticleData>("particles A");
+    SharedPtr<ParticleData> input2 = this->getInput<ParticleData>("particles B");
+
+    const Float u = Kepler::trueAnomalyToEccentricAnomaly(v, e);
+    ArrayView<const Float> m1 = input1->storage.getValue<Float>(QuantityId::MASS);
+    ArrayView<const Float> m2 = input2->storage.getValue<Float>(QuantityId::MASS);
+
+    const Float m_tot =
+        std::accumulate(m1.begin(), m1.end(), 0._f) + std::accumulate(m2.begin(), m2.end(), 0._f);
+    const Float n = Kepler::meanMotion(a, m_tot);
+    const Vector dr = Kepler::position(a, e, u);
+    const Vector dv = Kepler::velocity(a, e, u, n);
+
+    ArrayView<Vector> r = input2->storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Vector> v = input2->storage.getDt<Vector>(QuantityId::POSITION);
+
+    for (Size i = 0; i < r.size(); ++i) {
+        r[i] += dr;
+        v[i] += dv;
+    }
+
+    renumberFlags(input1->storage, input2->storage);
+    input1->storage.merge(std::move(input2->storage));
+    input2->storage.removeAll();
+
+    moveToCenterOfMassSystem(input1->storage);
+
+    result = input1;
+    callbacks.onSetUp(result->storage, result->stats);
+}
+
+
+static JobRegistrar sRegisterParticleOrbit(
+    "orbit",
+    "particle operators",
+    [](const std::string& name) { return makeAuto<OrbitParticlesJob>(name); },
+    "Puts two input bodies on an elliptical trajectory around their common center of gravity. The orbit is "
+    "defined by the semi-major axis and the eccentricity and it lies in the z=0 plane.");
 
 
 //-----------------------------------------------------------------------------------------------------------
@@ -122,11 +179,7 @@ void MultiJoinParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCall
     }
 
     if (moveToCom) {
-        ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = main->storage.getAll<Vector>(QuantityId::POSITION);
-        ArrayView<const Float> m = main->storage.getValue<Float>(QuantityId::MASS);
-        moveToCenterOfMassSystem(m, r);
-        moveToCenterOfMassSystem(m, v);
+        moveToCenterOfMassSystem(main->storage);
     }
 
     result = main;
@@ -206,7 +259,7 @@ static JobRegistrar sRegisterParticleTransform(
     "Modifies positions and velocities of the input particles.");
 
 //-----------------------------------------------------------------------------------------------------------
-// CenterParticlesWorker
+// CenterParticlesJob
 //-----------------------------------------------------------------------------------------------------------
 
 VirtualSettings CenterParticlesJob::getSettings() {
@@ -441,12 +494,7 @@ void CollisionGeometrySetup::evaluate(const RunSettings& UNUSED(global), IRunCal
     target.merge(std::move(impactor));
 
     if (geometry.get<bool>(CollisionGeometrySettingsId::CENTER_OF_MASS_FRAME)) {
-        ArrayView<Float> m = target.getValue<Float>(QuantityId::MASS);
-        ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = target.getAll<Vector>(QuantityId::POSITION);
-
-        moveToCenterOfMassSystem(m, r);
-        moveToCenterOfMassSystem(m, v);
+        moveToCenterOfMassSystem(target);
     }
 
     // merge bodies to single storage
@@ -535,12 +583,7 @@ void SmoothedToSolidHandoff::evaluate(const RunSettings& UNUSED(global), IRunCal
     }
     spheres.remove(toRemove);
 
-    // move to COM system
-    ArrayView<Vector> v_sphere, dummy;
-    tie(r_sphere, v_sphere, dummy) = spheres.getAll<Vector>(QuantityId::POSITION);
-    m = input.getValue<Float>(QuantityId::MASS);
-    moveToCenterOfMassSystem(m, v_sphere);
-    moveToCenterOfMassSystem(m, r_sphere);
+    moveToCenterOfMassSystem(spheres);
 
     result = makeShared<ParticleData>();
     result->storage = std::move(spheres);
@@ -556,7 +599,7 @@ static JobRegistrar sRegisterHandoff(
 
 
 // ----------------------------------------------------------------------------------------------------------
-// ExtractComponentWorker
+// ExtractComponentJob
 // ----------------------------------------------------------------------------------------------------------
 
 VirtualSettings ExtractComponentJob::getSettings() {
@@ -590,11 +633,7 @@ void ExtractComponentJob::evaluate(const RunSettings& UNUSED(global), IRunCallba
     storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED);
 
     if (center) {
-        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-        ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
-        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-        moveToCenterOfMassSystem(m, r);
-        moveToCenterOfMassSystem(m, v);
+        moveToCenterOfMassSystem(storage);
     }
 
     result = makeShared<ParticleData>();
@@ -666,7 +705,7 @@ static JobRegistrar sRemoveParticles(
 
 
 // ----------------------------------------------------------------------------------------------------------
-// MergeComponentsWorker
+// MergeComponentsJob
 // ----------------------------------------------------------------------------------------------------------
 
 static RegisterEnum<ConnectivityEnum> sConnectivity({
@@ -746,7 +785,7 @@ static JobRegistrar sRegisterMergeComponents(
     "particles. Other quantities are handled as intensive, i.e. they are computed using weighted average.");
 
 // ----------------------------------------------------------------------------------------------------------
-// ExtractParticlesInDomainWorker
+// ExtractParticlesInDomainJob
 // ----------------------------------------------------------------------------------------------------------
 
 VirtualSettings ExtractParticlesInDomainJob::getSettings() {
@@ -773,11 +812,7 @@ void ExtractParticlesInDomainJob::evaluate(const RunSettings& UNUSED(global),
     storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED);
 
     if (center) {
-        ArrayView<Vector> v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-        moveToCenterOfMassSystem(m, r);
-        moveToCenterOfMassSystem(m, v);
+        moveToCenterOfMassSystem(storage);
     }
 
     result = data;
@@ -791,7 +826,7 @@ static JobRegistrar sRegisterExtractInDomain(
     "Preserves only particles inside the given shape, particles outside the shape are removed.");
 
 // ----------------------------------------------------------------------------------------------------------
-// EmplaceComponentsAsFlagsWorker
+// EmplaceComponentsAsFlagsJob
 // ----------------------------------------------------------------------------------------------------------
 
 VirtualSettings EmplaceComponentsAsFlagsJob::getSettings() {
@@ -837,7 +872,7 @@ static JobRegistrar sRegisterEmplaceComponents(
 
 
 // ----------------------------------------------------------------------------------------------------------
-// SubsampleWorker
+// SubsampleJob
 // ----------------------------------------------------------------------------------------------------------
 
 VirtualSettings SubsampleJob::getSettings() {

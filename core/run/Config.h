@@ -1,7 +1,7 @@
 #pragma once
 
 /// \file Config.h
-/// \brief Interface for the configuration files storing worker data.
+/// \brief Interface for the configuration files storing job data.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2021
 

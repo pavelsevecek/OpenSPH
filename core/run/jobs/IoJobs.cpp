@@ -12,7 +12,7 @@
 NAMESPACE_SPH_BEGIN
 
 // ----------------------------------------------------------------------------------------------------------
-// LoadFileWorker
+// LoadFileJob
 // ----------------------------------------------------------------------------------------------------------
 
 VirtualSettings LoadFileJob::getSettings() {
@@ -62,7 +62,7 @@ static JobRegistrar sRegisterLoadFile(
     "Loads particle state from a file");
 
 // ----------------------------------------------------------------------------------------------------------
-// FileSequenceWorker
+// FileSequenceJob
 // ----------------------------------------------------------------------------------------------------------
 
 VirtualSettings FileSequenceJob::getSettings() {
@@ -164,7 +164,7 @@ static JobRegistrar sRegisterFileSequence(
     "Loads and displays a sequence of particle states.");
 
 // ----------------------------------------------------------------------------------------------------------
-// SaveFileWorker
+// SaveFileJob
 // ----------------------------------------------------------------------------------------------------------
 
 SaveFileJob::SaveFileJob(const std::string& name)
@@ -210,7 +210,7 @@ static JobRegistrar sRegisterOutput(
     "Saves the input particle state into a file.");
 
 // ----------------------------------------------------------------------------------------------------------
-// SaveMeshWorker
+// SaveMeshJob
 // ----------------------------------------------------------------------------------------------------------
 
 VirtualSettings SaveMeshJob::getSettings() {

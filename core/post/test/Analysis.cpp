@@ -148,25 +148,6 @@ TEST_CASE("CumulativeSfd empty", "[post]") {
     REQUIRE(points.empty());
 }
 
-TEST_CASE("KeplerianElements", "[post]") {
-    // test case for Earth
-    const Float m = 5.972e24;
-    const Float M = 1.989e30;
-    const Vector r(0._f, Constants::au, 0._f);
-    const Vector v(0._f, 0._f, 29800._f);
-
-    Optional<Post::KeplerianElements> elements = Post::findKeplerEllipse(M + m, m * M / (M + m), r, v);
-    REQUIRE(elements);
-
-    REQUIRE(elements->a == approx(Constants::au, 1.e-3f));
-    REQUIRE(elements->e == approx(0.0167, 0.1f)); // yup, very uncertain, we just check it's not >1 or whatnot
-    REQUIRE(elements->i == approx(PI / 2._f));
-
-    REQUIRE(elements->ascendingNode() == approx(-PI / 2._f));
-
-    // periapsis is too uncertain to actually test anything reasonable
-}
-
 TEST_CASE("FindMoons", "[post]") {
     // test case for Earth and Sun -- Earth should be marked as a 'moon' (satellite) of the Sun
     const Float m = 5.972e24;

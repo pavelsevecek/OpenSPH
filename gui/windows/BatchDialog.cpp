@@ -1,7 +1,7 @@
 #include "gui/windows/BatchDialog.h"
+#include "gui/windows/Widgets.h"
 #include "run/Config.h"
 #include <wx/button.h>
-#include <wx/combobox.h>
 #include <wx/menu.h>
 #include <wx/msgdlg.h>
 #include <wx/sizer.h>
@@ -179,8 +179,8 @@ public:
 class ParamSelectDialog : public wxDialog {
 private:
     ArrayView<const SharedPtr<JobNode>> nodes;
-    wxComboBox* nodeBox;
-    wxComboBox* paramBox;
+    ComboBox* nodeBox;
+    ComboBox* paramBox;
 
     struct {
         Array<std::string> keys;
@@ -194,8 +194,7 @@ public:
 
         wxBoxSizer* nodeSizer = new wxBoxSizer(wxHORIZONTAL);
         nodeSizer->Add(new wxStaticText(this, wxID_ANY, "Node:", wxDefaultPosition, wxSize(120, -1)));
-        nodeBox = new wxComboBox(this, wxID_ANY, "", wxDefaultPosition, wxSize(200, -1));
-        nodeBox->SetWindowStyle(wxCB_SIMPLE | wxCB_READONLY);
+        nodeBox = new ComboBox(this, "", wxSize(200, -1));
         wxArrayString items;
         for (const SharedPtr<JobNode>& node : nodes) {
             items.Add(node->instanceName());
@@ -207,8 +206,7 @@ public:
 
         wxBoxSizer* paramSizer = new wxBoxSizer(wxHORIZONTAL);
         paramSizer->Add(new wxStaticText(this, wxID_ANY, "Parameter:", wxDefaultPosition, wxSize(120, -1)));
-        paramBox = new wxComboBox(this, wxID_ANY, "", wxDefaultPosition, wxSize(200, -1));
-        paramBox->SetWindowStyle(wxCB_SIMPLE | wxCB_READONLY);
+        paramBox = new ComboBox(this, "", wxSize(200, -1));
         paramSizer->Add(paramBox);
         sizer->Add(paramSizer);
 
