@@ -128,15 +128,86 @@ public:
     }
 
     /// \brief Computes the indefinite integral of the function.
-    Lut integral(const Float y0) const {
+    ///
+    /// The integration constant is set so that the integral at x0 has value y0.
+    Lut integral(const Float x0, const Float y0) const {
+        SPH_ASSERT(range.contains(x0));
         Array<Float> integ(data.size());
-        integ[0] = y0;
+        integ[0] = 0;
         const Float dx = range.size() / data.size();
         for (Size i = 1; i < data.size(); ++i) {
             integ[i] = integ[i - 1] + data[i] * dx;
         }
-        return Lut(range, std::move(integ));
+        const Lut lut(range, std::move(integ));
+        return lut + (y0 - lut(x0));
     }
 };
+
+/// \brief Returns a LUT given by a generic binary operator.
+///
+/// The definition interval is given by intersection of the definition intervals of operands. If the
+/// intersection is empty, returns an empty LUT.
+template <typename TValue, typename TScalar, typename TBinaryOp>
+Lut<TValue, TScalar> lutOperation(const Lut<TValue, TScalar>& lut1,
+    const Lut<TValue, TScalar>& lut2,
+    const TBinaryOp& op) {
+    // use the higher resolution
+    const Float dx = min(lut1.getRange().size() / lut1.size(), lut2.getRange().size() / lut2.size());
+
+    const Interval range = lut1.getRange().intersect(lut2.getRange());
+    const Size resolution = Size(round(range.size() / dx));
+
+    auto func = [&lut1, &lut2, &op](const Float x) { return op(lut1(x), lut2(x)); };
+    return Lut<TValue, TScalar>(range, resolution, func);
+}
+
+/// \brief Returns a LUT given by an operation between a given LUT and a scalar.
+template <typename TValue, typename TScalar, typename TBinaryOp>
+Lut<TValue, TScalar> lutOperation(const Lut<TValue, TScalar>& lut,
+    const TScalar& value,
+    const TBinaryOp& op) {
+    auto func = [&lut, &value, &op](const Float x) { return op(lut(x), value); };
+    return Lut<TValue, TScalar>(lut.getRange(), lut.size(), func);
+}
+
+template <typename TValue, typename TScalar>
+Lut<TValue, TScalar> operator+(const Lut<TValue, TScalar>& lut1, const Lut<TValue, TScalar>& lut2) {
+    return lutOperation(lut1, lut2, [](const Float x1, const Float x2) { return x1 + x2; });
+}
+
+template <typename TValue, typename TScalar>
+Lut<TValue, TScalar> operator-(const Lut<TValue, TScalar>& lut1, const Lut<TValue, TScalar>& lut2) {
+    return lutOperation(lut1, lut2, [](const Float x1, const Float x2) { return x1 - x2; });
+}
+
+template <typename TValue, typename TScalar>
+Lut<TValue, TScalar> operator*(const Lut<TValue, TScalar>& lut1, const Lut<TValue, TScalar>& lut2) {
+    return lutOperation(lut1, lut2, [](const Float x1, const Float x2) { return x1 * x2; });
+}
+
+template <typename TValue, typename TScalar>
+Lut<TValue, TScalar> operator/(const Lut<TValue, TScalar>& lut1, const Lut<TValue, TScalar>& lut2) {
+    return lutOperation(lut1, lut2, [](const Float x1, const Float x2) { return x1 / x2; });
+}
+
+template <typename TValue, typename TScalar>
+Lut<TValue, TScalar> operator+(const Lut<TValue, TScalar>& lut1, const TScalar& mult) {
+    return lutOperation(lut1, mult, [](const Float x1, const Float x2) { return x1 + x2; });
+}
+
+template <typename TValue, typename TScalar>
+Lut<TValue, TScalar> operator-(const Lut<TValue, TScalar>& lut1, const TScalar& mult) {
+    return lutOperation(lut1, mult, [](const Float x1, const Float x2) { return x1 - x2; });
+}
+
+template <typename TValue, typename TScalar>
+Lut<TValue, TScalar> operator*(const Lut<TValue, TScalar>& lut1, const TScalar& mult) {
+    return lutOperation(lut1, mult, [](const Float x1, const Float x2) { return x1 * x2; });
+}
+
+template <typename TValue, typename TScalar>
+Lut<TValue, TScalar> operator/(const Lut<TValue, TScalar>& lut1, const TScalar& mult) {
+    return lutOperation(lut1, mult, [](const Float x1, const Float x2) { return x1 / x2; });
+}
 
 NAMESPACE_SPH_END

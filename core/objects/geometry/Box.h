@@ -163,7 +163,6 @@ public:
         }
     }
 
-
     /// \brief Execute functor for all possible values of vector (with constant stepping)
     template <typename TFunctor>
     void iterate(const Vector& step, TFunctor&& functor) const {

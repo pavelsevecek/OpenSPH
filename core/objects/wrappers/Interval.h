@@ -56,6 +56,14 @@ public:
         return minBound <= value && value <= maxBound;
     }
 
+    /// \brief Computes the intersection with another interval.
+    INLINE Interval intersect(const Interval& other) const {
+        Interval is;
+        is.minBound = max(minBound, other.minBound);
+        is.maxBound = min(maxBound, other.maxBound);
+        return is;
+    }
+
     /// \brief Clamps the given value by the interval.
     INLINE Float clamp(const Float& value) const {
         SPH_ASSERT(minBound <= maxBound);
@@ -112,7 +120,6 @@ template <typename T>
 INLINE T clamp(const T& v, const Interval& range) {
     return T(range.clamp(v));
 }
-
 
 /// \brief Returns clamped values and the value of derivative.
 ///

@@ -298,6 +298,11 @@ INLINE T sin(const T f) {
 }
 
 template <typename T>
+INLINE T tan(const T f) {
+    return std::tan(f);
+}
+
+template <typename T>
 INLINE T acos(const T f) {
     return std::acos(f);
 }
@@ -305,6 +310,16 @@ INLINE T acos(const T f) {
 template <typename T>
 INLINE T asin(const T f) {
     return std::asin(f);
+}
+
+template <typename T>
+INLINE T atan(const T f) {
+    return std::atan(f);
+}
+
+template <typename T>
+INLINE T atan2(const T y, const T x) {
+    return std::atan2(y, x);
 }
 
 template <typename T>
@@ -335,6 +350,11 @@ INLINE auto floor(const T& f) {
 template <typename T>
 INLINE auto ceil(const T& f) {
     return std::ceil(f);
+}
+
+template <typename T>
+INLINE auto round(const T& f) {
+    return std::round(f);
 }
 
 /// Mathematical constants

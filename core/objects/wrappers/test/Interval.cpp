@@ -3,7 +3,7 @@
 
 using namespace Sph;
 
-TEST_CASE("Interval", "[interval]") {
+TEST_CASE("Interval contains", "[interval]") {
     Interval range;
     REQUIRE(range.empty());
     REQUIRE(!range.contains(0._f));
@@ -21,6 +21,16 @@ TEST_CASE("Interval", "[interval]") {
     REQUIRE(range.contains(1._f));
     REQUIRE(!range.contains(2._f));
     REQUIRE(!range.contains(-1._f));
+}
+
+TEST_CASE("Interval intersection", "[interval]") {
+    Interval range(1._f, 5._f);
+    REQUIRE(range.intersect(Interval(2._f, 3._f)) == Interval(2._f, 3._f));
+    REQUIRE(range.intersect(Interval(4._f, 7._f)) == Interval(4._f, 5._f));
+    REQUIRE(range.intersect(Interval(0._f, 6._f)) == Interval(1._f, 5._f));
+    REQUIRE(range.intersect(Interval(-1._f, 2._f)) == Interval(1._f, 2._f));
+    REQUIRE(range.intersect(Interval(-1._f, 0._f)).empty());
+    REQUIRE(range.intersect(Interval(6._f, 7._f)).empty());
 }
 
 TEST_CASE("Interval clamp", "[interval]") {
@@ -47,7 +57,7 @@ TEST_CASE("Interval extend", "[interval]") {
     REQUIRE(range == Interval(-2._f, 1._f));
 }
 
-TEST_CASE("Interval One sided", "[interval]") {
+TEST_CASE("Interval one sided", "[interval]") {
     Interval range1(1._f, INFTY);
     REQUIRE(!range1.contains(-LARGE));
     REQUIRE(!range1.contains(0._f));

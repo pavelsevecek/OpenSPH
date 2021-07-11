@@ -585,4 +585,14 @@ public:
     }
 };
 
+template <typename T, typename = void>
+struct IsKernel {
+    static constexpr bool value = false;
+};
+
+template <typename T>
+struct IsKernel<T, VoidType<decltype(std::declval<T>().radius())>> {
+    static constexpr bool value = true;
+};
+
 NAMESPACE_SPH_END

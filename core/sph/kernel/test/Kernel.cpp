@@ -10,6 +10,10 @@
 
 using namespace Sph;
 
+static_assert(IsKernel<CubicSpline<3>>::value, "Kernel test failed");
+static_assert(IsKernel<LutKernel<3>>::value, "Kernel test failed");
+static_assert(!IsKernel<Vector>::value, "Kernel test failed");
+
 enum class KernelTestFlag {
     /// Tests that the integral of gradient is 1
     NORMALIZATION = 1 << 0,

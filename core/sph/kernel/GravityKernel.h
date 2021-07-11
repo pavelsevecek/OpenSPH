@@ -5,14 +5,33 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz))
 /// \date 2016-2021
 
+#include "common/Traits.h"
+#include "math/Functional.h"
+#include "objects/wrappers/Lut.h"
 #include "sph/kernel/Kernel.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// \brief Kernel approximated by LUT for close particles
+/// \brief Gravity smoothing kernels associated with standard SPH kernels.
 ///
-/// At larger distances, we recover the standard Newtonian inverse square law. Implemented according to P.
-/// Cossins, PhD thesis, 2010 \cite Cossins_2010.
+/// Needs to be specialized for every SPH kernel.
+template <typename TKernel>
+class GravityKernel;
+
+struct GravityKernelTag {};
+
+template <typename T, typename = void>
+struct IsGravityKernel;
+
+/// \brief Gravitational kernel approximated by LUT for close particles.
+///
+/// At larger distances, we recover the standard Newtonian inverse square law. Implemented according to
+/// P. Cossins, PhD thesis, 2010 \cite Cossins_2010.
+///
+/// It can only be constructed from a precise gravitational kernel or using the default constructor, which
+/// corresponds to a point mass. Gravitational kernels can be created by specializing \ref GravityKernel class
+/// template or by deriving from GravityKernelTag. This is required to avoid accidentally creating \ref
+/// GravityLutKernel from SPH kernel.
 class GravityLutKernel {
 private:
     /// Kernel for close particles
@@ -24,13 +43,11 @@ public:
     template <typename TKernel>
     GravityLutKernel(TKernel&& source)
         : close(std::forward<TKernel>(source)) {
-        static_assert(!std::is_same<std::decay_t<TKernel>, CubicSpline<3>>::value &&
-                          !std::is_same<std::decay_t<TKernel>, FourthOrderSpline<3>>::value &&
-                          !std::is_same<std::decay_t<TKernel>, Gaussian<3>>::value,
+        using T = std::decay_t<TKernel>;
+        static_assert(IsGravityKernel<T>::value,
             "Use GravityKernel to get gravity smoothing kernel associated to SPH kernel");
     }
 
-    /// \todo
     INLINE Float radius() const {
         return close.radius();
     }
@@ -62,12 +79,6 @@ public:
         }
     }
 };
-
-/// \brief Gravity smoothing kernels associated with standard SPH kernels.
-///
-/// Needs to be specialized for every SPH kernel.
-template <typename TKernel>
-class GravityKernel;
 
 template <>
 class GravityKernel<CubicSpline<3>> : public Kernel<GravityKernel<CubicSpline<3>>, 3> {
@@ -102,8 +113,12 @@ public:
     }
 };
 
+/// ThomasCouchmanKernel differs from CubicSpline only in the gradient, so the GravityKernel is the same.
+template <>
+class GravityKernel<ThomasCouchmanKernel<3>> : public GravityKernel<CubicSpline<3>> {};
+
 /// Gravity kernel of a solid sphere
-class SolidSphereKernel {
+class SolidSphereKernel : public Kernel<SolidSphereKernel, 3>, public GravityKernelTag {
 public:
     SolidSphereKernel() = default;
 
@@ -118,6 +133,73 @@ public:
     INLINE Float gradImpl(const Float UNUSED(qSqr)) const {
         return 1._f;
     }
+};
+
+/// \brief Computes the gravitational softening kernel from the associated SPH kernel by integrating the
+/// Poisson equation.
+template <typename TKernel,
+    typename = std::enable_if_t<IsKernel<TKernel>::value && !IsGravityKernel<TKernel>::value>>
+auto getAssociatedGravityKernel(const TKernel& W, const Size resolution = 40000) {
+    Array<Float> psi(resolution);
+    const Float radius = W.radius();
+    Float integral = 0._f;
+    psi[0] = 0._f;
+    Float q1 = 0._f;
+    for (Size i = 1; i < resolution; ++i) {
+        const Float q2 = Float(i) / resolution * radius;
+        integral += integrate(Interval(q1, q2), [&W](const Float q) { return sqr(q) * W.valueImpl(sqr(q)); });
+        psi[i] = 4._f * PI / sqr(q2) * integral;
+        SPH_ASSERT(isReal(psi[i]));
+
+        q1 = q2;
+    }
+
+    class KernelImpl : public Kernel<KernelImpl, 3>, public GravityKernelTag {
+        Lut<Float> values;
+        Lut<Float> gradients;
+        Float grad0;
+
+    public:
+        KernelImpl(Array<Float>&& psi, const Float grad0, const Interval& range)
+            : gradients(range, std::move(psi))
+            , grad0(grad0) {
+            const Float r = range.upper();
+            values = gradients.integral(r, -1._f / r);
+        }
+
+        INLINE Float valueImpl(const Float qSqr) const {
+            return values(sqrt(qSqr));
+        }
+        INLINE Float gradImpl(const Float qSqr) const {
+            const Float q = sqrt(qSqr);
+            if (q == 0._f) {
+                return grad0;
+            }
+            return gradients(q) / q;
+        }
+        INLINE Float radius() const {
+            return values.getRange().upper();
+        }
+    };
+
+    // integral q^2 dq = 1/3 * q^3
+    const Float grad0 = 4._f / 3._f * PI * W.valueImpl(0._f);
+    return KernelImpl(std::move(psi), grad0, Interval(0._f, radius));
+}
+
+template <typename T, typename>
+struct IsGravityKernel {
+    static constexpr bool value = false;
+};
+
+template <typename T>
+struct IsGravityKernel<GravityKernel<T>> {
+    static constexpr bool value = IsKernel<T>::value;
+};
+
+template <typename T>
+struct IsGravityKernel<T, std::enable_if_t<std::is_base_of<GravityKernelTag, std::decay_t<T>>::value>> {
+    static constexpr bool value = IsKernel<T>::value;
 };
 
 NAMESPACE_SPH_END

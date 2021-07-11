@@ -671,9 +671,24 @@ template LutKernel<3> Factory::getKernel(const RunSettings& settings);
 
 GravityLutKernel Factory::getGravityKernel(const RunSettings& settings) {
     const KernelEnum id = settings.get<KernelEnum>(RunSettingsId::SPH_KERNEL);
+    /// \todo use analytical functions instead of getAssociatedGravityKernel
     switch (id) {
     case KernelEnum::CUBIC_SPLINE:
         return GravityKernel<CubicSpline<3>>();
+    case KernelEnum::FOURTH_ORDER_SPLINE:
+        return getAssociatedGravityKernel(FourthOrderSpline<3>());
+    case KernelEnum::GAUSSIAN:
+        return getAssociatedGravityKernel(Gaussian<3>());
+    case KernelEnum::CORE_TRIANGLE:
+        return getAssociatedGravityKernel(CoreTriangle());
+    case KernelEnum::THOMAS_COUCHMAN:
+        return GravityKernel<ThomasCouchmanKernel<3>>();
+    case KernelEnum::WENDLAND_C2:
+        return getAssociatedGravityKernel(WendlandC2());
+    case KernelEnum::WENDLAND_C4:
+        return getAssociatedGravityKernel(WendlandC4());
+    case KernelEnum::WENDLAND_C6:
+        return getAssociatedGravityKernel(WendlandC6());
     default:
         NOT_IMPLEMENTED;
     }

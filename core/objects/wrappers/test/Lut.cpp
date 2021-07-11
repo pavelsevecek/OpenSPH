@@ -27,6 +27,39 @@ TEST_CASE("Lut iterate", "[lut]") {
     }
 }
 
+template <typename TFunc>
+bool lutEquals(const Lut<Float>& lut, const TFunc& expected, const Float eps = 1.e-3_f) {
+    for (auto p : lut) {
+        if (p.y != approx(expected(p.x), eps)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+TEST_CASE("Lut product", "[lut]") {
+    Lut<Float> lut1(Interval(0._f, 2._f * PI), 10000, Sph::sin<Float>);
+    Lut<Float> lut2(Interval(-PI, 3._f * PI), 10000, Sph::cos<Float>);
+    Lut<Float> prod = lut1 * lut2;
+    REQUIRE(prod.getRange() == lut1.getRange());
+    REQUIRE(prod.size() == lut1.size());
+    REQUIRE(lutEquals(prod, [](const Float x) { return 0.5_f * sin(2._f * x); }));
+}
+
+TEST_CASE("Lut quotient", "[lut]") {
+    Lut<Float> lut1(Interval(-PI / 3._f, PI / 3._f), 10000, Sph::sin<Float>);
+    Lut<Float> lut2(Interval(-PI / 3._f, PI / 3._f), 10000, Sph::cos<Float>);
+    REQUIRE(lutEquals(lut1 / lut2, Sph::tan<Float>));
+}
+
+TEST_CASE("Lut add scalar", "[lut]") {
+    Lut<Float> lut(Interval(-1, 5), 10000, Sph::exp<Float>);
+    Lut<Float> result = lut + 5._f;
+    REQUIRE(result.getRange() == lut.getRange());
+    REQUIRE(result.size() == lut.size());
+    REQUIRE(lutEquals(result, [](const Float x) { return exp(x) + 5; }));
+}
+
 using Value = LutIterator<Float>::Value;
 
 namespace Sph {
@@ -51,7 +84,7 @@ TEST_CASE("Lut differentiate", "[lut]") {
 TEST_CASE("Lut integrate", "[lut]") {
     Lut<Float> lut(Interval(0._f, 2._f * PI), 10000, Sph::cos<Float>);
     Lut<Float> expected(Interval(0._f, 2._f * PI), 10000, Sph::sin<Float>);
-    Lut<Float> actual = lut.integral(0._f);
+    Lut<Float> actual = lut.integral(0, 0);
 
     const bool match = std::equal(expected.begin(), expected.end(), actual.begin(), compare);
     REQUIRE(match);

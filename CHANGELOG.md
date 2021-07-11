@@ -1,3 +1,6 @@
+## 2021-07-11
+- implemented softening kernels for other SPH kernels
+
 ## 2021-07-10
 - added basic polytrope model
 - fixed limited range of float entries in property grid
