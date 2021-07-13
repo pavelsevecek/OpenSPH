@@ -301,11 +301,12 @@ wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
 }
 
 wxWindow* RunPage::createVolumeBox(wxPanel* parent) {
-    wxStaticBox* volumeBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 60));
+    wxStaticBox* volumeBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 120));
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
+
     wxBoxSizer* emissionSizer = new wxBoxSizer(wxHORIZONTAL);
     emissionSizer->AddSpacer(boxPadding);
-    wxStaticText* text = new wxStaticText(volumeBox, wxID_ANY, "Emission ");
+    wxStaticText* text = new wxStaticText(volumeBox, wxID_ANY, "Emission [km^-1]");
     emissionSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
     const Float emission = gui.get<Float>(GuiSettingsId::VOLUME_EMISSION);
     FloatTextCtrl* emissionCtrl = new FloatTextCtrl(volumeBox, emission * 1.e3_f, Interval(0._f, 1.e8_f));
@@ -318,6 +319,37 @@ wxWindow* RunPage::createVolumeBox(wxPanel* parent) {
     emissionSizer->Add(emissionCtrl, 1, wxALIGN_CENTER_VERTICAL);
     emissionSizer->AddSpacer(boxPadding);
     boxSizer->Add(emissionSizer);
+
+    wxBoxSizer* absorptionSizer = new wxBoxSizer(wxHORIZONTAL);
+    absorptionSizer->AddSpacer(boxPadding);
+    text = new wxStaticText(volumeBox, wxID_ANY, "Absorption [km^-1]");
+    absorptionSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
+    const Float absorption = gui.get<Float>(GuiSettingsId::VOLUME_ABSORPTION);
+    FloatTextCtrl* absorptionCtrl = new FloatTextCtrl(volumeBox, absorption * 1.e3_f, Interval(0._f, 1.e8_f));
+    absorptionCtrl->onValueChanged = [this](const Float value) {
+        GuiSettings& gui = controller->getParams();
+        // value in spinner is in [km^-1]
+        gui.set(GuiSettingsId::VOLUME_ABSORPTION, value / 1.e3_f);
+        controller->tryRedraw();
+    };
+    absorptionSizer->Add(absorptionCtrl, 1, wxALIGN_CENTER_VERTICAL);
+    absorptionSizer->AddSpacer(boxPadding);
+    boxSizer->Add(absorptionSizer);
+
+    wxBoxSizer* factorSizer = new wxBoxSizer(wxHORIZONTAL);
+    factorSizer->AddSpacer(boxPadding);
+    text = new wxStaticText(volumeBox, wxID_ANY, "Compression");
+    factorSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
+    const Float factor = gui.get<Float>(GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR);
+    FloatTextCtrl* factorCtrl = new FloatTextCtrl(volumeBox, factor, Interval(1.e-6_f, 1.e6_f));
+    factorCtrl->onValueChanged = [this](const Float value) {
+        GuiSettings& gui = controller->getParams();
+        gui.set(GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR, value);
+        controller->tryRedraw();
+    };
+    factorSizer->Add(factorCtrl, 1, wxALIGN_CENTER_VERTICAL);
+    factorSizer->AddSpacer(boxPadding);
+    boxSizer->Add(factorSizer);
 
     volumeBox->SetSizer(boxSizer);
     return volumeBox;
@@ -524,7 +556,7 @@ wxPanel* RunPage::createVisBar() {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
         GuiSettings volumeGui = gui;
-        volumeGui.set(GuiSettingsId::COLORMAP, ColorMapEnum::LOGARITHMIC);
+        volumeGui.set(GuiSettingsId::COLORMAP_TYPE, ColorMapEnum::LOGARITHMIC);
         controller->setRenderer(makeAuto<VolumeRenderer>(scheduler, volumeGui));
         enableControls(2);
     });

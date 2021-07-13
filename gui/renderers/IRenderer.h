@@ -135,6 +135,12 @@ struct RenderParams {
     struct {
         /// \brief Emission per unit distance [m^-1]
         float emission = 1.f;
+
+        /// \brief Absorption coefficient [m^-1]
+        float absorption = 0.f;
+
+        /// \brief Compression factor of the logarithmic tonemapper
+        float compressionFactor = 2.f;
     } volume;
 
     struct {

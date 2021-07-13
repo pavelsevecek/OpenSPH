@@ -24,6 +24,9 @@ private:
         /// Particle colors
         Array<Rgba> colors;
 
+        /// Distention factor of each particle
+        Array<float> distention;
+
     } cached;
 
 public:

@@ -107,12 +107,14 @@ AutoPtr<IBrdf> Factory::getBrdf(const GuiSettings& settings) {
 }
 
 AutoPtr<IColorMap> Factory::getColorMap(const GuiSettings& settings) {
-    const ColorMapEnum id = settings.get<ColorMapEnum>(GuiSettingsId::COLORMAP);
+    const ColorMapEnum id = settings.get<ColorMapEnum>(GuiSettingsId::COLORMAP_TYPE);
     switch (id) {
     case ColorMapEnum::LINEAR:
         return nullptr;
-    case ColorMapEnum::LOGARITHMIC:
-        return makeAuto<LogarithmicColorMap>();
+    case ColorMapEnum::LOGARITHMIC: {
+        const float factor = settings.get<Float>(GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR);
+        return makeAuto<LogarithmicColorMap>(factor);
+    }
     case ColorMapEnum::FILMIC:
         return makeAuto<FilmicColorMap>();
     default:

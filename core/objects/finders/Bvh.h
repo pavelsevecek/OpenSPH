@@ -127,6 +127,8 @@ private:
     Float rSqr;
 
 public:
+    BvhSphere() = default;
+
     BvhSphere(const Vector& center, const Float radius)
         : center(center)
         , r(radius)

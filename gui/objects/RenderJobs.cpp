@@ -63,12 +63,18 @@ VirtualSettings AnimationJob::getSettings() {
         const RendererEnum type = gui.get<RendererEnum>(GuiSettingsId::RENDERER);
         return type == RendererEnum::RAYMARCHER || type == RendererEnum::MESH;
     };
+    auto volumeEnabler = [this] {
+        return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::VOLUME;
+    };
 
     VirtualSettings::Category& rendererCat = connector.addCategory("Rendering");
     rendererCat.connect<EnumWrapper>("Renderer", gui, GuiSettingsId::RENDERER);
     rendererCat.connect("Quantities", "quantities", colorizers);
     rendererCat.connect<bool>("Transparent background", "transparent", transparentBackground);
-    rendererCat.connect<EnumWrapper>("Color mapping", gui, GuiSettingsId::COLORMAP);
+    rendererCat.connect<EnumWrapper>("Color mapping", gui, GuiSettingsId::COLORMAP_TYPE);
+    rendererCat.connect<Float>("Logarithmic factor", gui, GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR)
+        .setEnabler(
+            [&] { return gui.get<ColorMapEnum>(GuiSettingsId::COLORMAP_TYPE) == ColorMapEnum::LOGARITHMIC; });
     rendererCat.connect<Float>("Particle radius", gui, GuiSettingsId::PARTICLE_RADIUS)
         .setEnabler(particleEnabler);
     rendererCat.connect<bool>("Antialiasing", gui, GuiSettingsId::ANTIALIASED).setEnabler(particleEnabler);
@@ -92,8 +98,10 @@ VirtualSettings AnimationJob::getSettings() {
         .setEnabler(raytracerEnabler);
     rendererCat.connect<Float>("Medium emission [km^-1]", gui, GuiSettingsId::VOLUME_EMISSION)
         .setUnits(1.e-3_f)
-        .setEnabler(
-            [this] { return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::VOLUME; });
+        .setEnabler(volumeEnabler);
+    rendererCat.connect<Float>("Medium absorption [km^-1]", gui, GuiSettingsId::VOLUME_ABSORPTION)
+        .setUnits(1.e-3_f)
+        .setEnabler(volumeEnabler);
     rendererCat.connect<Float>("Cell size", gui, GuiSettingsId::SURFACE_RESOLUTION).setEnabler([this] {
         return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::MESH;
     });
