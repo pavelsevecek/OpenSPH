@@ -35,8 +35,9 @@ void VolumeRenderer::initialize(const Storage& storage,
     spheres.reserve(cached.r.size());
     ThreadLocal<Array<NeighbourRecord>> neighs(*scheduler);
     parallelFor(*scheduler, neighs, 0, cached.r.size(), [&](const Size i, Array<NeighbourRecord>& local) {
-        float radius = cached.r[i][H];
-        while (radius < MAX_DISTENTION * cached.r[i][H]) {
+        const float initialRadius = cached.r[i][H];
+        float radius = initialRadius;
+        while (radius < MAX_DISTENTION * initialRadius) {
             tree.findAll(cached.r[i], radius, local);
             if (local.size() >= MIN_NEIGHS) {
                 break;
@@ -49,7 +50,7 @@ void VolumeRenderer::initialize(const Storage& storage,
         s.userData = i;
         spheres[i] = s;
 
-        cached.distention[i] = min(radius / cached.r[i][H], MAX_DISTENTION);
+        cached.distention[i] = min(radius / initialRadius, MAX_DISTENTION);
     });
     bvh.build(std::move(spheres));
 
