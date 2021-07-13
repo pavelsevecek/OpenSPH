@@ -2,6 +2,8 @@
 - automatic computation of particle radii in volumetric renderer
 - added absorption to volumetric renderer
 - added compression factor to logarithmic colormapper
+- properly validating palette ranges
+- added progress reporting to galaxy IC (parts only)
 
 ## 2021-07-11
 - implemented softening kernels for other SPH kernels

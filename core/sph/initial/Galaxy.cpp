@@ -214,20 +214,6 @@ static Array<Pair<Float>> computeCumulativeMass(const GalaxySettings& settings, 
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
 
     Array<Pair<Float>> cumulativeDist;
-    /* for (Size i = 0; i < MASS_BINS; ++i) {
-            const Float binRadius = (i + 1) * dr;
-            Float binMass = 0._f;
-
-            for (Size j = 0; j < r.size(); j++) {
-                const Float radius = sqrt(sqr(r[j][X]) + sqr(r[j][Y]));
-
-                if (radius < binRadius) {
-                    binMass += m[j];
-                }
-            }
-
-            cdf.push(Pair<Float>{ binRadius, binMass });
-        }*/
     Array<Float> differentialDist(MASS_BINS);
     differentialDist.fill(0._f);
     for (Size i = 0; i < r.size(); ++i) {
@@ -405,24 +391,54 @@ static void computeBulgeVelocities(UniformRng& rng,
     });
 }
 
-Storage Galaxy::generateIc(const RunSettings& globals, const GalaxySettings& settings) {
+class StorageBuilder {
+public:
+    Storage storage;
+    const Galaxy::IProgressCallbacks& callbacks;
+    Size partId = 0;
+
+    const Size numParts = 8;
+
+public:
+    StorageBuilder(const Galaxy::IProgressCallbacks& callbacks)
+        : callbacks(callbacks) {}
+
+    Storage& operator*() {
+        callbacks.onPart(storage, partId, numParts);
+        ++partId;
+
+        return storage;
+    }
+
+    Storage* operator->() {
+        return &operator*();
+    }
+
+    Storage release() && {
+        return std::move(storage);
+    }
+};
+
+Storage Galaxy::generateIc(const RunSettings& globals,
+    const GalaxySettings& settings,
+    const IProgressCallbacks& callbacks) {
     const int seed = globals.get<int>(RunSettingsId::RUN_RNG_SEED);
     UniformRng rng(seed);
+    SharedPtr<IScheduler> scheduler = Factory::getScheduler(globals);
 
-    Storage storage;
-    storage.merge(generateDisk(rng, settings));
-    storage.merge(generateHalo(rng, settings));
-    storage.merge(generateBulge(rng, settings));
+    StorageBuilder builder(callbacks);
+    builder->merge(generateDisk(rng, settings));
+    builder->merge(generateHalo(rng, settings));
+    builder->merge(generateBulge(rng, settings));
 
+    Array<Pair<Float>> massDist = computeCumulativeMass(settings, *builder);
+    computeDiskVelocities(*scheduler, rng, settings, *builder);
+    computeHaloVelocities(rng, settings, massDist, *builder);
+    computeBulgeVelocities(rng, settings, massDist, *builder);
+
+    Storage storage = std::move(builder).release();
     ArrayView<const Size> flag = storage.getValue<Size>(QuantityId::FLAG);
     SPH_ASSERT(std::is_sorted(flag.begin(), flag.end()));
-
-    Array<Pair<Float>> massDist = computeCumulativeMass(settings, storage);
-    SharedPtr<IScheduler> scheduler = Factory::getScheduler(globals);
-    computeDiskVelocities(*scheduler, rng, settings, storage);
-    computeHaloVelocities(rng, settings, massDist, storage);
-    computeBulgeVelocities(rng, settings, massDist, storage);
-
     return storage;
 }
 

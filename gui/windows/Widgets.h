@@ -14,7 +14,7 @@ private:
     Interval range;
 
 public:
-    Function<void(double)> onValueChanged;
+    Function<bool(double)> onValueChanged;
 
     FloatTextCtrl(wxWindow* parent, const double value, const Interval range = Interval::unbounded());
 

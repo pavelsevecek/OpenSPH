@@ -48,7 +48,7 @@ bool intersectBox(const Box& box, const Ray& ray, Float& t_min, Float& t_max) {
 template <typename TBvhObject>
 template <typename TAddIntersection>
 void Bvh<TBvhObject>::getIntersections(const Ray& ray, const TAddIntersection& addIntersection) const {
-    StaticArray<Float, 4> boxHits;
+    StaticArray<Float, 4> boxHits{ LARGE, LARGE, LARGE, LARGE };
     Size closer;
     Size other;
 
