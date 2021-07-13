@@ -3,6 +3,7 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/renderers/FrameBuffer.h"
+#include "objects/finders/KdTree.h"
 #include "objects/utility/OutputIterators.h"
 
 NAMESPACE_SPH_BEGIN
@@ -14,6 +15,9 @@ VolumeRenderer::VolumeRenderer(SharedPtr<IScheduler> scheduler, const GuiSetting
 
 VolumeRenderer::~VolumeRenderer() = default;
 
+const float MAX_DISTENTION = 50;
+const float MIN_NEIGHS = 8;
+
 void VolumeRenderer::initialize(const Storage& storage,
     const IColorizer& colorizer,
     const ICamera& UNUSED(camera)) {
@@ -23,12 +27,32 @@ void VolumeRenderer::initialize(const Storage& storage,
         cached.colors[i] = colorizer.evalColor(i);
     }
 
-    Array<BvhSphere> spheres;
+    cached.distention.resize(cached.r.size());
+
+    KdTree<KdNode> tree;
+    tree.build(*scheduler, cached.r, FinderFlag::SKIP_RANK);
+
+    Array<BvhSphere> spheres(cached.r.size());
     spheres.reserve(cached.r.size());
-    for (Size i = 0; i < cached.r.size(); ++i) {
-        BvhSphere& s = spheres.emplaceBack(cached.r[i], 2.f * cached.r[i][H]);
+    ThreadLocal<Array<NeighbourRecord>> neighs(*scheduler);
+    parallelFor(*scheduler, neighs, 0, cached.r.size(), [&](const Size i, Array<NeighbourRecord>& local) {
+        const float initialRadius = cached.r[i][H];
+        float radius = initialRadius;
+        while (radius < MAX_DISTENTION * initialRadius) {
+            tree.findAll(cached.r[i], radius, local);
+            if (local.size() >= MIN_NEIGHS) {
+                break;
+            } else {
+                radius *= 1.5f;
+            }
+        }
+
+        BvhSphere s(cached.r[i], radius);
         s.userData = i;
-    }
+        spheres[i] = s;
+
+        cached.distention[i] = min(radius / initialRadius, MAX_DISTENTION);
+    });
     bvh.build(std::move(spheres));
 
     for (ThreadData& data : threadData) {
@@ -46,8 +70,9 @@ Rgba VolumeRenderer::shade(const RenderParams& params, const CameraRay& cameraRa
     Array<IntersectionInfo>& intersections = rayData.intersections;
     intersections.clear();
     bvh.getAllIntersections(ray, backInserter(intersections));
-    /// \todo only needed if absorption is enabled
-    std::sort(intersections.begin(), intersections.end());
+    if (params.volume.absorption > 0.f) {
+        std::sort(intersections.begin(), intersections.end());
+    }
 
     Rgba result = this->getEnviroColor(cameraRay);
     for (const IntersectionInfo& is : reverse(intersections)) {
@@ -56,10 +81,13 @@ Rgba VolumeRenderer::shade(const RenderParams& params, const CameraRay& cameraRa
         const Vector hit = ray.origin() + ray.direction() * is.t;
         const Vector center = cached.r[i];
         const Vector toCenter = getNormalized(center - hit);
-        const Float cosPhi = abs(dot(toCenter, ray.direction()));
-        // 4th power to give more weight to the sphere center
-        const Float secant = 2._f * getLength(center - hit) * pow<4>(cosPhi);
-        result += cached.colors[i] * params.volume.emission * secant;
+        const float cosPhi = abs(dot(toCenter, ray.direction()));
+        const float distention = cached.distention[i];
+        const float secant = 2._f * getLength(center - hit) * cosPhi;
+        result = result * exp(-params.volume.absorption * secant);
+        // 3th power of cosPhi to give more weight to the sphere center,
+        // divide by distention^3; distention should not affect the total emission
+        result += cached.colors[i] * params.volume.emission * pow<3>(cosPhi / distention) * secant;
     }
     return result;
 }

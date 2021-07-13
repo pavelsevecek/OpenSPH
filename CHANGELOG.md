@@ -1,3 +1,8 @@
+## 2021-07-13
+- automatic computation of particle radii in volumetric renderer
+- added absorption to volumetric renderer
+- added compression factor to logarithmic colormapper
+
 ## 2021-07-11
 - implemented softening kernels for other SPH kernels
 - added a node that provides setup of orbiting bodies
