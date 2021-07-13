@@ -24,6 +24,12 @@ public:
     NullInserter& operator=(TValue&&) {
         return *this;
     }
+
+    using iterator_category = std::output_iterator_tag;
+    using value_type = void;
+    using difference_type = ptrdiff_t;
+    using pointer = void;
+    using reference = void;
 };
 
 /// \brief Output iterator that inserts the written values to the given iterator using \ref push function.
@@ -49,6 +55,12 @@ public:
         container.push(std::forward<TValue>(value));
         return *this;
     }
+
+    using iterator_category = std::output_iterator_tag;
+    using value_type = void;
+    using difference_type = ptrdiff_t;
+    using pointer = void;
+    using reference = void;
 };
 
 template <typename TContainer>

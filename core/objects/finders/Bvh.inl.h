@@ -131,6 +131,7 @@ Size Bvh<TBvhObject>::getAllIntersections(const Ray& ray, TOutIter iter) const {
     this->getIntersections(ray, [&iter, &count](IntersectionInfo& current) { //
         *iter = current;
         ++iter;
+        ++count;
         return true;
     });
     return count;
