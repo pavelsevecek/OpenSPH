@@ -15,7 +15,7 @@
 NAMESPACE_SPH_BEGIN
 
 static void renumberFlags(const Storage& main, Storage& other) {
-    if (!other.has(QuantityId::FLAG)) {
+    if (!main.has(QuantityId::FLAG) || !other.has(QuantityId::FLAG)) {
         return;
     }
 
@@ -97,7 +97,7 @@ VirtualSettings OrbitParticlesJob::getSettings() {
     VirtualSettings::Category& cat = connector.addCategory("Ellipse");
     cat.connect("semi-major axis [km]", "a", a).setUnits(1.e3_f);
     cat.connect("eccentricity []", "e", e);
-    cat.connect("initial proper anomaly [deg]", "v", v).setUnits(RAD_TO_DEG);
+    cat.connect("initial proper anomaly [deg]", "v", v).setUnits(DEG_TO_RAD);
 
     return connector;
 }

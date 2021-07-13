@@ -1,4 +1,5 @@
 #include "sph/initial/MeshDomain.h"
+#include "objects/utility/OutputIterators.h"
 #include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
@@ -101,11 +102,10 @@ bool MeshDomain::containImpl(const Vector& v) const {
         Vector(0._f, 0._f, -1._f),
     };
 
-    std::set<IntersectionInfo> intersections;
     for (Vector& dir : dirs) {
         Ray ray(v, dir);
-        bvh.getAllIntersections(ray, intersections);
-        if (isOdd(intersections.size())) {
+        const Size count = bvh.getAllIntersections(ray, NullInserter{});
+        if (isOdd(count)) {
             insideCnt++;
         } else {
             outsideCnt++;

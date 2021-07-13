@@ -41,7 +41,8 @@ bool intersectBox(const Box& box, const Ray& ray, Float& t_min, Float& t_max) {
     t_min = tmin;
     t_max = tmax;
 
-    return true;
+    // reject intersections at t<0
+    return t_max > 0.f;
 }
 
 template <typename TBvhObject>
@@ -76,8 +77,9 @@ void Bvh<TBvhObject>::getIntersections(const Ray& ray, const TAddIntersection& a
                 const bool hit = obj.getIntersection(ray, current);
 
                 if (hit) {
-                    if (!addIntersection(current)) {
-                        // bailout
+                    SPH_ASSERT(current.t >= 0.f); // objects should not give us intersections at t<0
+                    const bool doContinue = addIntersection(current);
+                    if (!doContinue) {
                         return;
                     }
                 }
@@ -123,14 +125,15 @@ bool Bvh<TBvhObject>::getFirstIntersection(const Ray& ray, IntersectionInfo& int
 }
 
 template <typename TBvhObject>
-void Bvh<TBvhObject>::getAllIntersections(const Ray& ray, std::set<IntersectionInfo>& intersections) const {
-    intersections.clear();
-    this->getIntersections(ray, [&intersections](IntersectionInfo& current) { //
-        if (current.t > 0._f) {
-            intersections.insert(current);
-        }
+template <typename TOutIter>
+Size Bvh<TBvhObject>::getAllIntersections(const Ray& ray, TOutIter iter) const {
+    Size count = 0;
+    this->getIntersections(ray, [&iter, &count](IntersectionInfo& current) { //
+        *iter = current;
+        ++iter;
         return true;
     });
+    return count;
 }
 
 template <typename TBvhObject>
@@ -231,9 +234,5 @@ template <typename TBvhObject>
 Box Bvh<TBvhObject>::getBoundingBox() const {
     return nodes[0].box;
 }
-
-template class Bvh<BvhTriangle>;
-template class Bvh<BvhSphere>;
-template class Bvh<BvhBox>;
 
 NAMESPACE_SPH_END

@@ -3,6 +3,7 @@
 - added a node that provides setup of orbiting bodies
 - included surface gravity in GravityColorizer
 - automatically selecting the file type in SaveFileJob
+- Bvh: replaced std::set with output iterator
 
 ## 2021-07-10
 - added basic polytrope model

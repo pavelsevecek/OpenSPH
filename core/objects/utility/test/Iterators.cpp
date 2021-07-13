@@ -2,10 +2,19 @@
 #include "objects/containers/Array.h"
 #include "objects/geometry/Vector.h"
 #include "objects/utility/IteratorAdapters.h"
+#include "objects/utility/OutputIterators.h"
 #include "utils/Utils.h"
 #include <algorithm>
 
 using namespace Sph;
+
+TEST_CASE("Iterator empty container", "[iterators]") {
+    Array<float> empty;
+    REQUIRE(empty.begin() == empty.end());
+    REQUIRE_SPH_ASSERT(++empty.begin());
+    REQUIRE_SPH_ASSERT(--empty.end());
+    REQUIRE_SPH_ASSERT(*empty.begin());
+}
 
 TEST_CASE("ComponentIterator", "[iterators]") {
     Array<Vector> data(3._f);
@@ -37,6 +46,13 @@ TEST_CASE("ReverseAdapter", "[iterators]") {
     auto empty = reverse(data);
     REQUIRE(empty.begin() == empty.end());
     REQUIRE(empty.size() == 0);
+    REQUIRE_SPH_ASSERT(*empty.begin());
+    REQUIRE_SPH_ASSERT(--empty.begin());
+    REQUIRE_NOTHROW([&data] {
+        for (Size i : reverse(data)) {
+            throw i;
+        }
+    }());
 
     data = Array<Size>{ 1, 2, 3, 4, 5 };
     auto wrapper = reverse(data);
@@ -56,6 +72,12 @@ TEST_CASE("ReverseAdapter", "[iterators]") {
 }
 
 TEST_CASE("TupleAdapter", "[iterators]") {
+    auto empty = iterateTuple<Tuple<int, float>, Array<int>, Array<float>>({}, {});
+    REQUIRE(empty.size() == 0);
+    REQUIRE(empty.begin() == empty.end());
+    REQUIRE_SPH_ASSERT(*empty.begin());
+    REQUIRE_SPH_ASSERT(++empty.begin());
+
     Array<float> floats{ 1.f, 2.f, 3.f, 4.f };
     Array<int> ints{ 1, 2, 3, 4 };
     Array<char> chars{ 'a', 'b', 'c', 'd' };
@@ -120,4 +142,28 @@ TEST_CASE("IndexSequence", "[iterators]") {
         idx++;
     }
     REQUIRE(idx == 5);
+}
+
+TEST_CASE("NullIterator", "[iterators]") {
+    NullInserter iter;
+    REQUIRE_NOTHROW(*iter);
+    REQUIRE_NOTHROW(++iter);
+    REQUIRE_NOTHROW(iter = 5);
+
+    Array<Size> data({ 1, 2, 3 });
+    REQUIRE_NOTHROW(std::copy(data.begin(), data.end(), NullInserter{}));
+}
+
+TEST_CASE("BackInserter", "[iterators]") {
+    Array<int> values;
+    auto inserter = backInserter(values);
+    *inserter = 5;
+    ++inserter;
+    *inserter = 3;
+    ++inserter;
+    REQUIRE(values == Array<int>({ 5, 3 }));
+
+    Array<int> other({ 1, 2, 3 });
+    std::copy(other.begin(), other.end(), backInserter(values));
+    REQUIRE(values == Array<int>({ 5, 3, 1, 2, 3 }));
 }

@@ -26,6 +26,19 @@ private:
 
     } cached;
 
+    struct RayData {
+        /// Intersection for the current ray
+        Array<IntersectionInfo> intersections;
+
+        RayData() = default;
+        RayData(RayData&& other) = default;
+        RayData(const RayData& other)
+            : intersections(other.intersections.clone()) {
+            // needed to be used in Any, but never should be actually called
+            SPH_ASSERT(false);
+        }
+    };
+
 public:
     VolumeRenderer(SharedPtr<IScheduler> scheduler, const GuiSettings& settings);
 
