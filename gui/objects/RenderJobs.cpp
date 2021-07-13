@@ -70,6 +70,9 @@ VirtualSettings AnimationJob::getSettings() {
     VirtualSettings::Category& rendererCat = connector.addCategory("Rendering");
     rendererCat.connect<EnumWrapper>("Renderer", gui, GuiSettingsId::RENDERER);
     rendererCat.connect("Quantities", "quantities", colorizers);
+    rendererCat.connect("Include surface gravity", "surface_gravity", addSurfaceGravity)
+        .setEnabler([this] { return colorizers.has(ColorizerFlag::GRAVITY); })
+        .setTooltip("Include the surface gravity of the particle itself.");
     rendererCat.connect<bool>("Transparent background", "transparent", transparentBackground);
     rendererCat.connect<EnumWrapper>("Color mapping", gui, GuiSettingsId::COLORMAP_TYPE);
     rendererCat.connect<Float>("Logarithmic factor", gui, GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR)
@@ -133,12 +136,16 @@ private:
     SharedPtr<IScheduler> scheduler;
     BarnesHut gravity;
     Array<Float> acc;
+    bool addSurfaceGravity;
 
 public:
-    explicit GravityColorizer(const SharedPtr<IScheduler>& scheduler, Palette palette)
+    explicit GravityColorizer(const SharedPtr<IScheduler>& scheduler,
+        Palette palette,
+        const bool addSurfaceGravity)
         : TypedColorizer<Vector>(QuantityId::POSITION, std::move(palette))
         , scheduler(scheduler)
-        , gravity(0.8_f, MultipoleOrder::OCTUPOLE) {}
+        , gravity(0.8_f, MultipoleOrder::OCTUPOLE)
+        , addSurfaceGravity(addSurfaceGravity) {}
 
     virtual void initialize(const Storage& storage, const RefEnum UNUSED(ref)) override {
         acc.resize(storage.getParticleCnt());
@@ -152,11 +159,13 @@ public:
         Statistics stats;
         gravity.evalAll(*scheduler, dv, stats);
 
-        // add surface gravity of each particle
-        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-        for (Size i = 0; i < r.size(); ++i) {
-            acc[i] = getLength(dv[i]) + Constants::gravity * m[i] / sqr(r[i][H]);
+        if (addSurfaceGravity) {
+            // add surface gravity of each particle
+            ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+            ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+            for (Size i = 0; i < r.size(); ++i) {
+                acc[i] = getLength(dv[i]) + Constants::gravity * m[i] / sqr(r[i][H]);
+            }
         }
     }
 
@@ -210,7 +219,7 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
         if (!project.getPalette("Acceleration", palette)) {
             palette = Factory::getPalette(ColorizerId::ACCELERATION);
         }
-        colorizerArray.push(makeShared<GravityColorizer>(scheduler, palette));
+        colorizerArray.push(makeShared<GravityColorizer>(scheduler, palette, addSurfaceGravity));
     }
     if (colorizers.has(ColorizerFlag::DAMAGE)) {
         colorizerArray.push(Factory::getColorizer(project, QuantityId::DAMAGE));

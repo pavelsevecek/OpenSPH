@@ -25,6 +25,7 @@ class AnimationJob : public INullJob {
 private:
     GuiSettings gui;
     Flags<ColorizerFlag> colorizers = ColorizerFlag::VELOCITY;
+    bool addSurfaceGravity = true;
 
     EnumWrapper animationType = EnumWrapper(AnimationType::SINGLE_FRAME);
 
