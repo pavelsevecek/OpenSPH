@@ -6,6 +6,7 @@
 /// \date 2016-2021
 
 #include "common/Assert.h"
+#include <memory>
 
 NAMESPACE_SPH_BEGIN
 
