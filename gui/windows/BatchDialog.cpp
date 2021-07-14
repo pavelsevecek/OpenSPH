@@ -382,7 +382,7 @@ void BatchDialog::update() {
     }
     for (Size j = 0; j < runCnt; ++j) {
         for (Size i = 0; i < paramCnt; ++i) {
-            grid->SetCellValue(manager.getCell(i, j), j, i);
+            grid->SetCellValue(j, i, manager.getCell(i, j));
         }
     }
 }

@@ -78,4 +78,14 @@ Size UniformGridFinder::find(const Vector& pos,
     return neighbours.size();
 }
 
+template Size UniformGridFinder::find<true>(const Vector& pos,
+    const Size index,
+    const Float radius,
+    Array<NeighbourRecord>& neighbours) const;
+
+template Size UniformGridFinder::find<false>(const Vector& pos,
+    const Size index,
+    const Float radius,
+    Array<NeighbourRecord>& neighbours) const;
+
 NAMESPACE_SPH_END
