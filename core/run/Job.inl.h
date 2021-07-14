@@ -27,7 +27,7 @@ SharedPtr<TValue> JobContext::getValue() const {
     if (value) {
         return value;
     } else {
-        throw InvalidSetup("Expected different type when accessing worker context.");
+        throw InvalidSetup("Expected different type when accessing job context.");
     }
 }
 
@@ -45,7 +45,7 @@ template <typename T>
 SharedPtr<T> IJob::getInput(const std::string& name) const {
     if (!inputs.contains(name)) {
         throw InvalidSetup(
-            "Input '" + name + "' for worker '" + instName +
+            "Input '" + name + "' for job '" + instName +
             "' was not found, either it was not connected or the node has not been successfully evaluated.");
     }
 

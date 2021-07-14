@@ -8,6 +8,7 @@
 #include "objects/utility/IteratorAdapters.h"
 #include "post/MarchingCubes.h"
 #include "post/Point.h"
+#include "post/TwoBody.h"
 #include "quantities/Storage.h"
 #include "sph/initial/MeshDomain.h"
 #include "sph/kernel/Kernel.h"
@@ -391,7 +392,7 @@ Array<Post::MoonEnum> Post::findMoons(const Storage& storage, const Float radius
         }
 
         // compute the orbital elements
-        Optional<KeplerianElements> elements = findKeplerEllipse(
+        Optional<Kepler::Elements> elements = Kepler::computeOrbitalElements(
             m[i] + largestM, m[i] * largestM / (m[i] + largestM), r[i] - r[largestIdx], v[i] - v[largestIdx]);
 
         if (!elements) {
@@ -426,8 +427,8 @@ Size Post::findMoonCount(ArrayView<const Float> m,
             break;
         }
 
-        Optional<KeplerianElements> elements =
-            findKeplerEllipse(m[i] + m[j], m[i] * m[j] / (m[i] + m[j]), r[i] - r[j], v[i] - v[j]);
+        Optional<Kepler::Elements> elements = Kepler::computeOrbitalElements(
+            m[i] + m[j], m[i] * m[j] / (m[i] + m[j]), r[i] - r[j], v[i] - v[j]);
 
         if (elements && elements->pericenterDist() > radius * (r[i][H] + r[j][H])) {
             count++;
@@ -566,63 +567,6 @@ Float Post::getSphericity(IScheduler& scheduler, const Storage& storage, const F
 
     // https://en.wikipedia.org/wiki/Sphericity
     return pow(PI * sqr(6._f * volume), 1._f / 3._f) / area;
-}
-
-
-Float Post::KeplerianElements::ascendingNode() const {
-    if (sqr(L[Z]) > (1._f - EPS) * getSqrLength(L)) {
-        // Longitude of the ascending node undefined, return 0 (this is a valid case, not an error the data)
-        return 0._f;
-    } else {
-        return -atan2(L[X], L[Y]);
-    }
-}
-
-Float Post::KeplerianElements::periapsisArgument() const {
-    if (e < EPS) {
-        return 0._f;
-    }
-    const Float Omega = this->ascendingNode();
-    const Vector OmegaDir(cos(Omega), sin(Omega), 0._f); // direction of the ascending node
-    const Float omega = acos(dot(OmegaDir, getNormalized(K)));
-    if (K[Z] < 0._f) {
-        return 2._f * PI - omega;
-    } else {
-        return omega;
-    }
-}
-
-Float Post::KeplerianElements::pericenterDist() const {
-    return a * (1._f - e);
-}
-
-Float Post::KeplerianElements::semiminorAxis() const {
-    return a * sqrt(1._f - e * e);
-}
-
-Optional<Post::KeplerianElements> Post::findKeplerEllipse(const Float M,
-    const Float mu,
-    const Vector& r,
-    const Vector& v) {
-    const Float E = 0.5_f * mu * getSqrLength(v) - Constants::gravity * M * mu / getLength(r);
-    if (E >= 0._f) {
-        // parabolic or hyperbolic trajectory
-        return NOTHING;
-    }
-
-    // http://sirrah.troja.mff.cuni.cz/~davok/scripta-NB1.pdf
-    KeplerianElements elements;
-    elements.a = -Constants::gravity * mu * M / (2._f * E);
-
-    const Vector L = mu * cross(r, v); // angular momentum
-    SPH_ASSERT(L != Vector(0._f));
-    elements.i = acos(L[Z] / getLength(L));
-    elements.e = sqrt(1._f + 2._f * E * getSqrLength(L) / (sqr(Constants::gravity) * pow<3>(mu) * sqr(M)));
-
-    elements.K = cross(v, L) - Constants::gravity * mu * M * getNormalized(r);
-    elements.L = L;
-
-    return elements;
 }
 
 bool Post::HistPoint::operator==(const HistPoint& other) const {

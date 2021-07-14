@@ -5,15 +5,14 @@
 #include "objects/wrappers/Function.h"
 #include <wx/frame.h>
 
-class wxComboBox;
-
 NAMESPACE_SPH_BEGIN
 
+class ComboBox;
 class PaletteCanvas;
 
 class PaletteDialog : public wxFrame {
 private:
-    wxComboBox* paletteBox;
+    ComboBox* paletteBox;
 
     PaletteCanvas* canvas;
 

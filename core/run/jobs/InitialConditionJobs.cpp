@@ -117,7 +117,7 @@ private:
     IRunCallbacks& callbacks;
 
 public:
-    IcProgressCallback(IRunCallbacks& callbacks)
+    explicit IcProgressCallback(IRunCallbacks& callbacks)
         : callbacks(callbacks) {}
 
     bool operator()(const Float progress) const {
@@ -1038,8 +1038,44 @@ VirtualSettings GalaxyIc::getSettings() {
     return connector;
 }
 
-void GalaxyIc::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) {
-    Storage storage = Galaxy::generateIc(global, settings);
+class GalaxyCallbacks : public Galaxy::IProgressCallbacks {
+private:
+    IRunCallbacks& run;
+
+public:
+    explicit GalaxyCallbacks(IRunCallbacks& run)
+        : run(run) {}
+
+    struct Cancelled {};
+
+    virtual void onPart(const Storage& storage, const Size partId, const Size numParts) const override {
+        if (storage.empty()) {
+            SPH_ASSERT(partId == 0);
+            return;
+        }
+
+        Statistics stats;
+        stats.set(StatisticsId::RELATIVE_PROGRESS, Float(partId) / Float(numParts));
+        stats.set(StatisticsId::RUN_TIME, 0._f);
+
+        if (partId == 1) {
+            run.onSetUp(storage, stats);
+        }
+        run.onTimeStep(storage, stats);
+
+        if (run.shouldAbortRun()) {
+            throw Cancelled{};
+        }
+    }
+};
+
+void GalaxyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
+    Storage storage;
+    try {
+        storage = Galaxy::generateIc(global, settings, GalaxyCallbacks(callbacks));
+    } catch (const GalaxyCallbacks::Cancelled&) {
+        return;
+    }
 
     result = makeShared<ParticleData>();
     result->storage = std::move(storage);

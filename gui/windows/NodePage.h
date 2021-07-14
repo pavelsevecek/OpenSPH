@@ -260,7 +260,7 @@ public:
 
     void addNodes(JobNode& node);
 
-    SharedPtr<JobNode> createNode(AutoPtr<IJob>&& worker);
+    SharedPtr<JobNode> createNode(AutoPtr<IJob>&& job);
 
     void reset();
 

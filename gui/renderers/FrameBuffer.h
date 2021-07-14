@@ -11,7 +11,13 @@ public:
 };
 
 class LogarithmicColorMap : public IColorMap {
+private:
+    float factor = 2.f;
+
 public:
+    explicit LogarithmicColorMap(const float factor)
+        : factor(factor) {}
+
     virtual Bitmap<Rgba> map(const Bitmap<Rgba>& values) const override {
         Bitmap<Rgba> colormapped(values.size());
         for (int y = 0; y < values.size().y; ++y) {
@@ -23,9 +29,13 @@ public:
         return colormapped;
     }
 
+    void setFactor(const float newFactor) {
+        factor = newFactor;
+    }
+
 private:
     inline float map(const float x) const {
-        return log(1.f + x);
+        return 1.f / factor * log(1.f + factor * x);
     }
 };
 

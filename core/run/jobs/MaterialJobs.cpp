@@ -173,7 +173,7 @@ static JobRegistrar sRegisterIron(
 
 
 // ----------------------------------------------------------------------------------------------------------
-// DisableDerivativeCriterionWorker
+// DisableDerivativeCriterionJob
 // ----------------------------------------------------------------------------------------------------------
 
 VirtualSettings DisableDerivativeCriterionJob::getSettings() {

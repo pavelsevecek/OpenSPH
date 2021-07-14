@@ -7,9 +7,9 @@
 #include "run/jobs/GeometryJobs.h"
 #include "run/jobs/InitialConditionJobs.h"
 #include "run/jobs/IoJobs.h"
-#include "run/jobs/ScriptJobs.h"
 #include "run/jobs/MaterialJobs.h"
 #include "run/jobs/ParticleJobs.h"
+#include "run/jobs/ScriptJobs.h"
 #include "run/jobs/SimulationJobs.h"
 
 using namespace Sph;
@@ -126,8 +126,8 @@ static void run(const ArgParser& parser, ILogger& logger) {
             throw Exception("Cannot find desc for node '" + className + "'");
         }
 
-        AutoPtr<IJob> worker = desc->create(name);
-        SharedPtr<JobNode> node = makeShared<JobNode>(std::move(worker));
+        AutoPtr<IJob> job = desc->create(name);
+        SharedPtr<JobNode> node = makeShared<JobNode>(std::move(job));
         nodes.insert(name, node);
 
         VirtualSettings settings = node->getSettings();

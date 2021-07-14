@@ -61,6 +61,14 @@ public:
         return values[map(Pixel(x, y))];
     }
 
+    Type* data() {
+        return &values[0];
+    }
+
+    const Type* data() const {
+        return &values[0];
+    }
+
     Pixel size() const {
         return res;
     }

@@ -39,7 +39,7 @@ public:
         GalaxySettings galaxy;
         galaxy.set(GalaxySettingsId::PARTICLE_RADIUS, 0.001_f);
 
-        *storage = Galaxy::generateIc(settings, galaxy);
+        *storage = Galaxy::generateIc(settings, galaxy, Galaxy::NullProgressCallbacks{});
 
         solver = makeAuto<HardSphereSolver>(*scheduler, settings);
 

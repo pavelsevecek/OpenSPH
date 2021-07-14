@@ -28,7 +28,7 @@ static std::string getIdentifier(const std::string& name) {
 }
 
 // ----------------------------------------------------------------------------------------------------------
-// SphWorker
+// SphJob
 // ----------------------------------------------------------------------------------------------------------
 
 static RunSettings overrideSettings(const RunSettings& settings,
@@ -348,7 +348,7 @@ static JobRegistrar sRegisterSph(
     "Runs a SPH simulation, using provided initial conditions.");
 
 // ----------------------------------------------------------------------------------------------------------
-// SphStabilizationWorker
+// SphStabilizationJob
 // ----------------------------------------------------------------------------------------------------------
 
 class SphStabilizationRun : public SphRun {
@@ -394,7 +394,7 @@ static JobRegistrar sRegisterSphStab(
 
 
 // ----------------------------------------------------------------------------------------------------------
-// NBodyWorker
+// NBodyJob
 // ----------------------------------------------------------------------------------------------------------
 
 class NBodyRun : public IRun {

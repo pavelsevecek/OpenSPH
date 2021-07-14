@@ -41,7 +41,7 @@ GuiSettingsDialog::GuiSettingsDialog(wxWindow* parent)
     wxStaticText* colorizerText = new wxStaticText(renderBox->GetStaticBox(), wxID_ANY, "Default quantity");
     colorizerSizer->Add(colorizerText, 0, wxALIGN_CENTER_VERTICAL);
     colorizerSizer->AddStretchSpacer(1);
-    colorizerBox = new wxComboBox(renderBox->GetStaticBox(), wxID_ANY);
+    colorizerBox = new ComboBox(renderBox->GetStaticBox(), "");
     ColorizerId defaultId = gui.get<ColorizerId>(GuiSettingsId::DEFAULT_COLORIZER);
     colorizerIds = getColorizerIds();
     for (const ExtColorizerId& id : colorizerIds) {

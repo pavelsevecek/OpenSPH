@@ -459,7 +459,7 @@ public:
     virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         UnorderedMap<std::string, ExtJobType> map;
         for (Size i = 0; i < runCnt; ++i) {
-            map.insert("worker " + std::to_string(i), JobType::PARTICLES);
+            map.insert("job " + std::to_string(i), JobType::PARTICLES);
         }
         return map;
     }
@@ -469,7 +469,7 @@ public:
     }
 
     virtual void evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) override {
-        // only used for run the dependencies, the worker itself is empty
+        // only used for run the dependencies, the job itself is empty
     }
 };
 
@@ -499,7 +499,7 @@ void NodeManager::startBatch(JobNode& node) {
 
     SharedPtr<JobNode> root = makeNode<BatchJob>("batch", batchNodes.size());
     for (Size i = 0; i < batchNodes.size(); ++i) {
-        batchNodes[i]->connect(root, "worker " + std::to_string(i));
+        batchNodes[i]->connect(root, "job " + std::to_string(i));
     }
 
     callbacks->startRun(root, globals, root->instanceName());
@@ -537,7 +537,7 @@ void NodeManager::startAll() {
 
     SharedPtr<JobNode> root = makeNode<BatchJob>("batch", inputs.size());
     for (Size i = 0; i < inputs.size(); ++i) {
-        inputs[i]->connect(root, "worker " + std::to_string(i));
+        inputs[i]->connect(root, "job " + std::to_string(i));
     }
 
     callbacks->startRun(root, globals, root->instanceName());
@@ -1588,17 +1588,17 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
     });
 
 
-    wxTreeCtrl* workerView =
+    wxTreeCtrl* jobView =
         new wxTreeCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTR_DEFAULT_STYLE | wxTR_HIDE_ROOT);
-    workerView->SetMinSize(wxSize(300, -1));
+    jobView->SetMinSize(wxSize(300, -1));
 
-    wxTreeItemId rootId = workerView->AddRoot("Nodes");
+    wxTreeItemId rootId = jobView->AddRoot("Nodes");
 
-    class WorkerTreeData : public wxTreeItemData {
+    class JobTreeData : public wxTreeItemData {
         RawPtr<IJobDesc> desc;
 
     public:
-        WorkerTreeData(RawPtr<IJobDesc> desc)
+        explicit JobTreeData(RawPtr<IJobDesc> desc)
             : desc(desc) {}
 
         AutoPtr<IJob> create() const {
@@ -1614,36 +1614,36 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
     for (const AutoPtr<IJobDesc>& desc : enumerateRegisteredJobs()) {
         const std::string& cat = desc->category();
         if (Optional<wxTreeItemId&> id = categoryItemIdMap.tryGet(cat)) {
-            workerView->AppendItem(id.value(), desc->className(), -1, -1, new WorkerTreeData(desc.get()));
+            jobView->AppendItem(id.value(), desc->className(), -1, -1, new JobTreeData(desc.get()));
         } else {
-            wxTreeItemId catId = workerView->AppendItem(rootId, cat);
-            workerView->AppendItem(catId, desc->className(), -1, -1, new WorkerTreeData(desc.get()));
+            wxTreeItemId catId = jobView->AppendItem(rootId, cat);
+            jobView->AppendItem(catId, desc->className(), -1, -1, new JobTreeData(desc.get()));
             categoryItemIdMap.insert(cat, catId);
         }
     }
 
-    wxTreeItemId presetsId = workerView->AppendItem(rootId, "presets");
+    wxTreeItemId presetsId = jobView->AppendItem(rootId, "presets");
     std::map<wxTreeItemId, Presets::Id> presetsIdMap;
     for (Presets::Id id : EnumMap::getAll<Presets::Id>()) {
         std::string name = replaceAll(EnumMap::toString(id), "_", " ");
-        wxTreeItemId itemId = workerView->AppendItem(presetsId, name);
+        wxTreeItemId itemId = jobView->AppendItem(presetsId, name);
         presetsIdMap[itemId] = id;
     }
 
-    workerView->Bind(wxEVT_MOTION, [this, workerView](wxMouseEvent& evt) {
+    jobView->Bind(wxEVT_MOTION, [this, jobView](wxMouseEvent& evt) {
         wxPoint pos = evt.GetPosition();
         int flags;
-        wxTreeItemId id = workerView->HitTest(pos, flags);
+        wxTreeItemId id = jobView->HitTest(pos, flags);
 
         static DelayedCallback callback;
         if (flags & wxTREE_HITTEST_ONITEMLABEL) {
-            WorkerTreeData* data = dynamic_cast<WorkerTreeData*>(workerView->GetItemData(id));
+            JobTreeData* data = dynamic_cast<JobTreeData*>(jobView->GetItemData(id));
             if (data) {
-                callback.start(600, [this, workerView, id, data, pos] {
-                    const wxString name = workerView->GetItemText(id);
+                callback.start(600, [this, jobView, id, data, pos] {
+                    const wxString name = jobView->GetItemText(id);
                     wxRichToolTip tip(name, setLineBreak(data->tooltip(), 50));
                     const wxRect rect(pos, pos);
-                    tip.ShowFor(workerView, &rect);
+                    tip.ShowFor(jobView, &rect);
                     tip.SetTimeout(1e6);
 
                     nodeEditor->invalidateMousePosition();
@@ -1654,7 +1654,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         }
     });
 
-    workerView->Bind(wxEVT_TREE_ITEM_ACTIVATED, [=](wxTreeEvent& evt) {
+    jobView->Bind(wxEVT_TREE_ITEM_ACTIVATED, [=](wxTreeEvent& evt) {
         wxTreeItemId id = evt.GetItem();
         UniqueNameManager nameMgr = nodeMgr->makeUniqueNameManager();
         if (presetsIdMap.find(id) != presetsIdMap.end()) {
@@ -1662,10 +1662,10 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             nodeMgr->addNodes(*presetNode);
         }
 
-        WorkerTreeData* data = dynamic_cast<WorkerTreeData*>(workerView->GetItemData(id));
+        JobTreeData* data = dynamic_cast<JobTreeData*>(jobView->GetItemData(id));
         if (data) {
-            AutoPtr<IJob> worker = data->create();
-            if (RawPtr<LoadFileJob> loader = dynamicCast<LoadFileJob>(worker.get())) {
+            AutoPtr<IJob> job = data->create();
+            if (RawPtr<LoadFileJob> loader = dynamicCast<LoadFileJob>(job.get())) {
                 Optional<Path> path = doOpenFileDialog("Load file", getInputFormats());
                 if (path) {
                     VirtualSettings settings = loader->getSettings();
@@ -1673,15 +1673,22 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
                     // settings.set("name", "Load '" + path->fileName().native() + "'");
                 }
             }
-            if (RawPtr<SaveFileJob> saver = dynamicCast<SaveFileJob>(worker.get())) {
+            if (RawPtr<SaveFileJob> saver = dynamicCast<SaveFileJob>(job.get())) {
                 Optional<Path> path = doSaveFileDialog("Save file", getOutputFormats());
                 if (path) {
                     VirtualSettings settings = saver->getSettings();
-                    settings.set("run.output.name", path.value());
-                    // settings.set("name", "Save to '" + path->fileName().native() + "'");
+                    settings.set(RunSettingsId::RUN_OUTPUT_NAME, path.value());
+                    const Optional<IoEnum> type = getIoEnum(path->extension().native());
+                    if (type) {
+                        settings.set(RunSettingsId::RUN_OUTPUT_TYPE, EnumWrapper(type.value()));
+                    } else {
+                        wxMessageBox(
+                            "Unknown file extension '" + path->extension().native() + "'", "Error", wxOK);
+                        return;
+                    }
                 }
             }
-            SharedPtr<JobNode> node = makeShared<JobNode>(std::move(worker));
+            SharedPtr<JobNode> node = makeShared<JobNode>(std::move(job));
             VisNode* vis = nodeMgr->addNode(node);
             nodeEditor->activate(vis);
             this->selectNode(*node);
@@ -1692,7 +1699,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
     /*wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
     sizer->Add(grid, 1, wxEXPAND | wxLEFT);
     sizer->Add(mainPanel, 3, wxEXPAND | wxALL);
-    sizer->Add(workerView, 1, wxEXPAND | wxRIGHT);
+    sizer->Add(jobView, 1, wxEXPAND | wxRIGHT);
     this->SetSizerAndFit(sizer);*/
     this->SetAutoLayout(true);
 
@@ -1702,10 +1709,10 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
     aui->AddPane(nodeEditor, wxCENTER);
 
     info.Right();
-    aui->AddPane(workerView, info);
+    aui->AddPane(jobView, info);
     aui->Update();
 
-    panelInfoMap.insert(ID_LIST, &aui->GetPane(workerView));
+    panelInfoMap.insert(ID_LIST, &aui->GetPane(jobView));
     panelInfoMap.insert(ID_PROPERTIES, &aui->GetPane(grid));
     /*this->Bind(wxEVT_SIZE, [this](wxSizeEvent& UNUSED(evt)) {
         // this->Fit();
@@ -1779,8 +1786,8 @@ void NodeWindow::addNodes(JobNode& node) {
 }
 
 
-SharedPtr<JobNode> NodeWindow::createNode(AutoPtr<IJob>&& worker) {
-    SharedPtr<JobNode> node = makeShared<JobNode>(std::move(worker));
+SharedPtr<JobNode> NodeWindow::createNode(AutoPtr<IJob>&& job) {
+    SharedPtr<JobNode> node = makeShared<JobNode>(std::move(job));
     nodeMgr->addNode(node);
     return node;
 }

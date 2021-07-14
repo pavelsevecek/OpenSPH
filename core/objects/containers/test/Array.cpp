@@ -205,6 +205,10 @@ TEST_CASE("Array Insert range", "[array]") {
     toInsert = {};
     ar.insert(3, toInsert.begin(), toInsert.end());
     REQUIRE(ar == Array<int>({ 3, 1, 2, 3, 5, 7, 9 }));
+
+    ar = {};
+    ar.insert(0, toInsert.begin(), toInsert.end());
+    REQUIRE(ar.empty());
 }
 
 TEST_CASE("Array Remove by index", "[array]") {

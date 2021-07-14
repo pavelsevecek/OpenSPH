@@ -184,46 +184,6 @@ Vector getAngularFrequency(ArrayView<const Float> m,
 /// \return Wadell's sphericity value for the body.
 Float getSphericity(IScheduler& scheduler, const Storage& strorage, const Float resolution = 0.05_f);
 
-
-/// \brief Object holding Keplerian orbital elements of a body
-///
-/// Contains necessary information to determine the orbit of a body. We use the angular momentum and
-/// Laplace vector to avoid problems with singular cases (e=0, I=0); the argument of periapsis and the
-/// longitude of the ascending node can be computed by calling member functions.
-struct KeplerianElements {
-    Float a; ///< Semi-major axis
-    Float e; ///< Excentricity
-    Float i; ///< Inclination with respect to the z=0 plane
-
-    Vector L; ///< Angular momentum, perpendicular to the orbital plane
-    Vector K; ///< Laplace vector, integral of motion with direction towards pericenter
-
-
-    /// Computes the argument of periapsis of the orbit. In the singular case e=0, returns 0.
-    Float periapsisArgument() const;
-
-    /// Computes the longitude of the ascending node. In the singular case i=0, reutrns 0.
-    Float ascendingNode() const;
-
-    /// Computes the distance of the pericenter
-    Float pericenterDist() const;
-
-    /// Computes the semi-minor axis
-    Float semiminorAxis() const;
-};
-
-/// \brief Computes the orbital elements, given position and velocity of a body.
-///
-/// If the body trajectory is not closed (hyperbolic motion), returns NOTHING.
-/// \param M Mass characterizing the gravitational field, or sum of body masses for two-body problem
-/// \param mu Mass of the orbiting body, or reduced mass for two-body problem
-/// \param r Position of the orbiting body
-/// \param v Velocity of the orbiting body
-Optional<KeplerianElements> findKeplerEllipse(const Float M,
-    const Float mu,
-    const Vector& r,
-    const Vector& v);
-
 /// \brief Quantity from which the histogram is constructed
 ///
 /// Beside the listed options, any QuantityId can be used, by casting to HistogramId enum. All values of

@@ -198,6 +198,7 @@ void Controller::quit(const bool waitForFinish) {
             sph.thread.join();
         }
 
+        vis.renderer->cancelRender();
         {
             std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
             vis.renderThreadVar.notify_one();
@@ -634,9 +635,11 @@ void Controller::redraw(const Storage& storage, const Statistics& stats) {
     vis.stats = makeAuto<Statistics>(stats);
     vis.positions = copyable(storage.getValue<Vector>(QuantityId::POSITION));
 
-    // initialize the currently selected colorizer
+    // initialize the currently selected colorizer; we create a local copy as vis.colorizer might be changed
+    // in setColorizer before renderer->initialize is called
     SPH_ASSERT(vis.isInitialized());
-    vis.colorizer->initialize(storage, RefEnum::STRONG);
+    SharedPtr<IColorizer> colorizer = vis.colorizer;
+    colorizer->initialize(storage, RefEnum::STRONG);
 
     // setup camera
     SPH_ASSERT(vis.camera);
@@ -649,7 +652,7 @@ void Controller::redraw(const Storage& storage, const Statistics& stats) {
     vis.cameraMutex.unlock();
 
     // update the renderer with new data
-    vis.renderer->initialize(storage, *vis.colorizer, *camera);
+    vis.renderer->initialize(storage, *colorizer, *camera);
 
     // notify the render thread that new data are available
     vis.refresh();

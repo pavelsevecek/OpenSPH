@@ -376,4 +376,12 @@ Vector moveToCenterOfMassSystem(ArrayView<const Float> m, ArrayView<Vector> r) {
     return r_com;
 }
 
+void moveToCenterOfMassSystem(Storage& storage) {
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+    moveToCenterOfMassSystem(m, r);
+    moveToCenterOfMassSystem(m, v);
+}
+
 NAMESPACE_SPH_END

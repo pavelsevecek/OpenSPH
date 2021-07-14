@@ -7,7 +7,7 @@ using namespace Sph;
 
 class TestCallbacks : public IJobCallbacks {
 public:
-    virtual void onStart(const IJob& UNUSED(worker)) override {}
+    virtual void onStart(const IJob& UNUSED(job)) override {}
 
     virtual void onEnd(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {}
 
@@ -26,7 +26,7 @@ public:
         : IGeometryJob("test") {}
 
     virtual std::string className() const override {
-        return "test worker";
+        return "test job";
     }
 
     virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
@@ -82,7 +82,7 @@ public:
     }
 };
 
-TEST_CASE("Bad worker", "[nodes]") {
+TEST_CASE("Bad job", "[nodes]") {
     SharedPtr<JobNode> node = makeNode<BadJob>();
     makeNode<MaterialJob>("material")->connect(node, "material");
     makeNode<MonolithicBodyIc>("particles")->connect(node, "particles");
@@ -99,7 +99,7 @@ public:
         : IParticleJob("test") {}
 
     virtual std::string className() const override {
-        return "multiple body worker";
+        return "multiple body job";
     }
 
     virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {

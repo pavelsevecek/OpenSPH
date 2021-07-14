@@ -4,6 +4,7 @@
 #include "io/Logger.h"
 #include "io/Serializer.h"
 #include "objects/finders/Order.h"
+#include "post/TwoBody.h"
 #include "quantities/IMaterial.h"
 #include "system/Factory.h"
 #include <fstream>
@@ -1250,15 +1251,6 @@ Outcome Hdf5Input::load(const Path&, Storage&, Statistics&) {
 // MpcorpInput
 // ----------------------------------------------------------------------------------------------------------
 
-static Float computeEccentricAnomaly(const Float M, const Float e) {
-    // solve Kepler's equation
-    Float E = M;
-    for (Size iter = 0; iter < 10; ++iter) {
-        E = E - (E - e * sin(E) - M) / (1._f - e * cos(E));
-    }
-    return E;
-}
-
 static Float computeRadius(const Float H, const Float albedo) {
     // https://cneos.jpl.nasa.gov/tools/ast_size_est.html
     const Float d = exp10(3.1236 - 0.5 * log10(albedo) - 0.2 * H);
@@ -1299,7 +1291,7 @@ static void parseMpcorp(std::ifstream& ifs, Storage& storage, const Float rho, c
         std::string flag;
         ss >> dummy >> dummy >> dummy >> dummy >> dummy >> dummy >> dummy >> dummy >> dummy >> flag;
 
-        const Float E = computeEccentricAnomaly(M, e);
+        const Float E = Kepler::solveKeplersEquation(M, e);
         const AffineMatrix R_Omega = AffineMatrix::rotateZ(Omega);
         const AffineMatrix R_I = AffineMatrix::rotateX(I);
         const AffineMatrix R_omega = AffineMatrix::rotateZ(omega);

@@ -5,6 +5,7 @@
 #include "gui/objects/Colorizer.h"
 #include "gui/renderers/FrameBuffer.h"
 #include "objects/containers/FlatMap.h"
+#include "objects/utility/OutputIterators.h"
 #include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
@@ -157,7 +158,9 @@ Optional<Vector> RayMarcher::intersect(MarchData& data,
     const Ray& ray,
     const Float surfaceLevel,
     const bool occlusion) const {
-    bvh.getAllIntersections(ray, data.intersections);
+    data.intersections.clear();
+    bvh.getAllIntersections(ray, backInserter(data.intersections));
+    std::sort(data.intersections.begin(), data.intersections.end());
 
     for (const IntersectionInfo& intersect : data.intersections) {
         IntersectContext sc;

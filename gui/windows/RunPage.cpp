@@ -144,7 +144,10 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     const Float cutoff = gui.get<Float>(GuiSettingsId::CAMERA_ORTHO_CUTOFF) * 1.e-3_f;
 
     FloatTextCtrl* cutoffCtrl = new FloatTextCtrl(particleBox, cutoff, Interval(0, LARGE));
-    cutoffCtrl->onValueChanged = [this](const double value) { this->updateCutoff(value * 1.e3_f); };
+    cutoffCtrl->onValueChanged = [this](const double value) {
+        this->updateCutoff(value * 1.e3_f);
+        return true;
+    };
     cutoffCtrl->SetToolTip(
         "Specifies the cutoff distance in kilometers for rendering particles. When set to a positive number, "
         "only particles in a layer of specified thickness are rendered. Zero means all particles are "
@@ -165,6 +168,7 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     particleSizeCtrl->onValueChanged = [this](const Float value) {
         gui.set(GuiSettingsId::PARTICLE_RADIUS, value);
         controller->tryRedraw();
+        return true;
     };
     particleSizeSizer->Add(particleSizeCtrl, 1, wxALIGN_CENTER_VERTICAL);
     particleSizeSizer->AddSpacer(boxPadding);
@@ -246,6 +250,7 @@ wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
         GuiSettings& gui = controller->getParams();
         gui.set(GuiSettingsId::SURFACE_LEVEL, value);
         controller->tryRedraw();
+        return true;
     };
     levelSizer->Add(levelCtrl, 1, wxALIGN_CENTER_VERTICAL);
     levelSizer->AddSpacer(boxPadding);
@@ -261,6 +266,7 @@ wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
         GuiSettings& gui = controller->getParams();
         gui.set(GuiSettingsId::SURFACE_SUN_INTENSITY, value);
         controller->tryRedraw();
+        return true;
     };
     sunlightSizer->Add(sunlightCtrl, 1, wxALIGN_CENTER_VERTICAL);
     sunlightSizer->AddSpacer(boxPadding);
@@ -276,6 +282,7 @@ wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
         GuiSettings& gui = controller->getParams();
         gui.set(GuiSettingsId::SURFACE_AMBIENT, value);
         controller->tryRedraw();
+        return true;
     };
     ambientSizer->Add(ambientCtrl, 1, wxALIGN_CENTER_VERTICAL);
     ambientSizer->AddSpacer(boxPadding);
@@ -291,6 +298,7 @@ wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
         GuiSettings& gui = controller->getParams();
         gui.set(GuiSettingsId::SURFACE_EMISSION, value);
         controller->tryRedraw();
+        return true;
     };
     emissionSizer->Add(emissionCtrl, 1, wxALIGN_CENTER_VERTICAL);
     emissionSizer->AddSpacer(boxPadding);
@@ -301,11 +309,12 @@ wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
 }
 
 wxWindow* RunPage::createVolumeBox(wxPanel* parent) {
-    wxStaticBox* volumeBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 60));
+    wxStaticBox* volumeBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 120));
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
+
     wxBoxSizer* emissionSizer = new wxBoxSizer(wxHORIZONTAL);
     emissionSizer->AddSpacer(boxPadding);
-    wxStaticText* text = new wxStaticText(volumeBox, wxID_ANY, "Emission ");
+    wxStaticText* text = new wxStaticText(volumeBox, wxID_ANY, "Emission [km^-1]");
     emissionSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
     const Float emission = gui.get<Float>(GuiSettingsId::VOLUME_EMISSION);
     FloatTextCtrl* emissionCtrl = new FloatTextCtrl(volumeBox, emission * 1.e3_f, Interval(0._f, 1.e8_f));
@@ -314,10 +323,44 @@ wxWindow* RunPage::createVolumeBox(wxPanel* parent) {
         // value in spinner is in [km^-1]
         gui.set(GuiSettingsId::VOLUME_EMISSION, value / 1.e3_f);
         controller->tryRedraw();
+        return true;
     };
     emissionSizer->Add(emissionCtrl, 1, wxALIGN_CENTER_VERTICAL);
     emissionSizer->AddSpacer(boxPadding);
     boxSizer->Add(emissionSizer);
+
+    wxBoxSizer* absorptionSizer = new wxBoxSizer(wxHORIZONTAL);
+    absorptionSizer->AddSpacer(boxPadding);
+    text = new wxStaticText(volumeBox, wxID_ANY, "Absorption [km^-1]");
+    absorptionSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
+    const Float absorption = gui.get<Float>(GuiSettingsId::VOLUME_ABSORPTION);
+    FloatTextCtrl* absorptionCtrl = new FloatTextCtrl(volumeBox, absorption * 1.e3_f, Interval(0._f, 1.e8_f));
+    absorptionCtrl->onValueChanged = [this](const Float value) {
+        GuiSettings& gui = controller->getParams();
+        // value in spinner is in [km^-1]
+        gui.set(GuiSettingsId::VOLUME_ABSORPTION, value / 1.e3_f);
+        controller->tryRedraw();
+        return true;
+    };
+    absorptionSizer->Add(absorptionCtrl, 1, wxALIGN_CENTER_VERTICAL);
+    absorptionSizer->AddSpacer(boxPadding);
+    boxSizer->Add(absorptionSizer);
+
+    wxBoxSizer* factorSizer = new wxBoxSizer(wxHORIZONTAL);
+    factorSizer->AddSpacer(boxPadding);
+    text = new wxStaticText(volumeBox, wxID_ANY, "Compression");
+    factorSizer->Add(text, 10, wxALIGN_CENTER_VERTICAL);
+    const Float factor = gui.get<Float>(GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR);
+    FloatTextCtrl* factorCtrl = new FloatTextCtrl(volumeBox, factor, Interval(1.e-6_f, 1.e6_f));
+    factorCtrl->onValueChanged = [this](const Float value) {
+        GuiSettings& gui = controller->getParams();
+        gui.set(GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR, value);
+        controller->tryRedraw();
+        return true;
+    };
+    factorSizer->Add(factorCtrl, 1, wxALIGN_CENTER_VERTICAL);
+    factorSizer->AddSpacer(boxPadding);
+    boxSizer->Add(factorSizer);
 
     volumeBox->SetSizer(boxSizer);
     return volumeBox;
@@ -428,7 +471,7 @@ wxPanel* RunPage::createVisBar() {
     wxBoxSizer* quantitySizer = new wxBoxSizer(wxHORIZONTAL);
 
     quantitySizer->Add(new wxStaticText(visbarPanel, wxID_ANY, "Quantity: "), 10, wxALIGN_CENTER_VERTICAL);
-    quantityBox = new wxComboBox(visbarPanel, wxID_ANY, "", wxDefaultPosition, wxSize(200, -1));
+    quantityBox = new ComboBox(visbarPanel, "", wxSize(200, -1));
     quantityBox->SetToolTip(
         "Selects which quantity to visualize using associated color scale. Quantity values can be also "
         "obtained by left-clicking on a particle.");
@@ -524,7 +567,7 @@ wxPanel* RunPage::createVisBar() {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
         GuiSettings volumeGui = gui;
-        volumeGui.set(GuiSettingsId::COLORMAP, ColorMapEnum::LOGARITHMIC);
+        volumeGui.set(GuiSettingsId::COLORMAP_TYPE, ColorMapEnum::LOGARITHMIC);
         controller->setRenderer(makeAuto<VolumeRenderer>(scheduler, volumeGui));
         enableControls(2);
     });

@@ -4,17 +4,17 @@
 #include "gui/Settings.h"
 #include <wx/dialog.h>
 
-class wxComboBox;
 class wxCheckBox;
 class wxTextCtrl;
 
 NAMESPACE_SPH_BEGIN
 
 class FloatTextCtrl;
+class ComboBox;
 
 class GuiSettingsDialog : public wxDialog {
 private:
-    wxComboBox* colorizerBox;
+    ComboBox* colorizerBox;
     Array<ExtColorizerId> colorizerIds;
 
     FloatTextCtrl* periodCtrl;

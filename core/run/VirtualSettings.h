@@ -69,7 +69,7 @@ public:
 
     /// \brief Returns if this entry is currently enabled.
     ///
-    /// Implementation may return false if the entry does not have any effect for current setup of the worker,
+    /// Implementation may return false if the entry does not have any effect for current setup of the job,
     /// for example if the entry is associated with a parameter of a solver which is not being used.
     virtual bool enabled() const = 0;
 
@@ -103,7 +103,7 @@ public:
     /// \brief Returns true if the entry can modify multiple values simultaneously.
     ///
     /// Usually, there is a 1-1 correspondence between entries and values (stored either in \ref Settings or
-    /// directly in the worker). However, an entry can modify other values as well, in which case it should
+    /// directly in the job). However, an entry can modify other values as well, in which case it should
     /// signal this by returning true from this function.
     virtual bool hasSideEffect() const {
         return false;

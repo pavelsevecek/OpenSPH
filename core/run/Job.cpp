@@ -86,8 +86,8 @@ JobRegistrar::JobRegistrar(std::string className,
 
         virtual AutoPtr<IJob> create(Optional<std::string> instanceName) const override {
             CHECK_FUNCTION(CheckFunction::NO_THROW);
-            AutoPtr<IJob> worker = func(instanceName.valueOr("unnamed " + shortName));
-            return worker;
+            AutoPtr<IJob> job = func(instanceName.valueOr("unnamed " + shortName));
+            return job;
         }
     };
 
@@ -113,14 +113,14 @@ IRunJob::IRunJob(const std::string& name)
 IRunJob::~IRunJob() = default;
 
 static SharedPtr<ParticleData> findStorageInput(const UnorderedMap<std::string, JobContext>& inputs,
-    const std::string& workerName) {
+    const std::string& jobName) {
     for (const auto& element : inputs) {
         SharedPtr<ParticleData> data = element.value.tryGetValue<ParticleData>();
         if (data != nullptr) {
             return data;
         }
     }
-    throw InvalidSetup("No input particles found for worker '" + workerName + "'");
+    throw InvalidSetup("No input particles found for job '" + jobName + "'");
 }
 
 void IRunJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {

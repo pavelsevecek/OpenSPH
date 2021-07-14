@@ -134,7 +134,9 @@ enum class GuiSettingsId {
 
     BACKGROUND_COLOR,
 
-    COLORMAP,
+    COLORMAP_TYPE,
+
+    COLORMAP_LOGARITHMIC_FACTOR,
 
     SHOW_KEY,
 
@@ -180,6 +182,8 @@ enum class GuiSettingsId {
     RAYTRACE_SPHERES,
 
     VOLUME_EMISSION,
+
+    VOLUME_ABSORPTION,
 
     CONTOUR_SPACING,
 

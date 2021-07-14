@@ -148,7 +148,8 @@ Float TillotsonEos::getInternalEnergy(const Float rho, const Float p) const {
         /// \todo optimize, find proper upper bound
         Optional<Float> root = getRoot(Interval(0._f, u0), EPS, func);
         SPH_ASSERT(root);
-        return root.value();
+        // if no root exists, return the compressed u to avoid crashing
+        return root.valueOr(u);
     } else {
         return u;
     }

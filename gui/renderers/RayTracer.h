@@ -47,7 +47,7 @@ private:
         Array<Size> neighs;
 
         /// Intersection for the current ray
-        std::set<IntersectionInfo> intersections;
+        Array<IntersectionInfo> intersections;
 
         /// Cached index of the previously evaluated particle, used for optimizations.
         Size previousIdx;
@@ -56,7 +56,7 @@ private:
         MarchData(MarchData&& other) = default;
         MarchData(const MarchData& other)
             : neighs(other.neighs.clone())
-            , intersections(other.intersections)
+            , intersections(other.intersections.clone())
             , previousIdx(other.previousIdx) {
             // needed to be used in Any, but never should be actually called
             SPH_ASSERT(false);

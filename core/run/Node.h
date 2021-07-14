@@ -20,22 +20,22 @@ NAMESPACE_SPH_BEGIN
 class ConfigNode;
 class JobNode;
 
-/// \brief Interface used during worker evaluation.
+/// \brief Interface used during job evaluation.
 class IJobCallbacks : public IRunCallbacks {
 public:
-    /// \brief Notifies the caller that a new worker started running.
-    virtual void onStart(const IJob& worker) = 0;
+    /// \brief Notifies the caller that a new job started running.
+    virtual void onStart(const IJob& job) = 0;
 
-    /// \brief Notifies the caller that the current worker ended.
+    /// \brief Notifies the caller that the current job ended.
     ///
-    /// If the worker was a particle worker, it passes its storage and run statistics as parameters, otherwise
+    /// If the job was a particle job, it passes its storage and run statistics as parameters, otherwise
     /// the storage is passed as empty.
     virtual void onEnd(const Storage& storage, const Statistics& stats) = 0;
 };
 
 class NullJobCallbacks : public IJobCallbacks {
 public:
-    virtual void onStart(const IJob& UNUSED(worker)) override {}
+    virtual void onStart(const IJob& UNUSED(job)) override {}
 
     virtual void onEnd(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {}
 
@@ -55,15 +55,15 @@ public:
 };
 
 struct SlotData {
-    /// \brief Identifier of the slot, used by the worker to obtain the provided data.
+    /// \brief Identifier of the slot, used by the job to obtain the provided data.
     std::string name;
 
     /// \brief Specifies the type of the slot, or the type of the node connecting to it.
     ExtJobType type;
 
-    /// \brief Whether the node is used by the worker.
+    /// \brief Whether the node is used by the job.
     ///
-    /// Worker can enable or disable their slots, depending on their internal state, for example the slot for
+    /// job can enable or disable their slots, depending on their internal state, for example the slot for
     /// custom shape of \ref MonolithicBodyIc is enabled only if the associated flag parameter is set to true.
     bool used;
 
@@ -75,7 +75,7 @@ struct SlotData {
 
 /// \brief Building block of a simulation hierarchy.
 ///
-/// Each node can have any number of providers (preconditions of the worker).
+/// Each node can have any number of providers (preconditions of the job).
 class JobNode : public ShareFromThis<JobNode>, public INode {
     /// Maps slot names to connected providers
     UnorderedMap<std::string, SharedPtr<JobNode>> providers;
@@ -83,23 +83,23 @@ class JobNode : public ShareFromThis<JobNode>, public INode {
     /// All dependent nodes (i.e. nodes that have this node as provider) in no particular order.
     Array<WeakPtr<JobNode>> dependents;
 
-    /// Worker object of this node
+    /// job object of this node
     SharedPtr<IJob> job;
 
 public:
-    /// \brief Creates a new node, given a worker object.
+    /// \brief Creates a new node, given a job object.
     explicit JobNode(AutoPtr<IJob>&& job);
 
-    /// \brief Returns the instance name of the worker.
+    /// \brief Returns the instance name of the job.
     std::string instanceName() const;
 
-    /// \brief Returns the class name of the worker.
+    /// \brief Returns the class name of the job.
     std::string className() const;
 
-    /// \brief Returns settings object allowing to access and modify the state of the worker.
+    /// \brief Returns settings object allowing to access and modify the state of the job.
     VirtualSettings getSettings() const;
 
-    /// \brief Returns the type of the worker.
+    /// \brief Returns the type of the job.
     Optional<ExtJobType> provides() const;
 
     /// \brief Connects this node to given dependent node.
@@ -140,7 +140,7 @@ public:
     ///
     /// The job is evaluated after all the providers finished and all inputs of the job have been set up.
     /// \param global Global settings, used by all nodes in the hierarchy.
-    /// \param callbacks Interface allowing to get a feedback from evaluated nodes, see \ref IWorkerCallbacks.
+    /// \param callbacks Interface allowing to get a feedback from evaluated nodes, see \ref IJobCallbacks.
     virtual void run(const RunSettings& global, IJobCallbacks& callbacks) override;
 
 private:
@@ -151,10 +151,10 @@ private:
     void run(const RunSettings& global, IJobCallbacks& callbacks, std::set<JobNode*>& visited);
 };
 
-/// \brief Helper function for creating worker nodes.
-template <typename TWorker, typename... TArgs>
+/// \brief Helper function for creating job nodes.
+template <typename TJob, typename... TArgs>
 SharedPtr<JobNode> makeNode(TArgs&&... args) {
-    return makeShared<JobNode>(makeAuto<TWorker>(std::forward<TArgs>(args)...));
+    return makeShared<JobNode>(makeAuto<TJob>(std::forward<TArgs>(args)...));
 }
 
 /// \brief Clones a single node.

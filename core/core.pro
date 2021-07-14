@@ -19,7 +19,6 @@ SOURCES += \
     math/SparseMatrix.cpp \
     math/rng/Rng.cpp \
     objects/containers/String.cpp \
-    objects/finders/Bvh.cpp \
     objects/finders/HashMapFinder.cpp \
     objects/finders/KdTree.cpp \
     objects/finders/NeighbourFinder.cpp \
@@ -39,6 +38,7 @@ SOURCES += \
     physics/TimeFormat.cpp \
     physics/Units.cpp \
     post/Analysis.cpp \
+    post/TwoBody.cpp \
     post/Compare.cpp \
     post/MarchingCubes.cpp \
     post/Mesh.cpp \
@@ -145,6 +145,7 @@ HEADERS += \
     math/rng/Rng.h \
     math/rng/VectorRng.h \
     objects/containers/CircularArray.h \
+    objects/utility/OutputIterators.h \
     objects/wrappers/ExtendedEnum.h \
     run/Job.inl.h \
     sph/initial/UvMapping.h \
@@ -167,6 +168,7 @@ HEADERS += \
     objects/finders/AdaptiveGrid.h \
     objects/finders/BruteForceFinder.h \
     objects/finders/Bvh.h \
+    objects/finders/Bvh.inl.h \
     objects/finders/HashMapFinder.h \
     objects/finders/PointCloud.h \
     objects/finders/KdTree.h \
@@ -228,6 +230,7 @@ HEADERS += \
     physics/TimeFormat.h \
     physics/Units.h \
     post/Analysis.h \
+    post/TwoBody.h \
     post/Compare.h \
     post/MarchingCubes.h \
     post/Mesh.h \

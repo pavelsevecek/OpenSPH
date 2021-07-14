@@ -47,7 +47,20 @@ Storage generateHalo(UniformRng& rng, const GalaxySettings& settings);
 
 Storage generateBulge(UniformRng& rng, const GalaxySettings& settings);
 
-Storage generateIc(const RunSettings& globals, const GalaxySettings& settings);
+struct IProgressCallbacks : public Polymorphic {
+    /// \brief Called when computing new part of the galaxy (particle positions or velocities).
+    virtual void onPart(const Storage& storage, const Size partId, const Size numParts) const = 0;
+};
+
+struct NullProgressCallbacks : public IProgressCallbacks {
+    virtual void onPart(const Storage& UNUSED(storage),
+        const Size UNUSED(partId),
+        const Size UNUSED(numParts)) const override {}
+};
+
+Storage generateIc(const RunSettings& globals,
+    const GalaxySettings& settings,
+    const IProgressCallbacks& callbacks);
 
 } // namespace Galaxy
 

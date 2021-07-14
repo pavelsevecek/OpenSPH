@@ -20,6 +20,8 @@ void RenderParams::initialize(const GuiSettings& gui) {
     surface.sunLight = float(gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY));
     surface.emission = float(gui.get<Float>(GuiSettingsId::SURFACE_EMISSION));
     volume.emission = float(gui.get<Float>(GuiSettingsId::VOLUME_EMISSION));
+    volume.absorption = float(gui.get<Float>(GuiSettingsId::VOLUME_ABSORPTION));
+    volume.compressionFactor = float(gui.get<Float>(GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR));
     contours.isoStep = float(gui.get<Float>(GuiSettingsId::CONTOUR_SPACING));
     contours.gridSize = gui.get<int>(GuiSettingsId::CONTOUR_GRID_SIZE);
     contours.showLabels = gui.get<bool>(GuiSettingsId::CONTOUR_SHOW_LABELS);
@@ -50,6 +52,10 @@ IRaytracer::IRaytracer(SharedPtr<IScheduler> scheduler, const GuiSettings& setti
 
 void IRaytracer::render(const RenderParams& params, Statistics& UNUSED(stats), IRenderOutput& output) const {
     shouldContinue = true;
+
+    if (RawPtr<LogarithmicColorMap> logMap = dynamicCast<LogarithmicColorMap>(fixed.colorMap.get())) {
+        logMap->setFactor(params.volume.compressionFactor);
+    }
 
     FrameBuffer fb(params.size);
     for (Size iteration = 0; iteration < fixed.iterationLimit && shouldContinue; ++iteration) {

@@ -108,7 +108,7 @@ public:
 
     /// \brief Returns a subset of the arrayview.
     INLINE ArrayView subset(const TCounter start, const TCounter length) const {
-        SPH_ASSERT(start + length <= size());
+        SPH_ASSERT(start <= size() && start + length <= size());
         return ArrayView(data + start, length);
     }
 
@@ -148,6 +148,20 @@ public:
         return stream;
     }
 };
+
+template <typename T>
+bool almostEqual(const ArrayView<T> v1, const ArrayView<T> v2, const Float& eps) {
+    if (v1.size() != v2.size()) {
+        return false;
+    }
+
+    for (Size i = 0; i < v1.size(); ++i) {
+        if (!Sph::almostEqual(v1[i], v2[i], eps)) {
+            return false;
+        }
+    }
+    return true;
+}
 
 template <typename T>
 INLINE ArrayView<T> getSingleValueView(T& value) {

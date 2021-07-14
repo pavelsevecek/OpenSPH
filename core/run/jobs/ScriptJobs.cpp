@@ -99,7 +99,7 @@ void ChaiScriptJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& c
     result->storage = particles.store().clone(VisitorEnum::ALL_BUFFERS);
 }
 
-static JobRegistrar sRegisterChaiWorker(
+static JobRegistrar sRegisterChaiJob(
     "custom script",
     "particle operators",
     [](const std::string& name) { return makeAuto<ChaiScriptJob>(name); },
