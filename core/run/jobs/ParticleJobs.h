@@ -383,6 +383,8 @@ public:
 class SubsampleJob : public IParticleJob {
 private:
     Float fraction = 0.5_f;
+    bool adjustMass = true;
+    bool adjustRadii = true;
 
 public:
     explicit SubsampleJob(const std::string& name)
