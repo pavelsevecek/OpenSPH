@@ -49,28 +49,47 @@ public:
         SPH_ASSERT(end >= begin, begin, end);
     }
 
+    Iterator(std::nullptr_t)
+        : data(nullptr)
+#ifdef SPH_DEBUG
+        , begin(nullptr)
+        , end(nullptr)
+#endif
+    {
+    }
+
     INLINE const TValue& operator*() const {
+        SPH_ASSERT(data != nullptr);
         SPH_ASSERT_UNEVAL(data >= begin && data < end);
         return *data;
     }
     INLINE TValue& operator*() {
+        SPH_ASSERT(data != nullptr);
         SPH_ASSERT_UNEVAL(data >= begin && data < end);
         return *data;
     }
     INLINE T* operator->() {
+        SPH_ASSERT(data != nullptr);
         SPH_ASSERT_UNEVAL(data >= begin && data < end);
         return data;
     }
     INLINE const T* operator->() const {
+        SPH_ASSERT(data != nullptr);
         SPH_ASSERT_UNEVAL(data >= begin && data < end);
         return data;
     }
 
+    INLINE explicit operator bool() const {
+        return data != nullptr;
+    }
+
 #ifdef SPH_DEBUG
     INLINE Iterator operator+(const TCounter n) const {
+        SPH_ASSERT(data != nullptr);
         return Iterator(data + n, begin, end);
     }
     INLINE Iterator operator-(const TCounter n) const {
+        SPH_ASSERT(data != nullptr);
         return Iterator(data - n, begin, end);
     }
 #else
@@ -82,43 +101,54 @@ public:
     }
 #endif
     INLINE void operator+=(const TCounter n) {
+        SPH_ASSERT(data != nullptr);
         data += n;
     }
     INLINE void operator-=(const TCounter n) {
+        SPH_ASSERT(data != nullptr);
         data -= n;
     }
     INLINE Iterator& operator++() {
+        SPH_ASSERT(data != nullptr);
         ++data;
         return *this;
     }
     INLINE Iterator operator++(int) {
+        SPH_ASSERT(data != nullptr);
         Iterator tmp(*this);
         operator++();
         return tmp;
     }
     INLINE Iterator& operator--() {
+        SPH_ASSERT(data != nullptr);
         --data;
         return *this;
     }
     INLINE Iterator operator--(int) {
+        SPH_ASSERT(data != nullptr);
         Iterator tmp(*this);
         operator--();
         return tmp;
     }
     INLINE difference_type operator-(const Iterator& iter) const {
-        SPH_ASSERT(data >= iter.data);
+        // only valid if both iterators are non-nullptr or both are nullptr
+        SPH_ASSERT((data != nullptr) == (iter.data != nullptr));
         return data - iter.data;
     }
     INLINE bool operator<(const Iterator& iter) const {
+        SPH_ASSERT(data != nullptr && iter.data != nullptr);
         return data < iter.data;
     }
     INLINE bool operator>(const Iterator& iter) const {
+        SPH_ASSERT(data != nullptr && iter.data != nullptr);
         return data > iter.data;
     }
     INLINE bool operator<=(const Iterator& iter) const {
+        SPH_ASSERT(data != nullptr && iter.data != nullptr);
         return data <= iter.data;
     }
     INLINE bool operator>=(const Iterator& iter) const {
+        SPH_ASSERT(data != nullptr && iter.data != nullptr);
         return data >= iter.data;
     }
     INLINE bool operator==(const Iterator& iter) const {

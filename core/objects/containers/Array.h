@@ -356,6 +356,10 @@ public:
     template <typename TIterator>
     void insert(const TCounter position, const TIterator first, const TIterator last) {
         SPH_ASSERT(position <= actSize);
+        if (SPH_UNLIKELY(first == last)) {
+            // inserting an empty range
+            return;
+        }
         const Size count = std::distance(first, last);
         this->resize(actSize + count);
         std::move_backward(this->begin() + position, this->end() - count, this->end());

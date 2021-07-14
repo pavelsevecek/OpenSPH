@@ -2,12 +2,15 @@
 - automatic computation of particle radii in volumetric renderer
 - added absorption to volumetric renderer
 - added compression factor to logarithmic colormapper
+- properly validating palette ranges
+- added progress reporting to galaxy IC (parts only)
 
 ## 2021-07-11
 - implemented softening kernels for other SPH kernels
 - added a node that provides setup of orbiting bodies
 - included surface gravity in GravityColorizer
 - automatically selecting the file type in SaveFileJob
+- Bvh: replaced std::set with output iterator
 
 ## 2021-07-10
 - added basic polytrope model

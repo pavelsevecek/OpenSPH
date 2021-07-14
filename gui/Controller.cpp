@@ -198,6 +198,7 @@ void Controller::quit(const bool waitForFinish) {
             sph.thread.join();
         }
 
+        vis.renderer->cancelRender();
         {
             std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
             vis.renderThreadVar.notify_one();

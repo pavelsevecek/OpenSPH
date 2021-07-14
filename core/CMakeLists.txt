@@ -14,7 +14,6 @@ set(CORE_SOURCES
     math/SparseMatrix.cpp 
     math/rng/Rng.cpp 
     objects/containers/String.cpp 
-    objects/finders/Bvh.cpp 
     objects/finders/HashMapFinder.cpp 
     objects/finders/KdTree.cpp 
     objects/finders/NeighbourFinder.cpp 
@@ -159,6 +158,7 @@ set(CORE_HEADERS
     objects/finders/AdaptiveGrid.h 
     objects/finders/BruteForceFinder.h 
     objects/finders/Bvh.h 
+    objects/finders/Bvh.inl.h
     objects/finders/HashMapFinder.h 
     objects/finders/KdTree.h 
     objects/finders/KdTree.inl.h 
@@ -184,6 +184,7 @@ set(CORE_HEADERS
     objects/utility/EnumMap.h 
     objects/utility/Iterator.h 
     objects/utility/IteratorAdapters.h 
+    objects/utility/OutputIterators.h
     objects/utility/OperatorTemplate.h 
     objects/utility/PerElementWrapper.h 
     objects/utility/StringUtils.h 

@@ -4,6 +4,7 @@
 #include "gui/objects/Colorizer.h"
 #include "gui/renderers/FrameBuffer.h"
 #include "objects/finders/KdTree.h"
+#include "objects/utility/OutputIterators.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -55,7 +56,7 @@ void VolumeRenderer::initialize(const Storage& storage,
     bvh.build(std::move(spheres));
 
     for (ThreadData& data : threadData) {
-        data.data = std::set<IntersectionInfo>{};
+        data.data = RayData{};
     }
 
     shouldContinue = true;
@@ -65,10 +66,15 @@ Rgba VolumeRenderer::shade(const RenderParams& params, const CameraRay& cameraRa
     const Vector dir = getNormalized(cameraRay.target - cameraRay.origin);
     const Ray ray(cameraRay.origin, dir);
 
-    std::set<IntersectionInfo>& intersections(data.data);
-    bvh.getAllIntersections(ray, intersections);
-    Rgba result = this->getEnviroColor(cameraRay);
+    RayData& rayData(data.data);
+    Array<IntersectionInfo>& intersections = rayData.intersections;
+    intersections.clear();
+    bvh.getAllIntersections(ray, backInserter(intersections));
+    if (params.volume.absorption > 0.f) {
+        std::sort(intersections.begin(), intersections.end());
+    }
 
+    Rgba result = this->getEnviroColor(cameraRay);
     for (const IntersectionInfo& is : reverse(intersections)) {
         const BvhSphere* s = static_cast<const BvhSphere*>(is.object);
         const Size i = s->userData;

@@ -4,7 +4,6 @@
 #include "objects/geometry/Box.h"
 #include "objects/geometry/Indices.h"
 #include "objects/wrappers/AutoPtr.h"
-#include <set>
 
 NAMESPACE_SPH_BEGIN
 
@@ -42,7 +41,7 @@ public:
 ///
 /// There is always either zero or two intersections. If the ray intersects the box, the function returns true
 /// and the intersection distances (near and far distance) are returned as t_min and t_max.
-bool intersectBox(const Box& box, const Ray& ray, Float& t_min, Float& t_max);
+inline bool intersectBox(const Box& box, const Ray& ray, Float& t_min, Float& t_max);
 
 
 struct BvhPrimitive {
@@ -103,7 +102,7 @@ public:
         }
         intersection.object = this;
         intersection.t = f * dot(dir2, q);
-        return true;
+        return intersection.t > 0.f;
     }
 
     INLINE Box getBBox() const {
@@ -147,7 +146,7 @@ public:
 
         intersection.object = this;
         intersection.t = deltaCos - sqrt(disc);
-        return true;
+        return intersection.t > 0.f;
     }
 
     INLINE Box getBBox() const {
@@ -174,7 +173,7 @@ public:
         if (result) {
             intersection.t = t_min;
             intersection.object = this;
-            return true;
+            return intersection.t > 0.f;
         } else {
             return false;
         }
@@ -189,24 +188,6 @@ public:
     }
 };
 
-class IBvh : public Polymorphic {
-public:
-    /// \brief Finds the closest intersection of the ray.
-    ///
-    /// Returns true if an intersection has been found.
-    virtual bool getFirstIntersection(const Ray& ray, IntersectionInfo& intersection) const = 0;
-
-    /// \brief Returns all intersections of the ray.
-    virtual void getAllIntersections(const Ray& ray, std::set<IntersectionInfo>& intersections) const = 0;
-};
-
-struct BvhNode {
-    Box box;
-    Size start;
-    Size primCnt;
-    Size rightOffset;
-};
-
 /// \brief Simple bounding volume hierarchy.
 ///
 /// Interface for finding an intersection of given ray with a set of geometric objects. Currently very
@@ -214,13 +195,20 @@ struct BvhNode {
 /// other geometric primitives are needed, either add the specialization to cpp, or move the implementation to
 /// header.
 template <typename TBvhObject>
-class Bvh : public IBvh {
+class Bvh : public Noncopyable {
 private:
     const Size leafSize;
     Size nodeCnt = 0;
     Size leafCnt = 0;
 
     Array<TBvhObject> objects;
+
+    struct BvhNode {
+        Box box;
+        Size start;
+        Size primCnt;
+        Size rightOffset;
+    };
 
     Array<BvhNode> nodes;
 
@@ -236,11 +224,14 @@ public:
     /// \brief Finds the closest intersection of the ray.
     ///
     /// Returns true if an intersection has been found.
-    virtual bool getFirstIntersection(const Ray& ray, IntersectionInfo& intersection) const override;
+    bool getFirstIntersection(const Ray& ray, IntersectionInfo& intersection) const;
 
     /// \brief Returns all intersections of the ray.
-    virtual void getAllIntersections(const Ray& ray,
-        std::set<IntersectionInfo>& intersections) const override;
+    ///
+    /// Intersections are returned via a generic output iterator.
+    /// \returns Total number of intersections.
+    template <typename TOutIter>
+    Size getAllIntersections(const Ray& ray, TOutIter iter) const;
 
     /// \brief Returns true if the ray is occluded by some geometry
     bool isOccluded(const Ray& ray) const;
@@ -254,3 +245,5 @@ private:
 };
 
 NAMESPACE_SPH_END
+
+#include "objects/finders/Bvh.inl.h"

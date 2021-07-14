@@ -34,14 +34,19 @@ void FloatTextCtrl::validate() {
     } else {
         value = float(variant.GetDouble());
     }
-    lastValidValue = value = range.clamp(value);
 
+    value = range.clamp(value);
+
+    if (onValueChanged && value != lastValidValue) {
+        const bool validated = onValueChanged(value);
+        if (!validated) {
+            value = lastValidValue;
+        }
+    }
+
+    lastValidValue = value;
     variant = double(value);
     this->ChangeValue(prop.ValueToString(variant));
-
-    if (onValueChanged) {
-        onValueChanged(value);
-    }
 }
 
 NAMESPACE_SPH_END

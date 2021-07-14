@@ -146,17 +146,26 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
     upperCtrl->onValueChanged = [this](const Float value) {
         /// \todo deduplicate
         const Float lower = selected.getInterval().lower();
-        Interval newRange(min(lower, value), max(lower, value));
-        selected.setInterval(newRange);
+        if (lower >= value) {
+            return false;
+        }
+        selected.setInterval(Interval(lower, value));
         canvas->setPalette(selected);
         setPaletteCallback(selected);
+        return true;
     };
     lowerCtrl->onValueChanged = [this](const Float value) {
         const Float upper = selected.getInterval().upper();
-        const Interval newRange(min(value, upper), max(value, upper));
-        selected.setInterval(newRange);
+        if (value >= upper) {
+            return false;
+        }
+        if (selected.getScale() == PaletteScale::LOGARITHMIC && value <= 0.f) {
+            return false;
+        }
+        selected.setInterval(Interval(value, upper));
         canvas->setPalette(selected);
         setPaletteCallback(selected);
+        return true;
     };
 
     mainSizer->Add(rangeSizer, 0, wxALIGN_CENTER_HORIZONTAL);

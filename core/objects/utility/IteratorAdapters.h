@@ -23,7 +23,7 @@ protected:
 public:
     ReverseIterator() = default;
 
-    ReverseIterator(TIterator iter)
+    explicit ReverseIterator(TIterator iter)
         : iter(iter) {}
 
     decltype(auto) operator*() const {
@@ -72,26 +72,34 @@ class ReverseAdapter {
 private:
     TContainer container;
 
+    using Iterator = decltype(std::declval<std::decay_t<TContainer>>().begin());
+
 public:
     template <typename T>
-    ReverseAdapter(T&& container)
+    explicit ReverseAdapter(T&& container)
         : container(std::forward<T>(container)) {}
 
     /// Returns iterator pointing to the last element in container.
-    auto begin() {
-        auto iter = container.end();
-        --iter;
-        return reverseIterator(iter);
+    ReverseIterator<Iterator> begin() {
+        if (Iterator iter = container.end()) {
+            --iter;
+            return reverseIterator(iter);
+        } else {
+            return ReverseIterator<Iterator>(nullptr);
+        }
     }
 
     /// Returns iterator pointiing to one before the first element.
-    auto end() {
-        auto iter = container.begin();
-        --iter;
-        return reverseIterator(iter);
+    ReverseIterator<Iterator> end() {
+        if (Iterator iter = container.begin()) {
+            --iter;
+            return reverseIterator(iter);
+        } else {
+            return ReverseIterator<Iterator>(nullptr);
+        }
     }
 
-    auto size() const {
+    Size size() const {
         return container.size();
     }
 };
@@ -247,7 +255,7 @@ private:
     Tuple<TIterator...> iterators;
 
 public:
-    TupleIterator(const TIterator&... iters)
+    explicit TupleIterator(const TIterator&... iters)
         : iterators(iters...) {}
 
     TupleIterator& operator++() {
@@ -307,7 +315,7 @@ private:
     Tuple<TContainers...> tuple;
 
 public:
-    TupleAdapter(TContainers&&... containers)
+    explicit TupleAdapter(TContainers&&... containers)
         : tuple(std::forward<TContainers>(containers)...) {
         SPH_ASSERT(tuple.size() > 1);
     }
@@ -432,7 +440,7 @@ private:
     TContainer container;
 
 public:
-    IndexAdapter(TContainer&& container)
+    explicit IndexAdapter(TContainer&& container)
         : container(std::forward<TContainer>(container)) {}
 
     auto begin() {
@@ -573,7 +581,7 @@ protected:
     Size idx;
 
 public:
-    INLINE IndexIterator(const Size idx)
+    INLINE explicit IndexIterator(const Size idx)
         : idx(idx) {}
 
     INLINE Size operator*() const {
