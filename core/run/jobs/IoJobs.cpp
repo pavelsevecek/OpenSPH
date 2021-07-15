@@ -15,6 +15,12 @@ NAMESPACE_SPH_BEGIN
 // LoadFileJob
 // ----------------------------------------------------------------------------------------------------------
 
+static RegisterEnum<UnitEnum> sUnits({
+    { UnitEnum::SI, "si", "SI unit system" },
+    { UnitEnum::CGS, "cgs", "CGS unit system" },
+    { UnitEnum::NBODY, "nbody", "N-body (Hénon) units" },
+});
+
 VirtualSettings LoadFileJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
@@ -23,6 +29,7 @@ VirtualSettings LoadFileJob::getSettings() {
     cat.connect("File", "file", path)
         .setPathType(IVirtualEntry::PathType::INPUT_FILE)
         .setFileFormats(getInputFormats());
+    cat.connect("Unit system", "units", units);
     return connector;
 }
 
@@ -39,8 +46,6 @@ void LoadFileJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNU
     }
 
     result = makeShared<ParticleData>();
-    result->storage = std::move(storage);
-    result->stats = std::move(stats);
 
     // set up overrides for resuming simulations
     if (stats.has(StatisticsId::RUN_TIME)) {
@@ -53,6 +58,26 @@ void LoadFileJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNU
     if (Optional<Size> dumpIdx = OutputFile::getDumpIdx(Path(path))) {
         result->overrides.set(RunSettingsId::RUN_OUTPUT_FIRST_INDEX, int(dumpIdx.value()));
     }
+
+    Float G;
+    switch (UnitEnum(units)) {
+    case UnitEnum::SI:
+        G = Constants::gravity;
+        break;
+    case UnitEnum::CGS:
+        G = 1.e3_f * Constants::gravity;
+        break;
+    case UnitEnum::NBODY:
+        G = 1._f;
+        break;
+    default:
+        NOT_IMPLEMENTED;
+    }
+
+    result->overrides.set(RunSettingsId::GRAVITY_CONSTANT, G);
+
+    result->storage = std::move(storage);
+    result->stats = std::move(stats);
 }
 
 static JobRegistrar sRegisterLoadFile(

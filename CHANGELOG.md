@@ -1,3 +1,6 @@
+## 2021-07-15
+- enabled the 'create camera node' for loaded states
+
 ## 2021-07-13
 - automatic computation of particle radii in volumetric renderer
 - added absorption to volumetric renderer

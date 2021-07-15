@@ -5,9 +5,16 @@
 
 NAMESPACE_SPH_BEGIN
 
+enum class UnitEnum {
+    SI,
+    CGS,
+    NBODY,
+};
+
 class LoadFileJob : public IParticleJob {
 private:
     Path path;
+    EnumWrapper units = EnumWrapper(UnitEnum::SI);
 
 public:
     LoadFileJob(const Path& path = Path("file.ssf"))
