@@ -1,3 +1,7 @@
+## 2021-07-16
+- added an option to enable shadows in raymarcher
+- removed experimental renderers from UI
+
 ## 2021-07-15
 - enabled the 'create camera node' for loaded states
 

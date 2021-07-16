@@ -99,6 +99,8 @@ VirtualSettings AnimationJob::getSettings() {
     rendererCat.connect<EnumWrapper>("BRDF", gui, GuiSettingsId::RAYTRACE_BRDF).setEnabler(raytracerEnabler);
     rendererCat.connect<bool>("Render as spheres", gui, GuiSettingsId::RAYTRACE_SPHERES)
         .setEnabler(raytracerEnabler);
+    rendererCat.connect<bool>("Enable shadows", gui, GuiSettingsId::RAYTRACE_SHADOWS)
+        .setEnabler(raytracerEnabler);
     rendererCat.connect<Float>("Medium emission [km^-1]", gui, GuiSettingsId::VOLUME_EMISSION)
         .setUnits(1.e-3_f)
         .setEnabler(volumeEnabler);

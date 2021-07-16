@@ -7,14 +7,14 @@ NAMESPACE_SPH_BEGIN
 static RegisterEnum<RendererEnum> sRenderer({
     { RendererEnum::NONE, "none", "No particle visualization" },
     { RendererEnum::PARTICLE, "particle", "Particles are visualized as circles. No shading." },
-    { RendererEnum::MESH,
+    /*{ RendererEnum::MESH,
         "mesh",
-        "Surfaces of bodies are meshed using Marching cubes and drawed as triangles." },
+        "Surfaces of bodies are meshed using Marching cubes and drawed as triangles." },*/
     { RendererEnum::RAYMARCHER,
         "raymarcher",
         "Use raymarching to find intersections with implicit surface." },
     { RendererEnum::VOLUME, "volumetric", "Use raytracing to find total emission along the ray." },
-    { RendererEnum::CONTOUR, "contour", "Draws contours (iso-lines) of quantities" },
+    //{ RendererEnum::CONTOUR, "contour", "Draws contours (iso-lines) of quantities" },
 });
 
 static RegisterEnum<CameraEnum> sCamera({
@@ -135,6 +135,8 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Optional spherical bitmap used as an environment. Empty means the environment is black." },
     { GuiSettingsId::RAYTRACE_BRDF,         "raytrace.brdf",        BrdfEnum::LAMBERT,
         "Surface BRDF. Applicable for raytracer. "},
+    { GuiSettingsId::RAYTRACE_SHADOWS,      "raytrace.shadows",     true,
+        "Take into account occlusions when computing surface illumination." },
     { GuiSettingsId::RAYTRACE_SPHERES,      "raytrace.spheres",     false,
         "If true, raytraced surface is given by spheres centered at particles, "
         "otherwise isosurface of a colorfield is rendered." },

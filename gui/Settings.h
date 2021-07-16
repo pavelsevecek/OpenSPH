@@ -179,6 +179,8 @@ enum class GuiSettingsId {
 
     RAYTRACE_BRDF,
 
+    RAYTRACE_SHADOWS,
+
     RAYTRACE_SPHERES,
 
     VOLUME_EMISSION,

@@ -16,6 +16,7 @@ RayMarcher::RayMarcher(SharedPtr<IScheduler> scheduler, const GuiSettings& setti
     fixed.dirToSun = getNormalized(settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION));
     fixed.brdf = Factory::getBrdf(settings);
     fixed.renderSpheres = settings.get<bool>(GuiSettingsId::RAYTRACE_SPHERES);
+    fixed.shadows = settings.get<bool>(GuiSettingsId::RAYTRACE_SHADOWS);
 }
 
 RayMarcher::~RayMarcher() = default;
