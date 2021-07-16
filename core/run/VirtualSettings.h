@@ -159,6 +159,7 @@ protected:
     Function<bool()> enabler = nullptr;
     Accessor accessor = nullptr;
     Validator validator = nullptr;
+    bool sideEffect = false;
 
 public:
     /// \brief Adds or replaces the previous tooltip associanted with the entry.
@@ -187,6 +188,9 @@ public:
     ///
     /// If the functor returns false, the value is unchanged.
     EntryControl& setValidator(const Validator& newValidator);
+
+    /// \brief Specifies that the entry has a side effect, i.e. in changes values of other entries.
+    EntryControl& setSideEffect();
 
     /// \brief Sets the type of the path.
     EntryControl& setPathType(const PathType& newType);

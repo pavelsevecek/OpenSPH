@@ -73,6 +73,14 @@ struct SlotData {
     SharedPtr<JobNode> provider;
 };
 
+enum JobNotificationType {
+    ENTRY_CHANGED,
+    PROVIDER_CONNECTED,
+    DEPENDENT_CONNECTED,
+};
+
+using JobAccessor = Function<void(JobNotificationType)>;
+
 /// \brief Building block of a simulation hierarchy.
 ///
 /// Each node can have any number of providers (preconditions of the job).
@@ -83,8 +91,11 @@ class JobNode : public ShareFromThis<JobNode>, public INode {
     /// All dependent nodes (i.e. nodes that have this node as provider) in no particular order.
     Array<WeakPtr<JobNode>> dependents;
 
-    /// job object of this node
+    /// Job object of this node
     SharedPtr<IJob> job;
+
+    /// Optional callback called when a node property is changed.
+    JobAccessor accessor;
 
 public:
     /// \brief Creates a new node, given a job object.
@@ -98,6 +109,9 @@ public:
 
     /// \brief Returns settings object allowing to access and modify the state of the job.
     VirtualSettings getSettings() const;
+
+    /// \brief Sets an accessor for entries returned by the \ref getSettings function.
+    void setAccessor(const JobAccessor& newAccessor);
 
     /// \brief Returns the type of the job.
     Optional<ExtJobType> provides() const;
@@ -143,12 +157,21 @@ public:
     /// \param callbacks Interface allowing to get a feedback from evaluated nodes, see \ref IJobCallbacks.
     virtual void run(const RunSettings& global, IJobCallbacks& callbacks) override;
 
+    /// \brief Evaluates all provides, without executing the node itself.
+    ///
+    /// This functions does not have to be called before \ref run, as it is called from within \ref run.
+    /// It is useful for manual execution of jobs.
+    /// \return Job ready to be executed.
+    virtual IJob& prepare(const RunSettings& global, IJobCallbacks& callbacks);
+
 private:
     void enumerate(Function<void(SharedPtr<JobNode> job, Size depth)> func,
         Size depth,
         std::set<JobNode*>& visited);
 
     void run(const RunSettings& global, IJobCallbacks& callbacks, std::set<JobNode*>& visited);
+
+    void prepare(const RunSettings& global, IJobCallbacks& callbacks, std::set<JobNode*>& visited);
 };
 
 /// \brief Helper function for creating job nodes.

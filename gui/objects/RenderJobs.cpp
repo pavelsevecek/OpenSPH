@@ -7,6 +7,7 @@
 #include "gui/objects/Colorizer.h"
 #include "gui/objects/Movie.h"
 #include "run/IRun.h"
+#include "run/VirtualSettings.h"
 #include "run/jobs/IoJobs.h"
 #include "system/Factory.h"
 #include "system/Timer.h"
@@ -177,6 +178,10 @@ public:
         }
     }
 
+    virtual bool isInitialized() const override {
+        return !acc.empty();
+    }
+
     virtual Rgba evalColor(const Size idx) const override {
         return palette(acc[idx]);
     }
@@ -190,20 +195,12 @@ public:
     }
 };
 
-void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
-    gui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f));
-
+static Array<SharedPtr<IColorizer>> getColorizers(const RunSettings& global,
+    const GuiSettings& gui,
+    const Flags<ColorizerFlag> colorizers,
+    const Float G,
+    const bool addSurfaceGravity) {
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
-    AutoPtr<IRenderer> renderer = Factory::getRenderer(scheduler, gui);
-
-    SharedPtr<CameraData> camera = getInput<CameraData>("camera");
-    RenderParams params;
-    params.size = camera->camera->getSize();
-    params.camera = camera->camera->clone();
-    params.tracker = std::move(camera->tracker);
-    gui.addEntries(camera->overrides);
-    params.initialize(gui);
-
     Project project = Project::getInstance().clone();
     project.getGuiSettings() = gui;
     Array<SharedPtr<IColorizer>> colorizerArray;
@@ -227,12 +224,33 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
         if (!project.getPalette("Acceleration", palette)) {
             palette = Factory::getPalette(ColorizerId::ACCELERATION);
         }
-        colorizerArray.push(
-            makeShared<GravityColorizer>(scheduler, palette, Constants::gravity, addSurfaceGravity));
+        colorizerArray.push(makeShared<GravityColorizer>(scheduler, palette, G, addSurfaceGravity));
     }
     if (colorizers.has(ColorizerFlag::DAMAGE)) {
         colorizerArray.push(Factory::getColorizer(project, QuantityId::DAMAGE));
     }
+    return colorizerArray;
+}
+
+RenderParams AnimationJob::getRenderParams() {
+    SharedPtr<CameraData> camera = getInput<CameraData>("camera");
+    RenderParams params;
+    params.camera = camera->camera->clone();
+    params.tracker = std::move(camera->tracker);
+    gui.addEntries(camera->overrides);
+    params.initialize(gui);
+    return params;
+}
+
+void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
+    gui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f));
+    gui.set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 0);
+
+    SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
+    AutoPtr<IRenderer> renderer = Factory::getRenderer(scheduler, gui);
+    RenderParams params = getRenderParams();
+    Array<SharedPtr<IColorizer>> colorizerArray =
+        getColorizers(global, gui, colorizers, Constants::gravity, addSurfaceGravity);
 
     if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE) {
         Optional<Size> firstIndex = OutputFile::getDumpIdx(sequence.firstFile);
@@ -258,8 +276,8 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
         for (Float phi = 0._f; phi < orbit.finalAngle; phi += orbit.step) {
             const Vector newPosition = target + orbitRadius * (cos(phi) * Vector(0._f, 0._f, 1._f) +
                                                                   sin(phi) * Vector(1._f, 0._f, 0._f));
-            gui.set(GuiSettingsId::CAMERA_POSITION, newPosition);
-            movie.setCamera(Factory::getCamera(gui, params.size));
+            params.camera->setPosition(newPosition);
+            movie.setCamera(params.camera->clone());
             movie.save(data->storage, data->stats);
 
             data->stats.set(StatisticsId::RELATIVE_PROGRESS, phi / orbit.finalAngle);
@@ -309,6 +327,77 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
     default:
         NOT_IMPLEMENTED;
     }
+}
+
+class RenderPreview : public IRenderPreview {
+private:
+    RenderParams params;
+    AutoPtr<IRenderer> renderer;
+    SharedPtr<IColorizer> colorizer;
+    SharedPtr<ParticleData> data;
+
+public:
+    RenderPreview(RenderParams&& params,
+        AutoPtr<IRenderer>&& renderer,
+        const SharedPtr<IColorizer>& colorizer,
+        const SharedPtr<ParticleData>& data)
+        : params(std::move(params))
+        , renderer(std::move(renderer))
+        , colorizer(colorizer)
+        , data(data) {}
+
+    virtual void render(const Pixel resolution, IRenderOutput& output) override {
+        if (!colorizer->isInitialized()) {
+            // lazy init
+            colorizer->initialize(data->storage, RefEnum::WEAK);
+            renderer->initialize(data->storage, *colorizer, *params.camera);
+        }
+        Pixel size = params.camera->getSize();
+        size = correctAspectRatio(resolution, float(size.x) / float(size.y));
+        params.camera->resize(size);
+        Statistics dummy;
+        renderer->render(params, dummy, output);
+    }
+
+    virtual void update(AutoPtr<ICamera>&& camera) override {
+        params.camera = std::move(camera);
+    }
+
+    virtual void cancel() override {
+        renderer->cancelRender();
+    }
+
+private:
+    Pixel correctAspectRatio(const Pixel resolution, const float aspect) const {
+        const float current = float(resolution.x) / float(resolution.y);
+        if (current > aspect) {
+            return Pixel(resolution.x * aspect / current, resolution.y);
+        } else {
+            return Pixel(resolution.x, resolution.y * current / aspect);
+        }
+    }
+};
+
+AutoPtr<IRenderPreview> AnimationJob::getRenderPreview(const RunSettings& global) {
+    if (AnimationType(animationType) != AnimationType::SINGLE_FRAME) {
+        throw InvalidSetup("Render preview can only be done for single-frame renders");
+    }
+
+    gui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f));
+    gui.set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 4);
+
+    SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
+    Float G = Constants::gravity;
+    if (data->overrides.has(RunSettingsId::GRAVITY_CONSTANT)) {
+        G = data->overrides.get<Float>(RunSettingsId::GRAVITY_CONSTANT);
+    }
+
+    SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
+    AutoPtr<IRenderer> renderer = Factory::getRenderer(scheduler, gui);
+    RenderParams params = getRenderParams();
+    SharedPtr<IColorizer> colorizer = getColorizers(global, gui, colorizers, G, addSurfaceGravity).front();
+
+    return makeAuto<RenderPreview>(std::move(params), std::move(renderer), colorizer, data);
 }
 
 JobRegistrar sRegisterAnimation(

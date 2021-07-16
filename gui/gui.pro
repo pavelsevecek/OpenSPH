@@ -93,6 +93,7 @@ HEADERS += \
     windows/RunSelectDialog.h \
     windows/SessionDialog.h \
     windows/CurveDialog.h \
+    windows/RenderPane.h \
     windows/GridPage.h \
     windows/IGraphicsPane.h \
     windows/Icons.data.h \

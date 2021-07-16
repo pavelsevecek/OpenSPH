@@ -47,6 +47,9 @@ public:
 
     /// May be called once after render finishes or multiple times for progressive renderers.
     virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels, const bool isFinal) = 0;
+
+    /// \copydoc update
+    virtual void update(Bitmap<Rgba>&& bitmap, Array<Label>&& labels, const bool isFinal) = 0;
 };
 
 
@@ -55,9 +58,6 @@ public:
 /// Partially overlaps with GuiSettings, but it's better to have render specific settings in one struct than
 /// one huge catch-all settings.
 struct RenderParams {
-
-    /// \brief Resolution of the produced bitmap
-    Pixel size = Pixel(640, 480);
 
     /// \brief Camera used for rendering.
     AutoPtr<ICamera> camera;

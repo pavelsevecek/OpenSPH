@@ -114,7 +114,8 @@ static void addOutputCategory(VirtualSettings& connector, RunSettings& settings)
                 name.replaceExtension(extension.value());
             }
             settings.set(RunSettingsId::RUN_OUTPUT_NAME, name.native());
-        });
+        })
+        .setSideEffect(); // needs to update the 'File mask' entry
     outputCat.connect<Path>("Directory", settings, RunSettingsId::RUN_OUTPUT_PATH)
         .setEnabler(enabler)
         .setPathType(IVirtualEntry::PathType::DIRECTORY);

@@ -5,6 +5,7 @@
 #include "gui/objects/RenderJobs.h"
 #include "gui/windows/BatchDialog.h"
 #include "gui/windows/CurveDialog.h"
+#include "gui/windows/RenderPane.h"
 #include "gui/windows/RunSelectDialog.h"
 #include "io/FileSystem.h"
 #include "objects/utility/IteratorAdapters.h"
@@ -606,6 +607,10 @@ void NodeManager::showBatchDialog() {
     batchDialog->Destroy();
 }
 
+RenderPane* NodeManager::createRenderPreview(wxWindow* parent, JobNode& node) {
+    return alignedNew<RenderPane>(parent, wxDefaultSize, node.sharedFromThis(), globals);
+}
+
 void NodeManager::selectRun() {
     SharedPtr<JobNode> node = activeNode.lock();
     if (node) {
@@ -1073,7 +1078,7 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
         const Optional<ExtJobType> provided = vis->node->provides();
         if (!provided || provided.value() == JobType::PARTICLES) {
             menu.Append(0, "Evaluate"); // there is no visible result of other types
-            menu.Append(1, "Evaluate batch");
+            menu.Append(1, "Render preview");
         }
     }
 
@@ -1094,12 +1099,17 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
         case 0:
             try {
                 nodeMgr->startRun(*vis->node);
-            } catch (const Exception& e) {
+            } catch (const std::exception& e) {
                 wxMessageBox(std::string("Cannot run the node: ") + e.what(), "Error", wxOK);
             }
             break;
         case 1:
-            nodeMgr->startBatch(*vis->node);
+            try {
+                nodeWindow->createRenderPreview(*vis->node);
+            } catch (const Exception& e) {
+                wxMessageBox(std::string("Cannot start render preview: ") + e.what(), "Error", wxOK);
+            }
+            // nodeMgr->startBatch(*vis->node);
             break;
         case 2:
             nodeMgr->startAll();
@@ -1790,6 +1800,26 @@ SharedPtr<JobNode> NodeWindow::createNode(AutoPtr<IJob>&& job) {
     SharedPtr<JobNode> node = makeShared<JobNode>(std::move(job));
     nodeMgr->addNode(node);
     return node;
+}
+
+void NodeWindow::createRenderPreview(JobNode& node) {
+    renderPane = nodeMgr->createRenderPreview(this, node);
+    wxAuiPaneInfo info;
+    info.Right()
+        .MinSize(wxSize(300, 300))
+        .CaptionVisible(true)
+        .DockFixed(false)
+        .CloseButton(true)
+        .Caption("Preview")
+        .Window(renderPane);
+    aui->AddPane(renderPane, info);
+    aui->Update();
+
+    aui->Bind(wxEVT_AUI_PANE_CLOSE, [this](wxAuiManagerEvent& evt) {
+        if (evt.GetPane()->window == renderPane) {
+            renderPane->stop();
+        }
+    });
 }
 
 void NodeWindow::updateProperties() {

@@ -71,12 +71,13 @@ static bool isCoordValid(const UnorderedMap<float, Coords>& map, const Coords& p
 void ContourRenderer::render(const RenderParams& params,
     Statistics& UNUSED(stats),
     IRenderOutput& output) const {
+    const Pixel size = params.camera->getSize();
     const Optional<CameraRay> ray1 = params.camera->unproject(Coords(0, 0));
-    const Optional<CameraRay> ray2 = params.camera->unproject(Coords(params.size));
+    const Optional<CameraRay> ray2 = params.camera->unproject(Coords(size));
     const Vector pos1(ray1->origin[X], ray1->origin[Y], 0._f);
     const Vector pos2(ray2->origin[X], ray2->origin[Y], 0._f);
     const Size resX = params.contours.gridSize;
-    const Size resY = Size(resX * float(params.size.y) / float(params.size.x));
+    const Size resY = Size(resX * float(size.y) / float(size.x));
     const Vector dxdp = Vector(1._f / resX, 1._f / resY, 0._f) * (pos2 - pos1);
 
     Bitmap<float> grid(Pixel(resX, resY));
@@ -101,7 +102,7 @@ void ContourRenderer::render(const RenderParams& params,
         }
     }
 
-    Bitmap<Rgba> bitmap(params.size);
+    Bitmap<Rgba> bitmap(size);
     AntiAliasedRenderContext context(bitmap);
     context.fill(Rgba::black());
 
@@ -117,7 +118,7 @@ void ContourRenderer::render(const RenderParams& params,
 
     context.setColor(Rgba::white(), ColorFlag::LINE);
 
-    const Coords gridToPixel = Coords(params.size) / Coords(resX, resY);
+    const Coords gridToPixel = Coords(size) / Coords(resX, resY);
 
     UnorderedMap<float, Coords> labelMap;
 
@@ -194,7 +195,7 @@ void ContourRenderer::render(const RenderParams& params,
     /// \todo deduplicate
     if (params.showKey) {
         if (cached.palette) {
-            const Pixel origin(params.size.x - 50, 231);
+            const Pixel origin(size.x - 50, 231);
             Palette palette;
             if (params.particles.grayScale) {
                 palette =

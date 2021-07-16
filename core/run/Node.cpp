@@ -15,8 +15,37 @@ std::string JobNode::instanceName() const {
     return job->instanceName();
 }
 
+class SetAccessorsProc : public VirtualSettings::IEntryProc {
+private:
+    EntryControl::Accessor entryAccessor;
+
+public:
+    explicit SetAccessorsProc(JobAccessor jobAccessor) {
+        entryAccessor = [jobAccessor](const IVirtualEntry::Value& UNUSED(value)) {
+            jobAccessor(JobNotificationType::ENTRY_CHANGED);
+        };
+    }
+
+    virtual void onCategory(const std::string& UNUSED(name)) const override {}
+
+    virtual void onEntry(const std::string& UNUSED(key), IVirtualEntry& entry) const override {
+        EntryControl& control = dynamic_cast<EntryControl&>(entry);
+        control.setAccessor(entryAccessor);
+    }
+};
+
+
 VirtualSettings JobNode::getSettings() const {
-    return job->getSettings();
+    VirtualSettings settings = job->getSettings();
+    if (accessor) {
+        SetAccessorsProc proc(accessor);
+        settings.enumerate(proc);
+    }
+    return settings;
+}
+
+void JobNode::setAccessor(const JobAccessor& newAccessor) {
+    accessor = newAccessor;
 }
 
 Optional<ExtJobType> JobNode::provides() const {
@@ -38,6 +67,10 @@ void JobNode::connect(SharedPtr<JobNode> node, const std::string& slotName) {
 
         node->providers.insert(slotName, this->sharedFromThis());
         dependents.push(node);
+
+        accessor.callIfNotNull(JobNotificationType::DEPENDENT_CONNECTED);
+        node->accessor.callIfNotNull(JobNotificationType::PROVIDER_CONNECTED);
+
     } else {
         std::string list;
         for (const auto& element : slots) {
@@ -141,8 +174,13 @@ void JobNode::run(const RunSettings& global, IJobCallbacks& callbacks) {
     this->run(global, callbacks, visited);
 }
 
-void JobNode::run(const RunSettings& global, IJobCallbacks& callbacks, std::set<JobNode*>& visited) {
+IJob& JobNode::prepare(const RunSettings& global, IJobCallbacks& callbacks) {
+    std::set<JobNode*> visited;
+    this->prepare(global, callbacks, visited);
+    return *job;
+}
 
+void JobNode::prepare(const RunSettings& global, IJobCallbacks& callbacks, std::set<JobNode*>& visited) {
     // first, run all dependencies
     for (auto& element : providers) {
         if (!job->requires().contains(element.key)) {
@@ -163,6 +201,10 @@ void JobNode::run(const RunSettings& global, IJobCallbacks& callbacks, std::set<
         }
         job->inputs.insert(element.key, result);
     }
+}
+
+void JobNode::run(const RunSettings& global, IJobCallbacks& callbacks, std::set<JobNode*>& visited) {
+    this->prepare(global, callbacks, visited);
 
     if (callbacks.shouldAbortRun()) {
         return;

@@ -57,14 +57,14 @@ void IRaytracer::render(const RenderParams& params, Statistics& UNUSED(stats), I
         logMap->setFactor(params.volume.compressionFactor);
     }
 
-    FrameBuffer fb(params.size);
+    FrameBuffer fb(params.camera->getSize());
     for (Size iteration = 0; iteration < fixed.iterationLimit && shouldContinue; ++iteration) {
         this->refine(params, iteration, fb);
 
         const bool isFinal = (iteration == fixed.iterationLimit - 1);
         if (fixed.colorMap) {
             Bitmap<Rgba> bitmap = fixed.colorMap->map(fb.getBitmap());
-            output.update(bitmap, {}, isFinal);
+            output.update(std::move(bitmap), {}, isFinal);
         } else {
             output.update(fb.getBitmap(), {}, isFinal);
         }
@@ -93,9 +93,10 @@ INLINE Coords sampleTent2d(const Size level, const float halfWidth, UniformRng& 
 void IRaytracer::refine(const RenderParams& params, const Size iteration, FrameBuffer& fb) const {
     MEASURE_SCOPE("Rendering frame");
     const Size level = 1 << max(int(fixed.subsampling) - int(iteration), 0);
+    const Pixel size = params.camera->getSize();
     Pixel actSize;
-    actSize.x = params.size.x / level + sgn(params.size.x % level);
-    actSize.y = params.size.y / level + sgn(params.size.y % level);
+    actSize.x = size.x / level + sgn(size.x % level);
+    actSize.y = size.y / level + sgn(size.y % level);
     Bitmap<Rgba> bitmap(actSize);
 
     const bool first = (iteration == 0);
@@ -127,7 +128,7 @@ void IRaytracer::refine(const RenderParams& params, const Size iteration, FrameB
     if (level == 1) {
         fb.accumulate(bitmap);
     } else {
-        Bitmap<Rgba> full(params.size);
+        Bitmap<Rgba> full(size);
         for (Size y = 0; y < Size(full.size().y); ++y) {
             for (Size x = 0; x < Size(full.size().x); ++x) {
                 full[Pixel(x, y)] = bitmap[Pixel(x / level, y / level)];

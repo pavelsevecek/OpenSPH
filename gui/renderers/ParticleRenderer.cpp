@@ -286,7 +286,7 @@ static AutoPtr<IRenderContext> getContext(const RenderParams& params, Bitmap<Rgb
 void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const {
     MEASURE_SCOPE("ParticleRenderer::render");
 
-    Bitmap<Rgba> bitmap(params.size);
+    Bitmap<Rgba> bitmap(params.camera->getSize());
     AutoPtr<IRenderContext> context = getContext(params, bitmap);
 
     // fill with the background color
@@ -370,11 +370,12 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
     }
 
     // lastly black frame to draw on top of other stuff
+    const Pixel upper = bitmap.size() - Pixel(1, 1);
     context->setColor(Rgba::black(), ColorFlag::LINE);
-    context->drawLine(Coords(0, 0), Coords(params.size.x - 1, 0));
-    context->drawLine(Coords(params.size.x - 1, 0), Coords(params.size.x - 1, params.size.y - 1));
-    context->drawLine(Coords(params.size.x - 1, params.size.y - 1), Coords(0, params.size.y - 1));
-    context->drawLine(Coords(0, params.size.y - 1), Coords(0, 0));
+    context->drawLine(Coords(0, 0), Coords(upper.x, 0));
+    context->drawLine(Coords(upper.x, 0), Coords(upper));
+    context->drawLine(Coords(upper), Coords(0, upper.y));
+    context->drawLine(Coords(0, upper.y), Coords(0, 0));
 
     output.update(bitmap, context->getLabels(), true);
 }

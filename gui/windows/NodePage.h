@@ -17,6 +17,7 @@ class wxAuiPaneInfo;
 NAMESPACE_SPH_BEGIN
 
 class NodeEditor;
+class RenderPane;
 class Config;
 
 struct VisNode {
@@ -121,6 +122,8 @@ public:
     VirtualSettings getGlobalSettings();
 
     void showBatchDialog();
+
+    RenderPane* createRenderPreview(wxWindow* parent, JobNode& node);
 
     void selectRun();
 
@@ -229,6 +232,7 @@ private:
     PropertyEntryMap propertyEntryMap;
 
     wxPropertyGrid* grid;
+    RenderPane* renderPane = nullptr;
     AutoPtr<wxAuiManager> aui;
 
     FlatMap<PanelId, wxAuiPaneInfo*> panelInfoMap;
@@ -261,6 +265,8 @@ public:
     void addNodes(JobNode& node);
 
     SharedPtr<JobNode> createNode(AutoPtr<IJob>&& job);
+
+    void createRenderPreview(JobNode& node);
 
     void reset();
 

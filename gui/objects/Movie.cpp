@@ -84,6 +84,10 @@ public:
         }
     }
 
+    virtual void update(Bitmap<Rgba>&& bitmap, Array<Label>&& labels, const bool isFinal) override {
+        update(bitmap, std::move(labels), isFinal);
+    }
+
 private:
     void updateMainThread(const Bitmap<Rgba>& bitmap, Array<Label>&& labels) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);

@@ -71,7 +71,8 @@ void MeshRenderer::initialize(const Storage& storage,
 }
 
 void MeshRenderer::render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const {
-    Bitmap<Rgba> bitmap(params.size);
+    const Pixel size = params.camera->getSize();
+    Bitmap<Rgba> bitmap(size);
     PreviewRenderContext<OverPixelOp> context(bitmap);
 
     // draw black background
@@ -104,13 +105,6 @@ void MeshRenderer::render(const RenderParams& params, Statistics& stats, IRender
         const int64_t time = int64_t(stats.get<Float>(StatisticsId::RUN_TIME));
         context.drawText(Coords(0, 0), TextAlign::RIGHT | TextAlign::BOTTOM, getFormattedTime(time * 1000));
     }
-
-    // lastly black frame to draw on top of other stuff
-    context.setColor(Rgba::black(), ColorFlag::LINE);
-    context.drawLine(Coords(0, 0), Coords(params.size.x - 1, 0));
-    context.drawLine(Coords(params.size.x - 1, 0), Coords(params.size.x - 1, params.size.y - 1));
-    context.drawLine(Coords(params.size.x - 1, params.size.y - 1), Coords(0, params.size.y - 1));
-    context.drawLine(Coords(0, params.size.y - 1), Coords(0, 0));
 
     output.update(bitmap, context.getLabels(), true);
 }

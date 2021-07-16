@@ -76,6 +76,7 @@ set(GUI_HEADERS
     windows/GuiSettingsDialog.h 
     windows/CurveDialog.h 
     windows/GridPage.h 
+    windows/RenderPane.h
     windows/IGraphicsPane.h 
     windows/Icons.data.h 
     windows/OrthoPane.h 

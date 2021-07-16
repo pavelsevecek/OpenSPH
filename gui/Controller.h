@@ -16,7 +16,6 @@ class wxSizer;
 NAMESPACE_SPH_BEGIN
 
 class RunPage;
-class Movie;
 class Storage;
 class Statistics;
 class Timer;
@@ -72,9 +71,6 @@ private:
         Locking<Array<TimeStepCallback>> onTimeStepCallbacks;
 
     } sph;
-
-    /// Object for saving image snapshots of the simulations
-    SharedPtr<Movie> movie;
 
     /// \brief Components used to render particles into the window.
     struct Vis {
@@ -309,8 +305,6 @@ private:
 
     /// \brief Returns true if the user aborted the run.
     virtual bool shouldAbortRun() const override;
-
-    SharedPtr<Movie> createMovie(const Storage& storage) const;
 
     /// \brief Redraws the particles.
     ///

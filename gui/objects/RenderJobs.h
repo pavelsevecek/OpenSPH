@@ -5,6 +5,10 @@
 
 NAMESPACE_SPH_BEGIN
 
+class IRenderOutput;
+class RenderParams;
+class JobNode;
+
 enum class ColorizerFlag {
     VELOCITY = 1 << 0,
     ENERGY = 1 << 1,
@@ -19,6 +23,15 @@ enum class AnimationType {
     SINGLE_FRAME,
     ORBIT,
     FILE_SEQUENCE,
+};
+
+class IRenderPreview : public Polymorphic {
+public:
+    virtual void render(const Pixel resolution, IRenderOutput& output) = 0;
+
+    virtual void update(AutoPtr<ICamera>&& camera) = 0;
+
+    virtual void cancel() = 0;
 };
 
 class AnimationJob : public INullJob {
@@ -66,6 +79,11 @@ public:
     virtual VirtualSettings getSettings() override;
 
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+
+    AutoPtr<IRenderPreview> getRenderPreview(const RunSettings& global);
+
+private:
+    RenderParams getRenderParams();
 };
 
 class VdbJob : public INullJob {

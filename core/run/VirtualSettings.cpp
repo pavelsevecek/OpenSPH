@@ -27,6 +27,11 @@ EntryControl& EntryControl::setValidator(const Validator& newValidator) {
     return *this;
 }
 
+EntryControl& EntryControl::setSideEffect() {
+    sideEffect = true;
+    return *this;
+}
+
 EntryControl& EntryControl::setPathType(const PathType& newType) {
     pathType = newType;
     return *this;
@@ -58,7 +63,7 @@ std::string EntryControl::getTooltip() const {
 }
 
 bool EntryControl::hasSideEffect() const {
-    return bool(accessor);
+    return sideEffect;
 }
 
 void EntryControl::set(const Value& value) {
