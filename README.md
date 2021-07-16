@@ -91,12 +91,6 @@ qmake CONFIG+=version ../examples.pro
 make
 ```
 
-## Windows binaries
-Building the code on Windows is currently a bit difficult.
-Consider using pre-built executables, uploaded to a 
-<a href="https://www.dropbox.com/sh/qx4tdiai9epurzb/AAC7dx6mLyuWxFWjQQDYy22ua?dl=0">Dropbox</a>
-folder.
-
 ## Running a basic impact simulation
 Simulation can be easily set up in the graphical application `opensph`, using a node-based editor.
 See category 'presets' on the right side of the editor for some basic simulations.
