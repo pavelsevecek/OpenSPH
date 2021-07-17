@@ -47,11 +47,11 @@ Prerequisities of the code are:
 
 - git (to get the code from the repository, skip if you already have the code)
 - up-to-date version of gcc or clang compiler
+- <a href="https://www.wxwidgets.org/">wxWidgets</a>, needed for graphical interface of the code
 - QMake (tested with version 3.1)
 
 Another optional dependencies of the code are:
 
-- <a href="https://www.wxwidgets.org/">wxWidgets</a> - needed for graphical interface of the code
 - <a href="https://github.com/catchorg/Catch2">Catch2</a> - C++ unit testing framework, only needed to compile and run unit tests
 - <a href="https://www.threadingbuildingblocks.org/">Intel Threading Building Blocks</a> - generally improves performance of the code (enabled by `use_tbb`)
 - <a href="https://www.openmp.org/">OpenMP</a> - alternative to TBB, however it is currently an inferior option (enabled by `use_openmp`)
@@ -90,12 +90,6 @@ cd build_version
 qmake CONFIG+=version ../examples.pro
 make
 ```
-
-## Windows binaries
-Building the code on Windows is currently a bit difficult.
-Consider using pre-built executables, uploaded to a 
-<a href="https://www.dropbox.com/sh/qx4tdiai9epurzb/AAC7dx6mLyuWxFWjQQDYy22ua?dl=0">Dropbox</a>
-folder.
 
 ## Running a basic impact simulation
 Simulation can be easily set up in the graphical application `opensph`, using a node-based editor.
