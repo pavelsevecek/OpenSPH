@@ -108,10 +108,10 @@ void NodeManager::cloneHierarchy(JobNode& node) {
 
     // fix positions
     Array<SharedPtr<JobNode>> origTree, clonedTree;
-    node.enumerate([&origTree](SharedPtr<JobNode> node, Size UNUSED(depth)) { //
+    node.enumerate([&origTree](SharedPtr<JobNode> node) { //
         origTree.push(node);
     });
-    clonedRoot->enumerate([&clonedTree](SharedPtr<JobNode> node, Size UNUSED(depth)) { //
+    clonedRoot->enumerate([&clonedTree](SharedPtr<JobNode> node) { //
         clonedTree.push(node);
     });
     SPH_ASSERT(origTree.size() == clonedTree.size());
@@ -184,7 +184,7 @@ void NodeManager::deleteNode(JobNode& node) {
 
 void NodeManager::deleteTree(JobNode& node) {
     Array<SharedPtr<JobNode>> toRemove;
-    node.enumerate([&toRemove](SharedPtr<JobNode> node, Size UNUSED(depth)) { toRemove.push(node); });
+    node.enumerate([&toRemove](SharedPtr<JobNode> node) { toRemove.push(node); });
     for (SharedPtr<JobNode> n : toRemove) {
         nodes.remove(n);
     }
@@ -512,7 +512,7 @@ void NodeManager::startScript(const Path& file) {
     Array<SharedPtr<JobNode>> clonedNodes;
     for (const auto& node : rootNodes) {
         SharedPtr<JobNode> cloned = Sph::cloneHierarchy(*node, std::string());
-        cloned->enumerate([&](SharedPtr<JobNode> job, Size UNUSED(depth)) { clonedNodes.push(job); });
+        cloned->enumerate([&](SharedPtr<JobNode> job) { clonedNodes.push(job); });
     }
     SharedPtr<ScriptNode> node = makeShared<ScriptNode>(file, std::move(clonedNodes));
 
@@ -1803,6 +1803,7 @@ SharedPtr<JobNode> NodeWindow::createNode(AutoPtr<IJob>&& job) {
 }
 
 void NodeWindow::createRenderPreview(JobNode& node) {
+    Timer timer;
     renderPane = nodeMgr->createRenderPreview(this, node);
     wxAuiPaneInfo info;
     info.Right()
@@ -1811,15 +1812,22 @@ void NodeWindow::createRenderPreview(JobNode& node) {
         .DockFixed(false)
         .CloseButton(true)
         .Caption("Preview")
-        .Window(renderPane);
+        //.Window(renderPane)
+        .DestroyOnClose();
     aui->AddPane(renderPane, info);
     aui->Update();
 
-    aui->Bind(wxEVT_AUI_PANE_CLOSE, [this](wxAuiManagerEvent& evt) {
+    // forces re-generation of settings after installing the accessors
+    this->selectNode(node);
+
+    /*aui->Bind(wxEVT_AUI_PANE_CLOSE, [this](wxAuiManagerEvent& evt) {
         if (evt.GetPane()->window == renderPane) {
             renderPane->stop();
+            renderPane->Destroy();
         }
-    });
+    });*/
+
+    std::cout << "createRenderPreview took " << timer.elapsed(TimerUnit::MILLISECOND) << "ms" << std::endl;
 }
 
 void NodeWindow::updateProperties() {

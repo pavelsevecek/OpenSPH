@@ -77,7 +77,8 @@ public:
     ///
     /// Function shall throw \ref Exception (or derived type) if the type of the value differs from type of
     /// the entry.
-    virtual void set(const Value& value) = 0;
+    /// \return True if the value was changed, false if it was rejected.
+    virtual bool set(const Value& value) = 0;
 
     /// \brief Returns the currently stored value.
     virtual Value get() const = 0;
@@ -214,7 +215,7 @@ protected:
     virtual void setImpl(const Value& value) = 0;
 
 private:
-    virtual void set(const Value& value) override final;
+    virtual bool set(const Value& value) override final;
 };
 
 /// \brief Holds a map of virtual entries, associated with a unique name.

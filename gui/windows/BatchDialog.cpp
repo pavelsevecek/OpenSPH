@@ -17,7 +17,7 @@ void BatchManager::modifyHierarchy(const Size runIdx, JobNode& node) {
 
         // find the node in the hierarchy
         SharedPtr<JobNode> modifiedNode;
-        node.enumerate([&baseName, &modifiedNode](SharedPtr<JobNode> node, const Size UNUSED(depth)) {
+        node.enumerate([&baseName, &modifiedNode](SharedPtr<JobNode> node) {
             const std::string name = node->instanceName();
             const std::size_t n = name.find(" / ");
             if (n == std::string::npos) {

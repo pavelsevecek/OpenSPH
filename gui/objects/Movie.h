@@ -41,7 +41,7 @@ private:
     AutoPtr<IRenderer> renderer;
 
     /// Colorizers to render and save to disk
-    Array<SharedPtr<IColorizer>> colorizers;
+    Array<AutoPtr<IColorizer>> colorizers;
 
     RenderParams params;
 
@@ -53,7 +53,7 @@ private:
 public:
     Movie(const GuiSettings& settings,
         AutoPtr<IRenderer>&& renderer,
-        Array<SharedPtr<IColorizer>>&& colorizers,
+        Array<AutoPtr<IColorizer>>&& colorizers,
         RenderParams&& params);
 
     ~Movie();

@@ -70,6 +70,10 @@ void MeshRenderer::initialize(const Storage& storage,
     }
 }
 
+bool MeshRenderer::isInitialized() const {
+    return !cached.triangles.empty();
+}
+
 void MeshRenderer::render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const {
     const Pixel size = params.camera->getSize();
     Bitmap<Rgba> bitmap(size);

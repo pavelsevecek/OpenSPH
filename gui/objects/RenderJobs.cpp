@@ -57,7 +57,7 @@ VirtualSettings AnimationJob::getSettings() {
     auto particleEnabler = [this] {
         return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::PARTICLE;
     };
-    auto raytracerEnabler = [this] {
+    auto raymarcherEnabler = [this] {
         return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::RAYMARCHER;
     };
     auto surfaceEnabler = [this] {
@@ -96,12 +96,12 @@ VirtualSettings AnimationJob::getSettings() {
     rendererCat.connect<Float>("Ambient intensity", gui, GuiSettingsId::SURFACE_AMBIENT)
         .setEnabler(surfaceEnabler);
     rendererCat.connect<Float>("Surface emission", gui, GuiSettingsId::SURFACE_EMISSION)
-        .setEnabler(raytracerEnabler);
-    rendererCat.connect<EnumWrapper>("BRDF", gui, GuiSettingsId::RAYTRACE_BRDF).setEnabler(raytracerEnabler);
+        .setEnabler(raymarcherEnabler);
+    rendererCat.connect<EnumWrapper>("BRDF", gui, GuiSettingsId::RAYTRACE_BRDF).setEnabler(raymarcherEnabler);
     rendererCat.connect<bool>("Render as spheres", gui, GuiSettingsId::RAYTRACE_SPHERES)
-        .setEnabler(raytracerEnabler);
+        .setEnabler(raymarcherEnabler);
     rendererCat.connect<bool>("Enable shadows", gui, GuiSettingsId::RAYTRACE_SHADOWS)
-        .setEnabler(raytracerEnabler);
+        .setEnabler(raymarcherEnabler);
     rendererCat.connect<Float>("Medium emission [km^-1]", gui, GuiSettingsId::VOLUME_EMISSION)
         .setUnits(1.e-3_f)
         .setEnabler(volumeEnabler);
@@ -113,8 +113,12 @@ VirtualSettings AnimationJob::getSettings() {
     });
 
     VirtualSettings::Category& textureCat = connector.addCategory("Texture paths");
-    textureCat.connect<std::string>("Background", gui, GuiSettingsId::RAYTRACE_HDRI)
-        .setEnabler(raytracerEnabler);
+    textureCat.connect<Path>("Background", gui, GuiSettingsId::RAYTRACE_HDRI)
+        .setEnabler([this] {
+            const RendererEnum id = gui.get<RendererEnum>(GuiSettingsId::RENDERER);
+            return id == RendererEnum::VOLUME || id == RendererEnum::RAYMARCHER;
+        })
+        .setPathType(IVirtualEntry::PathType::INPUT_FILE);
 
     auto orbitEnabler = [this] { return AnimationType(animationType) == AnimationType::ORBIT; };
 
@@ -195,7 +199,7 @@ public:
     }
 };
 
-static Array<SharedPtr<IColorizer>> getColorizers(const RunSettings& global,
+static Array<AutoPtr<IColorizer>> getColorizers(const RunSettings& global,
     const GuiSettings& gui,
     const Flags<ColorizerFlag> colorizers,
     const Float G,
@@ -203,7 +207,7 @@ static Array<SharedPtr<IColorizer>> getColorizers(const RunSettings& global,
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
     Project project = Project::getInstance().clone();
     project.getGuiSettings() = gui;
-    Array<SharedPtr<IColorizer>> colorizerArray;
+    Array<AutoPtr<IColorizer>> colorizerArray;
     if (colorizers.has(ColorizerFlag::VELOCITY)) {
         colorizerArray.push(Factory::getColorizer(project, ColorizerId::VELOCITY));
     }
@@ -224,7 +228,7 @@ static Array<SharedPtr<IColorizer>> getColorizers(const RunSettings& global,
         if (!project.getPalette("Acceleration", palette)) {
             palette = Factory::getPalette(ColorizerId::ACCELERATION);
         }
-        colorizerArray.push(makeShared<GravityColorizer>(scheduler, palette, G, addSurfaceGravity));
+        colorizerArray.push(makeAuto<GravityColorizer>(scheduler, palette, G, addSurfaceGravity));
     }
     if (colorizers.has(ColorizerFlag::DAMAGE)) {
         colorizerArray.push(Factory::getColorizer(project, QuantityId::DAMAGE));
@@ -232,24 +236,26 @@ static Array<SharedPtr<IColorizer>> getColorizers(const RunSettings& global,
     return colorizerArray;
 }
 
-RenderParams AnimationJob::getRenderParams() {
+RenderParams AnimationJob::getRenderParams() const {
     SharedPtr<CameraData> camera = getInput<CameraData>("camera");
     RenderParams params;
     params.camera = camera->camera->clone();
     params.tracker = std::move(camera->tracker);
-    gui.addEntries(camera->overrides);
-    params.initialize(gui);
+    GuiSettings paramGui = gui;
+    paramGui.addEntries(camera->overrides);
+    params.initialize(paramGui);
     return params;
 }
 
 void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
+    /// \todo maybe also work with a copy of Gui ?
     gui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f));
     gui.set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 0);
 
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
     AutoPtr<IRenderer> renderer = Factory::getRenderer(scheduler, gui);
     RenderParams params = getRenderParams();
-    Array<SharedPtr<IColorizer>> colorizerArray =
+    Array<AutoPtr<IColorizer>> colorizerArray =
         getColorizers(global, gui, colorizers, Constants::gravity, addSurfaceGravity);
 
     if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE) {
@@ -333,25 +339,40 @@ class RenderPreview : public IRenderPreview {
 private:
     RenderParams params;
     AutoPtr<IRenderer> renderer;
-    SharedPtr<IColorizer> colorizer;
+    AutoPtr<IColorizer> colorizer;
     SharedPtr<ParticleData> data;
+    std::atomic_bool cancelled;
 
 public:
     RenderPreview(RenderParams&& params,
         AutoPtr<IRenderer>&& renderer,
-        const SharedPtr<IColorizer>& colorizer,
+        AutoPtr<IColorizer>&& colorizer,
         const SharedPtr<ParticleData>& data)
         : params(std::move(params))
         , renderer(std::move(renderer))
-        , colorizer(colorizer)
-        , data(data) {}
+        , colorizer(std::move(colorizer))
+        , data(data)
+        , cancelled(false) {}
 
     virtual void render(const Pixel resolution, IRenderOutput& output) override {
+        cancelled = false;
+
+        // lazy init
         if (!colorizer->isInitialized()) {
-            // lazy init
+            std::cout << "Initializing the colorizer" << std::endl;
             colorizer->initialize(data->storage, RefEnum::WEAK);
+        }
+        if (cancelled) {
+            return;
+        }
+        if (!renderer->isInitialized()) {
+            std::cout << "Initializing the renderer" << std::endl;
             renderer->initialize(data->storage, *colorizer, *params.camera);
         }
+        if (cancelled) {
+            return;
+        }
+
         Pixel size = params.camera->getSize();
         size = correctAspectRatio(resolution, float(size.x) / float(size.y));
         params.camera->resize(size);
@@ -359,11 +380,26 @@ public:
         renderer->render(params, dummy, output);
     }
 
-    virtual void update(AutoPtr<ICamera>&& camera) override {
+    virtual void update(RenderParams&& newParams) override {
+        AutoPtr<ICamera> camera = std::move(params.camera);
+        params = std::move(newParams);
         params.camera = std::move(camera);
     }
 
+    virtual void update(AutoPtr<ICamera>&& newCamera) override {
+        params.camera = std::move(newCamera);
+    }
+
+    virtual void update(AutoPtr<IColorizer>&& newColorizer) override {
+        colorizer = std::move(newColorizer);
+    }
+
+    virtual void update(AutoPtr<IRenderer>&& newRenderer) override {
+        renderer = std::move(newRenderer);
+    }
+
     virtual void cancel() override {
+        cancelled = true;
         renderer->cancelRender();
     }
 
@@ -378,26 +414,51 @@ private:
     }
 };
 
-AutoPtr<IRenderPreview> AnimationJob::getRenderPreview(const RunSettings& global) {
+AutoPtr<IRenderPreview> AnimationJob::getRenderPreview(const RunSettings& global) const {
     if (AnimationType(animationType) != AnimationType::SINGLE_FRAME) {
-        throw InvalidSetup("Render preview can only be done for single-frame renders");
+        throw InvalidSetup("Only enabled for single-frame renders");
     }
 
-    gui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f));
-    gui.set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 4);
+    if (!inputs.contains("particles")) {
+        throw InvalidSetup("Paritcles not connected");
+    }
 
     SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
-    Float G = Constants::gravity;
+    /*Float G = Constants::gravity;
     if (data->overrides.has(RunSettingsId::GRAVITY_CONSTANT)) {
         G = data->overrides.get<Float>(RunSettingsId::GRAVITY_CONSTANT);
+    }*/
+
+    RenderParams params = this->getRenderParams();
+    AutoPtr<IColorizer> colorizer = this->getColorizer(global);
+    if (!colorizer) {
+        throw InvalidSetup("No quantity selected");
     }
+    AutoPtr<IRenderer> renderer = this->getRenderer(global);
+
+    return makeAuto<RenderPreview>(std::move(params), std::move(renderer), std::move(colorizer), data);
+}
+
+AutoPtr<IColorizer> AnimationJob::getColorizer(const RunSettings& global) const {
+    /// \todo
+    Float G = Constants::gravity;
+    Array<AutoPtr<IColorizer>> colorizer = getColorizers(global, gui, colorizers, G, addSurfaceGravity);
+    if (!colorizer.empty()) {
+        return std::move(colorizer.front());
+    } else {
+        return nullptr;
+    }
+}
+
+AutoPtr<IRenderer> AnimationJob::getRenderer(const RunSettings& global) const {
+    GuiSettings previewGui = gui;
+    previewGui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f))
+        .set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 4)
+        .set(GuiSettingsId::SHOW_KEY, false);
 
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
-    AutoPtr<IRenderer> renderer = Factory::getRenderer(scheduler, gui);
-    RenderParams params = getRenderParams();
-    SharedPtr<IColorizer> colorizer = getColorizers(global, gui, colorizers, G, addSurfaceGravity).front();
-
-    return makeAuto<RenderPreview>(std::move(params), std::move(renderer), colorizer, data);
+    AutoPtr<IRenderer> renderer = Factory::getRenderer(scheduler, previewGui);
+    return renderer;
 }
 
 JobRegistrar sRegisterAnimation(

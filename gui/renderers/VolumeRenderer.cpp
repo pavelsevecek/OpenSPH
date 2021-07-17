@@ -60,6 +60,10 @@ void VolumeRenderer::initialize(const Storage& storage,
     shouldContinue = true;
 }
 
+bool VolumeRenderer::isInitialized() const {
+    return !cached.r.empty();
+}
+
 Rgba VolumeRenderer::shade(const RenderParams& params, const CameraRay& cameraRay, ThreadData& data) const {
     const Vector dir = getNormalized(cameraRay.target - cameraRay.origin);
     const Ray ray(cameraRay.origin, dir);

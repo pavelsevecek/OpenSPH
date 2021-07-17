@@ -21,7 +21,7 @@ std::once_flag initFlag;
 
 Movie::Movie(const GuiSettings& settings,
     AutoPtr<IRenderer>&& renderer,
-    Array<SharedPtr<IColorizer>>&& colorizers,
+    Array<AutoPtr<IColorizer>>&& colorizers,
     RenderParams&& params)
     : renderer(std::move(renderer))
     , colorizers(std::move(colorizers))
@@ -139,7 +139,7 @@ void Movie::save(const Storage& storage, Statistics& stats) {
     FileSystem::createDirectory(path.parentPath());
 
     MovieRenderOutput output;
-    for (auto& e : colorizers) {
+    for (const auto& e : colorizers) {
         Path actPath(replaceAll(path.native(), "%e", escapeColorizerName(e->name())));
 
         // initialize the colorizer

@@ -43,7 +43,11 @@ static VirtualSettings::Category& addTransformCategory(VirtualSettings& connecto
         });
     transformCat.connect<Float>("Orbit speed [s^-1]", gui, GuiSettingsId::CAMERA_ORBIT);
     transformCat.connect<Vector>("Target [km]", gui, GuiSettingsId::CAMERA_TARGET).setUnits(1.e3_f);
-    transformCat.connect<Vector>("Up-direction", gui, GuiSettingsId::CAMERA_UP);
+    transformCat.connect<Vector>("Up-direction", gui, GuiSettingsId::CAMERA_UP)
+        .setValidator([](const IVirtualEntry::Value& value) {
+            const Vector v = value.get<Vector>();
+            return v != Vector(0._f);
+        });
     transformCat.connect<Float>("Clip near [km]", gui, GuiSettingsId::CAMERA_CLIP_NEAR).setUnits(1.e3_f);
     transformCat.connect<Float>("Clip far [km]", gui, GuiSettingsId::CAMERA_CLIP_FAR).setUnits(1.e3_f);
     return transformCat;

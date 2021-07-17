@@ -6,6 +6,8 @@
 NAMESPACE_SPH_BEGIN
 
 class IRenderOutput;
+class IRenderer;
+class IColorizer;
 class RenderParams;
 class JobNode;
 
@@ -29,7 +31,13 @@ class IRenderPreview : public Polymorphic {
 public:
     virtual void render(const Pixel resolution, IRenderOutput& output) = 0;
 
-    virtual void update(AutoPtr<ICamera>&& camera) = 0;
+    virtual void update(RenderParams&& params) = 0;
+
+    virtual void update(AutoPtr<ICamera>&& newCamera) = 0;
+
+    virtual void update(AutoPtr<IColorizer>&& colorizer) = 0;
+
+    virtual void update(AutoPtr<IRenderer>&& renderer) = 0;
 
     virtual void cancel() = 0;
 };
@@ -80,10 +88,12 @@ public:
 
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 
-    AutoPtr<IRenderPreview> getRenderPreview(const RunSettings& global);
+    AutoPtr<IRenderPreview> getRenderPreview(const RunSettings& global) const;
 
-private:
-    RenderParams getRenderParams();
+    // needed for interactive rendering
+    AutoPtr<IRenderer> getRenderer(const RunSettings& global) const;
+    AutoPtr<IColorizer> getColorizer(const RunSettings& global) const;
+    RenderParams getRenderParams() const;
 };
 
 class VdbJob : public INullJob {

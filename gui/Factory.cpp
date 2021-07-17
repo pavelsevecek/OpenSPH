@@ -67,6 +67,9 @@ AutoPtr<IRenderer> Factory::getRenderer(SharedPtr<IScheduler> scheduler, const G
     case RendererEnum::NONE:
         class NullRenderer : public IRenderer {
             virtual void initialize(const Storage&, const IColorizer&, const ICamera&) override {}
+            virtual bool isInitialized() const override {
+                return true;
+            }
             virtual void render(const RenderParams&, Statistics&, IRenderOutput&) const override {}
             virtual void cancelRender() override {}
         };

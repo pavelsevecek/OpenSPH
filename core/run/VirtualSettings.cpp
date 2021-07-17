@@ -66,14 +66,13 @@ bool EntryControl::hasSideEffect() const {
     return sideEffect;
 }
 
-void EntryControl::set(const Value& value) {
+bool EntryControl::set(const Value& value) {
     if (!this->isValid(value)) {
-        return;
+        return false;
     }
     this->setImpl(value);
-    if (accessor) {
-        accessor(value);
-    }
+    accessor.callIfNotNull(value);
+    return true;
 }
 
 

@@ -397,6 +397,19 @@ public:
         }
     }
 
+    /// \brief Returns an ID for given entry name.
+    ///
+    /// This is the inverse of function \ref getEntryName.
+    static Optional<TEnum> getEntryId(const std::string& name) {
+        const Settings& settings = getDefaults();
+        for (const auto& p : settings.entries) {
+            if (p.value.name == name) {
+                return p.key;
+            }
+        }
+        return NOTHING;
+    }
+
     /// \brief Checks if the given entry is stored in the settings.
     bool has(const TEnum idx) const {
         return entries.contains(idx);

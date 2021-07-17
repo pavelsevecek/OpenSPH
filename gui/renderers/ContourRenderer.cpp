@@ -27,6 +27,10 @@ void ContourRenderer::initialize(const Storage& storage,
     finder->build(*scheduler, cached.positions);
 }
 
+bool ContourRenderer::isInitialized() const {
+    return !cached.values.empty();
+}
+
 // See https://en.wikipedia.org/wiki/Marching_squares
 static FlatMap<Size, Pixel> MS_TABLE = {
     // no contour

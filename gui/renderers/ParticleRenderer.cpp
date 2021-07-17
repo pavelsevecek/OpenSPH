@@ -266,6 +266,10 @@ void ParticleRenderer::initialize(const Storage& storage,
     cached.palette = colorizer.getPalette();
 }
 
+bool ParticleRenderer::isInitialized() const {
+    return !cached.positions.empty();
+}
+
 static AutoPtr<IRenderContext> getContext(const RenderParams& params, Bitmap<Rgba>& bitmap) {
     if (params.particles.doAntialiasing) {
         if (params.particles.smoothed) {

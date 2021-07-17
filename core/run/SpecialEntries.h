@@ -38,7 +38,7 @@ public:
         return true;
     }
 
-    virtual void set(const Value& value) override {
+    virtual bool set(const Value& value) override {
         const Interval i = settings.template get<Interval>(id);
         Float lower = i.lower();
         Float upper = i.upper();
@@ -48,6 +48,7 @@ public:
             upper = value.get<Float>();
         }
         settings.set(id, Interval(lower, upper));
+        return true;
     }
 
     virtual Value get() const override {

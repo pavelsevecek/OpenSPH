@@ -123,6 +123,10 @@ void RayMarcher::initialize(const Storage& storage,
     shouldContinue = true;
 }
 
+bool RayMarcher::isInitialized() const {
+    return !cached.r.empty();
+}
+
 Rgba RayMarcher::shade(const RenderParams& params, const CameraRay& cameraRay, ThreadData& data) const {
     const Vector dir = getNormalized(cameraRay.target - cameraRay.origin);
     const Ray ray(cameraRay.origin, dir);

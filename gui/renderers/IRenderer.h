@@ -174,6 +174,9 @@ public:
     /// \param camera Camera used for rendering.
     virtual void initialize(const Storage& storage, const IColorizer& colorizer, const ICamera& camera) = 0;
 
+    /// \brief Checks if the renderer has been initialized.
+    virtual bool isInitialized() const = 0;
+
     /// \brief Draws particles into the bitmap, given the data provided in \ref initialize.
     ///
     /// This function is called every time the view changes (display parameters change, camera pan & zoom,

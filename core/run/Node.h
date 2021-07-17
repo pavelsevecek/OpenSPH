@@ -7,6 +7,7 @@
 
 #include "io/Output.h"
 #include "objects/containers/UnorderedMap.h"
+#include "objects/wrappers/Any.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "quantities/Storage.h"
 #include "run/IRun.h"
@@ -76,15 +77,19 @@ struct SlotData {
 enum JobNotificationType {
     ENTRY_CHANGED,
     PROVIDER_CONNECTED,
+    PROVIDER_DISCONNECTED,
     DEPENDENT_CONNECTED,
+    DEPENDENT_DISCONNECTED,
 };
-
-using JobAccessor = Function<void(JobNotificationType)>;
 
 /// \brief Building block of a simulation hierarchy.
 ///
 /// Each node can have any number of providers (preconditions of the job).
 class JobNode : public ShareFromThis<JobNode>, public INode {
+public:
+    using Accessor = Function<void(JobNotificationType, const Any& value)>;
+
+private:
     /// Maps slot names to connected providers
     UnorderedMap<std::string, SharedPtr<JobNode>> providers;
 
@@ -92,10 +97,10 @@ class JobNode : public ShareFromThis<JobNode>, public INode {
     Array<WeakPtr<JobNode>> dependents;
 
     /// Job object of this node
-    SharedPtr<IJob> job;
+    AutoPtr<IJob> job;
 
     /// Optional callback called when a node property is changed.
-    JobAccessor accessor;
+    Accessor accessor;
 
 public:
     /// \brief Creates a new node, given a job object.
@@ -110,8 +115,11 @@ public:
     /// \brief Returns settings object allowing to access and modify the state of the job.
     VirtualSettings getSettings() const;
 
+    /// \brief Returns the underlying job.
+    RawPtr<IJob> getJob() const;
+
     /// \brief Sets an accessor for entries returned by the \ref getSettings function.
-    void setAccessor(const JobAccessor& newAccessor);
+    void setAccessor(const Accessor& newAccessor);
 
     /// \brief Returns the type of the job.
     Optional<ExtJobType> provides() const;
@@ -148,7 +156,12 @@ public:
     ///
     /// Function call provided function for this node and recursively for all providers of this node. Each
     /// node is visited only once.
-    void enumerate(Function<void(SharedPtr<JobNode> job, Size depth)> func);
+    void enumerate(Function<void(const SharedPtr<JobNode>& job)> func);
+
+    /// \copydoc enumerate
+    ///
+    /// The function is given the visited job and its depth in the hierarchy.
+    void enumerate(Function<void(const SharedPtr<JobNode>& job, Size depth)> func);
 
     /// \brief Evaluates the node and all its providers.
     ///
@@ -161,11 +174,10 @@ public:
     ///
     /// This functions does not have to be called before \ref run, as it is called from within \ref run.
     /// It is useful for manual execution of jobs.
-    /// \return Job ready to be executed.
-    virtual IJob& prepare(const RunSettings& global, IJobCallbacks& callbacks);
+    virtual void prepare(const RunSettings& global, IJobCallbacks& callbacks);
 
 private:
-    void enumerate(Function<void(SharedPtr<JobNode> job, Size depth)> func,
+    void enumerate(Function<void(const SharedPtr<JobNode>& job, Size depth)> func,
         Size depth,
         std::set<JobNode*>& visited);
 
