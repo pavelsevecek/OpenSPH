@@ -9,9 +9,7 @@
 NAMESPACE_SPH_BEGIN
 
 VolumeRenderer::VolumeRenderer(SharedPtr<IScheduler> scheduler, const GuiSettings& settings)
-    : IRaytracer(scheduler, settings) {
-    kernel = CubicSpline<3>();
-}
+    : IRaytracer(scheduler, settings) {}
 
 VolumeRenderer::~VolumeRenderer() = default;
 

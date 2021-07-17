@@ -99,6 +99,8 @@ VirtualSettings AnimationJob::getSettings() {
     rendererCat.connect<EnumWrapper>("BRDF", gui, GuiSettingsId::RAYTRACE_BRDF).setEnabler(raytracerEnabler);
     rendererCat.connect<bool>("Render as spheres", gui, GuiSettingsId::RAYTRACE_SPHERES)
         .setEnabler(raytracerEnabler);
+    rendererCat.connect<bool>("Enable shadows", gui, GuiSettingsId::RAYTRACE_SHADOWS)
+        .setEnabler(raytracerEnabler);
     rendererCat.connect<Float>("Medium emission [km^-1]", gui, GuiSettingsId::VOLUME_EMISSION)
         .setUnits(1.e-3_f)
         .setEnabler(volumeEnabler);
@@ -131,20 +133,23 @@ VirtualSettings AnimationJob::getSettings() {
     return connector;
 }
 
-class GravityColorizer : public TypedColorizer<Vector> {
+class GravityColorizer : public TypedColorizer<Float> {
 private:
     SharedPtr<IScheduler> scheduler;
     BarnesHut gravity;
     Array<Float> acc;
+    Float G;
     bool addSurfaceGravity;
 
 public:
-    explicit GravityColorizer(const SharedPtr<IScheduler>& scheduler,
-        Palette palette,
+    GravityColorizer(const SharedPtr<IScheduler>& scheduler,
+        const Palette& palette,
+        const Float G,
         const bool addSurfaceGravity)
-        : TypedColorizer<Vector>(QuantityId::POSITION, std::move(palette))
+        : TypedColorizer<Float>(QuantityId::POSITION, std::move(palette))
         , scheduler(scheduler)
-        , gravity(0.8_f, MultipoleOrder::OCTUPOLE)
+        , gravity(0.8_f, MultipoleOrder::OCTUPOLE, 25, 50, G)
+        , G(G)
         , addSurfaceGravity(addSurfaceGravity) {}
 
     virtual void initialize(const Storage& storage, const RefEnum UNUSED(ref)) override {
@@ -158,13 +163,16 @@ public:
         dv.fill(Vector(0._f));
         Statistics stats;
         gravity.evalAll(*scheduler, dv, stats);
+        for (Size i = 0; i < dv.size(); ++i) {
+            acc[i] = getLength(dv[i]);
+        }
 
         if (addSurfaceGravity) {
             // add surface gravity of each particle
             ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
             ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
             for (Size i = 0; i < r.size(); ++i) {
-                acc[i] = getLength(dv[i]) + Constants::gravity * m[i] / sqr(r[i][H]);
+                acc[i] += G * m[i] / sqr(r[i][H]);
             }
         }
     }
@@ -219,7 +227,8 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
         if (!project.getPalette("Acceleration", palette)) {
             palette = Factory::getPalette(ColorizerId::ACCELERATION);
         }
-        colorizerArray.push(makeShared<GravityColorizer>(scheduler, palette, addSurfaceGravity));
+        colorizerArray.push(
+            makeShared<GravityColorizer>(scheduler, palette, Constants::gravity, addSurfaceGravity));
     }
     if (colorizers.has(ColorizerFlag::DAMAGE)) {
         colorizerArray.push(Factory::getColorizer(project, QuantityId::DAMAGE));

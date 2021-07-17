@@ -70,7 +70,7 @@ private:
 
     void enableMenus(const Size id);
 
-    void enableRunMenu(const bool enable);
+    void enableRunMenu(const bool enableControls, const bool enableCamera);
 
     bool closeRun(const Size id);
 

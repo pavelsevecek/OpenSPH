@@ -306,15 +306,16 @@ void MainWindow::open(const Path& openPath, const bool setDefaults) {
 
     const Size index = notebook->GetPageCount();
     RunPage* page = &*controller->getPage();
-
-    const Path displayedPath = openPath.parentPath().fileName() / openPath.fileName();
-    notebook->AddPage(page, displayedPath.native());
-    notebook->SetSelection(index);
+    SPH_ASSERT(page != nullptr);
 
     RunData data;
     data.controller = std::move(controller);
     data.isRun = false;
     runs.insert(page, std::move(data));
+
+    const Path displayedPath = openPath.parentPath().fileName() / openPath.fileName();
+    notebook->AddPage(page, displayedPath.native());
+    notebook->SetSelection(index);
 
     this->enableMenus(index);
 }
@@ -704,15 +705,15 @@ void MainWindow::addPage(SharedPtr<INode> node, const RunSettings& globals, cons
     AutoPtr<Controller> controller = makeAuto<Controller>(notebook);
     controller->start(std::move(node), globals);
 
-    const Size index = notebook->GetPageCount();
     RunPage* page = &*controller->getPage();
-    notebook->AddPage(page, pageName);
-    notebook->SetSelection(index);
-
     RunData data;
     data.controller = std::move(controller);
     data.isRun = true;
     runs.insert(page, std::move(data));
+
+    const Size index = notebook->GetPageCount();
+    notebook->AddPage(page, pageName);
+    notebook->SetSelection(index);
 
     this->enableMenus(index);
 }
@@ -739,24 +740,32 @@ void MainWindow::enableMenus(const Size id) {
 
     wxMenuBar* bar = this->GetMenuBar();
     RunPage* page = dynamic_cast<RunPage*>(notebook->GetPage(id));
-    if (!runs.contains(page)) {
-        enableRunMenu(false);
+    if (page == nullptr) {
+        enableRunMenu(false, false);
         // disable analysis
         bar->EnableTop(2, false);
         return;
     }
-    const bool enableRun = page && runs[page].isRun;
+    SPH_ASSERT(runs.contains(page));
 
-    enableRunMenu(enableRun);
+    const bool enableControls = runs[page].isRun;
+    enableRunMenu(enableControls, true);
     // enable/disable analysis
-    bar->EnableTop(2, enableRun);
+    bar->EnableTop(2, true);
 }
 
-void MainWindow::enableRunMenu(const bool enable) {
+void MainWindow::enableRunMenu(const bool enableControls, const bool enableCamera) {
     wxMenuItemList& list = runMenu->GetMenuItems();
     for (Size i = 0; i < list.size(); ++i) {
-        if (i != RUN_START && i != RUN_START_SCRIPT) {
-            list[i]->Enable(enable);
+        if (i == RUN_START || i == RUN_START_SCRIPT) {
+            // always enabled
+            list[i]->Enable(true);
+            continue;
+        }
+        if (i == RUN_CREATE_CAMERA) {
+            list[i]->Enable(enableCamera);
+        } else {
+            list[i]->Enable(enableControls);
         }
     }
 }

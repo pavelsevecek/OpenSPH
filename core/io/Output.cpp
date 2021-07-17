@@ -1027,6 +1027,31 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
     return SUCCESS;
 }
 
+Expected<CompressedInput::Info> CompressedInput::getInfo(const Path& path) const {
+    Deserializer<false> deserializer(path);
+    std::string identifier;
+    Float time;
+    Size particleCnt;
+    CompressedIoVersion version;
+    CompressionEnum compression;
+    RunTypeEnum runTypeId;
+    try {
+        deserializer.read(identifier, time, particleCnt, compression, version, runTypeId);
+    } catch (SerializerException&) {
+        return makeUnexpected<CompressedInput::Info>("Invalid file format");
+    }
+    if (identifier != "CPRSPH") {
+        return makeUnexpected<CompressedInput::Info>(
+            "Invalid format specifier: expected CPRSPH, got " + identifier);
+    }
+    CompressedInput::Info info;
+    info.particleCnt = particleCnt;
+    info.runTime = time;
+    info.runType = runTypeId;
+    info.version = version;
+    return info;
+}
+
 // ----------------------------------------------------------------------------------------------------------
 // VtkOutput
 // ----------------------------------------------------------------------------------------------------------

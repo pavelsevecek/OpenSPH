@@ -63,4 +63,14 @@ Size HashMapFinder::find(const Vector& pos,
     return neighs.size();
 }
 
+template Size HashMapFinder::find<true>(const Vector& pos,
+    const Size index,
+    const Float radius,
+    Array<NeighbourRecord>& neighs) const;
+
+template Size HashMapFinder::find<false>(const Vector& pos,
+    const Size index,
+    const Float radius,
+    Array<NeighbourRecord>& neighs) const;
+
 NAMESPACE_SPH_END

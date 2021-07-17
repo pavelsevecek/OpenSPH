@@ -35,7 +35,7 @@ private:
         AutoPtr<IBrdf> brdf;
 
         /// Cast shadows
-        bool shadows = false;
+        bool shadows = true;
 
         /// Render surface of spheres instead of an isosurface.
         bool renderSpheres = true;

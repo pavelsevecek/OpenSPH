@@ -1,6 +1,13 @@
 ## 2021-07-17
 - added a single 'dust' rheology
 
+## 2021-07-16
+- added an option to enable shadows in raymarcher
+- removed experimental renderers from UI
+
+## 2021-07-15
+- enabled the 'create camera node' for loaded states
+
 ## 2021-07-13
 - automatic computation of particle radii in volumetric renderer
 - added absorption to volumetric renderer
