@@ -41,6 +41,7 @@ SOURCES += \
     renderers/RayTracer.cpp \
     renderers/Spectrum.cpp \
     windows/BatchDialog.cpp \
+    windows/RenderPane.cpp \
     windows/RunSelectDialog.cpp \
     windows/SessionDialog.cpp \
     windows/CurveDialog.cpp \

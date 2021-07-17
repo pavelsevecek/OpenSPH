@@ -99,8 +99,8 @@ private:
     /// Job object of this node
     AutoPtr<IJob> job;
 
-    /// Optional callback called when a node property is changed.
-    Accessor accessor;
+    /// Set of callbacks called when a node property is changed.
+    CallbackSet<Accessor> accessors;
 
 public:
     /// \brief Creates a new node, given a job object.
@@ -118,8 +118,8 @@ public:
     /// \brief Returns the underlying job.
     RawPtr<IJob> getJob() const;
 
-    /// \brief Sets an accessor for entries returned by the \ref getSettings function.
-    void setAccessor(const Accessor& newAccessor);
+    /// \brief Adds an accessor for entries returned by the \ref getSettings function.
+    void addAccessor(const SharedToken& owner, const Accessor& accessor);
 
     /// \brief Returns the type of the job.
     Optional<ExtJobType> provides() const;

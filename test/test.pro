@@ -42,6 +42,7 @@ SOURCES += \
     ../core/objects/containers/test/ArrayRef.cpp \
     ../core/objects/containers/test/ArrayView.cpp \
     ../core/objects/containers/test/CircularArray.cpp \
+    ../core/objects/containers/test/CallbackSet.cpp \
     ../core/objects/containers/test/FlatMap.cpp \
     ../core/objects/containers/test/FlatSet.cpp \
     ../core/objects/containers/test/Grid.cpp \
@@ -85,6 +86,7 @@ SOURCES += \
     ../core/objects/wrappers/test/Optional.cpp \
     ../core/objects/wrappers/test/Outcome.cpp \
     ../core/objects/wrappers/test/SharedPtr.cpp \
+    ../core/objects/wrappers/test/SharedToken.cpp \
     ../core/objects/wrappers/test/Variant.cpp \
     ../core/objects/wrappers/test/PropagateConst.cpp \
     ../core/physics/test/Damage.cpp \

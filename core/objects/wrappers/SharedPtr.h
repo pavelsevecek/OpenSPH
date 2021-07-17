@@ -98,6 +98,8 @@ class SharedPtr {
     friend class SharedPtr;
     template <typename>
     friend class WeakPtr;
+    friend class SharedToken;
+    friend class WeakToken;
     template <typename>
     friend class LockingPtr;
     template <typename>
@@ -421,13 +423,13 @@ public:
         ptr = weakPtr;
     }
 
-    SharedPtr<T> sharedFromThis() {
+    SharedPtr<T> sharedFromThis() const {
         SharedPtr<T> sharedPtr = ptr.lock();
         SPH_ASSERT(sharedPtr);
         return sharedPtr;
     }
 
-    WeakPtr<T> weakFromThis() {
+    WeakPtr<T> weakFromThis() const {
         return ptr;
     }
 };

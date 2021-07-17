@@ -17,8 +17,8 @@ EntryControl& EntryControl::setEnabler(const Enabler& newEnabler) {
     return *this;
 }
 
-EntryControl& EntryControl::setAccessor(const Accessor& newAccessor) {
-    accessor = newAccessor;
+EntryControl& EntryControl::addAccessor(const SharedToken& owner, const Accessor& accessor) {
+    accessors.insert(owner, accessor);
     return *this;
 }
 
@@ -71,7 +71,7 @@ bool EntryControl::set(const Value& value) {
         return false;
     }
     this->setImpl(value);
-    accessor.callIfNotNull(value);
+    accessors(value);
     return true;
 }
 

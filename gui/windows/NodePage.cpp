@@ -1803,7 +1803,6 @@ SharedPtr<JobNode> NodeWindow::createNode(AutoPtr<IJob>&& job) {
 }
 
 void NodeWindow::createRenderPreview(JobNode& node) {
-    Timer timer;
     renderPane = nodeMgr->createRenderPreview(this, node);
     wxAuiPaneInfo info;
     info.Right()
@@ -1819,15 +1818,6 @@ void NodeWindow::createRenderPreview(JobNode& node) {
 
     // forces re-generation of settings after installing the accessors
     this->selectNode(node);
-
-    /*aui->Bind(wxEVT_AUI_PANE_CLOSE, [this](wxAuiManagerEvent& evt) {
-        if (evt.GetPane()->window == renderPane) {
-            renderPane->stop();
-            renderPane->Destroy();
-        }
-    });*/
-
-    std::cout << "createRenderPreview took " << timer.elapsed(TimerUnit::MILLISECOND) << "ms" << std::endl;
 }
 
 void NodeWindow::updateProperties() {

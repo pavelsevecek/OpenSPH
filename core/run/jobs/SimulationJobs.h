@@ -4,7 +4,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class SphJob : public IRunJob {
+class SphJob : public IRunJob, public SharedToken {
 protected:
     RunSettings settings;
     bool isResumed = false;
@@ -49,7 +49,7 @@ public:
     virtual AutoPtr<IRun> getRun(const RunSettings& overrides) const override;
 };
 
-class NBodyJob : public IRunJob {
+class NBodyJob : public IRunJob, public SharedToken {
 private:
     RunSettings settings;
     bool useSoft = false;

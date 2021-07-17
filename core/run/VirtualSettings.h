@@ -7,7 +7,7 @@
 
 #include "io/Path.h"
 #include "objects/containers/UnorderedMap.h"
-#include "objects/wrappers/Function.h"
+#include "objects/wrappers/CallbackSet.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
@@ -157,8 +157,8 @@ protected:
     Float mult = 1._f;
     Optional<PathType> pathType = NOTHING;
     Array<FileFormat> fileFormats;
-    Function<bool()> enabler = nullptr;
-    Accessor accessor = nullptr;
+    Enabler enabler = nullptr;
+    CallbackSet<Accessor> accessors;
     Validator validator = nullptr;
     bool sideEffect = false;
 
@@ -181,9 +181,12 @@ public:
     /// simulations.
     EntryControl& setEnabler(const Enabler& newEnabler);
 
-    /// \brief Adds or replaces the functor called when the entry changes, i.e. when \ref set function is
-    /// called.
-    EntryControl& setAccessor(const Accessor& newAccessor);
+    /// \brief Adds a functor called when the entry changes, i.e. when \ref set function is called.
+    ///
+    /// There can be any number of accessors set for each property.
+    /// \brief owner Owner that registered the accessor. When expired, the accessor is no longer called.
+    /// \brief accessor New functor to be added.
+    EntryControl& addAccessor(const SharedToken& owner, const Accessor& accessor);
 
     /// \brief Adds or replaces the functor called to validate the new value.
     ///

@@ -147,6 +147,7 @@ HEADERS += \
     objects/containers/CircularArray.h \
     objects/utility/OutputIterators.h \
     objects/wrappers/ExtendedEnum.h \
+    objects/wrappers/SharedToken.h \
     run/Job.inl.h \
     sph/initial/UvMapping.h \
     objects/Exceptions.h \
@@ -155,6 +156,7 @@ HEADERS += \
     objects/containers/Array.h \
     objects/containers/ArrayRef.h \
     objects/containers/ArrayView.h \
+    objects/containers/CallbackSet.h \
     objects/containers/FlatMap.h \
     objects/containers/FlatSet.h \
     objects/containers/Grid.h \

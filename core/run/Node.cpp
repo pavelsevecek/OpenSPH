@@ -17,26 +17,29 @@ std::string JobNode::instanceName() const {
 
 class SetAccessorsProc : public VirtualSettings::IEntryProc {
 private:
-    JobNode::Accessor jobAccessor;
+    CallbackSet<JobNode::Accessor> callbacks;
 
 public:
-    explicit SetAccessorsProc(const JobNode::Accessor& jobAccessor)
-        : jobAccessor(jobAccessor) {}
+    explicit SetAccessorsProc(const CallbackSet<JobNode::Accessor>& callbacks)
+        : callbacks(callbacks) {}
 
     virtual void onCategory(const std::string& UNUSED(name)) const override {}
 
     virtual void onEntry(const std::string& key, IVirtualEntry& entry) const override {
         EntryControl& control = dynamic_cast<EntryControl&>(entry);
-        control.setAccessor([accessor = jobAccessor, key](const IVirtualEntry::Value& UNUSED(value)) {
-            accessor(JobNotificationType::ENTRY_CHANGED, key);
-        });
+        for (const auto& callback : callbacks) {
+            auto functor = [f = callback.functor, key](const IVirtualEntry::Value& UNUSED(value)) {
+                f(JobNotificationType::ENTRY_CHANGED, key);
+            };
+            control.addAccessor(callback.owner.lock(), functor);
+        }
     }
 };
 
 VirtualSettings JobNode::getSettings() const {
     VirtualSettings settings = job->getSettings();
-    if (accessor) {
-        SetAccessorsProc proc(accessor);
+    if (!accessors.empty()) {
+        SetAccessorsProc proc(accessors);
         settings.enumerate(proc);
     }
     return settings;
@@ -46,8 +49,8 @@ RawPtr<IJob> JobNode::getJob() const {
     return job.get();
 }
 
-void JobNode::setAccessor(const Accessor& newAccessor) {
-    accessor = newAccessor;
+void JobNode::addAccessor(const SharedToken& owner, const Accessor& accessor) {
+    accessors.insert(owner, accessor);
 }
 
 Optional<ExtJobType> JobNode::provides() const {
@@ -70,8 +73,8 @@ void JobNode::connect(SharedPtr<JobNode> node, const std::string& slotName) {
         node->providers.insert(slotName, this->sharedFromThis());
         dependents.push(node);
 
-        accessor.callIfNotNull(JobNotificationType::DEPENDENT_CONNECTED, node);
-        node->accessor.callIfNotNull(JobNotificationType::PROVIDER_CONNECTED, sharedFromThis());
+        accessors(JobNotificationType::DEPENDENT_CONNECTED, node);
+        node->accessors(JobNotificationType::PROVIDER_CONNECTED, sharedFromThis());
 
     } else {
         std::string list;
@@ -116,8 +119,8 @@ void JobNode::disconnect(SharedPtr<JobNode> dependent) {
                            "' as a provider");
     }
 
-    accessor.callIfNotNull(JobNotificationType::DEPENDENT_DISCONNECTED, dependent);
-    dependent->accessor.callIfNotNull(JobNotificationType::PROVIDER_DISCONNECTED, sharedFromThis());
+    accessors(JobNotificationType::DEPENDENT_DISCONNECTED, dependent);
+    dependent->accessors(JobNotificationType::PROVIDER_DISCONNECTED, sharedFromThis());
 }
 
 void JobNode::disconnectAll() {

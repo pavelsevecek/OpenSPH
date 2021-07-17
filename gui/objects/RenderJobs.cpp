@@ -359,14 +359,12 @@ public:
 
         // lazy init
         if (!colorizer->isInitialized()) {
-            std::cout << "Initializing the colorizer" << std::endl;
             colorizer->initialize(data->storage, RefEnum::WEAK);
         }
         if (cancelled) {
             return;
         }
         if (!renderer->isInitialized()) {
-            std::cout << "Initializing the renderer" << std::endl;
             renderer->initialize(data->storage, *colorizer, *params.camera);
         }
         if (cancelled) {
@@ -430,6 +428,9 @@ AutoPtr<IRenderPreview> AnimationJob::getRenderPreview(const RunSettings& global
     }*/
 
     RenderParams params = this->getRenderParams();
+    params.background = Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f);
+    params.showKey = false;
+
     AutoPtr<IColorizer> colorizer = this->getColorizer(global);
     if (!colorizer) {
         throw InvalidSetup("No quantity selected");
@@ -451,12 +452,9 @@ AutoPtr<IColorizer> AnimationJob::getColorizer(const RunSettings& global) const 
 }
 
 AutoPtr<IRenderer> AnimationJob::getRenderer(const RunSettings& global) const {
-    GuiSettings previewGui = gui;
-    previewGui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f))
-        .set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 4)
-        .set(GuiSettingsId::SHOW_KEY, false);
-
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
+    GuiSettings previewGui = gui;
+    previewGui.set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 4);
     AutoPtr<IRenderer> renderer = Factory::getRenderer(scheduler, previewGui);
     return renderer;
 }
