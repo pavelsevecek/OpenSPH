@@ -1,3 +1,6 @@
+## 2021-07-17
+- added a single 'dust' rheology
+
 ## 2021-07-13
 - automatic computation of particle radii in volumetric renderer
 - added absorption to volumetric renderer

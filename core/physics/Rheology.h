@@ -117,4 +117,17 @@ public:
     virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
 };
 
+/// Limit the pressure to positive values
+class DustRheology : public IRheology {
+public:
+    virtual void create(Storage& storage,
+        IMaterial& material,
+        const MaterialInitialContext& context) const override;
+
+    virtual void initialize(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
+
+    virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
+};
+
+
 NAMESPACE_SPH_END
