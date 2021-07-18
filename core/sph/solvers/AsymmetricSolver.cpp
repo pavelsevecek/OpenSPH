@@ -172,8 +172,12 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     SymmetrizeSmoothingLengths<const LutKernel<DIMENSIONS>&> symmetrizedKernel(kernel);
 
     auto functor = [this, r, &neighs, maxRadius, &symmetrizedKernel, &actFinder](Size i, ThreadData& data) {
-        const Float radius = radiiMap ? radiiMap->getRadius(r[i]) : maxRadius;
-        SPH_ASSERT(radius > 0._f);
+        // max possible radius of r[j]
+        const Float neighborRadius = radiiMap ? radiiMap->getRadius(r[i]) : maxRadius;
+        SPH_ASSERT(neighborRadius > 0._f);
+
+        // max possible value of kernel.radius() * hbar
+        const Float radius = 0.5_f * (r[i][H] * kernel.radius() + neighborRadius);
 
         actFinder.findAll(i, radius, data.neighs);
         data.grads.clear();

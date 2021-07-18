@@ -1,5 +1,8 @@
+## 2021-07-18
+- optimized search radius in AsymmetricSolver
+
 ## 2021-07-17
-- added a single 'dust' rheology
+- added a simple 'dust' rheology
 
 ## 2021-07-16
 - added an option to enable shadows in raymarcher
