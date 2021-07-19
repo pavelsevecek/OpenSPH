@@ -105,11 +105,11 @@ private:
     }
 };
 
-PaletteDialog::PaletteDialog(wxWindow* parent,
+PalettePanel::PalettePanel(wxWindow* parent,
     wxSize size,
     const Palette initialPalette,
     Function<void(Palette)> setPalette)
-    : wxFrame(parent, wxID_ANY, "Palette Dialog", wxGetMousePosition(), size)
+    : wxPanel(parent, wxID_ANY, wxDefaultPosition, size)
     , setPaletteCallback(setPalette) {
 
     selected = initial = initialPalette;
@@ -151,7 +151,7 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
         }
         selected.setInterval(Interval(lower, value));
         canvas->setPalette(selected);
-        setPaletteCallback(selected);
+        setPaletteCallback.callIfNotNull(selected);
         return true;
     };
     lowerCtrl->onValueChanged = [this](const Float value) {
@@ -164,7 +164,7 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
         }
         selected.setInterval(Interval(value, upper));
         canvas->setPalette(selected);
-        setPaletteCallback(selected);
+        setPaletteCallback.callIfNotNull(selected);
         return true;
     };
 
@@ -174,7 +174,7 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
     wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
     wxButton* okButton = new wxButton(this, wxID_ANY, "OK");
     okButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
-        setPaletteCallback(selected);
+        setPaletteCallback.callIfNotNull(selected);
         this->Close();
     });
     buttonSizer->Add(okButton);
@@ -256,7 +256,7 @@ const Palette ACCRETION({ { 0.001f, Rgba(0.43f, 0.70f, 1.f) },
 
 } // namespace Palettes
 
-void PaletteDialog::setDefaultPaletteList() {
+void PalettePanel::setDefaultPaletteList() {
     paletteMap = {
         { "(default)", initial },
         { "Blackbody", getBlackBodyPalette(Interval(300, 12000)) },
@@ -276,13 +276,13 @@ void PaletteDialog::setDefaultPaletteList() {
     this->update();
 }
 
-void PaletteDialog::update() {
+void PalettePanel::update() {
     const int idx = paletteBox->GetSelection();
     const Interval range = selected.getInterval();
     selected = (paletteMap.begin() + idx)->value;
     selected.setInterval(range);
     canvas->setPalette(selected);
-    setPaletteCallback(selected);
+    setPaletteCallback.callIfNotNull(selected);
 }
 
 NAMESPACE_SPH_END

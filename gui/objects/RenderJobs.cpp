@@ -396,6 +396,15 @@ public:
         renderer = std::move(newRenderer);
     }
 
+    virtual void update(Palette&& palette) override {
+        colorizer->setPalette(palette);
+        if (!colorizer->isInitialized()) {
+            colorizer->initialize(data->storage, RefEnum::WEAK);
+        }
+        /// \todo could be optimized, no need to re-generate BVH, etc.
+        renderer->initialize(data->storage, *colorizer, *params.camera);
+    }
+
     virtual void cancel() override {
         cancelled = true;
         renderer->cancelRender();

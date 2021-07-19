@@ -10,6 +10,7 @@ class IRenderer;
 class IColorizer;
 class RenderParams;
 class JobNode;
+class Palette;
 
 enum class ColorizerFlag {
     VELOCITY = 1 << 0,
@@ -38,6 +39,8 @@ public:
     virtual void update(AutoPtr<IColorizer>&& colorizer) = 0;
 
     virtual void update(AutoPtr<IRenderer>&& renderer) = 0;
+
+    virtual void update(Palette&& palette) = 0;
 
     virtual void cancel() = 0;
 };

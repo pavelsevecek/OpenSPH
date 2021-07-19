@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui/objects/Bitmap.h"
+#include "gui/objects/Palette.h"
 #include "gui/renderers/IRenderer.h"
 #include "run/Node.h"
 #include <condition_variable>
@@ -49,10 +50,11 @@ class InteractiveRenderer : public ShareFromThis<InteractiveRenderer> {
         AutoPtr<IColorizer> colorizer;
         AutoPtr<IRenderer> renderer;
         SharedPtr<JobNode> node;
+        Optional<Palette> palette;
         bool resolution = false;
 
         bool pending() const {
-            return camera || parameters || colorizer || renderer || node || resolution;
+            return camera || parameters || colorizer || renderer || node || palette || resolution;
         }
     } changed;
 
@@ -97,6 +99,8 @@ public:
 
     void resize(const Pixel newResolution);
 
+    void setPalette(const Palette& palette);
+
 private:
     AutoPtr<ICamera> getNewCamera(const SharedPtr<JobNode>& cameraNode, const RunSettings& globals) const;
 
@@ -124,6 +128,10 @@ public:
         const RunSettings& globals);
 
     ~RenderPane() = default;
+
+    void setPalette(const Palette& palette) {
+        renderer->setPalette(palette);
+    }
 
 private:
     void onPaint(wxPaintEvent& evt);

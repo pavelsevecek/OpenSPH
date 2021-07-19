@@ -128,6 +128,11 @@ void InteractiveRenderer::resize(const Pixel newResolution) {
     this->update();
 }
 
+void InteractiveRenderer::setPalette(const Palette& palette) {
+    changed.palette = palette;
+    this->update();
+}
+
 AutoPtr<ICamera> InteractiveRenderer::getNewCamera(const SharedPtr<JobNode>& cameraNode,
     const RunSettings& globals) const {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
@@ -290,6 +295,11 @@ void InteractiveRenderer::renderLoop(const RunSettings& globals) {
             if (changed.renderer) {
                 std::cout << "Updating renderer" << std::endl;
                 preview->update(std::move(changed.renderer));
+            }
+            if (changed.palette) {
+                std::cout << "Updating palette" << std::endl;
+                preview->update(std::move(changed.palette.value()));
+                changed.palette = NOTHING;
             }
             if (changed.resolution) {
                 std::cout << "Updating resolution" << std::endl;

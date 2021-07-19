@@ -1,10 +1,13 @@
 #include "gui/windows/NodePage.h"
+#include "gui/Factory.h"
 #include "gui/Utils.h"
 #include "gui/objects/CameraJobs.h"
+#include "gui/objects/Colorizer.h"
 #include "gui/objects/DelayedCallback.h"
 #include "gui/objects/RenderJobs.h"
 #include "gui/windows/BatchDialog.h"
 #include "gui/windows/CurveDialog.h"
+#include "gui/windows/PaletteDialog.h"
 #include "gui/windows/RenderPane.h"
 #include "gui/windows/RunSelectDialog.h"
 #include "io/FileSystem.h"
@@ -1814,6 +1817,19 @@ void NodeWindow::createRenderPreview(JobNode& node) {
         //.Window(renderPane)
         .DestroyOnClose();
     aui->AddPane(renderPane, info);
+
+    PalettePanel* palettePane = alignedNew<PalettePanel>(
+        this, wxSize(300, 200), Factory::getPalette(ColorizerId::VELOCITY), [this](const Palette& palette) {
+            renderPane->setPalette(palette);
+        });
+    info.Right()
+        .MinSize(wxSize(300, 200))
+        .CaptionVisible(true)
+        .DockFixed(false)
+        .CloseButton(true)
+        .Caption("Palette")
+        .DestroyOnClose();
+    aui->AddPane(palettePane, info);
     aui->Update();
 }
 

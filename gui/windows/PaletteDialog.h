@@ -4,13 +4,14 @@
 #include "objects/containers/FlatMap.h"
 #include "objects/wrappers/Function.h"
 #include <wx/frame.h>
+#include <wx/panel.h>
 
 NAMESPACE_SPH_BEGIN
 
 class ComboBox;
 class PaletteCanvas;
 
-class PaletteDialog : public wxFrame {
+class PalettePanel : public wxPanel {
 private:
     ComboBox* paletteBox;
 
@@ -25,12 +26,20 @@ private:
     Palette selected;
 
 public:
-    PaletteDialog(wxWindow* parent, wxSize size, const Palette palette, Function<void(Palette)> setPalette);
+    PalettePanel(wxWindow* parent, wxSize size, const Palette palette, Function<void(Palette)> setPalette);
 
 private:
     void update();
 
     void setDefaultPaletteList();
+};
+
+class PaletteDialog : public wxFrame {
+public:
+    PaletteDialog(wxWindow* parent, wxSize size, const Palette palette, Function<void(Palette)> setPalette)
+        : wxFrame(parent, wxID_ANY, "Palette Dialog", wxGetMousePosition(), size) {
+        new PalettePanel(this, size, palette, setPalette);
+    }
 };
 
 NAMESPACE_SPH_END
