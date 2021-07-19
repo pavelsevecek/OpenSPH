@@ -47,24 +47,10 @@ public:
         }
     }
 
+    /// \brief Checks if the particles are equally distributed among buckets.
+    Outcome good(const Size maxBucketSize) const;
 
-    Outcome good() const {
-        for (Size i = 0; i < map.bucket_count(); ++i) {
-            if (map.bucket_size(i) > 15) {
-                return makeFailed(
-                    "Inefficient hash map: Bucket ", i, " has ", map.bucket_size(i), " elements");
-            }
-        }
-        return SUCCESS;
-    }
-
-    MinMaxMean getBucketStats() const {
-        MinMaxMean stats;
-        for (Size i = 0; i < map.bucket_count(); ++i) {
-            stats.accumulate(map.bucket_size(i));
-        }
-        return stats;
-    }
+    MinMaxMean getBucketStats() const;
 
 protected:
     virtual void buildImpl(IScheduler& scheduler, ArrayView<const Vector> points) override;

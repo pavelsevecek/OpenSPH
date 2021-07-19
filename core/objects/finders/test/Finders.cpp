@@ -399,7 +399,7 @@ TEST_CASE("UniformGridFinder", "[finders]") {
 TEST_CASE("HashMapFinder", "[finders]") {
     HashMapFinder finder(RunSettings::getDefaults());
     testFinder(finder);
-    REQUIRE(finder.good());
+    REQUIRE(finder.good(5));
 }
 
 TEST_CASE("HashMapFinder cell size", "[finders]") {
@@ -421,7 +421,7 @@ TEST_CASE("HashMapFinder cell size", "[finders]") {
         }
     });
     REQUIRE(result == SUCCESS);
-    REQUIRE(finder.good());
+    REQUIRE(finder.good(10));
 }
 
 static void testHashMapWithDistr(IDistribution& distr) {
@@ -434,7 +434,7 @@ static void testHashMapWithDistr(IDistribution& distr) {
         }
         HashMapFinder finder(RunSettings::getDefaults());
         finder.build(SEQUENTIAL, storage);
-        REQUIRE(finder.good());
+        REQUIRE(finder.good(8));
     }
 }
 

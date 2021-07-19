@@ -6,9 +6,9 @@
 /// \date 2016-2021
 
 #include "io/Output.h"
+#include "objects/containers/CallbackSet.h"
 #include "objects/containers/UnorderedMap.h"
 #include "objects/wrappers/Any.h"
-#include "objects/wrappers/SharedPtr.h"
 #include "quantities/Storage.h"
 #include "run/IRun.h"
 #include "run/Job.h"
@@ -119,6 +119,9 @@ public:
     RawPtr<IJob> getJob() const;
 
     /// \brief Adds an accessor for entries returned by the \ref getSettings function.
+    ///
+    /// The accessors are shared among all \ref VirtualSettings objects obtained from this node. When a new
+    /// accessor is added, existing entries will start using it as well.
     void addAccessor(const SharedToken& owner, const Accessor& accessor);
 
     /// \brief Returns the type of the job.

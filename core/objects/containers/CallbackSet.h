@@ -22,25 +22,22 @@ public:
         WeakToken owner;
     };
 
-
 private:
-    Array<Callback> callbacks;
+    SharedPtr<Array<Callback>> callbacks;
 
 public:
-    CallbackSet() = default;
-
-    CallbackSet(const CallbackSet& other)
-        : callbacks(other.callbacks.clone()) {}
+    CallbackSet()
+        : callbacks(makeShared<Array<Callback>>()) {}
 
     void insert(const SharedToken& owner, const Function<void(TArgs...)>& functor) {
         if (owner) {
-            callbacks.push(Callback{ functor, owner });
+            callbacks->push(Callback{ functor, owner });
         }
     }
 
     /// Calls all registered callbacks.
     void operator()(TArgs... args) const {
-        for (const Callback& callback : callbacks) {
+        for (const Callback& callback : *callbacks) {
             if (auto owner = callback.owner.lock()) {
                 callback.functor(args...);
             }
@@ -48,19 +45,19 @@ public:
     }
 
     Iterator<const Callback> begin() const {
-        return callbacks.begin();
+        return callbacks->begin();
     }
 
     Iterator<const Callback> end() const {
-        return callbacks.end();
+        return callbacks->end();
     }
 
     Size size() const {
-        return callbacks.size();
+        return callbacks->size();
     }
 
     bool empty() const {
-        return callbacks.empty();
+        return callbacks->empty();
     }
 };
 

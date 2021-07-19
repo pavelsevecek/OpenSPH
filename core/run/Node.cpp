@@ -17,29 +17,28 @@ std::string JobNode::instanceName() const {
 
 class SetAccessorsProc : public VirtualSettings::IEntryProc {
 private:
+    SharedPtr<JobNode> node;
     CallbackSet<JobNode::Accessor> callbacks;
 
 public:
-    explicit SetAccessorsProc(const CallbackSet<JobNode::Accessor>& callbacks)
-        : callbacks(callbacks) {}
+    explicit SetAccessorsProc(const SharedPtr<JobNode>& node, const CallbackSet<JobNode::Accessor>& callbacks)
+        : node(node)
+        , callbacks(callbacks) {}
 
     virtual void onCategory(const std::string& UNUSED(name)) const override {}
 
     virtual void onEntry(const std::string& key, IVirtualEntry& entry) const override {
         EntryControl& control = dynamic_cast<EntryControl&>(entry);
-        for (const auto& callback : callbacks) {
-            auto functor = [f = callback.functor, key](const IVirtualEntry::Value& UNUSED(value)) {
-                f(JobNotificationType::ENTRY_CHANGED, key);
-            };
-            control.addAccessor(callback.owner.lock(), functor);
-        }
+        control.addAccessor(node, [key, f = callbacks](const IVirtualEntry::Value& UNUSED(value)) {
+            f(JobNotificationType::ENTRY_CHANGED, key);
+        });
     }
 };
 
 VirtualSettings JobNode::getSettings() const {
     VirtualSettings settings = job->getSettings();
     if (!accessors.empty()) {
-        SetAccessorsProc proc(accessors);
+        SetAccessorsProc proc(this->sharedFromThis(), accessors);
         settings.enumerate(proc);
     }
     return settings;

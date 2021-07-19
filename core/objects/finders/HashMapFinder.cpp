@@ -63,6 +63,23 @@ Size HashMapFinder::find(const Vector& pos,
     return neighs.size();
 }
 
+Outcome HashMapFinder::good(const Size maxBucketSize) const {
+    for (Size i = 0; i < map.bucket_count(); ++i) {
+        if (map.bucket_size(i) > maxBucketSize) {
+            return makeFailed("Inefficient hash map: Bucket ", i, " has ", map.bucket_size(i), " elements");
+        }
+    }
+    return SUCCESS;
+}
+
+MinMaxMean HashMapFinder::getBucketStats() const {
+    MinMaxMean stats;
+    for (Size i = 0; i < map.bucket_count(); ++i) {
+        stats.accumulate(map.bucket_size(i));
+    }
+    return stats;
+}
+
 template Size HashMapFinder::find<true>(const Vector& pos,
     const Size index,
     const Float radius,

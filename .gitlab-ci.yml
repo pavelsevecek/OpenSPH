@@ -42,6 +42,10 @@ clang_release:
 
 test_debug:
   stage: test
+  only:
+    refs:
+      - devel
+      - master
   script:
     - wget -P /usr/include/catch2/ "https://github.com/catchorg/Catch2/releases/download/v2.5.0/catch.hpp"
     - mkdir tests
@@ -54,6 +58,10 @@ test_debug:
 
 test_release:
   stage: test
+  only:
+    refs:
+      - devel
+      - master
   script:
     - wget -P /usr/include/catch2/ "https://github.com/catchorg/Catch2/releases/download/v2.5.0/catch.hpp" 
     - mkdir tests
@@ -100,6 +108,10 @@ regression:
   tags:
     - opensph # might take a long time, do not run on shared runners
   stage: regression
+  only:
+    refs:
+      - devel
+      - master
   script:
     - apt-get install -y gnuplot
     - mkdir regression_build

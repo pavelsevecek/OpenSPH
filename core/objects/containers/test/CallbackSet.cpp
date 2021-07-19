@@ -73,3 +73,17 @@ TEST_CASE("CallbackSet expiration", "[callbackset]") {
     set(expected);
     REQUIRE(bool(c1 && !c2 && !c3));
 }
+
+TEST_CASE("CallbackSet pointer semantics", "[callbackset]") {
+    CallbackSet<void(int)> set1;
+    CallbackSet<void(int)> set2 = set1;
+    SharedToken token;
+    int called = 0;
+    set1.insert(token, [&called](int) { called++; });
+    REQUIRE(set1.size() == 1);
+    REQUIRE(set2.size() == 1);
+
+    set1(0);
+    set2(1);
+    REQUIRE(called == 2);
+}

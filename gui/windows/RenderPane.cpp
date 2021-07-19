@@ -23,11 +23,10 @@ void safeRefresh(wxPanel* panel) {
 }
 
 void BitmapOutput::update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels, const bool isFinal) {
-    update(bitmap.clone(), std::move(labels), isFinal);
+    this->update(bitmap.clone(), std::move(labels), isFinal);
 }
 
 void BitmapOutput::update(Bitmap<Rgba>&& bitmap, Array<Label>&& UNUSED(labels), const bool UNUSED(isFinal)) {
-    // std::cout << "Updating the bitmap" << std::endl;
     {
         std::unique_lock<std::mutex> lock(mutex);
         render = std::move(bitmap);
@@ -48,12 +47,12 @@ wxBitmap BitmapOutput::getBitmap() {
 
 class UpdateCameraCallbacks : public NullJobCallbacks {
 private:
-    RawPtr<const IJob> cameraJob = nullptr;
+    RawPtr<const IJob> cameraJob;
     AutoPtr<ICamera> camera;
 
 public:
     virtual void onStart(const IJob& job) override {
-        cameraJob = &job;
+        cameraJob = addressOf(job);
     }
 
     virtual void onEnd(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {

@@ -1815,9 +1815,6 @@ void NodeWindow::createRenderPreview(JobNode& node) {
         .DestroyOnClose();
     aui->AddPane(renderPane, info);
     aui->Update();
-
-    // forces re-generation of settings after installing the accessors
-    this->selectNode(node);
 }
 
 void NodeWindow::updateProperties() {

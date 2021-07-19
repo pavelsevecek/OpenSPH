@@ -6,8 +6,8 @@
 /// \date 2016-2021
 
 #include "io/Path.h"
+#include "objects/containers/CallbackSet.h"
 #include "objects/containers/UnorderedMap.h"
-#include "objects/wrappers/CallbackSet.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
