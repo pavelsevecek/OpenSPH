@@ -191,11 +191,6 @@ static RegisterEnum<ContinuityEnum> sContinuity({
         "sum_only_undamaged",
         "Computes the velocity divergence using only undamaged neighbors. For fully damaged particle, the "
         "standard continuity equation is used instead." },
-    { ContinuityEnum::DAMAGED_DECREASE_BULK_DENSITY,
-        "damaged_decrease_bulk_density",
-        "Adds bulk density, evolved using continuity equation like material density; however, when damaged "
-        "material expands, only the bulk density decreases, the material density is constant. The material "
-        "density can only grow when it is equal to the bulk density." },
 });
 
 static RegisterEnum<DiscretizationEnum> sFormulation({
