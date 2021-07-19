@@ -282,20 +282,9 @@ void ContinuityEquation::setDerivatives(DerivativeHolder& derivatives, const Run
     derivatives.require(makeDerivative<VelocityDivergence>(settings));
 }
 
-void ContinuityEquation::initialize(IScheduler& scheduler, Storage& storage, const Float UNUSED(t)) {
-    if (mode == ContinuityEnum::DAMAGED_DECREASE_BULK_DENSITY) {
-        ArrayView<const Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
-        ArrayView<const Float> bulk = storage.getValue<Float>(QuantityId::BULK_DENSITY);
-        ArrayView<const Float> damage = storage.getValue<Float>(QuantityId::DAMAGE);
-        ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
-        parallelFor(scheduler, 0, rho.size(), [&](const Size i) INL {
-            if (bulk[i] < rho[i]) {
-                const Float D = pow<3>(damage[i]);
-                p[i] = (1._f - D) * p[i];
-            }
-        });
-    }
-}
+void ContinuityEquation::initialize(IScheduler& UNUSED(scheduler),
+    Storage& UNUSED(storage),
+    const Float UNUSED(t)) {}
 
 void ContinuityEquation::finalize(IScheduler& scheduler, Storage& storage, const Float UNUSED(t)) {
     ArrayView<Float> rho, drho;
@@ -318,21 +307,6 @@ void ContinuityEquation::finalize(IScheduler& scheduler, Storage& storage, const
             } else {
                 drho[i] += -rho[i] * divv[i];
             }
-        });
-        break;
-    }
-    case ContinuityEnum::DAMAGED_DECREASE_BULK_DENSITY: {
-        ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
-        ArrayView<Float> bulk, dbulk;
-        tie(bulk, dbulk) = storage.getAll<Float>(QuantityId::BULK_DENSITY);
-        parallelFor(scheduler, 0, rho.size(), [&](const Size i) INL {
-            if (bulk[i] >= rho[i] && divv[i] < 0._f) {
-                drho[i] += -rho[i] * divv[i];
-            } else {
-                drho[i] += -reduce[i] * rho[i] * divv[i];
-            }
-
-            dbulk[i] += -bulk[i] * divv[i];
         });
         break;
     }
@@ -359,11 +333,6 @@ void ContinuityEquation::create(Storage& storage, IMaterial& material) const {
     material.setRange(QuantityId::DENSITY, Interval(rho_min, rho_max), rhoSmall);
 
     storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
-
-    if (mode == ContinuityEnum::DAMAGED_DECREASE_BULK_DENSITY) {
-        storage.insert<Float>(QuantityId::BULK_DENSITY, OrderEnum::FIRST, rho0);
-        material.setRange(QuantityId::BULK_DENSITY, Interval(rho_min, rho_max), rhoSmall);
-    }
 }
 
 

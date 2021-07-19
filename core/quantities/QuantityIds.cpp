@@ -80,8 +80,8 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Friction", L"f", ValueEnum::VECTOR);
     case QuantityId::VIBRATIONAL_VELOCITY:
         return QuantityMetadata("Vibrational velocity", L"v_vib", ValueEnum::SCALAR);
-    case QuantityId::BULK_DENSITY:
-        return QuantityMetadata("Bulk density", L"\u03C1_b", ValueEnum::SCALAR);
+    case QuantityId::INITIAL_DENSITY:
+        return QuantityMetadata("Initial density", L"\u03C1_0", ValueEnum::SCALAR);
     case QuantityId::ENERGY_LAPLACIAN:
         return QuantityMetadata("Energy laplacian", L"\u0394u" /*Delta u*/, ValueEnum::SCALAR);
     case QuantityId::AV_ALPHA:
@@ -115,7 +115,7 @@ QuantityMetadata getMetadata(const QuantityId key) {
     case QuantityId::SURFACE_NORMAL:
         return QuantityMetadata("Surf. normal", L"n", ValueEnum::VECTOR);
     case QuantityId::MOMENT_OF_INERTIA:
-        return QuantityMetadata("Mom. of intertia", L"I", ValueEnum::SCALAR);
+        return QuantityMetadata("Moment of intertia", L"I", ValueEnum::SCALAR);
     case QuantityId::PHASE_ANGLE:
         return QuantityMetadata("Phase angle", L"\u03C6" /*phi*/, ValueEnum::VECTOR);
     case QuantityId::SMOOTHING_LENGTH:

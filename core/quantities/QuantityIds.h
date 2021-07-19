@@ -87,8 +87,8 @@ enum class QuantityId {
     /// Vibrational particle velocity, used by the block model of acoustic fluidization.
     VIBRATIONAL_VELOCITY = 47,
 
-    /// Bulk density, may be lower than the material density.
-    BULK_DENSITY = 48,
+    /// Initial density of the material.
+    INITIAL_DENSITY = 48,
 
     ///@}
 

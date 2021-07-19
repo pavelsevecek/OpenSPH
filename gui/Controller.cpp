@@ -377,7 +377,7 @@ Array<ExtColorizerId> getColorizerIds() {
         QuantityId::DENSITY,
         ColorizerId::DENSITY_PERTURBATION,
         ColorizerId::SUMMED_DENSITY,
-        QuantityId::BULK_DENSITY,
+        QuantityId::INITIAL_DENSITY,
         QuantityId::MASS,
         QuantityId::MOMENT_OF_INERTIA,
         //
