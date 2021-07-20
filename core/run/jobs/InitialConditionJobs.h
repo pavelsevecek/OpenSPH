@@ -234,24 +234,25 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
-class PolytropicStarIc : public IParticleJob {
+class PolytropeIc : public IParticleJob {
 private:
     int particleCnt = 10000;
     EnumWrapper distId = EnumWrapper(DistributionEnum::PARAMETRIZED_SPIRALING);
 
-    Float radius = Constants::R_sun;
-    Float mass = Constants::M_sun;
-    Float n = 3._f;
+    Float radius = 1.e7_f;
+    Float rho_min = 10._f;
+    Float n = 1._f;
+    Float eta = 1.3_f;
 
 public:
-    explicit PolytropicStarIc(const std::string& name);
+    explicit PolytropeIc(const std::string& name);
 
     virtual std::string className() const override {
         return "polytrope ICs";
     }
 
     virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
-        return {};
+        return { { "material", JobType::MATERIAL } };
     }
 
     virtual VirtualSettings getSettings() override;

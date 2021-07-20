@@ -1,3 +1,8 @@
+## 2021-07-20
+- improved polytrope IC
+- optimized refresh when render parameters change
+- Raymarcher: fixed shading artifacts when shadows are enabled
+
 ## 2021-07-18
 - optimized search radius in AsymmetricSolver
 

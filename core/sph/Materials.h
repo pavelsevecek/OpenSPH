@@ -33,12 +33,6 @@ public:
     /// Equation of state is constructed from parameters in settings.
     explicit EosMaterial(const BodySettings& body);
 
-    /// Evaluate held equation of state.
-    /// \param rho Density of particle in code units.
-    /// \param u Specific energy of particle in code units
-    /// \returns Computed pressure and sound speed as pair.
-    Pair<Float> evaluate(const Float rho, const Float u) const;
-
     /// Returns the equation of state.
     const IEos& getEos() const;
 
