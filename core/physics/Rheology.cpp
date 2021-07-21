@@ -213,6 +213,10 @@ void DruckerPragerRheology::integrate(IScheduler& scheduler, Storage& storage, c
     damage->integrate(scheduler, storage, material);
 }
 
+// ----------------------------------------------------------------------------------------------------------
+// ElasticRheology
+// ----------------------------------------------------------------------------------------------------------
+
 void ElasticRheology::create(Storage& storage,
     IMaterial& UNUSED(material),
     const MaterialInitialContext& UNUSED(context)) const {
@@ -227,5 +231,25 @@ void ElasticRheology::initialize(IScheduler& UNUSED(scheduler),
 void ElasticRheology::integrate(IScheduler& UNUSED(scheduler),
     Storage& UNUSED(storage),
     const MaterialView UNUSED(material)) {}
+
+// ----------------------------------------------------------------------------------------------------------
+// DustRheology
+// ----------------------------------------------------------------------------------------------------------
+
+void DustRheology::create(Storage& UNUSED(storage),
+    IMaterial& UNUSED(material),
+    const MaterialInitialContext& UNUSED(context)) const {}
+
+void DustRheology::initialize(IScheduler& UNUSED(scheduler),
+    Storage& UNUSED(storage),
+    const MaterialView UNUSED(material)) {}
+
+void DustRheology::integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) {
+    const IndexSequence seq = material.sequence();
+    ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
+    parallelFor(scheduler, *seq.begin(), *seq.end(), [&](const Size i) {
+        p[i] = max(p[i], 0._f);
+    });
+}
 
 NAMESPACE_SPH_END

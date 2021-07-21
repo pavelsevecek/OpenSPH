@@ -78,4 +78,6 @@ public:
     void setEnabled(const bool enable = true);
 };
 
+Storage interpolate(const Storage& frame1, const Storage& frame2, const Float t);
+
 NAMESPACE_SPH_END

@@ -443,6 +443,7 @@ static void solveSpherical(Storage& storage) {
         MaterialView mat = storage.getMaterial(matId);
         RawPtr<EosMaterial> eosMat = dynamicCast<EosMaterial>(addressOf(mat.material()));
         SPH_ASSERT(eosMat);
+
         for (Size i : mat.sequence()) {
             p[i] = solution[i];
             u[i] = eosMat->getEos().getInternalEnergy(rho[i], p[i]);
@@ -893,28 +894,39 @@ static JobRegistrar sRegisterNBodyIc(
 // PolytropicStarICs
 // ----------------------------------------------------------------------------------------------------------
 
-PolytropicStarIc::PolytropicStarIc(const std::string& name)
+PolytropeIc::PolytropeIc(const std::string& name)
     : IParticleJob(name) {}
 
-VirtualSettings PolytropicStarIc::getSettings() {
+VirtualSettings PolytropeIc::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& starCat = connector.addCategory("Star parameters");
     starCat.connect("Particle count", "particleCnt", particleCnt);
     starCat.connect("Distribution", "distribution", distId);
-    starCat.connect("Radius [R_sun]", "radius", radius).setUnits(Constants::R_sun);
-    starCat.connect("Mass [M_sun]", "mass", mass).setUnits(Constants::M_sun);
+    starCat.connect("Radius [km]", "radius", radius).setUnits(1.e3_f);
+    starCat.connect("Minimal density [kg/m^3]", "rho_min", rho_min);
     starCat.connect("Polytrope index", "polytrope_index", n);
 
     return connector;
 }
 
-void PolytropicStarIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void PolytropeIc::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) {
+    SharedPtr<IMaterial> material = this->getInput<IMaterial>("material");
+    material->setParam(BodySettingsId::ADIABATIC_INDEX, (n + 1._f) / n);
+    material->setParam(BodySettingsId::DENSITY_RANGE, Interval(rho_min, INFTY));
+
+    /// \todo to settings?
+    material->setParam(BodySettingsId::SMOOTHING_LENGTH_ETA, eta);
+
+    SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
+
     BodySettings body;
     body.set(BodySettingsId::INITIAL_DISTRIBUTION, distId);
     AutoPtr<IDistribution> distribution = Factory::getDistribution(body);
-    Storage storage = Stellar::generateIc(*distribution, particleCnt, radius, mass, n);
+    const Float rho0 = material->getParam<Float>(BodySettingsId::DENSITY);
+    const Float mass = sphereVolume(radius) * rho0;
+    Storage storage = Stellar::generateIc(scheduler, material, *distribution, particleCnt, radius, mass);
 
     result = makeShared<ParticleData>();
     result->storage = std::move(storage);
@@ -922,10 +934,9 @@ void PolytropicStarIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
 
 static JobRegistrar sRegisterPolytropeIc(
     "polytrope ICs",
-    "star ICs",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<PolytropicStarIc>(name); },
-    "Creates a single polytropic star.");
+    [](const std::string& name) { return makeAuto<PolytropeIc>(name); },
+    "Creates a spherical star or planet using the polytrope model.");
 
 // ----------------------------------------------------------------------------------------------------------
 // IsothermalSphereICs

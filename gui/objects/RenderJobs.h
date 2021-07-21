@@ -54,6 +54,7 @@ private:
     EnumWrapper animationType = EnumWrapper(AnimationType::SINGLE_FRAME);
 
     bool transparentBackground = false;
+    int extraFrames = 0;
 
     struct {
         Float step = 10._f * DEG_TO_RAD;

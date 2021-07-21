@@ -77,6 +77,8 @@ AutoPtr<IRheology> Factory::getRheology(const BodySettings& body) {
         return makeAuto<VonMisesRheology>(Factory::getDamage(body));
     case YieldingEnum::DRUCKER_PRAGER:
         return makeAuto<DruckerPragerRheology>(Factory::getDamage(body));
+    case YieldingEnum::DUST:
+        return makeAuto<DustRheology>();
     default:
         NOT_IMPLEMENTED;
     }
@@ -512,6 +514,7 @@ AutoPtr<IMaterial> Factory::getMaterial(const BodySettings& body) {
     case YieldingEnum::DRUCKER_PRAGER:
     case YieldingEnum::VON_MISES:
     case YieldingEnum::ELASTIC:
+    case YieldingEnum::DUST:
         return makeAuto<SolidMaterial>(body);
     case YieldingEnum::NONE:
         switch (eosId) {

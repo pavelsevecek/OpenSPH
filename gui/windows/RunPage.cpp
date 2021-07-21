@@ -167,7 +167,7 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
         "simulations.");
     particleSizeCtrl->onValueChanged = [this](const Float value) {
         gui.set(GuiSettingsId::PARTICLE_RADIUS, value);
-        controller->tryRedraw();
+        controller->refresh();
         return true;
     };
     particleSizeSizer->Add(particleSizeCtrl, 1, wxALIGN_CENTER_VERTICAL);
@@ -215,7 +215,7 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     keyBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
         const bool value = evt.IsChecked();
         gui.set(GuiSettingsId::SHOW_KEY, value);
-        controller->tryRedraw();
+        controller->refresh();
     });
     ghostBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
         const bool value = evt.IsChecked();
@@ -226,12 +226,12 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
         const bool value = evt.IsChecked();
         gui.set(GuiSettingsId::ANTIALIASED, value);
         smoothBox->Enable(value);
-        controller->tryRedraw();
+        controller->refresh();
     });
     smoothBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
         const bool value = evt.IsChecked();
         gui.set(GuiSettingsId::SMOOTH_PARTICLES, value);
-        controller->tryRedraw();
+        controller->refresh();
     });
 
     return particleBox;
@@ -249,7 +249,7 @@ wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
     levelCtrl->onValueChanged = [this](const Float value) {
         GuiSettings& gui = controller->getParams();
         gui.set(GuiSettingsId::SURFACE_LEVEL, value);
-        controller->tryRedraw();
+        controller->refresh();
         return true;
     };
     levelSizer->Add(levelCtrl, 1, wxALIGN_CENTER_VERTICAL);
@@ -265,7 +265,7 @@ wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
     sunlightCtrl->onValueChanged = [this](const Float value) {
         GuiSettings& gui = controller->getParams();
         gui.set(GuiSettingsId::SURFACE_SUN_INTENSITY, value);
-        controller->tryRedraw();
+        controller->refresh();
         return true;
     };
     sunlightSizer->Add(sunlightCtrl, 1, wxALIGN_CENTER_VERTICAL);
@@ -281,7 +281,7 @@ wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
     ambientCtrl->onValueChanged = [this](const Float value) {
         GuiSettings& gui = controller->getParams();
         gui.set(GuiSettingsId::SURFACE_AMBIENT, value);
-        controller->tryRedraw();
+        controller->refresh();
         return true;
     };
     ambientSizer->Add(ambientCtrl, 1, wxALIGN_CENTER_VERTICAL);
@@ -297,7 +297,7 @@ wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
     emissionCtrl->onValueChanged = [this](const Float value) {
         GuiSettings& gui = controller->getParams();
         gui.set(GuiSettingsId::SURFACE_EMISSION, value);
-        controller->tryRedraw();
+        controller->refresh();
         return true;
     };
     emissionSizer->Add(emissionCtrl, 1, wxALIGN_CENTER_VERTICAL);
@@ -322,7 +322,7 @@ wxWindow* RunPage::createVolumeBox(wxPanel* parent) {
         GuiSettings& gui = controller->getParams();
         // value in spinner is in [km^-1]
         gui.set(GuiSettingsId::VOLUME_EMISSION, value / 1.e3_f);
-        controller->tryRedraw();
+        controller->refresh();
         return true;
     };
     emissionSizer->Add(emissionCtrl, 1, wxALIGN_CENTER_VERTICAL);
@@ -339,7 +339,7 @@ wxWindow* RunPage::createVolumeBox(wxPanel* parent) {
         GuiSettings& gui = controller->getParams();
         // value in spinner is in [km^-1]
         gui.set(GuiSettingsId::VOLUME_ABSORPTION, value / 1.e3_f);
-        controller->tryRedraw();
+        controller->refresh();
         return true;
     };
     absorptionSizer->Add(absorptionCtrl, 1, wxALIGN_CENTER_VERTICAL);
@@ -355,7 +355,7 @@ wxWindow* RunPage::createVolumeBox(wxPanel* parent) {
     factorCtrl->onValueChanged = [this](const Float value) {
         GuiSettings& gui = controller->getParams();
         gui.set(GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR, value);
-        controller->tryRedraw();
+        controller->refresh();
         return true;
     };
     factorSizer->Add(factorCtrl, 1, wxALIGN_CENTER_VERTICAL);
@@ -590,6 +590,7 @@ void RunPage::updateCutoff(const double cutoff) {
     ICamera& camera = pane->getCamera();
     camera.setCutoff(cutoff > 0. ? Optional<float>(float(cutoff)) : NOTHING);
     controller->refresh(camera.clone());
+    // needs to re-initialize the renderer
     controller->tryRedraw();
 }
 

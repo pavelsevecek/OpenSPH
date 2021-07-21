@@ -369,7 +369,6 @@ Array<ExtColorizerId> getColorizerIds() {
         QuantityId::DENSITY,
         ColorizerId::DENSITY_PERTURBATION,
         ColorizerId::SUMMED_DENSITY,
-        QuantityId::INITIAL_DENSITY,
         QuantityId::MASS,
         QuantityId::MOMENT_OF_INERTIA,
         //
@@ -625,8 +624,7 @@ bool Controller::tryRedraw() {
 
         return true;
     } else {
-        vis.renderer->cancelRender();
-        vis.refresh();
+        this->refresh();
         return false;
     }
 }
@@ -649,6 +647,11 @@ void Controller::refresh(AutoPtr<ICamera>&& camera) {
         const Float fov = imageSize.y / wtp.value();
         project.getGuiSettings().set(GuiSettingsId::CAMERA_ORTHO_FOV, fov);
     }
+}
+
+void Controller::refresh() {
+    vis.renderer->cancelRender();
+    vis.refresh();
 }
 
 void Controller::safePageCall(Function<void(RunPage*)> func) {

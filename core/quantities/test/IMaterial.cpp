@@ -50,6 +50,6 @@ TEST_CASE("EosMaterials", "[material]") {
     REQUIRE(eos1);
     EosMaterial* eos2 = dynamic_cast<EosMaterial*>(&storage.getMaterial(1).material());
     REQUIRE(eos2);
-    REQUIRE(eos1->evaluate(1._f, 1._f)[0] != eos2->evaluate(1._f, 1._f)[0]);
-    REQUIRE(eos1->evaluate(1._f, 1._f)[1] != eos2->evaluate(1._f, 1._f)[1]);
+    REQUIRE(eos1->getEos().evaluate(1._f, 1._f)[0] != eos2->getEos().evaluate(1._f, 1._f)[0]);
+    REQUIRE(eos1->getEos().evaluate(1._f, 1._f)[1] != eos2->getEos().evaluate(1._f, 1._f)[1]);
 }

@@ -207,6 +207,7 @@ static RegisterEnum<YieldingEnum> sYield({
     { YieldingEnum::ELASTIC, "elastic", "No yield, just elastic deformations following Hooke's law" },
     { YieldingEnum::VON_MISES, "von_mises", "Stress yielding using von Mises criterion." },
     { YieldingEnum::DRUCKER_PRAGER, "drucker_prager", "Drucker-Prager pressure dependent yielding stress." },
+    { YieldingEnum::DUST, "dust", "No stress tensor, only the pressure is limited to positive values." },
 });
 
 static RegisterEnum<FractureEnum> sFracture({

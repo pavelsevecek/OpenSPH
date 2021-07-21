@@ -247,6 +247,9 @@ public:
     /// thread. Can be called from any thread.
     void refresh(AutoPtr<ICamera>&& camera);
 
+    /// \brief Re-render the particle using the current camera.
+    void refresh();
+
     /// \addtogroup Controlling the run
 
     /// \brief Sets up and starts a new simulation.

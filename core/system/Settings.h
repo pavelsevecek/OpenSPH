@@ -746,7 +746,10 @@ enum class YieldingEnum {
     VON_MISES,
 
     /// Drucker-Prager pressure dependent yielding stress
-    DRUCKER_PRAGER
+    DRUCKER_PRAGER,
+
+    /// No stress tensor, only the pressure is limited to positive values.
+    DUST,
 };
 
 enum class FractureEnum {

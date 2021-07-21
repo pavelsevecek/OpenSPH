@@ -315,7 +315,7 @@ TEST_CASE("Storage material", "[storage]") {
         EosMaterial& material = dynamic_cast<EosMaterial&>(storage.getMaterialOfParticle(i).material());
         ArrayView<Float> rho, u;
         tie(rho, u) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::ENERGY);
-        return material.evaluate(rho[i], u[i])[0];
+        return material.getEos().evaluate(rho[i], u[i])[0];
     };
     REQUIRE(getPressure(0) == 4._f);
     REQUIRE(getPressure(1) == 4._f);

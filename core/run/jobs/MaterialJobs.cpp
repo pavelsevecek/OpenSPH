@@ -33,7 +33,7 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
     };
     auto enablerRheo = [this, enabler] {
         const YieldingEnum id = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
-        return (!enabler || enabler()) && id != YieldingEnum::NONE;
+        return (!enabler || enabler()) && (id != YieldingEnum::NONE && id != YieldingEnum::DUST);
     };
     auto enablerFrag = [this, enablerRheo] {
         const FractureEnum id = body.get<FractureEnum>(BodySettingsId::RHEOLOGY_DAMAGE);
@@ -50,7 +50,8 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
             const EosEnum eos = body.get<EosEnum>(BodySettingsId::EOS);
             const YieldingEnum yield = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
             return (!enabler || enabler()) &&
-                   ((eos != EosEnum::NONE && eos != EosEnum::IDEAL_GAS) || (yield != YieldingEnum::NONE));
+                   ((eos != EosEnum::NONE && eos != EosEnum::IDEAL_GAS) || (yield != YieldingEnum::NONE
+                    && yield != YieldingEnum::DUST));
         });
     category.connect<Float>("Shear modulus [Pa]", body, BodySettingsId::SHEAR_MODULUS)
         .setEnabler(enablerRheo);

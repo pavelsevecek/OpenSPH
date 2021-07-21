@@ -263,7 +263,7 @@ Rgba RayMarcher::getSurfaceColor(MarchData& data,
         diffuse = diffuse * colorizerValue;
     }
 
-    // compute normal = gradient of the field
+    // compute the inward normal = gradient of the field
     const Vector n = fixed.renderSpheres ? cached.r[index] - hit : this->evalGradient(data.neighs, hit);
     SPH_ASSERT(n != Vector(0._f));
     const Vector n_norm = getNormalized(n);
@@ -275,7 +275,7 @@ Rgba RayMarcher::getSurfaceColor(MarchData& data,
 
     // check for occlusion
     if (fixed.shadows) {
-        Ray rayToSun(hit - 1.e-3_f * fixed.dirToSun, -fixed.dirToSun);
+        Ray rayToSun(hit - 0.5_f * n_norm * cached.r[index][H], -fixed.dirToSun);
         if (this->intersect(data, rayToSun, params.surface.level, true)) {
             // casted shadow
             return diffuse * params.surface.ambientLight + emission;

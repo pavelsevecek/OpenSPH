@@ -184,10 +184,11 @@ void SolidStressForce::finalize(IScheduler& scheduler, Storage& storage, const F
     for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {
         MaterialView material = storage.getMaterial(matIdx);
         const YieldingEnum yield = material->getParam<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
-        if (yield == YieldingEnum::NONE) {
+        if (yield == YieldingEnum::NONE || yield == YieldingEnum::DUST) {
             // no rheology, do not integrate stress tensor
             continue;
         }
+        /// \todo add to rheology?
         const Float mu = material->getParam<Float>(BodySettingsId::SHEAR_MODULUS);
         IndexSequence seq = material.sequence();
         parallelFor(scheduler, *seq.begin(), *seq.end(), [&](const Size i) INL {

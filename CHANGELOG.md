@@ -1,3 +1,15 @@
+## 2021-07-20
+- improved polytrope IC
+- optimized refresh when render parameters change
+- Raymarcher: fixed shading artifacts when shadows are enabled
+- optional frame interpolation in animation node
+
+## 2021-07-18
+- optimized search radius in AsymmetricSolver
+
+## 2021-07-17
+- added a simple 'dust' rheology
+
 ## 2021-07-16
 - added an option to enable shadows in raymarcher
 - removed experimental renderers from UI
