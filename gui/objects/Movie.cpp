@@ -7,6 +7,7 @@
 #include "gui/objects/Colorizer.h"
 #include "io/FileSystem.h"
 #include "objects/utility/StringUtils.h"
+#include "quantities/QuantityHelpers.h"
 #include "system/Process.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
@@ -182,6 +183,44 @@ void Movie::finalize() {
 
 void Movie::setEnabled(const bool enable) {
     enabled = enable;
+}
+
+template <typename TValue>
+Array<TValue> interpolate(ArrayView<const TValue> v1, ArrayView<const TValue> v2, const Float t) {
+    SPH_ASSERT(v1.size() == v2.size());
+    Array<TValue> result(v1.size());
+    for (Size i = 0; i < v1.size(); ++i) {
+        result[i] = lerp(v1[i], v2[i], t);
+    }
+    return result;
+}
+
+struct InterpolateVisitor {
+    template <typename TValue>
+    void visit(const QuantityId id, const Quantity& q1, const Quantity& q2, const Float t, Storage& result) {
+        Array<TValue> values = interpolate<TValue>(q1.getValue<TValue>(), q2.getValue<TValue>(), t);
+        Quantity& q = result.insert<TValue>(id, OrderEnum::ZERO, std::move(values));
+        if (q1.getOrderEnum() != OrderEnum::ZERO) {
+            /// todo interpolate second-order too?
+            q.setOrder(OrderEnum::FIRST);
+            q.getDt<TValue>() = interpolate<TValue>(q1.getDt<TValue>(), q2.getDt<TValue>(), t);
+        }
+    }
+};
+
+Storage interpolate(const Storage& frame1, const Storage& frame2, const Float t) {
+    if (frame1.getQuantityCnt() != frame2.getQuantityCnt()) {
+        throw InvalidSetup("Different number of quantities");
+    }
+
+    Storage result;
+    for (ConstStorageElement el1 : frame1.getQuantities()) {
+        const Quantity& q1 = el1.quantity;
+        const Quantity& q2 = frame2.getQuantity(el1.id);
+        InterpolateVisitor visitor;
+        dispatch(q1.getValueEnum(), visitor, el1.id, q1, q2, t, result);
+    }
+    return result;
 }
 
 NAMESPACE_SPH_END

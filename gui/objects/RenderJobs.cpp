@@ -116,6 +116,7 @@ VirtualSettings AnimationJob::getSettings() {
         .setEnabler(raytracerEnabler);
 
     auto orbitEnabler = [this] { return AnimationType(animationType) == AnimationType::ORBIT; };
+    auto sequenceEnabler = [this] { return AnimationType(animationType) == AnimationType::FILE_SEQUENCE; };
 
     VirtualSettings::Category& animationCat = connector.addCategory("Animation");
     animationCat.connect<EnumWrapper>("Animation type", "animation_type", animationType);
@@ -128,7 +129,10 @@ VirtualSettings AnimationJob::getSettings() {
     animationCat.connect<Path>("First file", "first_file", sequence.firstFile)
         .setPathType(IVirtualEntry::PathType::INPUT_FILE)
         .setFileFormats(getInputFormats())
-        .setEnabler([this] { return AnimationType(animationType) == AnimationType::FILE_SEQUENCE; });
+        .setEnabler(sequenceEnabler);
+    animationCat.connect("Interpolated frames", "extra_frames", extraFrames)
+        .setEnabler(sequenceEnabler)
+        .setTooltip("Sets the number of extra frames added between each two state files.");
 
     return connector;
 }
@@ -283,26 +287,44 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
         const Size firstKey = fileMap.begin()->key;
 
         AutoPtr<IInput> input = Factory::getInput(sequence.firstFile);
+        Storage frame1;
+        Float time1 = 0._f;
         for (auto& element : fileMap) {
-            Storage storage;
+            Storage frame2;
             Statistics stats;
-            const Outcome result = input->load(element.value, storage, stats);
+            const Outcome result = input->load(element.value, frame2, stats);
             if (!result) {
                 /// \todo how to report this? (don't do modal dialog)
+            }
+
+            const Float time2 = stats.get<Float>(StatisticsId::RUN_TIME);
+            if (extraFrames > 0 && frame1.getParticleCnt() == frame2.getParticleCnt()) {
+                for (int frame = 0; frame < extraFrames; ++frame) {
+                    const Float rel = Float(frame + 1) / Float(extraFrames + 1);
+                    stats.set(StatisticsId::RUN_TIME, lerp(time1, time2, rel));
+                    movie.save(interpolate(frame1, frame2, rel), stats);
+                }
+                stats.set(StatisticsId::RUN_TIME, time2);
             }
 
             stats.set(StatisticsId::RELATIVE_PROGRESS, Float(element.key - firstKey) / fileMap.size());
             stats.set(StatisticsId::WALLCLOCK_TIME, int(renderTimer.elapsed(TimerUnit::MILLISECOND)));
             if (element.key == firstKey) {
-                callbacks.onSetUp(storage, stats);
+                callbacks.onSetUp(frame2, stats);
             }
-            callbacks.onTimeStep(storage, stats);
+            callbacks.onTimeStep(frame2, stats);
 
             if (callbacks.shouldAbortRun()) {
                 break;
             }
 
-            movie.save(storage, stats);
+            movie.save(frame2, stats);
+
+            if (extraFrames > 0) {
+                // need to keep this frame in memory
+                frame1 = std::move(frame2);
+                time1 = time2;
+            }
         }
         break;
     }
