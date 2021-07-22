@@ -23,7 +23,6 @@ OrthoPane::OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings
     this->Connect(wxEVT_RIGHT_DOWN, wxMouseEventHandler(OrthoPane::onRightDown));
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(OrthoPane::onRightUp));
     this->Connect(wxEVT_LEFT_UP, wxMouseEventHandler(OrthoPane::onLeftUp));
-    this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(OrthoPane::onDoubleClick));
     this->Connect(wxEVT_SIZE, wxSizeEventHandler(OrthoPane::onResize));
 
     // get the camera from controller; note that since then, we provided the updated camera to controller from
@@ -87,28 +86,6 @@ void OrthoPane::onRightUp(wxMouseEvent& evt) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     AffineMatrix matrix = arcBall.drag(Pixel(evt.GetPosition()), Vector(0._f));
     dragging.initialMatrix = dragging.initialMatrix * matrix;
-}
-
-void OrthoPane::onDoubleClick(wxMouseEvent& evt) {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    const wxPoint position = evt.GetPosition();
-    /// \todo has to match palette drawn by particle renderer ...
-    const Pixel origin(this->GetSize().x - 50, 231);
-    const Pixel size(30, 201);
-    if (!Interval(origin.x, origin.x + size.x).contains(position.x) ||
-        !Interval(origin.y - size.y, origin.y).contains(position.y)) {
-        // did not click on the palette
-        return;
-    }
-
-    Optional<Palette> palette = controller->getCurrentColorizer()->getPalette();
-    if (palette) {
-        PaletteDialog* paletteDialog = new PaletteDialog(
-            this->GetParent(), wxSize(300, 240), palette.value(), [this](const Palette& selected) {
-                controller->setPaletteOverride(selected);
-            });
-        paletteDialog->Show();
-    }
 }
 
 void OrthoPane::onLeftUp(wxMouseEvent& evt) {

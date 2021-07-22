@@ -28,8 +28,8 @@ private:
 
 class ComboBox : public wxComboBox {
 public:
-    ComboBox(wxWindow* parent, const wxString& title, const wxSize& size = { -1, -1 })
-        : wxComboBox(parent, wxID_ANY, title, wxDefaultPosition, size, {}, wxCB_READONLY) {}
+    ComboBox(wxWindow* parent, const wxString& title, const int width = -1)
+        : wxComboBox(parent, wxID_ANY, title, wxDefaultPosition, wxSize(width, 27), {}, wxCB_READONLY) {}
 };
 
 NAMESPACE_SPH_END

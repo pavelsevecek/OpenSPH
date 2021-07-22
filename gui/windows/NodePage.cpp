@@ -1818,10 +1818,9 @@ void NodeWindow::createRenderPreview(JobNode& node) {
         .DestroyOnClose();
     aui->AddPane(renderPane, info);
 
-    PalettePanel* palettePane = alignedNew<PalettePanel>(
-        this, wxSize(300, 200), Factory::getPalette(ColorizerId::VELOCITY), [this](const Palette& palette) {
-            renderPane->setPalette(palette);
-        });
+    PalettePanel* palettePane =
+        alignedNew<PalettePanel>(this, wxSize(300, 200), Factory::getPalette(ColorizerId::VELOCITY));
+    palettePane->onPaletteChanged = [this](const Palette& palette) { renderPane->setPalette(palette); };
     info.Right()
         .MinSize(wxSize(300, 200))
         .CaptionVisible(true)

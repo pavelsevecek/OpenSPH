@@ -88,6 +88,14 @@ enum class ColorMapEnum {
     FILMIC,
 };
 
+enum class PaneEnum {
+    RENDER_PARAMS = 1 << 0,
+    PALETTE = 1 << 1,
+    PARTICLE_DATA = 1 << 2,
+    PLOTS = 1 << 3,
+    STATS = 1 << 4,
+};
+
 enum class GuiSettingsId {
     /// Selected renderer
     RENDERER,
@@ -194,6 +202,8 @@ enum class GuiSettingsId {
     CONTOUR_SHOW_LABELS,
 
     DEFAULT_COLORIZER,
+
+    DEFAULT_PANES,
 
     /// Title of the window appearing on taskbar
     WINDOW_TITLE,

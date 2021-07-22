@@ -287,15 +287,19 @@ void MainWindow::save() {
     addToRecentSessions(FileSystem::getAbsolutePath(projectPath));
 }
 
+template <typename TInput>
+bool isSph(const Path& path) {
+    TInput input;
+    Expected<typename TInput::Info> info = input.getInfo(path);
+    return info && info->runType == RunTypeEnum::SPH;
+}
+
 void MainWindow::open(const Path& openPath, const bool setDefaults) {
     BusyCursor wait(this);
 
     if (setDefaults) {
         // if loading a file specified as parameter, modify defaults if its SPH
-        /// \todo generalize
-        BinaryInput input;
-        Expected<BinaryInput::Info> info = input.getInfo(openPath);
-        const bool isSphSim = info && info->runType == RunTypeEnum::SPH;
+        const bool isSphSim = isSph<BinaryInput>(openPath) || isSph<CompressedInput>(openPath);
         const bool isMiluphSim = openPath.extension() == Path("h5");
         if (isSphSim || isMiluphSim) {
             Project::getInstance().getGuiSettings().set(GuiSettingsId::PARTICLE_RADIUS, 0.35);

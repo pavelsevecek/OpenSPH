@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui/objects/Palette.h"
-#include "objects/containers/FlatMap.h"
+#include "objects/containers/UnorderedMap.h"
 #include "objects/wrappers/Function.h"
 #include <wx/frame.h>
 #include <wx/panel.h>
@@ -17,29 +17,24 @@ private:
 
     PaletteCanvas* canvas;
 
-    Function<void(Palette)> setPaletteCallback;
-
-    FlatMap<std::string, Palette> paletteMap;
+    UnorderedMap<std::string, Palette> paletteMap;
 
     Palette initial;
-
     Palette selected;
 
 public:
-    PalettePanel(wxWindow* parent, wxSize size, const Palette palette, Function<void(Palette)> setPalette);
+    PalettePanel(wxWindow* parent, wxSize size, const Palette palette);
+
+    void setPalette(const Palette& palette);
+
+    Function<void(Palette)> onPaletteChanged;
 
 private:
-    void update();
-
     void setDefaultPaletteList();
-};
 
-class PaletteDialog : public wxFrame {
-public:
-    PaletteDialog(wxWindow* parent, wxSize size, const Palette palette, Function<void(Palette)> setPalette)
-        : wxFrame(parent, wxID_ANY, "Palette Dialog", wxGetMousePosition(), size) {
-        new PalettePanel(this, size, palette, setPalette);
-    }
+    void loadPalettes(const Path& path);
+
+    void update();
 };
 
 NAMESPACE_SPH_END

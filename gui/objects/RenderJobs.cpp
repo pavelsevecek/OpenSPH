@@ -108,9 +108,6 @@ VirtualSettings AnimationJob::getSettings() {
     rendererCat.connect<Float>("Medium absorption [km^-1]", gui, GuiSettingsId::VOLUME_ABSORPTION)
         .setUnits(1.e-3_f)
         .setEnabler(volumeEnabler);
-    rendererCat.connect<Float>("Cell size", gui, GuiSettingsId::SURFACE_RESOLUTION).setEnabler([this] {
-        return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::MESH;
-    });
 
     VirtualSettings::Category& textureCat = connector.addCategory("Texture paths");
     textureCat.connect<Path>("Background", gui, GuiSettingsId::RAYTRACE_HDRI)

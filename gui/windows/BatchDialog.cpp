@@ -194,7 +194,7 @@ public:
 
         wxBoxSizer* nodeSizer = new wxBoxSizer(wxHORIZONTAL);
         nodeSizer->Add(new wxStaticText(this, wxID_ANY, "Node:", wxDefaultPosition, wxSize(120, -1)));
-        nodeBox = new ComboBox(this, "", wxSize(200, -1));
+        nodeBox = new ComboBox(this, "");
         wxArrayString items;
         for (const SharedPtr<JobNode>& node : nodes) {
             items.Add(node->instanceName());
@@ -206,7 +206,7 @@ public:
 
         wxBoxSizer* paramSizer = new wxBoxSizer(wxHORIZONTAL);
         paramSizer->Add(new wxStaticText(this, wxID_ANY, "Parameter:", wxDefaultPosition, wxSize(120, -1)));
-        paramBox = new ComboBox(this, "", wxSize(200, -1));
+        paramBox = new ComboBox(this, "");
         paramSizer->Add(paramBox);
         sizer->Add(paramSizer);
 

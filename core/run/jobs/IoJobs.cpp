@@ -16,8 +16,8 @@ NAMESPACE_SPH_BEGIN
 // ----------------------------------------------------------------------------------------------------------
 
 static RegisterEnum<UnitEnum> sUnits({
-    { UnitEnum::SI, "si", "SI unit system" },
-    { UnitEnum::CGS, "cgs", "CGS unit system" },
+    { UnitEnum::SI, "SI", "SI unit system" },
+    { UnitEnum::CGS, "CGS", "CGS unit system" },
     { UnitEnum::NBODY, "nbody", "N-body (Hénon) units" },
 });
 

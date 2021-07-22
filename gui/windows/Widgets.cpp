@@ -15,7 +15,7 @@ FloatTextCtrl::FloatTextCtrl(wxWindow* parent, const double value, const Interva
         wxID_ANY,
         std::to_string(value),
         wxDefaultPosition,
-        wxSize(120, 30),
+        wxSize(100, 25),
         wxTE_PROCESS_ENTER | wxTE_RIGHT,
         *validator);
 

@@ -10,6 +10,7 @@
 #include "gui/renderers/VolumeRenderer.h"
 #include "gui/windows/MainWindow.h"
 #include "gui/windows/OrthoPane.h"
+#include "gui/windows/PaletteDialog.h"
 #include "gui/windows/ParticleProbe.h"
 #include "gui/windows/PlotView.h"
 #include "gui/windows/ProgressPanel.h"
@@ -27,7 +28,6 @@
 #include <wx/button.h>
 #include <wx/checkbox.h>
 #include <wx/clrpicker.h>
-#include <wx/combobox.h>
 #include <wx/gauge.h>
 #include <wx/msgdlg.h>
 #include <wx/radiobut.h>
@@ -82,8 +82,6 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
 
     wxPanel* visBar = createVisBar();
     pane = alignedNew<OrthoPane>(this, parent, settings);
-    wxPanel* plotBar = createPlotBar();
-    statsBar = createStatsBar();
 
     timelineBar = alignedNew<TimeLine>(this, Path(), makeShared<TimeLineCallbacks>(parent));
     progressBar = alignedNew<ProgressPanel>(this);
@@ -100,24 +98,65 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
     manager->AddPane(timelineBar, info.Show(false));
     manager->AddPane(progressBar, info.Show(true));
 
-    info.Left()
-        .MinSize(wxSize(300, -1))
-        .CaptionVisible(true)
-        .DockFixed(false)
-        .CloseButton(true)
-        .Caption("Visualization");
-    manager->AddPane(visBar, info);
-
-    info.Right()
-        .MinSize(wxSize(300, -1))
-        .CaptionVisible(true)
-        .DockFixed(false)
-        .CloseButton(true)
-        .Caption("Run statistics");
-    manager->AddPane(statsBar, info);
-    info.Caption("Particle data");
-    manager->AddPane(plotBar, info);
-
+    Flags<PaneEnum> paneIds = settings.getFlags<PaneEnum>(GuiSettingsId::DEFAULT_PANES);
+    const Optional<Palette> palette = controller->getCurrentColorizer()->getPalette();
+    if (paneIds.has(PaneEnum::PALETTE) && palette) {
+        palettePanel = alignedNew<PalettePanel>(this, wxSize(300, -1), palette.value());
+        palettePanel->onPaletteChanged = [this](const Palette& palette) {
+            controller->setPaletteOverride(palette);
+        };
+        info.Left()
+            .MinSize(wxSize(300, -1))
+            .CaptionVisible(true)
+            .DockFixed(false)
+            .CloseButton(true)
+            .DestroyOnClose(false)
+            .Caption("Palette");
+        manager->AddPane(palettePanel, info);
+    }
+    if (paneIds.has(PaneEnum::RENDER_PARAMS)) {
+        info.Left()
+            .MinSize(wxSize(300, -1))
+            .CaptionVisible(true)
+            .DockFixed(false)
+            .CloseButton(true)
+            .DestroyOnClose(false)
+            .Caption("Visualization");
+        manager->AddPane(visBar, info);
+    }
+    if (paneIds.has(PaneEnum::STATS)) {
+        statsBar = createStatsBar();
+        info.Right()
+            .MinSize(wxSize(300, -1))
+            .CaptionVisible(true)
+            .DockFixed(false)
+            .CloseButton(true)
+            .DestroyOnClose(false)
+            .Caption("Run statistics");
+        manager->AddPane(statsBar, info);
+    }
+    if (paneIds.has(PaneEnum::PLOTS)) {
+        wxPanel* plotBar = createPlotBar();
+        info.Right()
+            .MinSize(wxSize(300, -1))
+            .CaptionVisible(true)
+            .DockFixed(false)
+            .CloseButton(true)
+            .DestroyOnClose(false)
+            .Caption("Plots");
+        manager->AddPane(plotBar, info);
+    }
+    if (paneIds.has(PaneEnum::PARTICLE_DATA)) {
+        wxPanel* probeBar = createProbeBar();
+        info.Right()
+            .MinSize(wxSize(300, -1))
+            .CaptionVisible(true)
+            .DockFixed(false)
+            .CloseButton(true)
+            .DestroyOnClose(false)
+            .Caption("Particle data");
+        manager->AddPane(probeBar, info);
+    }
 
     manager->Update();
 }
@@ -133,7 +172,7 @@ const wxSize spinnerSize(100, -1);
 const int boxPadding = 10;
 
 wxWindow* RunPage::createParticleBox(wxPanel* parent) {
-    wxStaticBox* particleBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 135));
+    wxStaticBox* particleBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 118));
 
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
 
@@ -174,23 +213,12 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     particleSizeSizer->AddSpacer(boxPadding);
     boxSizer->Add(particleSizeSizer);
 
-
-    wxBoxSizer* grayscaleSizer = new wxBoxSizer(wxHORIZONTAL);
-    grayscaleSizer->AddSpacer(boxPadding);
-
-    wxBoxSizer* keySizer = new wxBoxSizer(wxHORIZONTAL);
-    keySizer->AddSpacer(boxPadding);
-    wxCheckBox* keyBox = new wxCheckBox(particleBox, wxID_ANY, "Show key");
-    keyBox->SetToolTip(
-        "If checked, the color palette and the length scale are included in the rendered image.");
-    keyBox->SetValue(gui.get<bool>(GuiSettingsId::SHOW_KEY));
-    keySizer->Add(keyBox);
-    keySizer->AddSpacer(33);
+    wxBoxSizer* ghostSizer = new wxBoxSizer(wxHORIZONTAL);
+    ghostSizer->AddSpacer(boxPadding);
     wxCheckBox* ghostBox = new wxCheckBox(particleBox, wxID_ANY, "Show ghosts");
     ghostBox->SetValue(gui.get<bool>(GuiSettingsId::RENDER_GHOST_PARTICLES));
-    keySizer->Add(ghostBox);
-
-    boxSizer->Add(keySizer);
+    ghostSizer->Add(ghostBox);
+    boxSizer->Add(ghostSizer);
 
     wxBoxSizer* aaSizer = new wxBoxSizer(wxHORIZONTAL);
     aaSizer->AddSpacer(boxPadding);
@@ -200,37 +228,18 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
         "If checked, particles are drawn with anti-aliasing, creating smoother image, but it also takes "
         "longer to render it.");
     aaSizer->Add(aaBox);
-
-    aaSizer->AddSpacer(boxPadding);
-    wxCheckBox* smoothBox = new wxCheckBox(particleBox, wxID_ANY, "Smooth particles");
-    smoothBox->SetToolTip(
-        "If checked, particles are drawn semi-transparently. The transparency of a particle follows "
-        "smoothing kernel, imitating actual smoothing of SPH particles.");
-    smoothBox->Enable(false);
-    aaSizer->Add(smoothBox);
     boxSizer->Add(aaSizer);
 
     particleBox->SetSizer(boxSizer);
 
-    keyBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
-        const bool value = evt.IsChecked();
-        gui.set(GuiSettingsId::SHOW_KEY, value);
-        controller->refresh();
-    });
     ghostBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
         const bool value = evt.IsChecked();
         gui.set(GuiSettingsId::RENDER_GHOST_PARTICLES, value);
         controller->tryRedraw();
     });
-    aaBox->Bind(wxEVT_CHECKBOX, [this, smoothBox](wxCommandEvent& evt) {
+    aaBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
         const bool value = evt.IsChecked();
         gui.set(GuiSettingsId::ANTIALIASED, value);
-        smoothBox->Enable(value);
-        controller->refresh();
-    });
-    smoothBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
-        const bool value = evt.IsChecked();
-        gui.set(GuiSettingsId::SMOOTH_PARTICLES, value);
         controller->refresh();
     });
 
@@ -238,7 +247,7 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
 }
 
 wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
-    wxStaticBox* raytraceBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 150));
+    wxStaticBox* raytraceBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 125));
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* levelSizer = new wxBoxSizer(wxHORIZONTAL);
     levelSizer->AddSpacer(boxPadding);
@@ -309,7 +318,7 @@ wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
 }
 
 wxWindow* RunPage::createVolumeBox(wxPanel* parent) {
-    wxStaticBox* volumeBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 120));
+    wxStaticBox* volumeBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 100));
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
 
     wxBoxSizer* emissionSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -381,6 +390,7 @@ wxPanel* RunPage::createVisBar() {
     wxBoxSizer* visbarSizer = new wxBoxSizer(wxVERTICAL);
 
     wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
+    buttonSizer->AddStretchSpacer(1);
     wxButton* resetView = new wxButton(visbarPanel, wxID_ANY, "Reset view");
     resetView->SetToolTip("Resets the camera rotation.");
     resetView->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
@@ -414,8 +424,9 @@ wxPanel* RunPage::createVisBar() {
         const wxBitmap& bitmap = controller->getRenderedBitmap();
         saveToFile(bitmap, path.value());
     });
+    buttonSizer->AddStretchSpacer(1);
 
-    visbarSizer->Add(buttonSizer);
+    visbarSizer->Add(buttonSizer, 0, wxALIGN_CENTER_HORIZONTAL);
     visbarSizer->AddSpacer(10);
 
     wxCheckBox* autoRefresh = new wxCheckBox(visbarPanel, wxID_ANY, "Refresh on timestep");
@@ -470,20 +481,20 @@ wxPanel* RunPage::createVisBar() {
 
     wxBoxSizer* quantitySizer = new wxBoxSizer(wxHORIZONTAL);
 
-    quantitySizer->Add(new wxStaticText(visbarPanel, wxID_ANY, "Quantity: "), 10, wxALIGN_CENTER_VERTICAL);
-    quantityBox = new ComboBox(visbarPanel, "", wxSize(200, -1));
+    quantitySizer->AddSpacer(15);
+    quantitySizer->Add(new wxStaticText(visbarPanel, wxID_ANY, "Quantity"), 10, wxALIGN_CENTER_VERTICAL);
+    quantityBox = new ComboBox(visbarPanel, "", 160);
     quantityBox->SetToolTip(
         "Selects which quantity to visualize using associated color scale. Quantity values can be also "
         "obtained by left-clicking on a particle.");
-    quantityBox->SetWindowStyle(wxCB_SIMPLE | wxCB_READONLY);
     quantityBox->SetSelection(0);
     quantityBox->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         const int idx = quantityBox->GetSelection();
         this->setColorizer(idx);
     });
-
     quantitySizer->Add(quantityBox, 1, wxALIGN_CENTER_VERTICAL, 5);
+    quantitySizer->AddSpacer(13);
 
     visbarSizer->Add(quantitySizer);
     visbarSizer->AddSpacer(10);
@@ -510,6 +521,8 @@ wxPanel* RunPage::createVisBar() {
     wxWindow* volumeBox = this->createVolumeBox(visbarPanel);
     visbarSizer->Add(volumeBox, 0, wxALL, 5);
     visbarSizer->AddSpacer(10);
+
+    visbarSizer->AddStretchSpacer(1);
 
     /*wxRadioButton* contourButton =
         new wxRadioButton(visbarPanel, wxID_ANY, "Iso-lines", wxDefaultPosition, buttonSize, 0);
@@ -572,11 +585,6 @@ wxPanel* RunPage::createVisBar() {
         enableControls(2);
     });
 
-    visbarSizer->AddSpacer(16);
-    quantityPanel = new wxPanel(visbarPanel, wxID_ANY);
-    visbarSizer->Add(quantityPanel);
-    quantityPanelSizer = visbarSizer;
-
     visbarPanel->SetSizer(visbarSizer);
     return visbarPanel;
 }
@@ -594,12 +602,19 @@ void RunPage::updateCutoff(const double cutoff) {
     controller->tryRedraw();
 }
 
-wxPanel* RunPage::createPlotBar() {
+wxPanel* RunPage::createProbeBar() {
     wxPanel* sidebarPanel = new wxPanel(this);
     wxBoxSizer* sidebarSizer = new wxBoxSizer(wxVERTICAL);
     probe = new ParticleProbe(sidebarPanel, wxSize(300, 155));
     sidebarSizer->Add(probe.get(), 1, wxALIGN_TOP | wxEXPAND);
-    sidebarSizer->AddSpacer(5);
+
+    sidebarPanel->SetSizerAndFit(sidebarSizer);
+    return sidebarPanel;
+}
+
+wxPanel* RunPage::createPlotBar() {
+    wxPanel* sidebarPanel = new wxPanel(this);
+    wxBoxSizer* sidebarSizer = new wxBoxSizer(wxVERTICAL);
 
     SharedPtr<Array<PlotData>> list = makeShared<Array<PlotData>>(getPlotList(gui));
     for (const auto& plotData : *list) {
@@ -609,12 +624,12 @@ wxPanel* RunPage::createPlotBar() {
     TicsParams tics;
     tics.minCnt = 2;
     tics.digits = 1;
-    firstPlot = new PlotView(sidebarPanel, wxSize(300, 200), wxSize(10, 10), list, 0, tics);
-    sidebarSizer->Add(firstPlot, 1, wxALIGN_TOP | wxEXPAND);
+    plotViews.push(new PlotView(sidebarPanel, wxSize(300, 200), wxSize(10, 10), list, 0, tics));
+    sidebarSizer->Add(plotViews.back().get(), 1, wxALIGN_TOP | wxEXPAND);
     sidebarSizer->AddSpacer(5);
 
-    secondPlot = new PlotView(sidebarPanel, wxSize(300, 200), wxSize(10, 10), list, 1, tics);
-    sidebarSizer->Add(secondPlot, 1, wxALIGN_TOP | wxEXPAND);
+    plotViews.push(new PlotView(sidebarPanel, wxSize(300, 200), wxSize(10, 10), list, 1, tics));
+    sidebarSizer->Add(plotViews.back().get(), 1, wxALIGN_TOP | wxEXPAND);
 
     sidebarPanel->SetSizerAndFit(sidebarSizer);
     return sidebarPanel;
@@ -716,11 +731,15 @@ void RunPage::makeStatsText(const Size particleCnt, const Statistics& stats) {
 }
 
 void RunPage::setColorizer(const Size idx) {
-    // do this even if idx==selectedIdx, we might change the colorizerList (weird behavior, but it will do for
-    // now)
+    // do this even if idx==selectedIdx, we might change the colorizerList
+    // (weird behavior, but it will do for now)
     controller->setColorizer(colorizerList[idx]);
     if (idx == selectedIdx) {
         return;
+    }
+    Optional<Palette> palette = colorizerList[idx]->getPalette();
+    if (palettePanel && palette) {
+        palettePanel->setPalette(palette.value());
     }
     this->replaceQuantityBar(idx);
     selectedIdx = idx;
@@ -801,26 +820,44 @@ void RunPage::addComponentIdBar(wxWindow* parent, wxSizer* sizer, SharedPtr<ICol
 }
 
 void RunPage::replaceQuantityBar(const Size idx) {
-    quantityPanel->Destroy();
-
-    quantityPanel = new wxPanel(this, wxID_ANY);
     // so far only needed for component id, so it is hacked like this
     SharedPtr<IColorizer> newColorizer = colorizerList[idx];
     /// \todo implement SharedPtr dynamicCast
-    if (dynamicCast<ComponentIdColorizer>(newColorizer.get())) {
-        wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-        sizer->Add(new wxStaticText(quantityPanel, wxID_ANY, newColorizer->name()));
-        wxBoxSizer* offsetSizer = new wxBoxSizer(wxHORIZONTAL);
-        offsetSizer->AddSpacer(25);
-        sizer->Add(offsetSizer);
-        wxBoxSizer* actSizer = new wxBoxSizer(wxVERTICAL);
-        addComponentIdBar(quantityPanel, actSizer, newColorizer);
-        offsetSizer->Add(actSizer);
-        quantityPanel->SetSizerAndFit(sizer);
+    if (!dynamicCast<ComponentIdColorizer>(newColorizer.get())) {
+        return;
     }
 
-    quantityPanelSizer->Add(quantityPanel);
-    this->Layout();
+    if (wxWeakRef<wxPanel>(quantityPanel)) {
+        // already exists
+        if (quantityPanel != nullptr) {
+            manager->GetPane(quantityPanel).Show();
+            manager->Update();
+        }
+        return;
+    }
+
+    quantityPanel = new wxPanel(this, wxID_ANY);
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+    // sizer->Add(new wxStaticText(quantityPanel, wxID_ANY, newColorizer->name()));
+    // wxBoxSizer* offsetSizer = new wxBoxSizer(wxHORIZONTAL);
+    // offsetSizer->AddSpacer(25);
+    // sizer->Add(offsetSizer);
+    // wxBoxSizer* actSizer = new wxBoxSizer(wxVERTICAL);
+    addComponentIdBar(quantityPanel, sizer, newColorizer);
+    // offsetSizer->Add(sizer);
+    quantityPanel->SetSizerAndFit(sizer);
+
+    wxAuiPaneInfo info;
+    info.Left()
+        .Position(1)
+        .MinSize(wxSize(300, -1))
+        .CaptionVisible(true)
+        .DockFixed(false)
+        .CloseButton(true)
+        .DestroyOnClose(true)
+        .Caption("Components");
+    manager->AddPane(quantityPanel, info);
+    manager->Update();
 }
 
 
@@ -903,9 +940,9 @@ void RunPage::onTimeStep(const Storage& storage, const Statistics& stats) {
         }
 
         executeOnMainThread([this] {
-            SPH_ASSERT(firstPlot && secondPlot);
-            firstPlot->Refresh();
-            secondPlot->Refresh();
+            for (auto view : plotViews) {
+                view->Refresh();
+            }
         });
     }
 }

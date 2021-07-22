@@ -508,6 +508,10 @@ Optional<Size> Controller::getIntersectedParticle(const Pixel position, const fl
 void Controller::setColorizer(const SharedPtr<IColorizer>& newColorizer) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     vis.colorizer = newColorizer;
+    Palette palette;
+    if (project.getPalette(vis.colorizer->name(), palette)) {
+        vis.colorizer->setPalette(palette);
+    }
     if (!this->tryRedraw()) {
         this->redrawOnNextTimeStep();
     }

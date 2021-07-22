@@ -140,7 +140,8 @@ static void drawKey(IRenderContext& context,
     const float wtp,
     const float UNUSED(fps),
     const Rgba& background) {
-    const Coords keyStart(5, 2);
+    const Coords size = Coords(context.size());
+    const Coords keyStart = size - Coords(160, 80);
     Flags<TextAlign> flags = TextAlign::RIGHT | TextAlign::BOTTOM;
 
     context.setColor(background.inverse(), ColorFlag::TEXT | ColorFlag::LINE);
@@ -349,18 +350,6 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
     }
 
     if (params.showKey) {
-        if (cached.palette) {
-            const Pixel origin(context->size().x - 50, 231);
-            Palette palette;
-            if (params.particles.grayScale) {
-                palette =
-                    cached.palette->transform([](const Rgba& color) { return Rgba(color.intensity()); });
-            } else {
-                palette = cached.palette.value();
-            }
-            drawPalette(*context, origin, Pixel(30, 201), params.background.inverse(), palette);
-        }
-
         if (Optional<float> wtp = params.camera->getWorldToPixel()) {
             const float fps = 1000.f / lastRenderTimer.elapsed(TimerUnit::MILLISECOND);
             lastRenderTimer.restart();

@@ -35,6 +35,7 @@ struct DiagnosticsError;
 class SelectedParticlePlot;
 class TimeLine;
 class ProgressPanel;
+class PalettePanel;
 class ComboBox;
 
 /// \brief Main frame of the application.
@@ -57,10 +58,11 @@ private:
     RawPtr<ParticleProbe> probe;
 
     Array<LockingPtr<IPlot>> plots;
-    PlotView* firstPlot = nullptr;
-    PlotView* secondPlot = nullptr;
+    Array<RawPtr<PlotView>> plotViews;
 
     LockingPtr<SelectedParticlePlot> selectedParticlePlot;
+
+    PalettePanel* palettePanel = nullptr;
 
     wxTextCtrl* statsText = nullptr;
     Timer statsTimer;
@@ -68,14 +70,13 @@ private:
     wxDialog* waitingDialog = nullptr;
 
     /// Additional wx controls
-    ComboBox* quantityBox;
+    ComboBox* quantityBox = nullptr;
     Size selectedIdx = 0;
-    wxPanel* quantityPanel;
-    wxSizer* quantityPanelSizer;
+    wxPanel* quantityPanel = nullptr;
 
-    TimeLine* timelineBar;
-    ProgressPanel* progressBar;
-    wxPanel* statsBar;
+    TimeLine* timelineBar = nullptr;
+    ProgressPanel* progressBar = nullptr;
+    wxPanel* statsBar = nullptr;
 
     /// Colorizers corresponding to the items in combobox
     Array<SharedPtr<IColorizer>> colorizerList;
@@ -114,7 +115,10 @@ private:
     /// Toolbar on the top, containing buttons for controlling the run.
     // wxPanel* createToolBar();
 
-    /// Panel on the right, with plots and particle info
+    /// Panel on the right with particle data
+    wxPanel* createProbeBar();
+
+    /// Panel on the right with plots
     wxPanel* createPlotBar();
 
     /// Panel on the left, with visualization controls

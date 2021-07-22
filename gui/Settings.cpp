@@ -171,6 +171,9 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "TODO" },
     { GuiSettingsId::DEFAULT_COLORIZER,     "default_colorizer",    ColorizerId::VELOCITY,
         "Default colorizer shown when the simulation starts." },
+    { GuiSettingsId::DEFAULT_PANES,         "default_panes",
+      PaneEnum::RENDER_PARAMS | PaneEnum::PALETTE | PaneEnum::PARTICLE_DATA | PaneEnum::PLOTS  | PaneEnum::STATS,
+        "Default panes in the run page." },
 
     /// Window settings
     { GuiSettingsId::WINDOW_TITLE,          "window.title",         std::string("OpenSPH"),
