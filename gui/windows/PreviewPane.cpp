@@ -161,7 +161,7 @@ void InteractiveRenderer::setCameraAccessor(const RunSettings& globals,
         }
 
         SharedPtr<JobNode> node = weakNode.lock();
-        SPH_ASSERT(node)
+        SPH_ASSERT(node);
         changed.camera = this->getNewCamera(node, globals);
 
         const std::string key = anyCast<std::string>(value).value();
