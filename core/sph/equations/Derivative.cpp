@@ -123,7 +123,7 @@ void DerivativeHolder::evalSymmetric(const Size idx,
     SPH_ASSERT(neighs.size() == grads.size());
     SPH_ASSERT(isSymmetric());
     for (const auto& deriv : derivatives) {
-        ISymmetricDerivative* symmetric = assert_cast<ISymmetricDerivative*>(&*deriv);
+        ISymmetricDerivative* symmetric = assertCast<ISymmetricDerivative>(&*deriv);
         symmetric->evalSymmetric(idx, neighs, grads);
     }
 }

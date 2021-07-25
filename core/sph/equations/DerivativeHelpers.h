@@ -86,7 +86,7 @@ public:
         if (typeid(*this) != typeid(other)) {
             return false;
         }
-        const TDerived* actOther = assert_cast<const TDerived*>(&other);
+        const TDerived* actOther = assertCast<const TDerived>(&other);
         return (flags == actOther->flags) && derived()->additionalEquals(*actOther);
     }
 
@@ -202,7 +202,7 @@ public:
         if (typeid(*this) != typeid(other)) {
             return false;
         }
-        const TDerived* actOther = assert_cast<const TDerived*>(&other);
+        const TDerived* actOther = assertCast<const TDerived>(&other);
         return (sumOnlyUndamaged == actOther->sumOnlyUndamaged) && derived()->additionalEquals(*actOther);
     }
 
