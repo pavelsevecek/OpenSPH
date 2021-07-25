@@ -288,6 +288,7 @@ class PanoCameraBase : public ICamera {
 protected:
     CameraParams data;
     AffineMatrix matrix;
+    AffineMatrix matrixInv;
 
 public:
     explicit PanoCameraBase(const CameraParams& data);
@@ -338,6 +339,8 @@ private:
 public:
     explicit FisheyeCamera(const CameraParams& data);
 
+    virtual Optional<ProjectedPoint> project(const Vector& r) const override;
+
     virtual Optional<CameraRay> unproject(const Coords& coords) const override;
 
     virtual AutoPtr<ICamera> clone() const override {
@@ -352,6 +355,8 @@ private:
 class SphericalCamera : public PanoCameraBase {
 public:
     explicit SphericalCamera(const CameraParams& data);
+
+    virtual Optional<ProjectedPoint> project(const Vector& r) const override;
 
     virtual Optional<CameraRay> unproject(const Coords& coords) const override;
 

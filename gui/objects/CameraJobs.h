@@ -79,4 +79,15 @@ public:
     virtual VirtualSettings getSettings() override;
 };
 
+class SphericalCameraJob : public ICameraJob {
+public:
+    explicit SphericalCameraJob(const std::string& name);
+
+    virtual std::string className() const override {
+        return "spherical camera";
+    }
+
+    virtual VirtualSettings getSettings() override;
+};
+
 NAMESPACE_SPH_END

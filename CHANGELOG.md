@@ -12,6 +12,8 @@
 - setting default particle radius of SPH .scf files to 0.35
 - registered format function to use in Chaiscript
 - changed 'batch' simulation from JobNode to custom INode implementation
+- added spherical camera job
+- implemented functions setPosition, setTarget and project for panoramatic cameras
 
 ## 2021-07-20
 - improved polytrope IC

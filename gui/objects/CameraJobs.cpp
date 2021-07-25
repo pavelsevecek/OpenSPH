@@ -136,4 +136,29 @@ JobRegistrar sRegisterFisheye(
     [](const std::string& name) { return makeAuto<FisheyeCameraJob>(name); },
     "Creates a fisheye camera.");
 
+// ----------------------------------------------------------------------------------------------------------
+// SphericalCameraJob
+// ----------------------------------------------------------------------------------------------------------
+
+SphericalCameraJob::SphericalCameraJob(const std::string& name)
+    : ICameraJob(name) {
+    gui.set(GuiSettingsId::CAMERA_TYPE, CameraEnum::SPHERICAL);
+}
+
+VirtualSettings SphericalCameraJob::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+    addResolutionCategory(connector, gui);
+    addTransformCategory(connector, gui);
+    addTrackingCategory(connector, gui);
+    return connector;
+}
+
+JobRegistrar sRegisterSpherical(
+    "spherical camera",
+    "camera",
+    "rendering",
+    [](const std::string& name) { return makeAuto<SphericalCameraJob>(name); },
+    "Creates a spherical 360° camera.");
+
 NAMESPACE_SPH_END

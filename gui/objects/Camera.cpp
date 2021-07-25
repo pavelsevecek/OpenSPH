@@ -173,8 +173,7 @@ void OrthoCamera::zoom(const Pixel fixedPoint, const float magnitude) {
 }
 
 void OrthoCamera::setPosition(const Vector& newPosition) {
-    const Vector offset = newPosition - data.position;
-    data.position += offset;
+    data.position = newPosition;
     this->update();
 }
 
@@ -408,12 +407,14 @@ void PanoCameraBase::zoom(const Pixel UNUSED(fixedPoint), const float UNUSED(mag
     NOT_IMPLEMENTED;
 }
 
-void PanoCameraBase::setPosition(const Vector& UNUSED(newPosition)) {
-    NOT_IMPLEMENTED;
+void PanoCameraBase::setPosition(const Vector& newPosition) {
+    data.position = newPosition;
+    this->update();
 }
 
-void PanoCameraBase::setTarget(const Vector& UNUSED(newPosition)) {
-    NOT_IMPLEMENTED;
+void PanoCameraBase::setTarget(const Vector& newTarget) {
+    data.target = newTarget;
+    this->update();
 }
 
 void PanoCameraBase::transform(const AffineMatrix& UNUSED(matrix)) {
@@ -438,7 +439,8 @@ void PanoCameraBase::update() {
 
     const Vector left = getNormalized(cross(up, dir));
 
-    matrix = AffineMatrix(-dir, -left, up).inverse();
+    matrixInv = AffineMatrix(-dir, -left, up);
+    matrix = matrixInv.inverse();
 }
 
 // ----------------------------------------------------------------------------------------------------------
@@ -448,6 +450,16 @@ void PanoCameraBase::update() {
 FisheyeCamera::FisheyeCamera(const CameraParams& data)
     : PanoCameraBase(data) {
     this->update();
+}
+
+Optional<ProjectedPoint> FisheyeCamera::project(const Vector& point) const {
+    const Vector dir = matrixInv * (point - data.position);
+    SphericalCoords spherical = cartensianToSpherical(dir);
+    spherical.phi -= PI / 2._f;
+    const Float r = spherical.theta * 2._f / PI;
+    const Coords p(r * cos(spherical.phi), r * sin(spherical.phi));
+    const float rad = point[H] / (PI * spherical.r) * cached.radius;
+    return ProjectedPoint{ p * cached.radius + cached.center, rad };
 }
 
 Optional<CameraRay> FisheyeCamera::unproject(const Coords& coords) const {
@@ -478,7 +490,8 @@ void FisheyeCamera::update() {
 
     const Vector left = getNormalized(cross(up, dir));
 
-    matrix = AffineMatrix(up, left, dir).inverse();
+    matrixInv = AffineMatrix(up, left, dir);
+    matrix = matrixInv.inverse();
 
     cached.center = Coords(data.imageSize.x / 2, data.imageSize.y / 2);
     cached.radius = min(cached.center.x, cached.center.y);
@@ -491,6 +504,18 @@ void FisheyeCamera::update() {
 SphericalCamera::SphericalCamera(const CameraParams& data)
     : PanoCameraBase(data) {
     this->update();
+}
+
+Optional<ProjectedPoint> SphericalCamera::project(const Vector& r) const {
+    const Vector dir = matrixInv * (r - data.position);
+    SphericalCoords spherical = cartensianToSpherical(dir);
+    if (spherical.phi < 0._f) {
+        spherical.phi += 2._f * PI;
+    }
+    const float x = spherical.phi / (2._f * PI) * data.imageSize.x;
+    const float y = spherical.theta / PI * data.imageSize.y;
+    const float rad = r[H] / (2._f * PI * spherical.r) * data.imageSize.x;
+    return ProjectedPoint{ Coords(x, y), rad };
 }
 
 Optional<CameraRay> SphericalCamera::unproject(const Coords& coords) const {

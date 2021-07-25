@@ -810,13 +810,11 @@ INLINE SphericalCoords cartensianToSpherical(const Vector& v) {
     return { r, theta, phi };
 }
 
-
 /// Computes a spherical inversion of a vector. Works in arbitrary number of dimensions.
 /// \param v Vector to be inverted.
 /// \param center Center of the spherical inversion.
 /// \param radius Radius of the spherical inversion. For vectors in radius from center, spherical
-/// inversion is
-///               an identity transform.
+///               inversion is an identity transform.
 INLINE Vector sphericalInversion(const Vector& v, const Vector& center, const Float radius) {
     const Vector diff = v - center;
     const Float lSqr = getSqrLength(diff);
