@@ -207,9 +207,9 @@ void OrthoCamera::pan(const Pixel offset) {
 }
 
 void OrthoCamera::resize(const Pixel newSize) {
-    // const Coords scaling = Coords(newSize) / Coords(data.imageSize);
+    const float scale = float(newSize.y) / float(data.imageSize.y);
     data.imageSize = newSize;
-    // center = Pixel(Coords(center) * scaling);
+    data.ortho.fov *= scale;
 }
 
 // ----------------------------------------------------------------------------------------------------------
@@ -382,7 +382,7 @@ Pixel PanoCameraBase::getSize() const {
 }
 
 AffineMatrix PanoCameraBase::getFrame() const {
-    NOT_IMPLEMENTED;
+    return AffineMatrix(matrix).removeTranslation().translate(data.position);
 }
 
 Vector PanoCameraBase::getTarget() const {

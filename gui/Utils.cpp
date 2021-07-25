@@ -2,6 +2,7 @@
 #include "common/Assert.h"
 #include "io/FileSystem.h"
 #include "objects/utility/StringUtils.h"
+#include "thread/CheckFunction.h"
 #include <iomanip>
 #include <wx/dcmemory.h>
 #include <wx/filedlg.h>
@@ -192,6 +193,27 @@ void printLabels(wxDC& dc, ArrayView<const IRenderOutput::Label> labels) {
         const wxPoint origin(label.position + getOriginOffset(dc, label.align, label.text));
         drawTextWithSubscripts(dc, label.text, origin);
     }
+}
+
+TransparencyPattern::TransparencyPattern(const Size side, const Rgba& dark, const Rgba& light) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    stipple.resize(Pixel(2 * side, 2 * side), dark);
+    for (Size y = 0; y < side; ++y) {
+        for (Size x = 0; x < side; ++x) {
+            stipple(x, y) = light;
+            stipple(x + side, y + side) = light;
+        }
+    }
+}
+
+void TransparencyPattern::draw(wxDC& dc, const wxRect& rect) const {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    wxBrush brush = *wxBLACK_BRUSH;
+    wxBitmap wx;
+    toWxBitmap(stipple, wx);
+    brush.SetStipple(wx);
+    dc.SetBrush(brush);
+    dc.DrawRectangle(rect);
 }
 
 NAMESPACE_SPH_END

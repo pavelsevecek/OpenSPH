@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui/Settings.h"
+#include "gui/windows/Widgets.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/LockingPtr.h"
 #include "system/Settings.h"
@@ -36,13 +37,12 @@ class SelectedParticlePlot;
 class TimeLine;
 class ProgressPanel;
 class PalettePanel;
-class ComboBox;
 
 /// \brief Main frame of the application.
 ///
 /// Run is coupled with the window; currently there can only be one window and one run at the same time. Run
 /// is ended when user closes the window.
-class RunPage : public wxPanel {
+class RunPage : public ClosablePage {
 private:
     /// Parent control object
     RawPtr<Controller> controller;
@@ -66,8 +66,6 @@ private:
 
     wxTextCtrl* statsText = nullptr;
     Timer statsTimer;
-
-    wxDialog* waitingDialog = nullptr;
 
     /// Additional wx controls
     ComboBox* quantityBox = nullptr;
@@ -96,9 +94,6 @@ public:
 
     void onRunEnd();
 
-    // false means close has been veto'd
-    bool close();
-
     void setProgress(const Statistics& stats);
 
     void newPhase(const std::string& className, const std::string& instanceName);
@@ -112,6 +107,10 @@ public:
     wxSize getCanvasSize() const;
 
 private:
+    virtual bool isRunning() const override;
+    virtual void stop() override;
+    virtual void quit() override;
+
     /// Toolbar on the top, containing buttons for controlling the run.
     // wxPanel* createToolBar();
 

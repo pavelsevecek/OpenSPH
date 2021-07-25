@@ -77,6 +77,9 @@ public:
     /// \brief Inverse transform to \ref relativeToPalette.
     float paletteToRelative(const float value) const;
 
+    /// \brief Checks if the palette holds some data.
+    bool empty() const;
+
     /// \brief Loads the palette from given input stream.
     Outcome loadFromStream(std::istream& ifs);
 

@@ -68,7 +68,11 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Multiplier of the particle radius for drawing." },
     { GuiSettingsId::CAMERA_TYPE,           "camera.type",          CameraEnum::ORTHO,
         "Specifies the projection of the particles to the image. Can be one of the following:\n" + EnumMap::getDesc<CameraEnum>() },
-    { GuiSettingsId::CAMERA_POSITION,       "camera.position",      Vector(0._f, 0._f, 1._f),
+    { GuiSettingsId::CAMERA_WIDTH,          "images.width",         800,
+        "Width of the created images." },
+    { GuiSettingsId::CAMERA_HEIGHT,         "images.height",        600,
+        "Height of the created images." },
+    { GuiSettingsId::CAMERA_POSITION,       "camera.position",      Vector(0._f, 0._f, 1.e4_f),
         "Position of the camera in space." },
     { GuiSettingsId::CAMERA_VELOCITY,       "camera.velocity",      Vector(0._f),
         "Velocity of the camera in space." },
@@ -190,31 +194,6 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
     { GuiSettingsId::PLOT_OVERPLOT_SFD,     "plot.overplot_sfd",    std::string(""),
         "Path to the file containing SFD to plot over the computed one. The file must contain lines with value "
         "N(>D) and D [km]. If empty, no SFD is drawn."},
-
-    /// Saved animation frames
-    { GuiSettingsId::IMAGES_RENDERER,       "images.renderer",      RendererEnum::PARTICLE,
-        "Type of the renderer used when creating snapshot images. Values are the same as for 'renderer' entry." },
-    { GuiSettingsId::IMAGES_SAVE,           "images.save",          false,
-        "If true, snapshot images are periodically saved to disk." },
-    { GuiSettingsId::IMAGES_PATH,           "images.path",          std::string("imgs/"),
-        "Directory where the images are saved." },
-    { GuiSettingsId::IMAGES_NAME,           "images.name",          std::string("img_%e_%d.png"),
-        "File mask of the created images. Can contain wildcard %d, replaced with the counter of an image, "
-        "and %e, replaced with the name of the renderer quantity." },
-    { GuiSettingsId::IMAGES_FIRST_INDEX,    "images.first_index",   0,
-        "Index of the first generated image."},
-    { GuiSettingsId::IMAGES_MAKE_MOVIE,     "images.make_movie",    false,
-        "If true, an animation is made from the saved images automatically at the end of the simulation. "
-        "Requires ffmpeg to be installed." },
-    { GuiSettingsId::IMAGES_MOVIE_NAME,     "images.movie_name",    std::string("%e.avi"),
-        "File mask of the animation." },
-    { GuiSettingsId::IMAGES_TIMESTEP,       "images.time_step",     0.1_f,
-        "Period of creating the snapshot images." },
-    { GuiSettingsId::IMAGES_WIDTH,          "images.width",         800,
-        "Width of the created images." },
-    { GuiSettingsId::IMAGES_HEIGHT,         "images.height",        600,
-        "Height of the created images." },
-
 });
 // clang-format on
 

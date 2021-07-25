@@ -219,7 +219,7 @@ void PlotView::drawCaption(wxDC& dc, IPlot& lockedPlot) {
 }
 
 PlotPage::PlotPage(wxWindow* parent, const wxSize size, const wxSize padding, const LockingPtr<IPlot>& plot)
-    : wxPanel(parent, wxID_ANY)
+    : ClosablePage(parent, "plot")
     , plot(plot)
     , padding(padding) {
     this->SetMinSize(size);

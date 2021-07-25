@@ -20,10 +20,17 @@ public:
     }
 };
 
-/// \brief Thrown when components of the run are mutually incompatible.
+/// \brief Thrown when components of the run are mutually incompatible, parameters have invalid values, etc.
 class InvalidSetup : public Exception {
 public:
     explicit InvalidSetup(const std::string& message)
+        : Exception(message) {}
+};
+
+/// \brief Throws when a data-dependend error is encountered (all particles got removed, etc.)
+class DataException : public Exception {
+public:
+    explicit DataException(const std::string& message)
         : Exception(message) {}
 };
 

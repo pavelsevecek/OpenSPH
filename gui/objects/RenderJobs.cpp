@@ -25,24 +25,29 @@ NAMESPACE_SPH_BEGIN
 
 static RegisterEnum<AnimationType> sAnimation({
     { AnimationType::SINGLE_FRAME, "single_frame", "Renders only single frame." },
-    { AnimationType::ORBIT, "orbit", "Make animation by orbiting camera around specified center point." },
     { AnimationType::FILE_SEQUENCE, "file_sequence", "Make animation from saved files." },
 });
 
-static RegisterEnum<ColorizerFlag> sColorizers({
-    { ColorizerFlag::VELOCITY, "velocity", "Particle velocities" },
-    { ColorizerFlag::ENERGY, "energy", "Specific internal energy" },
-    { ColorizerFlag::BOUND_COMPONENT_ID, "bound components", "Components" },
-    { ColorizerFlag::MASS, "clay", "Clay" },
-    { ColorizerFlag::BEAUTY, "beauty", "Beauty" },
-    { ColorizerFlag::GRAVITY, "gravity", "Gravity" },
-    { ColorizerFlag::DAMAGE, "damage", "Damage" },
+enum class RenderColorizerId {
+    VELOCITY = int(ColorizerId::VELOCITY),
+    ENERGY = int(QuantityId::ENERGY),
+    DAMAGE = int(QuantityId::DAMAGE),
+    GRAVITY = 666,
+    BEAUTY = int(ColorizerId::BEAUTY),
+};
+
+static RegisterEnum<RenderColorizerId> sColorizers({
+    { RenderColorizerId::VELOCITY, "velocity", "Particle velocities" },
+    { RenderColorizerId::ENERGY, "energy", "Specific internal energy" },
+    { RenderColorizerId::DAMAGE, "damage", "Damage" },
+    { RenderColorizerId::GRAVITY, "gravity", "Gravitational acceleration" },
+    { RenderColorizerId::BEAUTY, "beauty", "Beauty" },
 });
 
 AnimationJob::AnimationJob(const std::string& name)
-    : INullJob(name) {
+    : IImageJob(name) {
     animationType = EnumWrapper(AnimationType::SINGLE_FRAME);
-    gui.set(GuiSettingsId::IMAGES_SAVE, true);
+    colorizerId = EnumWrapper(RenderColorizerId::VELOCITY);
 }
 
 VirtualSettings AnimationJob::getSettings() {
@@ -50,9 +55,13 @@ VirtualSettings AnimationJob::getSettings() {
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& outputCat = connector.addCategory("Output");
-    outputCat.connect<Path>("Directory", gui, GuiSettingsId::IMAGES_PATH)
-        .setPathType(IVirtualEntry::PathType::DIRECTORY);
-    outputCat.connect<std::string>("File mask", gui, GuiSettingsId::IMAGES_NAME);
+    outputCat.connect("Directory", "directory", directory)
+        .setPathType(IVirtualEntry::PathType::DIRECTORY)
+        .setTooltip("Directory where the images are saved.");
+    outputCat.connect("File mask", "file_mask", fileMask)
+        .setTooltip(
+            "File mask of the created images. Can contain wildcard %d, which is replaced with the number of "
+            "the saved image");
 
     auto particleEnabler = [this] {
         return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::PARTICLE;
@@ -70,9 +79,9 @@ VirtualSettings AnimationJob::getSettings() {
 
     VirtualSettings::Category& rendererCat = connector.addCategory("Rendering");
     rendererCat.connect<EnumWrapper>("Renderer", gui, GuiSettingsId::RENDERER);
-    rendererCat.connect("Quantities", "quantities", colorizers);
+    rendererCat.connect("Quantity", "quantity", colorizerId);
     rendererCat.connect("Include surface gravity", "surface_gravity", addSurfaceGravity)
-        .setEnabler([this] { return colorizers.has(ColorizerFlag::GRAVITY); })
+        .setEnabler([this] { return false; }) // return colorizercolorizers.has(ColorizerFlag::GRAVITY); })
         .setTooltip("Include the surface gravity of the particle itself.");
     rendererCat.connect<bool>("Transparent background", "transparent", transparentBackground);
     rendererCat.connect<EnumWrapper>("Color mapping", gui, GuiSettingsId::COLORMAP_TYPE);
@@ -117,17 +126,10 @@ VirtualSettings AnimationJob::getSettings() {
         })
         .setPathType(IVirtualEntry::PathType::INPUT_FILE);
 
-    auto orbitEnabler = [this] { return AnimationType(animationType) == AnimationType::ORBIT; };
     auto sequenceEnabler = [this] { return AnimationType(animationType) == AnimationType::FILE_SEQUENCE; };
 
     VirtualSettings::Category& animationCat = connector.addCategory("Animation");
     animationCat.connect<EnumWrapper>("Animation type", "animation_type", animationType);
-    animationCat.connect<Float>("Angular step", "step", orbit.step)
-        .setUnits(DEG_TO_RAD)
-        .setEnabler(orbitEnabler);
-    animationCat.connect<Float>("Final angle", "final_angle", orbit.finalAngle)
-        .setUnits(DEG_TO_RAD)
-        .setEnabler(orbitEnabler);
     animationCat.connect<Path>("First file", "first_file", sequence.firstFile)
         .setPathType(IVirtualEntry::PathType::INPUT_FILE)
         .setFileFormats(getInputFormats())
@@ -196,48 +198,12 @@ public:
     }
 
     virtual std::string name() const override {
-        return "Gravity";
+        // needs to 'pretend' to be acceleration to work with palette accessor in IR
+        return "Acceleration";
     }
 };
 
-static Array<AutoPtr<IColorizer>> getColorizers(const RunSettings& global,
-    const GuiSettings& gui,
-    const Flags<ColorizerFlag> colorizers,
-    const Float G,
-    const bool addSurfaceGravity) {
-    SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
-    Project project = Project::getInstance().clone();
-    project.getGuiSettings() = gui;
-    Array<AutoPtr<IColorizer>> colorizerArray;
-    if (colorizers.has(ColorizerFlag::VELOCITY)) {
-        colorizerArray.push(Factory::getColorizer(project, ColorizerId::VELOCITY));
-    }
-    if (colorizers.has(ColorizerFlag::ENERGY)) {
-        colorizerArray.push(Factory::getColorizer(project, QuantityId::ENERGY));
-    }
-    if (colorizers.has(ColorizerFlag::BOUND_COMPONENT_ID)) {
-        colorizerArray.push(Factory::getColorizer(project, ColorizerId::BOUND_COMPONENT_ID));
-    }
-    if (colorizers.has(ColorizerFlag::MASS)) {
-        colorizerArray.push(Factory::getColorizer(project, QuantityId::MASS));
-    }
-    if (colorizers.has(ColorizerFlag::BEAUTY)) {
-        colorizerArray.push(Factory::getColorizer(project, ColorizerId::BEAUTY));
-    }
-    if (colorizers.has(ColorizerFlag::GRAVITY)) {
-        Palette palette;
-        if (!project.getPalette("Acceleration", palette)) {
-            palette = Factory::getPalette(ColorizerId::ACCELERATION);
-        }
-        colorizerArray.push(makeAuto<GravityColorizer>(scheduler, palette, G, addSurfaceGravity));
-    }
-    if (colorizers.has(ColorizerFlag::DAMAGE)) {
-        colorizerArray.push(Factory::getColorizer(project, QuantityId::DAMAGE));
-    }
-    return colorizerArray;
-}
-
-RenderParams AnimationJob::getRenderParams() const {
+RenderParams AnimationJob::getRenderParams(const GuiSettings& gui) const {
     SharedPtr<CameraData> camera = getInput<CameraData>("camera");
     RenderParams params;
     params.camera = camera->camera->clone();
@@ -248,56 +214,74 @@ RenderParams AnimationJob::getRenderParams() const {
     return params;
 }
 
+class AnimationRenderOutput : public IRenderOutput {
+private:
+    IRunCallbacks& callbacks;
+    IRenderer& renderer;
+    Size iterationCnt;
+
+    Timer timer;
+    Size iteration = 0;
+
+public:
+    AnimationRenderOutput(IRunCallbacks& callbacks, IRenderer& renderer, const Size iterationCnt)
+        : callbacks(callbacks)
+        , renderer(renderer)
+        , iterationCnt(iterationCnt) {}
+
+    virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels, const bool isFinal) override {
+        this->update(bitmap.clone(), std::move(labels), isFinal);
+    }
+
+    virtual void update(Bitmap<Rgba>&& bitmap, Array<Label>&& labels, const bool UNUSED(isFinal)) override {
+        SharedPtr<AnimationFrame> frame = makeShared<AnimationFrame>();
+        frame->bitmap = std::move(bitmap);
+        frame->labels = std::move(labels);
+        Storage storage;
+        storage.setUserData(frame);
+
+        Statistics stats;
+        stats.set(StatisticsId::RELATIVE_PROGRESS, Float(++iteration) / iterationCnt);
+        stats.set(StatisticsId::WALLCLOCK_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
+        callbacks.onTimeStep(storage, stats);
+
+        if (callbacks.shouldAbortRun()) {
+            renderer.cancelRender();
+        }
+    }
+};
+
 void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     /// \todo maybe also work with a copy of Gui ?
     gui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f));
     gui.set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 0);
+    int iterLimit = 1;
+    if (gui.get<RendererEnum>(GuiSettingsId::RENDERER) != RendererEnum::PARTICLE) {
+        iterLimit = gui.get<int>(GuiSettingsId::RAYTRACE_ITERATION_LIMIT);
+    }
 
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
     AutoPtr<IRenderer> renderer = Factory::getRenderer(scheduler, gui);
-    RenderParams params = getRenderParams();
-    Array<AutoPtr<IColorizer>> colorizerArray =
-        getColorizers(global, gui, colorizers, Constants::gravity, addSurfaceGravity);
+    RawPtr<IRenderer> rendererPtr = renderer.get();
 
+    RenderParams params = this->getRenderParams(gui);
+    AutoPtr<IColorizer> colorizer = this->getColorizer(global);
+
+    int firstIndex = 0;
     if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE) {
-        Optional<Size> firstIndex = OutputFile::getDumpIdx(sequence.firstFile);
-        if (firstIndex) {
-            gui.set(GuiSettingsId::IMAGES_FIRST_INDEX, int(firstIndex.value()));
+        Optional<Size> sequenceFirstIndex = OutputFile::getDumpIdx(sequence.firstFile);
+        if (sequenceFirstIndex) {
+            firstIndex = sequenceFirstIndex.value();
         }
     }
+    OutputFile paths(directory / Path(fileMask), firstIndex);
+    Movie movie(gui, std::move(renderer), std::move(colorizer), std::move(params), extraFrames, paths);
 
-    Movie movie(gui, std::move(renderer), std::move(colorizerArray), std::move(params));
-    Timer renderTimer;
     switch (AnimationType(animationType)) {
     case AnimationType::SINGLE_FRAME: {
         SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
-        movie.save(data->storage, data->stats);
-        break;
-    }
-    case AnimationType::ORBIT: {
-        SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
-        const Vector target = gui.get<Vector>(GuiSettingsId::CAMERA_TARGET);
-        const Vector position = gui.get<Vector>(GuiSettingsId::CAMERA_POSITION);
-        const Float orbitRadius = getLength(target - position);
-
-        for (Float phi = 0._f; phi < orbit.finalAngle; phi += orbit.step) {
-            const Vector newPosition = target + orbitRadius * (cos(phi) * Vector(0._f, 0._f, 1._f) +
-                                                                  sin(phi) * Vector(1._f, 0._f, 0._f));
-            params.camera->setPosition(newPosition);
-            movie.setCamera(params.camera->clone());
-            movie.save(data->storage, data->stats);
-
-            data->stats.set(StatisticsId::RELATIVE_PROGRESS, phi / orbit.finalAngle);
-            data->stats.set(StatisticsId::WALLCLOCK_TIME, int(renderTimer.elapsed(TimerUnit::MILLISECOND)));
-            callbacks.onTimeStep(Storage{}, data->stats);
-
-            if (callbacks.shouldAbortRun()) {
-                break;
-            }
-        }
-
-        // reset the position
-        gui.set(GuiSettingsId::CAMERA_POSITION, position);
+        AnimationRenderOutput output(callbacks, *rendererPtr, iterLimit);
+        movie.render(std::move(data->storage), std::move(data->stats), output);
         break;
     }
     case AnimationType::FILE_SEQUENCE: {
@@ -305,47 +289,22 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
         if (fileMap.empty()) {
             throw InvalidSetup("No files to render.");
         }
-        const Size firstKey = fileMap.begin()->key;
 
+        AnimationRenderOutput output(callbacks, *rendererPtr, iterLimit * fileMap.size());
         AutoPtr<IInput> input = Factory::getInput(sequence.firstFile);
-        Storage frame1;
-        Float time1 = 0._f;
         for (auto& element : fileMap) {
-            Storage frame2;
+            Storage frame;
             Statistics stats;
-            const Outcome result = input->load(element.value, frame2, stats);
+            const Outcome result = input->load(element.value, frame, stats);
             if (!result) {
                 /// \todo how to report this? (don't do modal dialog)
             }
-
-            const Float time2 = stats.get<Float>(StatisticsId::RUN_TIME);
-            if (extraFrames > 0 && frame1.getParticleCnt() == frame2.getParticleCnt()) {
-                for (int frame = 0; frame < extraFrames; ++frame) {
-                    const Float rel = Float(frame + 1) / Float(extraFrames + 1);
-                    stats.set(StatisticsId::RUN_TIME, lerp(time1, time2, rel));
-                    movie.save(interpolate(frame1, frame2, rel), stats);
-                }
-                stats.set(StatisticsId::RUN_TIME, time2);
-            }
-
-            stats.set(StatisticsId::RELATIVE_PROGRESS, Float(element.key - firstKey) / fileMap.size());
-            stats.set(StatisticsId::WALLCLOCK_TIME, int(renderTimer.elapsed(TimerUnit::MILLISECOND)));
-            if (element.key == firstKey) {
-                callbacks.onSetUp(frame2, stats);
-            }
-            callbacks.onTimeStep(frame2, stats);
 
             if (callbacks.shouldAbortRun()) {
                 break;
             }
 
-            movie.save(frame2, stats);
-
-            if (extraFrames > 0) {
-                // need to keep this frame in memory
-                frame1 = std::move(frame2);
-                time1 = time2;
-            }
+            movie.render(std::move(frame), std::move(stats), output);
         }
         break;
     }
@@ -362,6 +321,9 @@ private:
     SharedPtr<ParticleData> data;
     std::atomic_bool cancelled;
 
+    bool rendererDirty = true;
+    bool colorizerDirty = true;
+
 public:
     RenderPreview(RenderParams&& params,
         AutoPtr<IRenderer>&& renderer,
@@ -377,14 +339,17 @@ public:
         cancelled = false;
 
         // lazy init
-        if (!colorizer->isInitialized()) {
+        if (colorizerDirty) {
             colorizer->initialize(data->storage, RefEnum::WEAK);
+            colorizerDirty = false;
+            rendererDirty = true;
         }
         if (cancelled) {
             return;
         }
-        if (!renderer->isInitialized()) {
+        if (rendererDirty) {
             renderer->initialize(data->storage, *colorizer, *params.camera);
+            rendererDirty = false;
         }
         if (cancelled) {
             return;
@@ -409,19 +374,19 @@ public:
 
     virtual void update(AutoPtr<IColorizer>&& newColorizer) override {
         colorizer = std::move(newColorizer);
+        colorizerDirty = true;
     }
 
     virtual void update(AutoPtr<IRenderer>&& newRenderer) override {
         renderer = std::move(newRenderer);
+        rendererDirty = true;
     }
 
     virtual void update(Palette&& palette) override {
         colorizer->setPalette(palette);
-        if (!colorizer->isInitialized()) {
-            colorizer->initialize(data->storage, RefEnum::WEAK);
-        }
+        colorizerDirty = true;
         /// \todo could be optimized, no need to re-generate BVH, etc.
-        renderer->initialize(data->storage, *colorizer, *params.camera);
+        rendererDirty = true;
     }
 
     virtual void cancel() override {
@@ -446,18 +411,10 @@ AutoPtr<IRenderPreview> AnimationJob::getRenderPreview(const RunSettings& global
     }
 
     if (!inputs.contains("particles")) {
-        throw InvalidSetup("Paritcles not connected");
+        throw InvalidSetup("Particles not connected");
     }
 
-    SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
-    /*Float G = Constants::gravity;
-    if (data->overrides.has(RunSettingsId::GRAVITY_CONSTANT)) {
-        G = data->overrides.get<Float>(RunSettingsId::GRAVITY_CONSTANT);
-    }*/
-
     RenderParams params = this->getRenderParams();
-    params.background = Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f);
-    params.showKey = false;
 
     AutoPtr<IColorizer> colorizer = this->getColorizer(global);
     if (!colorizer) {
@@ -465,17 +422,29 @@ AutoPtr<IRenderPreview> AnimationJob::getRenderPreview(const RunSettings& global
     }
     AutoPtr<IRenderer> renderer = this->getRenderer(global);
 
+    SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
+
     return makeAuto<RenderPreview>(std::move(params), std::move(renderer), std::move(colorizer), data);
 }
 
 AutoPtr<IColorizer> AnimationJob::getColorizer(const RunSettings& global) const {
-    /// \todo
-    Float G = Constants::gravity;
-    Array<AutoPtr<IColorizer>> colorizer = getColorizers(global, gui, colorizers, G, addSurfaceGravity);
-    if (!colorizer.empty()) {
-        return std::move(colorizer.front());
+    Project project = Project::getInstance().clone();
+    project.getGuiSettings() = gui;
+    RenderColorizerId renderId(colorizerId);
+    if (renderId == RenderColorizerId::GRAVITY) {
+        Palette palette;
+        if (!project.getPalette("Acceleration", palette)) {
+            palette = Factory::getPalette(ColorizerId::ACCELERATION);
+        }
+        SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
+        SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
+        Float G = Constants::gravity;
+        if (data->overrides.has(RunSettingsId::GRAVITY_CONSTANT)) {
+            G = data->overrides.get<Float>(RunSettingsId::GRAVITY_CONSTANT);
+        }
+        return makeAuto<GravityColorizer>(scheduler, palette, G, addSurfaceGravity);
     } else {
-        return nullptr;
+        return Factory::getColorizer(project, ColorizerId(renderId));
     }
 }
 
@@ -483,8 +452,16 @@ AutoPtr<IRenderer> AnimationJob::getRenderer(const RunSettings& global) const {
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
     GuiSettings previewGui = gui;
     previewGui.set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 4);
+    previewGui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f));
     AutoPtr<IRenderer> renderer = Factory::getRenderer(scheduler, previewGui);
     return renderer;
+}
+
+RenderParams AnimationJob::getRenderParams() const {
+    GuiSettings previewGui = gui;
+    previewGui.set(GuiSettingsId::SHOW_KEY, false);
+    previewGui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f));
+    return this->getRenderParams(previewGui);
 }
 
 JobRegistrar sRegisterAnimation(

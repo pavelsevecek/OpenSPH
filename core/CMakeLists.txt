@@ -204,7 +204,6 @@ set(CORE_HEADERS
     objects/wrappers/Outcome.h 
     objects/wrappers/PropagateConst.h 
     objects/wrappers/RawPtr.h 
-    objects/wrappers/SafePtr.h 
     objects/wrappers/SharedPtr.h 
     objects/wrappers/Variant.h 
     physics/Constants.h 

@@ -126,7 +126,7 @@ std::string replaceAll(const std::string& source, const std::string& old, const 
 
 std::string setLineBreak(const std::string& s, const Size lineWidth) {
     const std::string emptyChars = " \t\r";
-    const std::string canBreakChars = ".,;\n" + emptyChars;
+    const std::string canBreakChars = ".,;!?\n)]" + emptyChars;
     std::string result = s;
     std::size_t lastLineBreak = 0;
     std::size_t lastSpaceNum = 0;
@@ -158,8 +158,13 @@ std::string setLineBreak(const std::string& s, const Size lineWidth) {
                 --n;
             }
             ++n;
-            // insert a line break here
-            result.insert(n++, "\n");
+
+            if (n > 0) {
+                // insert a line break here
+                result.insert(n, "\n");
+            }
+
+            n++;
 
             if (commaFound && lastSpaceNum > 0) {
                 result.insert(n, std::string(lastSpaceNum, ' '));
@@ -184,6 +189,8 @@ std::string setLineBreak(const std::string& s, const Size lineWidth) {
             while (n < result.size() && emptyChars.find(result[n]) != std::string::npos) {
                 result.erase(n, 1);
             }
+
+            n = result.find_first_of(canBreakChars, n);
         }
     }
     return result;

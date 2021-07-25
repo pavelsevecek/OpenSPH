@@ -28,14 +28,17 @@ set(GUI_SOURCES
     windows/GuiSettingsDialog.cpp 
     windows/CurveDialog.cpp 
     windows/GridPage.cpp 
+    windows/PreviewPane.cpp
     windows/OrthoPane.cpp 
     windows/PaletteDialog.cpp 
     windows/ParticleProbe.cpp 
     windows/PlotView.cpp 
     windows/RunPage.cpp 
+    windows/RenderPage.cpp
     windows/NodePage.cpp 
     windows/MainWindow.cpp 
-    windows/TimeLine.cpp 
+    windows/TimeLine.cpp
+    windows/ProgressPanel.cpp
     windows/Widgets.cpp)
 
 set(GUI_HEADERS
@@ -76,7 +79,7 @@ set(GUI_HEADERS
     windows/GuiSettingsDialog.h 
     windows/CurveDialog.h 
     windows/GridPage.h 
-    windows/RenderPane.h
+    windows/PreviewPane.h
     windows/IGraphicsPane.h 
     windows/Icons.data.h 
     windows/OrthoPane.h 
@@ -85,6 +88,7 @@ set(GUI_HEADERS
     windows/PlotView.h 
     objects/Texture.h 
     windows/RunPage.h 
+    windows/RenderPage.h
     windows/NodePage.h 
     windows/MainWindow.h 
     windows/TimeLine.h 

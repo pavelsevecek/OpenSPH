@@ -2,6 +2,7 @@
 
 #include "gui/Settings.h"
 #include "gui/objects/Palette.h"
+#include "objects/containers/CallbackSet.h"
 #include "run/Config.h"
 #include "thread/CheckFunction.h"
 
@@ -22,6 +23,8 @@ private:
     Project();
 
 public:
+    CallbackSet<void(const std::string& name, const Palette& palette)> onPaletteChanged;
+
     static Project& getInstance() {
         static Project project;
         return project;
@@ -36,6 +39,8 @@ public:
 
     void setPalette(const std::string& name, const Palette& palette) {
         palettes.insert(name, palette);
+
+        onPaletteChanged(name, palette);
     }
 
     bool getPalette(const std::string& name, Palette& palette) const {

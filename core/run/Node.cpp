@@ -37,10 +37,8 @@ public:
 
 VirtualSettings JobNode::getSettings() const {
     VirtualSettings settings = job->getSettings();
-    if (!accessors.empty()) {
-        SetAccessorsProc proc(this->sharedFromThis(), accessors);
-        settings.enumerate(proc);
-    }
+    SetAccessorsProc proc(this->sharedFromThis(), accessors);
+    settings.enumerate(proc);
     return settings;
 }
 
@@ -52,18 +50,15 @@ void JobNode::addAccessor(const SharedToken& owner, const Accessor& accessor) {
     accessors.insert(owner, accessor);
 }
 
-Optional<ExtJobType> JobNode::provides() const {
+ExtJobType JobNode::provides() const {
     return job->provides();
 }
 
 void JobNode::connect(SharedPtr<JobNode> node, const std::string& slotName) {
     UnorderedMap<std::string, ExtJobType> slots = node->job->getSlots();
     if (slots.contains(slotName)) {
-        const Optional<ExtJobType> provided = job->provides();
-        if (!provided) {
-            throw InvalidSetup(
-                "Cannot connect node '" + job->instanceName() + "', it does not return any data.");
-        } else if (provided.value() != slots[slotName]) {
+        const ExtJobType provided = job->provides();
+        if (provided != slots[slotName]) {
             throw InvalidSetup("Cannot connect node '" + job->instanceName() + "' to slot '" + slotName +
                                "' of node '" + node->instanceName() +
                                "', the slot expects different type of node.");

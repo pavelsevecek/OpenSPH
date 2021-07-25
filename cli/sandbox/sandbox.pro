@@ -6,7 +6,7 @@ CONFIG -= qt
 DEPENDPATH += . ../../core
 INCLUDEPATH += ../../core
 PRE_TARGETDEPS += ../../core/libcore.a
-LIBS += ../../core/libcore.a
+LIBS += ../../core/libcore.a /usr/lib/libmetis.so
 
 include(../../core/sharedCore.pro)
 

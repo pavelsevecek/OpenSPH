@@ -13,6 +13,7 @@
 #include <wx/window.h>
 
 class wxDC;
+class wxPaintDC;
 
 NAMESPACE_SPH_BEGIN
 
@@ -42,7 +43,7 @@ private:
     wxWindow* window;
 
 public:
-    BusyCursor(wxWindow* window)
+    explicit BusyCursor(wxWindow* window)
         : window(window) {
         window->SetCursor(*wxHOURGLASS_CURSOR);
         wxYield();
@@ -51,6 +52,18 @@ public:
     ~BusyCursor() {
         window->SetCursor(*wxSTANDARD_CURSOR);
     }
+};
+
+class TransparencyPattern {
+private:
+    Bitmap<Rgba> stipple;
+
+public:
+    explicit TransparencyPattern(const Size side = 8,
+        const Rgba& dark = Rgba::gray(0.25f),
+        const Rgba& light = Rgba::gray(0.3f));
+
+    void draw(wxDC& dc, const wxRect& rect) const;
 };
 
 NAMESPACE_SPH_END

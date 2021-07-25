@@ -134,13 +134,13 @@ PalettePanel::PalettePanel(wxWindow* parent, wxSize size, const Palette palette)
 
     wxStaticText* text = new wxStaticText(this, wxID_ANY, "From ");
     rangeSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
-    FloatTextCtrl* lowerCtrl = new FloatTextCtrl(this, double(initial.getInterval().lower()));
+    lowerCtrl = new FloatTextCtrl(this, double(initial.getInterval().lower()));
     rangeSizer->Add(lowerCtrl);
     rangeSizer->AddSpacer(30);
 
     text = new wxStaticText(this, wxID_ANY, "To ");
     rangeSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
-    FloatTextCtrl* upperCtrl = new FloatTextCtrl(this, double(initial.getInterval().upper()));
+    upperCtrl = new FloatTextCtrl(this, double(initial.getInterval().upper()));
     rangeSizer->Add(upperCtrl);
 
     upperCtrl->onValueChanged = [this](const Float value) {
@@ -192,6 +192,8 @@ void PalettePanel::setPalette(const Palette& palette) {
     paletteMap.insert("Current", 0, initial);
     paletteBox->SetSelection(0);
     canvas->setPalette(selected);
+    lowerCtrl->setValue(initial.getInterval().lower());
+    upperCtrl->setValue(initial.getInterval().upper());
 }
 
 static UnorderedMap<ExtColorizerId, std::string> PALETTE_ID_LIST = {

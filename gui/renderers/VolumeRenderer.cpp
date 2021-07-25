@@ -89,8 +89,11 @@ Rgba VolumeRenderer::shade(const RenderParams& params, const CameraRay& cameraRa
         result = result * exp(-params.volume.absorption * secant);
         // 3th power of cosPhi to give more weight to the sphere center,
         // divide by distention^3; distention should not affect the total emission
-        result += cached.colors[i] * params.volume.emission * pow<3>(cosPhi / distention) * secant;
+        const float magnitude = params.volume.emission * pow<3>(cosPhi / distention) * secant;
+        result += cached.colors[i] * magnitude;
+        result.a() += magnitude;
     }
+    result.a() = min(result.a(), 1.f);
     return result;
 }
 

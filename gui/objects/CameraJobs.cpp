@@ -4,8 +4,8 @@
 NAMESPACE_SPH_BEGIN
 
 void ICameraJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
-    const int width = gui.get<int>(GuiSettingsId::IMAGES_WIDTH);
-    const int height = gui.get<int>(GuiSettingsId::IMAGES_HEIGHT);
+    const int width = gui.get<int>(GuiSettingsId::CAMERA_WIDTH);
+    const int height = gui.get<int>(GuiSettingsId::CAMERA_HEIGHT);
     AutoPtr<ICamera> camera = Factory::getCamera(gui, Pixel(width, height));
     AutoPtr<ITracker> tracker = Factory::getTracker(gui);
 
@@ -27,8 +27,8 @@ OrthoCameraJob::OrthoCameraJob(const std::string& name)
 
 static VirtualSettings::Category& addResolutionCategory(VirtualSettings& connector, GuiSettings& gui) {
     VirtualSettings::Category& resCat = connector.addCategory("Resolution");
-    resCat.connect<int>("Image width", gui, GuiSettingsId::IMAGES_WIDTH);
-    resCat.connect<int>("Image height", gui, GuiSettingsId::IMAGES_HEIGHT);
+    resCat.connect<int>("Image width", gui, GuiSettingsId::CAMERA_WIDTH);
+    resCat.connect<int>("Image height", gui, GuiSettingsId::CAMERA_HEIGHT);
     return resCat;
 }
 

@@ -231,8 +231,7 @@ void ParticleRenderer::initialize(const Storage& storage,
     if (RawPtr<GhostParticlesData> ghosts = dynamicCast<GhostParticlesData>(data.get())) {
         for (Size i = 0; i < ghosts->size(); ++i) {
             const Vector pos = ghosts->getGhost(i).position;
-            const Optional<ProjectedPoint> p = camera.project(pos);
-            if (p && !isCutOff(pos, cutoff, direction)) {
+            if (!isCutOff(pos, cutoff, direction)) {
                 cached.idxs.push(Size(-1));
                 cached.positions.push(pos);
                 cached.colors.push(Rgba::transparent());
@@ -340,9 +339,10 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
         }
 
         const Optional<ProjectedPoint> p = params.camera->project(cached.positions[i]);
-        SPH_ASSERT(p); // cached values must be visible by the camera
-        const float size = min<float>(p->radius * params.particles.scale, context->size().x);
-        context->drawCircle(p->coords, size);
+        if (p) {
+            const float size = min<float>(p->radius * params.particles.scale, context->size().x);
+            context->drawCircle(p->coords, size);
+        }
     }
     // after all particles are drawn, draw the velocity vector over
     if (dir.used) {

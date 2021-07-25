@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui/Utils.h"
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Palette.h"
 #include "gui/renderers/IRenderer.h"
@@ -60,13 +61,12 @@ class InteractiveRenderer : public ShareFromThis<InteractiveRenderer> {
 
     struct Status {
         bool notInitialized = true;
-        bool colorizerMissing = true;
         bool particlesMissing = true;
         bool cameraMissing = true;
         std::string otherReason;
 
         void clear() {
-            notInitialized = colorizerMissing = particlesMissing = cameraMissing = false;
+            notInitialized = particlesMissing = cameraMissing = false;
             otherReason.clear();
         }
 
@@ -110,6 +110,8 @@ private:
 
     void setNodeAccessor(const SharedPtr<JobNode>& particleNode);
 
+    void setPaletteAccessor(const RunSettings& globals);
+
     void renderLoop(const RunSettings& globals);
 
     void update();
@@ -117,17 +119,18 @@ private:
     void stop();
 };
 
-class RenderPane : public wxPanel {
+class PreviewPane : public wxPanel {
 private:
     SharedPtr<InteractiveRenderer> renderer;
+    TransparencyPattern pattern;
 
 public:
-    RenderPane(wxWindow* parent,
+    PreviewPane(wxWindow* parent,
         const wxSize size,
         const SharedPtr<JobNode>& node,
         const RunSettings& globals);
 
-    ~RenderPane() = default;
+    ~PreviewPane() = default;
 
     void setPalette(const Palette& palette) {
         renderer->setPalette(palette);

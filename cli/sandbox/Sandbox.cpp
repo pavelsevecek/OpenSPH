@@ -1,8 +1,10 @@
 #include "Sph.h"
+#include "objects/finders/UniformGrid.h"
 #include "physics/Functions.h"
 #include "post/Analysis.h"
 #include <fstream>
 #include <iostream>
+#include <metis.h>
 
 using namespace Sph;
 
@@ -83,6 +85,9 @@ int main(int argc, char** argv) {
         Storage storage;
         Statistics dummy;
         BinaryInput input;
+        if (input.getInfo(Path(argv[i]))->particleCnt > 5e5) {
+            return;
+        }
         input.load(Path(argv[i]), storage, dummy);
         const Size numParticles = storage.getParticleCnt();
 
@@ -96,14 +101,79 @@ int main(int argc, char** argv) {
         storage.remove(idxs, Storage::IndicesFlag::INDICES_SORTED);
         Array<Size> comps;
         Post::findComponents(storage, 1._f, Post::ComponentFlag::SORT_BY_MASS, comps);
+
         Size comp1 = std::count(comps.begin(), comps.end(), 0);
-        Size comp2 = std::count_if(comps.begin(), comps.end(), [](Size i) { return i != 0; });
-        std::unique_lock<std::mutex> lock(mutex);
-        stats[numParticles] = {
-            Float(comp1) / numParticles,
-            Float(comp2) / numParticles,
-            Float(idxs.size()) / numParticles,
-        };
+        Size comp2 = std::count(comps.begin(), comps.end(), 1);
+
+        if (comp2 < 0.05_f * numParticles) {
+            Array<Vector> points;
+            {
+                ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+                for (Size i = 0; i < r.size(); ++i) {
+                    if (comps[i] == 0) {
+                        points.push(r[i]);
+                    }
+                }
+            }
+
+            UniformGridFinder finder;
+            finder.build(SEQUENTIAL, points);
+
+            Array<idx_t> xadj;
+            Array<idx_t> adjncy;
+            Array<NeighbourRecord> neighs;
+            for (Size i = 0; i < points.size(); ++i) {
+                finder.findAll(points[i], points[i][H], neighs);
+                xadj.push(adjncy.size());
+                for (const auto& n : neighs) {
+                    adjncy.push(n.index);
+                }
+            }
+            xadj.push(adjncy.size());
+
+            idx_t nvtxs = points.size();
+            idx_t ncon = 1;
+            idx_t nparts = 2;
+            idx_t objval;
+            real_t ubvec = 1.8f;
+            Array<idx_t> data(points.size());
+            std::cout << "Running METIS" << std::endl;
+            int res = METIS_PartGraphRecursive(&nvtxs,
+                &ncon,
+                &xadj[0],
+                &adjncy[0],
+                nullptr,
+                nullptr,
+                nullptr,
+                &nparts,
+                nullptr,
+                &ubvec,
+                nullptr,
+                &objval,
+                &data[0]);
+            if (res != METIS_OK) {
+                throw Exception("METIS failed");
+            }
+            Size comp1 = std::count(data.begin(), data.end(), 0);
+            Size comp2 = std::count(data.begin(), data.end(), 1);
+            if (comp1 < comp2) {
+                std::swap(comp1, comp2);
+            }
+            std::unique_lock<std::mutex> lock(mutex);
+            stats[numParticles] = {
+                Float(comp1) / numParticles,
+                Float(comp2) / numParticles,
+                Float(idxs.size()) / numParticles,
+            };
+
+        } else {
+            std::unique_lock<std::mutex> lock(mutex);
+            stats[numParticles] = {
+                Float(comp1) / numParticles,
+                Float(comp2) / numParticles,
+                Float(idxs.size()) / numParticles,
+            };
+        }
     });
 
     std::ofstream ofs("converg.txt");

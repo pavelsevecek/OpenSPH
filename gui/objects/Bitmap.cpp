@@ -9,8 +9,8 @@
 
 NAMESPACE_SPH_BEGIN
 
-void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx) {
-    const Pixel size = bitmap.size();
+void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx, const float scale) {
+    const Pixel size(Coords(bitmap.size()) / scale);
     if (!wx.IsOk() || wx.GetSize() != wxSize(size.x, size.y)) {
         wx.Create(size.x, size.y, 32);
     }
@@ -21,9 +21,11 @@ void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx) {
 
     wxAlphaPixelData::Iterator iterator(pixels);
     SPH_ASSERT(iterator.IsOk());
-    for (int y = 0; y < bitmap.size().y; ++y) {
-        for (int x = 0; x < bitmap.size().x; ++x) {
-            const Rgba rgba = bitmap[Pixel(x, y)];
+    for (float y = 0; y < size.y; ++y) {
+        for (float x = 0; x < size.x; ++x) {
+            const int ix = min<int>(round(x * scale), bitmap.size().x - 1);
+            const int iy = min<int>(round(y * scale), bitmap.size().y - 1);
+            const Rgba rgba = bitmap[Pixel(ix, iy)];
             wxColour color(rgba);
             iterator.Red() = color.Red();
             iterator.Green() = color.Green();

@@ -125,7 +125,7 @@ public:
     void addAccessor(const SharedToken& owner, const Accessor& accessor);
 
     /// \brief Returns the type of the job.
-    Optional<ExtJobType> provides() const;
+    ExtJobType provides() const;
 
     /// \brief Connects this node to given dependent node.
     ///

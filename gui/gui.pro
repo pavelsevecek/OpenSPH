@@ -41,7 +41,9 @@ SOURCES += \
     renderers/RayTracer.cpp \
     renderers/Spectrum.cpp \
     windows/BatchDialog.cpp \
-    windows/RenderPane.cpp \
+    windows/PreviewPane.cpp \
+    windows/ProgressPanel.cpp \
+    windows/RenderPage.cpp \
     windows/RunSelectDialog.cpp \
     windows/SessionDialog.cpp \
     windows/CurveDialog.cpp \
@@ -91,10 +93,11 @@ HEADERS += \
     renderers/RayTracer.h \
     renderers/Spectrum.h \
     windows/BatchDialog.h \
+    windows/PreviewPane.h \
+    windows/RenderPage.h \
     windows/RunSelectDialog.h \
     windows/SessionDialog.h \
     windows/CurveDialog.h \
-    windows/RenderPane.h \
     windows/GridPage.h \
     windows/IGraphicsPane.h \
     windows/Icons.data.h \

@@ -9,6 +9,7 @@
 NAMESPACE_SPH_BEGIN
 
 class ComboBox;
+class FloatTextCtrl;
 class PaletteCanvas;
 
 class PalettePanel : public wxPanel {
@@ -16,6 +17,8 @@ private:
     ComboBox* paletteBox;
 
     PaletteCanvas* canvas;
+    FloatTextCtrl* lowerCtrl;
+    FloatTextCtrl* upperCtrl;
 
     UnorderedMap<std::string, Palette> paletteMap;
 

@@ -43,6 +43,7 @@
 #include <wx/aui/framemanager.h>
 // needs to be included after framemanager
 #include <wx/aui/dockart.h>
+
 NAMESPACE_SPH_BEGIN
 
 class TimeLineCallbacks : public ITimeLineCallbacks {
@@ -71,13 +72,9 @@ public:
 };
 
 RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
-    : controller(parent)
+    : ClosablePage(window, "simulation")
+    , controller(parent)
     , gui(settings) {
-
-    wxSize size(
-        settings.get<int>(GuiSettingsId::WINDOW_WIDTH), settings.get<int>(GuiSettingsId::WINDOW_HEIGHT));
-    this->Create(window, wxID_ANY, wxDefaultPosition, size);
-
     manager = makeAuto<wxAuiManager>(this);
 
     wxPanel* visBar = createVisBar();
@@ -822,17 +819,18 @@ void RunPage::addComponentIdBar(wxWindow* parent, wxSizer* sizer, SharedPtr<ICol
 void RunPage::replaceQuantityBar(const Size idx) {
     // so far only needed for component id, so it is hacked like this
     SharedPtr<IColorizer> newColorizer = colorizerList[idx];
+    bool panelExists = bool(wxWeakRef<wxPanel>(quantityPanel));
+
     /// \todo implement SharedPtr dynamicCast
     if (!dynamicCast<ComponentIdColorizer>(newColorizer.get())) {
+        manager->GetPane(quantityPanel).Hide();
+        manager->Update();
         return;
     }
 
-    if (wxWeakRef<wxPanel>(quantityPanel)) {
-        // already exists
-        if (quantityPanel != nullptr) {
-            manager->GetPane(quantityPanel).Show();
-            manager->Update();
-        }
+    if (panelExists) {
+        manager->GetPane(quantityPanel).Show();
+        manager->Update();
         return;
     }
 
@@ -848,8 +846,8 @@ void RunPage::replaceQuantityBar(const Size idx) {
     quantityPanel->SetSizerAndFit(sizer);
 
     wxAuiPaneInfo info;
-    info.Left()
-        .Position(1)
+    info.Right()
+        .Position(0)
         .MinSize(wxSize(300, -1))
         .CaptionVisible(true)
         .DockFixed(false)
@@ -949,9 +947,7 @@ void RunPage::onTimeStep(const Storage& storage, const Statistics& stats) {
 
 void RunPage::onRunEnd() {
     progressBar->onRunEnd();
-    if (waitingDialog) {
-        waitingDialog->EndModal(0);
-    }
+    this->onStopped();
 }
 
 void RunPage::setColorizerList(Array<SharedPtr<IColorizer>>&& colorizers) {
@@ -981,42 +977,16 @@ wxSize RunPage::getCanvasSize() const {
     return wxSize(max(size.x, 1), max(size.y, 1));
 }
 
-class WaitDialog : public wxDialog {
-public:
-    WaitDialog(wxWindow* parent)
-        : wxDialog(parent, wxID_ANY, "Info", wxDefaultPosition, wxDefaultSize, wxCAPTION | wxSYSTEM_MENU) {
-        const wxSize size = wxSize(320, 90);
-        this->SetSize(size);
-        wxStaticText* text = new wxStaticText(this, wxID_ANY, "Waiting for simulation to finish ...");
-        wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-        sizer->AddStretchSpacer();
-        sizer->Add(text, 1, wxALIGN_CENTER_HORIZONTAL);
-        sizer->AddStretchSpacer();
-        this->SetSizer(sizer);
-        this->Layout();
-        this->CentreOnScreen();
-    }
-};
+bool RunPage::isRunning() const {
+    return controller->isRunning();
+}
 
-bool RunPage::close() {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
-    if (controller->isRunning()) {
-        const int retval =
-            wxMessageBox("Simulation is currently in progress. Do you want to stop it and close the window?",
-                "Stop?",
-                wxYES_NO | wxCENTRE);
-        if (retval == wxYES) {
-            controller->stop();
-            waitingDialog = new WaitDialog(this);
-            waitingDialog->ShowModal();
-            controller->quit(true);
-            return true;
-        } else {
-            return false;
-        }
-    } else {
-        return true;
-    }
+void RunPage::stop() {
+    controller->stop();
+}
+
+void RunPage::quit() {
+    controller->quit(true);
 }
 
 NAMESPACE_SPH_END
