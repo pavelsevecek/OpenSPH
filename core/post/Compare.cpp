@@ -122,7 +122,7 @@ Outcome Post::compareLargeSpheres(const Storage& test,
     KdTree<KdNode> tree;
     tree.build(SEQUENTIAL, r1, FinderFlag::SKIP_RANK);
 
-    Array<NeighbourRecord> neighs;
+    Array<NeighborRecord> neighs;
     for (Size i = 0; i < count; ++i) {
         // reference index
         const Size p2 = order[i];
@@ -130,7 +130,7 @@ Outcome Post::compareLargeSpheres(const Storage& test,
         // find test particle
         tree.findAll(r2[p2], maxDeviation, neighs);
         bool matchFound = false;
-        for (const NeighbourRecord& n : neighs) {
+        for (const NeighborRecord& n : neighs) {
             const Size p1 = n.index;
             if (!almostEqual(m1[p1], m2[p2], eps)) {
                 // mass does not match

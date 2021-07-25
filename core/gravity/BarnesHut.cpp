@@ -58,7 +58,7 @@ void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
         m[i] = gravityConstant * masses[i];
     }
 
-    // build K-d Tree; no need for rank as we are never searching neighbours
+    // build K-d Tree; no need for rank as we are never searching neighbors
     kdTree.build(scheduler, r, FinderFlag::SKIP_RANK);
 
     if (SPH_UNLIKELY(r.empty())) {

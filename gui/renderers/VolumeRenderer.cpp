@@ -32,8 +32,8 @@ void VolumeRenderer::initialize(const Storage& storage,
 
     Array<BvhSphere> spheres(cached.r.size());
     spheres.reserve(cached.r.size());
-    ThreadLocal<Array<NeighbourRecord>> neighs(*scheduler);
-    parallelFor(*scheduler, neighs, 0, cached.r.size(), [&](const Size i, Array<NeighbourRecord>& local) {
+    ThreadLocal<Array<NeighborRecord>> neighs(*scheduler);
+    parallelFor(*scheduler, neighs, 0, cached.r.size(), [&](const Size i, Array<NeighborRecord>& local) {
         const float initialRadius = cached.r[i][H];
         float radius = initialRadius;
         while (radius < MAX_DISTENTION * initialRadius) {

@@ -19,7 +19,7 @@ public:
     /// \brief Compute a part of derivatives from interaction of particle pairs.
     ///
     /// \param idx Index of first interacting particle.
-    /// \param neighs Array of some neighbours of idx-th particle. May be empty.
+    /// \param neighs Array of some neighbors of idx-th particle. May be empty.
     /// \param gradi Computed gradients of the SPH kernel for particle i.
     /// \param gradj Computed gradients of the SPH kernel for particle j.
     virtual void evalAsymmetric(const Size idx,

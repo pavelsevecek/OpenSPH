@@ -18,12 +18,12 @@ TEST_CASE("PeriodicFinder", "[finders]") {
 
     finder.build(SEQUENTIAL, r);
 
-    Array<NeighbourRecord> neighs;
+    Array<NeighborRecord> neighs;
     const Float radius = 0.1_f;
     finder.findAll(Vector(0._f, 0.5_f, 0.5_f), radius, neighs);
 
     REQUIRE_FALSE(neighs.empty());
-    auto iter = std::find_if(neighs.begin(), neighs.end(), [&](NeighbourRecord& n) { //
+    auto iter = std::find_if(neighs.begin(), neighs.end(), [&](NeighborRecord& n) { //
         return r[n.index][X] > 1._f;
     });
     REQUIRE(iter != neighs.end());

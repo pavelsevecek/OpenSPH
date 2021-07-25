@@ -1,6 +1,6 @@
 #include "sph/solvers/EquilibriumSolver.h"
 #include "gravity/IGravity.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "physics/Eos.h"
 #include "sph/Materials.h"
 #include "sph/equations/DerivativeHelpers.h"
@@ -72,7 +72,7 @@ Outcome EquilibriumEnergySolver::solve(Storage& storage, Statistics& stats) {
             const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
             SPH_ASSERT(hbar > EPS, hbar);
             if (i == j || n.distanceSqr >= sqr(kernel.radius() * hbar)) {
-                // aren't actual neighbours
+                // aren't actual neighbors
                 continue;
             }
             const Vector grad = kernel.grad(r[i], r[j]);
@@ -112,7 +112,7 @@ Outcome EquilibriumEnergySolver::solve(Storage& storage, Statistics& stats) {
 
     SparseMatrix matrix(r.size(), r.size());
     Array<Float> b(r.size());
-    Array<NeighbourRecord> neighs;
+    Array<NeighborRecord> neighs;
 
     for (Size i = 0; i < r.size(); ++i) {
         neighs.clear();
@@ -120,12 +120,12 @@ Outcome EquilibriumEnergySolver::solve(Storage& storage, Statistics& stats) {
 
         Float Aii(0._f);
         Float divDv = 0._f;
-        for (const NeighbourRecord& n : neighs) {
+        for (const NeighborRecord& n : neighs) {
             const Size j = n.index;
             const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
             SPH_ASSERT(hbar > EPS, hbar);
             if (i == j || n.distanceSqr >= sqr(kernel.radius() * hbar)) {
-                // aren't actual neighbours
+                // aren't actual neighbors
                 continue;
             }
             const Vector grad = kernel.grad(r[i], r[j]);
@@ -287,7 +287,7 @@ EquilibriumStressSolver::~EquilibriumStressSolver() = default;
 Outcome EquilibriumStressSolver::solve(Storage& storage, Statistics& stats) {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
 
-    // build the neighbour finding structure
+    // build the neighbor finding structure
     finder->build(scheduler, r);
 
     // compute right-hand side of equations by solving equations for acceleration
@@ -300,8 +300,8 @@ Outcome EquilibriumStressSolver::solve(Storage& storage, Statistics& stats) {
     Array<Float> b(dv.size() * 3);
     Float b_avg = 0._f;
 
-    // get number of neighbours for boundary detection
-    ArrayView<const Size> neighCnts = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+    // get number of neighbors for boundary detection
+    ArrayView<const Size> neighCnts = storage.getValue<Size>(QuantityId::NEIGHBOR_CNT);
 
     for (Size i = 0; i < dv.size(); ++i) {
         for (Size j = 0; j < 3; ++j) {
@@ -323,7 +323,7 @@ Outcome EquilibriumStressSolver::solve(Storage& storage, Statistics& stats) {
     const Float mu = material.getParam<Float>(BodySettingsId::SHEAR_MODULUS);
 
     // fill the matrix with values
-    Array<NeighbourRecord> neighs;
+    Array<NeighborRecord> neighs;
     matrix.resize(r.size() * 3, r.size() * 3);
     for (Size i = 0; i < r.size(); ++i) {
         finder->findLowerRank(i, kernel.radius() * r[i][H], neighs);

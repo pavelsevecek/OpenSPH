@@ -6,7 +6,7 @@
 /// \date 2016-2021
 
 #include "objects/containers/Array.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "objects/geometry/Box.h"
 #include "system/Profiler.h"
 
@@ -58,23 +58,23 @@ public:
 
     virtual Size findNeighbours(const Size index,
         const Float radius,
-        Array<NeighbourRecord>& neighbours) const override {
+        Array<NeighbourRecord>& neighbors) const override {
         PROFILE_SCOPE("Octree::findNeighbours");
-        SPH_ASSERT(neighbours.empty())
+        SPH_ASSERT(neighbors.empty())
         SPH_ASSERT(root);
-        findNeighboursInNode(*root, index, radius, neighbours);
-        return neighbours.size();
+        findNeighboursInNode(*root, index, radius, neighbors);
+        return neighbors.size();
     }
 
     virtual Size findNeighbours(const Vector& UNUSED(position),
         const Float radius,
-        Array<NeighbourRecord>& neighbours) const override {
+        Array<NeighbourRecord>& neighbors) const override {
         PROFILE_SCOPE("Octree::findNeighbours");
-        neighbours.clear();
+        neighbors.clear();
         SPH_ASSERT(root);
-        findNeighboursInNode(*root, 0, radius, neighbours);
+        findNeighboursInNode(*root, 0, radius, neighbors);
         NOT_IMPLEMENTED;
-        return neighbours.size();
+        return neighbors.size();
     }
 
     template <typename TFunctor>
@@ -96,13 +96,13 @@ private:
     void findNeighboursInNode(OctreeNode& node,
         const Size index,
         const Float radius,
-        Array<NeighbourRecord>& neighbours) const {
+        Array<NeighbourRecord>& neighbors) const {
         const Float radiusSqr = sqr(radius);
         if (node.isLeaf) {
             for (Size i : node.points) {
                 const Float distSqr = getSqrLength(values[i] - values[index]);
                 if (distSqr < radiusSqr && (this->findAll() || rankH[i] < rankH[index])) {
-                    neighbours.push(NeighbourRecord{ i, distSqr });
+                    neighbors.push(NeighbourRecord{ i, distSqr });
                 }
             }
         } else {
@@ -111,14 +111,14 @@ private:
             Box voxel = node.children[code]->voxel;
             if (getSqrLength(voxel.lower() - p) < radiusSqr && getSqrLength(voxel.upper() - p) < radiusSqr) {
                 // all points of the voxel are already the sphere, skip the checks and just add all points
-                this->enumerateChildrenNode(node, [this, &p, refRank, &neighbours](OctreeNode& n) INL {
+                this->enumerateChildrenNode(node, [this, &p, refRank, &neighbors](OctreeNode& n) INL {
                     if (!n.isLeaf) {
                         return;
                     }
                     for (Size i : n.points) {
                         const Float distSqr = getSqrLength(values[i] - p);
                         if (rankH[i] < refRank) {
-                            neighbours.push(NeighbourRecord{ i, distSqr });
+                            neighbors.push(NeighbourRecord{ i, distSqr });
                         }
                     }
                 });
@@ -131,14 +131,14 @@ private:
             u -= r;
             if (voxel.contains(p)) {
                 // sphere is entirely in this octant, no need to check the other octants
-                this->findNeighboursInNode(*node.children[code], index, radius, neighbours, refRank);
+                this->findNeighboursInNode(*node.children[code], index, radius, neighbors, refRank);
             } else*/ /*{
                 for (Size i = 0; i < node.children.size(); ++i) {
                     OctreeNode& child = *node.children[i];
                     const bool intersect = (i == code) ? true : sphereIntersectsBox(p, radius, child.voxel);
                     if (intersect) {
                         SPH_ASSERT(node.children[i]);
-                        this->findNeighboursInNode(child, index, radius, neighbours);
+                        this->findNeighboursInNode(child, index, radius, neighbors);
                     }
                 }
             }

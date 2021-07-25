@@ -12,7 +12,7 @@
 #include "gui/objects/Texture.h"
 #include "gui/renderers/Spectrum.h"
 #include "objects/containers/ArrayRef.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "objects/utility/Dynamic.h"
 #include "post/Analysis.h"
 #include "quantities/IMaterial.h"
@@ -140,7 +140,7 @@ enum class ColorizerId {
     COROTATING_VELOCITY = -4,  ///< Velocities with a respect to the rotating body
     DISPLACEMENT = -5,         ///< Difference between current positions and initial position
     DENSITY_PERTURBATION = -6, ///< Relative difference of density and initial density (rho/rho0 - 1)
-    SUMMED_DENSITY = -7,       ///< Density computed from particle masses by direct summation of neighbours
+    SUMMED_DENSITY = -7,       ///< Density computed from particle masses by direct summation of neighbors
     TOTAL_STRESS = -8,         ///< Total stress (sigma = S - pI)
     TOTAL_ENERGY = -9,         ///< Sum of kinetic and internal energy for given particle
     TEMPERATURE = -10,         ///< Temperature, computed from internal energy
@@ -809,13 +809,13 @@ public:
 class BoundaryColorizer : public IColorizer {
 public:
     enum class Detection {
-        /// Particles with fewer neighbours are considered boundary. Not suitable if number of neighbours is
+        /// Particles with fewer neighbors are considered boundary. Not suitable if number of neighbors is
         /// enforced by adapting smoothing length. Note that increasing the threshold adds more particles into
         /// the boundary.
         NEIGBOUR_THRESHOLD,
 
         /// Boundary is determined by relative position vectors approximating surface normal. Has higher
-        /// overhead, but does not depend sensitively on number of neighbours. Here, increasing the threshold
+        /// overhead, but does not depend sensitively on number of neighbors. Here, increasing the threshold
         /// leads to fewer boundary particles.
         NORMAL_BASED,
     };
@@ -831,7 +831,7 @@ private:
     struct {
         ArrayRef<const Size> values;
         Size threshold;
-    } neighbours;
+    } neighbors;
 
 public:
     BoundaryColorizer(const Detection detection, const Float threshold = 15._f);

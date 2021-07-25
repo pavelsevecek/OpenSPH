@@ -36,7 +36,7 @@ template <bool FindAll>
 Size HashMapFinder::find(const Vector& pos,
     const Size index,
     const Float radius,
-    Array<NeighbourRecord>& neighs) const {
+    Array<NeighborRecord>& neighs) const {
     SPH_ASSERT(neighs.empty());
     const Indices idxs0 = floor(pos / cellSize);
     Sphere sphere(pos, radius);
@@ -53,7 +53,7 @@ Size HashMapFinder::find(const Vector& pos,
                     for (Size i : cell) {
                         const Float distSqr = getSqrLength(values[i] - pos);
                         if (distSqr < sqr(radius) && (FindAll || rank[i] < rank[index])) {
-                            neighs.emplaceBack(NeighbourRecord{ i, distSqr });
+                            neighs.emplaceBack(NeighborRecord{ i, distSqr });
                         }
                     }
                 }
@@ -83,11 +83,11 @@ MinMaxMean HashMapFinder::getBucketStats() const {
 template Size HashMapFinder::find<true>(const Vector& pos,
     const Size index,
     const Float radius,
-    Array<NeighbourRecord>& neighs) const;
+    Array<NeighborRecord>& neighs) const;
 
 template Size HashMapFinder::find<false>(const Vector& pos,
     const Size index,
     const Float radius,
-    Array<NeighbourRecord>& neighs) const;
+    Array<NeighborRecord>& neighs) const;
 
 NAMESPACE_SPH_END

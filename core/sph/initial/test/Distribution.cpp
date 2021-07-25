@@ -1,7 +1,7 @@
 #include "sph/initial/Distribution.h"
 #include "catch.hpp"
 #include "io/Output.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "objects/geometry/Domain.h"
 #include "objects/utility/ArrayUtils.h"
 #include "system/ArrayStats.h"
@@ -62,21 +62,21 @@ TEST_CASE("HexaPacking common", "[initial]") {
 }
 
 TEST_CASE("HexaPacking grid", "[initial]") {
-    // test that within 1.5h of each particle, there are 12 neighbours in the same distance.
+    // test that within 1.5h of each particle, there are 12 neighbors in the same distance.
     HexagonalPacking packing(EMPTY_FLAGS);
     SphericalDomain domain(Vector(0._f), 2._f);
     Array<Vector> r = packing.generate(SEQUENTIAL, 1000, domain);
     AutoPtr<ISymmetricFinder> finder = Factory::getFinder(RunSettings::getDefaults());
     finder->build(SEQUENTIAL, r);
-    Array<NeighbourRecord> neighs;
+    Array<NeighborRecord> neighs;
     auto test = [&](const Size i) -> Outcome {
         if (getLength(r[i]) > 1.3_f) {
-            // skip particles close to boundary, they don't necessarily have 12 neighbours
+            // skip particles close to boundary, they don't necessarily have 12 neighbors
             return SUCCESS;
         }
         finder->findAll(i, 1.5_f * r[i][H], neighs);
         if (neighs.size() != 13) { // 12 + i-th particle itself
-            return makeFailed("Invalid number of neighbours: \n", neighs.size(), " == 13");
+            return makeFailed("Invalid number of neighbors: \n", neighs.size(), " == 13");
         }
         const Float expectedDist =
             r[i][H]; // note that dist does not have to be exactly h, only approximately
@@ -86,7 +86,7 @@ TEST_CASE("HexaPacking grid", "[initial]") {
             }
             const Float dist = getLength(r[i] - r[n.index]);
             if (dist != approx(expectedDist, 0.1_f)) {
-                return makeFailed("Invalid distance to neighbours: \n", dist, " == ", expectedDist);
+                return makeFailed("Invalid distance to neighbors: \n", dist, " == ", expectedDist);
             }
         }
         return SUCCESS;
@@ -109,12 +109,12 @@ TEST_CASE("HexaPacking sorted", "[initial]") {
     AutoPtr<ISymmetricFinder> finder_unsort = Factory::getFinder(RunSettings::getDefaults());
     finder_unsort->build(SEQUENTIAL, r_unsort);
 
-    // find maximum distance of neighbouring particles in memory
+    // find maximum distance of neighboring particles in memory
     Size neighCnt_sort = 0;
     Size neighCnt_unsort = 0;
     Array<Size> dists_sort;
     Array<Size> dists_unsort;
-    Array<NeighbourRecord> neighs;
+    Array<NeighborRecord> neighs;
     for (Size i = 0; i < r_sort.size(); ++i) {
         neighCnt_sort += finder_sort->findAll(i, 2._f * r_sort[i][H], neighs);
         for (auto& n : neighs) {

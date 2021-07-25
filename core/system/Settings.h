@@ -767,7 +767,7 @@ enum class SmoothingLengthEnum {
     /// Smoothing length is evolved using continuity equation
     CONTINUITY_EQUATION = 1 << 1,
 
-    /// Number of neighbours is kept fixed by adding additional derivatives of smoothing length, scaled by
+    /// Number of neighbors is kept fixed by adding additional derivatives of smoothing length, scaled by
     /// local sound speed
     SOUND_SPEED_ENFORCING = 1 << 2
 };
@@ -1060,7 +1060,7 @@ enum class RunSettingsId {
     /// Index of SPH Kernel, see KernelEnum
     SPH_KERNEL,
 
-    /// Structure for searching nearest neighbours of particles
+    /// Structure for searching nearest neighbors of particles
     SPH_FINDER,
 
     /// Specifies a discretization of SPH equations; see \ref DiscretizationEnum.
@@ -1083,14 +1083,14 @@ enum class RunSettingsId {
     /// Evolve particle phase angle
     SPH_PHASE_ANGLE,
 
-    /// Minimum and maximum number of neighbours SPH solver tries to enforce. Note that the solver cannot
-    /// guarantee the actual number of neighbours will be within the range.
-    SPH_NEIGHBOUR_RANGE,
+    /// Minimum and maximum number of neighbors SPH solver tries to enforce. Note that the solver cannot
+    /// guarantee the actual number of neighbors will be within the range.
+    SPH_NEIGHBOR_RANGE,
 
-    /// Strength of enforcing neighbour number. Higher value makes enforcing more strict (number of neighbours
+    /// Strength of enforcing neighbor number. Higher value makes enforcing more strict (number of neighbors
     /// gets into required range faster), but also makes code less stable. Can be a negative number, -INFTY
     /// technically disables enforcing altogether.
-    SPH_NEIGHBOUR_ENFORCING,
+    SPH_NEIGHBOR_ENFORCING,
 
     /// Artificial viscosity alpha coefficient
     SPH_AV_ALPHA,

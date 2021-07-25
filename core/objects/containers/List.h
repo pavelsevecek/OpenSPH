@@ -32,7 +32,7 @@ struct ListNode {
         : value(std::forward<U>(value))
         , next(next)
         , prev(prev) {
-        // update pointers of neighbouring nodes
+        // update pointers of neighboring nodes
         if (prev) {
             prev->next = this;
         }

@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
 
             Array<idx_t> xadj;
             Array<idx_t> adjncy;
-            Array<NeighbourRecord> neighs;
+            Array<NeighborRecord> neighs;
             for (Size i = 0; i < points.size(); ++i) {
                 finder.findAll(points[i], points[i][H], neighs);
                 xadj.push(adjncy.size());

@@ -172,7 +172,7 @@ void EnergyConservingSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
             const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
             SPH_ASSERT(hbar > EPS, hbar);
             if (i == j || getSqrLength(r[i] - r[j]) >= sqr(kernel.radius() * hbar)) {
-                // aren't actual neighbours
+                // aren't actual neighbors
                 continue;
             }
             const Vector gr = symmetrizedKernel.grad(r[i], r[j]);

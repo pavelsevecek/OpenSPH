@@ -42,7 +42,7 @@ void MeshRenderer::initialize(const Storage& storage,
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     finder->build(*scheduler, r);
-    Array<NeighbourRecord> neighs;
+    Array<NeighborRecord> neighs;
 
     for (Triangle& t : cached.triangles) {
         const Vector pos = t.center();
@@ -60,7 +60,7 @@ void MeshRenderer::initialize(const Storage& storage,
         }
 
         if (weightSum == 0._f) {
-            // we somehow didn't find any neighbours, indicate the error by red triangle
+            // we somehow didn't find any neighbors, indicate the error by red triangle
             cached.colors.push(Rgba::red());
         } else {
             // supersimple diffuse shading

@@ -75,7 +75,7 @@ void PressureForce::setDerivatives(DerivativeHolder& derivatives, const RunSetti
         derivatives.require(makeAuto<PressureGradient<StandardForceDiscr>>(settings));
         break;
     case DiscretizationEnum::BENZ_ASPHAUG:
-        derivatives.require(makeAuto<VelocityDivergence<NeighbourDensityDiscr>>(settings));
+        derivatives.require(makeAuto<VelocityDivergence<NeighborDensityDiscr>>(settings));
         derivatives.require(makeAuto<PressureGradient<BenzAsphaugForceDiscr>>(settings));
         break;
     default:
@@ -341,8 +341,8 @@ AdaptiveSmoothingLength::AdaptiveSmoothingLength(const RunSettings& settings, co
     Flags<SmoothingLengthEnum> flags =
         settings.getFlags<SmoothingLengthEnum>(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH);
     if (flags.has(SmoothingLengthEnum::SOUND_SPEED_ENFORCING)) {
-        enforcing.strength = settings.get<Float>(RunSettingsId::SPH_NEIGHBOUR_ENFORCING);
-        enforcing.range = settings.get<Interval>(RunSettingsId::SPH_NEIGHBOUR_RANGE);
+        enforcing.strength = settings.get<Float>(RunSettingsId::SPH_NEIGHBOR_ENFORCING);
+        enforcing.range = settings.get<Interval>(RunSettingsId::SPH_NEIGHBOR_RANGE);
     } else {
         enforcing.strength = -INFTY;
     }
@@ -366,7 +366,7 @@ void AdaptiveSmoothingLength::initialize(IScheduler& UNUSED(scheduler),
 void AdaptiveSmoothingLength::finalize(IScheduler& scheduler, Storage& storage, const Float UNUSED(t)) {
     ArrayView<const Float> divv, cs;
     tie(divv, cs) = storage.getValues<Float>(QuantityId::VELOCITY_DIVERGENCE, QuantityId::SOUND_SPEED);
-    ArrayView<const Size> neighCnt = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+    ArrayView<const Size> neighCnt = storage.getValue<Size>(QuantityId::NEIGHBOR_CNT);
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
 
@@ -399,7 +399,7 @@ INLINE void AdaptiveSmoothingLength::enforce(const Size i,
         return;
     }
 
-    // check upper limit of neighbour count
+    // check upper limit of neighbor count
     const Float dn1 = neighCnt[i] - enforcing.range.upper();
     SPH_ASSERT(dn1 < neighCnt.size());
     if (dn1 > 0._f) {
@@ -407,7 +407,7 @@ INLINE void AdaptiveSmoothingLength::enforce(const Size i,
         v[i][H] -= exp(enforcing.strength * dn1) * cs[i];
         return;
     }
-    // check lower limit of neighbour count
+    // check lower limit of neighbor count
     const Float dn2 = enforcing.range.lower() - neighCnt[i];
     SPH_ASSERT(dn2 < neighCnt.size());
     if (dn2 > 0._f) {

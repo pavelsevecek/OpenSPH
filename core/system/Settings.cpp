@@ -226,7 +226,7 @@ static RegisterEnum<SmoothingLengthEnum> sSmoothingLength({
         "Smoothing length is evolved using continuity equation." },
     { SmoothingLengthEnum::SOUND_SPEED_ENFORCING,
         "sound_speed_enforcing",
-        "Number of neighbours is kept in the specified range by adding additional derivatives of smoothing "
+        "Number of neighbors is kept in the specified range by adding additional derivatives of smoothing "
         "length, scaled by local sound speed." },
 });
 
@@ -554,12 +554,12 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     /// Global SPH parameters
     { RunSettingsId::SPH_KERNEL,                    "sph.kernel",               KernelEnum::CUBIC_SPLINE,
         "Type of the SPH kernel. Can be one of the following:\n" + EnumMap::getDesc<KernelEnum>() },
-    { RunSettingsId::SPH_NEIGHBOUR_RANGE,           "sph.neighbour.range",      Interval(25._f, 100._f),
-        "Allowed numbers of particle neighbours. Applicable if neighbour enforcing is used for evolution of "
+    { RunSettingsId::SPH_NEIGHBOR_RANGE,           "sph.neighbor.range",      Interval(25._f, 100._f),
+        "Allowed numbers of particle neighbors. Applicable if neighbor enforcing is used for evolution of "
         "smoothing length. Note that even with this parameter set, it is not guaranteed that the number of "
-        "neighbours will be within the interval for every particle, the code only tries to do so." },
-    { RunSettingsId::SPH_NEIGHBOUR_ENFORCING,       "sph.neighbour.enforcing",  0.2_f,
-        "'Strength' of the neighbour enforcing. The higher number means the derivative of the smoothing "
+        "neighbors will be within the interval for every particle, the code only tries to do so." },
+    { RunSettingsId::SPH_NEIGHBOR_ENFORCING,       "sph.neighbor.enforcing",  0.2_f,
+        "'Strength' of the neighbor enforcing. The higher number means the derivative of the smoothing "
         "length can be higher, lower values means 'smoother' evolution of smooting length"},
     { RunSettingsId::SPH_AV_ALPHA,                  "sph.av.alpha",             1.5_f,
         "Coefficient alpha_AV of the standard artificial viscosity." },
@@ -590,7 +590,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::SPH_PHASE_ANGLE,               "sph.phase_angle",                  false,
         "If true, phase angle of each particle is saved in storage and evolved in time. "},
     { RunSettingsId::SPH_FINDER,                    "sph.finder",                       FinderEnum::KD_TREE,
-        "Acceleration structure used for finding neighbours (Kn queries). Can be one of the following:\n" + EnumMap::getDesc<FinderEnum>() },
+        "Acceleration structure used for finding neighbors (Kn queries). Can be one of the following:\n" + EnumMap::getDesc<FinderEnum>() },
     { RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, "sph.correction_tensor",        false,
         "If true, correction tensor is applied on gradient when computing strain rate. Essential "
         "for correct simulation of rotating bodies." },
@@ -910,7 +910,7 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
         "implies center_particles = true." },
     { BodySettingsId::SMOOTHING_LENGTH_ETA,    "sph.eta",                       1.3_f,
         "Multiplier of the kernel radius. Lower values means the particles are more localized (better spatial resolution), "
-        "but they also have fewer neighbours, so the derivatives are evaluated with lower precision. Values between 1 and 2 "
+        "but they also have fewer neighbors, so the derivatives are evaluated with lower precision. Values between 1 and 2 "
         "should be used." },
     { BodySettingsId::DIEHL_STRENGTH,          "sph.diehl.strength",            0.1_f,
         "Magnitude of the particle displacement in a single iteration. Used by Diehl's distribution." },

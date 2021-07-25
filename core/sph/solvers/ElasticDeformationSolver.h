@@ -23,7 +23,7 @@ private:
     /// Selected SPH kernel
     SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>> kernel;
 
-    /// Precomputed list of neighbours for each particle
+    /// Precomputed list of neighbors for each particle
     Array<Array<Size>> neighsPerParticle;
 
     Array<AffineMatrix> R;

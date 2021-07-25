@@ -1,7 +1,6 @@
 #include "bench/Session.h"
 #include "objects/finders/BruteForceFinder.h"
 #include "objects/finders/KdTree.h"
-#include "objects/finders/LinkedList.h"
 #include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Domain.h"
 #include "sph/initial/Distribution.h"
@@ -15,13 +14,13 @@ void finderRun(Benchmark::Context& context, TFinder& finder, const Size particle
     HexagonalPacking distribution;
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     Array<Vector> r = distribution.generate(pool, particleCnt, SphericalDomain(Vector(0._f), 1._f));
-    Array<NeighbourRecord> neighs;
+    Array<NeighborRecord> neighs;
     double distSum = 0.;
     finder.build(pool, r);
     while (context.running()) {
         for (Size i = 0; i < r.size(); ++i) {
             finder.findAll(i, 2._f * r[i][H], neighs);
-            for (NeighbourRecord& n : neighs) {
+            for (NeighborRecord& n : neighs) {
                 distSum += n.distanceSqr;
             }
         }

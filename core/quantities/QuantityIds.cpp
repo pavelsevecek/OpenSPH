@@ -108,7 +108,7 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Angular frequency", L"\u03C9" /*omega*/, ValueEnum::VECTOR);
     case QuantityId::ANGULAR_MOMENTUM:
         return QuantityMetadata("Angular momentum", L"L", ValueEnum::VECTOR);
-    case QuantityId::NEIGHBOUR_CNT:
+    case QuantityId::NEIGHBOR_CNT:
         return QuantityMetadata("Neigh. cnt", L"N_neigh", ValueEnum::INDEX);
     case QuantityId::SURFACE_NORMAL:
         return QuantityMetadata("Surf. normal", L"n", ValueEnum::VECTOR);

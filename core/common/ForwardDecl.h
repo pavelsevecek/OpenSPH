@@ -53,7 +53,7 @@ class ITimeStepCriterion;
 class DerivativeHolder;
 
 struct Ghost;
-struct NeighbourRecord;
+struct NeighborRecord;
 class MaterialView;
 
 enum class ContinuityEnum;

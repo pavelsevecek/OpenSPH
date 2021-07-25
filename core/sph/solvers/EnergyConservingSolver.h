@@ -1,6 +1,6 @@
 #pragma once
 
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "sph/solvers/AsymmetricSolver.h"
 #include "system/Statistics.h"
 
@@ -57,7 +57,7 @@ private:
     AutoPtr<IEnergyPartitioner> partitioner;
 
     struct ThreadData {
-        Array<NeighbourRecord> neighs;
+        Array<NeighborRecord> neighs;
 
         /// \brief Holds the pair-wise changes of internal energy (Delta E_{thermal}) from the paper).
         Array<Float> energyChange;

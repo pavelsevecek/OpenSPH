@@ -262,9 +262,9 @@ VirtualSettings SphJob::getSettings() {
                    EMPTY_FLAGS;
         });
     solverCat
-        .connect<Float>("Neighbor count enforcing strength", settings, RunSettingsId::SPH_NEIGHBOUR_ENFORCING)
+        .connect<Float>("Neighbor count enforcing strength", settings, RunSettingsId::SPH_NEIGHBOR_ENFORCING)
         .setEnabler(enforceEnabler);
-    solverCat.connect<Interval>("Neighbor range", settings, RunSettingsId::SPH_NEIGHBOUR_RANGE)
+    solverCat.connect<Interval>("Neighbor range", settings, RunSettingsId::SPH_NEIGHBOR_RANGE)
         .setEnabler(enforceEnabler);
     solverCat
         .connect<bool>("Use radii hash map", settings, RunSettingsId::SPH_ASYMMETRIC_COMPUTE_RADII_HASH_MAP)
@@ -276,7 +276,7 @@ VirtualSettings SphJob::getSettings() {
         .setEnabler(stressEnabler);
     solverCat.connect<bool>("Sum only undamaged particles", settings, RunSettingsId::SPH_SUM_ONLY_UNDAMAGED);
     solverCat.connect<EnumWrapper>("Continuity mode", settings, RunSettingsId::SPH_CONTINUITY_MODE);
-    solverCat.connect<EnumWrapper>("Neighbour finder", settings, RunSettingsId::SPH_FINDER);
+    solverCat.connect<EnumWrapper>("Neighbor finder", settings, RunSettingsId::SPH_FINDER);
     solverCat.connect<EnumWrapper>("Boundary condition", settings, RunSettingsId::DOMAIN_BOUNDARY);
 
     VirtualSettings::Category& avCat = connector.addCategory("Artificial viscosity");

@@ -6,7 +6,7 @@
 /// \date 2016-2021
 
 #include "math/Means.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "objects/geometry/Box.h"
 #include "system/Settings.h"
 #include <unordered_map>
@@ -35,7 +35,7 @@ public:
     ~HashMapFinder();
 
     template <bool FindAll>
-    Size find(const Vector& pos, const Size index, const Float radius, Array<NeighbourRecord>& neighs) const;
+    Size find(const Vector& pos, const Size index, const Float radius, Array<NeighborRecord>& neighs) const;
 
     template <typename TFunctor>
     void iterate(const TFunctor& func) const {

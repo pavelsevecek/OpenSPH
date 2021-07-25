@@ -19,8 +19,8 @@
 
 NAMESPACE_SPH_BEGIN
 
-Array<Size> Post::findNeighbourCounts(const Storage& storage, const Float particleRadius) {
-    Array<NeighbourRecord> neighs;
+Array<Size> Post::findNeighborCounts(const Storage& storage, const Float particleRadius) {
+    Array<NeighborRecord> neighs;
     AutoPtr<IBasicFinder> finder = Factory::getFinder(RunSettings::getDefaults());
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     finder->build(SEQUENTIAL, r);
@@ -50,7 +50,7 @@ static Size findComponentsImpl(ComponentChecker& checker,
     Size componentIdx = 0;
 
     Array<Size> stack;
-    Array<NeighbourRecord> neighs;
+    Array<NeighborRecord> neighs;
 
     AutoPtr<IBasicFinder> finder = Factory::getFinder(RunSettings::getDefaults());
     // the build time is probably negligible compared to the actual search of components, so let's just use
@@ -67,7 +67,7 @@ static Size findComponentsImpl(ComponentChecker& checker,
                 finder->findAll(index, r[index][H] * radius, neighs);
                 for (auto& n : neighs) {
                     if (!checker.belong(index, n.index)) {
-                        // do not count as neighbours
+                        // do not count as neighbors
                         continue;
                     }
                     if (indices[n.index] == unassigned) {

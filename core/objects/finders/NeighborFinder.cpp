@@ -1,4 +1,4 @@
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN

@@ -1,5 +1,5 @@
 #include "post/MarchingCubes.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "post/Analysis.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/Kernel.h"
@@ -469,7 +469,7 @@ private:
     ArrayView<const SymmetricTensor> G;
     Float maxH = 0._f;
 
-    ThreadLocal<Array<NeighbourRecord>> neighs;
+    ThreadLocal<Array<NeighborRecord>> neighs;
 
 public:
     /// \brief Creates the number density field.
@@ -482,7 +482,7 @@ public:
     /// \param r Particle positions, generally different than the ones stored in the storage.
     /// \param aniso Particle anisotropy matrix, for isotropic distribution equals to I/h
     /// \param kernel SPH kernel used for particle smoothing
-    /// \param finder Neighbour finder
+    /// \param finder Neighbor finder
     ColorField(const Storage& storage,
         IScheduler& scheduler,
         const ArrayView<const Vector> r,
@@ -505,16 +505,16 @@ public:
 
     virtual Float operator()(const Vector& pos) override {
         SPH_ASSERT(maxH > 0._f);
-        Array<NeighbourRecord>& neighsTl = neighs.local();
+        Array<NeighborRecord>& neighsTl = neighs.local();
         /// \todo for now let's just search some random multiple of smoothing length, we should use the
         /// largest singular value here
         finder->findAll(pos, maxH * kernel.radius(), neighsTl);
         Float phi = 0._f;
 
-        // find average h of neighbours and the flag of the closest particle
+        // find average h of neighbors and the flag of the closest particle
         Size closestFlag = 0;
         Float flagDistSqr = INFTY;
-        for (NeighbourRecord& n : neighsTl) {
+        for (NeighborRecord& n : neighsTl) {
             const Size j = n.index;
             if (n.distanceSqr < flagDistSqr) {
                 closestFlag = flag[j];
@@ -522,8 +522,8 @@ public:
             }
         }
 
-        // interpolate values of neighbours
-        for (NeighbourRecord& n : neighsTl) {
+        // interpolate values of neighbors
+        for (NeighborRecord& n : neighsTl) {
             const Size j = n.index;
             if (flag[j] != closestFlag) {
                 continue;
@@ -544,7 +544,7 @@ private:
     ArrayView<const SymmetricTensor> G;
     Float maxH = 0._f;
 
-    ThreadLocal<Array<NeighbourRecord>> neighs;
+    ThreadLocal<Array<NeighborRecord>> neighs;
 
 public:
     FallbackField(IScheduler& scheduler,
@@ -566,14 +566,14 @@ public:
 
     virtual Float operator()(const Vector& pos) override {
         SPH_ASSERT(maxH > 0._f);
-        Array<NeighbourRecord>& neighsTl = neighs.local();
+        Array<NeighborRecord>& neighsTl = neighs.local();
         /// \todo for now let's just search some random multiple of smoothing length, we should use the
         /// largest singular value here
         finder->findAll(pos, maxH * kernel.radius(), neighsTl);
         Float phi = 0._f;
 
-        // interpolate values of neighbours
-        for (NeighbourRecord& n : neighsTl) {
+        // interpolate values of neighbors
+        for (NeighborRecord& n : neighsTl) {
             const Size j = n.index;
             phi += sphereVolume(0.5_f * r[j][H]) * G[j].determinant() *
                    kernel.valueImpl(getSqrLength(G[j] * (pos - r[j])));
@@ -609,8 +609,8 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler, const Storage& storage, co
     Array<Vector> r_bar(r.size());
     Array<SymmetricTensor> G(r.size()); // anisotropy matrix
 
-    ThreadLocal<Array<NeighbourRecord>> neighsData(scheduler);
-    parallelFor(scheduler, neighsData, 0, r.size(), [&](const Size i, Array<NeighbourRecord>& neighs) {
+    ThreadLocal<Array<NeighborRecord>> neighsData(scheduler);
+    parallelFor(scheduler, neighsData, 0, r.size(), [&](const Size i, Array<NeighborRecord>& neighs) {
         /// \todo point cloud denoising?
         r_bar[i] = r[i];
         r_bar[i][H] = r[i][H] * config.smoothingMult;
@@ -618,12 +618,12 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler, const Storage& storage, co
         if (config.useAnisotropicKernels) {
             Vector r_center = Vector(0._f);
             finder->findAll(r_bar[i], 2 * r_bar[i][H], neighs);
-            for (const NeighbourRecord& n : neighs) {
+            for (const NeighborRecord& n : neighs) {
                 r_center += r_bar[n.index];
             }
             r_center /= neighs.size();
             SymmetricTensor C = SymmetricTensor::null();
-            for (const NeighbourRecord& n : neighs) {
+            for (const NeighborRecord& n : neighs) {
                 C += symmetricOuter(r[n.index] - r_center, r[n.index] - r_center);
             }
 
@@ -639,7 +639,7 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler, const Storage& storage, co
             G[i] = SymmetricTensor(Vector(1._f / r[i][H]), Vector(0._f));
         }
     });
-    // 5. find bounding box and maximum h (we need to search neighbours of arbitrary point in space)
+    // 5. find bounding box and maximum h (we need to search neighbors of arbitrary point in space)
 
     Float maxH = 0._f;
     for (Size i = 0; i < r_bar.size(); ++i) {

@@ -106,7 +106,7 @@ TEST_CASE("EquationHolder operators", "[equationterm]") {
     eqs += makeTerm<PressureForce>();
     REQUIRE(eqs.getTermCnt() == 1);
 
-    EquationHolder sum = std::move(eqs) + makeTerm<NeighbourCountTerm>() +
+    EquationHolder sum = std::move(eqs) + makeTerm<NeighborCountTerm>() +
                          makeTerm<AdaptiveSmoothingLength>(RunSettings::getDefaults());
     REQUIRE(sum.getTermCnt() == 3);
 }
@@ -142,7 +142,7 @@ TEMPLATE_TEST_CASE("TestEquation", "[equationterm]", SymmetricSolver<3>, Asymmet
     REQUIRE(perElement(cnts) == 1);
 }
 
-TEMPLATE_TEST_CASE("NeighbourCount", "[equationterm]", SymmetricSolver<3>, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("NeighborCount", "[equationterm]", SymmetricSolver<3>, AsymmetricSolver) {
     Storage storage = Tests::getStorage(10000);
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     const Size N = storage.getParticleCnt();
@@ -154,20 +154,20 @@ TEMPLATE_TEST_CASE("NeighbourCount", "[equationterm]", SymmetricSolver<3>, Asymm
 
     solver.integrate(storage, stats);
 
-    ArrayView<Size> neighCnts = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+    ArrayView<Size> neighCnts = storage.getValue<Size>(QuantityId::NEIGHBOR_CNT);
 
     REQUIRE(neighCnts.size() == N);
-    // count neighbours manually and compare
+    // count neighbors manually and compare
     UniformGridFinder finder;
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     finder.build(pool, r);
     const Float radius = Factory::getKernel<3>(RunSettings::getDefaults()).radius();
-    Array<NeighbourRecord> neighs;
+    Array<NeighborRecord> neighs;
     auto test = [&](Size i) -> Outcome {
         const Size cnt = finder.findAll(i, r[i][H] * radius, neighs);
         if (cnt != neighCnts[i] + 1) {
             // +1 for the particle itself
-            return makeFailed("Incorrect neighbour count for particle ", i, "\n", cnt, " == ", neighCnts[i]);
+            return makeFailed("Incorrect neighbor count for particle ", i, "\n", cnt, " == ", neighCnts[i]);
         }
         return SUCCESS;
     };

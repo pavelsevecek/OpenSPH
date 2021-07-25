@@ -94,7 +94,7 @@ TEST_CASE("EquilibriumStressSolver pressure", "[equilibriumsolver]") {
     };
 
     FileLogger logger(Path("p.txt"));
-    ArrayView<Size> neighCnts = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+    ArrayView<Size> neighCnts = storage.getValue<Size>(QuantityId::NEIGHBOR_CNT);
     for (Size i = 0; i < r.size(); ++i) {
         logger.write(getLength(r[i]), "  ", p[i], "  ", neighCnts[i]);
     }

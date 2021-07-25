@@ -1,6 +1,6 @@
 #include "run/jobs/InitialConditionJobs.h"
 #include "gravity/IGravity.h"
-#include "objects/finders/PointCloud.h"
+#include "objects/finders/IncrementalFinder.h"
 #include "objects/geometry/Sphere.h"
 #include "physics/Eos.h"
 #include "physics/Functions.h"
@@ -818,7 +818,7 @@ void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     const PowerLawSfd sfd{ sizeExponent, interval };
 
     AutoPtr<IRng> rng = Factory::getRng(global);
-    PointCloud cloud(radius / 10);
+    IncrementalFinder finder(radius / 10);
     Size bailoutCounter = 0;
     const Float sep = 1._f;
     const Size reportStep = max(particleCnt / 1000, 1u);
@@ -828,17 +828,17 @@ void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
         v[H] = sfd(rng(3));
 
         // check for intersections
-        if (cloud.getClosePointsCount(v, sep * v[H]) > 0) {
+        if (finder.getNeighCnt(v, sep * v[H]) > 0) {
             // discard
             bailoutCounter++;
             continue;
         }
-        cloud.push(v);
+        finder.addPoint(v);
         bailoutCounter = 0;
 
-        if (cloud.size() % reportStep == reportStep - 1) {
+        if (finder.size() % reportStep == reportStep - 1) {
             Statistics stats;
-            stats.set(StatisticsId::RELATIVE_PROGRESS, Float(cloud.size()) / particleCnt);
+            stats.set(StatisticsId::RELATIVE_PROGRESS, Float(finder.size()) / particleCnt);
             callbacks.onTimeStep(Storage(), stats);
 
             if (callbacks.shouldAbortRun()) {
@@ -846,10 +846,10 @@ void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
             }
         }
 
-    } while (cloud.size() < particleCnt && bailoutCounter < 1000);
+    } while (finder.size() < particleCnt && bailoutCounter < 1000);
 
     // assign masses
-    Array<Vector> positions = cloud.array();
+    Array<Vector> positions = finder.array();
     Array<Float> masses(positions.size());
 
     Float m_sum = 0._f;

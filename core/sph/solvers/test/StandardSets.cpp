@@ -38,7 +38,7 @@ TEMPLATE_TEST_CASE("StandardSets quantities B&A", "[solvers]", SymmetricSolver<3
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
     Storage storage = initStorage(solver, body);
     // positions, masses, pressure, density, energy, sound speed, deviatoric stress, yielding reduction,
-    // velocity divergence, velocity gradient, neighbour count, flags, material count
+    // velocity divergence, velocity gradient, neighbor count, flags, material count
     REQUIRE(storage.getQuantityCnt() == 13);
     REQUIRE(storage.has<Vector>(QuantityId::POSITION, OrderEnum::SECOND));
     REQUIRE(storage.has<Float>(QuantityId::MASS, OrderEnum::ZERO));
@@ -50,7 +50,7 @@ TEMPLATE_TEST_CASE("StandardSets quantities B&A", "[solvers]", SymmetricSolver<3
     REQUIRE(storage.has<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::FIRST));
     REQUIRE(storage.has<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO));
     REQUIRE(storage.has<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO));
-    REQUIRE(storage.has<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
+    REQUIRE(storage.has<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO));
     REQUIRE(storage.has<Size>(QuantityId::FLAG, OrderEnum::ZERO));
     REQUIRE(storage.has<Size>(QuantityId::MATERIAL_ID, OrderEnum::ZERO));
 
@@ -76,7 +76,7 @@ TEMPLATE_TEST_CASE("StandardSets quantities standard", "[solvers]", SymmetricSol
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
     Storage storage = initStorage(solver, body);
     // positions, masses, pressure, density, energy, sound speed, deviatoric stress, yielding reduction,
-    // density velocity divergence, neighbour count, flags, material count
+    // density velocity divergence, neighbor count, flags, material count
     REQUIRE(storage.getQuantityCnt() == 13);
     REQUIRE(storage.has<Vector>(QuantityId::POSITION, OrderEnum::SECOND));
     REQUIRE(storage.has<Float>(QuantityId::MASS, OrderEnum::ZERO));
@@ -88,7 +88,7 @@ TEMPLATE_TEST_CASE("StandardSets quantities standard", "[solvers]", SymmetricSol
     REQUIRE(storage.has<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::FIRST));
     REQUIRE(storage.has<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO));
     REQUIRE(storage.has<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO));
-    REQUIRE(storage.has<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
+    REQUIRE(storage.has<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO));
     REQUIRE(storage.has<Size>(QuantityId::FLAG, OrderEnum::ZERO));
     REQUIRE(storage.has<Size>(QuantityId::MATERIAL_ID, OrderEnum::ZERO));
 

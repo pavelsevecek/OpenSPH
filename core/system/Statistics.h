@@ -131,8 +131,8 @@ enum class StatisticsId {
     /// Total number of particles in the run
     PARTICLE_COUNT,
 
-    /// Number of neighbours (min, max, mean)
-    NEIGHBOUR_COUNT,
+    /// Number of neighbors (min, max, mean)
+    NEIGHBOR_COUNT,
 
     /// Wallclock duration of evaluation of SPH derivatives
     SPH_EVAL_TIME,

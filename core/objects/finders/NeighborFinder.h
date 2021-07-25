@@ -1,6 +1,6 @@
 #pragma once
 
-/// \file INeighbourFinder.h
+/// \file NeighborFinder.h
 /// \brief Base class defining interface for kNN queries.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2021
@@ -14,28 +14,28 @@ NAMESPACE_SPH_BEGIN
 
 class IScheduler;
 
-/// \brief Holds information about a neighbour particles
-struct NeighbourRecord {
+/// \brief Holds information about a neighbor particles
+struct NeighborRecord {
     /// Index of particle in the storage
     Size index;
 
     /// Squared distance of the particle from the queried particle / position
     Float distanceSqr;
 
-    bool operator!=(const NeighbourRecord& other) const {
+    bool operator!=(const NeighborRecord& other) const {
         return index != other.index || distanceSqr != other.distanceSqr;
     }
 
     /// Sort by the distance
-    bool operator<(const NeighbourRecord& other) const {
+    bool operator<(const NeighborRecord& other) const {
         return distanceSqr < other.distanceSqr;
     }
 };
 
-/// \brief Interface of objects finding neighbouring particles.
+/// \brief Interface of objects finding neighboring particles.
 ///
 /// Provides queries for searching particles within given radius from given particle or given point in space.
-/// Object has to be built before neighbour queries can be made.
+/// Object has to be built before neighbor queries can be made.
 class IBasicFinder : public Polymorphic {
 protected:
     /// View of the source datapoints, updated every time (re)build is called
@@ -49,22 +49,22 @@ public:
     /// \param points View of the array of points in space.
     void build(IScheduler& scheduler, ArrayView<const Vector> points);
 
-    /// \brief Finds all neighbours within given radius from the point given by index.
+    /// \brief Finds all neighbors within given radius from the point given by index.
     ///
     /// Point view passed in \ref build must not be invalidated, in particular the number of particles must
     /// not change before function \ref findAll is called. Note that the particle itself (index-th particle)
-    /// is also included in the list of neighbours.
+    /// is also included in the list of neighbors.
     /// \param index Index of queried particle in the view given in \ref build function.
-    /// \param radius Radius in which the neighbours are searched. Must be a positive value.
-    /// \param neighbours Output parameter, containing the list of neighbours as indices to the array. The
-    ///                   array is cleared by the function.
-    /// \return The number of located neighbours.
-    virtual Size findAll(const Size index, const Float radius, Array<NeighbourRecord>& neighbours) const = 0;
+    /// \param radius Radius in which the neighbors are searched. Must be a positive value.
+    /// \param neighbors Output parameter, containing the list of neighbors as indices to the array. The
+    ///                  array is cleared by the function.
+    /// \return The number of located neighbors.
+    virtual Size findAll(const Size index, const Float radius, Array<NeighborRecord>& neighbors) const = 0;
 
     /// \brief Finds all points within given radius from given position.
     ///
     /// The position may not correspond to any point.
-    virtual Size findAll(const Vector& pos, const Float radius, Array<NeighbourRecord>& neighbours) const = 0;
+    virtual Size findAll(const Vector& pos, const Float radius, Array<NeighborRecord>& neighbors) const = 0;
 
 protected:
     /// \brief Builds finder from set of vectors.
@@ -95,9 +95,9 @@ static Order makeRank(const Size size, TCompare&& comp) {
 
 /// \brief Extension of IBasicFinder, allowing to search only particles with lower rank in smoothing length.
 ///
-/// This is useful to find each pair of neighbouring particles only once; if i-th particle 'sees' j-th
+/// This is useful to find each pair of neighboring particles only once; if i-th particle 'sees' j-th
 /// particle, j-th particle does not 'see' i-th particle. This can be a significant optimization as only half
-/// of the neighbours is evaluated.
+/// of the neighbors is evaluated.
 class ISymmetricFinder : public IBasicFinder {
 protected:
     /// Ranks of particles according to their smoothing lengths
@@ -120,16 +120,16 @@ public:
     /// \brief Finds all points within radius that have a lower rank in smoothing length.
     ///
     /// The sorting of particles with equal smoothing length is not specified, but it is ensured that all
-    /// found neighbours will not find the queries particle if \ref findAsymmetric is called with that
+    /// found neighbors will not find the queries particle if \ref findAsymmetric is called with that
     /// particle. Note that this does NOT find the queried particle itself.
     /// \param index Index of queried particle in the view given in \ref build function.
-    /// \param radius Radius in which the neighbours are searched. Must be a positive value.
-    /// \param neighbours Output parameter, containing the list of neighbours as indices to the array. The
+    /// \param radius Radius in which the neighbors are searched. Must be a positive value.
+    /// \param neighbors Output parameter, containing the list of neighbors as indices to the array. The
     ///                   array is cleared by the function.
-    /// \return The number of located neighbours. Can be zero.
+    /// \return The number of located neighbors. Can be zero.
     virtual Size findLowerRank(const Size index,
         const Float radius,
-        Array<NeighbourRecord>& neighbours) const = 0;
+        Array<NeighborRecord>& neighbors) const = 0;
 };
 
 /// \brief Helper template, allowing to define all three functions with a single function.
@@ -138,31 +138,31 @@ class FinderTemplate : public ISymmetricFinder {
 public:
     virtual Size findAll(const Size index,
         const Float radius,
-        Array<NeighbourRecord>& neighbours) const override {
-        neighbours.clear();
+        Array<NeighborRecord>& neighbors) const override {
+        neighbors.clear();
         return static_cast<const TDerived*>(this)->template find<true>(
-            values[index], index, radius, neighbours);
+            values[index], index, radius, neighbors);
     }
 
     virtual Size findAll(const Vector& pos,
         const Float radius,
-        Array<NeighbourRecord>& neighbours) const override {
-        neighbours.clear();
+        Array<NeighborRecord>& neighbors) const override {
+        neighbors.clear();
         if (SPH_UNLIKELY(values.empty())) {
             return 0._f;
         }
         // the index here is irrelevant, so let's use something that would cause assert in case we messed
         // something up
         const Size index = values.size();
-        return static_cast<const TDerived*>(this)->template find<true>(pos, index, radius, neighbours);
+        return static_cast<const TDerived*>(this)->template find<true>(pos, index, radius, neighbors);
     }
 
     virtual Size findLowerRank(const Size index,
         const Float radius,
-        Array<NeighbourRecord>& neighbours) const override {
-        neighbours.clear();
+        Array<NeighborRecord>& neighbors) const override {
+        neighbors.clear();
         return static_cast<const TDerived*>(this)->template find<false>(
-            values[index], index, radius, neighbours);
+            values[index], index, radius, neighbors);
     }
 };
 

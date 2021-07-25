@@ -223,7 +223,7 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     REQUIRE(storage.getMaterialCnt() == 3);
     REQUIRE(storage.getParticleCnt() == 35);
     // positions, masses, pressure, density, energy, sound speed, deviatoric stress, yielding reduction,
-    // velocity divergence, velocity gradient, neighbour count, flags, material count
+    // velocity divergence, velocity gradient, neighbor count, flags, material count
     REQUIRE(storage.getQuantityCnt() == 13);
 
     BinaryInput input;

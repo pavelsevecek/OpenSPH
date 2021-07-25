@@ -12,8 +12,8 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// \brief Helper term counting the number of neighbours of each particle.
-class NeighbourCountTerm : public IEquationTerm {
+/// \brief Helper term counting the number of neighbors of each particle.
+class NeighborCountTerm : public IEquationTerm {
 private:
     class Derivative : public DerivativeTemplate<Derivative> {
     private:
@@ -24,11 +24,11 @@ private:
             : DerivativeTemplate<Derivative>(settings) {}
 
         INLINE void additionalCreate(Accumulated& results) {
-            results.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, BufferSource::UNIQUE);
+            results.insert<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO, BufferSource::UNIQUE);
         }
 
         INLINE void additionalInitialize(const Storage& UNUSED(input), Accumulated& results) {
-            neighCnts = results.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
+            neighCnts = results.getBuffer<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO);
         }
 
         INLINE bool additionalEquals(const Derivative& UNUSED(other)) const {
@@ -37,7 +37,7 @@ private:
 
         template <bool Symmetrize>
         INLINE void eval(const Size i, const Size j, const Vector& UNUSED(grad)) {
-            // there is no need to use this in asymmetric solver, since we already know all the neighbours
+            // there is no need to use this in asymmetric solver, since we already know all the neighbors
             SPH_ASSERT(Symmetrize);
             neighCnts[i]++;
             if (Symmetrize) {
@@ -66,7 +66,7 @@ public:
 /// \brief Term computing normals of free surface.
 ///
 /// For particles inside the bodies, this will result to vectors close to zero (depending on the number of
-/// neighbours), and the term can be therefore used to detect boundary particles
+/// neighbors), and the term can be therefore used to detect boundary particles
 class SurfaceNormal : public IEquationTerm {
 private:
     class Derivative : public DerivativeTemplate<Derivative> {

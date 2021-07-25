@@ -11,7 +11,7 @@
 #include "io/LogWriter.h"
 #include "io/Logger.h"
 #include "io/Output.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "objects/geometry/Domain.h"
 #include "physics/Eos.h"
 #include "physics/Functions.h"

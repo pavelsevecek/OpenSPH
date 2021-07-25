@@ -11,8 +11,8 @@ PeriodicFinder::PeriodicFinder(AutoPtr<ISymmetricFinder>&& actual,
     , scheduler(scheduler)
     , extra(*scheduler) {}
 
-Size PeriodicFinder::findAll(const Size index, const Float radius, Array<NeighbourRecord>& neighbours) const {
-    return this->findAll(values[index], radius, neighbours);
+Size PeriodicFinder::findAll(const Size index, const Float radius, Array<NeighborRecord>& neighbors) const {
+    return this->findAll(values[index], radius, neighbors);
 }
 
 static const StaticArray<Vector, 3> UNIT = {
@@ -23,17 +23,17 @@ static const StaticArray<Vector, 3> UNIT = {
 
 Size PeriodicFinder::findAll(const Vector& pos,
     const Float radius,
-    Array<NeighbourRecord>& neighbours) const {
-    Size count = actual->findAll(pos, radius, neighbours);
+    Array<NeighborRecord>& neighbors) const {
+    Size count = actual->findAll(pos, radius, neighbors);
 
     for (Size i = 0; i < 3; ++i) {
         if (pos[i] < domain.lower()[i] + radius) {
             count += actual->findAll(pos + domain.size()[i] * UNIT[i], radius, extra.local());
-            neighbours.pushAll(extra.local());
+            neighbors.pushAll(extra.local());
         }
         if (pos[i] > domain.upper()[i] - radius) {
             count += actual->findAll(pos - domain.size()[i] * UNIT[i], radius, extra.local());
-            neighbours.pushAll(extra.local());
+            neighbors.pushAll(extra.local());
         }
     }
     return count;

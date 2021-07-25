@@ -3,7 +3,6 @@
 #include "objects/finders/BruteForceFinder.h"
 #include "objects/finders/HashMapFinder.h"
 #include "objects/finders/KdTree.h"
-#include "objects/finders/LinkedList.h"
 #include "objects/finders/Octree.h"
 #include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Domain.h"
@@ -21,13 +20,12 @@
 
 using namespace Sph;
 
-static Outcome checkNeighboursEqual(ArrayView<NeighbourRecord> treeNeighs,
-    ArrayView<NeighbourRecord> bfNeighs) {
+static Outcome checkNeighborsEqual(ArrayView<NeighborRecord> treeNeighs, ArrayView<NeighborRecord> bfNeighs) {
     // sort both indices and check pair by pair
-    std::sort(treeNeighs.begin(), treeNeighs.end(), [](NeighbourRecord n1, NeighbourRecord n2) {
+    std::sort(treeNeighs.begin(), treeNeighs.end(), [](NeighborRecord n1, NeighborRecord n2) {
         return n1.index < n2.index;
     });
-    std::sort(bfNeighs.begin(), bfNeighs.end(), [](NeighbourRecord n1, NeighbourRecord n2) {
+    std::sort(bfNeighs.begin(), bfNeighs.end(), [](NeighborRecord n1, NeighborRecord n2) {
         return n1.index < n2.index;
     });
     Array<Size> bfIdxs, treeIdxs;
@@ -42,12 +40,12 @@ static Outcome checkNeighboursEqual(ArrayView<NeighbourRecord> treeNeighs,
     }
 
     if (!(bfIdxs == treeIdxs)) {
-        return makeFailed("Different neighbours found:", "\n brute force: ", bfIdxs, "\n finder: ", treeIdxs);
+        return makeFailed("Different neighbors found:", "\n brute force: ", bfIdxs, "\n finder: ", treeIdxs);
     }
     for (Size i = 0; i < bfDist.size(); ++i) {
         if (bfDist[i] != approx(treeDist[i])) { /// \todo figure out why approx is needed here!
             return makeFailed(
-                "Neighbours are at different distances!"
+                "Neighbors are at different distances!"
                 "\n brute force: ",
                 bfDist[i],
                 "\n finder: ",
@@ -57,7 +55,7 @@ static Outcome checkNeighboursEqual(ArrayView<NeighbourRecord> treeNeighs,
     return SUCCESS;
 }
 
-static void checkNeighbours(ISymmetricFinder& finder) {
+static void checkNeighbors(ISymmetricFinder& finder) {
     HexagonalPacking distr;
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     SphericalDomain domain(Vector(0._f), 2._f);
@@ -67,8 +65,8 @@ static void checkNeighbours(ISymmetricFinder& finder) {
     BruteForceFinder bf;
     bf.build(pool, storage);
 
-    Array<NeighbourRecord> treeNeighs;
-    Array<NeighbourRecord> bfNeighs;
+    Array<NeighborRecord> treeNeighs;
+    Array<NeighborRecord> bfNeighs;
     const Float radius = 0.7_f;
 
     auto test1 = [&](const Size refIdx) -> Outcome {
@@ -76,10 +74,10 @@ static void checkNeighbours(ISymmetricFinder& finder) {
         const Size nBf = bf.findAll(refIdx, radius, bfNeighs);
 
         if (nTree != nBf) {
-            return makeFailed("Invalid number of neighbours:\n", nTree, " == ", nBf);
+            return makeFailed("Invalid number of neighbors:\n", nTree, " == ", nBf);
         }
 
-        return checkNeighboursEqual(treeNeighs, bfNeighs);
+        return checkNeighborsEqual(treeNeighs, bfNeighs);
     };
     REQUIRE_SEQUENCE(test1, 0, storage.size());
 
@@ -88,24 +86,24 @@ static void checkNeighbours(ISymmetricFinder& finder) {
         const Size nBf = bf.findLowerRank(refIdx, radius, bfNeighs);
 
         if (nTree != nBf) {
-            return makeFailed("Invalid number of neighbours:\n", nTree, " == ", nBf);
+            return makeFailed("Invalid number of neighbors:\n", nTree, " == ", nBf);
         }
 
-        return checkNeighboursEqual(treeNeighs, bfNeighs);
+        return checkNeighborsEqual(treeNeighs, bfNeighs);
     };
     REQUIRE_SEQUENCE(test2, 0, storage.size());
 
     auto test3 = [&](const Size refIdx) -> Outcome {
-        // find neighbours in the middle of two points (just to get something else then one of points)
+        // find neighbors in the middle of two points (just to get something else then one of points)
         const Vector point = 0.5_f * (storage[refIdx] + storage[refIdx + 1]);
         const Size nTree = finder.findAll(point, radius, treeNeighs);
         const Size nBf = bf.findAll(point, radius, bfNeighs);
 
         if (nTree != nBf) {
-            return makeFailed("Invalid number of neighbours:\n", nTree, " == ", nBf);
+            return makeFailed("Invalid number of neighbors:\n", nTree, " == ", nBf);
         }
 
-        return checkNeighboursEqual(treeNeighs, bfNeighs);
+        return checkNeighborsEqual(treeNeighs, bfNeighs);
     };
     REQUIRE_SEQUENCE(test3, 0, storage.size() - 1);
 }
@@ -117,7 +115,7 @@ static void checkEmpty(ISymmetricFinder& finder) {
     REQUIRE_NOTHROW(finder.build(pool, storage));
 
     // find in empty
-    Array<NeighbourRecord> treeNeighs;
+    Array<NeighborRecord> treeNeighs;
     const Size nTree = finder.findAll(Vector(0._f), 1.f, treeNeighs);
     REQUIRE(nTree == 0);
 }
@@ -129,7 +127,7 @@ static void checkLargeValues(ISymmetricFinder& finder) {
     Array<Vector> storage = { Vector(1.e10_f, 2.e10_f, -3.e10_f, 1._f) };
     REQUIRE_NOTHROW(finder.build(pool, storage));
 
-    Array<NeighbourRecord> treeNeighs;
+    Array<NeighborRecord> treeNeighs;
     Size nTree = finder.findAll(0, 1.f, treeNeighs);
     REQUIRE(nTree == 1);
 
@@ -146,7 +144,7 @@ static void checkFindingSmallerH(ISymmetricFinder& finder) {
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     finder.build(pool, storage);
-    Array<NeighbourRecord> treeNeighs;
+    Array<NeighborRecord> treeNeighs;
     int nAll = finder.findAll(4, 10._f, treeNeighs);
     REQUIRE(nAll == 10); // this should find all particles
 
@@ -161,7 +159,7 @@ static void checkFindingSmallerH(ISymmetricFinder& finder) {
     REQUIRE(allMatching);
 }
 
-static bool neighboursEqual(Array<Array<NeighbourRecord>>& list1, Array<Array<NeighbourRecord>>& list2) {
+static bool neighborsEqual(Array<Array<NeighborRecord>>& list1, Array<Array<NeighborRecord>>& list2) {
     for (Size i = 0; i < list1.size(); ++i) {
         if (list1[i].size() != list2[i].size()) {
             return false;
@@ -183,27 +181,27 @@ static void checkParallelization(ISymmetricFinder& finder) {
     Array<Vector> storage = distr.generate(pool, 100, domain);
 
     finder.build(SEQUENTIAL, storage);
-    Array<Array<NeighbourRecord>> sequential;
+    Array<Array<NeighborRecord>> sequential;
     for (Size i = 0; i < storage.size(); ++i) {
-        Array<NeighbourRecord> neighs;
+        Array<NeighborRecord> neighs;
         finder.findAll(storage[i], 2 * storage[i][H], neighs);
         sequential.emplaceBack(std::move(neighs));
     }
 
     finder.build(pool, storage);
-    Array<Array<NeighbourRecord>> parallelized;
+    Array<Array<NeighborRecord>> parallelized;
     for (Size i = 0; i < storage.size(); ++i) {
-        Array<NeighbourRecord> neighs;
+        Array<NeighborRecord> neighs;
         finder.findAll(storage[i], 2 * storage[i][H], neighs);
         parallelized.emplaceBack(std::move(neighs));
     }
 
     REQUIRE(sequential.size() == parallelized.size());
-    REQUIRE(neighboursEqual(sequential, parallelized));
+    REQUIRE(neighborsEqual(sequential, parallelized));
 }
 
 static void testFinder(ISymmetricFinder& finder) {
-    checkNeighbours(finder);
+    checkNeighbors(finder);
     checkEmpty(finder);
     checkLargeValues(finder);
     checkFindingSmallerH(finder);

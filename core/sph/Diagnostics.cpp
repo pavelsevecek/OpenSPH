@@ -1,5 +1,5 @@
 #include "sph/Diagnostics.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "quantities/IMaterial.h"
 #include "system/Factory.h"
 #include "system/Statistics.h"
@@ -13,7 +13,7 @@ Array<ParticlePairingDiagnostic::Pair> ParticlePairingDiagnostic::getPairs(const
     finder->build(SEQUENTIAL, r);
 
     Array<ParticlePairingDiagnostic::Pair> pairs;
-    Array<NeighbourRecord> neighs;
+    Array<NeighborRecord> neighs;
 
     /// \todo symmetrized h
     for (Size i = 0; i < r.size(); ++i) {
@@ -49,7 +49,7 @@ DiagnosticsReport SmoothingDiscontinuityDiagnostic::check(const Storage& storage
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     AutoPtr<ISymmetricFinder> finder = Factory::getFinder(RunSettings::getDefaults());
     finder->build(SEQUENTIAL, r);
-    Array<NeighbourRecord> neighs;
+    Array<NeighborRecord> neighs;
 
     struct Pair {
         Size i1, i2;

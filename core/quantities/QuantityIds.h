@@ -180,8 +180,8 @@ enum class QuantityId {
     /// \name SPH statistics & auxiliary data
     ///@{
 
-    /// Number of neighbouring particles (in radius h * kernel.radius)
-    NEIGHBOUR_CNT = 38,
+    /// Number of neighboring particles (in radius h * kernel.radius)
+    NEIGHBOR_CNT = 38,
 
     /// Vector approximating surface normal
     SURFACE_NORMAL = 39,

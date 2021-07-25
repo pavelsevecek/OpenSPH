@@ -21,9 +21,9 @@ NAMESPACE_SPH_BEGIN
 /// Derivatives in different phases are evaluated in order, each phase can use results computed by derivatives
 /// in previous phase. Order of derivative evaluation within one phase is undefined.
 ///
-/// \attention Phases make only sense for asymmetric evaluation, i.e. if all neighbours are visited for given
+/// \attention Phases make only sense for asymmetric evaluation, i.e. if all neighbors are visited for given
 /// particles and the computed value is final. For symmetrized evaluation, only a partial value is computed
-/// for given particle (and the rest is added when evaluating the neighbouring particles), so the result from
+/// for given particle (and the rest is added when evaluating the neighboring particles), so the result from
 /// previous phase cannot be used anyway!
 enum class DerivativePhase {
     /// Auxiliary quantities needed for evaluation of other derivatives (grad-h, correction tensor, ...)
@@ -34,7 +34,7 @@ enum class DerivativePhase {
     EVALUATION,
 };
 
-/// \brief Derivative accumulated by summing up neighbouring particles.
+/// \brief Derivative accumulated by summing up neighboring particles.
 ///
 /// If solver is parallelized, each threa has its own derivatives that are summed after the solver loop.
 /// In order to use derived classes in DerivativeHolder, they must be either default constructible or have
@@ -47,7 +47,7 @@ public:
     /// Called only once at the beginning of the run.
     virtual void create(Accumulated& results) = 0;
 
-    /// \brief Initialize derivative before iterating over neighbours.
+    /// \brief Initialize derivative before iterating over neighbors.
     ///
     /// All pointers and arrayviews used to access storage quantities must be initialized in this function, as
     /// they may have been invalidated.
@@ -59,10 +59,10 @@ public:
     /// \brief Compute derivatives of given particle.
     ///
     /// Derivatives are computed by summing up pair-wise interaction between the given particle and its
-    /// neighbours. Derivatives of the neighbours should not be modified by the function. Note that the given
-    /// particle is NOT included in its own neighbours.
+    /// neighbors. Derivatives of the neighbors should not be modified by the function. Note that the given
+    /// particle is NOT included in its own neighbors.
     /// \param idx Index of the first interacting particle.
-    /// \param neighs Array containing all neighbours of idx-th particle.
+    /// \param neighs Array containing all neighbors of idx-th particle.
     /// \param grads Computed gradients of the SPH kernel for each particle pair.
     virtual void evalNeighs(const Size idx, ArrayView<const Size> neighs, ArrayView<const Vector> grads) = 0;
 
@@ -91,9 +91,9 @@ class ISymmetricDerivative : public IDerivative {
 public:
     /// \brief Compute a part of derivatives from interaction of particle pairs.
     ///
-    /// The function computes derivatives of the given particle as well as all of its neighbours. Each
+    /// The function computes derivatives of the given particle as well as all of its neighbors. Each
     /// particle pair is visited only once when evaluating the derivatives. Note that it computes only a part
-    /// of the total sum, the rest of the sum is computed when executing the function for neighbouring
+    /// of the total sum, the rest of the sum is computed when executing the function for neighboring
     /// particles. The derivatives are completed only after all particles have been processed.
     ///
     /// Implementation must be consistent with \ref evalNeighs, both must evaluate to the same derivative
@@ -101,7 +101,7 @@ public:
     /// helper class.
     ///
     /// \param idx Index of first interacting particle.
-    /// \param neighs Array of some neighbours of idx-th particle. May be empty.
+    /// \param neighs Array of some neighbors of idx-th particle. May be empty.
     /// \param grads Computed gradients of the SPH kernel for each particle pair.
     virtual void evalSymmetric(const Size idx,
         ArrayView<const Size> neighs,
@@ -117,13 +117,13 @@ public:
     }
 };
 
-/// \brief Extension of derivative allowing to compute pair-wise acceleration for each neighbour.
+/// \brief Extension of derivative allowing to compute pair-wise acceleration for each neighbor.
 ///
 /// Any derivative modifying acceleration of particles must implement this interface in order to work properly
 /// with \ref EnergyConservingSolver. If different solver is used, it is sufficient the base classes.
 class IAcceleration : public ISymmetricDerivative {
 public:
-    /// \brief Computes the pair-wise accelerations of given particle and its neighbours.
+    /// \brief Computes the pair-wise accelerations of given particle and its neighbors.
     ///
     /// If the implementation of \ref evalNeighs and \ref evalNeighs also modify other quantity derivatives
     /// besides accelerations, this function shall also modify these in order to be consistent. Here, the
@@ -136,7 +136,7 @@ public:
     /// evaluation, consider using \ref AccelerationTemplate helper class.
     ///
     /// \param idx Index of first interacting particle.
-    /// \param neighs Array containing all neighbours of idx-th particle.
+    /// \param neighs Array containing all neighbors of idx-th particle.
     /// \param grads Computed gradients of the SPH kernel for each particle pair.
     /// \param dv Output view, where the pair-wise accelerations are stored.
     virtual void evalAcceleration(const Size idx,

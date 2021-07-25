@@ -233,7 +233,7 @@ static FlatMap<ExtColorizerId, PaletteDesc> paletteDescs = {
     { QuantityId::EPS_MIN, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
     { QuantityId::FRICTION, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
     { QuantityId::DELTASPH_DENSITY_GRADIENT, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
-    { QuantityId::NEIGHBOUR_CNT, { Interval(50._f, 150._f), PaletteScale::LINEAR } },
+    { QuantityId::NEIGHBOR_CNT, { Interval(50._f, 150._f), PaletteScale::LINEAR } },
     { ColorizerId::VELOCITY, { Interval(0.1_f, 100._f), PaletteScale::LOGARITHMIC } },
     { ColorizerId::ACCELERATION, { Interval(0.1_f, 100._f), PaletteScale::LOGARITHMIC } },
     { ColorizerId::MOVEMENT_DIRECTION, { Interval(0._f, 2._f * PI), PaletteScale::LINEAR } },

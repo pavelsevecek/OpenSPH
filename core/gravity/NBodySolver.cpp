@@ -2,7 +2,7 @@
 #include "gravity/BruteForceGravity.h"
 #include "gravity/Collision.h"
 #include "io/Logger.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "quantities/Quantity.h"
 #include "sph/Diagnostics.h"
 #include "system/Factory.h"
@@ -497,7 +497,7 @@ void HardSphereSolver::create(Storage& storage, IMaterial& UNUSED(material)) con
 CollisionRecord HardSphereSolver::findClosestCollision(const Size i,
     const SearchEnum opt,
     const Interval interval,
-    Array<NeighbourRecord>& neighs) {
+    Array<NeighborRecord>& neighs) {
     SPH_ASSERT(!interval.empty());
     if (opt == SearchEnum::FIND_LOWER_RANK) {
         // maximum travel of i-th particle
@@ -513,7 +513,7 @@ CollisionRecord HardSphereSolver::findClosestCollision(const Size i,
     }
 
     CollisionRecord closestCollision;
-    for (NeighbourRecord& n : neighs) {
+    for (NeighborRecord& n : neighs) {
         const Size j = n.index;
         if (opt == SearchEnum::FIND_LOWER_RANK) {
             searchRadii[i] = searchRadii[j] = r[i][H] + getLength(v[i]) * interval.upper();
@@ -625,7 +625,7 @@ void SoftSphereSolver::integrate(Storage& storage, Statistics& stats) {
             const Float hi = r[i][H];
             const Float hj = r[j][H];
             if (i == j || n.distanceSqr >= sqr(hi + hj)) {
-                // aren't actual neighbours
+                // aren't actual neighbors
                 continue;
             }
             const Float hbar = 0.5_f * (hi + hj);

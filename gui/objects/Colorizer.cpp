@@ -26,7 +26,7 @@ Optional<float> DirectionColorizer::evalScalar(const Size idx) const {
     return float(PI + atan2(y, x));
 }
 
-static thread_local Array<NeighbourRecord> neighs;
+static thread_local Array<NeighborRecord> neighs;
 
 SummedDensityColorizer::SummedDensityColorizer(const RunSettings& settings, Palette palette)
     : palette(std::move(palette)) {
@@ -113,7 +113,7 @@ BeautyColorizer::BeautyColorizer() {
 BoundaryColorizer::BoundaryColorizer(const Detection detection, const Float threshold)
     : detection(detection) {
     if (detection == Detection::NEIGBOUR_THRESHOLD) {
-        neighbours.threshold = Size(threshold);
+        neighbors.threshold = Size(threshold);
     } else {
         normals.threshold = threshold;
     }
@@ -123,7 +123,7 @@ bool BoundaryColorizer::hasData(const Storage& storage) const {
     if (detection == Detection::NORMAL_BASED) {
         return storage.has(QuantityId::SURFACE_NORMAL);
     } else {
-        return storage.has(QuantityId::NEIGHBOUR_CNT);
+        return storage.has(QuantityId::NEIGHBOR_CNT);
     }
 }
 
@@ -131,13 +131,13 @@ void BoundaryColorizer::initialize(const Storage& storage, const RefEnum ref) {
     if (detection == Detection::NORMAL_BASED) {
         normals.values = makeArrayRef(storage.getValue<Vector>(QuantityId::SURFACE_NORMAL), ref);
     } else {
-        neighbours.values = makeArrayRef(storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT), ref);
+        neighbors.values = makeArrayRef(storage.getValue<Size>(QuantityId::NEIGHBOR_CNT), ref);
     }
 }
 
 bool BoundaryColorizer::isInitialized() const {
     return (detection == Detection::NORMAL_BASED && !normals.values.empty()) ||
-           (detection == Detection::NEIGBOUR_THRESHOLD && !neighbours.values.empty());
+           (detection == Detection::NEIGBOUR_THRESHOLD && !neighbors.values.empty());
 }
 
 Rgba BoundaryColorizer::evalColor(const Size idx) const {
@@ -151,8 +151,8 @@ Rgba BoundaryColorizer::evalColor(const Size idx) const {
 bool BoundaryColorizer::isBoundary(const Size idx) const {
     switch (detection) {
     case Detection::NEIGBOUR_THRESHOLD:
-        SPH_ASSERT(!neighbours.values.empty());
-        return neighbours.values[idx] < neighbours.threshold;
+        SPH_ASSERT(!neighbors.values.empty());
+        return neighbors.values[idx] < neighbors.threshold;
     case Detection::NORMAL_BASED:
         SPH_ASSERT(!normals.values.empty());
         return getLength(normals.values[idx]) > normals.threshold;

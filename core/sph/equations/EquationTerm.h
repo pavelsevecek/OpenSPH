@@ -57,11 +57,11 @@ public:
 /// v_i\f$ is the velocity of the particle.
 ///
 /// It is possible to add additional term into the equation that increases/decreases the smoothing
-/// length when number of neighbours is too low/high. This is done by setting flag
+/// length when number of neighbors is too low/high. This is done by setting flag
 /// SmoothingLengthEnum::SOUND_SPEED_ENFORCING to settings entry
-/// RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH. The allowed range of neighbours is then controlled
-/// by RunSettingsId::SPH_NEIGHBOUR_RANGE. Note that the number of neighbours is not guaranteed to
-/// be in the given range, the actual number of neighbours cannot be precisely controlled.
+/// RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH. The allowed range of neighbors is then controlled
+/// by RunSettingsId::SPH_NEIGHBOR_RANGE. Note that the number of neighbors is not guaranteed to
+/// be in the given range, the actual number of neighbors cannot be precisely controlled.
 class AdaptiveSmoothingLength : public IEquationTerm {
 protected:
     /// Number of spatial dimensions of the simulation. This should match the dimensions of the SPH kernel.
@@ -87,15 +87,15 @@ public:
     virtual void create(Storage& storage, IMaterial& material) const override;
 
 private:
-    /// \brief Modifies the smoothing length derivative, attempting to enforce that the number of neighbours
+    /// \brief Modifies the smoothing length derivative, attempting to enforce that the number of neighbors
     /// is within the given interval.
     ///
-    /// Note that is still may not be possible to guarantee the given number of neighbours; for example if
-    /// particles are in a regular grid, only certain (discrete) numbers of neighbours are possible.
+    /// Note that is still may not be possible to guarantee the given number of neighbors; for example if
+    /// particles are in a regular grid, only certain (discrete) numbers of neighbors are possible.
     /// \param i Index of particle to modify
     /// \param v View of the particle velocities
     /// \param cs View of sound speed, used to non-dimensionalize the expression.
-    /// \param neighCnt Current number of particle neighbours
+    /// \param neighCnt Current number of particle neighbors
     void enforce(const Size i,
         ArrayView<Vector> v,
         ArrayView<const Float> cs,

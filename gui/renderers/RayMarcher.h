@@ -18,7 +18,7 @@ private:
     /// BVH for finding intersections of rays with particles
     Bvh<BvhSphere> bvh;
 
-    /// Finder for finding neighbours of intersected particles
+    /// Finder for finding neighbors of intersected particles
     AutoPtr<IBasicFinder> finder;
 
     LutKernel<3> kernel;
@@ -43,7 +43,7 @@ private:
     } fixed;
 
     struct MarchData {
-        /// Neighbour indices of the current particle
+        /// Neighbor indices of the current particle
         Array<Size> neighs;
 
         /// Intersection for the current ray
@@ -107,11 +107,11 @@ private:
         const CameraRay& cameraRay,
         ThreadData& data) const override;
 
-    /// \param Creates a neighbour list for given particle.
+    /// \param Creates a neighbor list for given particle.
     ///
-    /// The neighbour list is cached and can be reused by the calling thread next time the function is called.
-    /// \return View on the cached neighbour light.
-    ArrayView<const Size> getNeighbourList(MarchData& data, const Size index) const;
+    /// The neighbor list is cached and can be reused by the calling thread next time the function is called.
+    /// \return View on the cached neighbor light.
+    ArrayView<const Size> getNeighborList(MarchData& data, const Size index) const;
 
     /// \brief Returns the intersection of the iso-surface.
     ///

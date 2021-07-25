@@ -20,10 +20,10 @@ SOURCES += \
     math/rng/Rng.cpp \
     objects/containers/String.cpp \
     objects/finders/HashMapFinder.cpp \
+    objects/finders/IncrementalFinder.cpp \
     objects/finders/KdTree.cpp \
-    objects/finders/NeighbourFinder.cpp \
+    objects/finders/NeighborFinder.cpp \
     objects/finders/PeriodicFinder.cpp \
-    objects/finders/PointCloud.cpp \
     objects/finders/UniformGrid.cpp \
     objects/geometry/Domain.cpp \
     objects/geometry/SymmetricTensor.cpp \
@@ -145,6 +145,8 @@ HEADERS += \
     math/rng/Rng.h \
     math/rng/VectorRng.h \
     objects/containers/CircularArray.h \
+    objects/finders/IncrementalFinder.h \
+    objects/finders/NeighborFinder.h \
     objects/utility/OutputIterators.h \
     objects/wrappers/ExtendedEnum.h \
     objects/wrappers/SharedToken.h \
@@ -172,12 +174,9 @@ HEADERS += \
     objects/finders/Bvh.h \
     objects/finders/Bvh.inl.h \
     objects/finders/HashMapFinder.h \
-    objects/finders/PointCloud.h \
     objects/finders/KdTree.h \
     objects/finders/KdTree.inl.h \
-    objects/finders/LinkedList.h \
     objects/finders/Linkedlist.h \
-    objects/finders/NeighbourFinder.h \
     objects/finders/Octree.h \
     objects/finders/Order.h \
     objects/finders/UniformGrid.h \

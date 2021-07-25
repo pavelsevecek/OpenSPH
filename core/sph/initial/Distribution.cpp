@@ -343,7 +343,7 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
     GhostParticles bc(makeAuto<ForwardingDomain>(domain), 2._f, EPS);
 
     UniformGridFinder finder;
-    ThreadLocal<Array<NeighbourRecord>> neighs(scheduler);
+    ThreadLocal<Array<NeighborRecord>> neighs(scheduler);
     finder.build(scheduler, r);
 
     const Float correction = params.strength / (1._f + params.small);
@@ -372,11 +372,11 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
         // clean up the previous displacements
         deltas.fill(Vector(0._f));
 
-        auto lambda = [&](const Size i, Array<NeighbourRecord>& neighsTl) {
+        auto lambda = [&](const Size i, Array<NeighborRecord>& neighsTl) {
             const Float rhoi = actDensity(r[i]); // average particle density
             // average interparticle distance at given point
-            const Float neighbourRadius = kernelRadius / root<3>(rhoi);
-            finder.findAll(i, neighbourRadius, neighsTl);
+            const Float neighborRadius = kernelRadius / root<3>(rhoi);
+            finder.findAll(i, neighborRadius, neighsTl);
 
             for (Size j = 0; j < neighsTl.size(); ++j) {
                 const Size k = neighsTl[j].index;

@@ -139,16 +139,16 @@ Rgba RayMarcher::shade(const RenderParams& params, const CameraRay& cameraRay, T
     }
 }
 
-ArrayView<const Size> RayMarcher::getNeighbourList(MarchData& data, const Size index) const {
-    // look for neighbours only if the intersected particle differs from the previous one
+ArrayView<const Size> RayMarcher::getNeighborList(MarchData& data, const Size index) const {
+    // look for neighbors only if the intersected particle differs from the previous one
     if (index != data.previousIdx) {
-        Array<NeighbourRecord> neighs;
+        Array<NeighborRecord> neighs;
         finder->findAll(index, kernel.radius() * cached.r[index][H], neighs);
         data.previousIdx = index;
 
-        // find the actual list of neighbours
+        // find the actual list of neighbors
         data.neighs.clear();
-        for (NeighbourRecord& n : neighs) {
+        for (NeighborRecord& n : neighs) {
             const Size flag1 = cached.flags[index];
             const Size flag2 = cached.flags[n.index];
             if ((flag1 & BLEND_ALL_FLAG) || (flag2 & BLEND_ALL_FLAG) || (flag1 == flag2)) {
@@ -190,7 +190,7 @@ Optional<Vector> RayMarcher::getSurfaceHit(MarchData& data,
         return context.ray.origin() + context.ray.direction() * context.t_min;
     }
 
-    this->getNeighbourList(data, context.index);
+    this->getNeighborList(data, context.index);
 
     const Size i = context.index;
     const Ray& ray = context.ray;
@@ -252,7 +252,7 @@ Rgba RayMarcher::getSurfaceColor(MarchData& data,
         }
     }
 
-    // evaluate color before checking for occlusion as that invalidates the neighbour list
+    // evaluate color before checking for occlusion as that invalidates the neighbor list
     const Rgba colorizerValue =
         fixed.renderSpheres ? cached.colors[index] : this->evalColor(data.neighs, hit);
 

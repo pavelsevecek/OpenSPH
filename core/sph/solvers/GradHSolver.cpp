@@ -1,5 +1,5 @@
 #include "sph/solvers/GradHSolver.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "quantities/Quantity.h"
 
 NAMESPACE_SPH_BEGIN
@@ -49,9 +49,9 @@ public:
         r = storage.getValue<Vector>(QuantityId::POSITION);
     }
 
-    void eval(const LutKernel<DIMENSIONS>& kernel, const Size i, ArrayView<const NeighbourRecord> neighs) {
+    void eval(const LutKernel<DIMENSIONS>& kernel, const Size i, ArrayView<const NeighborRecord> neighs) {
         Float sum = 0._f;
-        for (const NeighbourRecord& n : neighs) {
+        for (const NeighborRecord& n : neighs) {
             const Size j = n.index;
             const Vector r_ji = r[j] - r[i];
             const Float h_j = r[j][H];
@@ -110,7 +110,7 @@ void GradHSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     };
     parallelFor(scheduler, threadData, 0, r.size(), preFunctor);
 
-    ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+    ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOR_CNT);
     ArrayView<Float> omega = storage.getValue<Float>(QuantityId::GRAD_H);
 
     auto functor = [this, r, &finder, &neighs, omega, radius](const Size i, ThreadData& data) {

@@ -46,7 +46,7 @@ TEST_CASE("InternalFriction", "[friction]") {
     /// \todo this is currently necessary as the friction depends on pre-computed grad-v  :(
     solver.integrate(storage, stats);
     solver.integrate(storage, stats);
-    ArrayView<const Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+    ArrayView<const Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOR_CNT);
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     const Float h = r[0][H];
     auto test = [&](const Size i) -> Outcome {

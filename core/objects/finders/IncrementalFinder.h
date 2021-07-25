@@ -10,7 +10,7 @@ NAMESPACE_SPH_BEGIN
 ///
 /// Works similarly to \ref HashMapFinder, but does not require rebuilding the structure when the set of
 /// points changes.
-class PointCloud : public Noncopyable {
+class IncrementalFinder : public Noncopyable {
 private:
     using Cell = Array<Vector>;
     using HashMap = std::unordered_map<Indices, Cell, std::hash<Indices>, IndicesEqual>;
@@ -28,7 +28,7 @@ public:
     public:
         Handle() = default;
 
-        Handle(const Indices& idxs, const Size index, Badge<PointCloud>)
+        Handle(const Indices& idxs, const Size index, Badge<IncrementalFinder>)
             : data(idxs) {
             data[3] = index;
         }
@@ -52,16 +52,16 @@ public:
         }
     };
 
-    explicit PointCloud(const Float cellSize)
+    explicit IncrementalFinder(const Float cellSize)
         : cellSize(cellSize) {}
 
     /// \brief Adds a point into the cloud.
     ///
     /// \returns Handle that identifies the point within the cloud.
-    Handle push(const Vector& p);
+    Handle addPoint(const Vector& p);
 
     /// \brief Adds a set of points into the cloud.
-    void push(ArrayView<const Vector> points);
+    void addPoints(ArrayView<const Vector> points);
 
     /// \brief Returns the point corresponding to given handle.
     Vector point(const Handle& handle) const;
@@ -73,17 +73,17 @@ public:
     Size size() const;
 
     /// \brief Returns the number of points within given distance from the center point.
-    Size getClosePointsCount(const Vector& center, const Float radius) const;
+    Size getNeighCnt(const Vector& center, const Float radius) const;
 
-    /// \brief Returns point within given distance from the center point.
-    void findClosePoints(const Vector& center, const Float radius, Array<Handle>& handles) const;
+    /// \brief Returns points within given distance from the center point.
+    void findAll(const Vector& center, const Float radius, Array<Handle>& handles) const;
 
-    /// \brief Returns point within given distance from the center point.
-    void findClosePoints(const Vector& center, const Float radius, Array<Vector>& neighs) const;
+    /// \brief Returns points within given distance from the center point.
+    void findAll(const Vector& center, const Float radius, Array<Vector>& neighs) const;
 
 private:
     template <typename TAdd>
-    void findClosePoints(const Vector& center, const Float radius, const TAdd& add) const;
+    void findAll(const Vector& center, const Float radius, const TAdd& add) const;
 
     INLINE Box cellBox(const Indices& idxs) const {
         return Box(Vector(idxs) * cellSize, Vector(idxs + Indices(1, 1, 1)) * cellSize);

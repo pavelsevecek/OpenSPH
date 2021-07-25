@@ -86,7 +86,7 @@ void ContourRenderer::render(const RenderParams& params,
 
     Bitmap<float> grid(Pixel(resX, resY));
     grid.fill(0.f);
-    Array<NeighbourRecord> neighs;
+    Array<NeighborRecord> neighs;
     for (Size y = 0; y < resY; ++y) {
         for (Size x = 0; x < resX; ++x) {
             const Vector pos = pos1 + dxdp * Vector(x, y, 0);
@@ -95,7 +95,7 @@ void ContourRenderer::render(const RenderParams& params,
 
             Float sum = 0._f;
             Float weight = 0._f;
-            for (const NeighbourRecord& n : neighs) {
+            for (const NeighborRecord& n : neighs) {
                 const float w = float(kernel.value(pos - cached.positions[n.index], h));
                 sum += cached.values[n.index] * w;
                 weight += w;

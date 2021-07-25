@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2021
 
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -13,7 +13,7 @@ NAMESPACE_SPH_BEGIN
 ///
 /// The cell size depends on smoothing lengths of the particles.
 /// Inspired by \cite Batra_Zhang_2007
-class AdaptiveGridFinder : public INeighbourFinder {
+class AdaptiveGridFinder : public INeighborFinder {
 protected:
     virtual void buildImpl(ArrayView<const Vector> points) override;
 
@@ -22,15 +22,15 @@ protected:
 public:
     explicit AdaptiveGridFinder(const Float relativeCellCnt = 1);
 
-    virtual Size findNeighbours(const Size index,
+    virtual Size findNeighbors(const Size index,
         const Float radius,
-        Array<NeighbourRecord>& neighbours,
+        Array<NeighborRecord>& neighbors,
         Flags<FinderFlag> flags = EMPTY_FLAGS,
         const Float error = 0._f) const override;
 
-    virtual Size findNeighbours(const Vector& position,
+    virtual Size findNeighbors(const Vector& position,
         const Float radius,
-        Array<NeighbourRecord>& neighbours,
+        Array<NeighborRecord>& neighbors,
         Flags<FinderFlag> flags = EMPTY_FLAGS,
         const Float error = 0._f) const override;
 };

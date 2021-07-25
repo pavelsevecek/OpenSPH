@@ -698,33 +698,6 @@ void RunPage::makeStatsText(const Size particleCnt, const Statistics& stats) {
     printStat<int>(statsText, stats, "    * breakups: ", StatisticsId::BREAKUP_COUNT);
     printStat<int>(statsText, stats, " - overlaps:    ", StatisticsId::OVERLAP_COUNT);
     printStat<int>(statsText, stats, " - aggregates:  ", StatisticsId::AGGREGATE_COUNT);
-
-    /*           CriterionId id = stats.get<CriterionId>(StatisticsId::TIMESTEP_CRITERION);
-               std::stringstream ss;
-               if (id == CriterionId::DERIVATIVE) {
-    ss << stats.get<QuantityId>(StatisticsId::LIMITING_QUANTITY);
-               } else {
-    ss << id;
-               }
-               const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
-               logger->write(" - timestep:    ", dt, " (set by ", ss.str(), ")");
-
-               printStat<int>(*logger, stats, StatisticsId::TIMESTEP_ELAPSED,             " - time spent:  ",
-    "ms"); printStat<int>(*logger, stats, StatisticsId::SPH_EVAL_TIME,                "    * SPH evaluation:
-    ", "ms"); printStat<int>(*logger, stats, StatisticsId::GRAVITY_EVAL_TIME,            "    * gravity
-    evaluation:
-    ", "ms"); printStat<int>(*logger, stats, StatisticsId::COLLISION_EVAL_TIME,          "    * collision
-    evaluation: ", "ms"); printStat<int>(*logger, stats, StatisticsId::GRAVITY_BUILD_TIME,           "    *
-    tree construction:    ", "ms"); printStat<int>(*logger, stats, StatisticsId::POSTPROCESS_EVAL_TIME, "    *
-    visualization:        ", "ms"); logger->write( " - particles:   ", storage.getParticleCnt());
-    printStat<MinMaxMean>(*logger, stats, StatisticsId::NEIGHBOUR_COUNT,       " - neigbours:   ");
-    printStat<int>(*logger, stats, StatisticsId::TOTAL_COLLISION_COUNT,        " - collisions:  ");
-    printStat<int>(*logger, stats, StatisticsId::BOUNCE_COUNT,                 "    * bounces:  ");
-    printStat<int>(*logger, stats, StatisticsId::MERGER_COUNT,                 "    * mergers:  ");
-    printStat<int>(*logger, stats, StatisticsId::BREAKUP_COUNT,                "    * breakups: ");
-    printStat<int>(*logger, stats, StatisticsId::OVERLAP_COUNT,                " - overlaps:    ");
-    printStat<int>(*logger, stats, StatisticsId::AGGREGATE_COUNT,              " - aggregates:  ");
-    printStat<int>(*logger, stats, StatisticsId::SOLVER_SUMMATION_ITERATIONS,  " - iteration #: ");*/
 }
 
 void RunPage::setColorizer(const Size idx) {

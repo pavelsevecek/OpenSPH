@@ -36,10 +36,10 @@ private:
     SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>> kernel;
 
     struct ThreadData {
-        /// Cached array of neighbours, to avoid allocation every step
-        Array<NeighbourRecord> neighs;
+        /// Cached array of neighbors, to avoid allocation every step
+        Array<NeighborRecord> neighs;
 
-        /// Indices of real neighbours
+        /// Indices of real neighbors
         Array<Size> idxs;
 
         /// Cached array of gradients

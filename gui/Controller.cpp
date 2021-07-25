@@ -393,7 +393,7 @@ Array<ExtColorizerId> getColorizerIds() {
         ColorizerId::AGGREGATE_ID,
         ColorizerId::FLAG,
         ColorizerId::MATERIAL_ID,
-        QuantityId::NEIGHBOUR_CNT,
+        QuantityId::NEIGHBOR_CNT,
         ColorizerId::UVW,
         ColorizerId::BOUNDARY,
         //

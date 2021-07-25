@@ -16,10 +16,10 @@ set(CORE_SOURCES
     objects/containers/String.cpp 
     objects/finders/HashMapFinder.cpp 
     objects/finders/KdTree.cpp 
-    objects/finders/NeighbourFinder.cpp 
+    objects/finders/NeighborFinder.cpp
     objects/finders/PeriodicFinder.cpp 
     objects/finders/UniformGrid.cpp 
-    objects/finders/PointCloud.cpp
+    objects/finders/IncrementalFinder.cpp
     objects/geometry/Domain.cpp
     objects/geometry/SymmetricTensor.cpp
     objects/utility/Dynamic.cpp 
@@ -162,10 +162,10 @@ set(CORE_HEADERS
     objects/finders/HashMapFinder.h 
     objects/finders/KdTree.h 
     objects/finders/KdTree.inl.h 
-    objects/finders/NeighbourFinder.h 
+    objects/finders/NeighborFinder.h
     objects/finders/Octree.h 
     objects/finders/Order.h 
-    objects/finders/PointCloud.h
+    objects/finders/IncrementalFinder.h
     objects/finders/UniformGrid.h 
     objects/geometry/AntisymmetricTensor.h 
     objects/geometry/Box.h 

@@ -8,7 +8,7 @@
 NAMESPACE_SPH_BEGIN
 
 enum TextureFiltering {
-    NEAREST_NEIGHBOUR,
+    NEAREST_NEIGHBOR,
     BILINEAR,
 };
 
@@ -31,8 +31,8 @@ public:
 
     Rgba eval(const Vector& uvw) const {
         switch (filtering) {
-        case TextureFiltering::NEAREST_NEIGHBOUR:
-            return this->evalNearestNeighbour(uvw);
+        case TextureFiltering::NEAREST_NEIGHBOR:
+            return this->evalNearestNeighbor(uvw);
         case TextureFiltering::BILINEAR:
             return this->evalBilinear(uvw);
         default:
@@ -57,7 +57,7 @@ public:
     }
 
 private:
-    Rgba evalNearestNeighbour(const Vector& uvw) const {
+    Rgba evalNearestNeighbor(const Vector& uvw) const {
         const Pixel size = bitmap.size();
         const Size u = clamp(int(uvw[X] * size.x), 0, size.x - 1);
         const Size v = clamp(int(uvw[Y] * size.y), 0, size.y - 1);

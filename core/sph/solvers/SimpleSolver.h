@@ -1,6 +1,6 @@
 #pragma once
 
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "physics/Eos.h"
 #include "quantities/Quantity.h"
 #include "sph/Materials.h"
@@ -23,10 +23,10 @@ private:
     LutKernel<DIMENSIONS> kernel;
 
     struct ThreadData {
-        /// Cached array of neighbours, to avoid allocation every step
-        Array<NeighbourRecord> neighs;
+        /// Cached array of neighbors, to avoid allocation every step
+        Array<NeighborRecord> neighs;
 
-        /// Indices of real neighbours
+        /// Indices of real neighbors
         Array<Size> idxs;
 
         /// Cached array of gradients
@@ -71,7 +71,7 @@ public:
         ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
         auto functor = [&](Size i, ThreadData& data) {
             finder->findAll(r[i], searchRadius, data.neighs);
-            for (const NeighbourRecord& n : data.neighs) {
+            for (const NeighborRecord& n : data.neighs) {
                 const Size j = n.index;
                 const Float h_bar = 0.5_f * (r[i][H] + r[j][H]);
                 if (sqr(h_bar * kernel.radius()) > n.distanceSqr) {

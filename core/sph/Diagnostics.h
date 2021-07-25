@@ -66,7 +66,7 @@ public:
     virtual DiagnosticsReport check(const Storage& storage, const Statistics& stats) const override;
 };
 
-/// \brief Checks for large differences of smoothing length between neighbouring particles.
+/// \brief Checks for large differences of smoothing length between neighboring particles.
 class SmoothingDiscontinuityDiagnostic : public IDiagnostic {
     Float radius;
     Float limit;

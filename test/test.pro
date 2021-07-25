@@ -53,9 +53,9 @@ SOURCES += \
     ../core/objects/containers/test/Tuple.cpp \
     ../core/objects/finders/test/BruteForceFinder.cpp \
     ../core/objects/finders/test/Finders.cpp \
+    ../core/objects/finders/test/IncrementalFinder.cpp \
     ../core/objects/finders/test/Order.cpp \
     ../core/objects/finders/test/Bvh.cpp \
-    ../core/objects/finders/test/PointCloud.cpp \
     ../core/objects/geometry/test/AntisymmetricTensor.cpp \
     ../core/objects/geometry/test/Box.cpp \
     ../core/objects/geometry/test/Domain.cpp \
