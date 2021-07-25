@@ -28,10 +28,13 @@ public:
     virtual void onCategory(const std::string& UNUSED(name)) const override {}
 
     virtual void onEntry(const std::string& key, IVirtualEntry& entry) const override {
-        EntryControl& control = dynamic_cast<EntryControl&>(entry);
-        control.addAccessor(node, [key, f = callbacks](const IVirtualEntry::Value& UNUSED(value)) {
-            f(JobNotificationType::ENTRY_CHANGED, key);
-        });
+        EntryControl* control = dynamic_cast<EntryControl*>(&entry);
+        SPH_ASSERT(control);
+        if (control) {
+            control->addAccessor(node, [key, f = callbacks](const IVirtualEntry::Value& UNUSED(value)) {
+                f(JobNotificationType::ENTRY_CHANGED, key);
+            });
+        }
     }
 };
 

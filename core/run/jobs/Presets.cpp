@@ -211,10 +211,10 @@ SharedPtr<JobNode> Presets::makePlanetesimalMerging(UniqueNameManager& nameMgr, 
 
     SharedPtr<JobNode> olivine =
         makeNode<MaterialJob>(nameMgr.getName("olivine"), getMaterial(MaterialEnum::OLIVINE)->getParams());
-    olivine->getSettings().set(BodySettingsId::RHEOLOGY_YIELDING, EnumWrapper(YieldingEnum::NONE));
+    olivine->getSettings().set(BodySettingsId::RHEOLOGY_YIELDING, EnumWrapper(YieldingEnum::DUST));
     SharedPtr<JobNode> iron =
         makeNode<MaterialJob>(nameMgr.getName("iron"), getMaterial(MaterialEnum::IRON)->getParams());
-    iron->getSettings().set(BodySettingsId::RHEOLOGY_YIELDING, EnumWrapper(YieldingEnum::NONE));
+    iron->getSettings().set(BodySettingsId::RHEOLOGY_YIELDING, EnumWrapper(YieldingEnum::DUST));
 
     SharedPtr<JobNode> surface = makeNode<SphereJob>("surface sphere");
     surface->getSettings().set("radius", 1500._f); // km

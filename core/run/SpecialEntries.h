@@ -17,7 +17,7 @@ enum class IntervalBound {
 
 /// \brief Entry connecting to either lower or upper bound of an interval stored in settings.
 template <typename TEnum>
-class IntervalEntry : public IVirtualEntry {
+class IntervalEntry : public EntryControl {
 private:
     Settings<TEnum>& settings;
     TEnum id;
@@ -34,11 +34,7 @@ public:
         , name(name)
         , bound(bound) {}
 
-    virtual bool enabled() const override {
-        return true;
-    }
-
-    virtual bool set(const Value& value) override {
+    virtual void setImpl(const Value& value) override {
         const Interval i = settings.template get<Interval>(id);
         Float lower = i.lower();
         Float upper = i.upper();
@@ -48,7 +44,6 @@ public:
             upper = value.get<Float>();
         }
         settings.set(id, Interval(lower, upper));
-        return true;
     }
 
     virtual Value get() const override {
@@ -58,10 +53,6 @@ public:
         } else {
             return i.upper();
         }
-    }
-
-    virtual bool isValid(const Value& UNUSED(value)) const override {
-        return true;
     }
 
     virtual Type getType() const override {
