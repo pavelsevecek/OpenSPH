@@ -74,11 +74,22 @@ struct SlotData {
     SharedPtr<JobNode> provider;
 };
 
-enum JobNotificationType {
+/// \brief Specifies how the given node changed.
+enum class JobNotificationType {
+    /// One or multiple entries have been changed. The value contains the key of the entry (as std::string).
     ENTRY_CHANGED,
+
+    /// New provider has been connected. The value contains the connected node (as SharedPtr<JobNode>).
     PROVIDER_CONNECTED,
+
+    /// Provider has been disconnected. The value contains the disconnected node (as SharedPtr<JobNode>).
     PROVIDER_DISCONNECTED,
+
+    /// New dependent node has been connected. The value contains the connected node (as SharedPtr<JobNode>).
     DEPENDENT_CONNECTED,
+
+    /// Dependent node has been disconnected. The value contains the disconnected node (as
+    /// SharedPtr<JobNode>).
     DEPENDENT_DISCONNECTED,
 };
 
@@ -122,6 +133,11 @@ public:
     ///
     /// The accessors are shared among all \ref VirtualSettings objects obtained from this node. When a new
     /// accessor is added, existing entries will start using it as well.
+    /// \param owner Token controlling the lifetime of the accessor. When the token expires, the accessor is
+    ///              no longer called.
+    /// \param accessor Accessor called whenever the node changed. The type of the change is specified by a
+    ///                 \ref JobNotificationType value, the changed object is passed as the second parameter
+    ///                 of the accessor.
     void addAccessor(const SharedToken& owner, const Accessor& accessor);
 
     /// \brief Returns the type of the job.

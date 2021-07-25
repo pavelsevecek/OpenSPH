@@ -193,7 +193,7 @@ public:
     /// If the functor returns false, the value is unchanged.
     EntryControl& setValidator(const Validator& newValidator);
 
-    /// \brief Specifies that the entry has a side effect, i.e. in changes values of other entries.
+    /// \brief Specifies that the entry has a side effect, i.e. it changes values of other entries.
     EntryControl& setSideEffect();
 
     /// \brief Sets the type of the path.

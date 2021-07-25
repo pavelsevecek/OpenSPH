@@ -5,7 +5,6 @@
 NAMESPACE_SPH_BEGIN
 
 static RegisterEnum<RendererEnum> sRenderer({
-    { RendererEnum::NONE, "none", "No particle visualization" },
     { RendererEnum::PARTICLE, "particle", "Particles are visualized as circles. No shading." },
     /*{ RendererEnum::MESH,
         "mesh",

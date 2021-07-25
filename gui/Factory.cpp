@@ -7,7 +7,7 @@
 #include "gui/renderers/FrameBuffer.h"
 #include "gui/renderers/MeshRenderer.h"
 #include "gui/renderers/ParticleRenderer.h"
-#include "gui/renderers/RayTracer.h"
+#include "gui/renderers/RayMarcher.h"
 #include "gui/renderers/VolumeRenderer.h"
 
 NAMESPACE_SPH_BEGIN

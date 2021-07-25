@@ -4,11 +4,11 @@
 #include "gui/objects/Colorizer.h"
 #include "gui/objects/RenderJobs.h"
 #include "gui/windows/PreviewPane.h"
+#include "io/Logger.h"
 #include "objects/containers/FlatSet.h"
 #include "quantities/Storage.h"
 #include "system/Timer.h"
 #include "thread/CheckFunction.h"
-#include <iostream>
 #include <wx/dcclient.h>
 #include <wx/weakref.h>
 
@@ -81,11 +81,16 @@ Outcome InteractiveRenderer::Status::isValid() const {
     }
 }
 
-
 InteractiveRenderer::InteractiveRenderer(const SharedPtr<JobNode>& node, wxPanel* panel)
     : node(node)
     , quitting(false)
-    , output(panel) {}
+    , output(panel) {
+#ifdef SPH_DEBUG
+    logger = makeAuto<StdOutLogger>();
+#else
+    logger = makeAuto<NullLogger>();
+#endif
+}
 
 void InteractiveRenderer::start(const RunSettings& globals) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
@@ -146,8 +151,8 @@ AutoPtr<ICamera> InteractiveRenderer::getNewCamera(const SharedPtr<JobNode>& cam
 void InteractiveRenderer::setCameraAccessor(const RunSettings& globals,
     const SharedPtr<JobNode>& cameraNode) {
     SPH_ASSERT(cameraNode);
-    /// \todo cameraNode is holding itself, it will never expire (?)
 
+    WeakPtr<JobNode> weakNode(cameraNode);
     auto accessor = [=](const JobNotificationType type, const Any& value) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
         if (type != JobNotificationType::ENTRY_CHANGED) {
@@ -155,7 +160,9 @@ void InteractiveRenderer::setCameraAccessor(const RunSettings& globals,
             return;
         }
 
-        changed.camera = this->getNewCamera(cameraNode, globals);
+        SharedPtr<JobNode> node = weakNode.lock();
+        SPH_ASSERT(node)
+        changed.camera = this->getNewCamera(node, globals);
 
         const std::string key = anyCast<std::string>(value).value();
         const GuiSettingsId id = GuiSettings::getEntryId(key).valueOr(GuiSettingsId(-1));
@@ -188,7 +195,6 @@ void InteractiveRenderer::setRendererAccessor(const RunSettings& globals) {
                 /// \todo put this in AnimationJob, something like listOfColorizerEntries, etc.
 
                 const GuiSettingsId id = GuiSettings::getEntryId(key).valueOr(GuiSettingsId(-1));
-                // SPH_ASSERT(id);
                 static FlatSet<GuiSettingsId> SOFT_PARAMS = {
                     GuiSettingsId::PARTICLE_RADIUS,
                     GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR,
@@ -199,7 +205,6 @@ void InteractiveRenderer::setRendererAccessor(const RunSettings& globals) {
                     GuiSettingsId::VOLUME_EMISSION,
                     GuiSettingsId::VOLUME_ABSORPTION,
                 };
-                /// \todo also palette
 
                 changed.parameters = job->getRenderParams();
                 if (key != "transparent" && !SOFT_PARAMS.contains(id)) {
@@ -221,7 +226,6 @@ void InteractiveRenderer::setRendererAccessor(const RunSettings& globals) {
                 SPH_ASSERT(false, "Connected unexpected node ", provider->instanceName());
             }
         } else if (type == JobNotificationType::PROVIDER_DISCONNECTED) {
-            // changed.node = cloneHierarchy(*node);
             SharedPtr<JobNode> provider = anyCast<SharedPtr<JobNode>>(value).value();
             const ExtJobType jobType = provider->provides();
             if (jobType == GuiJobType::CAMERA) {
@@ -281,7 +285,7 @@ void InteractiveRenderer::renderLoop(const RunSettings& globals) {
         if (evaluated) {
             // everything changed, re-evaluate
             try {
-                std::cout << "Updating ALL" << std::endl;
+                logger->write("Updating ALL");
                 NullJobCallbacks callbacks;
                 evaluated->prepare(globals, callbacks);
                 RawPtr<AnimationJob> newJob = dynamicCast<AnimationJob, IJob>(evaluated->getJob());
@@ -299,30 +303,30 @@ void InteractiveRenderer::renderLoop(const RunSettings& globals) {
 
         } else if (preview) {
             if (changed.camera) {
-                std::cout << "Updating camera" << std::endl;
+                logger->write("Updating camera");
                 status.cameraMissing = false;
                 preview->update(std::move(changed.camera));
             }
             if (changed.parameters) {
-                std::cout << "Updating parameters" << std::endl;
+                logger->write("Updating parameters");
                 preview->update(std::move(changed.parameters.value()));
                 changed.parameters = NOTHING;
             }
             if (changed.colorizer) {
-                std::cout << "Updating colorizer" << std::endl;
+                logger->write("Updating colorizer");
                 preview->update(std::move(changed.colorizer));
             }
             if (changed.renderer) {
-                std::cout << "Updating renderer" << std::endl;
+                logger->write("Updating renderer");
                 preview->update(std::move(changed.renderer));
             }
             if (changed.palette) {
-                std::cout << "Updating palette" << std::endl;
+                logger->write("Updating palette");
                 preview->update(std::move(changed.palette.value()));
                 changed.palette = NOTHING;
             }
             if (changed.resolution) {
-                std::cout << "Updating resolution" << std::endl;
+                logger->write("Updating resolution");
                 // not actually needed to do anything, just reset the flag
                 changed.resolution = false;
             }
@@ -330,12 +334,12 @@ void InteractiveRenderer::renderLoop(const RunSettings& globals) {
 
         /// \todo all the members in 'changed' should be protected by mutex
         if (preview && !quitting && !changed.pending() && status.isValid()) {
-            std::cout << "Re-render" << std::endl;
+            logger->write("Re-render");
             try {
                 preview->render(resolution, output);
             } catch (const std::exception& e) {
                 // mostly to catch NOT_IMPLEMENTED stuff
-                status.otherReason = "Render failed.\n" + setLineBreak(e.what(), 20);
+                status.otherReason = "Render failed.\n" + setLineBreak(e.what(), 25);
                 preview = nullptr;
                 safeRefresh(output.getPanel());
             }

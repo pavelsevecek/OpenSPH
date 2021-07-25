@@ -99,8 +99,8 @@ private:
     virtual bool isRunning() const override {
         return false;
     }
-    virtual void stop() {}
-    virtual void quit() {}
+    virtual void stop() override {}
+    virtual void quit() override {}
 };
 
 

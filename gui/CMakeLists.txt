@@ -20,7 +20,7 @@ set(GUI_SOURCES
     renderers/MeshRenderer.cpp 
     renderers/ParticleRenderer.cpp 
     renderers/VolumeRenderer.cpp 
-    renderers/RayTracer.cpp 
+    renderers/RayMarcher.cpp
     renderers/Spectrum.cpp 
     windows/BatchDialog.cpp 
     windows/RunSelectDialog.cpp 
@@ -71,7 +71,7 @@ set(GUI_HEADERS
     renderers/MeshRenderer.h 
     renderers/ParticleRenderer.h 
     renderers/VolumeRenderer.h 
-    renderers/RayTracer.h 
+    renderers/RayMarcher.h
     renderers/Spectrum.h 
     windows/BatchDialog.h 
     windows/RunSelectDialog.h 

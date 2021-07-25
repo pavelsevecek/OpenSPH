@@ -6,7 +6,7 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/renderers/ParticleRenderer.h"
-#include "gui/renderers/RayTracer.h"
+#include "gui/renderers/RayMarcher.h"
 #include "gui/renderers/VolumeRenderer.h"
 #include "gui/windows/MainWindow.h"
 #include "gui/windows/OrthoPane.h"

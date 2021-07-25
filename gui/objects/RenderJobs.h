@@ -8,7 +8,7 @@
 NAMESPACE_SPH_BEGIN
 
 class IColorizer;
-class RenderParams;
+struct RenderParams;
 class JobNode;
 class Palette;
 

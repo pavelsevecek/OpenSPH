@@ -81,6 +81,7 @@ class InteractiveRenderer : public ShareFromThis<InteractiveRenderer> {
     std::atomic_bool quitting;
 
     BitmapOutput output;
+    AutoPtr<ILogger> logger;
 
 public:
     InteractiveRenderer(const SharedPtr<JobNode>& node, wxPanel* panel);

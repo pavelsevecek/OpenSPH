@@ -702,7 +702,7 @@ static FlatMap<ExtJobType, wxPen> NODE_PENS_LIGHT = [] {
     cameraPen.SetStyle(wxPENSTYLE_SHORT_DASH);
 
     wxPen& imagePen = pens.insert(GuiJobType::IMAGE, *wxBLACK_PEN);
-    imagePen.SetColour(wxColour(80, 80, 10));
+    imagePen.SetColour(wxColour(250, 130, 0));
     imagePen.SetStyle(wxPENSTYLE_SOLID);
     return pens;
 }();
@@ -1501,12 +1501,10 @@ class PalettePane : public wxPanel {
 private:
     PalettePanel* panel;
     Array<ExtColorizerId> itemIds;
-    Project& project;
 
 public:
     PalettePane(wxWindow* parent, Project& project)
-        : wxPanel(parent, wxID_ANY)
-        , project(project) {
+        : wxPanel(parent, wxID_ANY) {
 
         wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 

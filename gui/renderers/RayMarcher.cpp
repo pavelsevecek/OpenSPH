@@ -1,4 +1,4 @@
-#include "gui/renderers/RayTracer.h"
+#include "gui/renderers/RayMarcher.h"
 #include "gui/Factory.h"
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Camera.h"

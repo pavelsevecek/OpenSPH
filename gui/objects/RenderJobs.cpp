@@ -81,7 +81,7 @@ VirtualSettings AnimationJob::getSettings() {
     rendererCat.connect<EnumWrapper>("Renderer", gui, GuiSettingsId::RENDERER);
     rendererCat.connect("Quantity", "quantity", colorizerId);
     rendererCat.connect("Include surface gravity", "surface_gravity", addSurfaceGravity)
-        .setEnabler([this] { return false; }) // return colorizercolorizers.has(ColorizerFlag::GRAVITY); })
+        .setEnabler([this] { return RenderColorizerId(colorizerId) == RenderColorizerId::GRAVITY; })
         .setTooltip("Include the surface gravity of the particle itself.");
     rendererCat.connect<bool>("Transparent background", "transparent", transparentBackground);
     rendererCat.connect<EnumWrapper>("Color mapping", gui, GuiSettingsId::COLORMAP_TYPE);
@@ -290,7 +290,8 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
             throw InvalidSetup("No files to render.");
         }
 
-        AnimationRenderOutput output(callbacks, *rendererPtr, iterLimit * fileMap.size());
+        const Size iterationCnt = iterLimit * fileMap.size() * (extraFrames + 1);
+        AnimationRenderOutput output(callbacks, *rendererPtr, iterationCnt);
         AutoPtr<IInput> input = Factory::getInput(sequence.firstFile);
         for (auto& element : fileMap) {
             Storage frame;
