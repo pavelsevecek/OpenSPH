@@ -53,7 +53,6 @@ IRaytracer::IRaytracer(SharedPtr<IScheduler> scheduler, const GuiSettings& setti
 
 void IRaytracer::render(const RenderParams& params, Statistics& UNUSED(stats), IRenderOutput& output) const {
     shouldContinue = true;
-    // std::cout << "IRaytracer::render" << std::endl;
 
     if (RawPtr<LogarithmicColorMap> logMap = dynamicCast<LogarithmicColorMap>(fixed.colorMap.get())) {
         logMap->setFactor(params.volume.compressionFactor);
@@ -61,22 +60,16 @@ void IRaytracer::render(const RenderParams& params, Statistics& UNUSED(stats), I
 
     FrameBuffer fb(params.camera->getSize());
     for (Size iteration = 0; iteration < fixed.iterationLimit && shouldContinue; ++iteration) {
-        // std::cout << "IRaytracer::refine" << std::endl;
         this->refine(params, iteration, fb);
 
         const bool isFinal = (iteration == fixed.iterationLimit - 1);
         if (fixed.colorMap) {
             Bitmap<Rgba> bitmap = fixed.colorMap->map(fb.getBitmap());
-            // std::cout << "IRaytracer - update" << std::endl;
             output.update(std::move(bitmap), {}, isFinal);
         } else {
-            // std::cout << "IRaytracer - update" << std::endl;
             output.update(fb.getBitmap(), {}, isFinal);
         }
     }
-    /*if (!shouldContinue) {
-        std::cout << "! Leaving render as cancelled" << std::endl;
-    }*/
 }
 
 INLINE float sampleTent(const float x) {

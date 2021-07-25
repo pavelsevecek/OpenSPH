@@ -1,3 +1,18 @@
+## 2021-07-25
+- added "render page" showing current status of an Animation job
+- added render preview to Animation job
+- added new node type - image node
+- removed multiple quantities from Animation job (only one can be selected)
+- removed 'orbit' option from Animation job
+- added notification callbacks to JobNode
+- reworked Movie object, removed it from Controller
+- removed palette from rendered image, palette is now in separate panel
+- fixed VolumeRenderer with transparent background
+- properly adjusting FoV when OrthoCamera is resized
+- setting default particle radius of SPH .scf files to 0.35
+- registered format function to use in Chaiscript
+- changed 'batch' simulation from JobNode to custom INode implementation
+
 ## 2021-07-20
 - improved polytrope IC
 - optimized refresh when render parameters change
