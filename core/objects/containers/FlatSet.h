@@ -75,7 +75,7 @@ public:
 
     Iterator<T> find(const T& value) {
         auto iter = std::lower_bound(data.begin(), data.end(), value);
-        if (iter != data.end() && *iter == value) {
+        if (iter != data.end() && equal(*iter, value)) {
             return iter;
         } else {
             return data.end();
@@ -135,6 +135,10 @@ public:
 private:
     INLINE bool less(const T& t1, const T& t2) const {
         return TLess::operator()(t1, t2);
+    }
+
+    INLINE bool equal(const T& t1, const T& t2) const {
+        return !less(t1, t2) && !less(t2, t1);
     }
 };
 

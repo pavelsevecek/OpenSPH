@@ -110,6 +110,14 @@ TEST_CASE("Matrix inverse", "[affinematrix]") {
     REQUIRE_SPH_ASSERT(AffineMatrix::null().inverse());
 }
 
+TEST_CASE("Matrix tryInverse", "[affinematrix]") {
+    REQUIRE_FALSE(AffineMatrix::null().tryInverse());
+    AffineMatrix id = AffineMatrix::identity();
+    Optional<AffineMatrix> invId = id.tryInverse();
+    REQUIRE(invId);
+    REQUIRE(invId.value() == approx(id));
+}
+
 TEST_CASE("Matrix isOrthogonal", "[affinematrix]") {
     REQUIRE(AffineMatrix::identity().isOrthogonal());
     REQUIRE_FALSE(AffineMatrix::null().isOrthogonal());

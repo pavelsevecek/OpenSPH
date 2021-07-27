@@ -6,6 +6,7 @@
 /// \date 2016-2021
 
 #include "objects/geometry/Vector.h"
+#include "objects/wrappers/Optional.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -83,9 +84,11 @@ public:
                v[0][2] * (v[1][0] * v[2][1] - v[1][1] * v[2][0]);
     }
 
-    AffineMatrix inverse() const {
+    Optional<AffineMatrix> tryInverse(const Float limit = 1.e-20_f) const {
         const Float det = this->determinant();
-        SPH_ASSERT(det != 0._f);
+        if (abs(det) < limit) {
+            return NOTHING;
+        }
 
         // from https://stackoverflow.com/questions/1148309/inverting-a-4x4-matrix
         AffineMatrix inv;
@@ -106,6 +109,11 @@ public:
                     v[1][0] * v[0][3] * v[2][1] - v[2][0] * v[0][1] * v[1][3] + v[2][0] * v[0][3] * v[1][1];
 
         return inv / det;
+    }
+    AffineMatrix inverse() const {
+        Optional<AffineMatrix> inv = tryInverse();
+        SPH_ASSERT(inv);
+        return inv.value();
     }
 
     bool isOrthogonal() const {

@@ -147,6 +147,8 @@ HEADERS += \
     objects/containers/CircularArray.h \
     objects/finders/IncrementalFinder.h \
     objects/finders/NeighborFinder.h \
+    objects/geometry/Delaunay.h \
+    objects/geometry/Plane.h \
     objects/utility/OutputIterators.h \
     objects/wrappers/ExtendedEnum.h \
     objects/wrappers/SharedToken.h \
