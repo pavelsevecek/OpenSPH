@@ -15,29 +15,29 @@ struct UnitDesc {
 };
 
 FlatMap<BasicDimension, FlatSet<UnitDesc>> UNITS = [] {
-    FlatSet<UnitDesc> length = {
+    FlatSet<UnitDesc> length({
         { "mm", 1._mm },
         { "cm", 1._cm },
         { "m", 1._m },
         { "km", 1._km },
         { "au", Unit::meter(Constants::au) },
-    };
-    FlatSet<UnitDesc> mass = {
+    });
+    FlatSet<UnitDesc> mass({
         { "g", 1.e-3_kg },
         { "kg", 1._kg },
         { "M_sun", Unit::kilogram(Constants::M_sun) },
         { "M_earth", Unit::kilogram(Constants::M_earth) },
-    };
-    FlatSet<UnitDesc> time = {
+    });
+    FlatSet<UnitDesc> time({
         { "s", 1._s },
         { "min", 60._s },
         { "h", 3600._s },
         { "d", 86400._s },
         { "y", 31556926._s },
-    };
-    FlatSet<UnitDesc> angle = {
+    });
+    FlatSet<UnitDesc> angle({
         { "rad", 1._rad },
-    };
+    });
 
     FlatMap<BasicDimension, FlatSet<UnitDesc>> units;
     units.insert(BasicDimension::LENGTH, std::move(length));

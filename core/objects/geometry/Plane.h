@@ -42,6 +42,13 @@ public:
     Vector project(const Vector& p) const {
         return p - v * dot(v, p);
     }
+
+    /// \brief Finds the intersection with a line, given by its origin and direction.
+    Vector intersection(const Vector& origin, const Vector& dir) const {
+        SPH_ASSERT(dot(dir, normal()) != 0._f);
+        const Float t = -signedDistance(origin) / dot(dir, this->normal());
+        return origin + t * dir;
+    }
 };
 
 NAMESPACE_SPH_END

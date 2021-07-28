@@ -195,7 +195,7 @@ void InteractiveRenderer::setRendererAccessor(const RunSettings& globals) {
                 /// \todo put this in AnimationJob, something like listOfColorizerEntries, etc.
 
                 const GuiSettingsId id = GuiSettings::getEntryId(key).valueOr(GuiSettingsId(-1));
-                static FlatSet<GuiSettingsId> SOFT_PARAMS = {
+                static FlatSet<GuiSettingsId> SOFT_PARAMS({
                     GuiSettingsId::PARTICLE_RADIUS,
                     GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR,
                     GuiSettingsId::SURFACE_LEVEL,
@@ -204,7 +204,7 @@ void InteractiveRenderer::setRendererAccessor(const RunSettings& globals) {
                     GuiSettingsId::SURFACE_EMISSION,
                     GuiSettingsId::VOLUME_EMISSION,
                     GuiSettingsId::VOLUME_ABSORPTION,
-                };
+                });
 
                 changed.parameters = job->getRenderParams();
                 if (key != "transparent" && !SOFT_PARAMS.contains(id)) {

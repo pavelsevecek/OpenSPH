@@ -23,3 +23,18 @@ TEST_CASE("Plane from triangle", "[plane]") {
         REQUIRE(p.signedDistance(tri[i]) == 0._f);
     }
 }
+
+TEST_CASE("Plane intersection", "[plane]") {
+    Triangle tri(Vector(0, 1, 0), Vector(1, 1, 0), Vector(0, 1, 1));
+    Plane p(tri);
+    SPH_ASSERT(p.normal() == approx(Vector(0, -1, 0)));
+    Vector is = p.intersection(Vector(0), getNormalized(Vector(1, 1, 2)));
+    REQUIRE(is == approx(Vector(1, 1, 2)));
+
+    const Vector origin(3, -2, 4);
+    const Vector dir(-3.5, -1, 1);
+    is = p.intersection(origin, getNormalized(dir));
+    REQUIRE(is == approx(origin - 3 * dir));
+
+    REQUIRE_SPH_ASSERT(p.intersection(Vector(0._f), Vector(0, 0, 1)));
+}

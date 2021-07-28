@@ -19,16 +19,12 @@ private:
 public:
     FlatSet() = default;
 
-    FlatSet(std::initializer_list<T> list) {
-        data.insert(0, list.begin(), list.end());
-        std::sort(data.begin(), data.end());
-        SPH_ASSERT(std::unique(data.begin(), data.end()) == data.end());
+    explicit FlatSet(std::initializer_list<T> list) {
+        this->create(list);
     }
 
-    FlatSet(ArrayView<const T> list) {
-        data.insert(0, list.begin(), list.end());
-        std::sort(data.begin(), data.end());
-        SPH_ASSERT(std::unique(data.begin(), data.end()) == data.end());
+    explicit FlatSet(ArrayView<const T> list) {
+        this->create(list);
     }
 
     INLINE Size size() const {
@@ -139,6 +135,17 @@ public:
     }
 
 private:
+    template <typename TRange>
+    void create(const TRange& range) {
+        Array<T> sorted;
+        sorted.insert(0, range.begin(), range.end());
+        std::sort(sorted.begin(), sorted.end());
+        auto end = std::unique(sorted.begin(), sorted.end(), [this](const T& t1, const T& t2) { //
+            return this->equal(t1, t2);
+        });
+        data.insert(0, sorted.begin(), end);
+    }
+
     INLINE bool less(const T& t1, const T& t2) const {
         return TLess::operator()(t1, t2);
     }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "math/AffineMatrix.h"
+#include "math/Morton.h"
 #include "objects/Exceptions.h"
 #include "objects/containers/FlatMap.h"
 #include "objects/containers/FlatSet.h"
@@ -9,13 +10,9 @@
 #include "objects/utility/IteratorAdapters.h"
 #include "objects/wrappers/SharedPtr.h"
 #include <iostream>
+#include <set>
 
 NAMESPACE_SPH_BEGIN
-
-struct SingularMatrix : public Exception {
-    SingularMatrix()
-        : Exception("Cannot compute circumcenter") {}
-};
 
 class Tetrahedron {
 private:
@@ -71,24 +68,31 @@ public:
         return abs(signedVolume());
     }
 
-    Sphere circumsphere() const {
-        const Vector center = this->circumcenter();
-        const Float radius = getLength(vertices[0] - center);
+    Vector center() const {
+        return (vertices[0] + vertices[1] + vertices[2] + vertices[3]) / 4._f;
+    }
+
+    Optional<Sphere> circumsphere() const {
+        const Optional<Vector> center = this->circumcenter();
+        if (!center) {
+            return NOTHING;
+        }
+        const Float radius = getLength(vertices[0] - center.value());
         SPH_ASSERT(radius < LARGE);
 
 #ifdef SPH_DEBUG
         for (Size i = 1; i < 4; ++i) {
-            const Float altRadius = getLength(vertices[i] - center);
+            const Float altRadius = getLength(vertices[i] - center.value());
             SPH_ASSERT(almostEqual(radius, altRadius, 1.e-8_f), radius, altRadius);
         }
 #endif
-        const Sphere sphere(center, radius);
+        const Sphere sphere(center.value(), radius);
         return sphere;
     }
 
-    bool inside(const Vector& p) {
+    bool contains(const Vector& p) const {
         for (Size fi = 0; fi < 4; ++fi) {
-            if (!Plane(triangle(fi)).above(p)) {
+            if (Plane(triangle(fi)).above(p)) {
                 return false;
             }
         }
@@ -103,7 +107,7 @@ public:
     }
 
 private:
-    Vector circumcenter() const {
+    Optional<Vector> circumcenter() const {
         const Vector d1 = vertices[1] - vertices[0];
         const Vector d2 = vertices[2] - vertices[0];
         const Vector d3 = vertices[3] - vertices[0];
@@ -111,7 +115,7 @@ private:
         SPH_ASSERT(A.translation() == Vector(0._f));
         Optional<AffineMatrix> A_inv = A.tryInverse();
         if (!A_inv) {
-            throw SingularMatrix();
+            return NOTHING;
         }
 
         const Vector B = 0.5_f * Vector(getSqrLength(d1), getSqrLength(d2), getSqrLength(d3));
@@ -214,7 +218,7 @@ private:
         }
     };
 
-    Array<Cell::Handle> cells;
+    std::set<Cell::Handle> cells;
 
     using Face = StaticArray<Size, 3>;
 
@@ -222,9 +226,12 @@ public:
     void build(ArrayView<const Vector> points) {
         vertices.clear();
         cells.clear();
+        Array<Vector> sortedPoints;
+        sortedPoints.insert(0, points.begin(), points.end());
+        spatialSort(sortedPoints);
 
         Box box;
-        for (const Vector& p : points) {
+        for (const Vector& p : sortedPoints) {
             box.extend(p);
         }
         const Vector center = box.center();
@@ -234,47 +241,52 @@ public:
             const Vector p = super.vertex(i) * side + center;
             vertices.push(p);
         }
-        cells.push(makeShared<Cell>(0, 1, 2, 3, super.circumsphere()));
+        Cell::Handle ch = makeShared<Cell>(0, 1, 2, 3, super.circumsphere().value());
+        cells.insert(ch);
+        SPH_ASSERT(tetrahedron(*ch).contains(super.center()));
+        SPH_ASSERT(tetrahedron(*ch).signedVolume() > 0._f);
 
 #ifdef SPH_DEBUG
-        const Float volume0 = tetrahedron(0).volume();
+        const Float volume0 = tetrahedron(**cells.begin()).volume();
         std::cout << "Volume = " << volume0 << std::endl;
 #endif
 
         Size index = 0;
-        for (const Vector& p : points) {
-            std::cout << "Adding point " << index++ << " out of " << points.size() << ", cell count "
+        Cell::Handle hint = *cells.begin();
+        for (const Vector& p : sortedPoints) {
+            std::cout << "Adding point " << index++ << " out of " << sortedPoints.size() << ", cell count "
                       << cells.size() << std::endl;
 
-            Cell::Handle hint = nullptr;
-            try {
-                hint = this->addPoint(p, hint);
-            } catch (const SingularMatrix&) {
-                std::cout << "Cannot compute circumcenter, skipping the point ..." << std::endl;
-            }
+            hint = this->addPoint(p, hint);
 
 #ifdef SPH_DEBUG
             Float volume = 0._f;
-            for (Size ci = 0; ci < cells.size(); ++ci) {
-                volume += tetrahedron(ci).volume();
+            for (Cell::Handle ch : cells) {
+                volume += tetrahedron(*ch).volume();
             }
             SPH_ASSERT(almostEqual(volume, volume0), volume, volume0);
 #endif
         }
 
-        Array<Size> toRemove;
-        for (Size ci = 0; ci < cells.size(); ++ci) {
-            Cell& c = *cells[ci];
+        Array<Cell::Handle> toRemove;
+        for (Cell::Handle ch : cells) {
+            const Cell& c = *ch;
             if (c[0] < 4 || c[1] < 4 || c[2] < 4 || c[3] < 4) {
-                toRemove.push(ci);
+                toRemove.push(ch);
             }
         }
         // std::cout << "Removing " << toRemove.size() << " super-tets" << std::endl;
-        cells.remove(toRemove);
+        for (Cell::Handle ch : toRemove) {
+            cells.erase(ch);
+        }
     }
 
-    Tetrahedron tetrahedron(const Size ci) const {
+    /*Tetrahedron tetrahedron(const Size ci) const {
         const Cell& c = *cells[ci];
+        return Tetrahedron(vertices[c[0]], vertices[c[1]], vertices[c[2]], vertices[c[3]]);
+    }*/
+
+    Tetrahedron tetrahedron(const Cell& c) const {
         return Tetrahedron(vertices[c[0]], vertices[c[1]], vertices[c[2]], vertices[c[3]]);
     }
 
@@ -319,8 +331,8 @@ private:
     Cell::Handle addPoint(const Vector& p, const Cell::Handle& hint) {
         // implements the Bowyer–Watson algorithm
 
+
         FlatSet<Cell::Handle> badSet;
-        Array<Size> badIdxs;
         /*StaticArray<Cell::Handle, 5> hints;
         hints[0] = hint;
         for (Size fi = 0; fi < 4; ++fi) {
@@ -337,16 +349,22 @@ private:
                 })
             }
         }*/
-        (void)hint;
-        if (badSet.empty()) {
-            for (Size ci = 0; ci < cells.size(); ++ci) {
-                const Sphere sphere = cells[ci]->circumsphere();
-                if (sphere.contains(p)) {
-                    badSet.insert(cells[ci]);
-                    badIdxs.push(ci);
-                }
+#if 1
+        const Cell::Handle seed = this->locate(
+            p, hint, [](const Cell& c, const Vector& p) { return c.circumsphere().contains(p); });
+        this->region(seed, badSet, [this, &p](const Cell& c) { return c.circumsphere().contains(p); });
+
+#else
+        //(void)hint;
+
+        for (Cell::Handle ch : cells) {
+            const Sphere sphere = ch->circumsphere();
+            if (sphere.contains(p)) {
+                badSet.insert(ch);
             }
         }
+#endif
+
         // std::cout << "Bad set has " << badSet.size() << " cells" << std::endl;
 
         Array<std::pair<Cell::Handle, Size>> polyhedronSet;
@@ -359,24 +377,28 @@ private:
             }
         }
         // std::cout << "Removing " << badIdxs.size() << " cells" << std::endl;
-        for (Size ci : reverse(badIdxs)) {
-            /*for (Size fi1 = 0; fi1 < 4; ++fi1) {
-                // remove the cell from its neighbors
-                if (Cell::Handle nh = cells[ci]->neighbor(fi1)) {
-                    for (Size fi2 = 0; fi2 < 4; ++fi2) {
-                        if (nh->neighbor(fi2) == cells[ci]) {
-                            nh->setNeighbor(fi2, nullptr);
-                            break;
-                        }
-                        SPH_ASSERT(fi2 < 3);
+        // for (Size ci : reverse(badIdxs)) {
+        /*for (Size fi1 = 0; fi1 < 4; ++fi1) {
+            // remove the cell from its neighbors
+            if (Cell::Handle nh = cells[ci]->neighbor(fi1)) {
+                for (Size fi2 = 0; fi2 < 4; ++fi2) {
+                    if (nh->neighbor(fi2) == cells[ci]) {
+                        nh->setNeighbor(fi2, nullptr);
+                        break;
                     }
+                    SPH_ASSERT(fi2 < 3);
                 }
-                // remove the neighbors
-                cells[ci]->setNeighbor(fi1, nullptr);
-            }*/
+            }
+            // remove the neighbors
+            cells[ci]->setNeighbor(fi1, nullptr);
+        }*/
 
-            std::swap(cells[ci], cells.back());
-            cells.pop();
+        /*std::swap(cells[ci], cells.back());
+        cells.pop();
+    }*/
+        std::cout << "Bad set has " << badSet.size() << " cells" << std::endl;
+        for (Cell::Handle ch : badSet) {
+            cells.erase(ch);
         }
         // badSet.clear();
 
@@ -386,17 +408,31 @@ private:
         for (const auto& pair : polyhedronSet) {
             const Cell::Handle& ch1 = pair.first;
             const Size fi1 = pair.second;
-            const Face f1 = face(*ch1, fi1);
-            const Plane plane(triangle(f1));
+            Face f1 = face(*ch1, fi1);
+            const Triangle tri = triangle(f1);
+            const Plane plane(tri);
             Cell::Handle ch2;
             Tetrahedron tet(triangle(f1), vertices.back());
-            if (!plane.above(p)) {
-                ch2 = makeShared<Cell>(f1[0], f1[1], f1[2], vertices.size() - 1, tet.circumsphere());
-            } else {
-                ch2 = makeShared<Cell>(f1[0], f1[2], f1[1], vertices.size() - 1, tet.circumsphere());
+            Optional<Sphere> sphere = tet.circumsphere();
+            if (!sphere) {
+                // small perturbation
+                const Float e10 = getSqrLength(tri[1] - tri[0]);
+                const Float e20 = getSqrLength(tri[2] - tri[0]);
+                const Float e = sqrt(max(e10, e20));
+                vertices.back() += 1.e-6_f * plane.normal() * e;
+                sphere = tet.circumsphere();
+                SPH_ASSERT(sphere);
             }
+            if (!plane.above(p)) {
+                std::swap(f1[1], f1[2]);
+            }
+            ch2 = makeShared<Cell>(f1[0], f1[1], f1[2], vertices.size() - 1, sphere.value());
 
-            cells.push(ch2);
+            SPH_ASSERT(tetrahedron(*ch2).signedVolume() > 0);
+            SPH_ASSERT(tetrahedron(*ch2).contains(tet.center()));
+
+
+            cells.insert(ch2);
             // Float sgnVolume = tetrahedron(cells.size() - 1).signedVolume();
             // SPH_ASSERT(sgnVolume >= 0._f, sgnVolume);
             added.insert(ch2);
@@ -491,14 +527,6 @@ private:
 
     template <typename TInsideFunc>
     Array<Triangle> surface(const TInsideFunc& func) const {
-        /*Array<Cell::Handle> inside;
-        for (const Cell::Handle& ch : cells) {
-            if (func(*ch)) {
-                inside.push(ch);
-            }
-        }
-        Array<Cell::Handle> */
-
         Array<Triangle> triangles;
         for (const Cell::Handle& ch : cells) {
             if (!func(*ch)) {
@@ -511,23 +539,26 @@ private:
                 }
 
                 Triangle tr = triangle(face(*ch, fi));
-                triangles.push(tr.inverted());
+                triangles.push(tr);
             }
         }
         return triangles;
     }
 
     template <typename TPredicate>
-    void region(const Cell::Handle& seed, Array<Cell::Handle>& matching, const TPredicate& predicate) {
+    void region(const Cell::Handle& seed,
+        FlatSet<Cell::Handle>& matching,
+        const TPredicate& predicate) const {
         Array<Cell::Handle> stack;
         FlatSet<Cell::Handle> visited;
         stack.push(seed);
+        visited.insert(seed);
 
         while (!stack.empty()) {
             Cell::Handle ch = stack.pop();
-            matching.push(ch);
-            SPH_ASSERT(!visited.contains(ch));
-            visited.insert(ch);
+            matching.insert(ch);
+            // SPH_ASSERT(!visited.contains(ch));
+            // visited.insert(ch);
 
             for (Size fi = 0; fi < 4; ++fi) {
                 Cell::Handle nh = ch->neighbor(fi);
@@ -535,9 +566,134 @@ private:
                     continue;
                 }
                 if (predicate(*nh)) {
+                    visited.insert(nh);
                     stack.push(nh);
                 }
             }
+        }
+
+        std::cout << "Visited " << visited.size() << " cells" << std::endl;
+    }
+
+    /*
+        INLINE bool intersects(const Triangle& tr, const Vector& from, const Vector& to) const {
+            const Vector dir1 = tr[1] - tr[0];
+            const Vector dir2 = tr[2] - tr[0];
+            const Vector rayDir = getNormalized(to - from);
+
+            const Float eps = EPS * dot(dir1, dir2);
+            const Vector h = cross(rayDir, dir2);
+            const Float a = dot(dir1, h);
+            if (a > -eps && a < eps) {
+                return false;
+            }
+            const Float f = 1._f / a;
+            const Vector s = from - tr[0];
+            const Float u = f * dot(s, h);
+            if (u < 0._f || u > 1._f) {
+                return false;
+            }
+            const Vector q = cross(s, dir1);
+            const Float v = f * dot(rayDir, q);
+            if (v < 0._f || u + v > 1._f) {
+                return false;
+            }
+            const Float t = f * dot(dir2, q);
+            return (t > 0._f);
+        }*/
+
+    Cell::Handle locate(const Vector& p, const Cell::Handle& hint) const {
+        return this->locate(p, hint, [this](const Cell& c, const Vector& p) { //
+            return tetrahedron(c).contains(p);
+        });
+    }
+
+    template <typename TInsideFunc>
+    Cell::Handle locate(const Vector& p, const Cell::Handle& hint, const TInsideFunc& inside) const {
+        /*for (Cell::Handle ch : cells) {
+             if (tetrahedron(*ch).contains(p)) {
+                 return ch;
+             }
+         }
+         STOP;*/
+        Cell::Handle ch = hint;
+        Cell::Handle pch = nullptr;
+
+        const Vector from = tetrahedron(*ch).center();
+        // const Vector dirToP = getNormalized(p - from);
+        SPH_ASSERT(tetrahedron(*ch).contains(from));
+        // std::cout << "Going from " << from << " to " << p << std::endl;
+        Size steps = 0;
+        while (!inside(*ch, p)) { // tetrahedron(*ch).contains(p)) {
+            //            std::cout << "Moving to " << tetrahedron(*ch).center() << std::endl;
+            Optional<Size> nextFi = intersect(tetrahedron(*ch), from, p);
+
+            SPH_ASSERT(nextFi);
+            //   Size nextFi = Size(-1);
+            /*Float minDistSqr = INFTY;
+            for (Size fi = 0; fi < 4; ++fi) {
+                Cell::Handle nch = ch->neighbor(fi);
+                if (!nch || nch == pch) {
+                    continue;
+                }
+                const Tetrahedron tet = tetrahedron(*nch);
+                for (Size i = 0; i < 4; ++i) {
+                    const Float distSqr = getSqrLength(p - tet.vertex(i));
+                    if (distSqr < minDistSqr) {
+                        minDistSqr = distSqr;
+                        nextFi = fi;
+                    }
+                }
+                const Float distSqr = getSqrLength(p - tet.center());
+                if (distSqr < minDistSqr) {
+                    minDistSqr = distSqr;
+                    nextFi = fi;
+                }
+            }
+            SPH_ASSERT(nextFi != Size(-1));*/
+
+            // std::cout << "Locate, minDist = " << minDistSqr << std::endl;
+            pch = ch;
+            ch = ch->neighbor(nextFi.value());
+            SPH_ASSERT(ch);
+            ++steps;
+        }
+        std::cout << "Located point in " << steps << " steps" << std::endl;
+        return ch;
+    }
+
+    Optional<Size> intersect(const Tetrahedron& tet, const Vector& origin, const Vector& target) const {
+        Size fi_min = Size(-1);
+        Float t_min = INFTY;
+        for (Size fi1 = 0; fi1 < 4; ++fi1) {
+            const Plane plane(tet.triangle(fi1));
+            const Vector is = plane.intersection(origin, getNormalized(target - origin));
+
+            bool contains = true;
+            for (Size fi2 = 0; fi2 < 4; ++fi2) {
+                if (fi1 == fi2) {
+                    continue;
+                }
+                if (Plane(tet.triangle(fi2)).above(is)) {
+                    contains = false;
+                    break;
+                }
+            }
+
+            if (contains) {
+                const Float t = getSqrLength(is - target);
+                if (t < t_min) {
+                    t_min = t;
+                    fi_min = fi1;
+                }
+            }
+        }
+        if (t_min < INFTY) {
+            SPH_ASSERT(fi_min != Size(-1));
+            //  std::cout << "Found intersection at distance " << getLength(dir) - t_max << std::endl;
+            return fi_min;
+        } else {
+            return NOTHING;
         }
     }
 };

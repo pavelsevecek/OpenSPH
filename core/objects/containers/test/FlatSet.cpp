@@ -23,6 +23,22 @@ TEST_CASE("Set initializer_list", "[flatset]") {
     REQUIRE(set[1].value == 3);
     REQUIRE(set[2].value == 4);
     REQUIRE(set[3].value == 5);
+
+    set = FlatSet<RecordType>({});
+    REQUIRE(set.size() == 0);
+    REQUIRE(set.empty());
+}
+
+TEST_CASE("Set array", "[flatset]") {
+    FlatSet<RecordType> set(Array<RecordType>({ 4, 3, 3, 2, 2, 5 }));
+    REQUIRE(set.size() == 4);
+    REQUIRE(set[0] == 2);
+    REQUIRE(set[1] == 3);
+    REQUIRE(set[2] == 4);
+    REQUIRE(set[3] == 5);
+
+    set = FlatSet<RecordType>(Array<RecordType>());
+    REQUIRE(set.empty());
 }
 
 TEST_CASE("Set insert", "[flatset]") {

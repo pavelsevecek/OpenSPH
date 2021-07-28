@@ -11,6 +11,15 @@
 
 using namespace Sph;
 
+TEST_CASE("Tetrahedron basic", "[delaunay]") {
+    Tetrahedron tet = Tetrahedron::unit();
+    const Float a = sqrt(8._f / 3._f);
+    REQUIRE(tet.volume() == approx(pow<3>(a) / (6._f * sqrt(2._f))));
+    REQUIRE(tet.contains(Vector(0._f)));
+    REQUIRE(tet.center() == approx(Vector(0._f)));
+    REQUIRE(tet.contains(tet.center()));
+}
+
 TEST_CASE("Tetrahedron circumsphere", "[delaunay]") {
     Tetrahedron tet = Tetrahedron::unit();
     Vector center(1.5_f, -2.3_f, 4.1_f);
@@ -18,7 +27,7 @@ TEST_CASE("Tetrahedron circumsphere", "[delaunay]") {
     for (Size i = 0; i < 4; ++i) {
         tet.vertex(i) = tet.vertex(i) * radius + center;
     }
-    Sphere sphere = tet.circumsphere();
+    Sphere sphere = tet.circumsphere().value();
     REQUIRE(sphere.center() == approx(center));
     REQUIRE(sphere.radius() == approx(radius));
 
@@ -28,9 +37,18 @@ TEST_CASE("Tetrahedron circumsphere", "[delaunay]") {
     for (Size i = 0; i < 4; ++i) {
         tet.vertex(i) = center + radius * sampleUnitSphere(rng);
     }
-    sphere = tet.circumsphere();
+    sphere = tet.circumsphere().value();
     REQUIRE(sphere.center() == approx(center));
     REQUIRE(sphere.radius() == approx(radius));
+}
+
+TEST_CASE("Tetrahedron circumsphere coplanar", "[delaunay]") {
+    Tetrahedron tet;
+    tet.vertex(0) = Vector(0, 0, 0);
+    tet.vertex(1) = Vector(1, 0, 0);
+    tet.vertex(2) = Vector(0, 1, 0);
+    tet.vertex(3) = Vector(1, 1, 0);
+    REQUIRE_FALSE(tet.circumsphere());
 }
 
 TEST_CASE("Delaunay", "[delaunay]") {
@@ -76,14 +94,14 @@ TEST_CASE("Delaunay bunny", "[delaunay]") {
     Delaunay delaunay;
     delaunay.build(r);
     PlyFile ply;
-    Array<Triangle> triangles;
+    /*Array<Triangle> triangles;
     for (Size i = 0; i < delaunay.getTetrahedraCnt(); ++i) {
         Tetrahedron tet = delaunay.tetrahedron(i);
         for (Size j = 0; j < 4; ++j) {
             triangles.push(tet.triangle(j));
         }
     }
-    ply.save(Path("bunny.ply"), triangles);
+    ply.save(Path("bunny.ply"), triangles);*/
 
     ply.save(Path("bunny-ch.ply"), delaunay.convexHull());
     ply.save(Path("bunny-alpha.ply"), delaunay.alphaShape(0.012));
