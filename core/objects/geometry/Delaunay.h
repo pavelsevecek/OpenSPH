@@ -258,15 +258,15 @@ public:
                       << cells.size() << std::endl;
 
             hint = this->addPoint(p, hint);
+        }
 
 #ifdef SPH_DEBUG
-            Float volume = 0._f;
-            for (Cell::Handle ch : cells) {
-                volume += tetrahedron(*ch).volume();
-            }
-            SPH_ASSERT(almostEqual(volume, volume0), volume, volume0);
-#endif
+        Float volume = 0._f;
+        for (Cell::Handle ch : cells) {
+            volume += tetrahedron(*ch).volume();
         }
+        SPH_ASSERT(almostEqual(volume, volume0), volume, volume0);
+#endif
 
         Array<Cell::Handle> toRemove;
         for (Cell::Handle ch : cells) {
@@ -328,6 +328,8 @@ public:
     }
 
 private:
+    using Polyhedron = Array<std::pair<Cell::Handle, Size>>;
+
     Cell::Handle addPoint(const Vector& p, const Cell::Handle& hint) {
         // implements the Bowyer–Watson algorithm
 
@@ -367,45 +369,36 @@ private:
 
         // std::cout << "Bad set has " << badSet.size() << " cells" << std::endl;
 
-        Array<std::pair<Cell::Handle, Size>> polyhedronSet;
-        for (Cell::Handle ch : badSet) {
+        Polyhedron polyhedron;
+        // polyhedronSet.resize()
+        for (const Cell::Handle& ch : badSet) {
+            SPH_ASSERT(ch->circumsphere().contains(p));
             for (Size fi = 0; fi < 4; ++fi) {
                 const Cell::Handle nh = ch->neighbor(fi);
                 if (!nh || !badSet.contains(nh)) {
-                    polyhedronSet.emplaceBack(ch, fi);
+                    polyhedron.emplaceBack(ch, fi);
                 }
             }
         }
-        // std::cout << "Removing " << badIdxs.size() << " cells" << std::endl;
-        // for (Size ci : reverse(badIdxs)) {
-        /*for (Size fi1 = 0; fi1 < 4; ++fi1) {
-            // remove the cell from its neighbors
-            if (Cell::Handle nh = cells[ci]->neighbor(fi1)) {
-                for (Size fi2 = 0; fi2 < 4; ++fi2) {
-                    if (nh->neighbor(fi2) == cells[ci]) {
-                        nh->setNeighbor(fi2, nullptr);
-                        break;
-                    }
-                    SPH_ASSERT(fi2 < 3);
-                }
-            }
-            // remove the neighbors
-            cells[ci]->setNeighbor(fi1, nullptr);
-        }*/
 
-        /*std::swap(cells[ci], cells.back());
-        cells.pop();
-    }*/
-        std::cout << "Bad set has " << badSet.size() << " cells" << std::endl;
-        for (Cell::Handle ch : badSet) {
+        for (const Cell::Handle& ch : badSet) {
             cells.erase(ch);
         }
-        // badSet.clear();
 
         vertices.push(p);
+
+        FlatSet<Cell::Handle> added = triangulatePolyhedron(polyhedron, p, badSet);
+
+        updateConnectivity(added, badSet);
+
+        return *cells.rbegin();
+    }
+
+    FlatSet<Cell::Handle> triangulatePolyhedron(const Polyhedron& polyhedron,
+        const Vector& p,
+        const FlatSet<Cell::Handle>& badSet) {
         FlatSet<Cell::Handle> added;
-        Cell::Handle nextHint;
-        for (const auto& pair : polyhedronSet) {
+        for (const auto& pair : polyhedron) {
             const Cell::Handle& ch1 = pair.first;
             const Size fi1 = pair.second;
             Face f1 = face(*ch1, fi1);
@@ -431,7 +424,6 @@ private:
             SPH_ASSERT(tetrahedron(*ch2).signedVolume() > 0);
             SPH_ASSERT(tetrahedron(*ch2).contains(tet.center()));
 
-
             cells.insert(ch2);
             // Float sgnVolume = tetrahedron(cells.size() - 1).signedVolume();
             // SPH_ASSERT(sgnVolume >= 0._f, sgnVolume);
@@ -443,28 +435,23 @@ private:
                     added.insert(nch);
                 }
             }
-            if (!nextHint) {
-                nextHint = ch2;
-            }
-            //}
         }
+        return added;
+    }
 
-        /// \todo create in advance a set of cells that need to be updated, remove the neighbors from badSet
-        /// cells
-
+    void updateConnectivity(const FlatSet<Cell::Handle>& added, const FlatSet<Cell::Handle>& badSet) {
         // fix connectivity of the new cells
         for (Size ci1 = 0; ci1 < added.size(); ++ci1) {
-            // SPH_ASSERT(!badSet.contains(ch1));
             const Cell::Handle& ch1 = added[ci1];
-            if (badSet.contains(ch1)) {
+            /*if (badSet.contains(ch1)) {
                 continue;
-            }
+            }*/
+            SPH_ASSERT(!badSet.contains(ch1));
             for (Size ci2 = ci1 + 1; ci2 < added.size(); ++ci2) {
                 const Cell::Handle& ch2 = added[ci2];
                 if (badSet.contains(ch2)) {
                     continue;
                 }
-                // SPH_ASSERT(!badSet.contains(ch2));
 
                 for (Size fi1 = 0; fi1 < 4; ++fi1) {
                     for (Size fi2 = 0; fi2 < 4; ++fi2) {
@@ -475,8 +462,6 @@ private:
                 }
             }
         }
-
-        return nextHint;
     }
 
     void setNeighbor(const Cell::Handle& ch1, const Size fi1, const Cell::Handle& ch2, const Size fi2) {
@@ -505,6 +490,7 @@ private:
     }
 
     bool opposite(const Face& f1, const Face& f2) const {
+#if 0
         for (Size i1 = 0; i1 < 3; ++i1) {
             for (Size j1 = 0; j1 < 3; ++j1) {
                 if (f1[i1] == f2[j1]) {
@@ -518,6 +504,17 @@ private:
                 }
             }
         }
+#else
+        for (Size i1 = 0; i1 < 3; ++i1) {
+            if (f1[i1] == f2[0]) {
+                const Size i2 = (i1 + 1) % 3;
+                const Size i3 = (i1 + 2) % 3;
+                if (f1[i2] == f2[2] && f1[i3] == f2[1]) {
+                    return true;
+                }
+            }
+        }
+#endif
         return false;
     }
 
@@ -572,35 +569,8 @@ private:
             }
         }
 
-        std::cout << "Visited " << visited.size() << " cells" << std::endl;
+        // std::cout << "Visited " << visited.size() << " cells" << std::endl;
     }
-
-    /*
-        INLINE bool intersects(const Triangle& tr, const Vector& from, const Vector& to) const {
-            const Vector dir1 = tr[1] - tr[0];
-            const Vector dir2 = tr[2] - tr[0];
-            const Vector rayDir = getNormalized(to - from);
-
-            const Float eps = EPS * dot(dir1, dir2);
-            const Vector h = cross(rayDir, dir2);
-            const Float a = dot(dir1, h);
-            if (a > -eps && a < eps) {
-                return false;
-            }
-            const Float f = 1._f / a;
-            const Vector s = from - tr[0];
-            const Float u = f * dot(s, h);
-            if (u < 0._f || u > 1._f) {
-                return false;
-            }
-            const Vector q = cross(s, dir1);
-            const Float v = f * dot(rayDir, q);
-            if (v < 0._f || u + v > 1._f) {
-                return false;
-            }
-            const Float t = f * dot(dir2, q);
-            return (t > 0._f);
-        }*/
 
     Cell::Handle locate(const Vector& p, const Cell::Handle& hint) const {
         return this->locate(p, hint, [this](const Cell& c, const Vector& p) { //
@@ -610,64 +580,31 @@ private:
 
     template <typename TInsideFunc>
     Cell::Handle locate(const Vector& p, const Cell::Handle& hint, const TInsideFunc& inside) const {
-        /*for (Cell::Handle ch : cells) {
-             if (tetrahedron(*ch).contains(p)) {
-                 return ch;
-             }
-         }
-         STOP;*/
         Cell::Handle ch = hint;
-        Cell::Handle pch = nullptr;
 
         const Vector from = tetrahedron(*ch).center();
-        // const Vector dirToP = getNormalized(p - from);
+        const Vector dir = getNormalized(p - from);
         SPH_ASSERT(tetrahedron(*ch).contains(from));
-        // std::cout << "Going from " << from << " to " << p << std::endl;
-        Size steps = 0;
-        while (!inside(*ch, p)) { // tetrahedron(*ch).contains(p)) {
-            //            std::cout << "Moving to " << tetrahedron(*ch).center() << std::endl;
-            Optional<Size> nextFi = intersect(tetrahedron(*ch), from, p);
 
+        while (!inside(*ch, p)) {
+            Optional<Size> nextFi = this->intersect(tetrahedron(*ch), from, p, dir);
             SPH_ASSERT(nextFi);
-            //   Size nextFi = Size(-1);
-            /*Float minDistSqr = INFTY;
-            for (Size fi = 0; fi < 4; ++fi) {
-                Cell::Handle nch = ch->neighbor(fi);
-                if (!nch || nch == pch) {
-                    continue;
-                }
-                const Tetrahedron tet = tetrahedron(*nch);
-                for (Size i = 0; i < 4; ++i) {
-                    const Float distSqr = getSqrLength(p - tet.vertex(i));
-                    if (distSqr < minDistSqr) {
-                        minDistSqr = distSqr;
-                        nextFi = fi;
-                    }
-                }
-                const Float distSqr = getSqrLength(p - tet.center());
-                if (distSqr < minDistSqr) {
-                    minDistSqr = distSqr;
-                    nextFi = fi;
-                }
-            }
-            SPH_ASSERT(nextFi != Size(-1));*/
 
-            // std::cout << "Locate, minDist = " << minDistSqr << std::endl;
-            pch = ch;
             ch = ch->neighbor(nextFi.value());
             SPH_ASSERT(ch);
-            ++steps;
         }
-        std::cout << "Located point in " << steps << " steps" << std::endl;
         return ch;
     }
 
-    Optional<Size> intersect(const Tetrahedron& tet, const Vector& origin, const Vector& target) const {
+    Optional<Size> intersect(const Tetrahedron& tet,
+        const Vector& origin,
+        const Vector& target,
+        const Vector& dir) const {
         Size fi_min = Size(-1);
         Float t_min = INFTY;
         for (Size fi1 = 0; fi1 < 4; ++fi1) {
             const Plane plane(tet.triangle(fi1));
-            const Vector is = plane.intersection(origin, getNormalized(target - origin));
+            const Vector is = plane.intersection(origin, dir);
 
             bool contains = true;
             for (Size fi2 = 0; fi2 < 4; ++fi2) {

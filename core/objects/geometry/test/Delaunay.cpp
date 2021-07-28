@@ -75,7 +75,7 @@ TEST_CASE("Delaunay bunny", "[delaunay]") {
     Outcome result = input.load(Path("/home/pavel/sandbox/bunny.ssf"), storage, stats);
     REQUIRE(result);
     Array<Size> toRemove;
-    {
+    if (true) {
         AutoPtr<IBasicFinder> finder = Factory::getFinder(RunSettings::getDefaults());
         ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         finder->build(SEQUENTIAL, r);

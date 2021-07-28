@@ -88,7 +88,7 @@ public:
         return const_cast<FlatSet*>(this)->find(value);
     }
 
-    bool contains(const T& value) {
+    bool contains(const T& value) const {
         return this->find(value) != this->end();
     }
 
