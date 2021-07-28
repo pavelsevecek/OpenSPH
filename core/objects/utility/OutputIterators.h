@@ -9,8 +9,16 @@
 
 NAMESPACE_SPH_BEGIN
 
+struct OutputIterator {
+    using iterator_category = std::output_iterator_tag;
+    using value_type = void;
+    using difference_type = ptrdiff_t;
+    using pointer = void;
+    using reference = void;
+};
+
 /// \brief Helper output iterator that simply ignores the written values.
-class NullInserter {
+class NullInserter : public OutputIterator {
 public:
     NullInserter& operator*() {
         return *this;
@@ -24,17 +32,43 @@ public:
     NullInserter& operator=(TValue&&) {
         return *this;
     }
-
-    using iterator_category = std::output_iterator_tag;
-    using value_type = void;
-    using difference_type = ptrdiff_t;
-    using pointer = void;
-    using reference = void;
 };
 
-/// \brief Output iterator that inserts the written values to the given iterator using \ref push function.
+
+/// \brief Output iterator that inserts the written values to the given container using \ref insert function.
 template <typename TContainer>
-class BackInserter {
+class Inserter : public OutputIterator {
+private:
+    TContainer& container;
+
+public:
+    explicit Inserter(TContainer& container)
+        : container(container) {}
+
+    Inserter& operator*() {
+        return *this;
+    }
+
+    Inserter& operator++() {
+        return *this;
+    }
+
+    template <typename TValue>
+    Inserter& operator=(TValue&& value) {
+        container.insert(std::forward<TValue>(value));
+        return *this;
+    }
+};
+
+template <typename TContainer>
+Inserter<TContainer> inserter(TContainer& c) {
+    return Inserter<TContainer>(c);
+}
+
+
+/// \brief Output iterator that inserts the written values to the given container using \ref push function.
+template <typename TContainer>
+class BackInserter : public OutputIterator {
 private:
     TContainer& container;
 
@@ -55,12 +89,6 @@ public:
         container.push(std::forward<TValue>(value));
         return *this;
     }
-
-    using iterator_category = std::output_iterator_tag;
-    using value_type = void;
-    using difference_type = ptrdiff_t;
-    using pointer = void;
-    using reference = void;
 };
 
 template <typename TContainer>
