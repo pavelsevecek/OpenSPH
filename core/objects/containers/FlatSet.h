@@ -20,9 +20,15 @@ public:
     FlatSet() = default;
 
     FlatSet(std::initializer_list<T> list) {
-        for (const T& value : list) {
-            this->insert(value);
-        }
+        data.insert(0, list.begin(), list.end());
+        std::sort(data.begin(), data.end());
+        SPH_ASSERT(std::unique(data.begin(), data.end()) == data.end());
+    }
+
+    FlatSet(ArrayView<const T> list) {
+        data.insert(0, list.begin(), list.end());
+        std::sort(data.begin(), data.end());
+        SPH_ASSERT(std::unique(data.begin(), data.end()) == data.end());
     }
 
     INLINE Size size() const {

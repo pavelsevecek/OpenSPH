@@ -75,6 +75,10 @@ public:
         const Vector v02 = v[2] - v[0];
         return sqr(dot(v12, v02)) < (1._f - EPS) * getSqrLength(v12) * getSqrLength(v02);
     }
+
+    INLINE Triangle inverted() const {
+        return Triangle(v[0], v[2], v[1]);
+    }
 };
 
 NAMESPACE_SPH_END

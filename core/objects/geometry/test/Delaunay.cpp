@@ -1,9 +1,12 @@
 #include "objects/geometry/Delaunay.h"
 #include "catch.hpp"
 #include "io/Output.h"
+#include "objects/finders/NeighborFinder.h"
 #include "post/MeshFile.h"
+#include "system/Factory.h"
 #include "system/Statistics.h"
 #include "tests/Approx.h"
+#include "thread/Scheduler.h"
 #include "utils/Utils.h"
 
 using namespace Sph;
@@ -53,6 +56,20 @@ TEST_CASE("Delaunay bunny", "[delaunay]") {
     Statistics stats;
     Outcome result = input.load(Path("/home/pavel/sandbox/bunny.ssf"), storage, stats);
     REQUIRE(result);
+    Array<Size> toRemove;
+    {
+        AutoPtr<IBasicFinder> finder = Factory::getFinder(RunSettings::getDefaults());
+        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        finder->build(SEQUENTIAL, r);
+        Array<NeighborRecord> neighs;
+        for (Size i = 0; i < r.size(); ++i) {
+            finder->findAll(r[i], 2._f * r[i][H], neighs);
+            if (neighs.size() > 50) {
+                toRemove.push(i);
+            }
+        }
+    }
+    storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED);
 
     Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
     std::random_shuffle(r.begin(), r.end());
@@ -67,4 +84,7 @@ TEST_CASE("Delaunay bunny", "[delaunay]") {
         }
     }
     ply.save(Path("bunny.ply"), triangles);
+
+    ply.save(Path("bunny-ch.ply"), delaunay.convexHull());
+    ply.save(Path("bunny-alpha.ply"), delaunay.alphaShape(0.012));
 }

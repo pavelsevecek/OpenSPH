@@ -62,6 +62,7 @@ SOURCES += \
     ../core/objects/geometry/test/Indices.cpp \
     ../core/objects/geometry/test/Multipole.cpp \
     ../core/objects/geometry/test/Sphere.cpp \
+    ../core/objects/geometry/test/Triangle.cpp \
     ../core/objects/geometry/test/SymmetricTensor.cpp \
     ../core/objects/geometry/test/Tensor.cpp \
     ../core/objects/geometry/test/TracelessTensor.cpp \
