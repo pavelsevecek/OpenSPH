@@ -1,5 +1,5 @@
-#include "objects/containers/Allocators.h"
 #include "catch.hpp"
+#include "objects/containers/AdvancedAllocators.h"
 #include "objects/containers/List.h"
 #include "utils/Utils.h"
 
@@ -38,4 +38,21 @@ TEST_CASE("Memory resource allocator", "[allocator]") {
     list.allocator().bind(resource);
     REQUIRE_NOTHROW(list.pushBack(0));
     REQUIRE_NOTHROW(list.erase(list.begin()));
+}
+
+TEST_CASE("Freelist allocator", "[allocator]") {
+    using Allocator = FreeListAllocator<Mallocator>;
+    List<int, Allocator> list;
+    list.pushBack(0);
+    list.pushBack(1);
+    list.pushBack(2);
+    REQUIRE(list.allocator().getListSize() == 0);
+    list.erase(std::next(list.begin(), 2));
+    REQUIRE(list.allocator().getListSize() == 1);
+    list.pushBack(4);
+    REQUIRE(list.allocator().getListSize() == 0);
+    list.pushBack(5);
+    REQUIRE(list.allocator().getListSize() == 0);
+    list.clear();
+    REQUIRE(list.allocator().getListSize() == 4);
 }

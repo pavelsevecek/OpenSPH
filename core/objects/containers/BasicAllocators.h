@@ -1,6 +1,6 @@
 #pragma once
 
-/// \file Allocators.h
+/// \file BasicAllocators.h
 /// \brief Allocators used by containers
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2021
@@ -35,7 +35,7 @@ T* allocatorNew(TAllocator& allocator, TArgs&&... args) {
 }
 
 template <typename T, typename TAllocator>
-void allocatorDelete(T* ptr, TAllocator& allocator) {
+void allocatorDelete(TAllocator& allocator, T* ptr) {
     if (!ptr) {
         return;
     }
@@ -43,6 +43,26 @@ void allocatorDelete(T* ptr, TAllocator& allocator) {
     ptr->~T();
     MemoryBlock block(ptr, sizeof(T));
     allocator.deallocate(block);
+}
+
+INLINE constexpr std::size_t roundToAlignment(const std::size_t value, const std::size_t align) noexcept {
+    const std::size_t remainder = value % align;
+    return value + ((remainder == 0) ? 0 : (align - remainder));
+}
+
+template <typename T>
+INLINE T* roundToAlignment(T* value, const std::size_t align) noexcept {
+    const std::size_t remainder = reinterpret_cast<std::size_t>(value) % align;
+    return value + ((remainder == 0) ? 0 : (align - remainder));
+}
+
+INLINE bool isAligned(const std::size_t value, const std::size_t align) noexcept {
+    return value % align == 0;
+}
+
+template <typename T>
+INLINE bool isAligned(const T* value, const std::size_t align) noexcept {
+    return reinterpret_cast<std::size_t>(value) % align == 0;
 }
 
 /// \brief Default allocator, simply wrapping _mm_malloc and _mm_free calls.
@@ -80,7 +100,7 @@ public:
     INLINE MemoryBlock allocate(const std::size_t size, const std::size_t UNUSED(align)) noexcept {
         SPH_ASSERT(size > 0);
 
-        const std::size_t actSize = roundToAlignment(size);
+        const std::size_t actSize = roundToAlignment(size, TAlign);
         if (pos - data + actSize > TSize) {
             return MemoryBlock::EMPTY();
         }
@@ -102,12 +122,6 @@ public:
 
     INLINE bool owns(const MemoryBlock& block) const noexcept {
         return block.ptr >= data && block.ptr < data + TSize;
-    }
-
-private:
-    INLINE constexpr static std::size_t roundToAlignment(const std::size_t value) noexcept {
-        const std::size_t remainder = value % TAlign;
-        return value + ((remainder == 0) ? 0 : (TAlign - remainder));
     }
 };
 
@@ -224,71 +238,6 @@ public:
 
     INLINE const TAllocator& underlying() const {
         return *this;
-    }
-};
-
-/// \brief Allocator that obtains memory blocks from given memory resource.
-///
-/// Allocator does not own the resource, therefore the resource must exist as long as any object that uses the
-/// allocator. Allocator cannot deallocate memory.
-template <typename TResource>
-class MemoryResourceAllocator {
-private:
-    TResource* resource = nullptr;
-
-public:
-    INLINE void bind(TResource& other) {
-        resource = &other;
-    }
-
-    INLINE MemoryBlock allocate(const std::size_t size, const Size align) noexcept {
-        if (resource) {
-            return resource->allocate(size, align);
-        } else {
-            return MemoryBlock::EMPTY();
-        }
-    }
-
-    INLINE void deallocate(MemoryBlock& UNUSED(block)) noexcept {}
-
-    INLINE bool owns(const MemoryBlock& block) const noexcept {
-        if (resource) {
-            return resource->owns(block);
-        } else {
-            return false;
-        }
-    }
-};
-
-/// \brief Simple memory resource with pre-allocated contiguous memory buffer.
-template <typename TAllocator>
-class MonotonicMemoryResource : public TAllocator {
-    MemoryBlock resource;
-    std::size_t position = 0;
-
-public:
-    MonotonicMemoryResource(const std::size_t size, const std::size_t align) {
-        resource = TAllocator::allocate(size, align);
-    }
-
-    ~MonotonicMemoryResource() {
-        TAllocator::deallocate(resource);
-    }
-
-    INLINE MemoryBlock allocate(const std::size_t size, const std::size_t UNUSED(align)) noexcept {
-        if (position + size <= resource.size) {
-            MemoryBlock block;
-            block.ptr = (uint8_t*)resource.ptr + position;
-            block.size = size;
-            position += size;
-            return block;
-        } else {
-            return MemoryBlock::EMPTY();
-        }
-    }
-
-    INLINE bool owns(const MemoryBlock& block) const noexcept {
-        return block.ptr >= resource.ptr && block.ptr < (uint8_t*)resource.ptr + resource.size;
     }
 };
 

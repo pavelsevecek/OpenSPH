@@ -6,7 +6,7 @@
 /// \date 2016-2021
 
 #include "math/MathBasic.h"
-#include "objects/containers/Allocators.h"
+#include "objects/containers/BasicAllocators.h"
 #include "objects/containers/ArrayView.h"
 
 #ifdef SPH_GCC

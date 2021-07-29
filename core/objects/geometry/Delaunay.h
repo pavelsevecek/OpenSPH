@@ -3,6 +3,7 @@
 #include "math/AffineMatrix.h"
 #include "math/Morton.h"
 #include "objects/Exceptions.h"
+#include "objects/containers/AdvancedAllocators.h"
 #include "objects/containers/FlatMap.h"
 #include "objects/containers/FlatSet.h"
 #include "objects/containers/UnorderedMap.h"
@@ -13,6 +14,7 @@
 #include "objects/wrappers/SharedPtr.h"
 #include "system/Timer.h"
 #include <iostream>
+#include <map>
 #include <set>
 #include <unordered_set>
 
@@ -158,6 +160,10 @@ private:
             return Face(idxs[0], idxs[2], idxs[1]);
         }
 
+        bool operator==(const Face& other) const {
+            return idxs[0] == other.idxs[0] && idxs[1] == other.idxs[1] && idxs[2] == other.idxs[2];
+        }
+
         bool operator<(const Face& other) const {
             return makeTuple(idxs[0], idxs[1], idxs[2]) <
                    makeTuple(other.idxs[0], other.idxs[1], other.idxs[2]);
@@ -301,7 +307,7 @@ private:
     // using Polyhedron = Array<std::pair<Cell::Handle, Size>>;
 
 
-    FlatSet<Cell::Handle> badSet;
+    Array<Cell::Handle> badSet;
 
     static Face toKey(const Face& f) {
         if (f[0] < f[1] && f[0] < f[2]) {
@@ -322,32 +328,38 @@ private:
     }
 
     // FlatMap<Face, Tuple<Cell::Handle, Size>> invalidated;
-    FlatMap<Face, Tuple<Cell::Handle, Size>> added;
+    // UnorderedMap<Face, Tuple<Cell::Handle, Size>> added;
+    Array<Tuple<Cell::Handle, Size, Face>> added;
 
     Array<Cell::Handle> stack;
     Array<Cell::Handle> visited;
 
-    /*    using Resource = MonotonicMemoryResource<Mallocator>;
-        using Allocator = FallbackAllocator<MemoryResourceAllocator<Resource>, Mallocator>;
+    using Resource = MonotonicMemoryResource<Mallocator>;
+    // using Allocator = Mallocator;
+    using Allocator = FallbackAllocator<MemoryResourceAllocator<Resource>, Mallocator>;
+    // using Allocator = FreeListAllocator<FallbackAllocator<MemoryResourceAllocator<Resource>, Mallocator>>;
 
-        Resource resource = Resource(1ull << 30, 1);
-        Allocator allocator;
-    */
+    Resource resource = Resource(1ull << 30, 1);
+    Allocator allocator;
+
 public:
     Delaunay() {
-        //   allocator.primary().bind(resource);
+        allocator.primary().bind(resource);
+        //        allocator.underlying().primary().bind(resource);
     }
 
     ~Delaunay() {
         for (Cell::Handle ch : cells) {
             ch->detach();
-            alignedDelete(ch);
+            allocatorDelete(allocator, ch);
         }
     }
 
     void build(ArrayView<const Vector> points) {
         vertices.clear();
+        vertices.reserve(points.size() + 4);
         cells.clear();
+
         Array<Vector> sortedPoints;
         sortedPoints.insert(0, points.begin(), points.end());
         // std::random_shuffle(sortedPoints.begin(), sortedPoints.end());
@@ -364,7 +376,7 @@ public:
             const Vector p = super.vertex(i) * side + center;
             vertices.push(p);
         }
-        Cell::Handle root = alignedNew<Cell>(0, 1, 2, 3, super.circumsphere().value());
+        Cell::Handle root = allocatorNew<Cell>(allocator, 0, 1, 2, 3, super.circumsphere().value());
         cellCnt = 1;
         // cells.insert(ch);
         SPH_ASSERT(tetrahedron(*root).contains(super.center()));
@@ -393,6 +405,7 @@ public:
         this->region(hint, backInserter(cells), [](const Cell& UNUSED(c)) { return true; });
         std::cout << "Region took " << timer.elapsed(TimerUnit::MILLISECOND) << " ms" << std::endl;
         std::cout << "Got " << cells.size() << " cells" << std::endl;
+        SPH_ASSERT(cellCnt == cells.size());
 
 #ifdef SPH_DEBUG
         Float volume = 0._f;
@@ -407,7 +420,7 @@ public:
             const Cell& c = *cells[ci];
             if (c[0] < 4 || c[1] < 4 || c[2] < 4 || c[3] < 4) {
                 cells[ci]->detach();
-                alignedDelete(cells[ci]);
+                allocatorDelete(allocator, cells[ci]);
                 std::swap(cells[ci], cells.back());
                 cells.pop();
             } else {
@@ -468,20 +481,17 @@ private:
         });
 
         badSet.clear();
-        this->region(seed, inserter(badSet), [this, &p](const Cell& c) { //
+        this->region(seed, backInserter(badSet), [this, &p](const Cell& c) { //
             return c.circumsphere().contains(p);
         });
 
-
-        // polyhedron.clear();
-        // invalidated.clear();
         added.clear();
         Cell::Handle nextHint = nullptr;
         for (const Cell::Handle& ch : badSet) {
             SPH_ASSERT(ch->circumsphere().contains(p));
             for (Size fi = 0; fi < 4; ++fi) {
                 const Cell::Handle nh = ch->neighbor(fi);
-                if (nh && badSet.contains(nh)) {
+                if (nh && std::find(badSet.begin(), badSet.end(), nh) != badSet.end()) { //.contains(nh)) {
                     continue;
                 }
 
@@ -494,12 +504,10 @@ private:
             ch->detach();
         }
 
-        // Cell::Handle nextHint = triangulatePolyhedron(p);
-
         updateConnectivity();
 
         for (Cell::Handle ch : badSet) {
-            alignedDelete(ch);
+            allocatorDelete(allocator, ch);
         }
 
         return nextHint;
@@ -524,7 +532,7 @@ private:
         if (!plane.above(p)) {
             std::swap(f1[1], f1[2]);
         }
-        ch2 = alignedNew<Cell>(f1[0], f1[1], f1[2], vertices.size() - 1, sphere.value());
+        ch2 = allocatorNew<Cell>(allocator, f1[0], f1[1], f1[2], vertices.size() - 1, sphere.value());
 
         SPH_ASSERT(tetrahedron(*ch2).signedVolume() > 0);
         SPH_ASSERT(tetrahedron(*ch2).contains(tet.center()));
@@ -533,7 +541,7 @@ private:
 
         // fix connectivity
         if (const Cell::Handle nch1 = ch1->neighbor(fi1)) {
-            SPH_ASSERT(!badSet.contains(nch1));
+            // SPH_ASSERT(!badSet.contains(nch1));
             const Size nfi1 = ch1->mirror(fi1);
             // detach the neighbor thats now connected to ch2
             ch1->setNeighbor(fi1, nullptr, Size(-1));
@@ -546,34 +554,42 @@ private:
 
         // last face is already connected
         for (Size i = 0; i < 3; ++i) {
-            added.insert(toKey(face(*ch2, i)), makeTuple(ch2, i));
+            // added.insert(toKey(face(*ch2, i)), makeTuple(ch2, i));
+            added.push(makeTuple(ch2, i, toKey(face(*ch2, i))));
         }
-        //            invalidated.insert(makeTuple(ch2, 3));
         cellCnt++;
-        //  nextHint = ch2;
-        //  }
-
-        // cellCnt += polyhedron.size();
 
         return ch2;
     }
 
     NO_INLINE void updateConnectivity() {
-        for (const auto& a : added) {
-            const Face& f1 = a.key;
-            SPH_ASSERT(isKey(f1));
-            Cell::Handle ch1, ch2;
-            Size fi1, fi2;
-            tieToTuple(ch1, fi1) = a.value;
+        Cell::Handle ch1, ch2;
+        Size fi1, fi2;
+        Face f1, f2;
+        for (Size i1 = 0; i1 < added.size(); ++i1) {
+            tieToTuple(ch1, fi1, f1) = added[i1];
+            // const Face f1 = toKey(face(*ch1, fi1));
+            for (Size i2 = i1 + 1; i2 < added.size(); ++i2) {
+                /*if (i1 == i2) {
+                    continue;
+                }*/
+                tieToTuple(ch2, fi2, f2) = added[i2];
+                // const Face& f1 = a.key;
+                // SPH_ASSERT(isKey(f1));
 
-            const Face f2 = toKey(f1.opposite());
-            SPH_ASSERT(isKey(f2));
-            tieToTuple(ch2, fi2) = added[f2];
-            SPH_ASSERT(!badSet.contains(ch1));
-            SPH_ASSERT(!badSet.contains(ch2));
+                // const Face f2 = toKey(f1.opposite());
+                // SPH_ASSERT(isKey(f2));
+                if (f1 == f2.opposite()) { // toKey(face(*ch2, fi2)).opposite()) {
+                    // SPH_ASSERT(!badSet.contains(ch1));
+                    // SPH_ASSERT(!badSet.contains(ch2));
 
-            SPH_ASSERT(opposite(face(*ch1, fi1), face(*ch2, fi2)));
-            setNeighbor(ch1, fi1, ch2, fi2);
+                    SPH_ASSERT(opposite(face(*ch1, fi1), face(*ch2, fi2)));
+                    setNeighbor(ch1, fi1, ch2, fi2);
+                    break;
+                }
+
+                //    SPH_ASSERT(i2 != added.size() - 1);
+            }
         }
     }
 

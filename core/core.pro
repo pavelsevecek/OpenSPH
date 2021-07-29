@@ -144,6 +144,8 @@ HEADERS += \
     math/SparseMatrix.h \
     math/rng/Rng.h \
     math/rng/VectorRng.h \
+    objects/containers/AdvancedAllocators.h \
+    objects/containers/BasicAllocators.h \
     objects/containers/CircularArray.h \
     objects/finders/IncrementalFinder.h \
     objects/finders/NeighborFinder.h \
@@ -156,13 +158,13 @@ HEADERS += \
     sph/initial/UvMapping.h \
     objects/Exceptions.h \
     objects/Object.h \
-    objects/containers/Allocators.h \
     objects/containers/Array.h \
     objects/containers/ArrayRef.h \
     objects/containers/ArrayView.h \
     objects/containers/CallbackSet.h \
     objects/containers/FlatMap.h \
     objects/containers/FlatSet.h \
+    objects/containers/UnorderedMap.h \
     objects/containers/Grid.h \
     objects/containers/List.h \
     objects/containers/LookupMap.h \
@@ -338,7 +340,6 @@ HEADERS += \
     objects/finders/PeriodicFinder.h \
     sph/solvers/ElasticDeformationSolver.h \
     run/VirtualSettings.h \
-    objects/containers/UnorderedMap.h \
     run/VirtualSettings.inl.h \
     run/Config.h \
     run/jobs/Presets.h \
