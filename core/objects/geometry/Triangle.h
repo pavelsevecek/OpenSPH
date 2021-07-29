@@ -76,7 +76,7 @@ public:
         return sqr(dot(v12, v02)) < (1._f - EPS) * getSqrLength(v12) * getSqrLength(v02);
     }
 
-    INLINE Triangle inverted() const {
+    INLINE Triangle opposite() const {
         return Triangle(v[0], v[2], v[1]);
     }
 };

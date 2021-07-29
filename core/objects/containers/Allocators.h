@@ -6,7 +6,6 @@
 /// \date 2016-2021
 
 #include "common/Assert.h"
-#include <memory>
 #include <mm_malloc.h>
 
 NAMESPACE_SPH_BEGIN
@@ -24,6 +23,27 @@ struct MemoryBlock {
         return { nullptr, 0 };
     }
 };
+
+template <typename T, typename TAllocator, typename... TArgs>
+T* allocatorNew(TAllocator& allocator, TArgs&&... args) {
+    MemoryBlock block = allocator.allocate(sizeof(T), alignof(T));
+    if (block.ptr) {
+        return new (block.ptr) T(std::forward<TArgs>(args)...);
+    } else {
+        return nullptr;
+    }
+}
+
+template <typename T, typename TAllocator>
+void allocatorDelete(T* ptr, TAllocator& allocator) {
+    if (!ptr) {
+        return;
+    }
+
+    ptr->~T();
+    MemoryBlock block(ptr, sizeof(T));
+    allocator.deallocate(block);
+}
 
 /// \brief Default allocator, simply wrapping _mm_malloc and _mm_free calls.
 class Mallocator {
@@ -121,7 +141,15 @@ public:
         return *this;
     }
 
+    INLINE TPrimary& primary() {
+        return *this;
+    }
+
     INLINE const TFallback& fallback() const {
+        return *this;
+    }
+
+    INLINE TFallback& fallback() {
         return *this;
     }
 };
@@ -210,7 +238,7 @@ private:
 
 public:
     INLINE void bind(TResource& other) {
-        resource = std::addressof(other);
+        resource = &other;
     }
 
     INLINE MemoryBlock allocate(const std::size_t size, const Size align) noexcept {

@@ -20,7 +20,7 @@ TEST_CASE("AutoPtr default construct", "[autoptr]") {
 TEST_CASE("AutoPtr ptr construct", "[autoptr]") {
     RecordType::resetStats();
     {
-        AutoPtr<RecordType> p1(new RecordType(5));
+        AutoPtr<RecordType> p1(alignedNew<RecordType>(5));
         REQUIRE(RecordType::constructedNum == 1);
         REQUIRE(p1);
         REQUIRE(p1 != nullptr);
@@ -34,7 +34,7 @@ TEST_CASE("AutoPtr ptr construct", "[autoptr]") {
 TEST_CASE("AutoPtr move construct", "[autoptr]") {
     RecordType::resetStats();
     {
-        AutoPtr<RecordType> p1(new RecordType(6));
+        AutoPtr<RecordType> p1(alignedNew<RecordType>(6));
         AutoPtr<RecordType> p2(std::move(p1));
         REQUIRE(RecordType::constructedNum == 1);
         REQUIRE(RecordType::existingNum() == 1);
@@ -49,8 +49,8 @@ TEST_CASE("AutoPtr move construct", "[autoptr]") {
 TEST_CASE("AutoPtr move assign", "[autoptr]") {
     RecordType::resetStats();
     {
-        AutoPtr<RecordType> p1(new RecordType(3));
-        AutoPtr<RecordType> p2(new RecordType(6));
+        AutoPtr<RecordType> p1(alignedNew<RecordType>(3));
+        AutoPtr<RecordType> p2(alignedNew<RecordType>(6));
         REQUIRE(RecordType::constructedNum == 2);
         REQUIRE(RecordType::existingNum() == 2);
         p2 = std::move(p1);
@@ -81,7 +81,7 @@ bool Derived::destroyed = false;
 TEST_CASE("AutoPtr cast", "[autoptr]") {
     {
         AutoPtr<Base> p1;
-        p1 = AutoPtr<Derived>(new Derived());
+        p1 = AutoPtr<Derived>(alignedNew<Derived>());
         REQUIRE(p1);
         REQUIRE(p1->value == 5);
         REQUIRE_FALSE(Derived::destroyed);
@@ -92,7 +92,7 @@ TEST_CASE("AutoPtr cast", "[autoptr]") {
 TEST_CASE("AutoPtr get", "[autoptr]") {
     AutoPtr<RecordType> p1;
     REQUIRE(p1.get() == nullptr);
-    p1 = AutoPtr<RecordType>(new RecordType(5));
+    p1 = AutoPtr<RecordType>(alignedNew<RecordType>(5));
     REQUIRE(p1.get());
     REQUIRE(p1.get()->value == 5);
 }
@@ -101,7 +101,7 @@ TEST_CASE("AutoPtr release", "[autoptr]") {
     RecordType::resetStats();
     RecordType* r;
     {
-        AutoPtr<RecordType> p(new RecordType(4));
+        AutoPtr<RecordType> p(alignedNew<RecordType>(4));
         r = p.release();
         REQUIRE(r->value == 4);
         REQUIRE_FALSE(p.release());
@@ -111,12 +111,12 @@ TEST_CASE("AutoPtr release", "[autoptr]") {
 }
 
 TEST_CASE("AutoPtr reset", "[autoptr]") {
-    AutoPtr<RecordType> p(new RecordType(4));
+    AutoPtr<RecordType> p(alignedNew<RecordType>(4));
     RecordType::resetStats();
     p.reset();
     REQUIRE(RecordType::destructedNum == 1);
     REQUIRE(p == nullptr);
-    p = AutoPtr<RecordType>(new RecordType(5));
+    p = AutoPtr<RecordType>(alignedNew<RecordType>(5));
     REQUIRE(RecordType::destructedNum == 1);
     REQUIRE(p != nullptr);
     p = nullptr;

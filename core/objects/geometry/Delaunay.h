@@ -5,6 +5,7 @@
 #include "objects/Exceptions.h"
 #include "objects/containers/FlatMap.h"
 #include "objects/containers/FlatSet.h"
+#include "objects/containers/UnorderedMap.h"
 #include "objects/geometry/Plane.h"
 #include "objects/geometry/Sphere.h"
 #include "objects/utility/IteratorAdapters.h"
@@ -152,6 +153,15 @@ private:
             SPH_ASSERT(vi < 4);
             return idxs[vi];
         }
+
+        Face opposite() const {
+            return Face(idxs[0], idxs[2], idxs[1]);
+        }
+
+        bool operator<(const Face& other) const {
+            return makeTuple(idxs[0], idxs[1], idxs[2]) <
+                   makeTuple(other.idxs[0], other.idxs[1], other.idxs[2]);
+        }
     };
 
     class Cell {
@@ -160,31 +170,41 @@ private:
 
     private:
         Size idxs[4];
-        Sphere sphere;
 
-        Handle neighs[4];
+        struct Neigh {
+            Handle handle = nullptr;
+            Size mirror = Size(-1);
+        };
+
+        Neigh neighs[4];
+
+        Sphere sphere;
+        bool flag = false;
 
     public:
         Cell() = default;
 
         Cell(const Size a, const Size b, const Size c, const Size d, const Sphere& sphere)
             : idxs{ a, b, c, d }
-            , sphere(sphere)
-            , neighs{ nullptr, nullptr, nullptr, nullptr } {
+            , sphere(sphere) {
 #ifdef SPH_DEBUG
             StaticArray<Size, 4> sortedIdxs({ a, b, c, d });
             std::sort(sortedIdxs.begin(), sortedIdxs.end());
             SPH_ASSERT(std::unique(sortedIdxs.begin(), sortedIdxs.end()) == sortedIdxs.end());
+
+            for (Size fi = 0; fi < 4; ++fi) {
+                SPH_ASSERT(neighs[fi].handle == nullptr);
+            }
 #endif
         }
 
-        Cell(const Cell& other) = default;
+        Cell(const Cell& other) = delete;
 
         ~Cell() {
             SPH_ASSERT(this->isDetached());
         }
 
-        Cell& operator=(const Cell& other) = default;
+        Cell& operator=(const Cell& other) = delete;
 
         Size operator[](const Size vi) const {
             SPH_ASSERT(vi < 4);
@@ -196,23 +216,6 @@ private:
             return idxs[vi];
         }
 
-        Handle neighbor(const Size fi) const {
-            return neighs[fi];
-        }
-
-        void setNeighbor(const Size fi, const Handle& ch) {
-#ifdef SPH_DEBUG
-            for (Size fi2 = 0; fi2 < 4; ++fi2) {
-                if (fi2 == fi) {
-                    continue;
-                }
-                Handle nch = neighs[fi2];
-                SPH_ASSERT(!nch || nch != ch);
-            }
-#endif
-            neighs[fi] = ch;
-        }
-
         bool contains(const Size vi) const {
             for (Size i : idxs) {
                 if (vi == i) {
@@ -222,32 +225,57 @@ private:
             return false;
         }
 
+        Handle neighbor(const Size fi) const {
+            return neighs[fi].handle;
+        }
+
+        void setNeighbor(const Size fi, const Handle& ch, const Size mirror) {
+#ifdef SPH_DEBUG
+            SPH_ASSERT(fi < 4);
+            SPH_ASSERT(mirror < 4 || (ch == nullptr && mirror == Size(-1)));
+            // no two faces can share a neighbors
+            for (Size fi2 = 0; fi2 < 4; ++fi2) {
+                if (fi2 == fi) {
+                    continue;
+                }
+                Handle nch = neighs[fi2].handle;
+                SPH_ASSERT(!nch || nch != ch);
+            }
+#endif
+            neighs[fi].handle = ch;
+            neighs[fi].mirror = mirror;
+        }
+
         Size neighborCnt() const {
             Size cnt = 0;
             for (Size i = 0; i < 4; ++i) {
-                if (neighs[i]) {
+                if (neighs[i].handle != nullptr) {
                     cnt++;
                 }
             }
             return cnt;
         }
 
+        Size mirror(const Size fi) const {
+            SPH_ASSERT(neighs[fi].handle != nullptr);
+            SPH_ASSERT(neighs[fi].mirror != Size(-1));
+            return neighs[fi].mirror;
+        }
+
         void detach() {
             for (Size fi1 = 0; fi1 < 4; ++fi1) {
-                Handle nh = neighs[fi1];
+                Handle nh = neighs[fi1].handle;
                 if (!nh) {
                     continue;
                 }
-                /// \todo store mirror indices
-                for (Size fi2 = 0; fi2 < 4; ++fi2) {
-                    if (nh->neighs[fi2] == this) {
-                        nh->setNeighbor(fi2, nullptr);
-                        neighs[fi1] = nullptr;
-                        break;
-                    }
-                    SPH_ASSERT(fi2 != 3); // should never reach the end of the loop
-                }
+                const Size fi2 = neighs[fi1].mirror;
+                SPH_ASSERT(nh->neighbor(fi2) == this, nh->neighbor(fi2), this);
+
+                nh->setNeighbor(fi2, nullptr, Size(-1));
+                neighs[fi1].handle = nullptr;
+                neighs[fi1].mirror = Size(-1);
             }
+            SPH_ASSERT(isDetached());
         }
 
         bool isDetached() const {
@@ -256,6 +284,14 @@ private:
 
         const Sphere& circumsphere() const {
             return sphere;
+        }
+
+        bool visited() const {
+            return flag;
+        }
+
+        bool& visited() {
+            return flag;
         }
     };
 
@@ -266,11 +302,42 @@ private:
 
 
     FlatSet<Cell::Handle> badSet;
-    // Polyhedron polyhedron;
-    FlatSet<Cell::Handle> invalidated;
 
+    static Face toKey(const Face& f) {
+        if (f[0] < f[1] && f[0] < f[2]) {
+            return f;
+        } else if (f[1] < f[0] && f[1] < f[2]) {
+            return Face(f[1], f[2], f[0]);
+        } else {
+            return Face(f[2], f[0], f[1]);
+        }
+    }
+
+    static bool isKey(const Face& f) {
+        return f[0] < f[1] && f[0] < f[2];
+    }
+
+    static bool isSuper(const Face& f) {
+        return f[0] < 4 && f[1] < 4 && f[2] < 4;
+    }
+
+    // FlatMap<Face, Tuple<Cell::Handle, Size>> invalidated;
+    FlatMap<Face, Tuple<Cell::Handle, Size>> added;
+
+    Array<Cell::Handle> stack;
+    Array<Cell::Handle> visited;
+
+    /*    using Resource = MonotonicMemoryResource<Mallocator>;
+        using Allocator = FallbackAllocator<MemoryResourceAllocator<Resource>, Mallocator>;
+
+        Resource resource = Resource(1ull << 30, 1);
+        Allocator allocator;
+    */
 public:
-    Delaunay() = default;
+    Delaunay() {
+        //   allocator.primary().bind(resource);
+    }
+
     ~Delaunay() {
         for (Cell::Handle ch : cells) {
             ch->detach();
@@ -283,6 +350,7 @@ public:
         cells.clear();
         Array<Vector> sortedPoints;
         sortedPoints.insert(0, points.begin(), points.end());
+        // std::random_shuffle(sortedPoints.begin(), sortedPoints.end());
         spatialSort(sortedPoints);
 
         Box box;
@@ -390,33 +458,34 @@ public:
     }
 
 private:
-    Cell::Handle addPoint(const Vector& p, const Cell::Handle& hint) {
+    NO_INLINE Cell::Handle addPoint(const Vector& p, const Cell::Handle& hint) {
         // implements the Bowyer–Watson algorithm
 
         vertices.push(p);
 
-        const Cell::Handle seed = this->locate(
-            p, hint, [](const Cell& c, const Vector& p) { return c.circumsphere().contains(p); });
+        const Cell::Handle seed = this->locate(p, hint, [](const Cell& c, const Vector& p) { //
+            return c.circumsphere().contains(p);
+        });
 
         badSet.clear();
-        this->region(
-            seed, inserter(badSet), [this, &p](const Cell& c) { return c.circumsphere().contains(p); });
+        this->region(seed, inserter(badSet), [this, &p](const Cell& c) { //
+            return c.circumsphere().contains(p);
+        });
 
 
         // polyhedron.clear();
-        invalidated.clear();
+        // invalidated.clear();
+        added.clear();
         Cell::Handle nextHint = nullptr;
         for (const Cell::Handle& ch : badSet) {
             SPH_ASSERT(ch->circumsphere().contains(p));
             for (Size fi = 0; fi < 4; ++fi) {
                 const Cell::Handle nh = ch->neighbor(fi);
-                if (!nh || !badSet.contains(nh)) {
-                    // polyhedron.emplaceBack(ch, fi);
-                    nextHint = this->triangulate(ch, fi, p);
-                    if (nh) {
-                        invalidated.insert(nh);
-                    }
+                if (nh && badSet.contains(nh)) {
+                    continue;
                 }
+
+                nextHint = this->triangulate(ch, fi, p);
             }
         }
 
@@ -436,11 +505,7 @@ private:
         return nextHint;
     }
 
-    Cell::Handle triangulate(const Cell::Handle ch1, const Size fi1, const Vector& p) {
-        // Cell::Handle nextHint = nullptr;
-        // for (const auto& pair : polyhedron) {
-        // const Cell::Handle& ch1 = pair.first;
-        // const Size fi1 = pair.second;
+    NO_INLINE Cell::Handle triangulate(const Cell::Handle ch1, const Size fi1, const Vector& p) {
         Face f1 = face(*ch1, fi1);
         const Triangle tri = triangle(f1);
         const Plane plane(tri);
@@ -464,7 +529,26 @@ private:
         SPH_ASSERT(tetrahedron(*ch2).signedVolume() > 0);
         SPH_ASSERT(tetrahedron(*ch2).contains(tet.center()));
 
-        invalidated.insert(ch2);
+        const Face f2 = face(*ch2, 3);
+
+        // fix connectivity
+        if (const Cell::Handle nch1 = ch1->neighbor(fi1)) {
+            SPH_ASSERT(!badSet.contains(nch1));
+            const Size nfi1 = ch1->mirror(fi1);
+            // detach the neighbor thats now connected to ch2
+            ch1->setNeighbor(fi1, nullptr, Size(-1));
+            setNeighbor(nch1, nfi1, ch2, 3);
+        } else {
+            /// \todo avoid having to detach later ...
+            // ch1->detach();
+            SPH_ASSERT(isSuper(f2), f2[0], f2[1], f2[2]);
+        }
+
+        // last face is already connected
+        for (Size i = 0; i < 3; ++i) {
+            added.insert(toKey(face(*ch2, i)), makeTuple(ch2, i));
+        }
+        //            invalidated.insert(makeTuple(ch2, 3));
         cellCnt++;
         //  nextHint = ch2;
         //  }
@@ -474,33 +558,34 @@ private:
         return ch2;
     }
 
-    void updateConnectivity() {
-        for (Size ci1 = 0; ci1 < invalidated.size(); ++ci1) {
-            const Cell::Handle& ch1 = invalidated[ci1];
-            // if it is in the badSet, it is already deleted
-            SPH_ASSERT(!badSet.contains(ch1));
-            for (Size ci2 = ci1 + 1; ci2 < invalidated.size(); ++ci2) {
-                const Cell::Handle& ch2 = invalidated[ci2];
-                SPH_ASSERT(!badSet.contains(ch2));
+    NO_INLINE void updateConnectivity() {
+        for (const auto& a : added) {
+            const Face& f1 = a.key;
+            SPH_ASSERT(isKey(f1));
+            Cell::Handle ch1, ch2;
+            Size fi1, fi2;
+            tieToTuple(ch1, fi1) = a.value;
 
-                for (Size fi1 = 0; fi1 < 4; ++fi1) {
-                    for (Size fi2 = 0; fi2 < 4; ++fi2) {
-                        if (opposite(face(*ch1, fi1), face(*ch2, fi2))) {
-                            setNeighbor(ch1, fi1, ch2, fi2);
-                        }
-                    }
-                }
-            }
+            const Face f2 = toKey(f1.opposite());
+            SPH_ASSERT(isKey(f2));
+            tieToTuple(ch2, fi2) = added[f2];
+            SPH_ASSERT(!badSet.contains(ch1));
+            SPH_ASSERT(!badSet.contains(ch2));
+
+            SPH_ASSERT(opposite(face(*ch1, fi1), face(*ch2, fi2)));
+            setNeighbor(ch1, fi1, ch2, fi2);
         }
     }
 
     void setNeighbor(const Cell::Handle& ch1, const Size fi1, const Cell::Handle& ch2, const Size fi2) {
         SPH_ASSERT(!ch1 || !ch2 || opposite(face(*ch1, fi1), face(*ch2, fi2)));
         if (ch1) {
-            ch1->setNeighbor(fi1, ch2);
+            SPH_ASSERT(bool(ch2) == (fi2 != Size(-1)));
+            ch1->setNeighbor(fi1, ch2, fi2);
         }
         if (ch2) {
-            ch2->setNeighbor(fi2, ch1);
+            SPH_ASSERT(bool(ch1) == (fi1 != Size(-1)));
+            ch2->setNeighbor(fi2, ch1, fi1);
         }
     }
 
@@ -557,11 +642,13 @@ private:
     }
 
     template <typename TOutIter, typename TPredicate>
-    void region(const Cell::Handle& seed, TOutIter out, const TPredicate& predicate) const {
-        Array<Cell::Handle> stack;
-        std::unordered_set<Cell::Handle> visited;
+    void region(const Cell::Handle& seed, TOutIter out, const TPredicate& predicate) {
+        stack.clear();
+        visited.clear();
         stack.push(seed);
-        visited.insert(seed);
+
+        seed->visited() = true;
+        // visited.insert(seed);
 
         while (!stack.empty()) {
             Cell::Handle ch = stack.pop();
@@ -572,14 +659,21 @@ private:
 
             for (Size fi = 0; fi < 4; ++fi) {
                 Cell::Handle nh = ch->neighbor(fi);
-                if (!nh || (visited.find(nh) != visited.end())) {
+                if (!nh || nh->visited()) {
                     continue;
                 }
+                nh->visited() = true;
+                visited.push(nh);
                 if (predicate(*nh)) {
-                    visited.insert(nh);
+                    // visited.insert(nh);
                     stack.push(nh);
                 }
             }
+        }
+
+        // clear the visited flag
+        for (Cell::Handle ch : visited) {
+            ch->visited() = false;
         }
     }
 

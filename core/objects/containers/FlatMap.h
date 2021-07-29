@@ -190,11 +190,15 @@ private:
         return TLess::operator()(key1, key2);
     }
 
+    INLINE bool equal(const TKey& key1, const TKey& key2) const {
+        return !less(key1, key2) && !less(key2, key1);
+    }
+
     /// Returns a pointer to the element with given key or nullptr if no such element exists.
     INLINE Element* find(const TKey& key) {
         auto compare = [this](const Element& element, const TKey& key) { return less(element.key, key); };
         auto iter = std::lower_bound(data.begin(), data.end(), key, compare);
-        if (iter != data.end() && iter->key == key) {
+        if (iter != data.end() && equal(iter->key, key)) {
             return &*iter;
         } else {
             return nullptr;

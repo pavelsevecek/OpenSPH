@@ -6,7 +6,6 @@
 /// \date 2016-2021
 
 #include "common/Assert.h"
-#include <memory>
 
 NAMESPACE_SPH_BEGIN
 
@@ -81,7 +80,7 @@ INLINE RawPtr<T1> dynamicCast(RawPtr<T2> source) {
 
 template <typename T>
 INLINE RawPtr<T> addressOf(T& ref) {
-    return std::addressof(ref);
+    return &ref;
 }
 
 template <typename T>

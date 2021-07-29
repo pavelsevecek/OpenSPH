@@ -135,6 +135,32 @@ TEST_CASE("Map insert multiple", "[flatmap]") {
     REQUIRE_SPH_ASSERT(map[500]);
 }
 
+TEST_CASE("Map insert equivalent", "[flatmap]") {
+    struct TestLess {
+        bool operator()(const int i1, const int i2) const {
+            // considers 2 and 3 equivalent
+            if ((i1 == 2 && i2 == 3) || (i1 == 3 && i2 == 2)) {
+                return false;
+            } else {
+                return i1 < i2;
+            }
+        }
+    };
+
+    FlatMap<int, RecordType, TestLess> map;
+    map.insert(1, RecordType(5));
+    map.insert(2, RecordType(6));
+    map.insert(3, RecordType(7));
+    map.insert(4, RecordType(8));
+
+    REQUIRE(map.size() == 3);
+    REQUIRE(map[1].value == 5);
+    REQUIRE(map[2].value == 7);
+    REQUIRE(map[3].value == 7);
+    REQUIRE(map[4].value == 8);
+    REQUIRE(&map[2] == &map[3]);
+}
+
 TEST_CASE("Map remove", "[flatmap]") {
     RecordType::resetStats();
     FlatMap<int, RecordType> map;

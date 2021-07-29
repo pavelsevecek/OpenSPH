@@ -5,12 +5,12 @@
 
 NAMESPACE_SPH_BEGIN
 
-inline std::pair<int, int> makeEdge(const int i1, const int i2) {
-    return std::make_pair(min(i1, i2), max(i1, i2));
+inline Tuple<int, int> makeEdge(const int i1, const int i2) {
+    return makeTuple(min(i1, i2), max(i1, i2));
 }
 
 bool isMeshClosed(const Mesh& mesh) {
-    std::map<std::pair<int, int>, Array<Size>> edges;
+    std::map<Tuple<int, int>, Array<Size>> edges;
     for (Size i = 0; i < mesh.faces.size(); ++i) {
         const Mesh::Face& f = mesh.faces[i];
         edges[makeEdge(f[0], f[1])].push(i);
