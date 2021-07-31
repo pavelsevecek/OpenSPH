@@ -113,7 +113,7 @@ Optional<Vector> Tetrahedron::circumcenter() const {
 using Face = Delaunay::Face;
 using Cell = Delaunay::Cell;
 
-INLINE static Face toKey(const Face& f) {
+INLINE Face toKey(const Face& f) {
     if (f[0] < f[1] && f[0] < f[2]) {
         return f;
     } else if (f[1] < f[0] && f[1] < f[2]) {
@@ -123,16 +123,16 @@ INLINE static Face toKey(const Face& f) {
     }
 }
 
-INLINE static bool isSuper(const Face& f) {
+INLINE bool isSuper(const Face& f) {
     return f[0] < 4 && f[1] < 4 && f[2] < 4;
 }
 
-INLINE static Vector perturbDirection(const Vector& n) {
+INLINE Vector perturbDirection(const Vector& n) {
     // has to yield the same result for n and -n
     return Vector::unit(argMax(abs(n)));
 }
 
-static bool opposite(const Face& f1, const Face& f2) {
+inline bool opposite(const Face& f1, const Face& f2) {
     for (Size i1 = 0; i1 < 3; ++i1) {
         if (f1[i1] == f2[0]) {
             const Size i2 = (i1 + 1) % 3;
@@ -409,7 +409,7 @@ Delaunay::Cell::Handle Delaunay::addPoint(const Vector& p, const Cell::Handle hi
     });
 
     badSet.clear();
-    this->region(seed, backInserter(badSet), [this, &p](const Cell& c) { //
+    this->region(seed, backInserter(badSet), [&p](const Cell& c) { //
         return c.circumsphere().contains(p);
     });
 
