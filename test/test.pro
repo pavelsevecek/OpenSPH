@@ -69,7 +69,7 @@ SOURCES += \
     ../core/objects/geometry/test/Vector.cpp \
     ../core/objects/geometry/test/Plane.cpp \
     ../core/objects/geometry/test/Delaunay.cpp \
-    ../core/objects/utility/test/ArrayUtils.cpp \
+    ../core/objects/utility/test/Algorithm.cpp \
     ../core/objects/utility/test/Dynamic.cpp \
     ../core/objects/utility/test/Iterators.cpp \
     ../core/objects/utility/test/OperatorTemplate.cpp \

@@ -2,7 +2,7 @@
 #include "catch.hpp"
 #include "math/rng/Rng.h"
 #include "objects/geometry/Domain.h"
-#include "objects/utility/ArrayUtils.h"
+#include "objects/utility/Algorithm.h"
 #include "physics/Rheology.h"
 #include "post/Analysis.h"
 #include "quantities/Quantity.h"
@@ -40,7 +40,7 @@ static void testFractureDistributions(const bool doSampling) {
 
     // check that all particles have at least one flaw
     ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityId::N_FLAWS);
-    REQUIRE(areAllMatching(n_flaws, [N](const int n) { return n >= 1 && n <= N; }));
+    REQUIRE(allMatching(n_flaws, [N](const int n) { return n >= 1 && n <= N; }));
 
     // check that the total number of flaws
     /// \todo how does this depend on N?

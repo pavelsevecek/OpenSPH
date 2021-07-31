@@ -16,6 +16,13 @@
 
 NAMESPACE_SPH_BEGIN
 
+bool RunCallbacksProgressibleAdapter::operator()(const Float progress) const {
+    Statistics stats;
+    stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
+    callbacks.onTimeStep(Storage(), stats);
+    return !callbacks.shouldAbortRun();
+}
+
 struct EndingCondition {
 private:
     Float wallclockDuraction;

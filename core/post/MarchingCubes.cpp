@@ -297,17 +297,35 @@ const int MC_TRIANGLES[256][16] =
 const Size IDXS1[12] = { 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3 };
 const Size IDXS2[12] = { 1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7 };
 
+/// \brief Single cell used in mesh generation.
+///
+/// Defined by eight vertices and corresponding values of the scalar field.
+class MarchingCubes::Cell {
+private:
+    StaticArray<Vector, 8> points;
+    StaticArray<Float, 8> values;
+
+public:
+    INLINE Float& value(const Size idx) {
+        return values[idx];
+    }
+
+    INLINE Vector& node(const Size idx) {
+        return points[idx];
+    }
+};
+
 template <typename TFunctor>
 bool MarchingCubes::iterateWithIndices(const Box& box, const Vector& step, TFunctor&& functor) {
     MEASURE_SCOPE("MC - evaluating field");
     SPH_ASSERT(box != Box::EMPTY());
 
-    Size reportCnt = max(Size(box.size()[Z] / step[Z]), 1u);
-    Size reportStep = max(reportCnt / 100, 1u);
-    std::atomic_int counter{ 0 };
     std::atomic_bool shouldContinue{ true };
-    auto task = [this, &step, &box, &functor, reportStep, reportCnt, &counter, &shouldContinue](
-                    const Size k) {
+    auto task = [this, &step, &box, &functor, &shouldContinue](const Size k) {
+        if (!shouldContinue) {
+            return;
+        }
+
         const Float z = box.lower()[Z] + k * step[Z];
         Size i = 0;
         Size j = 0;
@@ -318,9 +336,7 @@ bool MarchingCubes::iterateWithIndices(const Box& box, const Vector& step, TFunc
             }
         }
 
-        if (progressCallback && (++counter % reportStep == 0)) {
-            shouldContinue = shouldContinue && progressCallback(Float(counter) / Float(reportCnt));
-        }
+        shouldContinue = shouldContinue && this->tickProgress();
     };
     parallelFor(scheduler, 0, Size(box.size()[Z] / step[Z]) + 1, task);
     return shouldContinue;
@@ -328,12 +344,10 @@ bool MarchingCubes::iterateWithIndices(const Box& box, const Vector& step, TFunc
 
 MarchingCubes::MarchingCubes(IScheduler& scheduler,
     const Float surfaceLevel,
-    const SharedPtr<IScalarField>& field,
-    Function<bool(Float progress)> progressCallback)
+    const SharedPtr<IScalarField>& field)
     : scheduler(scheduler)
     , surfaceLevel(surfaceLevel)
-    , field(field)
-    , progressCallback(progressCallback) {}
+    , field(field) {}
 
 void MarchingCubes::addComponent(const Box& box, const Float gridResolution) {
     MEASURE_SCOPE("MC addComponent");
@@ -343,6 +357,9 @@ void MarchingCubes::addComponent(const Box& box, const Float gridResolution) {
     // multiply by (1 + EPS) to handle case where box size is divisible by dr
     Indices cnts((1._f + EPS) * box.size() / dr);
     SPH_ASSERT(cnts[X] >= 1 && cnts[Y] >= 1 && cnts[Z] >= 1);
+
+    Size reportCnt = max(Size(box.size()[Z] / dr[Z]), 1u);
+    this->startProgress(2 * reportCnt);
 
     // find values of grid nodes
     auto mapping = [&cnts](const Indices& idxs) {
@@ -654,7 +671,8 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler, const Storage& storage, co
         field = makeShared<FallbackField>(scheduler, r_bar, G, maxH, std::move(kernel), std::move(finder));
     }
 
-    MarchingCubes mc(scheduler, config.surfaceLevel, field, config.progressCallback);
+    MarchingCubes mc(scheduler, config.surfaceLevel, field);
+    mc.setProgressCallback(config.progressCallback);
 
     Array<Size> components;
     const Size numComponents = Post::findComponents(storage, 2._f, Post::ComponentFlag::OVERLAP, components);

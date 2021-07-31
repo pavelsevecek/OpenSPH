@@ -3,7 +3,7 @@
 #include "io/Output.h"
 #include "objects/finders/NeighborFinder.h"
 #include "objects/geometry/Domain.h"
-#include "objects/utility/ArrayUtils.h"
+#include "objects/utility/Algorithm.h"
 #include "system/ArrayStats.h"
 #include "system/Factory.h"
 #include "tests/Approx.h"
@@ -21,7 +21,7 @@ void testDistributionForDomain(IDistribution* distribution, const IDomain& domai
     REQUIRE(values.size() < 1100);
 
     // all particles are inside prescribed domain
-    bool allInside = areAllMatching(values, [&](const Vector& v) { return domain.contains(v); });
+    bool allInside = allMatching(values, [&](const Vector& v) { return domain.contains(v); });
     REQUIRE(allInside);
 
     // if we split the cube to octants, each of them will have approximately the same number of particles.

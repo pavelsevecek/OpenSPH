@@ -3,7 +3,6 @@
 #include "io/FileSystem.h"
 #include "io/Path.h"
 #include "objects/geometry/Domain.h"
-#include "objects/utility/ArrayUtils.h"
 #include "objects/utility/PerElementWrapper.h"
 #include "physics/Constants.h"
 #include "physics/Functions.h"

@@ -1,5 +1,11 @@
 #pragma once
 
+/// \file Delaunay.h
+/// \brief Delaunay triangulation (tetrahedronization) in three dimensions
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2021
+
+#include "io/Logger.h"
 #include "math/AffineMatrix.h"
 #include "math/Morton.h"
 #include "objects/Exceptions.h"
@@ -9,14 +15,11 @@
 #include "objects/containers/UnorderedMap.h"
 #include "objects/geometry/Plane.h"
 #include "objects/geometry/Sphere.h"
+#include "objects/utility/Algorithm.h"
 #include "objects/utility/IteratorAdapters.h"
 #include "objects/utility/OutputIterators.h"
+#include "objects/utility/Progressible.h"
 #include "objects/wrappers/SharedPtr.h"
-#include "system/Timer.h"
-#include <iostream>
-#include <map>
-#include <set>
-#include <unordered_set>
 
 NAMESPACE_SPH_BEGIN
 
@@ -129,7 +132,7 @@ private:
     }
 };
 
-class Delaunay {
+class Delaunay : public Progressible<> {
 private:
     Array<Vector> vertices;
 
@@ -194,10 +197,7 @@ private:
             : idxs{ a, b, c, d }
             , sphere(sphere) {
 #ifdef SPH_DEBUG
-            StaticArray<Size, 4> sortedIdxs({ a, b, c, d });
-            std::sort(sortedIdxs.begin(), sortedIdxs.end());
-            SPH_ASSERT(std::unique(sortedIdxs.begin(), sortedIdxs.end()) == sortedIdxs.end());
-
+            SPH_ASSERT(allUnique({ a, b, c, d }));
             for (Size fi = 0; fi < 4; ++fi) {
                 SPH_ASSERT(neighs[fi].handle == nullptr);
             }
@@ -295,9 +295,6 @@ private:
     Array<Cell::Handle> cells;
     Size cellCnt = 0;
 
-    // using Polyhedron = Array<std::pair<Cell::Handle, Size>>;
-
-
     static Face toKey(const Face& f) {
         if (f[0] < f[1] && f[0] < f[2]) {
             return f;
@@ -332,10 +329,17 @@ private:
     Resource resource = Resource(1ull << 30, 1);
     Allocator allocator;
 
+    AutoPtr<ILogger> logger;
+
 public:
     Delaunay() {
         allocator.primary().bind(resource);
-        //        allocator.underlying().primary().bind(resource);
+
+#ifdef SPH_DEBUG
+        logger = makeAuto<StdOutLogger>();
+#else
+        logger = makeAuto<NullLogger>();
+#endif
     }
 
     ~Delaunay() {
@@ -351,8 +355,7 @@ public:
         cells.clear();
 
         Array<Vector> sortedPoints;
-        sortedPoints.insert(0, points.begin(), points.end());
-        // std::random_shuffle(sortedPoints.begin(), sortedPoints.end());
+        sortedPoints.pushAll(points.begin(), points.end());
         spatialSort(sortedPoints);
 
         Box box;
@@ -374,31 +377,25 @@ public:
 
 #ifdef SPH_DEBUG
         const Float volume0 = tetrahedron(*root).volume();
-        std::cout << "Volume = " << volume0 << std::endl;
+        logger->write("Super-tetrahedron volume = ", volume0);
         for (const Vector& p : sortedPoints) {
             SPH_ASSERT(super.contains(p), p);
             SPH_ASSERT(root->circumsphere().contains(p));
         }
 #endif
 
-        Size index = 0;
         Cell::Handle hint = root;
+        this->startProgress(sortedPoints.size());
         for (const Vector& p : sortedPoints) {
-            index++;
-            if (index % 100 == 0) {
-                std::cout << "Adding point " << index << " out of " << sortedPoints.size() << std::endl;
-            }
             hint = this->addPoint(p, hint);
+            this->tickProgress();
         }
 
         // root is already deleted at this point!!
 
-        std::cout << "Getting the list of cells" << std::endl;
+        logger->write("Getting the final list of cells");
         cells.reserve(cellCnt);
-        Timer timer;
         this->region(hint, backInserter(cells), [](const Cell& UNUSED(c)) { return true; });
-        std::cout << "Region took " << timer.elapsed(TimerUnit::MILLISECOND) << " ms" << std::endl;
-        std::cout << "Got " << cells.size() << " cells" << std::endl;
         SPH_ASSERT(cellCnt == cells.size());
 
 #ifdef SPH_DEBUG
@@ -485,7 +482,7 @@ private:
             SPH_ASSERT(ch->circumsphere().contains(p));
             for (Size fi = 0; fi < 4; ++fi) {
                 const Cell::Handle nh = ch->neighbor(fi);
-                if (nh && std::find(badSet.begin(), badSet.end(), nh) != badSet.end()) { //.contains(nh)) {
+                if (nh && contains(badSet, nh)) {
                     continue;
                 }
 
@@ -526,7 +523,7 @@ private:
             const Float e20 = getSqrLength(tri[2] - tri[0]);
             const Float e21 = getSqrLength(tri[2] - tri[1]);
             const Float e = sqrt(max(e10, e20, e21));
-            std::cout << "Denegerated tetrahedron!! Perturbing the added point by e=" << e << std::endl;
+            logger->write("Denegerated tetrahedron!! Perturbing the added point by e = ", e);
             p_reg += clearH(0.01_f * perturbDirection(plane.normal()) * e);
             vertices.back() = p_reg;
             tet = Tetrahedron(triangle(f1), p_reg);
@@ -575,21 +572,14 @@ private:
                     continue;
                 }*/
                 tieToTuple(ch2, fi2, f2) = added[i2];
-                // const Face& f1 = a.key;
-                // SPH_ASSERT(isKey(f1));
-
-                // const Face f2 = toKey(f1.opposite());
-                // SPH_ASSERT(isKey(f2));
-                if (f1 == f2.opposite()) { // toKey(face(*ch2, fi2)).opposite()) {
-                    SPH_ASSERT(std::find(badSet.begin(), badSet.end(), ch1) == badSet.end());
-                    SPH_ASSERT(std::find(badSet.begin(), badSet.end(), ch2) == badSet.end());
+                if (f1 == f2.opposite()) {
+                    SPH_ASSERT(!contains(badSet, ch1));
+                    SPH_ASSERT(!contains(badSet, ch2));
 
                     SPH_ASSERT(opposite(face(*ch1, fi1), face(*ch2, fi2)));
                     setNeighbor(ch1, fi1, ch2, fi2);
                     break;
                 }
-
-                //    SPH_ASSERT(i2 != added.size() - 1);
             }
         }
     }
@@ -750,7 +740,6 @@ private:
         }
         if (t_min < INFTY) {
             SPH_ASSERT(fi_min != Size(-1));
-            //  std::cout << "Found intersection at distance " << getLength(dir) - t_max << std::endl;
             return fi_min;
         } else {
             return NOTHING;

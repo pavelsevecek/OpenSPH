@@ -28,7 +28,7 @@ public:
 
     template <typename Tag>
     FlatSet(Tag t, ArrayView<const T> list) {
-        data.insert(0, list.begin(), list.end());
+        data.pushAll(list.begin(), list.end());
         this->create(t);
     }
 

@@ -2,7 +2,6 @@
 #include "catch.hpp"
 #include "math/rng/VectorRng.h"
 #include "objects/geometry/Domain.h"
-#include "objects/utility/ArrayUtils.h"
 #include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "sph/Materials.h"

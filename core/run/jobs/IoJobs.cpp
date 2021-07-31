@@ -275,8 +275,8 @@ VirtualSettings SaveMeshJob::getSettings() {
     meshCat.connect("Resolution", "resolution", resolution).setEnabler(mcEnabler);
     meshCat.connect("Surface level", "level", level).setEnabler(mcEnabler);
     meshCat.connect("Anisotropic kernels", "aniso", anisotropic).setEnabler(mcEnabler);
+    meshCat.connect("Smoothing multiplier", "smoothing_mult", smoothingMult).setEnabler(mcEnabler);
     meshCat.connect("Alpha value", "alpha", alpha).setEnabler(alphaEnabler);
-    meshCat.connect("Smoothing multiplier", "smoothing_mult", smoothingMult);
     meshCat.connect("Refine mesh", "refine", refine);
     meshCat.connect("Scale to unit size", "scale_to_unit", scaleToUnit);
 
@@ -292,7 +292,7 @@ void SaveMeshJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) 
         triangles = runMarchingCubes(data->storage, global, callbacks);
         break;
     case MeshAlgorithm::ALPHA_SHAPE:
-        triangles = runAlphaShape(data->storage);
+        triangles = runAlphaShape(data->storage, callbacks);
         break;
     default:
         NOT_IMPLEMENTED;
@@ -334,19 +334,15 @@ Array<Triangle> SaveMeshJob::runMarchingCubes(const Storage& storage,
     config.surfaceLevel = level;
     config.smoothingMult = smoothingMult;
     config.useAnisotropicKernels = anisotropic;
-    config.progressCallback = [&callbacks](const Float progress) {
-        Statistics stats;
-        stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
-        callbacks.onTimeStep(Storage(), stats);
-        return !callbacks.shouldAbortRun();
-    };
+    config.progressCallback = RunCallbacksProgressibleAdapter(callbacks);
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
     return getSurfaceMesh(*scheduler, storage, config);
 }
 
-Array<Triangle> SaveMeshJob::runAlphaShape(const Storage& storage) const {
+Array<Triangle> SaveMeshJob::runAlphaShape(const Storage& storage, IRunCallbacks& callbacks) const {
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     Delaunay delaunay;
+    delaunay.setProgressCallback(RunCallbacksProgressibleAdapter(callbacks));
     delaunay.build(r);
 
     return delaunay.alphaShape(alpha * getMedianRadius(r));

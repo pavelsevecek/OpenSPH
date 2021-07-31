@@ -141,7 +141,7 @@ private:
         const RunSettings& global,
         IRunCallbacks& callbacks) const;
 
-    Array<Triangle> runAlphaShape(const Storage& storage) const;
+    Array<Triangle> runAlphaShape(const Storage& storage, IRunCallbacks& callbacks) const;
 };
 
 NAMESPACE_SPH_END

@@ -1,4 +1,4 @@
-#include "objects/utility/ArrayUtils.h"
+#include "objects/utility/Algorithm.h"
 #include "thread/OpenMp.h"
 #include "thread/Pool.h"
 #include "thread/Tbb.h"
@@ -74,7 +74,7 @@ TEMPLATE_TEST_CASE("ThreadLocal parallelFor", "[thread]", ThreadPool, Tbb) {
             REQUIRE_THREAD_SAFE(perThreadSum < N / scheduler.getThreadCnt() + 3000);
         }
     }
-    REQUIRE_THREAD_SAFE(areAllMatching(sum, [](const Size v) { return v == 1; }));
+    REQUIRE_THREAD_SAFE(allMatching(sum, [](const Size v) { return v == 1; }));
 }
 
 TEMPLATE_TEST_CASE("ThreadLocal accumulate", "[thread]", ThreadPool, Tbb) {

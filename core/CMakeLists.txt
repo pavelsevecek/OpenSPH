@@ -141,10 +141,11 @@ set(CORE_HEADERS
     sph/initial/UvMapping.h 
     objects/Exceptions.h 
     objects/Object.h 
-    objects/containers/Allocators.h 
+    objects/containers/AdvancedAllocators.h
     objects/containers/Array.h 
     objects/containers/ArrayRef.h 
     objects/containers/ArrayView.h 
+    objects/containers/BasicAllocators.h
     objects/containers/FlatMap.h 
     objects/containers/FlatSet.h 
     objects/containers/Grid.h 
@@ -179,7 +180,7 @@ set(CORE_HEADERS
     objects/geometry/TracelessTensor.h 
     objects/geometry/Triangle.h 
     objects/geometry/Vector.h 
-    objects/utility/ArrayUtils.h 
+    objects/utility/Algorithm.h
     objects/utility/Dynamic.h 
     objects/utility/EnumMap.h 
     objects/utility/Iterator.h 

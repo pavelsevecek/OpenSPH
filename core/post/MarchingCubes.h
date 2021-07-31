@@ -3,30 +3,13 @@
 #include "objects/containers/Array.h"
 #include "objects/geometry/Box.h"
 #include "objects/geometry/Triangle.h"
+#include "objects/utility/Progressible.h"
 #include "objects/wrappers/Function.h"
 
 NAMESPACE_SPH_BEGIN
 
 class Storage;
 class IScheduler;
-
-/// \brief Single cell used in mesh generation.
-///
-/// Defined by eight vertices and corresponding values of the scalar field.
-class Cell {
-private:
-    StaticArray<Vector, 8> points;
-    StaticArray<Float, 8> values;
-
-public:
-    INLINE Float& value(const Size idx) {
-        return values[idx];
-    }
-
-    INLINE Vector& node(const Size idx) {
-        return points[idx];
-    }
-};
 
 /// \brief Inferface for a generic scalar field, returning a float for given position.:w
 class IScalarField : public Polymorphic {
@@ -36,7 +19,7 @@ public:
 };
 
 /// \brief Marching cubes algorithm for generation of mesh from iso-surface of given scalar field.
-class MarchingCubes {
+class MarchingCubes : public Progressible<> {
 private:
     IScheduler& scheduler;
 
@@ -55,10 +38,7 @@ private:
         Array<Float> phi;
     } cached;
 
-    /// \brief Optional callback for reporting the relative progress
-    ///
-    /// Function may also return false to terminate the generation and return empty array of tringles.
-    Function<bool(Float progress)> progressCallback = nullptr;
+    class Cell;
 
 public:
     /// \brief Constructs the object using given scalar field.
@@ -67,10 +47,7 @@ public:
     /// \param surfaceLevel Defines of the boundary of SPH particle as implicit function \f$ {\rm Boundary} =
     ///                     \Phi(\vec r) - {\rm surfaceLevel}\f$, where \f$\Phi\f$ is the scalar field.
     /// \param field Scalar field used to generate the surface.
-    MarchingCubes(IScheduler& scheduler,
-        const Float surfaceLevel,
-        const SharedPtr<IScalarField>& field,
-        Function<bool(Float progress)> progressCallback = nullptr);
+    MarchingCubes(IScheduler& scheduler, const Float surfaceLevel, const SharedPtr<IScalarField>& field);
 
     /// \brief Adds a triangle mesh representing the boundary of particles.
     ///

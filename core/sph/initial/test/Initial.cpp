@@ -3,7 +3,7 @@
 #include "io/Column.h"
 #include "io/Output.h"
 #include "objects/geometry/Domain.h"
-#include "objects/utility/ArrayUtils.h"
+#include "objects/utility/Algorithm.h"
 #include "physics/Integrals.h"
 #include "quantities/Iterate.h"
 #include "quantities/Storage.h"
@@ -35,18 +35,18 @@ TEST_CASE("Initial addBody", "[initial]") {
     ArrayView<Float> rhos, us, drhos, dus;
     tie(rhos, drhos) = storage.getAll<Float>(QuantityId::DENSITY);
     tie(us, dus) = storage.getAll<Float>(QuantityId::ENERGY);
-    bool result = areAllMatching(
+    bool result = allMatching(
         rhos, [&](const Float f) { return f == bodySettings.get<Float>(BodySettingsId::DENSITY); });
     REQUIRE(result);
 
-    result = areAllMatching(drhos, [](const Float f) {
+    result = allMatching(drhos, [](const Float f) {
         return f == 0._f; // zero density derivative
     });
     REQUIRE(result);
-    result = areAllMatching(
-        us, [&](const Float f) { return f == bodySettings.get<Float>(BodySettingsId::ENERGY); });
+    result =
+        allMatching(us, [&](const Float f) { return f == bodySettings.get<Float>(BodySettingsId::ENERGY); });
     REQUIRE(result);
-    result = areAllMatching(dus, [](const Float f) {
+    result = allMatching(dus, [](const Float f) {
         return f == 0._f; // zero energy derivative
     });
     REQUIRE(result);

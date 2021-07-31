@@ -6,7 +6,7 @@
 #include "objects/finders/Octree.h"
 #include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Domain.h"
-#include "objects/utility/ArrayUtils.h"
+#include "objects/utility/Algorithm.h"
 #include "quantities/Storage.h"
 #include "run/Node.h"
 #include "run/jobs/InitialConditionJobs.h"

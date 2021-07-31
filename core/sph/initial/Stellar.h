@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file Stellar.h
+/// \brief Initial conditions of a polytropic star
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2021
+
 #include "objects/wrappers/Lut.h"
 #include "quantities/Storage.h"
 

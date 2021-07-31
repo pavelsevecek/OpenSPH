@@ -112,42 +112,25 @@ VirtualSettings MonolithicBodyIc::getSettings() {
     return connector;
 }
 
-class IcProgressCallback {
-private:
-    IRunCallbacks& callbacks;
-
-public:
-    explicit IcProgressCallback(IRunCallbacks& callbacks)
-        : callbacks(callbacks) {}
-
-    bool operator()(const Float progress) const {
-        Statistics stats;
-        stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
-        callbacks.onTimeStep(Storage(), stats);
-        return false;
-    }
-};
-
 class DiehlReporter {
     IRunCallbacks& callbacks;
-    int iterCnt;
+    mutable bool first = true;
 
 public:
-    DiehlReporter(IRunCallbacks& callbacks, const int iterCnt)
-        : callbacks(callbacks)
-        , iterCnt(iterCnt) {}
+    DiehlReporter(IRunCallbacks& callbacks)
+        : callbacks(callbacks) {}
 
-    bool operator()(const Size i, const ArrayView<const Vector> positions) const {
+    bool operator()(const Float progress, const ArrayView<const Vector> positions) const {
         Storage storage;
         Array<Vector> r;
         r.pushAll(positions.begin(), positions.end());
         storage.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST, std::move(r));
         Statistics stats;
-        stats.set(StatisticsId::INDEX, int(i));
-        stats.set(StatisticsId::RELATIVE_PROGRESS, Float(i) / iterCnt);
+        stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
 
-        if (i == 0) {
+        if (first) {
             callbacks.onSetUp(storage, stats);
+            first = false;
         }
         callbacks.onTimeStep(storage, stats);
         return !callbacks.shouldAbortRun();
@@ -166,14 +149,19 @@ void MonolithicBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callba
     const DistributionEnum distType = body.get<DistributionEnum>(BodySettingsId::INITIAL_DISTRIBUTION);
     AutoPtr<IDistribution> distribution;
     if (distType == DistributionEnum::DIEHL_ET_AL) {
-        DiehlParams diehl;
-        diehl.numOfIters = body.get<int>(BodySettingsId::DIEHL_ITERATION_COUNT);
-        diehl.strength = body.get<Float>(BodySettingsId::DIEHL_STRENGTH);
-        diehl.onIteration = DiehlReporter(callbacks, diehl.numOfIters);
+        DiehlParams params;
+        params.numOfIters = body.get<int>(BodySettingsId::DIEHL_ITERATION_COUNT);
+        params.strength = body.get<Float>(BodySettingsId::DIEHL_STRENGTH);
 
-        distribution = makeAuto<DiehlDistribution>(diehl);
+        AutoPtr<DiehlDistribution> diehl = makeAuto<DiehlDistribution>(params);
+        diehl->setProgressCallback(DiehlReporter(callbacks));
+
+        distribution = std::move(diehl);
     } else {
-        distribution = Factory::getDistribution(body, IcProgressCallback(callbacks));
+        distribution = Factory::getDistribution(body);
+        if (auto progressible = dynamicCast<Progressible<>>(distribution.get())) {
+            progressible->setProgressCallback(RunCallbacksProgressibleAdapter(callbacks));
+        }
     }
 
     /// \todo less retarded way -- particle count has no place in material settings
@@ -969,13 +957,14 @@ void IsothermalSphereIc::evaluate(const RunSettings& global, IRunCallbacks& call
     DiehlParams params;
     Float r0 = 0.1_f * radius;
     params.numOfIters = 50;
-    params.onIteration = DiehlReporter(callbacks, params.numOfIters);
     params.particleDensity = [r0](const Vector& r) {
         // does not have to be normalized
         return 1._f / (1._f + getSqrLength(r) / sqr(r0));
     };
 
     DiehlDistribution dist(params);
+    dist.setProgressCallback(DiehlReporter(callbacks));
+
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
     SphericalDomain domain(Vector(0._f), radius);
     storage.insert(QuantityId::POSITION, OrderEnum::SECOND, dist.generate(*scheduler, particleCnt, domain));

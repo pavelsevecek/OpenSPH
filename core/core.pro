@@ -153,6 +153,7 @@ HEADERS += \
     objects/geometry/Delaunay.h \
     objects/geometry/Plane.h \
     objects/utility/OutputIterators.h \
+    objects/utility/Progressible.h \
     objects/wrappers/ExtendedEnum.h \
     objects/wrappers/SharedToken.h \
     run/Job.inl.h \
@@ -198,7 +199,7 @@ HEADERS += \
     objects/geometry/TracelessTensor.h \
     objects/geometry/Triangle.h \
     objects/geometry/Vector.h \
-    objects/utility/ArrayUtils.h \
+    objects/utility/Algorithm.h \
     objects/utility/Dynamic.h \
     objects/utility/EnumMap.h \
     objects/utility/Iterator.h \
