@@ -110,6 +110,7 @@ public:
 
         return inv / det;
     }
+
     AffineMatrix inverse() const {
         Optional<AffineMatrix> inv = tryInverse();
         SPH_ASSERT(inv);

@@ -20,6 +20,7 @@ set(CORE_SOURCES
     objects/finders/PeriodicFinder.cpp 
     objects/finders/UniformGrid.cpp 
     objects/finders/IncrementalFinder.cpp
+    objects/geometry/Delaunay.cpp
     objects/geometry/Domain.cpp
     objects/geometry/SymmetricTensor.cpp
     objects/utility/Dynamic.cpp 
@@ -154,6 +155,7 @@ set(CORE_HEADERS
     objects/containers/Queue.h 
     objects/containers/StaticArray.h 
     objects/containers/String.h 
+    objects/containers/Tags.h
     objects/containers/Tuple.h 
     objects/containers/Volume.h 
     objects/finders/AdaptiveGrid.h 
@@ -170,10 +172,12 @@ set(CORE_HEADERS
     objects/finders/UniformGrid.h 
     objects/geometry/AntisymmetricTensor.h 
     objects/geometry/Box.h 
+    objects/geometry/Delaunay.h
     objects/geometry/Domain.h 
     objects/geometry/Generic.h 
     objects/geometry/Indices.h 
     objects/geometry/Multipole.h 
+    objects/geometry/Plane.h
     objects/geometry/Sphere.h 
     objects/geometry/SymmetricTensor.h 
     objects/geometry/Tensor.h 
@@ -188,6 +192,7 @@ set(CORE_HEADERS
     objects/utility/OutputIterators.h
     objects/utility/OperatorTemplate.h 
     objects/utility/PerElementWrapper.h 
+    objects/utility/Progressible.h
     objects/utility/StringUtils.h 
     objects/wrappers/AlignedStorage.h 
     objects/wrappers/Any.h 

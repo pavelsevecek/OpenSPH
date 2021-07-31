@@ -247,6 +247,7 @@ static RegisterEnum<MeshAlgorithm> sMeshAlgorithm({
 });
 
 static Float getMedianRadius(ArrayView<const Vector> r) {
+    SPH_ASSERT(!r.empty());
     Array<Float> h(r.size());
     for (Size i = 0; i < r.size(); ++i) {
         h[i] = r[i][H];
@@ -285,6 +286,12 @@ VirtualSettings SaveMeshJob::getSettings() {
 
 void SaveMeshJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
+
+    if (data->storage.empty()) {
+        // no mesh to save
+        result = data;
+        return;
+    }
 
     Array<Triangle> triangles;
     switch (MeshAlgorithm(algorithm)) {

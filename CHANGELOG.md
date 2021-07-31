@@ -1,3 +1,10 @@
+## 2021-07-31
+- added Delaunay triangulation of points
+- added an option to extract surface mesh as the alpha-shape
+- mesh resolution is now relative to the median particle radius
+- fixed path type in 'Save mesh' node
+- added optimization tags to Flat containers
+
 ## 2021-07-25
 - added "render page" showing current status of an Animation job
 - added render preview to Animation job

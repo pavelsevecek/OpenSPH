@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file Plane.h
+/// \brief Infinite plane definited by its general equation.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2021
+
 #include "objects/geometry/Triangle.h"
 
 NAMESPACE_SPH_BEGIN
