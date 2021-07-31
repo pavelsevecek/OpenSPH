@@ -96,7 +96,7 @@ enum class JobNotificationType {
 /// \brief Building block of a simulation hierarchy.
 ///
 /// Each node can have any number of providers (preconditions of the job).
-class JobNode : public ShareFromThis<JobNode>, public INode {
+class JobNode : public Shareable<JobNode>, public INode {
 public:
     using Accessor = Function<void(JobNotificationType, const Any& value)>;
 

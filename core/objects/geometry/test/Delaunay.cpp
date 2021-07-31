@@ -20,6 +20,29 @@ TEST_CASE("Tetrahedron basic", "[delaunay]") {
     REQUIRE(tet.contains(tet.center()));
 }
 
+TEST_CASE("Tetrahedron contains", "[delaunay]") {
+    Tetrahedron tet(Vector(0, 0, 0), Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, 1));
+    REQUIRE(tet.contains(Vector(0.001_f)));
+    REQUIRE(tet.contains(Vector(0.25_f)));
+    REQUIRE(tet.contains(Vector(0.32_f)));
+    REQUIRE_FALSE(tet.contains(Vector(1._f, 0.25_f, 0.25_f)));
+    REQUIRE_FALSE(tet.contains(Vector(0.25_f, 1._f, 0.25_f)));
+    REQUIRE_FALSE(tet.contains(Vector(-0.01_f, 0.01_f, 0.01_f)));
+
+    Tetrahedron inv(Vector(0, 0, 0), Vector(0, 1, 0), Vector(1, 0, 0), Vector(0, 0, 1));
+    REQUIRE_SPH_ASSERT(inv.contains(Vector(0.25_f)));
+}
+
+TEST_CASE("Tetrahedron volume", "[delaunay]") {
+    Tetrahedron tet(Vector(0, 0, 0), Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, 1));
+    REQUIRE(tet.volume() == approx(1._f / 6._f));
+    REQUIRE(tet.signedVolume() == approx(1._f / 6._f));
+
+    Tetrahedron inv(Vector(0, 0, 0), Vector(0, 1, 0), Vector(1, 0, 0), Vector(0, 0, 1));
+    REQUIRE(inv.volume() == approx(1._f / 6._f));
+    REQUIRE(inv.signedVolume() == approx(-1._f / 6._f));
+}
+
 TEST_CASE("Tetrahedron circumsphere", "[delaunay]") {
     Tetrahedron tet = Tetrahedron::unit();
     Vector center(1.5_f, -2.3_f, 4.1_f);
@@ -56,7 +79,7 @@ TEST_CASE("Delaunay", "[delaunay]") {
     Array<Vector> points({ Vector(0, 0, 0), Vector(0, 0, 1), Vector(0, 1, 0), Vector(1, 0, 0) });
     delaunay.build(points);
 
-    REQUIRE(delaunay.getTetrahedraCnt() == 1);
+    REQUIRE(delaunay.getCellCnt() == 1);
 
     /*Tetrahedron tet = delaunay.tetrahedron(0);
     for (Size i = 0; i < 4; ++i) {

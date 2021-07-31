@@ -1,6 +1,5 @@
 #include "quantities/Quantity.h"
 #include "catch.hpp"
-#include "objects/utility/ArrayUtils.h"
 #include "objects/utility/IteratorAdapters.h"
 #include "utils/Utils.h"
 

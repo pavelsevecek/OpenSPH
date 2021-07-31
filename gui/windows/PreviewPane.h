@@ -37,7 +37,7 @@ public:
     wxBitmap getBitmap();
 };
 
-class InteractiveRenderer : public ShareFromThis<InteractiveRenderer> {
+class InteractiveRenderer : public Shareable<InteractiveRenderer> {
     SharedPtr<JobNode> node;
     RawPtr<AnimationJob> job;
     AutoPtr<IRenderPreview> preview;

@@ -240,7 +240,7 @@ TEST_CASE("WeakPtr copy assign", "[sharedptr]") {
 }
 
 TEST_CASE("ShareFromThis", "[sharedptr]") {
-    class Derived : public ShareFromThis<Derived> {};
+    class Derived : public Shareable<Derived> {};
 
     Derived value;
     REQUIRE_SPH_ASSERT(value.sharedFromThis());
@@ -259,7 +259,7 @@ TEST_CASE("ShareFromThis", "[sharedptr]") {
 }
 
 TEST_CASE("ShareFromThis copy", "[sharedptr]") {
-    class Derived : public ShareFromThis<Derived> {};
+    class Derived : public Shareable<Derived> {};
 
     SharedPtr<Derived> ptr1 = makeShared<Derived>();
     SharedPtr<Derived> ptr2 = makeShared<Derived>(*ptr1);
@@ -272,7 +272,7 @@ TEST_CASE("ShareFromThis copy", "[sharedptr]") {
 }
 
 TEST_CASE("ShareFromThis derived", "[sharedptr]") {
-    class Derived1 : public ShareFromThis<Derived1> {};
+    class Derived1 : public Shareable<Derived1> {};
     class Derived2 : public Derived1 {};
 
     SharedPtr<Derived2> ptr1 = makeShared<Derived2>();

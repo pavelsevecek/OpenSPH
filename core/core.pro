@@ -25,6 +25,7 @@ SOURCES += \
     objects/finders/NeighborFinder.cpp \
     objects/finders/PeriodicFinder.cpp \
     objects/finders/UniformGrid.cpp \
+    objects/geometry/Delaunay.cpp \
     objects/geometry/Domain.cpp \
     objects/geometry/SymmetricTensor.cpp \
     objects/utility/Dynamic.cpp \
