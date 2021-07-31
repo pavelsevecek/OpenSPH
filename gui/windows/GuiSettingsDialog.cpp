@@ -14,19 +14,20 @@
 
 NAMESPACE_SPH_BEGIN
 
-const static FlatMap<PlotEnum, wxString> sPlotTypes = {
-    { PlotEnum::TOTAL_MOMENTUM, "Total momentum" },
-    { PlotEnum::TOTAL_ANGULAR_MOMENTUM, "Total angular momentum" },
-    { PlotEnum::INTERNAL_ENERGY, "Total internal energy" },
-    { PlotEnum::KINETIC_ENERGY, "Total kinetic energy" },
-    { PlotEnum::TOTAL_ENERGY, "Total energy" },
-    { PlotEnum::RELATIVE_ENERGY_CHANGE, "Relative change of total energy" },
-    { PlotEnum::CURRENT_SFD, "Current SFD" },
-    { PlotEnum::PREDICTED_SFD, "Predicted SFD" },
-    { PlotEnum::SPEED_HISTOGRAM, "Speed histogram" },
-    { PlotEnum::ANGULAR_HISTOGRAM_OF_VELOCITIES, "Angular histogram of velocities" },
-    { PlotEnum::SELECTED_PARTICLE, "Selected particle" },
-};
+const static FlatMap<PlotEnum, wxString> sPlotTypes(ELEMENTS_UNIQUE,
+    {
+        { PlotEnum::TOTAL_MOMENTUM, "Total momentum" },
+        { PlotEnum::TOTAL_ANGULAR_MOMENTUM, "Total angular momentum" },
+        { PlotEnum::INTERNAL_ENERGY, "Total internal energy" },
+        { PlotEnum::KINETIC_ENERGY, "Total kinetic energy" },
+        { PlotEnum::TOTAL_ENERGY, "Total energy" },
+        { PlotEnum::RELATIVE_ENERGY_CHANGE, "Relative change of total energy" },
+        { PlotEnum::CURRENT_SFD, "Current SFD" },
+        { PlotEnum::PREDICTED_SFD, "Predicted SFD" },
+        { PlotEnum::SPEED_HISTOGRAM, "Speed histogram" },
+        { PlotEnum::ANGULAR_HISTOGRAM_OF_VELOCITIES, "Angular histogram of velocities" },
+        { PlotEnum::SELECTED_PARTICLE, "Selected particle" },
+    });
 
 GuiSettingsDialog::GuiSettingsDialog(wxWindow* parent)
     : wxDialog(parent, wxID_ANY, "Visualization settings", wxDefaultPosition, wxSize(500, 340)) {
@@ -63,15 +64,15 @@ GuiSettingsDialog::GuiSettingsDialog(wxWindow* parent)
     wxCheckBox* sfdCheck1 = nullptr;
     wxCheckBox* sfdCheck2 = nullptr;
     for (const auto& p : sPlotTypes) {
-        wxCheckBox* check = new wxCheckBox(plotBox->GetStaticBox(), wxID_ANY, p.value);
-        check->SetValue(plotFlags.has(p.key));
-        if (p.key == PlotEnum::CURRENT_SFD) {
+        wxCheckBox* check = new wxCheckBox(plotBox->GetStaticBox(), wxID_ANY, p.value());
+        check->SetValue(plotFlags.has(p.key()));
+        if (p.key() == PlotEnum::CURRENT_SFD) {
             sfdCheck1 = check;
-        } else if (p.key == PlotEnum::PREDICTED_SFD) {
+        } else if (p.key() == PlotEnum::PREDICTED_SFD) {
             sfdCheck2 = check;
         }
         plotGrid->Add(check);
-        plotBoxMap.insert(check, p.key);
+        plotBoxMap.insert(check, p.key());
     }
     plotBox->Add(plotGrid);
     sizer->Add(plotBox, 1, wxEXPAND);
@@ -141,7 +142,7 @@ void GuiSettingsDialog::commit() {
 
     Flags<PlotEnum> enabledPlots = EMPTY_FLAGS;
     for (const auto& p : plotBoxMap) {
-        enabledPlots.setIf(p.value, p.key->GetValue());
+        enabledPlots.setIf(p.value(), p.key()->GetValue());
     }
     gui.set(GuiSettingsId::PLOT_INTEGRALS, enabledPlots);
 

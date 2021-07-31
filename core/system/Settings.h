@@ -403,8 +403,8 @@ public:
     static Optional<TEnum> getEntryId(const std::string& name) {
         const Settings& settings = getDefaults();
         for (const auto& p : settings.entries) {
-            if (p.value.name == name) {
-                return p.key;
+            if (p.value().name == name) {
+                return p.key();
             }
         }
         return NOTHING;

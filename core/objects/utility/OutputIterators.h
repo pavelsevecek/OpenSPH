@@ -6,6 +6,7 @@
 /// \date 2016-2021
 
 #include "common/Assert.h"
+#include <type_traits>
 
 NAMESPACE_SPH_BEGIN
 
@@ -94,6 +95,36 @@ public:
 template <typename TContainer>
 BackInserter<TContainer> backInserter(TContainer& c) {
     return BackInserter<TContainer>(c);
+}
+
+/// \brief Output iterator that calls given functor for all written values.
+template <typename TFunctor>
+class FunctorCaller : public OutputIterator {
+private:
+    TFunctor func;
+
+public:
+    FunctorCaller(TFunctor&& func)
+        : func(std::move(func)) {}
+
+    FunctorCaller& operator*() {
+        return *this;
+    }
+
+    FunctorCaller& operator++() {
+        return *this;
+    }
+
+    template <typename TValue>
+    FunctorCaller& operator=(TValue&& value) {
+        func(std::forward<TValue>(value));
+        return *this;
+    }
+};
+
+template <typename TFunctor>
+FunctorCaller<std::decay_t<TFunctor>> functorCaller(TFunctor&& functor) {
+    return FunctorCaller<std::decay_t<TFunctor>>(std::forward<TFunctor>(functor));
 }
 
 NAMESPACE_SPH_END

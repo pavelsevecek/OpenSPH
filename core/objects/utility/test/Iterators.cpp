@@ -167,3 +167,15 @@ TEST_CASE("BackInserter", "[iterators]") {
     std::copy(other.begin(), other.end(), backInserter(values));
     REQUIRE(values == Array<int>({ 5, 3, 1, 2, 3 }));
 }
+
+TEST_CASE("FunctorCaller", "[iterators]") {
+    int expectedValue = 2;
+    auto caller = functorCaller([&expectedValue](int value) {
+        REQUIRE(expectedValue == value);
+        expectedValue++;
+    });
+
+    Array<int> data({ 2, 3, 4, 5 });
+    std::copy(data.begin(), data.end(), caller);
+    REQUIRE(expectedValue == 6);
+}

@@ -1,6 +1,7 @@
 #include "run/jobs/IoJobs.h"
 #include "io/FileSystem.h"
 #include "io/Output.h"
+#include "objects/geometry/Delaunay.h"
 #include "post/MarchingCubes.h"
 #include "post/MeshFile.h"
 #include "run/IRun.h"
@@ -142,13 +143,13 @@ void FileSequenceJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks&
     Statistics stats;
 
     FlatMap<Size, Path> sequence = getFileSequence(firstFile);
-    const Size firstIndex = sequence.begin()->key;
-    const Size lastIndex = (sequence.end() - 1)->key;
+    const Size firstIndex = sequence.begin()->key();
+    const Size lastIndex = (sequence.end() - 1)->key();
     for (auto& element : sequence) {
-        const Size index = element.key;
+        const Size index = element.key();
 
         Timer frameTimer;
-        Outcome outcome = input->load(element.value, storage, stats);
+        Outcome outcome = input->load(element.value(), storage, stats);
         if (!outcome) {
             throw InvalidSetup(outcome.error());
         }
@@ -238,25 +239,46 @@ static JobRegistrar sRegisterOutput(
 // SaveMeshJob
 // ----------------------------------------------------------------------------------------------------------
 
+static RegisterEnum<MeshAlgorithm> sMeshAlgorithm({
+    { MeshAlgorithm::MARCHING_CUBES,
+        "marching_cubes",
+        "Isosurface extracted using the Marching Cubes algorithm." },
+    { MeshAlgorithm::ALPHA_SHAPE, "alpha_shape", "Alpha shape obtained from Delaunay triangulation." },
+});
+
+static Float getMedianRadius(ArrayView<const Vector> r) {
+    Array<Float> h(r.size());
+    for (Size i = 0; i < r.size(); ++i) {
+        h[i] = r[i][H];
+    }
+    std::nth_element(h.begin(), h.begin() + h.size() / 2, h.end());
+    return h[h.size() / 2];
+}
+
 VirtualSettings SaveMeshJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& outputCat = connector.addCategory("Output");
     outputCat.connect("File", "file", path)
-        .setPathType(IVirtualEntry::PathType::INPUT_FILE)
+        .setPathType(IVirtualEntry::PathType::OUTPUT_FILE)
         .setFileFormats({
             { "Wavefront OBJ file", "obj" },
             { "Stanford PLY file", "ply" },
         });
 
+    auto mcEnabler = [this] { return MeshAlgorithm(algorithm) == MeshAlgorithm::MARCHING_CUBES; };
+    auto alphaEnabler = [this] { return MeshAlgorithm(algorithm) == MeshAlgorithm::ALPHA_SHAPE; };
+
     VirtualSettings::Category& meshCat = connector.addCategory("Mesh parameters");
-    meshCat.connect<Float>("Resolution", "resolution", resolution);
-    meshCat.connect<Float>("Surface level", "level", level);
-    meshCat.connect<Float>("Smoothing multiplier", "smoothing_mult", smoothingMult);
-    meshCat.connect<bool>("Refine mesh", "refine", refine);
-    meshCat.connect<bool>("Anisotropic kernels", "aniso", anisotropic);
-    meshCat.connect<bool>("Scale to unit size", "scale_to_unit", scaleToUnit);
+    meshCat.connect("Algorithm", "algorithm", algorithm);
+    meshCat.connect("Resolution", "resolution", resolution).setEnabler(mcEnabler);
+    meshCat.connect("Surface level", "level", level).setEnabler(mcEnabler);
+    meshCat.connect("Anisotropic kernels", "aniso", anisotropic).setEnabler(mcEnabler);
+    meshCat.connect("Alpha value", "alpha", alpha).setEnabler(alphaEnabler);
+    meshCat.connect("Smoothing multiplier", "smoothing_mult", smoothingMult);
+    meshCat.connect("Refine mesh", "refine", refine);
+    meshCat.connect("Scale to unit size", "scale_to_unit", scaleToUnit);
 
     return connector;
 }
@@ -264,26 +286,21 @@ VirtualSettings SaveMeshJob::getSettings() {
 void SaveMeshJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
 
-    // sanitize resolution
-    const Box bbox = getBoundingBox(data->storage);
-    const Float boxSize = maxElement(bbox.size());
-
-    SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
-
-    McConfig config;
-    config.gridResolution = clamp(resolution, 1.e-3_f * boxSize, 0.2_f * boxSize);
-    config.surfaceLevel = level;
-    config.smoothingMult = smoothingMult;
-    config.useAnisotropicKernels = anisotropic;
-    config.progressCallback = [&callbacks](const Float progress) {
-        Statistics stats;
-        stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
-        callbacks.onTimeStep(Storage(), stats);
-        return !callbacks.shouldAbortRun();
-    };
-    Array<Triangle> triangles = getSurfaceMesh(*scheduler, data->storage, config);
+    Array<Triangle> triangles;
+    switch (MeshAlgorithm(algorithm)) {
+    case MeshAlgorithm::MARCHING_CUBES:
+        triangles = runMarchingCubes(data->storage, global, callbacks);
+        break;
+    case MeshAlgorithm::ALPHA_SHAPE:
+        triangles = runAlphaShape(data->storage);
+        break;
+    default:
+        NOT_IMPLEMENTED;
+    }
 
     if (scaleToUnit) {
+        const Box bbox = getBoundingBox(data->storage);
+        const Float boxSize = maxElement(bbox.size());
         for (Triangle& t : triangles) {
             for (Size i = 0; i < 3; ++i) {
                 t[i] = (t[i] - bbox.center()) / boxSize;
@@ -306,6 +323,33 @@ void SaveMeshJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) 
     }
 
     result = data;
+}
+
+Array<Triangle> SaveMeshJob::runMarchingCubes(const Storage& storage,
+    const RunSettings& global,
+    IRunCallbacks& callbacks) const {
+    McConfig config;
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    config.gridResolution = resolution * getMedianRadius(r);
+    config.surfaceLevel = level;
+    config.smoothingMult = smoothingMult;
+    config.useAnisotropicKernels = anisotropic;
+    config.progressCallback = [&callbacks](const Float progress) {
+        Statistics stats;
+        stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
+        callbacks.onTimeStep(Storage(), stats);
+        return !callbacks.shouldAbortRun();
+    };
+    SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
+    return getSurfaceMesh(*scheduler, storage, config);
+}
+
+Array<Triangle> SaveMeshJob::runAlphaShape(const Storage& storage) const {
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    Delaunay delaunay;
+    delaunay.build(r);
+
+    return delaunay.alphaShape(alpha * getMedianRadius(r));
 }
 
 static JobRegistrar sRegisterMeshSaver(

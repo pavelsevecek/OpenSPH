@@ -132,7 +132,7 @@ Particle::QuantityIterator& Particle::QuantityIterator::operator++() {
 }
 
 Particle::QuantityData Particle::QuantityIterator::operator*() const {
-    const InternalQuantityData& internal = iter->value;
+    const InternalQuantityData& internal = iter->value();
     DynamicId type;
     if (internal.value) {
         type = internal.value.getType();
@@ -145,7 +145,7 @@ Particle::QuantityData Particle::QuantityIterator::operator*() const {
         SPH_ASSERT(internal.d2t);
         type = internal.d2t.getType();
     }
-    return { iter->key, type, internal.value, internal.dt, internal.d2t };
+    return { iter->key(), type, internal.value, internal.dt, internal.d2t };
 }
 
 bool Particle::QuantityIterator::operator!=(const QuantityIterator& other) const {
@@ -178,7 +178,7 @@ Particle::ParamIterator& Particle::ParamIterator::operator++() {
 }
 
 Particle::ParamData Particle::ParamIterator::operator*() const {
-    return { iter->key, iter->value };
+    return { iter->key(), iter->value() };
 }
 
 bool Particle::ParamIterator::operator!=(const ParamIterator& other) const {

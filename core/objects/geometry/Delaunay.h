@@ -222,15 +222,6 @@ private:
             return idxs[vi];
         }
 
-        bool contains(const Size vi) const {
-            for (Size i : idxs) {
-                if (vi == i) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
         Handle neighbor(const Size fi) const {
             return neighs[fi].handle;
         }
@@ -296,8 +287,8 @@ private:
             return flag;
         }
 
-        bool& visited() {
-            return flag;
+        void setVisited(bool value) {
+            flag = value;
         }
     };
 
@@ -306,8 +297,6 @@ private:
 
     // using Polyhedron = Array<std::pair<Cell::Handle, Size>>;
 
-
-    Array<Cell::Handle> badSet;
 
     static Face toKey(const Face& f) {
         if (f[0] < f[1] && f[0] < f[2]) {
@@ -333,6 +322,7 @@ private:
 
     Array<Cell::Handle> stack;
     Array<Cell::Handle> visited;
+    Array<Cell::Handle> badSet;
 
     using Resource = MonotonicMemoryResource<Mallocator>;
     // using Allocator = Mallocator;
@@ -373,8 +363,8 @@ public:
         const Float side = 4._f * maxElement(box.size());
         Tetrahedron super = Tetrahedron::unit();
         for (Size i = 0; i < 4; ++i) {
-            const Vector p = super.vertex(i) * side + center;
-            vertices.push(p);
+            super.vertex(i) = super.vertex(i) * side + center;
+            vertices.push(super.vertex(i));
         }
         Cell::Handle root = allocatorNew<Cell>(allocator, 0, 1, 2, 3, super.circumsphere().value());
         cellCnt = 1;
@@ -385,6 +375,10 @@ public:
 #ifdef SPH_DEBUG
         const Float volume0 = tetrahedron(*root).volume();
         std::cout << "Volume = " << volume0 << std::endl;
+        for (const Vector& p : sortedPoints) {
+            SPH_ASSERT(super.contains(p), p);
+            SPH_ASSERT(root->circumsphere().contains(p));
+        }
 #endif
 
         Size index = 0;
@@ -513,26 +507,33 @@ private:
         return nextHint;
     }
 
+    INLINE static Vector perturbDirection(const Vector& n) {
+        // has to yield the same result for n and -n
+        return Vector::unit(argMax(abs(n)));
+    }
+
     NO_INLINE Cell::Handle triangulate(const Cell::Handle ch1, const Size fi1, const Vector& p) {
         Face f1 = face(*ch1, fi1);
         const Triangle tri = triangle(f1);
         const Plane plane(tri);
         Cell::Handle ch2;
-        Tetrahedron tet(triangle(f1), vertices.back());
+        Tetrahedron tet(triangle(f1), p);
         Optional<Sphere> sphere = tet.circumsphere();
+        Vector p_reg = p;
         if (!sphere) {
             // small perturbation
             const Float e10 = getSqrLength(tri[1] - tri[0]);
             const Float e20 = getSqrLength(tri[2] - tri[0]);
-            const Float e = sqrt(max(e10, e20));
-            vertices.back() += 1.e-6_f * plane.normal() * e;
+            const Float e21 = getSqrLength(tri[2] - tri[1]);
+            const Float e = sqrt(max(e10, e20, e21));
+            std::cout << "Denegerated tetrahedron!! Perturbing the added point by e=" << e << std::endl;
+            p_reg += clearH(0.01_f * perturbDirection(plane.normal()) * e);
+            vertices.back() = p_reg;
+            tet = Tetrahedron(triangle(f1), p_reg);
             sphere = tet.circumsphere();
             SPH_ASSERT(sphere);
         }
-        if (!plane.above(p)) {
-            std::swap(f1[1], f1[2]);
-        }
-        ch2 = allocatorNew<Cell>(allocator, f1[0], f1[1], f1[2], vertices.size() - 1, sphere.value());
+        ch2 = allocatorNew<Cell>(allocator, f1[0], f1[2], f1[1], vertices.size() - 1, sphere.value());
 
         SPH_ASSERT(tetrahedron(*ch2).signedVolume() > 0);
         SPH_ASSERT(tetrahedron(*ch2).contains(tet.center()));
@@ -580,8 +581,8 @@ private:
                 // const Face f2 = toKey(f1.opposite());
                 // SPH_ASSERT(isKey(f2));
                 if (f1 == f2.opposite()) { // toKey(face(*ch2, fi2)).opposite()) {
-                    // SPH_ASSERT(!badSet.contains(ch1));
-                    // SPH_ASSERT(!badSet.contains(ch2));
+                    SPH_ASSERT(std::find(badSet.begin(), badSet.end(), ch1) == badSet.end());
+                    SPH_ASSERT(std::find(badSet.begin(), badSet.end(), ch2) == badSet.end());
 
                     SPH_ASSERT(opposite(face(*ch1, fi1), face(*ch2, fi2)));
                     setNeighbor(ch1, fi1, ch2, fi2);
@@ -663,7 +664,7 @@ private:
         visited.clear();
         stack.push(seed);
 
-        seed->visited() = true;
+        seed->setVisited(true);
         // visited.insert(seed);
 
         while (!stack.empty()) {
@@ -678,7 +679,7 @@ private:
                 if (!nh || nh->visited()) {
                     continue;
                 }
-                nh->visited() = true;
+                nh->setVisited(true);
                 visited.push(nh);
                 if (predicate(*nh)) {
                     // visited.insert(nh);
@@ -689,7 +690,7 @@ private:
 
         // clear the visited flag
         for (Cell::Handle ch : visited) {
-            ch->visited() = false;
+            ch->setVisited(false);
         }
     }
 
@@ -706,6 +707,7 @@ private:
         const Vector from = tetrahedron(*ch).center();
         const Vector dir = getNormalized(p - from);
         SPH_ASSERT(tetrahedron(*ch).contains(from));
+        SPH_ASSERT(inside(*ch, from));
 
         while (!inside(*ch, p)) {
             Optional<Size> nextFi = this->intersect(tetrahedron(*ch), from, p, dir);

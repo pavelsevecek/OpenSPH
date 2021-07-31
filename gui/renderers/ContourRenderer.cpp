@@ -32,36 +32,38 @@ bool ContourRenderer::isInitialized() const {
 }
 
 // See https://en.wikipedia.org/wiki/Marching_squares
-static FlatMap<Size, Pixel> MS_TABLE = {
-    // no contour
-    { 0b0000, { -1, -1 } },
-    { 0b1111, { -1, -1 } },
+static FlatMap<Size, Pixel> MS_TABLE(ELEMENTS_UNIQUE,
+    {
+        // no contour
+        { 0b0000, { -1, -1 } },
+        { 0b1111, { -1, -1 } },
 
-    // single edge
-    { 0b1110, { 2, 3 } },
-    { 0b1101, { 1, 2 } },
-    { 0b1011, { 0, 1 } },
-    { 0b0111, { 3, 0 } },
-    { 0b0001, { 2, 3 } },
-    { 0b0010, { 1, 2 } },
-    { 0b0100, { 0, 1 } },
-    { 0b1000, { 3, 0 } },
-    { 0b1100, { 1, 3 } },
-    { 0b1001, { 0, 2 } },
-    { 0b0011, { 1, 3 } },
-    { 0b0110, { 0, 2 } },
+        // single edge
+        { 0b1110, { 2, 3 } },
+        { 0b1101, { 1, 2 } },
+        { 0b1011, { 0, 1 } },
+        { 0b0111, { 3, 0 } },
+        { 0b0001, { 2, 3 } },
+        { 0b0010, { 1, 2 } },
+        { 0b0100, { 0, 1 } },
+        { 0b1000, { 3, 0 } },
+        { 0b1100, { 1, 3 } },
+        { 0b1001, { 0, 2 } },
+        { 0b0011, { 1, 3 } },
+        { 0b0110, { 0, 2 } },
 
-    /// \todo saddle points
-    { 0b1010, { -1, -1 } },
-    { 0b0101, { -1, -1 } },
-};
+        /// \todo saddle points
+        { 0b1010, { -1, -1 } },
+        { 0b0101, { -1, -1 } },
+    });
 
-static FlatMap<Size, std::pair<Pixel, Pixel>> MS_EDGE_TO_VTX = {
-    { 0, { Pixel(0, 0), Pixel(1, 0) } },
-    { 1, { Pixel(1, 0), Pixel(1, 1) } },
-    { 2, { Pixel(1, 1), Pixel(0, 1) } },
-    { 3, { Pixel(0, 1), Pixel(0, 0) } },
-};
+static FlatMap<Size, std::pair<Pixel, Pixel>> MS_EDGE_TO_VTX(ELEMENTS_UNIQUE,
+    {
+        { 0, { Pixel(0, 0), Pixel(1, 0) } },
+        { 1, { Pixel(1, 0), Pixel(1, 1) } },
+        { 2, { Pixel(1, 1), Pixel(0, 1) } },
+        { 3, { Pixel(0, 1), Pixel(0, 0) } },
+    });
 
 static bool isCoordValid(const UnorderedMap<float, Coords>& map, const Coords& p) {
     for (auto& isoAndCoord : map) {

@@ -163,12 +163,12 @@ void NodeManager::layoutNodes(JobNode& node, const Pixel position) {
     }
 
     for (auto& element : depthMapInv) {
-        const int depth = element.key;
+        const int depth = element.key();
         int index = 0;
-        for (auto& node : element.value) {
+        for (auto& node : element.value()) {
             VisNode& vis = nodes[node];
             vis.position =
-                Pixel(position.x - 200 * depth, position.y + 150 * index - (element.value.size() - 1) * 75);
+                Pixel(position.x - 200 * depth, position.y + 150 * index - (element.value().size() - 1) * 75);
             ++index;
         }
     }

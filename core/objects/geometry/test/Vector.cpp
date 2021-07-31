@@ -227,6 +227,13 @@ TEST_CASE("Vector less", "[vector]") {
     REQUIRE(less(v3, v4) == Vector(1._f, 1._f, 0._f, 0._f));
 }
 
+TEST_CASE("Vector unit", "[vector]") {
+    REQUIRE(Vector::unit(0) == Vector(1, 0, 0));
+    REQUIRE(Vector::unit(1) == Vector(0, 1, 0));
+    REQUIRE(Vector::unit(2) == Vector(0, 0, 1));
+    REQUIRE_SPH_ASSERT(Vector::unit(3));
+}
+
 /// \todo also test tensors
 /*TEST_CASE("Vector clampWithDerivative", "[vector]") {
     Vector v(-1._f, 3._f, 6._f);

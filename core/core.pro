@@ -147,6 +147,7 @@ HEADERS += \
     objects/containers/AdvancedAllocators.h \
     objects/containers/BasicAllocators.h \
     objects/containers/CircularArray.h \
+    objects/containers/Tags.h \
     objects/finders/IncrementalFinder.h \
     objects/finders/NeighborFinder.h \
     objects/geometry/Delaunay.h \

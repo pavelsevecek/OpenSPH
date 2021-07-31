@@ -144,8 +144,8 @@ static void run(const ArgParser& parser, ILogger& logger) {
 
     for (auto& toConnect : allToConnect) {
         for (auto& element : nodes) {
-            if (element.key == toConnect.get<2>()) {
-                element.value->connect(toConnect.get<0>(), toConnect.get<1>());
+            if (element.key() == toConnect.get<2>()) {
+                element.value()->connect(toConnect.get<0>(), toConnect.get<1>());
             }
         }
     }

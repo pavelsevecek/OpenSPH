@@ -90,8 +90,8 @@ void Project::saveGui(Config& config) {
 void Project::savePalettes(Config& config) {
     SharedPtr<ConfigNode> paletteParentNode = config.addNode("palettes");
     for (auto& element : palettes) {
-        SharedPtr<ConfigNode> paletteNode = paletteParentNode->addChild(element.key);
-        const Palette& palette = element.value;
+        SharedPtr<ConfigNode> paletteNode = paletteParentNode->addChild(element.key());
+        const Palette& palette = element.value();
         paletteNode->set("lower", palette.getInterval().lower());
         paletteNode->set("upper", palette.getInterval().upper());
         paletteNode->set("scale", int(palette.getScale()));

@@ -6,6 +6,7 @@
 /// \date 2016-2021
 
 #include "objects/containers/Array.h"
+#include "objects/containers/Tags.h"
 #include "objects/wrappers/Optional.h"
 #include <algorithm>
 
@@ -19,11 +20,30 @@ template <typename TKey, typename TValue, typename TLess = std::less<TKey>>
 class FlatMap : TLess, Noncopyable {
 public:
     /// Element of the container.
-    struct Element {
-        /// \todo we definitely don't want to expose mutable key when iterating. Possibly create two structs
-        /// -- PrivateElement and Element -- and just reinterpret_cast ? (kinda crazy)
-        TKey key;
-        TValue value;
+    class Element {
+        TKey k;
+        TValue v;
+
+    public:
+        Element() = default;
+        Element(const TKey& k, const TValue& v)
+            : k(k)
+            , v(v) {}
+        Element(const TKey& k, TValue&& v)
+            : k(k)
+            , v(std::move(v)) {}
+
+        INLINE const TKey& key() const {
+            return k;
+        }
+
+        INLINE const TValue& value() const {
+            return v;
+        }
+
+        INLINE TValue& value() {
+            return v;
+        }
     };
 
 private:
@@ -32,15 +52,24 @@ private:
 public:
     FlatMap() = default;
 
-    /// \brief Constructs the map fromm initializer list of elements.
+    /// \brief Constructs the map from initializer list of elements.
     ///
-    /// Elements do not have to be sorted in the initializer list, the keys of the elements have to be unique,
-    /// i.e. each key has to be present at most once. This is checked by assert.
-    FlatMap(std::initializer_list<Element> list)
+    /// Tag specifies an optimization hint; it can be ELEMENTS_COMMON, ELEMENTS_UNIQUE, or
+    /// ELEMENTS_SORTED_UNIQUE.
+    template <typename Tag>
+    FlatMap(Tag t, std::initializer_list<Element> list)
         : data(list) {
-        std::sort(data.begin(), data.end(), [this](const Element& e1, const Element& e2) {
-            return less(e1.key, e2.key);
-        });
+        this->create(t);
+    }
+
+    /// \brief Constructs the map from array of elements.
+    ///
+    /// Tag specifies an optimization hint; it can be ELEMENTS_COMMON, ELEMENTS_UNIQUE, or
+    /// ELEMENTS_SORTED_UNIQUE.
+    template <typename Tag>
+    FlatMap(Tag t, Array<Element>&& values)
+        : data(std::move(values)) {
+        this->create(t);
     }
 
     /// \brief Returns a reference to the element, given its key.
@@ -49,7 +78,7 @@ public:
     INLINE TValue& operator[](const TKey& key) {
         Element* element = this->find(key);
         SPH_ASSERT(element);
-        return element->value;
+        return element->value();
     }
 
     /// \brief Returns a reference to the element, given its key.
@@ -58,7 +87,7 @@ public:
     INLINE const TValue& operator[](const TKey& key) const {
         const Element* element = this->find(key);
         SPH_ASSERT(element);
-        return element->value;
+        return element->value();
     }
 
     /// \brief Adds a new element into the map or sets new value of element with the same key.
@@ -67,8 +96,8 @@ public:
         if (!element) {
             return this->add(key, value);
         } else {
-            element->value = value;
-            return element->value;
+            element->value() = value;
+            return element->value();
         }
     }
 
@@ -78,8 +107,8 @@ public:
         if (!element) {
             return this->add(key, std::move(value));
         } else {
-            element->value = std::move(value);
-            return element->value;
+            element->value() = std::move(value);
+            return element->value();
         }
     }
 
@@ -120,7 +149,7 @@ public:
         if (!element) {
             return NOTHING;
         } else {
-            return element->value;
+            return element->value();
         }
     }
 
@@ -130,7 +159,7 @@ public:
         if (!element) {
             return NOTHING;
         } else {
-            return element->value;
+            return element->value();
         }
     }
 
@@ -186,6 +215,43 @@ public:
     }
 
 private:
+    void create(ElementsCommonTag) {
+        std::sort(data.begin(), data.end(), [this](const Element& e1, const Element& e2) {
+            return less(e1.key(), e2.key());
+        });
+        auto end = std::unique(data.begin(), data.end(), [this](const Element& e1, const Element& e2) {
+            return equal(e1.key(), e2.key());
+        });
+        data.resize(end - data.begin());
+        SPH_ASSERT(this->keysSortedAndUnique());
+    }
+
+    void create(ElementsUniqueTag) {
+        std::sort(data.begin(), data.end(), [this](const Element& e1, const Element& e2) {
+            return less(e1.key(), e2.key());
+        });
+        SPH_ASSERT(this->keysSortedAndUnique());
+    }
+
+    void create(ElementsSortedUniqueTag) {
+        SPH_ASSERT(this->keysSortedAndUnique());
+    }
+
+    bool keysSortedAndUnique() const {
+        if (!std::is_sorted(data.begin(), data.end(), [this](const Element& e1, const Element& e2) {
+                return less(e1.key(), e2.key());
+            })) {
+            return false;
+        }
+
+        for (Size i = 1; i < data.size(); ++i) {
+            if (equal(data[i].key(), data[i - 1].key())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     INLINE bool less(const TKey& key1, const TKey& key2) const {
         return TLess::operator()(key1, key2);
     }
@@ -196,9 +262,9 @@ private:
 
     /// Returns a pointer to the element with given key or nullptr if no such element exists.
     INLINE Element* find(const TKey& key) {
-        auto compare = [this](const Element& element, const TKey& key) { return less(element.key, key); };
+        auto compare = [this](const Element& element, const TKey& key) { return less(element.key(), key); };
         auto iter = std::lower_bound(data.begin(), data.end(), key, compare);
-        if (iter != data.end() && equal(iter->key, key)) {
+        if (iter != data.end() && equal(iter->key(), key)) {
             return &*iter;
         } else {
             return nullptr;
@@ -218,15 +284,15 @@ private:
 
         while (from < to && from != mid) {
             mid = (from + to) / 2;
-            SPH_ASSERT(less(data[mid].key, key) || less(key, data[mid].key));
-            if (less(data[mid].key, key)) {
+            SPH_ASSERT(!equal(data[mid].key(), key));
+            if (less(data[mid].key(), key)) {
                 from = mid + 1;
             } else {
                 to = mid;
             }
         }
         data.insert(from, Element{ key, std::forward<T>(value) });
-        return data[from].value;
+        return data[from].value();
     }
 };
 

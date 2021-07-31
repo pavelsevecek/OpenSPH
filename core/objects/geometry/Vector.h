@@ -423,6 +423,12 @@ public:
         return data[i];
     }
 
+    /// Returns a unit vector for given coordinate
+    INLINE static BasicVector unit(const int i) {
+        SPH_ASSERT(unsigned(i) < 3, i);
+        return BasicVector(i == 0, i == 1, i == 2);
+    }
+
     /// Copy operator
     INLINE BasicVector& operator=(const BasicVector& v) {
         data[0] = v.data[0];
@@ -600,6 +606,12 @@ INLINE Tuple<Vector, Float> getNormalizedWithLength(const Vector& v) {
     return { v / length, length };
 }
 
+/// Returns a copy with 4th component set to zero.
+INLINE Vector clearH(const Vector& v) {
+    Vector result = v;
+    result[H] = 0._f;
+    return result;
+}
 
 /// Component-wise minimum
 template <>

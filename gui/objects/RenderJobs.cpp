@@ -296,7 +296,7 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
         for (auto& element : fileMap) {
             Storage frame;
             Statistics stats;
-            const Outcome result = input->load(element.value, frame, stats);
+            const Outcome result = input->load(element.value(), frame, stats);
             if (!result) {
                 /// \todo how to report this? (don't do modal dialog)
             }
@@ -534,24 +534,24 @@ void VdbJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
         if (fileMap.empty()) {
             throw InvalidSetup("No files to render.");
         }
-        const Size firstKey = fileMap.begin()->key;
+        const Size firstKey = fileMap.begin()->key();
 
         AutoPtr<IInput> input = Factory::getInput(sequence.firstFile);
         for (auto& element : fileMap) {
             Storage storage;
             Statistics stats;
-            const Outcome result = input->load(element.value, storage, stats);
+            const Outcome result = input->load(element.value(), storage, stats);
             if (!result) {
                 /// \todo how to report this? (don't do modal dialog)
             }
 
-            Path outputPath = element.value;
+            Path outputPath = element.value();
             outputPath.replaceExtension("vdb");
             this->generate(storage, global, outputPath);
 
             /// \todo deduplicate with AnimationJob
-            stats.set(StatisticsId::RELATIVE_PROGRESS, Float(element.key - firstKey) / fileMap.size());
-            if (element.key == firstKey) {
+            stats.set(StatisticsId::RELATIVE_PROGRESS, Float(element.key() - firstKey) / fileMap.size());
+            if (element.key() == firstKey) {
                 callbacks.onSetUp(storage, stats);
             }
             callbacks.onTimeStep(storage, stats);
