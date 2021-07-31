@@ -9,6 +9,10 @@
 
 NAMESPACE_SPH_BEGIN
 
+// ----------------------------------------------------------------------------------------------------------
+// Tetrahedron
+// ----------------------------------------------------------------------------------------------------------
+
 Tetrahedron::Tetrahedron(const Vector& v1, const Vector& v2, const Vector& v3, const Vector& v4) {
     vertices[0] = v1;
     vertices[1] = v2;
@@ -102,6 +106,10 @@ Optional<Vector> Tetrahedron::circumcenter() const {
     return A_inv.value() * B + vertices[0];
 }
 
+// ----------------------------------------------------------------------------------------------------------
+// utility functions
+// ----------------------------------------------------------------------------------------------------------
+
 using Face = Delaunay::Face;
 using Cell = Delaunay::Cell;
 
@@ -175,6 +183,10 @@ static Optional<Size> intersect(const Tetrahedron& tet,
 }
 
 
+// ----------------------------------------------------------------------------------------------------------
+// Delaunay::Cell
+// ----------------------------------------------------------------------------------------------------------
+
 Delaunay::Cell::Cell(const Size a, const Size b, const Size c, const Size d, const Sphere& sphere)
     : idxs{ a, b, c, d }
     , sphere(sphere) {
@@ -238,7 +250,7 @@ void Delaunay::Cell::setNeighbor(const Size fi, const Handle& ch, const Size mir
     neighs[fi].mirror = mirror;
 }
 
-Size Delaunay::Cell::neighborCnt() const {
+Size Delaunay::Cell::getNeighborCnt() const {
     Size cnt = 0;
     for (Size i = 0; i < 4; ++i) {
         if (neighs[i].handle != nullptr) {
@@ -254,6 +266,9 @@ Size Delaunay::Cell::mirror(const Size fi) const {
     return neighs[fi].mirror;
 }
 
+// ----------------------------------------------------------------------------------------------------------
+// Delaunay implementation
+// ----------------------------------------------------------------------------------------------------------
 
 Delaunay::Delaunay(const std::size_t allocatorMemory)
     : resource(allocatorMemory, alignof(Cell)) {
@@ -324,7 +339,6 @@ void Delaunay::buildImpl(ArrayView<const Vector> points) {
 
     // root is already deleted at this point!!
 
-    logger->write("Getting the final list of cells");
     cells.reserve(cellCnt);
     this->region(hint, backInserter(cells), [](const Cell& UNUSED(c)) { return true; });
     SPH_ASSERT(cellCnt == cells.size());

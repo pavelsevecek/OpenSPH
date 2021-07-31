@@ -174,7 +174,7 @@ public:
         Handle neighbor(const Size fi) const;
 
         /// \brief Returns the number of existing neighbors.
-        Size neighborCnt() const;
+        Size getNeighborCnt() const;
 
         /// \brief Returns the mirror index for given face.
         ///
@@ -202,7 +202,7 @@ public:
         void detach();
 
         bool isDetached() const {
-            return neighborCnt() == 0;
+            return getNeighborCnt() == 0;
         }
     };
 

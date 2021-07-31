@@ -79,6 +79,15 @@ public:
     INLINE Triangle opposite() const {
         return Triangle(v[0], v[2], v[1]);
     }
+
+    bool operator==(const Triangle& other) const {
+        return v == other.v;
+    }
+
+
+    bool operator!=(const Triangle& other) const {
+        return v != other.v;
+    }
 };
 
 NAMESPACE_SPH_END

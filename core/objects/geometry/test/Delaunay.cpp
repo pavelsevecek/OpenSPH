@@ -1,10 +1,9 @@
 #include "objects/geometry/Delaunay.h"
 #include "catch.hpp"
-#include "io/Output.h"
 #include "objects/finders/NeighborFinder.h"
-#include "post/MeshFile.h"
-#include "system/Factory.h"
-#include "system/Statistics.h"
+#include "objects/geometry/Domain.h"
+#include "objects/utility/Algorithm.h"
+#include "sph/initial/Distribution.h"
 #include "tests/Approx.h"
 #include "thread/Scheduler.h"
 #include "utils/Utils.h"
@@ -74,58 +73,74 @@ TEST_CASE("Tetrahedron circumsphere coplanar", "[delaunay]") {
     REQUIRE_FALSE(tet.circumsphere());
 }
 
-TEST_CASE("Delaunay", "[delaunay]") {
+TEST_CASE("Delaunay single tetrahedron", "[delaunay]") {
+    Tetrahedron expected(Vector(0, 0, 0), Vector(0, 0, 1), Vector(0, 1, 0), Vector(1, 0, 0));
+
     Delaunay delaunay;
-    Array<Vector> points({ Vector(0, 0, 0), Vector(0, 0, 1), Vector(0, 1, 0), Vector(1, 0, 0) });
+    Array<Vector> points({ expected.vertex(0), expected.vertex(1), expected.vertex(2), expected.vertex(3) });
     delaunay.build(points);
 
     REQUIRE(delaunay.getCellCnt() == 1);
+    Delaunay::Cell::Handle cell = delaunay.getCell(0);
+    REQUIRE(cell->getNeighborCnt() == 0);
+    REQUIRE(cell->neighbor(0) == nullptr);
+    REQUIRE_SPH_ASSERT(cell->mirror(0));
 
-    /*Tetrahedron tet = delaunay.tetrahedron(0);
-    for (Size i = 0; i < 4; ++i) {
-        REQUIRE(Plane(tet.triangle(i)).signedDistance(tet.vertex(i)) < 0._f);
-    }
-
-    for (const Vector& p : points) {
-        REQUIRE(delaunay.insideCell(0, p));
-    }*/
+    Tetrahedron actual = delaunay.tetrahedron(*cell);
+    REQUIRE(actual.vertex(0) == expected.vertex(0));
+    REQUIRE(actual.vertex(2) == expected.vertex(1));
+    REQUIRE(actual.vertex(1) == expected.vertex(2));
+    REQUIRE(actual.vertex(3) == expected.vertex(3));
+    REQUIRE(actual.signedVolume() == actual.volume());
 }
 
-TEST_CASE("Delaunay bunny", "[delaunay]") {
-    BinaryInput input;
-    Storage storage;
-    Statistics stats;
-    Outcome result = input.load(Path("/home/pavel/sandbox/bunny.ssf"), storage, stats);
-    REQUIRE(result);
-    Array<Size> toRemove;
-    if (false) {
-        AutoPtr<IBasicFinder> finder = Factory::getFinder(RunSettings::getDefaults());
-        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-        finder->build(SEQUENTIAL, r);
-        Array<NeighborRecord> neighs;
-        for (Size i = 0; i < r.size(); ++i) {
-            finder->findAll(r[i], 2._f * r[i][H], neighs);
-            if (neighs.size() > 50) {
-                toRemove.push(i);
+TEST_CASE("Delaunay sphere", "[delaunay]") {
+    const Float radius = 500._f;
+    SphericalDomain domain(Vector(0._f), radius);
+    RandomDistribution distr(1234);
+    Array<Vector> r = distr.generate(SEQUENTIAL, 10000, domain);
+
+    Delaunay delaunay;
+    SECTION("Delaunay spatial sort") {
+        delaunay.build(r, Delaunay::BuildFlag::SPATIAL_SORT);
+    }
+    SECTION("Delaunay unsorted") {
+        delaunay.build(r, EMPTY_FLAGS);
+    }
+    REQUIRE(delaunay.getCellCnt() == 65302);
+
+    Array<Triangle> tris = delaunay.convexHull();
+    const bool hullCorrect = allMatching(tris, [radius](const Triangle& t) {
+        for (Size i = 0; i < 3; ++i) {
+            const Float diff = abs(getLength(t[i]) - radius);
+            if (diff > 20._f) {
+                return false;
             }
         }
-    }
-    storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED);
+        return true;
+    });
+    REQUIRE(hullCorrect);
+}
 
-    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
-    std::random_shuffle(r.begin(), r.end());
+TEST_CASE("Delaunay locate point", "[delaunay]") {
+    const Float side = 200._f;
+    BlockDomain domain(Vector(side / 2._f), Vector(side));
+    RandomDistribution distr(1234);
+    Array<Vector> r = distr.generate(SEQUENTIAL, 5000, domain);
+
     Delaunay delaunay;
     delaunay.build(r);
-    PlyFile ply;
-    /*Array<Triangle> triangles;
-    for (Size i = 0; i < delaunay.getTetrahedraCnt(); ++i) {
-        Tetrahedron tet = delaunay.tetrahedron(i);
-        for (Size j = 0; j < 4; ++j) {
-            triangles.push(tet.triangle(j));
-        }
-    }
-    ply.save(Path("bunny.ply"), triangles);*/
 
-    ply.save(Path("bunny-ch.ply"), delaunay.convexHull());
-    ply.save(Path("bunny-alpha.ply"), delaunay.alphaShape(0.012));
+    const Vector p(50._f, 120._f, 80._f);
+    Delaunay::Cell::Handle ch1 = delaunay.locate(p);
+    REQUIRE(ch1 != nullptr);
+    REQUIRE(delaunay.tetrahedron(*ch1).contains(p));
+
+    REQUIRE(ch1->getNeighborCnt() == 4);
+    Delaunay::Cell::Handle ch2 = delaunay.locate(p, ch1);
+    Delaunay::Cell::Handle ch3 = delaunay.locate(p, ch1->neighbor(0));
+    REQUIRE(ch1 == ch2);
+    REQUIRE(ch1 == ch3);
+
+    REQUIRE_SPH_ASSERT(delaunay.locate(Vector(-1._f, 0._f, 0._f)));
 }
