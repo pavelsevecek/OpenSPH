@@ -10,16 +10,16 @@ static Pair<Float> computeCharacteristics(const SodConfig& sod,
     const Float c) {
     const Float u = P3 / P;
     if (u > 1) {
-        const Float term1 = sod.gamma * ((sod.gamma + 1.) * u + sod.gamma - 1.);
-        const Float term2 = sqrt(2. / term1);
-        const Float fp = (u - 1.) * c * term2;
+        const Float term1 = sod.gamma * ((sod.gamma + 1) * u + sod.gamma - 1);
+        const Float term2 = sqrt(2 / term1);
+        const Float fp = (u - 1) * c * term2;
         const Float dfdp =
-            c * term2 / P + (u - 1.) * c / term2 * (-1. / sqr(term1)) * sod.gamma * (sod.gamma + 1.) / P;
+            c * term2 / P + (u - 1) * c / term2 * (-1 / sqr(term1)) * sod.gamma * (sod.gamma + 1) / P;
         return { fp, dfdp };
     } else {
         const Float beta = (sod.gamma - 1) / (2 * sod.gamma);
-        const Float fp = (pow(u, beta) - 1.) * (2. * c / (sod.gamma - 1.));
-        const Float dfdp = 2. * c / (sod.gamma - 1.) * beta * pow(u, (beta - 1.)) / P;
+        const Float fp = (pow(u, beta) - 1) * (2 * c / (sod.gamma - 1));
+        const Float dfdp = 2 * c / (sod.gamma - 1) * beta * pow(u, (beta - 1)) / P;
         return { fp, dfdp };
     }
 }
@@ -30,10 +30,10 @@ static Pair<Float> solveRiemannProblem(const SodConfig& sod) {
 
     const Float beta = (sod.gamma - 1) / (2 * sod.gamma);
 
-    Float P_new = pow((c_l + c_r + (sod.u_l - sod.u_r) * 0.5 * (sod.gamma - 1.)) /
+    Float P_new = pow((c_l + c_r + (sod.u_l - sod.u_r) * 0.5_f * (sod.gamma - 1)) /
                           (c_l / pow(sod.P_l, beta) + c_r / pow(sod.P_r, beta)),
-        1. / beta);
-    Float P3 = 0.5 * (sod.P_r + sod.P_l);
+        1 / beta);
+    Float P3 = 0.5_f * (sod.P_r + sod.P_l);
     Float f_L = 0._f, f_R = 0._f;
     while (fabs(P3 - P_new) > 1e-6) {
         P3 = P_new;

@@ -1239,7 +1239,7 @@ public:
     Vector getVector() const {
         Vector v;
         for (Size i = 0; i < 3; ++i) {
-            v[i] = components[i]->GetValue();
+            v[i] = Float(components[i]->GetValue().GetDouble());
         }
         return v;
     }
@@ -1298,7 +1298,7 @@ public:
     }
 
     Interval getInterval() const {
-        return Interval(components[0]->GetValue(), components[1]->GetValue());
+        return Interval(components[0]->GetValue().GetDouble(), components[1]->GetValue().GetDouble());
     }
 
     void update(const bool notify = true) {
@@ -1585,7 +1585,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             entry->set(int(value.GetLong()));
             break;
         case IVirtualEntry::Type::FLOAT:
-            entry->set(value.GetDouble());
+            entry->set(Float(value.GetDouble()));
             break;
         case IVirtualEntry::Type::VECTOR: {
             VectorProperty* vector = dynamic_cast<VectorProperty*>(prop);

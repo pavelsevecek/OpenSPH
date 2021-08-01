@@ -118,7 +118,7 @@ public:
     }
 
     INLINE Float compute() const {
-        return Float(powFastest(sum / weight, 1._f / power));
+        return Float(powFastest(Float(sum / weight), 1._f / power));
     }
 
     INLINE Size count() const {
@@ -157,7 +157,7 @@ public:
     }
 
     INLINE Float compute() const {
-        Float avg = sum / weight;
+        Float avg = Float(sum / weight);
         SPH_ASSERT(isReal(avg), avg, sum, weight);
         Float avgPow = pow(avg, 1._f / power);
         if (avgPow == 0._f) {

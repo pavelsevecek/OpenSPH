@@ -170,8 +170,7 @@ inline float getMaxEmissionWavelength(const float temperature) {
 /// \param wavelength Wavelength in nanometers
 /// \param temperature Temperature in Kelvins
 inline float spectralRadiance(const float wavelength, const float temperature) {
-    constexpr Float factor1 =
-        pow<5>(1.e9_f) * 2._f * Constants::planckConstant * sqr(Constants::speedOfLight);
+    constexpr Float factor1 = 1.e45 * 2._f * Constants::planckConstant * sqr(Constants::speedOfLight);
     constexpr Float factor2 =
         Constants::planckConstant * Constants::speedOfLight / Constants::boltzmann * 1.e9_f;
     const Float denom = exp(factor2 / (wavelength * temperature)) - 1._f;

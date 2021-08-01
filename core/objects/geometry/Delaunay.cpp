@@ -432,7 +432,7 @@ Delaunay::Cell::Handle Delaunay::addPoint(const Vector& p, const Cell::Handle hi
         ch->detach();
     }
 
-    updateConnectivity();
+    this->updateConnectivity();
 
     for (Cell::Handle ch : badSet) {
         allocatorDelete(allocator, ch);
@@ -464,8 +464,11 @@ Delaunay::Cell::Handle Delaunay::triangulate(const Cell::Handle ch1, const Size 
     }
     ch2 = allocatorNew<Cell>(allocator, f1[0], f1[2], f1[1], vertices.size() - 1, sphere.value());
 
-    SPH_ASSERT(tetrahedron(*ch2).signedVolume() > 0);
-    SPH_ASSERT(tetrahedron(*ch2).contains(tet.center()));
+#ifdef SPH_DEBUG
+    const Tetrahedron tet2 = tetrahedron(*ch2);
+    SPH_ASSERT(tet2.signedVolume() > 0, tet2.signedVolume());
+    SPH_ASSERT(tet2.contains(tet.center()));
+#endif
 
     const Face f2 = ch2->face(3);
 

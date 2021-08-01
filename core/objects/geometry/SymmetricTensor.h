@@ -256,8 +256,8 @@ T1 convert(const T2& matrix);
 template <>
 INLINE SymmetricTensor convert(const AffineMatrix& matrix) {
     SPH_ASSERT(almostEqual(matrix(0, 1), matrix(1, 0), 1.e-6_f) &&
-           almostEqual(matrix(0, 2), matrix(2, 0), 1.e-6_f) &&
-           almostEqual(matrix(1, 2), matrix(2, 1), 1.e-6_f));
+               almostEqual(matrix(0, 2), matrix(2, 0), 1.e-6_f) &&
+               almostEqual(matrix(1, 2), matrix(2, 1), 1.e-6_f));
     return SymmetricTensor(
         Vector(matrix(0, 0), matrix(1, 1), matrix(2, 2)), Vector(matrix(0, 1), matrix(0, 2), matrix(1, 2)));
 }
@@ -301,7 +301,7 @@ INLINE Float normSqr(const SymmetricTensor& t) {
 
 /// Returns the tensor of absolute values
 template <>
-INLINE auto abs(const SymmetricTensor& t) {
+INLINE SymmetricTensor abs(const SymmetricTensor& t) {
     return SymmetricTensor(abs(t.diagonal()), abs(t.offDiagonal()));
 }
 
@@ -366,6 +366,12 @@ INLINE SymmetricTensor symmetricOuter(const Vector& v1, const Vector& v2) {
                     v1[1] * v2[2] + v1[2] * v2[1]));
 }
 
+/// Cosine applied to all components of the vector.
+INLINE Vector vectorCos(const Vector& v) {
+    /// \todo return _mm_cos_ps(v.sse());
+    return Vector(cos(v[X]), cos(v[Y]), cos(v[Z]));
+}
+
 /// Returns three eigenvalue of symmetric matrix.
 INLINE StaticArray<Float, 3> findEigenvalues(const SymmetricTensor& t) {
     const Float n = norm(t);
@@ -386,7 +392,7 @@ INLINE StaticArray<Float, 3> findEigenvalues(const SymmetricTensor& t) {
     const Float t1 = 2._f * sqrt(-a / 3._f);
     const Float phi = acos(-0.5_f * b / sqrt(-aCub));
     const Vector v(phi / 3._f, (phi + 2 * PI) / 3._f, (phi + 4 * PI) / 3._f);
-    const Vector sig = t1 * cos(v) - Vector(p / 3._f);
+    const Vector sig = t1 * vectorCos(v) - Vector(p / 3._f);
     return { sig[0] * n, sig[1] * n, sig[2] * n };
 }
 

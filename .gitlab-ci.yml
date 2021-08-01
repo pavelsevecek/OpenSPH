@@ -24,6 +24,14 @@ gcc_release:
     - qmake -spec linux-g++ CONFIG+=release ../sph.pro
     - make
 
+gcc_single_precision:
+  stage: build
+  script:
+    - mkdir gcc_float
+    - cd gcc_float
+    - qmake -spec linux-g++ CONFIG+=debug DEFINES+=SPH_SINGLE_PRECISION ../sph.pro
+    - make
+
 clang_debug:
   stage: build
   script:

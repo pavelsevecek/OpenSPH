@@ -10,7 +10,11 @@
 NAMESPACE_SPH_BEGIN
 
 /// Precision used withing the code. Use Float instead of float or double where precision is important.
+#ifdef SPH_SINGLE_PRECISION
+using Float = float;
+#else
 using Float = double;
+#endif
 
 /// Integral type used to index arrays (by default).
 using Size = uint32_t;

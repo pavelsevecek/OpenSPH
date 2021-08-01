@@ -309,7 +309,7 @@ void MainWindow::open(const Path& openPath, const bool setDefaults) {
         const bool isSphSim = isSph<BinaryInput>(openPath) || isSph<CompressedInput>(openPath);
         const bool isMiluphSim = openPath.extension() == Path("h5");
         if (isSphSim || isMiluphSim) {
-            Project::getInstance().getGuiSettings().set(GuiSettingsId::PARTICLE_RADIUS, 0.35);
+            Project::getInstance().getGuiSettings().set(GuiSettingsId::PARTICLE_RADIUS, 0.35_f);
         }
     }
     AutoPtr<Controller> controller = makeAuto<Controller>(notebook);

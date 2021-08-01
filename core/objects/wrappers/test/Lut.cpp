@@ -5,7 +5,7 @@
 using namespace Sph;
 
 TEST_CASE("Lut evaluate", "[lut]") {
-    Lut<Float> lut(Interval(0._f, 2._f * PI), 10000, Sph::sin<Float>);
+    Lut<Float> lut(Interval(0._f, 2._f * PI), 10000, Sph::sin);
 
     REQUIRE(lut(10._f) == approx(0._f));
     REQUIRE(lut(-10._f) == approx(0._f));
@@ -38,8 +38,8 @@ bool lutEquals(const Lut<Float>& lut, const TFunc& expected, const Float eps = 1
 }
 
 TEST_CASE("Lut product", "[lut]") {
-    Lut<Float> lut1(Interval(0._f, 2._f * PI), 10000, Sph::sin<Float>);
-    Lut<Float> lut2(Interval(-PI, 3._f * PI), 10000, Sph::cos<Float>);
+    Lut<Float> lut1(Interval(0._f, 2._f * PI), 10000, Sph::sin);
+    Lut<Float> lut2(Interval(-PI, 3._f * PI), 10000, Sph::cos);
     Lut<Float> prod = lut1 * lut2;
     REQUIRE(prod.getRange() == lut1.getRange());
     REQUIRE(prod.size() == lut1.size());
@@ -47,9 +47,9 @@ TEST_CASE("Lut product", "[lut]") {
 }
 
 TEST_CASE("Lut quotient", "[lut]") {
-    Lut<Float> lut1(Interval(-PI / 3._f, PI / 3._f), 10000, Sph::sin<Float>);
-    Lut<Float> lut2(Interval(-PI / 3._f, PI / 3._f), 10000, Sph::cos<Float>);
-    REQUIRE(lutEquals(lut1 / lut2, Sph::tan<Float>));
+    Lut<Float> lut1(Interval(-PI / 3._f, PI / 3._f), 10000, Sph::sin);
+    Lut<Float> lut2(Interval(-PI / 3._f, PI / 3._f), 10000, Sph::cos);
+    REQUIRE(lutEquals(lut1 / lut2, Sph::tan));
 }
 
 TEST_CASE("Lut add scalar", "[lut]") {
@@ -73,8 +73,8 @@ bool compare(const Value& p1, const Value& p2) {
 }
 
 TEST_CASE("Lut differentiate", "[lut]") {
-    Lut<Float> lut(Interval(0._f, 2._f * PI), 10000, Sph::sin<Float>);
-    Lut<Float> expected(Interval(0._f, 2._f * PI), 10000, Sph::cos<Float>);
+    Lut<Float> lut(Interval(0._f, 2._f * PI), 10000, Sph::sin);
+    Lut<Float> expected(Interval(0._f, 2._f * PI), 10000, Sph::cos);
     Lut<Float> actual = lut.derivative();
 
     const bool match = std::equal(expected.begin(), expected.end(), actual.begin(), compare);
@@ -82,8 +82,8 @@ TEST_CASE("Lut differentiate", "[lut]") {
 }
 
 TEST_CASE("Lut integrate", "[lut]") {
-    Lut<Float> lut(Interval(0._f, 2._f * PI), 10000, Sph::cos<Float>);
-    Lut<Float> expected(Interval(0._f, 2._f * PI), 10000, Sph::sin<Float>);
+    Lut<Float> lut(Interval(0._f, 2._f * PI), 10000, Sph::cos);
+    Lut<Float> expected(Interval(0._f, 2._f * PI), 10000, Sph::sin);
     Lut<Float> actual = lut.integral(0, 0);
 
     const bool match = std::equal(expected.begin(), expected.end(), actual.begin(), compare);

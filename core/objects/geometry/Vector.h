@@ -108,6 +108,12 @@ public:
         return data;
     }
 
+    /// Returns a unit vector for given coordinate
+    INLINE static BasicVector unit(const int i) {
+        SPH_ASSERT(unsigned(i) < 3, i);
+        return BasicVector(i == 0, i == 1, i == 2);
+    }
+
     /// Copy operator
     INLINE BasicVector& operator=(const BasicVector& v) {
         data = v.data;
@@ -719,7 +725,7 @@ INLINE Size argMax(const Vector& v) {
 
 /// Computes vector of absolute values.
 template <>
-INLINE auto abs(const BasicVector<float>& v) {
+INLINE BasicVector<float> abs(const BasicVector<float>& v) {
     return BasicVector<float>(_mm_andnot_ps(_mm_set1_ps(-0.f), v.sse()));
 }
 
@@ -731,7 +737,7 @@ INLINE auto abs(const BasicVector<double>& v) {
 }
 #else
 template <>
-INLINE auto abs(const BasicVector<double>& v) {
+INLINE BasicVector<double> abs(const BasicVector<double>& v) {
     return BasicVector<double>(
         _mm_andnot_pd(_mm_set1_pd(-0.), v.sse<0>()), _mm_andnot_pd(_mm_set1_pd(-0.), v.sse<1>()));
 }
@@ -783,12 +789,6 @@ INLINE BasicVector<T1> vectorCast(const BasicVector<T2>& v) {
 template <>
 INLINE BasicVector<Float> vectorCast(const BasicVector<Float>& v) {
     return v;
-}
-
-/// Cosine applied to all components of the vector.
-INLINE Vector cos(const Vector& v) {
-    /// \todo return _mm_cos_ps(v.sse());
-    return Vector(cos(v[X]), cos(v[Y]), cos(v[Z]));
 }
 
 /// \brief Constructs a vector from spherical coordinates.

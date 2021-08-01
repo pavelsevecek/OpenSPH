@@ -109,7 +109,7 @@ Float TotalKineticEnergy::evaluate(const Storage& storage) const {
 Float TotalInternalEnergy::evaluate(const Storage& storage) const {
     double total = 0.;
     if (!storage.has(QuantityId::ENERGY)) {
-        return total;
+        return Float(total);
     }
     ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);

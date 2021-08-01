@@ -878,7 +878,7 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
         "particles have at least one flaw, as in Benz and Asphaug (1994). The latter is needed for reproducibility "
         "of older results and compatibility with SPH5, otherwise the distribution sampling should be used, "
         "especially for simulation with large (N > 1e7) number of particles." },
-    { BodySettingsId::DISTENTION,              "material.palpha.distention",   1.275,
+    { BodySettingsId::DISTENTION,              "material.palpha.distention",   1.275_f,
         "Initial value of the material distention, used in the P-alpha model." },
     { BodySettingsId::BULK_VISCOSITY,          "material.bulk_viscosity",      1.e20_f,
         "Bulk viscosity of the material. Applicable is internal friction is used." },
