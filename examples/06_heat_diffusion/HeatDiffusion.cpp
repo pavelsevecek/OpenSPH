@@ -91,7 +91,7 @@ public:
                     const Float A = material.albedo;
                     const Float K = material.conductivity;
                     const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
-                    const Float incidentFlux = (1._f - A) * Phi * max(cos(omega * t), 0._f);
+                    const Float incidentFlux = (1._f - A) * Phi * max(Sph::cos(omega * t), 0._f);
                     const Float emissionFlux = Constants::stefanBoltzmann * pow<4>(T[0]);
                     T[0] = T[1] + dz * (incidentFlux - emissionFlux) / K;
                 } else if (i == n - 1) {

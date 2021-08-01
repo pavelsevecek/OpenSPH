@@ -46,7 +46,7 @@ public:
         // Compute position of the impactor from the impact angle
         const Float impactAngle = 15._f * DEG_TO_RAD;
         Vector impactorPosition =
-            (targetRadius + impactorRadius) * Vector(cos(impactAngle), sin(impactAngle), 0._f);
+            (targetRadius + impactorRadius) * Vector(Sph::cos(impactAngle), Sph::sin(impactAngle), 0._f);
         // Move the impactor to the right, so bodies are not in contact at the start of the simulation
         impactorPosition[X] += 0.2_f * targetRadius;
 

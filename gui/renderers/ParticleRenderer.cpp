@@ -153,7 +153,7 @@ static void drawKey(IRenderContext& context,
 
     const float dFov_dPx = 1.f / wtp;
     const float minimalScaleFov = dFov_dPx * 16;
-    float actScaleFov = pow(10.f, ceil(log10(minimalScaleFov)));
+    float actScaleFov = pow(10.f, float(ceil(log10(minimalScaleFov))));
     const float scaleSize = actScaleFov / dFov_dPx;
     const Coords lineStart = keyStart + Coords(75, 30);
     context.drawLine(lineStart + Coords(-scaleSize / 2, 0), lineStart + Coords(scaleSize / 2, 0));

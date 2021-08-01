@@ -38,7 +38,7 @@ TEST_CASE("MC Integrator", "[functional]") {
 }
 
 TEST_CASE("GetRoots", "[functional]") {
-    Optional<Float> root = getRoot(Interval(0._f, PI), EPS, [](const Float x) { return cos(x); });
+    Optional<Float> root = getRoot(Interval(0._f, PI), EPS, Sph::cos);
     REQUIRE(root);
     REQUIRE(root.value() == approx(0.5_f * PI));
 

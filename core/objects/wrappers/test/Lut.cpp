@@ -11,7 +11,7 @@ TEST_CASE("Lut evaluate", "[lut]") {
     REQUIRE(lut(-10._f) == approx(0._f));
 
     for (Float x = 0._f; x <= 2._f * PI; x += 0.5_f) {
-        REQUIRE(lut(x) == approx(sin(x), 1.e-5_f));
+        REQUIRE(lut(x) == approx(Sph::sin(x), 1.e-5_f));
     }
 }
 
@@ -43,7 +43,7 @@ TEST_CASE("Lut product", "[lut]") {
     Lut<Float> prod = lut1 * lut2;
     REQUIRE(prod.getRange() == lut1.getRange());
     REQUIRE(prod.size() == lut1.size());
-    REQUIRE(lutEquals(prod, [](const Float x) { return 0.5_f * sin(2._f * x); }));
+    REQUIRE(lutEquals(prod, [](const Float x) { return 0.5_f * Sph::sin(2._f * x); }));
 }
 
 TEST_CASE("Lut quotient", "[lut]") {
