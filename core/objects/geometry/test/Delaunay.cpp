@@ -144,3 +144,12 @@ TEST_CASE("Delaunay locate point", "[delaunay]") {
 
     REQUIRE_SPH_ASSERT(delaunay.locate(Vector(-1._f, 0._f, 0._f)));
 }
+
+TEST_CASE("Delaunay degenerate tetrahedra", "[delaunay]") {
+    SphericalDomain domain(Vector(0._f), 1._f);
+    HexagonalPacking distr;
+    Array<Vector> r = distr.generate(SEQUENTIAL, 1000, domain);
+
+    Delaunay delaunay;
+    REQUIRE_NOTHROW(delaunay.build(r, Delaunay::BuildFlag::SPATIAL_SORT));
+}

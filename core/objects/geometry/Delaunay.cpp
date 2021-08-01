@@ -2,6 +2,7 @@
 #include "io/Logger.h"
 #include "math/AffineMatrix.h"
 #include "math/Morton.h"
+#include "math/rng/VectorRng.h"
 #include "objects/geometry/Plane.h"
 #include "objects/utility/Algorithm.h"
 #include "objects/utility/IteratorAdapters.h"
@@ -67,7 +68,7 @@ Optional<Sphere> Tetrahedron::circumsphere() const {
 #ifdef SPH_DEBUG
     for (Size i = 1; i < 4; ++i) {
         const Float altRadius = getLength(vertices[i] - center.value());
-        SPH_ASSERT(almostEqual(radius, altRadius, 1.e-8_f), radius, altRadius);
+        SPH_ASSERT(almostEqual(radius, altRadius, 1.e-4_f), radius, altRadius);
     }
 #endif
     const Sphere sphere(center.value(), radius);
@@ -125,11 +126,6 @@ INLINE Face toKey(const Face& f) {
 
 INLINE bool isSuper(const Face& f) {
     return f[0] < 4 && f[1] < 4 && f[2] < 4;
-}
-
-INLINE Vector perturbDirection(const Vector& n) {
-    // has to yield the same result for n and -n
-    return Vector::unit(argMax(abs(n)));
 }
 
 inline bool opposite(const Face& f1, const Face& f2) {
@@ -288,15 +284,35 @@ Delaunay::~Delaunay() {
     }
 }
 
-void Delaunay::build(ArrayView<const Vector> points, const Flags<BuildFlag> flags) {
-    if (flags.has(BuildFlag::SPATIAL_SORT)) {
-        Array<Vector> sortedPoints;
-        sortedPoints.pushAll(points.begin(), points.end());
-        spatialSort(sortedPoints);
+struct DegenerateTetrahedron {};
 
-        this->buildImpl(sortedPoints);
-    } else {
-        this->buildImpl(points);
+void Delaunay::build(ArrayView<const Vector> points, const Flags<BuildFlag> flags) {
+    try {
+        if (flags.has(BuildFlag::SPATIAL_SORT)) {
+            Array<Vector> sortedPoints;
+            sortedPoints.pushAll(points.begin(), points.end());
+            spatialSort(sortedPoints);
+
+            this->buildImpl(sortedPoints);
+        } else {
+            this->buildImpl(points);
+        }
+    } catch (const DegenerateTetrahedron&) {
+        // perturb the input points and retry
+        Array<Vector> perturbedPoints;
+        perturbedPoints.pushAll(points.begin(), points.end());
+
+        Box box;
+        for (const Vector& p : points) {
+            box.extend(p);
+        }
+
+        VectorRng<UniformRng> rng;
+        const Float magnitude = 1.e-8_f * maxElement(box.size());
+        for (Size i = 0; i < perturbedPoints.size(); ++i) {
+            perturbedPoints[i] += magnitude * (2._f * rng() - Vector(1._f));
+        }
+        this->build(perturbedPoints, flags);
     }
 }
 
@@ -443,24 +459,12 @@ Delaunay::Cell::Handle Delaunay::addPoint(const Vector& p, const Cell::Handle hi
 
 Delaunay::Cell::Handle Delaunay::triangulate(const Cell::Handle ch1, const Size fi1, const Vector& p) {
     Face f1 = ch1->face(fi1);
-    const Triangle tri = triangle(f1);
-    const Plane plane(tri);
     Cell::Handle ch2;
     Tetrahedron tet(triangle(f1), p);
     Optional<Sphere> sphere = tet.circumsphere();
-    Vector p_reg = p;
     if (!sphere) {
-        // small perturbation
-        const Float e10 = getSqrLength(tri[1] - tri[0]);
-        const Float e20 = getSqrLength(tri[2] - tri[0]);
-        const Float e21 = getSqrLength(tri[2] - tri[1]);
-        const Float e = sqrt(max(e10, e20, e21));
-        logger->write("Denegerated tetrahedron!! Perturbing the added point by e = ", e);
-        p_reg += clearH(0.01_f * perturbDirection(plane.normal()) * e);
-        vertices.back() = p_reg;
-        tet = Tetrahedron(triangle(f1), p_reg);
-        sphere = tet.circumsphere();
-        SPH_ASSERT(sphere);
+        logger->write("Degenerate tetrahedron!");
+        throw DegenerateTetrahedron();
     }
     ch2 = allocatorNew<Cell>(allocator, f1[0], f1[2], f1[1], vertices.size() - 1, sphere.value());
 
@@ -474,7 +478,7 @@ Delaunay::Cell::Handle Delaunay::triangulate(const Cell::Handle ch1, const Size 
 
     // fix connectivity
     if (const Cell::Handle nch1 = ch1->neighbor(fi1)) {
-        SPH_ASSERT(!contains(badSet, nch1));
+        SPH_ASSERT(ch1 && !contains(badSet, nch1));
         const Size nfi1 = ch1->mirror(fi1);
         // detach the neighbor thats now connected to ch2
         ch1->setNeighbor(fi1, nullptr, Size(-1));
