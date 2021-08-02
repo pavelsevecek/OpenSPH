@@ -7,6 +7,7 @@
 #include "gui/windows/GuiSettingsDialog.h"
 #include "gui/windows/NodePage.h"
 #include "gui/windows/PlotView.h"
+#include "gui/windows/RenderPage.h"
 #include "gui/windows/RunPage.h"
 #include "gui/windows/SessionDialog.h"
 #include "io/FileSystem.h"
@@ -100,7 +101,13 @@ public:
     virtual void startRun(SharedPtr<INode> node,
         const RunSettings& globals,
         const std::string& name) const override {
-        window->addPage(std::move(node), globals, name);
+        window->addRunPage(std::move(node), globals, name);
+    }
+
+    virtual void startRender(SharedPtr<INode> node,
+        const RunSettings& globals,
+        const std::string& name) const override {
+        window->addRenderPage(std::move(node), globals, name);
     }
 
     virtual void markUnsaved(bool UNUSED(addToUndo)) const override {
@@ -140,7 +147,7 @@ MainWindow::MainWindow(const Path& openPath)
         evt.Skip();
     });
 
-    nodePage = new NodeWindow(notebook, makeShared<NodeManagerCallbacks>(this));
+    nodePage = new NodeWindow(notebook, makeShared<NodeManagerCallbacks>(this), Project::getInstance());
     notebook->AddPage(nodePage, "Unnamed session");
 
     wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -165,6 +172,7 @@ MainWindow::MainWindow(const Path& openPath)
     wxMenu* viewMenu = new wxMenu();
     viewMenu->Append(NodeWindow::ID_PROPERTIES, "&Node properties");
     viewMenu->Append(NodeWindow::ID_LIST, "&Node list");
+    viewMenu->Append(NodeWindow::ID_PALETTE, "&Palette setup");
     viewMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& evt) { //
         nodePage->showPanel(NodeWindow::PanelId(evt.GetId()));
     });
@@ -232,9 +240,8 @@ MainWindow::MainWindow(const Path& openPath)
     notebook->Bind(wxEVT_AUINOTEBOOK_PAGE_CLOSE, [this](wxAuiNotebookEvent& evt) {
         const int pageId = evt.GetSelection();
         wxWindow* page = notebook->GetPage(pageId);
-        RunPage* runPage = dynamic_cast<RunPage*>(page);
-        NodeWindow* nodePage = dynamic_cast<NodeWindow*>(page);
-        if (nodePage || (runPage && !closeRun(pageId))) {
+        ClosablePage* closablePage = dynamic_cast<RunPage*>(page);
+        if (!closablePage || !this->closePage(closablePage)) {
             evt.Veto();
         }
     });
@@ -287,18 +294,22 @@ void MainWindow::save() {
     addToRecentSessions(FileSystem::getAbsolutePath(projectPath));
 }
 
+template <typename TInput>
+bool isSph(const Path& path) {
+    TInput input;
+    Expected<typename TInput::Info> info = input.getInfo(path);
+    return info && info->runType == RunTypeEnum::SPH;
+}
+
 void MainWindow::open(const Path& openPath, const bool setDefaults) {
     BusyCursor wait(this);
 
     if (setDefaults) {
         // if loading a file specified as parameter, modify defaults if its SPH
-        /// \todo generalize
-        BinaryInput input;
-        Expected<BinaryInput::Info> info = input.getInfo(openPath);
-        const bool isSphSim = info && info->runType == RunTypeEnum::SPH;
+        const bool isSphSim = isSph<BinaryInput>(openPath) || isSph<CompressedInput>(openPath);
         const bool isMiluphSim = openPath.extension() == Path("h5");
         if (isSphSim || isMiluphSim) {
-            Project::getInstance().getGuiSettings().set(GuiSettingsId::PARTICLE_RADIUS, 0.35);
+            Project::getInstance().getGuiSettings().set(GuiSettingsId::PARTICLE_RADIUS, 0.35_f);
         }
     }
     AutoPtr<Controller> controller = makeAuto<Controller>(notebook);
@@ -306,15 +317,16 @@ void MainWindow::open(const Path& openPath, const bool setDefaults) {
 
     const Size index = notebook->GetPageCount();
     RunPage* page = &*controller->getPage();
-
-    const Path displayedPath = openPath.parentPath().fileName() / openPath.fileName();
-    notebook->AddPage(page, displayedPath.native());
-    notebook->SetSelection(index);
+    SPH_ASSERT(page != nullptr);
 
     RunData data;
     data.controller = std::move(controller);
     data.isRun = false;
     runs.insert(page, std::move(data));
+
+    const Path displayedPath = openPath.parentPath().fileName() / openPath.fileName();
+    notebook->AddPage(page, displayedPath.native());
+    notebook->SetSelection(index);
 
     this->enableMenus(index);
 }
@@ -402,7 +414,7 @@ wxMenu* MainWindow::createProjectMenu() {
     projectMenu->AppendSubMenu(recentMenu, "&Recent");
     projectMenu->Append(4, "&Visualization settings...");
     projectMenu->Append(5, "&Shared properties...");
-    projectMenu->Append(6, "&Batch run\tCtrl+B");
+    projectMenu->Append(6, "&Batch setup...\tCtrl+B");
     projectMenu->Append(7, "&Quit");
 
     SharedPtr<Array<Path>> recentSessions = makeShared<Array<Path>>();
@@ -495,12 +507,13 @@ wxMenu* MainWindow::createResultMenu() {
         }
         case 1: {
             wxWindow* page = notebook->GetCurrentPage();
-            if (dynamic_cast<NodeWindow*>(page)) {
-                // node page should not be closeable
+            ClosablePage* closablePage = dynamic_cast<ClosablePage*>(page);
+            if (!closablePage) {
+                // cannot close this page
                 break;
             }
 
-            closeRun(notebook->GetPageIndex(page));
+            closePage(closablePage);
             break;
         }
         default:
@@ -513,6 +526,7 @@ wxMenu* MainWindow::createResultMenu() {
 
 enum RunMenuId {
     RUN_START,
+    RUN_START_BATCH,
     RUN_START_SCRIPT,
     RUN_RESTART,
     RUN_PAUSE,
@@ -526,6 +540,7 @@ enum RunMenuId {
 wxMenu* MainWindow::createRunMenu() {
     wxMenu* runMenu = new wxMenu();
     runMenu->Append(RUN_START, "S&tart run\tCtrl+R");
+    runMenu->Append(RUN_START_BATCH, "Start batch");
     runMenu->Append(RUN_START_SCRIPT, "Start script");
     runMenu->Append(RUN_RESTART, "&Restart");
     runMenu->Append(RUN_PAUSE, "&Pause");
@@ -606,7 +621,7 @@ wxMenu* MainWindow::createRunMenu() {
             break;
         }
         case RUN_CLOSE_CURRENT:
-            closeRun(notebook->GetPageIndex(page));
+            closePage(page);
             break;
         case RUN_CLOSE_ALL:
             this->removeAll();
@@ -700,26 +715,39 @@ wxMenu* MainWindow::createAnalysisMenu() {
     return analysisMenu;
 }
 
-void MainWindow::addPage(SharedPtr<INode> node, const RunSettings& globals, const std::string pageName) {
+void MainWindow::addRunPage(SharedPtr<INode> node, const RunSettings& globals, const std::string pageName) {
     AutoPtr<Controller> controller = makeAuto<Controller>(notebook);
     controller->start(std::move(node), globals);
 
-    const Size index = notebook->GetPageCount();
     RunPage* page = &*controller->getPage();
-    notebook->AddPage(page, pageName);
-    notebook->SetSelection(index);
-
     RunData data;
     data.controller = std::move(controller);
     data.isRun = true;
     runs.insert(page, std::move(data));
+
+    const Size index = notebook->GetPageCount();
+    notebook->AddPage(page, pageName);
+    notebook->SetSelection(index);
+
+    this->enableMenus(index);
+}
+
+void MainWindow::addRenderPage(SharedPtr<INode> node,
+    const RunSettings& globals,
+    const std::string pageName) {
+    RenderPage* page = alignedNew<RenderPage>(notebook, globals, node);
+
+    const Size index = notebook->GetPageCount();
+    notebook->AddPage(page, pageName);
+    notebook->SetSelection(index);
 
     this->enableMenus(index);
 }
 
 bool MainWindow::removeAll() {
     for (int i = notebook->GetPageCount() - 1; i >= 0; --i) {
-        if (dynamic_cast<RunPage*>(notebook->GetPage(i)) && !closeRun(i)) {
+        ClosablePage* closablePage = dynamic_cast<ClosablePage*>(notebook->GetPage(i));
+        if (closablePage && !this->closePage(closablePage)) {
             return false;
         }
     }
@@ -739,40 +767,47 @@ void MainWindow::enableMenus(const Size id) {
 
     wxMenuBar* bar = this->GetMenuBar();
     RunPage* page = dynamic_cast<RunPage*>(notebook->GetPage(id));
-    if (!runs.contains(page)) {
-        enableRunMenu(false);
+    if (page == nullptr) {
+        enableRunMenu(false, false);
         // disable analysis
         bar->EnableTop(2, false);
         return;
     }
-    const bool enableRun = page && runs[page].isRun;
+    SPH_ASSERT(runs.contains(page));
 
-    enableRunMenu(enableRun);
+    const bool enableControls = runs[page].isRun;
+    enableRunMenu(enableControls, true);
     // enable/disable analysis
-    bar->EnableTop(2, enableRun);
+    bar->EnableTop(2, true);
 }
 
-void MainWindow::enableRunMenu(const bool enable) {
+void MainWindow::enableRunMenu(const bool enableControls, const bool enableCamera) {
     wxMenuItemList& list = runMenu->GetMenuItems();
     for (Size i = 0; i < list.size(); ++i) {
-        if (i != RUN_START && i != RUN_START_SCRIPT) {
-            list[i]->Enable(enable);
+        if (i == RUN_START || i == RUN_START_SCRIPT || i == RUN_START_BATCH) {
+            // always enabled
+            list[i]->Enable(true);
+            continue;
+        }
+        if (i == RUN_CREATE_CAMERA) {
+            list[i]->Enable(enableCamera);
+        } else {
+            list[i]->Enable(enableControls);
         }
     }
 }
 
-bool MainWindow::closeRun(const Size id) {
-    wxWindow* page = notebook->GetPage(id);
-    if (RunPage* runPage = dynamic_cast<RunPage*>(page)) {
-        if (!runPage->close()) {
-            // veto'd
-            return false;
-        }
+bool MainWindow::closePage(ClosablePage* page) {
+    if (!page->close()) {
+        // veto'd
+        return false;
+    }
 
-        // destroy the associated controller
+    // destroy the associated controller
+    if (RunPage* runPage = dynamic_cast<RunPage*>(page)) {
         runs.remove(runPage);
     }
-    notebook->DeletePage(id);
+    notebook->DeletePage(notebook->GetPageIndex(page));
     return true;
 }
 

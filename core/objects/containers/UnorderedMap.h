@@ -58,11 +58,34 @@ public:
         }
     }
 
-    /// \copydoc insert
+    /// \copydoc insert(const TKey& key, const TValue& value)
     INLINE TValue& insert(const TKey& key, TValue&& value) {
         Element* element = this->find(key);
         if (!element) {
             return this->add(key, std::move(value));
+        } else {
+            element->value = std::move(value);
+            return element->value;
+        }
+    }
+
+    /// \brief Inserts a new element into the given position in the map or sets new value of element with the
+    /// same key.
+    INLINE TValue& insert(const TKey& key, const Size position, const TValue& value) {
+        Element* element = this->find(key);
+        if (!element) {
+            return this->add(key, position, value);
+        } else {
+            element->value = value;
+            return element->value;
+        }
+    }
+
+    /// \copydoc insert(const TKey& key, const Size position, const TValue& value) {
+    INLINE TValue& insert(const TKey& key, const Size position, TValue&& value) {
+        Element* element = this->find(key);
+        if (!element) {
+            return this->add(key, position, std::move(value));
         } else {
             element->value = std::move(value);
             return element->value;
@@ -190,6 +213,13 @@ private:
     template <typename T>
     INLINE TValue& add(const TKey& key, T&& value) {
         data.push(Element{ key, std::forward<T>(value) });
+        return data.back().value;
+    }
+
+    /// Inserts new element into given position
+    template <typename T>
+    INLINE TValue& add(const TKey& key, const Size position, T&& value) {
+        data.insert(position, Element{ key, std::forward<T>(value) });
         return data.back().value;
     }
 };

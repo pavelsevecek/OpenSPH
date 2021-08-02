@@ -235,9 +235,9 @@ INLINE Float powFastest(const Float value, const Float power) {
         double d;
         int x[2];
     } u = { value };
-    u.x[1] = (int)(power * (u.x[1] - 1072632447) + 1072632447);
+    u.x[1] = (int)(double(power) * (u.x[1] - 1072632447) + 1072632447);
     u.x[0] = 0;
-    return u.d;
+    return Float(u.d);
 }
 
 /// Approximative version of pow function, slightly more precise than powFastest.
@@ -251,7 +251,7 @@ INLINE Float powFast(Float value, const Float power) {
         double d;
         int x[2];
     } u = { value };
-    u.x[1] = (int)((power - e) * (u.x[1] - 1072632447) + 1072632447);
+    u.x[1] = (int)((double(power) - e) * (u.x[1] - 1072632447) + 1072632447);
     u.x[0] = 0;
 
     double r = 1.0;
@@ -262,73 +262,80 @@ INLINE Float powFast(Float value, const Float power) {
         value *= value;
         e >>= 1;
     }
-    return r * u.d;
+    return Float(r * u.d);
 }
 
 template <typename T>
 INLINE T exp(const T f) {
-    return ::exp(f);
+    return T(::exp(f));
 }
 
-/// Computes absolute value.
-/// \note Return type must be auto as abs(TracelessTensor) != TracelessTensor
 template <typename T>
-INLINE auto abs(const T& f) {
-    return ::fabs(f);
+struct AbsoluteValueType {
+    using Type = T;
+};
+
+template <typename T>
+using AbsoluteValue = typename AbsoluteValueType<T>::Type;
+
+/// Computes absolute value.
+/// \note Return type may not be T, e.g. abs(TracelessTensor) != TracelessTensor
+template <typename T>
+INLINE AbsoluteValue<T> abs(const T& f) {
+    return AbsoluteValue<T>(::fabs(f));
 }
 
 template <>
-INLINE auto abs(const int& f) {
+INLINE int abs(const int& f) {
     return int(::abs(f));
 }
 
 template <>
-INLINE auto abs(const Size& f) {
+INLINE Size abs(const Size& f) {
     return Size(f);
 }
 
-template <typename T>
-INLINE T cos(const T f) {
+INLINE Float cos(const Float f) {
     return std::cos(f);
 }
 
-template <typename T>
-INLINE T sin(const T f) {
+INLINE Float sin(const Float f) {
     return std::sin(f);
 }
 
-template <typename T>
-INLINE T tan(const T f) {
+INLINE Float tan(const Float f) {
     return std::tan(f);
 }
 
-template <typename T>
-INLINE T acos(const T f) {
+INLINE Float acos(const Float f) {
     return std::acos(f);
 }
 
-template <typename T>
-INLINE T asin(const T f) {
+INLINE Float asin(const Float f) {
     return std::asin(f);
 }
 
-template <typename T>
-INLINE T atan(const T f) {
+INLINE Float atan(const Float f) {
     return std::atan(f);
 }
 
-template <typename T>
-INLINE T atan2(const T y, const T x) {
+INLINE Float atan2(const Float y, const Float x) {
     return std::atan2(y, x);
 }
 
-template <typename T>
-INLINE T exp10(const T f) {
+INLINE Float cosh(const Float f) {
+    return std::cosh(f);
+}
+
+INLINE Float sinh(const Float f) {
+    return std::sinh(f);
+}
+
+INLINE Float exp10(const Float f) {
     return std::pow(10._f, f);
 }
 
-template <typename T>
-INLINE T log10(const T f) {
+INLINE Float log10(const Float f) {
     return std::log10(f);
 }
 

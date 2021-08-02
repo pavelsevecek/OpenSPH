@@ -39,7 +39,7 @@ private:
 
 public:
     ParticleProbe(wxWindow* parent, const wxSize size)
-        : wxPanel(parent, wxID_ANY, wxDefaultPosition, size) {
+        : wxPanel(parent, wxID_ANY) {
         this->SetMinSize(size);
 
         // Connect handlers

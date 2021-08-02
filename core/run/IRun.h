@@ -42,6 +42,18 @@ public:
     virtual bool shouldAbortRun() const = 0;
 };
 
+/// \brief Helper class allowing to report forward progress from a \ref Progressible object to given \ref
+/// IRunCallbacks object.
+class RunCallbacksProgressibleAdapter {
+    IRunCallbacks& callbacks;
+
+public:
+    explicit RunCallbacksProgressibleAdapter(IRunCallbacks& callbacks)
+        : callbacks(callbacks) {}
+
+    bool operator()(const Float progress) const;
+};
+
 /// \brief Defines the interface for a run.
 ///
 /// Each run must implement methods \ref setUp and \ref tearDown, settings up initial conditions for the run

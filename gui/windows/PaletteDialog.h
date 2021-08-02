@@ -1,36 +1,43 @@
 #pragma once
 
 #include "gui/objects/Palette.h"
-#include "objects/containers/FlatMap.h"
+#include "objects/containers/UnorderedMap.h"
 #include "objects/wrappers/Function.h"
 #include <wx/frame.h>
+#include <wx/panel.h>
 
 NAMESPACE_SPH_BEGIN
 
 class ComboBox;
+class FloatTextCtrl;
 class PaletteCanvas;
 
-class PaletteDialog : public wxFrame {
+class PalettePanel : public wxPanel {
 private:
     ComboBox* paletteBox;
 
     PaletteCanvas* canvas;
+    FloatTextCtrl* lowerCtrl;
+    FloatTextCtrl* upperCtrl;
 
-    Function<void(Palette)> setPaletteCallback;
-
-    FlatMap<std::string, Palette> paletteMap;
+    UnorderedMap<std::string, Palette> paletteMap;
 
     Palette initial;
-
     Palette selected;
 
 public:
-    PaletteDialog(wxWindow* parent, wxSize size, const Palette palette, Function<void(Palette)> setPalette);
+    PalettePanel(wxWindow* parent, wxSize size, const Palette palette);
+
+    void setPalette(const Palette& palette);
+
+    Function<void(Palette)> onPaletteChanged;
 
 private:
-    void update();
-
     void setDefaultPaletteList();
+
+    void loadPalettes(const Path& path);
+
+    void update();
 };
 
 NAMESPACE_SPH_END

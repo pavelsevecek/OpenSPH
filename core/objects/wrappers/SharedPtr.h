@@ -98,10 +98,10 @@ class SharedPtr {
     friend class SharedPtr;
     template <typename>
     friend class WeakPtr;
+    friend class SharedToken;
+    friend class WeakToken;
     template <typename>
     friend class LockingPtr;
-    template <typename>
-    friend class SharedFromThis;
 
 protected:
     T* ptr;
@@ -123,7 +123,7 @@ public:
         } else {
             block = nullptr;
         }
-        setSharedFromThis(*this);
+        setShareable(*this);
     }
 
     SharedPtr(const SharedPtr& other)
@@ -410,24 +410,24 @@ INLINE SharedPtr<T> makeShared(TArgs&&... args) {
 }
 
 template <typename T>
-class ShareFromThis {
+class Shareable {
 private:
     WeakPtr<T> ptr;
 
 public:
-    using SHARE_FROM_THIS_TAG = void;
+    using SHAREABLE_TAG = void;
 
     void setWeakPtr(const WeakPtr<T>& weakPtr) {
         ptr = weakPtr;
     }
 
-    SharedPtr<T> sharedFromThis() {
+    SharedPtr<T> sharedFromThis() const {
         SharedPtr<T> sharedPtr = ptr.lock();
         SPH_ASSERT(sharedPtr);
         return sharedPtr;
     }
 
-    WeakPtr<T> weakFromThis() {
+    WeakPtr<T> weakFromThis() const {
         return ptr;
     }
 };
@@ -435,21 +435,21 @@ public:
 /// \todo this is a weird solution, it must be doable with more standard approach
 
 template <typename T, typename TEnabler = void>
-struct IsShareFromThis {
+struct IsShareable {
     static constexpr bool value = false;
 };
 template <typename T>
-struct IsShareFromThis<T, typename T::SHARE_FROM_THIS_TAG> {
+struct IsShareable<T, typename T::SHAREABLE_TAG> {
     static constexpr bool value = true;
 };
 
 template <typename T>
-std::enable_if_t<IsShareFromThis<T>::value> setSharedFromThis(const SharedPtr<T>& ptr) {
+std::enable_if_t<IsShareable<T>::value> setShareable(const SharedPtr<T>& ptr) {
     ptr->setWeakPtr(ptr);
 }
 
 template <typename T>
-std::enable_if_t<!IsShareFromThis<T>::value> setSharedFromThis(const SharedPtr<T>& UNUSED(ptr)) {
+std::enable_if_t<!IsShareable<T>::value> setShareable(const SharedPtr<T>& UNUSED(ptr)) {
     // do nothing
 }
 

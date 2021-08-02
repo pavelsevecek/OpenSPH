@@ -105,18 +105,16 @@ private:
     }
 };
 
-PaletteDialog::PaletteDialog(wxWindow* parent,
-    wxSize size,
-    const Palette initialPalette,
-    Function<void(Palette)> setPalette)
-    : wxFrame(parent, wxID_ANY, "Palette Dialog", wxGetMousePosition(), size)
-    , setPaletteCallback(setPalette) {
+PalettePanel::PalettePanel(wxWindow* parent, wxSize size, const Palette palette)
+    : wxPanel(parent, wxID_ANY)
+    , initial(palette)
+    , selected(palette) {
 
-    selected = initial = initialPalette;
+    this->SetMinSize(size);
 
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
-    canvas = new PaletteCanvas(this, initialPalette);
+    canvas = new PaletteCanvas(this, initial);
     mainSizer->Add(canvas, 0, wxALIGN_CENTER_HORIZONTAL);
 
     wxBoxSizer* selectionSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -134,13 +132,15 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
 
     wxBoxSizer* rangeSizer = new wxBoxSizer(wxHORIZONTAL);
 
-    const Size height = 30;
-    rangeSizer->Add(new wxStaticText(this, wxID_ANY, "From: ", wxDefaultPosition, wxSize(-1, height)));
-    FloatTextCtrl* lowerCtrl = new FloatTextCtrl(this, double(initialPalette.getInterval().lower()));
+    wxStaticText* text = new wxStaticText(this, wxID_ANY, "From ");
+    rangeSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
+    lowerCtrl = new FloatTextCtrl(this, double(initial.getInterval().lower()));
     rangeSizer->Add(lowerCtrl);
+    rangeSizer->AddSpacer(30);
 
-    rangeSizer->Add(new wxStaticText(this, wxID_ANY, "To: ", wxDefaultPosition, wxSize(-1, height)));
-    FloatTextCtrl* upperCtrl = new FloatTextCtrl(this, double(initialPalette.getInterval().upper()));
+    text = new wxStaticText(this, wxID_ANY, "To ");
+    rangeSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
+    upperCtrl = new FloatTextCtrl(this, double(initial.getInterval().upper()));
     rangeSizer->Add(upperCtrl);
 
     upperCtrl->onValueChanged = [this](const Float value) {
@@ -151,7 +151,7 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
         }
         selected.setInterval(Interval(lower, value));
         canvas->setPalette(selected);
-        setPaletteCallback(selected);
+        onPaletteChanged.callIfNotNull(selected);
         return true;
     };
     lowerCtrl->onValueChanged = [this](const Float value) {
@@ -164,26 +164,11 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
         }
         selected.setInterval(Interval(value, upper));
         canvas->setPalette(selected);
-        setPaletteCallback(selected);
+        onPaletteChanged.callIfNotNull(selected);
         return true;
     };
 
     mainSizer->Add(rangeSizer, 0, wxALIGN_CENTER_HORIZONTAL);
-    mainSizer->AddSpacer(5);
-
-    wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
-    wxButton* okButton = new wxButton(this, wxID_ANY, "OK");
-    okButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
-        setPaletteCallback(selected);
-        this->Close();
-    });
-    buttonSizer->Add(okButton);
-    wxButton* cancelButton = new wxButton(this, wxID_ANY, "Cancel");
-    cancelButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { this->Close(); });
-    buttonSizer->Add(cancelButton);
-
-    mainSizer->Add(buttonSizer, 0, wxALIGN_CENTER_HORIZONTAL);
-    mainSizer->AddSpacer(10);
 
     this->SetSizerAndFit(mainSizer);
 
@@ -195,40 +180,27 @@ PaletteDialog::PaletteDialog(wxWindow* parent,
         if (!path) {
             return;
         }
-        paletteMap.clear();
-        for (Path file : FileSystem::iterateDirectory(path->parentPath())) {
-            if (file.extension().native() == "csv") {
-                Palette palette = initial;
-                if (palette.loadFromFile(path->parentPath() / file)) {
-                    paletteMap.insert(file.native(), palette);
-                }
-            }
-        }
-        wxArrayString items;
-        int selectionIdx = 0, idx = 0;
-        for (FlatMap<std::string, Palette>::Element& e : paletteMap) {
-            items.Add(e.key);
-            if (e.key == path->fileName().native()) {
-                // this is the palette we selected
-                selectionIdx = idx;
-            }
-            ++idx;
-        }
-        paletteBox->Set(items);
-        paletteBox->SetSelection(selectionIdx);
-
-        this->update();
+        this->loadPalettes(path.value());
     });
     resetButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { this->setDefaultPaletteList(); });
 
     this->setDefaultPaletteList();
 }
 
-static FlatMap<ExtColorizerId, std::string> PALETTE_ID_LIST = {
-    { ColorizerId::VELOCITY, "Velocity" },
+void PalettePanel::setPalette(const Palette& palette) {
+    selected = initial = palette;
+    paletteMap.insert("Current", 0, initial);
+    paletteBox->SetSelection(0);
+    canvas->setPalette(selected);
+    lowerCtrl->setValue(initial.getInterval().lower());
+    upperCtrl->setValue(initial.getInterval().upper());
+}
+
+static UnorderedMap<ExtColorizerId, std::string> PALETTE_ID_LIST = {
+    { ColorizerId::VELOCITY, "Magnitude 1" },
+    { QuantityId::DEVIATORIC_STRESS, "Magnitude 2" },
     { ColorizerId::TEMPERATURE, "Temperature" },
-    { QuantityId::DEVIATORIC_STRESS, "Stress" },
-    { QuantityId::DAMAGE, "Damage" },
+    { QuantityId::DAMAGE, "Grayscale" },
     { ColorizerId::MOVEMENT_DIRECTION, "Periodic" },
     { ColorizerId::DENSITY_PERTURBATION, "Diverging 1" },
     { QuantityId::DENSITY, "Diverging 2" },
@@ -256,9 +228,9 @@ const Palette ACCRETION({ { 0.001f, Rgba(0.43f, 0.70f, 1.f) },
 
 } // namespace Palettes
 
-void PaletteDialog::setDefaultPaletteList() {
+void PalettePanel::setDefaultPaletteList() {
     paletteMap = {
-        { "(default)", initial },
+        { "Current", initial },
         { "Blackbody", getBlackBodyPalette(Interval(300, 12000)) },
         { "Galaxy", Palettes::GALAXY },
         { "Accretion", Palettes::ACCRETION },
@@ -268,7 +240,7 @@ void PaletteDialog::setDefaultPaletteList() {
     }
 
     wxArrayString items;
-    for (FlatMap<std::string, Palette>::Element& e : paletteMap) {
+    for (const auto& e : paletteMap) {
         items.Add(e.key);
     }
     paletteBox->Set(items);
@@ -276,13 +248,39 @@ void PaletteDialog::setDefaultPaletteList() {
     this->update();
 }
 
-void PaletteDialog::update() {
+void PalettePanel::loadPalettes(const Path& path) {
+    paletteMap.clear();
+    for (Path file : FileSystem::iterateDirectory(path.parentPath())) {
+        if (file.extension().native() == "csv") {
+            Palette palette = initial;
+            if (palette.loadFromFile(path.parentPath() / file)) {
+                paletteMap.insert(file.native(), palette);
+            }
+        }
+    }
+    wxArrayString items;
+    int selectionIdx = 0, idx = 0;
+    for (const auto& e : paletteMap) {
+        items.Add(e.key);
+        if (e.key == path.fileName().native()) {
+            // this is the palette we selected
+            selectionIdx = idx;
+        }
+        ++idx;
+    }
+    paletteBox->Set(items);
+    paletteBox->SetSelection(selectionIdx);
+
+    this->update();
+}
+
+void PalettePanel::update() {
     const int idx = paletteBox->GetSelection();
     const Interval range = selected.getInterval();
     selected = (paletteMap.begin() + idx)->value;
     selected.setInterval(range);
     canvas->setPalette(selected);
-    setPaletteCallback(selected);
+    onPaletteChanged.callIfNotNull(selected);
 }
 
 NAMESPACE_SPH_END

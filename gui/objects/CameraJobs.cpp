@@ -4,8 +4,8 @@
 NAMESPACE_SPH_BEGIN
 
 void ICameraJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
-    const int width = gui.get<int>(GuiSettingsId::IMAGES_WIDTH);
-    const int height = gui.get<int>(GuiSettingsId::IMAGES_HEIGHT);
+    const int width = gui.get<int>(GuiSettingsId::CAMERA_WIDTH);
+    const int height = gui.get<int>(GuiSettingsId::CAMERA_HEIGHT);
     AutoPtr<ICamera> camera = Factory::getCamera(gui, Pixel(width, height));
     AutoPtr<ITracker> tracker = Factory::getTracker(gui);
 
@@ -27,8 +27,8 @@ OrthoCameraJob::OrthoCameraJob(const std::string& name)
 
 static VirtualSettings::Category& addResolutionCategory(VirtualSettings& connector, GuiSettings& gui) {
     VirtualSettings::Category& resCat = connector.addCategory("Resolution");
-    resCat.connect<int>("Image width", gui, GuiSettingsId::IMAGES_WIDTH);
-    resCat.connect<int>("Image height", gui, GuiSettingsId::IMAGES_HEIGHT);
+    resCat.connect<int>("Image width", gui, GuiSettingsId::CAMERA_WIDTH);
+    resCat.connect<int>("Image height", gui, GuiSettingsId::CAMERA_HEIGHT);
     return resCat;
 }
 
@@ -43,7 +43,11 @@ static VirtualSettings::Category& addTransformCategory(VirtualSettings& connecto
         });
     transformCat.connect<Float>("Orbit speed [s^-1]", gui, GuiSettingsId::CAMERA_ORBIT);
     transformCat.connect<Vector>("Target [km]", gui, GuiSettingsId::CAMERA_TARGET).setUnits(1.e3_f);
-    transformCat.connect<Vector>("Up-direction", gui, GuiSettingsId::CAMERA_UP);
+    transformCat.connect<Vector>("Up-direction", gui, GuiSettingsId::CAMERA_UP)
+        .setValidator([](const IVirtualEntry::Value& value) {
+            const Vector v = value.get<Vector>();
+            return v != Vector(0._f);
+        });
     transformCat.connect<Float>("Clip near [km]", gui, GuiSettingsId::CAMERA_CLIP_NEAR).setUnits(1.e3_f);
     transformCat.connect<Float>("Clip far [km]", gui, GuiSettingsId::CAMERA_CLIP_FAR).setUnits(1.e3_f);
     return transformCat;
@@ -131,5 +135,30 @@ JobRegistrar sRegisterFisheye(
     "rendering",
     [](const std::string& name) { return makeAuto<FisheyeCameraJob>(name); },
     "Creates a fisheye camera.");
+
+// ----------------------------------------------------------------------------------------------------------
+// SphericalCameraJob
+// ----------------------------------------------------------------------------------------------------------
+
+SphericalCameraJob::SphericalCameraJob(const std::string& name)
+    : ICameraJob(name) {
+    gui.set(GuiSettingsId::CAMERA_TYPE, CameraEnum::SPHERICAL);
+}
+
+VirtualSettings SphericalCameraJob::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+    addResolutionCategory(connector, gui);
+    addTransformCategory(connector, gui);
+    addTrackingCategory(connector, gui);
+    return connector;
+}
+
+JobRegistrar sRegisterSpherical(
+    "spherical camera",
+    "camera",
+    "rendering",
+    [](const std::string& name) { return makeAuto<SphericalCameraJob>(name); },
+    "Creates a spherical 360° camera.");
 
 NAMESPACE_SPH_END

@@ -44,7 +44,7 @@ public:
 /// \brief Base class for asymmetric SPH solvers.
 class IAsymmetricSolver : public ISolver {
 protected:
-    /// \brief Structure used to search for neighbouring particles.
+    /// \brief Structure used to search for neighboring particles.
     ///
     /// Should not be accessed by derived classes directly, use \ref getFinder instead.
     AutoPtr<ISymmetricFinder> finder;
@@ -93,9 +93,9 @@ protected:
 /// meaning each particle pair is evaluated twice (or not at all, of course). This leads to generally slower
 /// evaluation, as we have to compute twice as much interactions. However, the solver is more versatile and
 /// can solve equations with asymmetric derivatives. This allows to use helper terms (like strain rate
-/// correction tensor) that require two passes over the particle neighbours; the derivative is completed after
-/// the neighbours are summed up, as the list of neighbours contains ALL of the neighbouring particles (as
-/// opposed to SymmetricSolver, where the list of neighbours only contains the particles with lower smoothing
+/// correction tensor) that require two passes over the particle neighbors; the derivative is completed after
+/// the neighbors are summed up, as the list of neighbors contains ALL of the neighboring particles (as
+/// opposed to SymmetricSolver, where the list of neighbors only contains the particles with lower smoothing
 /// length).
 ///
 /// Another benefit is lower memory overhead (all threads can write into the same buffers) and
@@ -108,10 +108,10 @@ protected:
     AutoPtr<IBoundaryCondition> bc;
 
     struct ThreadData {
-        /// Cached array of neighbours, to avoid allocation every step
-        Array<NeighbourRecord> neighs;
+        /// Cached array of neighbors, to avoid allocation every step
+        Array<NeighborRecord> neighs;
 
-        /// Indices of real neighbours
+        /// Indices of real neighbors
         Array<Size> idxs;
 
         /// Cached array of gradients

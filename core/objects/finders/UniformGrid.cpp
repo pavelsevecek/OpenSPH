@@ -27,7 +27,7 @@ template <bool FindAll>
 Size UniformGridFinder::find(const Vector& pos,
     const Size index,
     const Float radius,
-    Array<NeighbourRecord>& neighbours) const {
+    Array<NeighborRecord>& neighbors) const {
     const Vector refPosition = lut.clamp(pos);
     Indices lower = lut.map(refPosition);
     Indices upper = lower;
@@ -69,13 +69,23 @@ Size UniformGridFinder::find(const Vector& pos,
                 for (Size i : lut(Indices(x, y, z))) {
                     const Float distSqr = getSqrLength(values[i] - pos);
                     if (distSqr < sqr(radius) && (FindAll || rank[i] < rank[index])) {
-                        neighbours.emplaceBack(NeighbourRecord{ i, distSqr });
+                        neighbors.emplaceBack(NeighborRecord{ i, distSqr });
                     }
                 }
             }
         }
     }
-    return neighbours.size();
+    return neighbors.size();
 }
+
+template Size UniformGridFinder::find<true>(const Vector& pos,
+    const Size index,
+    const Float radius,
+    Array<NeighborRecord>& neighbors) const;
+
+template Size UniformGridFinder::find<false>(const Vector& pos,
+    const Size index,
+    const Float radius,
+    Array<NeighborRecord>& neighbors) const;
 
 NAMESPACE_SPH_END

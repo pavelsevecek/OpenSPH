@@ -83,7 +83,7 @@ private:
     }
 };
 
-void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx);
+void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx, const float scale = 1.f);
 
 Bitmap<Rgba> toBitmap(wxBitmap& wx);
 

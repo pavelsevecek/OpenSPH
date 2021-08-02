@@ -182,12 +182,20 @@ void Chai::Particles::merge(Particles& other) {
     radii.insert(radii.end(), other.radii.begin(), other.radii.end());
 }
 
+template <typename... TArgs>
+std::string format(const std::string& f, const TArgs&... values) {
+    const Size size = std::snprintf(nullptr, 0, f.c_str(), values...);
+    std::string output(size + 1, '\0');
+    std::sprintf(&output[0], f.c_str(), values...);
+    return output;
+}
+
 void Chai::registerBindings(chaiscript::ChaiScript& chai) {
     // math functions
     chai.add(chaiscript::fun(&Sph::sqr<double>), "sqr");
     chai.add(chaiscript::fun(&Sph::sqrt<double>), "sqrt");
-    chai.add(chaiscript::fun(&Sph::cos<double>), "cos");
-    chai.add(chaiscript::fun(&Sph::sin<double>), "sin");
+    chai.add(chaiscript::fun(&Sph::cos), "cos");
+    chai.add(chaiscript::fun(&Sph::sin), "sin");
     chai.add(chaiscript::fun(&Sph::lerp<double, double>), "lerp");
     chai.add(chaiscript::fun(&Sph::abs<double>), "abs");
     chai.add(chaiscript::fun(&Sph::pow<double>), "pow");
@@ -240,6 +248,14 @@ void Chai::registerBindings(chaiscript::ChaiScript& chai) {
     chai.add(chaiscript::fun(&Particles::getTotalMomentum), "getTotalMomentum");
     chai.add(chaiscript::fun(&Particles::getTotalAngularMomentum), "getTotalAngularMomentum");
     chai.add(chaiscript::fun(&Particles::getAngularFrequency), "getAngularFrequency");
+
+    // random utility functions
+    chai.add(chaiscript::fun(&format<int>), "format");
+    chai.add(chaiscript::fun(&format<double>), "format");
+    chai.add(chaiscript::fun(&format<int, int>), "format");
+    chai.add(chaiscript::fun(&format<int, double>), "format");
+    chai.add(chaiscript::fun(&format<double, int>), "format");
+    chai.add(chaiscript::fun(&format<double, double>), "format");
 
     // allow using float and vector std::vector's
     chai.add(chaiscript::bootstrap::standard_library::vector_type<std::vector<Float>>("VectorFloat"));

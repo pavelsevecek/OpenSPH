@@ -9,9 +9,7 @@
 NAMESPACE_SPH_BEGIN
 
 VolumeRenderer::VolumeRenderer(SharedPtr<IScheduler> scheduler, const GuiSettings& settings)
-    : IRaytracer(scheduler, settings) {
-    kernel = CubicSpline<3>();
-}
+    : IRaytracer(scheduler, settings) {}
 
 VolumeRenderer::~VolumeRenderer() = default;
 
@@ -34,8 +32,8 @@ void VolumeRenderer::initialize(const Storage& storage,
 
     Array<BvhSphere> spheres(cached.r.size());
     spheres.reserve(cached.r.size());
-    ThreadLocal<Array<NeighbourRecord>> neighs(*scheduler);
-    parallelFor(*scheduler, neighs, 0, cached.r.size(), [&](const Size i, Array<NeighbourRecord>& local) {
+    ThreadLocal<Array<NeighborRecord>> neighs(*scheduler);
+    parallelFor(*scheduler, neighs, 0, cached.r.size(), [&](const Size i, Array<NeighborRecord>& local) {
         const float initialRadius = cached.r[i][H];
         float radius = initialRadius;
         while (radius < MAX_DISTENTION * initialRadius) {
@@ -60,6 +58,10 @@ void VolumeRenderer::initialize(const Storage& storage,
     }
 
     shouldContinue = true;
+}
+
+bool VolumeRenderer::isInitialized() const {
+    return !cached.r.empty();
 }
 
 Rgba VolumeRenderer::shade(const RenderParams& params, const CameraRay& cameraRay, ThreadData& data) const {
@@ -87,8 +89,11 @@ Rgba VolumeRenderer::shade(const RenderParams& params, const CameraRay& cameraRa
         result = result * exp(-params.volume.absorption * secant);
         // 3th power of cosPhi to give more weight to the sphere center,
         // divide by distention^3; distention should not affect the total emission
-        result += cached.colors[i] * params.volume.emission * pow<3>(cosPhi / distention) * secant;
+        const float magnitude = params.volume.emission * pow<3>(cosPhi / distention) * secant;
+        result += cached.colors[i] * magnitude;
+        result.a() += magnitude;
     }
+    result.a() = min(result.a(), 1.f);
     return result;
 }
 

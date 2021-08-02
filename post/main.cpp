@@ -264,7 +264,7 @@ void ssfToVelDir(const Path& filePath, const Path& outPath) {
     // compute velocity directions (in x-y plane)
     Array<Float> dirs;
     for (Size i = 0; i < v.size(); ++i) {
-        Float dir = atan2(v[i][Y], v[i][X]);
+        Float dir = Sph::atan2(v[i][Y], v[i][X]);
         if (dir < 0._f) {
             dir += 2._f * PI;
         }
@@ -645,7 +645,7 @@ void makeSwift(const Path& filePath) {
     for (Size i = 0; i < rs.size(); ++i) {
         const Float phi = rng() * 2._f * PI;
         const Float cosTheta = rng() * 2._f - 1._f;
-        const Float theta = acos(cosTheta);
+        const Float theta = Sph::acos(cosTheta);
         spin << sphericalToCartesian(1._f, theta, phi) << "  " << sampleMaxwellBoltzmann(rng, 0.0001_f)
              << std::endl;
     }

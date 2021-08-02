@@ -24,6 +24,14 @@ gcc_release:
     - qmake -spec linux-g++ CONFIG+=release ../sph.pro
     - make
 
+gcc_single_precision:
+  stage: build
+  script:
+    - mkdir gcc_float
+    - cd gcc_float
+    - qmake -spec linux-g++ CONFIG+=debug DEFINES+=SPH_SINGLE_PRECISION ../sph.pro
+    - make
+
 clang_debug:
   stage: build
   script:
@@ -42,6 +50,10 @@ clang_release:
 
 test_debug:
   stage: test
+  only:
+    refs:
+      - devel
+      - master
   script:
     - wget -P /usr/include/catch2/ "https://github.com/catchorg/Catch2/releases/download/v2.5.0/catch.hpp"
     - mkdir tests
@@ -54,6 +66,10 @@ test_debug:
 
 test_release:
   stage: test
+  only:
+    refs:
+      - devel
+      - master
   script:
     - wget -P /usr/include/catch2/ "https://github.com/catchorg/Catch2/releases/download/v2.5.0/catch.hpp" 
     - mkdir tests
@@ -83,6 +99,10 @@ test_release:
 
 examples:
   stage: test
+  only:
+    refs:
+      - devel
+      - master
   script:
     - mkdir examples_build
     - cd examples_build
@@ -100,6 +120,10 @@ regression:
   tags:
     - opensph # might take a long time, do not run on shared runners
   stage: regression
+  only:
+    refs:
+      - devel
+      - master
   script:
     - apt-get install -y gnuplot
     - mkdir regression_build

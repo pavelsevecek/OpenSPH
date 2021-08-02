@@ -1,6 +1,6 @@
 #include "run/jobs/InitialConditionJobs.h"
 #include "gravity/IGravity.h"
-#include "objects/finders/PointCloud.h"
+#include "objects/finders/IncrementalFinder.h"
 #include "objects/geometry/Sphere.h"
 #include "physics/Eos.h"
 #include "physics/Functions.h"
@@ -112,42 +112,25 @@ VirtualSettings MonolithicBodyIc::getSettings() {
     return connector;
 }
 
-class IcProgressCallback {
-private:
-    IRunCallbacks& callbacks;
-
-public:
-    explicit IcProgressCallback(IRunCallbacks& callbacks)
-        : callbacks(callbacks) {}
-
-    bool operator()(const Float progress) const {
-        Statistics stats;
-        stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
-        callbacks.onTimeStep(Storage(), stats);
-        return false;
-    }
-};
-
 class DiehlReporter {
     IRunCallbacks& callbacks;
-    int iterCnt;
+    mutable bool first = true;
 
 public:
-    DiehlReporter(IRunCallbacks& callbacks, const int iterCnt)
-        : callbacks(callbacks)
-        , iterCnt(iterCnt) {}
+    DiehlReporter(IRunCallbacks& callbacks)
+        : callbacks(callbacks) {}
 
-    bool operator()(const Size i, const ArrayView<const Vector> positions) const {
+    bool operator()(const Float progress, const ArrayView<const Vector> positions) const {
         Storage storage;
         Array<Vector> r;
         r.pushAll(positions.begin(), positions.end());
         storage.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST, std::move(r));
         Statistics stats;
-        stats.set(StatisticsId::INDEX, int(i));
-        stats.set(StatisticsId::RELATIVE_PROGRESS, Float(i) / iterCnt);
+        stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
 
-        if (i == 0) {
+        if (first) {
             callbacks.onSetUp(storage, stats);
+            first = false;
         }
         callbacks.onTimeStep(storage, stats);
         return !callbacks.shouldAbortRun();
@@ -166,14 +149,19 @@ void MonolithicBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callba
     const DistributionEnum distType = body.get<DistributionEnum>(BodySettingsId::INITIAL_DISTRIBUTION);
     AutoPtr<IDistribution> distribution;
     if (distType == DistributionEnum::DIEHL_ET_AL) {
-        DiehlParams diehl;
-        diehl.numOfIters = body.get<int>(BodySettingsId::DIEHL_ITERATION_COUNT);
-        diehl.strength = body.get<Float>(BodySettingsId::DIEHL_STRENGTH);
-        diehl.onIteration = DiehlReporter(callbacks, diehl.numOfIters);
+        DiehlParams params;
+        params.numOfIters = body.get<int>(BodySettingsId::DIEHL_ITERATION_COUNT);
+        params.strength = body.get<Float>(BodySettingsId::DIEHL_STRENGTH);
 
-        distribution = makeAuto<DiehlDistribution>(diehl);
+        AutoPtr<DiehlDistribution> diehl = makeAuto<DiehlDistribution>(params);
+        diehl->setProgressCallback(DiehlReporter(callbacks));
+
+        distribution = std::move(diehl);
     } else {
-        distribution = Factory::getDistribution(body, IcProgressCallback(callbacks));
+        distribution = Factory::getDistribution(body);
+        if (auto progressible = dynamicCast<Progressible<>>(distribution.get())) {
+            progressible->setProgressCallback(RunCallbacksProgressibleAdapter(callbacks));
+        }
     }
 
     /// \todo less retarded way -- particle count has no place in material settings
@@ -443,6 +431,7 @@ static void solveSpherical(Storage& storage) {
         MaterialView mat = storage.getMaterial(matId);
         RawPtr<EosMaterial> eosMat = dynamicCast<EosMaterial>(addressOf(mat.material()));
         SPH_ASSERT(eosMat);
+
         for (Size i : mat.sequence()) {
             p[i] = solution[i];
             u[i] = eosMat->getEos().getInternalEnergy(rho[i], p[i]);
@@ -817,7 +806,7 @@ void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     const PowerLawSfd sfd{ sizeExponent, interval };
 
     AutoPtr<IRng> rng = Factory::getRng(global);
-    PointCloud cloud(radius / 10);
+    IncrementalFinder finder(radius / 10);
     Size bailoutCounter = 0;
     const Float sep = 1._f;
     const Size reportStep = max(particleCnt / 1000, 1u);
@@ -827,17 +816,17 @@ void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
         v[H] = sfd(rng(3));
 
         // check for intersections
-        if (cloud.getClosePointsCount(v, sep * v[H]) > 0) {
+        if (finder.getNeighCnt(v, sep * v[H]) > 0) {
             // discard
             bailoutCounter++;
             continue;
         }
-        cloud.push(v);
+        finder.addPoint(v);
         bailoutCounter = 0;
 
-        if (cloud.size() % reportStep == reportStep - 1) {
+        if (finder.size() % reportStep == reportStep - 1) {
             Statistics stats;
-            stats.set(StatisticsId::RELATIVE_PROGRESS, Float(cloud.size()) / particleCnt);
+            stats.set(StatisticsId::RELATIVE_PROGRESS, Float(finder.size()) / particleCnt);
             callbacks.onTimeStep(Storage(), stats);
 
             if (callbacks.shouldAbortRun()) {
@@ -845,10 +834,10 @@ void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
             }
         }
 
-    } while (cloud.size() < particleCnt && bailoutCounter < 1000);
+    } while (finder.size() < particleCnt && bailoutCounter < 1000);
 
     // assign masses
-    Array<Vector> positions = cloud.array();
+    Array<Vector> positions = finder.array();
     Array<Float> masses(positions.size());
 
     Float m_sum = 0._f;
@@ -893,28 +882,39 @@ static JobRegistrar sRegisterNBodyIc(
 // PolytropicStarICs
 // ----------------------------------------------------------------------------------------------------------
 
-PolytropicStarIc::PolytropicStarIc(const std::string& name)
+PolytropeIc::PolytropeIc(const std::string& name)
     : IParticleJob(name) {}
 
-VirtualSettings PolytropicStarIc::getSettings() {
+VirtualSettings PolytropeIc::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& starCat = connector.addCategory("Star parameters");
     starCat.connect("Particle count", "particleCnt", particleCnt);
     starCat.connect("Distribution", "distribution", distId);
-    starCat.connect("Radius [R_sun]", "radius", radius).setUnits(Constants::R_sun);
-    starCat.connect("Mass [M_sun]", "mass", mass).setUnits(Constants::M_sun);
+    starCat.connect("Radius [km]", "radius", radius).setUnits(1.e3_f);
+    starCat.connect("Minimal density [kg/m^3]", "rho_min", rho_min);
     starCat.connect("Polytrope index", "polytrope_index", n);
 
     return connector;
 }
 
-void PolytropicStarIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void PolytropeIc::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) {
+    SharedPtr<IMaterial> material = this->getInput<IMaterial>("material");
+    material->setParam(BodySettingsId::ADIABATIC_INDEX, (n + 1._f) / n);
+    material->setParam(BodySettingsId::DENSITY_RANGE, Interval(rho_min, INFTY));
+
+    /// \todo to settings?
+    material->setParam(BodySettingsId::SMOOTHING_LENGTH_ETA, eta);
+
+    SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
+
     BodySettings body;
     body.set(BodySettingsId::INITIAL_DISTRIBUTION, distId);
     AutoPtr<IDistribution> distribution = Factory::getDistribution(body);
-    Storage storage = Stellar::generateIc(*distribution, particleCnt, radius, mass, n);
+    const Float rho0 = material->getParam<Float>(BodySettingsId::DENSITY);
+    const Float mass = sphereVolume(radius) * rho0;
+    Storage storage = Stellar::generateIc(scheduler, material, *distribution, particleCnt, radius, mass);
 
     result = makeShared<ParticleData>();
     result->storage = std::move(storage);
@@ -922,10 +922,9 @@ void PolytropicStarIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
 
 static JobRegistrar sRegisterPolytropeIc(
     "polytrope ICs",
-    "star ICs",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<PolytropicStarIc>(name); },
-    "Creates a single polytropic star.");
+    [](const std::string& name) { return makeAuto<PolytropeIc>(name); },
+    "Creates a spherical star or planet using the polytrope model.");
 
 // ----------------------------------------------------------------------------------------------------------
 // IsothermalSphereICs
@@ -958,13 +957,14 @@ void IsothermalSphereIc::evaluate(const RunSettings& global, IRunCallbacks& call
     DiehlParams params;
     Float r0 = 0.1_f * radius;
     params.numOfIters = 50;
-    params.onIteration = DiehlReporter(callbacks, params.numOfIters);
     params.particleDensity = [r0](const Vector& r) {
         // does not have to be normalized
         return 1._f / (1._f + getSqrLength(r) / sqr(r0));
     };
 
     DiehlDistribution dist(params);
+    dist.setProgressCallback(DiehlReporter(callbacks));
+
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
     SphericalDomain domain(Vector(0._f), radius);
     storage.insert(QuantityId::POSITION, OrderEnum::SECOND, dist.generate(*scheduler, particleCnt, domain));

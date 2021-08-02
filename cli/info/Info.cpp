@@ -5,23 +5,18 @@
 
 using namespace Sph;
 
-int main(int argc, char* argv[]) {
-    StdOutLogger logger;
-    if (argc != 2) {
-        logger.write("Usage: opensph-info file.ssf");
-        return 0;
-    }
+int printBinaryFileInfo(ILogger& logger, const Path& path) {
     BinaryInput input;
-    Expected<BinaryInput::Info> info = input.getInfo(Path(argv[1]));
+    Expected<BinaryInput::Info> info = input.getInfo(path);
     if (!info) {
-        logger.write("Cannot obtain file info from '", argv[1], "'");
+        logger.write("Cannot obtain file info from '", path.native(), "'");
         return -1;
     }
 
     Size row = 0;
     Table table(3);
     table.setCell(0, row, "File name:");
-    table.setCell(1, row, Path(argv[1]).fileName().native());
+    table.setCell(1, row, path.fileName().native());
     ++row;
     table.setCell(0, row, "File version:");
     table.setCell(1, row, std::to_string(int(info->version)));
@@ -60,4 +55,51 @@ int main(int argc, char* argv[]) {
     ++row;
     logger.write(table.toString());
     return 0;
+}
+
+int printCompressedFileInfo(ILogger& logger, const Path& path) {
+    CompressedInput input;
+    Expected<CompressedInput::Info> info = input.getInfo(path);
+    if (!info) {
+        logger.write("Cannot obtain file info from '", path.native(), "'");
+        return -1;
+    }
+
+    Size row = 0;
+    Table table(3);
+    table.setCell(0, row, "File name:");
+    table.setCell(1, row, path.fileName().native());
+    ++row;
+    table.setCell(0, row, "File version:");
+    table.setCell(1, row, std::to_string(int(info->version)));
+    ++row;
+    table.setCell(0, row, "Particle count:");
+    table.setCell(1, row, std::to_string(info->particleCnt));
+    ++row;
+    table.setCell(0, row, "Run time:");
+    table.setCell(1, row, std::to_string(info->runTime));
+    ++row;
+    table.setCell(0, row, "Run type:");
+    table.setCell(1, row, EnumMap::toString<RunTypeEnum>(info->runType));
+    logger.write(table.toString());
+    return 0;
+}
+
+int main(int argc, char* argv[]) {
+    StdOutLogger logger;
+    if (argc != 2 || argv[1] == std::string("--help")) {
+        logger.write("Usage: opensph-info file");
+        return 0;
+    }
+
+    const Optional<IoEnum> type = getIoEnum(Path(argv[1]).extension().native());
+    switch (type.valueOr(IoEnum::NONE)) {
+    case IoEnum::BINARY_FILE:
+        return printBinaryFileInfo(logger, Path(argv[1]));
+    case IoEnum::COMPRESSED_FILE:
+        return printCompressedFileInfo(logger, Path(argv[1]));
+    default:
+        logger.write("Unknown file format.");
+        return -1;
+    }
 }

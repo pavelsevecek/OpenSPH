@@ -11,27 +11,27 @@ using namespace Sph;
 
 TEST_CASE("Accumulated sum simple", "[accumulated]") {
     Accumulated ac1;
-    REQUIRE_SPH_ASSERT(ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
+    REQUIRE_SPH_ASSERT(ac1.getBuffer<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO));
     REQUIRE(ac1.getBufferCnt() == 0);
-    ac1.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, BufferSource::SHARED);
+    ac1.insert<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO, BufferSource::SHARED);
     REQUIRE(ac1.getBufferCnt() == 1);
     // subsequent calls dont do anything
-    ac1.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, BufferSource::SHARED);
+    ac1.insert<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO, BufferSource::SHARED);
     REQUIRE(ac1.getBufferCnt() == 1);
 
     ac1.initialize(5);
-    ArrayView<Size> buffer1 = ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
+    ArrayView<Size> buffer1 = ac1.getBuffer<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO);
     REQUIRE(buffer1.size() == 5);
-    REQUIRE_NOTHROW(ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
-    REQUIRE_SPH_ASSERT(ac1.getBuffer<Float>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
-    REQUIRE_SPH_ASSERT(ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::FIRST));
-    REQUIRE(ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO).size() == 5);
+    REQUIRE_NOTHROW(ac1.getBuffer<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO));
+    REQUIRE_SPH_ASSERT(ac1.getBuffer<Float>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO));
+    REQUIRE_SPH_ASSERT(ac1.getBuffer<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::FIRST));
+    REQUIRE(ac1.getBuffer<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO).size() == 5);
     REQUIRE(ac1.getBufferCnt() == 1);
 
     Accumulated ac2;
-    ac2.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, BufferSource::SHARED);
+    ac2.insert<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO, BufferSource::SHARED);
     ac2.initialize(5);
-    ArrayView<Size> buffer2 = ac2.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
+    ArrayView<Size> buffer2 = ac2.getBuffer<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO);
     REQUIRE(ac2.getBufferCnt() == 1);
     for (Size i = 0; i < 5; ++i) {
         buffer1[i] = i;
@@ -51,7 +51,7 @@ ArrayView<TValue> getInserted(Accumulated& ac, const QuantityId id, const Size s
 
 static Accumulated getAccumulated() {
     Accumulated ac;
-    ArrayView<Size> buffer1 = getInserted<Size>(ac, QuantityId::NEIGHBOUR_CNT, 5);
+    ArrayView<Size> buffer1 = getInserted<Size>(ac, QuantityId::NEIGHBOR_CNT, 5);
     ArrayView<Float> buffer2 = getInserted<Float>(ac, QuantityId::DENSITY, 5);
     ArrayView<Vector> buffer3 = getInserted<Vector>(ac, QuantityId::ENERGY, 5);
     ArrayView<SymmetricTensor> buffer4 = getInserted<SymmetricTensor>(ac, QuantityId::POSITION, 5);
@@ -66,7 +66,7 @@ static Accumulated getAccumulated() {
 
 static Storage getStorage() {
     Storage storage;
-    storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, Array<Size>{ 1 });
+    storage.insert<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO, Array<Size>{ 1 });
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, 0._f);
     storage.insert<Vector>(QuantityId::ENERGY, OrderEnum::ZERO, Vector(0._f));
     storage.insert<SymmetricTensor>(QuantityId::POSITION, OrderEnum::ZERO, SymmetricTensor::null());
@@ -83,7 +83,7 @@ TEST_CASE("Accumulated sum parallelized", "[accumulated]") {
 
     REQUIRE(storage.getQuantityCnt() == 4);
     REQUIRE(storage.getParticleCnt() == 5);
-    ArrayView<Size> buffer1 = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+    ArrayView<Size> buffer1 = storage.getValue<Size>(QuantityId::NEIGHBOR_CNT);
     REQUIRE(buffer1.size() == 5);
     REQUIRE(perElement(buffer1) == 10);
     ArrayView<Float> buffer2 = storage.getValue<Float>(QuantityId::DENSITY);
@@ -99,13 +99,13 @@ TEST_CASE("Accumulated sum parallelized", "[accumulated]") {
 
 TEST_CASE("Accumulated store", "[accumulated]") {
     Accumulated ac;
-    ArrayView<Size> buffer1 = getInserted<Size>(ac, QuantityId::NEIGHBOUR_CNT, 5);
+    ArrayView<Size> buffer1 = getInserted<Size>(ac, QuantityId::NEIGHBOR_CNT, 5);
     for (Size i = 0; i < 5; ++i) {
         buffer1[i] = i;
     }
     Storage storage = getStorage();
     ac.store(storage);
-    ArrayView<Size> buffer2 = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+    ArrayView<Size> buffer2 = storage.getValue<Size>(QuantityId::NEIGHBOR_CNT);
     REQUIRE(buffer2.size() == 5);
     for (Size i = 0; i < 5; ++i) {
         REQUIRE(buffer2[i] == i);

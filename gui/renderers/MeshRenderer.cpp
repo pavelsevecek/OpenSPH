@@ -42,7 +42,7 @@ void MeshRenderer::initialize(const Storage& storage,
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     finder->build(*scheduler, r);
-    Array<NeighbourRecord> neighs;
+    Array<NeighborRecord> neighs;
 
     for (Triangle& t : cached.triangles) {
         const Vector pos = t.center();
@@ -60,7 +60,7 @@ void MeshRenderer::initialize(const Storage& storage,
         }
 
         if (weightSum == 0._f) {
-            // we somehow didn't find any neighbours, indicate the error by red triangle
+            // we somehow didn't find any neighbors, indicate the error by red triangle
             cached.colors.push(Rgba::red());
         } else {
             // supersimple diffuse shading
@@ -70,8 +70,13 @@ void MeshRenderer::initialize(const Storage& storage,
     }
 }
 
+bool MeshRenderer::isInitialized() const {
+    return !cached.triangles.empty();
+}
+
 void MeshRenderer::render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const {
-    Bitmap<Rgba> bitmap(params.size);
+    const Pixel size = params.camera->getSize();
+    Bitmap<Rgba> bitmap(size);
     PreviewRenderContext<OverPixelOp> context(bitmap);
 
     // draw black background
@@ -104,13 +109,6 @@ void MeshRenderer::render(const RenderParams& params, Statistics& stats, IRender
         const int64_t time = int64_t(stats.get<Float>(StatisticsId::RUN_TIME));
         context.drawText(Coords(0, 0), TextAlign::RIGHT | TextAlign::BOTTOM, getFormattedTime(time * 1000));
     }
-
-    // lastly black frame to draw on top of other stuff
-    context.setColor(Rgba::black(), ColorFlag::LINE);
-    context.drawLine(Coords(0, 0), Coords(params.size.x - 1, 0));
-    context.drawLine(Coords(params.size.x - 1, 0), Coords(params.size.x - 1, params.size.y - 1));
-    context.drawLine(Coords(params.size.x - 1, params.size.y - 1), Coords(0, params.size.y - 1));
-    context.drawLine(Coords(0, params.size.y - 1), Coords(0, 0));
 
     output.update(bitmap, context.getLabels(), true);
 }

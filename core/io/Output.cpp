@@ -1027,6 +1027,31 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
     return SUCCESS;
 }
 
+Expected<CompressedInput::Info> CompressedInput::getInfo(const Path& path) const {
+    Deserializer<false> deserializer(path);
+    std::string identifier;
+    Float time;
+    Size particleCnt;
+    CompressedIoVersion version;
+    CompressionEnum compression;
+    RunTypeEnum runTypeId;
+    try {
+        deserializer.read(identifier, time, particleCnt, compression, version, runTypeId);
+    } catch (SerializerException&) {
+        return makeUnexpected<CompressedInput::Info>("Invalid file format");
+    }
+    if (identifier != "CPRSPH") {
+        return makeUnexpected<CompressedInput::Info>(
+            "Invalid format specifier: expected CPRSPH, got " + identifier);
+    }
+    CompressedInput::Info info;
+    info.particleCnt = particleCnt;
+    info.runTime = time;
+    info.runType = runTypeId;
+    info.version = version;
+    return info;
+}
+
 // ----------------------------------------------------------------------------------------------------------
 // VtkOutput
 // ----------------------------------------------------------------------------------------------------------
@@ -1152,7 +1177,7 @@ Float doubleToType(ArrayView<const double> data, const Size i) {
 }
 template <>
 Vector doubleToType(ArrayView<const double> data, const Size i) {
-    return Vector(data[3 * i + 0], data[3 * i + 1], data[3 * i + 2]);
+    return Vector(Float(data[3 * i + 0]), Float(data[3 * i + 1]), Float(data[3 * i + 2]));
 }
 
 template <typename T>
@@ -1253,7 +1278,7 @@ Outcome Hdf5Input::load(const Path&, Storage&, Statistics&) {
 
 static Float computeRadius(const Float H, const Float albedo) {
     // https://cneos.jpl.nasa.gov/tools/ast_size_est.html
-    const Float d = exp10(3.1236 - 0.5 * log10(albedo) - 0.2 * H);
+    const Float d = exp10(3.1236_f - 0.5_f * log10(albedo) - 0.2_f * H);
     return 0.5_f * d * 1.e3_f;
 }
 

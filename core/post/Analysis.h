@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2021
 
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "objects/wrappers/Expected.h"
 #include "objects/wrappers/ExtendedEnum.h"
 #include "objects/wrappers/Function.h"
@@ -26,14 +26,14 @@ SPH_EXTEND_ENUM(QuantityId, Post::HistogramId);
 
 namespace Post {
 
-/// \brief Finds the number of neighbours of each particle.
+/// \brief Finds the number of neighbors of each particle.
 ///
-/// Note that each particle searches neighbours up to the distance given by their smoothing length, so the
-/// relation "A is a neighbour of B" might not be symmetrical.
+/// Note that each particle searches neighbors up to the distance given by their smoothing length, so the
+/// relation "A is a neighbor of B" might not be symmetrical.
 /// \param storage Storage containing the particles.
 /// \param particleRadius Size of particles in smoothing lengths.
-/// \return Number of neighbours of each particle.
-Array<Size> findNeighbourCounts(const Storage& storage, const Float particleRadius);
+/// \return Number of neighbors of each particle.
+Array<Size> findNeighborCounts(const Storage& storage, const Float particleRadius);
 
 
 enum class ComponentFlag {

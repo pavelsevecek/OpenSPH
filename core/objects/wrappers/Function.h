@@ -94,6 +94,14 @@ public:
         return (*holder)(std::forward<Ts>(args)...);
     }
 
+    /// Calls the function is set, otherwise it does nothing.
+    template <typename... Ts>
+    void callIfNotNull(Ts&&... args) const {
+        if (holder) {
+            this->operator()(std::forward<Ts>(args)...);
+        }
+    }
+
     INLINE explicit operator bool() const {
         return bool(holder);
     }

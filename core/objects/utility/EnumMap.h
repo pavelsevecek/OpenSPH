@@ -108,8 +108,8 @@ public:
         Optional<EnumRecord&> record = instance.records.tryGet(index);
         SPH_ASSERT(record);
         for (auto pair : record.value()) {
-            if (pair.value.value == value) { // erm ...
-                return pair.key;
+            if (pair.value().value == value) { // erm ...
+                return pair.key();
             }
         }
         return NOTHING;
@@ -130,7 +130,7 @@ public:
             if (idx > 0) {
                 desc += "\n";
             }
-            desc += " - " + pair.value.value + ": " + pair.value.desc;
+            desc += " - " + pair.value().value + ": " + pair.value().desc;
             ++idx;
         }
         return desc;
@@ -145,7 +145,7 @@ public:
 
         Array<TEnum> enums;
         for (auto pair : record.value()) {
-            enums.push(TEnum(pair.key));
+            enums.push(TEnum(pair.key()));
         }
         return enums;
     }
@@ -158,7 +158,7 @@ public:
 
         Array<int> enums;
         for (auto pair : record.value()) {
-            enums.push(pair.key);
+            enums.push(pair.key());
         }
         return enums;
     }

@@ -1,12 +1,21 @@
 #include "physics/Eos.h"
 #include "catch.hpp"
+#include "math/Functional.h"
 #include "objects/containers/Array.h"
 #include "system/Settings.h"
 #include "tests/Approx.h"
 
 using namespace Sph;
 
-TEST_CASE("Ideal gas", "[eos]") {}
+TEST_CASE("Ideal gas", "[eos]") {
+    IdealGasEos eos(1.5_f);
+    const Float rho = 2._f;
+    const Float u = 3.5_f;
+    Float p, cs;
+    tie(p, cs) = eos.evaluate(rho, u);
+    REQUIRE(eos.getDensity(p, u) == rho);
+    REQUIRE(eos.getInternalEnergy(rho, p) == u);
+}
 
 TEST_CASE("Tillotson values", "[eos]") {
     BodySettings settings;
@@ -46,8 +55,23 @@ TEST_CASE("Tillotson values", "[eos]") {
 }
 
 TEST_CASE("Tillotson continuous", "[eos]") {
-    // test that EoS is a continuous function of p and u
-    /// \todo Tillotson eos(BodySettings::getDefaults());
+    // test that EoS is a continuous function of rho and u
+    BodySettings settings;
+    const Float rho0 = 2700._f;
+    settings.set(BodySettingsId::DENSITY, rho0);
+    TillotsonEos eos(settings);
+
+    Float delta = 1.e-3_f;
+    const Float eps = 1.e5_f;
+    REQUIRE(isContinuous(Interval(1000._f, 4000._f), delta, eps, [&eos](const Float rho) {
+        return eos.evaluate(rho, 1.e4_f)[0];
+    }));
+
+    delta = 10._f;
+    REQUIRE(isContinuous(
+        Interval(0._f, 1e8_f), delta, eps, [&eos](const Float u) { return eos.evaluate(2600._f, u)[0]; }));
+    REQUIRE(isContinuous(
+        Interval(0._f, 1e8_f), delta, eps, [&eos](const Float u) { return eos.evaluate(2800._f, u)[0]; }));
 }
 
 TEST_CASE("Tillotson inverted energy", "[eos]") {
@@ -80,13 +104,14 @@ TEST_CASE("Tillotson inverted energy", "[eos]") {
 
 TEST_CASE("Tillotson inverted density", "[eos]") {
     BodySettings settings;
-    settings.set(BodySettingsId::DENSITY, 2.7_f);
+    const Float rho0 = 2.7_f;
+    settings.set(BodySettingsId::DENSITY, rho0);
     settings.set(BodySettingsId::TILLOTSON_SUBLIMATION, 1.e8_f);
     TillotsonEos eos(settings);
-    auto test = [&](const Float u0, const Float rho0, const Float eps = 1.e-6_f) {
+    auto test = [&](const Float u, const Float rho, const Float eps = 1.e-6_f) {
         Float p, cs;
-        tie(p, cs) = eos.evaluate(rho0, u0);
-        REQUIRE(eos.getDensity(p, u0) == approx(rho0, eps));
+        tie(p, cs) = eos.evaluate(rho, u);
+        REQUIRE(eos.getDensity(p, u) == approx(rho, eps));
     };
 
     /// \todo the function only works for densities close to rho0

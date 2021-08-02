@@ -7,6 +7,7 @@
 #include "gui/objects/Colorizer.h"
 #include "io/FileSystem.h"
 #include "objects/utility/StringUtils.h"
+#include "quantities/QuantityHelpers.h"
 #include "system/Process.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
@@ -21,93 +22,136 @@ std::once_flag initFlag;
 
 Movie::Movie(const GuiSettings& settings,
     AutoPtr<IRenderer>&& renderer,
-    Array<SharedPtr<IColorizer>>&& colorizers,
-    RenderParams&& params)
+    AutoPtr<IColorizer>&& colorizer,
+    RenderParams&& params,
+    const int interpolatedFrames,
+    const OutputFile& paths)
     : renderer(std::move(renderer))
-    , colorizers(std::move(colorizers))
-    , params(std::move(params)) {
-    enabled = settings.get<bool>(GuiSettingsId::IMAGES_SAVE);
-    makeAnimation = settings.get<bool>(GuiSettingsId::IMAGES_MAKE_MOVIE);
-    outputStep = settings.get<Float>(GuiSettingsId::IMAGES_TIMESTEP);
+    , colorizer(std::move(colorizer))
+    , params(std::move(params))
+    , interpolatedFrames(interpolatedFrames)
+    , paths(paths) {
     cameraVelocity = settings.get<Vector>(GuiSettingsId::CAMERA_VELOCITY);
     cameraOrbit = settings.get<Float>(GuiSettingsId::CAMERA_ORBIT);
 
-    const Path directory(settings.get<std::string>(GuiSettingsId::IMAGES_PATH));
-    const Path name(settings.get<std::string>(GuiSettingsId::IMAGES_NAME));
-    const Size firstIndex(settings.get<int>(GuiSettingsId::IMAGES_FIRST_INDEX));
-    paths = OutputFile(directory / name, firstIndex);
-
-    const Path animationName(settings.get<std::string>(GuiSettingsId::IMAGES_MOVIE_NAME));
-    animationPath = directory / animationName;
-
-    std::call_once(initFlag, wxInitAllImageHandlers);
-    nextOutput = outputStep;
+    std::call_once(initFlag, [] { executeOnMainThread(wxInitAllImageHandlers); });
 }
 
 Movie::~Movie() = default;
 
-INLINE std::string escapeColorizerName(const std::string& name) {
+std::string escapeColorizerName(const std::string& name) {
     std::string escaped = replaceAll(name, " ", "");
     escaped = replaceAll(escaped, ".", "_");
     return lowercase(escaped);
 }
 
-class MovieRenderOutput : public IRenderOutput {
+void saveRender(Bitmap<Rgba>&& bitmap, Array<IRenderOutput::Label>&& labels, const Path& path) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    wxBitmap wx;
+    toWxBitmap(bitmap, wx);
+    wxMemoryDC dc(wx);
+    printLabels(dc, labels);
+    dc.SelectObject(wxNullBitmap);
+    saveToFile(wx, path);
+}
+
+class ForwardingOutput : public IRenderOutput {
 private:
-    std::condition_variable waitVar;
-    std::mutex waitMutex;
+    IRenderOutput& output;
 
-    Path currentPath;
-
+    struct {
+        Bitmap<Rgba> bitmap;
+        Array<Label> labels;
+    } final;
 
 public:
-    void setPath(const Path& path) {
-        currentPath = path;
-    }
+    explicit ForwardingOutput(IRenderOutput& output)
+        : output(output) {}
 
     virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels, const bool isFinal) override {
-        if (!isFinal) {
-            // no need for save intermediate results on disk
-            return;
-        }
+        output.update(bitmap, std::move(labels), isFinal);
 
-        if (isMainThread()) {
-            this->updateMainThread(bitmap, std::move(labels));
-        } else {
-            std::unique_lock<std::mutex> lock(waitMutex);
-            executeOnMainThread([this, &bitmap, &labels] {
-                std::unique_lock<std::mutex> lock(waitMutex);
-                this->updateMainThread(bitmap, std::move(labels));
-                waitVar.notify_one();
-            });
-            waitVar.wait(lock);
+        if (isFinal) {
+            final.bitmap = bitmap.clone();
+            final.labels = std::move(labels);
         }
     }
 
-private:
-    void updateMainThread(const Bitmap<Rgba>& bitmap, Array<Label>&& labels) {
-        CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-        wxBitmap wx;
-        toWxBitmap(bitmap, wx);
-        wxMemoryDC dc(wx);
-        printLabels(dc, labels);
-        dc.SelectObject(wxNullBitmap);
-        saveToFile(wx, currentPath);
+    virtual void update(Bitmap<Rgba>&& bitmap, Array<Label>&& labels, const bool isFinal) override {
+        output.update(std::move(bitmap), std::move(labels), isFinal);
+
+        if (isFinal) {
+            final.bitmap = std::move(bitmap);
+            final.labels = std::move(labels);
+        }
+    }
+
+    bool hasData() const {
+        return !final.bitmap.empty();
+    }
+
+    Bitmap<Rgba>& getBitmap() {
+        return final.bitmap;
+    }
+    Array<Label>& getLabels() {
+        return final.labels;
     }
 };
 
-void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
-    if (!enabled || stats.get<Float>(StatisticsId::RUN_TIME) < nextOutput) {
-        return;
+void Movie::render(Storage&& storage, Statistics&& stats, IRenderOutput& output) {
+    const Float time = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
+
+    ForwardingOutput forwardingOutput(output);
+    if (interpolatedFrames > 0 && !lastFrame.data.empty()) {
+        if (storage.getParticleCnt() != lastFrame.data.getParticleCnt()) {
+            throw DataException("Cannot interpolate frames with different numbers of particles");
+        }
+
+        for (int frame = 0; frame < interpolatedFrames; ++frame) {
+            const Float rel = Float(frame + 1) / Float(interpolatedFrames + 1);
+            const Float interpTime = lerp(lastFrame.time, time, rel);
+            Storage interpData = interpolate(lastFrame.data, storage, rel);
+            stats.set(StatisticsId::RUN_TIME, interpTime);
+            this->renderImpl(interpData, stats, forwardingOutput);
+        }
     }
 
-    this->save(storage, stats);
-    nextOutput += outputStep;
+    this->renderImpl(storage, stats, forwardingOutput);
+
+    lastFrame.time = time;
+    if (interpolatedFrames > 0) {
+        // need to keep this frame in memory
+        lastFrame.data = std::move(storage);
+    }
 }
 
-void Movie::save(const Storage& storage, Statistics& stats) {
+void Movie::renderImpl(const Storage& storage, Statistics& stats, ForwardingOutput& output) {
     const Float time = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
-    const Float dt = time - lastFrame;
+    this->updateCamera(storage, time);
+
+    // initialize the colorizer
+    colorizer->initialize(storage, RefEnum::WEAK);
+
+    // initialize render with new data (outside main thread)
+    renderer->initialize(storage, *colorizer, *params.camera);
+
+    renderer->render(params, stats, output);
+
+    const Path path = paths.getNextPath(stats);
+    FileSystem::createDirectory(path.parentPath());
+    Path actPath(replaceAll(path.native(), "%e", escapeColorizerName(colorizer->name())));
+
+    if (output.hasData()) {
+        executeOnMainThread([bitmap = std::move(output.getBitmap()),
+                                labels = std::move(output.getLabels()),
+                                actPath]() mutable { //
+            saveRender(std::move(bitmap), std::move(labels), actPath);
+        });
+    }
+}
+
+void Movie::updateCamera(const Storage& storage, const Float time) {
+    const Float dt = time - lastFrame.time;
 
     const Vector target = params.camera->getTarget();
     const Vector cameraPos = params.camera->getFrame().translation();
@@ -129,59 +173,45 @@ void Movie::save(const Storage& storage, Statistics& stats) {
         params.camera->setTarget(target + dt * cameraVelocity);
         params.camera->setPosition(target + dir + dt * cameraVelocity);
     }
-    lastFrame = time;
-
-    const Path path = paths.getNextPath(stats);
-    FileSystem::createDirectory(path.parentPath());
-
-    MovieRenderOutput output;
-    for (auto& e : colorizers) {
-        Path actPath(replaceAll(path.native(), "%e", escapeColorizerName(e->name())));
-
-        // initialize the colorizer
-        e->initialize(storage, RefEnum::WEAK);
-
-        // initialize render with new data (outside main thread)
-        renderer->initialize(storage, *e, *params.camera);
-
-        // create the bitmap and save it to file
-        output.setPath(actPath);
-        renderer->render(params, stats, output);
-    }
 }
 
-void Movie::setCamera(AutoPtr<ICamera>&& camera) {
-    params.camera = std::move(camera);
+
+template <typename TValue>
+Array<TValue> interpolate(ArrayView<const TValue> v1, ArrayView<const TValue> v2, const Float t) {
+    SPH_ASSERT(v1.size() == v2.size());
+    Array<TValue> result(v1.size());
+    for (Size i = 0; i < v1.size(); ++i) {
+        result[i] = lerp(v1[i], v2[i], t);
+    }
+    return result;
 }
 
-void Movie::finalize() {
-    if (!makeAnimation) {
-        return;
+struct InterpolateVisitor {
+    template <typename TValue>
+    void visit(const QuantityId id, const Quantity& q1, const Quantity& q2, const Float t, Storage& result) {
+        Array<TValue> values = interpolate<TValue>(q1.getValue<TValue>(), q2.getValue<TValue>(), t);
+        Quantity& q = result.insert<TValue>(id, OrderEnum::ZERO, std::move(values));
+        if (q1.getOrderEnum() != OrderEnum::ZERO) {
+            /// todo interpolate second-order too?
+            q.setOrder(OrderEnum::FIRST);
+            q.getDt<TValue>() = interpolate<TValue>(q1.getDt<TValue>(), q2.getDt<TValue>(), t);
+        }
+    }
+};
+
+Storage interpolate(const Storage& frame1, const Storage& frame2, const Float t) {
+    if (frame1.getQuantityCnt() != frame2.getQuantityCnt()) {
+        throw InvalidSetup("Different number of quantities");
     }
 
-    for (auto& e : colorizers) {
-        std::string name = escapeColorizerName(e->name());
-        std::string outPath = animationPath.native();
-        outPath = replaceAll(outPath, "%e", name);
-        std::string inPath = paths.getMask().native();
-        inPath = replaceAll(inPath, "%e", name);
-        inPath = replaceAll(inPath, "%d", "%04d");
-        // clang-format off
-        Process ffmpeg(Path("/bin/ffmpeg"), {
-                "-y",               // override existing files
-                "-nostdin",         // don't prompt for confirmation, etc.
-                "-framerate", "25", // 25 FPS
-                "-i", inPath,
-                "-c:v", "libx264",  // video codec
-                outPath
-            });
-        // clang-format on
-        ffmpeg.wait();
+    Storage result;
+    for (ConstStorageElement el1 : frame1.getQuantities()) {
+        const Quantity& q1 = el1.quantity;
+        const Quantity& q2 = frame2.getQuantity(el1.id);
+        InterpolateVisitor visitor;
+        dispatch(q1.getValueEnum(), visitor, el1.id, q1, q2, t, result);
     }
-}
-
-void Movie::setEnabled(const bool enable) {
-    enabled = enable;
+    return result;
 }
 
 NAMESPACE_SPH_END

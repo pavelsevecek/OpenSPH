@@ -42,6 +42,7 @@ SOURCES += \
     ../core/objects/containers/test/ArrayRef.cpp \
     ../core/objects/containers/test/ArrayView.cpp \
     ../core/objects/containers/test/CircularArray.cpp \
+    ../core/objects/containers/test/CallbackSet.cpp \
     ../core/objects/containers/test/FlatMap.cpp \
     ../core/objects/containers/test/FlatSet.cpp \
     ../core/objects/containers/test/Grid.cpp \
@@ -52,20 +53,23 @@ SOURCES += \
     ../core/objects/containers/test/Tuple.cpp \
     ../core/objects/finders/test/BruteForceFinder.cpp \
     ../core/objects/finders/test/Finders.cpp \
+    ../core/objects/finders/test/IncrementalFinder.cpp \
     ../core/objects/finders/test/Order.cpp \
     ../core/objects/finders/test/Bvh.cpp \
-    ../core/objects/finders/test/PointCloud.cpp \
     ../core/objects/geometry/test/AntisymmetricTensor.cpp \
     ../core/objects/geometry/test/Box.cpp \
     ../core/objects/geometry/test/Domain.cpp \
     ../core/objects/geometry/test/Indices.cpp \
     ../core/objects/geometry/test/Multipole.cpp \
     ../core/objects/geometry/test/Sphere.cpp \
+    ../core/objects/geometry/test/Triangle.cpp \
     ../core/objects/geometry/test/SymmetricTensor.cpp \
     ../core/objects/geometry/test/Tensor.cpp \
     ../core/objects/geometry/test/TracelessTensor.cpp \
     ../core/objects/geometry/test/Vector.cpp \
-    ../core/objects/utility/test/ArrayUtils.cpp \
+    ../core/objects/geometry/test/Plane.cpp \
+    ../core/objects/geometry/test/Delaunay.cpp \
+    ../core/objects/utility/test/Algorithm.cpp \
     ../core/objects/utility/test/Dynamic.cpp \
     ../core/objects/utility/test/Iterators.cpp \
     ../core/objects/utility/test/OperatorTemplate.cpp \
@@ -85,6 +89,7 @@ SOURCES += \
     ../core/objects/wrappers/test/Optional.cpp \
     ../core/objects/wrappers/test/Outcome.cpp \
     ../core/objects/wrappers/test/SharedPtr.cpp \
+    ../core/objects/wrappers/test/SharedToken.cpp \
     ../core/objects/wrappers/test/Variant.cpp \
     ../core/objects/wrappers/test/PropagateConst.cpp \
     ../core/physics/test/Damage.cpp \

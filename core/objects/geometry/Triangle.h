@@ -47,16 +47,16 @@ public:
 
     INLINE Vector normal() const {
         SPH_ASSERT(this->isValid());
-        const Vector v12 = v[2] - v[1];
+        const Vector v01 = v[1] - v[0];
         const Vector v02 = v[2] - v[0];
-        return getNormalized(cross(v12, v02));
+        return getNormalized(cross(v01, v02));
     }
 
     INLINE Float area() const {
         SPH_ASSERT(this->isValid());
-        const Vector v12 = v[2] - v[1];
+        const Vector v01 = v[1] - v[0];
         const Vector v02 = v[2] - v[0];
-        return 0.5_f * getLength(cross(v12, v02));
+        return 0.5_f * getLength(cross(v01, v02));
     }
 
     INLINE Box getBBox() const {
@@ -74,6 +74,19 @@ public:
         const Vector v12 = v[2] - v[1];
         const Vector v02 = v[2] - v[0];
         return sqr(dot(v12, v02)) < (1._f - EPS) * getSqrLength(v12) * getSqrLength(v02);
+    }
+
+    INLINE Triangle opposite() const {
+        return Triangle(v[0], v[2], v[1]);
+    }
+
+    bool operator==(const Triangle& other) const {
+        return v == other.v;
+    }
+
+
+    bool operator!=(const Triangle& other) const {
+        return v != other.v;
     }
 };
 

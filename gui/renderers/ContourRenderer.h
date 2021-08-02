@@ -39,6 +39,8 @@ public:
         const IColorizer& colorizer,
         const ICamera& camera) override;
 
+    virtual bool isInitialized() const override;
+
     virtual void render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const override;
 
     virtual void cancelRender() override {}

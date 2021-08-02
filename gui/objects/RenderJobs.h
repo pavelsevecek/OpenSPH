@@ -1,40 +1,78 @@
 #pragma once
 
 #include "gui/Settings.h"
+#include "gui/objects/Bitmap.h"
 #include "gui/objects/CameraJobs.h"
+#include "gui/renderers/IRenderer.h"
 
 NAMESPACE_SPH_BEGIN
 
-enum class ColorizerFlag {
-    VELOCITY = 1 << 0,
-    ENERGY = 1 << 1,
-    BOUND_COMPONENT_ID = 1 << 2,
-    MASS = 1 << 3,
-    BEAUTY = 1 << 4,
-    GRAVITY = 1 << 5,
-    DAMAGE = 1 << 6,
-};
+class IColorizer;
+struct RenderParams;
+class JobNode;
+class Palette;
+
+enum class RenderColorizerId;
 
 enum class AnimationType {
-    SINGLE_FRAME,
-    ORBIT,
-    FILE_SEQUENCE,
+    SINGLE_FRAME = 0,
+    FILE_SEQUENCE = 2,
 };
 
-class AnimationJob : public INullJob {
+class IRenderPreview : public Polymorphic {
+public:
+    virtual void render(const Pixel resolution, IRenderOutput& output) = 0;
+
+    virtual void update(RenderParams&& params) = 0;
+
+    virtual void update(AutoPtr<ICamera>&& newCamera) = 0;
+
+    virtual void update(AutoPtr<IColorizer>&& colorizer) = 0;
+
+    virtual void update(AutoPtr<IRenderer>&& renderer) = 0;
+
+    virtual void update(Palette&& palette) = 0;
+
+    virtual void cancel() = 0;
+};
+
+class IImageJob : public IJob {
+private:
+    SharedPtr<Bitmap<Rgba>> result;
+
+protected:
+    GuiSettings gui;
+
+public:
+    explicit IImageJob(const std::string& name)
+        : IJob(name) {}
+
+    virtual ExtJobType provides() const override final {
+        return GuiJobType::IMAGE;
+    }
+
+    virtual JobContext getResult() const override final {
+        return result;
+    }
+};
+
+struct AnimationFrame : public IStorageUserData {
+    Bitmap<Rgba> bitmap;
+    Array<IRenderOutput::Label> labels;
+};
+
+class AnimationJob : public IImageJob {
 private:
     GuiSettings gui;
-    Flags<ColorizerFlag> colorizers = ColorizerFlag::VELOCITY;
+    EnumWrapper colorizerId;
     bool addSurfaceGravity = true;
+    Path directory;
+    std::string fileMask = "img_%d.png";
 
-    EnumWrapper animationType = EnumWrapper(AnimationType::SINGLE_FRAME);
+    EnumWrapper animationType;
 
     bool transparentBackground = false;
-
-    struct {
-        Float step = 10._f * DEG_TO_RAD;
-        Float finalAngle = 360._f * DEG_TO_RAD;
-    } orbit;
+    int extraFrames = 0;
 
     struct {
         Path firstFile = Path("out_0000.ssf");
@@ -66,9 +104,19 @@ public:
     virtual VirtualSettings getSettings() override;
 
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+
+    AutoPtr<IRenderPreview> getRenderPreview(const RunSettings& global) const;
+
+    // needed for interactive rendering
+    AutoPtr<IRenderer> getRenderer(const RunSettings& global) const;
+    AutoPtr<IColorizer> getColorizer(const RunSettings& global) const;
+    RenderParams getRenderParams() const;
+
+private:
+    RenderParams getRenderParams(const GuiSettings& gui) const;
 };
 
-class VdbJob : public INullJob {
+class VdbJob : public IParticleJob {
 private:
     Vector gridStart = Vector(-1.e5_f);
     Vector gridEnd = Vector(1.e5_f);
@@ -84,7 +132,7 @@ private:
 
 public:
     VdbJob(const std::string& name)
-        : INullJob(name) {}
+        : IParticleJob(name) {}
 
     virtual std::string className() const override {
         return "save VDB grid";

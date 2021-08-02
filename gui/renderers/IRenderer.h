@@ -47,6 +47,9 @@ public:
 
     /// May be called once after render finishes or multiple times for progressive renderers.
     virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels, const bool isFinal) = 0;
+
+    /// \copydoc update
+    virtual void update(Bitmap<Rgba>&& bitmap, Array<Label>&& labels, const bool isFinal) = 0;
 };
 
 
@@ -55,9 +58,6 @@ public:
 /// Partially overlaps with GuiSettings, but it's better to have render specific settings in one struct than
 /// one huge catch-all settings.
 struct RenderParams {
-
-    /// \brief Resolution of the produced bitmap
-    Pixel size = Pixel(640, 480);
 
     /// \brief Camera used for rendering.
     AutoPtr<ICamera> camera;
@@ -173,6 +173,9 @@ public:
     /// \param colorizer Data-to-color conversion object for particles. Must be already initialized!
     /// \param camera Camera used for rendering.
     virtual void initialize(const Storage& storage, const IColorizer& colorizer, const ICamera& camera) = 0;
+
+    /// \brief Checks if the renderer has been initialized.
+    virtual bool isInitialized() const = 0;
 
     /// \brief Draws particles into the bitmap, given the data provided in \ref initialize.
     ///

@@ -123,10 +123,6 @@ Array<Vector> CubicPacking::generate(IScheduler& UNUSED(scheduler),
 HexagonalPacking::HexagonalPacking(const Flags<Options> flags)
     : flags(flags) {}
 
-HexagonalPacking::HexagonalPacking(const Flags<Options> flags, Function<bool(Float)> progressCallback)
-    : flags(flags)
-    , progressCallback(progressCallback) {}
-
 Array<Vector> HexagonalPacking::generate(IScheduler& UNUSED(scheduler),
     const Size n,
     const IDomain& domain) const {
@@ -150,9 +146,15 @@ Array<Vector> HexagonalPacking::generate(IScheduler& UNUSED(scheduler),
     Array<Vector> vecs;
     const Float deltaX = 0.5_f * dx;
     const Float deltaY = sqrt(3._f) / 6._f * dx;
-    const Size progressStep = progressCallback ? max(n / 1000, 1u) : Size(-1);
 
+    this->startProgress(n);
+
+    std::atomic_bool shouldContinue{ true };
     box.iterateWithIndices(step, [&](Indices&& idxs, Vector&& v) {
+        if (!shouldContinue) {
+            return;
+        }
+
         if (idxs[2] % 2 == 0) {
             if (idxs[1] % 2 == 1) {
                 v[X] += deltaX;
@@ -167,8 +169,8 @@ Array<Vector> HexagonalPacking::generate(IScheduler& UNUSED(scheduler),
             v[H] = h;
             vecs.push(std::move(v));
 
-            if (vecs.size() % progressStep == 0) {
-                progressCallback(Float(vecs.size()) / n);
+            if (!this->tickProgress()) {
+                shouldContinue = false;
             }
         }
     });
@@ -343,19 +345,21 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
     GhostParticles bc(makeAuto<ForwardingDomain>(domain), 2._f, EPS);
 
     UniformGridFinder finder;
-    ThreadLocal<Array<NeighbourRecord>> neighs(scheduler);
+    ThreadLocal<Array<NeighborRecord>> neighs(scheduler);
     finder.build(scheduler, r);
 
     const Float correction = params.strength / (1._f + params.small);
     // radius of search, does not have to be equal to radius of used SPH kernel
     const Float kernelRadius = 2._f;
 
+    this->startProgress(params.numOfIters);
+
     Array<Vector> deltas(N);
     for (Size k = 0; k < params.numOfIters; ++k) {
         VerboseLogGuard guard("DiehlDistribution::generate - iteration " + std::to_string(k));
 
         // notify caller, if requested
-        if (params.onIteration && !params.onIteration(k, r)) {
+        if (!this->tickProgress(r)) {
             break;
         }
 
@@ -372,11 +376,11 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
         // clean up the previous displacements
         deltas.fill(Vector(0._f));
 
-        auto lambda = [&](const Size i, Array<NeighbourRecord>& neighsTl) {
+        auto lambda = [&](const Size i, Array<NeighborRecord>& neighsTl) {
             const Float rhoi = actDensity(r[i]); // average particle density
             // average interparticle distance at given point
-            const Float neighbourRadius = kernelRadius / root<3>(rhoi);
-            finder.findAll(i, neighbourRadius, neighsTl);
+            const Float neighborRadius = kernelRadius / root<3>(rhoi);
+            finder.findAll(i, neighborRadius, neighsTl);
 
             for (Size j = 0; j < neighsTl.size(); ++j) {
                 const Size k = neighsTl[j].index;
@@ -462,6 +466,8 @@ Array<Vector> ParametrizedSpiralingDistribution::generate(IScheduler& UNUSED(sch
         shells[i] *= mult;
     }
 
+    this->startProgress(n);
+
     Array<Vector> pos;
     Float phi = 0._f;
     Size shellIdx = 0;
@@ -480,6 +486,10 @@ Array<Vector> ParametrizedSpiralingDistribution::generate(IScheduler& UNUSED(sch
                 v[H] = h; // 0.66_f * sqrt(sphereSurfaceArea(r) / m);
                 SPH_ASSERT(isReal(v));
                 pos.push(v);
+
+                if (!this->tickProgress()) {
+                    return {};
+                }
             }
         }
     }

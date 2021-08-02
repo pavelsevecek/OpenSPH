@@ -162,7 +162,7 @@ public:
     template <typename TFunctor>
     void forEach(const TFunctor& functor) {
         for (auto& e : params) {
-            forValue(e.value, [&e, &functor](auto& value) { functor(e.key, value); });
+            forValue(e.value(), [&e, &functor](auto& value) { functor(e.key(), value); });
         }
     }
 

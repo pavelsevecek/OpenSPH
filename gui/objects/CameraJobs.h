@@ -8,6 +8,7 @@ NAMESPACE_SPH_BEGIN
 
 enum class GuiJobType {
     CAMERA = 3,
+    IMAGE = 4,
 };
 
 SPH_EXTEND_ENUM(GuiJobType, JobType);
@@ -30,7 +31,7 @@ public:
     explicit ICameraJob(const std::string& name)
         : IJob(name) {}
 
-    virtual Optional<ExtJobType> provides() const override final {
+    virtual ExtJobType provides() const override final {
         return GuiJobType::CAMERA;
     }
 
@@ -73,6 +74,17 @@ public:
 
     virtual std::string className() const override {
         return "fisheye camera";
+    }
+
+    virtual VirtualSettings getSettings() override;
+};
+
+class SphericalCameraJob : public ICameraJob {
+public:
+    explicit SphericalCameraJob(const std::string& name);
+
+    virtual std::string className() const override {
+        return "spherical camera";
     }
 
     virtual VirtualSettings getSettings() override;

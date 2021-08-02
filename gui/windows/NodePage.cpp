@@ -1,11 +1,18 @@
 #include "gui/windows/NodePage.h"
+#include "gui/Controller.h"
+#include "gui/Factory.h"
+#include "gui/Project.h"
 #include "gui/Utils.h"
 #include "gui/objects/CameraJobs.h"
+#include "gui/objects/Colorizer.h"
 #include "gui/objects/DelayedCallback.h"
 #include "gui/objects/RenderJobs.h"
 #include "gui/windows/BatchDialog.h"
 #include "gui/windows/CurveDialog.h"
+#include "gui/windows/PaletteDialog.h"
+#include "gui/windows/PreviewPane.h"
 #include "gui/windows/RunSelectDialog.h"
+#include "gui/windows/Widgets.h"
 #include "io/FileSystem.h"
 #include "objects/utility/IteratorAdapters.h"
 #include "run/Config.h"
@@ -107,10 +114,10 @@ void NodeManager::cloneHierarchy(JobNode& node) {
 
     // fix positions
     Array<SharedPtr<JobNode>> origTree, clonedTree;
-    node.enumerate([&origTree](SharedPtr<JobNode> node, Size UNUSED(depth)) { //
+    node.enumerate([&origTree](SharedPtr<JobNode> node) { //
         origTree.push(node);
     });
-    clonedRoot->enumerate([&clonedTree](SharedPtr<JobNode> node, Size UNUSED(depth)) { //
+    clonedRoot->enumerate([&clonedTree](SharedPtr<JobNode> node) { //
         clonedTree.push(node);
     });
     SPH_ASSERT(origTree.size() == clonedTree.size());
@@ -156,12 +163,12 @@ void NodeManager::layoutNodes(JobNode& node, const Pixel position) {
     }
 
     for (auto& element : depthMapInv) {
-        const int depth = element.key;
+        const int depth = element.key();
         int index = 0;
-        for (auto& node : element.value) {
+        for (auto& node : element.value()) {
             VisNode& vis = nodes[node];
             vis.position =
-                Pixel(position.x - 200 * depth, position.y + 150 * index - (element.value.size() - 1) * 75);
+                Pixel(position.x - 200 * depth, position.y + 150 * index - (element.value().size() - 1) * 75);
             ++index;
         }
     }
@@ -183,7 +190,7 @@ void NodeManager::deleteNode(JobNode& node) {
 
 void NodeManager::deleteTree(JobNode& node) {
     Array<SharedPtr<JobNode>> toRemove;
-    node.enumerate([&toRemove](SharedPtr<JobNode> node, Size UNUSED(depth)) { toRemove.push(node); });
+    node.enumerate([&toRemove](SharedPtr<JobNode> node) { toRemove.push(node); });
     for (SharedPtr<JobNode> n : toRemove) {
         nodes.remove(n);
     }
@@ -442,34 +449,22 @@ void NodeManager::startRun(JobNode& node) {
     callbacks->startRun(Sph::cloneHierarchy(node, std::string("")), globals, node.instanceName());
 }
 
-/// \todo refactor, derive from INode instead
-class BatchJob : public IParticleJob {
+void NodeManager::startRender(JobNode& node) {
+    callbacks->startRender(Sph::cloneHierarchy(node, std::string("")), globals, node.instanceName());
+}
+
+class BatchNode : public INode {
 private:
-    Size runCnt;
+    Array<SharedPtr<JobNode>> nodes;
 
 public:
-    BatchJob(const std::string& name, const Size runCnt)
-        : IParticleJob(name)
-        , runCnt(runCnt) {}
+    explicit BatchNode(Array<SharedPtr<JobNode>>&& nodes)
+        : nodes(std::move(nodes)) {}
 
-    virtual std::string className() const override {
-        return "batch run";
-    }
-
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
-        UnorderedMap<std::string, ExtJobType> map;
-        for (Size i = 0; i < runCnt; ++i) {
-            map.insert("job " + std::to_string(i), JobType::PARTICLES);
+    virtual void run(const RunSettings& global, IJobCallbacks& callbacks) override {
+        for (const SharedPtr<JobNode>& node : nodes) {
+            node->run(global, callbacks);
         }
-        return map;
-    }
-
-    virtual VirtualSettings getSettings() override {
-        NOT_IMPLEMENTED;
-    }
-
-    virtual void evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) override {
-        // only used for run the dependencies, the job itself is empty
     }
 };
 
@@ -497,12 +492,8 @@ void NodeManager::startBatch(JobNode& node) {
         wxMessageBox(std::string("Cannot start batch run.\n\n") + e.what(), "Error", wxOK);
     }
 
-    SharedPtr<JobNode> root = makeNode<BatchJob>("batch", batchNodes.size());
-    for (Size i = 0; i < batchNodes.size(); ++i) {
-        batchNodes[i]->connect(root, "job " + std::to_string(i));
-    }
-
-    callbacks->startRun(root, globals, root->instanceName());
+    SharedPtr<BatchNode> root = makeShared<BatchNode>(std::move(batchNodes));
+    callbacks->startRun(root, globals, "Batch");
 }
 
 void NodeManager::startScript(const Path& file) {
@@ -511,7 +502,7 @@ void NodeManager::startScript(const Path& file) {
     Array<SharedPtr<JobNode>> clonedNodes;
     for (const auto& node : rootNodes) {
         SharedPtr<JobNode> cloned = Sph::cloneHierarchy(*node, std::string());
-        cloned->enumerate([&](SharedPtr<JobNode> job, Size UNUSED(depth)) { clonedNodes.push(job); });
+        cloned->enumerate([&](SharedPtr<JobNode> job) { clonedNodes.push(job); });
     }
     SharedPtr<ScriptNode> node = makeShared<ScriptNode>(file, std::move(clonedNodes));
 
@@ -521,34 +512,12 @@ void NodeManager::startScript(const Path& file) {
 #endif
 }
 
-void NodeManager::startAll() {
-    Array<SharedPtr<JobNode>> inputs;
-    for (auto& element : nodes) {
-        SharedPtr<JobNode> node = element.key;
-        Optional<ExtJobType> provided = node->provides();
-        if ((!provided || provided.value() == JobType::PARTICLES) && node->getDependentCnt() == 0) {
-            inputs.push(Sph::cloneHierarchy(*node, std::string("")));
-        }
-    }
-    if (inputs.empty()) {
-        wxMessageBox("No simulations to start.");
-        return;
-    }
-
-    SharedPtr<JobNode> root = makeNode<BatchJob>("batch", inputs.size());
-    for (Size i = 0; i < inputs.size(); ++i) {
-        inputs[i]->connect(root, "job " + std::to_string(i));
-    }
-
-    callbacks->startRun(root, globals, root->instanceName());
-}
-
 Array<SharedPtr<JobNode>> NodeManager::getRootNodes() const {
     Array<SharedPtr<JobNode>> inputs;
     for (auto& element : nodes) {
         SharedPtr<JobNode> node = element.key;
-        Optional<ExtJobType> provided = node->provides();
-        if ((!provided || provided.value() == JobType::PARTICLES) && node->getDependentCnt() == 0) {
+        const ExtJobType provided = node->provides();
+        if (provided == JobType::PARTICLES && node->getDependentCnt() == 0) {
             inputs.push(node);
         }
     }
@@ -604,6 +573,10 @@ void NodeManager::showBatchDialog() {
         callbacks->markUnsaved(true);
     }
     batchDialog->Destroy();
+}
+
+PreviewPane* NodeManager::createRenderPreview(wxWindow* parent, JobNode& node) {
+    return alignedNew<PreviewPane>(parent, wxDefaultSize, node.sharedFromThis(), globals);
 }
 
 void NodeManager::selectRun() {
@@ -704,6 +677,10 @@ static FlatMap<ExtJobType, wxPen> NODE_PENS_DARK = [] {
     wxPen& cameraPen = pens.insert(GuiJobType::CAMERA, *wxBLACK_PEN);
     cameraPen.SetColour(wxColour(150, 225, 100));
     cameraPen.SetStyle(wxPENSTYLE_SHORT_DASH);
+
+    wxPen& imagePen = pens.insert(GuiJobType::IMAGE, *wxBLACK_PEN);
+    imagePen.SetColour(wxColour(255, 255, 100));
+    imagePen.SetStyle(wxPENSTYLE_SOLID);
     return pens;
 }();
 
@@ -721,8 +698,12 @@ static FlatMap<ExtJobType, wxPen> NODE_PENS_LIGHT = [] {
     geometryPen.SetStyle(wxPENSTYLE_SHORT_DASH);
 
     wxPen& cameraPen = pens.insert(GuiJobType::CAMERA, *wxBLACK_PEN);
-    cameraPen.SetColour(wxColour(80, 10, 10));
+    cameraPen.SetColour(wxColour(10, 80, 10));
     cameraPen.SetStyle(wxPENSTYLE_SHORT_DASH);
+
+    wxPen& imagePen = pens.insert(GuiJobType::IMAGE, *wxBLACK_PEN);
+    imagePen.SetColour(wxColour(250, 130, 0));
+    imagePen.SetStyle(wxPENSTYLE_SOLID);
     return pens;
 }();
 
@@ -766,13 +747,13 @@ static bool canConnectSlots(const NodeSlot& from, const NodeSlot& to) {
     if (to.index == NodeSlot::RESULT_SLOT) {
         SPH_ASSERT(from.index != NodeSlot::RESULT_SLOT);
         const SlotData fromSlot = from.vis->node->getSlot(from.index);
-        const Optional<ExtJobType> provided = to.vis->node->provides();
-        return fromSlot.used && provided && provided.value() == fromSlot.type;
+        const ExtJobType provided = to.vis->node->provides();
+        return fromSlot.used && provided == fromSlot.type;
     } else {
         SPH_ASSERT(to.index != NodeSlot::RESULT_SLOT);
         const SlotData toSlot = to.vis->node->getSlot(to.index);
-        const Optional<ExtJobType> provided = from.vis->node->provides();
-        return toSlot.used && provided && provided.value() == toSlot.type;
+        const ExtJobType provided = from.vis->node->provides();
+        return toSlot.used && provided == toSlot.type;
     }
 }
 
@@ -802,13 +783,13 @@ wxColour NodeEditor::getSlotColor(const NodeSlot& slot, const Rgba& background) 
 void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const VisNode& vis) {
     const Pixel position = vis.position;
     const Pixel size = vis.size();
-    const Optional<ExtJobType> provided = vis.node->provides();
+    const ExtJobType provided = vis.node->provides();
     // setup pen and brush
     const bool isLightTheme = background.intensity() > 0.5f;
-    wxPen pen = getNodePen(provided.valueOr(JobType::PARTICLES), isLightTheme);
+    wxPen pen = getNodePen(provided, isLightTheme);
     wxBrush brush = *wxBLACK_BRUSH;
     Rgba brushColor;
-    if (!provided || provided.value() == JobType::PARTICLES) {
+    if (provided == JobType::PARTICLES) {
         brushColor = decreaseContrast(background, 0.1f, isLightTheme);
     } else {
         brushColor = background.blend(Rgba(pen.GetColour()), 0.2f);
@@ -843,7 +824,7 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
 
     // separating line for particle nodes
     pen = *wxBLACK_PEN;
-    if (!provided || provided.value() == JobType::PARTICLES) {
+    if (provided == JobType::PARTICLES) {
         pen.SetColour(isLightTheme ? wxColour(160, 160, 160) : wxColour(20, 20, 20));
         gc->SetPen(pen);
         const int lineY = 44;
@@ -881,18 +862,15 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
     }
 
     // result slot
-    if (provided) {
-        const Pixel resultSlot(position.x + size.x, position.y + FIRST_SLOT_Y);
-        brush.SetColour(this->getSlotColor(NodeSlot{ &vis, NodeSlot::RESULT_SLOT }, background));
-        gc->SetBrush(brush);
+    const Pixel resultSlot(position.x + size.x, position.y + FIRST_SLOT_Y);
+    brush.SetColour(this->getSlotColor(NodeSlot{ &vis, NodeSlot::RESULT_SLOT }, background));
+    gc->SetBrush(brush);
 
-        pen = getNodePen(provided.value(), isLightTheme);
-        pen.SetStyle(wxPENSTYLE_SOLID);
-        pen.SetWidth(1);
-        gc->SetPen(pen);
-        gc->DrawEllipse(
-            resultSlot.x - SLOT_RADIUS, resultSlot.y - SLOT_RADIUS, 2 * SLOT_RADIUS, 2 * SLOT_RADIUS);
-    }
+    pen = getNodePen(provided, isLightTheme);
+    pen.SetStyle(wxPENSTYLE_SOLID);
+    pen.SetWidth(1);
+    gc->SetPen(pen);
+    gc->DrawEllipse(resultSlot.x - SLOT_RADIUS, resultSlot.y - SLOT_RADIUS, 2 * SLOT_RADIUS, 2 * SLOT_RADIUS);
 }
 
 void NodeEditor::save(Config& config) {
@@ -1069,40 +1047,49 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
 
     wxMenu menu;
     VisNode* vis = nodeMgr->getSelectedNode(position);
-    if (vis != nullptr) {
-        const Optional<ExtJobType> provided = vis->node->provides();
-        if (!provided || provided.value() == JobType::PARTICLES) {
-            menu.Append(0, "Evaluate"); // there is no visible result of other types
-            menu.Append(1, "Evaluate batch");
-        }
+    if (vis == nullptr) {
+        // no node selected
+        return;
+    }
+    const ExtJobType provided = vis->node->provides();
+    if (provided == JobType::PARTICLES) {
+        menu.Append(0, "Start");
+    } else if (provided == GuiJobType::IMAGE) {
+        menu.Append(1, "Render");
+        menu.Append(2, "Preview");
     }
 
-    menu.Append(2, "Evaluate all");
 
-    if (vis != nullptr) {
-        menu.Append(3, "Clone");
-        menu.Append(4, "Clone tree");
-        menu.Append(5, "Layout");
-        menu.Append(6, "Delete");
-        menu.Append(7, "Delete tree");
-    }
-    menu.Append(8, "Delete all");
+    menu.Append(3, "Clone");
+    menu.Append(4, "Clone tree");
+    menu.Append(5, "Layout");
+    menu.Append(6, "Delete");
+    menu.Append(7, "Delete tree");
 
     menu.Bind(wxEVT_COMMAND_MENU_SELECTED, [this, vis](wxCommandEvent& evt) {
+        CHECK_FUNCTION(CheckFunction::NO_THROW);
         const Size index = evt.GetId();
         switch (index) {
         case 0:
             try {
                 nodeMgr->startRun(*vis->node);
-            } catch (const Exception& e) {
+            } catch (const std::exception& e) {
                 wxMessageBox(std::string("Cannot run the node: ") + e.what(), "Error", wxOK);
             }
             break;
         case 1:
-            nodeMgr->startBatch(*vis->node);
+            try {
+                nodeMgr->startRender(*vis->node);
+            } catch (const std::exception& e) {
+                wxMessageBox(std::string("Cannot render the node: ") + e.what(), "Error", wxOK);
+            }
             break;
         case 2:
-            nodeMgr->startAll();
+            try {
+                nodeWindow->createRenderPreview(*vis->node);
+            } catch (const Exception& e) {
+                wxMessageBox(std::string("Cannot start render preview: ") + e.what(), "Error", wxOK);
+            }
             break;
         case 3:
             nodeMgr->addNode(cloneNode(*vis->node));
@@ -1118,9 +1105,6 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
             break;
         case 7:
             nodeMgr->deleteTree(*vis->node);
-            break;
-        case 8:
-            nodeMgr->deleteAll();
             break;
         default:
             NOT_IMPLEMENTED;
@@ -1255,7 +1239,7 @@ public:
     Vector getVector() const {
         Vector v;
         for (Size i = 0; i < 3; ++i) {
-            v[i] = components[i]->GetValue();
+            v[i] = Float(components[i]->GetValue().GetDouble());
         }
         return v;
     }
@@ -1314,7 +1298,7 @@ public:
     }
 
     Interval getInterval() const {
-        return Interval(components[0]->GetValue(), components[1]->GetValue());
+        return Interval(components[0]->GetValue().GetDouble(), components[1]->GetValue().GetDouble());
     }
 
     void update(const bool notify = true) {
@@ -1497,8 +1481,80 @@ public:
     }
 };
 
+class JobTreeData : public wxTreeItemData {
+    RawPtr<IJobDesc> desc;
 
-NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callbacks)
+public:
+    explicit JobTreeData(RawPtr<IJobDesc> desc)
+        : desc(desc) {}
+
+    AutoPtr<IJob> create() const {
+        return desc->create(NOTHING);
+    }
+
+    std::string tooltip() const {
+        return desc->tooltip();
+    }
+};
+
+class PalettePane : public wxPanel {
+private:
+    PalettePanel* panel;
+    Array<ExtColorizerId> itemIds;
+
+public:
+    PalettePane(wxWindow* parent, Project& project)
+        : wxPanel(parent, wxID_ANY) {
+
+        wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+
+        wxBoxSizer* quantitySizer = new wxBoxSizer(wxHORIZONTAL);
+        quantitySizer->Add(new wxStaticText(this, wxID_ANY, "Quantity"), 0, wxALIGN_CENTER_VERTICAL);
+        quantitySizer->AddSpacer(10);
+        ComboBox* quantityBox = new ComboBox(this, "", 200);
+        quantitySizer->Add(quantityBox, 0, wxALIGN_CENTER_VERTICAL);
+
+        Array<ExtColorizerId> colorizerIds = getColorizerIds();
+        wxArrayString items;
+        Palette firstPalette;
+        for (ExtColorizerId id : colorizerIds) {
+            AutoPtr<IColorizer> colorizer = Factory::getColorizer(project, id);
+            if (Optional<Palette> palette = colorizer->getPalette()) {
+                items.Add(colorizer->name().c_str());
+                itemIds.push(id);
+
+                if (firstPalette.empty()) {
+                    firstPalette = palette.value();
+                }
+            }
+        }
+        quantityBox->Set(items);
+        quantityBox->SetSelection(0);
+
+        sizer->Add(quantitySizer, 0, wxALIGN_CENTER_HORIZONTAL);
+
+        panel = new PalettePanel(this, wxSize(300, 200), firstPalette);
+        sizer->Add(panel, 1, wxEXPAND | wxALIGN_CENTER_HORIZONTAL);
+
+        this->SetSizerAndFit(sizer);
+
+        quantityBox->Bind(wxEVT_COMBOBOX, [this, quantityBox, &project](wxCommandEvent& UNUSED(evt)) {
+            CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+            const int idx = quantityBox->GetSelection();
+            ExtColorizerId id = itemIds[idx];
+            AutoPtr<IColorizer> colorizer = Factory::getColorizer(project, id);
+            panel->setPalette(colorizer->getPalette().value());
+            this->Refresh();
+        });
+
+        panel->onPaletteChanged = [quantityBox, &project](const Palette& palette) { //
+            wxString name = quantityBox->GetStringSelection();
+            project.setPalette(std::string(name.mb_str()), palette);
+        };
+    }
+};
+
+NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callbacks, Project& project)
     : wxPanel(parent, wxID_ANY) {
     aui = makeAuto<wxAuiManager>(this);
 
@@ -1529,7 +1585,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             entry->set(int(value.GetLong()));
             break;
         case IVirtualEntry::Type::FLOAT:
-            entry->set(value.GetDouble());
+            entry->set(Float(value.GetDouble()));
             break;
         case IVirtualEntry::Type::VECTOR: {
             VectorProperty* vector = dynamic_cast<VectorProperty*>(prop);
@@ -1593,22 +1649,6 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
     jobView->SetMinSize(wxSize(300, -1));
 
     wxTreeItemId rootId = jobView->AddRoot("Nodes");
-
-    class JobTreeData : public wxTreeItemData {
-        RawPtr<IJobDesc> desc;
-
-    public:
-        explicit JobTreeData(RawPtr<IJobDesc> desc)
-            : desc(desc) {}
-
-        AutoPtr<IJob> create() const {
-            return desc->create(NOTHING);
-        }
-
-        std::string tooltip() const {
-            return desc->tooltip();
-        }
-    };
 
     FlatMap<std::string, wxTreeItemId> categoryItemIdMap;
     for (const AutoPtr<IJobDesc>& desc : enumerateRegisteredJobs()) {
@@ -1696,6 +1736,8 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         }
     });
 
+    PalettePane* palettePane = new PalettePane(this, project);
+
     /*wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
     sizer->Add(grid, 1, wxEXPAND | wxLEFT);
     sizer->Add(mainPanel, 3, wxEXPAND | wxALL);
@@ -1710,10 +1752,14 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
 
     info.Right();
     aui->AddPane(jobView, info);
+
+    info.Right().Hide();
+    aui->AddPane(palettePane, info);
     aui->Update();
 
     panelInfoMap.insert(ID_LIST, &aui->GetPane(jobView));
     panelInfoMap.insert(ID_PROPERTIES, &aui->GetPane(grid));
+    panelInfoMap.insert(ID_PALETTE, &aui->GetPane(palettePane));
     /*this->Bind(wxEVT_SIZE, [this](wxSizeEvent& UNUSED(evt)) {
         // this->Fit();
         this->Layout();
@@ -1790,6 +1836,33 @@ SharedPtr<JobNode> NodeWindow::createNode(AutoPtr<IJob>&& job) {
     SharedPtr<JobNode> node = makeShared<JobNode>(std::move(job));
     nodeMgr->addNode(node);
     return node;
+}
+
+void NodeWindow::createRenderPreview(JobNode& node) {
+    renderPane = nodeMgr->createRenderPreview(this, node);
+    wxAuiPaneInfo info;
+    info.Right()
+        .MinSize(wxSize(300, 300))
+        .CaptionVisible(true)
+        .DockFixed(false)
+        .CloseButton(true)
+        .Caption("Preview")
+        //.Window(renderPane)
+        .DestroyOnClose();
+    aui->AddPane(renderPane, info);
+
+    /*PalettePanel* palettePane =
+        alignedNew<PalettePanel>(this, wxSize(300, 200), Factory::getPalette(ColorizerId::VELOCITY));
+    palettePane->onPaletteChanged = [this](const Palette& palette) { renderPane->setPalette(palette); };
+    info.Right()
+        .MinSize(wxSize(300, 200))
+        .CaptionVisible(true)
+        .DockFixed(false)
+        .CloseButton(true)
+        .Caption("Palette")
+        .DestroyOnClose();
+    aui->AddPane(palettePane, info);*/
+    aui->Update();
 }
 
 void NodeWindow::updateProperties() {

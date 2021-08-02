@@ -462,30 +462,35 @@ Array<Float> getLogTics(const Interval& interval, const Size minCount) {
     SPH_ASSERT(isReal(fromOrder) && isReal(toOrder) && toOrder >= fromOrder);
 
     std::set<Float> tics;
-    // try stepping in integer orders (1, 10, 100, ...)
-    for (Float order = fromOrder; order <= toOrder; order++) {
-        const Float value = pow(10._f, order);
+    auto tryAdd = [&](const Float value) {
         if (interval.contains(value)) {
             tics.insert(value);
         }
+    };
+
+    // try stepping in integer orders (1, 10, 100, ...)
+    for (Float order = fromOrder; order <= toOrder; order++) {
+        const Float value = pow(10._f, order);
+        tryAdd(value);
     }
 
     if (tics.size() < minCount) {
         // add 2, 5, 20, 50, ...
         for (Float order = fromOrder; order <= toOrder; order++) {
             const Float value = pow(10._f, order);
-            if (interval.contains(2._f * value)) {
-                tics.insert(2._f * value);
-            }
-            if (interval.contains(5._f * value)) {
-                tics.insert(5._f * value);
-            }
+            tryAdd(2 * value);
+            tryAdd(5 * value);
         }
     }
-
-    // sanity check that we do not create a large number of tics - increase the 20 if more tics is ever
-    // actually needed
-    SPH_ASSERT(tics.size() >= minCount && tics.size() < 20);
+    if (tics.size() < minCount) {
+        // add more values
+        for (Float order = fromOrder; order <= toOrder; order++) {
+            const Float value = pow(10._f, order);
+            tryAdd(1.5_f * value);
+            tryAdd(2.5_f * value);
+            tryAdd(7.5_f * value);
+        }
+    }
 
     Array<Float> result;
     for (Float t : tics) {

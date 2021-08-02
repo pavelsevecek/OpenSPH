@@ -27,15 +27,7 @@ Lut<Float> Stellar::solveLaneEmden(const Float n, const Float dz, const Float z_
     return Lut<Float>(Interval(z0, z), std::move(solution));
 }
 
-/*Float Stellar::PolytropeParams::polytropeConstant() const {*/
-/*    const Float R = Constants::gasConstant;
-    const Float a = Constants::radiationDensity;
-    return 1._f / beta * R / mu * cbrt((1._f - beta) / beta * 3._f * R / (mu * a));*/
-/*return cbrt(3._f / PI) * Constants::planckConstant * Constants::speedOfLight /
-       (8._f * pow(Constants::atomicMass, 4._f / 3._f));
-}*/
-
-Stellar::Star Stellar::polytropicStar(const Float radius, const Float mass, const Float n) {
+Stellar::Star Stellar::polytropicStar(const IEos& eos, const Float radius, const Float mass, const Float n) {
     const Float G = Constants::gravity;
 
     Lut<Float> phi = solveLaneEmden(n);
@@ -45,7 +37,6 @@ Stellar::Star Stellar::polytropicStar(const Float radius, const Float mass, cons
     const Float rho_c = 3._f * mass / (4._f * PI * pow<3>(radius)) * z_star / (-3._f * dphi_star);
     const Float P_c = G * sqr(mass) / pow<4>(radius) * 1._f / (-4._f * PI * (n + 1) * z_star * dphi_star);
 
-    IdealGasEos eos((n + 1._f) / n);
     Array<Float> rho(phi.size()), u(phi.size()), P(phi.size());
     for (auto el : iterateWithIndex(phi)) {
         const Size i = el.index();
@@ -64,16 +55,24 @@ Stellar::Star Stellar::polytropicStar(const Float radius, const Float mass, cons
     return star;
 }
 
-Storage Stellar::generateIc(const IDistribution& distribution,
+Storage Stellar::generateIc(const SharedPtr<IScheduler>& scheduler,
+    const SharedPtr<IMaterial>& material,
+    const IDistribution& distribution,
     const Size N,
     const Float radius,
-    const Float mass,
-    const Float n) {
+    const Float mass) {
     SphericalDomain domain(Vector(0._f), radius);
-    Array<Vector> points = distribution.generate(SEQUENTIAL, N, domain);
+    Array<Vector> points = distribution.generate(*scheduler, N, domain);
 
-    Star star = polytropicStar(radius, mass, n);
+    const RawPtr<EosMaterial> eos = dynamicCast<EosMaterial>(material.get());
+    if (!eos) {
+        throw Exception("Cannot generate IC without equation of state");
+    }
+    const Float gamma = material->getParam<Float>(BodySettingsId::ADIABATIC_INDEX);
+    const Float n = 1._f / (gamma - 1._f);
+    Star star = polytropicStar(eos->getEos(), radius, mass, n);
 
+    const Float rho_min = material->getParam<Interval>(BodySettingsId::DENSITY_RANGE).lower();
     Array<Float> m(points.size());
     Array<Float> rho(points.size());
     Array<Float> u(points.size());
@@ -81,26 +80,19 @@ Storage Stellar::generateIc(const IDistribution& distribution,
     const Float v = domain.getVolume() / points.size();
     for (Size i = 0; i < points.size(); ++i) {
         const Float r = getLength(points[i]);
-        rho[i] = star.rho(r);
+        rho[i] = max(star.rho(r), rho_min);
         u[i] = star.u(r);
         p[i] = star.p(r);
         m[i] = rho[i] * v;
     }
 
-    BodySettings body;
-    body.set(BodySettingsId::EOS, EosEnum::IDEAL_GAS);
-    body.set(BodySettingsId::ADIABATIC_INDEX, (n + 1._f) / n);
-    body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
-    body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
-    body.set(BodySettingsId::DENSITY_RANGE, Interval(1._f, INFTY));
-
     /// \todo add to params
-    const Float eta = body.get<Float>(BodySettingsId::SMOOTHING_LENGTH_ETA);
+    const Float eta = material->getParam<Float>(BodySettingsId::SMOOTHING_LENGTH_ETA);
     for (Size i = 0; i < points.size(); ++i) {
         points[i][H] *= eta;
     }
 
-    Storage storage(makeShared<EosMaterial>(body));
+    Storage storage(material);
 
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(points));
     storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, std::move(m));
@@ -108,6 +100,12 @@ Storage Stellar::generateIc(const IDistribution& distribution,
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, std::move(rho));
     storage.insert<Float>(QuantityId::PRESSURE, OrderEnum::ZERO, std::move(p));
     storage.insert<Float>(QuantityId::SOUND_SPEED, OrderEnum::ZERO, 100._f);
+    storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, 0);
+
+    MaterialInitialContext context;
+    context.scheduler = scheduler;
+    context.rng = makeRng<UniformRng>();
+    material->create(storage, context);
 
     return storage;
 }

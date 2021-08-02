@@ -7,6 +7,7 @@
 
 #include "math/rng/Rng.h"
 #include "objects/containers/Array.h"
+#include "objects/utility/Progressible.h"
 #include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Function.h"
 
@@ -69,7 +70,7 @@ public:
 };
 
 /// \brief Hexagonal close packing
-class HexagonalPacking : public IDistribution {
+class HexagonalPacking : public IDistribution, public Progressible<> {
 public:
     enum class Options {
         /// \brief Particles are sorted using its Morton code.
@@ -94,12 +95,8 @@ public:
 private:
     Flags<Options> flags;
 
-    Function<bool(Float)> progressCallback;
-
 public:
     explicit HexagonalPacking(const Flags<Options> flags = Options::CENTER);
-
-    HexagonalPacking(const Flags<Options> flags, Function<bool(Float)> progressCallback);
 
     virtual Array<Vector> generate(IScheduler& scheduler, const Size n, const IDomain& domain) const override;
 };
@@ -134,19 +131,12 @@ struct DiehlParams {
     ///
     /// Keep default, only for testing.
     Float small = 0.1_f;
-
-    /// \brief Optional callback executed once every iteration.
-    ///
-    /// The generator passes the iteration number and the current particle distribution as parameters. Functor
-    /// may return false to cancel the iterative algorithm prematurely and return the current particle
-    /// distribution.
-    Function<bool(Size iter, ArrayView<const Vector> r)> onIteration = nullptr;
 };
 
 /// \brief Distribution with given particle density.
 ///
 /// Particles are placed using algorithm by Diehl et al. (2012) \cite Diehl_2012
-class DiehlDistribution : public IDistribution {
+class DiehlDistribution : public IDistribution, public Progressible<ArrayView<const Vector>> {
 private:
     DiehlParams params;
 
@@ -163,7 +153,7 @@ public:
 /// \brief Parametrized spiraling scheme by Saff & Kuijlaars (1997).
 ///
 /// This distribution is mainly intended for spherically symmetric bodies.
-class ParametrizedSpiralingDistribution : public IDistribution {
+class ParametrizedSpiralingDistribution : public IDistribution, public Progressible<> {
 private:
     Size seed;
 

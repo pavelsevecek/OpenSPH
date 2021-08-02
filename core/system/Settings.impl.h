@@ -220,9 +220,9 @@ Outcome Settings<TEnum>::loadFromFile(const Path& path) {
         // find the key in decriptor settings
         bool found = false;
         for (auto& e : descriptors.entries) {
-            if (e.value.name == trimmedKey) {
-                entries.insert(e.value.id, e.value);
-                if (!setValueByType(entries[e.value.id], e.value.value, value)) {
+            if (e.value().name == trimmedKey) {
+                entries.insert(e.value().id, e.value());
+                if (!setValueByType(entries[e.value().id], e.value().value, value)) {
                     return makeFailed("Invalid value of key ", trimmedKey, ": ", value);
                 }
                 found = true;
@@ -248,8 +248,8 @@ Outcome Settings<TEnum>::saveToFile(const Path& path) const {
     try {
         std::ofstream ofs(path.native());
         for (auto& e : entries) {
-            const Entry& entry = e.value;
-            const Entry& descriptor = descriptors.entries[e.key];
+            const Entry& entry = e.value();
+            const Entry& descriptor = descriptors.entries[e.key()];
             if (!descriptor.desc.empty()) {
                 std::string desc = "# " + descriptor.desc;
                 desc = setLineBreak(desc, 120);
@@ -365,7 +365,7 @@ SettingsIterator<TEnum>::SettingsIterator(const ActIterator& iter, Badge<Setting
 
 template <typename TEnum>
 typename SettingsIterator<TEnum>::IteratorValue SettingsIterator<TEnum>::operator*() const {
-    return { iter->key, iter->value.value };
+    return { iter->key(), iter->value().value };
 }
 
 template <typename TEnum>

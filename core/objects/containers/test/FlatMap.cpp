@@ -11,13 +11,13 @@ static bool isSorted(const FlatMap<TKey, TValue>& map) {
     if (map.empty()) {
         return true;
     }
-    TKey previous = map.begin()->key;
+    TKey previous = map.begin()->key();
     for (auto iter = map.begin() + 1; iter < map.end(); ++iter) {
         auto& element = *iter;
-        if (element.key <= previous) {
+        if (element.key() <= previous) {
             return false;
         }
-        previous = element.key;
+        previous = element.key();
     }
     return true;
 }
@@ -38,7 +38,7 @@ static FlatMap<int, RecordType> getRandomMap() {
 
     // add all of these elements to the map
     for (auto& e : elements) {
-        map.insert(e.key, e.value);
+        map.insert(e.key(), e.value());
     }
     return map;
 }
@@ -53,6 +53,47 @@ TEST_CASE("Map default construct", "[flatmap]") {
     REQUIRE_FALSE(map.tryGet(5));
     REQUIRE_FALSE(map.contains(2));
     REQUIRE_SPH_ASSERT(map[0]);
+}
+
+TEST_CASE("Map initializer_list common", "[flatmap]") {
+    FlatMap<int, int> map(ELEMENTS_COMMON, { { 1, 4 }, { 4, 3 }, { 2, 4 }, { 4, 2 } });
+    REQUIRE(map.size() == 3);
+    REQUIRE(map[1] == 4);
+    REQUIRE(map[2] == 4);
+    REQUIRE(map[4] == 3);
+
+    map = FlatMap<int, int>(ELEMENTS_COMMON, {});
+    REQUIRE(map.empty());
+    REQUIRE(map.size() == 0);
+}
+
+TEST_CASE("Map initializer_list unique", "[flatmap]") {
+    FlatMap<int, int> map(ELEMENTS_UNIQUE, { { 1, 5 }, { 3, 2 }, { 2, 6 } });
+    REQUIRE(map.size() == 3);
+    REQUIRE(map[1] == 5);
+    REQUIRE(map[2] == 6);
+    REQUIRE(map[3] == 2);
+
+    map = FlatMap<int, int>(ELEMENTS_UNIQUE, {});
+    REQUIRE(map.size() == 0);
+
+    REQUIRE_SPH_ASSERT((FlatMap<int, int>(ELEMENTS_UNIQUE, { { 1, 4 }, { 4, 3 }, { 2, 6 }, { 1, 3 } })));
+}
+
+TEST_CASE("Map initializer_list sorted and unique", "[flatmap]") {
+    FlatMap<int, int> map(ELEMENTS_SORTED_UNIQUE, { { 3, 4 }, { 5, 4 }, { 6, 7 } });
+    REQUIRE(map.size() == 3);
+    REQUIRE(map[3] == 4);
+    REQUIRE(map[5] == 4);
+    REQUIRE(map[6] == 7);
+
+    map = FlatMap<int, int>(ELEMENTS_SORTED_UNIQUE, {});
+    REQUIRE(map.size() == 0);
+
+    REQUIRE_SPH_ASSERT(
+        (FlatMap<int, int>(ELEMENTS_SORTED_UNIQUE, { { 3, 5 }, { 5, 7 }, { 5, 8 }, { 8, 6 } })));
+    REQUIRE_SPH_ASSERT(
+        (FlatMap<int, int>(ELEMENTS_SORTED_UNIQUE, { { 3, 5 }, { 5, 7 }, { 6, 2 }, { 5, 3 } })));
 }
 
 TEST_CASE("Map insert lower key", "[flatmap]") {
@@ -133,6 +174,32 @@ TEST_CASE("Map insert multiple", "[flatmap]") {
     }());
     REQUIRE_SPH_ASSERT(map[-501]);
     REQUIRE_SPH_ASSERT(map[500]);
+}
+
+TEST_CASE("Map insert equivalent", "[flatmap]") {
+    struct TestLess {
+        bool operator()(const int i1, const int i2) const {
+            // considers 2 and 3 equivalent
+            if ((i1 == 2 && i2 == 3) || (i1 == 3 && i2 == 2)) {
+                return false;
+            } else {
+                return i1 < i2;
+            }
+        }
+    };
+
+    FlatMap<int, RecordType, TestLess> map;
+    map.insert(1, RecordType(5));
+    map.insert(2, RecordType(6));
+    map.insert(3, RecordType(7));
+    map.insert(4, RecordType(8));
+
+    REQUIRE(map.size() == 3);
+    REQUIRE(map[1].value == 5);
+    REQUIRE(map[2].value == 7);
+    REQUIRE(map[3].value == 7);
+    REQUIRE(map[4].value == 8);
+    REQUIRE(&map[2] == &map[3]);
 }
 
 TEST_CASE("Map remove", "[flatmap]") {
@@ -218,7 +285,7 @@ TEST_CASE("Map iterators", "[flatmap]") {
     REQUIRE([&] {
         for (FlatMap<int, RecordType>::Element element : map) {
             ++counter;
-            if (map[element.key].value != element.value.value) {
+            if (map[element.key()].value != element.value().value) {
                 return false;
             }
         }
@@ -234,10 +301,10 @@ TEST_CASE("Map arrayview", "[flatmap]") {
 
     ArrayView<FlatMap<int, RecordType>::Element> view = map;
     REQUIRE(view.size() == 3);
-    REQUIRE(view[0].key == -1);
-    REQUIRE(view[0].value.value == 3);
-    REQUIRE(view[1].key == 0);
-    REQUIRE(view[1].value.value == 5);
-    REQUIRE(view[2].key == 5);
-    REQUIRE(view[2].value.value == 1);
+    REQUIRE(view[0].key() == -1);
+    REQUIRE(view[0].value().value == 3);
+    REQUIRE(view[1].key() == 0);
+    REQUIRE(view[1].value().value == 5);
+    REQUIRE(view[2].key() == 5);
+    REQUIRE(view[2].value().value == 1);
 }

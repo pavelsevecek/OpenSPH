@@ -1,7 +1,7 @@
 #include "gravity/BarnesHut.h"
 #include "gravity/Moments.h"
 #include "objects/geometry/Sphere.h"
-#include "objects/utility/ArrayUtils.h"
+#include "objects/utility/Algorithm.h"
 #include "quantities/Storage.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
@@ -58,7 +58,7 @@ void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
         m[i] = gravityConstant * masses[i];
     }
 
-    // build K-d Tree; no need for rank as we are never searching neighbours
+    // build K-d Tree; no need for rank as we are never searching neighbors
     kdTree.build(scheduler, r, FinderFlag::SKIP_RANK);
 
     if (SPH_UNLIKELY(r.empty())) {
@@ -200,7 +200,7 @@ void BarnesHut::evalNode(IScheduler& scheduler,
 
     // we cannot use range-based for loop because we need the iterator for erasing the element
     for (auto iter = data.checkList.begin(); iter != data.checkList.end();) {
-        SPH_ASSERT(areElementsUnique(data.checkList), data.checkList);
+        SPH_ASSERT(allUnique(data.checkList), data.checkList);
 
         const Size idx = *iter;
         const BarnesHutNode& node = kdTree.getNode(idx);
@@ -292,7 +292,7 @@ void BarnesHut::evalParticleList(const LeafNode<BarnesHutNode>& leaf,
     SymmetrizeSmoothingLengths<const GravityLutKernel&> actKernel(kernel);
     // go through all nodes in the list and compute the pair-wise interactions
     LeafIndexSequence seq1 = kdTree.getLeafIndices(leaf);
-    SPH_ASSERT(areElementsUnique(particleList), particleList);
+    SPH_ASSERT(allUnique(particleList), particleList);
     for (Size idx : particleList) {
         // the particle lists do not have to be necessarily symmetric, we have to do each node separately
         SPH_ASSERT(idx < kdTree.getNodeCnt(), idx, kdTree.getNodeCnt());
@@ -325,7 +325,7 @@ void BarnesHut::evalParticleList(const LeafNode<BarnesHutNode>& leaf,
 void BarnesHut::evalNodeList(const LeafNode<BarnesHutNode>& leaf,
     ArrayView<Size> nodeList,
     ArrayView<Vector> dv) const {
-    SPH_ASSERT(areElementsUnique(nodeList), nodeList);
+    SPH_ASSERT(allUnique(nodeList), nodeList);
     LeafIndexSequence seq1 = kdTree.getLeafIndices(leaf);
     for (Size idx : nodeList) {
         const BarnesHutNode& node = kdTree.getNode(idx);

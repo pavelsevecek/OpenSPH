@@ -77,13 +77,13 @@ private:
     template <typename Type>
     HolderType<Type>* cast() {
         SPH_ASSERT(data);
-        return assert_cast<HolderType<Type>*>(&*data);
+        return assertCast<HolderType<Type>>(&*data);
     }
 
     template <typename Type>
     const HolderType<Type>* cast() const {
         SPH_ASSERT(data);
-        return assert_cast<const HolderType<Type>*>(&*data);
+        return assertCast<const HolderType<Type>>(&*data);
     }
 
 

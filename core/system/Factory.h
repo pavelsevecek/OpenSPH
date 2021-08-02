@@ -105,8 +105,7 @@ AutoPtr<IUvMapping> getUvMapping(const RunSettings& settings);
 
 AutoPtr<IMaterial> getMaterial(const BodySettings& settings);
 
-AutoPtr<IDistribution> getDistribution(const BodySettings& settings,
-    Function<bool(Float)> progressCallback = nullptr);
+AutoPtr<IDistribution> getDistribution(const BodySettings& settings);
 
 AutoPtr<IEos> getEos(const BodySettings& settings);
 

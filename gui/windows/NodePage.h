@@ -17,7 +17,9 @@ class wxAuiPaneInfo;
 NAMESPACE_SPH_BEGIN
 
 class NodeEditor;
+class PreviewPane;
 class Config;
+class Project;
 
 struct VisNode {
     RawPtr<JobNode> node;
@@ -58,6 +60,10 @@ class INodeManagerCallbacks : public Polymorphic {
 public:
     virtual void startRun(SharedPtr<INode> node,
         const RunSettings& settings,
+        const std::string& name) const = 0;
+
+    virtual void startRender(SharedPtr<INode> node,
+        const RunSettings& global,
         const std::string& name) const = 0;
 
     virtual void markUnsaved(bool addToUndo) const = 0;
@@ -110,17 +116,19 @@ public:
 
     void startRun(JobNode& node);
 
+    void startRender(JobNode& node);
+
     void startBatch(JobNode& node);
 
     void startScript(const Path& file);
-
-    void startAll();
 
     Array<SharedPtr<JobNode>> getRootNodes() const;
 
     VirtualSettings getGlobalSettings();
 
     void showBatchDialog();
+
+    PreviewPane* createRenderPreview(wxWindow* parent, JobNode& node);
 
     void selectRun();
 
@@ -215,6 +223,7 @@ public:
     enum PanelId {
         ID_PROPERTIES,
         ID_LIST,
+        ID_PALETTE,
     };
 
 private:
@@ -229,12 +238,13 @@ private:
     PropertyEntryMap propertyEntryMap;
 
     wxPropertyGrid* grid;
+    PreviewPane* renderPane = nullptr;
     AutoPtr<wxAuiManager> aui;
 
     FlatMap<PanelId, wxAuiPaneInfo*> panelInfoMap;
 
 public:
-    NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callbacks);
+    NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callbacks, Project& project);
 
     ~NodeWindow();
 
@@ -261,6 +271,8 @@ public:
     void addNodes(JobNode& node);
 
     SharedPtr<JobNode> createNode(AutoPtr<IJob>&& job);
+
+    void createRenderPreview(JobNode& node);
 
     void reset();
 

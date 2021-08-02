@@ -35,7 +35,7 @@ INLINE void alignedDelete(T* ptr) {
 
 template <typename T>
 INLINE bool isAligned(const T& value) {
-    return reinterpret_cast<std::size_t>(std::addressof(value)) % alignof(T) == 0;
+    return reinterpret_cast<std::size_t>(&value) % alignof(T) == 0;
 }
 
 /// \brief Simple block of memory on stack with size and alignment given by template type

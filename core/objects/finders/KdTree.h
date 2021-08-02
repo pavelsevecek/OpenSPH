@@ -1,12 +1,12 @@
 #pragma once
 
 /// \file KdTree.h
-/// \brief K-d tree for efficient search of neighbouring particles.
+/// \brief K-d tree for efficient search of neighboring particles.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz))
 /// \date 2016-2021
 
 #include "io/Logger.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "objects/geometry/Box.h"
 #include "objects/utility/IteratorAdapters.h"
 #include "objects/wrappers/Finally.h"
@@ -163,7 +163,7 @@ public:
     }
 
     template <bool FindAll>
-    Size find(const Vector& pos, const Size index, const Float radius, Array<NeighbourRecord>& neighs) const;
+    Size find(const Vector& pos, const Size index, const Float radius, Array<NeighborRecord>& neighs) const;
 
     /// \brief Returns the node with given index
     INLINE TNode& getNode(const Size nodeIdx) {

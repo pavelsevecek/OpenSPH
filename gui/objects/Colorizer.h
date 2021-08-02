@@ -12,7 +12,7 @@
 #include "gui/objects/Texture.h"
 #include "gui/renderers/Spectrum.h"
 #include "objects/containers/ArrayRef.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "objects/utility/Dynamic.h"
 #include "post/Analysis.h"
 #include "quantities/IMaterial.h"
@@ -140,7 +140,7 @@ enum class ColorizerId {
     COROTATING_VELOCITY = -4,  ///< Velocities with a respect to the rotating body
     DISPLACEMENT = -5,         ///< Difference between current positions and initial position
     DENSITY_PERTURBATION = -6, ///< Relative difference of density and initial density (rho/rho0 - 1)
-    SUMMED_DENSITY = -7,       ///< Density computed from particle masses by direct summation of neighbours
+    SUMMED_DENSITY = -7,       ///< Density computed from particle masses by direct summation of neighbors
     TOTAL_STRESS = -8,         ///< Total stress (sigma = S - pI)
     TOTAL_ENERGY = -9,         ///< Sum of kinetic and internal energy for given particle
     TEMPERATURE = -10,         ///< Temperature, computed from internal energy
@@ -654,38 +654,12 @@ private:
     Array<float> ratio;
 
 public:
-    explicit DamageActivationColorizer(Palette palette)
+    explicit DamageActivationColorizer(const Palette& palette)
         : palette(std::move(palette)) {}
 
-    virtual bool hasData(const Storage& storage) const override {
-        return storage.has(QuantityId::DEVIATORIC_STRESS) && storage.has(QuantityId::PRESSURE) &&
-               storage.has(QuantityId::EPS_MIN) && storage.has(QuantityId::DAMAGE);
-    }
+    virtual bool hasData(const Storage& storage) const override;
 
-    virtual void initialize(const Storage& storage, const RefEnum UNUSED(ref)) override {
-        ArrayView<const TracelessTensor> s = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
-        ArrayView<const Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
-        ArrayView<const Float> eps_min = storage.getValue<Float>(QuantityId::EPS_MIN);
-        ArrayView<const Float> damage = storage.getValue<Float>(QuantityId::DAMAGE);
-
-        ratio.resize(p.size());
-        /// \todo taken from ScalarGradyKippDamage, could be deduplicated
-        for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
-            MaterialView mat = storage.getMaterial(matId);
-            const Float young = mat->getParam<Float>(BodySettingsId::YOUNG_MODULUS);
-
-            /// \todo parallelize
-            for (Size i : mat.sequence()) {
-                const SymmetricTensor sigma = SymmetricTensor(s[i]) - p[i] * SymmetricTensor::identity();
-                Float sig1, sig2, sig3;
-                tie(sig1, sig2, sig3) = findEigenvalues(sigma);
-                const Float sigMax = max(sig1, sig2, sig3);
-                const Float young_red = max((1._f - pow<3>(damage[i])) * young, 1.e-20_f);
-                const Float strain = sigMax / young_red;
-                ratio[i] = float(strain / eps_min[i]);
-            }
-        }
-    }
+    virtual void initialize(const Storage& storage, const RefEnum ref) override;
 
     virtual bool isInitialized() const override {
         return !ratio.empty();
@@ -725,14 +699,7 @@ private:
     float f_glow;
 
 public:
-    BeautyColorizer() {
-        palette = Palette({ { u_0, Rgba(0.5f, 0.5f, 0.5) },
-                              { u_glow, Rgba(0.5f, 0.5f, 0.5f) },
-                              { u_red, Rgba(0.8f, 0.f, 0.f) },
-                              { u_yellow, Rgba(1.f, 1.f, 0.6f) } },
-            PaletteScale::LOGARITHMIC);
-        f_glow = (log10(u_glow) - log10(u_0)) / (log10(u_yellow) - log10(u_0));
-    }
+    BeautyColorizer();
 
     virtual bool hasData(const Storage& storage) const override {
         return storage.has(QuantityId::ENERGY);
@@ -842,13 +809,13 @@ public:
 class BoundaryColorizer : public IColorizer {
 public:
     enum class Detection {
-        /// Particles with fewer neighbours are considered boundary. Not suitable if number of neighbours is
+        /// Particles with fewer neighbors are considered boundary. Not suitable if number of neighbors is
         /// enforced by adapting smoothing length. Note that increasing the threshold adds more particles into
         /// the boundary.
         NEIGBOUR_THRESHOLD,
 
         /// Boundary is determined by relative position vectors approximating surface normal. Has higher
-        /// overhead, but does not depend sensitively on number of neighbours. Here, increasing the threshold
+        /// overhead, but does not depend sensitively on number of neighbors. Here, increasing the threshold
         /// leads to fewer boundary particles.
         NORMAL_BASED,
     };
@@ -864,46 +831,18 @@ private:
     struct {
         ArrayRef<const Size> values;
         Size threshold;
-    } neighbours;
+    } neighbors;
 
 public:
-    BoundaryColorizer(const Detection detection, const Float threshold = 15._f)
-        : detection(detection) {
-        if (detection == Detection::NEIGBOUR_THRESHOLD) {
-            neighbours.threshold = Size(threshold);
-        } else {
-            normals.threshold = threshold;
-        }
-    }
+    BoundaryColorizer(const Detection detection, const Float threshold = 15._f);
 
-    virtual bool hasData(const Storage& storage) const override {
-        if (detection == Detection::NORMAL_BASED) {
-            return storage.has(QuantityId::SURFACE_NORMAL);
-        } else {
-            return storage.has(QuantityId::NEIGHBOUR_CNT);
-        }
-    }
+    virtual bool hasData(const Storage& storage) const override;
 
-    virtual void initialize(const Storage& storage, const RefEnum ref) override {
-        if (detection == Detection::NORMAL_BASED) {
-            normals.values = makeArrayRef(storage.getValue<Vector>(QuantityId::SURFACE_NORMAL), ref);
-        } else {
-            neighbours.values = makeArrayRef(storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT), ref);
-        }
-    }
+    virtual void initialize(const Storage& storage, const RefEnum ref) override;
 
-    virtual bool isInitialized() const override {
-        return (detection == Detection::NORMAL_BASED && !normals.values.empty()) ||
-               (detection == Detection::NEIGBOUR_THRESHOLD && !neighbours.values.empty());
-    }
+    virtual bool isInitialized() const override;
 
-    virtual Rgba evalColor(const Size idx) const override {
-        if (isBoundary(idx)) {
-            return Rgba::red();
-        } else {
-            return Rgba::gray();
-        }
-    }
+    virtual Rgba evalColor(const Size idx) const override;
 
     virtual Optional<Particle> getParticle(const Size UNUSED(idx)) const override {
         // doesn't really make sense to assign some value to boundary
@@ -921,43 +860,8 @@ public:
     }
 
 private:
-    bool isBoundary(const Size idx) const {
-        switch (detection) {
-        case Detection::NEIGBOUR_THRESHOLD:
-            SPH_ASSERT(!neighbours.values.empty());
-            return neighbours.values[idx] < neighbours.threshold;
-        case Detection::NORMAL_BASED:
-            SPH_ASSERT(!normals.values.empty());
-            return getLength(normals.values[idx]) > normals.threshold;
-        default:
-            NOT_IMPLEMENTED;
-        }
-    }
+    bool isBoundary(const Size idx) const;
 };
-
-/// \todo possibly move elsewhere
-static uint64_t getHash(const uint64_t value, const Size seed) {
-    // https://stackoverflow.com/questions/8317508/hash-function-for-a-string
-    constexpr int A = 54059;
-    constexpr int B = 76963;
-    constexpr int FIRST = 37;
-
-    uint64_t hash = FIRST + seed;
-    StaticArray<uint8_t, sizeof(uint64_t)> data;
-    std::memcpy(&data[0], &value, data.size());
-    for (uint i = 0; i < sizeof(uint64_t); ++i) {
-        hash = (hash * A) ^ (data[i] * B);
-    }
-    return hash;
-}
-
-static Rgba getRandomizedColor(const Size idx, const Size seed = 0) {
-    const uint64_t hash = getHash(idx, seed);
-    const uint8_t r = (hash & 0x00000000FFFF);
-    const uint8_t g = (hash & 0x0000FFFF0000) >> 16;
-    const uint8_t b = (hash & 0xFFFF00000000) >> 32;
-    return Rgba(r / 255.f, g / 255.f, b / 255.f);
-}
 
 template <typename TDerived>
 class IdColorizerTemplate : public IColorizer {
@@ -974,30 +878,9 @@ public:
         seed = newSeed;
     }
 
-    virtual Rgba evalColor(const Size idx) const override {
-        const Optional<Size> id = static_cast<const TDerived*>(this)->evalId(idx);
-        if (!id) {
-            return Rgba::gray();
-        }
-        const Rgba color = getRandomizedColor(id.value(), seed);
-        /*if (backgroundColor.intensity() < 0.5f) {
-            // dark background, brighten the particle color
-            return color.brighten(0.2f);
-        } else {
-            // light background, darken the particle color
-            return color.darken(0.2f);
-        }*/
-        return color;
-    }
+    virtual Rgba evalColor(const Size idx) const override;
 
-    virtual Optional<Particle> getParticle(const Size idx) const override {
-        Particle particle(idx);
-        const Optional<Size> id = static_cast<const TDerived*>(this)->evalId(idx);
-        if (id) {
-            particle.addValue(QuantityId::FLAG, id.value());
-        }
-        return particle;
-    }
+    virtual Optional<Particle> getParticle(const Size idx) const override;
 
     virtual Optional<Palette> getPalette() const override {
         return NOTHING;
@@ -1025,24 +908,13 @@ public:
         return true;
     }
 
-    virtual void initialize(const Storage& storage, const RefEnum ref) override {
-        if (storage.has(QuantityId::PERSISTENT_INDEX)) {
-            persistentIdxs = makeArrayRef(storage.getValue<Size>(QuantityId::PERSISTENT_INDEX), ref);
-        }
-    }
+    virtual void initialize(const Storage& storage, const RefEnum ref) override;
 
     virtual bool isInitialized() const override {
         return true;
     }
 
-    virtual Optional<Particle> getParticle(const Size idx) const override {
-        Particle particle(idx);
-        particle.addValue(QuantityId::FLAG, idx);
-        if (!persistentIdxs.empty() && idx < persistentIdxs.size()) {
-            particle.addValue(QuantityId::PERSISTENT_INDEX, persistentIdxs[idx]);
-        }
-        return particle;
-    }
+    virtual Optional<Particle> getParticle(const Size idx) const override;
 
     virtual std::string name() const override {
         return "Particle ID";
@@ -1069,18 +941,9 @@ private:
 public:
     explicit ComponentIdColorizer(const GuiSettings& gui,
         const Flags<Post::ComponentFlag> connectivity,
-        const Optional<Size> highlightIdx = NOTHING)
-        : IdColorizerTemplate<ComponentIdColorizer>(gui)
-        , connectivity(connectivity)
-        , highlightIdx(highlightIdx) {}
+        const Optional<Size> highlightIdx = NOTHING);
 
-    void setHighlightIdx(const Optional<Size> newHighlightIdx) {
-        if (newHighlightIdx) {
-            highlightIdx = min(newHighlightIdx.value(), components.size() - 1);
-        } else {
-            highlightIdx = NOTHING;
-        }
-    }
+    void setHighlightIdx(const Optional<Size> newHighlightIdx);
 
     Optional<Size> getHighlightIdx() const {
         return highlightIdx;
@@ -1099,69 +962,19 @@ public:
         return components[idx];
     }
 
-    virtual Rgba evalColor(const Size idx) const override {
-        if (highlightIdx) {
-            if (highlightIdx.value() == components[idx]) {
-                return Rgba(1.f, 0.65f, 0.f);
-            } else {
-                return Rgba::gray(0.3f);
-            }
-        } else {
-            return IdColorizerTemplate<ComponentIdColorizer>::evalColor(idx);
-        }
-    }
+    virtual Rgba evalColor(const Size idx) const override;
 
-    virtual Optional<Particle> getParticle(const Size idx) const override {
-        Particle particle(idx);
-        const Optional<Size> id = this->evalId(idx);
-        particle.addValue(QuantityId::FLAG, id.value());
+    virtual Optional<Particle> getParticle(const Size idx) const override;
 
-        Array<Size> indices;
-        for (Size i = 0; i < r.size(); ++i) {
-            if (components[i] == id.value()) {
-                indices.push(i);
-            }
-        }
-        if (indices.size() > 1) {
-            const Vector omega = Post::getAngularFrequency(m, r, v, indices);
-            particle.addValue(QuantityId::ANGULAR_FREQUENCY, getLength(omega));
-        }
-        return particle;
-    }
+    virtual bool hasData(const Storage& storage) const override;
 
-    virtual bool hasData(const Storage& storage) const override {
-        return hasVelocity(storage);
-    }
-
-    virtual void initialize(const Storage& storage, const RefEnum ref) override {
-        const Array<Vector>& current = storage.getValue<Vector>(QuantityId::POSITION);
-        if (current == cached.r) {
-            // optimization, very poorly done
-            return;
-        }
-
-        m = makeArrayRef(storage.getValue<Float>(QuantityId::MASS), ref);
-        r = makeArrayRef(storage.getValue<Vector>(QuantityId::POSITION), ref);
-        v = makeArrayRef(storage.getDt<Vector>(QuantityId::POSITION), ref);
-
-        cached.r = current.clone();
-
-        Post::findComponents(storage, 2._f, connectivity, components);
-    }
+    virtual void initialize(const Storage& storage, const RefEnum ref) override;
 
     virtual bool isInitialized() const override {
         return !components.empty();
     }
 
-    virtual std::string name() const override {
-        if (connectivity.has(Post::ComponentFlag::ESCAPE_VELOCITY)) {
-            return "Bound component ID";
-        } else if (connectivity.has(Post::ComponentFlag::SEPARATE_BY_FLAG)) {
-            return "Component ID (flag)";
-        } else {
-            return "Component ID";
-        }
-    }
+    virtual std::string name() const override;
 };
 
 class AggregateIdColorizer : public IdColorizerTemplate<AggregateIdColorizer> {
@@ -1236,31 +1049,9 @@ public:
     MaterialColorizer(const GuiSettings& gui)
         : IndexColorizer(QuantityId::MATERIAL_ID, gui) {}
 
-    virtual void initialize(const Storage& storage, const RefEnum ref) override {
-        IndexColorizer::initialize(storage, ref);
+    virtual void initialize(const Storage& storage, const RefEnum ref) override;
 
-        const Size matCnt = storage.getMaterialCnt();
-        eosNames.resize(matCnt);
-        rheoNames.resize(matCnt);
-        for (Size matId = 0; matId < matCnt; ++matId) {
-            const IMaterial& mat = storage.getMaterial(matId);
-            const EosEnum eos = mat.getParam<EosEnum>(BodySettingsId::EOS);
-            const YieldingEnum yield = mat.getParam<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
-            eosNames[matId] = EnumMap::toString(eos);
-            rheoNames[matId] = EnumMap::toString(yield);
-        }
-    }
-
-    virtual Optional<Particle> getParticle(const Size idx) const override {
-        Particle particle(idx);
-        const Optional<Size> id = IndexColorizer::evalId(idx);
-        if (id) {
-            particle.addValue(QuantityId::MATERIAL_ID, id.value());
-            particle.addParameter(BodySettingsId::EOS, eosNames[id.value()]);
-            particle.addParameter(BodySettingsId::RHEOLOGY_YIELDING, rheoNames[id.value()]);
-        }
-        return particle;
-    }
+    virtual Optional<Particle> getParticle(const Size idx) const override;
 };
 
 NAMESPACE_SPH_END

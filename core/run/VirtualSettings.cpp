@@ -17,13 +17,18 @@ EntryControl& EntryControl::setEnabler(const Enabler& newEnabler) {
     return *this;
 }
 
-EntryControl& EntryControl::setAccessor(const Accessor& newAccessor) {
-    accessor = newAccessor;
+EntryControl& EntryControl::addAccessor(const SharedToken& owner, const Accessor& accessor) {
+    accessors.insert(owner, accessor);
     return *this;
 }
 
 EntryControl& EntryControl::setValidator(const Validator& newValidator) {
     validator = newValidator;
+    return *this;
+}
+
+EntryControl& EntryControl::setSideEffect() {
+    sideEffect = true;
     return *this;
 }
 
@@ -58,17 +63,16 @@ std::string EntryControl::getTooltip() const {
 }
 
 bool EntryControl::hasSideEffect() const {
-    return bool(accessor);
+    return sideEffect;
 }
 
-void EntryControl::set(const Value& value) {
+bool EntryControl::set(const Value& value) {
     if (!this->isValid(value)) {
-        return;
+        return false;
     }
     this->setImpl(value);
-    if (accessor) {
-        accessor(value);
-    }
+    accessors(value);
+    return true;
 }
 
 

@@ -316,9 +316,9 @@ template <bool FindAll>
 Size KdTree<TNode, TMetric>::find(const Vector& r0,
     const Size index,
     const Float radius,
-    Array<NeighbourRecord>& neighbours) const {
+    Array<NeighborRecord>& neighbors) const {
 
-    SPH_ASSERT(neighbours.empty());
+    SPH_ASSERT(neighbors.empty());
     const Float radiusSqr = sqr(radius);
     const Vector maxDistSqr = sqr(max(Vector(0._f), entireBox.lower() - r0, r0 - entireBox.upper()));
 
@@ -343,7 +343,7 @@ Size KdTree<TNode, TMetric>::find(const Vector& r0,
                         const Float distSqr = metric(this->values[actIndex] - r0);
                         if (distSqr < radiusSqr && (FindAll || this->rank[actIndex] < this->rank[index])) {
                             /// \todo order part
-                            neighbours.push(NeighbourRecord{ actIndex, distSqr });
+                            neighbors.push(NeighborRecord{ actIndex, distSqr });
                         }
                     }
                 }
@@ -387,7 +387,7 @@ Size KdTree<TNode, TMetric>::find(const Vector& r0,
         }
     }
 
-    return neighbours.size();
+    return neighbors.size();
 }
 
 template <typename TNode, typename TMetric>

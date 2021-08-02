@@ -79,7 +79,7 @@ void SelectedParticlePlot::onTimeStep(const Storage& storage, const Statistics& 
     }
     // also do onTimeStep for all cached plots
     for (auto& plot : plotCache) {
-        plot.value->onTimeStep(storage, stats);
+        plot.value()->onTimeStep(storage, stats);
     }
     this->syncRanges();
 }

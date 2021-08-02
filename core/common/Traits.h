@@ -6,7 +6,6 @@
 /// \date 2016-2021
 
 #include "common/Globals.h"
-#include <memory>
 #include <type_traits>
 
 NAMESPACE_SPH_BEGIN
@@ -123,7 +122,7 @@ public:
         : data(other.data) {}
 
     ReferenceWrapper(T& ref)
-        : data(std::addressof(ref)) {}
+        : data(&ref) {}
 
     ReferenceWrapper& operator=(const ReferenceWrapper& other) {
         data = other.data;

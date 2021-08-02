@@ -130,9 +130,7 @@ public:
     virtual UnorderedMap<std::string, ExtJobType> getSlots() const = 0;
 
     /// \brief Specifies the type of the job, i.e. what kind of data the job provides.
-    ///
-    /// May be NOTHING for jobs like "save file", etc.
-    virtual Optional<ExtJobType> provides() const = 0;
+    virtual ExtJobType provides() const = 0;
 
     /// \brief Returns a settings object which allows to query and modify the state of the job.
     ///
@@ -249,7 +247,7 @@ public:
 
     ~IParticleJob() override;
 
-    virtual Optional<ExtJobType> provides() const override final {
+    virtual ExtJobType provides() const override final {
         return JobType::PARTICLES;
     }
 
@@ -290,7 +288,7 @@ public:
     explicit IGeometryJob(const std::string& name)
         : IJob(name) {}
 
-    virtual Optional<ExtJobType> provides() const override final {
+    virtual ExtJobType provides() const override final {
         return JobType::GEOMETRY;
     }
 
@@ -309,27 +307,12 @@ public:
     explicit IMaterialJob(const std::string& name)
         : IJob(name) {}
 
-    virtual Optional<ExtJobType> provides() const override final {
+    virtual ExtJobType provides() const override final {
         return JobType::MATERIAL;
     }
 
     virtual JobContext getResult() const override final {
         return result;
-    }
-};
-
-/// \brief Base class for jobs providing no data.
-class INullJob : public IJob {
-public:
-    explicit INullJob(const std::string& name)
-        : IJob(name) {}
-
-    virtual Optional<ExtJobType> provides() const override final {
-        return NOTHING;
-    }
-
-    virtual JobContext getResult() const override final {
-        return {};
     }
 };
 

@@ -15,6 +15,7 @@ NAMESPACE_SPH_BEGIN
 class Controller;
 class IPluginControls;
 class RunPage;
+class ClosablePage;
 class NodeWindow;
 class INode;
 
@@ -50,7 +51,9 @@ private:
 
     wxMenu* createResultMenu();
 
-    void addPage(SharedPtr<INode> node, const RunSettings& globals, const std::string pageName);
+    void addRunPage(SharedPtr<INode> node, const RunSettings& globals, const std::string pageName);
+
+    void addRenderPage(SharedPtr<INode> node, const RunSettings& globals, const std::string pageName);
 
     bool removeAll();
 
@@ -70,9 +73,9 @@ private:
 
     void enableMenus(const Size id);
 
-    void enableRunMenu(const bool enable);
+    void enableRunMenu(const bool enableControls, const bool enableCamera);
 
-    bool closeRun(const Size id);
+    bool closePage(ClosablePage* page);
 
     int checkUnsavedSession();
 };

@@ -80,7 +80,7 @@ INLINE RawPtr<T1> dynamicCast(RawPtr<T2> source) {
 
 template <typename T>
 INLINE RawPtr<T> addressOf(T& ref) {
-    return std::addressof(ref);
+    return &ref;
 }
 
 template <typename T>

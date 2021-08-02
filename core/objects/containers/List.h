@@ -6,7 +6,7 @@
 /// \date 2016-2021
 
 #include "common/Traits.h"
-#include "objects/containers/Allocators.h"
+#include "objects/containers/BasicAllocators.h"
 #include "objects/wrappers/RawPtr.h"
 
 NAMESPACE_SPH_BEGIN
@@ -32,7 +32,7 @@ struct ListNode {
         : value(std::forward<U>(value))
         , next(next)
         , prev(prev) {
-        // update pointers of neighbouring nodes
+        // update pointers of neighboring nodes
         if (prev) {
             prev->next = this;
         }

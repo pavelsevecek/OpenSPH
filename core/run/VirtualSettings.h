@@ -6,8 +6,8 @@
 /// \date 2016-2021
 
 #include "io/Path.h"
+#include "objects/containers/CallbackSet.h"
 #include "objects/containers/UnorderedMap.h"
-#include "objects/wrappers/Function.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
@@ -77,7 +77,8 @@ public:
     ///
     /// Function shall throw \ref Exception (or derived type) if the type of the value differs from type of
     /// the entry.
-    virtual void set(const Value& value) = 0;
+    /// \return True if the value was changed, false if it was rejected.
+    virtual bool set(const Value& value) = 0;
 
     /// \brief Returns the currently stored value.
     virtual Value get() const = 0;
@@ -156,9 +157,10 @@ protected:
     Float mult = 1._f;
     Optional<PathType> pathType = NOTHING;
     Array<FileFormat> fileFormats;
-    Function<bool()> enabler = nullptr;
-    Accessor accessor = nullptr;
+    Enabler enabler = nullptr;
+    CallbackSet<Accessor> accessors;
     Validator validator = nullptr;
+    bool sideEffect = false;
 
 public:
     /// \brief Adds or replaces the previous tooltip associanted with the entry.
@@ -179,14 +181,20 @@ public:
     /// simulations.
     EntryControl& setEnabler(const Enabler& newEnabler);
 
-    /// \brief Adds or replaces the functor called when the entry changes, i.e. when \ref set function is
-    /// called.
-    EntryControl& setAccessor(const Accessor& newAccessor);
+    /// \brief Adds a functor called when the entry changes, i.e. when \ref set function is called.
+    ///
+    /// There can be any number of accessors set for each property.
+    /// \brief owner Owner that registered the accessor. When expired, the accessor is no longer called.
+    /// \brief accessor New functor to be added.
+    EntryControl& addAccessor(const SharedToken& owner, const Accessor& accessor);
 
     /// \brief Adds or replaces the functor called to validate the new value.
     ///
     /// If the functor returns false, the value is unchanged.
     EntryControl& setValidator(const Validator& newValidator);
+
+    /// \brief Specifies that the entry has a side effect, i.e. it changes values of other entries.
+    EntryControl& setSideEffect();
 
     /// \brief Sets the type of the path.
     EntryControl& setPathType(const PathType& newType);
@@ -210,7 +218,7 @@ protected:
     virtual void setImpl(const Value& value) = 0;
 
 private:
-    virtual void set(const Value& value) override final;
+    virtual bool set(const Value& value) override final;
 };
 
 /// \brief Holds a map of virtual entries, associated with a unique name.

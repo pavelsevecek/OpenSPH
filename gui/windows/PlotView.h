@@ -8,6 +8,7 @@
 #include "gui/objects/GraphicsContext.h"
 #include "gui/objects/Plots.h"
 #include "gui/objects/Point.h"
+#include "gui/windows/Widgets.h"
 #include "physics/Integrals.h"
 #include "thread/CheckFunction.h"
 #include <wx/frame.h>
@@ -78,7 +79,7 @@ private:
 };
 
 
-class PlotPage : public wxPanel {
+class PlotPage : public ClosablePage {
 private:
     LockingPtr<IPlot> plot;
     wxSize padding;
@@ -94,6 +95,12 @@ private:
     void saveImage(const Path& path);
 
     void saveData(const Path& path);
+
+    virtual bool isRunning() const override {
+        return false;
+    }
+    virtual void stop() override {}
+    virtual void quit() override {}
 };
 
 

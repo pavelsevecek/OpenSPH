@@ -16,6 +16,8 @@ enum class RefEnum {
 
 template <typename T>
 class ArrayRef {
+    friend class ArrayRef<std::remove_const_t<T>>;
+
 private:
     /// View referencing either the holder array or some external buffer
     ArrayView<T> ref;
@@ -98,6 +100,13 @@ public:
 
     Iterator<const T> end() const {
         return ref.end();
+    }
+
+    operator ArrayRef<const T>() && {
+        ArrayRef<const T> copy;
+        copy.ref = ref;
+        copy.holder = std::move(holder);
+        return copy;
     }
 
     operator ArrayView<T>() {

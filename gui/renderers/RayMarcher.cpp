@@ -1,4 +1,4 @@
-#include "gui/renderers/RayTracer.h"
+#include "gui/renderers/RayMarcher.h"
 #include "gui/Factory.h"
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Camera.h"
@@ -16,6 +16,7 @@ RayMarcher::RayMarcher(SharedPtr<IScheduler> scheduler, const GuiSettings& setti
     fixed.dirToSun = getNormalized(settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION));
     fixed.brdf = Factory::getBrdf(settings);
     fixed.renderSpheres = settings.get<bool>(GuiSettingsId::RAYTRACE_SPHERES);
+    fixed.shadows = settings.get<bool>(GuiSettingsId::RAYTRACE_SHADOWS);
 }
 
 RayMarcher::~RayMarcher() = default;
@@ -122,6 +123,10 @@ void RayMarcher::initialize(const Storage& storage,
     shouldContinue = true;
 }
 
+bool RayMarcher::isInitialized() const {
+    return !cached.r.empty();
+}
+
 Rgba RayMarcher::shade(const RenderParams& params, const CameraRay& cameraRay, ThreadData& data) const {
     const Vector dir = getNormalized(cameraRay.target - cameraRay.origin);
     const Ray ray(cameraRay.origin, dir);
@@ -134,16 +139,16 @@ Rgba RayMarcher::shade(const RenderParams& params, const CameraRay& cameraRay, T
     }
 }
 
-ArrayView<const Size> RayMarcher::getNeighbourList(MarchData& data, const Size index) const {
-    // look for neighbours only if the intersected particle differs from the previous one
+ArrayView<const Size> RayMarcher::getNeighborList(MarchData& data, const Size index) const {
+    // look for neighbors only if the intersected particle differs from the previous one
     if (index != data.previousIdx) {
-        Array<NeighbourRecord> neighs;
+        Array<NeighborRecord> neighs;
         finder->findAll(index, kernel.radius() * cached.r[index][H], neighs);
         data.previousIdx = index;
 
-        // find the actual list of neighbours
+        // find the actual list of neighbors
         data.neighs.clear();
-        for (NeighbourRecord& n : neighs) {
+        for (NeighborRecord& n : neighs) {
             const Size flag1 = cached.flags[index];
             const Size flag2 = cached.flags[n.index];
             if ((flag1 & BLEND_ALL_FLAG) || (flag2 & BLEND_ALL_FLAG) || (flag1 == flag2)) {
@@ -185,7 +190,7 @@ Optional<Vector> RayMarcher::getSurfaceHit(MarchData& data,
         return context.ray.origin() + context.ray.direction() * context.t_min;
     }
 
-    this->getNeighbourList(data, context.index);
+    this->getNeighborList(data, context.index);
 
     const Size i = context.index;
     const Ray& ray = context.ray;
@@ -247,7 +252,7 @@ Rgba RayMarcher::getSurfaceColor(MarchData& data,
         }
     }
 
-    // evaluate color before checking for occlusion as that invalidates the neighbour list
+    // evaluate color before checking for occlusion as that invalidates the neighbor list
     const Rgba colorizerValue =
         fixed.renderSpheres ? cached.colors[index] : this->evalColor(data.neighs, hit);
 
@@ -258,7 +263,7 @@ Rgba RayMarcher::getSurfaceColor(MarchData& data,
         diffuse = diffuse * colorizerValue;
     }
 
-    // compute normal = gradient of the field
+    // compute the inward normal = gradient of the field
     const Vector n = fixed.renderSpheres ? cached.r[index] - hit : this->evalGradient(data.neighs, hit);
     SPH_ASSERT(n != Vector(0._f));
     const Vector n_norm = getNormalized(n);
@@ -270,7 +275,7 @@ Rgba RayMarcher::getSurfaceColor(MarchData& data,
 
     // check for occlusion
     if (fixed.shadows) {
-        Ray rayToSun(hit - 1.e-3_f * fixed.dirToSun, -fixed.dirToSun);
+        Ray rayToSun(hit - 0.5_f * n_norm * cached.r[index][H], -fixed.dirToSun);
         if (this->intersect(data, rayToSun, params.surface.level, true)) {
             // casted shadow
             return diffuse * params.surface.ambientLight + emission;

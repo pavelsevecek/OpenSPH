@@ -1,12 +1,12 @@
 #pragma once
 
 /// \file UniformGrid.h
-/// \brief Simple algorithm for finding nearest neighbours using spatial partitioning of particles
+/// \brief Simple algorithm for finding nearest neighbors using spatial partitioning of particles
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz))
 /// \date 2016-2021
 
 #include "objects/containers/LookupMap.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -30,7 +30,7 @@ public:
     ~UniformGridFinder();
 
     template <bool FindAll>
-    Size find(const Vector& pos, const Size index, const Float radius, Array<NeighbourRecord>& neighs) const;
+    Size find(const Vector& pos, const Size index, const Float radius, Array<NeighborRecord>& neighs) const;
 
     /// Exposed for gravity
     /// \todo refactor, finder shouldn't know anything about gravity

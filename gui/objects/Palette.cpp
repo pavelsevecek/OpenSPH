@@ -164,6 +164,10 @@ float Palette::paletteToRelative(const float value) const {
     return (linear - points[0].value) / (points.back().value - points[0].value);
 }
 
+bool Palette::empty() const {
+    return points.empty();
+}
+
 Outcome Palette::loadFromStream(std::istream& ifs) {
     try {
         Array<Rgba> colors;

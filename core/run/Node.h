@@ -6,8 +6,9 @@
 /// \date 2016-2021
 
 #include "io/Output.h"
+#include "objects/containers/CallbackSet.h"
 #include "objects/containers/UnorderedMap.h"
-#include "objects/wrappers/SharedPtr.h"
+#include "objects/wrappers/Any.h"
 #include "quantities/Storage.h"
 #include "run/IRun.h"
 #include "run/Job.h"
@@ -73,18 +74,44 @@ struct SlotData {
     SharedPtr<JobNode> provider;
 };
 
+/// \brief Specifies how the given node changed.
+enum class JobNotificationType {
+    /// One or multiple entries have been changed. The value contains the key of the entry (as std::string).
+    ENTRY_CHANGED,
+
+    /// New provider has been connected. The value contains the connected node (as SharedPtr<JobNode>).
+    PROVIDER_CONNECTED,
+
+    /// Provider has been disconnected. The value contains the disconnected node (as SharedPtr<JobNode>).
+    PROVIDER_DISCONNECTED,
+
+    /// New dependent node has been connected. The value contains the connected node (as SharedPtr<JobNode>).
+    DEPENDENT_CONNECTED,
+
+    /// Dependent node has been disconnected. The value contains the disconnected node (as
+    /// SharedPtr<JobNode>).
+    DEPENDENT_DISCONNECTED,
+};
+
 /// \brief Building block of a simulation hierarchy.
 ///
 /// Each node can have any number of providers (preconditions of the job).
-class JobNode : public ShareFromThis<JobNode>, public INode {
+class JobNode : public Shareable<JobNode>, public INode {
+public:
+    using Accessor = Function<void(JobNotificationType, const Any& value)>;
+
+private:
     /// Maps slot names to connected providers
     UnorderedMap<std::string, SharedPtr<JobNode>> providers;
 
     /// All dependent nodes (i.e. nodes that have this node as provider) in no particular order.
     Array<WeakPtr<JobNode>> dependents;
 
-    /// job object of this node
-    SharedPtr<IJob> job;
+    /// Job object of this node
+    AutoPtr<IJob> job;
+
+    /// Set of callbacks called when a node property is changed.
+    CallbackSet<Accessor> accessors;
 
 public:
     /// \brief Creates a new node, given a job object.
@@ -99,8 +126,22 @@ public:
     /// \brief Returns settings object allowing to access and modify the state of the job.
     VirtualSettings getSettings() const;
 
+    /// \brief Returns the underlying job.
+    RawPtr<IJob> getJob() const;
+
+    /// \brief Adds an accessor for entries returned by the \ref getSettings function.
+    ///
+    /// The accessors are shared among all \ref VirtualSettings objects obtained from this node. When a new
+    /// accessor is added, existing entries will start using it as well.
+    /// \param owner Token controlling the lifetime of the accessor. When the token expires, the accessor is
+    ///              no longer called.
+    /// \param accessor Accessor called whenever the node changed. The type of the change is specified by a
+    ///                 \ref JobNotificationType value, the changed object is passed as the second parameter
+    ///                 of the accessor.
+    void addAccessor(const SharedToken& owner, const Accessor& accessor);
+
     /// \brief Returns the type of the job.
-    Optional<ExtJobType> provides() const;
+    ExtJobType provides() const;
 
     /// \brief Connects this node to given dependent node.
     ///
@@ -134,7 +175,12 @@ public:
     ///
     /// Function call provided function for this node and recursively for all providers of this node. Each
     /// node is visited only once.
-    void enumerate(Function<void(SharedPtr<JobNode> job, Size depth)> func);
+    void enumerate(Function<void(const SharedPtr<JobNode>& job)> func);
+
+    /// \copydoc enumerate
+    ///
+    /// The function is given the visited job and its depth in the hierarchy.
+    void enumerate(Function<void(const SharedPtr<JobNode>& job, Size depth)> func);
 
     /// \brief Evaluates the node and all its providers.
     ///
@@ -143,12 +189,20 @@ public:
     /// \param callbacks Interface allowing to get a feedback from evaluated nodes, see \ref IJobCallbacks.
     virtual void run(const RunSettings& global, IJobCallbacks& callbacks) override;
 
+    /// \brief Evaluates all provides, without executing the node itself.
+    ///
+    /// This functions does not have to be called before \ref run, as it is called from within \ref run.
+    /// It is useful for manual execution of jobs.
+    virtual void prepare(const RunSettings& global, IJobCallbacks& callbacks);
+
 private:
-    void enumerate(Function<void(SharedPtr<JobNode> job, Size depth)> func,
+    void enumerate(Function<void(const SharedPtr<JobNode>& job, Size depth)> func,
         Size depth,
         std::set<JobNode*>& visited);
 
     void run(const RunSettings& global, IJobCallbacks& callbacks, std::set<JobNode*>& visited);
+
+    void prepare(const RunSettings& global, IJobCallbacks& callbacks, std::set<JobNode*>& visited);
 };
 
 /// \brief Helper function for creating job nodes.

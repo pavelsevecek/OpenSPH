@@ -20,7 +20,7 @@ TEST_CASE("Lane-Emden analytical solution", "[stellar]") {
     REQUIRE(compare(phi0, [](const Float z) { return 1._f - sqr(z) / 6._f; }));
 
     Lut<Float> phi1 = Stellar::solveLaneEmden(1._f);
-    REQUIRE(compare(phi1, [](const Float z) { return sin(z) / z; }));
+    REQUIRE(compare(phi1, [](const Float z) { return Sph::sin(z) / z; }));
 
     Lut<Float> phi5 = Stellar::solveLaneEmden(5._f);
     REQUIRE(compare(phi5, [](const Float z) { return pow(1._f + sqr(z) / 3._f, -0.5_f); }));

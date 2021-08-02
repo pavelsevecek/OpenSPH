@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file Galaxy.h
+/// \brief Initial conditions of a galaxy
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2021
+
 #include "common/ForwardDecl.h"
 #include "objects/geometry/Vector.h"
 
@@ -35,6 +40,7 @@ using GalaxySettings = Settings<GalaxySettingsId>;
 
 namespace Galaxy {
 
+/// Specifies the part of the galaxy, saved into the FLAG quantity.
 enum class PartEnum {
     DISK,
     HALO,

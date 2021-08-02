@@ -36,14 +36,14 @@ public:
 /// \brief Trigger executing given action every period
 class PeriodicTrigger : public ITrigger {
 private:
-    Float _period;
-    Float _lastAction;
+    Float period;
+    Float lastAction;
 
 public:
     /// \brief period Period in simulation time of triggered action.
     explicit PeriodicTrigger(const Float period, const Float startTime)
-        : _period(period)
-        , _lastAction(startTime - EPS) {}
+        : period(period)
+        , lastAction(startTime - EPS) {}
 
     virtual TriggerEnum type() const override {
         return TriggerEnum::REPEATING;
@@ -51,8 +51,8 @@ public:
 
     virtual bool condition(const Storage& UNUSED(storage), const Statistics& stats) override {
         const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
-        if (t > _lastAction + _period) {
-            _lastAction = t;
+        if (t > lastAction + period) {
+            lastAction = t;
             return true;
         } else {
             return false;

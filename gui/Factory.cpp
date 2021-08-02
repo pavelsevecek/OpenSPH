@@ -7,7 +7,7 @@
 #include "gui/renderers/FrameBuffer.h"
 #include "gui/renderers/MeshRenderer.h"
 #include "gui/renderers/ParticleRenderer.h"
-#include "gui/renderers/RayTracer.h"
+#include "gui/renderers/RayMarcher.h"
 #include "gui/renderers/VolumeRenderer.h"
 
 NAMESPACE_SPH_BEGIN
@@ -67,6 +67,9 @@ AutoPtr<IRenderer> Factory::getRenderer(SharedPtr<IScheduler> scheduler, const G
     case RendererEnum::NONE:
         class NullRenderer : public IRenderer {
             virtual void initialize(const Storage&, const IColorizer&, const ICamera&) override {}
+            virtual bool isInitialized() const override {
+                return true;
+            }
             virtual void render(const RenderParams&, Statistics&, IRenderOutput&) const override {}
             virtual void cancelRender() override {}
         };
@@ -206,43 +209,43 @@ struct PaletteDesc {
     PaletteScale scale;
 };
 
-static FlatMap<ExtColorizerId, PaletteDesc> paletteDescs = {
-    { QuantityId::DENSITY, { Interval(2650._f, 2750._f), PaletteScale::LINEAR } },
-    { QuantityId::MASS, { Interval(1.e5_f, 1.e10_f), PaletteScale::LOGARITHMIC } },
-    { QuantityId::PRESSURE, { Interval(-1.e5_f, 1.e10_f), PaletteScale::HYBRID } },
-    { QuantityId::ENERGY, { Interval(1._f, 1.e6_f), PaletteScale::LOGARITHMIC } },
-    { QuantityId::DEVIATORIC_STRESS, { Interval(0._f, 1.e10_f), PaletteScale::LINEAR } },
-    { QuantityId::DAMAGE, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
-    { QuantityId::VELOCITY_DIVERGENCE, { Interval(-0.1_f, 0.1_f), PaletteScale::LINEAR } },
-    { QuantityId::VELOCITY_GRADIENT, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
-    { QuantityId::VELOCITY_LAPLACIAN, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
-    { QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
-    { QuantityId::VELOCITY_ROTATION, { Interval(0._f, 4._f), PaletteScale::LINEAR } },
-    { QuantityId::SOUND_SPEED, { Interval(0._f, 5.e3_f), PaletteScale::LINEAR } },
-    { QuantityId::VIBRATIONAL_VELOCITY, { Interval(0._f, 5.e3_f), PaletteScale::LINEAR } },
-    { QuantityId::BULK_DENSITY, { Interval(2650._f, 2750._f), PaletteScale::LINEAR } },
-    { QuantityId::AV_ALPHA, { Interval(0.1_f, 1.5_f), PaletteScale::LINEAR } },
-    { QuantityId::AV_BALSARA, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
-    { QuantityId::AV_STRESS, { Interval(0._f, 1.e8_f), PaletteScale::LINEAR } },
-    { QuantityId::ANGULAR_FREQUENCY, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
-    { QuantityId::MOMENT_OF_INERTIA, { Interval(0._f, 1.e10_f), PaletteScale::LINEAR } },
-    { QuantityId::PHASE_ANGLE, { Interval(0._f, 10._f), PaletteScale::LINEAR } },
-    { QuantityId::STRAIN_RATE_CORRECTION_TENSOR, { Interval(0._f, 5._f), PaletteScale::LINEAR } },
-    { QuantityId::EPS_MIN, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
-    { QuantityId::FRICTION, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
-    { QuantityId::DELTASPH_DENSITY_GRADIENT, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
-    { QuantityId::NEIGHBOUR_CNT, { Interval(50._f, 150._f), PaletteScale::LINEAR } },
-    { ColorizerId::VELOCITY, { Interval(0.1_f, 100._f), PaletteScale::LOGARITHMIC } },
-    { ColorizerId::ACCELERATION, { Interval(0.1_f, 100._f), PaletteScale::LOGARITHMIC } },
-    { ColorizerId::MOVEMENT_DIRECTION, { Interval(0._f, 2._f * PI), PaletteScale::LINEAR } },
-    { ColorizerId::RADIUS, { Interval(0._f, 1.e3_f), PaletteScale::LINEAR } },
-    { ColorizerId::TOTAL_ENERGY, { Interval(1.e6_f, 1.e10_f), PaletteScale::LOGARITHMIC } },
-    { ColorizerId::TEMPERATURE, { Interval(100._f, 1.e7_f), PaletteScale::LOGARITHMIC } },
-    { ColorizerId::DENSITY_PERTURBATION, { Interval(-1.e-6_f, 1.e-6_f), PaletteScale::LINEAR } },
-    { ColorizerId::DAMAGE_ACTIVATION, { Interval(2.e-4_f, 8.e-4_f), PaletteScale::LINEAR } },
-    { ColorizerId::YIELD_REDUCTION, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
-    { ColorizerId::TOTAL_STRESS, { Interval(0._f, 1e6_f), PaletteScale::LINEAR } },
-};
+static FlatMap<ExtColorizerId, PaletteDesc> paletteDescs(ELEMENTS_UNIQUE,
+    {
+        { QuantityId::DENSITY, { Interval(2650._f, 2750._f), PaletteScale::LINEAR } },
+        { QuantityId::MASS, { Interval(1.e5_f, 1.e10_f), PaletteScale::LOGARITHMIC } },
+        { QuantityId::PRESSURE, { Interval(-1.e5_f, 1.e10_f), PaletteScale::HYBRID } },
+        { QuantityId::ENERGY, { Interval(1._f, 1.e6_f), PaletteScale::LOGARITHMIC } },
+        { QuantityId::DEVIATORIC_STRESS, { Interval(0._f, 1.e10_f), PaletteScale::LINEAR } },
+        { QuantityId::DAMAGE, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
+        { QuantityId::VELOCITY_DIVERGENCE, { Interval(-0.1_f, 0.1_f), PaletteScale::LINEAR } },
+        { QuantityId::VELOCITY_GRADIENT, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
+        { QuantityId::VELOCITY_LAPLACIAN, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
+        { QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
+        { QuantityId::VELOCITY_ROTATION, { Interval(0._f, 4._f), PaletteScale::LINEAR } },
+        { QuantityId::SOUND_SPEED, { Interval(0._f, 5.e3_f), PaletteScale::LINEAR } },
+        { QuantityId::VIBRATIONAL_VELOCITY, { Interval(0._f, 5.e3_f), PaletteScale::LINEAR } },
+        { QuantityId::AV_ALPHA, { Interval(0.1_f, 1.5_f), PaletteScale::LINEAR } },
+        { QuantityId::AV_BALSARA, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
+        { QuantityId::AV_STRESS, { Interval(0._f, 1.e8_f), PaletteScale::LINEAR } },
+        { QuantityId::ANGULAR_FREQUENCY, { Interval(0._f, 1.e-3_f), PaletteScale::LINEAR } },
+        { QuantityId::MOMENT_OF_INERTIA, { Interval(0._f, 1.e10_f), PaletteScale::LINEAR } },
+        { QuantityId::PHASE_ANGLE, { Interval(0._f, 10._f), PaletteScale::LINEAR } },
+        { QuantityId::STRAIN_RATE_CORRECTION_TENSOR, { Interval(0._f, 5._f), PaletteScale::LINEAR } },
+        { QuantityId::EPS_MIN, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
+        { QuantityId::FRICTION, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
+        { QuantityId::DELTASPH_DENSITY_GRADIENT, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
+        { QuantityId::NEIGHBOR_CNT, { Interval(50._f, 150._f), PaletteScale::LINEAR } },
+        { ColorizerId::VELOCITY, { Interval(0.1_f, 100._f), PaletteScale::LOGARITHMIC } },
+        { ColorizerId::ACCELERATION, { Interval(0.1_f, 100._f), PaletteScale::LOGARITHMIC } },
+        { ColorizerId::MOVEMENT_DIRECTION, { Interval(0._f, 2._f * PI), PaletteScale::LINEAR } },
+        { ColorizerId::RADIUS, { Interval(0._f, 1.e3_f), PaletteScale::LINEAR } },
+        { ColorizerId::TOTAL_ENERGY, { Interval(1.e6_f, 1.e10_f), PaletteScale::LOGARITHMIC } },
+        { ColorizerId::TEMPERATURE, { Interval(100._f, 1.e7_f), PaletteScale::LOGARITHMIC } },
+        { ColorizerId::DENSITY_PERTURBATION, { Interval(-1.e-6_f, 1.e-6_f), PaletteScale::LINEAR } },
+        { ColorizerId::DAMAGE_ACTIVATION, { Interval(2.e-4_f, 8.e-4_f), PaletteScale::LINEAR } },
+        { ColorizerId::YIELD_REDUCTION, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
+        { ColorizerId::TOTAL_STRESS, { Interval(0._f, 1e6_f), PaletteScale::LINEAR } },
+    });
 
 static Palette getDefaultPalette(const Interval range) {
     const float x0 = float(range.lower());
@@ -346,7 +349,6 @@ Palette Factory::getPalette(const ExtColorizerId id) {
                                { x0 + dx, Rgba(0.5f, 0.f, 0.f) } },
                 scale);
         case QuantityId::DENSITY:
-        case QuantityId::BULK_DENSITY:
         case QuantityId::VELOCITY_LAPLACIAN:
         case QuantityId::FRICTION:
         case QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE:

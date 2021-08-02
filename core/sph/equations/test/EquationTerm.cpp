@@ -106,7 +106,7 @@ TEST_CASE("EquationHolder operators", "[equationterm]") {
     eqs += makeTerm<PressureForce>();
     REQUIRE(eqs.getTermCnt() == 1);
 
-    EquationHolder sum = std::move(eqs) + makeTerm<NeighbourCountTerm>() +
+    EquationHolder sum = std::move(eqs) + makeTerm<NeighborCountTerm>() +
                          makeTerm<AdaptiveSmoothingLength>(RunSettings::getDefaults());
     REQUIRE(sum.getTermCnt() == 3);
 }
@@ -142,7 +142,7 @@ TEMPLATE_TEST_CASE("TestEquation", "[equationterm]", SymmetricSolver<3>, Asymmet
     REQUIRE(perElement(cnts) == 1);
 }
 
-TEMPLATE_TEST_CASE("NeighbourCount", "[equationterm]", SymmetricSolver<3>, AsymmetricSolver) {
+TEMPLATE_TEST_CASE("NeighborCount", "[equationterm]", SymmetricSolver<3>, AsymmetricSolver) {
     Storage storage = Tests::getStorage(10000);
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     const Size N = storage.getParticleCnt();
@@ -154,20 +154,20 @@ TEMPLATE_TEST_CASE("NeighbourCount", "[equationterm]", SymmetricSolver<3>, Asymm
 
     solver.integrate(storage, stats);
 
-    ArrayView<Size> neighCnts = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+    ArrayView<Size> neighCnts = storage.getValue<Size>(QuantityId::NEIGHBOR_CNT);
 
     REQUIRE(neighCnts.size() == N);
-    // count neighbours manually and compare
+    // count neighbors manually and compare
     UniformGridFinder finder;
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     finder.build(pool, r);
     const Float radius = Factory::getKernel<3>(RunSettings::getDefaults()).radius();
-    Array<NeighbourRecord> neighs;
+    Array<NeighborRecord> neighs;
     auto test = [&](Size i) -> Outcome {
         const Size cnt = finder.findAll(i, r[i][H] * radius, neighs);
         if (cnt != neighCnts[i] + 1) {
             // +1 for the particle itself
-            return makeFailed("Incorrect neighbour count for particle ", i, "\n", cnt, " == ", neighCnts[i]);
+            return makeFailed("Incorrect neighbor count for particle ", i, "\n", cnt, " == ", neighCnts[i]);
         }
         return SUCCESS;
     };
@@ -254,7 +254,7 @@ TEMPLATE_TEST_CASE("Grad v of non-trivial field", "[equationterm]", SymmetricSol
     Storage storage = Tests::getStorage(10000);
     storage.insert<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());
     Tests::computeField<VelocityGradient<CenterDensityDiscr>, TestType>(storage, [](const Vector& r) { //
-        return Vector(r[0] * sqr(r[1]), r[0] + 0.5_f * r[2], sin(r[2]));
+        return Vector(r[0] * sqr(r[1]), r[0] + 0.5_f * r[2], Sph::sin(r[2]));
     });
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
@@ -269,7 +269,7 @@ TEMPLATE_TEST_CASE("Grad v of non-trivial field", "[equationterm]", SymmetricSol
         const Float y = r[i][Y];
         const Float z = r[i][Z];
         SymmetricTensor expected(
-            Vector(sqr(y), 0._f, cos(z)), Vector(0.5_f * (1._f + 2._f * x * y), 0._f, 0.25_f));
+            Vector(sqr(y), 0._f, Sph::cos(z)), Vector(0.5_f * (1._f + 2._f * x * y), 0._f, 0.25_f));
         if (gradv[i] != approx(expected, 0.05_f)) {
             // clang-format off
             return makeFailed("Invalid grad v"
@@ -290,7 +290,7 @@ static void testRotation(QuantityId id) {
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, 1._f);
     storage.insert<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO, 1._f);
     Tests::computeField<TRotation, TSolver>(storage, [](const Vector& r) { //
-        return Vector(r[2] * sqr(r[1]), r[0] + 0.5_f * r[2], sin(r[1]));
+        return Vector(r[2] * sqr(r[1]), r[0] + 0.5_f * r[2], Sph::sin(r[1]));
     });
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
@@ -302,7 +302,7 @@ static void testRotation(QuantityId id) {
         }
         const Float y = r[i][Y];
         const Float z = r[i][Z];
-        Vector expected(cos(y) - 0.5_f, sqr(y) - 0._f, 1._f - 2._f * z * y);
+        Vector expected(Sph::cos(y) - 0.5_f, sqr(y) - 0._f, 1._f - 2._f * z * y);
         if (rotV[i] != approx(expected, 0.03_f)) {
             // clang-format off
                  return makeFailed("Invalid rot v"
@@ -363,7 +363,7 @@ TEMPLATE_TEST_CASE("Laplacian vector", "[equationterm]", SymmetricSolver<3>, Asy
     Storage storage = Tests::getStorage(10000);
     storage.insert<Vector>(QuantityId::VELOCITY_LAPLACIAN, OrderEnum::ZERO, Vector(0._f));
     Tests::computeField<VelocityLaplacian, TestType>(storage, [](const Vector& r) { //
-        return Vector(sqr(r[0]) * sqr(r[1]), exp(r[0]) + 0.5_f * cos(r[2]), sin(r[2]));
+        return Vector(sqr(r[0]) * sqr(r[1]), exp(r[0]) + 0.5_f * Sph::cos(r[2]), Sph::sin(r[2]));
     });
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<Vector> divGradV = storage.getValue<Vector>(QuantityId::VELOCITY_LAPLACIAN);
@@ -376,9 +376,9 @@ TEMPLATE_TEST_CASE("Laplacian vector", "[equationterm]", SymmetricSolver<3>, Asy
         const Float x = r[i][X];
         const Float y = r[i][Y];
         const Float z = r[i][Z];
-        Vector expected = Vector(2._f * sqr(y), exp(x), 0._f)       // d^2v/dx^2
-                          + Vector(2._f * sqr(x), 0._f, 0._f)       // d^2v/dy^2
-                          + Vector(0._f, -0.5_f * cos(z), -sin(z)); // d^2v/dz^2
+        Vector expected = Vector(2._f * sqr(y), exp(x), 0._f)                 // d^2v/dx^2
+                          + Vector(2._f * sqr(x), 0._f, 0._f)                 // d^2v/dy^2
+                          + Vector(0._f, -0.5_f * Sph::cos(z), -Sph::sin(z)); // d^2v/dz^2
         if (divGradV[i] != approx(expected, 0.05_f)) {
             // clang-format off
             return makeFailed("Invalid laplacian"
@@ -438,7 +438,7 @@ TEMPLATE_TEST_CASE("Gradient of divergence", "[equationterm]", SymmetricSolver<3
     Storage storage = Tests::getStorage(10000);
     storage.insert<Vector>(QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE, OrderEnum::ZERO, Vector(0._f));
     Tests::computeField<GradientOfVelocityDivergence, TestType>(storage, [](const Vector& r) { //
-        return Vector(sqr(r[X]) * sqr(r[Y]), exp(r[X]) + 0.5_f * cos(r[Z]), sin(r[Z]));
+        return Vector(sqr(r[X]) * sqr(r[Y]), exp(r[X]) + 0.5_f * Sph::cos(r[Z]), Sph::sin(r[Z]));
     });
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<Vector> gradDivV = storage.getValue<Vector>(QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE);
@@ -452,7 +452,7 @@ TEMPLATE_TEST_CASE("Gradient of divergence", "[equationterm]", SymmetricSolver<3
         const Float y = r[i][Y];
         const Float z = r[i][Z];
         // div v = 2*x*y^2 + 0 + cos(z)
-        Vector expected(2._f * sqr(y), 4._f * x * y, -sin(z));
+        Vector expected(2._f * sqr(y), 4._f * x * y, -Sph::sin(z));
         if (gradDivV[i] != approx(expected, 0.05_f)) {
             // clang-format off
             return makeFailed("Invalid gradient of divergence"

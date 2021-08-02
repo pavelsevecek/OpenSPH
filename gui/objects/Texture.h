@@ -8,7 +8,7 @@
 NAMESPACE_SPH_BEGIN
 
 enum TextureFiltering {
-    NEAREST_NEIGHBOUR,
+    NEAREST_NEIGHBOR,
     BILINEAR,
 };
 
@@ -31,8 +31,8 @@ public:
 
     Rgba eval(const Vector& uvw) const {
         switch (filtering) {
-        case TextureFiltering::NEAREST_NEIGHBOUR:
-            return this->evalNearestNeighbour(uvw);
+        case TextureFiltering::NEAREST_NEIGHBOR:
+            return this->evalNearestNeighbor(uvw);
         case TextureFiltering::BILINEAR:
             return this->evalBilinear(uvw);
         default:
@@ -57,7 +57,7 @@ public:
     }
 
 private:
-    Rgba evalNearestNeighbour(const Vector& uvw) const {
+    Rgba evalNearestNeighbor(const Vector& uvw) const {
         const Pixel size = bitmap.size();
         const Size u = clamp(int(uvw[X] * size.x), 0, size.x - 1);
         const Size v = clamp(int(uvw[Y] * size.y), 0, size.y - 1);
@@ -75,8 +75,8 @@ private:
         const Size v2 = v1 + 1;
         const float a = float(textureUvw[X] - u1);
         const float b = float(textureUvw[Y] - v1);
-        SPH_ASSERT(a >= 0.f && a < 1.f, a);
-        SPH_ASSERT(b >= 0.f && b < 1.f, b);
+        SPH_ASSERT(a >= 0.f && a <= 1.f, a);
+        SPH_ASSERT(b >= 0.f && b <= 1.f, b);
 
         return Rgba(bitmap[Pixel(u1, v1)]) * (1.f - a) * (1.f - b) +
                Rgba(bitmap[Pixel(u2, v1)]) * a * (1.f - b) + //

@@ -205,6 +205,11 @@ TEST_CASE("Settings getEntryName", "[settings]") {
     REQUIRE_FALSE(RunSettings::getEntryName(RunSettingsId(-1)));
 }
 
+TEST_CASE("Settings getEntryId", "[settings]") {
+    REQUIRE(RunSettings::getEntryId("run.output.type").value() == RunSettingsId::RUN_OUTPUT_TYPE);
+    REQUIRE_FALSE(RunSettings::getEntryId("run.whatever"));
+}
+
 template <typename T>
 static bool areValuesEqual(const T& t1, const T& t2) {
     return t1 == t2;

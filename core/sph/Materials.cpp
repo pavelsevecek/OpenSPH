@@ -19,16 +19,13 @@ EosMaterial::EosMaterial(const BodySettings& body, AutoPtr<IEos>&& eos)
 EosMaterial::EosMaterial(const BodySettings& body)
     : EosMaterial(body, Factory::getEos(body)) {}
 
-Pair<Float> EosMaterial::evaluate(const Float rho, const Float u) const {
-    return eos->evaluate(rho, u);
-}
-
 const IEos& EosMaterial::getEos() const {
     return *eos;
 }
 
 void EosMaterial::create(Storage& storage, const MaterialInitialContext& UNUSED(context)) {
     VERBOSE_LOG
+    SPH_ASSERT(storage.getMaterialCnt() == 1);
 
     // set to defaults if not yet created
     const Float rho0 = this->getParam<Float>(BodySettingsId::DENSITY);

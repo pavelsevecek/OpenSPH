@@ -6,6 +6,7 @@
 /// \date 2016-2021
 
 #include "objects/containers/Array.h"
+#include "objects/containers/Tags.h"
 #include "objects/wrappers/Optional.h"
 #include <algorithm>
 
@@ -19,10 +20,22 @@ private:
 public:
     FlatSet() = default;
 
-    FlatSet(std::initializer_list<T> list) {
-        for (const T& value : list) {
-            this->insert(value);
-        }
+    template <typename Tag>
+    FlatSet(Tag t, std::initializer_list<T> list)
+        : data(list) {
+        this->create(t);
+    }
+
+    template <typename Tag>
+    FlatSet(Tag t, ArrayView<const T> list) {
+        data.pushAll(list.begin(), list.end());
+        this->create(t);
+    }
+
+    template <typename Tag>
+    FlatSet(Tag t, Array<T>&& values)
+        : data(std::move(values)) {
+        this->create(t);
     }
 
     INLINE Size size() const {
@@ -75,7 +88,7 @@ public:
 
     Iterator<T> find(const T& value) {
         auto iter = std::lower_bound(data.begin(), data.end(), value);
-        if (iter != data.end() && *iter == value) {
+        if (iter != data.end() && equal(*iter, value)) {
             return iter;
         } else {
             return data.end();
@@ -86,7 +99,7 @@ public:
         return const_cast<FlatSet*>(this)->find(value);
     }
 
-    bool contains(const T& value) {
+    bool contains(const T& value) const {
         return this->find(value) != this->end();
     }
 
@@ -133,8 +146,43 @@ public:
     }
 
 private:
+    void create(ElementsSortedUniqueTag) {
+        SPH_ASSERT(this->elementsSortedAndUnique());
+    }
+
+    void create(ElementsUniqueTag) {
+        std::sort(data.begin(), data.end(), static_cast<const TLess&>(*this));
+        SPH_ASSERT(this->elementsSortedAndUnique());
+    }
+
+    void create(ElementsCommonTag) {
+        std::sort(data.begin(), data.end(), static_cast<const TLess&>(*this));
+        auto end = std::unique(data.begin(), data.end(), [this](const T& t1, const T& t2) { //
+            return this->equal(t1, t2);
+        });
+        data.resize(end - data.begin());
+        SPH_ASSERT(this->elementsSortedAndUnique());
+    }
+
+    bool elementsSortedAndUnique() const {
+        if (!std::is_sorted(data.begin(), data.end(), static_cast<const TLess&>(*this))) {
+            return false;
+        }
+
+        for (Size i = 1; i < data.size(); ++i) {
+            if (equal(data[i], data[i - 1])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     INLINE bool less(const T& t1, const T& t2) const {
         return TLess::operator()(t1, t2);
+    }
+
+    INLINE bool equal(const T& t1, const T& t2) const {
+        return !less(t1, t2) && !less(t2, t1);
     }
 };
 

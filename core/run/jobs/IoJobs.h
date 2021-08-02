@@ -5,9 +5,18 @@
 
 NAMESPACE_SPH_BEGIN
 
+class Triangle;
+
+enum class UnitEnum {
+    SI,
+    CGS,
+    NBODY,
+};
+
 class LoadFileJob : public IParticleJob {
 private:
     Path path;
+    EnumWrapper units = EnumWrapper(UnitEnum::SI);
 
 public:
     LoadFileJob(const Path& path = Path("file.ssf"))
@@ -90,13 +99,24 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
+enum class MeshAlgorithm {
+    MARCHING_CUBES,
+    ALPHA_SHAPE,
+};
+
 class SaveMeshJob : public IParticleJob {
 private:
     Path path = Path("surface.ply");
-    Float resolution = 1.e4_f;
+    Float resolution = 0.5_f;
+
+    EnumWrapper algorithm = EnumWrapper(MeshAlgorithm::MARCHING_CUBES);
+
     Float level = 0.13_f;
     Float smoothingMult = 1._f;
     bool anisotropic = false;
+
+    Float alpha = 4._f;
+
     bool scaleToUnit = false;
     bool refine = false;
 
@@ -115,6 +135,13 @@ public:
     virtual VirtualSettings getSettings() override;
 
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+
+private:
+    Array<Triangle> runMarchingCubes(const Storage& storage,
+        const RunSettings& global,
+        IRunCallbacks& callbacks) const;
+
+    Array<Triangle> runAlphaShape(const Storage& storage, IRunCallbacks& callbacks) const;
 };
 
 NAMESPACE_SPH_END

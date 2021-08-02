@@ -1,6 +1,6 @@
 #include "sph/initial/Initial.h"
 #include "math/rng/VectorRng.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "objects/geometry/Domain.h"
 #include "objects/geometry/Sphere.h"
 #include "physics/Eos.h"
@@ -335,7 +335,7 @@ void InitialConditions::setQuantities(Storage& storage, IMaterial& material, con
 void repelParticles(ArrayView<Vector> r, const Float radius) {
     AutoPtr<ISymmetricFinder> finder = Factory::getFinder(RunSettings::getDefaults());
     finder->build(SEQUENTIAL, r);
-    Array<NeighbourRecord> neighs;
+    Array<NeighborRecord> neighs;
     Size moveCnt = -1;
     while (moveCnt != 0) {
         moveCnt = 0;
@@ -345,7 +345,7 @@ void repelParticles(ArrayView<Vector> r, const Float radius) {
             if (neighs.size() <= 1) {
                 continue;
             }
-            for (NeighbourRecord& n : neighs) {
+            for (NeighborRecord& n : neighs) {
                 if (i != n.index) {
                     const Vector dr = r[n.index] - r[i];
                     force += -0.3_f * dr * pow<3>(r[i][H]) / pow<3>(getLength(dr));

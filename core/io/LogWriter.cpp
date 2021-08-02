@@ -1,8 +1,8 @@
 #include "io/LogWriter.h"
 #include "io/Logger.h"
 #include "objects/geometry/Box.h"
-#include "quantities/Storage.h"
 #include "quantities/Iterate.h"
+#include "quantities/Storage.h"
 #include "system/Statistics.h"
 #include "system/Timer.h"
 #include "timestepping/TimeStepCriterion.h"
@@ -77,7 +77,7 @@ void StandardLogWriter::write(const Storage& storage, const Statistics& stats) {
     printStat<int>(*logger, stats, StatisticsId::GRAVITY_BUILD_TIME,           "    * tree construction:    ", "ms");
     printStat<int>(*logger, stats, StatisticsId::POSTPROCESS_EVAL_TIME,        "    * visualization:        ", "ms");
     logger->write(                                                             " - particles:   ", storage.getParticleCnt());
-    printStat<MinMaxMean>(*logger, stats, StatisticsId::NEIGHBOUR_COUNT,       " - neighbors:   ");
+    printStat<MinMaxMean>(*logger, stats, StatisticsId::NEIGHBOR_COUNT,        " - neighbors:   ");
     printStat<int>(*logger, stats, StatisticsId::TOTAL_COLLISION_COUNT,        " - collisions:  ");
     printStat<int>(*logger, stats, StatisticsId::BOUNCE_COUNT,                 "    * bounces:  ");
     printStat<int>(*logger, stats, StatisticsId::MERGER_COUNT,                 "    * mergers:  ");
@@ -108,19 +108,18 @@ void VerboseLogWriter::write(const Storage& storage, const Statistics& stats) {
         std::string name = lowercase(getMetadata(id).quantityName);
         logger->write("    * ", name, ":  ", range, " (derivative ", drange, ")");
     });
-    iterate<VisitorEnum::SECOND_ORDER>(storage, [&](QuantityId id, const auto& v, const auto&, const auto& d2v) {
-        Interval range, drange;
-        for (Size i = 0; i < v.size(); ++i) {
-            range.extend(Interval(minElement(v[i]), maxElement(v[i])));
-            drange.extend(Interval(minElement(d2v[i]), maxElement(d2v[i])));
-        }
-        std::string name = lowercase(getMetadata(id).quantityName);
-        logger->write("    * ", name, ":  ", range, " (derivative ", drange, ")");
-    });
-    ArrayView<const Float> divv
-        = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
-    ArrayView<const SymmetricTensor> gradv
-        = storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
+    iterate<VisitorEnum::SECOND_ORDER>(
+        storage, [&](QuantityId id, const auto& v, const auto&, const auto& d2v) {
+            Interval range, drange;
+            for (Size i = 0; i < v.size(); ++i) {
+                range.extend(Interval(minElement(v[i]), maxElement(v[i])));
+                drange.extend(Interval(minElement(d2v[i]), maxElement(d2v[i])));
+            }
+            std::string name = lowercase(getMetadata(id).quantityName);
+            logger->write("    * ", name, ":  ", range, " (derivative ", drange, ")");
+        });
+    ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
+    ArrayView<const SymmetricTensor> gradv = storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
     Interval divvRange, gradvRange;
     for (Size i = 0; i < divv.size(); ++i) {
         divvRange.extend(divv[i]);

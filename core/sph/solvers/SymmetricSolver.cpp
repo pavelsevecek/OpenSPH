@@ -1,6 +1,6 @@
 #include "sph/solvers/SymmetricSolver.h"
 #include "objects/Exceptions.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "quantities/IMaterial.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/equations/HelperTerms.h"
@@ -24,15 +24,15 @@ SymmetricSolver<Dim>::SymmetricSolver(IScheduler& scheduler,
     /// issues?
     kernel = Factory::getKernel<Dim>(settings);
 
-    // Find all neighbours within kernel support. Since we are only searching for particles with
+    // Find all neighbors within kernel support. Since we are only searching for particles with
     // smaller h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal
     // to h_i, and we thus never "miss" a particle.
     finder = Factory::getFinder(settings);
 
     equations += eqs;
 
-    // add term counting number of neighbours
-    equations += makeTerm<NeighbourCountTerm>();
+    // add term counting number of neighbors
+    equations += makeTerm<NeighborCountTerm>();
 
     // initialize all derivatives
     for (ThreadData& data : threadData) {
@@ -96,7 +96,7 @@ void SymmetricSolver<Dim>::integrate(Storage& storage, Statistics& stats) {
 
 template <Size Dim>
 void SymmetricSolver<Dim>::create(Storage& storage, IMaterial& material) const {
-    storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
+    storage.insert<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO, 0);
 
     // create necessary quantities
     equations.create(storage, material);
@@ -108,7 +108,7 @@ void SymmetricSolver<Dim>::create(Storage& storage, IMaterial& material) const {
 template <Size Dim>
 void SymmetricSolver<Dim>::loop(Storage& storage, Statistics& UNUSED(stats)) {
     MEASURE_SCOPE("SymmetricSolver::loop");
-    // (re)build neighbour-finding structure; this needs to be done after all equations
+    // (re)build neighbor-finding structure; this needs to be done after all equations
     // are initialized in case some of them modify smoothing lengths
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     finder->build(scheduler, r);
@@ -126,7 +126,7 @@ void SymmetricSolver<Dim>::loop(Storage& storage, Statistics& UNUSED(stats)) {
             const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
             SPH_ASSERT(hbar > EPS && hbar <= r[i][H], hbar, r[i][H]);
             if (getSqrLength(r[i] - r[j]) >= sqr(kernel.radius() * hbar)) {
-                // aren't actual neighbours
+                // aren't actual neighbors
                 continue;
             }
             const Vector gr = symmetrizedKernel.grad(r[i], r[j]);
@@ -169,14 +169,14 @@ void SymmetricSolver<Dim>::afterLoop(Storage& storage, Statistics& stats) {
     // store them to storage
     first->store(storage);
 
-    // compute neighbour statistics
+    // compute neighbor statistics
     MinMaxMean neighs;
-    ArrayView<Size> neighCnts = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+    ArrayView<Size> neighCnts = storage.getValue<Size>(QuantityId::NEIGHBOR_CNT);
     const Size size = storage.getParticleCnt();
     for (Size i = 0; i < size; ++i) {
         neighs.accumulate(neighCnts[i]);
     }
-    stats.set(StatisticsId::NEIGHBOUR_COUNT, neighs);
+    stats.set(StatisticsId::NEIGHBOR_COUNT, neighs);
 }
 
 template <Size Dim>

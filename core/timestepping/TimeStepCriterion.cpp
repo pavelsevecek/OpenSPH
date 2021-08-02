@@ -310,8 +310,8 @@ TimeStep CourantCriterion::compute(IScheduler& scheduler,
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<const Float> cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
     ArrayView<const Size> neighs;
-    if (storage.has(QuantityId::NEIGHBOUR_CNT)) {
-        neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+    if (storage.has(QuantityId::NEIGHBOR_CNT)) {
+        neighs = storage.getValue<Size>(QuantityId::NEIGHBOR_CNT);
     }
 
     struct Tl {

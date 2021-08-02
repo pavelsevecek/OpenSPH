@@ -115,9 +115,9 @@ public:
             const Float A = 0.025_f;
             const Float lambda = 1._f / 6._f;
             if (abs(r[i][Y] - 0.25_f) < 0.025_f) {
-                v[i][Y] = A * sin(-2._f * PI * (r[i][X] + 1._f) / lambda);
+                v[i][Y] = A * Sph::sin(-2._f * PI * (r[i][X] + 1._f) / lambda);
             } else if (abs(r[i][Y] + 0.25_f) < 0.025_f) {
-                v[i][Y] = A * sin(2._f * PI * (r[i][X] + 1._f) / lambda);
+                v[i][Y] = A * Sph::sin(2._f * PI * (r[i][X] + 1._f) / lambda);
             }
             u[i] = eosmat.getEos().getInternalEnergy(rho[i], 2.5_f);
         }

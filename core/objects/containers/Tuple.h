@@ -119,14 +119,34 @@ protected:
     INLINE void moveAssign(const TupleImpl<Ts...>& UNUSED(other), std::index_sequence<>) {}
 
     template <typename... Ts, std::size_t TIndex, std::size_t... TIdxs>
-    INLINE bool isEqual(const TupleImpl<Ts...>& other, std::index_sequence<TIndex, TIdxs...>) const {
+    INLINE constexpr bool isEqual(const TupleImpl<Ts...>& other,
+        std::index_sequence<TIndex, TIdxs...>) const {
         return this->get<TIndex>() == other.template get<TIndex>() &&
                isEqual(other, std::index_sequence<TIdxs...>());
     }
 
     template <typename... Ts>
-    INLINE bool isEqual(const TupleImpl<Ts...>& UNUSED(other), std::index_sequence<>) const {
+    INLINE constexpr bool isEqual(const TupleImpl<Ts...>& UNUSED(other), std::index_sequence<>) const {
         return true;
+    }
+
+    template <typename... Ts, std::size_t TIndex, std::size_t... TIdxs>
+    INLINE constexpr bool isLess(const TupleImpl<Ts...>& other, std::index_sequence<TIndex, TIdxs...>) const {
+        auto v1 = this->get<TIndex>();
+        auto v2 = other.template get<TIndex>();
+        if (v1 < v2) {
+            return true;
+        } else if (v2 < v1) {
+            return false;
+        } else {
+            return isLess(other, std::index_sequence<TIdxs...>());
+        }
+    }
+
+    template <typename... Ts>
+    INLINE constexpr bool isLess(const TupleImpl<Ts...>& UNUSED(other), std::index_sequence<>) const {
+        // if we get here, the values are equivalent
+        return false;
     }
 };
 } // namespace Detail
@@ -225,7 +245,7 @@ public:
 
     /// Returns an element of the tuple by index, const version.
     template <std::size_t TIndex>
-    INLINE constexpr decltype(auto) get() const & {
+    INLINE constexpr decltype(auto) get() const& {
         static_assert(unsigned(TIndex) < sizeof...(TArgs), "Index out of bounds.");
         return Impl::template get<TIndex>();
     }
@@ -250,7 +270,7 @@ public:
 
     /// Returns an element of the tuple by type, const version.
     template <typename Type>
-    INLINE constexpr decltype(auto) get() const & {
+    INLINE constexpr decltype(auto) get() const& {
         constexpr std::size_t index = getTypeIndex<Type, TArgs...>;
         static_assert(index != -1, "Type not stored in tuple");
         return Impl::template get<index>();
@@ -277,6 +297,11 @@ public:
     INLINE constexpr bool operator!=(const Tuple& other) const {
         return !Impl::isEqual(other, Sequence());
     }
+
+    /// \todo Lexicographical sort
+    INLINE constexpr bool operator<(const Tuple& other) const {
+        return Impl::isLess(other, Sequence());
+    }
 };
 
 template <typename... TArgs>
@@ -295,7 +320,7 @@ struct IsTuple<Tuple<TArgs...>&&> {
 
 /// Creates a tuple from a pack of values, utilizing type deduction.
 template <typename... TArgs>
-INLINE auto makeTuple(TArgs&&... args) {
+INLINE constexpr auto makeTuple(TArgs&&... args) {
     return Tuple<std::decay_t<TArgs>...>(std::forward<TArgs>(args)...);
 }
 

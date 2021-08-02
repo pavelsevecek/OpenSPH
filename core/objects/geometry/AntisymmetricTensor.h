@@ -6,8 +6,8 @@
 /// \date 2016-2021
 
 
-#include "objects/geometry/SymmetricTensor.h"
 #include "objects/containers/StaticArray.h"
+#include "objects/geometry/SymmetricTensor.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -153,9 +153,14 @@ INLINE Float normSqr(const AntisymmetricTensor& t) {
     return normSqr(t.components());
 }
 
+template <>
+struct AbsoluteValueType<AntisymmetricTensor> {
+    using Type = SymmetricTensor;
+};
+
 /// Returns the tensor of absolute values. Resulting tensor is necessarily symmetric
 template <>
-INLINE auto abs(const AntisymmetricTensor& t) {
+INLINE AbsoluteValue<AntisymmetricTensor> abs(const AntisymmetricTensor& t) {
     return SymmetricTensor(Vector(0._f), abs(t.components()));
 }
 

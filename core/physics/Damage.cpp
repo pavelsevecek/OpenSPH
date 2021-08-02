@@ -25,7 +25,7 @@ void ScalarGradyKippModel::setFlaws(Storage& storage,
     material.setRange(QuantityId::DAMAGE, BodySettingsId::DAMAGE_RANGE, BodySettingsId::DAMAGE_MIN);
 
     SPH_ASSERT(!storage.has(QuantityId::EPS_MIN) && !storage.has(QuantityId::M_ZERO) &&
-               !storage.has(QuantityId::EXPLICIT_GROWTH) && !storage.has(QuantityId::N_FLAWS),
+                   !storage.has(QuantityId::EXPLICIT_GROWTH) && !storage.has(QuantityId::N_FLAWS),
         "Recreating flaws");
     storage.insert<Float>(QuantityId::EPS_MIN, OrderEnum::ZERO, 0._f);
     storage.insert<Float>(QuantityId::M_ZERO, OrderEnum::ZERO, 0._f);
@@ -120,7 +120,7 @@ void ScalarGradyKippModel::setFlaws(Storage& storage,
             SPH_ASSERT(ratio >= 1._f, eps_min[i], eps_max[i]);
 
             m_zero[i] = log(n_flaws[i]) / log(ratio);
-            SPH_ASSERT(m_zero[i] >= 1._f, m_zero[i], n_flaws[i], eps_min[i], eps_max[i]);
+            SPH_ASSERT(m_zero[i] >= 0.95_f, m_zero[i], n_flaws[i], eps_min[i], eps_max[i]);
         }
     }
 }

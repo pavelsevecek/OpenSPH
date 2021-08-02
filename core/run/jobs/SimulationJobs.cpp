@@ -95,7 +95,7 @@ static void addGravityCategory(VirtualSettings& connector, RunSettings& settings
         "Recomputation period [s]", settings, RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD);
 }
 
-static void addOutputCategory(VirtualSettings& connector, RunSettings& settings) {
+static void addOutputCategory(VirtualSettings& connector, RunSettings& settings, const SharedToken& owner) {
     auto enabler = [&settings] {
         const IoEnum type = settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
         return type != IoEnum::NONE;
@@ -107,14 +107,16 @@ static void addOutputCategory(VirtualSettings& connector, RunSettings& settings)
             const IoEnum type = IoEnum(value.get<EnumWrapper>());
             return type == IoEnum::NONE || getIoCapabilities(type).has(IoCapability::OUTPUT);
         })
-        .setAccessor([&settings](const IVirtualEntry::Value& value) {
-            const IoEnum type = IoEnum(value.get<EnumWrapper>());
-            Path name = Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
-            if (Optional<std::string> extension = getIoExtension(type)) {
-                name.replaceExtension(extension.value());
-            }
-            settings.set(RunSettingsId::RUN_OUTPUT_NAME, name.native());
-        });
+        .addAccessor(owner,
+            [&settings](const IVirtualEntry::Value& value) {
+                const IoEnum type = IoEnum(value.get<EnumWrapper>());
+                Path name = Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
+                if (Optional<std::string> extension = getIoExtension(type)) {
+                    name.replaceExtension(extension.value());
+                }
+                settings.set(RunSettingsId::RUN_OUTPUT_NAME, name.native());
+            })
+        .setSideEffect(); // needs to update the 'File mask' entry
     outputCat.connect<Path>("Directory", settings, RunSettingsId::RUN_OUTPUT_PATH)
         .setEnabler(enabler)
         .setPathType(IVirtualEntry::PathType::DIRECTORY);
@@ -260,9 +262,9 @@ VirtualSettings SphJob::getSettings() {
                    EMPTY_FLAGS;
         });
     solverCat
-        .connect<Float>("Neighbor count enforcing strength", settings, RunSettingsId::SPH_NEIGHBOUR_ENFORCING)
+        .connect<Float>("Neighbor count enforcing strength", settings, RunSettingsId::SPH_NEIGHBOR_ENFORCING)
         .setEnabler(enforceEnabler);
-    solverCat.connect<Interval>("Neighbor range", settings, RunSettingsId::SPH_NEIGHBOUR_RANGE)
+    solverCat.connect<Interval>("Neighbor range", settings, RunSettingsId::SPH_NEIGHBOR_RANGE)
         .setEnabler(enforceEnabler);
     solverCat
         .connect<bool>("Use radii hash map", settings, RunSettingsId::SPH_ASYMMETRIC_COMPUTE_RADII_HASH_MAP)
@@ -274,7 +276,7 @@ VirtualSettings SphJob::getSettings() {
         .setEnabler(stressEnabler);
     solverCat.connect<bool>("Sum only undamaged particles", settings, RunSettingsId::SPH_SUM_ONLY_UNDAMAGED);
     solverCat.connect<EnumWrapper>("Continuity mode", settings, RunSettingsId::SPH_CONTINUITY_MODE);
-    solverCat.connect<EnumWrapper>("Neighbour finder", settings, RunSettingsId::SPH_FINDER);
+    solverCat.connect<EnumWrapper>("Neighbor finder", settings, RunSettingsId::SPH_FINDER);
     solverCat.connect<EnumWrapper>("Boundary condition", settings, RunSettingsId::DOMAIN_BOUNDARY);
 
     VirtualSettings::Category& avCat = connector.addCategory("Artificial viscosity");
@@ -319,7 +321,7 @@ VirtualSettings SphJob::getSettings() {
         .setEnabler(scriptEnabler);
 
     addGravityCategory(connector, settings);
-    addOutputCategory(connector, settings);
+    addOutputCategory(connector, settings, *this);
     addLoggerCategory(connector, settings);
 
     return connector;
@@ -533,7 +535,7 @@ VirtualSettings NBodyJob::getSettings() {
         .setEnabler(mergeLimitEnabler);
 
     addLoggerCategory(connector, settings);
-    addOutputCategory(connector, settings);
+    addOutputCategory(connector, settings, *this);
     return connector;
 }
 

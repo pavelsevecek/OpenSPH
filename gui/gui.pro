@@ -37,10 +37,13 @@ SOURCES += \
     renderers/IRenderer.cpp \
     renderers/MeshRenderer.cpp \
     renderers/ParticleRenderer.cpp \
+    renderers/RayMarcher.cpp \
     renderers/VolumeRenderer.cpp \
-    renderers/RayTracer.cpp \
     renderers/Spectrum.cpp \
     windows/BatchDialog.cpp \
+    windows/PreviewPane.cpp \
+    windows/ProgressPanel.cpp \
+    windows/RenderPage.cpp \
     windows/RunSelectDialog.cpp \
     windows/SessionDialog.cpp \
     windows/CurveDialog.cpp \
@@ -86,10 +89,12 @@ HEADERS += \
     renderers/IRenderer.h \
     renderers/MeshRenderer.h \
     renderers/ParticleRenderer.h \
+    renderers/RayMarcher.h \
     renderers/VolumeRenderer.h \
-    renderers/RayTracer.h \
     renderers/Spectrum.h \
     windows/BatchDialog.h \
+    windows/PreviewPane.h \
+    windows/RenderPage.h \
     windows/RunSelectDialog.h \
     windows/SessionDialog.h \
     windows/CurveDialog.h \

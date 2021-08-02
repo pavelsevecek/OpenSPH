@@ -88,11 +88,23 @@ enum class ColorMapEnum {
     FILMIC,
 };
 
+enum class PaneEnum {
+    RENDER_PARAMS = 1 << 0,
+    PALETTE = 1 << 1,
+    PARTICLE_DATA = 1 << 2,
+    PLOTS = 1 << 3,
+    STATS = 1 << 4,
+};
+
 enum class GuiSettingsId {
     /// Selected renderer
     RENDERER,
 
     CAMERA_TYPE,
+
+    CAMERA_WIDTH,
+
+    CAMERA_HEIGHT,
 
     CAMERA_POSITION,
 
@@ -179,6 +191,8 @@ enum class GuiSettingsId {
 
     RAYTRACE_BRDF,
 
+    RAYTRACE_SHADOWS,
+
     RAYTRACE_SPHERES,
 
     VOLUME_EMISSION,
@@ -193,6 +207,8 @@ enum class GuiSettingsId {
 
     DEFAULT_COLORIZER,
 
+    DEFAULT_PANES,
+
     /// Title of the window appearing on taskbar
     WINDOW_TITLE,
 
@@ -205,32 +221,6 @@ enum class GuiSettingsId {
     PLOT_INITIAL_PERIOD,
 
     PLOT_OVERPLOT_SFD,
-
-    IMAGES_RENDERER,
-
-    IMAGES_WIDTH,
-
-    IMAGES_HEIGHT,
-
-    /// If true, rendered images are saved to disk
-    IMAGES_SAVE,
-
-    /// Path of directory where the rendered images will be saved.
-    IMAGES_PATH,
-
-    /// Mask of the image names, having %d where the output number will be placed.
-    IMAGES_NAME,
-
-    IMAGES_FIRST_INDEX,
-
-    IMAGES_MAKE_MOVIE,
-
-    IMAGES_MOVIE_NAME,
-
-    /// Time interval (in run time) of image saving. Note that images do not have to be saved exactly in
-    /// specified times, as time step of the run is generally different than this value.
-    IMAGES_TIMESTEP,
-
 };
 
 class GuiSettings : public Settings<GuiSettingsId> {

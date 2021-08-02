@@ -1,11 +1,8 @@
 #pragma once
 
-#include "gui/Settings.h"
 #include "gui/objects/Color.h"
 #include "gui/renderers/IRenderer.h"
-#include "math/rng/Rng.h"
 #include "objects/finders/Bvh.h"
-#include "sph/kernel/Kernel.h"
 #include <atomic>
 
 NAMESPACE_SPH_BEGIN
@@ -14,8 +11,6 @@ class VolumeRenderer : public IRaytracer {
 private:
     /// BVH for finding intersections of rays with particles
     Bvh<BvhSphere> bvh;
-
-    LutKernel<3> kernel;
 
     struct {
         /// Particle positions
@@ -50,6 +45,8 @@ public:
     virtual void initialize(const Storage& storage,
         const IColorizer& colorizer,
         const ICamera& camera) override;
+
+    virtual bool isInitialized() const override;
 
 private:
     virtual Rgba shade(const RenderParams& params,

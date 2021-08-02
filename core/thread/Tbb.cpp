@@ -20,7 +20,7 @@ struct TbbThreadContext {
 
 static thread_local TbbThreadContext tbbThreadContext;
 
-class TbbTask : public ITask, public ShareFromThis<TbbTask> {
+class TbbTask : public ITask, public Shareable<TbbTask> {
 private:
     tbb::task_arena& arena;
     tbb::task_group group;

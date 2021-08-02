@@ -27,37 +27,43 @@ void ContourRenderer::initialize(const Storage& storage,
     finder->build(*scheduler, cached.positions);
 }
 
+bool ContourRenderer::isInitialized() const {
+    return !cached.values.empty();
+}
+
 // See https://en.wikipedia.org/wiki/Marching_squares
-static FlatMap<Size, Pixel> MS_TABLE = {
-    // no contour
-    { 0b0000, { -1, -1 } },
-    { 0b1111, { -1, -1 } },
+static FlatMap<Size, Pixel> MS_TABLE(ELEMENTS_UNIQUE,
+    {
+        // no contour
+        { 0b0000, { -1, -1 } },
+        { 0b1111, { -1, -1 } },
 
-    // single edge
-    { 0b1110, { 2, 3 } },
-    { 0b1101, { 1, 2 } },
-    { 0b1011, { 0, 1 } },
-    { 0b0111, { 3, 0 } },
-    { 0b0001, { 2, 3 } },
-    { 0b0010, { 1, 2 } },
-    { 0b0100, { 0, 1 } },
-    { 0b1000, { 3, 0 } },
-    { 0b1100, { 1, 3 } },
-    { 0b1001, { 0, 2 } },
-    { 0b0011, { 1, 3 } },
-    { 0b0110, { 0, 2 } },
+        // single edge
+        { 0b1110, { 2, 3 } },
+        { 0b1101, { 1, 2 } },
+        { 0b1011, { 0, 1 } },
+        { 0b0111, { 3, 0 } },
+        { 0b0001, { 2, 3 } },
+        { 0b0010, { 1, 2 } },
+        { 0b0100, { 0, 1 } },
+        { 0b1000, { 3, 0 } },
+        { 0b1100, { 1, 3 } },
+        { 0b1001, { 0, 2 } },
+        { 0b0011, { 1, 3 } },
+        { 0b0110, { 0, 2 } },
 
-    /// \todo saddle points
-    { 0b1010, { -1, -1 } },
-    { 0b0101, { -1, -1 } },
-};
+        /// \todo saddle points
+        { 0b1010, { -1, -1 } },
+        { 0b0101, { -1, -1 } },
+    });
 
-static FlatMap<Size, std::pair<Pixel, Pixel>> MS_EDGE_TO_VTX = {
-    { 0, { Pixel(0, 0), Pixel(1, 0) } },
-    { 1, { Pixel(1, 0), Pixel(1, 1) } },
-    { 2, { Pixel(1, 1), Pixel(0, 1) } },
-    { 3, { Pixel(0, 1), Pixel(0, 0) } },
-};
+static FlatMap<Size, std::pair<Pixel, Pixel>> MS_EDGE_TO_VTX(ELEMENTS_UNIQUE,
+    {
+        { 0, { Pixel(0, 0), Pixel(1, 0) } },
+        { 1, { Pixel(1, 0), Pixel(1, 1) } },
+        { 2, { Pixel(1, 1), Pixel(0, 1) } },
+        { 3, { Pixel(0, 1), Pixel(0, 0) } },
+    });
 
 static bool isCoordValid(const UnorderedMap<float, Coords>& map, const Coords& p) {
     for (auto& isoAndCoord : map) {
@@ -71,17 +77,18 @@ static bool isCoordValid(const UnorderedMap<float, Coords>& map, const Coords& p
 void ContourRenderer::render(const RenderParams& params,
     Statistics& UNUSED(stats),
     IRenderOutput& output) const {
+    const Pixel size = params.camera->getSize();
     const Optional<CameraRay> ray1 = params.camera->unproject(Coords(0, 0));
-    const Optional<CameraRay> ray2 = params.camera->unproject(Coords(params.size));
+    const Optional<CameraRay> ray2 = params.camera->unproject(Coords(size));
     const Vector pos1(ray1->origin[X], ray1->origin[Y], 0._f);
     const Vector pos2(ray2->origin[X], ray2->origin[Y], 0._f);
     const Size resX = params.contours.gridSize;
-    const Size resY = Size(resX * float(params.size.y) / float(params.size.x));
+    const Size resY = Size(resX * float(size.y) / float(size.x));
     const Vector dxdp = Vector(1._f / resX, 1._f / resY, 0._f) * (pos2 - pos1);
 
     Bitmap<float> grid(Pixel(resX, resY));
     grid.fill(0.f);
-    Array<NeighbourRecord> neighs;
+    Array<NeighborRecord> neighs;
     for (Size y = 0; y < resY; ++y) {
         for (Size x = 0; x < resX; ++x) {
             const Vector pos = pos1 + dxdp * Vector(x, y, 0);
@@ -90,7 +97,7 @@ void ContourRenderer::render(const RenderParams& params,
 
             Float sum = 0._f;
             Float weight = 0._f;
-            for (const NeighbourRecord& n : neighs) {
+            for (const NeighborRecord& n : neighs) {
                 const float w = float(kernel.value(pos - cached.positions[n.index], h));
                 sum += cached.values[n.index] * w;
                 weight += w;
@@ -101,7 +108,7 @@ void ContourRenderer::render(const RenderParams& params,
         }
     }
 
-    Bitmap<Rgba> bitmap(params.size);
+    Bitmap<Rgba> bitmap(size);
     AntiAliasedRenderContext context(bitmap);
     context.fill(Rgba::black());
 
@@ -117,7 +124,7 @@ void ContourRenderer::render(const RenderParams& params,
 
     context.setColor(Rgba::white(), ColorFlag::LINE);
 
-    const Coords gridToPixel = Coords(params.size) / Coords(resX, resY);
+    const Coords gridToPixel = Coords(size) / Coords(resX, resY);
 
     UnorderedMap<float, Coords> labelMap;
 
@@ -194,7 +201,7 @@ void ContourRenderer::render(const RenderParams& params,
     /// \todo deduplicate
     if (params.showKey) {
         if (cached.palette) {
-            const Pixel origin(params.size.x - 50, 231);
+            const Pixel origin(size.x - 50, 231);
             Palette palette;
             if (params.particles.grayScale) {
                 palette =

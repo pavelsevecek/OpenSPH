@@ -42,6 +42,10 @@ TEST_CASE("String lineBreak", "[string]") {
 
     REQUIRE(
         setLineBreak("- option1: test test test test", 22) == "- option1: test test\n           test test");
+
+    REQUIRE(setLineBreak("verylongwordthatcannotbesplit", 10) == "verylongwordthatcannotbesplit");
+    REQUIRE(setLineBreak("verylongwordthatcannotbesplit and anotherverylongword", 6) ==
+            "verylongwordthatcannotbesplit\nand\nanotherverylongword");
 }
 
 TEST_CASE("String capitalize", "[string]") {

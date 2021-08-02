@@ -70,8 +70,8 @@ public:
 
         const Float impactAngle = 45._f * DEG_TO_RAD;
         const Float impactorRadius = 1.e3_f;
-        const Vector impactorOrigin =
-            (targetRadius + impactorRadius) * Vector(cos(impactAngle) + 0.05_f, sin(impactAngle), 0._f);
+        const Vector impactorOrigin = (targetRadius + impactorRadius) *
+                                      Vector(Sph::cos(impactAngle) + 0.05_f, Sph::sin(impactAngle), 0._f);
         BodyView impactorView =
             ic.addMonolithicBody(*storage, SphericalDomain(impactorOrigin, impactorRadius), impactorBody);
         impactorView.addVelocity(Vector(-5.e3_f, 0._f, 0._f));

@@ -594,8 +594,8 @@ static JobRegistrar sRegisterHandoff(
     "handoff",
     "particle operators",
     [](const std::string& name) { return makeAuto<SmoothedToSolidHandoff>(name); },
-    "Converts smoothed particles, an output of SPH simulaion, into hard spheres that can be hand off to the "
-    "N-body simulation.");
+    "Converts smoothed particles, an output of SPH simulation, into hard spheres that can be handed off to "
+    "a N-body simulation.");
 
 
 // ----------------------------------------------------------------------------------------------------------

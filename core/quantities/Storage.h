@@ -298,7 +298,7 @@ public:
 
     /// \brief Retrieves quantity with given key from the storage.
     ///
-    /// Quantity must be already stored, checked by assert.
+    /// Quantity must be already stored, function throws an exception otherwise.
     Quantity& getQuantity(const QuantityId key);
 
     /// \brief Retrieves quantity with given key from the storage, const version.

@@ -210,7 +210,7 @@ public:
     Float getFactor(const UnitDimensions& dimensions) const {
         Float factor = 1._f;
         for (Size i = 0; i < DIMENSION_CNT; ++i) {
-            factor *= std::pow(coeffs[i], dimensions[BasicDimension(i)]);
+            factor *= pow(coeffs[i], Float(dimensions[BasicDimension(i)]));
         }
         return factor;
     }
@@ -341,7 +341,7 @@ public:
 
     friend Unit pow(const Unit& u, const int power) {
         Unit result;
-        result.data = std::pow(u.data, power);
+        result.data = pow(u.data, Float(power));
         result.dimensions = u.dimensions * power;
         return result;
     }

@@ -1,4 +1,5 @@
 #include "sph/equations/Accumulated.h"
+#include "objects/utility/Algorithm.h"
 #include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "thread/Scheduler.h"
@@ -13,7 +14,7 @@ void Accumulated::insert(const QuantityId id, const OrderEnum order, const Buffe
     }
 
     // check if we didn't call this more then once for 'unique' buffers
-    auto recordIter = std::find_if(records.begin(), records.end(), [id](QuantityRecord& r) { //
+    auto recordIter = findIf(records, [id](QuantityRecord& r) { //
         return r.id == id;
     });
     if (recordIter == records.end()) {

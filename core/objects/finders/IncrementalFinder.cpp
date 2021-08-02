@@ -1,8 +1,8 @@
-#include "objects/finders/PointCloud.h"
+#include "objects/finders/IncrementalFinder.h"
 
 NAMESPACE_SPH_BEGIN
 
-PointCloud::Handle PointCloud::push(const Vector& p) {
+IncrementalFinder::Handle IncrementalFinder::addPoint(const Vector& p) {
     const Indices idxs = floor(p / cellSize);
     Cell& cell = map[idxs];
     cell.push(p);
@@ -10,17 +10,17 @@ PointCloud::Handle PointCloud::push(const Vector& p) {
     return Handle(idxs, cell.size() - 1, {});
 }
 
-void PointCloud::push(ArrayView<const Vector> points) {
+void IncrementalFinder::addPoints(ArrayView<const Vector> points) {
     for (const Vector& p : points) {
-        this->push(p);
+        this->addPoint(p);
     }
 }
 
-Vector PointCloud::point(const Handle& handle) const {
+Vector IncrementalFinder::point(const Handle& handle) const {
     return map.at(handle.coords())[handle.index()];
 }
 
-Array<Vector> PointCloud::array() const {
+Array<Vector> IncrementalFinder::array() const {
     Array<Vector> result;
     for (const auto& cell : map) {
         for (const Vector& p : cell.second) {
@@ -30,35 +30,35 @@ Array<Vector> PointCloud::array() const {
     return result;
 }
 
-Size PointCloud::size() const {
+Size IncrementalFinder::size() const {
     return count;
 }
 
-Size PointCloud::getClosePointsCount(const Vector& center, const Float radius) const {
+Size IncrementalFinder::getNeighCnt(const Vector& center, const Float radius) const {
     Size count = 0;
-    this->findClosePoints(center, radius, [&count](const Handle& UNUSED(handle)) { //
+    this->findAll(center, radius, [&count](const Handle& UNUSED(handle)) { //
         ++count;
     });
     return count;
 }
 
-void PointCloud::findClosePoints(const Vector& center, const Float radius, Array<Handle>& handles) const {
+void IncrementalFinder::findAll(const Vector& center, const Float radius, Array<Handle>& handles) const {
     handles.clear();
-    this->findClosePoints(center, radius, [&handles](const Handle& handle) { //
+    this->findAll(center, radius, [&handles](const Handle& handle) { //
         handles.push(handle);
     });
 }
 
-void PointCloud::findClosePoints(const Vector& center, const Float radius, Array<Vector>& neighs) const {
+void IncrementalFinder::findAll(const Vector& center, const Float radius, Array<Vector>& neighs) const {
     neighs.clear();
-    this->findClosePoints(center, radius, [this, &neighs](const Handle& handle) { //
+    this->findAll(center, radius, [this, &neighs](const Handle& handle) { //
         neighs.push(point(handle));
     });
 }
 
 
 template <typename TAdd>
-void PointCloud::findClosePoints(const Vector& center, const Float radius, const TAdd& add) const {
+void IncrementalFinder::findAll(const Vector& center, const Float radius, const TAdd& add) const {
     const Sphere search(center, radius);
     const Indices idxs0 = floor(center / cellSize);
 

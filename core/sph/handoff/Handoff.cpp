@@ -1,5 +1,5 @@
 #include "sph/handoff/Handoff.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "objects/geometry/Domain.h"
 #include "physics/Integrals.h"
 #include "post/Analysis.h"
@@ -88,7 +88,7 @@ public:
             h_max = max(h_max, r[i][H]);
         }
 
-        Array<NeighbourRecord> neighs;
+        Array<NeighborRecord> neighs;
         const Float radius = kernel.radius() * h_max;
         finder->findAll(v, radius, neighs);
 

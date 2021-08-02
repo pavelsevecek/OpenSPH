@@ -49,6 +49,8 @@ public:
         const IColorizer& colorizer,
         const ICamera& camera) override;
 
+    virtual bool isInitialized() const override;
+
     /// Can only be called from main thread
     virtual void render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const override;
 

@@ -117,7 +117,6 @@ Pair<Float> TillotsonEos::evaluate(const Float rho, const Float u) const {
         cs = cse;
     } else if (rho <= rho0 && u > uiv && u <= ucv) {
         p = ((u - uiv) * pe + (ucv - u) * pc) / (ucv - uiv);
-        /// \todo interpolate squared values or after sqrt?
         cs = ((u - uiv) * cse + (ucv - u) * csc) / (ucv - uiv);
     }
     // clamp sound speed to prevent negative values

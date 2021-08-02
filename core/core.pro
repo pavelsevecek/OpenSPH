@@ -20,11 +20,12 @@ SOURCES += \
     math/rng/Rng.cpp \
     objects/containers/String.cpp \
     objects/finders/HashMapFinder.cpp \
+    objects/finders/IncrementalFinder.cpp \
     objects/finders/KdTree.cpp \
-    objects/finders/NeighbourFinder.cpp \
+    objects/finders/NeighborFinder.cpp \
     objects/finders/PeriodicFinder.cpp \
-    objects/finders/PointCloud.cpp \
     objects/finders/UniformGrid.cpp \
+    objects/geometry/Delaunay.cpp \
     objects/geometry/Domain.cpp \
     objects/geometry/SymmetricTensor.cpp \
     objects/utility/Dynamic.cpp \
@@ -144,19 +145,29 @@ HEADERS += \
     math/SparseMatrix.h \
     math/rng/Rng.h \
     math/rng/VectorRng.h \
+    objects/containers/AdvancedAllocators.h \
+    objects/containers/BasicAllocators.h \
     objects/containers/CircularArray.h \
+    objects/containers/Tags.h \
+    objects/finders/IncrementalFinder.h \
+    objects/finders/NeighborFinder.h \
+    objects/geometry/Delaunay.h \
+    objects/geometry/Plane.h \
     objects/utility/OutputIterators.h \
+    objects/utility/Progressible.h \
     objects/wrappers/ExtendedEnum.h \
+    objects/wrappers/SharedToken.h \
     run/Job.inl.h \
     sph/initial/UvMapping.h \
     objects/Exceptions.h \
     objects/Object.h \
-    objects/containers/Allocators.h \
     objects/containers/Array.h \
     objects/containers/ArrayRef.h \
     objects/containers/ArrayView.h \
+    objects/containers/CallbackSet.h \
     objects/containers/FlatMap.h \
     objects/containers/FlatSet.h \
+    objects/containers/UnorderedMap.h \
     objects/containers/Grid.h \
     objects/containers/List.h \
     objects/containers/LookupMap.h \
@@ -170,12 +181,9 @@ HEADERS += \
     objects/finders/Bvh.h \
     objects/finders/Bvh.inl.h \
     objects/finders/HashMapFinder.h \
-    objects/finders/PointCloud.h \
     objects/finders/KdTree.h \
     objects/finders/KdTree.inl.h \
-    objects/finders/LinkedList.h \
     objects/finders/Linkedlist.h \
-    objects/finders/NeighbourFinder.h \
     objects/finders/Octree.h \
     objects/finders/Order.h \
     objects/finders/UniformGrid.h \
@@ -192,7 +200,7 @@ HEADERS += \
     objects/geometry/TracelessTensor.h \
     objects/geometry/Triangle.h \
     objects/geometry/Vector.h \
-    objects/utility/ArrayUtils.h \
+    objects/utility/Algorithm.h \
     objects/utility/Dynamic.h \
     objects/utility/EnumMap.h \
     objects/utility/Iterator.h \
@@ -218,7 +226,6 @@ HEADERS += \
     objects/wrappers/Outcome.h \
     objects/wrappers/PropagateConst.h \
     objects/wrappers/RawPtr.h \
-    objects/wrappers/SafePtr.h \
     objects/wrappers/SharedPtr.h \
     objects/wrappers/Variant.h \
     physics/Constants.h \
@@ -336,7 +343,6 @@ HEADERS += \
     objects/finders/PeriodicFinder.h \
     sph/solvers/ElasticDeformationSolver.h \
     run/VirtualSettings.h \
-    objects/containers/UnorderedMap.h \
     run/VirtualSettings.inl.h \
     run/Config.h \
     run/jobs/Presets.h \

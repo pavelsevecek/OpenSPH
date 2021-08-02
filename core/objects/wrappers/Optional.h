@@ -209,7 +209,7 @@ public:
     /// The value must be initialized.
     INLINE const RawType* operator->() const {
         SPH_ASSERT(used);
-        return std::addressof(value());
+        return &value();
     }
 
     /// \brief Used to access members of the stored value.
@@ -217,7 +217,7 @@ public:
     /// The value must be initialized.
     INLINE RawType* operator->() {
         SPH_ASSERT(used);
-        return std::addressof(value());
+        return &value();
     }
 
     /// \brief Checks if the object has been initialized.

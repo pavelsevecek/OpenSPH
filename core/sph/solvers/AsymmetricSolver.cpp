@@ -1,6 +1,6 @@
 #include "sph/solvers/AsymmetricSolver.h"
 #include "objects/Exceptions.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "quantities/IMaterial.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/equations/Accumulated.h"
@@ -96,7 +96,7 @@ void IAsymmetricSolver::integrate(Storage& storage, Statistics& stats) {
 }
 
 void IAsymmetricSolver::create(Storage& storage, IMaterial& material) const {
-    storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
+    storage.insert<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO, 0);
     equations.create(storage, material);
     this->sanityCheck(storage);
 }
@@ -153,7 +153,7 @@ void AsymmetricSolver::beforeLoop(Storage& storage, Statistics& stats) {
 void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     VERBOSE_LOG
 
-    // (re)build neighbour-finding structure; this needs to be done after all equations
+    // (re)build neighbor-finding structure; this needs to be done after all equations
     // are initialized in case some of them modify smoothing lengths
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     const IBasicFinder& actFinder = *this->getFinder(r);
@@ -166,14 +166,18 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
         maxRadius = this->getMaxSearchRadius(storage);
     }
 
-    ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+    ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOR_CNT);
 
     // we need to symmetrize kernel in smoothing lenghts to conserve momentum
     SymmetrizeSmoothingLengths<const LutKernel<DIMENSIONS>&> symmetrizedKernel(kernel);
 
     auto functor = [this, r, &neighs, maxRadius, &symmetrizedKernel, &actFinder](Size i, ThreadData& data) {
-        const Float radius = radiiMap ? radiiMap->getRadius(r[i]) : maxRadius;
-        SPH_ASSERT(radius > 0._f);
+        // max possible radius of r[j]
+        const Float neighborRadius = radiiMap ? radiiMap->getRadius(r[i]) : maxRadius;
+        SPH_ASSERT(neighborRadius > 0._f);
+
+        // max possible value of kernel.radius() * hbar
+        const Float radius = 0.5_f * (r[i][H] * kernel.radius() + neighborRadius);
 
         actFinder.findAll(i, radius, data.neighs);
         data.grads.clear();
@@ -183,7 +187,7 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
             const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
             SPH_ASSERT(hbar > EPS, hbar);
             if (i == j || n.distanceSqr >= sqr(kernel.radius() * hbar)) {
-                // aren't actual neighbours
+                // aren't actual neighbors
                 continue;
             }
             const Vector gr = symmetrizedKernel.grad(r[i], r[j]);
@@ -212,14 +216,14 @@ void AsymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {
     // lastly, finalize boundary conditions, to make sure the computed quantities will not change any further
     bc->finalize(storage);
 
-    // compute neighbour statistics
-    ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+    // compute neighbor statistics
+    ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOR_CNT);
     MinMaxMean neighsStats;
     const Size size = storage.getParticleCnt();
     for (Size i = 0; i < size; ++i) {
         neighsStats.accumulate(neighs[i]);
     }
-    stats.set(StatisticsId::NEIGHBOUR_COUNT, neighsStats);
+    stats.set(StatisticsId::NEIGHBOR_COUNT, neighsStats);
 }
 
 void AsymmetricSolver::sanityCheck(const Storage& UNUSED(storage)) const {

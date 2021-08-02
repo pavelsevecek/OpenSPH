@@ -17,7 +17,7 @@
 NAMESPACE_SPH_BEGIN
 
 /// \brief Task to be executed by one of available threads.
-class Task : public ITask, public ShareFromThis<Task> {
+class Task : public ITask, public Shareable<Task> {
 private:
     std::condition_variable waitVar;
     std::mutex waitMutex;

@@ -98,7 +98,7 @@ public:
         SPH_ASSERT(idxs[Y] >= 0 && idxs[Y] < int(dim), idxs, dim);
         SPH_ASSERT(idxs[Z] >= 0 && idxs[Z] < int(dim), idxs, dim);
         if (this->isLeaf()) {
-            return std::addressof(data.template get<T>());
+            return &data.template get<T>();
         } else {
             Size code;
             Indices childIdxs;

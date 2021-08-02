@@ -286,12 +286,7 @@ void ParticleGeometryJob::evaluate(const RunSettings& global, IRunCallbacks& cal
     config.gridResolution = clamp(resolution, 0.001_f * scale, 0.25_f * scale);
     config.smoothingMult = smoothingMult;
     config.surfaceLevel = surfaceLevel;
-    config.progressCallback = [&callbacks](const Float progress) {
-        Statistics stats;
-        stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
-        callbacks.onTimeStep(Storage(), stats);
-        return !callbacks.shouldAbortRun();
-    };
+    config.progressCallback = RunCallbacksProgressibleAdapter(callbacks);
     Array<Triangle> triangles = getSurfaceMesh(*scheduler, input, config);
     result = makeAuto<MeshDomain>(*scheduler, std::move(triangles));
 }

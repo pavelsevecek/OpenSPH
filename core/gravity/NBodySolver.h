@@ -29,8 +29,8 @@ private:
     IScheduler& scheduler;
 
     struct ThreadData {
-        /// Neighbours for parallelized queries
-        Array<NeighbourRecord> neighs;
+        /// Neighbors for parallelized queries
+        Array<NeighborRecord> neighs;
 
         /// Collisions detected by this thread
         Array<CollisionRecord> collisions;
@@ -38,10 +38,10 @@ private:
 
     ThreadLocal<ThreadData> threadData;
 
-    /// List of neighbours, used for single-threaded search
+    /// List of neighbors, used for single-threaded search
     ///
     /// \note Should be removed in the future.
-    Array<NeighbourRecord> neighs;
+    Array<NeighborRecord> neighs;
 
     /// Cached array of removed particles, used to avoid invalidating indices during collision handling.
     FlatSet<Size> removed;
@@ -54,7 +54,7 @@ private:
         /// Handler used to resolve particle collisions
         AutoPtr<ICollisionHandler> handler;
 
-        /// Finder for searching the neighbours
+        /// Finder for searching the neighbors
         AutoPtr<ISymmetricFinder> finder;
 
     } collision;
@@ -120,7 +120,7 @@ private:
     CollisionRecord findClosestCollision(const Size i,
         const SearchEnum opt,
         const Interval interval,
-        Array<NeighbourRecord>& neighs);
+        Array<NeighborRecord>& neighs);
 
     /// \brief Checks for collision between particles at positions r1 and r2.
     ///
@@ -141,8 +141,8 @@ class SoftSphereSolver : public ISolver {
     IScheduler& scheduler;
 
     struct ThreadData {
-        /// Neighbours for parallelized queries
-        Array<NeighbourRecord> neighs;
+        /// Neighbors for parallelized queries
+        Array<NeighborRecord> neighs;
     };
 
     ThreadLocal<ThreadData> threadData;

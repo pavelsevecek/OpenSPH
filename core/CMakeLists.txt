@@ -16,10 +16,11 @@ set(CORE_SOURCES
     objects/containers/String.cpp 
     objects/finders/HashMapFinder.cpp 
     objects/finders/KdTree.cpp 
-    objects/finders/NeighbourFinder.cpp 
+    objects/finders/NeighborFinder.cpp
     objects/finders/PeriodicFinder.cpp 
     objects/finders/UniformGrid.cpp 
-    objects/finders/PointCloud.cpp
+    objects/finders/IncrementalFinder.cpp
+    objects/geometry/Delaunay.cpp
     objects/geometry/Domain.cpp
     objects/geometry/SymmetricTensor.cpp
     objects/utility/Dynamic.cpp 
@@ -141,10 +142,11 @@ set(CORE_HEADERS
     sph/initial/UvMapping.h 
     objects/Exceptions.h 
     objects/Object.h 
-    objects/containers/Allocators.h 
+    objects/containers/AdvancedAllocators.h
     objects/containers/Array.h 
     objects/containers/ArrayRef.h 
     objects/containers/ArrayView.h 
+    objects/containers/BasicAllocators.h
     objects/containers/FlatMap.h 
     objects/containers/FlatSet.h 
     objects/containers/Grid.h 
@@ -153,6 +155,7 @@ set(CORE_HEADERS
     objects/containers/Queue.h 
     objects/containers/StaticArray.h 
     objects/containers/String.h 
+    objects/containers/Tags.h
     objects/containers/Tuple.h 
     objects/containers/Volume.h 
     objects/finders/AdaptiveGrid.h 
@@ -162,24 +165,26 @@ set(CORE_HEADERS
     objects/finders/HashMapFinder.h 
     objects/finders/KdTree.h 
     objects/finders/KdTree.inl.h 
-    objects/finders/NeighbourFinder.h 
+    objects/finders/NeighborFinder.h
     objects/finders/Octree.h 
     objects/finders/Order.h 
-    objects/finders/PointCloud.h
+    objects/finders/IncrementalFinder.h
     objects/finders/UniformGrid.h 
     objects/geometry/AntisymmetricTensor.h 
     objects/geometry/Box.h 
+    objects/geometry/Delaunay.h
     objects/geometry/Domain.h 
     objects/geometry/Generic.h 
     objects/geometry/Indices.h 
     objects/geometry/Multipole.h 
+    objects/geometry/Plane.h
     objects/geometry/Sphere.h 
     objects/geometry/SymmetricTensor.h 
     objects/geometry/Tensor.h 
     objects/geometry/TracelessTensor.h 
     objects/geometry/Triangle.h 
     objects/geometry/Vector.h 
-    objects/utility/ArrayUtils.h 
+    objects/utility/Algorithm.h
     objects/utility/Dynamic.h 
     objects/utility/EnumMap.h 
     objects/utility/Iterator.h 
@@ -187,6 +192,7 @@ set(CORE_HEADERS
     objects/utility/OutputIterators.h
     objects/utility/OperatorTemplate.h 
     objects/utility/PerElementWrapper.h 
+    objects/utility/Progressible.h
     objects/utility/StringUtils.h 
     objects/wrappers/AlignedStorage.h 
     objects/wrappers/Any.h 
@@ -204,7 +210,6 @@ set(CORE_HEADERS
     objects/wrappers/Outcome.h 
     objects/wrappers/PropagateConst.h 
     objects/wrappers/RawPtr.h 
-    objects/wrappers/SafePtr.h 
     objects/wrappers/SharedPtr.h 
     objects/wrappers/Variant.h 
     physics/Constants.h 

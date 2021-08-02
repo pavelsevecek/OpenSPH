@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2021
 
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/Kernel.h"
@@ -50,9 +50,8 @@ public:
         const RunSettings& settings = RunSettings::getDefaults())
         : SphInterpolant(storage, id, deriv, Factory::getFinder(settings), Factory::getKernel<3>(settings)) {}
 
-    /// \brief Constructs the interpolation object given a neighbour finding object and a SPH kernel.
-    /// \param finder Object for finding neighbours. Overload of INeighbourFinder::findNeighbours taking a
-    ///               vector must be implemented. Parameter must not be nullptr.
+    /// \brief Constructs the interpolation object given a neighbor finding object and a SPH kernel.
+    /// \param finder Object for finding neighbors. Parameter must not be nullptr.
     /// \param kernel SPH kernel used for interpolation.
     /// \param id Quantity values of which we wish to interpolate. The quantity must be stored in the storage.
     /// \param deriv Specifies whether to interpolate quantity values or its derivatives. For values, use
@@ -74,7 +73,7 @@ public:
 
     virtual Type interpolate(const Vector& pos) const override {
         Type interpol(0._f);
-        Array<NeighbourRecord> neighs;
+        Array<NeighborRecord> neighs;
         finder->findAll(pos, searchRadius, neighs);
         for (Size k = 0; k < neighs.size(); ++k) {
             const Size j = neighs[k].index;
@@ -108,7 +107,7 @@ public:
     virtual Type interpolate(const Vector& pos) const override {
         Type interpol(0._f);
         Float weight = 0._f;
-        Array<NeighbourRecord> neighs;
+        Array<NeighborRecord> neighs;
         this->finder->findAll(pos, this->searchRadius, neighs);
         for (Size k = 0; k < neighs.size(); ++k) {
             const Size j = neighs[k].index;

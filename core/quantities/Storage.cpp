@@ -17,7 +17,7 @@ StorageIterator& StorageIterator::operator++() {
 }
 
 StorageElement StorageIterator::operator*() {
-    return { iter->key, iter->value };
+    return { iter->key(), iter->value() };
 }
 
 bool StorageIterator::operator==(const StorageIterator& other) const {
@@ -37,7 +37,7 @@ ConstStorageIterator& ConstStorageIterator::operator++() {
 }
 
 ConstStorageElement ConstStorageIterator::operator*() {
-    return { iter->key, iter->value };
+    return { iter->key(), iter->value() };
 }
 
 bool ConstStorageIterator::operator==(const ConstStorageIterator& other) const {
@@ -446,7 +446,7 @@ Size Storage::getParticleCnt() const {
     if (quantities.empty()) {
         return 0;
     } else {
-        return quantities.begin()->value.size();
+        return quantities.begin()->value().size();
     }
 }
 
@@ -564,7 +564,7 @@ Storage Storage::clone(const Flags<VisitorEnum> buffers) const {
     SPH_ASSERT(!userData, "Cloning storages with user data is currently not supported");
     Storage cloned;
     for (const auto& q : quantities) {
-        cloned.quantities.insert(q.key, q.value.clone(buffers));
+        cloned.quantities.insert(q.key(), q.value().clone(buffers));
     }
 
     // clone the materials if we cloned MATERIAL_IDs.
@@ -602,7 +602,7 @@ void Storage::resize(const Size newParticleCnt, const Flags<ResizeFlag> flags) {
 void Storage::swap(Storage& other, const Flags<VisitorEnum> flags) {
     SPH_ASSERT(this->getQuantityCnt() == other.getQuantityCnt());
     for (auto i1 = quantities.begin(), i2 = other.quantities.begin(); i1 != quantities.end(); ++i1, ++i2) {
-        i1->value.swap(i2->value, flags);
+        i1->value().swap(i2->value(), flags);
     }
 }
 

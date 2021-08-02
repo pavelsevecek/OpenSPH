@@ -17,7 +17,7 @@ void BatchManager::modifyHierarchy(const Size runIdx, JobNode& node) {
 
         // find the node in the hierarchy
         SharedPtr<JobNode> modifiedNode;
-        node.enumerate([&baseName, &modifiedNode](SharedPtr<JobNode> node, const Size UNUSED(depth)) {
+        node.enumerate([&baseName, &modifiedNode](SharedPtr<JobNode> node) {
             const std::string name = node->instanceName();
             const std::size_t n = name.find(" / ");
             if (n == std::string::npos) {
@@ -194,7 +194,7 @@ public:
 
         wxBoxSizer* nodeSizer = new wxBoxSizer(wxHORIZONTAL);
         nodeSizer->Add(new wxStaticText(this, wxID_ANY, "Node:", wxDefaultPosition, wxSize(120, -1)));
-        nodeBox = new ComboBox(this, "", wxSize(200, -1));
+        nodeBox = new ComboBox(this, "");
         wxArrayString items;
         for (const SharedPtr<JobNode>& node : nodes) {
             items.Add(node->instanceName());
@@ -206,7 +206,7 @@ public:
 
         wxBoxSizer* paramSizer = new wxBoxSizer(wxHORIZONTAL);
         paramSizer->Add(new wxStaticText(this, wxID_ANY, "Parameter:", wxDefaultPosition, wxSize(120, -1)));
-        paramBox = new ComboBox(this, "", wxSize(200, -1));
+        paramBox = new ComboBox(this, "");
         paramSizer->Add(paramBox);
         sizer->Add(paramSizer);
 
@@ -380,7 +380,7 @@ void BatchDialog::update() {
     }
     for (Size j = 0; j < runCnt; ++j) {
         for (Size i = 0; i < paramCnt; ++i) {
-            grid->SetCellValue(manager.getCell(i, j), j, i);
+            grid->SetCellValue(j, i, manager.getCell(i, j));
         }
     }
 }

@@ -208,7 +208,7 @@ INLINE Float normSqr(const Tensor& t) {
 
 /// Returns the tensor of absolute values
 template <>
-INLINE auto abs(const Tensor& t) {
+INLINE Tensor abs(const Tensor& t) {
     return Tensor(abs(t.row(0)), abs(t.row(1)), abs(t.row(2)));
 }
 

@@ -18,7 +18,7 @@ private:
     /// BVH for finding intersections of rays with particles
     Bvh<BvhSphere> bvh;
 
-    /// Finder for finding neighbours of intersected particles
+    /// Finder for finding neighbors of intersected particles
     AutoPtr<IBasicFinder> finder;
 
     LutKernel<3> kernel;
@@ -35,7 +35,7 @@ private:
         AutoPtr<IBrdf> brdf;
 
         /// Cast shadows
-        bool shadows = false;
+        bool shadows = true;
 
         /// Render surface of spheres instead of an isosurface.
         bool renderSpheres = true;
@@ -43,7 +43,7 @@ private:
     } fixed;
 
     struct MarchData {
-        /// Neighbour indices of the current particle
+        /// Neighbor indices of the current particle
         Array<Size> neighs;
 
         /// Intersection for the current ray
@@ -100,16 +100,18 @@ public:
         const IColorizer& colorizer,
         const ICamera& camera) override;
 
+    virtual bool isInitialized() const override;
+
 private:
     virtual Rgba shade(const RenderParams& params,
         const CameraRay& cameraRay,
         ThreadData& data) const override;
 
-    /// \param Creates a neighbour list for given particle.
+    /// \param Creates a neighbor list for given particle.
     ///
-    /// The neighbour list is cached and can be reused by the calling thread next time the function is called.
-    /// \return View on the cached neighbour light.
-    ArrayView<const Size> getNeighbourList(MarchData& data, const Size index) const;
+    /// The neighbor list is cached and can be reused by the calling thread next time the function is called.
+    /// \return View on the cached neighbor light.
+    ArrayView<const Size> getNeighborList(MarchData& data, const Size index) const;
 
     /// \brief Returns the intersection of the iso-surface.
     ///

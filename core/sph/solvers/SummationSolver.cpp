@@ -1,5 +1,5 @@
 #include "sph/solvers/SummationSolver.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "quantities/IMaterial.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/equations/av/Standard.h"
@@ -59,7 +59,7 @@ void SummationSolver<Dim>::create(Storage& storage, IMaterial& material) const {
     const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, rho0);
     material.setRange(QuantityId::DENSITY, BodySettingsId::DENSITY_RANGE, BodySettingsId::DENSITY_MIN);
-    storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
+    storage.insert<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO, 0);
     this->equations.create(storage, material);
 }
 
@@ -88,8 +88,8 @@ void SummationSolver<Dim>::beforeLoop(Storage& storage, Statistics& stats) {
 
     Atomic<Float> totalDiff = 0._f; /// \todo use thread local for summing?
     auto functor = [this, r, m, eta, &totalDiff](const Size i, ThreadData& data) {
-        /// \todo do we have to recompute neighbours in every iteration?
-        // find all neighbours
+        /// \todo do we have to recompute neighbors in every iteration?
+        // find all neighbors
         this->finder->findAll(i, h[i] * densityKernel.radius(), data.neighs);
         SPH_ASSERT(data.neighs.size() > 0, data.neighs.size());
         // find density and smoothing length by self-consistent solution.

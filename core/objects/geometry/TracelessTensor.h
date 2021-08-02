@@ -19,7 +19,7 @@ class TracelessTensor {
     template <typename T>
     friend Float maxElement(const T& t);
     template <typename T>
-    friend auto abs(const T& t);
+    friend AbsoluteValue<T> abs(const T& t);
     template <typename T>
     friend T sqrtInv(const T& t);
     template <typename T>
@@ -312,12 +312,16 @@ INLINE Float maxElement(const TracelessTensor& t) {
     return result;
 }
 
+template <>
+struct AbsoluteValueType<TracelessTensor> {
+    using Type = SymmetricTensor;
+};
 
 /// \brief Returns the tensor of absolute values form traceless tensor elements.
 ///
 /// This yields a tensor with nonzero trace (unless the tensor has zero diagonal elements).
 template <>
-INLINE auto abs(const TracelessTensor& t) {
+INLINE AbsoluteValue<TracelessTensor> abs(const TracelessTensor& t) {
     return SymmetricTensor(abs(t.diagonal()), abs(t.offDiagonal()));
 }
 

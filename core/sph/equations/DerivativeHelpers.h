@@ -23,7 +23,7 @@ enum class DerivativeFlag {
 /// ISymmetricDerivative interface by defining a single function; the derived class must implement \a eval
 /// templated member function, taking the indices of the particles and the gradient as arguments. The template
 /// parameter is a bool, where false means asymmetric evaluation (only the first particle should be modified),
-/// and true means symmetric evaluation. The loop over the real neighbours (whether all neighbours or just
+/// and true means symmetric evaluation. The loop over the real neighbors (whether all neighbors or just
 /// undamaged particles is specified by the flags passed in the constructor) is automatically performed by
 /// \ref DerivativeTemplate and does not have to be re-implemented by the derived classes.
 ///
@@ -86,7 +86,7 @@ public:
         if (typeid(*this) != typeid(other)) {
             return false;
         }
-        const TDerived* actOther = assert_cast<const TDerived*>(&other);
+        const TDerived* actOther = assertCast<const TDerived>(&other);
         return (flags == actOther->flags) && derived()->additionalEquals(*actOther);
     }
 
@@ -202,7 +202,7 @@ public:
         if (typeid(*this) != typeid(other)) {
             return false;
         }
-        const TDerived* actOther = assert_cast<const TDerived*>(&other);
+        const TDerived* actOther = assertCast<const TDerived>(&other);
         return (sumOnlyUndamaged == actOther->sumOnlyUndamaged) && derived()->additionalEquals(*actOther);
     }
 
@@ -301,7 +301,7 @@ public:
 /// Represents:
 /// sum_j m[j]/rho[j]*(v[j]-v[i]) * grad_ji
 /// This is the discretization used in SPH5 code/
-class NeighbourDensityDiscr {
+class NeighborDensityDiscr {
     ArrayView<const Float> rho, m;
 
 public:
@@ -403,7 +403,7 @@ AutoPtr<IDerivative> makeDerivative(const RunSettings& settings, Flags<Derivativ
     case DiscretizationEnum::STANDARD:
         return makeAuto<TVelocityDerivative<CenterDensityDiscr>>(settings, flags);
     case DiscretizationEnum::BENZ_ASPHAUG:
-        return makeAuto<TVelocityDerivative<NeighbourDensityDiscr>>(settings, flags);
+        return makeAuto<TVelocityDerivative<NeighborDensityDiscr>>(settings, flags);
     default:
         NOT_IMPLEMENTED;
     }

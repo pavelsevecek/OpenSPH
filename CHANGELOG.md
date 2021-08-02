@@ -1,3 +1,46 @@
+## 2021-07-31
+- added Delaunay triangulation of points
+- added an option to extract surface mesh as the alpha-shape
+- mesh resolution is now relative to the median particle radius
+- fixed path type in 'Save mesh' node
+- added optimization tags to Flat containers
+
+## 2021-07-25
+- added "render page" showing current status of an Animation job
+- added render preview to Animation job
+- added new node type - image node
+- removed multiple quantities from Animation job (only one can be selected)
+- removed 'orbit' option from Animation job
+- added notification callbacks to JobNode
+- reworked Movie object, removed it from Controller
+- removed palette from rendered image, palette is now in separate panel
+- fixed VolumeRenderer with transparent background
+- properly adjusting FoV when OrthoCamera is resized
+- setting default particle radius of SPH .scf files to 0.35
+- registered format function to use in Chaiscript
+- changed 'batch' simulation from JobNode to custom INode implementation
+- added spherical camera job
+- implemented functions setPosition, setTarget and project for panoramatic cameras
+
+## 2021-07-20
+- improved polytrope IC
+- optimized refresh when render parameters change
+- Raymarcher: fixed shading artifacts when shadows are enabled
+- optional frame interpolation in animation node
+
+## 2021-07-18
+- optimized search radius in AsymmetricSolver
+
+## 2021-07-17
+- added a simple 'dust' rheology
+
+## 2021-07-16
+- added an option to enable shadows in raymarcher
+- removed experimental renderers from UI
+
+## 2021-07-15
+- enabled the 'create camera node' for loaded states
+
 ## 2021-07-13
 - automatic computation of particle radii in volumetric renderer
 - added absorption to volumetric renderer

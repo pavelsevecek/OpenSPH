@@ -14,7 +14,7 @@ TEST_CASE("BruteForceFinder", "[finders]") {
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     BruteForceFinder finder;
     finder.build(pool, storage);
-    Array<NeighbourRecord> neighs(0, 10);
+    Array<NeighborRecord> neighs(0, 10);
     int cnt = finder.findAll(4, 1.5f, neighs);
     REQUIRE(cnt == 3);
     REQUIRE(neighs[0].index == 3);

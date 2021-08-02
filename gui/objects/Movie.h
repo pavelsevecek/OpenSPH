@@ -9,73 +9,48 @@
 #include "gui/Settings.h"
 #include "gui/renderers/IRenderer.h"
 #include "io/Output.h"
-#include <condition_variable>
+#include "objects/containers/CallbackSet.h"
 
 NAMESPACE_SPH_BEGIN
 
 class IRenderer;
+class ForwardingOutput;
 
-/// \brief Object managing periodic rendering of images and saving them to given paths.
-///
-/// Rendered images are independend from the images in interactive window, i.e. they have dedicated renderer,
-/// camera and list of colorizers to render.
 class Movie : public Noncopyable {
 private:
-    /// Time step (framerate) of the movie
-    Float outputStep;
-    Float nextOutput;
-
-    /// File names of the images
-    OutputFile paths;
-
-    /// Path (mask) of the final animations
-    Path animationPath;
-
-    /// Enable/disable image saving
-    bool enabled;
-
-    /// Make an animatiaon from rendered images when simulation ends
-    bool makeAnimation;
-
-    /// Renderer
     AutoPtr<IRenderer> renderer;
-
-    /// Colorizers to render and save to disk
-    Array<SharedPtr<IColorizer>> colorizers;
-
+    AutoPtr<IColorizer> colorizer;
     RenderParams params;
+    int interpolatedFrames;
+
+    OutputFile paths;
 
     Vector cameraVelocity;
     Float cameraOrbit;
 
-    Float lastFrame = 0._f;
+    struct {
+        Float time = 0._f;
+        Storage data;
+    } lastFrame;
 
 public:
     Movie(const GuiSettings& settings,
         AutoPtr<IRenderer>&& renderer,
-        Array<SharedPtr<IColorizer>>&& colorizers,
-        RenderParams&& params);
+        AutoPtr<IColorizer>&& colorizer,
+        RenderParams&& params,
+        const int interpolatedFrames,
+        const OutputFile& paths);
 
     ~Movie();
 
-    /// \brief Called every time step, saves the images every IMAGES_TIMESTEP.
-    ///
-    /// If the time since the last frame is less than the required framerate, function does nothing. If the
-    /// run starts at negative time, no images are dumped till the time passes zero, consistently with Output
-    /// implementations.
-    ///
-    /// Can be called from any thread; the function is blocking, waits until all images are saved.
-    void onTimeStep(const Storage& storage, Statistics& stats);
+    void render(Storage&& storage, Statistics&& stats, IRenderOutput& output);
 
-    /// \brief Manually saves the images.
-    void save(const Storage& storage, Statistics& stats);
+private:
+    void renderImpl(const Storage& storage, Statistics& stats, ForwardingOutput& output);
 
-    void setCamera(AutoPtr<ICamera>&& camera);
-
-    /// \brief Creates the animations from generated images.
-    void finalize();
-
-    void setEnabled(const bool enable = true);
+    void updateCamera(const Storage& storage, const Float time);
 };
+
+Storage interpolate(const Storage& frame1, const Storage& frame2, const Float t);
 
 NAMESPACE_SPH_END

@@ -208,9 +208,6 @@ void Controller::quit(const bool waitForFinish) {
             vis.renderThread.join();
         }
     }
-
-    // close animation object
-    movie.reset();
 }
 
 void Controller::setAutoZoom(const bool enable) {
@@ -282,10 +279,6 @@ void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
     // update the data in all window controls (can be done from any thread)
     page->onTimeStep(storage, stats);
 
-    // check current time and possibly save images
-    SPH_ASSERT(movie);
-    movie->onTimeStep(storage, stats);
-
     // executed all waiting callbacks (before redrawing as it is used to change renderers)
     if (!sph.onTimeStepCallbacks->empty()) {
         MEASURE_SCOPE("onTimeStep - plots");
@@ -346,7 +339,6 @@ void Controller::update(const Storage& storage, const Statistics& stats) {
     this->redraw(storage, stats);
 
     // set up animation object
-    movie = this->createMovie(storage);
 }
 
 bool Controller::shouldAbortRun() const {
@@ -377,7 +369,6 @@ Array<ExtColorizerId> getColorizerIds() {
         QuantityId::DENSITY,
         ColorizerId::DENSITY_PERTURBATION,
         ColorizerId::SUMMED_DENSITY,
-        QuantityId::BULK_DENSITY,
         QuantityId::MASS,
         QuantityId::MOMENT_OF_INERTIA,
         //
@@ -402,7 +393,7 @@ Array<ExtColorizerId> getColorizerIds() {
         ColorizerId::AGGREGATE_ID,
         ColorizerId::FLAG,
         ColorizerId::MATERIAL_ID,
-        QuantityId::NEIGHBOUR_CNT,
+        QuantityId::NEIGHBOR_CNT,
         ColorizerId::UVW,
         ColorizerId::BOUNDARY,
         //
@@ -517,6 +508,10 @@ Optional<Size> Controller::getIntersectedParticle(const Pixel position, const fl
 void Controller::setColorizer(const SharedPtr<IColorizer>& newColorizer) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     vis.colorizer = newColorizer;
+    Palette palette;
+    if (project.getPalette(vis.colorizer->name(), palette)) {
+        vis.colorizer->setPalette(palette);
+    }
     if (!this->tryRedraw()) {
         this->redrawOnNextTimeStep();
     }
@@ -584,48 +579,6 @@ const Storage& Controller::getStorage() const {
     return *sph.storage;
 }
 
-SharedPtr<Movie> Controller::createMovie(const Storage& storage) const {
-    SPH_ASSERT(sph.run);
-    RenderParams params;
-    const GuiSettings& gui = project.getGuiSettings();
-    params.particles.scale = float(gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS));
-    params.size.x = gui.get<int>(GuiSettingsId::IMAGES_WIDTH);
-    params.size.y = gui.get<int>(GuiSettingsId::IMAGES_HEIGHT);
-
-    Array<SharedPtr<IColorizer>> colorizers;
-    GuiSettings guiClone = gui;
-    guiClone.accessor = nullptr;
-    guiClone.set(GuiSettingsId::RENDERER, gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER))
-        .set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 1);
-    AutoPtr<IRenderer> renderer = Factory::getRenderer(guiClone);
-    // limit colorizer list for slower renderers
-    switch (gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER)) {
-    case RendererEnum::PARTICLE:
-        colorizers = this->getColorizerList(storage);
-        break;
-    case RendererEnum::MESH:
-        colorizers = { Factory::getColorizer(project, ColorizerId::VELOCITY) };
-        break;
-    case RendererEnum::RAYMARCHER:
-        colorizers = { Factory::getColorizer(project, ColorizerId::VELOCITY) };
-        break;
-    default:
-        STOP;
-    }
-    const Pixel size(gui.get<int>(GuiSettingsId::IMAGES_WIDTH), gui.get<int>(GuiSettingsId::IMAGES_HEIGHT));
-    params.camera = Factory::getCamera(gui, size);
-
-    /// \todo deduplicate - create (fill) params from settings
-    params.particles.grayScale = gui.get<bool>(GuiSettingsId::FORCE_GRAYSCALE);
-    params.particles.doAntialiasing = gui.get<bool>(GuiSettingsId::ANTIALIASED);
-    params.particles.smoothed = gui.get<bool>(GuiSettingsId::SMOOTH_PARTICLES);
-    params.surface.level = float(gui.get<Float>(GuiSettingsId::SURFACE_LEVEL));
-    params.surface.ambientLight = float(gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT));
-    params.surface.sunLight = float(gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY));
-
-    return makeShared<Movie>(gui, std::move(renderer), std::move(colorizers), std::move(params));
-}
-
 void Controller::redraw(const Storage& storage, const Statistics& stats) {
     CHECK_FUNCTION(CheckFunction::NO_THROW);
 
@@ -675,8 +628,7 @@ bool Controller::tryRedraw() {
 
         return true;
     } else {
-        vis.renderer->cancelRender();
-        vis.refresh();
+        this->refresh();
         return false;
     }
 }
@@ -699,6 +651,11 @@ void Controller::refresh(AutoPtr<ICamera>&& camera) {
         const Float fov = imageSize.y / wtp.value();
         project.getGuiSettings().set(GuiSettingsId::CAMERA_ORTHO_FOV, fov);
     }
+}
+
+void Controller::refresh() {
+    vis.renderer->cancelRender();
+    vis.refresh();
 }
 
 void Controller::safePageCall(Function<void(RunPage*)> func) {
@@ -743,6 +700,10 @@ void Controller::startRenderThread() {
         RenderOutput(Vis& vis, wxWeakRef<RunPage> page)
             : vis(vis)
             , page(page) {}
+
+        virtual void update(Bitmap<Rgba>&& bitmap, Array<Label>&& labels, const bool isFinal) override {
+            this->update(bitmap, std::move(labels), isFinal);
+        }
 
         virtual void update(const Bitmap<Rgba>& bitmap,
             Array<Label>&& labels,
@@ -799,7 +760,6 @@ void Controller::startRenderThread() {
 
             const wxSize canvasSize = page->getCanvasSize();
             RenderParams params;
-            params.size = Pixel(canvasSize.x, canvasSize.y);
             params.particles.selected = vis.selectedParticle;
 
             // initialize all parameters from GUI settings
@@ -808,6 +768,9 @@ void Controller::startRenderThread() {
             vis.cameraMutex.lock();
             params.camera = vis.camera->clone();
             vis.cameraMutex.unlock();
+
+            const Pixel size = Pixel(canvasSize.x, canvasSize.y);
+            params.camera->resize(size);
 
             vis.renderer->render(params, *vis.stats, output);
         }

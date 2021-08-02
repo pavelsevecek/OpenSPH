@@ -1,6 +1,6 @@
 #include "sph/solvers/ElasticDeformationSolver.h"
 #include "math/Quat.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Quantity.h"
 #include "sph/equations/Derivative.h"
@@ -76,7 +76,7 @@ void ElasticDeformationSolver::integrate(Storage& storage, Statistics& UNUSED(st
         finder->build(scheduler, r);
         const Float maxH = r[0][H]; /// \todo
         neighsPerParticle.resize(r.size());
-        Array<NeighbourRecord> neighs;
+        Array<NeighborRecord> neighs;
         for (Size i = 0; i < r.size(); ++i) {
             r0[i] = r[i];
             V0[i] = m[i] / rho[i];
@@ -85,7 +85,7 @@ void ElasticDeformationSolver::integrate(Storage& storage, Statistics& UNUSED(st
 
             SPH_ASSERT(C[i] == SymmetricTensor::identity());
             C[i] = SymmetricTensor::null();
-            for (NeighbourRecord& n : neighs) {
+            for (NeighborRecord& n : neighs) {
                 const Size j = n.index;
                 const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
                 if (i != j && n.distanceSqr < sqr(kernel.radius() * hbar)) {

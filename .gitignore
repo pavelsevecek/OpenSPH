@@ -39,6 +39,9 @@ Thumbs.db
 # qtcreator generated files
 *.pro.user*
 
+# cmake user files
+*.txt.user
+
 # xemacs temporary files
 *.flc
 
@@ -72,6 +75,6 @@ Thumbs.db
 *.dll
 *.exe
 
-# Output directories
+# Misc
 problems/sod/out
-
+regression/update-references.sh

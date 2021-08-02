@@ -1,6 +1,6 @@
 #include "sph/solvers/DensityIndependentSolver.h"
 #include "objects/Exceptions.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "sph/Materials.h"
 #include "sph/equations/av/Standard.h"
 #include "system/Factory.h"
@@ -133,13 +133,13 @@ void DensityIndependentSolver::integrate(Storage& storage, Statistics& stats) {
 
     const Float radius = kernel.radius() * r[0][H]; /// \todo do correctly
 
-    // step 4: compute y by summing up neighbours
+    // step 4: compute y by summing up neighbors
     auto pressureFunc = [this, Y, r, p, &y, radius](const Size i, ThreadData& data) {
-        // find neighbours
+        // find neighbors
         finder->findAll(i, radius, data.neighs);
 
         y[i] = 0._f;
-        for (NeighbourRecord& n : data.neighs) {
+        for (NeighborRecord& n : data.neighs) {
             const Size j = n.index;
             y[i] += Y[j] * kernel.value(r[i], r[j]);
         }
@@ -152,18 +152,18 @@ void DensityIndependentSolver::integrate(Storage& storage, Statistics& stats) {
 
     // step 5: using computed y, evaluate equation of motion and energy equation
     auto equationFunc = [this, Y, r, radius](const Size i, ThreadData& data) {
-        // find neighbours
+        // find neighbors
         finder->findAll(i, radius, data.neighs);
 
         // compute kernels and value p^alpha using direct summation
         data.idxs.clear();
         data.grads.clear();
-        for (NeighbourRecord& n : data.neighs) {
+        for (NeighborRecord& n : data.neighs) {
             const Size j = n.index;
             const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
             SPH_ASSERT(hbar > EPS, hbar);
             if (i == j || n.distanceSqr >= sqr(kernel.radius() * hbar)) {
-                // aren't actual neighbours
+                // aren't actual neighbors
                 continue;
             }
 

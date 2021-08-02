@@ -86,12 +86,13 @@ public:
     }
 
     INLINE Indices map(const Vector& v) const {
-        SPH_ASSERT(boundingBox.size()[X] > 0._f && boundingBox.size()[Y] > 0._f && boundingBox.size()[Z] > 0._f);
+        SPH_ASSERT(
+            boundingBox.size()[X] > 0._f && boundingBox.size()[Y] > 0._f && boundingBox.size()[Z] > 0._f);
         SPH_ASSERT(dimensionSize >= 1);
         Vector idxs = (v - boundingBox.lower()) / (boundingBox.size()) * dimensionSize;
         // Ordinarily, idxs are never <0 or >=dimensionSize, BUT in case the points are slightly move, this
         // can happen. In this case, we want to return a valid result rather than crashing, even though some
-        // neighbours might be missed if the tree is not rebuilt
+        // neighbors might be missed if the tree is not rebuilt
         return Indices(Sph::clamp(idxs, Vector(0._f), Vector(dimensionSize - 1._f)));
     }
 

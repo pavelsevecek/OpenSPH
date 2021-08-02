@@ -19,13 +19,13 @@ class ISymmetricFinder;
 /// \brief Basic solver for integration of SPH equations
 ///
 /// The solver takes an array of equation terms and evaluate them, using compute gradients of SPH kernel. By
-/// default, no equations are evaluated, except for a 'dummy equation' counting number of neighbours. All
+/// default, no equations are evaluated, except for a 'dummy equation' counting number of neighbors. All
 /// equations are evaluated symmetrically, meaning each particle pair is visited (at most) once and the
 /// derivatives of quantities are computed for both particles at once. All derivatives computed by the solver
 /// must be thus symmetric (i.e. derived from \ref SymmetricDerivative).
 /// Symmetric evaluation allows faster computation, at cost of higher memory overhead (each thread has its own
 /// buffers where the computed derivatives are accumulated) and cannot be use when more than one pass over
-/// particle neighbours is needed to compute the derivative (unless the user constructs two SymmetricSolvers
+/// particle neighbors is needed to compute the derivative (unless the user constructs two SymmetricSolvers
 /// with different sets of equations).
 template <Size Dim>
 class SymmetricSolver : public ISolver {
@@ -34,10 +34,10 @@ protected:
         /// Holds all derivatives this thread computes
         DerivativeHolder derivatives;
 
-        /// Cached array of neighbours, to avoid allocation every step
-        Array<NeighbourRecord> neighs;
+        /// Cached array of neighbors, to avoid allocation every step
+        Array<NeighborRecord> neighs;
 
-        /// Indices of real neighbours
+        /// Indices of real neighbors
         Array<Size> idxs;
 
         /// Cached array of gradients
@@ -56,7 +56,7 @@ protected:
     /// Boundary condition used by the solver.
     AutoPtr<IBoundaryCondition> bc;
 
-    /// Structure used to search for neighbouring particles
+    /// Structure used to search for neighboring particles
     AutoPtr<ISymmetricFinder> finder;
 
     /// Selected SPH kernel

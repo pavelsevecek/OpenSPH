@@ -87,9 +87,6 @@ enum class QuantityId {
     /// Vibrational particle velocity, used by the block model of acoustic fluidization.
     VIBRATIONAL_VELOCITY = 47,
 
-    /// Bulk density, may be lower than the material density.
-    BULK_DENSITY = 48,
-
     ///@}
 
     /// \name N-body & Solid sphere physics
@@ -183,8 +180,8 @@ enum class QuantityId {
     /// \name SPH statistics & auxiliary data
     ///@{
 
-    /// Number of neighbouring particles (in radius h * kernel.radius)
-    NEIGHBOUR_CNT = 38,
+    /// Number of neighboring particles (in radius h * kernel.radius)
+    NEIGHBOR_CNT = 38,
 
     /// Vector approximating surface normal
     SURFACE_NORMAL = 39,

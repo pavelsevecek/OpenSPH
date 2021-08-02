@@ -388,6 +388,19 @@ TEST_CASE("Tuple comparison", "[tuple]") {
     REQUIRE(t1 != makeTuple(RecordType(1), RecordType(5), RecordType(9)));
 }
 
+TEST_CASE("Tuple sort", "[tuple]") {
+    auto t1 = makeTuple(1, 2, 5.f, 'a');
+    auto t2 = makeTuple(1, 2, 3.f, 'a');
+    auto t3 = makeTuple(1, 2, 5.f, 'b');
+    REQUIRE_FALSE(t1 < t2);
+    REQUIRE(t2 < t1);
+    REQUIRE(t1 < t3);
+    REQUIRE_FALSE(t3 < t1);
+    REQUIRE(t2 < t3);
+    REQUIRE_FALSE(t3 < t2);
+
+    REQUIRE_FALSE(t1 < t1);
+}
 
 TEST_CASE("Tuple contains", "[tuple]") {
     using TestTuple = Tuple<int, char, RecordType>;

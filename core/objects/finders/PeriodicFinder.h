@@ -1,6 +1,6 @@
 #pragma once
 
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/finders/NeighborFinder.h"
 #include "objects/geometry/Box.h"
 #include "objects/wrappers/AutoPtr.h"
 #include "thread/ThreadLocal.h"
@@ -14,20 +14,20 @@ private:
     Box domain;
     SharedPtr<IScheduler> scheduler;
 
-    mutable ThreadLocal<Array<NeighbourRecord>> extra;
+    mutable ThreadLocal<Array<NeighborRecord>> extra;
 
 public:
     PeriodicFinder(AutoPtr<ISymmetricFinder>&& actual, const Box& domain, SharedPtr<IScheduler> scheduler);
 
     virtual Size findAll(const Size index,
         const Float radius,
-        Array<NeighbourRecord>& neighbours) const override;
+        Array<NeighborRecord>& neighbors) const override;
 
     virtual Size findAll(const Vector& pos,
         const Float radius,
-        Array<NeighbourRecord>& neighbours) const override;
+        Array<NeighborRecord>& neighbors) const override;
 
-    virtual Size findLowerRank(const Size, const Float, Array<NeighbourRecord>&) const override {
+    virtual Size findLowerRank(const Size, const Float, Array<NeighborRecord>&) const override {
         NOT_IMPLEMENTED;
     }
 

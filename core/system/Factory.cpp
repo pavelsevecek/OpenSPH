@@ -77,6 +77,8 @@ AutoPtr<IRheology> Factory::getRheology(const BodySettings& body) {
         return makeAuto<VonMisesRheology>(Factory::getDamage(body));
     case YieldingEnum::DRUCKER_PRAGER:
         return makeAuto<DruckerPragerRheology>(Factory::getDamage(body));
+    case YieldingEnum::DUST:
+        return makeAuto<DustRheology>();
     default:
         NOT_IMPLEMENTED;
     }
@@ -225,8 +227,7 @@ AutoPtr<IUvMapping> Factory::getUvMapping(const RunSettings& settings) {
     }
 }
 
-AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& body,
-    Function<bool(Float)> progressCallback) {
+AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& body) {
     const DistributionEnum id = body.get<DistributionEnum>(BodySettingsId::INITIAL_DISTRIBUTION);
     const bool center = body.get<bool>(BodySettingsId::CENTER_PARTICLES);
     const bool sort = body.get<bool>(BodySettingsId::PARTICLE_SORTING);
@@ -237,7 +238,7 @@ AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& body,
         flags.setIf(HexagonalPacking::Options::CENTER, center || sph5mode);
         flags.setIf(HexagonalPacking::Options::SORTED, sort);
         flags.setIf(HexagonalPacking::Options::SPH5_COMPATIBILITY, sph5mode);
-        return makeAuto<HexagonalPacking>(flags, progressCallback);
+        return makeAuto<HexagonalPacking>(flags);
     }
     case DistributionEnum::CUBIC:
         return makeAuto<CubicPacking>();
@@ -512,6 +513,7 @@ AutoPtr<IMaterial> Factory::getMaterial(const BodySettings& body) {
     case YieldingEnum::DRUCKER_PRAGER:
     case YieldingEnum::VON_MISES:
     case YieldingEnum::ELASTIC:
+    case YieldingEnum::DUST:
         return makeAuto<SolidMaterial>(body);
     case YieldingEnum::NONE:
         switch (eosId) {
