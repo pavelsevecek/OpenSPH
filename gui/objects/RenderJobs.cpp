@@ -50,6 +50,15 @@ AnimationJob::AnimationJob(const std::string& name)
     colorizerId = EnumWrapper(RenderColorizerId::VELOCITY);
 }
 
+UnorderedMap<std::string, ExtJobType> AnimationJob::requires() const {
+    if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE &&
+        RenderColorizerId(colorizerId) != RenderColorizerId::GRAVITY) {
+        return { { "camera", GuiJobType::CAMERA } };
+    } else {
+        return this->getSlots();
+    }
+}
+
 VirtualSettings AnimationJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);

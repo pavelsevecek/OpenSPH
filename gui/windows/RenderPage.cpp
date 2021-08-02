@@ -102,9 +102,12 @@ public:
     }
 
     virtual void onStart(const IJob& job) override {
-        executeOnMainThread([progress = wxWeakRef<ProgressPanel>(progress.get()), &job] {
+        executeOnMainThread([progress = wxWeakRef<ProgressPanel>(progress.get()),
+                                instanceName = job.instanceName(),
+                                className = job.className()] {
+            // job might not exist at this point
             if (progress) {
-                progress->onRunStart(job.className(), job.instanceName());
+                progress->onRunStart(className, instanceName);
             }
         });
     }
@@ -168,7 +171,9 @@ RenderPage::RenderPage(wxWindow* parent, const RunSettings& global, const Shared
         try {
             node->run(global, *callbacks);
         } catch (const Exception& e) {
-            wxMessageBox(std::string("Rendering failed.\n") + e.what(), "Fail", wxOK | wxCENTRE);
+            executeOnMainThread([message = std::string(e.what())]{
+                wxMessageBox("Rendering failed.\n" + message, "Fail", wxOK | wxCENTRE);
+            });
         }
 
         running = false;

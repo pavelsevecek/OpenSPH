@@ -92,14 +92,7 @@ public:
         };
     }
 
-    virtual UnorderedMap<std::string, ExtJobType>
-    requires() const override {
-        if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE) {
-            return { { "camera", GuiJobType::CAMERA } };
-        } else {
-            return this->getSlots();
-        }
-    }
+    virtual UnorderedMap<std::string, ExtJobType> requires() const override;
 
     virtual VirtualSettings getSettings() override;
 
