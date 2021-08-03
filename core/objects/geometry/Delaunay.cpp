@@ -308,7 +308,7 @@ void Delaunay::build(ArrayView<const Vector> points, const Flags<BuildFlag> flag
         }
 
         VectorRng<UniformRng> rng;
-        const Float magnitude = 1.e-8_f * maxElement(box.size());
+        const Float magnitude = 1.e-6_f * maxElement(box.size());
         for (Size i = 0; i < perturbedPoints.size(); ++i) {
             perturbedPoints[i] += magnitude * (2._f * rng() - Vector(1._f));
         }
