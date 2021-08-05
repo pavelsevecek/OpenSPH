@@ -30,7 +30,7 @@ Outcome EquilibriumEnergySolver::solve(Storage& storage, Statistics& stats) {
     gravity->build(scheduler, storage);
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-    gravity->evalAll(scheduler, dv, stats);
+    gravity->evalSelfGravity(scheduler, dv, stats);
 
     ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
     // add centrifugal force

@@ -7,6 +7,7 @@
 
 #include "math/MathUtils.h"
 #include <initializer_list>
+#include <type_traits>
 
 NAMESPACE_SPH_BEGIN
 
@@ -98,6 +99,15 @@ bool anyCommon(const TRange1& range1, const TRange2& range2) {
         }
     }
     return false;
+}
+
+template <typename TRange, typename TInitial>
+std::decay_t<typename TRange::Type> accumulate(const TRange& range, const TInitial initial) {
+    std::decay_t<typename TRange::Type> sum = initial;
+    for (const auto& v : range) {
+        sum += v;
+    }
+    return sum;
 }
 
 NAMESPACE_SPH_END

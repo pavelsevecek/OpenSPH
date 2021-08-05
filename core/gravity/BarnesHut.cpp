@@ -23,7 +23,7 @@ BarnesHut::BarnesHut(const Float theta,
     , thetaInv(1._f / theta)
     , order(order)
     , maxDepth(maxDepth)
-    , gravityConstant(gravityConstant) {
+    , G(gravityConstant) {
     // use default-constructed kernel; it works, because by default LutKernel has zero radius and functions
     // valueImpl and gradImpl are never called.
     // Check by assert to make sure this trick will work
@@ -42,7 +42,7 @@ BarnesHut::BarnesHut(const Float theta,
     , thetaInv(1._f / theta)
     , order(order)
     , maxDepth(maxDepth)
-    , gravityConstant(gravityConstant) {
+    , G(gravityConstant) {
     SPH_ASSERT(theta > 0._f, theta);
 }
 
@@ -55,7 +55,7 @@ void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
     m.resize(r.size());
     ArrayView<const Float> masses = storage.getValue<Float>(QuantityId::MASS);
     for (Size i = 0; i < m.size(); ++i) {
-        m[i] = gravityConstant * masses[i];
+        m[i] = G * masses[i];
     }
 
     // build K-d Tree; no need for rank as we are never searching neighbors
@@ -80,7 +80,7 @@ void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
     iterateTree<IterateDirection::BOTTOM_UP>(kdTree, SEQUENTIAL, functor, 0, maxDepth);
 }
 
-void BarnesHut::evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const {
+void BarnesHut::evalSelfGravity(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const {
     VERBOSE_LOG
 
     TreeWalkState data;
@@ -95,8 +95,30 @@ void BarnesHut::evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics&
     stats.set<int>(StatisticsId::GRAVITY_NODE_COUNT, kdTree.getNodeCnt());
 }
 
+void BarnesHut::evalExternal(IScheduler& scheduler, ArrayView<Attractor> points, ArrayView<Vector> dv) const {
+    SymmetrizeSmoothingLengths<const GravityLutKernel&> symmetricKernel(kernel);
+    // point-particle interactions
+    for (Attractor& p : points) {
+        parallelFor(scheduler, 0, r.size(), [&dv, &p, &symmetricKernel, this](const Size i) {
+            const Vector a = symmetricKernel.grad(r[i], setH(p.position(), p.radius()));
+            dv[i] -= G * p.mass() * a;
+            p.acceleration() += m[i] * a;
+        });
+    }
+    // point-point interactions
+    for (Size i = 0; i < points.size(); ++i) {
+        for (Size j = i + 1; j < points.size(); ++j) {
+            Attractor& p1 = points[i];
+            Attractor& p2 = points[j];
+            const Vector a =
+                G * symmetricKernel.grad(setH(p1.position(), p1.radius()), setH(p2.position(), p2.radius()));
+            p1.acceleration() -= points[j].mass() * a;
+            p2.acceleration() += points[i].mass() * a;
+        }
+    }
+}
 
-Vector BarnesHut::eval(const Vector& r0) const {
+Vector BarnesHut::evalAcceleration(const Vector& r0) const {
     return this->evalImpl(r0, Size(-1));
 }
 
@@ -464,7 +486,7 @@ void BarnesHut::buildInner(BarnesHutNode& node, BarnesHutNode& left, BarnesHutNo
 
 MultipoleExpansion<3> BarnesHut::getMoments() const {
     // masses are premultiplied by gravitational constants, so we have to divide
-    return kdTree.getNode(0).moments.multiply(1._f / gravityConstant);
+    return kdTree.getNode(0).moments.multiply(1._f / G);
 }
 
 RawPtr<const IBasicFinder> BarnesHut::getFinder() const {

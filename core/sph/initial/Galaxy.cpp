@@ -84,7 +84,7 @@ INLINE Float bulgePdf(const Float r, const Float a) {
 
 static Float getEpicyclicFrequency(IGravity& gravity, const Vector& r, const Vector& dv1, const Float dr) {
     const Float radius = sqrt(sqr(r[X]) + sqr(r[Y])) + EPS;
-    const Vector dv2 = gravity.eval(r * (1._f + dr));
+    const Vector dv2 = gravity.evalAcceleration(r * (1._f + dr));
 
     const Float a1_rad = (dv1[X] * r[X] + dv1[Y] * r[Y]) / radius;
     const Float a2_rad = (dv2[X] * r[X] + dv2[Y] * r[Y]) / radius;
@@ -268,7 +268,7 @@ static void computeDiskVelocities(IScheduler& scheduler,
     gravity.build(scheduler, storage);
     Statistics stats;
     std::fill(dv.begin(), dv.end(), Vector(0._f));
-    gravity.evalAll(scheduler, dv, stats);
+    gravity.evalSelfGravity(scheduler, dv, stats);
 
     Float sigma = 0._f;
     Size count = 0;

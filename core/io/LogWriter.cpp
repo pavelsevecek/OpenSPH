@@ -77,6 +77,7 @@ void StandardLogWriter::write(const Storage& storage, const Statistics& stats) {
     printStat<int>(*logger, stats, StatisticsId::GRAVITY_BUILD_TIME,           "    * tree construction:    ", "ms");
     printStat<int>(*logger, stats, StatisticsId::POSTPROCESS_EVAL_TIME,        "    * visualization:        ", "ms");
     logger->write(                                                             " - particles:   ", storage.getParticleCnt());
+    logger->write(                                                             " - attractors:  :", storage.getAttractors().size());
     printStat<MinMaxMean>(*logger, stats, StatisticsId::NEIGHBOR_COUNT,        " - neighbors:   ");
     printStat<int>(*logger, stats, StatisticsId::TOTAL_COLLISION_COUNT,        " - collisions:  ");
     printStat<int>(*logger, stats, StatisticsId::BOUNCE_COUNT,                 "    * bounces:  ");

@@ -51,6 +51,7 @@ SOURCES += \
     quantities/Quantity.cpp \
     quantities/QuantityIds.cpp \
     quantities/Storage.cpp \
+    quantities/Utility.cpp \
     run/IRun.cpp \
     run/Job.cpp \
     run/Node.cpp \
@@ -157,6 +158,7 @@ HEADERS += \
     objects/utility/Progressible.h \
     objects/wrappers/ExtendedEnum.h \
     objects/wrappers/SharedToken.h \
+    quantities/Utility.h \
     run/Job.inl.h \
     sph/initial/UvMapping.h \
     objects/Exceptions.h \
@@ -245,7 +247,6 @@ HEADERS += \
     post/Plot.h \
     post/Point.h \
     post/StatisticTests.h \
-    quantities/CompressedStorage.h \
     quantities/IMaterial.h \
     quantities/Iterate.h \
     quantities/Particle.h \

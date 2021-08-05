@@ -10,6 +10,8 @@
 
 NAMESPACE_SPH_BEGIN
 
+class Attractor;
+
 /// \brief Interface for computing gravitational interactions of particles.
 class IGravity : public Polymorphic {
 public:
@@ -20,21 +22,24 @@ public:
     ///                 (single-threaded) execution.
     virtual void build(IScheduler& scheduler, const Storage& storage) = 0;
 
-    /// \brief Evaluates the gravitational acceleration concurrently.
+    /// \brief Evaluates the self-gravitational accelerations of particles.
     ///
     /// The function is blocking, it must exit after the gravity is evaluated.
     /// \param scheduler Scheduler used for parallelization.
     /// \param dv Acceleration values; it may already contain some accelerations computed by other code
     ///           components, gravity should add acceleration instead of replacing the current values.
     /// \param stats Output statistics of the gravitational solver.
-    virtual void evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const = 0;
+    virtual void evalSelfGravity(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const = 0;
+
+    /// \brief Evaluates the gravitational acceleration from external point masses.
+    virtual void evalExternal(IScheduler& scheduler, ArrayView<Attractor> ps, ArrayView<Vector> dv) const = 0;
 
     /// \brief Evaluates the gravitational acceleration at given point.
     ///
     /// The point must NOT correspond to any particle, as this case could formally lead to infinite
     /// acceleration if no smoothing kernel is used.
     /// \param r0 Point where the gravity is evaluated.
-    virtual Vector eval(const Vector& r0) const = 0;
+    virtual Vector evalAcceleration(const Vector& r0) const = 0;
 
     /// \brief Computes the total potential energy of the particles.
     ///

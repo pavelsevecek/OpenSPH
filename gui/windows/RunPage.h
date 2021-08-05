@@ -130,7 +130,7 @@ private:
     wxWindow* createRaymarcherBox(wxPanel* parent);
     wxWindow* createVolumeBox(wxPanel* parent);
 
-    void makeStatsText(const Size particleCnt, const Statistics& stats);
+    void makeStatsText(const Size particleCnt, const Size pointCnt, const Statistics& stats);
 
     void setColorizer(const Size idx);
 

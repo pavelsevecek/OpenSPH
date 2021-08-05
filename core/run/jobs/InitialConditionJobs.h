@@ -71,9 +71,8 @@ class SingleParticleIc : public IParticleJob {
 private:
     Vector r0 = Vector(0._f);
     Vector v0 = Vector(0._f);
-    Float mass = Constants::M_sun;
-    Float radius = Constants::R_sun;
-    int flag = 0;
+    Float mass = Constants::M_earth;
+    Float radius = Constants::R_earth;
 
 public:
     explicit SingleParticleIc(const std::string& name)
@@ -128,7 +127,7 @@ private:
     int boundaryThreshold;
 
 public:
-    EquilibriumIc(const std::string& name);
+    explicit EquilibriumIc(const std::string& name);
 
     virtual std::string className() const override {
         return "set equilibrium energy";
@@ -136,6 +135,24 @@ public:
 
     virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+};
+
+class KeplerianVelocityIc : public IParticleJob {
+public:
+    explicit KeplerianVelocityIc(const std::string& name)
+        : IParticleJob(name) {}
+
+    virtual std::string className() const override {
+        return "set Keplerian velocity";
+    }
+
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+        return { { "orbiting", JobType::PARTICLES }, { "gravity source", JobType::PARTICLES } };
     }
 
     virtual VirtualSettings getSettings() override;

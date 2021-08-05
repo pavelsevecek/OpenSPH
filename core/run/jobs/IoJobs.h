@@ -1,6 +1,5 @@
 #pragma once
 
-#include "quantities/CompressedStorage.h"
 #include "run/Job.h"
 
 NAMESPACE_SPH_BEGIN

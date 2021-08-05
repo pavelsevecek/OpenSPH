@@ -61,9 +61,11 @@ public:
         dv.fill(Vector(0._f));
     }
 
-    virtual void evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const override {
+    virtual void evalSelfGravity(IScheduler& scheduler,
+        ArrayView<Vector> dv,
+        Statistics& stats) const override {
         ArrayView<Vector> dv_a = all.getD2t<Vector>(QuantityId::POSITION);
-        gravity->evalAll(scheduler, dv_a, stats);
+        gravity->evalSelfGravity(scheduler, dv_a, stats);
 
         for (Size i = 0; i < idxs.size(); ++i) {
             if (idxs[i] == Size(-1)) {
@@ -74,8 +76,14 @@ public:
         }
     }
 
-    virtual Vector eval(const Vector& r0) const override {
-        return gravity->eval(r0);
+    virtual void evalExternal(IScheduler& scheduler,
+        ArrayView<Attractor> ps,
+        ArrayView<Vector> dv) const override {
+        gravity->evalExternal(scheduler, ps, dv);
+    }
+
+    virtual Vector evalAcceleration(const Vector& r0) const override {
+        return gravity->evalAcceleration(r0);
     }
 
     virtual Float evalEnergy(IScheduler& scheduler, Statistics& stats) const override {

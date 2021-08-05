@@ -243,6 +243,18 @@ void ParticleRenderer::initialize(const Storage& storage,
         }
     }
 
+    for (const Attractor& a : storage.getAttractors()) {
+        if (!isCutOff(a.position(), cutoff, direction)) {
+            cached.idxs.push(Size(-1));
+            cached.positions.push(setH(a.position(), a.radius()));
+            cached.colors.push(Rgba::white());
+
+            if (hasVectorData) {
+                cached.vectors.push(Vector(0._f));
+            }
+        }
+    }
+
     // sort in z-order
     Order order(cached.positions.size());
     order.shuffle([this, &direction](Size i, Size j) {

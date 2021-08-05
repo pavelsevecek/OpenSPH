@@ -23,36 +23,61 @@ private:
     ArrayView<const Float> m;
 
     GravityLutKernel kernel;
-    Float gravityConstant = Constants::gravity;
+    Float G = Constants::gravity;
 
 public:
     /// \brief Default-construced gravity, assuming point-like particles
     BruteForceGravity(const Float gravityContant = Constants::gravity)
-        : gravityConstant(gravityContant) {
+        : G(gravityContant) {
         SPH_ASSERT(kernel.radius() == 0._f);
     }
 
     /// \brief Constructs gravity using smoothing kernel
     BruteForceGravity(GravityLutKernel&& kernel, const Float gravityContant = Constants::gravity)
         : kernel(std::move(kernel))
-        , gravityConstant(gravityContant) {}
+        , G(gravityContant) {}
 
     virtual void build(IScheduler& UNUSED(scheduler), const Storage& storage) override {
         r = storage.getValue<Vector>(QuantityId::POSITION);
         m = storage.getValue<Float>(QuantityId::MASS);
     }
 
-    virtual void evalAll(IScheduler& scheduler,
+    virtual void evalSelfGravity(IScheduler& scheduler,
         ArrayView<Vector> dv,
         Statistics& UNUSED(stats)) const override {
         SPH_ASSERT(r.size() == dv.size());
-        SymmetrizeSmoothingLengths<const GravityLutKernel&> actKernel(kernel);
-        parallelFor(scheduler, 0, r.size(), [&dv, &actKernel, this](const Size i) {
-            dv[i] += this->evalImpl(actKernel, r[i], i);
+        SymmetrizeSmoothingLengths<const GravityLutKernel&> symmetricKernel(kernel);
+        parallelFor(scheduler, 0, r.size(), [&dv, &symmetricKernel, this](const Size i) {
+            dv[i] += this->evalImpl(symmetricKernel, r[i], i);
         });
     }
 
-    virtual Vector eval(const Vector& r0) const override {
+    virtual void evalExternal(IScheduler& scheduler,
+        ArrayView<Attractor> points,
+        ArrayView<Vector> dv) const override {
+        SymmetrizeSmoothingLengths<const GravityLutKernel&> symmetricKernel(kernel);
+        // point-particle interactions
+        for (Attractor& p : points) {
+            parallelFor(scheduler, 0, r.size(), [&dv, &p, this, &symmetricKernel](const Size i) {
+                const Vector a = G * symmetricKernel.grad(r[i], setH(p.position(), p.radius()));
+                dv[i] -= p.mass() * a;
+                p.acceleration() += m[i] * a;
+            });
+        }
+        // point-point interactions
+        for (Size i = 0; i < points.size(); ++i) {
+            for (Size j = i + 1; j < points.size(); ++j) {
+                Attractor& p1 = points[i];
+                Attractor& p2 = points[j];
+                const Vector a = G * symmetricKernel.grad(
+                                         setH(p1.position(), p1.radius()), setH(p2.position(), p2.radius()));
+                p1.acceleration() -= points[j].mass() * a;
+                p2.acceleration() += points[i].mass() * a;
+            }
+        }
+    }
+
+    virtual Vector evalAcceleration(const Vector& r0) const override {
         struct NoSymmetrization {
             const GravityLutKernel& kernel;
 
@@ -73,7 +98,7 @@ public:
                 }
             }
         });
-        return 0.5_f * gravityConstant * energy.accumulate();
+        return 0.5_f * G * energy.accumulate();
     }
 
     virtual RawPtr<const IBasicFinder> getFinder() const override {
@@ -99,7 +124,7 @@ private:
                 a += m[i] * actKernel.grad(r[i], r0);
             }
         }
-        return gravityConstant * a;
+        return G * a;
     }
 };
 

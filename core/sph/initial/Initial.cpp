@@ -360,28 +360,4 @@ void repelParticles(ArrayView<Vector> r, const Float radius) {
     }
 }
 
-Vector moveToCenterOfMassSystem(ArrayView<const Float> m, ArrayView<Vector> r) {
-    SPH_ASSERT(m.size() == r.size());
-    Vector r_com(0._f);
-    Float m_tot = 0._f;
-    for (Size i = 0; i < r.size(); ++i) {
-        r_com += m[i] * r[i];
-        m_tot += m[i];
-    }
-    r_com /= m_tot;
-    r_com[H] = 0._f; // Dangerous! Do not modify smoothing length!
-    for (Size i = 0; i < r.size(); ++i) {
-        r[i] -= r_com;
-    }
-    return r_com;
-}
-
-void moveToCenterOfMassSystem(Storage& storage) {
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
-    moveToCenterOfMassSystem(m, r);
-    moveToCenterOfMassSystem(m, v);
-}
-
 NAMESPACE_SPH_END

@@ -6,6 +6,7 @@
 #include "physics/Functions.h"
 #include "post/Analysis.h"
 #include "quantities/Quantity.h"
+#include "quantities/Utility.h"
 #include "run/IRun.h"
 #include "run/SpecialEntries.h"
 #include "sph/Materials.h"
@@ -250,30 +251,20 @@ VirtualSettings SingleParticleIc::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& particleCat = connector.addCategory("Particle");
-    particleCat.connect("Mass [M_sun]", "mass", mass).setUnits(Constants::M_sun);
-    particleCat.connect("Radius [R_sun]", "radius", radius).setUnits(Constants::R_sun);
-    particleCat.connect("Position [R_sun]", "r0", r0).setUnits(Constants::R_sun);
-    particleCat.connect("Velocity [R_sun/yr]", "v0", v0).setUnits(Constants::R_sun / Constants::year);
-    particleCat.connect("Flag", "flag", flag);
+    particleCat.connect("Mass [M_earth]", "mass", mass).setUnits(Constants::M_earth);
+    particleCat.connect("Radius [km]", "radius", radius).setUnits(1.e3_f);
+    particleCat.connect("Position [km]", "r0", r0).setUnits(1.e3_f);
+    particleCat.connect("Velocity [km/s]", "v0", v0).setUnits(1.e3_f);
 
     return connector;
 }
 
 void SingleParticleIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     result = makeShared<ParticleData>();
-    BodySettings body;
-    body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE)
-        .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE)
-        .set(BodySettingsId::EOS, EosEnum::IDEAL_GAS); /// \todo only to allow pressure, should be done better
-    result->storage = Storage(Factory::getMaterial(body));
+    result->storage = Storage();
 
-    Vector pos = r0;
-    pos[H] = radius;
-    v0[H] = 0._f;
-    result->storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>({ pos }));
-    result->storage.getDt<Vector>(QuantityId::POSITION)[0] = v0;
-    result->storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, mass);
-    result->storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, flag);
+    const Attractor p(r0, v0, radius, mass);
+    result->storage.addAttractor(p);
 }
 
 static JobRegistrar sRegisterSingleParticle(
@@ -480,6 +471,42 @@ static JobRegistrar sRegisterEquilibriumIc(
     "the gravitational acceleration. This can be used only for material with equation of state, "
     "it further expects spherical symmetry of the input body (although homogeneity is not "
     "required).");
+
+// ----------------------------------------------------------------------------------------------------------
+// KeplerianVelocityIc
+// ----------------------------------------------------------------------------------------------------------
+
+VirtualSettings KeplerianVelocityIc::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+    return connector;
+}
+
+void KeplerianVelocityIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+    const Storage& source = this->getInput<ParticleData>("gravity source")->storage;
+    const Float m_source = getTotalMass(source);
+    SPH_ASSERT(m_source > 0._f);
+    const Vector v_source = getTotalMomentum(source) / m_source;
+
+    result = this->getInput<ParticleData>("orbiting");
+    Storage& orbiting = result->storage;
+    ArrayView<const Vector> r = orbiting.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Vector> v = orbiting.getDt<Vector>(QuantityId::POSITION);
+    for (Size i = 0; i < r.size(); ++i) {
+        const Float v_kepl = sqrt(Constants::gravity * m_source / getLength(r[i]));
+        const Vector dir = getNormalized(cross(Vector::unit(Z), r[i]));
+        v[i] = v_source + dir * v_kepl;
+    }
+}
+
+static JobRegistrar sRegisterKeplerianVelocity(
+    "set Keplerian velocity",
+    "Keplerian velocity",
+    "initial conditions",
+    [](const std::string& name) { return makeAuto<KeplerianVelocityIc>(name); },
+    "Sets velocities of particles the Keplerian orbiting velocity with respect to given source of gravity "
+    "(star, planet, etc.).");
+
 
 // ----------------------------------------------------------------------------------------------------------
 // ModifyQuantityIc

@@ -170,7 +170,7 @@ public:
         Array<Vector> dv(storage.getParticleCnt());
         dv.fill(Vector(0._f));
         Statistics stats;
-        gravity.evalAll(*scheduler, dv, stats);
+        gravity.evalSelfGravity(*scheduler, dv, stats);
         for (Size i = 0; i < dv.size(); ++i) {
             acc[i] = getLength(dv[i]);
         }

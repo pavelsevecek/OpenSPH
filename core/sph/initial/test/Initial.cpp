@@ -210,22 +210,3 @@ TEST_CASE("Initial addRubblePileBody", "[initial]") {
     stats.set(StatisticsId::RUN_TIME, 0._f);
     output.dump(storage, stats);
 }
-
-TEST_CASE("Initial moveToCenterOfMassSystem", "[initial]") {
-    RunSettings settings;
-    InitialConditions ic(settings);
-
-    BodySettings body;
-    body.set(BodySettingsId::CENTER_PARTICLES, true);
-    Storage storage;
-    const Vector r_com(3._f, 3._f, 2._f);
-    ic.addMonolithicBody(storage, SphericalDomain(r_com, 2._f), body);
-
-
-    CenterOfMass evaluator;
-    REQUIRE(evaluator.evaluate(storage) == approx(r_com));
-
-    moveToCenterOfMassSystem(
-        storage.getValue<Float>(QuantityId::MASS), storage.getValue<Vector>(QuantityId::POSITION));
-    REQUIRE(evaluator.evaluate(storage) == approx(Vector(0._f)));
-}

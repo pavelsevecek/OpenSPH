@@ -255,6 +255,43 @@ private:
     }
 };
 
+/// \brief Toroid aligned with z-axis.
+class ToroidalDomain : public IDomain {
+private:
+    Vector center;
+    Float a;
+    Float b;
+
+public:
+    ToroidalDomain(const Vector& center, const Float majorRadius, const Float minorRadius);
+
+    virtual Vector getCenter() const override;
+
+    virtual Float getVolume() const override;
+
+    virtual Float getSurfaceArea() const override;
+
+    virtual Box getBoundingBox() const override;
+
+    virtual bool contains(const Vector& v) const override;
+
+    virtual void getSubset(ArrayView<const Vector> vs,
+        Array<Size>& output,
+        const SubsetType type) const override;
+
+    virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const override;
+
+    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override;
+
+    virtual void addGhosts(ArrayView<const Vector> vs,
+        Array<Ghost>& ghosts,
+        const Float eta,
+        const Float eps) const override;
+
+private:
+    bool isInsideImpl(const Vector& v) const;
+};
+
 
 /// \brief Similar to cylindrical domain, but bases are hexagons instead of circles.
 ///

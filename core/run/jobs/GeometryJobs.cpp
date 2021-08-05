@@ -122,6 +122,32 @@ static JobRegistrar sRegisterCylinder(
     [](const std::string& name) { return makeAuto<CylinderJob>(name); },
     "Geometric shape representing a cylinder aligned with z-axis, using provided radius and height.");
 
+//-----------------------------------------------------------------------------------------------------------
+// ToroidJob
+//-----------------------------------------------------------------------------------------------------------
+
+VirtualSettings ToroidJob::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+    VirtualSettings::Category& geoCat = connector.addCategory("geometry");
+    geoCat.connect("Major radius [km]", "a", a).setUnits(1.e3_f);
+    geoCat.connect("Minor radius [km]", "b", b).setUnits(1.e3_f);
+    return connector;
+}
+
+void ToroidJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+    if (b > a) {
+        throw InvalidSetup("The minor radius of toroid cannot be larger than the major radius");
+    }
+    result = makeAuto<ToroidalDomain>(Vector(0._f), a, b);
+}
+
+static JobRegistrar sRegisterToroid(
+    "toroid",
+    "geometry",
+    [](const std::string& name) { return makeAuto<ToroidJob>(name); },
+    "Geometric shape representing a toroid aligned with z-axis.");
+
 
 //-----------------------------------------------------------------------------------------------------------
 // MaclaurinSpheroidJob

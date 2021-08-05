@@ -25,6 +25,67 @@ class ConstStorageSequence;
 enum class OrderEnum;
 enum class VisitorEnum;
 
+/// \brief Single point-mass particle
+class Attractor {
+    Vector r;
+    Vector v;
+    Vector dv;
+    Float rad;
+    Float m;
+
+    // BodySettings body = EMPTY_SETTINGS;
+
+public:
+    Attractor() = default;
+
+    Attractor(const Vector& pos, const Vector& velocity, const Float radius, const Float mass) {
+        r = pos;
+        v = velocity;
+        dv = Vector(0._f);
+        rad = radius;
+        m = mass;
+    }
+
+    Float mass() const {
+        return m;
+    }
+
+    Float radius() const {
+        return rad;
+    }
+
+    const Vector& position() const {
+        return r;
+    }
+
+    Vector& position() {
+        return r;
+    }
+
+    const Vector& velocity() const {
+        return v;
+    }
+
+    Vector& velocity() {
+        return v;
+    }
+
+    const Vector& acceleration() const {
+        return dv;
+    }
+
+    Vector& acceleration() {
+        return dv;
+    }
+
+    /*   const BodySettings& params() const {
+           return body;
+       }
+
+       BodySettings& params() {
+           return body;
+       }*/
+};
 
 struct StorageElement {
     QuantityId id;
@@ -259,6 +320,9 @@ private:
     /// Used for fast access of material properties.
     ArrayView<Size> matIds;
 
+    /// \brief Additional point masses that only interact with other particles gravitationally.
+    Array<Attractor> attractors;
+
     /// \brief Dependent storages, modified when the number of particles of this storage is changed.
     ///
     /// Needed in order to keep the number of particles in dependent storages the same.
@@ -394,6 +458,9 @@ public:
     template <typename TValue>
     Quantity& insert(const QuantityId key, const OrderEnum order, Array<TValue>&& values);
 
+    /// \brief Adds a point-mass attractor to the storage.
+    void addAttractor(const Attractor& p);
+
     /// \brief Registers a dependent storage.
     ///
     /// A dependent storage mirrors changes of particle counts. Every time new particles are added into the
@@ -443,6 +510,12 @@ public:
     /// \brief Returns the sequence of quantities, const version.
     ConstStorageSequence getQuantities() const;
 
+    /// \brief Returns the sequence of stored point-mass attractors.
+    ArrayView<Attractor> getAttractors();
+
+    /// \brief Returns the sequence of stored point-mass attractors, const version.
+    ArrayView<const Attractor> getAttractors() const;
+
     /// \brief Executes a given functor recursively for all dependent storages.
     ///
     /// This storage is not visited, the functor is executed with child storages, grandchild storages, etc. If
@@ -461,6 +534,7 @@ public:
     /// \brief Returns the number of particles.
     ///
     /// The number of particle is always the same for all quantities.
+    /// \warning This count does not include the extra point masses.
     Size getParticleCnt() const;
 
     /// \brief Checks if the storage is empty, i.e. without particles.

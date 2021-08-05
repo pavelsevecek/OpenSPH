@@ -26,7 +26,20 @@ ITimeStepping::~ITimeStepping() = default;
 
 void ITimeStepping::step(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
     Timer timer;
-    this->stepImpl(scheduler, solver, stats);
+    // drift point masses
+    for (Attractor& a : storage->getAttractors()) {
+        a.position() += 0.5_f * a.velocity() * timeStep;
+    }
+
+    // compute partiles
+    this->stepParticles(scheduler, solver, stats);
+
+    // kick & drift point masses
+    for (Attractor& a : storage->getAttractors()) {
+        a.velocity() += a.acceleration() * timeStep;
+        a.position() += 0.5_f * a.velocity() * timeStep;
+    }
+
     // update time step
     CriterionId criterionId = CriterionId::INITIAL_VALUE;
     if (criterion) {
@@ -196,7 +209,7 @@ static void stepPairSecondOrder(Storage& storage1,
 // EulerExplicit implementation
 //-----------------------------------------------------------------------------------------------------------
 
-void EulerExplicit::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
+void EulerExplicit::stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
     VERBOSE_LOG
 
     // clear derivatives from previous timestep
@@ -286,7 +299,7 @@ void PredictorCorrector::makeCorrections(IScheduler& scheduler) {
     });
 }
 
-void PredictorCorrector::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
+void PredictorCorrector::stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
     VERBOSE_LOG
 
     // make predictions
@@ -314,7 +327,7 @@ void PredictorCorrector::stepImpl(IScheduler& scheduler, ISolver& solver, Statis
 // Leapfrog implementation
 //-----------------------------------------------------------------------------------------------------------
 
-void LeapFrog::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
+void LeapFrog::stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
     VERBOSE_LOG
 
     // move positions by half a timestep (drift)
@@ -406,7 +419,7 @@ void RungeKutta::integrateAndAdvance(ISolver& solver,
         });
 }
 
-void RungeKutta::stepImpl(IScheduler& UNUSED(scheduler), ISolver& solver, Statistics& stats) {
+void RungeKutta::stepParticles(IScheduler& UNUSED(scheduler), ISolver& solver, Statistics& stats) {
     k1->zeroHighestDerivatives();
     k2->zeroHighestDerivatives();
     k3->zeroHighestDerivatives();
@@ -461,7 +474,7 @@ ModifiedMidpointMethod::ModifiedMidpointMethod(const SharedPtr<Storage>& storage
     mid->addDependent(storage);
 }
 
-void ModifiedMidpointMethod::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
+void ModifiedMidpointMethod::stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
     const Float h = timeStep / n; // current substep
 
     solver.collide(*storage, stats, h);
@@ -594,7 +607,7 @@ BulirschStoer::BulirschStoer(const SharedPtr<Storage>& storage, const RunSetting
     SPH_ASSERT(rowNumber > 0._f);
 }
 
-void BulirschStoer::stepImpl(IScheduler& UNUSED(scheduler), ISolver& solver, Statistics& stats) {
+void BulirschStoer::stepParticles(IScheduler& UNUSED(scheduler), ISolver& solver, Statistics& stats) {
     (void)solver;
     (void)stats;
 }

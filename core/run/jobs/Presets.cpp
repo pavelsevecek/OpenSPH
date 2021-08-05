@@ -37,6 +37,7 @@ static RegisterEnum<Id> sPresetsId({
 }
 
 SharedPtr<JobNode> Presets::make(const Id id, UniqueNameManager& nameMgr, const Size particleCnt) {
+    CHECK_FUNCTION(CheckFunction::NO_THROW);
     switch (id) {
     case Id::COLLISION:
         return makeAsteroidCollision(nameMgr, particleCnt);
@@ -308,7 +309,8 @@ SharedPtr<JobNode> Presets::makeAccretionDisk(UniqueNameManager& nameMgr, const 
 
     SharedPtr<JobNode> nsIc = makeNode<SingleParticleIc>(nameMgr.getName("neutron star"));
     VirtualSettings nsSettings = nsIc->getSettings();
-    nsSettings.set("radius", 0.04_f); // R_sun
+    nsSettings.set("radius", 0.04_f * Constants::R_sun / 1.e3_f); // R_sun -> km
+    nsSettings.set("mass", Constants::M_sun / Constants::M_earth);
 
     SharedPtr<JobNode> join = makeNode<JoinParticlesJob>(nameMgr.getName("geometry setup"));
     VirtualSettings joinSettings = join->getSettings();
@@ -360,9 +362,8 @@ StaticArray<Vector, 8> VELOCITIES = {
 };
 
 static void setPositionAndVelocity(VirtualSettings& settings, const Size idx) {
-    const Vector r = POSITIONS[idx] * Constants::au / Constants::R_sun;
-    const Vector v =
-        VELOCITIES[idx] * (Constants::au / Constants::day) / (Constants::R_sun / Constants::year);
+    const Vector r = POSITIONS[idx] * Constants::au / 1.e3_f;
+    const Vector v = VELOCITIES[idx] * (Constants::au / Constants::day) / 1.e3_f;
     settings.set("r0", r);
     settings.set("v0", v);
 }
@@ -373,79 +374,70 @@ SharedPtr<JobNode> Presets::makeSolarSystem(UniqueNameManager& nameMgr) {
     join->getSettings().set("slot_cnt", 9);
     SharedPtr<JobNode> sunIc = makeNode<SingleParticleIc>(nameMgr.getName("Sun"));
     VirtualSettings sunSettings = sunIc->getSettings();
-    sunSettings.set("mass", 1._f);
-    sunSettings.set("radius", 1._f);
-    sunSettings.set("flag", 0);
+    sunSettings.set("mass", Constants::M_sun / Constants::M_earth);
+    sunSettings.set("radius", Constants::R_sun / 1.e3_f);
     sunIc->connect(join, "particles 1");
 
     SharedPtr<JobNode> mercuryIc = makeNode<SingleParticleIc>(nameMgr.getName("Mercury"));
     VirtualSettings mercurySettings = mercuryIc->getSettings();
-    mercurySettings.set("mass", 3.285e23_f / Constants::M_sun);
-    mercurySettings.set("radius", 2439.7e3_f / Constants::R_sun);
-    mercurySettings.set("flag", 1);
+    mercurySettings.set("mass", 3.285e23_f / Constants::M_earth);
+    mercurySettings.set("radius", 2439.7e3_f / 1.e3_f);
     setPositionAndVelocity(mercurySettings, 0);
     // setPositionAndVelocity(mercurySettings, 0.4502213_f, 29.125 + 48.331 + 174.795);
     mercuryIc->connect(join, "particles 2");
 
     SharedPtr<JobNode> venusIc = makeNode<SingleParticleIc>(nameMgr.getName("Venus"));
     VirtualSettings venusSettings = venusIc->getSettings();
-    venusSettings.set("mass", 4.867e24_f / Constants::M_sun);
-    venusSettings.set("radius", 6051.8e3_f / Constants::R_sun);
-    venusSettings.set("flag", 2);
+    venusSettings.set("mass", 4.867e24_f / Constants::M_earth);
+    venusSettings.set("radius", 6051.8e3_f / 1.e3_f);
     setPositionAndVelocity(venusSettings, 1);
     // setPositionAndVelocity(venusSettings, 0.7263568_f, 54.884 + 76.680 + 50.416);
     venusIc->connect(join, "particles 3");
 
     SharedPtr<JobNode> earthIc = makeNode<SingleParticleIc>(nameMgr.getName("Earth"));
     VirtualSettings earthSettings = earthIc->getSettings();
-    earthSettings.set("mass", Constants::M_earth / Constants::M_sun);
-    earthSettings.set("radius", Constants::R_earth / Constants::R_sun);
-    earthSettings.set("flag", 3);
+    earthSettings.set("mass", Constants::M_earth / Constants::M_earth);
+    earthSettings.set("radius", Constants::R_earth / 1.e3_f);
     setPositionAndVelocity(earthSettings, 2);
     // setPositionAndVelocity(earthSettings, 1._f, 288.064 + 174.873 + 357.529);
     earthIc->connect(join, "particles 4");
 
     SharedPtr<JobNode> marsIc = makeNode<SingleParticleIc>(nameMgr.getName("Mars"));
     VirtualSettings marsSettings = marsIc->getSettings();
-    marsSettings.set("mass", 6.39e23_f / Constants::M_sun);
-    marsSettings.set("radius", 3389.5e3_f / Constants::R_sun);
-    marsSettings.set("flag", 4);
+    marsSettings.set("mass", 6.39e23_f / Constants::M_earth);
+    marsSettings.set("radius", 3389.5e3_f / 1.e3_f);
     setPositionAndVelocity(marsSettings, 3);
     // setPositionAndVelocity(marsSettings, 1.6086343_f, 286.502 + 49.558 + 19.373);
     marsIc->connect(join, "particles 5");
 
     SharedPtr<JobNode> jupiterIc = makeNode<SingleParticleIc>(nameMgr.getName("Jupiter"));
     VirtualSettings jupiterSettings = jupiterIc->getSettings();
-    jupiterSettings.set("mass", 1.898e27_f / Constants::M_sun);
-    jupiterSettings.set("radius", 69911.e3_f / Constants::R_sun);
-    jupiterSettings.set("flag", 5);
+    jupiterSettings.set("mass", 1.898e27_f / Constants::M_earth);
+    jupiterSettings.set("radius", 69911.e3_f / 1.e3_f);
     setPositionAndVelocity(jupiterSettings, 4);
     // setPositionAndVelocity(jupiterSettings, 5.0684375_f, 273.867 + 100.464 + 20.020);
     jupiterIc->connect(join, "particles 6");
 
     SharedPtr<JobNode> saturnIc = makeNode<SingleParticleIc>(nameMgr.getName("Saturn"));
     VirtualSettings saturnSettings = saturnIc->getSettings();
-    saturnSettings.set("mass", 5.683e26_f / Constants::M_sun);
-    saturnSettings.set("radius", 58232.e3_f / Constants::R_sun);
-    saturnSettings.set("flag", 6);
+    saturnSettings.set("mass", 5.683e26_f / Constants::M_earth);
+    saturnSettings.set("radius", 58232.e3_f / 1.e3_f);
     setPositionAndVelocity(saturnSettings, 5);
     // setPositionAndVelocity(saturnSettings, 9.9734145_f, 339.391 + 113.666 + 317.021);
     saturnIc->connect(join, "particles 7");
 
     SharedPtr<JobNode> uranusIc = makeNode<SingleParticleIc>(nameMgr.getName("Uranus"));
     VirtualSettings uranusSettings = uranusIc->getSettings();
-    uranusSettings.set("mass", 8.681e25_f / Constants::M_sun);
-    uranusSettings.set("radius", 25362e3_f / Constants::R_sun);
-    uranusSettings.set("flag", 7);
+    uranusSettings.set("mass", 8.681e25_f / Constants::M_earth);
+    uranusSettings.set("radius", 25362e3_f / 1.e3_f);
     setPositionAndVelocity(uranusSettings, 6);
     // setPositionAndVelocity(uranusSettings, 19.7612021_f, 98.999 + 74.006 + 141.050);
     uranusIc->connect(join, "particles 8");
 
     SharedPtr<JobNode> neptuneIc = makeNode<SingleParticleIc>(nameMgr.getName("Neptune"));
     VirtualSettings neptuneSettings = neptuneIc->getSettings();
-    neptuneSettings.set("mass", 1.024e26_f / Constants::M_sun);
-    neptuneSettings.set("radius", 24622e3_f / Constants::R_sun);
-    neptuneSettings.set("flag", 8);
+    neptuneSettings.set("mass", 1.024e26_f / Constants::M_earth);
+    neptuneSettings.set("radius", 24622e3_f / 1.e3_f);
     setPositionAndVelocity(neptuneSettings, 7);
     // setPositionAndVelocity(neptuneSettings, 29.9254883_f, 276.340 + 131.784 + 256.225);
     neptuneIc->connect(join, "particles 9");

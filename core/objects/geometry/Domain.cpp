@@ -69,7 +69,8 @@ void SphericalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> in
             const Float h = v[H];
             v = getNormalized(v - this->center) * (1._f - EPS) * radius + this->center;
             v[H] = h;
-            SPH_ASSERT(isInsideImpl(v)); // these asserts are quite reduntant since we have unit tests for that
+            SPH_ASSERT(
+                isInsideImpl(v)); // these asserts are quite reduntant since we have unit tests for that
         }
     };
     if (indices) {
@@ -455,6 +456,75 @@ void CylindricalDomain::addGhosts(ArrayView<const Vector> vs,
             }
         }
     }
+}
+
+//-----------------------------------------------------------------------------------------------------------
+// ToroidalDomain implementation
+//-----------------------------------------------------------------------------------------------------------
+
+ToroidalDomain::ToroidalDomain(const Vector& center, const Float majorRadius, const Float minorRadius)
+    : center(center)
+    , a(majorRadius)
+    , b(minorRadius) {}
+
+Vector ToroidalDomain::getCenter() const {
+    return center;
+}
+
+Float ToroidalDomain::getVolume() const {
+    return 2._f * sqr(PI) * sqr(b) * a;
+}
+
+Float ToroidalDomain::getSurfaceArea() const {
+    return 4._f * sqr(PI) * a * b;
+}
+
+Box ToroidalDomain::getBoundingBox() const {
+    const Vector dr(a + b, a + b, b);
+    return Box(center - dr, center + dr);
+}
+
+bool ToroidalDomain::contains(const Vector& v) const {
+    return this->isInsideImpl(v);
+}
+
+void ToroidalDomain::getSubset(ArrayView<const Vector> vs, Array<Size>& output, const SubsetType type) const {
+    switch (type) {
+    case SubsetType::OUTSIDE:
+        for (Size i = 0; i < vs.size(); ++i) {
+            if (!isInsideImpl(vs[i])) {
+                output.push(i);
+            }
+        }
+        break;
+    case SubsetType::INSIDE:
+        for (Size i = 0; i < vs.size(); ++i) {
+            if (isInsideImpl(vs[i])) {
+                output.push(i);
+            }
+        }
+    }
+}
+
+void ToroidalDomain::getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const {
+    NOT_IMPLEMENTED;
+}
+
+void ToroidalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices) const {
+    NOT_IMPLEMENTED;
+}
+
+void ToroidalDomain::addGhosts(ArrayView<const Vector> vs,
+    Array<Ghost>& ghosts,
+    const Float eta,
+    const Float eps) const {
+    NOT_IMPLEMENTED;
+}
+
+INLINE bool ToroidalDomain::isInsideImpl(const Vector& v) const {
+    const Vector r = v - center;
+    const Float sdf = sqr(getSqrLength(r) + sqr(a) - sqr(b)) - 4 * sqr(a) * (sqr(r[X]) + sqr(r[Y]));
+    return sdf < 0._f;
 }
 
 //-----------------------------------------------------------------------------------------------------------

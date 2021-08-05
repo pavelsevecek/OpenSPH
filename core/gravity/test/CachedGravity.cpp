@@ -9,7 +9,7 @@ using namespace Sph;
 struct TestGravity : public IGravity {
     virtual void build(IScheduler& UNUSED(scheduler), const Storage& UNUSED(storage)) override {}
 
-    virtual void evalAll(IScheduler& UNUSED(scheduler),
+    virtual void evalSelfGravity(IScheduler& UNUSED(scheduler),
         ArrayView<Vector> dv,
         Statistics& stats) const override {
         for (Size i = 0; i < dv.size(); ++i) {
@@ -21,7 +21,13 @@ struct TestGravity : public IGravity {
         }
     }
 
-    virtual Vector eval(const Vector& UNUSED(r0)) const override {
+    virtual void evalExternal(IScheduler& UNUSED(scheduler),
+        ArrayView<Attractor> UNUSED(ps),
+        ArrayView<Vector> UNUSED(dv)) const override {
+        NOT_IMPLEMENTED;
+    }
+
+    virtual Vector evalAcceleration(const Vector& UNUSED(r0)) const override {
         NOT_IMPLEMENTED;
     }
 
@@ -42,14 +48,14 @@ TEST_CASE("CachedGravity add acceleration", "[gravity]") {
     Statistics stats;
 
     stats.set(StatisticsId::RUN_TIME, 1._f);
-    cached.evalAll(SEQUENTIAL, dv, stats);
+    cached.evalSelfGravity(SEQUENTIAL, dv, stats);
     REQUIRE(std::all_of(dv.begin(), dv.end(), [](Vector& a) { return a == Vector(1._f, 2._f, 0._f); }));
 
     stats.set(StatisticsId::RUN_TIME, 2._f); // after 1s, should use the cached accelerations
-    cached.evalAll(SEQUENTIAL, dv, stats);
+    cached.evalSelfGravity(SEQUENTIAL, dv, stats);
     REQUIRE(std::all_of(dv.begin(), dv.end(), [](Vector& a) { return a == Vector(2._f, 2._f, 0._f); }));
 
     stats.set(StatisticsId::RUN_TIME, 6._f); // should recompute and use the dv after 5s
-    cached.evalAll(SEQUENTIAL, dv, stats);
+    cached.evalSelfGravity(SEQUENTIAL, dv, stats);
     REQUIRE(std::all_of(dv.begin(), dv.end(), [](Vector& a) { return a == Vector(2._f, 2._f, 1._f); }));
 }

@@ -35,7 +35,7 @@ public:
         rho0 = storage.getMaterial(0)->getParam<Float>(BodySettingsId::DENSITY);
     }
 
-    virtual void evalAll(IScheduler& scheduler,
+    virtual void evalSelfGravity(IScheduler& scheduler,
         ArrayView<Vector> dv,
         Statistics& UNUSED(stats)) const override {
         Analytic::StaticSphere sphere(INFTY, rho0); // here radius does not matter
@@ -44,7 +44,13 @@ public:
         });
     }
 
-    virtual Vector eval(const Vector& r0) const override {
+    virtual void evalExternal(IScheduler& UNUSED(scheduler),
+        ArrayView<Attractor> UNUSED(ps),
+        ArrayView<Vector> UNUSED(dv)) const override {
+        NOT_IMPLEMENTED;
+    }
+
+    virtual Vector evalAcceleration(const Vector& r0) const override {
         Analytic::StaticSphere sphere(INFTY, rho0);
         return sphere.getAcceleration(r0 - center);
     }

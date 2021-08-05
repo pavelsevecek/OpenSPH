@@ -14,6 +14,7 @@
 #include "post/StatisticTests.h"
 #include "quantities/Quantity.h"
 #include "quantities/Storage.h"
+#include "quantities/Utility.h"
 #include "sph/initial/Initial.h"
 #include "system/Factory.h"
 #include "system/Process.h"
@@ -711,7 +712,7 @@ void extractLr(const Path& inputPath, const Path& outputPath) {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-    moveToCenterOfMassSystem(m, r);
+    moveToCenterOfMassFrame(m, r);
 
     BinaryOutput output(outputPath);
     output.dump(storage, stats);

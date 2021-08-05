@@ -80,6 +80,29 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
+class ToroidJob : public IGeometryJob {
+private:
+    Float a = 1.e5_f;
+    Float b = 2.5e4_f;
+
+public:
+    explicit ToroidJob(const std::string& name)
+        : IGeometryJob(name) {}
+
+    virtual std::string className() const override {
+        return "toroid";
+    }
+
+    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+        return {};
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+};
+
+
 class MaclaurinSpheroidJob : public IGeometryJob {
 private:
     Float semimajorAxis = 1.e5_f;

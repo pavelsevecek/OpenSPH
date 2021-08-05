@@ -109,6 +109,7 @@ SOURCES += \
     ../core/quantities/test/Quantity.cpp \
     ../core/quantities/test/QuantityHelpers.cpp \
     ../core/quantities/test/Storage.cpp \
+    ../core/quantities/test/Utility.cpp \
     ../core/run/test/Config.cpp \
     ../core/run/test/Jobs.cpp \
     ../core/sph/boundary/test/Boundary.cpp \

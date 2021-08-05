@@ -4,6 +4,7 @@
 #include "physics/Integrals.h"
 #include "post/Analysis.h"
 #include "quantities/Quantity.h"
+#include "quantities/Utility.h"
 #include "sph/Materials.h"
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"
@@ -173,8 +174,8 @@ Storage convertSphToSpheres(const Storage& sph, const RunSettings& settings, con
     }    */
 
     if (params.centerOfMassSystem) {
-        moveToCenterOfMassSystem(m_nbody, v_nbody);
-        moveToCenterOfMassSystem(m_nbody, r_nbody);
+        moveToCenterOfMassFrame(m_nbody, v_nbody);
+        moveToCenterOfMassFrame(m_nbody, r_nbody);
     }
 
     if (params.largestRemnant) {

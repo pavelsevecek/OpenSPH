@@ -224,8 +224,10 @@ void Controller::setAutoZoom(const bool enable) {
 }
 
 void Controller::onSetUp(const Storage& storage, Statistics& stats) {
-    sph.storage = &storage;
-    this->update(storage, stats);
+    if (!storage.empty()) {
+        sph.storage = &storage;
+        this->update(storage, stats);
+    }
 }
 
 void Controller::onStart(const IJob& job) {

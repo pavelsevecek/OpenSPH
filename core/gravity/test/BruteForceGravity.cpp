@@ -24,13 +24,13 @@ TEST_CASE("BruteForceGravity single-thread", "[gravity]") {
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     analytic.build(pool, storage);
     Array<Vector> a = storage.getD2t<Vector>(QuantityId::POSITION).clone();
-    analytic.evalAll(pool, a, stats);
+    analytic.evalSelfGravity(pool, a, stats);
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<Vector> d2v = storage.getD2t<Vector>(QuantityId::POSITION);
     storage.zeroHighestDerivatives(); // clear derivatives computed by analytic
     gravity.build(pool, storage);
-    gravity.evalAll(pool, d2v, stats);
+    gravity.evalSelfGravity(pool, d2v, stats);
 
     auto test = [&](const Size i) -> Outcome {
         // around origin the relative comparison is very imprecise, just skip
@@ -59,12 +59,12 @@ TEST_CASE("BruteForceGravity parallel", "[gravity]") {
     gravity.build(pool, storage);
     Array<Vector> dv1 = storage.getD2t<Vector>(QuantityId::POSITION).clone();
     Statistics stats;
-    gravity.evalAll(pool, dv1, stats);
+    gravity.evalSelfGravity(pool, dv1, stats);
 
     Array<Vector> dv2(dv1.size());
     dv2.fill(Vector(0._f));
     // evaluate gravity using parallel implementation
-    gravity.evalAll(pool, dv2, stats);
+    gravity.evalSelfGravity(pool, dv2, stats);
 
     // compare with single-threaded result
     auto test = [&](const Size i) -> Outcome {
@@ -88,6 +88,6 @@ TEST_CASE("BruteForceGravity symmetrization", "[gravity]") {
     gravity.build(pool, storage);
     Statistics stats;
     ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
-    gravity.evalAll(pool, dv, stats);
+    gravity.evalSelfGravity(pool, dv, stats);
     REQUIRE(dv[0] == -dv[1]);
 }

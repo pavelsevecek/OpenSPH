@@ -17,10 +17,10 @@ class IScheduler;
 /// \brief Base object providing integration in time for all quantities.
 ///
 /// The integration is done by iterating with discrete time step, using \ref step method. All derived
-/// objects must implement \ref stepImpl function, which shall iterate over all independant quantities and
-/// advance their values using temporal derivatives computed by \ref ISolver object passed in argument
-/// of the method. The \ref step function then calls the user-defined \ref stepImpl while also doing more
-/// legwork, such as saving statistics and computing new value of time step. Function \ref stepImpl can
+/// objects must implement \ref stepParticles function, which shall iterate over all independant quantities
+/// and advance their values using temporal derivatives computed by \ref ISolver object passed in argument of
+/// the method. The \ref step function then calls the user-defined \ref stepParticles while also doing more
+/// legwork, such as saving statistics and computing new value of time step. Function \ref stepParticles can
 /// also save statistics specific to the implementation, using provided \ref Statistics object, but it shall
 /// not compute the time step value. To control time step, see \ref TimeStepCriterion and derived classes.
 ///
@@ -80,7 +80,7 @@ public:
     void step(IScheduler& scheduler, ISolver& solver, Statistics& stats);
 
 protected:
-    virtual void stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) = 0;
+    virtual void stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) = 0;
 };
 
 
@@ -90,7 +90,7 @@ public:
     explicit EulerExplicit(const SharedPtr<Storage>& storage, const RunSettings& settings)
         : ITimeStepping(storage, settings) {}
 
-    virtual void stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
+    virtual void stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
 };
 
 /// \brief Predictor-corrector second-order timestepping
@@ -106,7 +106,7 @@ public:
     ~PredictorCorrector() override;
 
 protected:
-    virtual void stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
+    virtual void stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
 
     void makePredictions(IScheduler& scheduler);
 
@@ -123,7 +123,7 @@ public:
         : ITimeStepping(storage, settings) {}
 
 protected:
-    virtual void stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
+    virtual void stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
 };
 
 class RungeKutta : public ITimeStepping {
@@ -136,7 +136,7 @@ public:
     ~RungeKutta() override;
 
 protected:
-    virtual void stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
+    virtual void stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
 
     void integrateAndAdvance(ISolver& solver, Statistics& stats, Storage& k, const Float m, const Float n);
 };
@@ -151,7 +151,7 @@ public:
     ModifiedMidpointMethod(const SharedPtr<Storage>& storage, const RunSettings& settings);
 
 protected:
-    virtual void stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
+    virtual void stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
 };
 
 class BulirschStoer : public ITimeStepping {
@@ -162,7 +162,7 @@ public:
     BulirschStoer(const SharedPtr<Storage>& storage, const RunSettings& settings);
 
 protected:
-    virtual void stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
+    virtual void stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
 };
 
 NAMESPACE_SPH_END

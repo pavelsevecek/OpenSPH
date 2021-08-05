@@ -6,9 +6,9 @@
 #include "post/Compare.h"
 #include "post/TwoBody.h"
 #include "quantities/Quantity.h"
+#include "quantities/Utility.h"
 #include "run/IRun.h"
 #include "sph/Materials.h"
-#include "sph/initial/Initial.h"
 #include "system/Factory.h"
 #include "system/Settings.impl.h"
 
@@ -55,14 +55,7 @@ void JoinParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
     SharedPtr<ParticleData> input1 = this->getInput<ParticleData>("particles A");
     SharedPtr<ParticleData> input2 = this->getInput<ParticleData>("particles B");
 
-    ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = input2->storage.getAll<Vector>(QuantityId::POSITION);
-    offset[H] = 0._f; // can contain garbage
-    velocity[H] = 0._f;
-    for (Size i = 0; i < r.size(); ++i) {
-        r[i] += offset;
-        v[i] += velocity;
-    }
+    moveInertialFrame(input2->storage, offset, velocity);
 
     if (uniqueFlags) {
         renumberFlags(input1->storage, input2->storage);
@@ -71,7 +64,7 @@ void JoinParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
     input1->storage.merge(std::move(input2->storage));
 
     if (moveToCom) {
-        moveToCenterOfMassSystem(input1->storage);
+        moveToCenterOfMassFrame(input1->storage);
     }
 
     result = input1;
@@ -107,28 +100,19 @@ void OrbitParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallback
     SharedPtr<ParticleData> input2 = this->getInput<ParticleData>("particles B");
 
     const Float u = Kepler::trueAnomalyToEccentricAnomaly(v, e);
-    ArrayView<const Float> m1 = input1->storage.getValue<Float>(QuantityId::MASS);
-    ArrayView<const Float> m2 = input2->storage.getValue<Float>(QuantityId::MASS);
 
-    const Float m_tot =
-        std::accumulate(m1.begin(), m1.end(), 0._f) + std::accumulate(m2.begin(), m2.end(), 0._f);
+    const Float m_tot = getTotalMass(input1->storage) + getTotalMass(input2->storage);
     const Float n = Kepler::meanMotion(a, m_tot);
     const Vector dr = Kepler::position(a, e, u);
     const Vector dv = Kepler::velocity(a, e, u, n);
 
-    ArrayView<Vector> r = input2->storage.getValue<Vector>(QuantityId::POSITION);
-    ArrayView<Vector> v = input2->storage.getDt<Vector>(QuantityId::POSITION);
-
-    for (Size i = 0; i < r.size(); ++i) {
-        r[i] += dr;
-        v[i] += dv;
-    }
+    moveInertialFrame(input2->storage, dr, dv);
 
     renumberFlags(input1->storage, input2->storage);
     input1->storage.merge(std::move(input2->storage));
     input2->storage.removeAll();
 
-    moveToCenterOfMassSystem(input1->storage);
+    moveToCenterOfMassFrame(input1->storage);
 
     result = input1;
     callbacks.onSetUp(result->storage, result->stats);
@@ -179,7 +163,7 @@ void MultiJoinParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCall
     }
 
     if (moveToCom) {
-        moveToCenterOfMassSystem(main->storage);
+        moveToCenterOfMassFrame(main->storage);
     }
 
     result = main;
@@ -285,10 +269,10 @@ void CenterParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbac
         m.fill(1._f);
     }
     if (centerPositions) {
-        moveToCenterOfMassSystem(m, storage.getValue<Vector>(QuantityId::POSITION));
+        moveToCenterOfMassFrame(m, storage.getValue<Vector>(QuantityId::POSITION));
     }
     if (centerVelocities) {
-        moveToCenterOfMassSystem(m, storage.getDt<Vector>(QuantityId::POSITION));
+        moveToCenterOfMassFrame(m, storage.getDt<Vector>(QuantityId::POSITION));
     }
 
     callbacks.onSetUp(result->storage, result->stats);
@@ -494,7 +478,7 @@ void CollisionGeometrySetup::evaluate(const RunSettings& UNUSED(global), IRunCal
     target.merge(std::move(impactor));
 
     if (geometry.get<bool>(CollisionGeometrySettingsId::CENTER_OF_MASS_FRAME)) {
-        moveToCenterOfMassSystem(target);
+        moveToCenterOfMassFrame(target);
     }
 
     // merge bodies to single storage
@@ -583,7 +567,7 @@ void SmoothedToSolidHandoff::evaluate(const RunSettings& UNUSED(global), IRunCal
     }
     spheres.remove(toRemove);
 
-    moveToCenterOfMassSystem(spheres);
+    moveToCenterOfMassFrame(spheres);
 
     result = makeShared<ParticleData>();
     result->storage = std::move(spheres);
@@ -633,7 +617,7 @@ void ExtractComponentJob::evaluate(const RunSettings& UNUSED(global), IRunCallba
     storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED);
 
     if (center) {
-        moveToCenterOfMassSystem(storage);
+        moveToCenterOfMassFrame(storage);
     }
 
     result = makeShared<ParticleData>();
@@ -812,7 +796,7 @@ void ExtractParticlesInDomainJob::evaluate(const RunSettings& UNUSED(global),
     storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED);
 
     if (center) {
-        moveToCenterOfMassSystem(storage);
+        moveToCenterOfMassFrame(storage);
     }
 
     result = data;

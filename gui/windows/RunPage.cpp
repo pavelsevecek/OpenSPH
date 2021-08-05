@@ -642,7 +642,7 @@ wxPanel* RunPage::createStatsBar() {
 
     statsText = new wxTextCtrl(
         statsPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxTE_MULTILINE);
-    this->makeStatsText(0, Statistics{});
+    this->makeStatsText(0, 0, Statistics{});
 
     statsSizer->Add(statsText, 1, wxEXPAND | wxALL, 5);
     statsPanel->SetSizer(statsSizer);
@@ -661,13 +661,17 @@ static void printStat(wxTextCtrl* text,
     }
 }
 
-void RunPage::makeStatsText(const Size particleCnt, const Statistics& stats) {
+void RunPage::makeStatsText(const Size particleCnt, const Size pointCnt, const Statistics& stats) {
     statsText->Clear();
     *statsText << " - particles: ";
     if (particleCnt > 0) {
         *statsText << int(particleCnt) << "\n";
     } else {
         *statsText << "N/A\n";
+    }
+
+    if (pointCnt > 0) {
+        *statsText << " - attractors: " << int(pointCnt) << "\n";
     }
 
     printStat<Float>(statsText, stats, " - run time:  ", StatisticsId::RUN_TIME, "s");
@@ -868,9 +872,10 @@ void RunPage::runStarted(const Storage& storage, const Path& path) {
     pane->onTimeStep(storage, dummy);
 
     const Size particleCnt = storage.getParticleCnt();
-    executeOnMainThread([this, particleCnt] {
+    const Size pointCnt = storage.getAttractors().size();
+    executeOnMainThread([this, particleCnt, pointCnt] {
         Statistics dummyStats;
-        this->makeStatsText(particleCnt, dummyStats);
+        this->makeStatsText(particleCnt, pointCnt, dummyStats);
     });
 
     if (!path.empty()) {
@@ -888,7 +893,10 @@ void RunPage::onTimeStep(const Storage& storage, const Statistics& stats) {
     // limit the refresh rate to avoid blocking the main thread
     if (statsText && statsTimer.elapsed(TimerUnit::MILLISECOND) > 100) {
         const Size particleCnt = storage.getParticleCnt();
-        executeOnMainThread([this, stats, particleCnt] { this->makeStatsText(particleCnt, stats); });
+        const Size pointCnt = storage.getAttractors().size();
+        executeOnMainThread([this, stats, particleCnt, pointCnt] { //
+            this->makeStatsText(particleCnt, pointCnt, stats);
+        });
         statsTimer.restart();
     }
 

@@ -120,6 +120,7 @@ Storage& Storage::operator=(Storage&& other) {
     mats = std::move(other.mats);
     dependent = std::move(other.dependent);
     userData = std::move(other.userData);
+    attractors = std::move(other.attractors);
 
     if (this->getParticleCnt() > 0) {
         this->update();
@@ -336,6 +337,10 @@ template Quantity& Storage::insert(const QuantityId, const OrderEnum, Array<Trac
 template Quantity& Storage::insert(const QuantityId, const OrderEnum, Array<SymmetricTensor>&&);
 template Quantity& Storage::insert(const QuantityId, const OrderEnum, Array<Tensor>&&);
 
+void Storage::addAttractor(const Attractor& p) {
+    attractors.push(p);
+}
+
 void Storage::addDependent(const WeakPtr<Storage>& other) {
 #ifdef SPH_DEBUG
     // check for a cycle - look for itself in a hierarchy
@@ -421,6 +426,14 @@ ConstStorageSequence Storage::getQuantities() const {
     return ConstStorageSequence(quantities, {});
 }
 
+ArrayView<const Attractor> Storage::getAttractors() const {
+    return attractors;
+}
+
+ArrayView<Attractor> Storage::getAttractors() {
+    return attractors;
+}
+
 void Storage::propagate(const Function<void(Storage& storage)>& functor) {
     for (Size i = 0; i < dependent.size();) {
         if (SharedPtr<Storage> storagePtr = dependent[i].lock()) {
@@ -474,7 +487,13 @@ void Storage::merge(Storage&& other) {
 
     // allow merging into empty storage for convenience
     if (this->getQuantityCnt() == 0) {
+        /// \todo test
+        other.attractors.pushAll(this->attractors);
         *this = std::move(other);
+        return;
+    } else if (other.getQuantityCnt() == 0) {
+        /// \todo test
+        attractors.pushAll(other.attractors);
         return;
     }
 
@@ -546,6 +565,9 @@ void Storage::merge(Storage&& other) {
     // cache the view
     this->update();
 
+    // merge point masses as well
+    attractors.pushAll(other.attractors);
+
     // since we moved the buffers away, remove all particles from other to keep it in consistent state
     other.removeAll();
 
@@ -558,6 +580,9 @@ void Storage::zeroHighestDerivatives() {
         using TValue = typename std::decay_t<decltype(dv)>::Type;
         dv.fill(TValue(0._f));
     });
+    for (Attractor& a : attractors) {
+        a.acceleration() = Vector(0._f);
+    }
 }
 
 Storage Storage::clone(const Flags<VisitorEnum> buffers) const {
@@ -572,13 +597,18 @@ Storage Storage::clone(const Flags<VisitorEnum> buffers) const {
         cloned.mats = this->mats.clone();
     }
 
+    // clone attractors only if cloning everything
+    if (buffers.has(VisitorEnum::ALL_BUFFERS)) {
+        cloned.attractors = this->attractors.clone();
+    }
+
     cloned.update();
     return cloned;
 }
 
 void Storage::resize(const Size newParticleCnt, const Flags<ResizeFlag> flags) {
     SPH_ASSERT(getQuantityCnt() > 0 && getMaterialCnt() <= 1);
-    SPH_ASSERT(!userData, "Cloning storages with user data is currently not supported");
+    SPH_ASSERT(!userData, "Resizing storages with user data is currently not supported");
 
     iterate<VisitorEnum::ALL_BUFFERS>(*this, [newParticleCnt, flags](auto& buffer) { //
         if (!flags.has(ResizeFlag::KEEP_EMPTY_UNCHANGED) || !buffer.empty()) {
@@ -603,6 +633,9 @@ void Storage::swap(Storage& other, const Flags<VisitorEnum> flags) {
     SPH_ASSERT(this->getQuantityCnt() == other.getQuantityCnt());
     for (auto i1 = quantities.begin(), i2 = other.quantities.begin(); i1 != quantities.end(); ++i1, ++i2) {
         i1->value().swap(i2->value(), flags);
+    }
+    if (flags.has(VisitorEnum::ALL_BUFFERS)) {
+        std::swap(attractors, other.attractors);
     }
 }
 
@@ -656,6 +689,9 @@ Outcome Storage::isValid(const Flags<ValidFlag> flags) const {
                 mat.to,
                 ", first index: ",
                 mats[matId + 1].from);
+        }
+        if (mat.from >= mat.to) {
+            return makeFailed("Storage contains empty material range.");
         }
     }
     if (mats[0].from != 0 || mats[mats.size() - 1].to != cnt) {
@@ -850,9 +886,15 @@ Vector getCenterOfMass(const Storage& storage) {
             m_sum += m[i];
             r_com += m[i] * r[i];
         }
+        // add point masses
+        for (const Attractor& pm : storage.getAttractors()) {
+            m_sum += pm.mass();
+            r_com += pm.mass() * pm.position();
+        }
         r_com[H] = 0._f;
         return r_com / m_sum;
     } else {
+        SPH_ASSERT(storage.getAttractors().empty());
         Vector r_com(0._f);
         for (Size i = 0; i < r.size(); ++i) {
             r_com += r[i];

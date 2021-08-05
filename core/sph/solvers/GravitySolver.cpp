@@ -77,8 +77,12 @@ void GravitySolver<TSphSolver>::loop(Storage& storage, Statistics& stats) {
 
     // evaluate gravity for each particle
     timer.restart();
-    gravity->evalAll(this->scheduler, dv, stats);
+    gravity->evalSelfGravity(this->scheduler, dv, stats);
     stats.set(StatisticsId::GRAVITY_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
+
+    // evaluate gravity of point masses
+    ArrayView<Attractor> points = storage.getAttractors();
+    gravity->evalExternal(this->scheduler, points, dv);
 
     // second, compute SPH derivatives using given solver
     timer.restart();

@@ -69,7 +69,7 @@ protected:
     ///
     /// In SI, this is simply \ref Constants::gravity.
     /// \todo generalize
-    Float gravityConstant = Constants::gravity;
+    Float G = Constants::gravity;
 
 public:
     /// \brief Constructs the Barnes-Hut gravity assuming point-like particles (with zero radius).
@@ -101,9 +101,13 @@ public:
     /// Masses of particles must be strictly positive, otherwise center of mass would be undefined.
     virtual void build(IScheduler& pool, const Storage& storage) override;
 
-    virtual void evalAll(IScheduler& pool, ArrayView<Vector> dv, Statistics& stats) const override;
+    virtual void evalSelfGravity(IScheduler& pool, ArrayView<Vector> dv, Statistics& stats) const override;
 
-    virtual Vector eval(const Vector& r0) const override;
+    virtual void evalExternal(IScheduler& scheduler,
+        ArrayView<Attractor> ps,
+        ArrayView<Vector> dv) const override;
+
+    virtual Vector evalAcceleration(const Vector& r0) const override;
 
     virtual Float evalEnergy(IScheduler& scheduler, Statistics& stats) const override;
 

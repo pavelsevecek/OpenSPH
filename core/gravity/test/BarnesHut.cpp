@@ -57,8 +57,8 @@ static void testOpeningAngle(const MultipoleOrder order) {
     ArrayView<Vector> a_bf = storage1.getD2t<Vector>(QuantityId::POSITION);
     ArrayView<Vector> a_bh = storage2.getD2t<Vector>(QuantityId::POSITION);
     Statistics stats;
-    bf.evalAll(pool, a_bf, stats);
-    bh.evalAll(pool, a_bh, stats);
+    bf.evalSelfGravity(pool, a_bf, stats);
+    bh.evalSelfGravity(pool, a_bh, stats);
 
     ArrayView<const Vector> r = storage1.getValue<Vector>(QuantityId::POSITION);
     auto test = [&](const Size i) -> Outcome {
@@ -140,7 +140,7 @@ static void testSimpleAcceleration(const MultipoleOrder order, const Float eps) 
     bh.build(pool, storage);
 
     Statistics stats;
-    Vector a = bh.eval(Vector(-10, 10, 0, 1)) / Constants::gravity;
+    Vector a = bh.evalAcceleration(Vector(-10, 10, 0, 1)) / Constants::gravity;
     Vector expected(0.020169998934707004, -0.007912678499211458, 0);
     REQUIRE(a != expected); // it shouldn't be exactly equal, sanity check
     REQUIRE(a == approx(expected, eps));
@@ -174,8 +174,8 @@ static void testStorageAcceleration(const MultipoleOrder order, const Float eps)
     ArrayView<Vector> a_bf = storage1.getD2t<Vector>(QuantityId::POSITION);
     ArrayView<Vector> a_bh = storage2.getD2t<Vector>(QuantityId::POSITION);
     Statistics stats;
-    bf.evalAll(pool, a_bf, stats);
-    bh.evalAll(pool, a_bh, stats);
+    bf.evalSelfGravity(pool, a_bf, stats);
+    bh.evalSelfGravity(pool, a_bh, stats);
     auto test = [&](const Size i) -> Outcome {
         if (a_bf[i] == a_bh[i]) {
             return makeFailed(
@@ -213,11 +213,11 @@ static void testEquality(const MultipoleOrder order, const Float eps) {
     bh.build(pool, storage);
 
     ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
-    bh.evalAll(pool, dv, stats);
+    bh.evalSelfGravity(pool, dv, stats);
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     auto test = [&](const Size i) -> Outcome {
-        const Vector a = bh.eval(r[i]);
+        const Vector a = bh.evalAcceleration(r[i]);
         if (dv[i] != approx(a, eps)) {
             return makeFailed("Acceleration inequality:\n", dv[i], " == ", a);
         }
@@ -247,13 +247,13 @@ TEST_CASE("BarnesHut opening angle convergence", "[gravity]") {
 
     Statistics stats;
     Array<Vector> a_bf = storage.getD2t<Vector>(QuantityId::POSITION).clone();
-    bf.evalAll(pool, a_bf, stats);
+    bf.evalSelfGravity(pool, a_bf, stats);
     Array<Vector> a_bh2 = storage.getD2t<Vector>(QuantityId::POSITION).clone();
-    bf.evalAll(pool, a_bh2, stats);
+    bf.evalSelfGravity(pool, a_bh2, stats);
     Array<Vector> a_bh4 = storage.getD2t<Vector>(QuantityId::POSITION).clone();
-    bf.evalAll(pool, a_bh4, stats);
+    bf.evalSelfGravity(pool, a_bh4, stats);
     Array<Vector> a_bh8 = storage.getD2t<Vector>(QuantityId::POSITION).clone();
-    bf.evalAll(pool, a_bh8, stats);
+    bf.evalSelfGravity(pool, a_bh8, stats);
 
     auto test = [&](const Size i) -> Outcome {
         const Float diff2 = getLength(a_bh2[i] - a_bf[i]);
@@ -284,12 +284,12 @@ TEST_CASE("BarnesHut parallel", "[gravity]") {
     gravity.build(pool, storage);
     Array<Vector> dv1 = storage.getD2t<Vector>(QuantityId::POSITION).clone();
     Statistics stats;
-    gravity.evalAll(pool, dv1, stats);
+    gravity.evalSelfGravity(pool, dv1, stats);
 
     Array<Vector> dv2(dv1.size());
     dv2.fill(Vector(0._f));
     // evaluate gravity using parallel implementation
-    gravity.evalAll(pool, dv2, stats);
+    gravity.evalSelfGravity(pool, dv2, stats);
 
     // compare with single-threaded result
     auto test = [&](const Size i) -> Outcome {
@@ -314,7 +314,7 @@ TEST_CASE("BarnesHut symmetrization", "[gravity]") {
     gravity.build(pool, storage);
     Statistics stats;
     ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
-    gravity.evalAll(pool, dv, stats);
+    gravity.evalSelfGravity(pool, dv, stats);
     REQUIRE(dv[0] == -dv[1]);
 }
 
@@ -334,7 +334,7 @@ TEST_CASE("BarnesHut override accelerations bug", "[gravity]") {
     gravity.build(pool, storage);
 
     Statistics stats;
-    gravity.evalAll(pool, dv, stats);
+    gravity.evalSelfGravity(pool, dv, stats);
 
     REQUIRE(dv[0] == Vector(3._f, 1._f, 1._f));
     REQUIRE(dv[1] == Vector(4._f, -2._f, 10._f));

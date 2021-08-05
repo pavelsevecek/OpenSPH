@@ -24,7 +24,7 @@ static void benchmarkGravity(IGravity& gravity, Benchmark::Context& context) {
     // context.log("particle count: ", dv.size());
     while (context.running()) {
         std::fill(dv.begin(), dv.end(), Vector(0._f));
-        gravity.evalAll(pool, dv, stats);
+        gravity.evalSelfGravity(pool, dv, stats);
         Benchmark::clobberMemory();
     }
     /*const int approx = stats.getOr<int>(StatisticsId::GRAVITY_NODES_APPROX, 0);

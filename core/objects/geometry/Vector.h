@@ -612,11 +612,16 @@ INLINE Tuple<Vector, Float> getNormalizedWithLength(const Vector& v) {
     return { v / length, length };
 }
 
+/// \brief Copies the vector and sets the 4th component to h.
+INLINE Vector setH(const Vector& v, const Float h) {
+    Vector result = v;
+    result[H] = h;
+    return result;
+}
+
 /// Returns a copy with 4th component set to zero.
 INLINE Vector clearH(const Vector& v) {
-    Vector result = v;
-    result[H] = 0._f;
-    return result;
+    return setH(v, 0._f);
 }
 
 /// Component-wise minimum

@@ -44,7 +44,9 @@ public:
         gravity->build(scheduler, storage);
     }
 
-    virtual void evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const override {
+    virtual void evalSelfGravity(IScheduler& scheduler,
+        ArrayView<Vector> dv,
+        Statistics& stats) const override {
         const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
         SPH_ASSERT(t >= t_last);
         if (dv.size() == cachedDv.size() && t - t_last < period) {
@@ -54,7 +56,7 @@ public:
             // recompute and cache gravity
             cachedDv.resize(dv.size());
             cachedDv.fill(Vector(0._f));
-            gravity->evalAll(scheduler, cachedDv, stats);
+            gravity->evalSelfGravity(scheduler, cachedDv, stats);
             t_last = t;
         }
 
@@ -64,10 +66,16 @@ public:
         }
     }
 
-    virtual Vector eval(const Vector& r0) const override {
+    virtual void evalExternal(IScheduler& scheduler,
+        ArrayView<Attractor> ps,
+        ArrayView<Vector> dv) const override {
+        return gravity->evalExternal(scheduler, ps, dv);
+    }
+
+    virtual Vector evalAcceleration(const Vector& r0) const override {
         // we could cache this as well, but the function is mainly used for testing and some utilities where
         // performance does not matter, so it's probably not worth it.
-        return gravity->eval(r0);
+        return gravity->evalAcceleration(r0);
     }
 
     virtual Float evalEnergy(IScheduler& scheduler, Statistics& stats) const override {
