@@ -229,7 +229,6 @@ set(CORE_HEADERS
     post/Plot.h 
     post/Point.h 
     post/StatisticTests.h 
-    quantities/CompressedStorage.h 
     quantities/IMaterial.h 
     quantities/Iterate.h 
     quantities/Particle.h 
