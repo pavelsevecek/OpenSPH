@@ -46,6 +46,7 @@ set(CORE_SOURCES
     quantities/Quantity.cpp 
     quantities/QuantityIds.cpp 
     quantities/Storage.cpp 
+    quantities/Utility.cpp
     run/IRun.cpp 
     run/Job.cpp 
     run/Node.cpp 
@@ -128,6 +129,7 @@ set(CORE_HEADERS
     io/Path.h 
     io/Serializer.h 
     io/Table.h 
+    io/LogWriter.h
     math/AffineMatrix.h 
     math/Curve.h 
     math/Functional.h 
@@ -148,6 +150,7 @@ set(CORE_HEADERS
     objects/containers/ArrayView.h 
     objects/containers/BasicAllocators.h
     objects/containers/FlatMap.h 
+    objects/containers/UnorderedMap.h
     objects/containers/FlatSet.h 
     objects/containers/Grid.h 
     objects/containers/List.h 
@@ -168,6 +171,7 @@ set(CORE_HEADERS
     objects/finders/NeighborFinder.h
     objects/finders/Octree.h 
     objects/finders/Order.h 
+    objects/finders/PeriodicFinder.h
     objects/finders/IncrementalFinder.h
     objects/finders/UniformGrid.h 
     objects/geometry/AntisymmetricTensor.h 
@@ -236,12 +240,17 @@ set(CORE_HEADERS
     quantities/QuantityHelpers.h 
     quantities/QuantityIds.h 
     quantities/Storage.h 
+    quantities/Utility.h
     run/IRun.h 
     run/Job.h 
     run/Node.h 
     run/ScriptNode.h 
     run/ScriptUtils.h 
     run/Trigger.h 
+    run/VirtualSettings.h
+    run/VirtualSettings.inl.h
+    run/Config.h
+    run/SpecialEntries.h
     run/jobs/GeometryJobs.h 
     run/jobs/InitialConditionJobs.h 
     run/jobs/IoJobs.h 
@@ -249,6 +258,7 @@ set(CORE_HEADERS
     run/jobs/ParticleJobs.h 
     run/jobs/ScriptJobs.h 
     run/jobs/SimulationJobs.h 
+    run/jobs/Presets.h
     sph/Diagnostics.h 
     sph/Materials.h 
     sph/boundary/Boundary.h 
@@ -292,6 +302,7 @@ set(CORE_HEADERS
     sph/solvers/StandardSets.h 
     sph/solvers/SummationSolver.h 
     sph/solvers/SymmetricSolver.h 
+    sph/solvers/ElasticDeformationSolver.h
     system/ArgsParser.h 
     system/ArrayStats.h 
     system/Crashpad.h 
@@ -315,15 +326,7 @@ set(CORE_HEADERS
     timestepping/ISolver.h 
     timestepping/TimeStepCriterion.h 
     timestepping/TimeStepping.h 
-    io/LogWriter.h 
-    objects/finders/PeriodicFinder.h 
-    sph/solvers/ElasticDeformationSolver.h 
-    run/VirtualSettings.h 
-    objects/containers/UnorderedMap.h 
-    run/VirtualSettings.inl.h 
-    run/Config.h 
-    run/jobs/Presets.h 
-    run/SpecialEntries.h)
+)
 
 
 add_library(core STATIC ${CORE_HEADERS} ${CORE_SOURCES})
