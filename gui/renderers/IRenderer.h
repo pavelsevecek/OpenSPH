@@ -211,7 +211,6 @@ protected:
 
     mutable std::atomic_bool shouldContinue;
 
-private:
     /// \brief Parameters fixed for the renderer.
     ///
     /// Note that additional parameters which can differ for each rendered image are passed to \ref render.
@@ -228,6 +227,9 @@ private:
             Texture hdri;
 
         } enviro;
+
+        /// Reduce the low-frequency noise
+        bool denoise = false;
 
         /// Number of iterations of the progressive renderer.
         Size iterationLimit;

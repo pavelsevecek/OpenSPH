@@ -9,7 +9,9 @@
 NAMESPACE_SPH_BEGIN
 
 VolumeRenderer::VolumeRenderer(SharedPtr<IScheduler> scheduler, const GuiSettings& settings)
-    : IRaytracer(scheduler, settings) {}
+    : IRaytracer(scheduler, settings) {
+    fixed.denoise = true;
+}
 
 VolumeRenderer::~VolumeRenderer() = default;
 

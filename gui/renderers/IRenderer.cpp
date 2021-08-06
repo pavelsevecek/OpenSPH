@@ -1,10 +1,10 @@
 #include "gui/renderers/IRenderer.h"
 #include "gui/Factory.h"
+#include "gui/ImageTransform.h"
 #include "gui/Settings.h"
 #include "gui/objects/Camera.h"
 #include "gui/renderers/FrameBuffer.h"
 #include "system/Profiler.h"
-#include <iostream>
 
 NAMESPACE_SPH_BEGIN
 
@@ -65,9 +65,17 @@ void IRaytracer::render(const RenderParams& params, Statistics& UNUSED(stats), I
         const bool isFinal = (iteration == fixed.iterationLimit - 1);
         if (fixed.colorMap) {
             Bitmap<Rgba> bitmap = fixed.colorMap->map(fb.getBitmap());
+            if (fixed.denoise && isFinal) {
+                bitmap = denoiseLowFrequency(*scheduler, bitmap, {});
+            }
             output.update(std::move(bitmap), {}, isFinal);
         } else {
-            output.update(fb.getBitmap(), {}, isFinal);
+            if (fixed.denoise && isFinal) {
+                Bitmap<Rgba> bitmap = denoiseLowFrequency(*scheduler, fb.getBitmap(), {});
+                output.update(bitmap, {}, isFinal);
+            } else {
+                output.update(fb.getBitmap(), {}, isFinal);
+            }
         }
     }
 }

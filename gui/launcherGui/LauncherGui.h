@@ -4,7 +4,6 @@
 #include "gui/MainLoop.h"
 #include <wx/app.h>
 
-
 NAMESPACE_SPH_BEGIN
 
 class MainWindow;
@@ -21,7 +20,6 @@ private:
     virtual bool OnInit() override;
 
     virtual int OnExit() override;
-
 
     void processEvents(MainLoopEvent& evt) {
         evt.execute();

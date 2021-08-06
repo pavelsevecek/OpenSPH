@@ -5,6 +5,7 @@ set(GUI_SOURCES
     Project.cpp 
     Settings.cpp 
     Utils.cpp 
+    ImageTransform.cpp
     objects/Bitmap.cpp 
     objects/Camera.cpp 
     objects/CameraJobs.cpp
@@ -49,6 +50,7 @@ set(GUI_HEADERS
     Project.h 
     Settings.h 
     Utils.h 
+    ImageTransform.h
     objects/Bitmap.h 
     objects/Camera.h 
     objects/CameraJobs.h

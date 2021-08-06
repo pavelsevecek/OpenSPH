@@ -7,6 +7,7 @@
 
 #include "math/MathUtils.h"
 #include "objects/Object.h"
+#include "objects/utility/IteratorAdapters.h"
 #include <wx/gdicmn.h>
 
 NAMESPACE_SPH_BEGIN
@@ -152,5 +153,60 @@ template <typename T, typename TDerived>
 INLINE float getLength(const BasicPoint<T, TDerived>& p) {
     return sqrt(float(sqr(p.x) + sqr(p.y)));
 }
+
+class Rectangle {
+private:
+    Pixel minBound;
+    Pixel maxBound;
+
+public:
+    Rectangle() = default;
+
+    Rectangle(const Pixel& lower, const Pixel& upper)
+        : minBound(lower)
+        , maxBound(upper) {}
+
+    static Rectangle window(const Pixel center, const Size radius) {
+        return Rectangle(center - Pixel(radius, radius), center + Pixel(radius, radius));
+    }
+
+    Pixel lower() const {
+        return minBound;
+    }
+
+    Pixel upper() const {
+        return maxBound;
+    }
+
+    Pixel size() const {
+        return maxBound - minBound;
+    }
+
+    bool empty() const {
+        return maxBound.x < minBound.x || maxBound.y < minBound.y;
+    }
+
+    bool contains(const Pixel& p) const {
+        return p.x >= minBound.x && p.y >= minBound.y && p.x <= maxBound.x && p.y <= maxBound.y;
+    }
+
+    Rectangle intersect(const Rectangle& other) const {
+        Rectangle is;
+        is.minBound.x = max(minBound.x, other.minBound.x);
+        is.minBound.y = max(minBound.y, other.minBound.y);
+        is.maxBound.x = min(maxBound.x, other.maxBound.x);
+        is.maxBound.y = min(maxBound.y, other.maxBound.y);
+        SPH_ASSERT(!is.empty());
+        return is;
+    }
+
+    IndexSequence colRange() const {
+        return IndexSequence(minBound.x, maxBound.x);
+    }
+
+    IndexSequence rowRange() const {
+        return IndexSequence(minBound.y, maxBound.y);
+    }
+};
 
 NAMESPACE_SPH_END

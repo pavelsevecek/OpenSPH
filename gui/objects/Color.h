@@ -103,6 +103,19 @@ public:
         return *this;
     }
 
+    /// \brief Returns the difference of two colors, component-wise.
+    ///
+    /// \warning The resulting color has the alpha value of the left-hand side color, i.e. this operation is
+    /// not commutative!
+    Rgba operator-(const Rgba& other) const {
+        return preserveAlpha(data - other.data);
+    }
+
+    Rgba& operator-=(const Rgba& other) {
+        *this = *this - other;
+        return *this;
+    }
+
     bool operator==(const Rgba& other) const {
         return data == other.data;
     }
@@ -307,5 +320,10 @@ inline Rgba convert(const Hsv& hsv) {
     }
 }
 */
+
+template <>
+INLINE bool isReal(const Rgba& c) {
+    return isReal(c.r()) && isReal(c.g()) && isReal(c.b());
+}
 
 NAMESPACE_SPH_END

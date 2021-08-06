@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui/objects/Bitmap.h"
+#include "gui/ImageTransform.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Quantity.h"
 #include "quantities/Storage.h"
@@ -66,22 +66,7 @@ private:
 
     Rgba evalBilinear(const Vector& uvw) const {
         const Pixel size = bitmap.size();
-        const Vector textureUvw = clamp(Vector(uvw[X] * size.x, uvw[Y] * size.y, 0._f),
-            Vector(0._f),
-            Vector(size.x - 1, size.y - 1, 0._f) - Vector(EPS));
-        const Size u1 = int(textureUvw[X]);
-        const Size v1 = int(textureUvw[Y]);
-        const Size u2 = u1 + 1;
-        const Size v2 = v1 + 1;
-        const float a = float(textureUvw[X] - u1);
-        const float b = float(textureUvw[Y] - v1);
-        SPH_ASSERT(a >= 0.f && a <= 1.f, a);
-        SPH_ASSERT(b >= 0.f && b <= 1.f, b);
-
-        return Rgba(bitmap[Pixel(u1, v1)]) * (1.f - a) * (1.f - b) +
-               Rgba(bitmap[Pixel(u2, v1)]) * a * (1.f - b) + //
-               Rgba(bitmap[Pixel(u1, v2)]) * (1.f - a) * b + //
-               Rgba(bitmap[Pixel(u2, v2)]) * a * b;
+        return interpolate(bitmap, uvw[X] * size.x, uvw[Y] * size.y);
     }
 };
 

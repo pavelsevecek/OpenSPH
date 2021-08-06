@@ -1,3 +1,6 @@
+## 2021-08-07
+- suppressing low-frequency noise in images rendered with volumetric renderer
+
 ## 2021-08-06
 - added OpenVDB option to cmake build system
 - added velocity grid to VDB output files

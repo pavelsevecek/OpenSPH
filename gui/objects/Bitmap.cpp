@@ -4,6 +4,7 @@
 #include "objects/Exceptions.h"
 #include "thread/Scheduler.h"
 #include <wx/bitmap.h>
+#include <wx/image.h>
 #include <wx/log.h>
 #include <wx/rawbmp.h>
 
@@ -71,14 +72,17 @@ void saveToFile(const Bitmap<Rgba>& bitmap, const Path& path) {
 
 Bitmap<Rgba> loadBitmapFromFile(const Path& path) {
     wxLogNull logNullGuard; // we have custom error reporting
-    wxBitmap wx;
-    if (!wx.LoadFile(path.native().c_str())) {
+    wxImage image;
+    if (!image.LoadFile(path.native().c_str())) {
         throw IoError("Cannot load bitmap '" + path.native() + "'");
     }
 
-    if (!wx.IsOk()) {
+    if (!image.IsOk()) {
         throw IoError("Bitmap '" + path.native() + "' failed to load correctly");
     }
+
+    wxBitmap wx(image, 24);
+    SPH_ASSERT(wx.IsOk());
     return toBitmap(wx);
 }
 
