@@ -863,7 +863,11 @@ VirtualSettings SubsampleJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& category = connector.addCategory("Subsampling");
-    category.connect("Fraction", "fraction", fraction);
+    category.connect("Fraction", "fraction", fraction).setTooltip("Fraction of particles to keep.");
+    category.connect("Preserve mass", "adjust_mass", adjustMass)
+        .setTooltip("If true, the masses of remaining particles are increased to conserve the total mass.");
+    category.connect("Preserve radii", "adjust_radii", adjustRadii)
+        .setTooltip("If true, the radii of remaining particles are increased to conserve the total volume.");
     return connector;
 }
 
@@ -884,9 +888,17 @@ void SubsampleJob::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(cal
 
     input->storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED);
 
-    ArrayView<Float> m = input->storage.getValue<Float>(QuantityId::MASS);
-    for (Size i = 0; i < m.size(); ++i) {
-        m[i] /= fraction;
+    if (adjustMass) {
+        ArrayView<Float> m = input->storage.getValue<Float>(QuantityId::MASS);
+        for (Size i = 0; i < m.size(); ++i) {
+            m[i] /= fraction;
+        }
+    }
+    if (adjustRadii) {
+        ArrayView<Vector> r = input->storage.getValue<Vector>(QuantityId::POSITION);
+        for (Size i = 0; i < r.size(); ++i) {
+            r[i][H] /= cbrt(fraction);
+        }
     }
 
     result = input;

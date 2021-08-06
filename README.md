@@ -74,6 +74,7 @@ Another optional dependencies of the code are:
 - <a href="https://www.threadingbuildingblocks.org/">Intel Threading Building Blocks</a> - generally improves performance of the code (enabled by `-DWITH_TBB=ON`)
 - <a href="http://eigen.tuxfamily.org/index.php?title=Main_Page">Eigen</a> - provides additional methods for setting up initial conditions (enabled by `-DWITH_EIGEN=ON`)
 - <a href="https://chaiscript.com/">ChaiScript</a> - allows to read and modify particle data from a script (enabled by `-DWITH_CHAISCRIPT=ON`)
+- <a href="https://www.openvdb.org/">OpenVDB</a> - used for converting particles to volumetric data, usable by renderers (enabled by `-DWITH_VDB=ON`)
 
 The compilation should be as easy as
 ```bash
