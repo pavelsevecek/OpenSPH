@@ -23,9 +23,7 @@ void RenderParams::initialize(const GuiSettings& gui) {
     volume.emission = float(gui.get<Float>(GuiSettingsId::VOLUME_EMISSION));
     volume.absorption = float(gui.get<Float>(GuiSettingsId::VOLUME_ABSORPTION));
     volume.compressionFactor = float(gui.get<Float>(GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR));
-    contours.isoStep = float(gui.get<Float>(GuiSettingsId::CONTOUR_SPACING));
-    contours.gridSize = gui.get<int>(GuiSettingsId::CONTOUR_GRID_SIZE);
-    contours.showLabels = gui.get<bool>(GuiSettingsId::CONTOUR_SHOW_LABELS);
+    volume.denoise = gui.get<bool>(GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE);
 }
 
 inline auto seeder() {
@@ -65,12 +63,12 @@ void IRaytracer::render(const RenderParams& params, Statistics& UNUSED(stats), I
         const bool isFinal = (iteration == fixed.iterationLimit - 1);
         if (fixed.colorMap) {
             Bitmap<Rgba> bitmap = fixed.colorMap->map(fb.getBitmap());
-            if (fixed.denoise && isFinal) {
+            if (params.volume.denoise && isFinal) {
                 bitmap = denoiseLowFrequency(*scheduler, bitmap, {});
             }
             output.update(std::move(bitmap), {}, isFinal);
         } else {
-            if (fixed.denoise && isFinal) {
+            if (params.volume.denoise && isFinal) {
                 Bitmap<Rgba> bitmap = denoiseLowFrequency(*scheduler, fb.getBitmap(), {});
                 output.update(bitmap, {}, isFinal);
             } else {

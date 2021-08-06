@@ -26,7 +26,7 @@ Bitmap<Rgba> gaussianBlur(IScheduler& scheduler, const Bitmap<Rgba>& input, cons
 
 struct DenoiserParams {
     Size filterRadius = 5;
-    Size patchRadius = 3;
+    Size patchRadius = 2;
     float sigma = 0.02f;
 };
 

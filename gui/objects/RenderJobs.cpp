@@ -126,6 +126,8 @@ VirtualSettings AnimationJob::getSettings() {
     rendererCat.connect<Float>("Medium absorption [km^-1]", gui, GuiSettingsId::VOLUME_ABSORPTION)
         .setUnits(1.e-3_f)
         .setEnabler(volumeEnabler);
+    rendererCat.connect<bool>("Reduce noise", gui, GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE)
+        .setEnabler(volumeEnabler);
 
     VirtualSettings::Category& textureCat = connector.addCategory("Texture paths");
     textureCat.connect<Path>("Background", gui, GuiSettingsId::RAYTRACE_HDRI)
