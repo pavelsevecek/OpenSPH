@@ -69,20 +69,22 @@ public:
         : output(output) {}
 
     virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels, const bool isFinal) override {
-        output.update(bitmap, std::move(labels), isFinal);
-
         if (isFinal) {
+            output.update(bitmap, labels.clone(), isFinal);
             final.bitmap = bitmap.clone();
             final.labels = std::move(labels);
+        } else {
+            output.update(bitmap, std::move(labels), isFinal);
         }
     }
 
     virtual void update(Bitmap<Rgba>&& bitmap, Array<Label>&& labels, const bool isFinal) override {
-        output.update(std::move(bitmap), std::move(labels), isFinal);
-
         if (isFinal) {
+            output.update(bitmap, labels.clone(), isFinal);
             final.bitmap = std::move(bitmap);
             final.labels = std::move(labels);
+        } else {
+            output.update(std::move(bitmap), std::move(labels), isFinal);
         }
     }
 

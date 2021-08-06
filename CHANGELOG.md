@@ -1,3 +1,7 @@
+## 2021-08-06
+- added OpenVDB option to cmake build system
+- added velocity grid to VDB output files
+
 ## 2021-07-31
 - added Delaunay triangulation of points
 - added an option to extract surface mesh as the alpha-shape
