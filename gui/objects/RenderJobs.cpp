@@ -488,8 +488,8 @@ JobRegistrar sRegisterAnimation(
 #ifdef SPH_USE_VDB
 
 
-INLINE openvdb::Vec3R vectorToVec3R(const Vector& v) {
-    return openvdb::Vec3R(v[X], v[Y], v[Z]);
+INLINE openvdb::Vec3f vectorToVec3f(const Vector& v) {
+    return openvdb::Vec3f(v[X], v[Y], v[Z]);
 }
 
 INLINE Vector worldToRelative(const Vector& r, const Box& box, const Indices& dims) {
@@ -513,12 +513,17 @@ VirtualSettings VdbJob::getSettings() {
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& gridCat = connector.addCategory("Grid parameters");
-    gridCat.connect("Grid start", "grid_start", gridStart);
-    gridCat.connect("Grid end", "grid_end", gridEnd);
-    gridCat.connect("Resolution power", "power", dimPower);
-    gridCat.connect("Surface level", "surface_level", surfaceLevel);
+    gridCat.connect("Grid start [km]", "grid_start", gridStart)
+        .setUnits(1.e3_f)
+        .setTooltip("Sets the lower bound of the bounding box.");
+    gridCat.connect("Grid end [km]", "grid_end", gridEnd)
+        .setUnits(1.e3_f)
+        .setTooltip("Sets the upper bound of the bounding box.");
+    gridCat.connect("Resolution power", "power", dimPower)
+        .setTooltip("Defines resolution of the grid. The number of voxels in one dimension is 2^power.");
+    gridCat.connect("Surface level", "surface_level", surfaceLevel).setTooltip("Iso-value of the surface.");
 
-    VirtualSettings::Category& inputCat = connector.addCategory("Input files");
+    VirtualSettings::Category& inputCat = connector.addCategory("File sequence");
     inputCat.connect("Enable", "enable_sequence", sequence.enabled);
     inputCat.connect("First file", "first_file", sequence.firstFile)
         .setPathType(IVirtualEntry::PathType::INPUT_FILE)
@@ -576,19 +581,21 @@ void VdbJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
 }
 
 void VdbJob::generate(Storage& storage, const RunSettings& global, const Path& outputPath) {
-    openvdb::FloatGrid::Ptr colorField = openvdb::FloatGrid::create(-surfaceLevel);
-    openvdb::Vec3SGrid::Ptr velocityField = openvdb::Vec3SGrid::create(vectorToVec3R(Vector(0._f)));
-    openvdb::FloatGrid::Ptr energyField = openvdb::FloatGrid::create(0._f);
+    using namespace openvdb;
+
+    FloatGrid::Ptr colorField = FloatGrid::create(-surfaceLevel);
+    Vec3SGrid::Ptr velocityField = Vec3SGrid::create(vectorToVec3f(Vector(0._f)));
+    FloatGrid::Ptr energyField = FloatGrid::create(0._f);
 
     colorField->setName("Density");
     velocityField->setName("Velocity");
     energyField->setName("Emission");
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    // ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+    ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
     ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
-
+    ArrayView<const Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
 
     const Box box(gridStart, gridEnd);
     const Size gridSize = 1 << dimPower;
@@ -596,42 +603,54 @@ void VdbJob::generate(Storage& storage, const RunSettings& global, const Path& o
 
     LutKernel<3> kernel = Factory::getKernel<3>(global);
 
-    typename openvdb::FloatGrid::Accessor colorAccessor = colorField->getAccessor();
-    typename openvdb::Vec3SGrid::Accessor velocityAccessor = velocityField->getAccessor();
-    typename openvdb::FloatGrid::Accessor energyAccessor = energyField->getAccessor();
+    typename FloatGrid::Accessor colorAccessor = colorField->getAccessor();
+    typename Vec3SGrid::Accessor velocityAccessor = velocityField->getAccessor();
+    typename FloatGrid::Accessor energyAccessor = energyField->getAccessor();
     for (Size i = 0; i < r.size(); ++i) {
         Indices from, to;
         tieToTuple(from, to) = getParticleBox(r[i], box, gridIdxs);
-        const Float rho = storage.getMaterialOfParticle(i)->getParam<Float>(BodySettingsId::DENSITY);
+        Float rho_i;
+        if (storage.getMaterialCnt() > 0) {
+            rho_i = storage.getMaterialOfParticle(i)->getParam<Float>(BodySettingsId::DENSITY);
+        } else {
+            rho_i = rho[i];
+        }
         for (int x = from[X]; x <= to[X]; ++x) {
             for (int y = from[Y]; y <= to[Y]; ++y) {
                 for (int z = from[Z]; z <= to[Z]; ++z) {
                     const Indices idxs(x, y, z);
                     const Vector pos = relativeToWorld(idxs, box, gridIdxs);
                     const Float w = kernel.value(r[i] - pos, r[i][H]);
-                    const Float p = m[i] / rho;
+                    const Float c = m[i] / rho_i * w;
 
-
-                    const openvdb::Coord coord(x, y, z);
-                    colorAccessor.modifyValue(coord, [p, w](float& color) { color += p * w; });
-                    energyAccessor.modifyValue(
-                        coord, [p, w, &u, i](float& energy) { energy += p * w * u[i]; });
-                    /*velocityAccessor.modifyValue(coord,
-                        [p, w, &v, i](openvdb::Vec3R& velocity) { velocity += vectorToVec3R(p * w * v[i]);
-                       });*/
+                    const Coord coord(x, y, z);
+                    colorAccessor.modifyValue(coord, [c](float& color) { color += c; });
+                    energyAccessor.modifyValue(coord, [&u, c, i](float& energy) { energy += c * u[i]; });
+                    velocityAccessor.modifyValue(
+                        coord, [&v, c, i](Vec3f& velocity) { velocity += c * vectorToVec3f(v[i]); });
                 }
             }
         }
     }
 
-    openvdb::GridPtrVec vdbGrids;
+    for (FloatGrid::ValueOnIter iter = colorField->beginValueOn(); iter; ++iter) {
+        const Coord coord = iter.getCoord();
+        const float c = *iter;
+        if (c > 0) {
+            energyAccessor.modifyValue(coord, [c](float& energy) { energy /= c; });
+            velocityAccessor.modifyValue(coord, [c](Vec3f& velocity) { velocity /= c; });
+        }
+        iter.setValue(c - surfaceLevel);
+    }
+
+    GridPtrVec vdbGrids;
     vdbGrids.push_back(colorField);
-    // vdbGrids.push_back(velocityField);
+    vdbGrids.push_back(velocityField);
     vdbGrids.push_back(energyField);
 
     Path vdbPath = outputPath;
     vdbPath.replaceExtension("vdb");
-    openvdb::io::File vdbFile(vdbPath.native());
+    io::File vdbFile(vdbPath.native());
     vdbFile.write(vdbGrids);
     vdbFile.close();
 }

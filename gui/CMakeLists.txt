@@ -108,5 +108,5 @@ execute_process(COMMAND wx-config --libs std propgrid aui
 separate_arguments(WX_CXX_FLAGS NATIVE_COMMAND ${WX_FLAGS_OUTPUT})
 target_compile_options(gui PUBLIC ${WX_CXX_FLAGS} -Wno-deprecated-copy -Wno-array-bounds -Wno-float-conversion)
 
-set(GUI_LIBRARIES core ${WX_LIBRARIES} ${TBB_LIBRARIES})
+set(GUI_LIBRARIES core ${WX_LIBRARIES} ${TBB_LIBRARIES} ${OpenVDB_LIBRARIES})
 target_link_libraries(gui PUBLIC ${GUI_LIBRARIES})
