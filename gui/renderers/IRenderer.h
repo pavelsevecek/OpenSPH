@@ -141,6 +141,9 @@ struct RenderParams {
 
         /// \brief Compression factor of the logarithmic tonemapper
         float compressionFactor = 2.f;
+
+        /// \brief Suppress the low-frequency noise
+        bool denoise;
     } volume;
 
     struct {

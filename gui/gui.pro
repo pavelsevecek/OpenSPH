@@ -20,6 +20,7 @@ linux-g++ {
 SOURCES += \
     Controller.cpp \
     Factory.cpp \
+    ImageTransform.cpp \
     MainLoop.cpp \
     Project.cpp \
     Settings.cpp \
@@ -64,6 +65,7 @@ HEADERS += \
     ArcBall.h \
     Controller.h \
     Factory.h \
+    ImageTransform.h \
     MainLoop.h \
     Project.h \
     Renderer.h \

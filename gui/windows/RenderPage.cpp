@@ -28,7 +28,7 @@ private:
     std::condition_variable cv;
 
     TransparencyPattern pattern;
-    float scale = 1;
+    Optional<float> scale;
 
 public:
     ImagePane(wxWindow* parent)
@@ -44,6 +44,12 @@ public:
         labels = std::move(newLabels);
 
         executeOnMainThread([this] {
+            if (!scale) {
+                const wxSize windowSize = this->GetSize();
+                // shrink the view if larger than the window
+                scale =
+                    max(float(bitmap.size().x) / windowSize.x, float(bitmap.size().y) / windowSize.y, 1.f);
+            }
             this->Refresh();
             std::unique_lock<std::mutex> lock(mutex);
             cv.notify_one();
@@ -52,8 +58,11 @@ public:
     }
 
     void zoom(const float amount) {
-        scale *= (amount > 0.f) ? 1.2f : 1.f / 1.2f;
-        scale = clamp(scale, 0.25f, 4.f);
+        if (!scale) {
+            return;
+        }
+        scale.value() *= (amount > 0.f) ? 1.2f : 1.f / 1.2f;
+        scale.value() = clamp(scale.value(), 0.25f, 4.f);
         this->Refresh();
     }
 
@@ -66,11 +75,12 @@ private:
         if (bitmap.empty()) {
             return;
         }
+        SPH_ASSERT(scale);
 
         wxBitmap wx;
         {
             std::unique_lock<std::mutex> lock(mutex);
-            toWxBitmap(bitmap, wx, scale);
+            toWxBitmap(bitmap, wx, scale.value());
         }
 
         const wxSize diff = size - wx.GetSize();
@@ -81,8 +91,8 @@ private:
 
         Array<IRenderOutput::Label> scaledLabels = labels.clone();
         for (IRenderOutput::Label& label : scaledLabels) {
-            label.position = Pixel(Coords(label.position) / scale) + Pixel(offset);
-            label.fontSize /= scale;
+            label.position = Pixel(Coords(label.position) / scale.value()) + Pixel(offset);
+            label.fontSize /= scale.value();
         }
         printLabels(dc, scaledLabels);
     }
@@ -123,6 +133,10 @@ public:
     virtual void onSetUp(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
 
     virtual void onTimeStep(const Storage& storage, Statistics& stats) override {
+        if (!storage.getUserData()) {
+            return;
+        }
+
         SharedPtr<IStorageUserData> data = storage.getUserData();
         RawPtr<AnimationFrame> frame = dynamicCast<AnimationFrame>(data.get());
         SPH_ASSERT(frame);
@@ -171,7 +185,7 @@ RenderPage::RenderPage(wxWindow* parent, const RunSettings& global, const Shared
         try {
             node->run(global, *callbacks);
         } catch (const Exception& e) {
-            executeOnMainThread([message = std::string(e.what())]{
+            executeOnMainThread([message = std::string(e.what())] {
                 wxMessageBox("Rendering failed.\n" + message, "Fail", wxOK | wxCENTRE);
             });
         }
