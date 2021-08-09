@@ -150,20 +150,6 @@ public:
 };
 
 template <typename T>
-bool almostEqual(const ArrayView<T> v1, const ArrayView<T> v2, const Float& eps) {
-    if (v1.size() != v2.size()) {
-        return false;
-    }
-
-    for (Size i = 0; i < v1.size(); ++i) {
-        if (!Sph::almostEqual(v1[i], v2[i], eps)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-template <typename T>
 INLINE ArrayView<T> getSingleValueView(T& value) {
     return ArrayView<T>(&value, 1);
 }

@@ -37,16 +37,3 @@ TEST_CASE("getSingleValueView", "[arrayview]") {
     a[0] = 3;
     REQUIRE(value == 3);
 }
-
-TEST_CASE("ArrayView almostEqual", "[arrayview]") {
-    Array<float> a1({ 2.f, 4.f, 3.f });
-    Array<float> a2({ 2.1f, 4.f, 3.f });
-    Array<float> a3({ 2.f, 4.f });
-    REQUIRE(almostEqual(a1.view(), a1.view(), 0));
-    REQUIRE(almostEqual(a1.view(), a2.view(), 0.1f));
-    REQUIRE(almostEqual(a2.view(), a1.view(), 0.1f));
-    REQUIRE_FALSE(almostEqual(a1.view(), a2.view(), 0.02f));
-    REQUIRE_FALSE(almostEqual(a2.view(), a1.view(), 0.02f));
-    REQUIRE_FALSE(almostEqual(a1.view(), a3.view(), EPS));
-    REQUIRE_FALSE(almostEqual(a3.view(), a1.view(), EPS));
-}
