@@ -260,7 +260,8 @@ enum class BinaryIoVersion : int64_t {
     V2018_04_07 = 20180407, ///< serializing (incorrectly!!) enum type
     V2018_10_24 = 20181024, ///< reverted enum (storing zero instead of hash), storing type of simulation
     V2021_03_20 = 20210320, ///< added wallclock time and build date
-    LATEST = V2021_03_20,
+    V2021_08_08 = 20210808, ///< added attractors
+    LATEST = V2021_08_08,
 };
 
 /// \brief Output saving data to binary data without loss of precision.
@@ -283,7 +284,8 @@ enum class BinaryIoVersion : int64_t {
 ///  - bytes 53-68: string identifying a run type, see enum \ref RunTypeEnum.
 ///  - bytes 69-84: string representing the build date
 ///  - bytes 85-92: wallclock time of the simulation (if present in stats)
-///  - bytes 93-256: padding (possibly will be used in the future)
+///  - bytes 93-100: number of attractors [Size] in the storage (called attractorCnt)
+///  - bytes 100-256: padding (possibly will be used in the future)
 ///
 /// Quantity info (summary) follows the header. It consist of quantityCnt triples of values
 ///  - ID of quantity [Size casted from QuantityId]
@@ -324,7 +326,11 @@ enum class BinaryIoVersion : int64_t {
 ///  derivative of i-th particle.
 /// The size of a single value depends on the value type, i.e. scalar quantities are stored as Floats, Vector
 /// quantities are stored as 4x Float (components X, Y, Z and H), etc.
-/// The file ends immediately after the last quantity is saved.
+///
+/// Finally, the end of the file contains the attractors (point masses). Each attractor is stored as position
+/// (Vector), velocity (Vector), radius (Float) and mass (Float).
+///
+/// The file ends immediately after the last attractor is saved.
 ///
 /// \todo Possible todos & fixes:
 ///  - arbitrary precision: store doubles as floats or halfs and size_t as uint32 or uint16, based on data in
@@ -336,7 +342,7 @@ class BinaryOutput : public IOutput {
     friend class BinaryInput;
 
 private:
-    static constexpr Size PADDING_SIZE = 164;
+    static constexpr Size PADDING_SIZE = 156;
 
     RunTypeEnum runTypeId;
 
@@ -359,6 +365,9 @@ public:
 
         /// Number of particles in the file
         Size particleCnt;
+
+        /// Number of attractors in the file
+        Size attractorCnt;
 
         /// Number of materials in the file
         Size materialCnt;
@@ -407,6 +416,8 @@ public:
 
 enum class CompressedIoVersion : int {
     FIRST = 0,
+    V2021_08_08 = 20210808, ///< added attractors
+    LATEST = V2021_08_08,
 };
 
 enum class CompressionEnum {
@@ -434,6 +445,9 @@ public:
     struct Info {
         /// Number of particles in the file
         Size particleCnt;
+
+        /// Number of attractors in the file
+        Size attractorCnt;
 
         /// Run time of the snapshot
         Float runTime;

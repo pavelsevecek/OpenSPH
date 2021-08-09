@@ -503,6 +503,27 @@ void writeString(const std::string& s, Serializer<true>& serializer) {
     serializer.write(buffer);
 }
 
+template <bool Precise>
+void writeAttractor(Serializer<Precise>& serializer, const Attractor& a) {
+    SerializerDispatcher<Precise> dispatcher{ serializer };
+    dispatcher(a.position());
+    dispatcher(a.velocity());
+    dispatcher(a.radius());
+    dispatcher(a.mass());
+}
+
+template <bool Precise>
+Attractor readAttractor(Deserializer<Precise>& deserializer) {
+    DeserializerDispatcher<Precise> dispatcher{ deserializer };
+    Vector r, v;
+    Float m, rad;
+    dispatcher(r);
+    dispatcher(v);
+    dispatcher(rad);
+    dispatcher(m);
+    return Attractor(r, v, rad, m);
+}
+
 } // namespace
 
 BinaryOutput::BinaryOutput(const OutputFile& fileMask, const RunTypeEnum runTypeId)
@@ -540,6 +561,8 @@ Expected<Path> BinaryOutput::dump(const Storage& storage, const Statistics& stat
     writeString(__DATE__, serializer);
     // write wallclock time for proper ETA of resumed simulation
     serializer.write(wallclockTime);
+    // number of attractors
+    serializer.write(storage.getAttractors().size());
 
     // zero bytes until 256 to allow extensions of the header
     serializer.addPadding(PADDING_SIZE);
@@ -600,6 +623,11 @@ Expected<Path> BinaryOutput::dump(const Storage& storage, const Statistics& stat
                 dispatch(q.getValueEnum(), visitor, q, serializer, sequence);
             }
         }
+    }
+
+    // finally dump attractors
+    for (const Attractor& a : storage.getAttractors()) {
+        writeAttractor(serializer, a);
     }
 
     return fileName;
@@ -721,7 +749,7 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
     std::string identifier;
     Float time, timeStep;
     Size wallclockTime;
-    Size particleCnt, quantityCnt, materialCnt;
+    Size particleCnt, quantityCnt, materialCnt, attractorCnt;
     BinaryIoVersion version;
     try {
         char runTypeBuffer[16];
@@ -735,7 +763,8 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
             version,
             runTypeBuffer,
             buildDateBuffer,
-            wallclockTime);
+            wallclockTime,
+            attractorCnt);
     } catch (SerializerException&) {
         return makeFailed("Invalid file format");
     }
@@ -807,6 +836,10 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
         }
         storage.merge(std::move(bodyStorage));
     }
+    for (Size i = 0; i < attractorCnt; ++i) {
+        const Attractor a = readAttractor(deserializer);
+        storage.addAttractor(a);
+    }
 
     return SUCCESS;
 }
@@ -827,7 +860,8 @@ Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) const {
             info.version,
             runTypeBuffer,
             dateBuffer,
-            info.wallclockTime);
+            info.wallclockTime,
+            info.attractorCnt);
     } catch (SerializerException&) {
         return makeUnexpected<Info>("Invalid file format");
     }
@@ -836,6 +870,9 @@ Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) const {
     }
     info.runType = readRunType(runTypeBuffer, info.version);
     info.buildDate = readBuildDate(dateBuffer, info.version);
+    if (info.version < BinaryIoVersion::V2021_08_08) {
+        info.attractorCnt = 0;
+    }
     return Expected<Info>(std::move(info));
 }
 
@@ -947,7 +984,8 @@ Expected<Path> CompressedOutput::dump(const Storage& storage, const Statistics& 
 
     /// \todo runType as string
     serializer.write(runTypeId);
-    serializer.addPadding(230);
+    serializer.write(storage.getAttractors().size());
+    serializer.addPadding(226);
 
     // mandatory, without prefix
     compressQuantity(serializer, compression, storage.getValue<Vector>(QuantityId::POSITION));
@@ -971,6 +1009,10 @@ Expected<Path> CompressedOutput::dump(const Storage& storage, const Statistics& 
         compressQuantity(serializer, compression, storage.getValue<Float>(id));
     }
 
+    for (const Attractor& a : storage.getAttractors()) {
+        writeAttractor(serializer, a);
+    }
+
     return fileName;
 }
 
@@ -982,20 +1024,26 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
     std::string identifier;
     Float time;
     Size particleCnt;
+    Size attractorCnt;
     CompressedIoVersion version;
     CompressionEnum compression;
     RunTypeEnum runTypeId;
     try {
-        deserializer.read(identifier, time, particleCnt, compression, version, runTypeId);
+        deserializer.read(identifier, time, particleCnt, compression, version, runTypeId, attractorCnt);
     } catch (SerializerException&) {
         return makeFailed("Invalid file format");
     }
     if (identifier != "CPRSPH") {
         return makeFailed("Invalid format specifier: expected CPRSPH, got ", identifier);
     }
+
+    if (version < CompressedIoVersion::V2021_08_08) {
+        attractorCnt = 0;
+    }
+
     stats.set(StatisticsId::RUN_TIME, time);
     try {
-        deserializer.skip(230);
+        deserializer.skip(226);
     } catch (SerializerException&) {
         return makeFailed("Incorrect header size");
     }
@@ -1018,6 +1066,11 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
             decompressQuantity(deserializer, compression, values);
             storage.insert<Float>(id, OrderEnum::ZERO, std::move(values));
         }
+
+        for (Size i = 0; i < attractorCnt; ++i) {
+            Attractor a = readAttractor(deserializer);
+            storage.addAttractor(a);
+        }
     } catch (SerializerException& e) {
         return makeFailed(e.what());
     }
@@ -1032,11 +1085,12 @@ Expected<CompressedInput::Info> CompressedInput::getInfo(const Path& path) const
     std::string identifier;
     Float time;
     Size particleCnt;
+    Size attractorCnt;
     CompressedIoVersion version;
     CompressionEnum compression;
     RunTypeEnum runTypeId;
     try {
-        deserializer.read(identifier, time, particleCnt, compression, version, runTypeId);
+        deserializer.read(identifier, time, particleCnt, compression, version, runTypeId, attractorCnt);
     } catch (SerializerException&) {
         return makeUnexpected<CompressedInput::Info>("Invalid file format");
     }
@@ -1049,6 +1103,11 @@ Expected<CompressedInput::Info> CompressedInput::getInfo(const Path& path) const
     info.runTime = time;
     info.runType = runTypeId;
     info.version = version;
+    if (version >= CompressedIoVersion::V2021_08_08) {
+        info.attractorCnt = attractorCnt;
+    } else {
+        info.attractorCnt = 0;
+    }
     return info;
 }
 

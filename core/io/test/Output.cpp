@@ -290,7 +290,7 @@ TEST_CASE("BinaryOutput dump stats", "[output]") {
     REQUIRE(info->wallclockTime == 24);
 }
 
-Storage generateLatestOutput() {
+Storage generateLatestOutput(bool save = false) {
     BodySettings body1;
     body1.set(BodySettingsId::DENSITY, 1000._f);
     body1.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
@@ -312,12 +312,14 @@ Storage generateLatestOutput() {
     Storage storage(std::move(storage1));
     storage.merge(std::move(storage2));
 
-    Path path = RESOURCE_PATH / Path(std::to_string(std::size_t(BinaryIoVersion::LATEST)) + ".ssf");
-    BinaryOutput output(path);
-    Statistics stats;
-    stats.set(StatisticsId::RUN_TIME, 20._f);
-    stats.set(StatisticsId::TIMESTEP_VALUE, 1.5_f);
-    output.dump(storage, stats);
+    if (save) {
+        Path path = RESOURCE_PATH / Path(std::to_string(std::size_t(BinaryIoVersion::LATEST)) + ".ssf");
+        BinaryOutput output(path);
+        Statistics stats;
+        stats.set(StatisticsId::RUN_TIME, 20._f);
+        stats.set(StatisticsId::TIMESTEP_VALUE, 1.5_f);
+        output.dump(storage, stats);
+    }
     return storage;
 }
 
@@ -352,12 +354,15 @@ static void testVersion(BinaryIoVersion version) {
     }
 }
 
+static void testVersion(CompressedIoVersion version) {}
+
 TEST_CASE("BinaryOutput backward compatibility", "[output]") {
-    // generateLatestOutput();
+    generateLatestOutput(true);
     testVersion(BinaryIoVersion::FIRST);
     testVersion(BinaryIoVersion::V2018_04_07);
     testVersion(BinaryIoVersion::V2018_10_24);
     testVersion(BinaryIoVersion::V2021_03_20);
+    testVersion(BinaryIoVersion::V2021_08_08);
 }
 
 static void testCompression(CompressionEnum compression) {
@@ -396,6 +401,11 @@ TEST_CASE("CompressedOutput no compression", "[output]") {
 TEST_CASE("CompressedOutput RLE", "[output]") {
     SKIP_TEST;
     testCompression(CompressionEnum::RLE);
+}
+
+TEST_CASE("CompressedOutput backward compatibility", "[output]") {
+    testVersion(CompressedIoVersion::FIRST);
+    testVersion(CompressedIoVersion::V2021_08_08);
 }
 
 TEST_CASE("Pkdgrav output", "[output]") {

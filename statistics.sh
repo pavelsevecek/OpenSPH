@@ -3,7 +3,7 @@
 echo "Total: "
 git ls-files *.cpp *.h | xargs wc -l | grep "total"
 
-cd lib
+cd core
 dirs=`ls -d */`
 for d in $dirs
 do

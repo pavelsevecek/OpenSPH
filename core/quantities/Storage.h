@@ -459,7 +459,7 @@ public:
     Quantity& insert(const QuantityId key, const OrderEnum order, Array<TValue>&& values);
 
     /// \brief Adds a point-mass attractor to the storage.
-    void addAttractor(const Attractor& p);
+    void addAttractor(const Attractor& a);
 
     /// \brief Registers a dependent storage.
     ///

@@ -337,8 +337,8 @@ template Quantity& Storage::insert(const QuantityId, const OrderEnum, Array<Trac
 template Quantity& Storage::insert(const QuantityId, const OrderEnum, Array<SymmetricTensor>&&);
 template Quantity& Storage::insert(const QuantityId, const OrderEnum, Array<Tensor>&&);
 
-void Storage::addAttractor(const Attractor& p) {
-    attractors.push(p);
+void Storage::addAttractor(const Attractor& a) {
+    attractors.push(a);
 }
 
 void Storage::addDependent(const WeakPtr<Storage>& other) {
