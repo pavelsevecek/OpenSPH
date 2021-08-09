@@ -58,3 +58,16 @@ TEST_CASE("AnyCommon", "[algorithm]") {
     REQUIRE_FALSE(anyCommon(data1, data3));
     REQUIRE_FALSE(anyCommon(data2, data3));
 }
+
+TEST_CASE("Ranges almostEqual", "[algorithm]") {
+    Array<float> a1({ 2.f, 4.f, 3.f });
+    Array<float> a2({ 2.1f, 4.f, 3.f });
+    Array<float> a3({ 2.f, 4.f });
+    REQUIRE(almostEqual(a1, a1, 0));
+    REQUIRE(almostEqual(a1, a2, 0.1f));
+    REQUIRE(almostEqual(a2, a1, 0.1f));
+    REQUIRE_FALSE(almostEqual(a1, a2, 0.02f));
+    REQUIRE_FALSE(almostEqual(a2, a1, 0.02f));
+    REQUIRE_FALSE(almostEqual(a1, a3, EPS));
+    REQUIRE_FALSE(almostEqual(a3, a1, EPS));
+}

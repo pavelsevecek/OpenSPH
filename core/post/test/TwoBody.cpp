@@ -1,5 +1,6 @@
 #include "post/TwoBody.h"
 #include "catch.hpp"
+#include "objects/utility/Algorithm.h"
 #include "physics/Constants.h"
 #include "tests/Approx.h"
 #include "utils/Utils.h"
@@ -38,6 +39,6 @@ TEST_CASE("Eccentric anomaly to true anomaly", "[kepler]") {
             const Float v = Kepler::eccentricAnomalyToTrueAnomaly(u, e);
             actual.push(Kepler::trueAnomalyToEccentricAnomaly(v, e));
         }
-        REQUIRE(almostEqual(actual.view(), expected.view(), EPS));
+        REQUIRE(almostEqual(actual, expected, EPS));
     }
 }

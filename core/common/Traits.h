@@ -97,6 +97,15 @@ struct IsCallable {
     static constexpr bool value = IsCallableImpl<TCallable, void, TArgs...>::value;
 };
 
+template <typename TRange, typename = void>
+struct IsRange {
+    static constexpr bool value = false;
+};
+
+template <typename TRange>
+struct IsRange<TRange, VoidType<decltype(std::declval<TRange>().begin())>> {
+    static constexpr bool value = true;
+};
 
 template <typename T, typename TStream, typename = void>
 struct HasStreamOperator {

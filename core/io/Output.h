@@ -407,6 +407,7 @@ public:
 
 enum class CompressedIoVersion : int {
     FIRST = 0,
+    LATEST = FIRST,
 };
 
 enum class CompressionEnum {

@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2021
 
+#include "common/Traits.h"
 #include "math/MathUtils.h"
 #include <initializer_list>
 
@@ -98,6 +99,27 @@ bool anyCommon(const TRange1& range1, const TRange2& range2) {
         }
     }
     return false;
+}
+
+/// Checks if two ranges differ no less than given eps.
+template <typename TRange1,
+    typename TRange2,
+    typename = std::enable_if_t<IsRange<TRange1>::value && IsRange<TRange2>::value>>
+bool almostEqual(const TRange1& range1, const TRange2& range2, const Float& eps) {
+    if (range1.size() != range2.size()) {
+        return false;
+    }
+
+    auto iter1 = range1.begin();
+    const auto end1 = range1.end();
+    auto iter2 = range2.begin();
+
+    for (; iter1 != end1; ++iter1, ++iter2) {
+        if (!almostEqual(*iter1, *iter2, eps)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 NAMESPACE_SPH_END

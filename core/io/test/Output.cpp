@@ -4,6 +4,7 @@
 #include "io/FileManager.h"
 #include "io/FileSystem.h"
 #include "objects/geometry/Domain.h"
+#include "objects/utility/Algorithm.h"
 #include "objects/utility/PerElementWrapper.h"
 #include "physics/Eos.h"
 #include "quantities/Iterate.h"
@@ -396,6 +397,65 @@ TEST_CASE("CompressedOutput no compression", "[output]") {
 TEST_CASE("CompressedOutput RLE", "[output]") {
     SKIP_TEST;
     testCompression(CompressionEnum::RLE);
+}
+
+Storage generateLatestCompressedOutput(bool save = false) {
+    BodySettings body1;
+    body1.set(BodySettingsId::DENSITY, 1000._f);
+    body1.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::DRUCKER_PRAGER);
+    body1.set(BodySettingsId::BODY_CENTER, Vector(1._f, 2._f, 3._f));
+    Storage storage1 = Tests::getSolidStorage(200, body1, 2._f);
+    storage1.insert<Float>(QuantityId::DAMAGE, OrderEnum::FIRST, 0.5_f);
+
+    BodySettings body2;
+    body2.set(BodySettingsId::DENSITY, 2000._f);
+    body2.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::ELASTIC);
+    body2.set(BodySettingsId::BODY_CENTER, Vector(0._f, 1._f, 2._f));
+    Storage storage2 = Tests::getSolidStorage(30, body2, 1._f);
+
+    Storage storage(std::move(storage1));
+    storage.merge(std::move(storage2));
+
+    if (save) {
+        Path path = RESOURCE_PATH / Path(std::to_string(std::size_t(CompressedIoVersion::LATEST)) + ".scf");
+        CompressedOutput output(path, CompressionEnum::NONE, RunTypeEnum::RUBBLE_PILE);
+        Statistics stats;
+        stats.set(StatisticsId::RUN_TIME, 20._f);
+        stats.set(StatisticsId::TIMESTEP_VALUE, 1.5_f);
+        output.dump(storage, stats);
+    }
+    return storage;
+}
+
+template <typename T>
+bool compareBuffers(const Storage& s1, const Storage& s2, const QuantityId id, const OrderEnum order) {
+    ArrayView<const T> values1 = s1.getAll<T>(id)[int(order)];
+    ArrayView<const T> values2 = s2.getAll<T>(id)[int(order)];
+    return Sph::almostEqual(values1, values2, 1.e-6f);
+}
+
+static void testVersion(CompressedIoVersion version) {
+    Storage current = generateLatestCompressedOutput();
+    Path path = RESOURCE_PATH / Path(std::to_string(std::size_t(version)) + ".scf");
+    CompressedInput input;
+    Storage previous;
+    Statistics stats;
+    REQUIRE(input.load(path, previous, stats));
+
+    REQUIRE(previous.getParticleCnt() == current.getParticleCnt());
+    REQUIRE(compareBuffers<Vector>(previous, current, QuantityId::POSITION, OrderEnum::ZERO));
+    REQUIRE(compareBuffers<Vector>(previous, current, QuantityId::POSITION, OrderEnum::FIRST));
+    REQUIRE(compareBuffers<Float>(previous, current, QuantityId::MASS, OrderEnum::ZERO));
+    REQUIRE(compareBuffers<Float>(previous, current, QuantityId::DENSITY, OrderEnum::ZERO));
+    REQUIRE(compareBuffers<Float>(previous, current, QuantityId::ENERGY, OrderEnum::ZERO));
+    REQUIRE(compareBuffers<Float>(previous, current, QuantityId::DAMAGE, OrderEnum::ZERO));
+
+    REQUIRE(input.getInfo(path)->runType == RunTypeEnum::RUBBLE_PILE);
+}
+
+TEST_CASE("CompressedOutput backward compatibility", "[output]") {
+    generateLatestCompressedOutput(true);
+    testVersion(CompressedIoVersion::FIRST);
 }
 
 TEST_CASE("Pkdgrav output", "[output]") {
