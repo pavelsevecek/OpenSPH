@@ -73,7 +73,7 @@ Expected<std::string> getGitCommit(const Path& pathToGitRoot, const Size prev) {
         return "";
     }
     while (!feof(pipe)) {
-        if (fgets(&buffer[0], 128, pipe) != NULL) {
+        if (fgets(&buffer[0], buffer.size(), pipe) != NULL) {
             result += &buffer[0];
         }
     }
