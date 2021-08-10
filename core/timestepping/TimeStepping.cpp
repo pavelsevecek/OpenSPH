@@ -29,7 +29,7 @@ void ITimeStepping::step(IScheduler& scheduler, ISolver& solver, Statistics& sta
     Timer timer;
     // drift point masses
     for (Attractor& a : storage->getAttractors()) {
-        a.position() += 0.5_f * a.velocity() * timeStep;
+        a.position += 0.5_f * a.velocity * timeStep;
     }
 
     // compute partiles
@@ -37,8 +37,8 @@ void ITimeStepping::step(IScheduler& scheduler, ISolver& solver, Statistics& sta
 
     // kick & drift point masses
     for (Attractor& a : storage->getAttractors()) {
-        a.velocity() += a.acceleration() * timeStep;
-        a.position() += 0.5_f * a.velocity() * timeStep;
+        a.velocity += a.acceleration * timeStep;
+        a.position += 0.5_f * a.velocity * timeStep;
     }
 
     // update time step

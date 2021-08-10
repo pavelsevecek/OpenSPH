@@ -4,66 +4,35 @@
 
 NAMESPACE_SPH_BEGIN
 
+enum class AttractorSettingsId {
+    /// If true, the attractor absorbs any particle that falls below the attractor's radius.
+    BLACK_HOLE = 0,
+
+    /// Texture
+    VISUALIZATION_TEXTURE = 100,
+};
+
+using AttractorSettings = Settings<AttractorSettingsId>;
+
 /// \brief Single point-mass particle.
-class Attractor {
-    Vector r;
-    Vector v;
-    Vector dv;
-    Float rad;
-    Float m;
+///
+/// Extra properties of the attractor can be stored in the settings member variable.
+struct Attractor {
+    Vector position;
+    Vector velocity = Vector(0._f);
+    Vector acceleration = Vector(0._f);
+    Float radius;
+    Float mass;
 
-    // BodySettings body = EMPTY_SETTINGS;
+    AttractorSettings settings = EMPTY_SETTINGS;
 
-public:
     Attractor() = default;
 
-    Attractor(const Vector& pos, const Vector& velocity, const Float radius, const Float mass) {
-        r = pos;
-        v = velocity;
-        dv = Vector(0._f);
-        rad = radius;
-        m = mass;
-    }
-
-    Float mass() const {
-        return m;
-    }
-
-    Float radius() const {
-        return rad;
-    }
-
-    const Vector& position() const {
-        return r;
-    }
-
-    Vector& position() {
-        return r;
-    }
-
-    const Vector& velocity() const {
-        return v;
-    }
-
-    Vector& velocity() {
-        return v;
-    }
-
-    const Vector& acceleration() const {
-        return dv;
-    }
-
-    Vector& acceleration() {
-        return dv;
-    }
-
-    /*   const BodySettings& params() const {
-           return body;
-       }
-
-       BodySettings& params() {
-           return body;
-       }*/
+    Attractor(const Vector& position, const Vector& velocity, const Float radius, const Float mass)
+        : position(position)
+        , velocity(velocity)
+        , radius(radius)
+        , mass(mass) {}
 };
 
 NAMESPACE_SPH_END

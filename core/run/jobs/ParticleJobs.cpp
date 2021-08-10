@@ -268,6 +268,7 @@ void CenterParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbac
         m.resize(storage.getParticleCnt());
         m.fill(1._f);
     }
+
     if (centerPositions) {
         ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         Vector r_com(0._f);
@@ -277,17 +278,18 @@ void CenterParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbac
             m_tot += m[i];
         }
         for (const Attractor& a : storage.getAttractors()) {
-            r_com += a.mass() * a.position();
-            m_tot += a.mass();
+            r_com += a.mass * a.position;
+            m_tot += a.mass;
         }
         r_com = clearH(r_com / m_tot);
         for (Size i = 0; i < r.size(); ++i) {
             r[i] -= r_com;
         }
         for (Attractor& a : storage.getAttractors()) {
-            a.position() -= r_com;
+            a.position -= r_com;
         }
     }
+
     if (centerVelocities) {
         ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
         Vector v_com(0._f);
@@ -297,15 +299,15 @@ void CenterParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbac
             m_tot += m[i];
         }
         for (const Attractor& a : storage.getAttractors()) {
-            v_com += a.mass() * a.velocity();
-            m_tot += a.mass();
+            v_com += a.mass * a.velocity;
+            m_tot += a.mass;
         }
         v_com = clearH(v_com / m_tot);
         for (Size i = 0; i < v.size(); ++i) {
             v[i] -= v_com;
         }
         for (Attractor& a : storage.getAttractors()) {
-            a.velocity() -= v_com;
+            a.velocity -= v_com;
         }
     }
 
@@ -434,7 +436,7 @@ static Sphere getBoundingSphere(const Storage& storage) {
         sphere.radius() = max(sphere.radius(), getLength(r[i] - sphere.center()));
     }
     for (const Attractor& a : storage.getAttractors()) {
-        sphere.radius() = max(sphere.radius(), getLength(a.position() - sphere.center()));
+        sphere.radius() = max(sphere.radius(), getLength(a.position - sphere.center()));
     }
     return sphere;
 }

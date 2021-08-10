@@ -90,7 +90,7 @@ TEMPLATE_TEST_CASE("Gravity with attractors", "[gravity]", BruteForceGravity, Ba
     ArrayView<const Attractor> attractors = storage1.getAttractors();
     auto test2 = [&](const Size i) -> Outcome {
         const Vector acc1 = dv2[i + dv1.size()];
-        const Vector acc2 = attractors[i].acceleration();
+        const Vector acc2 = attractors[i].acceleration;
         if (acc1 != approx(acc2, gravityEps<TestType>)) {
             return makeFailed("Incorrect acceleration: ", acc1, " == ", acc2);
         }

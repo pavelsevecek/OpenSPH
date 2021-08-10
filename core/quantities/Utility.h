@@ -41,7 +41,7 @@ void transform(Storage& storage, const TPositionFunc& func) {
         }
     }
     for (Attractor& p : storage.getAttractors()) {
-        p.position() = func(p.position());
+        p.position = func(p.position);
     }
 }
 
@@ -60,8 +60,8 @@ void transform(Storage& storage, const TPositionFunc& posFunc, const TVelocityFu
         }
     }
     for (Attractor& p : storage.getAttractors()) {
-        p.position() = posFunc(p.position());
-        p.velocity() = velFunc(p.velocity());
+        p.position = posFunc(p.position);
+        p.velocity = velFunc(p.velocity);
     }
 }
 

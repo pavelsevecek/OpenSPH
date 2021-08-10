@@ -103,9 +103,9 @@ void BarnesHut::evalAttractors(IScheduler& scheduler,
     // attractor-particle interactions
     for (Attractor& a : attractors) {
         parallelFor(scheduler, 0, r.size(), [&dv, &a, &symmetricKernel, this](const Size i) {
-            const Vector f = symmetricKernel.grad(r[i], setH(a.position(), a.radius()));
-            dv[i] -= G * a.mass() * f;
-            a.acceleration() += m[i] * f;
+            const Vector f = symmetricKernel.grad(r[i], setH(a.position, a.radius));
+            dv[i] -= G * a.mass * f;
+            a.acceleration += m[i] * f;
         });
     }
     // attractor-attractor interactions
@@ -114,9 +114,9 @@ void BarnesHut::evalAttractors(IScheduler& scheduler,
             Attractor& a1 = attractors[i];
             Attractor& a2 = attractors[j];
             const Vector f =
-                G * symmetricKernel.grad(setH(a1.position(), a1.radius()), setH(a2.position(), a2.radius()));
-            a1.acceleration() -= attractors[j].mass() * f;
-            a2.acceleration() += attractors[i].mass() * f;
+                G * symmetricKernel.grad(setH(a1.position, a1.radius), setH(a2.position, a2.radius));
+            a1.acceleration -= attractors[j].mass * f;
+            a2.acceleration += attractors[i].mass * f;
         }
     }
 }

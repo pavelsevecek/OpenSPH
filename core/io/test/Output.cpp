@@ -311,8 +311,12 @@ static Storage generateLatestOutput(bool save = false) {
     // legacy reasons
     storage2.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, body2.get<Float>(BodySettingsId::DENSITY));
 
-    storage2.addAttractor(Attractor(Vector(1._f), Vector(-1._f), 0.5_f, 2._f));
-    storage2.addAttractor(Attractor(Vector(0._f), Vector(1._f), 0.75_f, 5._f));
+    Attractor a1(Vector(1._f), Vector(-1._f), 0.5_f, 2._f);
+    a1.settings.set(AttractorSettingsId::BLACK_HOLE, true);
+    storage2.addAttractor(a1);
+    Attractor a2(Vector(0._f), Vector(1._f), 0.75_f, 5._f);
+    a2.settings.set(AttractorSettingsId::BLACK_HOLE, false);
+    storage2.addAttractor(a2);
 
     Storage storage(std::move(storage1));
     storage.merge(std::move(storage2));
@@ -328,9 +332,36 @@ static Storage generateLatestOutput(bool save = false) {
     return storage;
 }
 
-static bool attractorsEqual(const Attractor& a1, const Attractor& a2) {
-    return almostEqual(a1.position(), a2.position()) && almostEqual(a1.velocity(), a2.velocity()) &&
-           almostEqual(a1.mass(), a2.mass()) && almostEqual(a1.radius(), a2.radius());
+static Outcome attractorsEqual(const Attractor& a1, const Attractor& a2) {
+    if (!almostEqual(a1.position, a2.position)) {
+        return makeFailed("Attractor positions differ");
+    }
+    if (!almostEqual(a1.velocity, a2.velocity)) {
+        return makeFailed("Attractor velocities differ");
+    }
+    if (!almostEqual(a1.mass, a2.mass)) {
+        return makeFailed("Attractor masses differ");
+    }
+    if (!almostEqual(a1.radius, a2.radius)) {
+        return makeFailed("Attractor radii differ");
+    }
+    if (a1.settings.size() != a2.settings.size()) {
+        return makeFailed("Attractors have different number of parameters");
+    }
+    for (auto p : a1.settings) {
+        if (!a2.settings.has(p.id)) {
+            return makeFailed("Second attractor is missing a parameter.");
+        }
+        bool match = false;
+        forValue(p.value, [&match, &a2, &p](const auto& v1) {
+            const auto v2 = a2.settings.get<std::decay_t<decltype(v1)>>(p.id);
+            match = (v1 == v2);
+        });
+        if (!match) {
+            return makeFailed("Attractor values differ");
+        }
+    }
+    return SUCCESS;
 }
 
 static void testVersion(BinaryIoVersion version) {
@@ -430,8 +461,12 @@ Storage generateLatestCompressedOutput(bool save = false) {
     body2.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::ELASTIC);
     body2.set(BodySettingsId::BODY_CENTER, Vector(0._f, 1._f, 2._f));
     Storage storage2 = Tests::getSolidStorage(30, body2, 1._f);
-    storage2.addAttractor(Attractor(Vector(1._f), Vector(-1._f), 0.5_f, 2._f));
-    storage2.addAttractor(Attractor(Vector(0._f), Vector(1._f), 0.75_f, 5._f));
+    Attractor a1(Vector(1._f), Vector(-1._f), 0.5_f, 2._f);
+    a1.settings.set(AttractorSettingsId::BLACK_HOLE, true);
+    storage2.addAttractor(a1);
+    Attractor a2(Vector(0._f), Vector(1._f), 0.75_f, 5._f);
+    a2.settings.set(AttractorSettingsId::BLACK_HOLE, false);
+    storage2.addAttractor(a2);
 
     Storage storage(std::move(storage1));
     storage.merge(std::move(storage2));
@@ -473,8 +508,10 @@ static void testVersion(CompressedIoVersion version) {
     if (version > CompressedIoVersion::FIRST) {
         ArrayView<const Attractor> attractors = previous.getAttractors();
         REQUIRE(attractors.size() == 2);
-        REQUIRE(attractors[0].mass() == 2._f);
-        REQUIRE(attractors[1].mass() == 5._f);
+        REQUIRE(attractors[0].mass == 2._f);
+        REQUIRE(attractors[0].settings.get<bool>(AttractorSettingsId::BLACK_HOLE));
+        REQUIRE(attractors[1].mass == 5._f);
+        REQUIRE_FALSE(attractors[1].settings.get<bool>(AttractorSettingsId::BLACK_HOLE));
     }
 
     REQUIRE(input.getInfo(path)->runType == RunTypeEnum::RUBBLE_PILE);

@@ -586,7 +586,7 @@ void Storage::zeroHighestDerivatives() {
         dv.fill(TValue(0._f));
     });
     for (Attractor& a : attractors) {
-        a.acceleration() = Vector(0._f);
+        a.acceleration = Vector(0._f);
     }
 }
 

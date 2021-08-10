@@ -15,8 +15,8 @@ Box getBoundingBox(const Storage& storage, const Float radius) {
         box.extend(r[i] - radius * Vector(r[i][H]));
     }
     for (const Attractor& a : storage.getAttractors()) {
-        box.extend(a.position() + radius * Vector(a.radius()));
-        box.extend(a.position() - radius * Vector(a.radius()));
+        box.extend(a.position + radius * Vector(a.radius));
+        box.extend(a.position - radius * Vector(a.radius));
     }
     return box;
 }
@@ -34,8 +34,8 @@ Vector getCenterOfMass(const Storage& storage) {
         }
         // add attractors
         for (const Attractor& pm : storage.getAttractors()) {
-            m_sum += pm.mass();
-            r_com += pm.mass() * pm.position();
+            m_sum += pm.mass;
+            r_com += pm.mass * pm.position;
         }
         r_com[H] = 0._f;
         return r_com / m_sum;
@@ -57,7 +57,7 @@ Float getTotalMass(const Storage& storage) {
         m_tot += accumulate(m, 0._f);
     }
     for (const Attractor& p : storage.getAttractors()) {
-        m_tot += p.mass();
+        m_tot += p.mass;
     }
     return m_tot;
 }
@@ -72,7 +72,7 @@ Vector getTotalMomentum(const Storage& storage) {
         }
     }
     for (const Attractor& p : storage.getAttractors()) {
-        p_tot += p.mass() * p.velocity();
+        p_tot += p.mass * p.velocity;
     }
     return p_tot;
 }
@@ -102,10 +102,10 @@ void moveToCenterOfMassFrame(Storage& storage) {
         v_com += m[i] * v[i];
         m_tot += m[i];
     }
-    for (const Attractor& p : pm) {
-        r_com += p.mass() * p.position();
-        v_com += p.mass() * p.velocity();
-        m_tot += p.mass();
+    for (const Attractor& a : pm) {
+        r_com += a.mass * a.position;
+        v_com += a.mass * a.velocity;
+        m_tot += a.mass;
     }
     SPH_ASSERT(m_tot > 0._f, m_tot);
 
@@ -117,9 +117,9 @@ void moveToCenterOfMassFrame(Storage& storage) {
         r[i] -= r_com;
         v[i] -= v_com;
     }
-    for (Attractor& p : pm) {
-        p.position() -= r_com;
-        p.velocity() -= v_com;
+    for (Attractor& a : pm) {
+        a.position -= r_com;
+        a.velocity -= v_com;
     }
 }
 

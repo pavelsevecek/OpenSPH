@@ -263,8 +263,12 @@ void SingleParticleIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
     result = makeShared<ParticleData>();
     result->storage = Storage();
 
-    const Attractor p(r0, v0, radius, mass);
-    result->storage.addAttractor(p);
+    Attractor a;
+    a.position = r0;
+    a.velocity = v0;
+    a.radius = radius;
+    a.mass = mass;
+    result->storage.addAttractor(a);
 }
 
 static JobRegistrar sRegisterSingleParticle(

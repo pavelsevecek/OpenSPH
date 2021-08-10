@@ -442,23 +442,50 @@ void writeString(const std::string& s, Serializer<true>& serializer) {
 
 template <bool Precise>
 void writeAttractor(Serializer<Precise>& serializer, const Attractor& a) {
-    serializer.write(a.position());
-    serializer.write(a.velocity());
-    serializer.write(a.radius());
-    serializer.write(a.mass());
+    serializer.write(a.position);
+    serializer.write(a.velocity);
+    serializer.write(a.radius);
+    serializer.write(a.mass);
+
+    serializer.write(a.settings.size());
+    for (auto param : a.settings) {
+        serializer.serialize(param.id);
+        serializer.serialize(param.value.getTypeIdx());
+        forValue(param.value, [&serializer](const auto& value) { serializer.write(value); });
+    }
 }
 
 template <bool Precise>
 Attractor readAttractor(Deserializer<Precise>& deserializer) {
-    Vector r, v;
-    Float m, rad;
-    deserializer.read(r);
-    deserializer.read(v);
-    deserializer.read(rad);
-    deserializer.read(m);
-    return Attractor(r, v, rad, m);
-}
+    Attractor a;
+    deserializer.read(a.position);
+    deserializer.read(a.velocity);
+    deserializer.read(a.radius);
+    deserializer.read(a.mass);
 
+    Size paramCnt;
+    deserializer.deserialize(paramCnt);
+    for (Size i = 0; i < paramCnt; ++i) {
+        AttractorSettingsId paramId;
+        Size valueId;
+        deserializer.deserialize(paramId, valueId);
+
+        SettingsIterator<AttractorSettingsId>::IteratorValue iteratorValue{ paramId,
+            { CONSTRUCT_TYPE_IDX, valueId } };
+
+        forValue(iteratorValue.value, [&deserializer, &a, paramId](auto& entry) {
+            deserializer.read(entry);
+            try {
+                a.settings.set(paramId, entry);
+            } catch (const Exception& UNUSED(e)) {
+                // can be a parameter from newer version, silence the exception for backwards compatibility
+            }
+        });
+        // needs to be handled the same way as BodySettings if Enums are ever included in the attractor
+        SPH_ASSERT(!a.settings.hasType<EnumWrapper>(paramId))
+    }
+    return a;
+}
 
 } // namespace
 

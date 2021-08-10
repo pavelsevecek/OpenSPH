@@ -60,9 +60,9 @@ public:
         // attractor-particle interactions
         for (Attractor& a : attractors) {
             parallelFor(scheduler, 0, r.size(), [&dv, &a, this, &symmetricKernel](const Size i) {
-                const Vector f = G * symmetricKernel.grad(r[i], setH(a.position(), a.radius()));
-                dv[i] -= a.mass() * f;
-                a.acceleration() += m[i] * f;
+                const Vector f = G * symmetricKernel.grad(r[i], setH(a.position, a.radius));
+                dv[i] -= a.mass * f;
+                a.acceleration += m[i] * f;
             });
         }
         // attractor-attractor interactions
@@ -70,10 +70,10 @@ public:
             for (Size j = i + 1; j < attractors.size(); ++j) {
                 Attractor& a1 = attractors[i];
                 Attractor& a2 = attractors[j];
-                const Vector f = G * symmetricKernel.grad(
-                                         setH(a1.position(), a1.radius()), setH(a2.position(), a2.radius()));
-                a1.acceleration() -= attractors[j].mass() * f;
-                a2.acceleration() += attractors[i].mass() * f;
+                const Vector f =
+                    G * symmetricKernel.grad(setH(a1.position, a1.radius), setH(a2.position, a2.radius));
+                a1.acceleration -= attractors[j].mass * f;
+                a2.acceleration += attractors[i].mass * f;
             }
         }
     }

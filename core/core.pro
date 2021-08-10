@@ -46,6 +46,7 @@ SOURCES += \
     post/MeshFile.cpp \
     post/Plot.cpp \
     post/StatisticTests.cpp \
+    quantities/Attractor.cpp \
     quantities/IMaterial.cpp \
     quantities/Particle.cpp \
     quantities/Quantity.cpp \

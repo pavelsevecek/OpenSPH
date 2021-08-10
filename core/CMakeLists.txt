@@ -46,6 +46,7 @@ set(CORE_SOURCES
     quantities/Quantity.cpp 
     quantities/QuantityIds.cpp 
     quantities/Storage.cpp 
+    quantities/Attractor.h 
     quantities/Utility.cpp
     run/IRun.cpp 
     run/Job.cpp 
