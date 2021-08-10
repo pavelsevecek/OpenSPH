@@ -5,11 +5,31 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Convenience function to get the bounding box of all particles.
+///
+/// This takes into account particle radii, using given kernel radius.
+Box getBoundingBox(const Storage& storage, const Float radius = 2._f);
+
+/// \brief Returns the center of mass of all particles.
+///
+/// Function can be called even if the storage does not store particle masses, in which case all particles are
+/// assumed to have equal mass.
+Vector getCenterOfMass(const Storage& storage);
+
 /// \brief Computes the total mass of the storage.
 Float getTotalMass(const Storage& storage);
 
+/// \brief Computes the total momentum of all particles and attractors.
 Vector getTotalMomentum(const Storage& storage);
 
+/// \brief Changes the inertial system by given offset of positions and velocities.
+void moveInertialFrame(Storage& storage, const Vector positionOffset, const Vector velocityOffset);
+
+/// \brief Modifies particle positions and velocities so that the center of mass is at the origin and the
+/// total momentum is zero.
+void moveToCenterOfMassFrame(Storage& storage);
+
+/// \brief Provides generic transform of positions.
 template <typename TPositionFunc>
 void transform(Storage& storage, const TPositionFunc& func) {
     if (!storage.empty()) {
@@ -25,6 +45,7 @@ void transform(Storage& storage, const TPositionFunc& func) {
     }
 }
 
+/// \brief Provides generic transform of positions and velocities.
 template <typename TPositionFunc, typename TVelocityFunc>
 void transform(Storage& storage, const TPositionFunc& posFunc, const TVelocityFunc& velFunc) {
     if (!storage.empty()) {
@@ -43,20 +64,5 @@ void transform(Storage& storage, const TPositionFunc& posFunc, const TVelocityFu
         p.velocity() = velFunc(p.velocity());
     }
 }
-
-/// \brief Changes the inertial system by given offset of positions and velocities.
-void moveInertialFrame(Storage& storage, const Vector positionOffset, const Vector velocityOffset);
-
-/// \brief Modifies particle positions so that their center of mass lies at the origin.
-///
-/// Function can be also used for particle velocities, modifying them so that the total momentum is zero.
-/// \param m Particle masses; must be positive values
-/// \param r Particle positions (or velocities)
-/// \return Computed center of mass, subtracted from positions.
-Vector moveToCenterOfMassFrame(ArrayView<const Float> m, ArrayView<Vector> r);
-
-/// \brief Modifies particle positions and velocities so that the center of mass is at the origin and the
-/// total momentum is zero.
-void moveToCenterOfMassFrame(Storage& storage);
 
 NAMESPACE_SPH_END

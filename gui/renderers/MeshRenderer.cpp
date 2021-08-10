@@ -4,6 +4,7 @@
 #include "gui/objects/Colorizer.h"
 #include "gui/objects/RenderContext.h"
 #include "objects/finders/Order.h"
+#include "quantities/Utility.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"

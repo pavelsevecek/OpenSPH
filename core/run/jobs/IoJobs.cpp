@@ -4,6 +4,7 @@
 #include "objects/geometry/Delaunay.h"
 #include "post/MarchingCubes.h"
 #include "post/MeshFile.h"
+#include "quantities/Utility.h"
 #include "run/IRun.h"
 #include "system/Factory.h"
 #include "system/Statistics.h"

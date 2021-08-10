@@ -4,6 +4,7 @@
 #include "objects/geometry/Sphere.h"
 #include "post/MarchingCubes.h"
 #include "post/MeshFile.h"
+#include "quantities/Utility.h"
 #include "run/IRun.h"
 #include "sph/initial/MeshDomain.h"
 #include "system/Factory.h"

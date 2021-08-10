@@ -709,15 +709,13 @@ void extractLr(const Path& inputPath, const Path& outputPath) {
     }
     storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED);
 
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-    moveToCenterOfMassFrame(m, r);
+    moveToCenterOfMassFrame(storage);
 
     BinaryOutput output(outputPath);
     output.dump(storage, stats);
 
     if (storage.has(QuantityId::DENSITY)) {
+        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
         ArrayView<const Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
 
         Float volume = 0._f;
@@ -729,6 +727,9 @@ void extractLr(const Path& inputPath, const Path& outputPath) {
                   << std::endl;
     }
 
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
     const Float omega = getLength(Post::getAngularFrequency(m, r, v));
     std::cout << "period = " << 2._f * PI / omega / 3600._f << "h" << std::endl;
 

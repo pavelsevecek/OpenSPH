@@ -74,12 +74,12 @@ SOURCES += \
     sph/equations/EquationTerm.cpp \
     sph/equations/Rotation.cpp \
     sph/equations/av/Stress.cpp \
-    sph/handoff/Handoff.cpp \
     sph/initial/Distribution.cpp \
     sph/initial/Initial.cpp \
     sph/initial/MeshDomain.cpp \
     sph/initial/Galaxy.cpp \
     sph/initial/Stellar.cpp \
+    sph/initial/UvMapping.cpp \
     sph/solvers/AsymmetricSolver.cpp \
     sph/solvers/EnergyConservingSolver.cpp \
     sph/solvers/EquilibriumSolver.cpp \
@@ -292,7 +292,6 @@ HEADERS += \
     sph/equations/av/Stress.h \
     sph/equations/heat/Heat.h \
     sph/equationsav/Standard.h \
-    sph/handoff/Handoff.h \
     sph/initial/Distribution.h \
     sph/initial/Initial.h \
     sph/initial/MeshDomain.h \

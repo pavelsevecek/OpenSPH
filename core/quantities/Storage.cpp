@@ -870,45 +870,6 @@ SharedPtr<IStorageUserData> Storage::getUserData() const {
     return userData;
 }
 
-Box getBoundingBox(const Storage& storage, const Float radius) {
-    Box box;
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    for (Size i = 0; i < r.size(); ++i) {
-        box.extend(r[i] + radius * Vector(r[i][H]));
-        box.extend(r[i] - radius * Vector(r[i][H]));
-    }
-    return box;
-}
-
-Vector getCenterOfMass(const Storage& storage) {
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    if (storage.has(QuantityId::MASS)) {
-        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-
-        Float m_sum = 0._f;
-        Vector r_com(0._f);
-        for (Size i = 0; i < r.size(); ++i) {
-            m_sum += m[i];
-            r_com += m[i] * r[i];
-        }
-        // add point masses
-        for (const Attractor& pm : storage.getAttractors()) {
-            m_sum += pm.mass();
-            r_com += pm.mass() * pm.position();
-        }
-        r_com[H] = 0._f;
-        return r_com / m_sum;
-    } else {
-        SPH_ASSERT(storage.getAttractors().empty());
-        Vector r_com(0._f);
-        for (Size i = 0; i < r.size(); ++i) {
-            r_com += r[i];
-        }
-        r_com[H] = 0._f;
-        return r_com / r.size();
-    }
-}
-
 void setPersistentIndices(Storage& storage) {
     const Size n = storage.getParticleCnt();
     Array<Size> idxs(n);

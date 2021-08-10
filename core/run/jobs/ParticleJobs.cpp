@@ -269,10 +269,44 @@ void CenterParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbac
         m.fill(1._f);
     }
     if (centerPositions) {
-        moveToCenterOfMassFrame(m, storage.getValue<Vector>(QuantityId::POSITION));
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        Vector r_com(0._f);
+        Float m_tot = 0._f;
+        for (Size i = 0; i < r.size(); ++i) {
+            r_com += m[i] * r[i];
+            m_tot += m[i];
+        }
+        for (const Attractor& a : storage.getAttractors()) {
+            r_com += a.mass() * a.position();
+            m_tot += a.mass();
+        }
+        r_com = clearH(r_com / m_tot);
+        for (Size i = 0; i < r.size(); ++i) {
+            r[i] -= r_com;
+        }
+        for (Attractor& a : storage.getAttractors()) {
+            a.position() -= r_com;
+        }
     }
     if (centerVelocities) {
-        moveToCenterOfMassFrame(m, storage.getDt<Vector>(QuantityId::POSITION));
+        ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+        Vector v_com(0._f);
+        Float m_tot = 0._f;
+        for (Size i = 0; i < v.size(); ++i) {
+            v_com += m[i] * v[i];
+            m_tot += m[i];
+        }
+        for (const Attractor& a : storage.getAttractors()) {
+            v_com += a.mass() * a.velocity();
+            m_tot += a.mass();
+        }
+        v_com = clearH(v_com / m_tot);
+        for (Size i = 0; i < v.size(); ++i) {
+            v[i] -= v_com;
+        }
+        for (Attractor& a : storage.getAttractors()) {
+            a.velocity() -= v_com;
+        }
     }
 
     callbacks.onSetUp(result->storage, result->stats);
@@ -394,25 +428,15 @@ template class Settings<CollisionGeometrySettingsId>;
 /// Not necessarily the smallest sphere, but it is the smallest for spherical bodies.
 static Sphere getBoundingSphere(const Storage& storage) {
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    Sphere sphere(Vector(0._f), 0._f);
-    for (Size i = 0; i < r.size(); ++i) {
-        sphere.center() += r[i];
-    }
-    sphere.center() /= r.size();
+    Sphere sphere(getCenterOfMass(storage), 0._f);
 
     for (Size i = 0; i < r.size(); ++i) {
         sphere.radius() = max(sphere.radius(), getLength(r[i] - sphere.center()));
     }
-    return sphere;
-}
-
-static void displace(Storage& storage, const Vector& offset) {
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    Vector fixedOffset = offset;
-    fixedOffset[H] = 0._f;
-    for (Size i = 0; i < r.size(); ++i) {
-        r[i] += fixedOffset;
+    for (const Attractor& a : storage.getAttractors()) {
+        sphere.radius() = max(sphere.radius(), getLength(a.position() - sphere.center()));
     }
+    return sphere;
 }
 
 CollisionGeometrySetup::CollisionGeometrySetup(const std::string& name,
@@ -445,7 +469,7 @@ void CollisionGeometrySetup::evaluate(const RunSettings& UNUSED(global), IRunCal
     const Sphere impactorSphere = getBoundingSphere(impactor);
 
     // move target to origin
-    displace(target, -targetSphere.center());
+    moveInertialFrame(target, -targetSphere.center(), Vector(0._f));
 
     // move impactor to impact angle
     const Float impactorDistance = targetSphere.radius() + impactorSphere.radius();
@@ -457,13 +481,8 @@ void CollisionGeometrySetup::evaluate(const RunSettings& UNUSED(global), IRunCal
     const Float offset = geometry.get<Float>(CollisionGeometrySettingsId::IMPACTOR_OFFSET);
     const Float x = impactorDistance * cos(phi) + offset * h;
     const Float y = impactorDistance * sin(phi);
-    displace(impactor, -impactorSphere.center() + Vector(x, y, 0._f));
-
     const Float v_imp = geometry.get<Float>(CollisionGeometrySettingsId::IMPACT_SPEED);
-    ArrayView<Vector> v = impactor.getDt<Vector>(QuantityId::POSITION);
-    for (Size i = 0; i < v.size(); ++i) {
-        v[i][X] -= v_imp;
-    }
+    moveInertialFrame(impactor, -impactorSphere.center() + Vector(x, y, 0._f), Vector(-v_imp, 0._f, 0._f));
 
     // renumber flags of impactor to separate the bodies
     if (target.has(QuantityId::FLAG) && impactor.has(QuantityId::FLAG)) {
@@ -566,6 +585,11 @@ void SmoothedToSolidHandoff::evaluate(const RunSettings& UNUSED(global), IRunCal
         }
     }
     spheres.remove(toRemove);
+
+    // copy attractors as-is
+    for (const Attractor& a : input.getAttractors()) {
+        spheres.addAttractor(a);
+    }
 
     moveToCenterOfMassFrame(spheres);
 
@@ -755,6 +779,11 @@ void MergeComponentsJob::evaluate(const RunSettings& UNUSED(global), IRunCallbac
     output
         .insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(rc)) //
         .getDt<Vector>() = std::move(vc);
+
+    // copy attractors as-is
+    for (const Attractor& a : input.getAttractors()) {
+        output.addAttractor(a);
+    }
 
     result = particles;
     result->storage = std::move(output);

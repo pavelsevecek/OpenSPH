@@ -69,12 +69,12 @@ set(CORE_SOURCES
     sph/equations/EquationTerm.cpp 
     sph/equations/Rotation.cpp 
     sph/equations/av/Stress.cpp 
-    sph/handoff/Handoff.cpp 
     sph/initial/Distribution.cpp 
     sph/initial/Initial.cpp 
     sph/initial/MeshDomain.cpp 
     sph/initial/Galaxy.cpp
     sph/initial/Stellar.cpp
+    sph/initial/UvMapping.cpp
     sph/solvers/AsymmetricSolver.cpp 
     sph/solvers/EnergyConservingSolver.cpp 
     sph/solvers/EquilibriumSolver.cpp 
@@ -141,7 +141,6 @@ set(CORE_HEADERS
     math/SparseMatrix.h 
     math/rng/Rng.h 
     math/rng/VectorRng.h 
-    sph/initial/UvMapping.h 
     objects/Exceptions.h 
     objects/Object.h 
     objects/containers/AdvancedAllocators.h
@@ -282,12 +281,12 @@ set(CORE_HEADERS
     sph/equations/av/Riemann.h 
     sph/equations/av/Standard.h 
     sph/equations/av/Stress.h 
-    sph/handoff/Handoff.h 
     sph/initial/Distribution.h 
     sph/initial/Initial.h 
     sph/initial/MeshDomain.h 
     sph/initial/Stellar.h
     sph/initial/Galaxy.h
+    sph/initial/UvMapping.h 
     sph/kernel/GravityKernel.h 
     sph/kernel/Interpolation.h 
     sph/kernel/Kernel.h 

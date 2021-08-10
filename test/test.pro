@@ -160,7 +160,6 @@ SOURCES += \
     ../core/physics/test/Functions.cpp \
     ../core/sph/solvers/test/DensityIndependentSolver.cpp \
     ../core/thread/test/Scheduler.cpp \
-    ../core/sph/handoff/test/Handoff.cpp \
     ../core/sph/solvers/test/EnergyConservingSolver.cpp \
     ../core/gravity/test/CachedGravity.cpp \
     ../core/run/test/IRun.cpp \

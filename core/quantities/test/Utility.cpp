@@ -21,7 +21,6 @@ TEST_CASE("Utility moveToCenterOfMassSystem", "[utility]") {
     CenterOfMass evaluator;
     REQUIRE(evaluator.evaluate(storage) == approx(r_com));
 
-    moveToCenterOfMassFrame(
-        storage.getValue<Float>(QuantityId::MASS), storage.getValue<Vector>(QuantityId::POSITION));
+    moveToCenterOfMassFrame(storage);
     REQUIRE(evaluator.evaluate(storage) == approx(Vector(0._f)));
 }

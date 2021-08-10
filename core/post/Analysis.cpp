@@ -10,6 +10,7 @@
 #include "post/Point.h"
 #include "post/TwoBody.h"
 #include "quantities/Storage.h"
+#include "quantities/Utility.h"
 #include "sph/initial/MeshDomain.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
