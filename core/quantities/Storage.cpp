@@ -1,6 +1,7 @@
 #include "quantities/Storage.h"
 #include "objects/Exceptions.h"
 #include "physics/Eos.h"
+#include "quantities/Attractor.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Iterate.h"
 #include "system/Factory.h"

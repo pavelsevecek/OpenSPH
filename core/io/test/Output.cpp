@@ -7,6 +7,7 @@
 #include "objects/utility/Algorithm.h"
 #include "objects/utility/PerElementWrapper.h"
 #include "physics/Eos.h"
+#include "quantities/Attractor.h"
 #include "quantities/Iterate.h"
 #include "sph/Materials.h"
 #include "sph/initial/Initial.h"

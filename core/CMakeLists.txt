@@ -240,6 +240,7 @@ set(CORE_HEADERS
     quantities/QuantityHelpers.h 
     quantities/QuantityIds.h 
     quantities/Storage.h 
+    quantities/Attractor.h 
     quantities/Utility.h
     run/IRun.h 
     run/Job.h 

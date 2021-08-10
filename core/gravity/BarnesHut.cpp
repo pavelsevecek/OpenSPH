@@ -2,6 +2,7 @@
 #include "gravity/Moments.h"
 #include "objects/geometry/Sphere.h"
 #include "objects/utility/Algorithm.h"
+#include "quantities/Attractor.h"
 #include "quantities/Storage.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"

@@ -158,6 +158,7 @@ HEADERS += \
     objects/utility/Progressible.h \
     objects/wrappers/ExtendedEnum.h \
     objects/wrappers/SharedToken.h \
+    quantities/Attractor.h \
     quantities/Utility.h \
     run/Job.inl.h \
     sph/initial/UvMapping.h \

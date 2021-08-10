@@ -1,4 +1,5 @@
 #include "timestepping/TimeStepping.h"
+#include "quantities/Attractor.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Iterate.h"
 #include "system/Factory.h"

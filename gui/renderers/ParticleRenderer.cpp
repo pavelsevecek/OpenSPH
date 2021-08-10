@@ -8,6 +8,7 @@
 #include "objects/wrappers/Finally.h"
 #include "post/Plot.h"
 #include "post/Point.h"
+#include "quantities/Attractor.h"
 #include "sph/boundary/Boundary.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"

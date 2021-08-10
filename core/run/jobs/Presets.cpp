@@ -413,7 +413,7 @@ SharedPtr<JobNode> Presets::makeSolarSystem(UniqueNameManager& nameMgr, const Si
     SharedPtr<JobNode> beltIc = makeNode<NBodyIc>(nameMgr.getName("Main belt"));
     VirtualSettings beltSettings = beltIc->getSettings();
     beltSettings.set(NBodySettingsId::PARTICLE_COUNT, int(particleCnt));
-    beltSettings.set(NBodySettingsId::TOTAL_MASS, 4.008e-4); // M_earth
+    beltSettings.set(NBodySettingsId::TOTAL_MASS, 4.008e-4_f); // M_earth
     beltSettings.set(NBodySettingsId::RADIAL_PROFILE, 0.5_f);
     beltSettings.set(NBodySettingsId::MIN_MUTUAL_DISTANCE, 10000._f);
     beltSettings.set("min_size", 1.e4_f); // m

@@ -106,6 +106,7 @@ SOURCES += \
     ../core/quantities/test/IMaterial.cpp \
     ../core/quantities/test/Iterate.cpp \
     ../core/quantities/test/Particle.cpp \
+    ../core/quantities/test/Attractor.cpp \
     ../core/quantities/test/Quantity.cpp \
     ../core/quantities/test/QuantityHelpers.cpp \
     ../core/quantities/test/Storage.cpp \

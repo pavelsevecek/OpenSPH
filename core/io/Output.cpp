@@ -5,6 +5,7 @@
 #include "io/Serializer.h"
 #include "objects/finders/Order.h"
 #include "post/TwoBody.h"
+#include "quantities/Attractor.h"
 #include "quantities/IMaterial.h"
 #include "system/Factory.h"
 #include <fstream>

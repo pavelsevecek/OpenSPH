@@ -1,5 +1,6 @@
 #pragma once
 
+#include "quantities/Attractor.h"
 #include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN

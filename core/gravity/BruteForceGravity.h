@@ -7,6 +7,7 @@
 
 #include "gravity/IGravity.h"
 #include "physics/Constants.h"
+#include "quantities/Attractor.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/GravityKernel.h"
 #include "thread/ThreadLocal.h"
