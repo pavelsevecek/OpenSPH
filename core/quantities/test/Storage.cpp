@@ -387,7 +387,7 @@ TEST_CASE("Storage merge attractors", "[storage]") {
     REQUIRE(storage2.getAttractorCnt() == 0);
     ArrayView<const Attractor> attractors = storage1.getAttractors();
     REQUIRE(attractors[0].mass == 4._f);
-    REQUIRE(attractors[0].mass == 3._f);
+    REQUIRE(attractors[1].mass == 3._f);
 
     storage1.insert<Vector>(QuantityId::POSITION, OrderEnum::ZERO, Array<Vector>({ Vector(0._f) }));
     storage2.insert<Vector>(QuantityId::POSITION, OrderEnum::ZERO, Array<Vector>({ Vector(0._f) }));

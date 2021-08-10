@@ -27,7 +27,7 @@ ITimeStepping::~ITimeStepping() = default;
 
 void ITimeStepping::step(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
     Timer timer;
-    // drift point masses
+    // drift attractors
     for (Attractor& a : storage->getAttractors()) {
         a.position += 0.5_f * a.velocity * timeStep;
     }
@@ -35,7 +35,7 @@ void ITimeStepping::step(IScheduler& scheduler, ISolver& solver, Statistics& sta
     // compute partiles
     this->stepParticles(scheduler, solver, stats);
 
-    // kick & drift point masses
+    // kick & drift attractors
     for (Attractor& a : storage->getAttractors()) {
         a.velocity += a.acceleration * timeStep;
         a.position += 0.5_f * a.velocity * timeStep;

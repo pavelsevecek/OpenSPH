@@ -1,3 +1,10 @@
+## 2021-08-11
+- added special point-mass particles ("attractors"), created via 'create single particle' node
+- added toroidal domain
+- added node that sets up Keplerian velocities
+- generalized N-body ICs, it can now use any domain
+- added asteroid belt to the 'Solar system' preset
+
 ## 2021-08-07
 - suppressing low-frequency noise in images rendered with volumetric renderer
 

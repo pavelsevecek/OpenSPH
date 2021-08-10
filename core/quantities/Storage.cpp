@@ -492,7 +492,8 @@ void Storage::merge(Storage&& other) {
 
     // allow merging into empty storage for convenience
     if (this->getQuantityCnt() == 0) {
-        other.attractors.pushAll(this->attractors);
+        // order is not important, but this way is consistent with ordering of particles
+        other.attractors.insert(0, this->attractors.begin(), this->attractors.end());
         *this = std::move(other);
         other.removeAll();
         return;
@@ -570,7 +571,7 @@ void Storage::merge(Storage&& other) {
     // cache the view
     this->update();
 
-    // merge point masses as well
+    // merge attractors as well
     attractors.pushAll(other.attractors);
 
     // since we moved the buffers away, remove all particles from other to keep it in consistent state
