@@ -22,7 +22,7 @@ class Quantity;
 class Box;
 class StorageSequence;
 class ConstStorageSequence;
-class Attractor;
+struct Attractor;
 enum class OrderEnum;
 enum class VisitorEnum;
 

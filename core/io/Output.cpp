@@ -482,7 +482,7 @@ Attractor readAttractor(Deserializer<Precise>& deserializer) {
             }
         });
         // needs to be handled the same way as BodySettings if Enums are ever included in the attractor
-        SPH_ASSERT(!a.settings.hasType<EnumWrapper>(paramId))
+        SPH_ASSERT(!a.settings.hasType<EnumWrapper>(paramId));
     }
     return a;
 }

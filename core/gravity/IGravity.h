@@ -10,7 +10,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class Attractor;
+struct Attractor;
 
 /// \brief Interface for computing gravitational interactions of particles.
 class IGravity : public Polymorphic {

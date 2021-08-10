@@ -37,16 +37,14 @@ Vector getCenterOfMass(const Storage& storage) {
             m_sum += pm.mass;
             r_com += pm.mass * pm.position;
         }
-        r_com[H] = 0._f;
-        return r_com / m_sum;
+        return clearH(r_com / m_sum);
     } else {
         SPH_ASSERT(storage.getAttractors().empty()); // cannot combine "weightless" particles with attractors
         Vector r_com(0._f);
         for (Size i = 0; i < r.size(); ++i) {
             r_com += r[i];
         }
-        r_com[H] = 0._f;
-        return r_com / r.size();
+        return clearH(r_com / r.size());
     }
 }
 
