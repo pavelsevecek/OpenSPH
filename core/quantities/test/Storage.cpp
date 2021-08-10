@@ -2,6 +2,7 @@
 #include "catch.hpp"
 #include "objects/Exceptions.h"
 #include "physics/Eos.h"
+#include "quantities/Attractor.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Iterate.h"
 #include "sph/Materials.h"
@@ -373,6 +374,30 @@ TEST_CASE("Storage merge to empty", "[storage]") {
     REQUIRE(empty.getMaterialCnt() == 1);
 }
 
+TEST_CASE("Storage merge attractors", "[storage]") {
+    Storage storage1;
+    Storage storage2;
+    storage1.addAttractor(Attractor(Vector(0._f), Vector(1._f), 2._f, 3._f));
+    storage2.merge(std::move(storage1));
+    REQUIRE(storage2.getAttractorCnt() == 1);
+
+    storage1.addAttractor(Attractor(Vector(0._f), Vector(1._f), 2._f, 4._f));
+    storage1.merge(std::move(storage2));
+    REQUIRE(storage1.getAttractorCnt() == 2);
+    REQUIRE(storage2.getAttractorCnt() == 0);
+    ArrayView<const Attractor> attractors = storage1.getAttractors();
+    REQUIRE(attractors[0].mass == 4._f);
+    REQUIRE(attractors[0].mass == 3._f);
+
+    storage1.insert<Vector>(QuantityId::POSITION, OrderEnum::ZERO, Array<Vector>({ Vector(0._f) }));
+    storage2.insert<Vector>(QuantityId::POSITION, OrderEnum::ZERO, Array<Vector>({ Vector(0._f) }));
+    storage2.merge(std::move(storage1));
+    REQUIRE(storage2.getAttractorCnt() == 2);
+    REQUIRE(storage2.getParticleCnt() == 2);
+    REQUIRE(storage1.getAttractorCnt() == 0);
+    REQUIRE(storage1.getParticleCnt() == 0);
+}
+
 TEST_CASE("Storage remove", "[storage]") {
     Storage storage1(getMaterial(MaterialEnum::BASALT));
     storage1.getMaterial(0)->setParam(BodySettingsId::PARTICLE_COUNT, 5);
@@ -406,10 +431,12 @@ TEST_CASE("Storage removeAll", "[storage]") {
     storage.insert<Float>(QuantityId::POSITION, OrderEnum::SECOND, 3._f);
     storage.insert<Float>(QuantityId::MASS, OrderEnum::FIRST, 1._f);
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, 2._f);
+    storage.addAttractor(Attractor());
 
     storage.removeAll();
     REQUIRE(storage.getParticleCnt() == 0);
     REQUIRE(storage.getQuantityCnt() == 0);
+    REQUIRE(storage.getAttractorCnt() == 0);
     storage.insert<Float>(QuantityId::POSITION, OrderEnum::SECOND, { 3._f, 2._f, 5._f });
     REQUIRE(storage.getParticleCnt() == 3);
     REQUIRE(storage.getQuantityCnt() == 1);

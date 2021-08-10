@@ -739,6 +739,9 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
     if (version >= BinaryIoVersion::V2021_03_20) {
         stats.set(StatisticsId::WALLCLOCK_TIME, int(wallclockTime));
     }
+    if (version < BinaryIoVersion::V2021_08_08) {
+        attractorCnt = 0; // there should be zeros anyway, but let's make sure
+    }
     try {
         deserializer.skip(BinaryOutput::PADDING_SIZE);
     } catch (SerializerException&) {
@@ -772,7 +775,7 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
             }
         } else {
             try {
-                deserializer.read(identifier);
+                deserializer.deserialize(identifier);
             } catch (SerializerException& e) {
                 return makeFailed(e.what());
             }

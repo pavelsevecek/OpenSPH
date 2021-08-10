@@ -24,6 +24,11 @@ int printBinaryFileInfo(ILogger& logger, const Path& path) {
     table.setCell(0, row, "Particle count:");
     table.setCell(1, row, std::to_string(info->particleCnt));
     ++row;
+    if (info->version >= BinaryIoVersion::V2021_08_08) {
+        table.setCell(0, row, "Attractor count:");
+        table.setCell(1, row, std::to_string(info->attractorCnt));
+        ++row;
+    }
     table.setCell(0, row, "Material count:");
     table.setCell(1, row, std::to_string(info->materialCnt));
     ++row;
@@ -76,6 +81,11 @@ int printCompressedFileInfo(ILogger& logger, const Path& path) {
     table.setCell(0, row, "Particle count:");
     table.setCell(1, row, std::to_string(info->particleCnt));
     ++row;
+    if (info->version >= CompressedIoVersion::V2021_08_08) {
+        table.setCell(0, row, "Attractor count:");
+        table.setCell(1, row, std::to_string(info->attractorCnt));
+        ++row;
+    }
     table.setCell(0, row, "Run time:");
     table.setCell(1, row, std::to_string(info->runTime));
     ++row;

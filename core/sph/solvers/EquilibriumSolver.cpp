@@ -26,6 +26,7 @@ EquilibriumEnergySolver::EquilibriumEnergySolver(IScheduler& scheduler,
 EquilibriumEnergySolver::~EquilibriumEnergySolver() = default;
 
 Outcome EquilibriumEnergySolver::solve(Storage& storage, Statistics& stats) {
+    SPH_ASSERT(storage.getAttractorCnt() == 0);
     // compute gravity to use as right-hand side
     gravity->build(scheduler, storage);
     ArrayView<Vector> r, v, dv;
@@ -285,6 +286,8 @@ EquilibriumStressSolver::EquilibriumStressSolver(IScheduler& scheduler,
 EquilibriumStressSolver::~EquilibriumStressSolver() = default;
 
 Outcome EquilibriumStressSolver::solve(Storage& storage, Statistics& stats) {
+    SPH_ASSERT(storage.getAttractorCnt() == 0);
+
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
 
     // build the neighbor finding structure

@@ -415,7 +415,7 @@ SharedPtr<JobNode> Presets::makeSolarSystem(UniqueNameManager& nameMgr, const Si
     beltSettings.set(NBodySettingsId::PARTICLE_COUNT, int(particleCnt));
     beltSettings.set(NBodySettingsId::TOTAL_MASS, 4.008e-4_f); // M_earth
     beltSettings.set(NBodySettingsId::RADIAL_PROFILE, 0.5_f);
-    beltSettings.set(NBodySettingsId::MIN_MUTUAL_DISTANCE, 10000._f);
+    beltSettings.set(NBodySettingsId::MIN_SEPARATION, 10000._f);
     beltSettings.set("min_size", 1.e4_f); // m
     beltSettings.set("max_size", 4.e5_f); // m
     beltSettings.set(NBodySettingsId::VELOCITY_DISPERSION, 0._f);

@@ -23,7 +23,7 @@ Float getTotalMass(const Storage& storage);
 Vector getTotalMomentum(const Storage& storage);
 
 /// \brief Changes the inertial system by given offset of positions and velocities.
-void moveInertialFrame(Storage& storage, const Vector positionOffset, const Vector velocityOffset);
+void moveInertialFrame(Storage& storage, const Vector& positionOffset, const Vector& velocityOffset);
 
 /// \brief Modifies particle positions and velocities so that the center of mass is at the origin and the
 /// total momentum is zero.

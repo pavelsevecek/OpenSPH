@@ -492,13 +492,13 @@ void Storage::merge(Storage&& other) {
 
     // allow merging into empty storage for convenience
     if (this->getQuantityCnt() == 0) {
-        /// \todo test
         other.attractors.pushAll(this->attractors);
         *this = std::move(other);
+        other.removeAll();
         return;
     } else if (other.getQuantityCnt() == 0) {
-        /// \todo test
         attractors.pushAll(other.attractors);
+        other.removeAll();
         return;
     }
 

@@ -182,7 +182,7 @@ public:
     virtual bool read(ArrayView<char> buffer) = 0;
 
     /// \brief Skips given number of bytes in the stream.
-    virtual void skip(const Size cnt) = 0;
+    virtual bool skip(const Size cnt) = 0;
 
     /// \brief Checks if the stream is in a valid state.
     virtual bool good() const = 0;
@@ -204,10 +204,8 @@ public:
         return bool(ifs.read(&buffer[0], buffer.size()));
     }
 
-    virtual void skip(const Size cnt) override {
-        if (!ifs.seekg(cnt, ifs.cur)) {
-            throw SerializerException("Failed to skip " + std::to_string(cnt) + " bytes in the stream");
-        }
+    virtual bool skip(const Size cnt) override {
+        return bool(ifs.seekg(cnt, ifs.cur));
     }
 
     virtual bool good() const override {
@@ -277,7 +275,9 @@ public:
 
     /// Skip a number of bytes in the stream; used to skip unused parameters or padding bytes.
     void skip(const Size size) {
-        stream->skip(size);
+        if (!stream->skip(size)) {
+            this->fail("Failed to skip " + std::to_string(size) + " bytes in the stream");
+        }
     }
 
 private:

@@ -152,7 +152,10 @@ public:
     }
 
     virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
-        return { { "orbiting", JobType::PARTICLES }, { "gravity source", JobType::PARTICLES } };
+        return {
+            { "orbiting", JobType::PARTICLES },
+            { "gravity source", JobType::PARTICLES },
+        };
     }
 
     virtual VirtualSettings getSettings() override;
@@ -223,7 +226,7 @@ enum class NBodySettingsId {
     RADIAL_PROFILE,
     POWER_LAW_INTERVAL,
     POWER_LAW_EXPONENT,
-    MIN_MUTUAL_DISTANCE,
+    MIN_SEPARATION,
     VELOCITY_MULTIPLIER,
     VELOCITY_DISPERSION,
 };

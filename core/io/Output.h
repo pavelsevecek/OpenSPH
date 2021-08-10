@@ -327,8 +327,9 @@ enum class BinaryIoVersion : int64_t {
 /// The size of a single value depends on the value type, i.e. scalar quantities are stored as Floats, Vector
 /// quantities are stored as 4x Float (components X, Y, Z and H), etc.
 ///
-/// Finally, the end of the file contains the attractors (point masses). Each attractor is stored as position
-/// (Vector), velocity (Vector), radius (Float) and mass (Float).
+/// Finally, the end of the file contains the attractors (point masses). Each attractor stores its position
+/// (Vector), velocity (Vector), radius (Float) and mass (Float), followed by the number of additional
+/// parameters and the list of parameters, written the same way as material parameters
 ///
 /// The file ends immediately after the last attractor is saved.
 ///

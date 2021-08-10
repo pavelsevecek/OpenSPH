@@ -75,7 +75,7 @@ Vector getTotalMomentum(const Storage& storage) {
     return p_tot;
 }
 
-void moveInertialFrame(Storage& storage, const Vector positionOffset, const Vector velocityOffset) {
+void moveInertialFrame(Storage& storage, const Vector& positionOffset, const Vector& velocityOffset) {
     transform(
         storage,
         [&positionOffset](const Vector& r) { return r + clearH(positionOffset); },
@@ -90,7 +90,7 @@ void moveToCenterOfMassFrame(Storage& storage) {
         r = storage.getValue<Vector>(QuantityId::POSITION);
         v = storage.getDt<Vector>(QuantityId::POSITION);
     }
-    ArrayView<Attractor> pm = storage.getAttractors();
+    ArrayView<Attractor> attractors = storage.getAttractors();
 
     Vector r_com(0._f);
     Vector v_com(0._f);
@@ -100,7 +100,7 @@ void moveToCenterOfMassFrame(Storage& storage) {
         v_com += m[i] * v[i];
         m_tot += m[i];
     }
-    for (const Attractor& a : pm) {
+    for (const Attractor& a : attractors) {
         r_com += a.mass * a.position;
         v_com += a.mass * a.velocity;
         m_tot += a.mass;
@@ -115,7 +115,7 @@ void moveToCenterOfMassFrame(Storage& storage) {
         r[i] -= r_com;
         v[i] -= v_com;
     }
-    for (Attractor& a : pm) {
+    for (Attractor& a : attractors) {
         a.position -= r_com;
         a.velocity -= v_com;
     }

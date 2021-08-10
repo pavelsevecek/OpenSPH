@@ -80,9 +80,9 @@ void GravitySolver<TSphSolver>::loop(Storage& storage, Statistics& stats) {
     gravity->evalSelfGravity(this->scheduler, dv, stats);
     stats.set(StatisticsId::GRAVITY_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
 
-    // evaluate gravity of point masses
-    ArrayView<Attractor> points = storage.getAttractors();
-    gravity->evalAttractors(this->scheduler, points, dv);
+    // evaluate gravity of attractors
+    ArrayView<Attractor> attractors = storage.getAttractors();
+    gravity->evalAttractors(this->scheduler, attractors, dv);
 
     // second, compute SPH derivatives using given solver
     timer.restart();

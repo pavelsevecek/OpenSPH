@@ -261,7 +261,6 @@ VirtualSettings SingleParticleIc::getSettings() {
 
 void SingleParticleIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     result = makeShared<ParticleData>();
-    result->storage = Storage();
 
     Attractor a;
     a.position = r0;
@@ -500,6 +499,11 @@ void KeplerianVelocityIc::evaluate(const RunSettings& UNUSED(global), IRunCallba
         const Float v_kepl = sqrt(Constants::gravity * m_source / getLength(r[i]));
         const Vector dir = getNormalized(cross(Vector::unit(Z), r[i]));
         v[i] = v_source + dir * v_kepl;
+    }
+    for (Attractor& a : orbiting.getAttractors()) {
+        const Float v_kepl = sqrt(Constants::gravity * m_source / getLength(a.position));
+        const Vector dir = getNormalized(cross(Vector::unit(Z), a.position));
+        a.velocity = v_source + dir * v_kepl;
     }
 }
 
@@ -759,9 +763,9 @@ AutoPtr<NBodySettings> NBodySettings::instance(new NBodySettings{
         "Interval of sizes generated particles." },
     { NBodySettingsId::POWER_LAW_EXPONENT,  "power_law.exponent",     2._f,
         "Exponent of the power-law, used to generate particle sizes." },
-    { NBodySettingsId::MIN_MUTUAL_DISTANCE, "min_mutual_distance",    1._f,
-        "Minimal relative distance of the generate particles. Value X means the minimal allowed distance of "
-        "two particles with radii r_1 and r_2 is X*(r_1 + r_2). If lower than 1, the particle may overlap." },
+    { NBodySettingsId::MIN_SEPARATION,      "min_separation",         1._f,
+        "Minimal relative distance of the generated particles. Value X means the minimal allowed distance of "
+        "two particles with radii r_1 and r_2 is X*(r_1+r_2). If lower than 1, the particle may overlap." },
     { NBodySettingsId::VELOCITY_MULTIPLIER, "velocity.multiplier",    1._f,
         "Multiplier of the Keplerian velocity of particles. " },
     { NBodySettingsId::VELOCITY_DISPERSION, "velocity.dispersion",    10._f,
@@ -792,7 +796,7 @@ VirtualSettings NBodyIc::getSettings() {
         makeEntry(settings, NBodySettingsId::POWER_LAW_INTERVAL, "Maximal size [m]", IntervalBound::UPPER));
 
     distributionCat.connect<Float>("Power-law exponent", settings, NBodySettingsId::POWER_LAW_EXPONENT);
-    distributionCat.connect<Float>("Minimal mutual distance", settings, NBodySettingsId::MIN_MUTUAL_DISTANCE);
+    distributionCat.connect<Float>("Minimal separation", settings, NBodySettingsId::MIN_SEPARATION);
 
     VirtualSettings::Category& dynamicsCat = connector.addCategory("Dynamics");
     dynamicsCat.connect<Float>("Total mass [M_earth]", settings, NBodySettingsId::TOTAL_MASS)
@@ -826,7 +830,7 @@ void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
 
     const Size particleCnt = settings.get<int>(NBodySettingsId::PARTICLE_COUNT);
     const Float radialExponent = settings.get<Float>(NBodySettingsId::RADIAL_PROFILE);
-    const Float separation = settings.get<Float>(NBodySettingsId::MIN_MUTUAL_DISTANCE);
+    const Float separation = settings.get<Float>(NBodySettingsId::MIN_SEPARATION);
     const Float velocityMult = settings.get<Float>(NBodySettingsId::VELOCITY_MULTIPLIER);
     const Float velocityDispersion = settings.get<Float>(NBodySettingsId::VELOCITY_DISPERSION);
     const Float totalMass = settings.get<Float>(NBodySettingsId::TOTAL_MASS);
