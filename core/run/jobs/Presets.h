@@ -40,7 +40,7 @@ SharedPtr<JobNode> makeGalaxyCollision(UniqueNameManager& nameMgr, const Size pa
 SharedPtr<JobNode> makeAccretionDisk(UniqueNameManager& nameMgr, const Size particleCnt = 10000);
 
 /// \brief Creates a node tree for the Solar System
-SharedPtr<JobNode> makeSolarSystem(UniqueNameManager& nameMgr);
+SharedPtr<JobNode> makeSolarSystem(UniqueNameManager& nameMgr, const Size particleCnt = 10000);
 
 } // namespace Presets
 

@@ -21,8 +21,8 @@ struct TestGravity : public IGravity {
         }
     }
 
-    virtual void evalExternal(IScheduler& UNUSED(scheduler),
-        ArrayView<Attractor> UNUSED(ps),
+    virtual void evalAttractors(IScheduler& UNUSED(scheduler),
+        ArrayView<Attractor> UNUSED(attractors),
         ArrayView<Vector> UNUSED(dv)) const override {
         NOT_IMPLEMENTED;
     }

@@ -506,18 +506,19 @@ void ToroidalDomain::getSubset(ArrayView<const Vector> vs, Array<Size>& output, 
     }
 }
 
-void ToroidalDomain::getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const {
+void ToroidalDomain::getDistanceToBoundary(ArrayView<const Vector> UNUSED(vs),
+    Array<Float>& UNUSED(distances)) const {
     NOT_IMPLEMENTED;
 }
 
-void ToroidalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices) const {
+void ToroidalDomain::project(ArrayView<Vector> UNUSED(vs), Optional<ArrayView<Size>> UNUSED(indices)) const {
     NOT_IMPLEMENTED;
 }
 
-void ToroidalDomain::addGhosts(ArrayView<const Vector> vs,
-    Array<Ghost>& ghosts,
-    const Float eta,
-    const Float eps) const {
+void ToroidalDomain::addGhosts(ArrayView<const Vector> UNUSED(vs),
+    Array<Ghost>& UNUSED(ghosts),
+    const Float UNUSED(eta),
+    const Float UNUSED(eps)) const {
     NOT_IMPLEMENTED;
 }
 

@@ -463,6 +463,10 @@ Size Storage::getParticleCnt() const {
     }
 }
 
+Size Storage::getAttractorCnt() const {
+    return attractors.size();
+}
+
 bool Storage::empty() const {
     return this->getParticleCnt() == 0;
 }

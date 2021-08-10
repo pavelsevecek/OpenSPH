@@ -103,6 +103,9 @@ void HardSphereSolver::integrate(Storage& storage, Statistics& stats) {
     SPH_ASSERT_UNEVAL(std::all_of(dv.begin(), dv.end(), [](const Vector& a) { return a == Vector(0._f); }));
     gravity->evalSelfGravity(scheduler, dv, stats);
 
+    ArrayView<Attractor> attractors = storage.getAttractors();
+    gravity->evalAttractors(scheduler, attractors, dv);
+
     // null all derivatives of smoothing lengths (particle radii)
     ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < v.size(); ++i) {
@@ -606,6 +609,9 @@ void SoftSphereSolver::integrate(Storage& storage, Statistics& stats) {
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     SPH_ASSERT_UNEVAL(std::all_of(dv.begin(), dv.end(), [](const Vector& a) { return a == Vector(0._f); }));
     gravity->evalSelfGravity(scheduler, dv, stats);
+
+    ArrayView<Attractor> attractors = storage.getAttractors();
+    gravity->evalAttractors(scheduler, attractors, dv);
 
     stats.set(StatisticsId::GRAVITY_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
     timer.restart();

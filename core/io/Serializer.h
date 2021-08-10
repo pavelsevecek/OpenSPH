@@ -7,6 +7,7 @@
 
 #include "io/Path.h"
 #include "objects/containers/Array.h"
+#include "objects/geometry/Tensor.h"
 #include "objects/wrappers/Optional.h"
 #include "system/Settings.h"
 #include <fstream>
@@ -42,32 +43,92 @@ using Serialized = typename SerializedType<Precise, T>::Type;
 
 } // namespace Detail
 
+class IOutputStream : public Polymorphic {
+public:
+    virtual bool write(ArrayView<const char> buffer) = 0;
+};
+
+class FileOutputStream : public IOutputStream {
+private:
+    std::ofstream ofs;
+
+public:
+    explicit FileOutputStream(const Path& path)
+        : ofs(path.native(), std::ios::binary) {}
+
+    virtual bool write(ArrayView<const char> buffer) override {
+        ofs.write(&buffer[0], buffer.size());
+        return bool(ofs);
+    }
+};
+
 /// \brief Object providing serialization of primitives into a stream
 template <bool Precise>
 class Serializer : public Noncopyable {
 private:
-    std::ofstream ofs;
+    AutoPtr<IOutputStream> stream;
     Array<char> buffer;
 
 public:
-    Serializer(const Path& path)
-        : ofs(path.native(), std::ios::binary) {}
+    using View = ArrayView<const char>;
+
+    explicit Serializer(AutoPtr<IOutputStream>&& stream)
+        : stream(std::move(stream)) {}
 
     template <typename... TArgs>
-    void write(const TArgs&... args) {
+    View serialize(const TArgs&... args) {
         buffer.clear();
         this->serializeImpl(buffer, args...);
-        ofs.write(&buffer[0], buffer.size());
+        stream->write(buffer);
+        return buffer;
     }
 
-    void addPadding(const Size size) {
+    View write(const bool value) {
+        return this->serialize(value);
+    }
+    View write(const int value) {
+        return this->serialize(value);
+    }
+    View write(const Size value) {
+        return this->serialize(value);
+    }
+    View write(const Float& value) {
+        return this->serialize(value);
+    }
+    View write(const Interval& value) {
+        return this->serialize(value.lower(), value.upper());
+    }
+    View write(const Vector& value) {
+        return this->serialize(value[X], value[Y], value[Z], value[H]);
+    }
+    View write(const SymmetricTensor& t) {
+        return this->serialize(t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2));
+    }
+    View write(const TracelessTensor& t) {
+        return this->serialize(t(0, 0), t(1, 1), t(0, 1), t(0, 2), t(1, 2));
+    }
+    View write(const Tensor& t) {
+        return this->serialize(
+            t(0, 0), t(0, 1), t(0, 2), t(1, 0), t(1, 1), t(1, 2), t(2, 0), t(2, 1), t(2, 2));
+    }
+    View write(const EnumWrapper& e) {
+        // Type hash can be different between invocations, so we cannot serialize it. Write 0 (for backward
+        // compatibility)
+        return this->serialize(e.value, 0);
+    }
+    template <std::size_t N>
+    View write(char (&data)[N]) {
+        return this->serialize(data);
+    }
+    View write(const std::string& s) {
+        return this->serialize(s);
+    }
+
+    View addPadding(const Size size) {
         buffer.resize(size);
         buffer.fill('\0');
-        ofs.write(&buffer[0], size);
-    }
-
-    void flush() {
-        ofs.flush();
+        stream->write(buffer);
+        return buffer;
     }
 
 private:
@@ -97,7 +158,6 @@ private:
         this->serializeImpl(bytes, args...);
     }
 
-
     void serializeImpl(Array<char>& UNUSED(bytes)) {}
 };
 
@@ -108,14 +168,50 @@ private:
 
 public:
     /// \param error Error message
-    /// \param position Position in the stream where the error appeared
-    SerializerException(const std::string& error, const Size position)
-        : error(error) {
-        this->error += " at position " + std::to_string(position);
-    }
+    SerializerException(const std::string& error)
+        : error(error) {}
 
     virtual const char* what() const noexcept override {
         return error.c_str();
+    }
+};
+
+class IInputStream : public Polymorphic {
+public:
+    /// \brief Reads data from the current position into the given buffer.
+    virtual bool read(ArrayView<char> buffer) = 0;
+
+    /// \brief Skips given number of bytes in the stream.
+    virtual void skip(const Size cnt) = 0;
+
+    /// \brief Checks if the stream is in a valid state.
+    virtual bool good() const = 0;
+};
+
+class FileInputStream : public IInputStream {
+private:
+    std::ifstream ifs;
+
+public:
+    explicit FileInputStream(const Path& path)
+        : ifs(path.native(), std::ios::binary) {
+        if (!ifs) {
+            throw SerializerException("Cannot open file " + path.native() + " for reading.");
+        }
+    }
+
+    virtual bool read(ArrayView<char> buffer) override {
+        return bool(ifs.read(&buffer[0], buffer.size()));
+    }
+
+    virtual void skip(const Size cnt) override {
+        if (!ifs.seekg(cnt, ifs.cur)) {
+            throw SerializerException("Failed to skip " + std::to_string(cnt) + " bytes in the stream");
+        }
+    }
+
+    virtual bool good() const override {
+        return bool(ifs);
     }
 };
 
@@ -123,17 +219,12 @@ public:
 template <bool Precise>
 class Deserializer : public Noncopyable {
 private:
-    std::ifstream ifs;
+    AutoPtr<IInputStream> stream;
     Array<char> buffer;
 
 public:
-    /// Opens a stream associated with given path and prepares the file for deserialization.
-    Deserializer(const Path& path)
-        : ifs(path.native(), std::ios::binary) {
-        if (!ifs) {
-            this->fail("Cannot open file " + path.native() + " for reading.");
-        }
-    }
+    explicit Deserializer(AutoPtr<IInputStream>&& stream)
+        : stream(std::move(stream)) {}
 
     /// Deserialize a list of parameters from the binary file.
     /// \return True on success, false if at least one parameter couldn't be read.
@@ -141,59 +232,96 @@ public:
     ///       std::string parameter.
     /// \throw SerializerException if reading failed
     template <typename... TArgs>
-    void read(TArgs&... args) {
-        return this->readImpl(args...);
+    void deserialize(TArgs&... args) {
+        return this->deserializeImpl(args...);
+    }
+
+    void read(bool& value) {
+        return this->deserialize(value);
+    }
+    void read(int& value) {
+        return this->deserialize(value);
+    }
+    void read(Size& value) {
+        return this->deserialize(value);
+    }
+    void read(Float& value) {
+        return this->deserialize(value);
+    }
+    void read(Interval& value) {
+        Float lower, upper;
+        this->deserialize(lower, upper);
+        value = Interval(lower, upper);
+    }
+    void read(Vector& value) {
+        this->deserialize(value[X], value[Y], value[Z], value[H]);
+    }
+    void read(SymmetricTensor& t) {
+        this->deserialize(t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2));
+    }
+    void read(TracelessTensor& t) {
+        StaticArray<Float, 5> a;
+        this->deserialize(a[0], a[1], a[2], a[3], a[4]);
+        t = TracelessTensor(a[0], a[1], a[2], a[3], a[4]);
+    }
+    void read(Tensor& t) {
+        this->deserialize(t(0, 0), t(0, 1), t(0, 2), t(1, 0), t(1, 1), t(1, 2), t(2, 0), t(2, 1), t(2, 2));
+    }
+    void read(EnumWrapper& e) {
+        int dummy;
+        this->deserialize(e.value, dummy);
+    }
+    void read(std::string& s) {
+        this->deserialize(s);
     }
 
     /// Skip a number of bytes in the stream; used to skip unused parameters or padding bytes.
     void skip(const Size size) {
-        if (!ifs.seekg(size, ifs.cur)) {
-            this->fail("Failed to skip " + std::to_string(size) + " bytes in the stream");
-        }
+        stream->skip(size);
     }
 
 private:
     template <typename T0, typename... TArgs>
-    void readImpl(T0& t0, TArgs&... args) {
+    void deserializeImpl(T0& t0, TArgs&... args) {
         static_assert(!std::is_array<T0>::value, "String must be read as std::string");
         using ActType = Detail::Serialized<Precise, T0>;
         static_assert(sizeof(ActType) > 0, "Invalid size of ActType");
         buffer.resize(sizeof(ActType));
-        if (!ifs.read(&buffer[0], sizeof(ActType))) {
+        if (!stream->read(buffer)) {
             /// \todo maybe print the name of the primitive?
             this->fail("Failed to read a primitive of size " + std::to_string(sizeof(ActType)));
         }
         t0 = T0(reinterpret_cast<ActType&>(buffer[0]));
-        this->readImpl(args...);
+        this->deserializeImpl(args...);
     }
 
     template <std::size_t N, typename... TArgs>
-    void readImpl(char (&ar)[N], TArgs&... args) {
-        if (!ifs.read(ar, N)) {
+    void deserializeImpl(char (&ar)[N], TArgs&... args) {
+        if (!stream->read(ArrayView<char>(ar, N))) {
             this->fail("Failed to read an array of size " + std::to_string(N));
         }
-        this->readImpl(args...);
+        this->deserializeImpl(args...);
     }
 
     template <typename... TArgs>
-    void readImpl(std::string& s, TArgs&... args) {
+    void deserializeImpl(std::string& s, TArgs&... args) {
         buffer.clear();
         char c;
-        while (ifs.read(&c, 1) && c != '\0') {
+        while (stream->read(getSingleValueView(c)) && c != '\0') {
             buffer.push(c);
         }
         buffer.push('\0');
         s = &buffer[0];
-        if (!ifs) {
+        if (!stream->good()) {
             this->fail("Error while deseralizing string from stream, got: " + s);
         }
-        this->readImpl(args...);
+        this->deserializeImpl(args...);
     }
 
-    void readImpl() {}
+    void deserializeImpl() {}
 
     void fail(const std::string& error) {
-        throw SerializerException(error, ifs.tellg());
+        throw SerializerException(error);
     }
 };
 

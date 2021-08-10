@@ -534,8 +534,11 @@ public:
     /// \brief Returns the number of particles.
     ///
     /// The number of particle is always the same for all quantities.
-    /// \warning This count does not include the extra point masses.
+    /// \warning This count does not include the number of attractors.
     Size getParticleCnt() const;
+
+    /// \brief Returns the number of attractors.
+    Size getAttractorCnt() const;
 
     /// \brief Checks if the storage is empty, i.e. without particles.
     bool empty() const;

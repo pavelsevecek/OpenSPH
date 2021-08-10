@@ -95,25 +95,27 @@ void BarnesHut::evalSelfGravity(IScheduler& scheduler, ArrayView<Vector> dv, Sta
     stats.set<int>(StatisticsId::GRAVITY_NODE_COUNT, kdTree.getNodeCnt());
 }
 
-void BarnesHut::evalExternal(IScheduler& scheduler, ArrayView<Attractor> points, ArrayView<Vector> dv) const {
+void BarnesHut::evalAttractors(IScheduler& scheduler,
+    ArrayView<Attractor> attractors,
+    ArrayView<Vector> dv) const {
     SymmetrizeSmoothingLengths<const GravityLutKernel&> symmetricKernel(kernel);
-    // point-particle interactions
-    for (Attractor& p : points) {
-        parallelFor(scheduler, 0, r.size(), [&dv, &p, &symmetricKernel, this](const Size i) {
-            const Vector a = symmetricKernel.grad(r[i], setH(p.position(), p.radius()));
-            dv[i] -= G * p.mass() * a;
-            p.acceleration() += m[i] * a;
+    // attractor-particle interactions
+    for (Attractor& a : attractors) {
+        parallelFor(scheduler, 0, r.size(), [&dv, &a, &symmetricKernel, this](const Size i) {
+            const Vector f = symmetricKernel.grad(r[i], setH(a.position(), a.radius()));
+            dv[i] -= G * a.mass() * f;
+            a.acceleration() += m[i] * f;
         });
     }
-    // point-point interactions
-    for (Size i = 0; i < points.size(); ++i) {
-        for (Size j = i + 1; j < points.size(); ++j) {
-            Attractor& p1 = points[i];
-            Attractor& p2 = points[j];
-            const Vector a =
-                G * symmetricKernel.grad(setH(p1.position(), p1.radius()), setH(p2.position(), p2.radius()));
-            p1.acceleration() -= points[j].mass() * a;
-            p2.acceleration() += points[i].mass() * a;
+    // attractor-attractor interactions
+    for (Size i = 0; i < attractors.size(); ++i) {
+        for (Size j = i + 1; j < attractors.size(); ++j) {
+            Attractor& a1 = attractors[i];
+            Attractor& a2 = attractors[j];
+            const Vector f =
+                G * symmetricKernel.grad(setH(a1.position(), a1.radius()), setH(a2.position(), a2.radius()));
+            a1.acceleration() -= attractors[j].mass() * f;
+            a2.acceleration() += attractors[i].mass() * f;
         }
     }
 }

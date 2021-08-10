@@ -103,8 +103,8 @@ public:
 
     virtual void evalSelfGravity(IScheduler& pool, ArrayView<Vector> dv, Statistics& stats) const override;
 
-    virtual void evalExternal(IScheduler& scheduler,
-        ArrayView<Attractor> ps,
+    virtual void evalAttractors(IScheduler& scheduler,
+        ArrayView<Attractor> attractors,
         ArrayView<Vector> dv) const override;
 
     virtual Vector evalAcceleration(const Vector& r0) const override;

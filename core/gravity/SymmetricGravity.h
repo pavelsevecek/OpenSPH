@@ -76,10 +76,10 @@ public:
         }
     }
 
-    virtual void evalExternal(IScheduler& scheduler,
-        ArrayView<Attractor> ps,
+    virtual void evalAttractors(IScheduler& scheduler,
+        ArrayView<Attractor> attractors,
         ArrayView<Vector> dv) const override {
-        gravity->evalExternal(scheduler, ps, dv);
+        gravity->evalAttractors(scheduler, attractors, dv);
     }
 
     virtual Vector evalAcceleration(const Vector& r0) const override {

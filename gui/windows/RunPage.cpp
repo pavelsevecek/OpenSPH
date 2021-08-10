@@ -661,7 +661,7 @@ static void printStat(wxTextCtrl* text,
     }
 }
 
-void RunPage::makeStatsText(const Size particleCnt, const Size pointCnt, const Statistics& stats) {
+void RunPage::makeStatsText(const Size particleCnt, const Size attractorCnt, const Statistics& stats) {
     statsText->Clear();
     *statsText << " - particles: ";
     if (particleCnt > 0) {
@@ -670,8 +670,8 @@ void RunPage::makeStatsText(const Size particleCnt, const Size pointCnt, const S
         *statsText << "N/A\n";
     }
 
-    if (pointCnt > 0) {
-        *statsText << " - attractors: " << int(pointCnt) << "\n";
+    if (attractorCnt > 0) {
+        *statsText << " - attractors: " << int(attractorCnt) << "\n";
     }
 
     printStat<Float>(statsText, stats, " - run time:  ", StatisticsId::RUN_TIME, "s");
@@ -872,10 +872,10 @@ void RunPage::runStarted(const Storage& storage, const Path& path) {
     pane->onTimeStep(storage, dummy);
 
     const Size particleCnt = storage.getParticleCnt();
-    const Size pointCnt = storage.getAttractors().size();
-    executeOnMainThread([this, particleCnt, pointCnt] {
+    const Size attractorCnt = storage.getAttractorCnt();
+    executeOnMainThread([this, particleCnt, attractorCnt] {
         Statistics dummyStats;
-        this->makeStatsText(particleCnt, pointCnt, dummyStats);
+        this->makeStatsText(particleCnt, attractorCnt, dummyStats);
     });
 
     if (!path.empty()) {
@@ -893,9 +893,9 @@ void RunPage::onTimeStep(const Storage& storage, const Statistics& stats) {
     // limit the refresh rate to avoid blocking the main thread
     if (statsText && statsTimer.elapsed(TimerUnit::MILLISECOND) > 100) {
         const Size particleCnt = storage.getParticleCnt();
-        const Size pointCnt = storage.getAttractors().size();
-        executeOnMainThread([this, stats, particleCnt, pointCnt] { //
-            this->makeStatsText(particleCnt, pointCnt, stats);
+        const Size attractorCnt = storage.getAttractorCnt();
+        executeOnMainThread([this, stats, particleCnt, attractorCnt] { //
+            this->makeStatsText(particleCnt, attractorCnt, stats);
         });
         statsTimer.restart();
     }

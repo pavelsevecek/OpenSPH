@@ -220,11 +220,10 @@ private:
 enum class NBodySettingsId {
     PARTICLE_COUNT,
     TOTAL_MASS,
-    DOMAIN_RADIUS,
     RADIAL_PROFILE,
-    HEIGHT_SCALE,
     POWER_LAW_INTERVAL,
     POWER_LAW_EXPONENT,
+    MIN_MUTUAL_DISTANCE,
     VELOCITY_MULTIPLIER,
     VELOCITY_DISPERSION,
 };
@@ -243,7 +242,9 @@ public:
     }
 
     virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
-        return {};
+        return {
+            { "domain", JobType::GEOMETRY },
+        };
     }
 
     virtual VirtualSettings getSettings() override;

@@ -291,7 +291,7 @@ TEST_CASE("BinaryOutput dump stats", "[output]") {
     REQUIRE(info->wallclockTime == 24);
 }
 
-Storage generateLatestOutput(bool save = false) {
+static Storage generateLatestOutput(bool save = false) {
     BodySettings body1;
     body1.set(BodySettingsId::DENSITY, 1000._f);
     body1.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
@@ -310,6 +310,9 @@ Storage generateLatestOutput(bool save = false) {
     // legacy reasons
     storage2.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, body2.get<Float>(BodySettingsId::DENSITY));
 
+    storage2.addAttractor(Attractor(Vector(1._f), Vector(-1._f), 0.5_f, 2._f));
+    storage2.addAttractor(Attractor(Vector(0._f), Vector(1._f), 0.75_f, 5._f));
+
     Storage storage(std::move(storage1));
     storage.merge(std::move(storage2));
 
@@ -322,6 +325,11 @@ Storage generateLatestOutput(bool save = false) {
         output.dump(storage, stats);
     }
     return storage;
+}
+
+static bool attractorsEqual(const Attractor& a1, const Attractor& a2) {
+    return almostEqual(a1.position(), a2.position()) && almostEqual(a1.velocity(), a2.velocity()) &&
+           almostEqual(a1.mass(), a2.mass()) && almostEqual(a1.radius(), a2.radius());
 }
 
 static void testVersion(BinaryIoVersion version) {
@@ -353,12 +361,17 @@ static void testVersion(BinaryIoVersion version) {
         REQUIRE(mat1->getParam<bool>(BodySettingsId::DISTRIBUTE_MODE_SPH5) ==
                 mat2->getParam<bool>(BodySettingsId::DISTRIBUTE_MODE_SPH5));
     }
+
+    if (version >= BinaryIoVersion::V2021_08_08) {
+        REQUIRE(previous.getAttractorCnt() == current.getAttractorCnt());
+        for (Size i = 0; i < current.getAttractorCnt(); ++i) {
+            REQUIRE(attractorsEqual(current.getAttractors()[i], previous.getAttractors()[i]));
+        }
+    }
 }
 
-static void testVersion(CompressedIoVersion version) {}
-
 TEST_CASE("BinaryOutput backward compatibility", "[output]") {
-    generateLatestOutput(true);
+    // generateLatestOutput(true);
     testVersion(BinaryIoVersion::FIRST);
     testVersion(BinaryIoVersion::V2018_04_07);
     testVersion(BinaryIoVersion::V2018_10_24);
@@ -400,7 +413,6 @@ TEST_CASE("CompressedOutput no compression", "[output]") {
 }
 
 TEST_CASE("CompressedOutput RLE", "[output]") {
-    SKIP_TEST;
     testCompression(CompressionEnum::RLE);
 }
 
@@ -417,6 +429,8 @@ Storage generateLatestCompressedOutput(bool save = false) {
     body2.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::ELASTIC);
     body2.set(BodySettingsId::BODY_CENTER, Vector(0._f, 1._f, 2._f));
     Storage storage2 = Tests::getSolidStorage(30, body2, 1._f);
+    storage2.addAttractor(Attractor(Vector(1._f), Vector(-1._f), 0.5_f, 2._f));
+    storage2.addAttractor(Attractor(Vector(0._f), Vector(1._f), 0.75_f, 5._f));
 
     Storage storage(std::move(storage1));
     storage.merge(std::move(storage2));
@@ -455,15 +469,18 @@ static void testVersion(CompressedIoVersion version) {
     REQUIRE(compareBuffers<Float>(previous, current, QuantityId::ENERGY, OrderEnum::ZERO));
     REQUIRE(compareBuffers<Float>(previous, current, QuantityId::DAMAGE, OrderEnum::ZERO));
 
+    if (version > CompressedIoVersion::FIRST) {
+        ArrayView<const Attractor> attractors = previous.getAttractors();
+        REQUIRE(attractors.size() == 2);
+        REQUIRE(attractors[0].mass() == 2._f);
+        REQUIRE(attractors[1].mass() == 5._f);
+    }
+
     REQUIRE(input.getInfo(path)->runType == RunTypeEnum::RUBBLE_PILE);
 }
 
 TEST_CASE("CompressedOutput backward compatibility", "[output]") {
-    generateLatestCompressedOutput(true);
-    testVersion(CompressedIoVersion::FIRST);
-}
-
-TEST_CASE("CompressedOutput backward compatibility", "[output]") {
+    // generateLatestCompressedOutput(true);
     testVersion(CompressedIoVersion::FIRST);
     testVersion(CompressedIoVersion::V2021_08_08);
 }

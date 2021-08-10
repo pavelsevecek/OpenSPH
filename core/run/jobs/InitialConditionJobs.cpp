@@ -748,19 +748,16 @@ AutoPtr<NBodySettings> NBodySettings::instance(new NBodySettings{
     { NBodySettingsId::TOTAL_MASS,          "total_mass",             Constants::M_earth,
         "Total mass of the particles. Masses of individual particles depend on total number "
         "of particles and on particle sizes." },
-    { NBodySettingsId::DOMAIN_RADIUS,       "domain.radius",          100.e3_f,
-        "Radius of the domain where the particles are initially generated. This is not a boundary, particles "
-        "can leave the domain. " },
     { NBodySettingsId::RADIAL_PROFILE,      "radial_profile",         1.5_f,
         "Specifies a balance between particle concentration in the center of the domain and at the boundary. "
         "Higher values imply more dense center and fewer particles at the boundary." },
-    { NBodySettingsId::HEIGHT_SCALE,        "height_scale",           1._f,
-        "Specifies the relative scale of the domain in z-direction. For 1, the domain is spherical, lower values "
-        "can be used to create a disk-like domain." },
     { NBodySettingsId::POWER_LAW_INTERVAL,  "power_law.interval",     Interval(1.e3_f, 10.e3_f),
         "Interval of sizes generated particles." },
     { NBodySettingsId::POWER_LAW_EXPONENT,  "power_law.exponent",     2._f,
         "Exponent of the power-law, used to generate particle sizes." },
+    { NBodySettingsId::MIN_MUTUAL_DISTANCE, "min_mutual_distance",    1._f,
+        "Minimal relative distance of the generate particles. Value X means the minimal allowed distance of "
+        "two particles with radii r_1 and r_2 is X*(r_1 + r_2). If lower than 1, the particle may overlap." },
     { NBodySettingsId::VELOCITY_MULTIPLIER, "velocity.multiplier",    1._f,
         "Multiplier of the Keplerian velocity of particles. " },
     { NBodySettingsId::VELOCITY_DISPERSION, "velocity.dispersion",    10._f,
@@ -784,16 +781,14 @@ VirtualSettings NBodyIc::getSettings() {
     particleCat.connect<int>("Particle count", settings, NBodySettingsId::PARTICLE_COUNT);
 
     VirtualSettings::Category& distributionCat = connector.addCategory("Distribution");
-    distributionCat.connect<Float>("Domain radius [km]", settings, NBodySettingsId::DOMAIN_RADIUS)
-        .setUnits(1.e3_f);
     distributionCat.connect<Float>("Radial exponent", settings, NBodySettingsId::RADIAL_PROFILE);
-    distributionCat.connect<Float>("Height scale", settings, NBodySettingsId::HEIGHT_SCALE);
     distributionCat.addEntry("min_size",
         makeEntry(settings, NBodySettingsId::POWER_LAW_INTERVAL, "Minimal size [m]", IntervalBound::LOWER));
     distributionCat.addEntry("max_size",
         makeEntry(settings, NBodySettingsId::POWER_LAW_INTERVAL, "Maximal size [m]", IntervalBound::UPPER));
 
     distributionCat.connect<Float>("Power-law exponent", settings, NBodySettingsId::POWER_LAW_EXPONENT);
+    distributionCat.connect<Float>("Minimal mutual distance", settings, NBodySettingsId::MIN_MUTUAL_DISTANCE);
 
     VirtualSettings::Category& dynamicsCat = connector.addCategory("Dynamics");
     dynamicsCat.connect<Float>("Total mass [M_earth]", settings, NBodySettingsId::TOTAL_MASS)
@@ -821,10 +816,13 @@ static Vector sampleSphere(const Float radius, const Float exponent, IRng& rng) 
 }
 
 void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
+    SharedPtr<IDomain> domain = this->getInput<IDomain>("domain");
+    const Box bbox = domain->getBoundingBox();
+    const Sphere bsphere(bbox.center(), getLength(bbox.size()) / 2._f);
+
     const Size particleCnt = settings.get<int>(NBodySettingsId::PARTICLE_COUNT);
-    const Float radius = settings.get<Float>(NBodySettingsId::DOMAIN_RADIUS);
     const Float radialExponent = settings.get<Float>(NBodySettingsId::RADIAL_PROFILE);
-    const Float heightScale = settings.get<Float>(NBodySettingsId::HEIGHT_SCALE);
+    const Float separation = settings.get<Float>(NBodySettingsId::MIN_MUTUAL_DISTANCE);
     const Float velocityMult = settings.get<Float>(NBodySettingsId::VELOCITY_MULTIPLIER);
     const Float velocityDispersion = settings.get<Float>(NBodySettingsId::VELOCITY_DISPERSION);
     const Float totalMass = settings.get<Float>(NBodySettingsId::TOTAL_MASS);
@@ -833,22 +831,40 @@ void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     const PowerLawSfd sfd{ sizeExponent, interval };
 
     AutoPtr<IRng> rng = Factory::getRng(global);
-    IncrementalFinder finder(radius / 10);
+    IncrementalFinder finder(bsphere.radius() / 10);
+    Float maxRadius = 0._f;
+    Array<Vector> neighs;
+
     Size bailoutCounter = 0;
-    const Float sep = 1._f;
     const Size reportStep = max(particleCnt / 1000, 1u);
+
     do {
-        Vector v = sampleSphere(radius, radialExponent, *rng);
-        v[Z] *= heightScale;
+        Vector v = bbox.center() + sampleSphere(bsphere.radius(), radialExponent, *rng);
         v[H] = sfd(rng(3));
 
+        if (!domain->contains(v)) {
+            continue;
+        }
+
         // check for intersections
-        if (finder.getNeighCnt(v, sep * v[H]) > 0) {
+        finder.findAll(v, 2._f * separation * maxRadius, neighs);
+        bool overlaps = false;
+        for (const Vector& neigh : neighs) {
+            const Float distSqr = getSqrLength(neigh - v);
+            if (distSqr < sqr(separation * (v[H] + neigh[H]))) {
+                overlaps = true;
+                break;
+            }
+        }
+
+        if (overlaps) {
             // discard
             bailoutCounter++;
             continue;
         }
+
         finder.addPoint(v);
+        maxRadius = max(maxRadius, v[H]);
         bailoutCounter = 0;
 
         if (finder.size() % reportStep == reportStep - 1) {
@@ -880,11 +896,10 @@ void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
         SPH_ASSERT(masses[i] > 0._f);
 
         const Float r0 = getLength(positions[i]);
-        const Float m0 = totalMass * sphereVolume(r0) / sphereVolume(radius);
+        const Float m0 = totalMass * sphereVolume(r0) / sphereVolume(bsphere.radius());
         const Float v_kepl = velocityMult * sqrt(Constants::gravity * m0 / r0);
         const Vector dir = getNormalized(Vector(positions[i][Y], -positions[i][X], 0._f));
         Vector v_random = sampleSphere(velocityDispersion, 0.333_f, *rng);
-        v_random[Z] *= heightScale;
         velocities[i] = dir * v_kepl + v_random;
     }
 

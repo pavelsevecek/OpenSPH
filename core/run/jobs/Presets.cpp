@@ -368,10 +368,10 @@ static void setPositionAndVelocity(VirtualSettings& settings, const Size idx) {
     settings.set("v0", v);
 }
 
-SharedPtr<JobNode> Presets::makeSolarSystem(UniqueNameManager& nameMgr) {
+SharedPtr<JobNode> Presets::makeSolarSystem(UniqueNameManager& nameMgr, const Size particleCnt) {
     // https://aa.quae.nl/en/reken/hemelpositie.html
     SharedPtr<JobNode> join = makeNode<MultiJoinParticlesJob>(nameMgr.getName("create Solar System"));
-    join->getSettings().set("slot_cnt", 9);
+    join->getSettings().set("slot_cnt", 10);
     SharedPtr<JobNode> sunIc = makeNode<SingleParticleIc>(nameMgr.getName("Sun"));
     VirtualSettings sunSettings = sunIc->getSettings();
     sunSettings.set("mass", Constants::M_sun / Constants::M_earth);
@@ -410,13 +410,46 @@ SharedPtr<JobNode> Presets::makeSolarSystem(UniqueNameManager& nameMgr) {
     // setPositionAndVelocity(marsSettings, 1.6086343_f, 286.502 + 49.558 + 19.373);
     marsIc->connect(join, "particles 5");
 
+    SharedPtr<JobNode> beltIc = makeNode<NBodyIc>(nameMgr.getName("Main belt"));
+    VirtualSettings beltSettings = beltIc->getSettings();
+    beltSettings.set(NBodySettingsId::PARTICLE_COUNT, int(particleCnt));
+    beltSettings.set(NBodySettingsId::TOTAL_MASS, 4.008e-4); // M_earth
+    beltSettings.set(NBodySettingsId::RADIAL_PROFILE, 0.5_f);
+    beltSettings.set(NBodySettingsId::MIN_MUTUAL_DISTANCE, 10000._f);
+    beltSettings.set("min_size", 1.e4_f); // m
+    beltSettings.set("max_size", 4.e5_f); // m
+    beltSettings.set(NBodySettingsId::VELOCITY_DISPERSION, 0._f);
+    beltSettings.set(NBodySettingsId::VELOCITY_MULTIPLIER, 0._f);
+
+    SharedPtr<JobNode> beltDomain = makeNode<BooleanGeometryJob>(nameMgr.getName("Belt domain"));
+    SharedPtr<JobNode> outerBeltDomain = makeNode<CylinderJob>(nameMgr.getName("Outer limit"));
+    VirtualSettings outerBeltSettings = outerBeltDomain->getSettings();
+    outerBeltSettings.set("radius", 3.3_f * Constants::au / 1.e3_f); // km
+    outerBeltSettings.set("height", 0.5_f * Constants::au / 1.e3_f); // km
+    SharedPtr<JobNode> innerBeltDomain = makeNode<CylinderJob>(nameMgr.getName("Inner limit"));
+    VirtualSettings innerBeltSettings = innerBeltDomain->getSettings();
+    innerBeltSettings.set("radius", 1.8_f * Constants::au / 1.e3_f); // km
+    innerBeltSettings.set("height", 0.5_f * Constants::au / 1.e3_f); // km
+
+    outerBeltDomain->connect(beltDomain, "operand A");
+    innerBeltDomain->connect(beltDomain, "operand B");
+
+    beltDomain->connect(beltIc, "domain");
+
+    SharedPtr<JobNode> beltVelocities =
+        makeNode<KeplerianVelocityIc>(nameMgr.getName("Set orbital velocities"));
+    beltIc->connect(beltVelocities, "orbiting");
+    sunIc->connect(beltVelocities, "gravity source");
+
+    beltVelocities->connect(join, "particles 6");
+
     SharedPtr<JobNode> jupiterIc = makeNode<SingleParticleIc>(nameMgr.getName("Jupiter"));
     VirtualSettings jupiterSettings = jupiterIc->getSettings();
     jupiterSettings.set("mass", 1.898e27_f / Constants::M_earth);
     jupiterSettings.set("radius", 69911.e3_f / 1.e3_f);
     setPositionAndVelocity(jupiterSettings, 4);
     // setPositionAndVelocity(jupiterSettings, 5.0684375_f, 273.867 + 100.464 + 20.020);
-    jupiterIc->connect(join, "particles 6");
+    jupiterIc->connect(join, "particles 7");
 
     SharedPtr<JobNode> saturnIc = makeNode<SingleParticleIc>(nameMgr.getName("Saturn"));
     VirtualSettings saturnSettings = saturnIc->getSettings();
@@ -424,7 +457,7 @@ SharedPtr<JobNode> Presets::makeSolarSystem(UniqueNameManager& nameMgr) {
     saturnSettings.set("radius", 58232.e3_f / 1.e3_f);
     setPositionAndVelocity(saturnSettings, 5);
     // setPositionAndVelocity(saturnSettings, 9.9734145_f, 339.391 + 113.666 + 317.021);
-    saturnIc->connect(join, "particles 7");
+    saturnIc->connect(join, "particles 8");
 
     SharedPtr<JobNode> uranusIc = makeNode<SingleParticleIc>(nameMgr.getName("Uranus"));
     VirtualSettings uranusSettings = uranusIc->getSettings();
@@ -432,7 +465,7 @@ SharedPtr<JobNode> Presets::makeSolarSystem(UniqueNameManager& nameMgr) {
     uranusSettings.set("radius", 25362e3_f / 1.e3_f);
     setPositionAndVelocity(uranusSettings, 6);
     // setPositionAndVelocity(uranusSettings, 19.7612021_f, 98.999 + 74.006 + 141.050);
-    uranusIc->connect(join, "particles 8");
+    uranusIc->connect(join, "particles 9");
 
     SharedPtr<JobNode> neptuneIc = makeNode<SingleParticleIc>(nameMgr.getName("Neptune"));
     VirtualSettings neptuneSettings = neptuneIc->getSettings();
@@ -440,12 +473,13 @@ SharedPtr<JobNode> Presets::makeSolarSystem(UniqueNameManager& nameMgr) {
     neptuneSettings.set("radius", 24622e3_f / 1.e3_f);
     setPositionAndVelocity(neptuneSettings, 7);
     // setPositionAndVelocity(neptuneSettings, 29.9254883_f, 276.340 + 131.784 + 256.225);
-    neptuneIc->connect(join, "particles 9");
+    neptuneIc->connect(join, "particles 10");
 
     SharedPtr<JobNode> sim = makeNode<NBodyJob>(nameMgr.getName("orbital simulation"), EMPTY_SETTINGS);
     join->connect(sim, "particles");
     VirtualSettings simSettings = sim->getSettings();
-    simSettings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 3600._f);
+    simSettings.set(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR, 10._f);
+    simSettings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 36000._f);
     simSettings.set(RunSettingsId::RUN_END_TIME, Constants::year * 100._f);
     simSettings.set(RunSettingsId::RUN_LOGGER_VERBOSITY, 0);
     return sim;

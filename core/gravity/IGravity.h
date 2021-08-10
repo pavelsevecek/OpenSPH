@@ -31,8 +31,10 @@ public:
     /// \param stats Output statistics of the gravitational solver.
     virtual void evalSelfGravity(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const = 0;
 
-    /// \brief Evaluates the gravitational acceleration from external point masses.
-    virtual void evalExternal(IScheduler& scheduler, ArrayView<Attractor> ps, ArrayView<Vector> dv) const = 0;
+    /// \brief Evaluates the gravitational acceleration from attractors.
+    virtual void evalAttractors(IScheduler& scheduler,
+        ArrayView<Attractor> attractors,
+        ArrayView<Vector> dv) const = 0;
 
     /// \brief Evaluates the gravitational acceleration at given point.
     ///

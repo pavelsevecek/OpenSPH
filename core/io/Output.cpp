@@ -356,92 +356,29 @@ Expected<Path> GnuplotOutput::dump(const Storage& storage, const Statistics& sta
 
 namespace {
 
-/// \todo this should be really part of the serializer/deserializer, otherwise it's kinda pointless
-template <bool Precise>
-struct SerializerDispatcher {
-    Serializer<Precise>& serializer;
-
-    template <typename T>
-    void operator()(const T& value) {
-        serializer.write(value);
-    }
-    void operator()(const Interval& value) {
-        serializer.write(value.lower(), value.upper());
-    }
-    void operator()(const Vector& value) {
-        serializer.write(value[X], value[Y], value[Z], value[H]);
-    }
-    void operator()(const SymmetricTensor& t) {
-        serializer.write(t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2));
-    }
-    void operator()(const TracelessTensor& t) {
-        serializer.write(t(0, 0), t(1, 1), t(0, 1), t(0, 2), t(1, 2));
-    }
-    void operator()(const Tensor& t) {
-        serializer.write(t(0, 0), t(0, 1), t(0, 2), t(1, 0), t(1, 1), t(1, 2), t(2, 0), t(2, 1), t(2, 2));
-    }
-    void operator()(const EnumWrapper& e) {
-        // Type hash can be different between invocations, so we cannot serialize it. Write 0 (for backward
-        // compatibility)
-        serializer.write(e.value, 0);
-    }
-};
-
-template <bool Precise>
-struct DeserializerDispatcher {
-    Deserializer<Precise>& deserializer;
-
-    template <typename T>
-    void operator()(T& value) {
-        deserializer.read(value);
-    }
-    void operator()(Interval& value) {
-        Float lower, upper;
-        deserializer.read(lower, upper);
-        value = Interval(lower, upper);
-    }
-    void operator()(Vector& value) {
-        deserializer.read(value[X], value[Y], value[Z], value[H]);
-    }
-    void operator()(SymmetricTensor& t) {
-        deserializer.read(t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2));
-    }
-    void operator()(TracelessTensor& t) {
-        StaticArray<Float, 5> a;
-        deserializer.read(a[0], a[1], a[2], a[3], a[4]);
-        t = TracelessTensor(a[0], a[1], a[2], a[3], a[4]);
-    }
-    void operator()(Tensor& t) {
-        deserializer.read(t(0, 0), t(0, 1), t(0, 2), t(1, 0), t(1, 1), t(1, 2), t(2, 0), t(2, 1), t(2, 2));
-    }
-    void operator()(EnumWrapper& e) {
-        int dummy;
-        deserializer.read(e.value, dummy);
-    }
-};
+using BufferView = ArrayView<const char>;
 
 struct StoreBuffersVisitor {
     template <typename TValue>
     void visit(const Quantity& q, Serializer<true>& serializer, const IndexSequence& sequence) {
-        SerializerDispatcher<true> dispatcher{ serializer };
         StaticArray<const Array<TValue>&, 3> buffers = q.getAll<TValue>();
         for (Size i : sequence) {
-            dispatcher(buffers[0][i]);
+            serializer.write(buffers[0][i]);
         }
         switch (q.getOrderEnum()) {
         case OrderEnum::ZERO:
             break;
         case OrderEnum::FIRST:
             for (Size i : sequence) {
-                dispatcher(buffers[1][i]);
+                serializer.write(buffers[1][i]);
             }
             break;
         case OrderEnum::SECOND:
             for (Size i : sequence) {
-                dispatcher(buffers[1][i]);
+                serializer.write(buffers[1][i]);
             }
             for (Size i : sequence) {
-                dispatcher(buffers[2][i]);
+                serializer.write(buffers[2][i]);
             }
             break;
         default:
@@ -457,10 +394,9 @@ struct LoadBuffersVisitor {
         const IndexSequence& sequence,
         const QuantityId id,
         const OrderEnum order) {
-        DeserializerDispatcher<true> dispatcher{ deserializer };
         Array<TValue> buffer(sequence.size());
         for (Size i : sequence) {
-            dispatcher(buffer[i]);
+            deserializer.read(buffer[i]);
         }
         storage.insert<TValue>(id, order, std::move(buffer));
         switch (order) {
@@ -470,7 +406,7 @@ struct LoadBuffersVisitor {
         case OrderEnum::FIRST: {
             ArrayView<TValue> dv = storage.getDt<TValue>(id);
             for (Size i : sequence) {
-                dispatcher(dv[i]);
+                deserializer.read(dv[i]);
             }
             break;
         }
@@ -478,10 +414,10 @@ struct LoadBuffersVisitor {
             ArrayView<TValue> dv = storage.getDt<TValue>(id);
             ArrayView<TValue> d2v = storage.getD2t<TValue>(id);
             for (Size i : sequence) {
-                dispatcher(dv[i]);
+                deserializer.read(dv[i]);
             }
             for (Size i : sequence) {
-                dispatcher(d2v[i]);
+                deserializer.read(d2v[i]);
             }
             break;
         }
@@ -505,24 +441,23 @@ void writeString(const std::string& s, Serializer<true>& serializer) {
 
 template <bool Precise>
 void writeAttractor(Serializer<Precise>& serializer, const Attractor& a) {
-    SerializerDispatcher<Precise> dispatcher{ serializer };
-    dispatcher(a.position());
-    dispatcher(a.velocity());
-    dispatcher(a.radius());
-    dispatcher(a.mass());
+    serializer.write(a.position());
+    serializer.write(a.velocity());
+    serializer.write(a.radius());
+    serializer.write(a.mass());
 }
 
 template <bool Precise>
 Attractor readAttractor(Deserializer<Precise>& deserializer) {
-    DeserializerDispatcher<Precise> dispatcher{ deserializer };
     Vector r, v;
     Float m, rad;
-    dispatcher(r);
-    dispatcher(v);
-    dispatcher(rad);
-    dispatcher(m);
+    deserializer.read(r);
+    deserializer.read(v);
+    deserializer.read(rad);
+    deserializer.read(m);
     return Attractor(r, v, rad, m);
 }
+
 
 } // namespace
 
@@ -543,12 +478,13 @@ Expected<Path> BinaryOutput::dump(const Storage& storage, const Statistics& stat
     const Float runTime = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
     const Size wallclockTime = stats.getOr<int>(StatisticsId::WALLCLOCK_TIME, 0._f);
 
-    Serializer<true> serializer(fileName);
+    Serializer<true> serializer(makeAuto<FileOutputStream>(fileName));
+
     // file format identifier
     const Size materialCnt = storage.getMaterialCnt();
     const Size quantityCnt = storage.getQuantityCnt() - int(storage.has(QuantityId::MATERIAL_ID));
     const Float timeStep = stats.getOr<Float>(StatisticsId::TIMESTEP_VALUE, 0.1_f);
-    serializer.write("SPH",
+    serializer.serialize("SPH",
         runTime,
         storage.getParticleCnt(),
         quantityCnt,
@@ -560,9 +496,9 @@ Expected<Path> BinaryOutput::dump(const Storage& storage, const Statistics& stat
     // write build date
     writeString(__DATE__, serializer);
     // write wallclock time for proper ETA of resumed simulation
-    serializer.write(wallclockTime);
+    serializer.serialize(wallclockTime);
     // number of attractors
-    serializer.write(storage.getAttractors().size());
+    serializer.serialize(storage.getAttractorCnt());
 
     // zero bytes until 256 to allow extensions of the header
     serializer.addPadding(PADDING_SIZE);
@@ -575,34 +511,33 @@ Expected<Path> BinaryOutput::dump(const Storage& storage, const Statistics& stat
         if (i.id != QuantityId::MATERIAL_ID) {
             // no need to dump material IDs, they are always consecutive
             cachedIds.push(i.id);
-            serializer.write(Size(i.id), Size(q.getOrderEnum()), Size(q.getValueEnum()));
+            serializer.serialize(Size(i.id), Size(q.getOrderEnum()), Size(q.getValueEnum()));
         }
     }
 
-    SerializerDispatcher<true> dispatcher{ serializer };
     const bool hasMaterials = materialCnt > 0;
     // dump quantities separated by materials
     for (Size matIdx = 0; matIdx < max(materialCnt, Size(1)); ++matIdx) {
         // storage can currently exist without materials, only write material params if we have a material
         if (hasMaterials) {
-            serializer.write("MAT", matIdx);
+            serializer.serialize("MAT", matIdx);
             MaterialView material = storage.getMaterial(matIdx);
-            serializer.write(material->getParams().size());
+            serializer.serialize(material->getParams().size());
             // dump body settings
             for (auto param : material->getParams()) {
-                serializer.write(param.id);
-                serializer.write(param.value.getTypeIdx());
-                forValue(param.value, dispatcher);
+                serializer.serialize(param.id);
+                serializer.serialize(param.value.getTypeIdx());
+                forValue(param.value, [&serializer](const auto& value) { serializer.write(value); });
             }
             // dump all ranges and minimal values for timestepping
             for (QuantityId id : cachedIds) {
                 const Interval range = material->range(id);
                 const Float minimal = material->minimal(id);
-                serializer.write(id, range.lower(), range.upper(), minimal);
+                serializer.serialize(id, range.lower(), range.upper(), minimal);
             }
         } else {
             // write that we have no materials
-            serializer.write("NOMAT");
+            serializer.serialize("NOMAT");
         }
 
         // storage dump for given material
@@ -614,7 +549,7 @@ Expected<Path> BinaryOutput::dump(const Storage& storage, const Statistics& stat
                 return IndexSequence(0, storage.getParticleCnt());
             }
         }();
-        serializer.write(*sequence.begin(), *sequence.end());
+        serializer.serialize(*sequence.begin(), *sequence.end());
 
         for (auto i : storage.getQuantities()) {
             if (i.id != QuantityId::MATERIAL_ID) {
@@ -653,7 +588,7 @@ static Expected<Storage> loadMaterial(const Size matIdx,
     const BinaryIoVersion version) {
     Size matIdxCheck;
     std::string identifier;
-    deserializer.read(identifier, matIdxCheck);
+    deserializer.deserialize(identifier, matIdxCheck);
     // some consistency checks
     if (identifier != "MAT") {
         return makeUnexpected<Storage>("Invalid material identifier, expected MAT, got " + identifier);
@@ -664,20 +599,20 @@ static Expected<Storage> loadMaterial(const Size matIdx,
     }
 
     Size matParamCnt;
-    deserializer.read(matParamCnt);
+    deserializer.deserialize(matParamCnt);
     BodySettings body;
     for (Size i = 0; i < matParamCnt; ++i) {
         // read body settings
         BodySettingsId paramId;
         Size valueId;
-        deserializer.read(paramId, valueId);
+        deserializer.deserialize(paramId, valueId);
 
         if (version == BinaryIoVersion::FIRST) {
             if (valueId == 1 && body.hasType<EnumWrapper>(paramId)) {
                 // enums used to be stored as ints (index 1), now we store it as enum wrapper;
                 // convert the value to enum and save manually
                 EnumWrapper e = body.get<EnumWrapper>(paramId);
-                deserializer.read(e.value);
+                deserializer.deserialize(e.value);
                 body.set(paramId, e);
                 continue;
             }
@@ -688,7 +623,7 @@ static Expected<Storage> loadMaterial(const Size matIdx,
             { CONSTRUCT_TYPE_IDX, valueId } };
 
         forValue(iteratorValue.value, [&deserializer, &body, paramId](auto& entry) {
-            DeserializerDispatcher<true>{ deserializer }(entry);
+            deserializer.read(entry);
             // little hack: EnumWrapper is loaded with no type index (as it cannot be serialized), so we have
             // to set it to the correct value, otherwise it would trigger asserts in set function.
             try {
@@ -707,7 +642,7 @@ static Expected<Storage> loadMaterial(const Size matIdx,
     for (Size i = 0; i < ids.size(); ++i) {
         QuantityId id;
         Float lower, upper, minimal;
-        deserializer.read(id, lower, upper, minimal);
+        deserializer.deserialize(id, lower, upper, minimal);
         if (id != ids[i]) {
             return makeUnexpected<Storage>("Unexpected quantityId, expected " +
                                            getMetadata(ids[i]).quantityName + ", got " +
@@ -745,7 +680,7 @@ static Optional<std::string> readBuildDate(char* buffer, const BinaryIoVersion v
 
 Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats) {
     storage.removeAll();
-    Deserializer<true> deserializer(path);
+    Deserializer<true> deserializer(makeAuto<FileInputStream>(path));
     std::string identifier;
     Float time, timeStep;
     Size wallclockTime;
@@ -754,7 +689,7 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
     try {
         char runTypeBuffer[16];
         char buildDateBuffer[16];
-        deserializer.read(identifier,
+        deserializer.deserialize(identifier,
             time,
             particleCnt,
             quantityCnt,
@@ -786,7 +721,7 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
     Array<ValueEnum> valueTypes(quantityCnt);
     try {
         for (Size i = 0; i < quantityCnt; ++i) {
-            deserializer.read(quantityIds[i], orders[i], valueTypes[i]);
+            deserializer.deserialize(quantityIds[i], orders[i], valueTypes[i]);
         }
     } catch (SerializerException& e) {
         return makeFailed(e.what());
@@ -820,7 +755,7 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
 
         try {
             Size from, to;
-            deserializer.read(from, to);
+            deserializer.deserialize(from, to);
             LoadBuffersVisitor visitor;
             for (Size i = 0; i < quantityCnt; ++i) {
                 dispatch(valueTypes[i],
@@ -850,8 +785,8 @@ Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) const {
     char dateBuffer[16];
     std::string identifier;
     try {
-        Deserializer<true> deserializer(path);
-        deserializer.read(identifier,
+        Deserializer<true> deserializer(makeAuto<FileInputStream>(path));
+        deserializer.deserialize(identifier,
             info.runTime,
             info.particleCnt,
             info.quantityCnt,
@@ -889,44 +824,51 @@ CompressedOutput::CompressedOutput(const OutputFile& fileMask,
 
 const int MAGIC_NUMBER = 42;
 
+struct NullOutputStream : public IOutputStream {
+public:
+    virtual bool write(ArrayView<const char> UNUSED(buffer)) override {
+        return true;
+    }
+};
+
 template <typename T>
 static void compressQuantity(Serializer<false>& serializer,
     const CompressionEnum compression,
     const Array<T>& values) {
-    SerializerDispatcher<false> dispatcher{ serializer };
-    if (compression == CompressionEnum::RLE) {
-        dispatcher(MAGIC_NUMBER);
+    Serializer<false> nullSerializer(makeAuto<NullOutputStream>());
 
-        // StaticArray<char, 256> lastBuffer;
+    if (compression == CompressionEnum::RLE) {
+        serializer.serialize(MAGIC_NUMBER);
+
+        BufferView lastBuffer = nullptr;
         T lastValue(NAN);
         Size count = 0;
         for (Size i = 0; i < values.size(); ++i) {
-            /// \todo this should be done properly! We need to compare the actually written data, not the
-            /// original values!!
-            if (!almostEqual(values[i], lastValue, 1.e-4_f)) {
+            BufferView buffer = nullSerializer.write(values[i]);
+            if (buffer != lastBuffer) {
                 if (count > 0) {
                     // end of the run, write the count
-                    dispatcher(count);
+                    serializer.serialize(count);
                     count = 0;
                 }
-                dispatcher(values[i]);
+                lastBuffer = serializer.write(values[i]);
                 lastValue = values[i];
             } else {
                 if (count == 0) {
                     // first repeated value, write again to mark the start of the run
-                    dispatcher(lastValue);
+                    lastBuffer = serializer.write(lastValue);
                 }
                 ++count;
             }
         }
         // close the last run
         if (count > 0) {
-            dispatcher(count);
+            serializer.serialize(count);
         }
     } else {
         SPH_ASSERT(compression == CompressionEnum::NONE);
         for (Size i = 0; i < values.size(); ++i) {
-            dispatcher(values[i]);
+            serializer.write(values[i]);
         }
     }
 }
@@ -935,25 +877,23 @@ template <typename T>
 static void decompressQuantity(Deserializer<false>& deserializer,
     const CompressionEnum compression,
     Array<T>& values) {
-    DeserializerDispatcher<false> dispatcher{ deserializer };
-
     if (compression == CompressionEnum::RLE) {
         int magic;
-        dispatcher(magic);
+        deserializer.deserialize(magic);
         if (magic != MAGIC_NUMBER) {
-            throw SerializerException("Invalid compression", 0);
+            throw SerializerException("Invalid compression");
         }
 
         T lastValue = T(NAN);
         Size i = 0;
         while (i < values.size()) {
-            dispatcher(values[i]);
+            deserializer.read(values[i]);
             if (values[i] != lastValue) {
                 lastValue = values[i];
                 ++i;
             } else {
                 Size count;
-                dispatcher(count);
+                deserializer.deserialize(count);
                 SPH_ASSERT(i + count <= values.size());
                 for (Size j = 0; j < count; ++j) {
                     values[i++] = lastValue;
@@ -962,7 +902,7 @@ static void decompressQuantity(Deserializer<false>& deserializer,
         }
     } else {
         for (Size i = 0; i < values.size(); ++i) {
-            dispatcher(values[i]);
+            deserializer.read(values[i]);
         }
     }
 }
@@ -979,12 +919,12 @@ Expected<Path> CompressedOutput::dump(const Storage& storage, const Statistics& 
 
     const Float time = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
 
-    Serializer<false> serializer(fileName);
-    serializer.write("CPRSPH", time, storage.getParticleCnt(), compression, CompressedIoVersion::FIRST);
+    Serializer<false> serializer(makeAuto<FileOutputStream>(fileName));
+    serializer.serialize("CPRSPH", time, storage.getParticleCnt(), compression, CompressedIoVersion::LATEST);
 
     /// \todo runType as string
-    serializer.write(runTypeId);
-    serializer.write(storage.getAttractors().size());
+    serializer.serialize(runTypeId);
+    serializer.serialize(storage.getAttractorCnt());
     serializer.addPadding(226);
 
     // mandatory, without prefix
@@ -1002,10 +942,10 @@ Expected<Path> CompressedOutput::dump(const Storage& storage, const Statistics& 
             ids.push(id);
         }
     }
-    serializer.write(count);
+    serializer.serialize(count);
 
     for (QuantityId id : ids) {
-        serializer.write(id);
+        serializer.serialize(id);
         compressQuantity(serializer, compression, storage.getValue<Float>(id));
     }
 
@@ -1020,7 +960,7 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
     // create any material
     storage = Storage(Factory::getMaterial(BodySettings::getDefaults()));
 
-    Deserializer<false> deserializer(path);
+    Deserializer<false> deserializer(makeAuto<FileInputStream>(path));
     std::string identifier;
     Float time;
     Size particleCnt;
@@ -1029,7 +969,8 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
     CompressionEnum compression;
     RunTypeEnum runTypeId;
     try {
-        deserializer.read(identifier, time, particleCnt, compression, version, runTypeId, attractorCnt);
+        deserializer.deserialize(
+            identifier, time, particleCnt, compression, version, runTypeId, attractorCnt);
     } catch (SerializerException&) {
         return makeFailed("Invalid file format");
     }
@@ -1058,10 +999,10 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
         storage.getDt<Vector>(QuantityId::POSITION) = std::move(velocities);
 
         Size count;
-        deserializer.read(count);
+        deserializer.deserialize(count);
         for (Size i = 0; i < count; ++i) {
             QuantityId id;
-            deserializer.read(id);
+            deserializer.deserialize(id);
             Array<Float> values(particleCnt);
             decompressQuantity(deserializer, compression, values);
             storage.insert<Float>(id, OrderEnum::ZERO, std::move(values));
@@ -1081,7 +1022,7 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
 }
 
 Expected<CompressedInput::Info> CompressedInput::getInfo(const Path& path) const {
-    Deserializer<false> deserializer(path);
+    Deserializer<false> deserializer(makeAuto<FileInputStream>(path));
     std::string identifier;
     Float time;
     Size particleCnt;
@@ -1090,7 +1031,8 @@ Expected<CompressedInput::Info> CompressedInput::getInfo(const Path& path) const
     CompressionEnum compression;
     RunTypeEnum runTypeId;
     try {
-        deserializer.read(identifier, time, particleCnt, compression, version, runTypeId, attractorCnt);
+        deserializer.deserialize(
+            identifier, time, particleCnt, compression, version, runTypeId, attractorCnt);
     } catch (SerializerException&) {
         return makeUnexpected<CompressedInput::Info>("Invalid file format");
     }
