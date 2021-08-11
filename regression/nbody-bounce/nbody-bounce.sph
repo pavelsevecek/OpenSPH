@@ -4,10 +4,14 @@
 "gui" [
   "renderer" = 1
   "camera.type" = 0
+  "images.width" = 1024
+  "images.height" = 768
   "camera.position" =                    0                   0                   1
+  "camera.velocity" =                    0                   0                   0
+  "camera.orbit" = 0
   "camera.target" =                    0                   0                   0
   "camera.up" =                    0                   1                   0
-  "camera.ortho.fov" = 116202
+  "camera.ortho.fov" = 346977
   "camera.perspective.fov" = 1.0472
   "camera.clip.near" = 1e-12
   "camera.clip.far" = 1.79769e+308
@@ -21,6 +25,9 @@
   "view.refresh_on_timestep" = 1
   "view.grid_size" = 0
   "background_color" =                    0                   0                   0
+  "colormap.type" = 0
+  "colormap.logarithmic.factor" = 2
+  "reduce_lowfrequency_noise" = 0
   "show_key" = 1
   "force_grayscale" = 0
   "antialiased" = 0
@@ -37,29 +44,22 @@
   "raytrace.subsampling" = 4
   "raytrace.iteration_limit" = 10
   "raytrace.hdri" = ""
-  "raytrace.texture_primary" = ""
-  "raytrace.texture_secondary" = ""
   "raytrace.brdf" = 0
+  "raytrace.shadows" = 1
   "raytrace.spheres" = 0
+  "volume.emission" = 0.001
+  "volume.absorption" = 0
   "contour.spacing" = 10
   "contour.grid_size" = 100
   "contour.show_labels" = 1
+  "default_colorizer" = -1
+  "default_panes" = 31
   "window.title" = "OpenSPH"
   "window.width" = 1600
   "window.height" = 768
   "plot.integrals" = 31
   "plot.initial_period" = 60
   "plot.overplot_sfd" = "/home/pavel/projects/astro/asteroids/hygiea/main_belt_families_2018/10_Hygiea/size_distribution/family.dat_hc"
-  "images.renderer" = 1
-  "images.width" = 1024
-  "images.height" = 768
-  "images.save" = 0
-  "images.path" = "imgs/"
-  "images.name" = "frag_%e_%d.png"
-  "images.first_index" = 0
-  "images.make_movie" = 0
-  "images.movie_name" = "frag_%e.avi"
-  "images.time_step" = 10
 ]
 
 "globals" [
@@ -71,6 +71,7 @@
   "run.rng" = 0
   "run.rng.seed" = 1234
   "misc.generate_uvws" = 0
+  "misc.uvw_mapping" = 1
   "run.author" = "Pavel Sevecek"
   "run.email" = "sevecek@sirrah.troja.mff.cuni.cz"
   "run.comment" = ""
@@ -79,22 +80,23 @@
 "nodes" [
   "cloud" [
     "class_name" = "N-body ICs"
-    "position" = 501 430
+    "position" = 562 428
+    "domain" = "domain"
     "name" = "cloud"
     "particles.count" = 10000
-    "domain.radius" = 100
     "radial_profile" = 0.333
     "height_scale" = 0.1
     "min_size" = 250
     "max_size" = 250
     "power_law.exponent" = 2
+    "min_separation" = 1
     "velocity.multiplier" = 1.5
     "velocity.dispersion" = 0.05
     "total_mass" = 1
   ]
   "N-body bounce" [
     "class_name" = "N-body run"
-    "position" = 733 428
+    "position" = 762 428
     "particles" = "cloud"
     "name" = "N-body bounce"
     "run.end_time" = 4
@@ -130,7 +132,9 @@
     "run.output.path" = "."
     "run.output.name" = "result_%d.txt"
     "run.output.quantitites" = 7
+    "run.output.spacing" = 0
     "run.output.interval" = 0.5
+    "run.output.custom_times" = "0, 0.5, 1, 2, 10"
   ]
   "save result" [
     "class_name" = "save file"
@@ -147,18 +151,30 @@
     "test particles" = "Load 'result.scf'"
     "reference particles" = "Load 'reference.scf'"
     "name" = "compare with reference"
+    "compare_mode" = 0
+    "eps" = 0.0001
+    "fraction" = 0.2
+    "max_deviation" = 0.0005
   ]
   "Load 'reference.scf'" [
     "class_name" = "load file"
     "position" = 639 649
     "name" = ""
     "file" = "reference.scf"
+    "units" = 0
   ]
   "Load 'result.scf'" [
     "class_name" = "load file"
     "position" = 639 540
     "name" = ""
     "file" = "result.scf"
+    "units" = 0
+  ]
+  "domain" [
+    "class_name" = "sphere"
+    "position" = 362 428
+    "name" = "domain"
+    "radius" = 100
   ]
 ]
 
@@ -190,7 +206,7 @@
 ]
 
 "editor_state" [
-  "offset" = -194 -75
+  "offset" = -197 -75
   "zoom" = 1
 ]
 
