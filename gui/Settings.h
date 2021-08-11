@@ -152,6 +152,8 @@ enum class GuiSettingsId {
 
     REDUCE_LOWFREQUENCY_NOISE,
 
+    BLOOM_INTENSITY,
+
     SHOW_KEY,
 
     FORCE_GRAYSCALE,

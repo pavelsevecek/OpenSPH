@@ -144,6 +144,9 @@ struct RenderParams {
 
         /// \brief Suppress the low-frequency noise
         bool denoise;
+
+        /// \brief Magnitude of bloom effect
+        float bloomIntensity = 0.f;
     } volume;
 
     struct {
@@ -256,6 +259,11 @@ protected:
 
 private:
     void refine(const RenderParams& params, const Size iteration, FrameBuffer& fb) const;
+
+    void postProcess(FrameBuffer& fb,
+        const RenderParams& params,
+        const bool isFinal,
+        IRenderOutput& output) const;
 };
 
 NAMESPACE_SPH_END

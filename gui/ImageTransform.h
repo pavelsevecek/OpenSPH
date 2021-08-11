@@ -8,8 +8,8 @@ NAMESPACE_SPH_BEGIN
 template <typename Transform>
 Bitmap<Rgba> transform(const Bitmap<Rgba>& input, const Transform& func) {
     Bitmap<Rgba> result(input.size());
-    for (Size y = 0; y < input.size().y; ++y) {
-        for (Size x = 0; x < input.size().x; ++x) {
+    for (int y = 0; y < input.size().y; ++y) {
+        for (int x = 0; x < input.size().x; ++x) {
             result(x, y) = func(Pixel(x, y), input(x, y));
         }
     }
@@ -22,7 +22,13 @@ Bitmap<Rgba> resize(const Bitmap<Rgba>& input, const Pixel size);
 
 Bitmap<float> detectEdges(const Bitmap<Rgba>& input);
 
-Bitmap<Rgba> gaussianBlur(IScheduler& scheduler, const Bitmap<Rgba>& input, const Size radius);
+Bitmap<Rgba> gaussianBlur(IScheduler& scheduler, const Bitmap<Rgba>& input, const int radius);
+
+Bitmap<Rgba> bloomEffect(IScheduler& scheduler,
+    const Bitmap<Rgba>& input,
+    const int radius = 25,
+    const float magnitude = 1.f,
+    const float brightnessThreshold = 0.5f);
 
 struct DenoiserParams {
     Size filterRadius = 5;

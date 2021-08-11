@@ -1,7 +1,7 @@
 #include "gui/ImageTransform.h"
+#include "thread/ThreadLocal.h"
 
 NAMESPACE_SPH_BEGIN
-
 
 Rgba interpolate(const Bitmap<Rgba>& bitmap, const float x, const float y) {
     const Pixel size = bitmap.size();
@@ -100,13 +100,110 @@ Bitmap<Rgba> filter(IScheduler& scheduler,
     return result;
 }
 
-Bitmap<Rgba> gaussianBlur(IScheduler& scheduler, const Bitmap<Rgba>& input, const Size radius) {
+Bitmap<Rgba> gaussianBlur(IScheduler& scheduler, const Bitmap<Rgba>& input, const int radius) {
     const float sigma = radius / 2.f;
     const float norm = 1.f / (2.f * sqr(sigma));
-    return filter(scheduler, input, radius, [norm](const Pixel& p1, const Pixel& p2) {
-        const float dist = getLength(p1 - p2);
-        return exp(-sqr(dist) * norm);
+    Array<float> weights(2 * radius + 1);
+    float weightSum = 0.f;
+    for (Size i = 0; i < weights.size(); ++i) {
+        weights[i] = exp(-sqr(int(i) - radius) * norm);
+        weightSum += weights[i];
+    }
+    SPH_ASSERT(weightSum > 0._f);
+    for (float& w : weights) {
+        w /= weightSum;
+    }
+    // horizontal blur
+    Bitmap<Rgba> blurred(input.size());
+    parallelFor(scheduler, 0, input.size().y, 1, [&](const int y) {
+        for (int x = 0; x < radius; ++x) {
+            Rgba color = Rgba::black();
+            for (int dx = -radius; dx <= radius; ++dx) {
+                const int x1 = abs(x + dx);
+                color += input(x1, y) * weights[dx + radius];
+            }
+            SPH_ASSERT(isReal(color));
+            blurred(x, y) = color;
+        }
+        for (int x = radius; x < input.size().x - radius; ++x) {
+            Rgba color = Rgba::black();
+            for (int dx = -radius; dx <= radius; ++dx) {
+                color += input(x + dx, y) * weights[dx + radius];
+            }
+            SPH_ASSERT(isReal(color));
+            blurred(x, y) = color;
+        }
+        for (int x = input.size().x - radius; x < input.size().x; ++x) {
+            Rgba color = Rgba::black();
+            for (int dx = -radius; dx <= radius; ++dx) {
+                int x1 = x + dx;
+                if (x1 >= input.size().x) {
+                    x1 -= x1 - input.size().x + 1;
+                }
+                color += input(x1, y) * weights[dx + radius];
+            }
+            SPH_ASSERT(isReal(color));
+            blurred(x, y) = color;
+        }
     });
+    // vertical blur
+    ThreadLocal<Array<Rgba>> columns(scheduler, input.size().y);
+    parallelFor(scheduler, columns, 0, input.size().x, 1, [&](const int x, Array<Rgba>& column) {
+        for (int y = 0; y < input.size().y; ++y) {
+            column[y] = blurred(x, y);
+        }
+        for (int y = 0; y < radius; ++y) {
+            Rgba color = Rgba::black();
+            for (int dy = -radius; dy <= radius; ++dy) {
+                const int y1 = abs(y + dy);
+                color += column[y1] * weights[dy + radius];
+            }
+            SPH_ASSERT(isReal(color));
+            blurred(x, y) = color;
+        }
+        for (int y = radius; y < input.size().y - radius; ++y) {
+            Rgba color = Rgba::black();
+            for (int dy = -radius; dy <= radius; ++dy) {
+                color += column[y + dy] * weights[dy + radius];
+            }
+            SPH_ASSERT(isReal(color));
+            blurred(x, y) = color;
+        }
+        for (int y = input.size().y - radius; y < input.size().y; ++y) {
+            Rgba color = Rgba::black();
+            for (int dy = -radius; dy <= radius; ++dy) {
+                int y1 = y + dy;
+                if (y1 >= input.size().y) {
+                    y1 -= y1 - input.size().y + 1;
+                }
+                color += column[y1] * weights[dy + radius];
+            }
+            SPH_ASSERT(isReal(color));
+            blurred(x, y) = color;
+        }
+    });
+    return blurred;
+}
+
+Bitmap<Rgba> bloomEffect(IScheduler& scheduler,
+    const Bitmap<Rgba>& input,
+    const int radius,
+    const float magnitude,
+    const float brightnessThreshold) {
+    Bitmap<Rgba> brightPixels =
+        transform(input, [brightnessThreshold](const Pixel UNUSED(p), const Rgba& color) {
+            return color.intensity() > brightnessThreshold ? color : Rgba::black();
+        });
+    Bitmap<Rgba> bloom = gaussianBlur(scheduler, brightPixels, radius);
+    for (int y = 0; y < input.size().y; ++y) {
+        for (int x = 0; x < input.size().x; ++x) {
+            const Rgba& in = input(x, y);
+            Rgba& b = bloom(x, y);
+            b = in + b * magnitude;
+            SPH_ASSERT(isReal(b), b.r(), b.g(), b.b());
+        }
+    }
+    return bloom;
 }
 
 Bitmap<Rgba> denoise(IScheduler& scheduler, const Bitmap<Rgba>& input, const DenoiserParams& params) {

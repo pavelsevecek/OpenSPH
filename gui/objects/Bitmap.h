@@ -25,7 +25,7 @@ public:
 
     explicit Bitmap(const Pixel resolution)
         : res(resolution) {
-        values.resize(res.x * res.y);
+        values.resize(uint64_t(res.x) * res.y);
     }
 
     Bitmap clone() const {
@@ -79,7 +79,7 @@ public:
 
 private:
     INLINE Size map(const Pixel p) const {
-        return p.y * res.x + p.x;
+        return uint64_t(p.y) * res.x + p.x;
     }
 };
 

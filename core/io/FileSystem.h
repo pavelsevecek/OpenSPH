@@ -31,10 +31,10 @@ bool isPathWritable(const Path& path);
 /// \brief Returns the home directory of the current user.
 Expected<Path> getHomeDirectory();
 
-/// \brief Returns the absolute path to the file.
+/// \brief Returns the absolute path to the file, or error if the path cannot be resolved.
 ///
 /// Function also resolves all symlinks in the path.
-Path getAbsolutePath(const Path& relativePath);
+Expected<Path> getAbsolutePath(const Path& relativePath);
 
 enum class PathType {
     FILE,      ///< Regular file
@@ -88,8 +88,10 @@ Outcome copyFile(const Path& from, const Path& to);
 /// overriden. All parent directories of target path are created, if necessary.
 Outcome copyDirectory(const Path& from, const Path& to);
 
-/// Changes the current working directory.
-void setWorkingDirectory(const Path& path);
+/// \brief Changes the current working directory.
+///
+/// \return True on success.
+bool setWorkingDirectory(const Path& path);
 
 /// Helper RAII class, changing the working directory to given path when constructor and reverting it to
 /// the original path in destructor.

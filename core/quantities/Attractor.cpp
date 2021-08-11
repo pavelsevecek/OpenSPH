@@ -6,7 +6,9 @@ NAMESPACE_SPH_BEGIN
 // clang-format off
 template <>
 AutoPtr<AttractorSettings> AttractorSettings::instance(new AttractorSettings{
-    { AttractorSettingsId::BLACK_HOLE, "black_hole.enable",    false,
+    { AttractorSettingsId::LABEL,                 "generic.label",         std::string(),
+        "String identifier of the attractor" },
+    { AttractorSettingsId::BLACK_HOLE,            "black_hole.enable",     false,
         "If true, the attractor absorbs any particle that falls below the attractor's radius." },
     { AttractorSettingsId::VISUALIZATION_TEXTURE, "visualization.texture", std::string(),
         "Path to the texture image used when rendering the attractor. "},

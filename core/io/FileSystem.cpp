@@ -45,10 +45,36 @@ Expected<Path> FileSystem::getHomeDirectory() {
     }
 }
 
-Path FileSystem::getAbsolutePath(const Path& relativePath) {
+Expected<Path> FileSystem::getAbsolutePath(const Path& relativePath) {
     char realPath[PATH_MAX];
-    realpath(relativePath.native().c_str(), realPath);
-    return Path(realPath);
+    if (realpath(relativePath.native().c_str(), realPath)) {
+        return Path(realPath);
+    } else {
+        switch (errno) {
+        case EACCES:
+            return makeUnexpected<Path>(
+                "Read or search permission was denied for a component of the path prefix.");
+        case EINVAL:
+            return makeUnexpected<Path>("Path is NULL.");
+        case EIO:
+            return makeUnexpected<Path>("An I/O error occurred while reading from the filesystem.");
+        case ELOOP:
+            return makeUnexpected<Path>(
+                "Too many symbolic links were encountered in translating the pathname.");
+        case ENAMETOOLONG:
+            return makeUnexpected<Path>(
+                "A component of a pathname exceeded NAME_MAX characters, or an entire pathname exceeded "
+                "PATH_MAX characters.");
+        case ENOENT:
+            return makeUnexpected<Path>("The named file does not exist");
+        case ENOMEM:
+            return makeUnexpected<Path>("Out of memory");
+        case ENOTDIR:
+            return makeUnexpected<Path>("A component of the path prefix is not a directory.");
+        default:
+            return makeUnexpected<Path>("Unknown error");
+        }
+    }
 }
 
 Expected<FileSystem::PathType> FileSystem::pathType(const Path& path) {
@@ -270,9 +296,9 @@ Outcome FileSystem::copyDirectory(const Path& from, const Path& to) {
     return SUCCESS;
 }
 
-void FileSystem::setWorkingDirectory(const Path& path) {
+bool FileSystem::setWorkingDirectory(const Path& path) {
     SPH_ASSERT(pathType(path).valueOr(PathType::OTHER) == PathType::DIRECTORY);
-    chdir(path.native().c_str());
+    return chdir(path.native().c_str()) == 0;
 }
 
 FileSystem::DirectoryIterator::DirectoryIterator(DIR* dir)

@@ -128,6 +128,8 @@ VirtualSettings AnimationJob::getSettings() {
         .setEnabler(volumeEnabler);
     rendererCat.connect<bool>("Reduce noise", gui, GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE)
         .setEnabler(volumeEnabler);
+    rendererCat.connect<Float>("Bloom intensity", gui, GuiSettingsId::BLOOM_INTENSITY)
+        .setEnabler(volumeEnabler);
 
     VirtualSettings::Category& textureCat = connector.addCategory("Texture paths");
     textureCat.connect<Path>("Background", gui, GuiSettingsId::RAYTRACE_HDRI)

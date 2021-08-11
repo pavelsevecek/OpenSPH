@@ -205,6 +205,8 @@ void InteractiveRenderer::setRendererAccessor(const RunSettings& globals) {
                         GuiSettingsId::SURFACE_EMISSION,
                         GuiSettingsId::VOLUME_EMISSION,
                         GuiSettingsId::VOLUME_ABSORPTION,
+                        GuiSettingsId::BLOOM_INTENSITY,
+                        GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE,
                     });
 
                 changed.parameters = job->getRenderParams();

@@ -158,6 +158,8 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "intensive pixels. Low values (~0.01) effectively produce a linear colormapping." },
     { GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE, "reduce_lowfrequency_noise", false,
         "Reduces the low-frequency noise ('splotches') in the render." },
+    { GuiSettingsId::BLOOM_INTENSITY,       "bloom.intensity",      0._f,
+        "Magnitude of the bloom effect" },
     { GuiSettingsId::SHOW_KEY,              "show_key",             true,
         "Include a color pallete and a distance scale in the rendered image." },
     { GuiSettingsId::FORCE_GRAYSCALE,       "force_grayscale",      false,

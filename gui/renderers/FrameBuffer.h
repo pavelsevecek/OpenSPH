@@ -2,12 +2,13 @@
 
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Filmic.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 
 class IColorMap : public Polymorphic {
 public:
-    virtual Bitmap<Rgba> map(const Bitmap<Rgba>& values) const = 0;
+    virtual void map(IScheduler& scheduler, Bitmap<Rgba>& values) const = 0;
 };
 
 class LogarithmicColorMap : public IColorMap {
@@ -18,15 +19,13 @@ public:
     explicit LogarithmicColorMap(const float factor)
         : factor(factor) {}
 
-    virtual Bitmap<Rgba> map(const Bitmap<Rgba>& values) const override {
-        Bitmap<Rgba> colormapped(values.size());
-        for (int y = 0; y < values.size().y; ++y) {
+    virtual void map(IScheduler& scheduler, Bitmap<Rgba>& values) const override {
+        parallelFor(scheduler, 0, values.size().y, 1, [this, &values](const int y) {
             for (int x = 0; x < values.size().x; ++x) {
-                const Rgba color = values[Pixel(x, y)];
-                colormapped[Pixel(x, y)] = Rgba(map(color.r()), map(color.g()), map(color.b()), color.a());
+                Rgba& color = values[Pixel(x, y)];
+                color = Rgba(map(color.r()), map(color.g()), map(color.b()), color.a());
             }
-        }
-        return colormapped;
+        });
     }
 
     void setFactor(const float newFactor) {
@@ -54,16 +53,13 @@ public:
         filmic.create(params);
     }
 
-    virtual Bitmap<Rgba> map(const Bitmap<Rgba>& values) const override {
-        Bitmap<Rgba> colormapped(values.size());
-        for (int y = 0; y < values.size().y; ++y) {
+    virtual void map(IScheduler& scheduler, Bitmap<Rgba>& values) const override {
+        parallelFor(scheduler, 0, values.size().y, 1, [this, &values](const int y) {
             for (int x = 0; x < values.size().x; ++x) {
-                const Rgba color = values[Pixel(x, y)];
-                colormapped[Pixel(x, y)] =
-                    Rgba(filmic(color.r()), filmic(color.g()), filmic(color.b()), color.a());
+                Rgba& color = values[Pixel(x, y)];
+                color = Rgba(filmic(color.r()), filmic(color.g()), filmic(color.b()), color.a());
             }
-        }
-        return colormapped;
+        });
     }
 };
 
@@ -77,15 +73,15 @@ public:
         values.resize(resolution, Rgba::transparent());
     }
 
-    void accumulate(const Bitmap<Rgba>& pass) {
+    void accumulate(IScheduler& scheduler, const Bitmap<Rgba>& pass) {
         SPH_ASSERT(pass.size() == values.size());
-        for (int y = 0; y < values.size().y; ++y) {
+        parallelFor(scheduler, 0, values.size().y, 1, [this, &pass](const int y) {
             for (int x = 0; x < values.size().x; ++x) {
                 Pixel p(x, y);
                 const Rgba accumulatedColor = (pass[p] + values[p] * passCnt) / (passCnt + 1);
                 values[p] = accumulatedColor.over(values[p]);
             }
-        }
+        });
         passCnt++;
     }
 
@@ -94,8 +90,12 @@ public:
         passCnt = 1;
     }
 
-    const Bitmap<Rgba>& getBitmap() const {
+    const Bitmap<Rgba>& getBitmap() const& {
         return values;
+    }
+
+    Bitmap<Rgba> getBitmap() && {
+        return std::move(values);
     }
 };
 

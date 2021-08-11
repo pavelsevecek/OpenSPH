@@ -6,20 +6,24 @@ NAMESPACE_SPH_BEGIN
 
 std::map<int, Path> getSequenceFiles(const Path& inputPath) {
     if (inputPath.empty()) {
-        throw Exception("sequence for empty path");
+        throw Exception("Sequence for empty path");
     }
 
-    const Path absolutePath = FileSystem::getAbsolutePath(inputPath);
-    Optional<OutputFile> deducedFile = OutputFile::getMaskFromPath(absolutePath);
+    const Expected<Path> absolutePath = FileSystem::getAbsolutePath(inputPath);
+    if (!absolutePath) {
+        throw Exception("Cannot resolve absolute path of file '" + inputPath.native() + "'");
+    }
+
+    Optional<OutputFile> deducedFile = OutputFile::getMaskFromPath(absolutePath.value());
     if (!deducedFile) {
         // just a single file, not part of a sequence (e.g. frag_final.ssf)
-        return { std::make_pair(0, absolutePath) };
+        return { std::make_pair(0, absolutePath.value()) };
     }
 
     Path fileMask = deducedFile->getMask();
     std::map<int, Path> fileMap;
 
-    const Path dir = absolutePath.parentPath();
+    const Path dir = absolutePath->parentPath();
     Array<Path> files = FileSystem::getFilesInDirectory(dir);
 
     for (Path& file : files) {

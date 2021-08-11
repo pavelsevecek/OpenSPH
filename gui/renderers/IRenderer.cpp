@@ -24,6 +24,7 @@ void RenderParams::initialize(const GuiSettings& gui) {
     volume.absorption = float(gui.get<Float>(GuiSettingsId::VOLUME_ABSORPTION));
     volume.compressionFactor = float(gui.get<Float>(GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR));
     volume.denoise = gui.get<bool>(GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE);
+    volume.bloomIntensity = gui.get<Float>(GuiSettingsId::BLOOM_INTENSITY);
 }
 
 inline auto seeder() {
@@ -61,21 +62,41 @@ void IRaytracer::render(const RenderParams& params, Statistics& UNUSED(stats), I
         this->refine(params, iteration, fb);
 
         const bool isFinal = (iteration == fixed.iterationLimit - 1);
-        if (fixed.colorMap) {
-            Bitmap<Rgba> bitmap = fixed.colorMap->map(fb.getBitmap());
-            if (params.volume.denoise && isFinal) {
-                bitmap = denoiseLowFrequency(*scheduler, bitmap, {});
-            }
-            output.update(std::move(bitmap), {}, isFinal);
-        } else {
-            if (params.volume.denoise && isFinal) {
-                Bitmap<Rgba> bitmap = denoiseLowFrequency(*scheduler, fb.getBitmap(), {});
-                output.update(bitmap, {}, isFinal);
-            } else {
-                output.update(fb.getBitmap(), {}, isFinal);
-            }
-        }
+        postProcess(fb, params, isFinal, output);
     }
+}
+
+void IRaytracer::postProcess(FrameBuffer& fb,
+    const RenderParams& params,
+    const bool isFinal,
+    IRenderOutput& output) const {
+    if (!fixed.colorMap && (!isFinal || (!params.volume.denoise && params.volume.bloomIntensity == 0.f))) {
+        // no postprocessing in this case, we can optimize and return the bitmap directly
+        output.update(fb.getBitmap(), {}, isFinal);
+        return;
+    }
+
+    Bitmap<Rgba> bitmap;
+    if (isFinal) {
+        bitmap = std::move(fb).getBitmap();
+    } else {
+        bitmap = fb.getBitmap().clone();
+    }
+
+    if (isFinal && params.volume.bloomIntensity > 0.f) {
+        const float mag = params.volume.bloomIntensity;
+        bitmap = bloomEffect(*scheduler, bitmap, 250 * mag, mag);
+    }
+
+    if (fixed.colorMap) {
+        fixed.colorMap->map(*scheduler, bitmap);
+    }
+
+    if (isFinal && params.volume.denoise) {
+        bitmap = denoiseLowFrequency(*scheduler, bitmap, {});
+    }
+
+    output.update(std::move(bitmap), {}, isFinal);
 }
 
 INLINE float sampleTent(const float x) {
@@ -133,7 +154,7 @@ void IRaytracer::refine(const RenderParams& params, const Size iteration, FrameB
         return;
     }
     if (level == 1) {
-        fb.accumulate(bitmap);
+        fb.accumulate(*scheduler, bitmap);
     } else {
         Bitmap<Rgba> full(size);
         for (Size y = 0; y < Size(full.size().y); ++y) {

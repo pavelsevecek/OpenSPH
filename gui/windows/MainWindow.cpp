@@ -291,7 +291,12 @@ void MainWindow::save() {
     config.save(projectPath);
 
     this->markSaved(true);
-    addToRecentSessions(FileSystem::getAbsolutePath(projectPath));
+
+    Expected<Path> absolutePath = FileSystem::getAbsolutePath(projectPath);
+    SPH_ASSERT(absolutePath);
+    if (absolutePath) {
+        addToRecentSessions(absolutePath.value());
+    }
 }
 
 template <typename TInput>
@@ -374,7 +379,12 @@ void MainWindow::load(const Path& openPath) {
     }
 
     this->setProjectPath(pathToLoad);
-    addToRecentSessions(FileSystem::getAbsolutePath(pathToLoad));
+
+    Expected<Path> absolutePath = FileSystem::getAbsolutePath(pathToLoad);
+    SPH_ASSERT(absolutePath);
+    if (absolutePath) {
+        addToRecentSessions(absolutePath.value());
+    }
 }
 
 void MainWindow::setProjectPath(const Path& newPath) {

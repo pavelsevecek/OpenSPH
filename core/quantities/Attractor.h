@@ -5,8 +5,11 @@
 NAMESPACE_SPH_BEGIN
 
 enum class AttractorSettingsId {
+    /// String identifier of the attractor
+    LABEL = 0,
+
     /// If true, the attractor absorbs any particle that falls below the attractor's radius.
-    BLACK_HOLE = 0,
+    BLACK_HOLE = 1,
 
     /// Texture
     VISUALIZATION_TEXTURE = 100,

@@ -4,6 +4,7 @@
 - added node that sets up Keplerian velocities
 - generalized N-body ICs, it can now use any domain
 - added asteroid belt to the 'Solar system' preset
+- added simple bloom effect
 
 ## 2021-08-07
 - suppressing low-frequency noise in images rendered with volumetric renderer
