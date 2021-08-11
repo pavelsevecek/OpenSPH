@@ -84,7 +84,7 @@ public:
         const TScalar fidx = TScalar((x - range.lower()) / range.size() * (data.size() - 1));
         const int idx1 = int(floor(fidx));
         const int idx2 = idx1 + 1;
-        if (idx2 >= int(data.size() - 1)) {
+        if (idx2 >= int(data.size()) - 1) {
             /// \todo possibly make linear interpolation rather than just const value
             return data.back();
         } else if (idx1 <= 0) {

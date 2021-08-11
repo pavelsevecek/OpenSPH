@@ -35,9 +35,9 @@ const EmptySettingsTag EMPTY_SETTINGS;
 ///
 /// Used to store an enum in settings while keeping the type safety.
 struct EnumWrapper {
-    int value;
+    int value = 0;
 
-    EnumIndex index;
+    EnumIndex index = NOTHING;
 
     EnumWrapper() = default;
 

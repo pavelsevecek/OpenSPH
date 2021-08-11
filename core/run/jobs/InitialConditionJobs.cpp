@@ -756,6 +756,9 @@ AutoPtr<NBodySettings> NBodySettings::instance(new NBodySettings{
     { NBodySettingsId::TOTAL_MASS,          "total_mass",             Constants::M_earth,
         "Total mass of the particles. Masses of individual particles depend on total number "
         "of particles and on particle sizes." },
+    { NBodySettingsId::HEIGHT_SCALE,        "height_scale",           1._f,
+        "Specifies the relative scale of the domain in z-direction. For 1, the domain is spherical, lower values "
+        "can be used to create a disk-like domain." },
     { NBodySettingsId::RADIAL_PROFILE,      "radial_profile",         1.5_f,
         "Specifies a balance between particle concentration in the center of the domain and at the boundary. "
         "Higher values imply more dense center and fewer particles at the boundary." },
@@ -790,6 +793,7 @@ VirtualSettings NBodyIc::getSettings() {
 
     VirtualSettings::Category& distributionCat = connector.addCategory("Distribution");
     distributionCat.connect<Float>("Radial exponent", settings, NBodySettingsId::RADIAL_PROFILE);
+    distributionCat.connect<Float>("Height scale", settings, NBodySettingsId::HEIGHT_SCALE);
     distributionCat.addEntry("min_size",
         makeEntry(settings, NBodySettingsId::POWER_LAW_INTERVAL, "Minimal size [m]", IntervalBound::LOWER));
     distributionCat.addEntry("max_size",
@@ -826,10 +830,12 @@ static Vector sampleSphere(const Float radius, const Float exponent, IRng& rng) 
 void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     SharedPtr<IDomain> domain = this->getInput<IDomain>("domain");
     const Box bbox = domain->getBoundingBox();
-    const Sphere bsphere(bbox.center(), getLength(bbox.size()) / 2._f);
+    /// \todo add getBoundingSphere to IDomain?
+    const Sphere bsphere(bbox.center(), maxElement(bbox.size()) / 2._f);
 
     const Size particleCnt = settings.get<int>(NBodySettingsId::PARTICLE_COUNT);
     const Float radialExponent = settings.get<Float>(NBodySettingsId::RADIAL_PROFILE);
+    const Float heightScale = settings.get<Float>(NBodySettingsId::HEIGHT_SCALE);
     const Float separation = settings.get<Float>(NBodySettingsId::MIN_SEPARATION);
     const Float velocityMult = settings.get<Float>(NBodySettingsId::VELOCITY_MULTIPLIER);
     const Float velocityDispersion = settings.get<Float>(NBodySettingsId::VELOCITY_DISPERSION);
@@ -853,6 +859,8 @@ void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
         if (!domain->contains(v)) {
             continue;
         }
+
+        v[Z] *= heightScale;
 
         // check for intersections
         finder.findAll(v, 2._f * separation * maxRadius, neighs);
@@ -908,6 +916,7 @@ void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
         const Float v_kepl = velocityMult * sqrt(Constants::gravity * m0 / r0);
         const Vector dir = getNormalized(Vector(positions[i][Y], -positions[i][X], 0._f));
         Vector v_random = sampleSphere(velocityDispersion, 0.333_f, *rng);
+        v_random[Z] *= heightScale;
         velocities[i] = dir * v_kepl + v_random;
     }
 
