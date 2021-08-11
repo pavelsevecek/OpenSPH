@@ -830,7 +830,8 @@ static Vector sampleSphere(const Float radius, const Float exponent, IRng& rng) 
 void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
     SharedPtr<IDomain> domain = this->getInput<IDomain>("domain");
     const Box bbox = domain->getBoundingBox();
-    const Sphere bsphere(bbox.center(), getLength(bbox.size()) / 2._f);
+    /// \todo add getBoundingSphere to IDomain?
+    const Sphere bsphere(bbox.center(), maxElement(bbox.size()) / 2._f);
 
     const Size particleCnt = settings.get<int>(NBodySettingsId::PARTICLE_COUNT);
     const Float radialExponent = settings.get<Float>(NBodySettingsId::RADIAL_PROFILE);
