@@ -113,7 +113,8 @@ Rgba VolumeRenderer::shade(const RenderParams& params, const CameraRay& cameraRa
         // smoothing length should not have effect on the total emission
         const float radiiFactor = cached.referenceRadii[i] / cached.r[i][H];
         const float secant = 2._f * getLength(center - hit) * cosPhi * radiiFactor;
-        result = result * exp(-params.volume.absorption * secant);
+        // make dilated particles absorb more
+        result = result * exp(-params.volume.absorption * secant * distention);
         // 3th power of cosPhi to give more weight to the sphere center,
         // divide by distention^3; distention should not affect the total emission
         const float magnitude = params.volume.emission * pow<3>(cosPhi / distention) * secant;

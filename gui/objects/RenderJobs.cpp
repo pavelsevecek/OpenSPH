@@ -31,6 +31,7 @@ static RegisterEnum<AnimationType> sAnimation({
 enum class RenderColorizerId {
     VELOCITY = int(ColorizerId::VELOCITY),
     ENERGY = int(QuantityId::ENERGY),
+    DENSITY = int(QuantityId::DENSITY),
     DAMAGE = int(QuantityId::DAMAGE),
     GRAVITY = 666,
     BEAUTY = int(ColorizerId::BEAUTY),
@@ -39,6 +40,7 @@ enum class RenderColorizerId {
 static RegisterEnum<RenderColorizerId> sColorizers({
     { RenderColorizerId::VELOCITY, "velocity", "Particle velocities" },
     { RenderColorizerId::ENERGY, "energy", "Specific internal energy" },
+    { RenderColorizerId::DENSITY, "density", "Density" },
     { RenderColorizerId::DAMAGE, "damage", "Damage" },
     { RenderColorizerId::GRAVITY, "gravity", "Gravitational acceleration" },
     { RenderColorizerId::BEAUTY, "beauty", "Beauty" },
