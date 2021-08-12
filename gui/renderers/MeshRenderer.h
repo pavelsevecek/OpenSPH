@@ -51,6 +51,8 @@ public:
 
     virtual bool isInitialized() const override;
 
+    virtual void setColorizer(const IColorizer& colorizer) override;
+
     /// Can only be called from main thread
     virtual void render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const override;
 

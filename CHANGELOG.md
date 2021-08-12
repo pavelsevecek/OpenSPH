@@ -1,3 +1,7 @@
+## 2021-08-12
+- optimized preview render refresh when palette changes
+- volumetric renderer: made emission independent of smoothing lengths
+
 ## 2021-08-11
 - added special point-mass particles ("attractors"), created via 'create single particle' node
 - added toroidal domain

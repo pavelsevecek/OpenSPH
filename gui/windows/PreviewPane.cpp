@@ -135,11 +135,6 @@ void InteractiveRenderer::resize(const Pixel newResolution) {
     this->update();
 }
 
-void InteractiveRenderer::setPalette(const Palette& palette) {
-    changed.palette = palette;
-    this->update();
-}
-
 AutoPtr<ICamera> InteractiveRenderer::getNewCamera(const SharedPtr<JobNode>& cameraNode,
     const RunSettings& globals) const {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
@@ -269,11 +264,12 @@ void InteractiveRenderer::setNodeAccessor(const SharedPtr<JobNode>& particleNode
 }
 
 void InteractiveRenderer::setPaletteAccessor(const RunSettings& globals) {
-    auto accessor = [this, globals](const std::string& name, const Palette& UNUSED(palette)) {
+    auto accessor = [this, globals](const std::string& name, const Palette& palette) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
         AutoPtr<IColorizer> colorizer = job->getColorizer(globals);
         if (colorizer->name() == name) {
-            changed.colorizer = std::move(colorizer);
+            changed.palette = palette;
+            // changed.colorizer = std::move(colorizer);
             this->update();
         }
     };

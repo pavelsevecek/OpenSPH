@@ -43,11 +43,20 @@ void MeshRenderer::initialize(const Storage& storage,
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     finder->build(*scheduler, r);
-    Array<NeighborRecord> neighs;
 
+    this->setColorizer(colorizer);
+}
+
+bool MeshRenderer::isInitialized() const {
+    return !cached.triangles.empty();
+}
+
+void MeshRenderer::setColorizer(const IColorizer& colorizer) {
+    Array<NeighborRecord> neighs;
+    cached.colors.clear();
     for (Triangle& t : cached.triangles) {
         const Vector pos = t.center();
-        finder->findAll(pos, 4._f * config.gridResolution, neighs);
+        finder->findAll(pos, 2._f * maxElement(t.getBBox().size()), neighs);
 
         Rgba colorSum(0._f);
         float weightSum = 0.f;
@@ -55,7 +64,7 @@ void MeshRenderer::initialize(const Storage& storage,
             const Size i = n.index;
             const Rgba color = colorizer.evalColor(i);
             /// \todo fix, the weight here should be consistent with MC
-            const float w = float(max(kernel.value(r[i] - pos, r[i][H]), EPS));
+            const float w = 1._f;
             colorSum += color * w;
             weightSum += w;
         }
@@ -69,10 +78,6 @@ void MeshRenderer::initialize(const Storage& storage,
             cached.colors.push(colorSum / weightSum * gray);
         }
     }
-}
-
-bool MeshRenderer::isInitialized() const {
-    return !cached.triangles.empty();
 }
 
 void MeshRenderer::render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const {

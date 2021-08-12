@@ -19,6 +19,9 @@ private:
         /// Particle colors
         Array<Rgba> colors;
 
+        /// Mass-based radii
+        Array<float> referenceRadii;
+
         /// Distention factor of each particle
         Array<float> distention;
 
@@ -47,6 +50,8 @@ public:
         const ICamera& camera) override;
 
     virtual bool isInitialized() const override;
+
+    virtual void setColorizer(const IColorizer& colorizer) override;
 
 private:
     virtual Rgba shade(const RenderParams& params,

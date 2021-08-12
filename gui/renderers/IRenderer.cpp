@@ -84,8 +84,7 @@ void IRaytracer::postProcess(FrameBuffer& fb,
     }
 
     if (isFinal && params.volume.bloomIntensity > 0.f) {
-        const float mag = params.volume.bloomIntensity;
-        bitmap = bloomEffect(*scheduler, bitmap, 250 * mag, mag);
+        bitmap = bloomEffect(*scheduler, bitmap, 25, params.volume.bloomIntensity);
     }
 
     if (fixed.colorMap) {

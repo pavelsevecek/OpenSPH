@@ -102,6 +102,8 @@ public:
 
     virtual bool isInitialized() const override;
 
+    virtual void setColorizer(const IColorizer& colorizer) override;
+
 private:
     virtual Rgba shade(const RenderParams& params,
         const CameraRay& cameraRay,

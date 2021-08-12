@@ -100,8 +100,6 @@ public:
 
     void resize(const Pixel newResolution);
 
-    void setPalette(const Palette& palette);
-
 private:
     AutoPtr<ICamera> getNewCamera(const SharedPtr<JobNode>& cameraNode, const RunSettings& globals) const;
 
@@ -132,10 +130,6 @@ public:
         const RunSettings& globals);
 
     ~PreviewPane() = default;
-
-    void setPalette(const Palette& palette) {
-        renderer->setPalette(palette);
-    }
 
 private:
     void onPaint(wxPaintEvent& evt);

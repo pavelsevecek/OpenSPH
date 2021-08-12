@@ -18,17 +18,20 @@ void ContourRenderer::initialize(const Storage& storage,
     const ICamera& UNUSED(camera)) {
     cached.positions = storage.getValue<Vector>(QuantityId::POSITION).clone();
     cached.values.resize(cached.positions.size());
-
-    parallelFor(*scheduler, 0, cached.positions.size(), [this, &colorizer](const Size i) {
-        cached.values[i] = colorizer.evalScalar(i).value();
-    });
-    cached.palette = colorizer.getPalette();
-
     finder->build(*scheduler, cached.positions);
+
+    this->setColorizer(colorizer);
 }
 
 bool ContourRenderer::isInitialized() const {
     return !cached.values.empty();
+}
+
+void ContourRenderer::setColorizer(const IColorizer& colorizer) {
+    parallelFor(*scheduler, 0, cached.positions.size(), [this, &colorizer](const Size i) {
+        cached.values[i] = colorizer.evalScalar(i).value();
+    });
+    cached.palette = colorizer.getPalette();
 }
 
 // See https://en.wikipedia.org/wiki/Marching_squares

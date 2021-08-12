@@ -214,6 +214,7 @@ void Chai::registerBindings(chaiscript::ChaiScript& chai) {
     chai.add(chaiscript::fun(&Vec3::operator/), "/");
     chai.add(chaiscript::fun(&Vec3::operator=), "=");
     chai.add(chaiscript::fun(&Vec3::operator+=), "+=");
+    chai.add(chaiscript::fun([](const Float f, const Vec3& v) { return f * v; }), "*");
     chai.add(chaiscript::fun(&dot), "dotProd");
     chai.add(chaiscript::fun(&cross), "crossProd");
     chai.add(chaiscript::fun(&length), "length");

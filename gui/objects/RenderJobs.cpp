@@ -398,9 +398,7 @@ public:
 
     virtual void update(Palette&& palette) override {
         colorizer->setPalette(palette);
-        colorizerDirty = true;
-        /// \todo could be optimized, no need to re-generate BVH, etc.
-        rendererDirty = true;
+        renderer->setColorizer(*colorizer);
     }
 
     virtual void cancel() override {

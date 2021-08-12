@@ -70,6 +70,7 @@ AutoPtr<IRenderer> Factory::getRenderer(SharedPtr<IScheduler> scheduler, const G
             virtual bool isInitialized() const override {
                 return true;
             }
+            virtual void setColorizer(const IColorizer&) override {}
             virtual void render(const RenderParams&, Statistics&, IRenderOutput&) const override {}
             virtual void cancelRender() override {}
         };

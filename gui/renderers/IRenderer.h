@@ -183,6 +183,9 @@ public:
     /// \brief Checks if the renderer has been initialized.
     virtual bool isInitialized() const = 0;
 
+    /// \brief Called if only the colorizer changed since the last call of \ref initialize.
+    virtual void setColorizer(const IColorizer& colorizer) = 0;
+
     /// \brief Draws particles into the bitmap, given the data provided in \ref initialize.
     ///
     /// This function is called every time the view changes (display parameters change, camera pan & zoom,

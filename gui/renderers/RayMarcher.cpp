@@ -94,14 +94,7 @@ void RayMarcher::initialize(const Storage& storage,
         }
     }
 
-    cached.doEmission = typeid(colorizer) == typeid(BeautyColorizer);
-    cached.colors.resize(particleCnt);
-    for (Size i = 0; i < particleCnt; ++i) {
-        cached.colors[i] = colorizer.evalColor(i);
-        if (cached.doEmission) {
-            cached.colors[i] = cached.colors[i] * colorizer.evalScalar(i).value();
-        }
-    }
+    this->setColorizer(colorizer);
 
     Array<BvhSphere> spheres;
     spheres.reserve(particleCnt);
@@ -125,6 +118,17 @@ void RayMarcher::initialize(const Storage& storage,
 
 bool RayMarcher::isInitialized() const {
     return !cached.r.empty();
+}
+
+void RayMarcher::setColorizer(const IColorizer& colorizer) {
+    cached.doEmission = typeid(colorizer) == typeid(BeautyColorizer);
+    cached.colors.resize(cached.r.size());
+    for (Size i = 0; i < cached.r.size(); ++i) {
+        cached.colors[i] = colorizer.evalColor(i);
+        if (cached.doEmission) {
+            cached.colors[i] = cached.colors[i] * colorizer.evalScalar(i).value();
+        }
+    }
 }
 
 Rgba RayMarcher::shade(const RenderParams& params, const CameraRay& cameraRay, ThreadData& data) const {

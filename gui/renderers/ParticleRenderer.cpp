@@ -275,12 +275,16 @@ void ParticleRenderer::initialize(const Storage& storage,
     } else {
         cached.vectors.clear();
     }
-
-    cached.palette = colorizer.getPalette();
 }
 
 bool ParticleRenderer::isInitialized() const {
     return !cached.positions.empty();
+}
+
+void ParticleRenderer::setColorizer(const IColorizer& colorizer) {
+    for (Size i = 0; i < cached.idxs.size(); ++i) {
+        cached.colors[i] = colorizer.evalColor(cached.idxs[i]);
+    }
 }
 
 static AutoPtr<IRenderContext> getContext(const RenderParams& params, Bitmap<Rgba>& bitmap) {

@@ -42,9 +42,6 @@ private:
         /// Vectors representing the colorized quantity. May be empty.
         Array<Vector> vectors;
 
-        /// Color palette or NOTHING if no palette is drawn
-        Optional<Palette> palette;
-
         /// Camera direction for which the cached values have been sorted.
         Vector cameraDir;
 
@@ -62,6 +59,8 @@ public:
         const ICamera& camera) override;
 
     virtual bool isInitialized() const override;
+
+    virtual void setColorizer(const IColorizer& colorizer) override;
 
     virtual void render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const override;
 

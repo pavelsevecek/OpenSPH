@@ -20,10 +20,7 @@ void VolumeRenderer::initialize(const Storage& storage,
     const IColorizer& colorizer,
     const ICamera& UNUSED(camera)) {
     cached.r = storage.getValue<Vector>(QuantityId::POSITION).clone();
-    cached.colors.resize(cached.r.size());
-    for (Size i = 0; i < cached.r.size(); ++i) {
-        cached.colors[i] = colorizer.evalColor(i);
-    }
+    this->setColorizer(colorizer);
 
     cached.distention.resize(cached.r.size());
 
@@ -51,6 +48,27 @@ void VolumeRenderer::initialize(const Storage& storage,
 
         cached.distention[i] = min(radius / initialRadius, MAX_DISTENTION);
     });
+
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    cached.referenceRadii.resize(cached.r.size());
+    if (storage.getMaterialCnt() > 0) {
+        for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
+            MaterialView mat = storage.getMaterial(matId);
+            const Float rho = mat->getParam<Float>(BodySettingsId::DENSITY);
+            for (Size i : mat.sequence()) {
+                const Float volume = m[i] / rho;
+                cached.referenceRadii[i] = root<3>(3._f * volume / (4._f * PI));
+            }
+        }
+    } else {
+        // guess the dentity
+        const Float rho = 1000._f;
+        for (Size i = 0; i < m.size(); ++i) {
+            const Float volume = m[i] / rho;
+            cached.referenceRadii[i] = root<3>(3._f * volume / (4._f * PI));
+        }
+    }
+
     bvh.build(std::move(spheres));
 
     for (ThreadData& data : threadData) {
@@ -62,6 +80,13 @@ void VolumeRenderer::initialize(const Storage& storage,
 
 bool VolumeRenderer::isInitialized() const {
     return !cached.r.empty();
+}
+
+void VolumeRenderer::setColorizer(const IColorizer& colorizer) {
+    cached.colors.resize(cached.r.size());
+    for (Size i = 0; i < cached.r.size(); ++i) {
+        cached.colors[i] = colorizer.evalColor(i);
+    }
 }
 
 Rgba VolumeRenderer::shade(const RenderParams& params, const CameraRay& cameraRay, ThreadData& data) const {
@@ -85,7 +110,9 @@ Rgba VolumeRenderer::shade(const RenderParams& params, const CameraRay& cameraRa
         const Vector toCenter = getNormalized(center - hit);
         const float cosPhi = abs(dot(toCenter, ray.direction()));
         const float distention = cached.distention[i];
-        const float secant = 2._f * getLength(center - hit) * cosPhi;
+        // smoothing length should not have effect on the total emission
+        const float radiiFactor = cached.referenceRadii[i] / cached.r[i][H];
+        const float secant = 2._f * getLength(center - hit) * cosPhi * radiiFactor;
         result = result * exp(-params.volume.absorption * secant);
         // 3th power of cosPhi to give more weight to the sphere center,
         // divide by distention^3; distention should not affect the total emission
