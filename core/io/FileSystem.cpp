@@ -7,6 +7,7 @@
 #include <userenv.h>
 #include <windows.h>
 #else
+#include <unistd.h>
 #include <dirent.h>
 #include <sys/file.h>
 #include <sys/stat.h>
@@ -95,7 +96,7 @@ Expected<Path> FileSystem::getUserDataDirectory() {
 #ifdef SPH_WIN
         return homeDir.value();
 #else
-        return homeDir.value() / ".config";
+        return homeDir.value() / Path(".config");
 #endif
     } else {
         return homeDir;
