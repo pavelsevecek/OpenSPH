@@ -1,4 +1,5 @@
 #include "io/Path.h"
+#include "math/MathBasic.h"
 
 #ifdef SPH_WIN
 #include <windows.h>

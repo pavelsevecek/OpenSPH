@@ -12,6 +12,7 @@
 #include <wx/combobox.h>
 #include <wx/dcbuffer.h>
 #include <wx/panel.h>
+#include <wx/settings.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 

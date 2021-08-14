@@ -2,7 +2,7 @@
 
 #include "io/Path.h"
 #include "objects/containers/Array.h"
-#include "objects/wrappers/ClonePtr.h"
+#include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Expected.h"
 #include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Outcome.h"
@@ -119,10 +119,14 @@ class DirectoryIterator {
 
 private:
     struct DirData;
-    ClonePtr<DirData> data;
+    AutoPtr<DirData> data;
 
 public:
     ~DirectoryIterator();
+
+    DirectoryIterator(const DirectoryIterator& other);
+
+    DirectoryIterator& operator=(const DirectoryIterator& other);
 
     /// Moves to the next file in the directory
     DirectoryIterator& operator++();
@@ -137,7 +141,7 @@ public:
     bool operator!=(const DirectoryIterator& other) const;
 
 private:
-    DirectoryIterator(ClonePtr<DirData> data);
+    DirectoryIterator(DirData&& data);
 };
 
 /// \brief Object providing begin and end directory iterator for given directory path.
@@ -147,7 +151,7 @@ private:
 /// The enumeration skips directories '.' and '..'.
 class DirectoryAdapter : public Noncopyable {
 private:
-    ClonePtr<DirectoryIterator::DirData> data;
+    AutoPtr<DirectoryIterator::DirData> data;
 
 public:
     /// \brief Creates the directory adapter for given path.

@@ -102,7 +102,7 @@ add_library(gui STATIC ${GUI_HEADERS} ${GUI_SOURCES})
 target_include_directories(gui PUBLIC ../core ..)
 
 if(NOT WIN32)
-    target_compile_options(gui PUBLIC "${WX_CXX_FLAGS}) -Wno-deprecated-copy -Wno-array-bounds -Wno-float-conversion")
+    target_compile_options(gui PUBLIC "-Wno-deprecated-copy -Wno-array-bounds -Wno-float-conversion")
 endif()
 
 set(GUI_LIBRARIES core ${wxWidgets_LIBRARIES} ${TBB_LIBRARIES} ${OpenVDB_LIBRARIES})

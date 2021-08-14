@@ -20,7 +20,7 @@ if (WIN32)
     add_definitions(-D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_CRT_SECURE_NO_WARNINGS)
 endif()
 
-find_package(wxWidgets REQUIRED COMPONENTS core base propgrid aui)
+find_package(wxWidgets REQUIRED COMPONENTS core base adv propgrid aui)
 include(${wxWidgets_USE_FILE})
 
 if (WITH_EIGEN)

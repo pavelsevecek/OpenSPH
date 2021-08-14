@@ -18,8 +18,8 @@ NAMESPACE_SPH_BEGIN
 
 Expected<Path> getExecutablePath() {
 #ifndef SPH_WIN
-    char result[PATH_MAX];
-    ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+    char result[4096];
+    ssize_t count = readlink("/proc/self/exe", result, sizeof(result));
     if (count != -1) {
         Path path(std::string(result, count));
         return path.parentPath();

@@ -13,3 +13,7 @@ void* operator new(std::size_t s) {
 void operator delete(void* p) {
     _mm_free(p);
 }
+
+void operator delete(void* p, std::size_t UNUSED(sz)) {
+    _mm_free(p);
+}
