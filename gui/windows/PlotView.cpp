@@ -153,10 +153,7 @@ void PlotView::onPaint(wxPaintEvent& UNUSED(evt)) {
     this->drawPlot(dc, *proxy, rangeX, rangeY);
 }
 
-void PlotView::drawPlot(wxAutoBufferedPaintDC& dc,
-    IPlot& lockedPlot,
-    const Interval rangeX,
-    const Interval rangeY) {
+void PlotView::drawPlot(wxAutoBufferedPaintDC& dc, IPlot& lockedPlot, const Interval rangeX, const Interval rangeY) {
     GraphicsContext context(dc, cached.color);
     const AffineMatrix2 matrix = this->getPlotTransformMatrix(rangeX, rangeY);
     context.setTransformMatrix(matrix);
