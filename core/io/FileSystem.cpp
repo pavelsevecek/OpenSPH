@@ -7,11 +7,11 @@
 #include <userenv.h>
 #include <windows.h>
 #else
-#include <unistd.h>
 #include <dirent.h>
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 #endif
 
 NAMESPACE_SPH_BEGIN
@@ -402,8 +402,8 @@ struct FileSystem::DirectoryIterator::DirData {
 #endif
 };
 
-FileSystem::DirectoryIterator::DirectoryIterator(ClonePtr<DirData> data)
-    : data(std::move(data)) {
+FileSystem::DirectoryIterator::DirectoryIterator(DirData&& data)
+    : data(makeAuto<DirData>(std::move(data))) {
     SPH_ASSERT(this->data);
 #ifndef SPH_WIN
     if (this->data->dir != nullptr) {
@@ -411,6 +411,15 @@ FileSystem::DirectoryIterator::DirectoryIterator(ClonePtr<DirData> data)
         this->operator++();
     }
 #endif
+}
+
+FileSystem::DirectoryIterator::DirectoryIterator(const DirectoryIterator& other) {
+    *this = other;
+}
+
+FileSystem::DirectoryIterator& FileSystem::DirectoryIterator::operator=(const DirectoryIterator& other) {
+    data = makeAuto<DirData>(*other.data);
+    return *this;
 }
 
 FileSystem::DirectoryIterator::~DirectoryIterator() = default;
@@ -459,7 +468,7 @@ bool FileSystem::DirectoryIterator::operator!=(const DirectoryIterator& other) c
 
 FileSystem::DirectoryAdapter::DirectoryAdapter(const Path& directory) {
     SPH_ASSERT(pathType(directory).valueOr(PathType::OTHER) == PathType::DIRECTORY);
-    data = makeClone<DirectoryIterator::DirData>();
+    data = makeAuto<DirectoryIterator::DirData>();
 #ifndef SPH_WIN
     if (!pathExists(directory)) {
         data->dir = nullptr;
@@ -492,16 +501,16 @@ FileSystem::DirectoryAdapter::~DirectoryAdapter() {
 }
 
 FileSystem::DirectoryAdapter::DirectoryAdapter(DirectoryAdapter&& other)
-    : data(other.data) {
+    : data(std::move(other.data)) {
     other.data = nullptr;
 }
 
 FileSystem::DirectoryIterator FileSystem::DirectoryAdapter::begin() const {
-    return DirectoryIterator(data);
+    return DirectoryIterator(DirectoryIterator::DirData(*data));
 }
 
 FileSystem::DirectoryIterator FileSystem::DirectoryAdapter::end() const {
-    return DirectoryIterator(makeClone<DirectoryIterator::DirData>());
+    return DirectoryIterator({});
 }
 
 FileSystem::DirectoryAdapter FileSystem::iterateDirectory(const Path& directory) {

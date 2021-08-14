@@ -4,6 +4,7 @@
 #ifndef SPH_WIN
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <unistd.h>
 #endif
 
 NAMESPACE_SPH_BEGIN
