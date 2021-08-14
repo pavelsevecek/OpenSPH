@@ -9,7 +9,7 @@
 #include "gui/objects/Color.h"
 #include "quantities/Particle.h"
 #include <wx/clipbrd.h>
-#include <wx/dcclient.h>
+#include <wx/dcbuffer.h>
 #include <wx/menu.h>
 #include <wx/panel.h>
 #include <wx/textctrl.h>
@@ -41,6 +41,7 @@ public:
     ParticleProbe(wxWindow* parent, const wxSize size)
         : wxPanel(parent, wxID_ANY) {
         this->SetMinSize(size);
+        this->SetBackgroundStyle(wxBG_STYLE_PAINT);
 
         // Connect handlers
         Connect(wxEVT_PAINT, wxPaintEventHandler(ParticleProbe::onPaint));

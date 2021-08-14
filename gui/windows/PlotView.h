@@ -73,7 +73,7 @@ private:
 
     /// Helper drawing functions
 
-    void drawPlot(wxPaintDC& dc, IPlot& lockedPlot, const Interval rangeX, const Interval rangeY);
+    void drawPlot(wxMemoryDC& dc, IPlot& lockedPlot, const Interval rangeX, const Interval rangeY);
 
     void drawCaption(wxDC& dc, IPlot& lockedPlot);
 };

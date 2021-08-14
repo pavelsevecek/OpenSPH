@@ -662,6 +662,7 @@ static void printStat(wxTextCtrl* text,
 }
 
 void RunPage::makeStatsText(const Size particleCnt, const Size attractorCnt, const Statistics& stats) {
+    statsText->Freeze();
     statsText->Clear();
     *statsText << " - particles: ";
     if (particleCnt > 0) {
@@ -702,6 +703,7 @@ void RunPage::makeStatsText(const Size particleCnt, const Size attractorCnt, con
     printStat<int>(statsText, stats, "    * breakups: ", StatisticsId::BREAKUP_COUNT);
     printStat<int>(statsText, stats, " - overlaps:    ", StatisticsId::OVERLAP_COUNT);
     printStat<int>(statsText, stats, " - aggregates:  ", StatisticsId::AGGREGATE_COUNT);
+    statsText->Thaw();
 }
 
 void RunPage::setColorizer(const Size idx) {

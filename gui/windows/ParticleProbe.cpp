@@ -43,8 +43,8 @@ void ParticleProbe::onMenu(wxCommandEvent& UNUSED(evt)) {
 }
 
 void ParticleProbe::onPaint(wxPaintEvent& UNUSED(evt)) {
-    wxPaintDC dc(this);
-    wxSize canvasSize = dc.GetSize();
+    wxAutoBufferedPaintDC dc(this);
+    wxSize canvasSize = this->GetClientSize();
 
     // draw background
     Rgba backgroundColor = Rgba(this->GetParent()->GetBackgroundColour());

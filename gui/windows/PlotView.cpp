@@ -8,6 +8,7 @@
 #include <wx/checkbox.h>
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
+#include <wx/dcbuffer.h>
 #include <wx/menu.h>
 #include <wx/sizer.h>
 
@@ -26,6 +27,7 @@ PlotView::PlotView(wxWindow* parent,
     , list(list)
     , ticsParams(ticsParams) {
     this->SetMinSize(size);
+    this->SetBackgroundStyle(wxBG_STYLE_PAINT);
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(PlotView::onPaint));
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(PlotView::onRightUp));
     this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(PlotView::onDoubleClick));
@@ -120,8 +122,8 @@ void PlotView::onMenu(wxCommandEvent& evt) {
 }
 
 void PlotView::onPaint(wxPaintEvent& UNUSED(evt)) {
-    wxPaintDC dc(this);
-    wxSize canvasSize = dc.GetSize();
+    wxAutoBufferedPaintDC dc(this);
+    wxSize canvasSize = this->GetClientSize();
 
     // draw background
     Rgba backgroundColor = Rgba(this->GetParent()->GetBackgroundColour());
@@ -151,7 +153,7 @@ void PlotView::onPaint(wxPaintEvent& UNUSED(evt)) {
     this->drawPlot(dc, *proxy, rangeX, rangeY);
 }
 
-void PlotView::drawPlot(wxPaintDC& dc, IPlot& lockedPlot, const Interval rangeX, const Interval rangeY) {
+void PlotView::drawPlot(wxMemoryDC& dc, IPlot& lockedPlot, const Interval rangeX, const Interval rangeY) {
     GraphicsContext context(dc, cached.color);
     const AffineMatrix2 matrix = this->getPlotTransformMatrix(rangeX, rangeY);
     context.setTransformMatrix(matrix);

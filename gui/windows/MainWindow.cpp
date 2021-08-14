@@ -184,7 +184,7 @@ MainWindow::MainWindow(const Path& openPath)
     helpMenu->Append(6000, "&About");
     helpMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [](wxCommandEvent& evt) { //
         switch (evt.GetId()) {
-        case 0: {
+        case 6000: {
             wxAboutDialogInfo info;
             info.SetName("OpenSPH");
 #ifdef SPH_VERSION
