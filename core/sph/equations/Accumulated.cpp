@@ -140,7 +140,7 @@ void Accumulated::sumBuffer(IScheduler& scheduler,
     ArrayView<Accumulated*> others) {
     Array<Iterator<Type>> iterators = this->getBufferIterators<Type>(id, others);
     auto functor = [&iterators, &buffer1](const Size i) INL {
-        Type sum(0._f);
+        Type sum = Type(0);
         for (Iterator<Type> iter : iterators) {
             Type& x = *(iter + i);
             if (x != Type(0._f)) {

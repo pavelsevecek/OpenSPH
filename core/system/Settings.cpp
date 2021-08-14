@@ -346,7 +346,7 @@ Optional<std::string> getIoExtension(const IoEnum type) {
     case IoEnum::BINARY_FILE:
         return std::string("ssf");
     case IoEnum::COMPRESSED_FILE:
-        return std::string("scf");
+        return std::string("sdf");
     case IoEnum::PKDGRAV_INPUT:
         return std::string("ss");
     case IoEnum::VTK_FILE:
@@ -365,7 +365,7 @@ Optional<IoEnum> getIoEnum(const std::string& ext) {
         return IoEnum::TEXT_FILE;
     } else if (ext == "ssf") {
         return IoEnum::BINARY_FILE;
-    } else if (ext == "scf") {
+    } else if (ext == "sdf") {
         return IoEnum::COMPRESSED_FILE;
     } else if (ext == "ss") {
         return IoEnum::PKDGRAV_INPUT;
@@ -451,9 +451,9 @@ static RegisterEnum<UvMapEnum> sUv({
 // clang-format off
 template<>
 AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
-    { RunSettingsId::RUN_NAME,                     "run.name", std::string("unnamed run"),
+    { RunSettingsId::RUN_NAME,                      "run.name",                 std::string("unnamed run"),
         "User-specified name of the run. Can be stored in the metadata of output files." },
-    { RunSettingsId::RUN_COMMENT,                   "run.comment", std::string(""),
+    { RunSettingsId::RUN_COMMENT,                   "run.comment",              std::string(""),
         "Auxiliary comment of the run. Can be stored in the metadata of output files." },
     { RunSettingsId::RUN_AUTHOR,                    "run.author",               std::string("Pavel Sevecek"),
         "Name of the person performing this run." },

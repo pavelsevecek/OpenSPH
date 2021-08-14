@@ -574,13 +574,13 @@ public:
         Box boxA = operA->getBoundingBox();
         Box boxB = operB->getBoundingBox().translate(offset);
         switch (mode) {
-        case BooleanEnum::UNION:
+        case BooleanEnum::SET_UNION:
             boxA.extend(boxB);
             break;
-        case BooleanEnum::INTERSECTION:
+        case BooleanEnum::SET_INTERSECTION:
             boxA = boxA.intersect(boxB);
             break;
-        case BooleanEnum::DIFFERENCE:
+        case BooleanEnum::SET_DIFFERENCE:
             break;
         default:
             NOT_IMPLEMENTED;
@@ -600,11 +600,11 @@ public:
     virtual bool contains(const Vector& v1) const override {
         const Vector v2 = v1 - offset;
         switch (mode) {
-        case BooleanEnum::UNION:
+        case BooleanEnum::SET_UNION:
             return operA->contains(v1) || operB->contains(v2);
-        case BooleanEnum::INTERSECTION:
+        case BooleanEnum::SET_INTERSECTION:
             return operA->contains(v1) && operB->contains(v2);
-        case BooleanEnum::DIFFERENCE:
+        case BooleanEnum::SET_DIFFERENCE:
             return operA->contains(v1) && !operB->contains(v2);
         default:
             NOT_IMPLEMENTED;
@@ -636,7 +636,7 @@ public:
     }
 
     virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices) const override {
-        if (mode != BooleanEnum::UNION) {
+        if (mode != BooleanEnum::SET_UNION) {
             NOT_IMPLEMENTED;
         }
 
@@ -649,7 +649,7 @@ public:
         Array<Ghost>& ghosts,
         const Float eta,
         const Float eps) const override {
-        if (mode != BooleanEnum::UNION) {
+        if (mode != BooleanEnum::SET_UNION) {
             NOT_IMPLEMENTED;
         }
 

@@ -111,6 +111,40 @@ std::decay_t<typename TRange::Type> accumulate(const TRange& range, const TIniti
     return sum;
 }
 
+template <typename TRange>
+auto findMax(const TRange& range) {
+    auto iter = range.begin();
+    auto last = range.end();
+    if (iter == last) {
+        return iter;
+    }
+    auto maxIter = iter;
+    ++iter;
+    for (; iter != last; ++iter) {
+        if (*iter > *maxIter) {
+            maxIter = iter;
+        }
+    }
+    return maxIter;
+}
+
+template <typename TRange>
+auto findMin(const TRange& range) {
+    auto iter = range.begin();
+    auto last = range.end();
+    if (iter == last) {
+        return iter;
+    }
+    auto minIter = iter;
+    ++iter;
+    for (; iter != last; ++iter) {
+        if (*iter < *minIter) {
+            minIter = iter;
+        }
+    }
+    return minIter;
+}
+
 /// Checks if two ranges differ no less than given eps.
 template <typename TRange1,
     typename TRange2,

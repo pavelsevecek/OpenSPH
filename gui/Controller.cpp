@@ -18,6 +18,7 @@
 #include "thread/Pool.h"
 #include <wx/app.h>
 #include <wx/checkbox.h>
+#include <wx/dcgraph.h>
 #include <wx/dcmemory.h>
 #include <wx/msgdlg.h>
 
@@ -31,7 +32,7 @@ Controller::Controller(wxWindow* parent)
 
     // create associated page
     GuiSettings& gui = project.getGuiSettings();
-    page = alignedNew<RunPage>(parent, this, gui);
+    page = new RunPage(parent, this, gui);
 
     this->startRenderThread();
 }
@@ -732,9 +733,8 @@ void Controller::startRenderThread() {
                 vis.bitmap = std::move(bitmap);
 
                 if (!labels.empty()) {
-                    wxMemoryDC dc(*vis.bitmap);
+                    wxGCDC dc(*vis.bitmap);
                     printLabels(dc, labels);
-                    dc.SelectObject(wxNullBitmap);
                 }
 
                 page->refresh();

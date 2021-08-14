@@ -113,7 +113,7 @@ void Curve::addPoint(const CurvePoint& newPoint) {
     if (iter == points.end()) {
         points.emplaceBack(newPoint, points[points.size() - 2].second);
     } else {
-        points.insert(iter - points.begin(), std::make_pair(newPoint, (iter - 1)->second));
+        points.insert(Size(iter - points.begin()), std::make_pair(newPoint, (iter - 1)->second));
     }
 }
 
@@ -156,7 +156,7 @@ Float Curve::operator()(const Float x) const {
     if (lowerBoundIter == points.end() || lowerBoundIter == points.begin()) {
         idx = 0;
     } else {
-        idx = lowerBoundIter - points.begin() - 1;
+        idx = Size(lowerBoundIter - points.begin() - 1);
     }
 
     auto leftDy = [this, idx] {

@@ -78,10 +78,10 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
     manager = makeAuto<wxAuiManager>(this);
 
     wxPanel* visBar = createVisBar();
-    pane = alignedNew<OrthoPane>(this, parent, settings);
+    pane = new OrthoPane(this, parent, settings);
 
-    timelineBar = alignedNew<TimeLine>(this, Path(), makeShared<TimeLineCallbacks>(parent));
-    progressBar = alignedNew<ProgressPanel>(this);
+    timelineBar = new TimeLine(this, Path(), makeShared<TimeLineCallbacks>(parent));
+    progressBar = new ProgressPanel(this);
 
     wxAuiPaneInfo info;
 
@@ -98,7 +98,7 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
     Flags<PaneEnum> paneIds = settings.getFlags<PaneEnum>(GuiSettingsId::DEFAULT_PANES);
     const Optional<Palette> palette = controller->getCurrentColorizer()->getPalette();
     if (paneIds.has(PaneEnum::PALETTE) && palette) {
-        palettePanel = alignedNew<PalettePanel>(this, wxSize(300, -1), palette.value());
+        palettePanel = new PalettePanel(this, wxSize(300, -1), palette.value());
         palettePanel->onPaletteChanged = [this](const Palette& palette) {
             controller->setPaletteOverride(palette);
         };
@@ -636,7 +636,7 @@ wxPanel* RunPage::createStatsBar() {
     wxPanel* statsPanel = new wxPanel(this);
     wxBoxSizer* statsSizer = new wxBoxSizer(wxVERTICAL);
 
-    wxFont font = wxSystemSettings::GetFont(wxSYS_SYSTEM_FONT);
+    wxFont font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
     font.Scale(0.95f);
     statsPanel->SetFont(font);
 

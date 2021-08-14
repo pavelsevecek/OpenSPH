@@ -604,7 +604,7 @@ AutoPtr<IInput> Factory::getInput(const Path& path) {
     const std::string ext = path.extension().native();
     if (ext == "ssf") {
         return makeAuto<BinaryInput>();
-    } else if (ext == "scf") {
+    } else if (ext == "sdf" || ext == "scf") { // .scf is an older extension of this format
         return makeAuto<CompressedInput>();
     } else if (ext == "h5") {
         return makeAuto<Hdf5Input>();

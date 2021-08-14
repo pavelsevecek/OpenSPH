@@ -3,35 +3,26 @@
 #include "objects/containers/Array.h"
 #include "system/Platform.h"
 #include <assert.h>
-#include <execinfo.h>
 #include <mutex>
 #include <signal.h>
 
+#ifndef SPH_WIN
+#include <execinfo.h>
+#endif
+
 NAMESPACE_SPH_BEGIN
-
-static Array<std::string> getStackTrace() {
-    constexpr Size TRACE_SIZE = 10;
-    void* buffer[TRACE_SIZE];
-    const Size nptrs = backtrace(buffer, TRACE_SIZE);
-
-    char** strings = backtrace_symbols(buffer, nptrs);
-    if (!strings) {
-        return { "No backtrace could be generated!" };
-    }
-
-    Array<std::string> trace;
-    for (Size i = 0; i < nptrs; ++i) {
-        trace.push(strings[i]);
-    }
-    free(strings);
-    return trace;
-}
 
 bool Assert::throwAssertException = false;
 
 bool Assert::isTest = false;
 
 Assert::Handler Assert::handler = nullptr;
+
+#ifdef SPH_WIN
+#define SPH_DEBUG_BREAK __debugbreak()
+#else
+#define SPH_DEBUG_BREAK raise(SIGTRAP)
+#endif
 
 void Assert::fireParams(const char* message,
     const char* file,
@@ -47,7 +38,11 @@ void Assert::fireParams(const char* message,
             logger = makeAuto<StringLogger>();
         } else {
             // by default, print the message to stdout
+#ifdef SPH_WIN
+            logger = makeAuto<ConsoleLogger>();
+#else
             logger = makeAuto<StdOutLogger>();
+#endif
 
             // also add some padding
             logger->write(
@@ -59,13 +54,6 @@ void Assert::fireParams(const char* message,
         logger->write("Condition: ", message);
         if (strlen(text) != 0) {
             logger->write("Assert parameters: ", text);
-        }
-        if (false) {
-            logger->write("Stack trace:");
-            Array<std::string> trace = getStackTrace();
-            for (std::string& s : trace) {
-                logger->write(s);
-            }
         }
 
         if (handler) {
@@ -82,7 +70,7 @@ void Assert::fireParams(const char* message,
         }
 
         if (isDebuggerPresent()) {
-            raise(SIGTRAP);
+            SPH_DEBUG_BREAK;
         }
 
         assert(false);
@@ -98,7 +86,7 @@ void Assert::todo(const char* message, const char* func, const int line) {
     logger.write(message);
     logger.write("===========================================================");
     if (isDebuggerPresent()) {
-        raise(SIGTRAP);
+        SPH_DEBUG_BREAK;
     }
 }
 

@@ -16,6 +16,13 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/;${CMAKE_MODULE_PATH}")
 
 add_definitions(-DSPH_VERSION=${CMAKE_PROJECT_VERSION})
 
+if (WIN32)
+    add_definitions(-D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_CRT_SECURE_NO_WARNINGS)
+endif()
+
+find_package(wxWidgets REQUIRED COMPONENTS core base propgrid aui)
+include(${wxWidgets_USE_FILE})
+
 if (WITH_EIGEN)
     find_package(Eigen REQUIRED)
     include_directories(${EIGEN_INCLUDE_DIRS})
@@ -37,8 +44,13 @@ elseif (WITH_TBB)
     add_definitions(-DSPH_USE_TBB -DTBB_SUPPRESS_DEPRECATED_MESSAGES)
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -msse4.1")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -mtune=native -ffast-math")
+if (WIN32)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /fp:fast")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -msse4.1")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -mtune=native -ffast-math")
+endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-DSPH_DEBUG)

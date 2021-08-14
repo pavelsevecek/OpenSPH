@@ -53,56 +53,6 @@ static void drawVector(IRenderContext& context,
     context.drawLine(c2, c2 + Coords(float(a2.x), float(a2.y)));
 }
 
-void drawPalette(IRenderContext& context,
-    const Pixel origin,
-    const Pixel size,
-    const Rgba& lineColor,
-    const Palette& palette) {
-
-    // draw palette
-    for (int i = 0; i < size.y; ++i) {
-        const float value = palette.relativeToPalette(float(i) / (size.y - 1));
-        context.setColor(palette(value), ColorFlag::LINE);
-        context.drawLine(Coords(origin.x, origin.y - i), Coords(origin.x + size.x, origin.y - i));
-    }
-
-    // draw tics
-    const Interval interval = palette.getInterval();
-    const PaletteScale scale = palette.getScale();
-
-    Array<Float> tics;
-    switch (scale) {
-    case PaletteScale::LINEAR:
-        tics = getLinearTics(interval, 4);
-        break;
-    case PaletteScale::LOGARITHMIC:
-        tics = getLogTics(interval, 4);
-        break;
-    case PaletteScale::HYBRID: {
-        const Size ticsCnt = 5;
-        // tics currently not implemented, so just split the range to equidistant steps
-        for (Size i = 0; i < ticsCnt; ++i) {
-            tics.push(palette.relativeToPalette(float(i) / (ticsCnt - 1)));
-        }
-        break;
-    }
-    default:
-        NOT_IMPLEMENTED;
-    }
-    context.setColor(lineColor, ColorFlag::LINE | ColorFlag::TEXT);
-    for (Float tic : tics) {
-        const float value = palette.paletteToRelative(float(tic));
-        const int i = int(value * size.y);
-        context.drawLine(Coords(origin.x, origin.y - i), Coords(origin.x + 6, origin.y - i));
-        context.drawLine(
-            Coords(origin.x + size.x - 6, origin.y - i), Coords(origin.x + size.x, origin.y - i));
-
-        std::wstring text = toPrintableString(tic, 1, 1000);
-        context.drawText(
-            Coords(origin.x - 15, origin.y - i), TextAlign::LEFT | TextAlign::VERTICAL_CENTER, text);
-    }
-}
-
 static void drawGrid(IRenderContext& context, const ICamera& camera, const float grid) {
     // find (any) direction in the camera plane
     const Optional<CameraRay> originRay = camera.unproject(Coords(0, 0));
@@ -142,8 +92,8 @@ static void drawKey(IRenderContext& context,
     const float UNUSED(fps),
     const Rgba& background) {
     const Coords size = Coords(context.size());
-    const Coords keyStart = size - Coords(160, 80);
-    Flags<TextAlign> flags = TextAlign::RIGHT | TextAlign::BOTTOM;
+    const Coords keyStart = size - Coords(85, 80);
+    Flags<TextAlign> flags = TextAlign::HORIZONTAL_CENTER | TextAlign::BOTTOM;
 
     context.setColor(background.inverse(), ColorFlag::TEXT | ColorFlag::LINE);
     if (stats.has(StatisticsId::RUN_TIME)) {
@@ -156,12 +106,11 @@ static void drawKey(IRenderContext& context,
     const float minimalScaleFov = dFov_dPx * 16;
     float actScaleFov = pow(10.f, float(ceil(log10(minimalScaleFov))));
     const float scaleSize = actScaleFov / dFov_dPx;
-    const Coords lineStart = keyStart + Coords(75, 30);
+    const Coords lineStart = keyStart + Coords(0, 30);
     context.drawLine(lineStart + Coords(-scaleSize / 2, 0), lineStart + Coords(scaleSize / 2, 0));
     context.drawLine(lineStart + Coords(-scaleSize / 2, -4), lineStart + Coords(-scaleSize / 2, 4));
     context.drawLine(lineStart + Coords(scaleSize / 2 + 1, -4), lineStart + Coords(scaleSize / 2 + 1, 4));
 
-    flags = TextAlign::HORIZONTAL_CENTER | TextAlign::BOTTOM;
     /// \todo finally implement the units!
     std::wstring units = L" m";
     if (actScaleFov > Constants::au) {
@@ -176,7 +125,7 @@ static void drawKey(IRenderContext& context,
         // convert 1x10^n  -> 10^n
         scaleText = scaleText.substr(3);
     }
-    context.drawText(lineStart + Coords(0, 6), flags, scaleText + units);
+    context.drawText(keyStart + Coords(0, 36), flags, scaleText + units);
 }
 
 void drawAxis(IRenderContext& context, const Rgba& color, const Vector& axis, const std::string& label) {

@@ -268,14 +268,14 @@ public:
 };
 
 enum class BooleanEnum {
-    UNION,
-    DIFFERENCE,
-    INTERSECTION,
+    SET_UNION,
+    SET_DIFFERENCE,
+    SET_INTERSECTION,
 };
 static RegisterEnum<BooleanEnum> sBoolean({
-    { BooleanEnum::UNION, "union", "union" },
-    { BooleanEnum::INTERSECTION, "intersection", "intersection" },
-    { BooleanEnum::DIFFERENCE, "difference", "difference" },
+    { BooleanEnum::SET_UNION, "union", "union" },
+    { BooleanEnum::SET_INTERSECTION, "intersection", "intersection" },
+    { BooleanEnum::SET_DIFFERENCE, "difference", "difference" },
 });
 
 
@@ -286,7 +286,7 @@ class BooleanGeometryJob : public IGeometryJob {
 public:
     BooleanGeometryJob(const std::string& name)
         : IGeometryJob(name) {
-        mode = EnumWrapper(BooleanEnum::DIFFERENCE);
+        mode = EnumWrapper(BooleanEnum::SET_DIFFERENCE);
     }
 
     virtual std::string className() const override {

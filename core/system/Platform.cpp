@@ -3,16 +3,21 @@
 #include "objects/containers/StaticArray.h"
 #include "objects/wrappers/Finally.h"
 #include <fcntl.h>
-
-#include <libgen.h>
 #include <string.h>
+
+#ifndef SPH_WIN
+#include <libgen.h>
 #include <sys/stat.h>
 #include <sys/times.h>
 #include <unistd.h>
+#else
+#include <windows.h>
+#endif
 
 NAMESPACE_SPH_BEGIN
 
 Expected<Path> getExecutablePath() {
+#ifndef SPH_WIN
     char result[PATH_MAX];
     ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
     if (count != -1) {
@@ -21,12 +26,16 @@ Expected<Path> getExecutablePath() {
     } else {
         return makeUnexpected<Path>("Unknown error");
     }
+#else
+    NOT_IMPLEMENTED;
+#endif
 }
 
 Outcome sendMail(const std::string& to,
     const std::string& from,
     const std::string& subject,
     const std::string& message) {
+#ifndef SPH_WIN
     NOT_IMPLEMENTED; // somehow doesn't work
     FILE* mailpipe = popen("/usr/bin/sendmail -t", "w");
     if (mailpipe == nullptr) {
@@ -39,18 +48,26 @@ Outcome sendMail(const std::string& to,
     fwrite(".\n", 1, 2, mailpipe);
     pclose(mailpipe);
     return SUCCESS;
+#else
+    NOT_IMPLEMENTED;
+#endif
 }
 
 Outcome showNotification(const std::string& title, const std::string& message) {
+#ifndef SPH_WIN
     std::string command = "notify-send \"" + title + "\" \"" + message + "\"";
     if (system(command.c_str())) {
         return SUCCESS;
     } else {
         return makeFailed("Command failed");
     }
+#else
+    NOT_IMPLEMENTED;
+#endif
 }
 
 Outcome sendPushNotification(const std::string& key, const std::string& title, const std::string& message) {
+#ifndef SPH_WIN
     std::string command = "curl --data 'key=" + key + "&title=" + title + "&msg=" + message +
                           "' https://api.simplepush.io/send > /dev/null 2> /dev/null";
     if (system(command.c_str())) {
@@ -58,12 +75,16 @@ Outcome sendPushNotification(const std::string& key, const std::string& title, c
     } else {
         return makeFailed("Command failed");
     }
+#else
+    NOT_IMPLEMENTED;
+#endif
 }
 
 Expected<std::string> getGitCommit(const Path& pathToGitRoot, const Size prev) {
     if (!FileSystem::pathExists(pathToGitRoot)) {
         return makeUnexpected<std::string>("Invalid path");
     }
+#ifndef SPH_WIN
     StaticArray<char, 128> buffer;
     std::string command = "cd " + pathToGitRoot.native() + " && git rev-parse HEAD~" + std::to_string(prev);
     std::string result;
@@ -91,8 +112,12 @@ Expected<std::string> getGitCommit(const Path& pathToGitRoot, const Size prev) {
     } else {
         return result;
     }
+#else
+    NOT_IMPLEMENTED;
+#endif
 }
 
+#ifndef SPH_WIN
 class CpuUsage {
 private:
     clock_t lastCpu;
@@ -141,12 +166,23 @@ public:
     }
 };
 
+#else
+class CpuUsage {
+public:
+    Optional<Float> getUsage() {
+        return NOTHING;
+    }
+};
+
+#endif
+
 Optional<Float> getCpuUsage() {
     static CpuUsage cpu;
     return cpu.getUsage();
 }
 
 bool isDebuggerPresent() {
+#ifndef SPH_WIN
     char buf[1024];
     bool debuggerPresent = false;
 
@@ -168,6 +204,9 @@ bool isDebuggerPresent() {
         }
     }
     return debuggerPresent;
+#else
+    return IsDebuggerPresent();
+#endif
 }
 
 NAMESPACE_SPH_END

@@ -149,7 +149,7 @@ private:
     template <typename... TArgs>
     void serializeImpl(Array<char>& bytes, const std::string& s, const TArgs&... args) {
         const Size size = bytes.size();
-        bytes.resize(size + s.size() + 1);
+        bytes.resize(size + Size(s.size()) + 1);
         const char* c = s.c_str();
         for (Size i = 0; i < s.size() + 1; ++i) {
             bytes[size + i] = c[i];

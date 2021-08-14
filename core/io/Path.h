@@ -6,7 +6,6 @@
 /// \date 2016-2021
 
 #include "common/Assert.h"
-#include <unistd.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -18,7 +17,11 @@ class Path {
 private:
     std::string path;
 
+#ifndef SPH_WIN
     static constexpr char SEPARATOR = '/';
+#else
+    static constexpr char SEPARATOR = '\\';
+#endif
 
 public:
     /// Constructs an empty path

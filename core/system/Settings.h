@@ -1614,11 +1614,6 @@ enum class BodySettingsId {
 };
 
 using RunSettings = Settings<RunSettingsId>;
-template <>
-AutoPtr<RunSettings> RunSettings::instance;
-
 using BodySettings = Settings<BodySettingsId>;
-template <>
-AutoPtr<BodySettings> BodySettings::instance;
 
 NAMESPACE_SPH_END

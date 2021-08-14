@@ -172,7 +172,7 @@ static uint64_t getHash(const uint64_t value, const Size seed) {
     uint64_t hash = FIRST + seed;
     StaticArray<uint8_t, sizeof(uint64_t)> data;
     std::memcpy(&data[0], &value, data.size());
-    for (uint i = 0; i < sizeof(uint64_t); ++i) {
+    for (Size i = 0; i < sizeof(uint64_t); ++i) {
         hash = (hash * A) ^ (data[i] * B);
     }
     return hash;

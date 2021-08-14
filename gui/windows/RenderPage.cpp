@@ -162,8 +162,8 @@ RenderPage::RenderPage(wxWindow* parent, const RunSettings& global, const Shared
     : ClosablePage(parent, "render") {
     manager = makeAuto<wxAuiManager>(this);
 
-    ImagePane* pane = alignedNew<ImagePane>(this);
-    ProgressPanel* progress = alignedNew<ProgressPanel>(this);
+    ImagePane* pane = new ImagePane(this);
+    ProgressPanel* progress = new ProgressPanel(this);
 
     this->Bind(wxEVT_MOUSEWHEEL, [pane](wxMouseEvent& evt) {
         const float spin = evt.GetWheelRotation();

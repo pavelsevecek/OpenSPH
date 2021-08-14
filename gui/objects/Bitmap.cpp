@@ -23,6 +23,9 @@ void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx, const float scale) {
     wxAlphaPixelData::Iterator iterator(pixels);
     SPH_ASSERT(iterator.IsOk());
     for (float y = 0; y < size.y; ++y) {
+        iterator.MoveTo(pixels, 0, y);
+        SPH_ASSERT(iterator.IsOk());
+
         for (float x = 0; x < size.x; ++x) {
             const int ix = min<int>(round(x * scale), bitmap.size().x - 1);
             const int iy = min<int>(round(y * scale), bitmap.size().y - 1);

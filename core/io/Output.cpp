@@ -504,7 +504,7 @@ Expected<Path> BinaryOutput::dump(const Storage& storage, const Statistics& stat
     }
 
     const Float runTime = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
-    const Size wallclockTime = stats.getOr<int>(StatisticsId::WALLCLOCK_TIME, 0._f);
+    const Size wallclockTime = stats.getOr<int>(StatisticsId::WALLCLOCK_TIME, 0);
 
     Serializer<true> serializer(makeAuto<FileOutputStream>(fileName));
 

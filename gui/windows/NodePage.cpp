@@ -22,7 +22,7 @@
 #include "run/jobs/Presets.h"
 #include "run/jobs/ScriptJobs.h"
 #include "thread/CheckFunction.h"
-#include <wx/dcclient.h>
+#include <wx/dcbuffer.h>
 #include <wx/dirdlg.h>
 #include <wx/graphics.h>
 #include <wx/menu.h>
@@ -576,7 +576,7 @@ void NodeManager::showBatchDialog() {
 }
 
 PreviewPane* NodeManager::createRenderPreview(wxWindow* parent, JobNode& node) {
-    return alignedNew<PreviewPane>(parent, wxDefaultSize, node.sharedFromThis(), globals);
+    return new PreviewPane(parent, wxDefaultSize, node.sharedFromThis(), globals);
 }
 
 void NodeManager::selectRun() {
@@ -623,6 +623,9 @@ NodeEditor::NodeEditor(NodeWindow* parent, SharedPtr<INodeManagerCallbacks> call
     , nodeWindow(parent) {
     this->SetMinSize(wxSize(1024, 768));
 
+    // needed by MSVC
+    this->SetBackgroundStyle(wxBG_STYLE_PAINT);
+
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(NodeEditor::onPaint));
     this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(NodeEditor::onMouseWheel));
     this->Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(NodeEditor::onLeftDown));
@@ -630,6 +633,8 @@ NodeEditor::NodeEditor(NodeWindow* parent, SharedPtr<INodeManagerCallbacks> call
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(NodeEditor::onRightUp));
     this->Connect(wxEVT_MOTION, wxMouseEventHandler(NodeEditor::onMouseMotion));
     this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(NodeEditor::onDoubleClick));
+
+    this->Bind(wxEVT_ERASE_BACKGROUND, [](wxEraseEvent&) {});
 }
 
 static void drawCenteredText(wxGraphicsContext* gc,
@@ -798,7 +803,8 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
     gc->SetBrush(brush);
     gc->SetPen(pen);
 
-    const wxFont font = wxSystemSettings::GetFont(wxSYS_SYSTEM_FONT);
+    wxFont font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
+    font.SetPointSize(11);
     const Rgba lineColor(getLineColor(background));
     gc->SetFont(font, wxColour(lineColor));
 
@@ -914,7 +920,8 @@ void NodeEditor::paintCurves(wxGraphicsContext* gc, const Rgba& background, cons
 
 void NodeEditor::onPaint(wxPaintEvent& UNUSED(evt)) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
-    wxPaintDC dc(this);
+    wxAutoBufferedPaintDC dc(this);
+    dc.Clear();
 
     wxGraphicsContext* gc = wxGraphicsContext::Create(dc);
     if (!gc) {
@@ -1132,11 +1139,10 @@ void NodeEditor::onDoubleClick(wxMouseEvent& evt) {
 
 class DirDialogAdapter : public wxPGEditorDialogAdapter {
 public:
-    virtual bool DoShowDialog(wxPropertyGrid* UNUSED(propGrid), wxPGProperty* property) override {
+    virtual bool DoShowDialog(wxPropertyGrid* UNUSED(propGrid), wxPGProperty* UNUSED(property)) override {
         wxDirDialog dialog(nullptr, "Choose directory", "", wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
         if (dialog.ShowModal() == wxID_OK) {
             wxString path = dialog.GetPath();
-            property->SetValue(path);
             this->SetValue(path);
             return true;
         } else {
@@ -1175,7 +1181,7 @@ public:
         : formats(std::move(formats)) {}
 
     virtual bool DoShowDialog(wxPropertyGrid* UNUSED(propGrid), wxPGProperty* property) override {
-        Optional<Path> file = doOpenFileDialog("Save file...", formats.clone());
+        Optional<Path> file = doOpenFileDialog("Open file...", formats.clone());
         if (file) {
             property->SetValue(file->native());
             this->SetValue(file->native());
@@ -1190,7 +1196,10 @@ class FileProperty : public wxFileProperty {
     Function<wxPGEditorDialogAdapter*()> makeAdapter;
 
 public:
-    using wxFileProperty::wxFileProperty;
+    FileProperty(const wxString& label, const wxString& name, const wxString& value)
+        : wxFileProperty(label, name, value) {
+        this->SetAttribute(wxPG_FILE_SHOW_FULL_PATH, true);
+    }
 
     void setFunc(Function<wxPGEditorDialogAdapter*()> func) {
         makeAdapter = func;
@@ -1534,7 +1543,7 @@ public:
         sizer->Add(quantitySizer, 0, wxALIGN_CENTER_HORIZONTAL);
 
         panel = new PalettePanel(this, wxSize(300, 200), firstPalette);
-        sizer->Add(panel, 1, wxEXPAND | wxALIGN_CENTER_HORIZONTAL);
+        sizer->Add(panel, 1, wxALIGN_CENTER_HORIZONTAL);
 
         this->SetSizerAndFit(sizer);
 

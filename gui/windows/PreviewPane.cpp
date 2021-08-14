@@ -9,7 +9,7 @@
 #include "quantities/Storage.h"
 #include "system/Timer.h"
 #include "thread/CheckFunction.h"
-#include <wx/dcclient.h>
+#include <wx/dcbuffer.h>
 #include <wx/weakref.h>
 
 NAMESPACE_SPH_BEGIN
@@ -384,6 +384,8 @@ PreviewPane::PreviewPane(wxWindow* parent,
     renderer = makeShared<InteractiveRenderer>(node, this);
     renderer->start(globals);
 
+    this->SetBackgroundStyle(wxBG_STYLE_PAINT);
+
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(PreviewPane::onPaint));
     this->Bind(wxEVT_SIZE, [this](wxSizeEvent& UNUSED(evt)) {
         const wxSize size = this->GetClientSize();
@@ -393,8 +395,9 @@ PreviewPane::PreviewPane(wxWindow* parent,
 
 void PreviewPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    wxPaintDC dc(this);
-    const wxSize size = dc.GetSize();
+    wxAutoBufferedPaintDC dc(this);
+    dc.Clear();
+    const wxSize size = this->GetClientSize();
     wxBitmap bitmap = renderer->getBitmap();
     Outcome valid = renderer->isValid();
 

@@ -1,5 +1,11 @@
 #include "io/Path.h"
 
+#ifdef SPH_WIN
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
 NAMESPACE_SPH_BEGIN
 
 Path::Path(const std::string& path)
@@ -25,7 +31,20 @@ bool Path::isRelative() const {
 }
 
 bool Path::isRoot() const {
-    return path.size() == 1 && path[0] == '/';
+#ifndef SPH_WIN
+    return path.size() == 1 && path[0] == SEPARATOR;
+#else
+    // C: or C:/
+    if (path.size() >= 2 && path.size() <= 3) {
+        bool root = path[0] >= 'A' && path[0] <= 'Z' && path[1] == ':';
+        if (path.size() == 3) {
+            root &= (path[2] == SEPARATOR);
+        }
+        return root;
+    } else {
+        return false;
+    }
+#endif
 }
 
 bool Path::hasExtension() const {
@@ -69,7 +88,6 @@ Path Path::extension() const {
 }
 
 std::string Path::native() const {
-    /// \todo change for windows
     return path;
 }
 
@@ -115,13 +133,13 @@ Path& Path::removeExtension() {
 Path& Path::removeSpecialDirs() {
     std::size_t n;
     while ((n = this->findFolder("..")) != std::string::npos) {
-        Path parent = Path(path.substr(0, std::max(0, int(n) - 1))).parentPath();
-        Path tail(path.substr(std::min(n + 3, path.size())));
+        Path parent = Path(path.substr(0, max(0, int(n) - 1))).parentPath();
+        Path tail(path.substr(min(n + 3, path.size())));
         *this = parent / tail;
     }
     while ((n = this->findFolder(".")) != std::string::npos) {
         Path parent = Path(path.substr(0, n));
-        Path tail(path.substr(std::min(n + 2, path.size())));
+        Path tail(path.substr(min(n + 2, path.size())));
         *this = parent / tail;
     }
     return *this;
@@ -164,6 +182,11 @@ Path& Path::makeRelative() {
 }
 
 Path Path::currentPath() {
+#ifdef SPH_WIN
+    char path[MAX_PATH];
+    GetCurrentDirectoryA(MAX_PATH, path);
+    return Path(std::string(path) + SEPARATOR);
+#else
     constexpr Size bufferCnt = 1024;
     char buffer[bufferCnt];
     if (getcwd(buffer, sizeof(buffer))) {
@@ -172,6 +195,7 @@ Path Path::currentPath() {
     } else {
         return Path();
     }
+#endif
 }
 
 Path Path::operator/(const Path& other) const {
@@ -220,14 +244,14 @@ void Path::convert() {
 }
 
 std::size_t Path::findFolder(const std::string& folder) {
-    if (path == folder || path.substr(0, std::min(path.size(), folder.size() + 1)) == folder + SEPARATOR) {
+    if (path == folder || path.substr(0, min(path.size(), folder.size() + 1)) == folder + SEPARATOR) {
         return 0;
     }
     const size_t n = path.find(SEPARATOR + folder + SEPARATOR);
     if (n != std::string::npos) {
         return n + 1;
     }
-    if (path.substr(std::max(0, int(path.size()) - int(folder.size()) - 1)) == SEPARATOR + folder) {
+    if (path.substr(max(0, int(path.size()) - int(folder.size()) - 1)) == SEPARATOR + folder) {
         return path.size() - folder.size();
     }
     return std::string::npos;

@@ -32,7 +32,7 @@ public:
 
     String(const char* s) {
         data.pop(); // pop terminating zero
-        const Size length = strlen(s);
+        const Size length = Size(strlen(s));
         data.reserve(length + 1);
         for (Size i = 0; i < length; ++i) {
             data.push(s[i]);

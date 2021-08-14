@@ -171,7 +171,7 @@ void FileSequenceJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks&
             break;
         }
 
-        const Size elapsed = frameTimer.elapsed(TimerUnit::MILLISECOND);
+        const Size elapsed = Size(frameTimer.elapsed(TimerUnit::MILLISECOND));
         const Size minElapsed = 1000 / maxFps;
         if (elapsed < minElapsed) {
             std::this_thread::sleep_for(std::chrono::milliseconds(minElapsed - elapsed));

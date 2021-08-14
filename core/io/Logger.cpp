@@ -7,6 +7,10 @@
 #include <fstream>
 #include <iostream>
 
+#ifdef SPH_WIN
+#include <Windows.h>
+#endif
+
 NAMESPACE_SPH_BEGIN
 
 ScopedConsole::ScopedConsole(const Console console) {
@@ -20,6 +24,14 @@ ScopedConsole::~ScopedConsole() {
 void StdOutLogger::writeString(const std::string& s) {
     std::cout << s << std::flush;
 }
+
+#ifdef SPH_WIN
+
+void ConsoleLogger::writeString(const std::string& s) {
+    OutputDebugStringA(s.c_str());
+}
+
+#endif
 
 void StringLogger::writeString(const std::string& s) {
     ss << s << std::flush;

@@ -329,9 +329,16 @@ set(CORE_HEADERS
     timestepping/TimeStepping.h 
 )
 
-
 add_library(core STATIC ${CORE_HEADERS} ${CORE_SOURCES})
 
-set(CORE_LIBRARIES -pthread ${TBB_LIBRARIES} ${CHAISCRIPT_LIBRARIES})
-
+set(CORE_LIBRARIES ${TBB_LIBRARIES} ${CHAISCRIPT_LIBRARIES})
 target_link_libraries(core PRIVATE ${CORE_LIBRARIES})
+
+if (NOT WIN32 AND NOT WITH_TBB)
+    target_link_libraries(core PRIVATE -pthread)
+endif()
+
+if (WIN32)
+    # necessary for getting user directories (GetUserProfileDirectoryA)
+    target_link_libraries(core PRIVATE Userenv.lib)
+endif()

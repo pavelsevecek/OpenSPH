@@ -8,6 +8,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <thread>
+#include <wx/bitmap.h>
 #include <wx/panel.h>
 
 NAMESPACE_SPH_BEGIN

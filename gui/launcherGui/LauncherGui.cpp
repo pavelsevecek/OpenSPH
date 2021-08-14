@@ -15,9 +15,9 @@ bool App::OnInit() {
 
     if (wxTheApp->argc > 1) {
         Path path(std::string(wxTheApp->argv[1]));
-        window = alignedNew<MainWindow>(path);
+        window = new MainWindow(path);
     } else {
-        window = alignedNew<MainWindow>();
+        window = new MainWindow();
     }
     window->SetAutoLayout(true);
     window->Show();

@@ -5,6 +5,7 @@
 #include "objects/finders/BruteForceFinder.h"
 #include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Box.h"
+#include "objects/utility/Algorithm.h"
 #include "objects/utility/IteratorAdapters.h"
 #include "post/MarchingCubes.h"
 #include "post/Point.h"
@@ -368,9 +369,9 @@ Storage Post::findFutureBodies(const Storage& storage, const Float particleRadiu
 Array<Post::MoonEnum> Post::findMoons(const Storage& storage, const Float radius, const Float limit) {
     // first, find the larget one
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-    const auto largestIter = std::max_element(m.begin(), m.end());
+    const auto largestIter = findMax(m);
     const Float largestM = *largestIter;
-    const Size largestIdx = std::distance(m.begin(), largestIter);
+    const Size largestIdx = Size(largestIter - m.begin());
 
     Array<MoonEnum> statuses(m.size());
 #ifdef SPH_DEBUG

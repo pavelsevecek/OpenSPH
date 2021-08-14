@@ -258,7 +258,7 @@ public:
     void removeByCollision(const CollisionRecord& col) {
         removeIndex(col, col.i);
         removeIndex(col, col.j);
-        const Size removed = collisions.erase(col);
+        const Size removed = Size(collisions.erase(col));
         SPH_ASSERT(removed == 1);
         checkConsistency();
     }
@@ -379,8 +379,7 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
             if (!main) {
                 main = &data;
             } else {
-                main->collisions.insert(
-                    main->collisions.size(), data.collisions.begin(), data.collisions.end());
+                main->collisions.pushAll(data.collisions);
                 data.collisions.clear();
             }
         }

@@ -75,7 +75,7 @@ Outcome HashMapFinder::good(const Size maxBucketSize) const {
 MinMaxMean HashMapFinder::getBucketStats() const {
     MinMaxMean stats;
     for (Size i = 0; i < map.bucket_count(); ++i) {
-        stats.accumulate(map.bucket_size(i));
+        stats.accumulate(Size(map.bucket_size(i)));
     }
     return stats;
 }

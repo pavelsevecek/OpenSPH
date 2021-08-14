@@ -698,7 +698,7 @@ void RemoveParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbac
             }
         }
     }
-    Array<Size> toRemove(removeSet.size());
+    Array<Size> toRemove(Size(removeSet.size()));
     std::copy(removeSet.begin(), removeSet.end(), toRemove.begin());
     storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED);
 

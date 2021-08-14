@@ -6,9 +6,11 @@
 #include "gui/renderers/Spectrum.h"
 #include "gui/windows/Widgets.h"
 #include "io/FileSystem.h"
+#include "post/Plot.h"
+#include "post/Point.h"
 #include <wx/button.h>
 #include <wx/combobox.h>
-#include <wx/dcclient.h>
+#include <wx/dcbuffer.h>
 #include <wx/panel.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
@@ -78,6 +80,56 @@ private:
     }
 };
 
+void drawPalette(IRenderContext& context,
+    const Pixel origin,
+    const Pixel size,
+    const Rgba& lineColor,
+    const Palette& palette) {
+
+    // draw palette
+    for (int i = 0; i < size.y; ++i) {
+        const float value = palette.relativeToPalette(float(i) / (size.y - 1));
+        context.setColor(palette(value), ColorFlag::LINE);
+        context.drawLine(Coords(origin.x, origin.y - i), Coords(origin.x + size.x, origin.y - i));
+    }
+
+    // draw tics
+    const Interval interval = palette.getInterval();
+    const PaletteScale scale = palette.getScale();
+
+    Array<Float> tics;
+    switch (scale) {
+    case PaletteScale::LINEAR:
+        tics = getLinearTics(interval, 4);
+        break;
+    case PaletteScale::LOGARITHMIC:
+        tics = getLogTics(interval, 4);
+        break;
+    case PaletteScale::HYBRID: {
+        const Size ticsCnt = 5;
+        // tics currently not implemented, so just split the range to equidistant steps
+        for (Size i = 0; i < ticsCnt; ++i) {
+            tics.push(palette.relativeToPalette(float(i) / (ticsCnt - 1)));
+        }
+        break;
+    }
+    default:
+        NOT_IMPLEMENTED;
+    }
+    context.setColor(lineColor, ColorFlag::LINE | ColorFlag::TEXT);
+    for (Float tic : tics) {
+        const float value = palette.paletteToRelative(float(tic));
+        const int i = int(value * size.y);
+        context.drawLine(Coords(origin.x, origin.y - i), Coords(origin.x + 6, origin.y - i));
+        context.drawLine(
+            Coords(origin.x + size.x - 6, origin.y - i), Coords(origin.x + size.x, origin.y - i));
+
+        std::wstring text = toPrintableString(tic, 1, 1000);
+        context.drawText(
+            Coords(origin.x - 15, origin.y - i), TextAlign::LEFT | TextAlign::VERTICAL_CENTER, text);
+    }
+}
+
 class PaletteCanvas : public wxPanel {
 private:
     Palette palette;
@@ -98,6 +150,10 @@ public:
 private:
     void onPaint(wxPaintEvent& UNUSED(evt)) {
         wxPaintDC dc(this);
+        wxFont font = wxSystemSettings::GetFont(wxSystemFont::wxSYS_DEFAULT_GUI_FONT);
+        font.SetPointSize(11);
+        SPH_ASSERT(font.IsOk());
+        dc.SetFont(font);
         FlippedRenderContext context(makeAuto<WxRenderContext>(dc));
         context.setFontSize(9);
         Rgba background(dc.GetBackground().GetColour());

@@ -201,21 +201,6 @@ void ContourRenderer::render(const RenderParams& params,
         }
     }
 
-    /// \todo deduplicate
-    if (params.showKey) {
-        if (cached.palette) {
-            const Pixel origin(size.x - 50, 231);
-            Palette palette;
-            if (params.particles.grayScale) {
-                palette =
-                    cached.palette->transform([](const Rgba& color) { return Rgba(color.intensity()); });
-            } else {
-                palette = cached.palette.value();
-            }
-            drawPalette(context, origin, Pixel(30, 201), params.background.inverse(), palette);
-        }
-    }
-
     output.update(bitmap, context.getLabels(), true);
 }
 

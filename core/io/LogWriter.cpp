@@ -94,7 +94,7 @@ void VerboseLogWriter::write(const Storage& storage, const Statistics& stats) {
 
     Box bbox;
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    for (std::size_t i = 0; i < r.size(); ++i) {
+    for (Size i = 0; i < r.size(); ++i) {
         bbox.extend(r[i]);
     }
 

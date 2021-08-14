@@ -58,22 +58,13 @@ public:
     {
     }
 
-    INLINE const TValue& operator*() const {
+    INLINE TValue& operator*() const {
         SPH_ASSERT(data != nullptr);
         SPH_ASSERT_UNEVAL(data >= begin && data < end);
         return *data;
     }
-    INLINE TValue& operator*() {
-        SPH_ASSERT(data != nullptr);
-        SPH_ASSERT_UNEVAL(data >= begin && data < end);
-        return *data;
-    }
-    INLINE T* operator->() {
-        SPH_ASSERT(data != nullptr);
-        SPH_ASSERT_UNEVAL(data >= begin && data < end);
-        return data;
-    }
-    INLINE const T* operator->() const {
+
+    INLINE T* operator->() const {
         SPH_ASSERT(data != nullptr);
         SPH_ASSERT_UNEVAL(data >= begin && data < end);
         return data;

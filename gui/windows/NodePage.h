@@ -221,7 +221,7 @@ using PropertyEntryMap = FlatMap<wxPGProperty*, IVirtualEntry*>;
 class NodeWindow : public wxPanel {
 public:
     enum PanelId {
-        ID_PROPERTIES,
+        ID_PROPERTIES = 5000,
         ID_LIST,
         ID_PALETTE,
     };

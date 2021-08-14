@@ -13,7 +13,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-
 /// Macros for conditional compilation based on selected compiler
 #ifdef __GNUC__
 #ifdef __clang__
@@ -22,17 +21,43 @@ NAMESPACE_SPH_BEGIN
 #define SPH_GCC
 #endif
 #endif
+#ifdef _WIN32
+#define SPH_WIN
+#endif
 
-/// Force inline for gcc
+#ifdef _WIN32
+/// Turn on debug mode when compiling in debug configuration
+#ifdef _DEBUG
+#define SPH_DEBUG
+#endif
+#endif
+
+/// Force inline
 #ifdef SPH_DEBUG
 #define INLINE inline
+#define INL
+#else
+#ifdef SPH_WIN
+#define INLINE __forceinline
 #define INL
 #else
 #define INLINE __attribute__((always_inline)) inline
 #define INL __attribute__((always_inline))
 #endif
+#endif
 
+/// No inline
+#ifdef SPH_WIN
+#define NO_INLINE __declspec(noinline)
+#else
 #define NO_INLINE __attribute__((noinline))
+#endif
+
+#ifdef SPH_WIN
+#define SPH_MAY_ALIAS
+#else
+#define SPH_MAY_ALIAS __attribute__((__may_alias__))
+#endif
 
 #define UNUSED(x)
 
@@ -41,14 +66,29 @@ NAMESPACE_SPH_BEGIN
 /// \note sizeof is used to make sure x is not evaluated.
 #define MARK_USED(x) (void)sizeof(x)
 
+#ifdef SPH_WIN
+#define SPH_FALLTHROUGH
+#else
 #define SPH_FALLTHROUGH [[fallthrough]];
+#endif
 
-#define DEPRECATED __attribute__((deprecated))
+#define DEPRECATED [[deprecated]]
 
 /// Branch prediction hints
+#ifdef SPH_WIN
+#define SPH_LIKELY(x) x
+#define SPH_UNLIKELY(x) x
+#else
 #define SPH_LIKELY(x) __builtin_expect(bool(x), 1)
 #define SPH_UNLIKELY(x) __builtin_expect(bool(x), 0)
+#endif
 
+/// Printing function names in assertions
+#ifdef SPH_WIN
+#define SPH_PRETTY_FUNCTION __FUNCSIG__
+#else
+#define SPH_PRETTY_FUNCTION __PRETTY_FUNCTION__
+#endif
 
 /// \brief Object with deleted copy constructor and copy operator
 struct Noncopyable {

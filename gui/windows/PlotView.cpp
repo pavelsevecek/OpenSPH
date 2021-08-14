@@ -7,6 +7,7 @@
 #include <wx/button.h>
 #include <wx/checkbox.h>
 #include <wx/dcclient.h>
+#include <wx/dcgraph.h>
 #include <wx/menu.h>
 #include <wx/sizer.h>
 
@@ -236,7 +237,7 @@ PlotPage::PlotPage(wxWindow* parent, const wxSize size, const wxSize padding, co
     sizer->Add(plotView);
     this->SetSizerAndFit(sizer);
 
-    this->Bind(wxEVT_SIZE, [this](wxSizeEvent& evt) {
+    this->Bind(wxEVT_SIZE, [this, toolbarHeight](wxSizeEvent& evt) {
         const wxSize size = evt.GetSize();
         plotView->resize(Pixel(size.x, size.y - toolbarHeight));
     });

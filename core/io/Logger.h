@@ -120,7 +120,9 @@ struct Console {
         if (mod.fg != Foreground::UNCHANGED) {
             stream << "\033[" << int(mod.fg) << "m";
         }
+        #ifndef SPH_WIN
         stream << "\e[" << int(mod.series) << "m";
+        #endif
         return stream;
     }
 };
@@ -140,6 +142,13 @@ public:
     virtual void writeString(const std::string& s) override;
 };
 
+#ifdef SPH_WIN
+/// \brief Writes into the visual studio console
+class ConsoleLogger : public ILogger {
+public:
+    virtual void writeString(const std::string& s) override;
+};
+#endif
 
 /// \brief Logger writing messages to string stream
 class StringLogger : public ILogger {
@@ -239,6 +248,6 @@ public:
 void setVerboseLogger(AutoPtr<ILogger>&& logger);
 
 /// \brief Helper macro, creating \brief VerboseLogGuard with name of the current function.
-#define VERBOSE_LOG VerboseLogGuard __verboseLogGuard(__PRETTY_FUNCTION__);
+#define VERBOSE_LOG VerboseLogGuard __verboseLogGuard(SPH_PRETTY_FUNCTION);
 
 NAMESPACE_SPH_END

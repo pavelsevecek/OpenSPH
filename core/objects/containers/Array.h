@@ -6,8 +6,8 @@
 /// \date 2016-2021
 
 #include "math/MathBasic.h"
-#include "objects/containers/BasicAllocators.h"
 #include "objects/containers/ArrayView.h"
+#include "objects/containers/BasicAllocators.h"
 
 #ifdef SPH_GCC
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
@@ -75,7 +75,7 @@ public:
     /// Allocate only enough elements to store the list. Elements are constructed using copy constructor of
     /// stored type.
     Array(std::initializer_list<StorageType> list) {
-        actSize = list.size();
+        actSize = TCounter(list.size());
         maxSize = actSize;
         MemoryBlock block = TAllocator::allocate(maxSize * sizeof(StorageType), alignof(StorageType));
         SPH_ASSERT(block.ptr);
@@ -360,7 +360,7 @@ public:
             // inserting an empty range
             return;
         }
-        const Size count = std::distance(first, last);
+        const Size count = Size(last - first);
         this->resize(actSize + count);
         std::move_backward(this->begin() + position, this->end() - count, this->end());
         Size i = position;

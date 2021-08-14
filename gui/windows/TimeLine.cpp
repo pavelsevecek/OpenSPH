@@ -1,6 +1,7 @@
 #include "windows/TimeLine.h"
 #include "windows/Icons.data.h"
 #include <wx/bmpbuttn.h>
+#include <wx/dcbuffer.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -48,6 +49,8 @@ TimeLinePanel::TimeLinePanel(wxWindow* parent, const Path& inputFile, SharedPtr<
     , callbacks(callbacks) {
 
     this->update(inputFile);
+
+    this->SetBackgroundStyle(wxBG_STYLE_PAINT);
 
     this->SetMinSize(wxSize(300, 30));
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(TimeLinePanel::onPaint));
@@ -136,12 +139,13 @@ void TimeLinePanel::reload() {
 }
 
 void TimeLinePanel::onPaint(wxPaintEvent& UNUSED(evt)) {
+    wxAutoBufferedPaintDC dc(this);
+    dc.Clear();
+
     if (fileMap.empty()) {
         // nothing to do
         return;
     }
-
-    wxPaintDC dc(this);
     const wxSize size = dc.GetSize();
     /// \todo deduplicate
     Rgba backgroundColor = Rgba(this->GetParent()->GetBackgroundColour());

@@ -2,14 +2,41 @@
 #include "objects/containers/StaticArray.h"
 #include <fstream>
 #include <sstream>
+
+#ifdef SPH_WIN
+#include <userenv.h>
+#include <windows.h>
+#else
+#include <dirent.h>
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#ifdef SPH_USE_STD_EXPERIMENTAL
-#include <experimental/filesystem>
 #endif
 
 NAMESPACE_SPH_BEGIN
+
+#ifdef SPH_WIN
+
+/// Returns the error message corresponding to GetLastError().
+static std::string getLastErrorMessage() {
+    DWORD error = GetLastError();
+    if (!error) {
+        return {};
+    }
+
+    char message[256] = { 0 };
+    DWORD flags = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
+    DWORD length =
+        FormatMessageA(flags, NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), message, 256, nullptr);
+    if (length) {
+        std::string result(message, length);
+        return result;
+    } else {
+        return {};
+    }
+}
+
+#endif
 
 std::string FileSystem::readFile(const Path& path) {
     std::ifstream t(path.native().c_str());
@@ -26,26 +53,57 @@ bool FileSystem::pathExists(const Path& path) {
     return (stat(path.native().c_str(), &buffer) == 0);
 }
 
-Size FileSystem::fileSize(const Path& path) {
+std::size_t FileSystem::fileSize(const Path& path) {
     std::ifstream ifs(path.native(), std::ifstream::ate | std::ifstream::binary);
     SPH_ASSERT(ifs);
     return ifs.tellg();
 }
 
 bool FileSystem::isPathWritable(const Path& path) {
+#ifndef SPH_WIN
     return access(path.native().c_str(), W_OK) == 0;
+#else
+    NOT_IMPLEMENTED
+#endif
 }
 
 Expected<Path> FileSystem::getHomeDirectory() {
+#ifdef SPH_WIN
+    char buffer[1024] = { 0 };
+    DWORD length = sizeof(buffer);
+    HANDLE token = 0;
+    OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token);
+    if (GetUserProfileDirectoryA(token, buffer, &length)) {
+        CloseHandle(token);
+        return Path(buffer);
+    } else {
+        return makeUnexpected<Path>(getLastErrorMessage());
+    }
+#else
     const char* homeDir = getenv("HOME");
     if (homeDir != nullptr) {
         return Path(homeDir);
     } else {
         return makeUnexpected<Path>("Cannot obtain home directory");
     }
+#endif
+}
+
+Expected<Path> FileSystem::getUserDataDirectory() {
+    Expected<Path> homeDir = getHomeDirectory();
+    if (homeDir) {
+#ifdef SPH_WIN
+        return homeDir.value();
+#else
+        return homeDir.value() / ".config";
+#endif
+    } else {
+        return homeDir;
+    }
 }
 
 Expected<Path> FileSystem::getAbsolutePath(const Path& relativePath) {
+#ifndef SPH_WIN
     char realPath[PATH_MAX];
     if (realpath(relativePath.native().c_str(), realPath)) {
         return Path(realPath);
@@ -75,12 +133,24 @@ Expected<Path> FileSystem::getAbsolutePath(const Path& relativePath) {
             return makeUnexpected<Path>("Unknown error");
         }
     }
+#else
+    char buffer[256] = { 0 };
+
+    DWORD retval = GetFullPathNameA(relativePath.native().c_str(), 256, buffer, nullptr);
+    if (retval) {
+        return Path(buffer);
+    } else {
+        return makeUnexpected<Path>(getLastErrorMessage());
+    }
+#endif
 }
 
 Expected<FileSystem::PathType> FileSystem::pathType(const Path& path) {
     if (path.empty()) {
         return makeUnexpected<PathType>("Path is empty");
     }
+
+#ifndef SPH_WIN
     struct stat buffer;
     if (stat(path.native().c_str(), &buffer) != 0) {
         /// \todo possibly get the actual error, like in other functions
@@ -96,11 +166,21 @@ Expected<FileSystem::PathType> FileSystem::pathType(const Path& path) {
         return PathType::SYMLINK;
     }
     return PathType::OTHER;
+#else
+    DWORD attributes = GetFileAttributesA(path.native().c_str());
+    if (attributes & FILE_ATTRIBUTE_DIRECTORY) {
+        return PathType::DIRECTORY;
+    }
+    if (attributes & FILE_ATTRIBUTE_REPARSE_POINT) {
+        return PathType::SYMLINK;
+    }
+    return PathType::FILE;
+#endif
 }
-
 
 static Outcome createSingleDirectory(const Path& path, const Flags<FileSystem::CreateDirectoryFlag> flags) {
     SPH_ASSERT(!path.empty());
+#ifndef SPH_WIN
     const bool result = mkdir(path.native().c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
     if (!result) {
         switch (errno) {
@@ -140,12 +220,20 @@ static Outcome createSingleDirectory(const Path& path, const Flags<FileSystem::C
         }
     }
     return SUCCESS;
+#else
+    if (CreateDirectoryA(path.native().c_str(), nullptr)) {
+        return SUCCESS;
+    } else {
+        if (GetLastError() == ERROR_ALREADY_EXISTS &&
+            flags.has(FileSystem::CreateDirectoryFlag::ALLOW_EXISTING)) {
+            return SUCCESS;
+        }
+        return makeFailed(getLastErrorMessage());
+    }
+#endif
 }
 
 Outcome FileSystem::createDirectory(const Path& path, const Flags<CreateDirectoryFlag> flags) {
-#ifdef SPH_USE_STD_EXPERIMENTAL
-    return (Outcome)std::experimental::filesystem::create_directories(path);
-#else
     if (path.empty()) {
         return SUCCESS;
     }
@@ -157,18 +245,9 @@ Outcome FileSystem::createDirectory(const Path& path, const Flags<CreateDirector
         }
     }
     return createSingleDirectory(path, flags);
-#endif
 }
 
 Outcome FileSystem::removePath(const Path& path, const Flags<RemovePathFlag> flags) {
-#ifdef SPH_USE_STD_EXPERIMENTAL
-    try {
-        std::experimental::filesystem::remove_all(path);
-    } catch (std::experimental::filesystem::filesystem_error& e) {
-        return e.what();
-    }
-    return SUCCESS;
-#else
     if (path.empty()) {
         return makeFailed("Attempting to remove an empty path");
     }
@@ -191,6 +270,7 @@ Outcome FileSystem::removePath(const Path& path, const Flags<RemovePathFlag> fla
         }
     }
 
+#ifndef SPH_WIN
     const bool result = (remove(path.native().c_str()) == 0);
     if (!result) {
         switch (errno) {
@@ -239,6 +319,12 @@ Outcome FileSystem::removePath(const Path& path, const Flags<RemovePathFlag> fla
         }
     }
     return SUCCESS;
+#else
+    if (DeleteFileA(path.native().c_str())) {
+        return SUCCESS;
+    } else {
+        return makeFailed(getLastErrorMessage());
+    }
 #endif
 }
 
@@ -269,7 +355,6 @@ Outcome FileSystem::copyFile(const Path& from, const Path& to) {
     return SUCCESS;
 }
 
-
 Outcome FileSystem::copyDirectory(const Path& from, const Path& to) {
     SPH_ASSERT(pathType(from).valueOr(PathType::OTHER) == PathType::DIRECTORY);
     Outcome result = createDirectory(to);
@@ -298,67 +383,124 @@ Outcome FileSystem::copyDirectory(const Path& from, const Path& to) {
 
 bool FileSystem::setWorkingDirectory(const Path& path) {
     SPH_ASSERT(pathType(path).valueOr(PathType::OTHER) == PathType::DIRECTORY);
+#ifndef SPH_WIN
     return chdir(path.native().c_str()) == 0;
+#else
+    return SetCurrentDirectoryA(path.native().c_str());
+#endif
 }
 
-FileSystem::DirectoryIterator::DirectoryIterator(DIR* dir)
-    : dir(dir) {
-    if (dir) {
+struct FileSystem::DirectoryIterator::DirData {
+#ifndef SPH_WIN
+    DIR* dir = nullptr;
+    dirent* entry = nullptr;
+#else
+    HANDLE dir = INVALID_HANDLE_VALUE;
+    WIN32_FIND_DATAA entry;
+    DWORD error = 1;
+#endif
+};
+
+FileSystem::DirectoryIterator::DirectoryIterator(ClonePtr<DirData> data)
+    : data(std::move(data)) {
+    SPH_ASSERT(this->data);
+#ifndef SPH_WIN
+    if (this->data->dir != nullptr) {
         // find first file
         this->operator++();
     }
+#endif
 }
 
+FileSystem::DirectoryIterator::~DirectoryIterator() = default;
+
 FileSystem::DirectoryIterator& FileSystem::DirectoryIterator::operator++() {
-    if (!dir) {
+#ifndef SPH_WIN
+    if (data->dir != nullptr) {
         return *this;
     }
     do {
-        entry = readdir(dir);
-    } while (entry && (**this == Path(".") || **this == Path("..")));
+        data->entry = readdir(data->dir);
+    } while (data->entry && (**this == Path(".") || **this == Path("..")));
+#else
+    if (data->dir == INVALID_HANDLE_VALUE) {
+        return *this;
+    }
+    if (!FindNextFileA(data->dir, &data->entry)) {
+        data->error = GetLastError();
+    }
+#endif
     return *this;
 }
 
 Path FileSystem::DirectoryIterator::operator*() const {
-    SPH_ASSERT(entry);
-    return Path(entry->d_name);
+#ifndef SPH_WIN
+    SPH_ASSERT(data && data->entry);
+    return Path(data->entry->d_name);
+#else
+    SPH_ASSERT(data && !data->error);
+    return Path(data->entry.cFileName);
+#endif
 }
 
 bool FileSystem::DirectoryIterator::operator==(const DirectoryIterator& other) const {
-    return (!entry && !other.entry) || entry == other.entry;
+#ifndef SPH_WIN
+    return (!data->entry && !other.data->entry) || data->entry == other.data->entry;
+#else
+    return (data->error && other.data->error) || data->dir == other.data->dir;
+#endif
 }
 
 bool FileSystem::DirectoryIterator::operator!=(const DirectoryIterator& other) const {
     // returns false if both are nullptr to end the loop for nonexisting dirs
-    return (entry || other.entry) && entry != other.entry;
+    return !(*this == other);
 }
 
 FileSystem::DirectoryAdapter::DirectoryAdapter(const Path& directory) {
     SPH_ASSERT(pathType(directory).valueOr(PathType::OTHER) == PathType::DIRECTORY);
+    data = makeClone<DirectoryIterator::DirData>();
+#ifndef SPH_WIN
     if (!pathExists(directory)) {
-        dir = nullptr;
+        data->dir = nullptr;
         return;
     }
-    dir = opendir(directory.native().c_str());
+    data->dir = opendir(directory.native().c_str());
+#else
+    if (!pathExists(directory)) {
+        data->dir = INVALID_HANDLE_VALUE;
+        return;
+    }
+    std::string searchExpression = directory.native() + "*";
+    data->dir = FindFirstFileA(searchExpression.c_str(), &data->entry);
+    if (data->dir != INVALID_HANDLE_VALUE) {
+        data->error = 0;
+    }
+#endif
 }
 
 FileSystem::DirectoryAdapter::~DirectoryAdapter() {
-    if (dir) {
-        closedir(dir);
+#ifndef SPH_WIN
+    if (data->dir) {
+        closedir(data->dir);
     }
+#else
+    if (data->dir != INVALID_HANDLE_VALUE) {
+        FindClose(data->dir);
+    }
+#endif
 }
 
 FileSystem::DirectoryAdapter::DirectoryAdapter(DirectoryAdapter&& other)
-    : dir(other.dir) {
-    other.dir = nullptr;
+    : data(other.data) {
+    other.data = nullptr;
 }
 
 FileSystem::DirectoryIterator FileSystem::DirectoryAdapter::begin() const {
-    return DirectoryIterator(dir);
+    return DirectoryIterator(data);
 }
 
 FileSystem::DirectoryIterator FileSystem::DirectoryAdapter::end() const {
-    return DirectoryIterator(nullptr);
+    return DirectoryIterator(makeClone<DirectoryIterator::DirData>());
 }
 
 FileSystem::DirectoryAdapter FileSystem::iterateDirectory(const Path& directory) {
@@ -372,23 +514,5 @@ Array<Path> FileSystem::getFilesInDirectory(const Path& directory) {
     }
     return paths;
 }
-
-FileSystem::FileLock::FileLock(const Path& path) {
-    handle = open(path.native().c_str(), O_RDONLY);
-    TODO("check that the file exists and was correctly opened");
-}
-
-void FileSystem::FileLock::lock() {
-    flock(handle, LOCK_EX | LOCK_NB);
-}
-
-void FileSystem::FileLock::unlock() {
-    flock(handle, LOCK_UN | LOCK_NB);
-}
-
-bool FileSystem::isFileLocked(const Path& UNUSED(path)) {
-    NOT_IMPLEMENTED;
-}
-
 
 NAMESPACE_SPH_END

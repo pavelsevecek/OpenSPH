@@ -74,7 +74,7 @@ public:
     }
 #else
     INLINE operator BasicVector<float>() const {
-        return BasicVector<float>((*this)[0], (*this)[1], (*this)[2], (*this)[3]);
+        return BasicVector<float>(float((*this)[0]), float((*this)[1]), float((*this)[2]), float((*this)[3]));
     }
 #endif
 

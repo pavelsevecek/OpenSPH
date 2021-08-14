@@ -78,7 +78,7 @@ std::string trim(const std::string& s) {
             break;
         }
     }
-    Size i2 = s.size();
+    Size i2 = Size(s.size());
     for (; i2 > 0; --i2) {
         if (s[i2 - 1] != ' ') {
             break;
@@ -198,7 +198,7 @@ std::string setLineBreak(const std::string& s, const Size lineWidth) {
 
 Array<std::string> split(const std::string& s, const char delimiter) {
     Array<std::string> parts;
-    std::size_t n1 = -1; // yes, -1, unsigned int overflow is well defined
+    std::size_t n1 = std::size_t(-1); // yes, -1, unsigned int overflow is well defined
     std::size_t n2;
     while ((n2 = s.find(delimiter, n1 + 1)) != std::string::npos) {
         parts.push(s.substr(n1 + 1, n2 - n1 - 1));

@@ -768,8 +768,8 @@ Array<Size> Storage::duplicate(ArrayView<const Size> idxs, const Flags<IndicesFl
         for (Size matId = 0; matId < this->getMaterialCnt(); ++matId) {
             std::pair<Iterator<Size>, Iterator<Size>> range =
                 std::equal_range(matIdsRef.begin(), matIdsRef.end(), matId);
-            mats[matId].from = std::distance(matIdsRef.begin(), range.first);
-            mats[matId].to = std::distance(matIdsRef.begin(), range.second);
+            mats[matId].from = Size(range.first - matIdsRef.begin());
+            mats[matId].to = Size(range.second - matIdsRef.begin());
         }
     } else {
         // just duplicate the particles

@@ -1,4 +1,5 @@
 set(GUI_SOURCES
+    Allocation.cpp
     Controller.cpp 
     Factory.cpp 
     MainLoop.cpp 
@@ -100,15 +101,9 @@ set(GUI_HEADERS
 add_library(gui STATIC ${GUI_HEADERS} ${GUI_SOURCES})
 target_include_directories(gui PUBLIC ../core ..)
 
-execute_process(COMMAND wx-config --cxxflags
-    OUTPUT_VARIABLE WX_FLAGS_OUTPUT
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND wx-config --libs std propgrid aui
-    OUTPUT_VARIABLE WX_LIBRARIES
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(NOT WIN32)
+    target_compile_options(gui PUBLIC "${WX_CXX_FLAGS}) -Wno-deprecated-copy -Wno-array-bounds -Wno-float-conversion")
+endif()
 
-separate_arguments(WX_CXX_FLAGS NATIVE_COMMAND ${WX_FLAGS_OUTPUT})
-target_compile_options(gui PUBLIC ${WX_CXX_FLAGS} -Wno-deprecated-copy -Wno-array-bounds -Wno-float-conversion)
-
-set(GUI_LIBRARIES core ${WX_LIBRARIES} ${TBB_LIBRARIES} ${OpenVDB_LIBRARIES})
+set(GUI_LIBRARIES core ${wxWidgets_LIBRARIES} ${TBB_LIBRARIES} ${OpenVDB_LIBRARIES})
 target_link_libraries(gui PUBLIC ${GUI_LIBRARIES})

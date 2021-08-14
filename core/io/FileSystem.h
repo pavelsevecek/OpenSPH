@@ -2,10 +2,10 @@
 
 #include "io/Path.h"
 #include "objects/containers/Array.h"
+#include "objects/wrappers/ClonePtr.h"
 #include "objects/wrappers/Expected.h"
 #include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Outcome.h"
-#include <dirent.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -23,13 +23,16 @@ bool pathExists(const Path& path);
 /// \brief Returns the size of a file.
 ///
 /// The file must exist and be accessible, checked by assert.
-Size fileSize(const Path& path);
+std::size_t fileSize(const Path& path);
 
 /// \brief Checks whether the given file is writable.
 bool isPathWritable(const Path& path);
 
 /// \brief Returns the home directory of the current user.
 Expected<Path> getHomeDirectory();
+
+/// \brief Returns the directory where user data can be stored.
+Expected<Path> getUserDataDirectory();
 
 /// \brief Returns the absolute path to the file, or error if the path cannot be resolved.
 ///
@@ -115,11 +118,12 @@ class DirectoryIterator {
     friend class DirectoryAdapter;
 
 private:
-    /// \todo possibly hide through pimpl
-    DIR* dir;
-    dirent* entry = nullptr;
+    struct DirData;
+    ClonePtr<DirData> data;
 
 public:
+    ~DirectoryIterator();
+
     /// Moves to the next file in the directory
     DirectoryIterator& operator++();
 
@@ -133,10 +137,7 @@ public:
     bool operator!=(const DirectoryIterator& other) const;
 
 private:
-    /// Creates an iterator for given directory entry.
-    ///
-    /// Can be nullptr, representing the one-past-last item in the directory (end iterator).
-    DirectoryIterator(DIR* dir);
+    DirectoryIterator(ClonePtr<DirData> data);
 };
 
 /// \brief Object providing begin and end directory iterator for given directory path.
@@ -146,7 +147,7 @@ private:
 /// The enumeration skips directories '.' and '..'.
 class DirectoryAdapter : public Noncopyable {
 private:
-    DIR* dir;
+    ClonePtr<DirectoryIterator::DirData> data;
 
 public:
     /// \brief Creates the directory adapter for given path.
@@ -183,24 +184,6 @@ DirectoryAdapter iterateDirectory(const Path& directory);
 ///
 /// Returns relative paths with respect to the given parent directory.
 Array<Path> getFilesInDirectory(const Path& directory);
-
-/// \brief Locks a file.
-///
-/// Satisfies requirements of Lockable type, so it can be used with std::unique_lock, for example.
-/// \todo UNFINISHED
-class FileLock {
-private:
-    int handle;
-
-public:
-    explicit FileLock(const Path& path);
-
-    void lock();
-
-    void unlock();
-};
-
-bool isFileLocked(const Path& path);
 
 } // namespace FileSystem
 

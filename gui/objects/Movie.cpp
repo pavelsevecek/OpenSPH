@@ -13,6 +13,7 @@
 #include "thread/CheckFunction.h"
 #include <condition_variable>
 #include <mutex>
+#include <wx/dcgraph.h>
 #include <wx/dcmemory.h>
 #include <wx/image.h>
 
@@ -49,9 +50,8 @@ void saveRender(Bitmap<Rgba>&& bitmap, Array<IRenderOutput::Label>&& labels, con
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     wxBitmap wx;
     toWxBitmap(bitmap, wx);
-    wxMemoryDC dc(wx);
+    wxGCDC dc(wx);
     printLabels(dc, labels);
-    dc.SelectObject(wxNullBitmap);
     saveToFile(wx, path);
 }
 
