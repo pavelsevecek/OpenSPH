@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(OpenSPH VERSION 0.3.6 LANGUAGES CXX)
+project(OpenSPH VERSION 0.3.7 LANGUAGES CXX)
 
 option(WITH_TBB "Enable TBB parallelization" ON)
 option(WITH_EIGEN "Enable additional algorithms using Eigen" OFF)
