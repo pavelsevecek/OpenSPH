@@ -15,6 +15,7 @@
 #include <wx/panel.h>
 
 class wxBoxSizer;
+class wxAutoBufferedPaintDC;
 
 NAMESPACE_SPH_BEGIN
 
@@ -73,7 +74,7 @@ private:
 
     /// Helper drawing functions
 
-    void drawPlot(wxMemoryDC& dc, IPlot& lockedPlot, const Interval rangeX, const Interval rangeY);
+    void drawPlot(wxAutoBufferedPaintDC& dc, IPlot& lockedPlot, const Interval rangeX, const Interval rangeY);
 
     void drawCaption(wxDC& dc, IPlot& lockedPlot);
 };
