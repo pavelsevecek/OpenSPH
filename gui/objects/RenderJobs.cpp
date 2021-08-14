@@ -50,6 +50,7 @@ AnimationJob::AnimationJob(const std::string& name)
     : IImageJob(name) {
     animationType = EnumWrapper(AnimationType::SINGLE_FRAME);
     colorizerId = EnumWrapper(RenderColorizerId::VELOCITY);
+    gui.set(GuiSettingsId::CAMERA_POSITION, Vector(0, 0, 1.e4_f));
 }
 
 UnorderedMap<std::string, ExtJobType> AnimationJob::requires() const {

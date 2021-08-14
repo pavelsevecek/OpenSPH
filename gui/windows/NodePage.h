@@ -137,6 +137,12 @@ public:
 
 class NodeWindow;
 
+#ifndef SPH_WIN
+constexpr float DEFAULT_ZOOM = 1.f;
+#else
+constexpr float DEFAULT_ZOOM = 0.8f;
+#endif
+
 class NodeEditor : public wxPanel {
 private:
     SharedPtr<NodeManager> nodeMgr;
@@ -150,7 +156,7 @@ private:
         Pixel offset = Pixel(0, 0);
 
         /// Zoom of the panel.
-        float zoom = 1.f;
+        float zoom = DEFAULT_ZOOM;
 
         Optional<Pixel> mousePosition = NOTHING;
 

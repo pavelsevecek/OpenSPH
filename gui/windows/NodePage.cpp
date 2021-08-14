@@ -1514,7 +1514,6 @@ private:
 public:
     PalettePane(wxWindow* parent, Project& project)
         : wxPanel(parent, wxID_ANY) {
-
         wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
         wxBoxSizer* quantitySizer = new wxBoxSizer(wxHORIZONTAL);

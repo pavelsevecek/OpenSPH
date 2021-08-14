@@ -106,6 +106,8 @@ public:
 
     wxSize getCanvasSize() const;
 
+    bool isOk() const;
+
 private:
     virtual bool isRunning() const override;
     virtual void stop() override;

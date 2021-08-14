@@ -71,7 +71,7 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Width of the created images." },
     { GuiSettingsId::CAMERA_HEIGHT,         "images.height",        600,
         "Height of the created images." },
-    { GuiSettingsId::CAMERA_POSITION,       "camera.position",      Vector(0._f, 0._f, 1.e4_f),
+    { GuiSettingsId::CAMERA_POSITION,       "camera.position",      Vector(0._f, 0._f, 0.01_f),
         "Position of the camera in space." },
     { GuiSettingsId::CAMERA_VELOCITY,       "camera.velocity",      Vector(0._f),
         "Velocity of the camera in space." },

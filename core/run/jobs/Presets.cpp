@@ -59,7 +59,9 @@ SharedPtr<JobNode> Presets::make(const Id id, UniqueNameManager& nameMgr, const 
 }
 
 SharedPtr<JobNode> Presets::makeAsteroidCollision(UniqueNameManager& nameMgr, const Size particleCnt) {
-    SharedPtr<JobNode> targetMaterial = makeNode<MaterialJob>(nameMgr.getName("material"), EMPTY_SETTINGS);
+    BodySettings materialOverrides = EMPTY_SETTINGS;
+    materialOverrides.set(BodySettingsId::ENERGY, 0._f);
+    SharedPtr<JobNode> targetMaterial = makeNode<MaterialJob>(nameMgr.getName("material"), materialOverrides);
     SharedPtr<JobNode> impactorMaterial =
         makeNode<DisableDerivativeCriterionJob>(nameMgr.getName("optimize impactor"));
     targetMaterial->connect(impactorMaterial, "material");

@@ -662,9 +662,8 @@ void Controller::refresh() {
 }
 
 void Controller::safePageCall(Function<void(RunPage*)> func) {
-    executeOnMainThread([func, page = page.get()] {
-        wxWeakRef<RunPage> weakPage(page);
-        if (weakPage) {
+    executeOnMainThread([func, weakPage = wxWeakRef<RunPage>(page.get())] {
+        if (weakPage && weakPage->isOk()) {
             func(weakPage);
         }
     });

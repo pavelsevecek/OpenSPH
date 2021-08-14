@@ -24,8 +24,14 @@ FloatTextCtrl::FloatTextCtrl(wxWindow* parent, const double value, const Interva
         wxTE_PROCESS_ENTER | wxTE_RIGHT,
         *validator);
 
-    this->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent& UNUSED(evt)) { this->validate(); });
-    this->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& UNUSED(evt)) { this->validate(); });
+    this->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent& evt) {
+        this->validate();
+        evt.Skip();
+    });
+    this->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& evt) {
+        this->validate();
+        evt.Skip();
+    });
 
     this->validate();
 }
