@@ -65,13 +65,17 @@ public:
     }
 };
 
+inline Size maxThreadCnt() {
+    return tbb::global_control::active_value(tbb::global_control::max_allowed_parallelism);
+}
+
 struct TbbData {
     tbb::task_arena arena;
     Size granularity;
 
     TbbData(const Size numThreads, const Size granularity)
         : granularity(granularity) {
-        arena.initialize(numThreads == 0 ? tbb::task_scheduler_init::default_num_threads() : numThreads);
+        arena.initialize(numThreads > 0 ? numThreads : maxThreadCnt());
     }
 };
 
