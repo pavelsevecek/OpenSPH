@@ -190,7 +190,7 @@ build_package:
     - cp gcc_deploy/cli/launcher/opensph-cli opensph_$OPENSPH_VERSION/usr/local/bin/
     - cp gcc_deploy/cli/info/opensph-info    opensph_$OPENSPH_VERSION/usr/local/bin/
     - mkdir -p opensph_$OPENSPH_VERSION/DEBIAN
-    - cp control opensph_$OPENSPH_VERSION/DEBIAN/control
+    - echo "Package: opensph\nVersion: $OPENSPH_VERSION\nSection: base\nPriority: optional\nArchitecture: amd64\nDepends: libtbb-dev, libwxgtk3.0-dev\nMaintainer: Pavel Sevecek <sevecek at sirrah.troja.mff.cuni.cz>\nDescription: Program for astrophysical SPH/N-body simulations" >  opensph_$OPENSPH_VERSION/DEBIAN/control
     - dpkg-deb --build opensph_$OPENSPH_VERSION
   artifacts:
     paths:
