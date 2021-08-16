@@ -283,10 +283,9 @@ SharedPtr<JobNode> Presets::makeGalaxyCollision(UniqueNameManager& nameMgr, cons
     galaxyIc->connect(rotator, "particles");
     rotator->connect(merger, "particles B");
 
-
     RunSettings settings = EMPTY_SETTINGS;
-    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::ELASTIC_BOUNCE)
-        .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::REPEL)
+    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::NONE)
+        .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::NONE)
         .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 1._f)
         .set(RunSettingsId::RUN_END_TIME, 30._f)
         .set(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR, 1._f)
