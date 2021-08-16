@@ -6,9 +6,9 @@
 #include "io/Path.h"
 #include <wx/button.h>
 #include <wx/checkbox.h>
+#include <wx/dcbuffer.h>
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
-#include <wx/dcbuffer.h>
 #include <wx/menu.h>
 #include <wx/sizer.h>
 
