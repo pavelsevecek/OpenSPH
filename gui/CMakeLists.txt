@@ -86,6 +86,7 @@ set(GUI_HEADERS
     windows/Icons.data.h 
     windows/OrthoPane.h 
     windows/PaletteDialog.h 
+    windows/PaletteEditor.h 
     windows/ParticleProbe.h 
     windows/PlotView.h 
     objects/Texture.h 

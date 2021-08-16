@@ -11,6 +11,7 @@
 #include "gui/windows/CurveDialog.h"
 #include "gui/windows/PaletteDialog.h"
 #include "gui/windows/PreviewPane.h"
+#include "gui/windows/PaletteEditor.h"
 #include "gui/windows/RunSelectDialog.h"
 #include "gui/windows/Widgets.h"
 #include "io/FileSystem.h"
@@ -1500,6 +1501,7 @@ public:
 class PalettePane : public wxPanel {
 private:
     PalettePanel* panel;
+    PaletteEditor* editor;
     Array<ExtColorizerId> itemIds;
 
 public:
@@ -1535,6 +1537,13 @@ public:
 
         panel = new PalettePanel(this, wxSize(300, 200), firstPalette);
         sizer->Add(panel, 1, wxEXPAND | wxALIGN_CENTER_HORIZONTAL);
+
+        editor = new PaletteEditor(this, wxSize(300, 200));
+        sizer->Add(editor, 1, wxEXPAND | wxALIGN_CENTER_HORIZONTAL);
+
+        auto curve = new CurvePanel(this);
+        curve->setCurve(Curve(firstPalette.getInterval(), Interval(0, 1)));
+        sizer->Add(curve, 1, wxEXPAND | wxALIGN_CENTER_HORIZONTAL);
 
         this->SetSizerAndFit(sizer);
 

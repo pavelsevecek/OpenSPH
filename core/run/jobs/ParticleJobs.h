@@ -156,8 +156,7 @@ public:
         return "change material";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType>
-    requires() const override {
+    virtual UnorderedMap<std::string, ExtJobType> requires() const override {
         UnorderedMap<std::string, ExtJobType> map{
             { "particles", JobType::PARTICLES },
             { "material", JobType::MATERIAL },
