@@ -114,7 +114,7 @@ Rgba VolumeRenderer::shade(const RenderParams& params, const CameraRay& cameraRa
         const float radiiFactor = cached.referenceRadii[i] / cached.r[i][H];
         const float secant = 2._f * getLength(center - hit) * cosPhi * radiiFactor;
         // make dilated particles absorb more
-        result = result * exp(-params.volume.absorption * secant * distention);
+        result = result * exp(-params.volume.absorption * secant * distention * pow<3>(cosPhi));
         // 3th power of cosPhi to give more weight to the sphere center,
         // divide by distention^3; distention should not affect the total emission
         const float magnitude = params.volume.emission * pow<3>(cosPhi / distention) * secant;
