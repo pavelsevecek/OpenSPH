@@ -12,7 +12,7 @@ static_assert(false,
 
 /// Directory containing auxiliary resources for tests (serialized storage, etc.)
 #ifdef SPH_TEST_RESOURCE_PATH
-const Path RESOURCE_PATH = Path(SPH_TEST_RESOURCE_PATH);
+const Path RESOURCE_PATH = Path(SPH_STR(SPH_TEST_RESOURCE_PATH));
 #else
 const Path RESOURCE_PATH = Path("/home/pavel/projects/astro/sph/src/test/resources");
 #endif
