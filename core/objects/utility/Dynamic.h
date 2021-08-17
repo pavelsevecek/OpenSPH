@@ -54,7 +54,7 @@ public:
     ~Dynamic();
 
     /// Contruct value from one of possible value types
-    template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, Dynamic>::value>>
+    template <typename T, typename = std::enable_if_t<DynamicVariant::canHold<T>()>>
     Dynamic(T&& value)
         : storage(std::forward<T>(value)) {}
 

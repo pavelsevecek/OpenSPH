@@ -7,6 +7,12 @@
 
 #include "common/Traits.h"
 
+#ifdef SPH_WIN
+#if defined(IGNORE)
+#undef IGNORE // I'm not mad, I'm just disappointed
+#endif
+#endif
+
 NAMESPACE_SPH_BEGIN
 
 namespace Detail {
@@ -518,6 +524,5 @@ INLINE decltype(auto) apply(Tuple<TArgs...>&& tuple, TFunctor&& functor) {
     return Detail::applyImpl(
         std::move(tuple), std::forward<TFunctor>(functor), std::index_sequence_for<TArgs...>());
 }
-
 
 NAMESPACE_SPH_END

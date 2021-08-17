@@ -174,7 +174,7 @@ void MaclaurinSpheroidJob::evaluate(const RunSettings& UNUSED(global), IRunCallb
     const Float y = sqr(spinRate) / (PI * Constants::gravity * density);
     const Float e_max = 0.812670_f; // for larger values, Jacobi ellipsoid should be used
     const Optional<Float> e =
-        getRoot(Interval(0._f, e_max), EPS, [y](const Float e) { return evalMaclaurinFormula(e) - y; });
+        getRoot(Interval(EPS, e_max), EPS, [y](const Float e) { return evalMaclaurinFormula(e) - y; });
     if (!e) {
         throw InvalidSetup("Failed to calculate the eccentricity of Maclaurin spheroid");
     }

@@ -268,7 +268,7 @@ public:
         removed.insert(idx);
         std::tie(first, last) = indexToCollision.equal_range(idx);
         // last iterator may be invalidated, so we need to be careful
-        for (Itc itc = first; itc->first == idx && itc != indexToCollision.end();) {
+        for (Itc itc = first; itc != indexToCollision.end() && itc->first == idx;) {
             const Size otherIdx = (itc->second.i == idx) ? itc->second.j : itc->second.i;
             removed.insert(otherIdx);
             collisions.erase(itc->second);

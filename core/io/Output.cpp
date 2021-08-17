@@ -63,6 +63,7 @@ Optional<Size> OutputFile::getDumpIdx(const Path& path) {
                 return index;
             } catch (const std::exception& e) {
                 SPH_ASSERT(false, e.what());
+                MARK_USED(e);
                 return NOTHING;
             }
         }

@@ -48,7 +48,7 @@ public:
     ///
     /// The elements are created using copy constructor.
     Queue(std::initializer_list<StorageType> list) {
-        this->alloc(list.size(), 0, 0);
+        this->alloc(TCounter(list.size()), 0, 0);
         TCounter i = 0;
         for (auto& l : list) {
             new (data + i) StorageType(l);

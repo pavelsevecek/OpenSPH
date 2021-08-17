@@ -750,7 +750,8 @@ static JobRegistrar sRegisterNoise(
 
 // clang-format off
 template <>
-AutoPtr<NBodySettings> NBodySettings::instance(new NBodySettings{
+AutoPtr<NBodySettings> NBodySettings::instance
+    = makeAuto<NBodySettings>(NBodySettings{
     { NBodySettingsId::PARTICLE_COUNT,      "particles.count",        10000,
         "Number of generated particles." },
     { NBodySettingsId::TOTAL_MASS,          "total_mass",             Constants::M_earth,

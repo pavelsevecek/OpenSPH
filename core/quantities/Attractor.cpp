@@ -5,7 +5,8 @@ NAMESPACE_SPH_BEGIN
 
 // clang-format off
 template <>
-AutoPtr<AttractorSettings> AttractorSettings::instance(new AttractorSettings{
+AutoPtr<AttractorSettings> AttractorSettings::instance
+    = makeAuto<AttractorSettings>(AttractorSettings{
     { AttractorSettingsId::LABEL,                 "generic.label",         std::string(),
         "String identifier of the attractor" },
     { AttractorSettingsId::BLACK_HOLE,            "black_hole.enable",     false,

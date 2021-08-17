@@ -2,6 +2,7 @@
 #include "catch.hpp"
 #include "io/Logger.h"
 #include "utils/Utils.h"
+#include <iostream>
 
 int main(int argc, char* argv[]) {
     Sph::Assert::isTest = true;

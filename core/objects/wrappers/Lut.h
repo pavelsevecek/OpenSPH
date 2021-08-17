@@ -54,6 +54,12 @@ public:
     bool operator!=(const LutIterator& other) const {
         return iter != other.iter;
     }
+
+    using iterator_category = std::forward_iterator_tag;
+    using value_type = Value;
+    using difference_type = ptrdiff_t;
+    using pointer = Value*;
+    using reference = Value&;
 };
 
 /// \brief Callable representing a generic R->T function, approximated using look-up table.

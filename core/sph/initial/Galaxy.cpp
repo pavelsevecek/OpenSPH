@@ -19,7 +19,8 @@ NAMESPACE_SPH_BEGIN
 
 // clang-format off
 template<>
-AutoPtr<Settings<GalaxySettingsId>> Settings<GalaxySettingsId>::instance (new Settings<GalaxySettingsId> {
+AutoPtr<Settings<GalaxySettingsId>> Settings<GalaxySettingsId>::instance 
+    = makeAuto<Settings<GalaxySettingsId>>(GalaxySettings{
     { GalaxySettingsId::DISK_PARTICLE_COUNT,    "disk.particle_count",  10000, "" },
     { GalaxySettingsId::DISK_RADIAL_CUTOFF,     "disk.radial_cutoff",   7.5_f, "" },
     { GalaxySettingsId::DISK_RADIAL_SCALE,      "disk.radial_scale",    1._f, "" },

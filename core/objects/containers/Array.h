@@ -514,17 +514,6 @@ public:
         return view() != other.view();
     }
 
-    /// \brief Prints content of array to stream.
-    ///
-    /// Enabled only if the stored type has overloaded << operator.
-    template <typename TStream, typename = std::enable_if_t<HasStreamOperator<T, TStream>::value>>
-    friend TStream& operator<<(TStream& stream, const Array& array) {
-        for (const T& t : array) {
-            stream << t << std::endl;
-        }
-        return stream;
-    }
-
 private:
     void alloc(const TCounter elementCnt, const TCounter allocatedSize) {
         actSize = elementCnt;
@@ -538,6 +527,18 @@ private:
         data = (StorageType*)block.ptr;
     }
 };
+
+    /// \brief Prints content of array to stream.
+///
+/// Enabled only if the stored type has overloaded << operator.
+template <typename TStream, typename T, typename = std::enable_if_t<HasStreamOperator<T, TStream>::value>>
+TStream& operator<<(TStream& stream, const Array<T>& array) {
+    for (const T& t : array) {
+        stream << t << std::endl;
+    }
+    return stream;
+}
+
 
 template <typename T, typename TAllocator, typename TCounter>
 class CopyableArray {

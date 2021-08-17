@@ -401,7 +401,8 @@ static JobRegistrar sRegisterChangeMaterial(
 
 // clang-format off
 template <>
-AutoPtr<CollisionGeometrySettings> CollisionGeometrySettings::instance(new CollisionGeometrySettings{
+AutoPtr<CollisionGeometrySettings> CollisionGeometrySettings::instance
+    = makeAuto<CollisionGeometrySettings>(CollisionGeometrySettings{
     { CollisionGeometrySettingsId::IMPACTOR_OPTIMIZE,      "impactor.optimize",        true,
         "If true, some quantities of the impactor particles are not taken into account when computing the required "
         "time step. Otherwise, the time step might be unnecessarily too low, as the quantities in the impactor change "

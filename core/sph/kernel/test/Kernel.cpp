@@ -287,7 +287,7 @@ TEST_CASE("Scaling kernel", "[kernel]") {
         }
         return SUCCESS;
     };
-    REQUIRE_SEQUENCE(test, 0, 200._f);
+    REQUIRE_SEQUENCE(test, 0, 200);
 }
 
 TEST_CASE("Lut kernel", "[kernel]") {

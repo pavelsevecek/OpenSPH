@@ -26,7 +26,7 @@ static std::string getLastErrorMessage() {
     }
 
     char message[256] = { 0 };
-    DWORD flags = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
+    DWORD flags = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
     DWORD length =
         FormatMessageA(flags, NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), message, 256, nullptr);
     if (length) {
@@ -55,7 +55,7 @@ bool FileSystem::pathExists(const Path& path) {
 }
 
 std::size_t FileSystem::fileSize(const Path& path) {
-    std::ifstream ifs(path.native(), std::ifstream::ate | std::ifstream::binary);
+    std::ifstream ifs(path.native(), std::ios::ate | std::ios::binary);
     SPH_ASSERT(ifs);
     return ifs.tellg();
 }
@@ -169,6 +169,9 @@ Expected<FileSystem::PathType> FileSystem::pathType(const Path& path) {
     return PathType::OTHER;
 #else
     DWORD attributes = GetFileAttributesA(path.native().c_str());
+    if (attributes == INVALID_FILE_ATTRIBUTES) {
+        return makeUnexpected<PathType>(getLastErrorMessage());
+    }
     if (attributes & FILE_ATTRIBUTE_DIRECTORY) {
         return PathType::DIRECTORY;
     }
@@ -321,7 +324,16 @@ Outcome FileSystem::removePath(const Path& path, const Flags<RemovePathFlag> fla
     }
     return SUCCESS;
 #else
-    if (DeleteFileA(path.native().c_str())) {
+    BOOL result;
+    if (type.value() == PathType::DIRECTORY) {
+        result = RemoveDirectoryA(path.native().c_str());
+    } else if (type.value() == PathType::FILE) {
+        result = DeleteFileA(path.native().c_str());
+    } else {
+        NOT_IMPLEMENTED; // removing symlinks?
+    }
+
+    if (result) {
         return SUCCESS;
     } else {
         return makeFailed(getLastErrorMessage());
@@ -332,7 +344,7 @@ Outcome FileSystem::removePath(const Path& path, const Flags<RemovePathFlag> fla
 Outcome FileSystem::copyFile(const Path& from, const Path& to) {
     SPH_ASSERT(pathType(from).valueOr(PathType::OTHER) == PathType::FILE);
     // there doesn't seem to be any system function for copying, so let's do it by hand
-    std::ifstream ifs(from.native().c_str());
+    std::ifstream ifs(from.native().c_str(), std::ios::in | std::ios::binary);
     if (!ifs) {
         return makeFailed("Cannon open file " + from.native() + " for reading");
     }
@@ -340,7 +352,7 @@ Outcome FileSystem::copyFile(const Path& from, const Path& to) {
     if (!result) {
         return result;
     }
-    std::ofstream ofs(to.native());
+    std::ofstream ofs(to.native(), std::ios::out | std::ios::binary);
     if (!ofs) {
         return makeFailed("Cannot open file " + to.native() + " for writing");
     }
@@ -402,12 +414,21 @@ struct FileSystem::DirectoryIterator::DirData {
 #endif
 };
 
-FileSystem::DirectoryIterator::DirectoryIterator(DirData&& data)
-    : data(makeAuto<DirData>(std::move(data))) {
-    SPH_ASSERT(this->data);
+static bool isSpecial(const Path& path) {
+    return path == Path(".") || path == Path("..");
+}
+
+FileSystem::DirectoryIterator::DirectoryIterator(DirData&& dirData)
+    : data(makeAuto<DirData>(std::move(dirData))) {
+    SPH_ASSERT(data);
 #ifndef SPH_WIN
-    if (this->data->dir != nullptr) {
+    if (data->dir != nullptr) {
         // find first file
+        this->operator++();
+    }
+#else
+    // skip special paths
+    while (data->dir != INVALID_HANDLE_VALUE && !data->error && isSpecial(**this)) {
         this->operator++();
     }
 #endif
@@ -431,12 +452,17 @@ FileSystem::DirectoryIterator& FileSystem::DirectoryIterator::operator++() {
     }
     do {
         data->entry = readdir(data->dir);
-    } while (data->entry && (**this == Path(".") || **this == Path("..")));
+    } while (data->entry && isSpecial(**this));
 #else
     if (data->dir == INVALID_HANDLE_VALUE) {
         return *this;
     }
-    if (!FindNextFileA(data->dir, &data->entry)) {
+    bool result = true;
+    do {
+        result = FindNextFileA(data->dir, &data->entry);
+    } while (result && isSpecial(**this));
+
+    if (!result) {
         data->error = GetLastError();
     }
 #endif
@@ -480,7 +506,7 @@ FileSystem::DirectoryAdapter::DirectoryAdapter(const Path& directory) {
         data->dir = INVALID_HANDLE_VALUE;
         return;
     }
-    std::string searchExpression = directory.native() + "*";
+    std::string searchExpression = (directory / Path("*")).native();
     data->dir = FindFirstFileA(searchExpression.c_str(), &data->entry);
     if (data->dir != INVALID_HANDLE_VALUE) {
         data->error = 0;

@@ -61,7 +61,8 @@ static RegisterEnum<ColorMapEnum> sColorMap({
 
 // clang-format off
 template<>
-AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings<GuiSettingsId> {
+AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance
+    = makeAuto<Settings<GuiSettingsId>>(Settings<GuiSettingsId> {
     /// Camera pameters
     { GuiSettingsId::PARTICLE_RADIUS,       "particle_radius",      0.5_f,
         "Multiplier of the particle radius for drawing." },

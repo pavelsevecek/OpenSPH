@@ -19,7 +19,7 @@ public:
     TestFile(const Path& parentDir = Path("temp")) {
         FileSystem::createDirectory(parentDir);
         path = parentDir / manager.getPath("tmp");
-        std::ofstream ofs(path.native());
+        std::ofstream ofs(path.native(), std::ios::out | std::ios::binary);
     }
 
     TestFile(TestFile&& other)
@@ -39,7 +39,7 @@ public:
 
     // Fill with integerts from 0 to given value (exluding the value).
     void fill(const Size num) {
-        std::ofstream ofs(path.native());
+        std::ofstream ofs(path.native(), std::ios::out | std::ios::binary);
         for (Size i = 0; i < num; ++i) {
             ofs.write((char*)&i, sizeof(int));
         }
@@ -82,7 +82,7 @@ public:
     ~TestDirectory() {
         if (!path.empty()) {
             Outcome result = FileSystem::removePath(path, FileSystem::RemovePathFlag::RECURSIVE);
-            SPH_ASSERT(result);
+            SPH_ASSERT(result, result.error());
         }
     }
 
@@ -113,7 +113,7 @@ TEST_CASE("CopyFile", "[filesystem]") {
     file.fill(1000);
     // sanity check
     REQUIRE(FileSystem::pathExists(file));
-    const Size size = FileSystem::fileSize(file);
+    const std::size_t size = FileSystem::fileSize(file);
     REQUIRE(size == 1000 * sizeof(int));
 
     TestDirectory dir;
@@ -126,7 +126,7 @@ TEST_CASE("CopyFile", "[filesystem]") {
 
     // check content
     Array<int> content(1000);
-    std::ifstream ifs(to.native());
+    std::ifstream ifs(to.native(), std::ios::in | std::ios::binary);
     ifs.read((char*)&content[0], size);
     ifs.close();
 

@@ -1872,6 +1872,7 @@ void NodeWindow::updateProperties() {
         settings.enumerate(proc);
     } catch (const Exception& e) {
         SPH_ASSERT(false, e.what());
+        MARK_USED(e);
     }
     this->updateEnabled(grid);
 

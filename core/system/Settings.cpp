@@ -450,7 +450,8 @@ static RegisterEnum<UvMapEnum> sUv({
 
 // clang-format off
 template<>
-AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
+AutoPtr<RunSettings> RunSettings::instance
+    = makeAuto<RunSettings>(RunSettings {
     { RunSettingsId::RUN_NAME,                      "run.name",                 std::string("unnamed run"),
         "User-specified name of the run. Can be stored in the metadata of output files." },
     { RunSettingsId::RUN_COMMENT,                   "run.comment",              std::string(""),
@@ -777,7 +778,8 @@ static RegisterEnum<EosEnum> sEos({
 
 
 template<>
-AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
+AutoPtr<BodySettings> BodySettings::instance
+    = makeAuto<BodySettings>(BodySettings {
     /// Equation of state
     { BodySettingsId::EOS,                     "eos",                          EosEnum::TILLOTSON,
         "Equation of state for this material. Can be one of the following:\n" + EnumMap::getDesc<EosEnum>() },

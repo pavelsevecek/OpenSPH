@@ -57,7 +57,7 @@ void Chai::Particles::bindToStorage(Storage& input) {
 }
 
 const Storage& Chai::Particles::store() const {
-    const Size N = positions.size();
+    const Size N = Size(positions.size());
     Array<Vector> r(N), v(N), dv(N);
     Array<Float> m(N), u(N), rho(N);
     for (Size i = 0; i < N; ++i) {
@@ -163,12 +163,13 @@ Chai::Vec3 Chai::Particles::getTotalAngularMomentum() const {
 }
 
 Chai::Vec3 Chai::Particles::getAngularFrequency() const {
-    Array<Vector> r(positions.size()), v(positions.size());
+    Array<Vector> r(Size(positions.size()));
+    Array<Vector> v(Size(positions.size()));
     for (Size i = 0; i < r.size(); ++i) {
         r[i] = positions[i];
         v[i] = velocities[i];
     }
-    return Post::getAngularFrequency(ArrayView<const Float>(masses.data(), masses.size()), r, v);
+    return Post::getAngularFrequency(ArrayView<const Float>(masses.data(), Size(masses.size())), r, v);
 }
 
 void Chai::Particles::merge(Particles& other) {

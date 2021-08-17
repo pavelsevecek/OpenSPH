@@ -54,7 +54,7 @@ private:
 
 public:
     explicit FileOutputStream(const Path& path)
-        : ofs(path.native(), std::ios::binary) {}
+        : ofs(path.native(), std::ios::out | std::ios::binary) {}
 
     virtual bool write(ArrayView<const char> buffer) override {
         ofs.write(&buffer[0], buffer.size());
@@ -194,7 +194,7 @@ private:
 
 public:
     explicit FileInputStream(const Path& path)
-        : ifs(path.native(), std::ios::binary) {
+        : ifs(path.native(), std::ios::in | std::ios::binary) {
         if (!ifs) {
             throw SerializerException("Cannot open file " + path.native() + " for reading.");
         }
