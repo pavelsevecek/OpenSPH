@@ -89,12 +89,14 @@ public:
     ~LockingPtr() {
         if (block) {
             // make sure all the proxies are destroyed before killing the object
+            WeakPtr<T> weak(resource);
             std::unique_lock<Detail::LockingControlBlock<T>> lock(*block);
         }
     }
 
     LockingPtr& operator=(const LockingPtr& other) {
         if (block) {
+            WeakPtr<T> weak(resource);
             std::unique_lock<Detail::LockingControlBlock<T>> lock(*block);
             resource = other.resource;
             block = other.block;
@@ -107,6 +109,7 @@ public:
 
     LockingPtr& operator=(LockingPtr&& other) {
         if (block) {
+            WeakPtr<T> weak(resource);
             std::unique_lock<Detail::LockingControlBlock<T>> lock(*block);
             resource = std::move(other.resource);
             std::swap(block, other.block);
@@ -201,6 +204,7 @@ public:
 
     void reset() {
         if (block) {
+            WeakPtr<T> weak(resource);
             std::unique_lock<Detail::LockingControlBlock<T>> lock(*block);
             block = nullptr;
             resource.reset();

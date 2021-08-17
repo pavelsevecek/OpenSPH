@@ -4,6 +4,8 @@
 
 using namespace Sph;
 
+#ifndef SPH_WIN
+
 TEST_CASE("Process create", "[process]") {
     const Path expected("process.txt");
     FileSystem::removePath(expected); // remove from previous test, not a very good solution ...
@@ -11,3 +13,5 @@ TEST_CASE("Process create", "[process]") {
     process.wait();
     REQUIRE(FileSystem::pathExists(expected));
 }
+
+#endif

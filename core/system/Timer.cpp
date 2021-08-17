@@ -150,6 +150,7 @@ void TimerThread::runLoop() {
                 this->removeEntry(entry);
             }
         }
+        ///  \todo sleep till the next timer expires (using CV)
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 }

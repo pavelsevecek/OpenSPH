@@ -22,7 +22,7 @@ TEST_CASE("SharedPtr default construct", "[sharedptr]") {
 TEST_CASE("SharedPtr ptr construct", "[sharedptr]") {
     RecordType::resetStats();
     {
-        SharedPtr<RecordType> s1(new RecordType(5));
+        SharedPtr<RecordType> s1(alignedNew<RecordType>(5));
         REQUIRE(s1);
         REQUIRE_FALSE(!s1);
         REQUIRE(s1->value == 5);
@@ -38,7 +38,7 @@ TEST_CASE("SharedPtr ptr construct", "[sharedptr]") {
 TEST_CASE("SharedPtr copy construct", "[sharedptr]") {
     RecordType::resetStats();
     {
-        SharedPtr<RecordType> s1(new RecordType(6));
+        SharedPtr<RecordType> s1(alignedNew<RecordType>(6));
         {
             SharedPtr<RecordType> s2(s1);
             REQUIRE(s2);
@@ -59,7 +59,7 @@ TEST_CASE("SharedPtr copy construct", "[sharedptr]") {
 TEST_CASE("SharedPtr move construct", "[sharedptr]") {
     RecordType::resetStats();
     {
-        SharedPtr<RecordType> s1(new RecordType(7));
+        SharedPtr<RecordType> s1(alignedNew<RecordType>(7));
         {
             SharedPtr<RecordType> s2(std::move(s1));
             REQUIRE(s2);
@@ -89,8 +89,8 @@ TEST_CASE("SharedPtr from AutoPtr", "[sharedptr]") {
 
 TEST_CASE("SharedPtr copy assign", "[sharedptr]") {
     RecordType::resetStats();
-    SharedPtr<RecordType> s1(new RecordType(1));
-    SharedPtr<RecordType> s2(new RecordType(2));
+    SharedPtr<RecordType> s1(alignedNew<RecordType>(1));
+    SharedPtr<RecordType> s2(alignedNew<RecordType>(2));
     s1 = s2;
     REQUIRE(RecordType::destructedNum == 1);
     REQUIRE(s1->value == 2);
@@ -100,7 +100,7 @@ TEST_CASE("SharedPtr copy assign", "[sharedptr]") {
 TEST_CASE("SharedPtr move assign", "[sharedptr]") {
     RecordType::resetStats();
     {
-        SharedPtr<RecordType> s1(new RecordType(2));
+        SharedPtr<RecordType> s1(alignedNew<RecordType>(2));
         {
             SharedPtr<RecordType> s2;
             s2 = std::move(s1);
@@ -117,7 +117,7 @@ TEST_CASE("SharedPtr move assign", "[sharedptr]") {
     {
         SharedPtr<RecordType> s3;
         {
-            s3 = SharedPtr<RecordType>(new RecordType(8));
+            s3 = SharedPtr<RecordType>(alignedNew<RecordType>(8));
             REQUIRE(s3.getUseCount() == 1);
             REQUIRE(s3->value == 8);
             REQUIRE(RecordType::constructedNum == 1);
@@ -131,7 +131,7 @@ TEST_CASE("SharedPtr move assign", "[sharedptr]") {
 
 TEST_CASE("SharedPtr assign nullptr", "[sharedptr]") {
     RecordType::resetStats();
-    SharedPtr<RecordType> s1(new RecordType(1));
+    SharedPtr<RecordType> s1(alignedNew<RecordType>(1));
     SharedPtr<RecordType> s2 = s1;
     REQUIRE(s1.getUseCount() == 2);
     REQUIRE(RecordType::constructedNum == 1);
@@ -147,7 +147,7 @@ TEST_CASE("SharedPtr assign nullptr", "[sharedptr]") {
 
 TEST_CASE("SharedPtr reset", "[sharedptr]") {
     RecordType::resetStats();
-    SharedPtr<RecordType> s1(new RecordType(2));
+    SharedPtr<RecordType> s1(alignedNew<RecordType>(2));
     s1.reset();
     REQUIRE(s1.getUseCount() == 0);
     REQUIRE(RecordType::destructedNum == 1);
@@ -158,13 +158,13 @@ TEST_CASE("SharedPtr reset", "[sharedptr]") {
 TEST_CASE("SharedPtr release", "[sharedptr]") {
     RecordType* ptr;
     {
-        SharedPtr<RecordType> s1(new RecordType(4));
+        SharedPtr<RecordType> s1(alignedNew<RecordType>(4));
         RecordType::resetStats();
         ptr = s1.release();
     }
     REQUIRE(RecordType::destructedNum == 0);
     REQUIRE(ptr->value == 4);
-    delete ptr;
+    alignedDelete(ptr);
 }
 
 TEST_CASE("makeShared", "[sharedptr]") {
