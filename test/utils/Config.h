@@ -33,4 +33,6 @@ const Path RESOURCE_PATH = Path("D:/projects/astro/sph/src/test/resources/");
 
 #endif
 
+#endif
+
 NAMESPACE_SPH_END
