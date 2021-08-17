@@ -77,7 +77,7 @@ test_release:
     - qmake -spec linux-g++ DEFINES+="SPH_CONFIG_SET" CONFIG+=release ../test.pro
     - make
     - cd test
-    - ./test -d yes exclude:[output] exclude:[filesystem] exclude:[path] exclude:[thread] exclude:[grid]
+    - ./test -d yes exclude:[filesystem] exclude:[path] exclude:[thread] exclude:[grid]
 
       #cppcheck:
       #stage: test
