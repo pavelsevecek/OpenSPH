@@ -204,7 +204,7 @@ TEST_CASE("RemovePath", "[filesystem]") {
 
 TEST_CASE("SetWorkingDirectory", "[filesystem]") {
     const Path current = Path::currentPath();
-    const Path newPath = Path("/home/pavel/");
+    const Path newPath = Path(RESOURCE_PATH);
     FileSystem::setWorkingDirectory(newPath);
     REQUIRE(Path::currentPath() == newPath);
 
@@ -243,23 +243,32 @@ TEST_CASE("Create and remove directory", "[filesystem]") {
     REQUIRE(FileSystem::removePath(Path("dummyDir1"), FileSystem::RemovePathFlag::RECURSIVE));
 }
 
-/// \todo move to Platform.cpp
-TEST_CASE("GetExecutablePath", "[filesystem]") {
-    const Expected<Path> path = getExecutablePath();
+TEST_CASE("getDirectoryOfExecutable", "[filesystem]") {
+    const Expected<Path> path = FileSystem::getDirectoryOfExecutable();
     REQUIRE(path);
+#ifndef SPH_WIN
     REQUIRE(path.value() == WORKING_DIR);
+#else
+    REQUIRE(path->parentPath() == WORKING_DIR);
+#endif
 }
 
 TEST_CASE("IsPathWritable", "[filesystem]") {
-    REQUIRE(FileSystem::isPathWritable(Path(".")));
-    REQUIRE(FileSystem::isPathWritable(Path("/home/pavel/")));
+    REQUIRE(FileSystem::isDirectoryWritable(Path(".")));
+    REQUIRE(FileSystem::isDirectoryWritable(HOME_DIR));
+
+#ifndef SPH_WIN
     REQUIRE_FALSE(FileSystem::isPathWritable(Path("/usr/lib/")));
     REQUIRE_FALSE(FileSystem::isPathWritable(Path("/var/")));
     REQUIRE_FALSE(FileSystem::isPathWritable(Path("/etc/")));
+#else
+    REQUIRE_FALSE(FileSystem::isDirectoryWritable(Path("C:/")));
+    REQUIRE_FALSE(FileSystem::isDirectoryWritable(Path("C:/Windows/")));
+#endif
 }
 
 TEST_CASE("GetHomeDirectory", "[filesystem]") {
     Expected<Path> path = FileSystem::getHomeDirectory();
     REQUIRE(path);
-    REQUIRE(path.value() == Path("/home/pavel"));
+    REQUIRE(path.value() == HOME_DIR);
 }

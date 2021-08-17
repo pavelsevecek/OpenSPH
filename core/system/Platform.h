@@ -13,9 +13,6 @@ NAMESPACE_SPH_BEGIN
 
 class Path;
 
-/// Returns the absolute path to the currently running executable.
-Expected<Path> getExecutablePath();
-
 /// \brief Sends a mail with given message.
 Outcome sendMail(const std::string& to,
     const std::string& from,

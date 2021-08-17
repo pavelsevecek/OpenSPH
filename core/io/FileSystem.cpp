@@ -60,23 +60,38 @@ std::size_t FileSystem::fileSize(const Path& path) {
     return ifs.tellg();
 }
 
-bool FileSystem::isPathWritable(const Path& path) {
+bool FileSystem::isDirectoryWritable(const Path& path) {
+    SPH_ASSERT(pathType(path).valueOr(PathType::OTHER) == PathType::DIRECTORY);
 #ifndef SPH_WIN
     return access(path.native().c_str(), W_OK) == 0;
 #else
-    NOT_IMPLEMENTED
+    char file[MAX_PATH];
+    GetTempFileNameA(path.native().c_str(), "sph", 1, file);
+    HANDLE handle = CreateFileA(file,
+        GENERIC_WRITE,
+        FILE_SHARE_READ,
+        nullptr,
+        CREATE_NEW,
+        FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE,
+        nullptr);
+    if (handle != INVALID_HANDLE_VALUE) {
+        CloseHandle(handle);
+        return true;
+    } else {
+        return false;
+    }
 #endif
 }
 
 Expected<Path> FileSystem::getHomeDirectory() {
 #ifdef SPH_WIN
-    char buffer[1024] = { 0 };
+    char buffer[MAX_PATH] = { 0 };
     DWORD length = sizeof(buffer);
     HANDLE token = 0;
     OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token);
     if (GetUserProfileDirectoryA(token, buffer, &length)) {
         CloseHandle(token);
-        return Path(buffer);
+        return Path(std::string(buffer) + '\\');
     } else {
         return makeUnexpected<Path>(getLastErrorMessage());
     }
@@ -403,6 +418,26 @@ bool FileSystem::setWorkingDirectory(const Path& path) {
 #endif
 }
 
+Expected<Path> FileSystem::getDirectoryOfExecutable() {
+#ifndef SPH_WIN
+    char result[4096];
+    ssize_t count = readlink("/proc/self/exe", result, sizeof(result));
+    if (count != -1) {
+        Path path(std::string(result, count));
+        return path.parentPath();
+    } else {
+        return makeUnexpected<Path>("Unknown error");
+    }
+#else
+    char path[MAX_PATH];
+    if (GetModuleFileNameA(nullptr, path, MAX_PATH) != 0) {
+        return Path(path).parentPath();
+    } else {
+        return makeUnexpected<Path>(getLastErrorMessage());
+    }
+#endif
+}
+
 struct FileSystem::DirectoryIterator::DirData {
 #ifndef SPH_WIN
     DIR* dir = nullptr;
@@ -526,9 +561,9 @@ FileSystem::DirectoryAdapter::~DirectoryAdapter() {
 #endif
 }
 
-FileSystem::DirectoryAdapter::DirectoryAdapter(DirectoryAdapter&& other)
-    : data(std::move(other.data)) {
-    other.data = nullptr;
+FileSystem::DirectoryAdapter::DirectoryAdapter(DirectoryAdapter&& other) {
+    data = std::move(other.data);
+    other.data = makeAuto<DirectoryIterator::DirData>();
 }
 
 FileSystem::DirectoryIterator FileSystem::DirectoryAdapter::begin() const {

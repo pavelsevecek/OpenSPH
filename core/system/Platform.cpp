@@ -16,21 +16,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-Expected<Path> getExecutablePath() {
-#ifndef SPH_WIN
-    char result[4096];
-    ssize_t count = readlink("/proc/self/exe", result, sizeof(result));
-    if (count != -1) {
-        Path path(std::string(result, count));
-        return path.parentPath();
-    } else {
-        return makeUnexpected<Path>("Unknown error");
-    }
-#else
-    NOT_IMPLEMENTED;
-#endif
-}
-
 Outcome sendMail(const std::string& to,
     const std::string& from,
     const std::string& subject,

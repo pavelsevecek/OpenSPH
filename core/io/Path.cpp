@@ -24,7 +24,11 @@ bool Path::isHidden() const {
 }
 
 bool Path::isAbsolute() const {
+#ifndef SPH_WIN
     return !path.empty() && path[0] == SEPARATOR;
+#else
+    return path.size() >= 2 && path[0] >= 'A' && path[0] <= 'Z' && path[1] == ':';
+#endif
 }
 
 bool Path::isRelative() const {

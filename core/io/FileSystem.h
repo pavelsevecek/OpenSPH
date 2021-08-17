@@ -25,8 +25,8 @@ bool pathExists(const Path& path);
 /// The file must exist and be accessible, checked by assert.
 std::size_t fileSize(const Path& path);
 
-/// \brief Checks whether the given file is writable.
-bool isPathWritable(const Path& path);
+/// \brief Checks whether the given directory is writable.
+bool isDirectoryWritable(const Path& path);
 
 /// \brief Returns the home directory of the current user.
 Expected<Path> getHomeDirectory();
@@ -112,6 +112,9 @@ public:
         setWorkingDirectory(originalDir);
     }
 };
+
+/// Returns the absolute path to the directory containing the currently running executable.
+Expected<Path> getDirectoryOfExecutable();
 
 /// Iterator allowing to enumerate files and subdirectories in given directory.
 class DirectoryIterator {

@@ -40,7 +40,7 @@ public:
     bool isHidden() const;
 
     /// Checks if the path is absolute.
-    /// \todo generalize, currently only checks for path starting with '/'
+    /// \todo generalize, currently only checks for path starting with '/' (or "[A-Z]:" on windows)
     bool isAbsolute() const;
 
     /// Checks if the path is relative. Empty path is not considered relative.
