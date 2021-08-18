@@ -66,7 +66,7 @@ public:
 };
 
 inline Size maxThreadCnt() {
-#if TBB_VERSION_MAJOR >= 2020
+#if TBB_VERSION_MAJOR >= 2021
     return Size(tbb::global_control::active_value(tbb::global_control::max_allowed_parallelism));
 #else
     return Size(tbb::task_scheduler_init::default_num_threads());
