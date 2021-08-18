@@ -152,7 +152,7 @@ private:
     void onPaint(wxPaintEvent& UNUSED(evt)) {
         wxPaintDC dc(this);
         wxFont font = wxSystemSettings::GetFont(wxSystemFont::wxSYS_DEFAULT_GUI_FONT);
-        font.SetPointSize(11);
+        font.SetPointSize(10);
         SPH_ASSERT(font.IsOk());
         dc.SetFont(font);
         FlippedRenderContext context(makeAuto<WxRenderContext>(dc));

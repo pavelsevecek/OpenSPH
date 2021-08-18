@@ -804,7 +804,7 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
     gc->SetPen(pen);
 
     wxFont font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
-    font.SetPointSize(11);
+    font.SetPointSize(10);
     const Rgba lineColor(getLineColor(background));
     gc->SetFont(font, wxColour(lineColor));
 

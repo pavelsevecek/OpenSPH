@@ -178,6 +178,12 @@ void boxPad(wxBoxSizer* box) {
 #endif
 }
 
+#ifdef SPH_WIN
+const int checkBoxBorder = 5;
+#else
+const int checkBoxBorder = 1;
+#endif
+
 wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     wxStaticBox* particleBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 118));
 
@@ -225,7 +231,7 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     ghostSizer->AddSpacer(boxPadding);
     wxCheckBox* ghostBox = new wxCheckBox(particleBox, wxID_ANY, "Show ghosts");
     ghostBox->SetValue(gui.get<bool>(GuiSettingsId::RENDER_GHOST_PARTICLES));
-    ghostSizer->Add(ghostBox, 0, wxTOP, 5);
+    ghostSizer->Add(ghostBox, 0, wxTOP, checkBoxBorder);
     boxSizer->Add(ghostSizer);
 
     wxBoxSizer* aaSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -235,7 +241,7 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     aaBox->SetToolTip(
         "If checked, particles are drawn with anti-aliasing, creating smoother image, but it also takes "
         "longer to render it.");
-    aaSizer->Add(aaBox, 0, wxTOP, 5);
+    aaSizer->Add(aaBox, 0, wxTOP, checkBoxBorder);
     boxSizer->Add(aaSizer);
 
     particleBox->SetSizer(boxSizer);
@@ -450,7 +456,7 @@ wxPanel* RunPage::createVisBar() {
         "When checked, the image is updated on every timestep, otherwise the image is only updated when "
         "pressing the 'Refresh' button. Note that repainting the image on every timestep may decrease "
         "the performance of the code.");
-    visbarSizer->Add(autoRefresh, 0, wxLEFT | wxTOP, 5);
+    visbarSizer->Add(autoRefresh, 0, wxLEFT | wxTOP, checkBoxBorder);
 
     wxCheckBox* autoCamera = new wxCheckBox(visbarPanel, wxID_ANY, "Auto-zoom");
     autoCamera->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
@@ -461,7 +467,7 @@ wxPanel* RunPage::createVisBar() {
     autoCamera->SetToolTip(
         "When checked, parameters of the camera (position, field of view, etc.) are automatically adjusted "
         "during the simulation.");
-    visbarSizer->Add(autoCamera, 0, wxLEFT | wxTOP, 5);
+    visbarSizer->Add(autoCamera, 0, wxLEFT | wxTOP, checkBoxBorder);
     visbarSizer->AddSpacer(10);
 
 
