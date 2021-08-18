@@ -523,6 +523,24 @@ TEST_CASE("CompressedOutput backward compatibility", "[output]") {
     testVersion(CompressedIoVersion::V2021_08_08);
 }
 
+TEST_CASE("CompressedInput getInfo", "[output]") {
+    REQUIRE_FALSE(CompressedInput::getInfo(Path("nonexisting_file.sdf")));
+
+    RandomPathManager manager;
+    Path path = manager.getPath("out");
+    CompressedOutput output(path, CompressionEnum::NONE);
+    Storage storage = Tests::getGassStorage(100);
+    Statistics stats;
+    Expected<Path> outPath = output.dump(storage, stats);
+    REQUIRE(outPath);
+
+    Expected<CompressedInput::Info> info = CompressedInput::getInfo(outPath.value());
+    REQUIRE(info);
+    REQUIRE(info->particleCnt == storage.getParticleCnt());
+    REQUIRE(info->version == CompressedIoVersion::LATEST);
+    REQUIRE(info->runType == RunTypeEnum::SPH);
+}
+
 TEST_CASE("Pkdgrav output", "[output]") {
     BodySettings settings;
     settings.set(BodySettingsId::ENERGY, 50._f);
