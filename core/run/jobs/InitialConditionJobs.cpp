@@ -615,31 +615,16 @@ static JobRegistrar sRegisterModifyQuantityIc(
 // NoiseQuantity
 // ----------------------------------------------------------------------------------------------------------
 
-enum class NoiseQuantityId {
-    DENSITY,
-    VELOCITY,
-};
-
-static RegisterEnum<NoiseQuantityId> sNoiseQuantity({
-    { NoiseQuantityId::DENSITY, "density", "Material density" },
-    { NoiseQuantityId::VELOCITY, "velocity", "Particle velocity" },
-});
-
-const Indices GRID_DIMS(8, 8, 8);
-
 NoiseQuantityIc::NoiseQuantityIc(const std::string& name)
-    : IParticleJob(name) {
-    id = EnumWrapper(NoiseQuantityId::DENSITY);
-}
+    : IParticleJob(name) {}
 
 VirtualSettings NoiseQuantityIc::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& quantityCat = connector.addCategory("Noise parameters");
-    quantityCat.connect("Quantity", "quantity", id);
-    quantityCat.connect("Mean [si]", "mean", mean);
-    quantityCat.connect("Magnitude [si]", "magnitude", magnitude);
+    quantityCat.connect("Magnitude [m/s]", "magnitude", magnitude);
+    quantityCat.connect("Grid dimensions", "grid_dims", gridDims);
 
     return connector;
 }
@@ -648,23 +633,8 @@ void NoiseQuantityIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks&
     result = this->getInput<ParticleData>("particles");
     Storage& storage = result->storage;
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-
-    switch (NoiseQuantityId(id)) {
-    case NoiseQuantityId::DENSITY: {
-        ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
-        this->randomize<1>(callbacks, r, [&rho](Float value, Size i, Size UNUSED(j)) { //
-            rho[i] = value;
-        });
-        break;
-    }
-    case NoiseQuantityId::VELOCITY: {
-        ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
-        this->randomize<3>(callbacks, r, [&v](Float value, Size i, Size j) { v[i][j] = value; });
-        break;
-    }
-    default:
-        NOT_IMPLEMENTED;
-    }
+    ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+    this->randomize<3>(callbacks, r, [&v](Float value, Size i, Size j) { v[i][j] = value; });
 }
 
 template <Size Dims, typename TSetter>
@@ -675,7 +645,7 @@ void NoiseQuantityIc::randomize(IRunCallbacks& callbacks,
 
     StaticArray<Grid<Vector>, Dims> gradients;
     for (Size dim = 0; dim < Dims; ++dim) {
-        gradients[dim] = Grid<Vector>(GRID_DIMS);
+        gradients[dim] = Grid<Vector>(Indices(gridDims));
         for (Vector& grad : gradients[dim]) {
             grad = sampleUnitSphere(rng);
         }
@@ -691,8 +661,8 @@ void NoiseQuantityIc::randomize(IRunCallbacks& callbacks,
     for (Size i = 0; i < r.size(); ++i) {
 
         for (Size dim = 0; dim < Dims; ++dim) {
-            const Vector pos = (r[i] - box.lower()) / box.size() * GRID_DIMS;
-            const Float value = mean + magnitude * perlin(gradients[dim], pos);
+            const Vector pos = (r[i] - box.lower()) / box.size() * Indices(gridDims);
+            const Float value = magnitude * perlin(gradients[dim], pos);
             SPH_ASSERT(isReal(value));
             setter(value, i, dim);
         }
@@ -730,19 +700,18 @@ Float NoiseQuantityIc::perlin(const Grid<Vector>& gradients, const Vector& v) co
 
 Float NoiseQuantityIc::dotGradient(const Grid<Vector>& gradients, const Indices& i, const Vector& v) const {
     const Vector& dv = Vector(i) - v;
-    const Indices is(
-        positiveMod(i[X], GRID_DIMS[X]), positiveMod(i[Y], GRID_DIMS[Y]), positiveMod(i[Z], GRID_DIMS[Z]));
+    Indices dims(gridDims);
+    const Indices is(positiveMod(i[X], dims[X]), positiveMod(i[Y], dims[Y]), positiveMod(i[Z], dims[Z]));
 
     return dot(dv, gradients[is]);
 }
-
 
 static JobRegistrar sRegisterNoise(
     "Perlin noise",
     "noise",
     "initial conditions",
     [](const std::string& name) { return makeAuto<NoiseQuantityIc>(name); },
-    "Perturbs selected quantity of the input body using a noise function.");
+    "Perturbs particle velocities of the input body using a noise function.");
 
 // ----------------------------------------------------------------------------------------------------------
 // NBodyIc

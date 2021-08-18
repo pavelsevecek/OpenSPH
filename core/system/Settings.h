@@ -189,6 +189,7 @@ private:
 
     FlatMap<TEnum, Entry> entries;
 
+    /// Global instance, needs to be specialized by each Settings instantiation.
     static AutoPtr<Settings> instance;
 
     /// Constructs settings from list of key-value pairs.

@@ -1,3 +1,9 @@
+## 2021-08-18
+- ported OpenSPH to Windows!
+- various fixes and tweaks made along the way
+- changed extension of the 'compressed' output to .sdf (.scf is taken on Windows)
+- added support for oneTBB
+
 ## 2021-08-12
 - optimized preview render refresh when palette changes
 - volumetric renderer: made emission independent of smoothing lengths

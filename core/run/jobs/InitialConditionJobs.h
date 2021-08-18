@@ -191,13 +191,11 @@ public:
 
 class NoiseQuantityIc : public IParticleJob {
 private:
-    EnumWrapper id;
-
-    Float mean = 1.f;
-    Float magnitude = 1.f;
+    Float magnitude = 1._f;
+    Vector gridDims = Vector(8, 8, 8);
 
 public:
-    NoiseQuantityIc(const std::string& name);
+    explicit NoiseQuantityIc(const std::string& name);
 
     virtual std::string className() const override {
         return "Perlin noise";

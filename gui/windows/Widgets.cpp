@@ -1,4 +1,5 @@
 #include "gui/windows/Widgets.h"
+#include "gui/MainLoop.h"
 #include "objects/utility/StringUtils.h"
 #include "thread/CheckFunction.h"
 #include <wx/msgdlg.h>
@@ -113,7 +114,11 @@ bool ClosablePage::close() {
 
 void ClosablePage::onStopped() {
     if (dialog) {
-        dialog->EndModal(0);
+        executeOnMainThread([weakDialog = wxWeakRef<WaitDialog>(dialog)] {
+            if (weakDialog) {
+                weakDialog->EndModal(0);
+            }
+        });
     }
 }
 
