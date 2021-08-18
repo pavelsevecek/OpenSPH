@@ -15,7 +15,7 @@ static_assert(false,
 #ifdef SPH_TEST_RESOURCE_PATH
 const Path RESOURCE_PATH = Path(SPH_STR(SPH_TEST_RESOURCE_PATH));
 #else
-const Path RESOURCE_PATH = Path("/home/pavel/projects/astro/sph/src/test/resources");
+const Path RESOURCE_PATH = Path("/home/pavel/projects/astro/sph/src/test/resources/");
 #endif
 
 /// Home directory of the user running the tests
@@ -27,9 +27,6 @@ const Path WORKING_DIR = Path("/home/pavel/projects/astro/sph/build-debug/test/"
 #else
 const Path WORKING_DIR = Path("/home/pavel/projects/astro/sph/build-release/test/");
 #endif
-
-/// Directory containing auxiliary resources for tests (serialized storage, etc.)
-const Path RESOURCE_PATH = Path("/home/pavel/projects/astro/sph/src/test/resources/");
 
 #else
 

@@ -71,3 +71,21 @@ TEST_CASE("Ranges almostEqual", "[algorithm]") {
     REQUIRE_FALSE(almostEqual(a1, a3, EPS));
     REQUIRE_FALSE(almostEqual(a3, a1, EPS));
 }
+
+TEST_CASE("FindMax", "[algorithm]") {
+    Array<float> a;
+    REQUIRE(findMax(a) == a.end());
+    a.push(3);
+    a.push(1);
+    REQUIRE(findMax(a) == a.begin());
+    REQUIRE(*findMax(a) == 3);
+}
+
+TEST_CASE("FindMin", "[algorithm]") {
+    Array<float> a;
+    REQUIRE(findMin(a) == a.end());
+    a.push(3);
+    a.push(1);
+    REQUIRE(findMin(a) == a.begin() + 1);
+    REQUIRE(*findMin(a) == 1);
+}
