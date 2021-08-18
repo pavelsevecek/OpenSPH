@@ -360,7 +360,7 @@ public:
             // inserting an empty range
             return;
         }
-        const Size count = Size(last - first);
+        const TCounter count = TCounter(last - first);
         this->resize(actSize + count);
         std::move_backward(this->begin() + position, this->end() - count, this->end());
         Size i = position;

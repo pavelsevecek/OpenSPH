@@ -2,6 +2,7 @@
 #include "io/LogWriter.h"
 #include "io/Logger.h"
 #include "objects/geometry/Sphere.h"
+#include "objects/utility/Algorithm.h"
 #include "post/Analysis.h"
 #include "post/Compare.h"
 #include "post/TwoBody.h"
@@ -20,7 +21,7 @@ static void renumberFlags(const Storage& main, Storage& other) {
     }
 
     ArrayView<const Size> flags1 = main.getValue<Size>(QuantityId::FLAG);
-    const Size offset = *std::max_element(flags1.begin(), flags1.end()) + 1;
+    const Size offset = *findMax(flags1) + 1;
 
     ArrayView<Size> flags2 = other.getValue<Size>(QuantityId::FLAG);
     for (Size& f : flags2) {
@@ -491,7 +492,7 @@ void CollisionGeometrySetup::evaluate(const RunSettings& UNUSED(global), IRunCal
     if (target.has(QuantityId::FLAG) && impactor.has(QuantityId::FLAG)) {
         ArrayView<Size> targetFlags = target.getValue<Size>(QuantityId::FLAG);
         ArrayView<Size> impactorFlags = impactor.getValue<Size>(QuantityId::FLAG);
-        const Size flagShift = *std::max_element(targetFlags.begin(), targetFlags.end()) + 1;
+        const Size flagShift = *findMax(targetFlags) + 1;
         for (Size i = 0; i < impactorFlags.size(); ++i) {
             impactorFlags[i] += flagShift;
         }

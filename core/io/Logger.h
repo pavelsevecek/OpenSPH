@@ -120,9 +120,9 @@ struct Console {
         if (mod.fg != Foreground::UNCHANGED) {
             stream << "\033[" << int(mod.fg) << "m";
         }
-        #ifndef SPH_WIN
+#ifndef SPH_WIN
         stream << "\e[" << int(mod.series) << "m";
-        #endif
+#endif
         return stream;
     }
 };

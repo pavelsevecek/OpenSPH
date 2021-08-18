@@ -25,7 +25,7 @@ NAMESPACE_SPH_BEGIN
 #define SPH_WIN
 #endif
 
-#ifdef _WIN32
+#ifdef SPH_WIN
 /// Turn on debug mode when compiling in debug configuration
 #ifdef _DEBUG
 #define SPH_DEBUG

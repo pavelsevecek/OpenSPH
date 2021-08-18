@@ -482,7 +482,7 @@ FileSystem::DirectoryIterator::~DirectoryIterator() = default;
 
 FileSystem::DirectoryIterator& FileSystem::DirectoryIterator::operator++() {
 #ifndef SPH_WIN
-    if (data->dir != nullptr) {
+    if (data->dir == nullptr) {
         return *this;
     }
     do {

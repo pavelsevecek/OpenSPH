@@ -1,10 +1,10 @@
 #include "io/Path.h"
 #include "math/MathBasic.h"
 
-#ifdef SPH_WIN
-#include <windows.h>
-#else
+#ifndef SPH_WIN
 #include <unistd.h>
+#else
+#include <windows.h>
 #endif
 
 NAMESPACE_SPH_BEGIN
@@ -187,11 +187,7 @@ Path& Path::makeRelative() {
 }
 
 Path Path::currentPath() {
-#ifdef SPH_WIN
-    char path[MAX_PATH];
-    GetCurrentDirectoryA(MAX_PATH, path);
-    return Path(std::string(path) + SEPARATOR);
-#else
+#ifndef SPH_WIN
     constexpr Size bufferCnt = 1024;
     char buffer[bufferCnt];
     if (getcwd(buffer, sizeof(buffer))) {
@@ -200,6 +196,10 @@ Path Path::currentPath() {
     } else {
         return Path();
     }
+ #else
+    char path[MAX_PATH];
+    GetCurrentDirectoryA(MAX_PATH, path);
+    return Path(std::string(path) + SEPARATOR);
 #endif
 }
 
