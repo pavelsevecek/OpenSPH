@@ -106,7 +106,7 @@ int main(int argc, char* argv[]) {
     switch (type.valueOr(IoEnum::NONE)) {
     case IoEnum::BINARY_FILE:
         return printBinaryFileInfo(logger, Path(argv[1]));
-    case IoEnum::COMPRESSED_FILE:
+    case IoEnum::DATA_FILE:
         return printCompressedFileInfo(logger, Path(argv[1]));
     default:
         logger.write("Unknown file format.");

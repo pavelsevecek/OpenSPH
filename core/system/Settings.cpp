@@ -310,20 +310,20 @@ static RegisterEnum<LoggerEnum> sLogger({
 
 static RegisterEnum<IoEnum> sIo({
     { IoEnum::NONE, "none", "No output" },
+    { IoEnum::DATA_FILE,
+        "data_file",
+        "Binary output file, containing only few selected quantities. This is the most convenient "
+        "format for storing full simulation in high resolution in time. Cannot be used to continue "
+        "simulation." },
+    { IoEnum::BINARY_FILE,
+        "binary_file",
+        "Save output data into binary file. This data dump is lossless and can be use to restart run from "
+        "saved snapshot. Stores values, all derivatives and materials of the storage." },
     { IoEnum::TEXT_FILE, "text_file", "Save output data into formatted human-readable text file" },
     { IoEnum::GNUPLOT_OUTPUT,
         "gnuplot_output",
         "Extension of text file, additionally executing given gnuplot script, generating a plot from every "
         "dump" },
-    { IoEnum::BINARY_FILE,
-        "binary_file",
-        "Save output data into binary file. This data dump is lossless and can be use to restart run from "
-        "saved snapshot. Stores values, all derivatives and materials of the storage." },
-    { IoEnum::COMPRESSED_FILE,
-        "compressed_file",
-        "Compressed binary output file, containing only few selected quantities. This is the most convenient "
-        "format for storing full simulation in high resolution in time. Cannot be used to continue "
-        "simulation." },
     { IoEnum::VTK_FILE,
         "vtk_file",
         "File format used by Visualization Toolkit (VTK). Useful to view the results in Paraview and other "
@@ -345,7 +345,7 @@ Optional<std::string> getIoExtension(const IoEnum type) {
         return std::string("txt");
     case IoEnum::BINARY_FILE:
         return std::string("ssf");
-    case IoEnum::COMPRESSED_FILE:
+    case IoEnum::DATA_FILE:
         return std::string("sdf");
     case IoEnum::PKDGRAV_INPUT:
         return std::string("ss");
@@ -366,7 +366,7 @@ Optional<IoEnum> getIoEnum(const std::string& ext) {
     } else if (ext == "ssf") {
         return IoEnum::BINARY_FILE;
     } else if (ext == "sdf") {
-        return IoEnum::COMPRESSED_FILE;
+        return IoEnum::DATA_FILE;
     } else if (ext == "ss") {
         return IoEnum::PKDGRAV_INPUT;
     } else if (ext == "vtu") {
@@ -390,8 +390,8 @@ std::string getIoDescription(const IoEnum type) {
         return "Gnuplot image";
     case IoEnum::BINARY_FILE:
         return "SPH state file";
-    case IoEnum::COMPRESSED_FILE:
-        return "SPH compressed file";
+    case IoEnum::DATA_FILE:
+        return "SPH data file";
     case IoEnum::PKDGRAV_INPUT:
         return "Pkdgrav output files";
     case IoEnum::VTK_FILE:
@@ -415,7 +415,7 @@ Flags<IoCapability> getIoCapabilities(const IoEnum type) {
         return IoCapability::OUTPUT;
     case IoEnum::BINARY_FILE:
         return IoCapability::INPUT | IoCapability::OUTPUT;
-    case IoEnum::COMPRESSED_FILE:
+    case IoEnum::DATA_FILE:
         return IoCapability::INPUT | IoCapability::OUTPUT;
     case IoEnum::PKDGRAV_INPUT:
         return IoCapability::INPUT | IoCapability::OUTPUT;

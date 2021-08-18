@@ -6,6 +6,7 @@
 /// \date 2016-2021
 
 #include "objects/containers/FlatMap.h"
+#include "objects/containers/UnorderedMap.h"
 #include <typeindex>
 
 NAMESPACE_SPH_BEGIN
@@ -19,7 +20,7 @@ struct EnumValue {
 };
 
 /// Maps a numerical value to a string value and description.
-using EnumRecord = FlatMap<int, EnumValue>;
+using EnumRecord = UnorderedMap<int, EnumValue>;
 
 /// Unique identifier of an enum type.
 ///
@@ -54,7 +55,7 @@ public:
     static EnumMap& addEnum(Array<EnumInputValue<TEnum>>&& input) {
         EnumMap& instance = getInstance();
         // convert enum values to ints to get rid of the type
-        FlatMap<int, EnumValue> map;
+        UnorderedMap<int, EnumValue> map;
         for (auto value : input) {
             map.insert(int(value.id), EnumValue{ value.value, value.desc });
         }

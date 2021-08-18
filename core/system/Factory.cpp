@@ -581,7 +581,7 @@ AutoPtr<IOutput> Factory::getOutput(const RunSettings& settings) {
         const RunTypeEnum runType = settings.get<RunTypeEnum>(RunSettingsId::RUN_TYPE);
         return makeAuto<BinaryOutput>(file, runType);
     }
-    case IoEnum::COMPRESSED_FILE: {
+    case IoEnum::DATA_FILE: {
         const RunTypeEnum runType = settings.get<RunTypeEnum>(RunSettingsId::RUN_TYPE);
         return makeAuto<CompressedOutput>(file, CompressionEnum::NONE /*TODO*/, runType);
     }

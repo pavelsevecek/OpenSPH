@@ -35,21 +35,21 @@ Size ConfigNode::size() const {
 
 void ConfigNode::enumerateChildren(Function<void(std::string, ConfigNode&)> func) {
     for (auto& child : children) {
-        func(child.key, *child.value);
+        func(child.key(), *child.value());
 
-        child.value->enumerateChildren(func);
+        child.value()->enumerateChildren(func);
     }
 }
 
 void ConfigNode::write(const std::string& padding, std::stringstream& source) {
     for (auto& element : entries) {
-        source << padding << quoted(element.key) << " = " << element.value << "\n";
+        source << padding << quoted(element.key()) << " = " << element.value() << "\n";
     }
 
     const std::string childPadding = padding + std::string(2, ' ');
     for (auto& child : children) {
-        source << padding << quoted(child.key) << " [\n";
-        child.value->write(childPadding, source);
+        source << padding << quoted(child.key()) << " [\n";
+        child.value()->write(childPadding, source);
         source << padding << "]\n";
     }
 }
@@ -116,8 +116,8 @@ std::string Config::write() {
     std::stringstream source;
     const std::string padding(2, ' ');
     for (auto& element : nodes) {
-        source << quoted(element.key) << " [\n";
-        element.value->write(padding, source);
+        source << quoted(element.key()) << " [\n";
+        element.value()->write(padding, source);
         source << "]\n\n";
     }
     return source.str();
@@ -137,9 +137,9 @@ void Config::load(const Path& path) {
 
 void Config::enumerate(Function<void(std::string, ConfigNode&)> func) {
     for (auto& element : nodes) {
-        func(element.key, *element.value);
+        func(element.key(), *element.value());
 
-        element.value->enumerateChildren(func);
+        element.value()->enumerateChildren(func);
     }
 }
 

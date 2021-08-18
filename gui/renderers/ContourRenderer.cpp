@@ -70,7 +70,7 @@ static FlatMap<Size, std::pair<Pixel, Pixel>> MS_EDGE_TO_VTX(ELEMENTS_UNIQUE,
 
 static bool isCoordValid(const UnorderedMap<float, Coords>& map, const Coords& p) {
     for (auto& isoAndCoord : map) {
-        if (getLength(p - isoAndCoord.value) < 100) {
+        if (getLength(p - isoAndCoord.value()) < 100) {
             return false;
         }
     }
@@ -195,9 +195,9 @@ void ContourRenderer::render(const RenderParams& params,
         for (const auto& isoAndCoord : labelMap) {
             context.setFontSize(9);
             if (cached.palette) {
-                context.setColor(cached.palette.value()(isoAndCoord.key), ColorFlag::TEXT);
+                context.setColor(cached.palette.value()(isoAndCoord.key()), ColorFlag::TEXT);
             }
-            context.drawText(isoAndCoord.value, TextAlign::TOP, std::to_wstring(int(isoAndCoord.key)));
+            context.drawText(isoAndCoord.value(), TextAlign::TOP, std::to_wstring(int(isoAndCoord.key())));
         }
     }
 

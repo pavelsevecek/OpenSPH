@@ -871,7 +871,7 @@ enum class IoEnum {
 
     /// Compressed binary output file, containing only few selected quantities. This is the most convenient
     /// format for storing full simulation in high resolution in time.
-    COMPRESSED_FILE,
+    DATA_FILE,
 
     /// File format used by Visualization Toolkit (VTK). Useful to view the results in Paraview and other
     /// visualization tools.

@@ -293,12 +293,12 @@ void PalettePanel::setDefaultPaletteList() {
         { "Accretion", Palettes::ACCRETION },
     };
     for (auto& pair : PALETTE_ID_LIST) {
-        paletteMap.insert(pair.value, Factory::getPalette(pair.key));
+        paletteMap.insert(pair.value(), Factory::getPalette(pair.key()));
     }
 
     wxArrayString items;
     for (const auto& e : paletteMap) {
-        items.Add(e.key);
+        items.Add(e.key());
     }
     paletteBox->Set(items);
     paletteBox->SetSelection(0);
@@ -318,8 +318,8 @@ void PalettePanel::loadPalettes(const Path& path) {
     wxArrayString items;
     int selectionIdx = 0, idx = 0;
     for (const auto& e : paletteMap) {
-        items.Add(e.key);
-        if (e.key == path.fileName().native()) {
+        items.Add(e.key());
+        if (e.key() == path.fileName().native()) {
             // this is the palette we selected
             selectionIdx = idx;
         }
@@ -334,7 +334,7 @@ void PalettePanel::loadPalettes(const Path& path) {
 void PalettePanel::update() {
     const int idx = paletteBox->GetSelection();
     const Interval range = selected.getInterval();
-    selected = (paletteMap.begin() + idx)->value;
+    selected = (paletteMap.begin() + idx)->value();
     selected.setInterval(range);
     canvas->setPalette(selected);
     onPaletteChanged.callIfNotNull(selected);

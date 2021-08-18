@@ -78,7 +78,7 @@ bool EntryControl::set(const Value& value) {
 
 void VirtualSettings::set(const std::string& key, const IVirtualEntry::Value& value) {
     for (auto& category : categories) {
-        auto entry = category.value.entries.tryGet(key);
+        auto entry = category.value().entries.tryGet(key);
         if (entry) {
             entry.value()->set(value);
             return;
@@ -89,7 +89,7 @@ void VirtualSettings::set(const std::string& key, const IVirtualEntry::Value& va
 
 IVirtualEntry::Value VirtualSettings::get(const std::string& key) const {
     for (auto& category : categories) {
-        auto entry = category.value.entries.tryGet(key);
+        auto entry = category.value().entries.tryGet(key);
         if (entry) {
             return entry.value()->get();
         }
@@ -103,9 +103,9 @@ VirtualSettings::Category& VirtualSettings::addCategory(const std::string& name)
 
 void VirtualSettings::enumerate(const IEntryProc& proc) {
     for (auto& category : categories) {
-        proc.onCategory(category.key);
-        for (auto& entry : category.value.entries) {
-            proc.onEntry(entry.key, *entry.value);
+        proc.onCategory(category.key());
+        for (auto& entry : category.value().entries) {
+            proc.onEntry(entry.key(), *entry.value());
         }
     }
 }

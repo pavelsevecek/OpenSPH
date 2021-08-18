@@ -139,7 +139,7 @@ void NodeManager::layoutNodes(JobNode& node, const Pixel position) {
     do {
         depthChanged = false;
         for (auto& element : depthMap) {
-            SharedPtr<JobNode> node = element.key;
+            SharedPtr<JobNode> node = element.key();
 
             // find depths of providers
             for (Size i = 0; i < node->getSlotCnt(); ++i) {
@@ -155,11 +155,11 @@ void NodeManager::layoutNodes(JobNode& node, const Pixel position) {
 
     FlatMap<Size, Array<SharedPtr<JobNode>>> depthMapInv;
     for (auto& element : depthMap) {
-        const int depth = element.value;
+        const int depth = element.value();
         if (!depthMapInv.contains(depth)) {
             depthMapInv.insert(depth, {});
         }
-        depthMapInv[depth].push(element.key);
+        depthMapInv[depth].push(element.key());
     }
 
     for (auto& element : depthMapInv) {
@@ -207,7 +207,7 @@ VisNode* NodeManager::getSelectedNode(const Pixel position) {
     // Nodes are drawn in linear order, meaning nodes in the back will be higher in z-order than nodes in the
     // front. To pick the uppermost one, just iterate in reverse.
     for (auto& element : reverse(nodes)) {
-        VisNode& node = element.value;
+        VisNode& node = element.value();
         wxRect rect(wxPoint(node.position), wxPoint(node.position + node.size()));
         if (rect.Contains(wxPoint(position))) {
             return &node;
@@ -218,7 +218,7 @@ VisNode* NodeManager::getSelectedNode(const Pixel position) {
 
 NodeSlot NodeManager::getSlotAtPosition(const Pixel position) {
     for (auto& element : nodes) {
-        VisNode& node = element.value;
+        VisNode& node = element.value();
         const Pixel relative = position - node.position;
         for (Size i = 0; i < node.node->getSlotCnt(); ++i) {
             const float dist = getLength(relative - Pixel(0, FIRST_SLOT_Y + i * SLOT_DY));
@@ -298,8 +298,8 @@ void NodeManager::save(Config& config) {
 
         SharedPtr<ConfigNode> outNodes = config.addNode("nodes");
         for (auto& element : nodes) {
-            const SharedPtr<JobNode> node = element.key;
-            const VisNode vis = element.value;
+            const SharedPtr<JobNode> node = element.key();
+            const VisNode vis = element.value();
 
             SharedPtr<ConfigNode> out = outNodes->addChild(node->instanceName());
 
@@ -427,15 +427,15 @@ void NodeManager::load(Config& config) {
 
         for (auto& toConnect : allToConnect) {
             for (auto& element : nodes) {
-                if (element.key->instanceName() == toConnect.get<2>()) {
-                    element.key->connect(toConnect.get<0>(), toConnect.get<1>());
+                if (element.key()->instanceName() == toConnect.get<2>()) {
+                    element.key()->connect(toConnect.get<0>(), toConnect.get<1>());
                 }
             }
         }
 
         Array<SharedPtr<JobNode>> nodeList;
         for (auto& pair : nodes) {
-            nodeList.push(pair.key);
+            nodeList.push(pair.key());
         }
         batch.load(config, nodeList);
 
@@ -515,7 +515,7 @@ void NodeManager::startScript(const Path& file) {
 Array<SharedPtr<JobNode>> NodeManager::getRootNodes() const {
     Array<SharedPtr<JobNode>> inputs;
     for (auto& element : nodes) {
-        SharedPtr<JobNode> node = element.key;
+        SharedPtr<JobNode> node = element.key();
         const ExtJobType provided = node->provides();
         if (provided == JobType::PARTICLES && node->getDependentCnt() == 0) {
             inputs.push(node);
@@ -555,7 +555,7 @@ VirtualSettings NodeManager::getGlobalSettings() {
 UniqueNameManager NodeManager::makeUniqueNameManager() const {
     Array<std::string> names;
     for (auto& element : nodes) {
-        names.push(element.key->instanceName());
+        names.push(element.key()->instanceName());
     }
 
     UniqueNameManager uniqueNames(names);
@@ -565,7 +565,7 @@ UniqueNameManager NodeManager::makeUniqueNameManager() const {
 void NodeManager::showBatchDialog() {
     Array<SharedPtr<JobNode>> nodeList;
     for (auto& pair : nodes) {
-        nodeList.push(pair.key);
+        nodeList.push(pair.key());
     }
     BatchDialog* batchDialog = new BatchDialog(editor, batch, std::move(nodeList));
     if (batchDialog->ShowModal() == wxID_OK) {
@@ -938,12 +938,12 @@ void NodeEditor::onPaint(wxPaintEvent& UNUSED(evt)) {
 
     // first layer - curves
     for (auto& element : nodes) {
-        this->paintCurves(gc, background, element.value);
+        this->paintCurves(gc, background, element.value());
     }
 
     // second layer to paint over - nodes
     for (auto& element : nodes) {
-        this->paintNode(gc, background, element.value);
+        this->paintNode(gc, background, element.value());
     }
 
     delete gc;

@@ -266,7 +266,9 @@ public:
 
     INLINE Float gradImpl(const Float qSqr) const {
         const Float q = sqrt(qSqr);
-        if (q < alpha) {
+        if (q == 0._f) {
+            return -100._f;
+        } else if (q < alpha) {
             return normalization / q * (-12._f * alpha + 18._f * sqr(alpha));
         } else if (q < 0.5_f) {
             return normalization / q * (-12._f * q + 18._f * sqr(q));

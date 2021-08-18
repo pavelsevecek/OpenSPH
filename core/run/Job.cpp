@@ -115,7 +115,7 @@ IRunJob::~IRunJob() = default;
 static SharedPtr<ParticleData> findStorageInput(const UnorderedMap<std::string, JobContext>& inputs,
     const std::string& jobName) {
     for (const auto& element : inputs) {
-        SharedPtr<ParticleData> data = element.value.tryGetValue<ParticleData>();
+        SharedPtr<ParticleData> data = element.value().tryGetValue<ParticleData>();
         if (data != nullptr) {
             return data;
         }

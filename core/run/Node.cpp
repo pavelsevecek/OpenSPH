@@ -76,7 +76,7 @@ void JobNode::connect(SharedPtr<JobNode> node, const std::string& slotName) {
     } else {
         std::string list;
         for (const auto& element : slots) {
-            list += element.key + ", ";
+            list += element.key() + ", ";
         }
         throw InvalidSetup("Invalid slot '" + slotName + "' for node '" + node->instanceName() +
                            "'.\nShould be one of: " + list);
@@ -104,8 +104,8 @@ void JobNode::disconnect(SharedPtr<JobNode> dependent) {
     SharedPtr<JobNode> self = this->sharedFromThis();
     bool providerRemoved = false;
     for (auto& element : dependent->providers) {
-        if (element.value == self) {
-            dependent->providers.remove(element.key);
+        if (element.value() == self) {
+            dependent->providers.remove(element.key());
             providerRemoved = true;
             break;
         }
@@ -139,13 +139,13 @@ SlotData JobNode::getSlot(const Size index) const {
     }
 
     const auto iter = slots.begin() + index;
-    const bool used = required.contains(iter->key);
+    const bool used = required.contains(iter->key());
 
     SharedPtr<JobNode> provider;
-    if (auto optProvider = providers.tryGet(iter->key)) {
+    if (auto optProvider = providers.tryGet(iter->key())) {
         provider = optProvider.value();
     }
-    return { iter->key, iter->value, used, provider };
+    return { iter->key(), iter->value(), used, provider };
 }
 
 Size JobNode::getDependentCnt() const {
@@ -174,7 +174,7 @@ void JobNode::enumerate(Function<void(const SharedPtr<JobNode>& job, Size depth)
     }
     func(this->sharedFromThis(), depth);
     for (auto& element : providers) {
-        element.value->enumerate(func, depth + 1, visited);
+        element.value()->enumerate(func, depth + 1, visited);
     }
 }
 
@@ -191,12 +191,12 @@ void JobNode::prepare(const RunSettings& global, IJobCallbacks& callbacks) {
 void JobNode::prepare(const RunSettings& global, IJobCallbacks& callbacks, std::set<JobNode*>& visited) {
     // first, run all dependencies
     for (auto& element : providers) {
-        if (!job->requires().contains(element.key)) {
+        if (!job->requires().contains(element.key())) {
             // job may change its requirements during (or before) the run, in this case it's not a real
             // dependency
             continue;
         }
-        SharedPtr<JobNode> provider = element.value;
+        SharedPtr<JobNode> provider = element.value();
         if (visited.find(&*provider) == visited.end()) {
             visited.insert(&*provider);
             provider->run(global, callbacks, visited);
@@ -207,7 +207,7 @@ void JobNode::prepare(const RunSettings& global, IJobCallbacks& callbacks, std::
             // dependents modify the result in place, so we need to clone it
             result = result.clone();
         }
-        job->inputs.insert(element.key, result);
+        job->inputs.insert(element.key(), result);
     }
 }
 
@@ -230,7 +230,7 @@ void JobNode::run(const RunSettings& global, IJobCallbacks& callbacks, std::set<
 
     // release memory of providers
     for (auto& element : providers) {
-        SharedPtr<JobNode> provider = element.value;
+        SharedPtr<JobNode> provider = element.value();
         provider->job->getResult().release();
     }
 }
