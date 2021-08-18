@@ -29,7 +29,9 @@ protected:
 
 public:
     explicit ICameraJob(const std::string& name)
-        : IJob(name) {}
+        : IJob(name) {
+        gui.set(GuiSettingsId::CAMERA_POSITION, Vector(0, 0, 1.e4_f));
+    }
 
     virtual ExtJobType provides() const override final {
         return GuiJobType::CAMERA;

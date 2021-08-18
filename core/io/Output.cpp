@@ -1054,7 +1054,6 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
 }
 
 Expected<CompressedInput::Info> CompressedInput::getInfo(const Path& path) const {
-    Deserializer<false> deserializer(makeAuto<FileInputStream>(path));
     std::string identifier;
     Float time;
     Size particleCnt;
@@ -1063,6 +1062,7 @@ Expected<CompressedInput::Info> CompressedInput::getInfo(const Path& path) const
     CompressionEnum compression;
     RunTypeEnum runTypeId;
     try {
+        Deserializer<false> deserializer(makeAuto<FileInputStream>(path));
         deserializer.deserialize(
             identifier, time, particleCnt, compression, version, runTypeId, attractorCnt);
     } catch (SerializerException&) {

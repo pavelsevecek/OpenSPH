@@ -232,6 +232,9 @@ bool ParticleRenderer::isInitialized() const {
 
 void ParticleRenderer::setColorizer(const IColorizer& colorizer) {
     for (Size i = 0; i < cached.idxs.size(); ++i) {
+        if (cached.idxs[i] == Size(-1)) {
+            continue; // ghost or attractor
+        }
         cached.colors[i] = colorizer.evalColor(cached.idxs[i]);
     }
 }
