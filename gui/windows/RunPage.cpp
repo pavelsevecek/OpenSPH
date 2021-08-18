@@ -78,7 +78,7 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
     manager = makeAuto<wxAuiManager>(this);
 
     wxPanel* visBar = createVisBar();
-    pane = new OrthoPane(this, parent, settings);
+    pane = alignedNew<OrthoPane>(this, parent, settings);
 
     timelineBar = new TimeLine(this, Path(), makeShared<TimeLineCallbacks>(parent));
     progressBar = new ProgressPanel(this);

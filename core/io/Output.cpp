@@ -811,7 +811,7 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
     return SUCCESS;
 }
 
-Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) const {
+Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) {
     Info info;
     char runTypeBuffer[16];
     char dateBuffer[16];
@@ -1053,7 +1053,7 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
     return SUCCESS;
 }
 
-Expected<CompressedInput::Info> CompressedInput::getInfo(const Path& path) const {
+Expected<CompressedInput::Info> CompressedInput::getInfo(const Path& path) {
     std::string identifier;
     Float time;
     Size particleCnt;

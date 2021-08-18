@@ -412,7 +412,7 @@ public:
     };
 
     /// \brief Opens the file and reads header info without reading the rest of the file.
-    Expected<Info> getInfo(const Path& path) const;
+    static Expected<Info> getInfo(const Path& path);
 };
 
 enum class CompressedIoVersion : int {
@@ -460,7 +460,7 @@ public:
         CompressedIoVersion version;
     };
 
-    Expected<Info> getInfo(const Path& path) const;
+    static Expected<Info> getInfo(const Path& path);
 };
 
 /// \brief XML-based output format used by Visualization ToolKit (VTK)

@@ -258,9 +258,9 @@ TEST_CASE("IsPathWritable", "[filesystem]") {
     REQUIRE(FileSystem::isDirectoryWritable(HOME_DIR));
 
 #ifndef SPH_WIN
-    REQUIRE_FALSE(FileSystem::isPathWritable(Path("/usr/lib/")));
-    REQUIRE_FALSE(FileSystem::isPathWritable(Path("/var/")));
-    REQUIRE_FALSE(FileSystem::isPathWritable(Path("/etc/")));
+    REQUIRE_FALSE(FileSystem::isDirectoryWritable(Path("/usr/lib/")));
+    REQUIRE_FALSE(FileSystem::isDirectoryWritable(Path("/var/")));
+    REQUIRE_FALSE(FileSystem::isDirectoryWritable(Path("/etc/")));
 #else
     REQUIRE_FALSE(FileSystem::isDirectoryWritable(Path("C:/")));
     REQUIRE_FALSE(FileSystem::isDirectoryWritable(Path("C:/Windows/")));

@@ -58,7 +58,7 @@ test_debug:
     - wget -P /usr/include/catch2/ "https://github.com/catchorg/Catch2/releases/download/v2.5.0/catch.hpp"
     - mkdir tests
     - cd tests
-    - qmake -spec linux-g++ DEFINES+="SPH_CONFIG_SET SPH_TEST_RESOURCE_PATH=\"../../test/resources\"" CONFIG+=debug ../test.pro
+    - qmake -spec linux-g++ DEFINES+="SPH_CONFIG_SET SPH_TEST_RESOURCE_PATH=\"../../test/resources/\"" CONFIG+=debug ../test.pro
     - make
     - cd test
     - ./test -d yes exclude:[output] exclude:[filesystem] exclude:[path] exclude:[thread] exclude:[grid]

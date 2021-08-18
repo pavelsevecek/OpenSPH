@@ -98,7 +98,7 @@ Expected<Path> FileSystem::getHomeDirectory() {
 #else
     const char* homeDir = getenv("HOME");
     if (homeDir != nullptr) {
-        return Path(homeDir);
+        return Path(std::string(homeDir) + '/');
     } else {
         return makeUnexpected<Path>("Cannot obtain home directory");
     }
