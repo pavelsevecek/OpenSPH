@@ -916,11 +916,11 @@ static void decompressQuantity(Deserializer<false>& deserializer,
             throw SerializerException("Invalid compression");
         }
 
-        T lastValue = T(NAN);
+        Optional<T> lastValue = NOTHING;
         Size i = 0;
         while (i < values.size()) {
             deserializer.read(values[i]);
-            if (values[i] != lastValue) {
+            if (!lastValue || values[i] != lastValue.value()) {
                 lastValue = values[i];
                 ++i;
             } else {
@@ -928,7 +928,7 @@ static void decompressQuantity(Deserializer<false>& deserializer,
                 deserializer.deserialize(count);
                 SPH_ASSERT(i + count <= values.size());
                 for (Size j = 0; j < count; ++j) {
-                    values[i++] = lastValue;
+                    values[i++] = lastValue.value();
                 }
             }
         }
