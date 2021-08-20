@@ -283,6 +283,12 @@ const Palette ACCRETION({ { 0.001f, Rgba(0.43f, 0.70f, 1.f) },
                             { 100.f, Rgba(0.94f, 0.90f, 0.84f) } },
     PaletteScale::LOGARITHMIC);
 
+const Palette STELLAR({ { 0.01f, Rgba(1.f, 0.75f, 0.1f) },
+                          { 0.1f, Rgba(0.75f, 0.25f, 0.1f)},
+                          { 1.f, Rgba(0.4f, 0.7f, 1.f) },
+                          { 10.f, Rgba(0.2f, 0.4f, 0.8f) } },
+    PaletteScale::LOGARITHMIC);
+
 } // namespace Palettes
 
 void PalettePanel::setDefaultPaletteList() {
@@ -291,6 +297,7 @@ void PalettePanel::setDefaultPaletteList() {
         { "Blackbody", getBlackBodyPalette(Interval(300, 12000)) },
         { "Galaxy", Palettes::GALAXY },
         { "Accretion", Palettes::ACCRETION },
+        { "Stellar", Palettes::STELLAR },
     };
     for (auto& pair : PALETTE_ID_LIST) {
         paletteMap.insert(pair.value(), Factory::getPalette(pair.key()));

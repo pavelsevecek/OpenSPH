@@ -101,7 +101,7 @@ Bitmap<Rgba> filter(IScheduler& scheduler,
 }
 
 Bitmap<Rgba> gaussianBlur(IScheduler& scheduler, const Bitmap<Rgba>& input, const int radius) {
-    const float sigma = radius / 2.f;
+    const float sigma = radius / 4.f;
     const float norm = 1.f / (2.f * sqr(sigma));
     Array<float> weights(2 * radius + 1);
     float weightSum = 0.f;

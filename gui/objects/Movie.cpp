@@ -8,6 +8,7 @@
 #include "io/FileSystem.h"
 #include "objects/utility/StringUtils.h"
 #include "quantities/QuantityHelpers.h"
+#include "quantities/Attractor.h"
 #include "system/Process.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
@@ -191,8 +192,8 @@ Array<TValue> interpolate(ArrayView<const TValue> v1, ArrayView<const TValue> v2
 struct InterpolateVisitor {
     template <typename TValue>
     void visit(const QuantityId id, const Quantity& q1, const Quantity& q2, const Float t, Storage& result) {
-        Array<TValue> values = interpolate<TValue>(q1.getValue<TValue>(), q2.getValue<TValue>(), t);
-        Quantity& q = result.insert<TValue>(id, OrderEnum::ZERO, std::move(values));
+        Quantity& q = result.getQuantity(id);
+        q.getValue<TValue>() = interpolate<TValue>(q1.getValue<TValue>(), q2.getValue<TValue>(), t);
         if (q1.getOrderEnum() != OrderEnum::ZERO) {
             /// todo interpolate second-order too?
             q.setOrder(OrderEnum::FIRST);
@@ -205,13 +206,25 @@ Storage interpolate(const Storage& frame1, const Storage& frame2, const Float t)
     if (frame1.getQuantityCnt() != frame2.getQuantityCnt()) {
         throw InvalidSetup("Different number of quantities");
     }
+    if (frame1.getAttractorCnt() != frame2.getAttractorCnt()) {
+        throw InvalidSetup("Different number of attractors");
+    }
 
-    Storage result;
+    Storage result = frame1.clone(VisitorEnum::ALL_BUFFERS);
     for (ConstStorageElement el1 : frame1.getQuantities()) {
         const Quantity& q1 = el1.quantity;
         const Quantity& q2 = frame2.getQuantity(el1.id);
         InterpolateVisitor visitor;
         dispatch(q1.getValueEnum(), visitor, el1.id, q1, q2, t, result);
+    }
+    for (Size i = 0; i < frame1.getAttractorCnt(); ++i) {
+        const Attractor& a1 = frame1.getAttractors()[i];
+        const Attractor& a2 = frame2.getAttractors()[i];
+        Attractor& a = result.getAttractors()[i];
+        a.position = lerp(a1.position, a2.position, t);
+        a.velocity = lerp(a1.velocity, a2.velocity, t);
+        a.mass = lerp(a1.mass, a2.mass, t);
+        a.radius = lerp(a1.radius, a2.radius, t);
     }
     return result;
 }
