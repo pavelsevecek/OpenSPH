@@ -6,7 +6,7 @@
 #include "run/Node.h"
 #include "thread/CheckFunction.h"
 
-#include <wx/dcclient.h>
+#include <wx/dcbuffer.h>
 #include <wx/msgdlg.h>
 
 #include <wx/aui/auibook.h>
@@ -36,6 +36,7 @@ public:
         this->SetMinSize(wxSize(640, 480));
         this->Connect(wxEVT_PAINT, wxPaintEventHandler(ImagePane::onPaint));
         this->SetBackgroundColour(wxColour(Rgba::gray(0.2f)));
+        this->SetBackgroundStyle(wxBG_STYLE_PAINT);
     }
 
     void update(Bitmap<Rgba>&& newBitmap, Array<IRenderOutput::Label>&& newLabels) {
@@ -69,8 +70,9 @@ public:
 private:
     void onPaint(wxPaintEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-        wxPaintDC dc(this);
-        const wxSize size = dc.GetSize();
+        wxAutoBufferedPaintDC dc(this);
+        const wxSize size = this->GetClientSize();
+        dc.Clear();
 
         if (bitmap.empty()) {
             return;
