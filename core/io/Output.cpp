@@ -418,7 +418,7 @@ void writeString(const String& s, Serializer<true>& serializer) {
     char buffer[16];
     for (Size i = 0; i < 16; ++i) {
         if (i < s.size()) {
-            buffer[i] = s[i];
+            buffer[i] = char(s[i]);
         } else {
             buffer[i] = '\0';
         }

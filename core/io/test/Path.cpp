@@ -164,9 +164,9 @@ TEST_CASE("Path string", "[path]") {
     REQUIRE(Path("\\").string() == "/");
     REQUIRE(Path("/usr\\\\local////test").string() == "/usr/local/test");
 #else
-    REQUIRE(Path("/").native() == "\\");
-    REQUIRE(Path("\\").native() == "\\");
-    REQUIRE(Path("C:/Windows\\Users").native() == "C:\\Windows\\Users");
+    REQUIRE(Path("/").string() == "\\");
+    REQUIRE(Path("\\").string() == "\\");
+    REQUIRE(Path("C:/Windows\\Users").string() == "C:\\Windows\\Users");
 #endif
 }
 
