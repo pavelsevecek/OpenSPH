@@ -53,16 +53,14 @@ TEMPLATE_TEST_CASE("Balsara shear flow", "[av]", SymmetricSolver<3>, AsymmetricS
         }
         if (du2[i] > 1.e-3_f * du1[i]) {
             // clang-format off
-            return makeFailed("Balsara didn't reduce AV heating\n",
-                du1[i], " / ", du2[i],
-                "\n divv = ", divv[i], "\n rotv = ", rotv[i]);
+            return makeFailed("Balsara didn't reduce AV heating\n{} / {}\n divv == {}\n rotv == {}",
+                              du1[i], du2[i], divv[i], rotv[i]);
             // clang-format on
         }
         if (getLength(dv2[i]) > 1.e-2_f * getLength(dv1[i])) {
             // clang-format off
-            return makeFailed("Balsara didn't reduce AV acceleration\n",
-                              dv1[i], " / ", dv2[i],
-                              "\n divv = ", divv[i], "\n rotv = ", rotv[i]);
+            return makeFailed("Balsara didn't reduce AV acceleration\n{} / {}\n divv == {}\n rotv == {}",
+                              dv1[i], dv2[i], divv[i], rotv[i]);
             // clang-format on
         }
         return SUCCESS;
@@ -99,16 +97,14 @@ TEMPLATE_TEST_CASE("Balsara divergent flow", "[av]", SymmetricSolver<3>, Asymmet
         }
         if (du2[i] != approx(du1[i], 1.e-4_f)) {
             // clang-format off
-            return makeFailed("Balsara changed AV heating in divergent flow\n",
-                              du1[i], " != ", du2[i],
-                              "\n divv = ", divv[i], "\n rotv = ", rotv[i]);
+            return makeFailed("Balsara changed AV heating in divergent flow\n{} == {}\n divv == {}\n rotv == {}",
+                              du1[i], du2[i], divv[i], rotv[i]);
             // clang-format on
         }
         if (dv2[i] != approx(dv1[i], 1.e-4_f)) {
             // clang-format off
-            return makeFailed("Balsara changed AV acceleration in divergent flow\n",
-                              dv1[i], " != ", dv2[i],
-                              "\n divv = ", divv[i], "\n rotv = ", rotv[i]);
+            return makeFailed("Balsara changed AV acceleration in divergent flow\n{} == {}\n divv == {}\n rotv == {}",
+                              dv1[i], dv2[i], divv[i], rotv[i]);
             // clang-format on
         }
         return SUCCESS;

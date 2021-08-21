@@ -23,7 +23,7 @@
 #include "run/jobs/Presets.h"
 #include "run/jobs/ScriptJobs.h"
 #include "thread/CheckFunction.h"
-#include <wx/dcclient.h>
+#include <wx/dcbuffer.h>
 #include <wx/dirdlg.h>
 #include <wx/graphics.h>
 #include <wx/menu.h>
@@ -71,15 +71,15 @@ NodeManager::NodeManager(NodeEditor* editor, SharedPtr<INodeManagerCallbacks> ca
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 1000)
         .set(RunSettingsId::FINDER_LEAF_SIZE, 25)
         .set(RunSettingsId::FINDER_MAX_PARALLEL_DEPTH, 50)
-        .set(RunSettingsId::RUN_AUTHOR, std::string("Pavel Sevecek"))
-        .set(RunSettingsId::RUN_COMMENT, std::string(""))
-        .set(RunSettingsId::RUN_EMAIL, std::string("sevecek@sirrah.troja.mff.cuni.cz"));
+        .set(RunSettingsId::RUN_AUTHOR, L"Pavel \u0160eve\u010Dek"_s)
+        .set(RunSettingsId::RUN_COMMENT, ""_s)
+        .set(RunSettingsId::RUN_EMAIL, "sevecek@sirrah.troja.mff.cuni.cz"_s);
 }
 
 VisNode* NodeManager::addNode(const SharedPtr<JobNode>& node, const Pixel position) {
-    const std::string currentName = node->instanceName();
+    const String currentName = node->instanceName();
     UniqueNameManager nameMgr = this->makeUniqueNameManager();
-    const std::string fixedName = nameMgr.getName(currentName);
+    const String fixedName = nameMgr.getName(currentName);
     if (fixedName != currentName) {
         VirtualSettings settings = node->getSettings();
         settings.set("name", fixedName);
@@ -140,7 +140,7 @@ void NodeManager::layoutNodes(JobNode& node, const Pixel position) {
     do {
         depthChanged = false;
         for (auto& element : depthMap) {
-            SharedPtr<JobNode> node = element.key;
+            SharedPtr<JobNode> node = element.key();
 
             // find depths of providers
             for (Size i = 0; i < node->getSlotCnt(); ++i) {
@@ -156,11 +156,11 @@ void NodeManager::layoutNodes(JobNode& node, const Pixel position) {
 
     FlatMap<Size, Array<SharedPtr<JobNode>>> depthMapInv;
     for (auto& element : depthMap) {
-        const int depth = element.value;
+        const int depth = element.value();
         if (!depthMapInv.contains(depth)) {
             depthMapInv.insert(depth, {});
         }
-        depthMapInv[depth].push(element.key);
+        depthMapInv[depth].push(element.key());
     }
 
     for (auto& element : depthMapInv) {
@@ -208,7 +208,7 @@ VisNode* NodeManager::getSelectedNode(const Pixel position) {
     // Nodes are drawn in linear order, meaning nodes in the back will be higher in z-order than nodes in the
     // front. To pick the uppermost one, just iterate in reverse.
     for (auto& element : reverse(nodes)) {
-        VisNode& node = element.value;
+        VisNode& node = element.value();
         wxRect rect(wxPoint(node.position), wxPoint(node.position + node.size()));
         if (rect.Contains(wxPoint(position))) {
             return &node;
@@ -219,7 +219,7 @@ VisNode* NodeManager::getSelectedNode(const Pixel position) {
 
 NodeSlot NodeManager::getSlotAtPosition(const Pixel position) {
     for (auto& element : nodes) {
-        VisNode& node = element.value;
+        VisNode& node = element.value();
         const Pixel relative = position - node.position;
         for (Size i = 0; i < node.node->getSlotCnt(); ++i) {
             const float dist = getLength(relative - Pixel(0, FIRST_SLOT_Y + i * SLOT_DY));
@@ -244,11 +244,11 @@ public:
     explicit SaveProc(ConfigNode& out)
         : out(out) {}
 
-    virtual void onCategory(const std::string& UNUSED(name)) const override {
+    virtual void onCategory(const String& UNUSED(name)) const override {
         // do nothing
     }
 
-    virtual void onEntry(const std::string& name, IVirtualEntry& entry) const override {
+    virtual void onEntry(const String& name, IVirtualEntry& entry) const override {
         const IVirtualEntry::Type type = entry.getType();
         switch (type) {
         case IVirtualEntry::Type::BOOL:
@@ -267,7 +267,7 @@ public:
             out.set<Interval>(name, entry.get());
             break;
         case IVirtualEntry::Type::STRING:
-            out.set<std::string>(name, entry.get());
+            out.set<String>(name, entry.get());
             break;
         case IVirtualEntry::Type::PATH:
             out.set<Path>(name, entry.get());
@@ -280,7 +280,7 @@ public:
         }
         case IVirtualEntry::Type::EXTRA: {
             ExtraEntry extra(entry.get());
-            out.set<std::string>(name, extra.toString());
+            out.set<String>(name, extra.toString());
             break;
         }
         default:
@@ -299,8 +299,8 @@ void NodeManager::save(Config& config) {
 
         SharedPtr<ConfigNode> outNodes = config.addNode("nodes");
         for (auto& element : nodes) {
-            const SharedPtr<JobNode> node = element.key;
-            const VisNode vis = element.value;
+            const SharedPtr<JobNode> node = element.key();
+            const VisNode vis = element.value();
 
             SharedPtr<ConfigNode> out = outNodes->addChild(node->instanceName());
 
@@ -322,7 +322,7 @@ void NodeManager::save(Config& config) {
         batch.save(config);
 
     } catch (const Exception& e) {
-        wxMessageBox(std::string("Cannot save file.\n\n") + e.what(), "Error", wxOK);
+        messageBox("Cannot save file.\n\n" + exceptionMessage(e), "Error", wxOK);
     }
 }
 
@@ -334,9 +334,10 @@ public:
     LoadProc(ConfigNode& input)
         : input(input) {}
 
-    virtual void onCategory(const std::string& UNUSED(name)) const override {}
+    virtual void onCategory(const String& UNUSED(name)) const override {}
 
-    virtual void onEntry(const std::string& name, IVirtualEntry& entry) const override {
+    virtual void onEntry(const String& name, IVirtualEntry& entry) const override {
+        CHECK_FUNCTION(CheckFunction::NO_THROW);
         const IVirtualEntry::Type type = entry.getType();
 
         try {
@@ -357,7 +358,7 @@ public:
                 entry.set(input.get<Interval>(name));
                 break;
             case IVirtualEntry::Type::STRING:
-                entry.set(input.get<std::string>(name));
+                entry.set(input.get<String>(name));
                 break;
             case IVirtualEntry::Type::PATH:
                 entry.set(input.get<Path>(name));
@@ -372,7 +373,7 @@ public:
             case IVirtualEntry::Type::EXTRA: {
                 /// \todo currently used only by curves, can be generalized if needed
                 ExtraEntry extra(makeAuto<CurveEntry>());
-                extra.fromString(input.get<std::string>(name));
+                extra.fromString(input.get<String>(name));
                 entry.set(extra);
                 break;
             }
@@ -381,7 +382,7 @@ public:
             }
         } catch (const Exception& e) {
             /// \todo better logging
-            std::cout << "Failed to load value, keeping the default.\n" << e.what() << std::endl;
+            std::wcout << L"Failed to load value, keeping the default.\n" << exceptionMessage(e) << std::endl;
         }
     }
 };
@@ -398,17 +399,17 @@ void NodeManager::load(Config& config) {
         globalSettings.enumerate(LoadProc(*inGlobals));
 
         SharedPtr<ConfigNode> inNodes = config.getNode("nodes");
-        Array<Tuple<SharedPtr<JobNode>, std::string, std::string>> allToConnect;
-        inNodes->enumerateChildren([this, &allToConnect](std::string name, ConfigNode& input) {
+        Array<Tuple<SharedPtr<JobNode>, String, String>> allToConnect;
+        inNodes->enumerateChildren([this, &allToConnect](String name, ConfigNode& input) {
             RawPtr<IJobDesc> desc;
             try {
-                const std::string className = input.get<std::string>("class_name");
+                const String className = input.get<String>("class_name");
                 desc = getJobDesc(className);
                 if (!desc) {
                     throw Exception("cannot find desc for node '" + className + "'");
                 }
             } catch (const Exception& e) {
-                wxMessageBox(e.what(), "Error", wxOK);
+                messageBox(exceptionMessage(e), "Error", wxOK);
                 return;
             }
 
@@ -418,8 +419,8 @@ void NodeManager::load(Config& config) {
             settings.enumerate(LoadProc(input));
 
             for (Size i = 0; i < node->getSlotCnt(); ++i) {
-                const std::string slotName = node->getSlot(i).name;
-                Optional<std::string> connectedName = input.tryGet<std::string>(slotName);
+                const String slotName = node->getSlot(i).name;
+                Optional<String> connectedName = input.tryGet<String>(slotName);
                 if (connectedName) {
                     allToConnect.push(makeTuple(node, slotName, connectedName.value()));
                 }
@@ -428,30 +429,30 @@ void NodeManager::load(Config& config) {
 
         for (auto& toConnect : allToConnect) {
             for (auto& element : nodes) {
-                if (element.key->instanceName() == toConnect.get<2>()) {
-                    element.key->connect(toConnect.get<0>(), toConnect.get<1>());
+                if (element.key()->instanceName() == toConnect.get<2>()) {
+                    element.key()->connect(toConnect.get<0>(), toConnect.get<1>());
                 }
             }
         }
 
         Array<SharedPtr<JobNode>> nodeList;
         for (auto& pair : nodes) {
-            nodeList.push(pair.key);
+            nodeList.push(pair.key());
         }
         batch.load(config, nodeList);
 
     } catch (const Exception& e) {
-        wxMessageBox(std::string("Cannot load file.\n\n") + e.what(), "Error", wxOK);
+        messageBox("Cannot load file.\n\n" + exceptionMessage(e), "Error", wxOK);
     }
 }
 
 void NodeManager::startRun(JobNode& node) {
     // clone all nodes to avoid touching the data while the simulation is running
-    callbacks->startRun(Sph::cloneHierarchy(node, std::string("")), globals, node.instanceName());
+    callbacks->startRun(Sph::cloneHierarchy(node, String("")), globals, node.instanceName());
 }
 
 void NodeManager::startRender(JobNode& node) {
-    callbacks->startRender(Sph::cloneHierarchy(node, std::string("")), globals, node.instanceName());
+    callbacks->startRender(Sph::cloneHierarchy(node, String("")), globals, node.instanceName());
 }
 
 class BatchNode : public INode {
@@ -476,8 +477,9 @@ void NodeManager::startBatch(JobNode& node) {
     // validate
     for (Size col = 0; col < batch.getParamCount(); ++col) {
         if (!batch.getParamNode(col)) {
-            wxMessageBox(std::string(
-                "Incomplete set up of batch run.\nSet up all parameters in Project / Batch Run."));
+            messageBox("Incomplete set up of batch run.\nSet up all parameters in Project / Batch Run.",
+                "Error",
+                wxOK);
             return;
         }
     }
@@ -490,7 +492,7 @@ void NodeManager::startBatch(JobNode& node) {
             batchNodes.push(runNode);
         }
     } catch (const Exception& e) {
-        wxMessageBox(std::string("Cannot start batch run.\n\n") + e.what(), "Error", wxOK);
+        messageBox("Cannot start batch run.\n\n" + exceptionMessage(e), "Error", wxOK);
     }
 
     SharedPtr<BatchNode> root = makeShared<BatchNode>(std::move(batchNodes));
@@ -502,21 +504,21 @@ void NodeManager::startScript(const Path& file) {
     Array<SharedPtr<JobNode>> rootNodes = getRootNodes();
     Array<SharedPtr<JobNode>> clonedNodes;
     for (const auto& node : rootNodes) {
-        SharedPtr<JobNode> cloned = Sph::cloneHierarchy(*node, std::string());
+        SharedPtr<JobNode> cloned = Sph::cloneHierarchy(*node, String());
         cloned->enumerate([&](SharedPtr<JobNode> job) { clonedNodes.push(job); });
     }
     SharedPtr<ScriptNode> node = makeShared<ScriptNode>(file, std::move(clonedNodes));
 
-    callbacks->startRun(node, globals, "Script '" + file.native() + "'");
+    callbacks->startRun(node, globals, "Script '" + file.string() + "'");
 #else
-    throw InvalidSetup("Cannot start script '" + file.native() + "', no ChaiScript support.");
+    throw InvalidSetup("Cannot start script '" + file.string() + "', no ChaiScript support.");
 #endif
 }
 
 Array<SharedPtr<JobNode>> NodeManager::getRootNodes() const {
     Array<SharedPtr<JobNode>> inputs;
     for (auto& element : nodes) {
-        SharedPtr<JobNode> node = element.key;
+        SharedPtr<JobNode> node = element.key();
         const ExtJobType provided = node->provides();
         if (provided == JobType::PARTICLES && node->getDependentCnt() == 0) {
             inputs.push(node);
@@ -546,17 +548,17 @@ VirtualSettings NodeManager::getGlobalSettings() {
     renderCat.connect<EnumWrapper>("UV mapping", globals, RunSettingsId::UVW_MAPPING);
 
     VirtualSettings::Category& authorCat = settings.addCategory("Run metadata");
-    authorCat.connect<std::string>("Author name", globals, RunSettingsId::RUN_AUTHOR);
-    authorCat.connect<std::string>("Author e-mail", globals, RunSettingsId::RUN_EMAIL);
-    authorCat.connect<std::string>("Comment", globals, RunSettingsId::RUN_COMMENT);
+    authorCat.connect<String>("Author name", globals, RunSettingsId::RUN_AUTHOR);
+    authorCat.connect<String>("Author e-mail", globals, RunSettingsId::RUN_EMAIL);
+    authorCat.connect<String>("Comment", globals, RunSettingsId::RUN_COMMENT);
 
     return settings;
 }
 
 UniqueNameManager NodeManager::makeUniqueNameManager() const {
-    Array<std::string> names;
+    Array<String> names;
     for (auto& element : nodes) {
-        names.push(element.key->instanceName());
+        names.push(element.key()->instanceName());
     }
 
     UniqueNameManager uniqueNames(names);
@@ -566,7 +568,7 @@ UniqueNameManager NodeManager::makeUniqueNameManager() const {
 void NodeManager::showBatchDialog() {
     Array<SharedPtr<JobNode>> nodeList;
     for (auto& pair : nodes) {
-        nodeList.push(pair.key);
+        nodeList.push(pair.key());
     }
     BatchDialog* batchDialog = new BatchDialog(editor, batch, std::move(nodeList));
     if (batchDialog->ShowModal() == wxID_OK) {
@@ -577,7 +579,7 @@ void NodeManager::showBatchDialog() {
 }
 
 PreviewPane* NodeManager::createRenderPreview(wxWindow* parent, JobNode& node) {
-    return alignedNew<PreviewPane>(parent, wxDefaultSize, node.sharedFromThis(), globals);
+    return new PreviewPane(parent, wxDefaultSize, node.sharedFromThis(), globals);
 }
 
 void NodeManager::selectRun() {
@@ -589,8 +591,9 @@ void NodeManager::selectRun() {
 
     Array<SharedPtr<JobNode>> nodeList = getRootNodes();
     if (nodeList.empty()) {
-        wxMessageBox(std::string("No simulation nodes added. First, create a simulation by double-clicking "
-                                 "an item in the node list on the right side."),
+        messageBox(
+            "No simulation nodes added. First, create a simulation by double-clicking "
+            "an item in the node list on the right side.",
             "No runs",
             wxOK);
         return;
@@ -624,6 +627,9 @@ NodeEditor::NodeEditor(NodeWindow* parent, SharedPtr<INodeManagerCallbacks> call
     , nodeWindow(parent) {
     this->SetMinSize(wxSize(1024, 768));
 
+    // needed by MSVC
+    this->SetBackgroundStyle(wxBG_STYLE_PAINT);
+
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(NodeEditor::onPaint));
     this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(NodeEditor::onMouseWheel));
     this->Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(NodeEditor::onLeftDown));
@@ -631,16 +637,15 @@ NodeEditor::NodeEditor(NodeWindow* parent, SharedPtr<INodeManagerCallbacks> call
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(NodeEditor::onRightUp));
     this->Connect(wxEVT_MOTION, wxMouseEventHandler(NodeEditor::onMouseMotion));
     this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(NodeEditor::onDoubleClick));
+
+    this->Bind(wxEVT_ERASE_BACKGROUND, [](wxEraseEvent&) {});
 }
 
-static void drawCenteredText(wxGraphicsContext* gc,
-    const std::string& text,
-    const Pixel from,
-    const Pixel to) {
+static void drawCenteredText(wxGraphicsContext* gc, const String& text, const Pixel from, const Pixel to) {
     wxDouble width, height, descent, externalLeading;
-    gc->GetTextExtent(text, &width, &height, &descent, &externalLeading);
+    gc->GetTextExtent(text.toUnicode(), &width, &height, &descent, &externalLeading);
     const Pixel pivot = (from + to) / 2 - Pixel(int(width), int(height)) / 2;
-    gc->DrawText(text, pivot.x, pivot.y);
+    gc->DrawText(text.toUnicode(), pivot.x, pivot.y);
 }
 
 Pixel NodeSlot::position() const {
@@ -799,7 +804,8 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
     gc->SetBrush(brush);
     gc->SetPen(pen);
 
-    const wxFont font = wxSystemSettings::GetFont(wxSYS_SYSTEM_FONT);
+    wxFont font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
+    font.SetPointSize(10);
     const Rgba lineColor(getLineColor(background));
     gc->SetFont(font, wxColour(lineColor));
 
@@ -859,7 +865,7 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
         } else {
             gc->SetFont(font, disabledTextColor);
         }
-        gc->DrawText(slot.name, p1.x + 14, p1.y - 10);
+        gc->DrawText(slot.name.toUnicode(), p1.x + 14, p1.y - 10);
     }
 
     // result slot
@@ -915,7 +921,8 @@ void NodeEditor::paintCurves(wxGraphicsContext* gc, const Rgba& background, cons
 
 void NodeEditor::onPaint(wxPaintEvent& UNUSED(evt)) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
-    wxPaintDC dc(this);
+    wxAutoBufferedPaintDC dc(this);
+    dc.Clear();
 
     wxGraphicsContext* gc = wxGraphicsContext::Create(dc);
     if (!gc) {
@@ -932,12 +939,12 @@ void NodeEditor::onPaint(wxPaintEvent& UNUSED(evt)) {
 
     // first layer - curves
     for (auto& element : nodes) {
-        this->paintCurves(gc, background, element.value);
+        this->paintCurves(gc, background, element.value());
     }
 
     // second layer to paint over - nodes
     for (auto& element : nodes) {
-        this->paintNode(gc, background, element.value);
+        this->paintNode(gc, background, element.value());
     }
 
     delete gc;
@@ -1075,21 +1082,21 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
             try {
                 nodeMgr->startRun(*vis->node);
             } catch (const std::exception& e) {
-                wxMessageBox(std::string("Cannot run the node: ") + e.what(), "Error", wxOK);
+                messageBox("Cannot run the node: " + exceptionMessage(e), "Error", wxOK);
             }
             break;
         case 1:
             try {
                 nodeMgr->startRender(*vis->node);
             } catch (const std::exception& e) {
-                wxMessageBox(std::string("Cannot render the node: ") + e.what(), "Error", wxOK);
+                messageBox("Cannot render the node: " + exceptionMessage(e), "Error", wxOK);
             }
             break;
         case 2:
             try {
                 nodeWindow->createRenderPreview(*vis->node);
             } catch (const Exception& e) {
-                wxMessageBox(std::string("Cannot start render preview: ") + e.what(), "Error", wxOK);
+                messageBox("Cannot start render preview: " + exceptionMessage(e), "Error", wxOK);
             }
             break;
         case 3:
@@ -1133,11 +1140,10 @@ void NodeEditor::onDoubleClick(wxMouseEvent& evt) {
 
 class DirDialogAdapter : public wxPGEditorDialogAdapter {
 public:
-    virtual bool DoShowDialog(wxPropertyGrid* UNUSED(propGrid), wxPGProperty* property) override {
+    virtual bool DoShowDialog(wxPropertyGrid* UNUSED(propGrid), wxPGProperty* UNUSED(property)) override {
         wxDirDialog dialog(nullptr, "Choose directory", "", wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
         if (dialog.ShowModal() == wxID_OK) {
             wxString path = dialog.GetPath();
-            property->SetValue(path);
             this->SetValue(path);
             return true;
         } else {
@@ -1154,11 +1160,10 @@ public:
     explicit SaveFileDialogAdapter(Array<FileFormat>&& formats)
         : formats(std::move(formats)) {}
 
-    virtual bool DoShowDialog(wxPropertyGrid* UNUSED(propGrid), wxPGProperty* property) override {
+    virtual bool DoShowDialog(wxPropertyGrid* UNUSED(propGrid), wxPGProperty* UNUSED(property)) override {
         Optional<Path> file = doSaveFileDialog("Save file...", formats.clone());
         if (file) {
-            property->SetValue(file->native());
-            this->SetValue(file->native());
+            this->SetValue(wxString(file->string().toUnicode()));
             return true;
         } else {
             return false;
@@ -1175,11 +1180,10 @@ public:
     explicit OpenFileDialogAdapter(Array<FileFormat>&& formats)
         : formats(std::move(formats)) {}
 
-    virtual bool DoShowDialog(wxPropertyGrid* UNUSED(propGrid), wxPGProperty* property) override {
-        Optional<Path> file = doOpenFileDialog("Save file...", formats.clone());
+    virtual bool DoShowDialog(wxPropertyGrid* UNUSED(propGrid), wxPGProperty* UNUSED(property)) override {
+        Optional<Path> file = doOpenFileDialog("Open file...", formats.clone());
         if (file) {
-            property->SetValue(file->native());
-            this->SetValue(file->native());
+            this->SetValue(wxString(file->string().toUnicode()));
             return true;
         } else {
             return false;
@@ -1191,7 +1195,10 @@ class FileProperty : public wxFileProperty {
     Function<wxPGEditorDialogAdapter*()> makeAdapter;
 
 public:
-    using wxFileProperty::wxFileProperty;
+    FileProperty(const String& label, const String& value)
+        : wxFileProperty(label.toUnicode(), wxPG_LABEL, value.toUnicode()) {
+        this->SetAttribute(wxPG_FILE_SHOW_FULL_PATH, true);
+    }
 
     void setFunc(Function<wxPGEditorDialogAdapter*()> func) {
         makeAdapter = func;
@@ -1209,8 +1216,8 @@ private:
         VectorProperty* parent;
 
     public:
-        ComponentProperty(VectorProperty* parent, const wxString& name, const Vector& value, const Size index)
-            : wxFloatProperty(name, wxPG_LABEL, value[index])
+        ComponentProperty(VectorProperty* parent, const String& name, const Vector& value, const Size index)
+            : wxFloatProperty(name.toUnicode(), wxPG_LABEL, value[index])
             , parent(parent) {}
 
         virtual void OnSetValue() override {
@@ -1228,7 +1235,7 @@ public:
         , parent(parent) {
         this->SetFlagRecursively(wxPG_PROP_READONLY, true);
 
-        static StaticArray<std::string, 3> labels = { "X", "Y", "Z" };
+        static StaticArray<String, 3> labels = { "X", "Y", "Z" };
         for (Size i = 0; i < 3; ++i) {
             components[i] = new ComponentProperty(this, labels[i], value, i);
             this->AppendChild(components[i]);
@@ -1324,43 +1331,43 @@ public:
     explicit PropertyGrid(wxPropertyGrid* grid)
         : grid(grid) {}
 
-    wxPGProperty* addCategory(const std::string& name) const {
-        return grid->Append(new wxPropertyCategory(name));
+    wxPGProperty* addCategory(const String& name) const {
+        return grid->Append(new wxPropertyCategory(name.toUnicode()));
     }
 
-    wxPGProperty* addBool(const std::string& name, const bool value) const {
-        return grid->Append(new wxBoolProperty(name, wxPG_LABEL, value));
+    wxPGProperty* addBool(const String& name, const bool value) const {
+        return grid->Append(new wxBoolProperty(name.toUnicode(), wxPG_LABEL, value));
     }
 
-    wxPGProperty* addInt(const std::string& name, const int value) const {
-        return grid->Append(new wxIntProperty(name, wxPG_LABEL, value));
+    wxPGProperty* addInt(const String& name, const int value) const {
+        return grid->Append(new wxIntProperty(name.toUnicode(), wxPG_LABEL, value));
     }
 
-    wxPGProperty* addFloat(const std::string& name, const Float value) const {
-        return grid->Append(new wxFloatProperty(name, wxPG_LABEL, value));
+    wxPGProperty* addFloat(const String& name, const Float value) const {
+        return grid->Append(new wxFloatProperty(name.toUnicode(), wxPG_LABEL, value));
     }
 
-    wxPGProperty* addVector(const std::string& name, const Vector& value) const {
-        wxPGProperty* prop = grid->Append(new VectorProperty(grid, name, value));
+    wxPGProperty* addVector(const String& name, const Vector& value) const {
+        wxPGProperty* prop = grid->Append(new VectorProperty(grid, name.toUnicode(), value));
         grid->Collapse(prop);
         return prop;
     }
 
-    wxPGProperty* addInterval(const std::string& name, const Interval& value) const {
-        wxPGProperty* prop = grid->Append(new IntervalProperty(grid, name, value));
+    wxPGProperty* addInterval(const String& name, const Interval& value) const {
+        wxPGProperty* prop = grid->Append(new IntervalProperty(grid, name.toUnicode(), value));
         grid->Collapse(prop);
         return prop;
     }
 
-    wxPGProperty* addString(const std::string& name, const std::string& value) const {
-        return grid->Append(new wxStringProperty(name, wxPG_LABEL, value));
+    wxPGProperty* addString(const String& name, const String& value) const {
+        return grid->Append(new wxStringProperty(name.toUnicode(), wxPG_LABEL, value.toUnicode()));
     }
 
-    wxPGProperty* addPath(const std::string& name,
+    wxPGProperty* addPath(const String& name,
         const Path& value,
         const IVirtualEntry::PathType type,
         Array<IVirtualEntry::FileFormat>&& formats) const {
-        FileProperty* prop = new FileProperty(name, wxPG_LABEL, value.native());
+        FileProperty* prop = new FileProperty(name, value.string());
         if (type != IVirtualEntry::PathType::DIRECTORY) {
             prop->setFunc([type, formats = std::move(formats)]() -> wxPGEditorDialogAdapter* {
                 if (type == IVirtualEntry::PathType::INPUT_FILE) {
@@ -1375,27 +1382,27 @@ public:
         return grid->Append(prop);
     }
 
-    wxPGProperty* addEnum(const std::string& name, const IVirtualEntry& entry) const {
+    wxPGProperty* addEnum(const String& name, const IVirtualEntry& entry) const {
         return addEnum<wxEnumProperty>(name, entry);
     }
 
-    wxPGProperty* addFlags(const std::string& name, const IVirtualEntry& entry) const {
+    wxPGProperty* addFlags(const String& name, const IVirtualEntry& entry) const {
         return addEnum<wxFlagsProperty>(name, entry);
     }
 
-    wxPGProperty* addExtra(const std::string& name, const ExtraEntry& extra) const {
+    wxPGProperty* addExtra(const String& name, const ExtraEntry& extra) const {
         RawPtr<CurveEntry> entry = dynamicCast<CurveEntry>(extra.getEntry());
         SPH_ASSERT(entry);
         return grid->Append(new CurveProperty(name, entry->getCurve()));
     }
 
-    void setTooltip(wxPGProperty* prop, const std::string& tooltip) const {
-        grid->SetPropertyHelpString(prop, tooltip);
+    void setTooltip(wxPGProperty* prop, const String& tooltip) const {
+        grid->SetPropertyHelpString(prop, tooltip.toUnicode());
     }
 
 private:
     template <typename TProperty>
-    wxPGProperty* addEnum(const std::string& name, const IVirtualEntry& entry) const {
+    wxPGProperty* addEnum(const String& name, const IVirtualEntry& entry) const {
         wxArrayString values;
         wxArrayInt flags;
         EnumWrapper wrapper = entry.get();
@@ -1404,11 +1411,12 @@ private:
             if (!entry.isValid(option)) {
                 continue;
             }
-            const std::string rawName = EnumMap::toString(option.value, option.index);
-            values.Add(capitalize(replaceAll(rawName, "_", " ")));
+            String rawName = EnumMap::toString(option.value, option.index);
+            rawName.replaceAll("_", " ");
+            values.Add(capitalize(rawName).toUnicode());
             flags.Add(option.value);
         }
-        return grid->Append(new TProperty(name, wxPG_LABEL, values, flags, wrapper.value));
+        return grid->Append(new TProperty(name.toUnicode(), wxPG_LABEL, values, flags, wrapper.value));
     }
 };
 
@@ -1424,13 +1432,13 @@ public:
         : wrapper(grid)
         , propertyEntryMap(propertyEntryMapping) {}
 
-    virtual void onCategory(const std::string& name) const override {
+    virtual void onCategory(const String& name) const override {
         wrapper.addCategory(name);
     }
 
-    virtual void onEntry(const std::string& UNUSED(key), IVirtualEntry& entry) const override {
+    virtual void onEntry(const String& UNUSED(key), IVirtualEntry& entry) const override {
         wxPGProperty* prop = nullptr;
-        const std::string name = entry.getName();
+        const String name = entry.getName();
         switch (entry.getType()) {
         case IVirtualEntry::Type::BOOL:
             prop = wrapper.addBool(name, entry.get());
@@ -1470,7 +1478,7 @@ public:
             NOT_IMPLEMENTED;
         }
 
-        const std::string tooltip = entry.getTooltip();
+        const String tooltip = entry.getTooltip();
         if (!tooltip.empty()) {
             wrapper.setTooltip(prop, tooltip);
         }
@@ -1493,7 +1501,7 @@ public:
         return desc->create(NOTHING);
     }
 
-    std::string tooltip() const {
+    String tooltip() const {
         return desc->tooltip();
     }
 };
@@ -1507,7 +1515,6 @@ private:
 public:
     PalettePane(wxWindow* parent, Project& project)
         : wxPanel(parent, wxID_ANY) {
-
         wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
         wxBoxSizer* quantitySizer = new wxBoxSizer(wxHORIZONTAL);
@@ -1522,7 +1529,7 @@ public:
         for (ExtColorizerId id : colorizerIds) {
             AutoPtr<IColorizer> colorizer = Factory::getColorizer(project, id);
             if (Optional<Palette> palette = colorizer->getPalette()) {
-                items.Add(colorizer->name().c_str());
+                items.Add(colorizer->name().toUnicode());
                 itemIds.push(id);
 
                 if (firstPalette.empty()) {
@@ -1536,7 +1543,7 @@ public:
         sizer->Add(quantitySizer, 0, wxALIGN_CENTER_HORIZONTAL);
 
         panel = new PalettePanel(this, wxSize(300, 200), firstPalette);
-        sizer->Add(panel, 1, wxEXPAND | wxALIGN_CENTER_HORIZONTAL);
+        sizer->Add(panel, 1, wxALIGN_CENTER_HORIZONTAL);
 
         editor = new PaletteEditor(this, wxSize(300, 200));
         sizer->Add(editor, 1, wxEXPAND | wxALIGN_CENTER_HORIZONTAL);
@@ -1558,7 +1565,7 @@ public:
 
         panel->onPaletteChanged = [quantityBox, &project](const Palette& palette) { //
             wxString name = quantityBox->GetStringSelection();
-            project.setPalette(std::string(name.mb_str()), palette);
+            project.setPalette(name.wc_str(), palette);
         };
     }
 };
@@ -1609,7 +1616,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             break;
         }
         case IVirtualEntry::Type::STRING: {
-            std::string stringValue(wxString(value.GetString()));
+            String stringValue(value.GetString().wc_str());
             /// \todo generalize, using some kind of validator
             if (entry->getName() == "Name") {
                 UniqueNameManager nameMgr = nodeMgr->makeUniqueNameManager();
@@ -1619,7 +1626,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             break;
         }
         case IVirtualEntry::Type::PATH:
-            entry->set(Path(std::string(value.GetString())));
+            entry->set(Path(String(value.GetString().wc_str())));
             break;
         case IVirtualEntry::Type::ENUM:
         case IVirtualEntry::Type::FLAGS: {
@@ -1659,14 +1666,15 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
 
     wxTreeItemId rootId = jobView->AddRoot("Nodes");
 
-    FlatMap<std::string, wxTreeItemId> categoryItemIdMap;
+    FlatMap<String, wxTreeItemId> categoryItemIdMap;
     for (const AutoPtr<IJobDesc>& desc : enumerateRegisteredJobs()) {
-        const std::string& cat = desc->category();
+        const String& cat = desc->category();
         if (Optional<wxTreeItemId&> id = categoryItemIdMap.tryGet(cat)) {
-            jobView->AppendItem(id.value(), desc->className(), -1, -1, new JobTreeData(desc.get()));
+            jobView->AppendItem(
+                id.value(), desc->className().toUnicode(), -1, -1, new JobTreeData(desc.get()));
         } else {
-            wxTreeItemId catId = jobView->AppendItem(rootId, cat);
-            jobView->AppendItem(catId, desc->className(), -1, -1, new JobTreeData(desc.get()));
+            wxTreeItemId catId = jobView->AppendItem(rootId, cat.toUnicode());
+            jobView->AppendItem(catId, desc->className().toUnicode(), -1, -1, new JobTreeData(desc.get()));
             categoryItemIdMap.insert(cat, catId);
         }
     }
@@ -1674,8 +1682,10 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
     wxTreeItemId presetsId = jobView->AppendItem(rootId, "presets");
     std::map<wxTreeItemId, Presets::Id> presetsIdMap;
     for (Presets::Id id : EnumMap::getAll<Presets::Id>()) {
-        std::string name = replaceAll(EnumMap::toString(id), "_", " ");
-        wxTreeItemId itemId = jobView->AppendItem(presetsId, name);
+        String name = EnumMap::toString(id);
+        name.replaceAll("_", " ");
+
+        wxTreeItemId itemId = jobView->AppendItem(presetsId, name.toUnicode());
         presetsIdMap[itemId] = id;
     }
 
@@ -1690,7 +1700,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             if (data) {
                 callback.start(600, [this, jobView, id, data, pos] {
                     const wxString name = jobView->GetItemText(id);
-                    wxRichToolTip tip(name, setLineBreak(data->tooltip(), 50));
+                    wxRichToolTip tip(name, setLineBreak(data->tooltip(), 50).toUnicode());
                     const wxRect rect(pos, pos);
                     tip.ShowFor(jobView, &rect);
                     tip.SetTimeout(1e6);
@@ -1727,12 +1737,12 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
                 if (path) {
                     VirtualSettings settings = saver->getSettings();
                     settings.set(RunSettingsId::RUN_OUTPUT_NAME, path.value());
-                    const Optional<IoEnum> type = getIoEnum(path->extension().native());
+                    const Optional<IoEnum> type = getIoEnum(path->extension().string());
                     if (type) {
                         settings.set(RunSettingsId::RUN_OUTPUT_TYPE, EnumWrapper(type.value()));
                     } else {
-                        wxMessageBox(
-                            "Unknown file extension '" + path->extension().native() + "'", "Error", wxOK);
+                        messageBox(
+                            "Unknown file extension '" + path->extension().string() + "'", "Error", wxOK);
                         return;
                     }
                 }
@@ -1873,6 +1883,7 @@ void NodeWindow::updateProperties() {
         settings.enumerate(proc);
     } catch (const Exception& e) {
         SPH_ASSERT(false, e.what());
+        MARK_USED(e);
     }
     this->updateEnabled(grid);
 

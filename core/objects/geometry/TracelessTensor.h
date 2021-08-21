@@ -244,7 +244,8 @@ public:
         return TracelessTensor(0._f);
     }
 
-    friend std::ostream& operator<<(std::ostream& stream, const TracelessTensor& t) {
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const TracelessTensor& t) {
         stream << std::setprecision(6) << std::setw(20) << t(0, 0) << std::setw(20) << t(1, 1)
                << std::setw(20) << t(0, 1) << std::setw(20) << t(0, 2) << std::setw(20) << t(1, 2);
         return stream;

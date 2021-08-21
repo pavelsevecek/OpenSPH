@@ -66,7 +66,8 @@ struct EnumWrapper {
         return value == other.value && index == other.index;
     }
 
-    friend std::ostream& operator<<(std::ostream& ofs, const EnumWrapper& e) {
+    template <typename TStream>
+    friend TStream& operator<<(TStream& ofs, const EnumWrapper& e) {
         ofs << e.value << " (" << (e.index ? e.index->hash_code() : 0) << ")";
         return ofs;
     }
@@ -94,7 +95,7 @@ INLINE void checkSettingsAccess(const bool result, const TEnum key) {
 ///
 /// Settings is a storage containing pairs key-value objects, where key is one of predefined enums. The value
 /// can have multiple types within the same \ref Settings object. Currently following types can be stored:
-/// bool, int, enums, float (or double), std::string, \ref Interval, \ref Vector, \ref SymmetricTensor, \ref
+/// bool, int, enums, float (or double), String, \ref Interval, \ref Vector, \ref SymmetricTensor, \ref
 /// TracelessTensor.
 ///
 /// The template cannot be used directly as it is missing default values of parameters; instead
@@ -131,46 +132,39 @@ private:
     ///
     /// \todo Possibly refactor by using some polymorphic holder (Any-type) rather than variant, this will
     /// allow to add more types for other Settings specializations (GuiSettings, etc.)
-    using Value = Variant<bool,
-        int,
-        Float,
-        Interval,
-        std::string,
-        Vector,
-        SymmetricTensor,
-        TracelessTensor,
-        EnumWrapper>;
+    using Value =
+        Variant<bool, int, Float, Interval, String, Vector, SymmetricTensor, TracelessTensor, EnumWrapper>;
 
     struct Entry {
         /// Index of the property
         TEnum id;
 
         /// Unique text identifier of the property
-        std::string name;
+        String name;
 
         /// Current value
         Value value;
 
         /// Description of the property. Can be empty.
-        std::string desc;
+        String desc;
 
         Entry() = default;
 
-        Entry(TEnum id, const std::string& name, const Value& value, const std::string& desc = "")
+        Entry(TEnum id, const String& name, const Value& value, const String& desc = "")
             : id(id)
             , name(name)
             , value(value)
             , desc(desc) {}
 
         template <typename T, typename = std::enable_if_t<std::is_enum<T>::value>>
-        Entry(TEnum id, const std::string& name, const T& value, const std::string& desc = "")
+        Entry(TEnum id, const String& name, const T& value, const String& desc = "")
             : id(id)
             , name(name)
             , value(EnumWrapper(value))
             , desc(desc) {}
 
         template <typename T>
-        Entry(TEnum id, const std::string& name, Flags<T> flags, const std::string& desc = "")
+        Entry(TEnum id, const String& name, Flags<T> flags, const String& desc = "")
             : id(id)
             , name(name)
             , value(EnumWrapper(T(flags.value())))
@@ -189,6 +183,7 @@ private:
 
     FlatMap<TEnum, Entry> entries;
 
+    /// Global instance, needs to be specialized by each Settings instantiation.
     static AutoPtr<Settings> instance;
 
     /// Constructs settings from list of key-value pairs.
@@ -354,7 +349,7 @@ public:
     /// \brief Returns the human-readable name of the entry with given index.
     ///
     /// If the index does not correspond to any parameter, returns string NOTHING.
-    static Optional<std::string> getEntryName(const TEnum idx) {
+    static Optional<String> getEntryName(const TEnum idx) {
         const Settings& settings = getDefaults();
         Optional<const Entry&> entry = settings.entries.tryGet(idx);
         if (entry) {
@@ -381,12 +376,12 @@ public:
     /// \brief Returns the string name for given type index.
     ///
     /// \throw Exception for unknown type index
-    static std::string typeToString(const int type);
+    static String typeToString(const int type);
 
     /// \brief Returns a description of the entry with given index.
     ///
     /// If the index does not correspond to any parameter, returns string NOTHING.
-    static Optional<std::string> getEntryDesc(const TEnum idx) {
+    static Optional<String> getEntryDesc(const TEnum idx) {
         const Settings& settings = getDefaults();
         Optional<const Entry&> entry = settings.entries.tryGet(idx);
         if (entry) {
@@ -400,7 +395,7 @@ public:
     /// \brief Returns an ID for given entry name.
     ///
     /// This is the inverse of function \ref getEntryName.
-    static Optional<TEnum> getEntryId(const std::string& name) {
+    static Optional<TEnum> getEntryId(const String& name) {
         const Settings& settings = getDefaults();
         for (const auto& p : settings.entries) {
             if (p.value().name == name) {
@@ -478,7 +473,7 @@ public:
     static const Settings& getDefaults();
 
 private:
-    bool setValueByType(Entry& entry, const Value& defaultValue, const std::string& str);
+    bool setValueByType(Entry& entry, const Value& defaultValue, const String& str);
 };
 
 /// \brief Iterator useful for iterating over all entries in the settings.
@@ -856,50 +851,46 @@ enum class LoggerEnum {
 
 enum class IoEnum {
     /// No input/output
-    NONE,
+    NONE = 0,
 
     /// Formatted human-readable text file
-    TEXT_FILE,
-
-    /// Extension of text file, additionally executing given gnuplot script, generating a plot from every
-    /// dump.
-    GNUPLOT_OUTPUT,
+    TEXT_FILE = 1,
 
     /// Full binary output file. This data dump is lossless and can be use to restart run from saved snapshot.
     /// Stores values, all derivatives and materials of the storage.
-    BINARY_FILE,
+    BINARY_FILE = 3,
 
     /// Compressed binary output file, containing only few selected quantities. This is the most convenient
     /// format for storing full simulation in high resolution in time.
-    COMPRESSED_FILE,
+    DATA_FILE = 4,
 
     /// File format used by Visualization Toolkit (VTK). Useful to view the results in Paraview and other
     /// visualization tools.
-    VTK_FILE,
+    VTK_FILE = 5,
 
     /// File format for storing scientific data. Currently tailored for files generated by the code
     /// miluphcuda. Requires to build code with libhdf5.
-    HDF5_FILE,
+    HDF5_FILE = 6,
 
     /// Export from Minor Planet Center Orbit Database
-    MPCORP_FILE,
+    MPCORP_FILE = 7,
 
     /// Pkdgrav input file.
-    PKDGRAV_INPUT,
+    PKDGRAV_INPUT = 8,
 };
 
 /// \brief Returns the file extension associated with given IO type.
 ///
 /// Result NOTHING indicates there is no particular extension associated with the IO type.
-Optional<std::string> getIoExtension(const IoEnum type);
+Optional<String> getIoExtension(const IoEnum type);
 
 /// \brief Returns the file type from file extension.
 ///
 /// Result NOTHING indicates there is no file type associated with the extension.
-Optional<IoEnum> getIoEnum(const std::string& ext);
+Optional<IoEnum> getIoEnum(const String& ext);
 
 /// \brief Returns a short description of the file format.
-std::string getIoDescription(const IoEnum type);
+String getIoDescription(const IoEnum type);
 
 enum class IoCapability {
     /// The format can be used as file input
@@ -1614,11 +1605,6 @@ enum class BodySettingsId {
 };
 
 using RunSettings = Settings<RunSettingsId>;
-template <>
-AutoPtr<RunSettings> RunSettings::instance;
-
 using BodySettings = Settings<BodySettingsId>;
-template <>
-AutoPtr<BodySettings> BodySettings::instance;
 
 NAMESPACE_SPH_END

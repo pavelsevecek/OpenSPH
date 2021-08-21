@@ -42,7 +42,7 @@ IRaytracer::IRaytracer(SharedPtr<IScheduler> scheduler, const GuiSettings& setti
     fixed.iterationLimit = settings.get<int>(GuiSettingsId::RAYTRACE_ITERATION_LIMIT);
 
     fixed.enviro.color = settings.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
-    std::string hdriPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_HDRI);
+    String hdriPath = settings.get<String>(GuiSettingsId::RAYTRACE_HDRI);
     if (!hdriPath.empty()) {
         fixed.enviro.hdri = Texture(Path(hdriPath), TextureFiltering::BILINEAR);
     }
@@ -84,7 +84,7 @@ void IRaytracer::postProcess(FrameBuffer& fb,
     }
 
     if (isFinal && params.volume.bloomIntensity > 0.f) {
-        bitmap = bloomEffect(*scheduler, bitmap, 25, params.volume.bloomIntensity);
+        bitmap = bloomEffect(*scheduler, bitmap, 30, params.volume.bloomIntensity);
     }
 
     if (fixed.colorMap) {

@@ -7,19 +7,19 @@ NAMESPACE_SPH_BEGIN
 
 class ProgressPanel : public wxPanel {
 private:
-    std::string name;
+    String name;
 
     struct {
         float progress = 0.f;
-        std::string simulationTime;
-        std::string eta;
+        String simulationTime;
+        String eta;
         bool finished = false;
     } stat;
 
 public:
     explicit ProgressPanel(wxWindow* parent);
 
-    void onRunStart(const std::string& className, const std::string& instanceName);
+    void onRunStart(const String& className, const String& instanceName);
 
     void onRunEnd();
 

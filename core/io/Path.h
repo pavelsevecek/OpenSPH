@@ -5,8 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2021
 
-#include "common/Assert.h"
-#include <unistd.h>
+#include "objects/containers/String.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -16,16 +15,20 @@ NAMESPACE_SPH_BEGIN
 /// in any way, only syntactic aspects of the path are considered.
 class Path {
 private:
-    std::string path;
+    String path;
 
-    static constexpr char SEPARATOR = '/';
+#ifndef SPH_WIN
+    static constexpr wchar_t SEPARATOR = L'/';
+#else
+    static constexpr wchar_t SEPARATOR = L'\\';
+#endif
 
 public:
     /// Constructs an empty path
     Path() = default;
 
     /// Constructs a path from string
-    explicit Path(const std::string& path);
+    explicit Path(const String& path);
 
 
     /// \defgroup queries Path queries
@@ -37,7 +40,7 @@ public:
     bool isHidden() const;
 
     /// Checks if the path is absolute.
-    /// \todo generalize, currently only checks for path starting with '/'
+    /// \todo generalize, currently only checks for path starting with '/' (or "[A-Z]:" on windows)
     bool isAbsolute() const;
 
     /// Checks if the path is relative. Empty path is not considered relative.
@@ -74,9 +77,17 @@ public:
 
     /// \defgroup observers Format observers
 
-    /// Returns the native version of the path
-    std::string native() const;
+    String string() const;
 
+#ifndef SPH_WIN
+    using NativePath = CharString;
+#else
+    using NativePath = const wchar_t*;
+#endif
+    /// \brief Returns the native version of the path.
+    ///
+    /// This is a UCS-2 string on Windows and UTF-8 string elsewhere.
+    NativePath native() const;
 
     /// \defgroup modifiers Path modifiers
 
@@ -86,7 +97,7 @@ public:
     /// (.tar.gz, etc.), removes all extensions and adds the new one. If the new extension is empty, it
     /// behaves as removeExtension function.
     /// \return Reference to itself, allowing to chain function calls
-    Path& replaceExtension(const std::string& newExtension);
+    Path& replaceExtension(const String& newExtension);
 
     /// \brief Removes the extension from the path.
     ///
@@ -138,17 +149,19 @@ public:
     /// Prints the path into the stream
     friend std::ostream& operator<<(std::ostream& stream, const Path& path);
 
+    friend std::wostream& operator<<(std::wostream& stream, const Path& path);
+
 private:
     /// Converts all separators into the selected one.
     void convert();
 
     /// Finds a given folder in a path.
-    std::size_t findFolder(const std::string& folder);
+    Size findFolder(const String& folder);
 };
 
 /// Useful literal returning path from given string.
 ///
 /// Given path cannot be empty.
-Path operator"" _path(const char* nativePath, const std::size_t size);
+Path operator"" _path(const wchar_t* nativePath, const std::size_t size);
 
 NAMESPACE_SPH_END

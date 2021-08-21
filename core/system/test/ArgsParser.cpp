@@ -4,8 +4,10 @@
 
 using namespace Sph;
 
+#ifndef SPH_WIN
 /// ISO C++ forbids converting a string constant to ‘char*’
 #pragma GCC diagnostic ignored "-Wwrite-strings"
+#endif
 
 TEST_CASE("ArgParser No args", "[args]") {
     ArgParser parser({});

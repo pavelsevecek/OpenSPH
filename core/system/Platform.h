@@ -13,19 +13,13 @@ NAMESPACE_SPH_BEGIN
 
 class Path;
 
-/// Returns the absolute path to the currently running executable.
-Expected<Path> getExecutablePath();
-
 /// \brief Sends a mail with given message.
-Outcome sendMail(const std::string& to,
-    const std::string& from,
-    const std::string& subject,
-    const std::string& message);
+Outcome sendMail(const String& to, const String& from, const String& subject, const String& message);
 
 /// \brief Shows a notification using 'notify-send' command.
 ///
 /// The function is non-blocking, the notification disappears on timeout or when user hides it.
-Outcome showNotification(const std::string& title, const std::string& message);
+Outcome showNotification(const String& title, const String& message);
 
 /// \brief Sends a push notification to an Android device, using SimplePush API.
 ///
@@ -33,14 +27,14 @@ Outcome showNotification(const std::string& title, const std::string& message);
 /// \param key SimplePush key of the Android device.
 /// \param title Title of the notification.
 /// \param message Notification message.
-Outcome sendPushNotification(const std::string& key, const std::string& title, const std::string& message);
+Outcome sendPushNotification(const String& key, const String& title, const String& message);
 
 /// \brief Returns git commit hash of the current or older commit as string.
 ///
 /// If the git repository is not found or command fails, returns error message
 /// \param pathToGitRoot Path to where the source code is located
 /// \param prev Number of commits into the history. For 0, the current commit is returned.
-Expected<std::string> getGitCommit(const Path& pathToGitRoot, const Size prev = 0);
+Expected<String> getGitCommit(const Path& pathToGitRoot, const Size prev = 0);
 
 Optional<Float> getCpuUsage();
 

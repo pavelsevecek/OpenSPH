@@ -19,7 +19,7 @@ Outcome areFilesIdentical(const Path& path1, const Path& path2) {
         ifs2.read(&buffer2[0], buffer2.size());
 
         if (buffer1 != buffer2) {
-            return makeFailed("Difference found at position ", ifs1.tellg());
+            return makeFailed("Difference found at position {}", ifs1.tellg());
         }
     }
 

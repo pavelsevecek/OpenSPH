@@ -72,8 +72,7 @@ DiagnosticsReport SmoothingDiscontinuityDiagnostic::check(const Storage& storage
         for (Pair& p : pairs) {
             const Float actual = abs(r[p.i1][H] - r[p.i2][H]);
             const Float expected = limit * (r[p.i1][H] + r[p.i2][H]);
-            const std::string message =
-                "dH = " + std::to_string(actual) + " (limit = " + std::to_string(expected) + ")";
+            const String message = format("dH = {} (limit = {})", actual, expected);
             error.offendingParticles[p.i1] = message;
             error.offendingParticles[p.i2] = message;
         }
@@ -94,8 +93,7 @@ DiagnosticsReport CourantInstabilityDiagnostic::check(const Storage& storage,
     for (Size i = 0; i < r.size(); ++i) {
         const Float limit = r[i][H] / dt2;
         if (getLength(dv[i]) > limit) {
-            error.offendingParticles[i] =
-                "dv = " + std::to_string(getLength(dv[i])) + " (limit = " + std::to_string(limit) + ")";
+            error.offendingParticles[i] = format("dv = {} (limit = {})", getLength(dv[i]), limit);
         }
     }
     if (error.offendingParticles.empty()) {
@@ -117,8 +115,7 @@ DiagnosticsReport OvercoolingDiagnostic::check(const Storage& storage, const Sta
         for (Size i : material.sequence()) {
             const Float u1 = u[i] + du[i] * dt;
             if (u1 < range.lower()) {
-                error.offendingParticles[i] =
-                    "u = " + std::to_string(u1) + " (limit = " + std::to_string(range.lower()) + ")";
+                error.offendingParticles[i] = format("u = {} (limit = {})", u1, range.lower());
             }
         }
     }

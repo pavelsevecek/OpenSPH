@@ -31,6 +31,11 @@ public:
 
     INLINE AutoPtr(const AutoPtr& other) = delete;
 
+    INLINE AutoPtr(AutoPtr&& other)
+        : ptr(other.ptr) {
+        other.ptr = nullptr;
+    }
+
     template <typename T2>
     INLINE AutoPtr(AutoPtr<T2>&& other)
         : ptr(other.ptr) {

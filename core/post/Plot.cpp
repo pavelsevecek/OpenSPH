@@ -278,7 +278,12 @@ SfdPlot::SfdPlot(const Flags<Post::ComponentFlag> connectivity, const Float peri
     : period(period) {
     source = Post::HistogramSource::COMPONENTS;
     connect = connectivity;
-    name = connect.has(Post::ComponentFlag::ESCAPE_VELOCITY) ? "Predicted SFD" : "Current SFD";
+
+    if (connect.has(Post::ComponentFlag::ESCAPE_VELOCITY)) {
+        name = "Predicted SFD";
+    } else {
+        name = "Current SFD";
+    }
 }
 
 SfdPlot::SfdPlot(const Float period)
@@ -287,7 +292,7 @@ SfdPlot::SfdPlot(const Float period)
     name = "Particle SFD";
 }
 
-std::string SfdPlot::getCaption() const {
+String SfdPlot::getCaption() const {
     return name;
 }
 
@@ -345,9 +350,7 @@ void SfdPlot::plot(IDrawingContext& dc) const {
 // DataPlot
 // ----------------------------------------------------------------------------------------------------------
 
-DataPlot::DataPlot(const Array<Post::HistPoint>& points,
-    const Flags<AxisScaleEnum> scale,
-    const std::string& name)
+DataPlot::DataPlot(const Array<Post::HistPoint>& points, const Flags<AxisScaleEnum> scale, const String& name)
     : name(name) {
     for (const Post::HistPoint& p : points) {
         if (scale.has(AxisScaleEnum::LOG_X) && p.value <= 0._f) {
@@ -364,7 +367,7 @@ DataPlot::DataPlot(const Array<Post::HistPoint>& points,
     }
 }
 
-std::string DataPlot::getCaption() const {
+String DataPlot::getCaption() const {
     return name;
 }
 

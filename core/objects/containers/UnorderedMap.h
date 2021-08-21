@@ -14,9 +14,30 @@ template <typename TKey, typename TValue>
 class UnorderedMap : public Noncopyable {
 public:
     /// Element of the container.
-    struct Element {
-        TKey key;
-        TValue value;
+    class Element {
+        TKey k;
+        TValue v;
+
+    public:
+        Element() = default;
+
+        Element(const TKey& k, const TValue& v)
+            : k(k)
+            , v(v) {}
+
+        Element(const TKey& k, TValue&& v)
+            : k(k)
+            , v(std::move(v)) {}
+
+        const TKey& key() const {
+            return k;
+        }
+        const TValue& value() const {
+            return v;
+        }
+        TValue& value() {
+            return v;
+        }
     };
 
 private:
@@ -35,7 +56,7 @@ public:
     INLINE TValue& operator[](const TKey& key) {
         Element* element = this->find(key);
         SPH_ASSERT(element);
-        return element->value;
+        return element->value();
     }
 
     /// \brief Returns a reference to the element, given its key.
@@ -44,7 +65,7 @@ public:
     INLINE const TValue& operator[](const TKey& key) const {
         const Element* element = this->find(key);
         SPH_ASSERT(element);
-        return element->value;
+        return element->value();
     }
 
     /// \brief Adds a new element into the map or sets new value of element with the same key.
@@ -53,8 +74,8 @@ public:
         if (!element) {
             return this->add(key, value);
         } else {
-            element->value = value;
-            return element->value;
+            element->value() = value;
+            return element->value();
         }
     }
 
@@ -64,8 +85,8 @@ public:
         if (!element) {
             return this->add(key, std::move(value));
         } else {
-            element->value = std::move(value);
-            return element->value;
+            element->value() = std::move(value);
+            return element->value();
         }
     }
 
@@ -76,8 +97,8 @@ public:
         if (!element) {
             return this->add(key, position, value);
         } else {
-            element->value = value;
-            return element->value;
+            element->value() = value;
+            return element->value();
         }
     }
 
@@ -87,8 +108,8 @@ public:
         if (!element) {
             return this->add(key, position, std::move(value));
         } else {
-            element->value = std::move(value);
-            return element->value;
+            element->value() = std::move(value);
+            return element->value();
         }
     }
 
@@ -98,7 +119,7 @@ public:
     INLINE void remove(const TKey& key) {
         Element* element = this->find(key);
         SPH_ASSERT(element);
-        const Size index = element - &data[0];
+        const Size index = Size(element - &data[0]);
         data.remove(index);
     }
 
@@ -129,7 +150,7 @@ public:
         if (!element) {
             return NOTHING;
         } else {
-            return element->value;
+            return element->value();
         }
     }
 
@@ -139,7 +160,7 @@ public:
         if (!element) {
             return NOTHING;
         } else {
-            return element->value;
+            return element->value();
         }
     }
 
@@ -198,7 +219,7 @@ private:
     /// Returns a pointer to the element with given key or nullptr if no such element exists.
     INLINE Element* find(const TKey& key) {
         for (Element& element : data) {
-            if (element.key == key) {
+            if (element.key() == key) {
                 return &element;
             }
         }
@@ -213,14 +234,14 @@ private:
     template <typename T>
     INLINE TValue& add(const TKey& key, T&& value) {
         data.push(Element{ key, std::forward<T>(value) });
-        return data.back().value;
+        return data.back().value();
     }
 
     /// Inserts new element into given position
     template <typename T>
     INLINE TValue& add(const TKey& key, const Size position, T&& value) {
         data.insert(position, Element{ key, std::forward<T>(value) });
-        return data.back().value;
+        return data.back().value();
     }
 };
 

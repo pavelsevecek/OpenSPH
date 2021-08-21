@@ -152,13 +152,14 @@ private:
 
 public:
     CustomOutputTime(const RunSettings& settings) {
-        const std::string list = settings.get<std::string>(RunSettingsId::RUN_OUTPUT_CUSTOM_TIMES);
-        Array<std::string> items = split(list, ',');
-        for (const std::string& item : items) {
-            try {
-                times.push(std::stof(item));
-            } catch (const std::invalid_argument&) {
-                throw InvalidSetup("Cannot convert '" + item + "' to a number");
+        const String list = settings.get<String>(RunSettingsId::RUN_OUTPUT_CUSTOM_TIMES);
+        Array<String> items = split(list, ',');
+        for (const String& item : items) {
+            Optional<float> time = fromString<float>(item);
+            if (time) {
+                times.push(time.value());
+            } else {
+                throw InvalidSetup("Cannot convert '{}' to a number", item);
             }
         }
         if (!std::is_sorted(times.begin(), times.end())) {
@@ -199,8 +200,8 @@ Statistics IRun::run(Storage& input) {
 Statistics IRun::run(Storage& input, IRunCallbacks& callbacks) {
     // setup verbose logging (before setUp to log IC's as well)
     if (settings.get<bool>(RunSettingsId::RUN_VERBOSE_ENABLE)) {
-        const Path file(settings.get<std::string>(RunSettingsId::RUN_VERBOSE_NAME));
-        const Path outputPath(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_PATH));
+        const Path file(settings.get<String>(RunSettingsId::RUN_VERBOSE_NAME));
+        const Path outputPath(settings.get<String>(RunSettingsId::RUN_OUTPUT_PATH));
         setVerboseLogger(makeAuto<FileLogger>(outputPath / file, FileLogger::Options::ADD_TIMESTAMP));
     } else {
         setVerboseLogger(nullptr);
@@ -221,8 +222,7 @@ Statistics IRun::run(Storage& input, IRunCallbacks& callbacks) {
     AutoPtr<IOutputTime> outputTime = getOutputTimes(settings);
     Optional<Float> nextOutput = outputTime->getNextTime();
 
-    logger->write(
-        "Running ", settings.get<std::string>(RunSettingsId::RUN_NAME), " for ", timeRange.size(), " s");
+    logger->write("Running ", settings.get<String>(RunSettingsId::RUN_NAME), " for ", timeRange.size(), " s");
     Timer runTimer;
     EndingCondition condition(settings.get<Float>(RunSettingsId::RUN_WALLCLOCK_TIME),
         settings.get<int>(RunSettingsId::RUN_TIMESTEP_CNT));
@@ -359,7 +359,7 @@ Outcome doRun(Storage& storage, const RunSettings& settings) {
         run.run(storage, callbacks);
         return SUCCESS;
     } catch (const InvalidSetup& e) {
-        return makeFailed(e.what());
+        return makeFailed(exceptionMessage(e));
     }
 }
 

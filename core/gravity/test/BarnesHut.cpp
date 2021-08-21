@@ -63,7 +63,7 @@ static void testOpeningAngle(const MultipoleOrder order) {
     ArrayView<const Vector> r = storage1.getValue<Vector>(QuantityId::POSITION);
     auto test = [&](const Size i) -> Outcome {
         if (a_bf[i] != approx(a_bh[i])) {
-            return makeFailed("Incorrect acceleration: ", a_bh[i], " == ", a_bf[i]);
+            return makeFailed("Incorrect acceleration: {} == {}", a_bh[i], a_bf[i]);
         }
         return SUCCESS;
     };
@@ -179,16 +179,13 @@ static void testStorageAcceleration(const MultipoleOrder order, const Float eps)
     auto test = [&](const Size i) -> Outcome {
         if (a_bf[i] == a_bh[i]) {
             return makeFailed(
-                "Approximative solution is EXACTLY equal to brute force: ", a_bh[i], " == ", a_bf[i]);
+                "Approximative solution is EXACTLY equal to brute force: {} == {}", a_bh[i], a_bf[i]);
         }
         if (a_bf[i] != approx(a_bh[i], eps)) {
-            return makeFailed("Incorrect acceleration: ",
+            return makeFailed("Incorrect acceleration: {} == {}\n eps = {}\n difference = {}",
                 a_bh[i],
-                " == ",
                 a_bf[i],
-                "\n eps = ",
                 eps,
-                "\n difference == ",
                 getLength(a_bh[i] - a_bf[i]));
         }
         return SUCCESS;
@@ -219,7 +216,7 @@ static void testEquality(const MultipoleOrder order, const Float eps) {
     auto test = [&](const Size i) -> Outcome {
         const Vector a = bh.evalAcceleration(r[i]);
         if (dv[i] != approx(a, eps)) {
-            return makeFailed("Acceleration inequality:\n", dv[i], " == ", a);
+            return makeFailed("Acceleration inequality:\n{} == {}", dv[i], a);
         }
         return SUCCESS;
     };
@@ -261,13 +258,12 @@ TEST_CASE("BarnesHut opening angle convergence", "[gravity]") {
         const Float diff8 = getLength(a_bh8[i] - a_bf[i]);
 
         if (diff2 > diff4 || diff4 > diff8) {
-            return makeFailed("Bigger error with smaller opening angle: \n Brute force = ",
+            return makeFailed(
+                "Bigger error with smaller opening angle: \n Brute force = {}\n Theta = 0.2, 0.4, 0.8: {}, "
+                "{}, {}",
                 a_bf[i],
-                "\n Theta = 0.2, 0.4, 0.8: ",
                 diff2,
-                ", ",
                 diff4,
-                ", ",
                 diff8);
         }
         return SUCCESS;
@@ -294,7 +290,7 @@ TEST_CASE("BarnesHut parallel", "[gravity]") {
     // compare with single-threaded result
     auto test = [&](const Size i) -> Outcome {
         if (dv2[i] != dv1[i]) {
-            return makeFailed("Incorrect acceleration: ", dv2[i], " == ", dv1[i]);
+            return makeFailed("Incorrect acceleration: {} == {}", dv2[i], dv1[i]);
         }
         return SUCCESS;
     };

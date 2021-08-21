@@ -22,9 +22,10 @@ private:
     }
 };
 
-static std::string getIdentifier(const std::string& name) {
-    std::string escaped = replaceAll(name, " ", "-");
-    return lowercase(escaped);
+static String getIdentifier(const String& name) {
+    String escaped = name;
+    escaped.replaceAll(" ", "-");
+    return escaped.toLowercase();
 }
 
 // ----------------------------------------------------------------------------------------------------------
@@ -110,17 +111,17 @@ static void addOutputCategory(VirtualSettings& connector, RunSettings& settings,
         .addAccessor(owner,
             [&settings](const IVirtualEntry::Value& value) {
                 const IoEnum type = IoEnum(value.get<EnumWrapper>());
-                Path name = Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
-                if (Optional<std::string> extension = getIoExtension(type)) {
+                Path name = Path(settings.get<String>(RunSettingsId::RUN_OUTPUT_NAME));
+                if (Optional<String> extension = getIoExtension(type)) {
                     name.replaceExtension(extension.value());
                 }
-                settings.set(RunSettingsId::RUN_OUTPUT_NAME, name.native());
+                settings.set(RunSettingsId::RUN_OUTPUT_NAME, name.string());
             })
         .setSideEffect(); // needs to update the 'File mask' entry
     outputCat.connect<Path>("Directory", settings, RunSettingsId::RUN_OUTPUT_PATH)
         .setEnabler(enabler)
         .setPathType(IVirtualEntry::PathType::DIRECTORY);
-    outputCat.connect<std::string>("File mask", settings, RunSettingsId::RUN_OUTPUT_NAME).setEnabler(enabler);
+    outputCat.connect<String>("File mask", settings, RunSettingsId::RUN_OUTPUT_NAME).setEnabler(enabler);
     outputCat.connect<Flags<OutputQuantityFlag>>("Quantities", settings, RunSettingsId::RUN_OUTPUT_QUANTITIES)
         .setEnabler([&settings] {
             const IoEnum type = settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
@@ -134,7 +135,7 @@ static void addOutputCategory(VirtualSettings& connector, RunSettings& settings,
             const OutputSpacing spacing = settings.get<OutputSpacing>(RunSettingsId::RUN_OUTPUT_SPACING);
             return type != IoEnum::NONE && spacing != OutputSpacing::CUSTOM;
         });
-    outputCat.connect<std::string>("Custom times [s]", settings, RunSettingsId::RUN_OUTPUT_CUSTOM_TIMES)
+    outputCat.connect<String>("Custom times [s]", settings, RunSettingsId::RUN_OUTPUT_CUSTOM_TIMES)
         .setEnabler([&] {
             const IoEnum type = settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
             const OutputSpacing spacing = settings.get<OutputSpacing>(RunSettingsId::RUN_OUTPUT_SPACING);
@@ -179,14 +180,14 @@ public:
     }
 };
 
-SphJob::SphJob(const std::string& name, const RunSettings& overrides)
+SphJob::SphJob(const String& name, const RunSettings& overrides)
     : IRunJob(name) {
     settings = getDefaultSettings(name);
 
     settings.addEntries(overrides);
 }
 
-RunSettings SphJob::getDefaultSettings(const std::string& name) {
+RunSettings SphJob::getDefaultSettings(const String& name) {
     const Size dumpCnt = 10;
     const Interval timeRange(0, 10);
 
@@ -346,7 +347,7 @@ AutoPtr<IRun> SphJob::getRun(const RunSettings& overrides) const {
 static JobRegistrar sRegisterSph(
     "SPH run",
     "simulations",
-    [](const std::string& name) { return makeAuto<SphJob>(name, EMPTY_SETTINGS); },
+    [](const String& name) { return makeAuto<SphJob>(name, EMPTY_SETTINGS); },
     "Runs a SPH simulation, using provided initial conditions.");
 
 // ----------------------------------------------------------------------------------------------------------
@@ -390,7 +391,7 @@ static JobRegistrar sRegisterSphStab(
     "SPH stabilization",
     "stabilization",
     "simulations",
-    [](const std::string& name) { return makeAuto<SphStabilizationJob>(name, EMPTY_SETTINGS); },
+    [](const String& name) { return makeAuto<SphStabilizationJob>(name, EMPTY_SETTINGS); },
     "Runs a SPH simulation with a damping term, suitable for stabilization of non-equilibrium initial "
     "conditions.");
 
@@ -437,14 +438,14 @@ public:
     }
 };
 
-NBodyJob::NBodyJob(const std::string& name, const RunSettings& overrides)
+NBodyJob::NBodyJob(const String& name, const RunSettings& overrides)
     : IRunJob(name) {
 
     settings = getDefaultSettings(name);
     settings.addEntries(overrides);
 }
 
-RunSettings NBodyJob::getDefaultSettings(const std::string& name) {
+RunSettings NBodyJob::getDefaultSettings(const String& name) {
     const Interval timeRange(0, 1.e6_f);
     RunSettings settings;
     settings.set(RunSettingsId::RUN_NAME, name)
@@ -547,7 +548,7 @@ AutoPtr<IRun> NBodyJob::getRun(const RunSettings& overrides) const {
 static JobRegistrar sRegisterNBody(
     "N-body run",
     "simulations",
-    [](const std::string& name) { return makeAuto<NBodyJob>(name, EMPTY_SETTINGS); },
+    [](const String& name) { return makeAuto<NBodyJob>(name, EMPTY_SETTINGS); },
     "Runs N-body simulation using given initial conditions.");
 
 

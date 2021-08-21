@@ -73,7 +73,6 @@ SOURCES += \
     ../core/objects/utility/test/Dynamic.cpp \
     ../core/objects/utility/test/Iterators.cpp \
     ../core/objects/utility/test/OperatorTemplate.cpp \
-    ../core/objects/utility/test/StringUtils.cpp \
     ../core/objects/wrappers/test/AlignedStorage.cpp \
     ../core/objects/wrappers/test/Any.cpp \
     ../core/objects/wrappers/test/AutoPtr.cpp \

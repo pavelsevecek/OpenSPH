@@ -1,5 +1,6 @@
 #pragma once
 
+#include "objects/containers/String.h"
 #include "objects/wrappers/Function.h"
 #include "objects/wrappers/Interval.h"
 #include <wx/combobox.h>
@@ -39,11 +40,11 @@ public:
 
 class ClosablePage : public wxPanel {
 private:
-    std::string label;
+    String label;
     WaitDialog* dialog = nullptr;
 
 public:
-    ClosablePage(wxWindow* parent, const std::string& label);
+    ClosablePage(wxWindow* parent, const String& label);
 
     // false means close has been veto'd
     bool close();

@@ -6,6 +6,7 @@
 /// \date 2016-2021
 
 #include "common/Assert.h"
+#include "objects/wrappers/Function.h"
 #include <type_traits>
 
 NAMESPACE_SPH_BEGIN
@@ -71,11 +72,11 @@ Inserter<TContainer> inserter(TContainer& c) {
 template <typename TContainer>
 class BackInserter : public OutputIterator {
 private:
-    TContainer& container;
+    TContainer* container;
 
 public:
     explicit BackInserter(TContainer& container)
-        : container(container) {}
+        : container(&container) {}
 
     BackInserter& operator*() {
         return *this;
@@ -85,9 +86,10 @@ public:
         return *this;
     }
 
-    template <typename TValue>
+    template <typename TValue,
+        typename = std::enable_if_t<!std::is_same<std::decay_t<TValue>, BackInserter>::value>>
     BackInserter& operator=(TValue&& value) {
-        container.push(std::forward<TValue>(value));
+        container->push(std::forward<TValue>(value));
         return *this;
     }
 };
@@ -98,13 +100,13 @@ BackInserter<TContainer> backInserter(TContainer& c) {
 }
 
 /// \brief Output iterator that calls given functor for all written values.
-template <typename TFunctor>
+template<typename TValue>
 class FunctorCaller : public OutputIterator {
 private:
-    TFunctor func;
+    Function<void(const TValue&)> func;
 
 public:
-    FunctorCaller(TFunctor&& func)
+    FunctorCaller(Function<void(const TValue&)>&& func)
         : func(std::move(func)) {}
 
     FunctorCaller& operator*() {
@@ -115,16 +117,15 @@ public:
         return *this;
     }
 
-    template <typename TValue>
+    FunctorCaller& operator=(const TValue& value) {
+        func(value);
+        return *this;
+    }
+
     FunctorCaller& operator=(TValue&& value) {
-        func(std::forward<TValue>(value));
+        func(std::move(value));
         return *this;
     }
 };
-
-template <typename TFunctor>
-FunctorCaller<std::decay_t<TFunctor>> functorCaller(TFunctor&& functor) {
-    return FunctorCaller<std::decay_t<TFunctor>>(std::forward<TFunctor>(functor));
-}
 
 NAMESPACE_SPH_END

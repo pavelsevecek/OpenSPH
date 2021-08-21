@@ -32,12 +32,12 @@ class Sedov : public IRun {
 public:
     Sedov() {
         // Global settings of the problem
-        this->settings.set(RunSettingsId::RUN_NAME, std::string("Sedov Blast Problem"))
+        this->settings.set(RunSettingsId::RUN_NAME, String("Sedov Blast Problem"))
             .set(RunSettingsId::RUN_END_TIME, 8._f)
             .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::TEXT_FILE)
             .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.08_f)
-            .set(RunSettingsId::RUN_OUTPUT_PATH, std::string(""))
-            .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("sedov/sedov_%d.txt"))
+            .set(RunSettingsId::RUN_OUTPUT_PATH, String(""))
+            .set(RunSettingsId::RUN_OUTPUT_NAME, String("sedov/sedov_%d.txt"))
             .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
             .set(RunSettingsId::SPH_AV_BETA, 3._f)
             .set(RunSettingsId::SPH_KERNEL, KernelEnum::CUBIC_SPLINE)

@@ -272,7 +272,8 @@ public:
         return !(*this == other);
     }
 
-    friend std::ostream& operator<<(std::ostream& stream, const AffineMatrix& t) {
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const AffineMatrix& t) {
         stream << std::setprecision(PRECISION);
         for (Size i = 0; i < 3; ++i) {
             for (Size j = 0; j < 4; ++j) {

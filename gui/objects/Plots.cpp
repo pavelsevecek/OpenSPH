@@ -21,8 +21,8 @@ public:
         return colorizer->evalScalar(selectedIdx).valueOr(0.f);
     }
 
-    virtual std::string getName() const override {
-        return colorizer->name() + " " + std::to_string(selectedIdx);
+    virtual String getName() const override {
+        return colorizer->name() + " " + toString(selectedIdx);
     }
 };
 
@@ -63,7 +63,7 @@ void SelectedParticlePlot::setColorizer(const SharedPtr<IColorizer>& newColorize
     }
 }
 
-std::string SelectedParticlePlot::getCaption() const {
+String SelectedParticlePlot::getCaption() const {
     if (currentPlot) {
         return currentPlot->getCaption();
     } else {
@@ -122,7 +122,7 @@ public:
         return E / E_0.value() - 1._f;
     }
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return "Relative energy change";
     }
 };
@@ -184,7 +184,7 @@ Array<PlotData> getPlotList(const GuiSettings& gui) {
         list.push(data);
     }
 
-    std::string overplotSfd = gui.get<std::string>(GuiSettingsId::PLOT_OVERPLOT_SFD);
+    String overplotSfd = gui.get<String>(GuiSettingsId::PLOT_OVERPLOT_SFD);
 
     if (flags.has(PlotEnum::CURRENT_SFD)) {
         Array<AutoPtr<IPlot>> multiplot;
@@ -247,7 +247,7 @@ Array<PlotData> getPlotList(const GuiSettings& gui) {
                 }
             }
 
-            virtual std::string getName() const override {
+            virtual String getName() const override {
                 return "Largest remnant period";
             }
         };
@@ -272,7 +272,7 @@ Array<PlotData> getPlotList(const GuiSettings& gui) {
     return list;
 }
 
-AutoPtr<IPlot> getDataPlot(const Path& path, const std::string& name) {
+AutoPtr<IPlot> getDataPlot(const Path& path, const String& name) {
     std::ifstream is(path.native());
     Array<Post::HistPoint> points;
     while (true) {

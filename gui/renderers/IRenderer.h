@@ -38,7 +38,7 @@ class IRenderOutput : public Polymorphic {
 public:
     /// \todo would be nice to make it more general, cleaner
     struct Label {
-        std::wstring text;
+        String text;
         Rgba color;
         int fontSize;
         Flags<TextAlign> align;

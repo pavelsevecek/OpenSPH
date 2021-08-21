@@ -25,11 +25,11 @@ public:
     explicit TestJob()
         : IGeometryJob("test") {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "test job";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES }, { "material", JobType::MATERIAL } };
     }
 
@@ -98,11 +98,11 @@ public:
     explicit MultipleBodyJob()
         : IParticleJob("test") {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "multiple body job";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "body A", JobType::PARTICLES }, { "body B", JobType::PARTICLES } };
     }
 

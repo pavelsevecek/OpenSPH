@@ -160,7 +160,7 @@ public:
     };
 
 private:
-    std::string runName;
+    String runName;
 
     /// Flags of the output
     Flags<Options> options;
@@ -178,7 +178,7 @@ public:
     ///                   \ref addColumn.
     /// \param options Parameters of the file, see \ref Options enum.
     TextOutput(const OutputFile& fileMask,
-        const std::string& runName,
+        const String& runName,
         Flags<OutputQuantityFlag> quantities,
         Flags<Options> options = EMPTY_FLAGS);
 
@@ -210,24 +210,6 @@ public:
 
     virtual Outcome load(const Path& path, Storage& storage, Statistics& stats) override;
 };
-
-/// \brief Extension of text output that runs given gnuplot script on dumped text data.
-class GnuplotOutput : public TextOutput {
-private:
-    std::string scriptPath;
-
-public:
-    GnuplotOutput(const OutputFile& fileMask,
-        const std::string& runName,
-        const std::string& scriptPath,
-        const Flags<OutputQuantityFlag> quantities,
-        const Flags<Options> flags)
-        : TextOutput(fileMask, runName, quantities, flags)
-        , scriptPath(scriptPath) {}
-
-    virtual Expected<Path> dump(const Storage& storage, const Statistics& stats) override;
-};
-
 
 /// \brief Type of simulation, stored as metadata in the binary file.
 ///
@@ -405,14 +387,14 @@ public:
         /// Date when the code that created the file was built
         ///
         /// Not present in older versions of the format.
-        Optional<std::string> buildDate;
+        Optional<String> buildDate;
 
         /// Format version of the file
         BinaryIoVersion version;
     };
 
     /// \brief Opens the file and reads header info without reading the rest of the file.
-    Expected<Info> getInfo(const Path& path) const;
+    static Expected<Info> getInfo(const Path& path);
 };
 
 enum class CompressedIoVersion : int {
@@ -460,7 +442,7 @@ public:
         CompressedIoVersion version;
     };
 
-    Expected<Info> getInfo(const Path& path) const;
+    static Expected<Info> getInfo(const Path& path);
 };
 
 /// \brief XML-based output format used by Visualization ToolKit (VTK)

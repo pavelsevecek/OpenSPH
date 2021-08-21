@@ -6,8 +6,8 @@
 /// \date 2016-2021
 
 #include "math/MathBasic.h"
-#include "objects/containers/BasicAllocators.h"
 #include "objects/containers/ArrayView.h"
+#include "objects/containers/BasicAllocators.h"
 
 #ifdef SPH_GCC
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
@@ -75,7 +75,7 @@ public:
     /// Allocate only enough elements to store the list. Elements are constructed using copy constructor of
     /// stored type.
     Array(std::initializer_list<StorageType> list) {
-        actSize = list.size();
+        actSize = TCounter(list.size());
         maxSize = actSize;
         MemoryBlock block = TAllocator::allocate(maxSize * sizeof(StorageType), alignof(StorageType));
         SPH_ASSERT(block.ptr);
@@ -360,7 +360,7 @@ public:
             // inserting an empty range
             return;
         }
-        const Size count = std::distance(first, last);
+        const TCounter count = TCounter(last - first);
         this->resize(actSize + count);
         std::move_backward(this->begin() + position, this->end() - count, this->end());
         Size i = position;
@@ -514,17 +514,6 @@ public:
         return view() != other.view();
     }
 
-    /// \brief Prints content of array to stream.
-    ///
-    /// Enabled only if the stored type has overloaded << operator.
-    template <typename TStream, typename = std::enable_if_t<HasStreamOperator<T, TStream>::value>>
-    friend TStream& operator<<(TStream& stream, const Array& array) {
-        for (const T& t : array) {
-            stream << t << std::endl;
-        }
-        return stream;
-    }
-
 private:
     void alloc(const TCounter elementCnt, const TCounter allocatedSize) {
         actSize = elementCnt;
@@ -538,6 +527,18 @@ private:
         data = (StorageType*)block.ptr;
     }
 };
+
+    /// \brief Prints content of array to stream.
+///
+/// Enabled only if the stored type has overloaded << operator.
+template <typename TStream, typename T, typename = std::enable_if_t<HasStreamOperator<T, TStream>::value>>
+TStream& operator<<(TStream& stream, const Array<T>& array) {
+    for (const T& t : array) {
+        stream << t << std::endl;
+    }
+    return stream;
+}
+
 
 template <typename T, typename TAllocator, typename TCounter>
 class CopyableArray {

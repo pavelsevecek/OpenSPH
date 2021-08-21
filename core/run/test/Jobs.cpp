@@ -1,4 +1,5 @@
 #include "catch.hpp"
+#include "io/FileManager.h"
 #include "io/FileSystem.h"
 #include "io/Output.h"
 #include "run/Node.h"
@@ -20,15 +21,15 @@ private:
     Float startTime = 0._f;
 
 public:
-    TestCreateParticles(const std::string& name, const Float startTime)
+    TestCreateParticles(const String& name, const Float startTime)
         : IParticleJob(name)
         , startTime(startTime) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "create particles";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -130,9 +131,9 @@ TEST_CASE("Preset runs", "[job]") {
 
 class TestProc : public VirtualSettings::IEntryProc {
 public:
-    virtual void onCategory(const std::string& UNUSED(name)) const override {}
+    virtual void onCategory(const String& UNUSED(name)) const override {}
 
-    virtual void onEntry(const std::string& UNUSED(key), IVirtualEntry& entry) const override {
+    virtual void onEntry(const String& UNUSED(key), IVirtualEntry& entry) const override {
         // check self-consistency
         if (!entry.isValid(entry.get())) {
             throw InvalidSetup("Entry '" + entry.getName() + "' not valid.");

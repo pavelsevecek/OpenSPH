@@ -1,6 +1,7 @@
 #include "windows/TimeLine.h"
 #include "windows/Icons.data.h"
 #include <wx/bmpbuttn.h>
+#include <wx/dcbuffer.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -11,7 +12,7 @@ std::map<int, Path> getSequenceFiles(const Path& inputPath) {
 
     const Expected<Path> absolutePath = FileSystem::getAbsolutePath(inputPath);
     if (!absolutePath) {
-        throw Exception("Cannot resolve absolute path of file '" + inputPath.native() + "'");
+        throw Exception("Cannot resolve absolute path of file '" + inputPath.string() + "'");
     }
 
     Optional<OutputFile> deducedFile = OutputFile::getMaskFromPath(absolutePath.value());
@@ -37,7 +38,7 @@ std::map<int, Path> getSequenceFiles(const Path& inputPath) {
     }
 
     if (fileMap.empty()) {
-        throw Exception("Cannot open file " + inputPath.native());
+        throw Exception("Cannot open file '" + inputPath.string() + "'");
     }
 
     return fileMap;
@@ -48,6 +49,8 @@ TimeLinePanel::TimeLinePanel(wxWindow* parent, const Path& inputFile, SharedPtr<
     , callbacks(callbacks) {
 
     this->update(inputFile);
+
+    this->SetBackgroundStyle(wxBG_STYLE_PAINT);
 
     this->SetMinSize(wxSize(300, 30));
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(TimeLinePanel::onPaint));
@@ -136,12 +139,13 @@ void TimeLinePanel::reload() {
 }
 
 void TimeLinePanel::onPaint(wxPaintEvent& UNUSED(evt)) {
+    wxAutoBufferedPaintDC dc(this);
+    dc.Clear();
+
     if (fileMap.empty()) {
         // nothing to do
         return;
     }
-
-    wxPaintDC dc(this);
     const wxSize size = dc.GetSize();
     /// \todo deduplicate
     Rgba backgroundColor = Rgba(this->GetParent()->GetBackgroundColour());

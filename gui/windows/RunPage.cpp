@@ -80,8 +80,8 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
     wxPanel* visBar = createVisBar();
     pane = alignedNew<OrthoPane>(this, parent, settings);
 
-    timelineBar = alignedNew<TimeLine>(this, Path(), makeShared<TimeLineCallbacks>(parent));
-    progressBar = alignedNew<ProgressPanel>(this);
+    timelineBar = new TimeLine(this, Path(), makeShared<TimeLineCallbacks>(parent));
+    progressBar = new ProgressPanel(this);
 
     wxAuiPaneInfo info;
 
@@ -98,7 +98,7 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
     Flags<PaneEnum> paneIds = settings.getFlags<PaneEnum>(GuiSettingsId::DEFAULT_PANES);
     const Optional<Palette> palette = controller->getCurrentColorizer()->getPalette();
     if (paneIds.has(PaneEnum::PALETTE) && palette) {
-        palettePanel = alignedNew<PalettePanel>(this, wxSize(300, -1), palette.value());
+        palettePanel = new PalettePanel(this, wxSize(300, -1), palette.value());
         palettePanel->onPaletteChanged = [this](const Palette& palette) {
             controller->setPaletteOverride(palette);
         };
@@ -108,6 +108,7 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
             .DockFixed(false)
             .CloseButton(true)
             .DestroyOnClose(false)
+            .Position(1)
             .Caption("Palette");
         manager->AddPane(palettePanel, info);
     }
@@ -118,6 +119,7 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
             .DockFixed(false)
             .CloseButton(true)
             .DestroyOnClose(false)
+            .Position(0)
             .Caption("Visualization");
         manager->AddPane(visBar, info);
     }
@@ -168,10 +170,25 @@ const wxSize buttonSize(250, -1);
 const wxSize spinnerSize(100, -1);
 const int boxPadding = 10;
 
+void boxPad(wxBoxSizer* box) {
+#ifdef SPH_WIN
+    box->AddSpacer(15);
+#else
+    MARK_USED(box);
+#endif
+}
+
+#ifdef SPH_WIN
+const int checkBoxBorder = 5;
+#else
+const int checkBoxBorder = 1;
+#endif
+
 wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     wxStaticBox* particleBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 118));
 
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
+    boxPad(boxSizer);
 
     wxBoxSizer* cutoffSizer = new wxBoxSizer(wxHORIZONTAL);
     cutoffSizer->AddSpacer(boxPadding);
@@ -214,7 +231,7 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     ghostSizer->AddSpacer(boxPadding);
     wxCheckBox* ghostBox = new wxCheckBox(particleBox, wxID_ANY, "Show ghosts");
     ghostBox->SetValue(gui.get<bool>(GuiSettingsId::RENDER_GHOST_PARTICLES));
-    ghostSizer->Add(ghostBox);
+    ghostSizer->Add(ghostBox, 0, wxTOP, checkBoxBorder);
     boxSizer->Add(ghostSizer);
 
     wxBoxSizer* aaSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -224,7 +241,7 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     aaBox->SetToolTip(
         "If checked, particles are drawn with anti-aliasing, creating smoother image, but it also takes "
         "longer to render it.");
-    aaSizer->Add(aaBox);
+    aaSizer->Add(aaBox, 0, wxTOP, checkBoxBorder);
     boxSizer->Add(aaSizer);
 
     particleBox->SetSizer(boxSizer);
@@ -246,6 +263,8 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
 wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
     wxStaticBox* raytraceBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 125));
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
+    boxPad(boxSizer);
+
     wxBoxSizer* levelSizer = new wxBoxSizer(wxHORIZONTAL);
     levelSizer->AddSpacer(boxPadding);
     wxStaticText* text = new wxStaticText(raytraceBox, wxID_ANY, "Surface level");
@@ -317,6 +336,7 @@ wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
 wxWindow* RunPage::createVolumeBox(wxPanel* parent) {
     wxStaticBox* volumeBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 100));
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
+    boxPad(boxSizer);
 
     wxBoxSizer* emissionSizer = new wxBoxSizer(wxHORIZONTAL);
     emissionSizer->AddSpacer(boxPadding);
@@ -423,7 +443,7 @@ wxPanel* RunPage::createVisBar() {
     });
     buttonSizer->AddStretchSpacer(1);
 
-    visbarSizer->Add(buttonSizer, 0, wxALIGN_CENTER_HORIZONTAL);
+    visbarSizer->Add(buttonSizer, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 5);
     visbarSizer->AddSpacer(10);
 
     wxCheckBox* autoRefresh = new wxCheckBox(visbarPanel, wxID_ANY, "Refresh on timestep");
@@ -436,7 +456,7 @@ wxPanel* RunPage::createVisBar() {
         "When checked, the image is updated on every timestep, otherwise the image is only updated when "
         "pressing the 'Refresh' button. Note that repainting the image on every timestep may decrease "
         "the performance of the code.");
-    visbarSizer->Add(autoRefresh);
+    visbarSizer->Add(autoRefresh, 0, wxLEFT | wxTOP, checkBoxBorder);
 
     wxCheckBox* autoCamera = new wxCheckBox(visbarPanel, wxID_ANY, "Auto-zoom");
     autoCamera->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
@@ -447,7 +467,7 @@ wxPanel* RunPage::createVisBar() {
     autoCamera->SetToolTip(
         "When checked, parameters of the camera (position, field of view, etc.) are automatically adjusted "
         "during the simulation.");
-    visbarSizer->Add(autoCamera);
+    visbarSizer->Add(autoCamera, 0, wxLEFT | wxTOP, checkBoxBorder);
     visbarSizer->AddSpacer(10);
 
 
@@ -499,7 +519,7 @@ wxPanel* RunPage::createVisBar() {
     wxRadioButton* particleButton =
         new wxRadioButton(visbarPanel, wxID_ANY, "Particles", wxDefaultPosition, buttonSize, wxRB_GROUP);
     particleButton->SetToolTip("Render individual particles with optional smoothing.");
-    visbarSizer->Add(particleButton);
+    visbarSizer->Add(particleButton, 0, wxLEFT, 5);
     wxWindow* particleBox = this->createParticleBox(visbarPanel);
     visbarSizer->Add(particleBox, 0, wxALL, 5);
     visbarSizer->AddSpacer(10);
@@ -507,14 +527,14 @@ wxPanel* RunPage::createVisBar() {
 
     wxRadioButton* surfaceButton =
         new wxRadioButton(visbarPanel, wxID_ANY, "Raymarched surface", wxDefaultPosition, buttonSize, 0);
-    visbarSizer->Add(surfaceButton);
+    visbarSizer->Add(surfaceButton, 0, wxLEFT, 5);
     wxWindow* raytracerBox = this->createRaymarcherBox(visbarPanel);
     visbarSizer->Add(raytracerBox, 0, wxALL, 5);
     visbarSizer->AddSpacer(10);
 
     wxRadioButton* volumeButton =
         new wxRadioButton(visbarPanel, wxID_ANY, "Volumetric raytracer", wxDefaultPosition, buttonSize, 0);
-    visbarSizer->Add(volumeButton);
+    visbarSizer->Add(volumeButton, 0, wxLEFT, 5);
     wxWindow* volumeBox = this->createVolumeBox(visbarPanel);
     visbarSizer->Add(volumeBox, 0, wxALL, 5);
     visbarSizer->AddSpacer(10);
@@ -565,7 +585,7 @@ wxPanel* RunPage::createVisBar() {
             controller->setRenderer(makeAuto<RayMarcher>(scheduler, gui));
             enableControls(1);
         } catch (const std::exception& e) {
-            wxMessageBox(std::string("Cannot initialize raytracer.\n\n") + e.what(), "Error", wxOK);
+            messageBox("Cannot initialize raytracer.\n\n" + exceptionMessage(e), "Error", wxOK);
 
             // switch to particle renderer (fallback option)
             particleButton->SetValue(true);
@@ -636,7 +656,7 @@ wxPanel* RunPage::createStatsBar() {
     wxPanel* statsPanel = new wxPanel(this);
     wxBoxSizer* statsSizer = new wxBoxSizer(wxVERTICAL);
 
-    wxFont font = wxSystemSettings::GetFont(wxSYS_SYSTEM_FONT);
+    wxFont font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
     font.Scale(0.95f);
     statsPanel->SetFont(font);
 
@@ -653,15 +673,16 @@ wxPanel* RunPage::createStatsBar() {
 template <typename TValue>
 static void printStat(wxTextCtrl* text,
     const Statistics& stats,
-    const std::string& desc,
+    const String& desc,
     const StatisticsId id,
-    const std::string units = "") {
+    const String units = "") {
     if (stats.has(id)) {
-        *text << desc << stats.get<TValue>(id) << units << "\n";
+        *text << desc.toUnicode() << stats.get<TValue>(id) << units.toUnicode() << "\n";
     }
 }
 
 void RunPage::makeStatsText(const Size particleCnt, const Size attractorCnt, const Statistics& stats) {
+    statsText->Freeze();
     statsText->Clear();
     *statsText << " - particles: ";
     if (particleCnt > 0) {
@@ -702,6 +723,7 @@ void RunPage::makeStatsText(const Size particleCnt, const Size attractorCnt, con
     printStat<int>(statsText, stats, "    * breakups: ", StatisticsId::BREAKUP_COUNT);
     printStat<int>(statsText, stats, " - overlaps:    ", StatisticsId::OVERLAP_COUNT);
     printStat<int>(statsText, stats, " - aggregates:  ", StatisticsId::AGGREGATE_COUNT);
+    statsText->Thaw();
 }
 
 void RunPage::setColorizer(const Size idx) {
@@ -846,7 +868,7 @@ void RunPage::setProgress(const Statistics& stats) {
     }
 }
 
-void RunPage::newPhase(const std::string& className, const std::string& instanceName) {
+void RunPage::newPhase(const String& className, const String& instanceName) {
     progressBar->onRunStart(className, instanceName);
 }
 
@@ -936,7 +958,7 @@ void RunPage::setColorizerList(Array<SharedPtr<IColorizer>>&& colorizers) {
     colorizerList = std::move(colorizers);
     wxArrayString items;
     for (auto& e : colorizerList) {
-        items.Add(e->name().c_str());
+        items.Add(e->name().toUnicode());
     }
     quantityBox->Set(items);
     const Size actSelectedIdx = (selectedIdx < colorizerList.size()) ? selectedIdx : 0;
@@ -956,6 +978,10 @@ void RunPage::deselectParticle() {
 wxSize RunPage::getCanvasSize() const {
     const wxSize size = pane->GetSize();
     return wxSize(max(size.x, 1), max(size.y, 1));
+}
+
+bool RunPage::isOk() const {
+    return manager != nullptr;
 }
 
 bool RunPage::isRunning() const {

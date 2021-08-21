@@ -11,7 +11,7 @@ NAMESPACE_SPH_BEGIN
 
 class Table {
 private:
-    using Row = Array<std::string>;
+    using Row = Array<String>;
 
     Array<Row> rows;
 
@@ -32,7 +32,7 @@ public:
     ///
     /// If the cell already exists, the previous text is replaced, otherwise a new cell is created, extending
     /// the number of cells and rows if needed.
-    void setCell(const Size colIdx, const Size rowIdx, std::string text) {
+    void setCell(const Size colIdx, const Size rowIdx, String text) {
         // extend rows
         for (Size i = rows.size(); i <= rowIdx; ++i) {
             rows.emplaceBack(this->columnCnt());
@@ -55,9 +55,9 @@ public:
     }
 
     /// \brief Creates the text representation of the table.
-    std::string toString() const {
+    String toString() const {
         if (rows.empty()) {
-            return std::string();
+            return String();
         }
         Array<Size> colWidths(this->columnCnt());
         colWidths.fill(0);
@@ -76,7 +76,7 @@ public:
             }
             ss << std::endl;
         }
-        return ss.str();
+        return String::fromAscii(ss.str().c_str());
     }
 };
 

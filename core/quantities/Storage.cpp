@@ -82,7 +82,7 @@ Size ConstStorageSequence::size() const {
 InvalidStorageAccess::InvalidStorageAccess(const QuantityId id)
     : Exception("Invalid storage access to quantity " + getMetadata(id).quantityName) {}
 
-InvalidStorageAccess::InvalidStorageAccess(const std::string& message)
+InvalidStorageAccess::InvalidStorageAccess(const String& message)
     : Exception("Invalid storage access. " + message) {}
 
 static void checkStorageAccess(const bool result, const QuantityId id) {
@@ -91,7 +91,7 @@ static void checkStorageAccess(const bool result, const QuantityId id) {
     }
 }
 
-static void checkStorageAccess(const bool result, const std::string& message) {
+static void checkStorageAccess(const bool result, const String& message) {
     if (!result) {
         throw InvalidStorageAccess(message);
     }
@@ -382,7 +382,7 @@ MaterialView Storage::getMaterialOfParticle(const Size particleIdx) const {
 
 void Storage::setMaterial(const Size matIdx, const SharedPtr<IMaterial>& material) {
     if (matIdx >= mats.size()) {
-        throw InvalidStorageAccess("No material with index " + std::to_string(matIdx));
+        throw InvalidStorageAccess("No material with index " + toString(matIdx));
     }
 
     /// \todo merge material ranes if they have the same material
@@ -651,9 +651,9 @@ Outcome Storage::isValid(const Flags<ValidFlag> flags) const {
     // check that all buffers have the same number of particles
     iterate<VisitorEnum::ALL_BUFFERS>(*this, [cnt, &result, flags](const auto& buffer) {
         if (buffer.size() != cnt && (flags.has(ValidFlag::COMPLETE) || !buffer.empty())) {
-            result = makeFailed("One or more buffers have different number of particles:\nExpected: ",
+            result = makeFailed(
+                "One or more buffers have different number of particles:\nExpected: {}, actual: {}",
                 cnt,
-                ", actual: ",
                 buffer.size());
         }
     });
@@ -684,16 +684,15 @@ Outcome Storage::isValid(const Flags<ValidFlag> flags) const {
         const MatRange& mat = mats[matId];
         for (Size i = mat.from; i < mat.to; ++i) {
             if (matIds[i] != matId) {
-                return makeFailed("MaterialID of particle does not belong to the material range.\nExpected: ",
+                return makeFailed(
+                    "MaterialID of particle does not belong to the material range.\nExpected: {}, actual: {}",
                     matId,
-                    ", actual: ",
                     matIds[i]);
             }
         }
         if ((matId != mats.size() - 1) && (mat.to != mats[matId + 1].from)) {
-            return makeFailed("Material are not stored consecutively.\nLast index: ",
+            return makeFailed("Material are not stored consecutively.\nLast index: {}, first index: {}",
                 mat.to,
-                ", first index: ",
                 mats[matId + 1].from);
         }
         if (mat.from >= mat.to) {
@@ -701,13 +700,10 @@ Outcome Storage::isValid(const Flags<ValidFlag> flags) const {
         }
     }
     if (mats[0].from != 0 || mats[mats.size() - 1].to != cnt) {
-        return makeFailed("Materials do not cover all particles.\nFirst: ",
+        return makeFailed("Materials do not cover all particles.\nFirst: {}, last: {} (size: {}).",
             mats[0].from,
-            ", last: ",
             mats[mats.size() - 1].to,
-            " (size: ",
-            cnt,
-            ").");
+            cnt);
     }
 
     return SUCCESS;
@@ -768,8 +764,8 @@ Array<Size> Storage::duplicate(ArrayView<const Size> idxs, const Flags<IndicesFl
         for (Size matId = 0; matId < this->getMaterialCnt(); ++matId) {
             std::pair<Iterator<Size>, Iterator<Size>> range =
                 std::equal_range(matIdsRef.begin(), matIdsRef.end(), matId);
-            mats[matId].from = std::distance(matIdsRef.begin(), range.first);
-            mats[matId].to = std::distance(matIdsRef.begin(), range.second);
+            mats[matId].from = Size(range.first - matIdsRef.begin());
+            mats[matId].to = Size(range.second - matIdsRef.begin());
         }
     } else {
         // just duplicate the particles

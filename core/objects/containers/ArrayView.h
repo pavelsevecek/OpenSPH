@@ -137,21 +137,23 @@ public:
     bool operator!=(const ArrayView& other) const {
         return !(*this == other);
     }
-
-    /// \brief Prints content of arrayview to stream.
-    ///
-    /// Stored values must have overloaded << operator.
-    friend std::ostream& operator<<(std::ostream& stream, const ArrayView& array) {
-        for (const T& t : array) {
-            stream << t << std::endl;
-        }
-        return stream;
-    }
 };
 
+/// \brief Creates a view of a single value.
 template <typename T>
 INLINE ArrayView<T> getSingleValueView(T& value) {
     return ArrayView<T>(&value, 1);
+}
+
+/// \brief Prints content of arrayview to stream.
+///
+/// Stored values must have overloaded << operator.
+template <typename TStream, typename T, typename = std::enable_if_t<HasStreamOperator<T, TStream>::value>>
+TStream& operator<<(TStream& stream, const ArrayView<T>& array) {
+    for (const T& t : array) {
+        stream << t << std::endl;
+    }
+    return stream;
 }
 
 NAMESPACE_SPH_END

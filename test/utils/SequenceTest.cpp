@@ -19,10 +19,10 @@ TEST_CASE("Sequence success", "[sequencetest]") {
 TEST_CASE("Sequence fail", "[sequencetests]") {
     auto test = [&](const Size i) -> Outcome {
         if (i > 50 && i < 60) {
-            return makeFailed("e", i);
+            return makeFailed("e{}", i);
         }
         if (i >= 60) {
-            return makeFailed("f", i);
+            return makeFailed("f{}", i);
         }
         return SUCCESS;
     };

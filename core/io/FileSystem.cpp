@@ -1,54 +1,136 @@
 #include "io/FileSystem.h"
 #include "objects/containers/StaticArray.h"
-#include <fstream>
+#include "objects/utility/Streams.h"
 #include <sstream>
+
+#ifdef SPH_WIN
+#include <userenv.h>
+#include <windows.h>
+#else
+#include <dirent.h>
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#ifdef SPH_USE_STD_EXPERIMENTAL
-#include <experimental/filesystem>
+#include <unistd.h>
 #endif
 
 NAMESPACE_SPH_BEGIN
 
-std::string FileSystem::readFile(const Path& path) {
-    std::ifstream t(path.native().c_str());
-    std::stringstream buffer;
-    buffer << t.rdbuf();
-    return buffer.str();
+#ifdef SPH_WIN
+
+/// Returns the error message corresponding to GetLastError().
+static String getLastErrorMessage() {
+    DWORD error = GetLastError();
+    if (!error) {
+        return {};
+    }
+
+    wchar_t message[256] = { 0 };
+    DWORD flags = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
+    DWORD length =
+        FormatMessageW(flags, NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), message, 256, nullptr);
+    if (length) {
+        return String(message);
+    } else {
+        return {};
+    }
+}
+
+#endif
+
+String FileSystem::readFile(const Path& path) {
+    FileTextInputStream stream(path);
+    String text;
+    if (stream.readAll(text)) {
+        return text;
+    } else {
+        return {};
+    }
 }
 
 bool FileSystem::pathExists(const Path& path) {
+#ifndef SPH_WIN
     struct stat buffer;
     if (path.empty()) {
         return false;
     }
-    return (stat(path.native().c_str(), &buffer) == 0);
+    return (stat(path.native(), &buffer) == 0);
+#else
+    DWORD attributes = GetFileAttributesW(path.native());
+    return attributes != INVALID_FILE_ATTRIBUTES;
+#endif
 }
 
-Size FileSystem::fileSize(const Path& path) {
-    std::ifstream ifs(path.native(), std::ifstream::ate | std::ifstream::binary);
+std::size_t FileSystem::fileSize(const Path& path) {
+    std::ifstream ifs(path.native(), std::ios::ate | std::ios::binary);
     SPH_ASSERT(ifs);
     return ifs.tellg();
 }
 
-bool FileSystem::isPathWritable(const Path& path) {
-    return access(path.native().c_str(), W_OK) == 0;
+bool FileSystem::isDirectoryWritable(const Path& path) {
+    SPH_ASSERT(pathType(path).valueOr(PathType::OTHER) == PathType::DIRECTORY);
+#ifndef SPH_WIN
+    return access(path.native(), W_OK) == 0;
+#else
+    wchar_t file[MAX_PATH];
+    GetTempFileNameW(path.native(), L"sph", 1, file);
+    HANDLE handle = CreateFileW(file,
+        GENERIC_WRITE,
+        FILE_SHARE_READ,
+        nullptr,
+        CREATE_NEW,
+        FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE,
+        nullptr);
+    if (handle != INVALID_HANDLE_VALUE) {
+        CloseHandle(handle);
+        return true;
+    } else {
+        return false;
+    }
+#endif
 }
 
 Expected<Path> FileSystem::getHomeDirectory() {
+#ifdef SPH_WIN
+    wchar_t buffer[MAX_PATH] = { 0 };
+    DWORD length = sizeof(buffer);
+    HANDLE token = 0;
+    OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token);
+    if (GetUserProfileDirectoryW(token, buffer, &length)) {
+        CloseHandle(token);
+        return Path(String(buffer) + L'\\');
+    } else {
+        return makeUnexpected<Path>(getLastErrorMessage());
+    }
+#else
     const char* homeDir = getenv("HOME");
     if (homeDir != nullptr) {
-        return Path(homeDir);
+        String path = String::fromUtf8(homeDir) + L'/';
+        return Path(path);
     } else {
         return makeUnexpected<Path>("Cannot obtain home directory");
+    }
+#endif
+}
+
+Expected<Path> FileSystem::getUserDataDirectory() {
+    Expected<Path> homeDir = getHomeDirectory();
+    if (homeDir) {
+#ifdef SPH_WIN
+        return homeDir.value();
+#else
+        return homeDir.value() / Path(".config");
+#endif
+    } else {
+        return homeDir;
     }
 }
 
 Expected<Path> FileSystem::getAbsolutePath(const Path& relativePath) {
+#ifndef SPH_WIN
     char realPath[PATH_MAX];
-    if (realpath(relativePath.native().c_str(), realPath)) {
-        return Path(realPath);
+    if (realpath(relativePath.native(), realPath)) {
+        return Path(String::fromUtf8(realPath));
     } else {
         switch (errno) {
         case EACCES:
@@ -75,14 +157,26 @@ Expected<Path> FileSystem::getAbsolutePath(const Path& relativePath) {
             return makeUnexpected<Path>("Unknown error");
         }
     }
+#else
+    wchar_t buffer[256] = { 0 };
+
+    DWORD retval = GetFullPathNameW(relativePath.native(), 256, buffer, nullptr);
+    if (retval) {
+        return Path(buffer);
+    } else {
+        return makeUnexpected<Path>(getLastErrorMessage());
+    }
+#endif
 }
 
 Expected<FileSystem::PathType> FileSystem::pathType(const Path& path) {
     if (path.empty()) {
         return makeUnexpected<PathType>("Path is empty");
     }
+
+#ifndef SPH_WIN
     struct stat buffer;
-    if (stat(path.native().c_str(), &buffer) != 0) {
+    if (stat(path.native(), &buffer) != 0) {
         /// \todo possibly get the actual error, like in other functions
         return makeUnexpected<PathType>("Cannot retrieve type of the path");
     }
@@ -96,12 +190,25 @@ Expected<FileSystem::PathType> FileSystem::pathType(const Path& path) {
         return PathType::SYMLINK;
     }
     return PathType::OTHER;
+#else
+    DWORD attributes = GetFileAttributesW(path.native());
+    if (attributes == INVALID_FILE_ATTRIBUTES) {
+        return makeUnexpected<PathType>(getLastErrorMessage());
+    }
+    if (attributes & FILE_ATTRIBUTE_DIRECTORY) {
+        return PathType::DIRECTORY;
+    }
+    if (attributes & FILE_ATTRIBUTE_REPARSE_POINT) {
+        return PathType::SYMLINK;
+    }
+    return PathType::FILE;
+#endif
 }
-
 
 static Outcome createSingleDirectory(const Path& path, const Flags<FileSystem::CreateDirectoryFlag> flags) {
     SPH_ASSERT(!path.empty());
-    const bool result = mkdir(path.native().c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
+#ifndef SPH_WIN
+    const bool result = mkdir(path.native(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
     if (!result) {
         switch (errno) {
         case EACCES:
@@ -140,12 +247,20 @@ static Outcome createSingleDirectory(const Path& path, const Flags<FileSystem::C
         }
     }
     return SUCCESS;
+#else
+    if (CreateDirectoryW(path.native(), nullptr)) {
+        return SUCCESS;
+    } else {
+        if (GetLastError() == ERROR_ALREADY_EXISTS &&
+            flags.has(FileSystem::CreateDirectoryFlag::ALLOW_EXISTING)) {
+            return SUCCESS;
+        }
+        return makeFailed(getLastErrorMessage());
+    }
+#endif
 }
 
 Outcome FileSystem::createDirectory(const Path& path, const Flags<CreateDirectoryFlag> flags) {
-#ifdef SPH_USE_STD_EXPERIMENTAL
-    return (Outcome)std::experimental::filesystem::create_directories(path);
-#else
     if (path.empty()) {
         return SUCCESS;
     }
@@ -157,18 +272,9 @@ Outcome FileSystem::createDirectory(const Path& path, const Flags<CreateDirector
         }
     }
     return createSingleDirectory(path, flags);
-#endif
 }
 
 Outcome FileSystem::removePath(const Path& path, const Flags<RemovePathFlag> flags) {
-#ifdef SPH_USE_STD_EXPERIMENTAL
-    try {
-        std::experimental::filesystem::remove_all(path);
-    } catch (std::experimental::filesystem::filesystem_error& e) {
-        return e.what();
-    }
-    return SUCCESS;
-#else
     if (path.empty()) {
         return makeFailed("Attempting to remove an empty path");
     }
@@ -191,7 +297,8 @@ Outcome FileSystem::removePath(const Path& path, const Flags<RemovePathFlag> fla
         }
     }
 
-    const bool result = (remove(path.native().c_str()) == 0);
+#ifndef SPH_WIN
+    const bool result = (remove(path.native()) == 0);
     if (!result) {
         switch (errno) {
         case EACCES:
@@ -200,62 +307,77 @@ Outcome FileSystem::removePath(const Path& path, const Flags<RemovePathFlag> fla
                 "directories in the path prefix of pathname did not allow search permission.");
         case EBUSY:
             return makeFailed(
-                "Path " + path.native() +
+                "Path " + path.string() +
                 "is currently in use by the system or some process that prevents its removal.On "
                 "Linux this means pathname is currently used as a mount point or is the root directory of "
                 "the calling process.");
         case EFAULT:
-            return makeFailed("Path " + path.native() + " points outside your accessible address space.");
+            return makeFailed("Path " + path.string() + " points outside your accessible address space.");
         case EINVAL:
-            return makeFailed("Path " + path.native() + " has . as last component.");
+            return makeFailed("Path " + path.string() + " has . as last component.");
         case ELOOP:
-            return makeFailed("Too many symbolic links were encountered in resolving path " + path.native());
+            return makeFailed("Too many symbolic links were encountered in resolving path " + path.string());
         case ENAMETOOLONG:
-            return makeFailed("Path " + path.native() + " was too long.");
+            return makeFailed("Path " + path.string() + " was too long.");
         case ENOENT:
-            return makeFailed("A directory component in path " + path.native() +
+            return makeFailed("A directory component in path " + path.string() +
                               " does not exist or is a dangling symbolic link.");
         case ENOMEM:
             return makeFailed("Insufficient kernel memory was available.");
         case ENOTDIR:
             return makeFailed(
-                "Path " + path.native() +
+                "Path " + path.string() +
                 " or a component used as a directory in pathname, is not, in fact, a directory.");
         case ENOTEMPTY:
             return makeFailed(
-                "Path " + path.native() +
+                "Path " + path.string() +
                 " contains entries other than . and ..; or, pathname has .. as its final component.");
         case EPERM:
             return makeFailed(
-                "The directory containing path " + path.native() +
+                "The directory containing path " + path.string() +
                 " has the sticky bit(S_ISVTX) set and the process's "
                 "effective user ID is neither the user ID of the file to be deleted nor that of the "
                 "directory containing it, and the process is not privileged (Linux: does not have the "
                 "CAP_FOWNER capability).");
         case EROFS:
-            return makeFailed("Path " + path.native() + " refers to a directory on a read-only file system.");
+            return makeFailed("Path " + path.string() + " refers to a directory on a read-only file system.");
         default:
-            return makeFailed("Unknown error for path " + path.native());
+            return makeFailed("Unknown error for path " + path.string());
         }
     }
     return SUCCESS;
+#else
+    BOOL result;
+    if (type.value() == PathType::DIRECTORY) {
+        result = RemoveDirectoryW(path.native());
+    } else if (type.value() == PathType::FILE) {
+        result = DeleteFileW(path.native());
+    } else {
+        NOT_IMPLEMENTED; // removing symlinks?
+    }
+
+    if (result) {
+        return SUCCESS;
+    } else {
+        return makeFailed(getLastErrorMessage());
+    }
 #endif
 }
 
 Outcome FileSystem::copyFile(const Path& from, const Path& to) {
     SPH_ASSERT(pathType(from).valueOr(PathType::OTHER) == PathType::FILE);
     // there doesn't seem to be any system function for copying, so let's do it by hand
-    std::ifstream ifs(from.native().c_str());
+    std::ifstream ifs(from.native(), std::ios::in | std::ios::binary);
     if (!ifs) {
-        return makeFailed("Cannon open file " + from.native() + " for reading");
+        return makeFailed("Cannon open file " + from.string() + " for reading");
     }
     Outcome result = createDirectory(to.parentPath());
     if (!result) {
         return result;
     }
-    std::ofstream ofs(to.native());
+    std::ofstream ofs(to.native(), std::ios::out | std::ios::binary);
     if (!ofs) {
-        return makeFailed("Cannot open file " + to.native() + " for writing");
+        return makeFailed("Cannot open file " + to.string() + " for writing");
     }
 
     StaticArray<char, 1024> buffer;
@@ -268,7 +390,6 @@ Outcome FileSystem::copyFile(const Path& from, const Path& to) {
     } while (ifs);
     return SUCCESS;
 }
-
 
 Outcome FileSystem::copyDirectory(const Path& from, const Path& to) {
     SPH_ASSERT(pathType(from).valueOr(PathType::OTHER) == PathType::DIRECTORY);
@@ -298,67 +419,167 @@ Outcome FileSystem::copyDirectory(const Path& from, const Path& to) {
 
 bool FileSystem::setWorkingDirectory(const Path& path) {
     SPH_ASSERT(pathType(path).valueOr(PathType::OTHER) == PathType::DIRECTORY);
-    return chdir(path.native().c_str()) == 0;
+#ifndef SPH_WIN
+    return chdir(path.native()) == 0;
+#else
+    return SetCurrentDirectoryW(path.native());
+#endif
 }
 
-FileSystem::DirectoryIterator::DirectoryIterator(DIR* dir)
-    : dir(dir) {
-    if (dir) {
+Expected<Path> FileSystem::getDirectoryOfExecutable() {
+#ifndef SPH_WIN
+    char result[4096];
+    ssize_t count = readlink("/proc/self/exe", result, sizeof(result));
+    if (count != -1) {
+        Path path(String::fromUtf8(result));
+        return path.parentPath();
+    } else {
+        return makeUnexpected<Path>("Unknown error");
+    }
+#else
+    wchar_t path[MAX_PATH];
+    if (GetModuleFileNameW(nullptr, path, MAX_PATH) != 0) {
+        return Path(path).parentPath();
+    } else {
+        return makeUnexpected<Path>(getLastErrorMessage());
+    }
+#endif
+}
+
+struct FileSystem::DirectoryIterator::DirData {
+#ifndef SPH_WIN
+    DIR* dir = nullptr;
+    dirent* entry = nullptr;
+#else
+    HANDLE dir = INVALID_HANDLE_VALUE;
+    WIN32_FIND_DATAW entry;
+    DWORD error = 1;
+#endif
+};
+
+static bool isSpecial(const Path& path) {
+    return path == Path(".") || path == Path("..");
+}
+
+FileSystem::DirectoryIterator::DirectoryIterator(DirData&& dirData)
+    : data(makeAuto<DirData>(std::move(dirData))) {
+    SPH_ASSERT(data);
+#ifndef SPH_WIN
+    if (data->dir != nullptr) {
         // find first file
         this->operator++();
     }
+#else
+    // skip special paths
+    while (data->dir != INVALID_HANDLE_VALUE && !data->error && isSpecial(**this)) {
+        this->operator++();
+    }
+#endif
 }
 
+FileSystem::DirectoryIterator::DirectoryIterator(const DirectoryIterator& other) {
+    *this = other;
+}
+
+FileSystem::DirectoryIterator& FileSystem::DirectoryIterator::operator=(const DirectoryIterator& other) {
+    data = makeAuto<DirData>(*other.data);
+    return *this;
+}
+
+FileSystem::DirectoryIterator::~DirectoryIterator() = default;
+
 FileSystem::DirectoryIterator& FileSystem::DirectoryIterator::operator++() {
-    if (!dir) {
+#ifndef SPH_WIN
+    if (data->dir == nullptr) {
         return *this;
     }
     do {
-        entry = readdir(dir);
-    } while (entry && (**this == Path(".") || **this == Path("..")));
+        data->entry = readdir(data->dir);
+    } while (data->entry && isSpecial(**this));
+#else
+    if (data->dir == INVALID_HANDLE_VALUE) {
+        return *this;
+    }
+    bool result = true;
+    do {
+        result = FindNextFileW(data->dir, &data->entry);
+    } while (result && isSpecial(**this));
+
+    if (!result) {
+        data->error = GetLastError();
+    }
+#endif
     return *this;
 }
 
 Path FileSystem::DirectoryIterator::operator*() const {
-    SPH_ASSERT(entry);
-    return Path(entry->d_name);
+#ifndef SPH_WIN
+    SPH_ASSERT(data && data->entry);
+    return Path(String::fromUtf8(data->entry->d_name));
+#else
+    SPH_ASSERT(data && !data->error);
+    return Path(data->entry.cFileName);
+#endif
 }
 
 bool FileSystem::DirectoryIterator::operator==(const DirectoryIterator& other) const {
-    return (!entry && !other.entry) || entry == other.entry;
+#ifndef SPH_WIN
+    return (!data->entry && !other.data->entry) || data->entry == other.data->entry;
+#else
+    return (data->error && other.data->error) || data->dir == other.data->dir;
+#endif
 }
 
 bool FileSystem::DirectoryIterator::operator!=(const DirectoryIterator& other) const {
     // returns false if both are nullptr to end the loop for nonexisting dirs
-    return (entry || other.entry) && entry != other.entry;
+    return !(*this == other);
 }
 
 FileSystem::DirectoryAdapter::DirectoryAdapter(const Path& directory) {
     SPH_ASSERT(pathType(directory).valueOr(PathType::OTHER) == PathType::DIRECTORY);
+    data = makeAuto<DirectoryIterator::DirData>();
+#ifndef SPH_WIN
     if (!pathExists(directory)) {
-        dir = nullptr;
+        data->dir = nullptr;
         return;
     }
-    dir = opendir(directory.native().c_str());
+    data->dir = opendir(directory.native());
+#else
+    if (!pathExists(directory)) {
+        data->dir = INVALID_HANDLE_VALUE;
+        return;
+    }
+    String searchExpression = (directory / Path("*")).string();
+    data->dir = FindFirstFileW(searchExpression.toUnicode(), &data->entry);
+    if (data->dir != INVALID_HANDLE_VALUE) {
+        data->error = 0;
+    }
+#endif
 }
 
 FileSystem::DirectoryAdapter::~DirectoryAdapter() {
-    if (dir) {
-        closedir(dir);
+#ifndef SPH_WIN
+    if (data->dir) {
+        closedir(data->dir);
     }
+#else
+    if (data->dir != INVALID_HANDLE_VALUE) {
+        FindClose(data->dir);
+    }
+#endif
 }
 
-FileSystem::DirectoryAdapter::DirectoryAdapter(DirectoryAdapter&& other)
-    : dir(other.dir) {
-    other.dir = nullptr;
+FileSystem::DirectoryAdapter::DirectoryAdapter(DirectoryAdapter&& other) {
+    data = std::move(other.data);
+    other.data = makeAuto<DirectoryIterator::DirData>();
 }
 
 FileSystem::DirectoryIterator FileSystem::DirectoryAdapter::begin() const {
-    return DirectoryIterator(dir);
+    return DirectoryIterator(DirectoryIterator::DirData(*data));
 }
 
 FileSystem::DirectoryIterator FileSystem::DirectoryAdapter::end() const {
-    return DirectoryIterator(nullptr);
+    return DirectoryIterator({});
 }
 
 FileSystem::DirectoryAdapter FileSystem::iterateDirectory(const Path& directory) {
@@ -372,23 +593,5 @@ Array<Path> FileSystem::getFilesInDirectory(const Path& directory) {
     }
     return paths;
 }
-
-FileSystem::FileLock::FileLock(const Path& path) {
-    handle = open(path.native().c_str(), O_RDONLY);
-    TODO("check that the file exists and was correctly opened");
-}
-
-void FileSystem::FileLock::lock() {
-    flock(handle, LOCK_EX | LOCK_NB);
-}
-
-void FileSystem::FileLock::unlock() {
-    flock(handle, LOCK_UN | LOCK_NB);
-}
-
-bool FileSystem::isFileLocked(const Path& UNUSED(path)) {
-    NOT_IMPLEMENTED;
-}
-
 
 NAMESPACE_SPH_END

@@ -46,13 +46,13 @@ static RegisterEnum<RenderColorizerId> sColorizers({
     { RenderColorizerId::BEAUTY, "beauty", "Beauty" },
 });
 
-AnimationJob::AnimationJob(const std::string& name)
+AnimationJob::AnimationJob(const String& name)
     : IImageJob(name) {
     animationType = EnumWrapper(AnimationType::SINGLE_FRAME);
     colorizerId = EnumWrapper(RenderColorizerId::VELOCITY);
 }
 
-UnorderedMap<std::string, ExtJobType> AnimationJob::requires() const {
+UnorderedMap<String, ExtJobType> AnimationJob::requires() const {
     if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE &&
         RenderColorizerId(colorizerId) != RenderColorizerId::GRAVITY) {
         return { { "camera", GuiJobType::CAMERA } };
@@ -212,7 +212,7 @@ public:
         return NOTHING;
     }
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         // needs to 'pretend' to be acceleration to work with palette accessor in IR
         return "Acceleration";
     }
@@ -482,7 +482,7 @@ JobRegistrar sRegisterAnimation(
     "render animation",
     "animation",
     "rendering",
-    [](const std::string& name) { return makeAuto<AnimationJob>(name); },
+    [](const String& name) { return makeAuto<AnimationJob>(name); },
     "Renders an image or a sequence of images from given particle input(s)");
 
 //-----------------------------------------------------------------------------------------------------------
@@ -663,7 +663,7 @@ JobRegistrar sRegisterVdb(
     "save VDB grid",
     "grid",
     "rendering",
-    [](const std::string& name) { return makeAuto<VdbJob>(name); },
+    [](const String& name) { return makeAuto<VdbJob>(name); },
     "Converts the particle data into a volumetric grid in OpenVDB format.");
 
 #endif

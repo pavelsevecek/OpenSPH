@@ -49,9 +49,7 @@ public:
     /// \brief Draws a bitmap, given the position of its left-top corner.
     virtual void drawBitmap(const Coords p, const Bitmap<Rgba>& bitmap) = 0;
 
-    virtual void drawText(const Coords p, const Flags<TextAlign> align, const std::string& s) = 0;
-
-    virtual void drawText(const Coords p, const Flags<TextAlign> align, const std::wstring& s) = 0;
+    virtual void drawText(const Coords p, const Flags<TextAlign> align, const String& s) = 0;
 
     virtual Array<IRenderOutput::Label> getLabels() const {
         return {};
@@ -113,9 +111,7 @@ public:
 
     virtual void drawBitmap(const Coords p, const Bitmap<Rgba>& subBitmap) override;
 
-    virtual void drawText(const Coords p, const Flags<TextAlign> align, const std::string& s) override;
-
-    virtual void drawText(const Coords p, const Flags<TextAlign> align, const std::wstring& s) override;
+    virtual void drawText(const Coords p, const Flags<TextAlign> align, const String& s) override;
 
     virtual Array<IRenderOutput::Label> getLabels() const override {
         return labels.clone();
@@ -238,12 +234,7 @@ public:
         NOT_IMPLEMENTED;
     }
 
-    virtual void drawText(const Coords p, const Flags<TextAlign> align, const std::string& s) override {
-        std::wstring ws(s.begin(), s.end());
-        this->drawText(p, align, ws);
-    }
-
-    virtual void drawText(const Coords p, const Flags<TextAlign> align, const std::wstring& s) override {
+    virtual void drawText(const Coords p, const Flags<TextAlign> align, const String& s) override {
         IRenderOutput::Label label;
         label.text = s;
         label.align = align;

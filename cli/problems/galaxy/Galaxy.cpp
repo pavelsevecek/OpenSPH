@@ -12,14 +12,14 @@ using namespace Sph;
 class GalaxyRun : public IRun {
 public:
     GalaxyRun() {
-        settings.set(RunSettingsId::RUN_NAME, std::string("Galaxy Problem"))
+        settings.set(RunSettingsId::RUN_NAME, String("Galaxy Problem"))
             .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::LEAP_FROG)
             .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-3_f)
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
             .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
             .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 20._f)
-            .set(RunSettingsId::RUN_OUTPUT_PATH, std::string("galaxy"))
-            .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("galaxy_%d.ssf"))
+            .set(RunSettingsId::RUN_OUTPUT_PATH, String("galaxy"))
+            .set(RunSettingsId::RUN_OUTPUT_NAME, String("galaxy_%d.ssf"))
             .set(RunSettingsId::RUN_END_TIME, 10._f)
             .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SOLID_SPHERES)
             .set(RunSettingsId::GRAVITY_CONSTANT, 1._f)

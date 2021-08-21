@@ -6,7 +6,9 @@
 #include "io/Path.h"
 #include <wx/button.h>
 #include <wx/checkbox.h>
+#include <wx/dcbuffer.h>
 #include <wx/dcclient.h>
+#include <wx/dcgraph.h>
 #include <wx/menu.h>
 #include <wx/sizer.h>
 
@@ -25,6 +27,7 @@ PlotView::PlotView(wxWindow* parent,
     , list(list)
     , ticsParams(ticsParams) {
     this->SetMinSize(size);
+    this->SetBackgroundStyle(wxBG_STYLE_PAINT);
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(PlotView::onPaint));
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(PlotView::onRightUp));
     this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(PlotView::onDoubleClick));
@@ -84,7 +87,7 @@ void PlotView::onRightUp(wxMouseEvent& UNUSED(evt)) {
     wxMenu menu;
     Size index = 0;
     for (PlotData& data : *list) {
-        menu.Append(index++, data.plot->getCaption());
+        menu.Append(index++, data.plot->getCaption().toUnicode());
     }
 
     menu.Connect(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(PlotView::onMenu), nullptr, this);
@@ -105,8 +108,8 @@ void PlotView::onDoubleClick(wxMouseEvent& UNUSED(evt)) {
 
     const Size index = notebook->GetPageCount();
     // needs to be called before, AddPage calls onPaint, which locks the mutex
-    const std::string caption = cached.plot->getCaption();
-    notebook->AddPage(page, caption);
+    const String caption = cached.plot->getCaption();
+    notebook->AddPage(page, caption.toUnicode());
     notebook->SetSelection(index);
 }
 
@@ -119,8 +122,8 @@ void PlotView::onMenu(wxCommandEvent& evt) {
 }
 
 void PlotView::onPaint(wxPaintEvent& UNUSED(evt)) {
-    wxPaintDC dc(this);
-    wxSize canvasSize = dc.GetSize();
+    wxAutoBufferedPaintDC dc(this);
+    wxSize canvasSize = this->GetClientSize();
 
     // draw background
     Rgba backgroundColor = Rgba(this->GetParent()->GetBackgroundColour());
@@ -150,7 +153,10 @@ void PlotView::onPaint(wxPaintEvent& UNUSED(evt)) {
     this->drawPlot(dc, *proxy, rangeX, rangeY);
 }
 
-void PlotView::drawPlot(wxPaintDC& dc, IPlot& lockedPlot, const Interval rangeX, const Interval rangeY) {
+void PlotView::drawPlot(wxAutoBufferedPaintDC& dc,
+    IPlot& lockedPlot,
+    const Interval rangeX,
+    const Interval rangeY) {
     GraphicsContext context(dc, cached.color);
     const AffineMatrix2 matrix = this->getPlotTransformMatrix(rangeX, rangeY);
     context.setTransformMatrix(matrix);
@@ -176,8 +182,8 @@ void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) 
                 const PlotPoint imagePoint = matrix.transformPoint(plotPoint);
                 dc.DrawLine(
                     int(imagePoint.x) - 2, int(imagePoint.y), int(imagePoint.x) + 2, int(imagePoint.y));
-                const std::wstring text = toPrintableString(tic, ticsParams->digits);
-                const wxSize extent = dc.GetTextExtent(text);
+                const String text = toPrintableString(tic, ticsParams->digits);
+                const wxSize extent = dc.GetTextExtent(text.toUnicode());
                 const int labelX =
                     (imagePoint.x > size.x / 2._f) ? int(imagePoint.x) - extent.x : int(imagePoint.x);
                 drawTextWithSubscripts(dc, text, wxPoint(labelX, int(imagePoint.y) - extent.y / 2));
@@ -197,8 +203,8 @@ void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) 
                 const PlotPoint imagePoint = matrix.transformPoint(plotPoint);
                 dc.DrawLine(
                     int(imagePoint.x), int(imagePoint.y) - 2, int(imagePoint.x), int(imagePoint.y) + 2);
-                const std::wstring text = toPrintableString(tic, ticsParams->digits);
-                const wxSize extent = dc.GetTextExtent(text);
+                const String text = toPrintableString(tic, ticsParams->digits);
+                const wxSize extent = dc.GetTextExtent(text.toUnicode());
                 const int labelY =
                     (imagePoint.y < size.y / 2._f) ? int(imagePoint.y) : int(imagePoint.y) - extent.y;
                 drawTextWithSubscripts(dc, text, wxPoint(int(imagePoint.x) - extent.x / 2, labelY));
@@ -210,7 +216,7 @@ void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) 
 void PlotView::drawCaption(wxDC& dc, IPlot& lockedPlot) {
     // plot may change caption during simulation (by selecting particle, for example), so we need to get the
     // name every time from the plot
-    const wxString label = lockedPlot.getCaption();
+    const wxString label = lockedPlot.getCaption().toUnicode();
     wxFont font = dc.GetFont();
     font.MakeSmaller();
     dc.SetFont(font);
@@ -236,7 +242,7 @@ PlotPage::PlotPage(wxWindow* parent, const wxSize size, const wxSize padding, co
     sizer->Add(plotView);
     this->SetSizerAndFit(sizer);
 
-    this->Bind(wxEVT_SIZE, [this](wxSizeEvent& evt) {
+    this->Bind(wxEVT_SIZE, [this, toolbarHeight](wxSizeEvent& evt) {
         const wxSize size = evt.GetSize();
         plotView->resize(Pixel(size.x, size.y - toolbarHeight));
     });
@@ -315,7 +321,7 @@ void PlotPage::saveImage(const Path& path) {
 
         dc.SelectObject(wxNullBitmap);
 
-        bitmap.SaveFile(path.native().c_str(), wxBITMAP_TYPE_PNG);
+        bitmap.SaveFile(path.string().toUnicode(), wxBITMAP_TYPE_PNG);
     } else if (path.extension() == Path("svg")) {
         auto proxy = plot.lock();
         SvgContext gc(path, Pixel(800, 600));

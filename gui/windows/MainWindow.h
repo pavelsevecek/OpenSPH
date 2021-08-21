@@ -51,9 +51,9 @@ private:
 
     wxMenu* createResultMenu();
 
-    void addRunPage(SharedPtr<INode> node, const RunSettings& globals, const std::string pageName);
+    void addRunPage(SharedPtr<INode> node, const RunSettings& globals, const String pageName);
 
-    void addRenderPage(SharedPtr<INode> node, const RunSettings& globals, const std::string pageName);
+    void addRenderPage(SharedPtr<INode> node, const RunSettings& globals, const String pageName);
 
     bool removeAll();
 

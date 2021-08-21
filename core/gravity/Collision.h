@@ -245,15 +245,15 @@ private:
     /// velocity of the merger is lower than the breakup limit.
     /// \param i, j Particle indices
     /// \param h Radius of the merger
-    /// \param omega Angular velocity of the merger
-    INLINE bool acceptMerge(const Size i, const Size j, const Float h, const Vector& omega) const {
+    /// \param omega_merge Angular velocity of the merger
+    INLINE bool acceptMerge(const Size i, const Size j, const Float h, const Vector& omega_merge) const {
         if (!areParticlesBound(m[i] + m[j], r[i][H] + r[j][H], v[i] - v[j], bounceLimit)) {
             // moving too fast, reject the merge
             /// \todo shouldn't we check velocities AFTER the bounce?
             return false;
         }
         const Float omegaCritSqr = Constants::gravity * (m[i] + m[j]) / pow<3>(h);
-        const Float omegaSqr = getSqrLength(omega);
+        const Float omegaSqr = getSqrLength(omega_merge);
         if (omegaSqr * rotationLimit > omegaCritSqr) {
             // rotates too fast, reject the merge
             return false;
@@ -313,9 +313,9 @@ public:
     }
 
 private:
-    INLINE Vector reflect(const Vector& v, const Vector& v_com, const Vector& dir) {
+    INLINE Vector reflect(const Vector& v_particle, const Vector& v_com, const Vector& dir) {
         SPH_ASSERT(almostEqual(getSqrLength(dir), 1._f), dir);
-        const Vector v_rel = v - v_com;
+        const Vector v_rel = v_particle - v_com;
         const Float proj = dot(v_rel, dir);
         const Vector v_t = v_rel - proj * dir;
         const Vector v_n = proj * dir;

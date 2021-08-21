@@ -18,6 +18,7 @@
 #include "thread/Pool.h"
 #include <wx/app.h>
 #include <wx/checkbox.h>
+#include <wx/dcgraph.h>
 #include <wx/dcmemory.h>
 #include <wx/msgdlg.h>
 
@@ -31,7 +32,7 @@ Controller::Controller(wxWindow* parent)
 
     // create associated page
     GuiSettings& gui = project.getGuiSettings();
-    page = alignedNew<RunPage>(parent, this, gui);
+    page = new RunPage(parent, this, gui);
 
     this->startRenderThread();
 }
@@ -150,15 +151,15 @@ RunStatus Controller::getStatus() const {
 void Controller::saveState(const Path& path) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     auto dump = [path](const Storage& storage, const Statistics& stats) {
-        const Optional<IoEnum> type = getIoEnum(path.extension().native());
+        const Optional<IoEnum> type = getIoEnum(path.extension().string());
         if (!type) {
-            wxMessageBox("Unknown type of file '" + path.native() + "'", "Fail", wxOK | wxCENTRE);
+            messageBox("Unknown type of file '" + path.string() + "'", "Fail", wxOK | wxCENTRE);
             return;
         }
         RunSettings settings;
         settings.set(RunSettingsId::RUN_OUTPUT_TYPE, type.value());
-        settings.set(RunSettingsId::RUN_OUTPUT_NAME, path.native());
-        settings.set(RunSettingsId::RUN_OUTPUT_PATH, std::string(""));
+        settings.set(RunSettingsId::RUN_OUTPUT_NAME, path.string());
+        settings.set(RunSettingsId::RUN_OUTPUT_PATH, ""_s);
         Flags<OutputQuantityFlag> flags = OutputQuantityFlag::POSITION | OutputQuantityFlag::MASS |
                                           OutputQuantityFlag::VELOCITY | OutputQuantityFlag::DENSITY |
                                           OutputQuantityFlag::ENERGY | OutputQuantityFlag::DAMAGE |
@@ -168,7 +169,7 @@ void Controller::saveState(const Path& path) {
         AutoPtr<IOutput> output = Factory::getOutput(settings);
         Expected<Path> result = output->dump(storage, stats);
         if (!result) {
-            wxMessageBox("Cannot save the file.\n\n" + result.error(), "Fail", wxOK | wxCENTRE);
+            messageBox("Cannot save the file.\n\n" + result.error(), "Fail", wxOK | wxCENTRE);
         }
     };
 
@@ -231,8 +232,8 @@ void Controller::onSetUp(const Storage& storage, Statistics& stats) {
 }
 
 void Controller::onStart(const IJob& job) {
-    const std::string className = job.className();
-    const std::string instanceName = job.instanceName();
+    const String className = job.className();
+    const String instanceName = job.instanceName();
     this->safePageCall([className, instanceName](RunPage* page) { page->newPhase(className, instanceName); });
 }
 
@@ -661,9 +662,8 @@ void Controller::refresh() {
 }
 
 void Controller::safePageCall(Function<void(RunPage*)> func) {
-    executeOnMainThread([func, this] {
-        wxWeakRef<RunPage> weakPage = page.get();
-        if (weakPage) {
+    executeOnMainThread([func, weakPage = wxWeakRef<RunPage>(page.get())] {
+        if (weakPage && weakPage->isOk()) {
             func(weakPage);
         }
     });
@@ -678,9 +678,8 @@ void Controller::startRunThread() {
             sph.run->run(sph.globals, *this);
 
         } catch (const std::exception& e) {
-            executeOnMainThread([desc = std::string(e.what())] { //
-                wxMessageBox(
-                    std::string("Error encountered during the run: \n") + desc, "Fail", wxOK | wxCENTRE);
+            executeOnMainThread([desc = exceptionMessage(e)] { //
+                messageBox("Error encountered during the run: \n" + desc, "Fail", wxOK | wxCENTRE);
             });
         }
 
@@ -732,9 +731,8 @@ void Controller::startRenderThread() {
                 vis.bitmap = std::move(bitmap);
 
                 if (!labels.empty()) {
-                    wxMemoryDC dc(*vis.bitmap);
+                    wxGCDC dc(*vis.bitmap);
                     printLabels(dc, labels);
-                    dc.SelectObject(wxNullBitmap);
                 }
 
                 page->refresh();

@@ -6,20 +6,22 @@
 /// \date 2016-2021
 
 #include "objects/containers/FlatMap.h"
+#include "objects/containers/String.h"
+#include "objects/containers/UnorderedMap.h"
 #include <typeindex>
 
 NAMESPACE_SPH_BEGIN
 
 struct EnumValue {
     /// Text of the value
-    std::string value;
+    String value;
 
     /// Description
-    std::string desc;
+    String desc;
 };
 
 /// Maps a numerical value to a string value and description.
-using EnumRecord = FlatMap<int, EnumValue>;
+using EnumRecord = UnorderedMap<int, EnumValue>;
 
 /// Unique identifier of an enum type.
 ///
@@ -29,8 +31,8 @@ using EnumIndex = Optional<std::type_index>;
 template <typename TEnum>
 struct EnumInputValue {
     TEnum id;
-    std::string value;
-    std::string desc;
+    String value;
+    String desc;
 };
 
 class EnumMap {
@@ -54,7 +56,7 @@ public:
     static EnumMap& addEnum(Array<EnumInputValue<TEnum>>&& input) {
         EnumMap& instance = getInstance();
         // convert enum values to ints to get rid of the type
-        FlatMap<int, EnumValue> map;
+        UnorderedMap<int, EnumValue> map;
         for (auto value : input) {
             map.insert(int(value.id), EnumValue{ value.value, value.desc });
         }
@@ -64,11 +66,11 @@ public:
     }
 
     template <typename TEnum>
-    static std::string toString(const TEnum value) {
+    static String toString(const TEnum value) {
         return toString(int(value), std::type_index(typeid(TEnum)));
     }
 
-    static std::string toString(const int value, const EnumIndex& index) {
+    static String toString(const int value, const EnumIndex& index) {
         EnumMap& instance = getInstance();
         Optional<EnumRecord&> record = instance.records.tryGet(index);
         SPH_ASSERT(record);
@@ -77,7 +79,7 @@ public:
             return e->value;
         } else {
             // the value is not directly in the enum, but can be composed of flags
-            std::string result;
+            String result;
             for (int i = 1; i <= value; i *= 2) {
                 if ((value & i) == 0) {
                     continue;
@@ -98,12 +100,12 @@ public:
     }
 
     template <typename TEnum>
-    static Optional<TEnum> fromString(const std::string& value) {
+    static Optional<TEnum> fromString(const String& value) {
         Optional<int> id = fromString(value, std::type_index(typeid(TEnum)));
         return optionalCast<TEnum>(id);
     }
 
-    static Optional<int> fromString(const std::string& value, const EnumIndex& index) {
+    static Optional<int> fromString(const String& value, const EnumIndex& index) {
         EnumMap& instance = getInstance();
         Optional<EnumRecord&> record = instance.records.tryGet(index);
         SPH_ASSERT(record);
@@ -116,15 +118,15 @@ public:
     }
 
     template <typename TEnum>
-    static std::string getDesc() {
+    static String getDesc() {
         return getDesc(std::type_index(typeid(TEnum)));
     }
 
-    static std::string getDesc(const EnumIndex& index) {
+    static String getDesc(const EnumIndex& index) {
         EnumMap& instance = getInstance();
         Optional<EnumRecord&> record = instance.records.tryGet(index);
         SPH_ASSERT(record);
-        std::string desc;
+        String desc;
         Size idx = 0;
         for (auto pair : record.value()) {
             if (idx > 0) {

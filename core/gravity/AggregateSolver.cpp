@@ -564,9 +564,9 @@ public:
 
 private:
     /// \todo copied from bounce handler, deduplicate!!
-    INLINE Vector reflect(const Vector& v, const Vector& v_com, const Vector& dir) const {
+    INLINE Vector reflect(const Vector& v_particle, const Vector& v_com, const Vector& dir) const {
         SPH_ASSERT(almostEqual(getSqrLength(dir), 1._f), dir);
-        const Vector v_rel = v - v_com;
+        const Vector v_rel = v_particle - v_com;
         const Float proj = dot(v_rel, dir);
         const Vector v_t = v_rel - proj * dir;
         const Vector v_n = proj * dir;

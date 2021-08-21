@@ -51,7 +51,7 @@ public:
     /// \brief Returns a name of the column.
     ///
     /// The name is printed in the header of the output file.
-    virtual std::string getName() const = 0;
+    virtual String getName() const = 0;
 
     /// \brief Returns the value type of the column.
     virtual ValueEnum getType() const = 0;
@@ -83,8 +83,9 @@ public:
         const Size particleIdx) const override {
         ArrayView<const TValue> values = storage.getValue<TValue>(id);
         if (particleIdx >= values.size()) {
-            throw Exception("Cannot evaluate value of particle " + std::to_string(particleIdx) +
-                            ", storage only contains " + std::to_string(values.size()) + " particles");
+            throw Exception(format("Cannot evaluate value of particle {}, storage only contains {} particles",
+                particleIdx,
+                values.size()));
         }
         return values[particleIdx];
     }
@@ -99,7 +100,7 @@ public:
         array[particleIdx] = value.get<TValue>();
     }
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return getMetadata(id).quantityName;
     }
 
@@ -125,8 +126,10 @@ public:
         const Size particleIdx) const override {
         ArrayView<const TValue> values = storage.getDt<TValue>(id);
         if (particleIdx >= values.size()) {
-            throw Exception("Cannot evaluate derivative of particle " + std::to_string(particleIdx) +
-                            ", storage only contains " + std::to_string(values.size()) + " particles");
+            throw Exception(
+                format("Cannot evaluate derivative of particle {}, storage only contains {} particles",
+                    particleIdx,
+                    values.size()));
         }
         return values[particleIdx];
     }
@@ -145,7 +148,7 @@ public:
         array[particleIdx] = value.get<TValue>();
     }
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return getMetadata(id).derivativeName;
     }
 
@@ -191,7 +194,7 @@ public:
         array[particleIdx] = value.get<TValue>();
     }
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return getMetadata(id).secondDerivativeName;
     }
 
@@ -208,8 +211,10 @@ public:
         const Size particleIdx) const override {
         ArrayView<const Vector> values = storage.getValue<Vector>(QuantityId::POSITION);
         if (particleIdx >= values.size()) {
-            throw Exception("Cannot evaluate smoothing length of particle " + std::to_string(particleIdx) +
-                            ", storage only contains " + std::to_string(values.size()) + " particles");
+            throw Exception(
+                format("Cannot evaluate smoothing length of particle {}, storage only contains {} particles",
+                    particleIdx,
+                    values.size()));
         }
         return values[particleIdx][H];
     }
@@ -224,7 +229,7 @@ public:
         array[particleIdx][H] = value.get<Float>();
     }
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return "Smoothing length";
     }
 
@@ -256,7 +261,7 @@ public:
         array[particleIdx] = root<3>(value.get<TValue>());
     }
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return "Damage";
     }
 
@@ -278,7 +283,7 @@ public:
         // do nothing
     }
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return "Particle index";
     }
 
@@ -300,7 +305,7 @@ public:
         // do nothing
     }
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return "Time";
     }
 

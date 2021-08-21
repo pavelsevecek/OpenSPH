@@ -14,10 +14,10 @@ bool App::OnInit() {
     this->Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(App::processEvents));
 
     if (wxTheApp->argc > 1) {
-        Path path(std::string(wxTheApp->argv[1]));
-        window = alignedNew<MainWindow>(path);
+        Path path(String::fromUtf8(wxTheApp->argv[1]));
+        window = new MainWindow(path);
     } else {
-        window = alignedNew<MainWindow>();
+        window = new MainWindow();
     }
     window->SetAutoLayout(true);
     window->Show();

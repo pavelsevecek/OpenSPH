@@ -42,11 +42,13 @@ SharedPtr<TValue> JobContext::tryGetValue() const {
 }
 
 template <typename T>
-SharedPtr<T> IJob::getInput(const std::string& name) const {
+SharedPtr<T> IJob::getInput(const String& name) const {
     if (!inputs.contains(name)) {
         throw InvalidSetup(
-            "Input '" + name + "' for job '" + instName +
-            "' was not found, either it was not connected or the node has not been successfully evaluated.");
+            format("Input '{}' for job '{}' was not found, either it was not connected or the node has not "
+                   "been successfully evaluated.",
+                name,
+                instName));
     }
 
     JobContext context = inputs[name];

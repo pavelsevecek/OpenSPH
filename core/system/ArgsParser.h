@@ -22,7 +22,7 @@ enum class ArgEnum {
 /// \brief Exception thrown if the arguments are invalid
 class ArgError : public Exception {
 public:
-    explicit ArgError(const std::string& message)
+    explicit ArgError(const String& message)
         : Exception(message) {}
 };
 
@@ -31,29 +31,29 @@ public:
 /// The exception message contains the parameter description.
 class HelpException : public Exception {
 public:
-    explicit HelpException(const std::string& message)
+    explicit HelpException(const String& message)
         : Exception(message) {}
 };
 
 /// \brief Descriptor of a command-line argument.
 struct ArgDesc {
     /// Short name, prefixed by single dash (e.g. -h)
-    std::string shortName;
+    String shortName;
 
     /// Long name, prefixed by double-dash (e.g. --help)
-    std::string longName;
+    String longName;
 
     /// Type of the parameter
     ArgEnum type;
 
     /// Parameter description, printed in help
-    std::string desc;
+    String desc;
 
     /// Generic callback executed when the parameter is parsed
     Function<void()> callback = nullptr;
 
     /// \brief Checks if the descriptor matches given argument.
-    bool matches(const std::string& name) {
+    bool matches(const String& name) const {
         return (name == "-" + shortName) || (name == "--" + longName);
     }
 };
@@ -61,13 +61,13 @@ struct ArgDesc {
 /// \brief Provides functions for parsing command-line arguments.
 class ArgParser {
 private:
-    using ArgValue = Variant<int, Float, bool, std::string>;
+    using ArgValue = Variant<int, Float, bool, String>;
 
     /// Input argument descriptors
     Array<ArgDesc> descs;
 
     /// Parsed argument values
-    FlatMap<std::string, ArgValue> params;
+    FlatMap<String, ArgValue> params;
 
 public:
     /// \brief Creates a parser, given a set of parameter descriptors.
@@ -92,13 +92,13 @@ public:
     ///
     /// \throw ArgError if the argument was not been parsed or it has different type.
     template <typename TValue>
-    TValue getArg(const std::string& name) const {
+    TValue getArg(const String& name) const {
         throwIfUnknownArg(name);
         Optional<const ArgValue&> value = params.tryGet(name);
         if (value && value->has<TValue>()) {
             return value->get<TValue>();
         } else {
-            const std::string message = value ? "Invalid type of argument -" : "Missing argument -" + name;
+            const String message = value ? "Invalid type of argument -" : "Missing argument -" + name;
             throw ArgError(message);
         }
     }
@@ -107,7 +107,7 @@ public:
     ///
     /// \throw ArgError if the name does not match any argument descriptor or it has different type.
     template <typename TValue>
-    Optional<TValue> tryGetArg(const std::string& name) const {
+    Optional<TValue> tryGetArg(const String& name) const {
         throwIfUnknownArg(name);
         Optional<const ArgValue&> value = params.tryGet(name);
         if (value) {
@@ -131,7 +131,7 @@ public:
     ///             arguments.
     /// \throw ArgError if the name does not match any argument descriptor.
     template <typename TEnum, typename TConvertor>
-    bool tryStore(Settings<TEnum>& settings, const std::string& name, const TEnum idx, TConvertor&& conv) {
+    bool tryStore(Settings<TEnum>& settings, const String& name, const TEnum idx, TConvertor&& conv) {
         throwIfUnknownArg(name);
         auto value = params.tryGet(name);
         if (value) {
@@ -150,14 +150,14 @@ public:
     ///
     /// Overload without value convertor.
     template <typename TEnum>
-    bool tryStore(Settings<TEnum>& settings, const std::string& name, const TEnum idx) {
+    bool tryStore(Settings<TEnum>& settings, const String& name, const TEnum idx) {
         return tryStore(settings, name, idx, [](Float value) { return value; });
     }
 
     /// \brief Enumerates all parsed arguments and executes a generic functor with parsed values.
     ///
     /// Functor must be either generic lambda, or it must overload operator() for each parsed type, as listed
-    /// in enum \ref ArgEnum. The operator must have signature void(std::string, Type). The arguments are
+    /// in enum \ref ArgEnum. The operator must have signature void(String, Type). The arguments are
     /// identified using its short name, without the dash.
     template <typename TFunctor>
     void forEach(const TFunctor& functor) {
@@ -179,12 +179,12 @@ public:
 private:
     void parseValuelessArg(const ArgDesc& desc);
 
-    void parseValueArg(const ArgDesc& desc, const std::string& value);
+    void parseValueArg(const ArgDesc& desc, const String& value);
 
     template <typename TValue>
-    void insertArg(const std::string& name, const std::string& textValue);
+    void insertArg(const String& name, const String& textValue);
 
-    void throwIfUnknownArg(const std::string& name) const;
+    void throwIfUnknownArg(const String& name) const;
 };
 
 

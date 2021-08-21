@@ -6,7 +6,7 @@ NAMESPACE_SPH_BEGIN
 UnitSystem CODE_UNITS = UnitSystem::SI();
 
 struct UnitDesc {
-    std::string label;
+    String label;
     Unit unit;
 
     bool operator<(const UnitDesc& other) const {
@@ -87,15 +87,15 @@ std::ostream& operator<<(std::ostream& stream, const Unit& u) {
     return stream;
 }
 
-Expected<Unit> parseUnit(const std::string& text) {
+Expected<Unit> parseUnit(const String& text) {
     Unit u = Unit::dimensionless(1._f);
-    Array<std::string> parts = split(text, ' ');
-    for (std::string& part : parts) {
+    Array<String> parts = split(text, ' ');
+    for (String& part : parts) {
         if (part.empty()) {
             // multiple spaces or empty input string; allow and continue
             continue;
         }
-        Array<std::string> valueAndPower = split(part, '^');
+        Array<String> valueAndPower = split(part, '^');
         if (valueAndPower.size() > 2) {
             return makeUnexpected<Unit>("More than one exponent");
         }

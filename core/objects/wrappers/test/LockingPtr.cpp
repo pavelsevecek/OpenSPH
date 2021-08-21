@@ -21,7 +21,7 @@ TEST_CASE("LockingPtr default construct", "[lockingptr]") {
 TEST_CASE("LockingPtr ptr construct", "[lockingptr]") {
     RecordType::resetStats();
     {
-        LockingPtr<RecordType> l(new RecordType(5));
+        LockingPtr<RecordType> l(alignedNew<RecordType>(5));
         REQUIRE(RecordType::constructedNum == 1);
         REQUIRE(l->value == 5);
         l->value = 7;
@@ -36,7 +36,7 @@ TEST_CASE("LockingPtr ptr construct", "[lockingptr]") {
 
 TEST_CASE("LockingPtr copy construct", "[lockingptr]") {
     RecordType::resetStats();
-    LockingPtr<RecordType> l1(new RecordType(5));
+    LockingPtr<RecordType> l1(alignedNew<RecordType>(5));
     {
         LockingPtr<RecordType> l2(l1);
         REQUIRE(l2->value == 5);
@@ -48,7 +48,7 @@ TEST_CASE("LockingPtr copy construct", "[lockingptr]") {
 }
 
 TEST_CASE("LockingPtr concurrent access", "[lockingptr]") {
-    LockingPtr<RecordType> l1(new RecordType(5));
+    LockingPtr<RecordType> l1(alignedNew<RecordType>(5));
     LockingPtr<RecordType> l2(l1);
     std::thread t = std::thread([&l1] {
         auto proxy = l1.lock();
@@ -71,7 +71,7 @@ static std::thread lockAndAssign(LockingPtr<RecordType>& l, bool& valueSet) {
 }
 
 TEST_CASE("LockingPtr reset while locked", "[lockingptr]") {
-    LockingPtr<RecordType> l1(new RecordType(5));
+    LockingPtr<RecordType> l1(alignedNew<RecordType>(5));
     bool valueSet = false;
     std::thread t = lockAndAssign(l1, valueSet);
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -82,12 +82,12 @@ TEST_CASE("LockingPtr reset while locked", "[lockingptr]") {
 }
 
 TEST_CASE("LockingPtr assign while locked", "[lockingptr]") {
-    LockingPtr<RecordType> l1(new RecordType(5));
+    LockingPtr<RecordType> l1(alignedNew<RecordType>(5));
     bool valueSet = false;
     std::thread t = lockAndAssign(l1, valueSet);
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
     // the value should be assigned after the proxy is released
-    LockingPtr<RecordType> l2(new RecordType(6));
+    LockingPtr<RecordType> l2(alignedNew<RecordType>(6));
     l1 = l2;
     REQUIRE(valueSet);
     REQUIRE(l1->value == 6);
@@ -95,7 +95,7 @@ TEST_CASE("LockingPtr assign while locked", "[lockingptr]") {
 }
 
 TEST_CASE("LockingPtr move while locked", "[lockingptr]") {
-    LockingPtr<RecordType> l1(new RecordType(5));
+    LockingPtr<RecordType> l1(alignedNew<RecordType>(5));
     bool valueSet = false;
     std::thread t = lockAndAssign(l1, valueSet);
     std::this_thread::sleep_for(std::chrono::milliseconds(20));

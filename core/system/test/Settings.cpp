@@ -79,7 +79,7 @@ TEST_CASE("Settings hasType", "[settings]") {
     RunSettings settings;
     REQUIRE(settings.hasType<Float>(RunSettingsId::COLLISION_ALLOWED_OVERLAP));
     REQUIRE(settings.hasType<bool>(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR));
-    REQUIRE(settings.hasType<std::string>(RunSettingsId::RUN_NAME));
+    REQUIRE(settings.hasType<String>(RunSettingsId::RUN_NAME));
 }
 
 TEST_CASE("Settings unset", "[settings]") {
@@ -96,13 +96,13 @@ TEST_CASE("Settings iterator", "[settings]") {
     RunSettings settings(EMPTY_SETTINGS);
     settings.set(RunSettingsId::DOMAIN_CENTER, Vector(1._f, 2._f, 3._f));
     settings.set(RunSettingsId::DOMAIN_RADIUS, 3.5_f);
-    settings.set(RunSettingsId::RUN_NAME, std::string("test"));
+    settings.set(RunSettingsId::RUN_NAME, String("test"));
     REQUIRE(settings.size() == 3);
 
     // Rb tree sorts the entries
     auto iter = settings.begin();
     REQUIRE((*iter).id == RunSettingsId::RUN_NAME);
-    REQUIRE((*iter).value.get<std::string>() == std::string("test"));
+    REQUIRE((*iter).value.get<String>() == String("test"));
     ++iter;
     REQUIRE((*iter).id == RunSettingsId::DOMAIN_CENTER);
     REQUIRE((*iter).value.get<Vector>() == Vector(1._f, 2._f, 3._f));
@@ -136,7 +136,7 @@ TEST_CASE("Settings save/load basic", "[settings]") {
     RunSettings settings;
     settings.set(RunSettingsId::DOMAIN_CENTER, Vector(1._f, 2._f, 3._f));
     settings.set(RunSettingsId::DOMAIN_RADIUS, 3.5_f);
-    settings.set(RunSettingsId::RUN_NAME, std::string("test"));
+    settings.set(RunSettingsId::RUN_NAME, String("test"));
     settings.set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE);
 
     RandomPathManager manager;
@@ -150,7 +150,7 @@ TEST_CASE("Settings save/load basic", "[settings]") {
     REQUIRE(center == Vector(1._f, 2._f, 3._f));
     const Float radius = loadedSettings.get<Float>(RunSettingsId::DOMAIN_RADIUS);
     REQUIRE(radius == 3.5_f);
-    const std::string name = loadedSettings.get<std::string>(RunSettingsId::RUN_NAME);
+    const String name = loadedSettings.get<String>(RunSettingsId::RUN_NAME);
     REQUIRE(name == "test");
     const IoEnum output = loadedSettings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
     REQUIRE(output == IoEnum::BINARY_FILE);
@@ -256,7 +256,7 @@ TEST_CASE("Settings save/load complete", "[settings]") {
 
     RunSettings settings1;
     settings1.set(RunSettingsId::DOMAIN_RADIUS, 3.5_f);
-    settings1.set(RunSettingsId::RUN_NAME, std::string("lll"));
+    settings1.set(RunSettingsId::RUN_NAME, String("lll"));
     settings1.set(RunSettingsId::TIMESTEPPING_CRITERION, EMPTY_FLAGS);
     settings1.saveToFile(path);
     RunSettings settings2(EMPTY_SETTINGS);

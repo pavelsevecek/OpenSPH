@@ -55,7 +55,7 @@ private:
 
 public:
     SvgContext(const Path& path, const Pixel size, const double dpi = 72)
-        : dc(path.native(), size.x, size.y, dpi) {}
+        : dc(path.string().toUnicode(), size.x, size.y, dpi) {}
 
     virtual void drawPoint(const PlotPoint& point) override {
         const PlotPoint p = matrix.transformPoint(point);

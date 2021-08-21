@@ -19,7 +19,7 @@ public:
     TestFile(const Path& parentDir = Path("temp")) {
         FileSystem::createDirectory(parentDir);
         path = parentDir / manager.getPath("tmp");
-        std::ofstream ofs(path.native());
+        std::ofstream ofs(path.native(), std::ios::out | std::ios::binary);
     }
 
     TestFile(TestFile&& other)
@@ -39,7 +39,7 @@ public:
 
     // Fill with integerts from 0 to given value (exluding the value).
     void fill(const Size num) {
-        std::ofstream ofs(path.native());
+        std::ofstream ofs(path.native(), std::ios::out | std::ios::binary);
         for (Size i = 0; i < num; ++i) {
             ofs.write((char*)&i, sizeof(int));
         }
@@ -82,7 +82,7 @@ public:
     ~TestDirectory() {
         if (!path.empty()) {
             Outcome result = FileSystem::removePath(path, FileSystem::RemovePathFlag::RECURSIVE);
-            SPH_ASSERT(result);
+            SPH_ASSERT(result, result.error());
         }
     }
 
@@ -113,7 +113,7 @@ TEST_CASE("CopyFile", "[filesystem]") {
     file.fill(1000);
     // sanity check
     REQUIRE(FileSystem::pathExists(file));
-    const Size size = FileSystem::fileSize(file);
+    const std::size_t size = FileSystem::fileSize(file);
     REQUIRE(size == 1000 * sizeof(int));
 
     TestDirectory dir;
@@ -126,7 +126,7 @@ TEST_CASE("CopyFile", "[filesystem]") {
 
     // check content
     Array<int> content(1000);
-    std::ifstream ifs(to.native());
+    std::ifstream ifs(to.native(), std::ios::in | std::ios::binary);
     ifs.read((char*)&content[0], size);
     ifs.close();
 
@@ -204,7 +204,7 @@ TEST_CASE("RemovePath", "[filesystem]") {
 
 TEST_CASE("SetWorkingDirectory", "[filesystem]") {
     const Path current = Path::currentPath();
-    const Path newPath = Path("/home/pavel/");
+    const Path newPath = Path(RESOURCE_PATH);
     FileSystem::setWorkingDirectory(newPath);
     REQUIRE(Path::currentPath() == newPath);
 
@@ -243,23 +243,32 @@ TEST_CASE("Create and remove directory", "[filesystem]") {
     REQUIRE(FileSystem::removePath(Path("dummyDir1"), FileSystem::RemovePathFlag::RECURSIVE));
 }
 
-/// \todo move to Platform.cpp
-TEST_CASE("GetExecutablePath", "[filesystem]") {
-    const Expected<Path> path = getExecutablePath();
+TEST_CASE("getDirectoryOfExecutable", "[filesystem]") {
+    const Expected<Path> path = FileSystem::getDirectoryOfExecutable();
     REQUIRE(path);
+#ifndef SPH_WIN
     REQUIRE(path.value() == WORKING_DIR);
+#else
+    REQUIRE(path->parentPath() == WORKING_DIR);
+#endif
 }
 
 TEST_CASE("IsPathWritable", "[filesystem]") {
-    REQUIRE(FileSystem::isPathWritable(Path(".")));
-    REQUIRE(FileSystem::isPathWritable(Path("/home/pavel/")));
-    REQUIRE_FALSE(FileSystem::isPathWritable(Path("/usr/lib/")));
-    REQUIRE_FALSE(FileSystem::isPathWritable(Path("/var/")));
-    REQUIRE_FALSE(FileSystem::isPathWritable(Path("/etc/")));
+    REQUIRE(FileSystem::isDirectoryWritable(Path(".")));
+    REQUIRE(FileSystem::isDirectoryWritable(HOME_DIR));
+
+#ifndef SPH_WIN
+    REQUIRE_FALSE(FileSystem::isDirectoryWritable(Path("/usr/lib/")));
+    REQUIRE_FALSE(FileSystem::isDirectoryWritable(Path("/var/")));
+    REQUIRE_FALSE(FileSystem::isDirectoryWritable(Path("/etc/")));
+#else
+    REQUIRE_FALSE(FileSystem::isDirectoryWritable(Path("C:/")));
+    REQUIRE_FALSE(FileSystem::isDirectoryWritable(Path("C:/Windows/")));
+#endif
 }
 
 TEST_CASE("GetHomeDirectory", "[filesystem]") {
     Expected<Path> path = FileSystem::getHomeDirectory();
     REQUIRE(path);
-    REQUIRE(path.value() == Path("/home/pavel"));
+    REQUIRE(path.value() == HOME_DIR);
 }

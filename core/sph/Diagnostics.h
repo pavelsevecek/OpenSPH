@@ -14,12 +14,12 @@ NAMESPACE_SPH_BEGIN
 /// \brief Object containing a reported error message.
 struct DiagnosticsError {
     /// \brief Description of the encountered problem
-    std::string description;
+    String description;
 
     /// \brief Problematic particles and optional error message for each of them.
     ///
     /// The per-particle message can be empty.
-    std::map<Size, std::string> offendingParticles;
+    std::map<Size, String> offendingParticles;
 };
 
 using DiagnosticsReport = BasicOutcome<DiagnosticsError>;

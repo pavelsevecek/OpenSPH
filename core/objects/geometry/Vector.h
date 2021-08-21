@@ -195,7 +195,8 @@ public:
         return !(v1 == v2);
     }
 
-    friend std::ostream& operator<<(std::ostream& stream, const BasicVector& v) {
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const BasicVector& v) {
         constexpr int digits = 6;
         stream << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
@@ -204,7 +205,6 @@ public:
         return stream;
     }
 };
-
 
 /// specialization for doubles or units of double precision
 
@@ -360,8 +360,9 @@ public:
         return data;
     }
 
-    friend std::ostream& operator<<(std::ostream& stream, const BasicVector& v) {
-        constexpr int digits = PRECISION;
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const BasicVector& v) {
+        constexpr int digits = 12;
         stream << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
             stream << std::setw(20) << v[i];
@@ -532,9 +533,9 @@ public:
         return !(v1 == v2);
     }
 
-    /// Output to stream
-    friend std::ostream& operator<<(std::ostream& stream, const BasicVector& v) {
-        constexpr int digits = PRECISION;
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const BasicVector& v) {
+        constexpr int digits = 12;
         stream << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
             stream << std::setw(20) << v[i];

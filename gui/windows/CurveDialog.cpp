@@ -79,7 +79,7 @@ void CurvePanel::onPaint(wxPaintEvent& UNUSED(evt)) {
     const Interval rangeX = curve.rangeX();
     Array<Float> ticsX = getLinearTics(rangeX, 4);
     for (Size i = 0; i < ticsX.size(); ++i) {
-        const std::wstring label = toPrintableString(ticsX[i], 1);
+        const String label = toPrintableString(ticsX[i], 1);
         const int x = padding + i * size.x / (ticsX.size() - 1);
         drawTextWithSubscripts(dc, label, wxPoint(x - 6, size.y + padding + 6));
         dc.DrawLine(wxPoint(x, size.y + padding - 2), wxPoint(x, size.y + padding + 2));
@@ -87,7 +87,7 @@ void CurvePanel::onPaint(wxPaintEvent& UNUSED(evt)) {
     const Interval rangeY = curve.rangeY();
     Array<Float> ticsY = getLinearTics(rangeY, 3);
     for (Size i = 0; i < ticsY.size(); ++i) {
-        const std::wstring label = toPrintableString(ticsY[i], 1);
+        const String label = toPrintableString(ticsY[i], 1);
         const int y = padding + size.y - i * size.y / (ticsY.size() - 1);
         drawTextWithSubscripts(dc, label, wxPoint(2, y - 8));
         dc.DrawLine(wxPoint(padding - 2, y), wxPoint(padding + 2, y));
@@ -105,8 +105,8 @@ void CurvePanel::onPaint(wxPaintEvent& UNUSED(evt)) {
         dc.SetTextForeground(wxColour(128, 128, 128));
         wxFont font = dc.GetFont().Smaller();
         dc.SetFont(font);
-        const std::wstring labelX = toPrintableString(curvePos.x, 2);
-        const std::wstring labelY = toPrintableString(curvePos.y, 2);
+        const String labelX = toPrintableString(curvePos.x, 2);
+        const String labelY = toPrintableString(curvePos.y, 2);
         drawTextWithSubscripts(dc, L"(" + labelX, center + wxPoint(-65, -15));
         drawTextWithSubscripts(dc, labelY + L")", center + wxPoint(5, -15));
     }

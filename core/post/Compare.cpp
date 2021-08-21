@@ -8,16 +8,14 @@ NAMESPACE_SPH_BEGIN
 
 Outcome Post::compareParticles(const Storage& test, const Storage& ref, const Float eps) {
     if (test.getParticleCnt() != ref.getParticleCnt()) {
-        return makeFailed("Different number of particles.\nTest has ",
+        return makeFailed("Different number of particles.\nTest has {}\nReference has {}",
             test.getParticleCnt(),
-            "\nReference has ",
             ref.getParticleCnt());
     }
 
     if (test.getQuantityCnt() != ref.getQuantityCnt()) {
-        return makeFailed("Different number of quantities.\nTest has ",
+        return makeFailed("Different number of quantities.\nTest has {}\nReference has{}",
             test.getQuantityCnt(),
-            "\nReference has ",
             ref.getQuantityCnt());
     }
 
@@ -29,35 +27,32 @@ Outcome Post::compareParticles(const Storage& test, const Storage& ref, const Fl
         }
         for (Size i = 0; i < px.size(); ++i) {
             if (!almostEqual(px[i], cx[i], eps)) {
-                result = makeFailed(
-                    "Difference in ", getMetadata(id).quantityName, "\n", px[i], " == ", cx[i], "\n\n");
+                result =
+                    makeFailed("Difference in {}\n{}=={}\n\n", getMetadata(id).quantityName, px[i], cx[i]);
                 return;
             }
         }
     };
     iteratePair<VisitorEnum::ZERO_ORDER>(test, ref, checkZeroOrder);
 
-    auto checkFirstOrder = [&](QuantityId id,
-                               const auto& px,
-                               const auto& pdx,
-                               const auto& cx,
-                               const auto& cdx) {
-        if (!result) {
-            return;
-        }
-        for (Size i = 0; i < px.size(); ++i) {
-            if (!almostEqual(px[i], cx[i], eps)) {
-                result = makeFailed(
-                    "Difference in ", getMetadata(id).quantityName, "\n", px[i], " == ", cx[i], "\n\n");
+    auto checkFirstOrder =
+        [&](QuantityId id, const auto& px, const auto& pdx, const auto& cx, const auto& cdx) {
+            if (!result) {
                 return;
             }
-            if (!almostEqual(pdx[i], cdx[i], eps)) {
-                result = makeFailed(
-                    "Difference in ", getMetadata(id).derivativeName, "\n", pdx[i], " == ", cdx[i], "\n\n");
-                return;
+            for (Size i = 0; i < px.size(); ++i) {
+                if (!almostEqual(px[i], cx[i], eps)) {
+                    result = makeFailed(
+                        "Difference in {}\n{} == {}\n\n", getMetadata(id).quantityName, px[i], cx[i]);
+                    return;
+                }
+                if (!almostEqual(pdx[i], cdx[i], eps)) {
+                    result = makeFailed(
+                        "Difference in {}\n{} == {}\n\n", getMetadata(id).derivativeName, pdx[i], cdx[i]);
+                    return;
+                }
             }
-        }
-    };
+        };
     iteratePair<VisitorEnum::FIRST_ORDER>(test, ref, checkFirstOrder);
 
     auto checkSecondOrder = [&](QuantityId id,
@@ -72,23 +67,18 @@ Outcome Post::compareParticles(const Storage& test, const Storage& ref, const Fl
         }
         for (Size i = 0; i < px.size(); ++i) {
             if (!almostEqual(px[i], cx[i], eps)) {
-                result = makeFailed(
-                    "Difference in ", getMetadata(id).quantityName, "\n", px[i], " == ", cx[i], "\n\n");
+                result =
+                    makeFailed("Difference in {}\n{} == {}\n\n", getMetadata(id).quantityName, px[i], cx[i]);
                 return;
             }
             if (!almostEqual(pdx[i], cdx[i], eps)) {
                 result = makeFailed(
-                    "Difference in ", getMetadata(id).derivativeName, "\n", pdx[i], " == ", cdx[i], "\n\n");
+                    "Difference in {}\n{} == {}\n\n", getMetadata(id).derivativeName, pdx[i], cdx[i]);
                 return;
             }
             if (!almostEqual(pdv[i], cdv[i], eps)) {
-                result = makeFailed("Difference in ",
-                    getMetadata(id).secondDerivativeName,
-                    "\n",
-                    pdv[i],
-                    " == ",
-                    cdv[i],
-                    "\n\n");
+                result = makeFailed(
+                    "Difference in {}\n{} == {}\n\n", getMetadata(id).secondDerivativeName, pdv[i], cdv[i]);
                 return;
             }
         }
@@ -112,9 +102,8 @@ Outcome Post::compareLargeSpheres(const Storage& test,
 
     const Size count = Size(max(r1.size(), r2.size()) * fraction);
     if (count >= r1.size() || count >= r2.size()) {
-        return makeFailed("Number of particles differs significantly\n.Test has ",
+        return makeFailed("Number of particles differs significantly.\nTest has {}\nReference has {}.",
             r1.size(),
-            "\nReference has ",
             r2.size());
     }
 
@@ -149,9 +138,9 @@ Outcome Post::compareLargeSpheres(const Storage& test,
         }
 
         if (!matchFound) {
-            return makeFailed("No matching test particle found for the ",
-                i + 1,
-                "-th largest particle in the reference state.");
+            return makeFailed(
+                "No matching test particle found for the {}-th largest particle in the reference state.",
+                i + 1);
         }
     }
     return SUCCESS;

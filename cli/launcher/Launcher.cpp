@@ -36,9 +36,9 @@ public:
         : input(input)
         , logger(logger) {}
 
-    virtual void onCategory(const std::string& UNUSED(name)) const override {}
+    virtual void onCategory(const String& UNUSED(name)) const override {}
 
-    virtual void onEntry(const std::string& name, IVirtualEntry& entry) const override {
+    virtual void onEntry(const String& name, IVirtualEntry& entry) const override {
         const IVirtualEntry::Type type = entry.getType();
 
         try {
@@ -59,7 +59,7 @@ public:
                 entry.set(input.get<Vector>(name));
                 break;
             case IVirtualEntry::Type::STRING:
-                entry.set(input.get<std::string>(name));
+                entry.set(input.get<String>(name));
                 break;
             case IVirtualEntry::Type::PATH:
                 entry.set(input.get<Path>(name));
@@ -74,7 +74,7 @@ public:
             case IVirtualEntry::Type::EXTRA: {
                 /// \todo currently used only by curves, can be generalized if needed
                 ExtraEntry extra(makeAuto<CurveEntry>());
-                extra.fromString(input.get<std::string>(name));
+                extra.fromString(input.get<String>(name));
                 entry.set(extra);
                 break;
             }
@@ -107,20 +107,20 @@ static void run(const ArgParser& parser, ILogger& logger) {
 #else
     logger.write("Running opensph-cli (unknown version)");
 #endif
-    const Path projectPath(parser.getArg<std::string>("p"));
-    const std::string nodeToRun(parser.getArg<std::string>("n"));
+    const Path projectPath(parser.getArg<String>("p"));
+    const String nodeToRun(parser.getArg<String>("n"));
 
     Config config;
     config.load(projectPath);
 
-    FlatMap<std::string, SharedPtr<JobNode>> nodes;
+    FlatMap<String, SharedPtr<JobNode>> nodes;
 
     SharedPtr<ConfigNode> inNodes = config.getNode("nodes");
     // lists node connections: node, target slot and target node
-    Array<Tuple<SharedPtr<JobNode>, std::string, std::string>> allToConnect;
+    Array<Tuple<SharedPtr<JobNode>, String, String>> allToConnect;
 
-    inNodes->enumerateChildren([&nodes, &allToConnect, &logger](std::string name, ConfigNode& input) {
-        const std::string className = input.get<std::string>("class_name");
+    inNodes->enumerateChildren([&nodes, &allToConnect, &logger](String name, ConfigNode& input) {
+        const String className = input.get<String>("class_name");
         RawPtr<IJobDesc> desc = getJobDesc(className);
         if (!desc) {
             throw Exception("Cannot find desc for node '" + className + "'");
@@ -134,8 +134,8 @@ static void run(const ArgParser& parser, ILogger& logger) {
         settings.enumerate(LoadProc(input, logger));
 
         for (Size i = 0; i < node->getSlotCnt(); ++i) {
-            const std::string slotName = node->getSlot(i).name;
-            Optional<std::string> connectedName = input.tryGet<std::string>(slotName);
+            const String slotName = node->getSlot(i).name;
+            Optional<String> connectedName = input.tryGet<String>(slotName);
             if (connectedName) {
                 allToConnect.push(makeTuple(node, slotName, connectedName.value()));
             }
@@ -157,7 +157,7 @@ static void run(const ArgParser& parser, ILogger& logger) {
 
     logger.write("Running node tree:");
     runner.value()->enumerate([&logger](SharedPtr<JobNode> node, const Size depth) {
-        logger.write(std::string(depth * 3, ' '), " - ", node->instanceName());
+        logger.write(String::fromChar(' ', depth * 3), " - ", node->instanceName());
     });
 
     /// \todo properly load globals

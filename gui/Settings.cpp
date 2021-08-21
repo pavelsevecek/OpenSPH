@@ -61,7 +61,8 @@ static RegisterEnum<ColorMapEnum> sColorMap({
 
 // clang-format off
 template<>
-AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings<GuiSettingsId> {
+AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance
+    = makeAuto<Settings<GuiSettingsId>>(Settings<GuiSettingsId> {
     /// Camera pameters
     { GuiSettingsId::PARTICLE_RADIUS,       "particle_radius",      0.5_f,
         "Multiplier of the particle radius for drawing." },
@@ -71,7 +72,7 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Width of the created images." },
     { GuiSettingsId::CAMERA_HEIGHT,         "images.height",        600,
         "Height of the created images." },
-    { GuiSettingsId::CAMERA_POSITION,       "camera.position",      Vector(0._f, 0._f, 1.e4_f),
+    { GuiSettingsId::CAMERA_POSITION,       "camera.position",      Vector(0._f, 0._f, 0.01_f),
         "Position of the camera in space." },
     { GuiSettingsId::CAMERA_VELOCITY,       "camera.velocity",      Vector(0._f),
         "Velocity of the camera in space." },
@@ -134,7 +135,7 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "start-up of the render at a cost of lower resolution of the render." },
     { GuiSettingsId::RAYTRACE_ITERATION_LIMIT, "raytrace.iteration_limit", 10,
         "Number of iterations of the render, including the subsampled iterations. " },
-    { GuiSettingsId::RAYTRACE_HDRI,         "raytrace.hdri",        std::string(""),
+    { GuiSettingsId::RAYTRACE_HDRI,         "raytrace.hdri",        ""_s,
         "Optional spherical bitmap used as an environment. Empty means the environment is black." },
     { GuiSettingsId::RAYTRACE_BRDF,         "raytrace.brdf",        BrdfEnum::LAMBERT,
         "Surface BRDF. Applicable for raytracer. "},
@@ -183,7 +184,7 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Default panes in the run page." },
 
     /// Window settings
-    { GuiSettingsId::WINDOW_TITLE,          "window.title",         std::string("OpenSPH"),
+    { GuiSettingsId::WINDOW_TITLE,          "window.title",         "OpenSPH"_s,
         "Title of the main window of the application." },
     { GuiSettingsId::WINDOW_WIDTH,          "window.width",         1110,
         "Width of the main window." },
@@ -194,7 +195,7 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         + EnumMap::getDesc<PlotEnum>() },
     { GuiSettingsId::PLOT_INITIAL_PERIOD,   "plot.initial_period",  0.1_f,
         "Initial period of time-dependent plots." },
-    { GuiSettingsId::PLOT_OVERPLOT_SFD,     "plot.overplot_sfd",    std::string(""),
+    { GuiSettingsId::PLOT_OVERPLOT_SFD,     "plot.overplot_sfd",    ""_s,
         "Path to the file containing SFD to plot over the computed one. The file must contain lines with value "
         "N(>D) and D [km]. If empty, no SFD is drawn."},
 });

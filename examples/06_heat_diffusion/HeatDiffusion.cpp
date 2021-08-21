@@ -139,7 +139,7 @@ public:
 class Hde : public IRun {
 public:
     virtual void setUp(SharedPtr<Storage> storage) override {
-        settings.set(RunSettingsId::RUN_NAME, std::string("Heat diffusion"));
+        settings.set(RunSettingsId::RUN_NAME, "Heat diffusion"_s);
 
         // No need for output, we do that ourselvers here
         settings.set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::NONE);

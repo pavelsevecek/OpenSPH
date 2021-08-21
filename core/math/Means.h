@@ -208,7 +208,8 @@ public:
         return avg.count();
     }
 
-    friend std::ostream& operator<<(std::ostream& stream, const MinMaxMean& stats) {
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const MinMaxMean& stats) {
         stream << "average = " << stats.mean() << "  (min = " << stats.min() << ", max = " << stats.max()
                << ")";
         return stream;

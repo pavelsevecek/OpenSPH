@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek ar sirrah.troja.mff.cuni.cz)
 /// \date 2016-2021
 
+#include "objects/containers/String.h"
 #include "objects/wrappers/Optional.h"
 
 NAMESPACE_SPH_BEGIN
@@ -27,13 +28,13 @@ struct OutcomeTraits {
 };
 
 template <>
-struct OutcomeTraits<std::string> {
-    INLINE static std::string defaultError() {
-        return "ERROR";
+struct OutcomeTraits<String> {
+    INLINE static String defaultError() {
+        return L"ERROR";
     }
 
-    INLINE static std::string concatenate(const std::string& e1, const std::string& e2) {
-        return e1 + " AND " + e2;
+    INLINE static String concatenate(const String& e1, const String& e2) {
+        return e1 + L" AND " + e2;
     }
 };
 
@@ -135,44 +136,26 @@ public:
 };
 
 /// Alias for string error message
-using Outcome = BasicOutcome<std::string>;
+using Outcome = BasicOutcome<String>;
 
 /// Global constant for successful outcome
 const SuccessTag SUCCESS;
 
-namespace Detail {
-INLINE void printArgs(std::stringstream&) {}
-
-template <typename T0, typename... TArgs>
-INLINE void printArgs(std::stringstream& ss, T0&& t0, TArgs&&... args) {
-    ss << t0;
-    printArgs(ss, std::forward<TArgs>(args)...);
-}
-} // namespace Detail
-
 /// \brief Constructs failed object with error message.
-///
-/// Error message is constructed by converting arguments to string and concatenating them.
 template <typename... TArgs>
-INLINE Outcome makeFailed(TArgs&&... args) {
-    std::stringstream ss;
-    Detail::printArgs(ss, std::forward<TArgs>(args)...);
-    SPH_ASSERT(!ss.str().empty());
-    return Outcome(ss.str());
+INLINE Outcome makeFailed(const String& message, const TArgs&... args) {
+    return Outcome(format(message, args...));
 }
 
 /// \brief Constructs outcome object given the condition.
 ///
-/// If condition equals false, print error message using argument list.
+/// If condition equals false, print given error message.
 template <typename... TArgs>
-INLINE Outcome makeOutcome(const bool condition, TArgs&&... args) {
+INLINE Outcome makeOutcome(const bool condition, const String& message, const TArgs&... args) {
     if (condition) {
         return SUCCESS;
     } else {
-        std::stringstream ss;
-        Detail::printArgs(ss, std::forward<TArgs>(args)...);
-        SPH_ASSERT(!ss.str().empty());
-        return Outcome(ss.str());
+        return Outcome(format(message, args...));
     }
 }
 

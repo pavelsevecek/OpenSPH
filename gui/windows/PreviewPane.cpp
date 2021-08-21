@@ -9,7 +9,7 @@
 #include "quantities/Storage.h"
 #include "system/Timer.h"
 #include "thread/CheckFunction.h"
-#include <wx/dcclient.h>
+#include <wx/dcbuffer.h>
 #include <wx/weakref.h>
 
 NAMESPACE_SPH_BEGIN
@@ -159,7 +159,7 @@ void InteractiveRenderer::setCameraAccessor(const RunSettings& globals,
         SPH_ASSERT(node);
         changed.camera = this->getNewCamera(node, globals);
 
-        const std::string key = anyCast<std::string>(value).value();
+        const String key = anyCast<String>(value).value();
         const GuiSettingsId id = GuiSettings::getEntryId(key).valueOr(GuiSettingsId(-1));
         if (id == GuiSettingsId::CAMERA_ORTHO_CUTOFF) {
             changed.renderer = job->getRenderer(globals);
@@ -180,7 +180,7 @@ void InteractiveRenderer::setRendererAccessor(const RunSettings& globals) {
             // we previously failed to parse the object, so we have to do it from scratch anyway
             changed.node = cloneHierarchy(*node);
         } else if (type == JobNotificationType::ENTRY_CHANGED) {
-            const std::string key = anyCast<std::string>(value).value();
+            const String key = anyCast<String>(value).value();
 
             /// \todo avoid hardcoded string
             if (key == "quantity" || key == "surface_gravity") {
@@ -264,7 +264,7 @@ void InteractiveRenderer::setNodeAccessor(const SharedPtr<JobNode>& particleNode
 }
 
 void InteractiveRenderer::setPaletteAccessor(const RunSettings& globals) {
-    auto accessor = [this, globals](const std::string& name, const Palette& palette) {
+    auto accessor = [this, globals](const String& name, const Palette& palette) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
         AutoPtr<IColorizer> colorizer = job->getColorizer(globals);
         if (colorizer->name() == name) {
@@ -291,7 +291,7 @@ void InteractiveRenderer::renderLoop(const RunSettings& globals) {
                 preview = newJob->getRenderPreview(globals);
                 status.clear();
             } catch (const InvalidSetup& e) {
-                status.otherReason = e.what();
+                status.otherReason = exceptionMessage(e);
                 preview = nullptr;
                 safeRefresh(output.getPanel());
             }
@@ -338,7 +338,7 @@ void InteractiveRenderer::renderLoop(const RunSettings& globals) {
                 preview->render(resolution, output);
             } catch (const std::exception& e) {
                 // mostly to catch NOT_IMPLEMENTED stuff
-                status.otherReason = "Render failed.\n" + setLineBreak(e.what(), 25);
+                status.otherReason = "Render failed.\n" + setLineBreak(exceptionMessage(e), 25);
                 preview = nullptr;
                 safeRefresh(output.getPanel());
             }
@@ -384,6 +384,8 @@ PreviewPane::PreviewPane(wxWindow* parent,
     renderer = makeShared<InteractiveRenderer>(node, this);
     renderer->start(globals);
 
+    this->SetBackgroundStyle(wxBG_STYLE_PAINT);
+
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(PreviewPane::onPaint));
     this->Bind(wxEVT_SIZE, [this](wxSizeEvent& UNUSED(evt)) {
         const wxSize size = this->GetClientSize();
@@ -393,8 +395,9 @@ PreviewPane::PreviewPane(wxWindow* parent,
 
 void PreviewPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    wxPaintDC dc(this);
-    const wxSize size = dc.GetSize();
+    wxAutoBufferedPaintDC dc(this);
+    dc.Clear();
+    const wxSize size = this->GetClientSize();
     wxBitmap bitmap = renderer->getBitmap();
     Outcome valid = renderer->isValid();
 
@@ -409,11 +412,10 @@ void PreviewPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     }
 
     if (!valid) {
-        const wxString text = valid.error() + " ...";
+        const wxString text = wxString(valid.error().toUnicode()) + " ...";
         const wxSize textSize = dc.GetTextExtent(text);
         dc.DrawText(text, size.x / 2 - textSize.x / 2, size.y / 2 - textSize.y / 2);
     }
 }
-
 
 NAMESPACE_SPH_END

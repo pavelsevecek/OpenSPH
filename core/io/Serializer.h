@@ -6,11 +6,12 @@
 /// \date 2016-2021
 
 #include "io/Path.h"
+#include "objects/Exceptions.h"
 #include "objects/containers/Array.h"
 #include "objects/geometry/Tensor.h"
+#include "objects/utility/Streams.h"
 #include "objects/wrappers/Optional.h"
 #include "system/Settings.h"
-#include <fstream>
 
 NAMESPACE_SPH_BEGIN
 
@@ -43,36 +44,17 @@ using Serialized = typename SerializedType<Precise, T>::Type;
 
 } // namespace Detail
 
-class IOutputStream : public Polymorphic {
-public:
-    virtual bool write(ArrayView<const char> buffer) = 0;
-};
-
-class FileOutputStream : public IOutputStream {
-private:
-    std::ofstream ofs;
-
-public:
-    explicit FileOutputStream(const Path& path)
-        : ofs(path.native(), std::ios::binary) {}
-
-    virtual bool write(ArrayView<const char> buffer) override {
-        ofs.write(&buffer[0], buffer.size());
-        return bool(ofs);
-    }
-};
-
 /// \brief Object providing serialization of primitives into a stream
 template <bool Precise>
 class Serializer : public Noncopyable {
 private:
-    AutoPtr<IOutputStream> stream;
+    AutoPtr<IBinaryOutputStream> stream;
     Array<char> buffer;
 
 public:
     using View = ArrayView<const char>;
 
-    explicit Serializer(AutoPtr<IOutputStream>&& stream)
+    explicit Serializer(AutoPtr<IBinaryOutputStream>&& stream)
         : stream(std::move(stream)) {}
 
     template <typename... TArgs>
@@ -120,7 +102,7 @@ public:
     View write(char (&data)[N]) {
         return this->serialize(data);
     }
-    View write(const std::string& s) {
+    View write(const String& s) {
         return this->serialize(s);
     }
 
@@ -147,13 +129,14 @@ private:
     }
 
     template <typename... TArgs>
-    void serializeImpl(Array<char>& bytes, const std::string& s, const TArgs&... args) {
+    void serializeImpl(Array<char>& bytes, const String& s, const TArgs&... args) {
         const Size size = bytes.size();
-        bytes.resize(size + s.size() + 1);
-        const char* c = s.c_str();
-        for (Size i = 0; i < s.size() + 1; ++i) {
-            bytes[size + i] = c[i];
+        CharString s8 = s.toUtf8();
+        bytes.resize(size + Size(s8.size()) + 1);
+        for (Size i = 0; i < s8.size(); ++i) {
+            bytes[size + i] = s8[i];
         }
+        bytes[size + s8.size()] = '\0';
         SPH_ASSERT(bytes[bytes.size() - 1] == '\0');
         this->serializeImpl(bytes, args...);
     }
@@ -162,66 +145,20 @@ private:
 };
 
 /// \brief Exception thrown by \ref Deserializer on failure
-class SerializerException : public std::exception {
-private:
-    std::string error;
-
+class SerializerException : public Exception {
 public:
-    /// \param error Error message
-    SerializerException(const std::string& error)
-        : error(error) {}
-
-    virtual const char* what() const noexcept override {
-        return error.c_str();
-    }
-};
-
-class IInputStream : public Polymorphic {
-public:
-    /// \brief Reads data from the current position into the given buffer.
-    virtual bool read(ArrayView<char> buffer) = 0;
-
-    /// \brief Skips given number of bytes in the stream.
-    virtual bool skip(const Size cnt) = 0;
-
-    /// \brief Checks if the stream is in a valid state.
-    virtual bool good() const = 0;
-};
-
-class FileInputStream : public IInputStream {
-private:
-    std::ifstream ifs;
-
-public:
-    explicit FileInputStream(const Path& path)
-        : ifs(path.native(), std::ios::binary) {
-        if (!ifs) {
-            throw SerializerException("Cannot open file " + path.native() + " for reading.");
-        }
-    }
-
-    virtual bool read(ArrayView<char> buffer) override {
-        return bool(ifs.read(&buffer[0], buffer.size()));
-    }
-
-    virtual bool skip(const Size cnt) override {
-        return bool(ifs.seekg(cnt, ifs.cur));
-    }
-
-    virtual bool good() const override {
-        return bool(ifs);
-    }
+    using Exception::Exception;
 };
 
 /// \brief Object for reading serialized primitives from input stream
 template <bool Precise>
 class Deserializer : public Noncopyable {
 private:
-    AutoPtr<IInputStream> stream;
+    AutoPtr<IBinaryInputStream> stream;
     Array<char> buffer;
 
 public:
-    explicit Deserializer(AutoPtr<IInputStream>&& stream)
+    explicit Deserializer(AutoPtr<IBinaryInputStream>&& stream)
         : stream(std::move(stream)) {}
 
     /// Deserialize a list of parameters from the binary file.
@@ -269,14 +206,14 @@ public:
         int dummy;
         this->deserialize(e.value, dummy);
     }
-    void read(std::string& s) {
+    void read(String& s) {
         this->deserialize(s);
     }
 
     /// Skip a number of bytes in the stream; used to skip unused parameters or padding bytes.
     void skip(const Size size) {
         if (!stream->skip(size)) {
-            this->fail("Failed to skip " + std::to_string(size) + " bytes in the stream");
+            this->fail("Failed to skip {} bytes in the stream", size);
         }
     }
 
@@ -289,7 +226,7 @@ private:
         buffer.resize(sizeof(ActType));
         if (!stream->read(buffer)) {
             /// \todo maybe print the name of the primitive?
-            this->fail("Failed to read a primitive of size " + std::to_string(sizeof(ActType)));
+            this->fail("Failed to read a primitive of size {}", sizeof(ActType));
         }
         t0 = T0(reinterpret_cast<ActType&>(buffer[0]));
         this->deserializeImpl(args...);
@@ -298,30 +235,31 @@ private:
     template <std::size_t N, typename... TArgs>
     void deserializeImpl(char (&ar)[N], TArgs&... args) {
         if (!stream->read(ArrayView<char>(ar, N))) {
-            this->fail("Failed to read an array of size " + std::to_string(N));
+            this->fail("Failed to read an array of size {}", N);
         }
         this->deserializeImpl(args...);
     }
 
     template <typename... TArgs>
-    void deserializeImpl(std::string& s, TArgs&... args) {
+    void deserializeImpl(String& s, TArgs&... args) {
         buffer.clear();
         char c;
         while (stream->read(getSingleValueView(c)) && c != '\0') {
             buffer.push(c);
         }
         buffer.push('\0');
-        s = &buffer[0];
+        s = String::fromUtf8(&buffer[0]);
         if (!stream->good()) {
-            this->fail("Error while deseralizing string from stream, got: " + s);
+            this->fail("Error while deseralizing string from stream, got: {}", s);
         }
         this->deserializeImpl(args...);
     }
 
     void deserializeImpl() {}
 
-    void fail(const std::string& error) {
-        throw SerializerException(error);
+    template <typename... TArgs>
+    void fail(const String& error, const TArgs&... args) {
+        throw SerializerException(error, args...);
     }
 };
 

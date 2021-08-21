@@ -36,7 +36,7 @@ void RadiiHashMap::build(ArrayView<const Vector> r, const Float kernelRadius) {
                     const Indices idxs = idxs0 + Indices(i, j, k);
                     auto iter = newMap.find(idxs);
                     if (iter != newMap.end()) {
-                        radius = std::max(radius, iter->second);
+                        radius = max(radius, iter->second);
                     }
                 }
             }

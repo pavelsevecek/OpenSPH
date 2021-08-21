@@ -96,7 +96,7 @@ public:
 
     void setProgress(const Statistics& stats);
 
-    void newPhase(const std::string& className, const std::string& instanceName);
+    void newPhase(const String& className, const String& instanceName);
 
     void setColorizerList(Array<SharedPtr<IColorizer>>&& colorizers);
 
@@ -105,6 +105,8 @@ public:
     void deselectParticle();
 
     wxSize getCanvasSize() const;
+
+    bool isOk() const;
 
 private:
     virtual bool isRunning() const override;
