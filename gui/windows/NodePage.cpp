@@ -510,7 +510,7 @@ void NodeManager::startScript(const Path& file) {
 
     callbacks->startRun(node, globals, "Script '" + file.string() + "'");
 #else
-    throw InvalidSetup("Cannot start script '" + file.native() + "', no ChaiScript support.");
+    throw InvalidSetup("Cannot start script '" + file.string() + "', no ChaiScript support.");
 #endif
 }
 

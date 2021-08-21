@@ -27,7 +27,7 @@ void StdOutLogger::writeString(const String& s) {
 #ifdef SPH_WIN
 
 void ConsoleLogger::writeString(const String& s) {
-    OutputDebugStringA(s.c_str());
+    OutputDebugStringW(s.toUnicode());
 }
 
 #endif

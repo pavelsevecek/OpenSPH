@@ -19,19 +19,18 @@ NAMESPACE_SPH_BEGIN
 #ifdef SPH_WIN
 
 /// Returns the error message corresponding to GetLastError().
-static std::string getLastErrorMessage() {
+static String getLastErrorMessage() {
     DWORD error = GetLastError();
     if (!error) {
         return {};
     }
 
-    char message[256] = { 0 };
+    wchar_t message[256] = { 0 };
     DWORD flags = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
     DWORD length =
-        FormatMessageA(flags, NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), message, 256, nullptr);
+        FormatMessageW(flags, NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), message, 256, nullptr);
     if (length) {
-        std::string result(message, length);
-        return result;
+        return String(message);
     } else {
         return {};
     }
@@ -50,11 +49,16 @@ String FileSystem::readFile(const Path& path) {
 }
 
 bool FileSystem::pathExists(const Path& path) {
+#ifndef SPH_WIN
     struct stat buffer;
     if (path.empty()) {
         return false;
     }
     return (stat(path.native(), &buffer) == 0);
+#else
+    DWORD attributes = GetFileAttributesW(path.native());
+    return attributes != INVALID_FILE_ATTRIBUTES;
+#endif
 }
 
 std::size_t FileSystem::fileSize(const Path& path) {
@@ -68,9 +72,9 @@ bool FileSystem::isDirectoryWritable(const Path& path) {
 #ifndef SPH_WIN
     return access(path.native(), W_OK) == 0;
 #else
-    char file[MAX_PATH];
-    GetTempFileNameA(path.native(), "sph", 1, file);
-    HANDLE handle = CreateFileA(file,
+    wchar_t file[MAX_PATH];
+    GetTempFileNameW(path.native(), L"sph", 1, file);
+    HANDLE handle = CreateFileW(file,
         GENERIC_WRITE,
         FILE_SHARE_READ,
         nullptr,
@@ -88,13 +92,13 @@ bool FileSystem::isDirectoryWritable(const Path& path) {
 
 Expected<Path> FileSystem::getHomeDirectory() {
 #ifdef SPH_WIN
-    char buffer[MAX_PATH] = { 0 };
+    wchar_t buffer[MAX_PATH] = { 0 };
     DWORD length = sizeof(buffer);
     HANDLE token = 0;
     OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token);
-    if (GetUserProfileDirectoryA(token, buffer, &length)) {
+    if (GetUserProfileDirectoryW(token, buffer, &length)) {
         CloseHandle(token);
-        return Path(std::string(buffer) + '\\');
+        return Path(String(buffer) + L'\\');
     } else {
         return makeUnexpected<Path>(getLastErrorMessage());
     }
@@ -154,9 +158,9 @@ Expected<Path> FileSystem::getAbsolutePath(const Path& relativePath) {
         }
     }
 #else
-    char buffer[256] = { 0 };
+    wchar_t buffer[256] = { 0 };
 
-    DWORD retval = GetFullPathNameA(relativePath.native(), 256, buffer, nullptr);
+    DWORD retval = GetFullPathNameW(relativePath.native(), 256, buffer, nullptr);
     if (retval) {
         return Path(buffer);
     } else {
@@ -187,7 +191,7 @@ Expected<FileSystem::PathType> FileSystem::pathType(const Path& path) {
     }
     return PathType::OTHER;
 #else
-    DWORD attributes = GetFileAttributesA(path.native().c_str());
+    DWORD attributes = GetFileAttributesW(path.native());
     if (attributes == INVALID_FILE_ATTRIBUTES) {
         return makeUnexpected<PathType>(getLastErrorMessage());
     }
@@ -244,7 +248,7 @@ static Outcome createSingleDirectory(const Path& path, const Flags<FileSystem::C
     }
     return SUCCESS;
 #else
-    if (CreateDirectoryA(path.native().c_str(), nullptr)) {
+    if (CreateDirectoryW(path.native(), nullptr)) {
         return SUCCESS;
     } else {
         if (GetLastError() == ERROR_ALREADY_EXISTS &&
@@ -345,9 +349,9 @@ Outcome FileSystem::removePath(const Path& path, const Flags<RemovePathFlag> fla
 #else
     BOOL result;
     if (type.value() == PathType::DIRECTORY) {
-        result = RemoveDirectoryA(path.native().c_str());
+        result = RemoveDirectoryW(path.native());
     } else if (type.value() == PathType::FILE) {
-        result = DeleteFileA(path.native().c_str());
+        result = DeleteFileW(path.native());
     } else {
         NOT_IMPLEMENTED; // removing symlinks?
     }
@@ -418,7 +422,7 @@ bool FileSystem::setWorkingDirectory(const Path& path) {
 #ifndef SPH_WIN
     return chdir(path.native()) == 0;
 #else
-    return SetCurrentDirectoryA(path.native().c_str());
+    return SetCurrentDirectoryW(path.native());
 #endif
 }
 
@@ -433,8 +437,8 @@ Expected<Path> FileSystem::getDirectoryOfExecutable() {
         return makeUnexpected<Path>("Unknown error");
     }
 #else
-    char path[MAX_PATH];
-    if (GetModuleFileNameA(nullptr, path, MAX_PATH) != 0) {
+    wchar_t path[MAX_PATH];
+    if (GetModuleFileNameW(nullptr, path, MAX_PATH) != 0) {
         return Path(path).parentPath();
     } else {
         return makeUnexpected<Path>(getLastErrorMessage());
@@ -448,7 +452,7 @@ struct FileSystem::DirectoryIterator::DirData {
     dirent* entry = nullptr;
 #else
     HANDLE dir = INVALID_HANDLE_VALUE;
-    WIN32_FIND_DATAA entry;
+    WIN32_FIND_DATAW entry;
     DWORD error = 1;
 #endif
 };
@@ -498,7 +502,7 @@ FileSystem::DirectoryIterator& FileSystem::DirectoryIterator::operator++() {
     }
     bool result = true;
     do {
-        result = FindNextFileA(data->dir, &data->entry);
+        result = FindNextFileW(data->dir, &data->entry);
     } while (result && isSpecial(**this));
 
     if (!result) {
@@ -545,8 +549,8 @@ FileSystem::DirectoryAdapter::DirectoryAdapter(const Path& directory) {
         data->dir = INVALID_HANDLE_VALUE;
         return;
     }
-    std::string searchExpression = (directory / Path("*")).native();
-    data->dir = FindFirstFileA(searchExpression.c_str(), &data->entry);
+    String searchExpression = (directory / Path("*")).string();
+    data->dir = FindFirstFileW(searchExpression.toUnicode(), &data->entry);
     if (data->dir != INVALID_HANDLE_VALUE) {
         data->error = 0;
     }

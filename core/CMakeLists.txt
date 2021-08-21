@@ -24,8 +24,7 @@ set(CORE_SOURCES
     objects/geometry/Domain.cpp
     objects/geometry/SymmetricTensor.cpp
     objects/utility/Dynamic.cpp 
-    objects/utility/StringUtils.cpp 
-    objects/wrappers/Interval.cpp 
+    objects/utility/Streams.cpp 
     physics/Damage.cpp 
     physics/Eos.cpp 
     physics/Functions.cpp 
@@ -197,7 +196,7 @@ set(CORE_HEADERS
     objects/utility/OperatorTemplate.h 
     objects/utility/PerElementWrapper.h 
     objects/utility/Progressible.h
-    objects/utility/StringUtils.h 
+    objects/utility/Streams.h 
     objects/wrappers/AlignedStorage.h 
     objects/wrappers/Any.h 
     objects/wrappers/AutoPtr.h 

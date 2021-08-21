@@ -172,10 +172,10 @@ Path& Path::makeRelative() {
     }
     Path wd = Path::currentPath();
     SPH_ASSERT(wd.isAbsolute() && this->isAbsolute());
-    std::size_t n = 0;
+    Size n = 0;
     // find shared part of the path
     while (true) {
-        const std::size_t m = wd.path.find(SEPARATOR, n);
+        const Size m = wd.path.find(SEPARATOR, n);
         if (m == String::npos || wd.path.substr(0, m) != path.substr(0, m)) {
             break;
         } else {
@@ -205,9 +205,9 @@ Path Path::currentPath() {
         return Path();
     }
 #else
-    char path[MAX_PATH];
-    GetCurrentDirectoryA(MAX_PATH, path);
-    return Path(std::string(path) + SEPARATOR);
+    wchar_t path[MAX_PATH];
+    GetCurrentDirectoryW(MAX_PATH, path);
+    return Path(String(path) + SEPARATOR);
 #endif
 }
 
@@ -269,7 +269,7 @@ Size Path::findFolder(const String& folder) {
     if (path == folder || path.substr(0, min(path.size(), folder.size() + 1)) == folder + SEPARATOR) {
         return 0;
     }
-    const size_t n = path.find(SEPARATOR + folder + SEPARATOR);
+    const Size n = path.find(SEPARATOR + folder + SEPARATOR);
     if (n != String::npos) {
         return n + 1;
     }
