@@ -40,6 +40,7 @@ String String::fromUtf8(const char* s) {
         return String::fromWstring(std::wstring(s16.begin(), s16.end()));
     } catch (const std::range_error& e) {
         SPH_ASSERT(false, e.what());
+        MARK_USED(e);
         return String::fromAscii(s);
     }
 }
@@ -70,7 +71,7 @@ bool String::isAscii() const {
 CharString String::toUtf8() const {
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> convert;
     std::string str = convert.to_bytes(&data[0]);
-    return ArrayView<const char>(str.data(), str.size());
+    return ArrayView<const char>(str.data(), Size(str.size()));
 }
 
 std::wstring String::toWstring() const {
@@ -398,9 +399,9 @@ String setLineBreak(const String& s, const Size lineWidth) {
                 n += lastSpaceNum;
             }
             // indent if there is a pattern ' - %s: ' on the previous line
-            const std::size_t comma = result.find("- ", lastLineBreak);
+            const Size comma = result.find("- ", lastLineBreak);
             if (comma < n) {
-                const std::size_t colon = result.find(": ", comma);
+                const Size colon = result.find(": ", comma);
                 if (colon < n) {
                     Size spaceNum = colon + 2 - lastLineBreak;
                     result.insert(n, String::fromChar(' ', spaceNum));

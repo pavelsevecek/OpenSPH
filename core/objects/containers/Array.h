@@ -421,7 +421,7 @@ public:
         if (SPH_UNLIKELY(first == last)) {
             return;
         }
-        const Size count = last - first;
+        const Size count = Size(last - first);
         SPH_ASSERT(Size(first - begin()) + count <= actSize);
 
         for (TIter iter = first; iter != end() - count; ++iter) {

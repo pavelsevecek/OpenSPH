@@ -60,25 +60,22 @@ void ChaiScriptJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& c
     chaiscript::ChaiScript chai;
     Chai::registerBindings(chai);
 
-    // node-specific stuff
-    /*for (int i = 0; i < inputCnt; ++i) {
-        SharedPtr<ParticleData> input = this->getInput<ParticleData>(slotNames[i]);
-        chai.add(chaiscript::var(std::ref(input->storage)), slotNames[i]);
-    }*/
-    chai.add(chaiscript::fun<std::function<Chai::Particles(String)>>([this](String name) {
-        SharedPtr<ParticleData> input = this->getInput<ParticleData>(name);
+    // expose functions to the chaiscript engine
+    chai.add(chaiscript::fun<std::function<Chai::Particles(std::string)>>([this](std::string name) {
+        SharedPtr<ParticleData> input = this->getInput<ParticleData>(String::fromAscii(name.c_str()));
         Chai::Particles particles;
         particles.bindToStorage(input->storage);
         return particles;
     }),
         "getInput");
-    chai.add(chaiscript::fun<std::function<Float(String)>>([this](String name) {
+    chai.add(chaiscript::fun<std::function<double(std::string)>>([this](std::string name) -> double {
+        String paramName = String::fromAscii(name.c_str());
         for (Size i = 0; i < paramNames.size(); ++i) {
-            if (name == paramNames[i]) {
+            if (paramName == paramNames[i]) {
                 return paramValues[i];
             }
         }
-        throw InvalidSetup("Unknown parameter '" + name + "'");
+        throw InvalidSetup("Unknown parameter '" + paramName + "'");
     }),
         "getParam");
     Statistics stats;
