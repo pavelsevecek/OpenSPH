@@ -3,7 +3,6 @@
 #include "math/MathUtils.h"
 #include "objects/containers/FlatMap.h"
 #include "objects/containers/StaticArray.h"
-#include "objects/utility/StringUtils.h"
 #include "objects/wrappers/Expected.h"
 #include "physics/Constants.h"
 
@@ -329,7 +328,7 @@ public:
     /// \brief Prints in the most suitable units (so that the value is as close to 1 as possible).
     ///
     /// Can be only used with base units.
-    /*std::string human() const {
+    /*String human() const {
         const Float ratio;
         for (UnitDescriptor& desc : UNITS) {
             if (desc.value.type() == this->type()) {
@@ -465,18 +464,18 @@ INLINE Unit operator"" _mps(long double value) {
     return Unit(Float(value), UnitDimensions::velocity(), UnitSystem::SI());
 }
 
-Expected<Unit> parseUnit(const std::string& text);
+Expected<Unit> parseUnit(const String& text);
 
 /// Expected format: kg^3 m s^-1
 /// No * or / symbols allowed, used powers
-/*static Expected<Unit> parseUnit(const std::string& text) {
+/*static Expected<Unit> parseUnit(const String& text) {
     // unit symbols can only contains letters (both lowercase and uppercase) and underscores
     Size idx0 = 0;
     for (Size i = 0; i < text.size(); ++i) {
         if ((text[i] >= 'a' && text[i] <= 'z') || (text[i] >= 'A' && text[i] <= 'Z') || text[i] == '_') {
             continue;
         }
-        std::string symbol = text.substr(idx0, i - idx0);
+        String symbol = text.substr(idx0, i - idx0);
         UnitDescriptor* ptr = std::find_if(std::begin(UNITS),
             std::end(UNITS),
             [&symbol](UnitDescriptor& desc) { return desc.symbol == symbol; });

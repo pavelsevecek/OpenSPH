@@ -126,7 +126,7 @@ class InvalidStorageAccess : public Exception {
 public:
     explicit InvalidStorageAccess(const QuantityId id);
 
-    explicit InvalidStorageAccess(const std::string& message);
+    explicit InvalidStorageAccess(const String& message);
 };
 
 /// \brief Container storing all quantities used within the simulations.

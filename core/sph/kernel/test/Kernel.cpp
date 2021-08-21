@@ -107,16 +107,18 @@ void testKernel(const TKernel& kernel,
         const Size testCnt = Size(kernel.radius() / 0.001_f);
         auto test1 = [&](const Size i) -> Outcome {
             Float x = i * 0.001_f;
-            // clang-format off
             if (lut.valueImpl(sqr(x)) != approx(kernel.valueImpl(sqr(x)), 1.e-6_f)) {
-                return makeFailed("LUT not matching kernel at q = ", x,
-                                "\n ", lut.valueImpl(sqr(x)), " == ", kernel.valueImpl(sqr(x)));
+                return makeFailed("LUT not matching kernel at q = {}\n{} == {}",
+                    x,
+                    lut.valueImpl(sqr(x)),
+                    kernel.valueImpl(sqr(x)));
             }
             if (x * lut.gradImpl(sqr(x)) != approx(x * kernel.gradImpl(sqr(x)), 1.e-4_f)) {
-                return makeFailed("LUT gradient not matching kernel gradient at q = ", x,
-                                  "\n ", lut.gradImpl(sqr(x)), " == ", kernel.gradImpl(sqr(x)));
+                return makeFailed("LUT gradient not matching kernel gradient at q = {}\n{} == {}",
+                    x,
+                    lut.gradImpl(sqr(x)),
+                    kernel.gradImpl(sqr(x)));
             }
-            // clang-format on
             return SUCCESS;
         };
         // cannot hope to reproduce discontinuous kernel
@@ -278,12 +280,12 @@ TEST_CASE("Scaling kernel", "[kernel]") {
         const Float W1 = kernel1.valueImpl(sqr(x));
         const Float W2 = kernel2.valueImpl(sqr(x));
         if (W1 != approx(W2, 0.005_f)) {
-            return makeFailed("Incorrect kernel value:\n", W1, " == ", W2);
+            return makeFailed("Incorrect kernel value:\n{} == {}", W1, W2);
         }
         const Float G1 = x * kernel1.gradImpl(sqr(x));
         const Float G2 = x * kernel2.gradImpl(sqr(x));
         if (G1 != approx(G2, 0.005_f)) {
-            return makeFailed("Incorrect kernel gradient:\n", G1, " == ", G2);
+            return makeFailed("Incorrect kernel gradient:\n{} == {}", G1, G2);
         }
         return SUCCESS;
     };

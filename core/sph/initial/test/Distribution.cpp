@@ -43,7 +43,7 @@ void testDistributionForDomain(IDistribution* distribution, const IDomain& domai
     const Float expectedH = root<3>(domain.getVolume() / n);
     auto test = [&](const Size i) -> Outcome {
         if (values[i][H] <= 0.8_f * expectedH || values[i][H] >= 1.2_f * expectedH) {
-            return makeFailed("Invalid smoothing length: ", values[i][H], " == ", expectedH);
+            return makeFailed("Invalid smoothing length: {} == {}", values[i][H], expectedH);
         }
         return SUCCESS;
     };
@@ -76,7 +76,7 @@ TEST_CASE("HexaPacking grid", "[initial]") {
         }
         finder->findAll(i, 1.5_f * r[i][H], neighs);
         if (neighs.size() != 13) { // 12 + i-th particle itself
-            return makeFailed("Invalid number of neighbors: \n", neighs.size(), " == 13");
+            return makeFailed("Invalid number of neighbors:\n{} == 13", neighs.size());
         }
         const Float expectedDist =
             r[i][H]; // note that dist does not have to be exactly h, only approximately
@@ -86,7 +86,7 @@ TEST_CASE("HexaPacking grid", "[initial]") {
             }
             const Float dist = getLength(r[i] - r[n.index]);
             if (dist != approx(expectedDist, 0.1_f)) {
-                return makeFailed("Invalid distance to neighbors: \n", dist, " == ", expectedDist);
+                return makeFailed("Invalid distance to neighbors:\n{} == {}", dist, expectedDist);
             }
         }
         return SUCCESS;
@@ -162,7 +162,7 @@ TEST_CASE("LinearDistribution", "[initial]") {
     REQUIRE(values.size() == 101);
     auto test = [&](const Size i) -> Outcome {
         if (values[i] != approx(Vector(i / 100._f, 0._f, 0._f), 1.e-5_f)) {
-            return makeFailed(values[i], " == ", Vector(i / 100._f, 0._f, 0._f));
+            return makeFailed("{} == {}", values[i], Vector(i / 100._f, 0._f, 0._f));
         }
         return SUCCESS;
     };

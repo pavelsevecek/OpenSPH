@@ -9,37 +9,37 @@ int printBinaryFileInfo(ILogger& logger, const Path& path) {
     BinaryInput input;
     Expected<BinaryInput::Info> info = input.getInfo(path);
     if (!info) {
-        logger.write("Cannot obtain file info from '", path.native(), "'");
+        logger.write("Cannot obtain file info from '", path.string(), "'");
         return -1;
     }
 
     Size row = 0;
     Table table(3);
     table.setCell(0, row, "File name:");
-    table.setCell(1, row, path.fileName().native());
+    table.setCell(1, row, path.fileName().string());
     ++row;
     table.setCell(0, row, "File version:");
-    table.setCell(1, row, std::to_string(int(info->version)));
+    table.setCell(1, row, toString(int(info->version)));
     ++row;
     table.setCell(0, row, "Particle count:");
-    table.setCell(1, row, std::to_string(info->particleCnt));
+    table.setCell(1, row, toString(info->particleCnt));
     ++row;
     if (info->version >= BinaryIoVersion::V2021_08_08) {
         table.setCell(0, row, "Attractor count:");
-        table.setCell(1, row, std::to_string(info->attractorCnt));
+        table.setCell(1, row, toString(info->attractorCnt));
         ++row;
     }
     table.setCell(0, row, "Material count:");
-    table.setCell(1, row, std::to_string(info->materialCnt));
+    table.setCell(1, row, toString(info->materialCnt));
     ++row;
     table.setCell(0, row, "Quantity count:");
-    table.setCell(1, row, std::to_string(info->quantityCnt));
+    table.setCell(1, row, toString(info->quantityCnt));
     ++row;
     table.setCell(0, row, "Run time:");
-    table.setCell(1, row, std::to_string(info->runTime));
+    table.setCell(1, row, toString(info->runTime));
     ++row;
     table.setCell(0, row, "Time step:");
-    table.setCell(1, row, std::to_string(info->timeStep));
+    table.setCell(1, row, toString(info->timeStep));
     ++row;
     table.setCell(0, row, "Wallclock time:");
     table.setCell(1, row, getFormattedTime(info->wallclockTime));
@@ -66,28 +66,28 @@ int printCompressedFileInfo(ILogger& logger, const Path& path) {
     CompressedInput input;
     Expected<CompressedInput::Info> info = input.getInfo(path);
     if (!info) {
-        logger.write("Cannot obtain file info from '", path.native(), "'");
+        logger.write("Cannot obtain file info from '", path.string(), "'");
         return -1;
     }
 
     Size row = 0;
     Table table(3);
     table.setCell(0, row, "File name:");
-    table.setCell(1, row, path.fileName().native());
+    table.setCell(1, row, path.fileName().string());
     ++row;
     table.setCell(0, row, "File version:");
-    table.setCell(1, row, std::to_string(int(info->version)));
+    table.setCell(1, row, toString(int(info->version)));
     ++row;
     table.setCell(0, row, "Particle count:");
-    table.setCell(1, row, std::to_string(info->particleCnt));
+    table.setCell(1, row, toString(info->particleCnt));
     ++row;
     if (info->version >= CompressedIoVersion::V2021_08_08) {
         table.setCell(0, row, "Attractor count:");
-        table.setCell(1, row, std::to_string(info->attractorCnt));
+        table.setCell(1, row, toString(info->attractorCnt));
         ++row;
     }
     table.setCell(0, row, "Run time:");
-    table.setCell(1, row, std::to_string(info->runTime));
+    table.setCell(1, row, toString(info->runTime));
     ++row;
     table.setCell(0, row, "Run type:");
     table.setCell(1, row, EnumMap::toString<RunTypeEnum>(info->runType));
@@ -102,12 +102,13 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    const Optional<IoEnum> type = getIoEnum(Path(argv[1]).extension().native());
+    const Path path(String::fromUtf8(argv[1]));
+    const Optional<IoEnum> type = getIoEnum(path.extension().string());
     switch (type.valueOr(IoEnum::NONE)) {
     case IoEnum::BINARY_FILE:
-        return printBinaryFileInfo(logger, Path(argv[1]));
+        return printBinaryFileInfo(logger, path);
     case IoEnum::DATA_FILE:
-        return printCompressedFileInfo(logger, Path(argv[1]));
+        return printCompressedFileInfo(logger, path);
     default:
         logger.write("Unknown file format.");
         return -1;

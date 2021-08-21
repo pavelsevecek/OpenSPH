@@ -31,7 +31,7 @@ ArrayView<const AutoPtr<IJobDesc>> enumerateRegisteredJobs() {
     return sRegisteredJobs;
 }
 
-RawPtr<IJobDesc> getJobDesc(const std::string& name) {
+RawPtr<IJobDesc> getJobDesc(const String& name) {
     for (auto& desc : sRegisteredJobs) {
         if (desc->className() == name) {
             return desc.get();
@@ -40,51 +40,47 @@ RawPtr<IJobDesc> getJobDesc(const std::string& name) {
     return nullptr;
 }
 
-VirtualSettings::Category& addGenericCategory(VirtualSettings& connector, std::string& instanceName) {
+VirtualSettings::Category& addGenericCategory(VirtualSettings& connector, String& instanceName) {
     VirtualSettings::Category& cat = connector.addCategory("Generic");
     cat.connect("Name", "name", instanceName);
     return cat;
 }
 
-JobRegistrar::JobRegistrar(std::string className,
-    std::string shortName,
-    std::string category,
+JobRegistrar::JobRegistrar(String className,
+    String shortName,
+    String category,
     CreateJobFunc func,
-    std::string tooltip) {
+    String tooltip) {
 
     class GenericDesc : public IJobDesc {
     private:
-        std::string longName;
-        std::string shortName;
-        std::string cat;
-        std::string desc;
+        String longName;
+        String shortName;
+        String cat;
+        String desc;
         CreateJobFunc func;
 
     public:
-        GenericDesc(std::string longName,
-            std::string shortName,
-            std::string cat,
-            CreateJobFunc func,
-            std::string desc)
+        GenericDesc(String longName, String shortName, String cat, CreateJobFunc func, String desc)
             : longName(std::move(longName))
             , shortName(std::move(shortName))
             , cat(std::move(cat))
             , desc(std::move(desc))
             , func(func) {}
 
-        virtual std::string className() const override {
+        virtual String className() const override {
             return longName;
         }
 
-        virtual std::string category() const override {
+        virtual String category() const override {
             return cat;
         }
 
-        virtual std::string tooltip() const override {
+        virtual String tooltip() const override {
             return desc;
         }
 
-        virtual AutoPtr<IJob> create(Optional<std::string> instanceName) const override {
+        virtual AutoPtr<IJob> create(Optional<String> instanceName) const override {
             CHECK_FUNCTION(CheckFunction::NO_THROW);
             AutoPtr<IJob> job = func(instanceName.valueOr("unnamed " + shortName));
             return job;
@@ -95,25 +91,22 @@ JobRegistrar::JobRegistrar(std::string className,
 }
 
 
-JobRegistrar::JobRegistrar(std::string className,
-    std::string category,
-    CreateJobFunc func,
-    std::string tooltip)
+JobRegistrar::JobRegistrar(String className, String category, CreateJobFunc func, String tooltip)
     : JobRegistrar(className, className, category, func, std::move(tooltip)) {}
 
 
-IParticleJob::IParticleJob(const std::string& name)
+IParticleJob::IParticleJob(const String& name)
     : IJob(name) {}
 
 IParticleJob::~IParticleJob() = default;
 
-IRunJob::IRunJob(const std::string& name)
+IRunJob::IRunJob(const String& name)
     : IParticleJob(name) {}
 
 IRunJob::~IRunJob() = default;
 
-static SharedPtr<ParticleData> findStorageInput(const UnorderedMap<std::string, JobContext>& inputs,
-    const std::string& jobName) {
+static SharedPtr<ParticleData> findStorageInput(const UnorderedMap<String, JobContext>& inputs,
+    const String& jobName) {
     for (const auto& element : inputs) {
         SharedPtr<ParticleData> data = element.value().tryGetValue<ParticleData>();
         if (data != nullptr) {

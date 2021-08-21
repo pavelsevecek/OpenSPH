@@ -1,14 +1,15 @@
 #include "gui/windows/ParticleProbe.h"
-#include "objects/utility/StringUtils.h"
 #include "quantities/QuantityIds.h"
 
 NAMESPACE_SPH_BEGIN
 
-inline std::string toName(const std::string& s) {
-    return capitalize(replaceAll(s, "_", " "));
+inline String toName(const String& s) {
+    String name = s;
+    name.replaceAll("_", " ");
+    return capitalize(name);
 }
 
-inline std::string toKey(const std::string& s) {
+inline String toKey(const String& s) {
     return split(s, '.').back();
 }
 
@@ -117,7 +118,7 @@ void ParticleProbe::onPaint(wxPaintEvent& UNUSED(evt)) {
 
         SPH_ASSERT(!data.value.empty());
         const DynamicId id = data.value.getType();
-        const std::wstring label = getMetadata(data.id).label;
+        const String label = getMetadata(data.id).label;
         switch (id) {
         case DynamicId::FLOAT:
             /// \todo we should use the name of the colorizer, not quantity
@@ -126,7 +127,7 @@ void ParticleProbe::onPaint(wxPaintEvent& UNUSED(evt)) {
             offset.y += config.lineSkip;
             break;
         case DynamicId::SIZE:
-            drawTextWithSubscripts(dc, label + L" = " + std::to_wstring(data.value.get<Size>()), offset);
+            drawTextWithSubscripts(dc, label + L" = " + toString(data.value.get<Size>()), offset);
             offset.y += config.lineSkip;
             break;
         case DynamicId::VECTOR: {
@@ -155,11 +156,11 @@ void ParticleProbe::onPaint(wxPaintEvent& UNUSED(evt)) {
     }
 
     for (const Particle::ParamData& data : particle->getParameters()) {
-        std::string label = BodySettings::getEntryName(data.id).value();
+        String label = BodySettings::getEntryName(data.id).value();
         const DynamicId id = data.value.getType();
         switch (id) {
         case DynamicId::STRING:
-            drawTextWithSubscripts(dc, toKey(label) + " = " + toName(data.value.get<std::string>()), offset);
+            drawTextWithSubscripts(dc, toKey(label) + " = " + toName(data.value.get<String>()), offset);
             offset.y += config.lineSkip;
             break;
         default:
@@ -168,10 +169,7 @@ void ParticleProbe::onPaint(wxPaintEvent& UNUSED(evt)) {
     }
 }
 
-void ParticleProbe::printVector(wxDC& dc,
-    const Vector& v,
-    const std::wstring& label,
-    const wxPoint offset) const {
+void ParticleProbe::printVector(wxDC& dc, const Vector& v, const String& label, const wxPoint offset) const {
     drawTextWithSubscripts(
         dc, label + L"_x = " + toPrintableString(v[X]), offset + wxSize(0, 0 * config.lineSkip));
     drawTextWithSubscripts(
@@ -183,7 +181,7 @@ void ParticleProbe::printVector(wxDC& dc,
 template <typename Type>
 void ParticleProbe::printTensor(wxDC& dc,
     const Type& tensor,
-    const std::wstring& label,
+    const String& label,
     const wxPoint offset) const {
     const Size x = dc.GetSize().x / 2;
     drawTextWithSubscripts(

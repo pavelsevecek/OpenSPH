@@ -4,6 +4,8 @@
 
 NAMESPACE_SPH_BEGIN
 
+class UniqueNameManager;
+
 namespace Presets {
 
 enum class Id {

@@ -7,7 +7,9 @@
 
 #include "math/MathUtils.h"
 #include "objects/Object.h"
+#include "objects/containers/String.h"
 #include "objects/utility/IteratorAdapters.h"
+#include "objects/wrappers/Optional.h"
 #include <wx/gdicmn.h>
 
 NAMESPACE_SPH_BEGIN
@@ -88,12 +90,14 @@ struct BasicPoint {
         return !(*this == other);
     }
 
-    friend std::ostream& operator<<(std::ostream& stream, const BasicPoint& p) {
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const BasicPoint& p) {
         stream << p.x << " " << p.y;
         return stream;
     }
 
-    friend std::istream& operator>>(std::istream& stream, BasicPoint& p) {
+    template <typename TStream>
+    friend TStream& operator>>(TStream& stream, BasicPoint& p) {
         stream >> p.x >> p.y;
         return stream;
     }
@@ -148,6 +152,18 @@ struct Coords : public BasicPoint<float, Coords> {
         return wxPoint(int(x), int(y));
     }
 };
+
+template <>
+INLINE Optional<Pixel> fromString(const String& s) {
+    std::wstringstream ss(s.toUnicode());
+    Pixel p;
+    ss >> p;
+    if (ss) {
+        return p;
+    } else {
+        return NOTHING;
+    }
+}
 
 template <typename T, typename TDerived>
 INLINE float getLength(const BasicPoint<T, TDerived>& p) {

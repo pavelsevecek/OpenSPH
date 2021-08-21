@@ -29,7 +29,7 @@ public:
         // Set the impact velocity to 5km/s
         impactor.addVelocity(Vector(-5.e3_f, 0._f, 0._f));
 
-        settings.set(RunSettingsId::RUN_NAME, std::string("Simple collision"));
+        settings.set(RunSettingsId::RUN_NAME, "Simple collision"_s);
 
         // Let's run the simulation for 10 seconds
         settings.set(RunSettingsId::RUN_END_TIME, 10._f);

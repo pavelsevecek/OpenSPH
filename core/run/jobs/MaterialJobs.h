@@ -17,13 +17,13 @@ protected:
 
 class MaterialJob : public IMaterialJob, public MaterialProvider {
 public:
-    MaterialJob(const std::string& name, const BodySettings& overrides = EMPTY_SETTINGS);
+    explicit MaterialJob(const String& name, const BodySettings& overrides = EMPTY_SETTINGS);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "material";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -34,14 +34,14 @@ public:
 
 class DisableDerivativeCriterionJob : public IMaterialJob {
 public:
-    DisableDerivativeCriterionJob(const std::string& name)
+    explicit DisableDerivativeCriterionJob(const String& name)
         : IMaterialJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "optimize timestepping";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "material", JobType::MATERIAL } };
     }
 

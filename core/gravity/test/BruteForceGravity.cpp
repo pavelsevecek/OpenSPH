@@ -38,7 +38,7 @@ TEST_CASE("BruteForceGravity single-thread", "[gravity]") {
             return SUCCESS;
         }
         if (a[i] != approx(d2v[i], 0.04_f)) {
-            return makeFailed("Incorrect acceleration: ", a[i], " == ", d2v[i]);
+            return makeFailed("Incorrect acceleration: {} == {}", a[i], d2v[i]);
         } else {
             return SUCCESS;
         }
@@ -69,7 +69,7 @@ TEST_CASE("BruteForceGravity parallel", "[gravity]") {
     // compare with single-threaded result
     auto test = [&](const Size i) -> Outcome {
         if (dv2[i] != dv1[i]) {
-            return makeFailed("Incorrect acceleration: ", dv2[i], " == ", dv1[i]);
+            return makeFailed("Incorrect acceleration: {} == {}", dv2[i], dv1[i]);
         }
         return SUCCESS;
     };

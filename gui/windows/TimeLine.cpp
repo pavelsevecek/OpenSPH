@@ -12,7 +12,7 @@ std::map<int, Path> getSequenceFiles(const Path& inputPath) {
 
     const Expected<Path> absolutePath = FileSystem::getAbsolutePath(inputPath);
     if (!absolutePath) {
-        throw Exception("Cannot resolve absolute path of file '" + inputPath.native() + "'");
+        throw Exception("Cannot resolve absolute path of file '" + inputPath.string() + "'");
     }
 
     Optional<OutputFile> deducedFile = OutputFile::getMaskFromPath(absolutePath.value());
@@ -38,7 +38,7 @@ std::map<int, Path> getSequenceFiles(const Path& inputPath) {
     }
 
     if (fileMap.empty()) {
-        throw Exception("Cannot open file " + inputPath.native());
+        throw Exception("Cannot open file '" + inputPath.string() + "'");
     }
 
     return fileMap;

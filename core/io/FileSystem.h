@@ -13,9 +13,10 @@ namespace FileSystem {
 
 /// \brief Reads the whole file into the string.
 ///
-/// Returns an empty string if the file does not exist or cannot be opened for reading.
+/// The function assumes UTF-8 encoding. Returns an empty string if the file does not exist or cannot be
+/// opened for reading.
 /// \param path File to read
-std::string readFile(const Path& path);
+String readFile(const Path& path);
 
 /// \brief Checks if a file or directory exists (or more precisely, if a file or directory is accessible).
 bool pathExists(const Path& path);

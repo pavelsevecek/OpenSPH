@@ -11,14 +11,14 @@ using namespace Sph;
 class ElasticBands : public IRun {
 public:
     ElasticBands() {
-        settings.set(RunSettingsId::RUN_NAME, std::string("Colliding Elastic Bands Problem"))
+        settings.set(RunSettingsId::RUN_NAME, String("Colliding Elastic Bands Problem"))
             .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
             .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-8_f)
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
             .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
             .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 1._f)
-            .set(RunSettingsId::RUN_OUTPUT_PATH, std::string("elastic_bands"))
-            .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("bands_%d.ssf"))
+            .set(RunSettingsId::RUN_OUTPUT_PATH, String("elastic_bands"))
+            .set(RunSettingsId::RUN_OUTPUT_NAME, String("bands_%d.ssf"))
             .set(RunSettingsId::RUN_END_TIME, 4.e-3_f)
             .set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS)
             .set(RunSettingsId::SPH_SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)

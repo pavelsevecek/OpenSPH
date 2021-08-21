@@ -81,7 +81,7 @@ TEMPLATE_TEST_CASE("Gravity with attractors", "[gravity]", BruteForceGravity, Ba
 
     auto test1 = [&](const Size i) -> Outcome {
         if (dv2[i] != approx(dv1[i], gravityEps<TestType>)) {
-            return makeFailed("Incorrect acceleration: ", dv2[i], " == ", dv1[i]);
+            return makeFailed("Incorrect acceleration: {} == {}", dv2[i], dv1[i]);
         }
         return SUCCESS;
     };
@@ -92,7 +92,7 @@ TEMPLATE_TEST_CASE("Gravity with attractors", "[gravity]", BruteForceGravity, Ba
         const Vector acc1 = dv2[i + dv1.size()];
         const Vector acc2 = attractors[i].acceleration;
         if (acc1 != approx(acc2, gravityEps<TestType>)) {
-            return makeFailed("Incorrect acceleration: ", acc1, " == ", acc2);
+            return makeFailed("Incorrect acceleration: {} == {}", acc1, acc2);
         }
         return SUCCESS;
     };

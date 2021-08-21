@@ -10,20 +10,21 @@ NAMESPACE_SPH_BEGIN
 
 
 /// \todo deduplicate
-inline std::string getIdentifier(const std::string& name) {
-    std::string escaped = replaceAll(name, " ", "-");
-    return lowercase(escaped);
+inline String getIdentifier(const String& name) {
+    String identifier = name;
+    identifier.replaceAll(" ", "-");
+    return identifier.toLowercase();
 }
 
 class Project {
 private:
     GuiSettings gui;
-    FlatMap<std::string, Palette> palettes;
+    FlatMap<String, Palette> palettes;
 
     Project();
 
 public:
-    CallbackSet<void(const std::string& name, const Palette& palette)> onPaletteChanged;
+    CallbackSet<void(const String& name, const Palette& palette)> onPaletteChanged;
 
     static Project& getInstance() {
         static Project project;
@@ -37,13 +38,13 @@ public:
         return cloned;
     }
 
-    void setPalette(const std::string& name, const Palette& palette) {
+    void setPalette(const String& name, const Palette& palette) {
         palettes.insert(name, palette);
 
         onPaletteChanged(name, palette);
     }
 
-    bool getPalette(const std::string& name, Palette& palette) const {
+    bool getPalette(const String& name, Palette& palette) const {
         if (palettes.contains(name)) {
             palette = palettes[name];
             return true;

@@ -6,6 +6,7 @@
 /// \date 2016-2021
 
 #include "math/Means.h"
+#include "objects/containers/String.h"
 #include "objects/geometry/Tensor.h"
 #include "objects/geometry/TracelessTensor.h"
 #include "objects/wrappers/Variant.h"
@@ -43,7 +44,7 @@ private:
         SymmetricTensor,
         TracelessTensor,
         MinMaxMean,
-        std::string>;
+        String>;
 
     DynamicVariant storage;
 
@@ -108,9 +109,7 @@ public:
     }
 
     /// Converts the stored value into a single number, using one of possible conversions
-    Float getScalar() const {
-        return forValue(storage, ScalarFunctor());
-    }
+    Float getScalar() const;
 
     DynamicId getType() const {
         return DynamicId(storage.getTypeIdx());
@@ -136,34 +135,11 @@ public:
     }
 
     /// Prints the currently stored value into the stream, using << operator of its type.
-    friend std::ostream& operator<<(std::ostream& stream, const Dynamic& value) {
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const Dynamic& value) {
         forValue(value.storage, [&stream](const auto& v) { stream << std::setw(20) << v; });
         return stream;
     }
-
-private:
-    struct ScalarFunctor {
-        template <typename T>
-        Float operator()(const T& value) {
-            return norm(value);
-        }
-        Float operator()(const Size value) {
-            return Float(value);
-        }
-        Float operator()(const Vector& value) {
-            return getLength(value);
-        }
-        Float operator()(const MinMaxMean& value) {
-            return value.mean();
-        }
-        Float operator()(const std::string&) {
-            NOT_IMPLEMENTED;
-        }
-        Float operator()(const NothingType&) {
-            return NAN;
-        }
-    };
 };
-
 
 NAMESPACE_SPH_END

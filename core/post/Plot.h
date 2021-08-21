@@ -91,7 +91,7 @@ public:
     }
 
     /// \brief Returns the caption of the plot
-    virtual std::string getCaption() const = 0;
+    virtual String getCaption() const = 0;
 
     /// \brief Updates the plot with new data.
     ///
@@ -124,7 +124,7 @@ public:
         : id(id)
         , binCnt(binCnt) {}
 
-    virtual std::string getCaption() const override {
+    virtual String getCaption() const override {
         return getMetadata(id).quantityName;
     }
 
@@ -220,7 +220,7 @@ public:
         actPeriod = params.period;
     }
 
-    virtual std::string getCaption() const override {
+    virtual String getCaption() const override {
         return integral.getName();
     }
 
@@ -256,7 +256,7 @@ protected:
     Float period;
 
     /// Displayed name of the histogram.
-    std::string name;
+    String name;
 
     Float lastTime = -INFTY;
 
@@ -264,7 +264,7 @@ public:
     HistogramPlot(const Post::HistogramId id,
         const Optional<Interval> interval,
         const Float period,
-        const std::string& name)
+        const String& name)
         : id(id)
         , interval(interval)
         , period(period)
@@ -277,7 +277,7 @@ public:
         name = getMetadata(id).quantityName;
     }
 
-    virtual std::string getCaption() const override {
+    virtual String getCaption() const override {
         return name;
     }
 
@@ -302,7 +302,7 @@ class AngularHistogramPlot : public IPlot {
 public:
     explicit AngularHistogramPlot(const Float period);
 
-    virtual std::string getCaption() const override {
+    virtual String getCaption() const override {
         return "Angular histogram of velocities";
     }
 
@@ -318,7 +318,7 @@ private:
     Post::HistogramSource source;
     Flags<Post::ComponentFlag> connect;
     Float period;
-    std::string name;
+    String name;
 
     Float lastTime = -INFTY;
     Array<PlotPoint> sfd;
@@ -330,7 +330,7 @@ public:
     /// \brief Plots SFD of individual particles, makes only sense when merging the particles on collisions.
     SfdPlot(const Float period);
 
-    virtual std::string getCaption() const override;
+    virtual String getCaption() const override;
 
     virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;
 
@@ -348,12 +348,12 @@ enum class AxisScaleEnum {
 class DataPlot : public IPlot {
 private:
     Array<PlotPoint> values;
-    std::string name;
+    String name;
 
 public:
-    DataPlot(const Array<Post::HistPoint>& points, const Flags<AxisScaleEnum> scale, const std::string& name);
+    DataPlot(const Array<Post::HistPoint>& points, const Flags<AxisScaleEnum> scale, const String& name);
 
-    virtual std::string getCaption() const override;
+    virtual String getCaption() const override;
 
     virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;
 
@@ -371,7 +371,7 @@ public:
     explicit MultiPlot(Array<AutoPtr<IPlot>>&& plots)
         : plots(std::move(plots)) {}
 
-    virtual std::string getCaption() const override {
+    virtual String getCaption() const override {
         return plots[0]->getCaption(); /// ??
     }
 

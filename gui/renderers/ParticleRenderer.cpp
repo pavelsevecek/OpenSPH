@@ -112,7 +112,7 @@ static void drawKey(IRenderContext& context,
     context.drawLine(lineStart + Coords(scaleSize / 2 + 1, -4), lineStart + Coords(scaleSize / 2 + 1, 4));
 
     /// \todo finally implement the units!
-    std::wstring units = L" m";
+    String units = L" m";
     if (actScaleFov > Constants::au) {
         actScaleFov /= float(Constants::au);
         units = L" au";
@@ -120,15 +120,15 @@ static void drawKey(IRenderContext& context,
         actScaleFov /= 1.e3f;
         units = L" km";
     }
-    std::wstring scaleText = toPrintableString(actScaleFov, 0, 10);
-    if (scaleText.find(L'\u00D7') != std::wstring::npos) {
+    String scaleText = toPrintableString(actScaleFov, 0, 10);
+    if (scaleText.find(L'\u00D7') != String::npos) {
         // convert 1x10^n  -> 10^n
         scaleText = scaleText.substr(3);
     }
     context.drawText(keyStart + Coords(0, 36), flags, scaleText + units);
 }
 
-void drawAxis(IRenderContext& context, const Rgba& color, const Vector& axis, const std::string& label) {
+void drawAxis(IRenderContext& context, const Rgba& color, const Vector& axis, const String& label) {
     const float length = 40;
     const Coords origin(50, context.size().y - 50);
     const Coords dir = Coords(-axis[0], axis[1]) * length;

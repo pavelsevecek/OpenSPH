@@ -703,19 +703,10 @@ static Array<Size> processComponentCutoffs(const Storage& storage,
 }
 
 /// \todo move directly to Storage?
-struct MissingQuantityException : public std::exception {
-private:
-    std::string message;
-
+struct MissingQuantityException : public Exception {
 public:
-    explicit MissingQuantityException(const QuantityId id) {
-        message = "Attempting to access missing quantity " + getMetadata(id).quantityName;
-    }
-
-
-    virtual const char* what() const noexcept override {
-        return message.c_str();
-    }
+    explicit MissingQuantityException(const QuantityId id)
+        : Exception("Attempting to access missing quantity " + getMetadata(id).quantityName) {}
 };
 
 /// \brief Returns the component values corresponding to given histogram quantity.

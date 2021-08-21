@@ -21,14 +21,11 @@ class IntervalEntry : public EntryControl {
 private:
     Settings<TEnum>& settings;
     TEnum id;
-    std::string name;
+    String name;
     IntervalBound bound;
 
 public:
-    IntervalEntry(Settings<TEnum>& settings,
-        const TEnum id,
-        const std::string& name,
-        const IntervalBound bound)
+    IntervalEntry(Settings<TEnum>& settings, const TEnum id, const String& name, const IntervalBound bound)
         : settings(settings)
         , id(id)
         , name(name)
@@ -59,7 +56,7 @@ public:
         return IVirtualEntry::Type::FLOAT;
     }
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return name;
     }
 };
@@ -67,7 +64,7 @@ public:
 template <typename TEnum>
 INLINE AutoPtr<IVirtualEntry> makeEntry(Settings<TEnum>& settings,
     const TEnum id,
-    const std::string& name,
+    const String& name,
     const IntervalBound bound) {
     return makeAuto<IntervalEntry<TEnum>>(settings, id, name, bound);
 }
@@ -87,9 +84,9 @@ public:
         return curve;
     }
 
-    virtual std::string toString() const override;
+    virtual String toString() const override;
 
-    virtual void fromString(const std::string& s) override;
+    virtual void fromString(const String& s) override;
 
     virtual AutoPtr<IExtraEntry> clone() const override;
 };

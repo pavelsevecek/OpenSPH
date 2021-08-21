@@ -88,7 +88,7 @@ TEST_CASE("EquilibriumStressSolver pressure", "[equilibriumsolver]") {
         }
         const Float p0 = expected(getLength(r[i]));
         if (p[i] != approx(p0, 0.05_f)) {
-            return makeFailed("Incorrect pressure: \n", p[i], " == ", p0);
+            return makeFailed("Incorrect pressure: \n{} == {}", p[i], p0);
         }
         return SUCCESS;
     };

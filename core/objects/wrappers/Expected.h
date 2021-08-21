@@ -5,10 +5,10 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2021
 
+#include "objects/containers/String.h"
 #include "objects/wrappers/Variant.h"
 
 NAMESPACE_SPH_BEGIN
-
 
 struct UnexpectedTag {};
 const UnexpectedTag UNEXPECTED;
@@ -21,7 +21,7 @@ const UnexpectedTag UNEXPECTED;
 ///
 /// Inspired by Andrei Alexandrescu - Systematic Error Handling in C++
 /// https://channel9.msdn.com/Shows/Going+Deep/C-and-Beyond-2012-Andrei-Alexandrescu-Systematic-Error-Handling-in-C
-template <typename Type, typename Error = std::string>
+template <typename Type, typename Error = String>
 class Expected {
 private:
     /// Wrapper to avoid issues if the value type is the same as the error
@@ -121,8 +121,8 @@ private:
 /// If the object contains an expected value, prints the value into the stream, otherwise print the error
 /// message. Enabled only if the wrapped type defines the operator<<, to that it corretly works with Catch
 /// framework.
-template <typename T, typename = decltype(std::declval<std::ostream&>() << std::declval<T>())>
-inline std::ostream& operator<<(std::ostream& stream, const Expected<T>& expected) {
+template <typename T, typename = std::enable_if_t<HasStreamOperator<T, std::wostream>::value>>
+std::wostream& operator<<(std::wostream& stream, const Expected<T>& expected) {
     if (expected) {
         stream << expected.value();
     } else {
@@ -131,12 +131,12 @@ inline std::ostream& operator<<(std::ostream& stream, const Expected<T>& expecte
     return stream;
 }
 
-/// \brief Constructs an unexpected value of given type, given error message as std::string.
+/// \brief Constructs an unexpected value of given type, given error message as String.
 ///
 /// For other type of error messages, use constructor of Expected.
-template <typename Type>
-Expected<Type> makeUnexpected(const std::string& error) {
-    return Expected<Type>(UNEXPECTED, error);
+template <typename Type, typename... TArgs>
+Expected<Type> makeUnexpected(const String& error, const TArgs&... args) {
+    return Expected<Type>(UNEXPECTED, format(error, args...));
 }
 
 NAMESPACE_SPH_END

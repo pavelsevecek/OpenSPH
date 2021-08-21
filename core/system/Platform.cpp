@@ -1,6 +1,7 @@
 #include "system/Platform.h"
 #include "io/FileSystem.h"
 #include "objects/containers/StaticArray.h"
+#include "objects/utility/Algorithm.h"
 #include "objects/wrappers/Finally.h"
 #include <fcntl.h>
 #include <string.h>
@@ -16,20 +17,17 @@
 
 NAMESPACE_SPH_BEGIN
 
-Outcome sendMail(const std::string& to,
-    const std::string& from,
-    const std::string& subject,
-    const std::string& message) {
+Outcome sendMail(const String& to, const String& from, const String& subject, const String& message) {
 #ifndef SPH_WIN
     NOT_IMPLEMENTED; // somehow doesn't work
     FILE* mailpipe = popen("/usr/bin/sendmail -t", "w");
     if (mailpipe == nullptr) {
         return makeFailed("Cannot invoke sendmail");
     }
-    fprintf(mailpipe, "To: %s\n", to.c_str());
-    fprintf(mailpipe, "From: %s\n", from.c_str());
-    fprintf(mailpipe, "Subject: %s\n\n", subject.c_str());
-    fwrite(message.c_str(), 1, message.size(), mailpipe);
+    fprintf(mailpipe, "To: %s\n", to.toAscii().cstr());
+    fprintf(mailpipe, "From: %s\n", from.toAscii().cstr());
+    fprintf(mailpipe, "Subject: %s\n\n", subject.toAscii().cstr());
+    fwrite(message.toAscii().cstr(), 1, message.size(), mailpipe);
     fwrite(".\n", 1, 2, mailpipe);
     pclose(mailpipe);
     return SUCCESS;
@@ -38,10 +36,10 @@ Outcome sendMail(const std::string& to,
 #endif
 }
 
-Outcome showNotification(const std::string& title, const std::string& message) {
+Outcome showNotification(const String& title, const String& message) {
 #ifndef SPH_WIN
-    std::string command = "notify-send \"" + title + "\" \"" + message + "\"";
-    if (system(command.c_str())) {
+    String command = "notify-send \"" + title + "\" \"" + message + "\"";
+    if (system(command.toAscii().cstr())) {
         return SUCCESS;
     } else {
         return makeFailed("Command failed");
@@ -51,11 +49,14 @@ Outcome showNotification(const std::string& title, const std::string& message) {
 #endif
 }
 
-Outcome sendPushNotification(const std::string& key, const std::string& title, const std::string& message) {
+Outcome sendPushNotification(const String& key, const String& title, const String& message) {
 #ifndef SPH_WIN
-    std::string command = "curl --data 'key=" + key + "&title=" + title + "&msg=" + message +
-                          "' https://api.simplepush.io/send > /dev/null 2> /dev/null";
-    if (system(command.c_str())) {
+    String command =
+        format("curl --data 'key={}&title={}&msg={}' https://api.simplepush.io/send > /dev/null 2> /dev/null",
+            key,
+            title,
+            message);
+    if (system(command.toAscii().cstr())) {
         return SUCCESS;
     } else {
         return makeFailed("Command failed");
@@ -65,38 +66,42 @@ Outcome sendPushNotification(const std::string& key, const std::string& title, c
 #endif
 }
 
-Expected<std::string> getGitCommit(const Path& pathToGitRoot, const Size prev) {
+Expected<String> getGitCommit(const Path& pathToGitRoot, const Size prev) {
     if (!FileSystem::pathExists(pathToGitRoot)) {
-        return makeUnexpected<std::string>("Invalid path");
+        return makeUnexpected<String>("Invalid path");
     }
 #ifndef SPH_WIN
     StaticArray<char, 128> buffer;
-    std::string command = "cd " + pathToGitRoot.native() + " && git rev-parse HEAD~" + std::to_string(prev);
-    std::string result;
-    FILE* pipe = popen(command.c_str(), "r");
+    String command = "cd " + pathToGitRoot.string() + " && git rev-parse HEAD~" + toString(prev);
+    String result;
+    FILE* pipe = popen(command.toAscii().cstr(), "r");
     auto f = finally([pipe] { pclose(pipe); });
     if (!pipe) {
         return "";
     }
     while (!feof(pipe)) {
         if (fgets(&buffer[0], buffer.size(), pipe) != NULL) {
-            result += &buffer[0];
+            result += String::fromAscii(&buffer[0]);
         }
     }
     // remove \n if in the string
     std::size_t n;
-    if ((n = result.find("\n")) != std::string::npos) {
+    if ((n = result.find("\n")) != String::npos) {
         result = result.substr(0, n);
     }
     // some sanity checks so that we don't return nonsense
     if (result.size() != 40) {
-        return makeUnexpected<std::string>(
-            "Returned git SHA has incorrent length (" + std::to_string(result.size()) + ")");
-    } else if (result.find_first_not_of("0123456789abcdef") != std::string::npos) {
-        return makeUnexpected<std::string>("Returned git SHA contains invalid characters");
-    } else {
-        return result;
+        return makeUnexpected<String>("Returned git SHA has incorrent length ({})", result.size());
     }
+
+    bool validChars =
+        allMatching(result, [](wchar_t c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); });
+    if (!validChars) {
+        return makeUnexpected<String>("Returned git SHA contains invalid characters");
+    }
+
+    return result;
+
 #else
     NOT_IMPLEMENTED;
 #endif

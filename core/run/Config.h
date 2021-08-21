@@ -9,10 +9,11 @@
 #include "objects/Exceptions.h"
 #include "objects/containers/UnorderedMap.h"
 #include "objects/geometry/Vector.h"
-#include "objects/utility/StringUtils.h"
 #include "objects/wrappers/Function.h"
 
 NAMESPACE_SPH_BEGIN
+
+class ITextInputStream;
 
 using ConfigException = Exception;
 
@@ -25,21 +26,21 @@ using ConfigException = Exception;
 class IConfigValue : public Polymorphic {
 public:
     /// \brief Writes the value into a string.
-    virtual std::string write() const = 0;
+    virtual String write() const = 0;
 
     /// \brief Reads the value from string and stores it internally.
     ///
     /// \throw ConfigException if the value cannot be deserialized.
-    virtual void read(const std::string& source) = 0;
+    virtual void read(const String& source) = 0;
 };
 
 /// \brief Helper function wrapping a string by quotes.
-std::string quoted(const std::string& value);
+String quoted(const String& value);
 
 /// \brief Removes leading and trailing quote from a string.
-std::string unquoted(const std::string& value);
+String unquoted(const String& value);
 
-/// \brief Generic implementation of \ref IConfigValue, using std::stringstream for the (de)serialization.
+/// \brief Generic implementation of \ref IConfigValue, using std::wstringstream for the (de)serialization.
 ///
 /// This is used for primitive types and for other types that define the stream operators. If a user-defined
 /// type does not have these operators, it is necessary to specialize this class and implement the functions
@@ -55,18 +56,15 @@ public:
     ConfigValue(const Type& value)
         : value(value) {}
 
-    virtual std::string write() const override {
-        std::stringstream ss;
-        ss << value;
-        return ss.str();
+    virtual String write() const override {
+        return toString(value);
     }
 
-    virtual void read(const std::string& source) override {
-        std::stringstream ss(trim(source));
-        ss >> value;
-
-        if (!ss || !ss.eof()) {
-            throw ConfigException("Invalid type");
+    virtual void read(const String& source) override {
+        if (Optional<Type> v = fromString<Type>(source)) {
+            value = v.value();
+        } else {
+            throw ConfigException("Invalid value '" + source + "'");
         }
     }
 
@@ -89,14 +87,12 @@ public:
     ConfigValue(const Vector& value)
         : value(value) {}
 
-    virtual std::string write() const override {
-        std::stringstream ss;
-        ss << value;
-        return ss.str();
+    virtual String write() const override {
+        return toString(value);
     }
 
-    virtual void read(const std::string& source) override {
-        std::stringstream ss(source);
+    virtual void read(const String& source) override {
+        std::wstringstream ss(source.toUnicode());
         ss >> value[X] >> value[Y] >> value[Z];
     }
 
@@ -119,14 +115,12 @@ public:
     ConfigValue(const Interval& value)
         : value(value) {}
 
-    virtual std::string write() const override {
-        std::stringstream ss;
-        ss << value;
-        return ss.str();
+    virtual String write() const override {
+        return toString(value);
     }
 
-    virtual void read(const std::string& source) override {
-        std::stringstream ss(source);
+    virtual void read(const String& source) override {
+        std::wstringstream ss(source.toUnicode());
         Float lower, upper;
         ss >> lower >> upper;
         value = Interval(lower, upper);
@@ -139,27 +133,27 @@ public:
 
 /// \copydoc ConfigValue.
 ///
-/// Specialization for \ref std::string.
+/// Specialization for \ref String.
 template <>
-class ConfigValue<std::string> : public IConfigValue {
+class ConfigValue<String> : public IConfigValue {
 private:
-    std::string value;
+    String value;
 
 public:
     ConfigValue() = default;
 
-    ConfigValue(const std::string& value)
+    ConfigValue(const String& value)
         : value(value) {}
 
-    virtual std::string write() const override {
+    virtual String write() const override {
         return quoted(value);
     }
 
-    virtual void read(const std::string& source) override {
+    virtual void read(const String& source) override {
         value = unquoted(source);
     }
 
-    const std::string& get() const {
+    const String& get() const {
         return value;
     }
 };
@@ -178,11 +172,11 @@ public:
     ConfigValue(const Path& value)
         : value(value) {}
 
-    virtual std::string write() const override {
-        return quoted(value.native());
+    virtual String write() const override {
+        return quoted(value.string());
     }
 
-    virtual void read(const std::string& source) override {
+    virtual void read(const String& source) override {
         value = Path(unquoted(source));
     }
 
@@ -200,15 +194,15 @@ class ConfigNode {
 
 private:
     /// All child nodes
-    UnorderedMap<std::string, SharedPtr<ConfigNode>> children;
+    UnorderedMap<String, SharedPtr<ConfigNode>> children;
 
     /// All entries in this node
-    UnorderedMap<std::string, std::string> entries;
+    UnorderedMap<String, String> entries;
 
 public:
     /// \brief Adds a new value into the node.
     template <typename Type>
-    void set(const std::string& name, const Type& value) {
+    void set(const String& name, const Type& value) {
         ConfigValue<Type> writer(value);
         entries.insert(name, writer.write());
     }
@@ -217,7 +211,7 @@ public:
     ///
     /// \throw ConfigException if the value does not exist or cannot be deserialized.
     template <typename Type>
-    Type get(const std::string& name) {
+    Type get(const String& name) {
         Optional<Type> opt = this->tryGet<Type>(name);
         if (!opt) {
             throw ConfigException("Entry '" + name + "' not in config");
@@ -229,7 +223,7 @@ public:
     ///
     /// If the value does not exist or cannot be deserialized, the function returns NOTHING.
     template <typename Type>
-    Optional<Type> tryGet(const std::string& name) {
+    Optional<Type> tryGet(const String& name) {
         auto value = entries.tryGet(name);
         if (!value) {
             return NOTHING;
@@ -240,7 +234,7 @@ public:
     }
 
     /// \brief Checks if the node contains an entry of given name.
-    bool contains(const std::string& name) {
+    bool contains(const String& name) {
         return entries.contains(name);
     }
 
@@ -248,22 +242,22 @@ public:
     Size size() const;
 
     /// \brief Adds a new child node to this node.
-    SharedPtr<ConfigNode> addChild(const std::string& name);
+    SharedPtr<ConfigNode> addChild(const String& name);
 
     /// \brief Returns a child node.
     ///
     /// \throw ConfigException if no such node exists.
-    SharedPtr<ConfigNode> getChild(const std::string& name);
+    SharedPtr<ConfigNode> getChild(const String& name);
 
     /// \brief Calls the provided functor for each child node.
-    void enumerateChildren(Function<void(std::string name, ConfigNode& node)> func);
+    void enumerateChildren(Function<void(String name, ConfigNode& node)> func);
 
 private:
     /// \brief Serializes the content of this node to a string stream.
-    void write(const std::string& padding, std::stringstream& source);
+    void write(const String& padding, std::wstringstream& source);
 
     /// \brief Deserializes the node from a string stream.
-    void read(std::stringstream& source);
+    void read(ITextInputStream& source);
 };
 
 /// \brief Provides functionality for reading and writing configuration files.
@@ -271,28 +265,28 @@ private:
 /// Configuration files consist of key-value pair, clustered in a node hierarchy.
 class Config {
 private:
-    UnorderedMap<std::string, SharedPtr<ConfigNode>> nodes;
+    UnorderedMap<String, SharedPtr<ConfigNode>> nodes;
 
 public:
     /// \brief Adds a new node to the config.
-    SharedPtr<ConfigNode> addNode(const std::string& name);
+    SharedPtr<ConfigNode> addNode(const String& name);
 
     /// \brief Returns a node with given name.
     ///
     /// \throw ConfigException if no such node exists.
-    SharedPtr<ConfigNode> getNode(const std::string& name);
+    SharedPtr<ConfigNode> getNode(const String& name);
 
     /// \brief Returns a node with given name or nullptr if no such node exists.
-    SharedPtr<ConfigNode> tryGetNode(const std::string& name);
+    SharedPtr<ConfigNode> tryGetNode(const String& name);
 
     /// \brief Deserializes the input string stream into nodes.
     ///
     /// This removed all previously added nodes in the config.
     /// \throw ConfigException if the source has invalid format.
-    void read(std::stringstream& source);
+    void read(ITextInputStream& source);
 
     /// \brief Serializes all nodes in the config into a string.
-    std::string write();
+    String write();
 
     /// \brief Reads content of given file and deserializes the config from the loaded string.
     void load(const Path& path);
@@ -301,7 +295,7 @@ public:
     void save(const Path& path);
 
     /// \brief Calls the provided functor for all nodes in the config.
-    void enumerate(Function<void(std::string, ConfigNode&)> func);
+    void enumerate(Function<void(String, ConfigNode&)> func);
 };
 
 

@@ -40,14 +40,14 @@ TEST_CASE("TextOutput dump", "[output]") {
     stats.set(StatisticsId::RUN_TIME, 0._f);
     output.dump(storage, stats);
 
-    std::string expected = R"(# Run: Output
+    String expected = R"(# Run: Output
 # SPH dump, time = 0
 #              Density        Position [x]        Position [y]        Position [z]        Velocity [x]        Velocity [y]        Velocity [z]
                    5                   0                   0                   0                   0                   0                   0
                    5                   1                   1                   1                   0                   0                   0
                    5                   2                   2                   2                   0                   0                   0
 )";
-    std::string content = FileSystem::readFile(Path("tmp1_0000.txt"));
+    String content = FileSystem::readFile(Path("tmp1_0000.txt"));
     REQUIRE(content == expected);
 
     output.dump(storage, stats);
@@ -110,8 +110,8 @@ TEST_CASE("TextOutput create from settings", "[output]") {
     RunSettings settings;
     Path path = manager.getPath("txt");
     settings.set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::TEXT_FILE);
-    settings.set(RunSettingsId::RUN_OUTPUT_PATH, std::string(""));
-    settings.set(RunSettingsId::RUN_OUTPUT_NAME, path.native());
+    settings.set(RunSettingsId::RUN_OUTPUT_PATH, ""_s);
+    settings.set(RunSettingsId::RUN_OUTPUT_NAME, path.string());
 
     Flags<OutputQuantityFlag> flags = OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY |
                                       OutputQuantityFlag::DENSITY | OutputQuantityFlag::PRESSURE |
@@ -292,6 +292,27 @@ TEST_CASE("BinaryOutput dump stats", "[output]") {
     REQUIRE(info->wallclockTime == 24);
 }
 
+TEST_CASE("BinaryOutput unicode parameter", "[output]") {
+    BodySettings body;
+    String expected = L"texture\u03B1"_s;
+    body.set(BodySettingsId::VISUALIZATION_TEXTURE, expected);
+    Storage storage = Tests::getGassStorage(10, body);
+    Statistics stats;
+    RandomPathManager manager;
+    Path path = manager.getPath("out");
+    BinaryOutput output(path);
+    Expected<Path> outPath = output.dump(storage, stats);
+    REQUIRE(outPath);
+    REQUIRE(outPath.value() == path);
+
+    BinaryInput input;
+    Storage loaded;
+    REQUIRE(input.load(path, loaded, stats));
+    REQUIRE(loaded.getMaterialCnt() == 1);
+    String actual = loaded.getMaterial(0)->getParam<String>(BodySettingsId::VISUALIZATION_TEXTURE);
+    REQUIRE(actual == expected);
+}
+
 static Storage generateLatestOutput(bool save = false) {
     BodySettings body1;
     body1.set(BodySettingsId::DENSITY, 1000._f);
@@ -322,7 +343,7 @@ static Storage generateLatestOutput(bool save = false) {
     storage.merge(std::move(storage2));
 
     if (save) {
-        Path path = RESOURCE_PATH / Path(std::to_string(std::size_t(BinaryIoVersion::LATEST)) + ".ssf");
+        Path path = RESOURCE_PATH / Path(toString(std::size_t(BinaryIoVersion::LATEST)) + ".ssf");
         BinaryOutput output(path);
         Statistics stats;
         stats.set(StatisticsId::RUN_TIME, 20._f);
@@ -366,7 +387,7 @@ static Outcome attractorsEqual(const Attractor& a1, const Attractor& a2) {
 
 static void testVersion(BinaryIoVersion version) {
     Storage current = generateLatestOutput();
-    Path path = RESOURCE_PATH / Path(std::to_string(std::size_t(version)) + ".ssf");
+    Path path = RESOURCE_PATH / Path(toString(std::size_t(version)) + ".ssf");
     BinaryInput input;
     Storage previous;
     Statistics stats;
@@ -472,7 +493,7 @@ Storage generateLatestCompressedOutput(bool save = false) {
     storage.merge(std::move(storage2));
 
     if (save) {
-        Path path = RESOURCE_PATH / Path(std::to_string(std::size_t(CompressedIoVersion::LATEST)) + ".scf");
+        Path path = RESOURCE_PATH / Path(toString(std::size_t(CompressedIoVersion::LATEST)) + ".scf");
         CompressedOutput output(path, CompressionEnum::NONE, RunTypeEnum::RUBBLE_PILE);
         Statistics stats;
         stats.set(StatisticsId::RUN_TIME, 20._f);
@@ -491,7 +512,7 @@ bool compareBuffers(const Storage& s1, const Storage& s2, const QuantityId id, c
 
 static void testVersion(CompressedIoVersion version) {
     Storage current = generateLatestCompressedOutput();
-    Path path = RESOURCE_PATH / Path(std::to_string(std::size_t(version)) + ".scf");
+    Path path = RESOURCE_PATH / Path(toString(std::size_t(version)) + ".scf");
     CompressedInput input;
     Storage previous;
     Statistics stats;
@@ -596,6 +617,65 @@ TEST_CASE("Pkdgrav load", "[output]") {
     /*Array<Float>& rho = storage->getValue<Float>(QuantityId::DENSITY);
     REQUIRE(perElement(rho) < 2800._f);
     REQUIRE(perElement(rho) > 2600._f);*/
+}
+
+TEST_CASE("Output to unicode path", "[output]") {
+    RunSettings settings;
+    settings.set(RunSettingsId::RUN_OUTPUT_PATH, L"output\u03B1"_s);
+
+    for (IoEnum type : { IoEnum::TEXT_FILE, IoEnum::DATA_FILE, IoEnum::BINARY_FILE }) {
+        settings.set(RunSettingsId::RUN_OUTPUT_TYPE, type);
+        String ext = getIoExtension(type).value();
+        INFO("Testing type " + ext);
+        settings.set(RunSettingsId::RUN_OUTPUT_NAME, L"file\u03B2." + ext);
+        AutoPtr<IOutput> output = Factory::getOutput(settings);
+        Storage storage = Tests::getGassStorage(100);
+        Statistics stats;
+        Expected<Path> path = output->dump(storage, stats);
+        REQUIRE(path);
+        REQUIRE(path.value() == Path(L"output\u03B1/file\u03B2." + ext));
+
+        AutoPtr<IInput> input;
+        if (type == IoEnum::TEXT_FILE) {
+            input = makeAuto<TextInput>(
+                settings.getFlags<OutputQuantityFlag>(RunSettingsId::RUN_OUTPUT_QUANTITIES));
+        } else {
+            input = Factory::getInput(path.value());
+        }
+        Storage loaded;
+        REQUIRE(input->load(path.value(), loaded, stats));
+        REQUIRE(loaded.getParticleCnt() == storage.getParticleCnt());
+    }
+}
+
+TEST_CASE("Output of attractors with unicode", "[output]") {
+    RunSettings settings;
+    settings.set(RunSettingsId::RUN_OUTPUT_PATH, L""_s);
+
+    for (IoEnum type : { IoEnum::DATA_FILE, IoEnum::BINARY_FILE }) {
+        settings.set(RunSettingsId::RUN_OUTPUT_TYPE, type);
+        String ext = getIoExtension(type).value();
+        INFO("Testing type " + ext);
+        settings.set(RunSettingsId::RUN_OUTPUT_NAME, L"file." + ext);
+
+        AutoPtr<IOutput> output = Factory::getOutput(settings);
+        Storage storage = Tests::getGassStorage(100);
+        Attractor a(Vector(0._f), Vector(0._f), 2._f, 1._f);
+        a.settings.set(AttractorSettingsId::LABEL, L"\u03B2-Lyrae"_s);
+        storage.addAttractor(a);
+
+        Statistics stats;
+        Expected<Path> path = output->dump(storage, stats);
+        REQUIRE(path);
+
+        AutoPtr<IInput> input = Factory::getInput(path.value());
+        Storage loaded;
+        REQUIRE(input->load(path.value(), loaded, stats));
+        REQUIRE(loaded.getAttractorCnt() == 1);
+
+        const AttractorSettings& params = loaded.getAttractors()[0].settings;
+        REQUIRE(params.get<String>(AttractorSettingsId::LABEL) == L"\u03B2-Lyrae");
+    }
 }
 
 TEST_CASE("OutputFile getDumpIdx", "[output]") {

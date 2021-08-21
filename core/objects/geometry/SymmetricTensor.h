@@ -230,10 +230,11 @@ public:
         return SymmetricTensor(invDiag / det, invOff / det);
     }
 
-    // Moore-Penrose pseudo-inversion of matrix
+    /// Moore-Penrose pseudo-inversion of matrix
     SymmetricTensor pseudoInverse(const Float eps) const;
 
-    friend std::ostream& operator<<(std::ostream& stream, const SymmetricTensor& t) {
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const SymmetricTensor& t) {
         stream << t.diagonal() << t.offDiagonal();
         return stream;
     }

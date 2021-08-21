@@ -72,10 +72,10 @@ private:
 
     void onPaint(wxPaintEvent& evt);
 
-    void printVector(wxDC& dc, const Vector& v, const std::wstring& label, const wxPoint offset) const;
+    void printVector(wxDC& dc, const Vector& v, const String& label, const wxPoint offset) const;
 
     template <typename Type>
-    void printTensor(wxDC& dc, const Type& tensor, const std::wstring& label, const wxPoint offset) const;
+    void printTensor(wxDC& dc, const Type& tensor, const String& label, const wxPoint offset) const;
 };
 
 NAMESPACE_SPH_END

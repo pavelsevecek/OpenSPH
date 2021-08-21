@@ -14,7 +14,7 @@ bool App::OnInit() {
     this->Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(App::processEvents));
 
     if (wxTheApp->argc > 1) {
-        Path path(std::string(wxTheApp->argv[1]));
+        Path path(String::fromUtf8(wxTheApp->argv[1]));
         window = new MainWindow(path);
     } else {
         window = new MainWindow();

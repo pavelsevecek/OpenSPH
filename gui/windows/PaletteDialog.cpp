@@ -63,11 +63,7 @@ public:
         NOT_IMPLEMENTED;
     }
 
-    virtual void drawText(const Coords p, const Flags<TextAlign>, const std::string& s) override {
-        context->drawText(this->transform(p), TextAlign::VERTICAL_CENTER | TextAlign::HORIZONTAL_CENTER, s);
-    }
-
-    virtual void drawText(const Coords p, const Flags<TextAlign>, const std::wstring& s) override {
+    virtual void drawText(const Coords p, const Flags<TextAlign>, const String& s) override {
         context->drawText(this->transform(p), TextAlign::VERTICAL_CENTER | TextAlign::HORIZONTAL_CENTER, s);
     }
 
@@ -125,7 +121,7 @@ void drawPalette(IRenderContext& context,
         context.drawLine(
             Coords(origin.x + size.x - 6, origin.y - i), Coords(origin.x + size.x, origin.y - i));
 
-        std::wstring text = toPrintableString(tic, 1, 1000);
+        String text = toPrintableString(tic, 1, 1000);
         context.drawText(
             Coords(origin.x - 15, origin.y - i), TextAlign::LEFT | TextAlign::VERTICAL_CENTER, text);
     }
@@ -253,7 +249,7 @@ void PalettePanel::setPalette(const Palette& palette) {
     upperCtrl->setValue(initial.getInterval().upper());
 }
 
-static UnorderedMap<ExtColorizerId, std::string> PALETTE_ID_LIST = {
+static UnorderedMap<ExtColorizerId, String> PALETTE_ID_LIST = {
     { ColorizerId::VELOCITY, "Magnitude 1" },
     { QuantityId::DEVIATORIC_STRESS, "Magnitude 2" },
     { ColorizerId::TEMPERATURE, "Temperature" },
@@ -298,7 +294,7 @@ void PalettePanel::setDefaultPaletteList() {
 
     wxArrayString items;
     for (const auto& e : paletteMap) {
-        items.Add(e.key());
+        items.Add(e.key().toUnicode());
     }
     paletteBox->Set(items);
     paletteBox->SetSelection(0);
@@ -308,18 +304,18 @@ void PalettePanel::setDefaultPaletteList() {
 void PalettePanel::loadPalettes(const Path& path) {
     paletteMap.clear();
     for (Path file : FileSystem::iterateDirectory(path.parentPath())) {
-        if (file.extension().native() == "csv") {
+        if (file.extension().string() == "csv") {
             Palette palette = initial;
             if (palette.loadFromFile(path.parentPath() / file)) {
-                paletteMap.insert(file.native(), palette);
+                paletteMap.insert(file.string(), palette);
             }
         }
     }
     wxArrayString items;
     int selectionIdx = 0, idx = 0;
     for (const auto& e : paletteMap) {
-        items.Add(e.key());
-        if (e.key() == path.fileName().native()) {
+        items.Add(e.key().toUnicode());
+        if (e.key() == path.fileName().string()) {
             // this is the palette we selected
             selectionIdx = idx;
         }

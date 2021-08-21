@@ -1,3 +1,6 @@
+## 2021-08-21
+- added support for Unicode (so far linux only)
+
 ## 2021-08-18
 - ported OpenSPH to Windows!
 - various fixes and tweaks made along the way

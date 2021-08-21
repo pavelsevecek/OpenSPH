@@ -88,10 +88,10 @@ SharedPtr<Storage> solveGassBall(RunSettings settings, Flags<Options> flags) {
 
     auto test = [&](const Size i) -> Outcome {
         if (u[i] >= 0.9_f * u0) {
-            return makeFailed("Energy did not decrease: u = ", u[i]);
+            return makeFailed("Energy did not decrease: u = {}", u[i]);
         }
         if (rho[i] >= 0.9_f * rho0) {
-            return makeFailed("Density did not decrease: rho = ", rho[i]);
+            return makeFailed("Density did not decrease: rho = {}", rho[i]);
         }
         if (r[i] == Vector(0._f)) {
             return SUCCESS; // so we don't deal with this singular case
@@ -103,10 +103,7 @@ SharedPtr<Storage> solveGassBall(RunSettings settings, Flags<Options> flags) {
         const Vector v_norm = getNormalized(v[i]);
         const Vector r_norm = getNormalized(r[i]);
         if (v_norm != approx(r_norm, 1.e-1_f)) {
-            // clang-format off
-            return makeFailed("Particle has wrong velocity:\n"
-                              "v_norm: ", v_norm, " == ", r_norm);
-            // clang-format on
+            return makeFailed("Particle has wrong velocity:\nv_norm: {} == {}", v_norm, r_norm);
         }
         return SUCCESS;
     };

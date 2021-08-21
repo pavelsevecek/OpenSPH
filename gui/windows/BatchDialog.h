@@ -13,13 +13,13 @@ class BatchManager {
 private:
     struct Col {
         SharedPtr<JobNode> node;
-        std::string key;
+        String key;
     };
 
     Array<Col> cols;
-    Array<std::string> rows;
+    Array<String> rows;
 
-    Bitmap<std::string> cells;
+    Bitmap<String> cells;
 
 public:
     BatchManager() {
@@ -38,9 +38,9 @@ public:
         return rows.size();
     }
 
-    std::string getRunName(const Size rowIdx) const {
+    String getRunName(const Size rowIdx) const {
         if (rows[rowIdx].empty()) {
-            return "Run " + std::to_string(rowIdx + 1);
+            return "Run " + toString(rowIdx + 1);
         } else {
             return rows[rowIdx];
         }
@@ -50,7 +50,7 @@ public:
         return cols.size();
     }
 
-    std::string getParamKey(const Size colIdx) const {
+    String getParamKey(const Size colIdx) const {
         return cols[colIdx].key;
     }
 
@@ -58,27 +58,27 @@ public:
         return cols[colIdx].node;
     }
 
-    std::string getCell(const Size colIdx, const Size rowIdx) const {
+    String getCell(const Size colIdx, const Size rowIdx) const {
         return cells[Pixel(colIdx, rowIdx)];
     }
 
-    void setRunName(const Size rowIdx, const std::string& name) {
+    void setRunName(const Size rowIdx, const String& name) {
         rows[rowIdx] = name;
     }
 
-    void setParam(const Size colIdx, const SharedPtr<JobNode>& node, const std::string& key) {
+    void setParam(const Size colIdx, const SharedPtr<JobNode>& node, const String& key) {
         cols[colIdx].key = key;
         cols[colIdx].node = node;
     }
 
-    void setCell(const Size colIdx, const Size rowIdx, const std::string& value) {
+    void setCell(const Size colIdx, const Size rowIdx, const String& value) {
         cells[Pixel(colIdx, rowIdx)] = value;
     }
 
     void resize(const Size rowCnt, const Size colCnt) {
         cols.resize(colCnt);
         rows.resize(rowCnt);
-        Bitmap<std::string> oldCells = cells.clone();
+        Bitmap<String> oldCells = cells.clone();
         cells.resize(Pixel(colCnt, rowCnt), "");
 
         const Size minRowCnt = min(cells.size().y, oldCells.size().y);
@@ -91,10 +91,10 @@ public:
     }
 
     void duplicateRun(const Size rowIdx) {
-        const std::string runName = rows[rowIdx];
+        const String runName = rows[rowIdx];
         rows.insert(rowIdx, runName);
 
-        Bitmap<std::string> newCells(Pixel(cols.size(), rows.size()));
+        Bitmap<String> newCells(Pixel(cols.size(), rows.size()));
         for (Size j = 0; j < rows.size(); ++j) {
             for (Size i = 0; i < cols.size(); ++i) {
                 const Size j0 = j <= rowIdx ? j : j - 1;
@@ -106,7 +106,7 @@ public:
 
     void deleteRun(const Size rowIdx) {
         rows.remove(rowIdx);
-        Bitmap<std::string> newCells(Pixel(cols.size(), rows.size()));
+        Bitmap<String> newCells(Pixel(cols.size(), rows.size()));
         for (Size j = 0; j < rows.size(); ++j) {
             for (Size i = 0; i < cols.size(); ++i) {
                 const Size j0 = j <= rowIdx ? j : j + 1;

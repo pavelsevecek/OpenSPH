@@ -29,7 +29,7 @@ public:
         ic.addMonolithicBody(*storage, domain, body);
 
         // Name the simulation
-        settings.set(RunSettingsId::RUN_NAME, std::string("Hello asteroid"));
+        settings.set(RunSettingsId::RUN_NAME, "Hello asteroid"_s);
 
         // Last thing - set up the duration of the simulation to 1 second
         settings.set(RunSettingsId::RUN_END_TIME, 1._f);

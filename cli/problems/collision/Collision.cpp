@@ -11,15 +11,15 @@ using namespace Sph;
 class Collision : public IRun {
 public:
     Collision() {
-        settings.set(RunSettingsId::RUN_NAME, std::string("Asteroid Collision Problem"))
+        settings.set(RunSettingsId::RUN_NAME, String("Asteroid Collision Problem"))
             .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
             .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-8_f)
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
             .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
             .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
             .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 1000._f)
-            .set(RunSettingsId::RUN_OUTPUT_PATH, std::string("collision"))
-            .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("collision_%d.ssf"))
+            .set(RunSettingsId::RUN_OUTPUT_PATH, String("collision"))
+            .set(RunSettingsId::RUN_OUTPUT_NAME, String("collision_%d.ssf"))
             .set(RunSettingsId::RUN_END_TIME, 500._f)
             .set(RunSettingsId::SPH_SOLVER_FORCES,
                 ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::SELF_GRAVITY)

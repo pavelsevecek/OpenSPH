@@ -28,15 +28,15 @@ public:
 class RotatingRod : public IRun {
 public:
     RotatingRod() {
-        settings.set(RunSettingsId::RUN_NAME, std::string("Rotating Rod Problem"))
+        settings.set(RunSettingsId::RUN_NAME, String("Rotating Rod Problem"))
             .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
             .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-3_f)
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
             .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
             .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::TEXT_FILE)
             .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 50._f)
-            .set(RunSettingsId::RUN_OUTPUT_PATH, std::string("rod"))
-            .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("rod_%d.txt"))
+            .set(RunSettingsId::RUN_OUTPUT_PATH, String("rod"))
+            .set(RunSettingsId::RUN_OUTPUT_NAME, String("rod_%d.txt"))
             .set(RunSettingsId::RUN_OUTPUT_QUANTITIES,
                 OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY | OutputQuantityFlag::DENSITY |
                     OutputQuantityFlag::PRESSURE | OutputQuantityFlag::ENERGY |

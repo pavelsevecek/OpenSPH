@@ -8,6 +8,7 @@
 #include "common/Globals.h"
 #include "math/MathUtils.h"
 #include "objects/containers/StaticArray.h"
+#include <iomanip>
 
 NAMESPACE_SPH_BEGIN
 
@@ -110,9 +111,28 @@ public:
         return Interval(-INFTY, INFTY);
     }
 
-    friend std::ostream& operator<<(std::ostream& stream, const Interval& range);
-};
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const Interval& range) {
+        // wrapper over float printing "infinity/-infinity" instead of value itself
+        struct IntervalPrinter {
+            Float value;
 
+            void print(TStream& stream) {
+                stream << std::setw(20);
+                if (value == INFTY) {
+                    stream << L"infinity";
+                } else if (value == -INFTY) {
+                    stream << L"-infinity";
+                } else {
+                    stream << value;
+                }
+            }
+        };
+        IntervalPrinter{ range.lower() }.print(stream);
+        IntervalPrinter{ range.upper() }.print(stream);
+        return stream;
+    }
+};
 
 /// Overload of clamp method using range instead of lower and upper bound as values.
 /// Can be used by other Floats by specializing the method

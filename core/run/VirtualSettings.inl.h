@@ -32,7 +32,7 @@ public:
 
 } // namespace Detail
 
-inline void VirtualSettings::Category::addEntry(const std::string& key, AutoPtr<IVirtualEntry>&& entry) {
+inline void VirtualSettings::Category::addEntry(const String& key, AutoPtr<IVirtualEntry>&& entry) {
     entries.insert(key, std::move(entry));
 }
 
@@ -42,10 +42,10 @@ template <typename TValue, typename = void>
 class ValueEntry : public EntryControl {
 private:
     TValue& ref;
-    std::string name;
+    String name;
 
 public:
-    ValueEntry(TValue& ref, const std::string& name)
+    ValueEntry(TValue& ref, const String& name)
         : ref(ref)
         , name(name) {}
 
@@ -61,19 +61,11 @@ public:
 
     virtual Type getType() const override {
         // path has to be included to get correct index of EnumWrapper
-        return Type(getTypeIndex<TValue,
-            bool,
-            int,
-            Float,
-            Vector,
-            Interval,
-            std::string,
-            Path,
-            EnumWrapper,
-            ExtraEntry>);
+        return Type(
+            getTypeIndex<TValue, bool, int, Float, Vector, Interval, String, Path, EnumWrapper, ExtraEntry>);
     }
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return name;
     }
 };
@@ -82,12 +74,12 @@ template <typename TValue>
 class ValueEntry<TValue, std::enable_if_t<FlagsTraits<TValue>::isFlags>> : public EntryControl {
 private:
     TValue& ref;
-    std::string name;
+    String name;
 
     using TEnum = typename FlagsTraits<TValue>::Type;
 
 public:
-    ValueEntry(TValue& ref, const std::string& name)
+    ValueEntry(TValue& ref, const String& name)
         : ref(ref)
         , name(name) {}
 
@@ -103,7 +95,7 @@ public:
         return Type::FLAGS;
     }
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return name;
     }
 };
@@ -111,8 +103,8 @@ public:
 } // namespace Detail
 
 template <typename TValue>
-inline EntryControl& VirtualSettings::Category::connect(const std::string& name,
-    const std::string& key,
+inline EntryControl& VirtualSettings::Category::connect(const String& name,
+    const String& key,
     TValue& value) {
     auto entry = makeAuto<Detail::ValueEntry<TValue>>(value, name);
     EntryControl& control = *entry;
@@ -124,18 +116,18 @@ inline EntryControl& VirtualSettings::Category::connect(const std::string& name,
 namespace Detail {
 
 template <typename TEnum>
-inline std::string makeTooltip(const TEnum id) {
-    Optional<std::string> key = Settings<TEnum>::getEntryName(id);
+inline String makeTooltip(const TEnum id) {
+    Optional<String> key = Settings<TEnum>::getEntryName(id);
     Optional<int> type = Settings<TEnum>::getEntryType(id);
-    std::string scriptTooltip;
+    String scriptTooltip;
     if (key) {
-        std::string typeName = Settings<TEnum>::typeToString(type.value());
+        String typeName = Settings<TEnum>::typeToString(type.value());
         scriptTooltip = "Script name: " + key.value() + " (" + typeName + ")";
     }
 
-    Optional<std::string> desc = Settings<TEnum>::getEntryDesc(id);
+    Optional<String> desc = Settings<TEnum>::getEntryDesc(id);
     if (desc) {
-        std::string tooltip = desc.value();
+        String tooltip = desc.value();
         if (key) {
             tooltip += "\n\n" + scriptTooltip;
         }
@@ -149,11 +141,11 @@ template <typename TValue, typename TEnum, typename TEnabler = void>
 class SettingsEntry : public EntryControl {
 private:
     Settings<TEnum>& settings;
-    std::string name;
+    String name;
     TEnum id;
 
 public:
-    SettingsEntry(Settings<TEnum>& settings, const TEnum id, const std::string& name)
+    SettingsEntry(Settings<TEnum>& settings, const TEnum id, const String& name)
         : settings(settings)
         , name(name)
         , id(id) {
@@ -171,10 +163,10 @@ public:
     }
 
     virtual Type getType() const override {
-        return Type(getTypeIndex<TValue, bool, int, Float, Vector, Interval, std::string, Path, EnumWrapper>);
+        return Type(getTypeIndex<TValue, bool, int, Float, Vector, Interval, String, Path, EnumWrapper>);
     }
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return name;
     }
 };
@@ -184,11 +176,11 @@ template <typename TValue, typename TEnum>
 class SettingsEntry<TValue, TEnum, std::enable_if_t<FlagsTraits<TValue>::isFlags>> : public EntryControl {
 private:
     Settings<TEnum>& settings;
-    std::string name;
+    String name;
     TEnum id;
 
 public:
-    SettingsEntry(Settings<TEnum>& settings, const TEnum id, const std::string& name)
+    SettingsEntry(Settings<TEnum>& settings, const TEnum id, const String& name)
         : settings(settings)
         , name(name)
         , id(id) {
@@ -207,7 +199,7 @@ public:
         return Type::FLAGS;
     }
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return name;
     }
 };
@@ -217,11 +209,11 @@ template <typename TEnum>
 class SettingsEntry<Path, TEnum> : public EntryControl {
 private:
     Settings<TEnum>& settings;
-    std::string name;
+    String name;
     TEnum id;
 
 public:
-    SettingsEntry(Settings<TEnum>& settings, const TEnum id, const std::string& name)
+    SettingsEntry(Settings<TEnum>& settings, const TEnum id, const String& name)
         : settings(settings)
         , name(name)
         , id(id) {
@@ -229,18 +221,18 @@ public:
     }
 
     virtual void setImpl(const Value& value) override {
-        settings.set(id, value.get<Path>().native());
+        settings.set(id, value.get<Path>().string());
     }
 
     virtual Value get() const override {
-        return Path(settings.template get<std::string>(id));
+        return Path(settings.template get<String>(id));
     }
 
     virtual Type getType() const override {
         return Type::PATH;
     }
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return name;
     }
 };
@@ -249,12 +241,12 @@ public:
 } // namespace Detail
 
 template <typename TValue, typename TEnum>
-EntryControl& VirtualSettings::Category::connect(const std::string& name,
+EntryControl& VirtualSettings::Category::connect(const String& name,
     Settings<TEnum>& settings,
     const TEnum id) {
-    const Optional<std::string> key = Settings<TEnum>::getEntryName(id);
+    const Optional<String> key = Settings<TEnum>::getEntryName(id);
     if (!key) {
-        throw InvalidSetup("No settings entry with id " + std::to_string(int(id)));
+        throw InvalidSetup("No settings entry with id {}", int(id));
     }
     auto entry = makeAuto<Detail::SettingsEntry<TValue, TEnum>>(settings, id, name);
     EntryControl& control = *entry;
@@ -265,9 +257,9 @@ EntryControl& VirtualSettings::Category::connect(const std::string& name,
 
 template <typename TEnum, typename>
 void VirtualSettings::set(const TEnum id, const IVirtualEntry::Value& value) {
-    const Optional<std::string> key = Settings<TEnum>::getEntryName(id);
+    const Optional<String> key = Settings<TEnum>::getEntryName(id);
     if (!key) {
-        throw InvalidSetup("No entry with ID " + std::to_string(int(id)));
+        throw InvalidSetup("No entry with ID {}", int(id));
     }
 
     this->set(key.value(), value);

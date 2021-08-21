@@ -11,13 +11,15 @@
 
 NAMESPACE_SPH_BEGIN
 
+class String;
+
 struct Assert {
     static bool isTest;
 
     /// \brief If true, assert throws an exception.
     static bool throwAssertException;
 
-    typedef bool (*Handler)(const std::string& message);
+    typedef bool (*Handler)(const String& message);
 
     /// \brief Custom assert handler.
     ///

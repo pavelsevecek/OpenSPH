@@ -15,16 +15,16 @@ protected:
     } slotUsage;
 
 public:
-    MonolithicBodyIc(const std::string& name, const BodySettings& overrides = EMPTY_SETTINGS);
+    explicit MonolithicBodyIc(const String& name, const BodySettings& overrides = EMPTY_SETTINGS);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "create monolithic body";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType>
+    virtual UnorderedMap<String, ExtJobType>
     requires() const override;
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "shape", JobType::GEOMETRY }, { "material", JobType::MATERIAL } };
     }
 
@@ -44,20 +44,20 @@ private:
     int layerCnt = 1;
 
 public:
-    explicit DifferentiatedBodyIc(const std::string& name);
+    explicit DifferentiatedBodyIc(const String& name);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "create differentiated body";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
-        UnorderedMap<std::string, ExtJobType> slots = {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
+        UnorderedMap<String, ExtJobType> slots = {
             { "base shape", JobType::GEOMETRY },
             { "base material", JobType::MATERIAL },
         };
         for (int i = 0; i < layerCnt; ++i) {
-            slots.insert("shape " + std::to_string(i + 1), JobType::GEOMETRY);
-            slots.insert("material " + std::to_string(i + 1), JobType::MATERIAL);
+            slots.insert("shape " + toString(i + 1), JobType::GEOMETRY);
+            slots.insert("material " + toString(i + 1), JobType::MATERIAL);
         }
         return slots;
     }
@@ -75,14 +75,14 @@ private:
     Float radius = Constants::R_earth;
 
 public:
-    explicit SingleParticleIc(const std::string& name)
+    explicit SingleParticleIc(const String& name)
         : IParticleJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "create single particle";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -93,21 +93,21 @@ public:
 
 class ImpactorIc : public MonolithicBodyIc {
 public:
-    ImpactorIc(const std::string& name, const BodySettings& overrides = EMPTY_SETTINGS)
+    explicit ImpactorIc(const String& name, const BodySettings& overrides = EMPTY_SETTINGS)
         : MonolithicBodyIc(name, overrides) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "create impactor";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType>
+    virtual UnorderedMap<String, ExtJobType>
     requires() const override {
-        UnorderedMap<std::string, ExtJobType> map = MonolithicBodyIc::requires();
+        UnorderedMap<String, ExtJobType> map = MonolithicBodyIc::requires();
         map.insert("target", JobType::PARTICLES);
         return map;
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {
             { "target", JobType::PARTICLES },
             { "shape", JobType::GEOMETRY },
@@ -127,13 +127,13 @@ private:
     int boundaryThreshold;
 
 public:
-    explicit EquilibriumIc(const std::string& name);
+    explicit EquilibriumIc(const String& name);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "set equilibrium energy";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
@@ -144,14 +144,14 @@ public:
 
 class KeplerianVelocityIc : public IParticleJob {
 public:
-    explicit KeplerianVelocityIc(const std::string& name)
+    explicit KeplerianVelocityIc(const String& name)
         : IParticleJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "set Keplerian velocity";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {
             { "orbiting", JobType::PARTICLES },
             { "gravity source", JobType::PARTICLES },
@@ -174,13 +174,13 @@ private:
     ExtraEntry curve;
 
 public:
-    ModifyQuantityIc(const std::string& name);
+    explicit ModifyQuantityIc(const String& name);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "modify quantity";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
@@ -195,13 +195,13 @@ private:
     Vector gridDims = Vector(8, 8, 8);
 
 public:
-    explicit NoiseQuantityIc(const std::string& name);
+    explicit NoiseQuantityIc(const String& name);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "Perlin noise";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
@@ -237,13 +237,13 @@ private:
     NBodySettings settings;
 
 public:
-    NBodyIc(const std::string& name, const NBodySettings& overrides = EMPTY_SETTINGS);
+    explicit NBodyIc(const String& name, const NBodySettings& overrides = EMPTY_SETTINGS);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "N-body ICs";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {
             { "domain", JobType::GEOMETRY },
         };
@@ -265,13 +265,13 @@ private:
     Float eta = 1.3_f;
 
 public:
-    explicit PolytropeIc(const std::string& name);
+    explicit PolytropeIc(const String& name);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "polytrope ICs";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "material", JobType::MATERIAL } };
     }
 
@@ -289,13 +289,13 @@ private:
     int particleCnt = 10000;
 
 public:
-    explicit IsothermalSphereIc(const std::string& name);
+    explicit IsothermalSphereIc(const String& name);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "isothermal sphere ICs";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -309,13 +309,13 @@ private:
     GalaxySettings settings;
 
 public:
-    explicit GalaxyIc(const std::string& name, const GalaxySettings& overrides = EMPTY_SETTINGS);
+    explicit GalaxyIc(const String& name, const GalaxySettings& overrides = EMPTY_SETTINGS);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "galaxy ICs";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {};
     }
 

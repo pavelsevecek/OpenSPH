@@ -1,6 +1,6 @@
 #include "io/FileSystem.h"
 #include "objects/containers/StaticArray.h"
-#include <fstream>
+#include "objects/utility/Streams.h"
 #include <sstream>
 
 #ifdef SPH_WIN
@@ -39,11 +39,14 @@ static std::string getLastErrorMessage() {
 
 #endif
 
-std::string FileSystem::readFile(const Path& path) {
-    std::ifstream t(path.native().c_str());
-    std::stringstream buffer;
-    buffer << t.rdbuf();
-    return buffer.str();
+String FileSystem::readFile(const Path& path) {
+    FileTextInputStream stream(path);
+    String text;
+    if (stream.readAll(text)) {
+        return text;
+    } else {
+        return {};
+    }
 }
 
 bool FileSystem::pathExists(const Path& path) {
@@ -51,7 +54,7 @@ bool FileSystem::pathExists(const Path& path) {
     if (path.empty()) {
         return false;
     }
-    return (stat(path.native().c_str(), &buffer) == 0);
+    return (stat(path.native(), &buffer) == 0);
 }
 
 std::size_t FileSystem::fileSize(const Path& path) {
@@ -63,10 +66,10 @@ std::size_t FileSystem::fileSize(const Path& path) {
 bool FileSystem::isDirectoryWritable(const Path& path) {
     SPH_ASSERT(pathType(path).valueOr(PathType::OTHER) == PathType::DIRECTORY);
 #ifndef SPH_WIN
-    return access(path.native().c_str(), W_OK) == 0;
+    return access(path.native(), W_OK) == 0;
 #else
     char file[MAX_PATH];
-    GetTempFileNameA(path.native().c_str(), "sph", 1, file);
+    GetTempFileNameA(path.native(), "sph", 1, file);
     HANDLE handle = CreateFileA(file,
         GENERIC_WRITE,
         FILE_SHARE_READ,
@@ -98,7 +101,8 @@ Expected<Path> FileSystem::getHomeDirectory() {
 #else
     const char* homeDir = getenv("HOME");
     if (homeDir != nullptr) {
-        return Path(std::string(homeDir) + '/');
+        String path = String::fromUtf8(homeDir) + L'/';
+        return Path(path);
     } else {
         return makeUnexpected<Path>("Cannot obtain home directory");
     }
@@ -121,8 +125,8 @@ Expected<Path> FileSystem::getUserDataDirectory() {
 Expected<Path> FileSystem::getAbsolutePath(const Path& relativePath) {
 #ifndef SPH_WIN
     char realPath[PATH_MAX];
-    if (realpath(relativePath.native().c_str(), realPath)) {
-        return Path(realPath);
+    if (realpath(relativePath.native(), realPath)) {
+        return Path(String::fromUtf8(realPath));
     } else {
         switch (errno) {
         case EACCES:
@@ -152,7 +156,7 @@ Expected<Path> FileSystem::getAbsolutePath(const Path& relativePath) {
 #else
     char buffer[256] = { 0 };
 
-    DWORD retval = GetFullPathNameA(relativePath.native().c_str(), 256, buffer, nullptr);
+    DWORD retval = GetFullPathNameA(relativePath.native(), 256, buffer, nullptr);
     if (retval) {
         return Path(buffer);
     } else {
@@ -168,7 +172,7 @@ Expected<FileSystem::PathType> FileSystem::pathType(const Path& path) {
 
 #ifndef SPH_WIN
     struct stat buffer;
-    if (stat(path.native().c_str(), &buffer) != 0) {
+    if (stat(path.native(), &buffer) != 0) {
         /// \todo possibly get the actual error, like in other functions
         return makeUnexpected<PathType>("Cannot retrieve type of the path");
     }
@@ -200,7 +204,7 @@ Expected<FileSystem::PathType> FileSystem::pathType(const Path& path) {
 static Outcome createSingleDirectory(const Path& path, const Flags<FileSystem::CreateDirectoryFlag> flags) {
     SPH_ASSERT(!path.empty());
 #ifndef SPH_WIN
-    const bool result = mkdir(path.native().c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
+    const bool result = mkdir(path.native(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
     if (!result) {
         switch (errno) {
         case EACCES:
@@ -290,7 +294,7 @@ Outcome FileSystem::removePath(const Path& path, const Flags<RemovePathFlag> fla
     }
 
 #ifndef SPH_WIN
-    const bool result = (remove(path.native().c_str()) == 0);
+    const bool result = (remove(path.native()) == 0);
     if (!result) {
         switch (errno) {
         case EACCES:
@@ -299,42 +303,42 @@ Outcome FileSystem::removePath(const Path& path, const Flags<RemovePathFlag> fla
                 "directories in the path prefix of pathname did not allow search permission.");
         case EBUSY:
             return makeFailed(
-                "Path " + path.native() +
+                "Path " + path.string() +
                 "is currently in use by the system or some process that prevents its removal.On "
                 "Linux this means pathname is currently used as a mount point or is the root directory of "
                 "the calling process.");
         case EFAULT:
-            return makeFailed("Path " + path.native() + " points outside your accessible address space.");
+            return makeFailed("Path " + path.string() + " points outside your accessible address space.");
         case EINVAL:
-            return makeFailed("Path " + path.native() + " has . as last component.");
+            return makeFailed("Path " + path.string() + " has . as last component.");
         case ELOOP:
-            return makeFailed("Too many symbolic links were encountered in resolving path " + path.native());
+            return makeFailed("Too many symbolic links were encountered in resolving path " + path.string());
         case ENAMETOOLONG:
-            return makeFailed("Path " + path.native() + " was too long.");
+            return makeFailed("Path " + path.string() + " was too long.");
         case ENOENT:
-            return makeFailed("A directory component in path " + path.native() +
+            return makeFailed("A directory component in path " + path.string() +
                               " does not exist or is a dangling symbolic link.");
         case ENOMEM:
             return makeFailed("Insufficient kernel memory was available.");
         case ENOTDIR:
             return makeFailed(
-                "Path " + path.native() +
+                "Path " + path.string() +
                 " or a component used as a directory in pathname, is not, in fact, a directory.");
         case ENOTEMPTY:
             return makeFailed(
-                "Path " + path.native() +
+                "Path " + path.string() +
                 " contains entries other than . and ..; or, pathname has .. as its final component.");
         case EPERM:
             return makeFailed(
-                "The directory containing path " + path.native() +
+                "The directory containing path " + path.string() +
                 " has the sticky bit(S_ISVTX) set and the process's "
                 "effective user ID is neither the user ID of the file to be deleted nor that of the "
                 "directory containing it, and the process is not privileged (Linux: does not have the "
                 "CAP_FOWNER capability).");
         case EROFS:
-            return makeFailed("Path " + path.native() + " refers to a directory on a read-only file system.");
+            return makeFailed("Path " + path.string() + " refers to a directory on a read-only file system.");
         default:
-            return makeFailed("Unknown error for path " + path.native());
+            return makeFailed("Unknown error for path " + path.string());
         }
     }
     return SUCCESS;
@@ -359,9 +363,9 @@ Outcome FileSystem::removePath(const Path& path, const Flags<RemovePathFlag> fla
 Outcome FileSystem::copyFile(const Path& from, const Path& to) {
     SPH_ASSERT(pathType(from).valueOr(PathType::OTHER) == PathType::FILE);
     // there doesn't seem to be any system function for copying, so let's do it by hand
-    std::ifstream ifs(from.native().c_str(), std::ios::in | std::ios::binary);
+    std::ifstream ifs(from.native(), std::ios::in | std::ios::binary);
     if (!ifs) {
-        return makeFailed("Cannon open file " + from.native() + " for reading");
+        return makeFailed("Cannon open file " + from.string() + " for reading");
     }
     Outcome result = createDirectory(to.parentPath());
     if (!result) {
@@ -369,7 +373,7 @@ Outcome FileSystem::copyFile(const Path& from, const Path& to) {
     }
     std::ofstream ofs(to.native(), std::ios::out | std::ios::binary);
     if (!ofs) {
-        return makeFailed("Cannot open file " + to.native() + " for writing");
+        return makeFailed("Cannot open file " + to.string() + " for writing");
     }
 
     StaticArray<char, 1024> buffer;
@@ -412,7 +416,7 @@ Outcome FileSystem::copyDirectory(const Path& from, const Path& to) {
 bool FileSystem::setWorkingDirectory(const Path& path) {
     SPH_ASSERT(pathType(path).valueOr(PathType::OTHER) == PathType::DIRECTORY);
 #ifndef SPH_WIN
-    return chdir(path.native().c_str()) == 0;
+    return chdir(path.native()) == 0;
 #else
     return SetCurrentDirectoryA(path.native().c_str());
 #endif
@@ -423,7 +427,7 @@ Expected<Path> FileSystem::getDirectoryOfExecutable() {
     char result[4096];
     ssize_t count = readlink("/proc/self/exe", result, sizeof(result));
     if (count != -1) {
-        Path path(std::string(result, count));
+        Path path(String::fromUtf8(result));
         return path.parentPath();
     } else {
         return makeUnexpected<Path>("Unknown error");
@@ -507,7 +511,7 @@ FileSystem::DirectoryIterator& FileSystem::DirectoryIterator::operator++() {
 Path FileSystem::DirectoryIterator::operator*() const {
 #ifndef SPH_WIN
     SPH_ASSERT(data && data->entry);
-    return Path(data->entry->d_name);
+    return Path(String::fromUtf8(data->entry->d_name));
 #else
     SPH_ASSERT(data && !data->error);
     return Path(data->entry.cFileName);
@@ -535,7 +539,7 @@ FileSystem::DirectoryAdapter::DirectoryAdapter(const Path& directory) {
         data->dir = nullptr;
         return;
     }
-    data->dir = opendir(directory.native().c_str());
+    data->dir = opendir(directory.native());
 #else
     if (!pathExists(directory)) {
         data->dir = INVALID_HANDLE_VALUE;

@@ -1,4 +1,5 @@
 #include "run/jobs/Presets.h"
+#include "io/FileManager.h"
 #include "io/FileSystem.h"
 #include "run/jobs/GeometryJobs.h"
 #include "run/jobs/InitialConditionJobs.h"

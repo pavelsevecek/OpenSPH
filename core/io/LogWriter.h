@@ -39,7 +39,7 @@ public:
 /// This is the default writer used in the simulation.
 class StandardLogWriter : public ILogWriter {
 private:
-    std::string name;
+    String name;
 
 public:
     StandardLogWriter(const SharedPtr<ILogger>& logger, const RunSettings& settings);
@@ -61,7 +61,7 @@ public:
 /// \brief Writer logging only basic run information
 class BriefLogWriter : public ILogWriter {
 private:
-    std::string name;
+    String name;
 
 public:
     BriefLogWriter(const SharedPtr<ILogger>& logger, const RunSettings& settings);

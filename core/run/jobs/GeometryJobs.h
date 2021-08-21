@@ -9,11 +9,11 @@ private:
     Float radius = 1.e5_f;
 
 public:
-    explicit SphereJob(const std::string& name);
+    explicit SphereJob(const String& name);
 
-    virtual std::string className() const override;
+    virtual String className() const override;
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override;
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override;
 
     virtual VirtualSettings getSettings() override;
 
@@ -26,14 +26,14 @@ private:
     Vector dimensions = Vector(1.e5_f);
 
 public:
-    explicit BlockJob(const std::string& name)
+    explicit BlockJob(const String& name)
         : IGeometryJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "block";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -47,14 +47,14 @@ private:
     Vector semiaxes = Vector(2.e5_f, 1.e5_f, 1.e5_f);
 
 public:
-    explicit EllipsoidJob(const std::string& name)
+    explicit EllipsoidJob(const String& name)
         : IGeometryJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "ellipsoid";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -69,11 +69,11 @@ private:
     Float height = 2.e5_f;
 
 public:
-    explicit CylinderJob(const std::string& name);
+    explicit CylinderJob(const String& name);
 
-    virtual std::string className() const override;
+    virtual String className() const override;
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override;
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override;
 
     virtual VirtualSettings getSettings() override;
 
@@ -86,14 +86,14 @@ private:
     Float b = 2.5e4_f;
 
 public:
-    explicit ToroidJob(const std::string& name)
+    explicit ToroidJob(const String& name)
         : IGeometryJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "toroid";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -110,14 +110,14 @@ private:
     Float density = 2700._f;
 
 public:
-    explicit MaclaurinSpheroidJob(const std::string& name)
+    explicit MaclaurinSpheroidJob(const String& name)
         : IGeometryJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "Maclaurin spheroid";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -128,14 +128,14 @@ public:
 
 class HalfSpaceJob : public IGeometryJob {
 public:
-    explicit HalfSpaceJob(const std::string& name)
+    explicit HalfSpaceJob(const String& name)
         : IGeometryJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "half space";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -151,14 +151,14 @@ private:
     int seed = 1337;
 
 public:
-    explicit GaussianSphereJob(const std::string& name)
+    explicit GaussianSphereJob(const String& name)
         : IGeometryJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "Gaussian sphere";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -175,11 +175,11 @@ private:
     bool precompute = false;
 
 public:
-    explicit MeshGeometryJob(const std::string& name);
+    explicit MeshGeometryJob(const String& name);
 
-    virtual std::string className() const override;
+    virtual String className() const override;
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override;
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override;
 
     virtual VirtualSettings getSettings() override;
 
@@ -193,14 +193,14 @@ private:
     Float smoothingMult = 1._f;
 
 public:
-    explicit ParticleGeometryJob(const std::string& name)
+    explicit ParticleGeometryJob(const String& name)
         : IGeometryJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "particle geometry";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
@@ -211,14 +211,14 @@ public:
 
 class SpheresGeometryJob : public IGeometryJob {
 public:
-    explicit SpheresGeometryJob(const std::string& name)
+    explicit SpheresGeometryJob(const String& name)
         : IGeometryJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "spheres geometry";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "spheres", JobType::PARTICLES } };
     }
 
@@ -229,14 +229,14 @@ public:
 
 class InvertGeometryJob : public IGeometryJob {
 public:
-    explicit InvertGeometryJob(const std::string& name)
+    explicit InvertGeometryJob(const String& name)
         : IGeometryJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "invert geometry";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "geometry", JobType::GEOMETRY } };
     }
 
@@ -251,14 +251,14 @@ private:
     Vector offset = Vector(0._f);
 
 public:
-    explicit TransformGeometryJob(const std::string& name)
+    explicit TransformGeometryJob(const String& name)
         : IGeometryJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "transform geometry";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "geometry", JobType::GEOMETRY } };
     }
 
@@ -284,16 +284,16 @@ class BooleanGeometryJob : public IGeometryJob {
     Vector offset = Vector(0._f);
 
 public:
-    BooleanGeometryJob(const std::string& name)
+    BooleanGeometryJob(const String& name)
         : IGeometryJob(name) {
         mode = EnumWrapper(BooleanEnum::SET_DIFFERENCE);
     }
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "boolean";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "operand A", JobType::GEOMETRY }, { "operand B", JobType::GEOMETRY } };
     }
 

@@ -585,7 +585,7 @@ wxPanel* RunPage::createVisBar() {
             controller->setRenderer(makeAuto<RayMarcher>(scheduler, gui));
             enableControls(1);
         } catch (const std::exception& e) {
-            wxMessageBox(std::string("Cannot initialize raytracer.\n\n") + e.what(), "Error", wxOK);
+            messageBox("Cannot initialize raytracer.\n\n" + exceptionMessage(e), "Error", wxOK);
 
             // switch to particle renderer (fallback option)
             particleButton->SetValue(true);
@@ -673,11 +673,11 @@ wxPanel* RunPage::createStatsBar() {
 template <typename TValue>
 static void printStat(wxTextCtrl* text,
     const Statistics& stats,
-    const std::string& desc,
+    const String& desc,
     const StatisticsId id,
-    const std::string units = "") {
+    const String units = "") {
     if (stats.has(id)) {
-        *text << desc << stats.get<TValue>(id) << units << "\n";
+        *text << desc.toUnicode() << stats.get<TValue>(id) << units.toUnicode() << "\n";
     }
 }
 
@@ -868,7 +868,7 @@ void RunPage::setProgress(const Statistics& stats) {
     }
 }
 
-void RunPage::newPhase(const std::string& className, const std::string& instanceName) {
+void RunPage::newPhase(const String& className, const String& instanceName) {
     progressBar->onRunStart(className, instanceName);
 }
 
@@ -958,7 +958,7 @@ void RunPage::setColorizerList(Array<SharedPtr<IColorizer>>&& colorizers) {
     colorizerList = std::move(colorizers);
     wxArrayString items;
     for (auto& e : colorizerList) {
-        items.Add(e->name().c_str());
+        items.Add(e->name().toUnicode());
     }
     quantityBox->Set(items);
     const Size actSelectedIdx = (selectedIdx < colorizerList.size()) ? selectedIdx : 0;

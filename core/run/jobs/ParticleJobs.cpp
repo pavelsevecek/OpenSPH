@@ -12,6 +12,7 @@
 #include "sph/Materials.h"
 #include "system/Factory.h"
 #include "system/Settings.impl.h"
+#include <set>
 
 NAMESPACE_SPH_BEGIN
 
@@ -76,7 +77,7 @@ void JoinParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
 static JobRegistrar sRegisterParticleJoin(
     "join",
     "particle operators",
-    [](const std::string& name) { return makeAuto<JoinParticlesJob>(name); },
+    [](const String& name) { return makeAuto<JoinParticlesJob>(name); },
     "Simply adds particles from two inputs into a single particle state. Optionally, positions and "
     "velocities of particles in the second state may be shifted.");
 
@@ -123,7 +124,7 @@ void OrbitParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallback
 static JobRegistrar sRegisterParticleOrbit(
     "orbit",
     "particle operators",
-    [](const std::string& name) { return makeAuto<OrbitParticlesJob>(name); },
+    [](const String& name) { return makeAuto<OrbitParticlesJob>(name); },
     "Puts two input bodies on an elliptical trajectory around their common center of gravity. The orbit is "
     "defined by the semi-major axis and the eccentricity and it lies in the z=0 plane.");
 
@@ -155,7 +156,7 @@ VirtualSettings MultiJoinParticlesJob::getSettings() {
 void MultiJoinParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
     SharedPtr<ParticleData> main = this->getInput<ParticleData>("particles 1");
     for (int i = 1; i < slotCnt; ++i) {
-        SharedPtr<ParticleData> other = this->getInput<ParticleData>("particles " + std::to_string(i + 1));
+        SharedPtr<ParticleData> other = this->getInput<ParticleData>("particles " + toString(i + 1));
         if (uniqueFlags) {
             renumberFlags(main->storage, other->storage);
         }
@@ -174,7 +175,7 @@ void MultiJoinParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCall
 static JobRegistrar sRegisterParticleMultiJoin(
     "multi join",
     "particle operators",
-    [](const std::string& name) { return makeAuto<MultiJoinParticlesJob>(name); },
+    [](const String& name) { return makeAuto<MultiJoinParticlesJob>(name); },
     "Joins multiple particle sources into a single states.");
 
 
@@ -240,7 +241,7 @@ void TransformParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCall
 static JobRegistrar sRegisterParticleTransform(
     "transform",
     "particle operators",
-    [](const std::string& name) { return makeAuto<TransformParticlesJob>(name); },
+    [](const String& name) { return makeAuto<TransformParticlesJob>(name); },
     "Modifies positions and velocities of the input particles.");
 
 //-----------------------------------------------------------------------------------------------------------
@@ -319,7 +320,7 @@ void CenterParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCallbac
 static JobRegistrar sRegisterCenterTransform(
     "center",
     "particle operators",
-    [](const std::string& name) { return makeAuto<CenterParticlesJob>(name); },
+    [](const String& name) { return makeAuto<CenterParticlesJob>(name); },
     "Moves particle positions and/or velocities to center-of-mass frame.");
 
 
@@ -393,7 +394,7 @@ static JobRegistrar sRegisterChangeMaterial(
     "change material",
     "changer",
     "particle operators",
-    [](const std::string& name) { return makeAuto<ChangeMaterialJob>(name); },
+    [](const String& name) { return makeAuto<ChangeMaterialJob>(name); },
     "Changes the material of all or a subset of the input particles.");
 
 //-----------------------------------------------------------------------------------------------------------
@@ -443,8 +444,7 @@ static Sphere getBoundingSphere(const Storage& storage) {
     return sphere;
 }
 
-CollisionGeometrySetup::CollisionGeometrySetup(const std::string& name,
-    const CollisionGeometrySettings& overrides)
+CollisionGeometrySetup::CollisionGeometrySetup(const String& name, const CollisionGeometrySettings& overrides)
     : IParticleJob(name) {
     geometry.addEntries(overrides);
 }
@@ -513,7 +513,7 @@ static JobRegistrar sRegisterCollisionSetup(
     "collision setup",
     "setup",
     "particle operators",
-    [](const std::string& name) { return makeAuto<CollisionGeometrySetup>(name); },
+    [](const String& name) { return makeAuto<CollisionGeometrySetup>(name); },
     "Adds two input particle states (bodies) into a single state, moving the second body (impactor) to a "
     "position specified by the impact angle and adding an impact velocity to the impactor.");
 
@@ -605,7 +605,7 @@ static JobRegistrar sRegisterHandoff(
     "smoothed-to-solid handoff",
     "handoff",
     "particle operators",
-    [](const std::string& name) { return makeAuto<SmoothedToSolidHandoff>(name); },
+    [](const String& name) { return makeAuto<SmoothedToSolidHandoff>(name); },
     "Converts smoothed particles, an output of SPH simulation, into hard spheres that can be handed off to "
     "a N-body simulation.");
 
@@ -656,7 +656,7 @@ static JobRegistrar sRegisterExtractComponent(
     "extract component",
     "extractor",
     "particle operators",
-    [](const std::string& name) { return makeAuto<ExtractComponentJob>(name); },
+    [](const String& name) { return makeAuto<ExtractComponentJob>(name); },
     "Preserves all particles belonging to the largest body in the input particle state (or optionally the "
     "n-th largest body) and removes all other particles. This modifier is useful to separate the largest "
     "remnant or the largest fragment in the result of a simulation.");
@@ -712,7 +712,7 @@ static JobRegistrar sRemoveParticles(
     "remove particles",
     "remover",
     "particle operators",
-    [](const std::string& name) { return makeAuto<RemoveParticlesJob>(name); },
+    [](const String& name) { return makeAuto<RemoveParticlesJob>(name); },
     "Removes all particles matching given conditions.");
 
 
@@ -797,7 +797,7 @@ static JobRegistrar sRegisterMergeComponents(
     "merge components",
     "merger",
     "particle operators",
-    [](const std::string& name) { return makeAuto<MergeComponentsJob>(name); },
+    [](const String& name) { return makeAuto<MergeComponentsJob>(name); },
     "Merges all overlapping particles into larger spheres, preserving the total mass and volume of "
     "particles. Other quantities are handled as intensive, i.e. they are computed using weighted average.");
 
@@ -839,7 +839,7 @@ static JobRegistrar sRegisterExtractInDomain(
     "extract particles in domain",
     "extractor",
     "particle operators",
-    [](const std::string& name) { return makeAuto<ExtractParticlesInDomainJob>(name); },
+    [](const String& name) { return makeAuto<ExtractParticlesInDomainJob>(name); },
     "Preserves only particles inside the given shape, particles outside the shape are removed.");
 
 // ----------------------------------------------------------------------------------------------------------
@@ -882,7 +882,7 @@ static JobRegistrar sRegisterEmplaceComponents(
     "emplace components",
     "emplacer",
     "particle operators",
-    [](const std::string& name) { return makeAuto<EmplaceComponentsAsFlagsJob>(name); },
+    [](const String& name) { return makeAuto<EmplaceComponentsAsFlagsJob>(name); },
     "This modifier detects components (i.e. separated bodies) in the \"fragments\" particle input and stores "
     "the indices of the components as flags to the other particle input \"original\". This is useful to "
     "visualize the particles belonging to different fragments in the initial conditions of the simulation.");
@@ -940,7 +940,7 @@ void SubsampleJob::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(cal
 static JobRegistrar sRegisterSubsampler(
     "subsampler",
     "particle operators",
-    [](const std::string& name) { return makeAuto<SubsampleJob>(name); },
+    [](const String& name) { return makeAuto<SubsampleJob>(name); },
     "Preserves a fraction of randomly selected particles, removes the other particles.");
 
 
@@ -1000,7 +1000,7 @@ void CompareJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUS
 static JobRegistrar sRegisterCompare(
     "compare",
     "particle operators",
-    [](const std::string& name) { return makeAuto<CompareJob>(name); },
+    [](const String& name) { return makeAuto<CompareJob>(name); },
     "Compares two states. If a difference is found, it is shown as an error dialog.");
 
 

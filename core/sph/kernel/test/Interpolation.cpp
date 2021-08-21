@@ -27,11 +27,11 @@ TEST_CASE("Interpolation gassball", "[interpolation]") {
         }
         const Float rho = densityFunc.interpolate(r[i]);
         if (rho != approx(rho0, 0.01_f)) {
-            return makeFailed("Incorrect density:\n", rho, " == ", rho0);
+            return makeFailed("Incorrect density:\n{} == {}", rho, rho0);
         }
         const Float u = energyFunc.interpolate(r[i]);
         if (u != approx(u0, 0.01_f)) {
-            return makeFailed("Incorrect energy:\n", u, " == ", u0);
+            return makeFailed("Incorrect energy:\n{} == {}", u, u0);
         }
         return SUCCESS;
     };
@@ -64,7 +64,7 @@ TEST_CASE("Interpolate velocity", "[interpolation]") {
         const Vector expected = field(points[i]);
         const Vector actual = interpol.interpolate(points[i]);
         if (expected != approx(actual, 0.01_f)) {
-            return makeFailed("Incorrect velocity:\n", expected, " == ", actual);
+            return makeFailed("Incorrect velocity:\n{} == {}", expected, actual);
         }
         return SUCCESS;
     };
@@ -95,20 +95,17 @@ TEST_CASE("Corrected interpolation", "[interpolation]") {
 
         if (getLength(points[i]) < r0) {
             if (corrected != approx(rho0)) {
-                return makeFailed("Incorrect corrected density:\n", corrected, " == ", rho0);
+                return makeFailed("Incorrect corrected density:\n{} == {}", corrected, rho0);
             }
             if (uncorrected == approx(rho0, 0.0001_f)) {
-                return makeFailed("Suspiciously precise uncorrected density??:\n", uncorrected, " == ", rho0);
+                return makeFailed("Suspiciously precise uncorrected density??:\n{} == {}", uncorrected, rho0);
             }
         } else if (getLength(points[i]) > r0 + 2 * h0) {
             if (corrected != 0._f || uncorrected != 0._f) {
-                return makeFailed("Density outside domain not zero\n",
+                return makeFailed("Density outside domain not zero\n{} == {}\n{} == {}",
                     corrected,
-                    " == ",
                     rho0,
-                    "\n",
                     uncorrected,
-                    " == ",
                     rho0);
             }
         } else {

@@ -2,7 +2,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-std::string CurveEntry::toString() const {
+String CurveEntry::toString() const {
     std::stringstream ss;
     for (Size i = 0; i < curve.getPointCnt(); ++i) {
         const CurvePoint p = curve.getPoint(i);
@@ -11,11 +11,11 @@ std::string CurveEntry::toString() const {
             ss << curve.getSegment(i) << " ";
         }
     }
-    return ss.str();
+    return String::fromAscii(ss.str().c_str());
 }
 
-void CurveEntry::fromString(const std::string& s) {
-    std::stringstream ss(s);
+void CurveEntry::fromString(const String& s) {
+    std::stringstream ss(std::string(s.toAscii()));
     Array<CurvePoint> points;
     Array<bool> flags;
     while (ss) {

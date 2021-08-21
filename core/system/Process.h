@@ -31,7 +31,7 @@ public:
     /// \param args Arguments passes to the executable. Can be an empty array.
     /// \throw Exception if the file does not exist or the process fails to start.
     /// \note Uses Array instead of ArrayView to easily pass brace-initialized list.
-    Process(const Path& path, Array<std::string>&& args);
+    Process(const Path& path, Array<String>&& args);
 
     /// \brief Blocks the calling thread until the managed process exits. The function may block indefinitely.
     void wait();

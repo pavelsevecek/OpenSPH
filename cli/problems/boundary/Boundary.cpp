@@ -34,12 +34,12 @@ private:
     AutoPtr<IBoundaryCondition> bc;
 
 public:
-    BoundaryRun(AutoPtr<IBoundaryCondition>&& bc, const std::string& name)
+    BoundaryRun(AutoPtr<IBoundaryCondition>&& bc, const String& name)
         : BoundaryRun(BoundaryEnum::NONE, name) {
         this->bc = std::move(bc);
     }
 
-    BoundaryRun(const BoundaryEnum boundary, const std::string& name) {
+    BoundaryRun(const BoundaryEnum boundary, const String& name) {
         // Global settings of the problem
         this->settings.set(RunSettingsId::RUN_NAME, name)
             .set(RunSettingsId::RUN_END_TIME, 4._f)
@@ -47,7 +47,7 @@ public:
             .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.01_f)
             .set(RunSettingsId::RUN_OUTPUT_QUANTITIES,
                 OutputQuantityFlag::POSITION | OutputQuantityFlag::DENSITY)
-            .set(RunSettingsId::RUN_OUTPUT_PATH, std::string(""))
+            .set(RunSettingsId::RUN_OUTPUT_PATH, String(""))
             .set(RunSettingsId::RUN_OUTPUT_NAME, "boundary/" + name + "_%d.sdf")
             .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
             .set(RunSettingsId::SPH_AV_BETA, 3._f)

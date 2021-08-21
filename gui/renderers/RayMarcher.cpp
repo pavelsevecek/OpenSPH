@@ -57,14 +57,14 @@ void RayMarcher::initialize(const Storage& storage,
     if (loadTextures) {
         cached.textures.resize(storage.getMaterialCnt());
     }
-    FlatMap<std::string, SharedPtr<Texture>> textureMap;
+    FlatMap<String, SharedPtr<Texture>> textureMap;
     for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
         MaterialView body = storage.getMaterial(matId);
         for (Size i : body.sequence()) {
             cached.materialIDs[i] = matId;
         }
 
-        std::string texturePath = body->getParam<std::string>(BodySettingsId::VISUALIZATION_TEXTURE);
+        String texturePath = body->getParam<String>(BodySettingsId::VISUALIZATION_TEXTURE);
         if (loadTextures && !texturePath.empty()) {
             if (textureMap.contains(texturePath)) {
                 cached.textures[matId] = textureMap[texturePath];

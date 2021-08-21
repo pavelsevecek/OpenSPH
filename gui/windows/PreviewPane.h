@@ -64,7 +64,7 @@ class InteractiveRenderer : public Shareable<InteractiveRenderer> {
         bool notInitialized = true;
         bool particlesMissing = true;
         bool cameraMissing = true;
-        std::string otherReason;
+        String otherReason;
 
         void clear() {
             notInitialized = particlesMissing = cameraMissing = false;

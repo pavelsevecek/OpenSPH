@@ -5,9 +5,9 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2021
 
+#include "objects/containers/String.h"
 #include "physics/Units.h"
 #include "quantities/QuantityHelpers.h"
-#include <string>
 
 NAMESPACE_SPH_BEGIN
 
@@ -236,21 +236,21 @@ enum class QuantityId {
 struct QuantityMetadata {
 
     /// \brief Full name of the quantity (i.e. 'Density', 'Deviatoric stress', ...)
-    std::string quantityName;
+    String quantityName;
 
     /// \brief Name of the 1st derivative.
     ///
     /// Usually it's just quantityName + 'derivative', but not always (for example 'Velocity' instead of
     /// 'Position derivative')
-    std::string derivativeName;
+    String derivativeName;
 
     /// \brief Name of the second derivative.
     ///
     /// Usually it's just quantityName + '2nd derivative'
-    std::string secondDerivativeName;
+    String secondDerivativeName;
 
     /// \brief Short designation of the quantity (i.e. 'rho', 's', ...).
-    std::wstring label;
+    String label;
 
     /// \todo Units & dimensional analysis !
 
@@ -264,18 +264,19 @@ struct QuantityMetadata {
 
     UnitDimensions expectedUnit = BasicDimension::LENGTH;
 
-    QuantityMetadata(const std::string& fullName,
-        const std::wstring& label,
+    QuantityMetadata(const String& fullName,
+        const String& label,
         const ValueEnum type,
-        const std::string& derivativeName = "",
-        const std::string& secondDerivativeName = "");
+        const String& derivativeName = "",
+        const String& secondDerivativeName = "");
 };
 
 /// \brief Returns the quantity information using quantity ID.
 QuantityMetadata getMetadata(const QuantityId key);
 
 /// \brief Print full quantity name into the stream.
-INLINE std::ostream& operator<<(std::ostream& stream, const QuantityId key) {
+template <typename TStream>
+INLINE TStream& operator<<(TStream& stream, const QuantityId key) {
     stream << getMetadata(key).quantityName;
     return stream;
 }

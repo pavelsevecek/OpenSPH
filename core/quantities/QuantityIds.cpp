@@ -3,11 +3,11 @@
 
 NAMESPACE_SPH_BEGIN
 
-QuantityMetadata::QuantityMetadata(const std::string& fullName,
-    const std::wstring& label,
+QuantityMetadata::QuantityMetadata(const String& fullName,
+    const String& label,
     const ValueEnum type,
-    const std::string& dtName,
-    const std::string& d2tName)
+    const String& dtName,
+    const String& d2tName)
     : quantityName(fullName)
     , label(label)
     , expectedType(type) {

@@ -356,7 +356,7 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
 
     Array<Vector> deltas(N);
     for (Size k = 0; k < params.numOfIters; ++k) {
-        VerboseLogGuard guard("DiehlDistribution::generate - iteration " + std::to_string(k));
+        VerboseLogGuard guard("DiehlDistribution::generate - iteration " + toString(k));
 
         // notify caller, if requested
         if (!this->tickProgress(r)) {

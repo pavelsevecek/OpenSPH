@@ -13,17 +13,17 @@ NAMESPACE_SPH_BEGIN
 
 void BatchManager::modifyHierarchy(const Size runIdx, JobNode& node) {
     for (Size colIdx = 0; colIdx < cols.size(); ++colIdx) {
-        const std::string baseName = cols[colIdx].node->instanceName();
+        const String baseName = cols[colIdx].node->instanceName();
 
         // find the node in the hierarchy
         SharedPtr<JobNode> modifiedNode;
         node.enumerate([&baseName, &modifiedNode](SharedPtr<JobNode> node) {
-            const std::string name = node->instanceName();
+            const String name = node->instanceName();
             const std::size_t n = name.find(" / ");
-            if (n == std::string::npos) {
+            if (n == String::npos) {
                 throw InvalidSetup("Invalid name of cloned node: " + name);
             }
-            const std::string clonedName = name.substr(n + 3);
+            const String clonedName = name.substr(n + 3);
             if (baseName == clonedName) {
                 modifiedNode = node;
             }
@@ -40,11 +40,11 @@ void BatchManager::modifyHierarchy(const Size runIdx, JobNode& node) {
 /// \todo could be deduplicated (e.g. ConfigValue)
 class BatchValueVisitor {
 private:
-    std::stringstream ss;
+    std::wstringstream ss;
 
 public:
-    BatchValueVisitor(const std::string& newValue)
-        : ss(newValue) {}
+    BatchValueVisitor(const String& newValue)
+        : ss(newValue.toUnicode()) {}
 
     void operator()(Vector& v) {
         ss >> v[X] >> v[Y] >> v[Z];
@@ -57,22 +57,23 @@ public:
     }
 
     void operator()(Path& path) {
-        path = Path(ss.str());
+        path = Path(String::fromWstring(ss.str()));
     }
 
     void operator()(EnumWrapper& ew) {
-        const Optional<int> value = EnumMap::fromString(ss.str(), ew.index);
+        String str = String::fromWstring(ss.str());
+        const Optional<int> value = EnumMap::fromString(str, ew.index);
         if (value) {
             ew.value = value.value();
         } else {
-            throw InvalidSetup("Value '" + ss.str() +
-                               "' is invalid for this parameter. Possible values are:\n" +
-                               EnumMap::getDesc(ew.index));
+            throw InvalidSetup("Value '{}' is invalid for this parameter. Possible values are:\n{}",
+                str,
+                EnumMap::getDesc(ew.index));
         }
     }
 
     void operator()(ExtraEntry& extra) {
-        extra.fromString(ss.str());
+        extra.fromString(String::fromWstring(ss.str()));
     }
 
     /// Default overload
@@ -83,7 +84,7 @@ public:
 };
 
 void BatchManager::modifyNode(JobNode& node, const Size runIdx, const Size paramIdx) {
-    const std::string newValue = getCell(paramIdx, runIdx);
+    const String newValue = getCell(paramIdx, runIdx);
     VirtualSettings settings = node.getSettings();
     IVirtualEntry::Value variant = settings.get(cols[paramIdx].key);
     BatchValueVisitor visitor(newValue);
@@ -99,16 +100,16 @@ void BatchManager::load(Config& config, ArrayView<const SharedPtr<JobNode>> node
 
     SharedPtr<ConfigNode> paramNode = root->getChild("params");
     for (Size i = 0; i < colCnt; ++i) {
-        const Optional<std::string> paramDesc = paramNode->tryGet<std::string>("param-" + std::to_string(i));
+        const Optional<String> paramDesc = paramNode->tryGet<String>("param-" + toString(i));
         if (!paramDesc) {
             continue;
         }
         const std::size_t sep = paramDesc->find("->");
-        if (sep == std::string::npos) {
+        if (sep == String::npos) {
             continue;
         }
         cols[i].key = paramDesc->substr(sep + 2);
-        const std::string name = paramDesc->substr(0, sep);
+        const String name = paramDesc->substr(0, sep);
         auto iter = std::find_if(nodes.begin(), nodes.end(), [&name](const SharedPtr<JobNode>& node) {
             return node->instanceName() == name;
         });
@@ -119,14 +120,13 @@ void BatchManager::load(Config& config, ArrayView<const SharedPtr<JobNode>> node
 
     SharedPtr<ConfigNode> runNode = root->getChild("runs");
     for (Size i = 0; i < rowCnt; ++i) {
-        rows[i] = runNode->get<std::string>("run-" + std::to_string(i));
+        rows[i] = runNode->get<String>("run-" + toString(i));
     }
 
     SharedPtr<ConfigNode> cellNode = root->getChild("cells");
     for (Size j = 0; j < rowCnt; ++j) {
         for (Size i = 0; i < colCnt; ++i) {
-            cells[Pixel(i, j)] =
-                cellNode->get<std::string>("cell-" + std::to_string(i) + "-" + std::to_string(j));
+            cells[Pixel(i, j)] = cellNode->get<String>("cell-" + toString(i) + "-" + toString(j));
         }
     }
 }
@@ -139,19 +139,19 @@ void BatchManager::save(Config& config) {
     SharedPtr<ConfigNode> paramNode = root->addChild("params");
     for (Size i = 0; i < cols.size(); ++i) {
         if (cols[i].node) {
-            paramNode->set("param-" + std::to_string(i), cols[i].node->instanceName() + "->" + cols[i].key);
+            paramNode->set("param-" + toString(i), cols[i].node->instanceName() + "->" + cols[i].key);
         }
     }
 
     SharedPtr<ConfigNode> runNode = root->addChild("runs");
     for (Size i = 0; i < rows.size(); ++i) {
-        runNode->set("run-" + std::to_string(i), getRunName(i));
+        runNode->set("run-" + toString(i), getRunName(i));
     }
 
     SharedPtr<ConfigNode> cellNode = root->addChild("cells");
     for (Size j = 0; j < rows.size(); ++j) {
         for (Size i = 0; i < cols.size(); ++i) {
-            cellNode->set("cell-" + std::to_string(i) + "-" + std::to_string(j), cells[Pixel(i, j)]);
+            cellNode->set("cell-" + toString(i) + "-" + toString(j), cells[Pixel(i, j)]);
         }
     }
 }
@@ -159,20 +159,20 @@ void BatchManager::save(Config& config) {
 class AddParamProc : public VirtualSettings::IEntryProc {
 private:
     wxArrayString& items;
-    Array<std::string>& keys;
+    Array<String>& keys;
 
 public:
-    AddParamProc(wxArrayString& items, Array<std::string>& keys)
+    AddParamProc(wxArrayString& items, Array<String>& keys)
         : items(items)
         , keys(keys) {
         keys.clear();
     }
 
-    virtual void onCategory(const std::string& UNUSED(name)) const override {}
+    virtual void onCategory(const String& UNUSED(name)) const override {}
 
-    virtual void onEntry(const std::string& key, IVirtualEntry& entry) const override {
+    virtual void onEntry(const String& key, IVirtualEntry& entry) const override {
         keys.push(key);
-        items.Add(entry.getName());
+        items.Add(entry.getName().toUnicode());
     }
 };
 
@@ -183,7 +183,7 @@ private:
     ComboBox* paramBox;
 
     struct {
-        Array<std::string> keys;
+        Array<String> keys;
     } cached;
 
 public:
@@ -197,7 +197,7 @@ public:
         nodeBox = new ComboBox(this, "");
         wxArrayString items;
         for (const SharedPtr<JobNode>& node : nodes) {
-            items.Add(node->instanceName());
+            items.Add(node->instanceName().toUnicode());
         }
         nodeBox->Set(items);
         nodeBox->SetSelection(0);
@@ -237,7 +237,7 @@ public:
         return nodes[nodeBox->GetSelection()];
     }
 
-    std::string getKey() const {
+    String getKey() const {
         return cached.keys[paramBox->GetSelection()];
     }
 
@@ -291,7 +291,7 @@ BatchDialog::BatchDialog(wxWindow* parent, const BatchManager& mgr, Array<Shared
             if (dialog->ShowModal() == wxID_OK) {
                 const wxString value = dialog->GetValue();
                 grid->SetRowLabelValue(evt.GetRow(), value);
-                manager.setRunName(evt.GetRow(), std::string(value));
+                manager.setRunName(evt.GetRow(), String(value));
             }
         } else {
             ParamSelectDialog* dialog = new ParamSelectDialog(this, this->nodes);
@@ -332,7 +332,7 @@ BatchDialog::BatchDialog(wxWindow* parent, const BatchManager& mgr, Array<Shared
     });
 
     grid->Bind(wxEVT_GRID_CELL_CHANGED, [this](wxGridEvent& evt) { //
-        const std::string value(grid->GetCellValue(evt.GetRow(), evt.GetCol()));
+        const String value(grid->GetCellValue(evt.GetRow(), evt.GetCol()));
         manager.setCell(evt.GetCol(), evt.GetRow(), value);
     });
 
@@ -370,17 +370,18 @@ void BatchDialog::update() {
     SPH_ASSERT(grid->GetNumberCols() == int(paramCnt));
     SPH_ASSERT(grid->GetNumberRows() == int(runCnt));
     for (Size j = 0; j < runCnt; ++j) {
-        grid->SetRowLabelValue(j, manager.getRunName(j));
+        grid->SetRowLabelValue(j, manager.getRunName(j).toUnicode());
     }
     for (Size i = 0; i < paramCnt; ++i) {
         SharedPtr<JobNode> node = manager.getParamNode(i);
         if (node) {
-            grid->SetColLabelValue(i, node->instanceName() + " - " + manager.getParamKey(i));
+            String paramValue = node->instanceName() + " - " + manager.getParamKey(i);
+            grid->SetColLabelValue(i, paramValue.toUnicode());
         }
     }
     for (Size j = 0; j < runCnt; ++j) {
         for (Size i = 0; i < paramCnt; ++i) {
-            grid->SetCellValue(j, i, manager.getCell(i, j));
+            grid->SetCellValue(j, i, manager.getCell(i, j).toUnicode());
         }
     }
 }

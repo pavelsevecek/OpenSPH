@@ -25,7 +25,7 @@ TEST_CASE("FileLogger", "[logger]") {
         // REQUIRE_THROWS(FileLogger("log1.txt"));
         logger.write("first line");
     }
-    std::string content = FileSystem::readFile(Path("log1.txt"));
+    String content = FileSystem::readFile(Path("log1.txt"));
     REQUIRE(content == "first line\n");
 
     {
@@ -48,25 +48,13 @@ TEST_CASE("FileLogger timestamp", "[logger]") {
         FileLogger logger(Path("log2.txt"), FileLogger::Options::ADD_TIMESTAMP);
         logger.write("hello world");
     }
-    std::string content = FileSystem::readFile(Path("log2.txt"));
+    String content = FileSystem::readFile(Path("log2.txt"));
     REQUIRE(!content.empty());
-    REQUIRE(content.find("hello world") != std::string::npos);
+    REQUIRE(content.find("hello world") != String::npos);
 
     std::regex regex("[A-Z][a-z][a-z] [0-3][0-9], [0-2][0-9]:[0-5][0-9]:[0-5][0-9]");
     std::smatch match;
 
-    std::string s = content.c_str();
+    std::string s(content.toAscii());
     REQUIRE(std::regex_search(s, match, regex));
-}
-
-TEST_CASE("FileLogger Open when writing", "[logger]") {
-    FileSystem::removePath(Path("log3.txt"));
-    FileLogger logger(Path("log3.txt"), FileLogger::Options::OPEN_WHEN_WRITING);
-    REQUIRE_NOTHROW(logger.write("first line"));
-    std::string content;
-    REQUIRE_NOTHROW(content = FileSystem::readFile(Path("log3.txt")));
-    REQUIRE(content == "first line\n");
-    REQUIRE_NOTHROW(logger.write("second line"));
-    REQUIRE_NOTHROW(content = FileSystem::readFile(Path("log3.txt")));
-    REQUIRE(content == "first line\nsecond line\n");
 }

@@ -135,7 +135,7 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance
         "start-up of the render at a cost of lower resolution of the render." },
     { GuiSettingsId::RAYTRACE_ITERATION_LIMIT, "raytrace.iteration_limit", 10,
         "Number of iterations of the render, including the subsampled iterations. " },
-    { GuiSettingsId::RAYTRACE_HDRI,         "raytrace.hdri",        std::string(""),
+    { GuiSettingsId::RAYTRACE_HDRI,         "raytrace.hdri",        ""_s,
         "Optional spherical bitmap used as an environment. Empty means the environment is black." },
     { GuiSettingsId::RAYTRACE_BRDF,         "raytrace.brdf",        BrdfEnum::LAMBERT,
         "Surface BRDF. Applicable for raytracer. "},
@@ -184,7 +184,7 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance
         "Default panes in the run page." },
 
     /// Window settings
-    { GuiSettingsId::WINDOW_TITLE,          "window.title",         std::string("OpenSPH"),
+    { GuiSettingsId::WINDOW_TITLE,          "window.title",         "OpenSPH"_s,
         "Title of the main window of the application." },
     { GuiSettingsId::WINDOW_WIDTH,          "window.width",         1110,
         "Width of the main window." },
@@ -195,7 +195,7 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance
         + EnumMap::getDesc<PlotEnum>() },
     { GuiSettingsId::PLOT_INITIAL_PERIOD,   "plot.initial_period",  0.1_f,
         "Initial period of time-dependent plots." },
-    { GuiSettingsId::PLOT_OVERPLOT_SFD,     "plot.overplot_sfd",    std::string(""),
+    { GuiSettingsId::PLOT_OVERPLOT_SFD,     "plot.overplot_sfd",    ""_s,
         "Path to the file containing SFD to plot over the computed one. The file must contain lines with value "
         "N(>D) and D [km]. If empty, no SFD is drawn."},
 });

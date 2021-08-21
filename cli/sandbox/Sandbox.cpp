@@ -85,10 +85,10 @@ int main(int argc, char** argv) {
         Storage storage;
         Statistics dummy;
         BinaryInput input;
-        if (input.getInfo(Path(argv[i]))->particleCnt > 5e5) {
+        if (input.getInfo(Path(String::fromAscii(argv[i])))->particleCnt > 5e5) {
             return;
         }
-        input.load(Path(argv[i]), storage, dummy);
+        input.load(Path(String::fromAscii(argv[i])), storage, dummy);
         const Size numParticles = storage.getParticleCnt();
 
         Array<Size> idxs;

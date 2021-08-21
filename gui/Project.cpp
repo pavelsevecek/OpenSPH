@@ -1,4 +1,5 @@
 #include "gui/Project.h"
+#include "objects/utility/Streams.h"
 #include "run/VirtualSettings.h"
 
 NAMESPACE_SPH_BEGIN
@@ -20,7 +21,7 @@ Project::Project() {
         .set(GuiSettingsId::CAMERA_ORTHO_FOV, 1.e5_f)
         .set(GuiSettingsId::CAMERA_ORTHO_CUTOFF, 0._f)
         .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 60._f)
-        .set(GuiSettingsId::PLOT_OVERPLOT_SFD, std::string("reference_sfd.txt"))
+        .set(GuiSettingsId::PLOT_OVERPLOT_SFD, String("reference_sfd.txt"))
         .set(GuiSettingsId::PLOT_INTEGRALS,
             PlotEnum::KINETIC_ENERGY | PlotEnum::TOTAL_ENERGY | PlotEnum::INTERNAL_ENERGY |
                 PlotEnum::TOTAL_ANGULAR_MOMENTUM | PlotEnum::TOTAL_MOMENTUM);
@@ -77,9 +78,9 @@ INLINE auto configToSettingsValue(const EnumWrapper& original, const int& value)
 void Project::saveGui(Config& config) {
     SharedPtr<ConfigNode> guiNode = config.addNode("gui");
     for (const auto& entry : gui) {
-        const Optional<std::string> key = GuiSettings::getEntryName(entry.id);
+        const Optional<String> key = GuiSettings::getEntryName(entry.id);
         if (!key) {
-            throw ConfigException("No settings entry with id " + std::to_string(int(entry.id)));
+            throw ConfigException("No settings entry with id {}", int(entry.id));
         }
         forValue(entry.value, [&guiNode, &key](const auto& value) { //
             guiNode->set(key.value(), settingsToConfigValue(value));
@@ -96,9 +97,10 @@ void Project::savePalettes(Config& config) {
         paletteNode->set("upper", palette.getInterval().upper());
         paletteNode->set("scale", int(palette.getScale()));
 
-        std::stringstream ss;
+        StringTextOutputStream ss;
         palette.saveToStream(ss);
-        std::string data = replaceAll(ss.str(), "\n", ";");
+        String data = ss.toString();
+        data.replaceAll("\n", ";");
         paletteNode->set("data", data);
     }
 }
@@ -106,9 +108,9 @@ void Project::savePalettes(Config& config) {
 void Project::loadGui(Config& config) {
     SharedPtr<ConfigNode> guiNode = config.getNode("gui");
     for (const auto& entry : gui) {
-        const Optional<std::string> key = GuiSettings::getEntryName(entry.id);
+        const Optional<String> key = GuiSettings::getEntryName(entry.id);
         if (!key) {
-            throw ConfigException("No settings entry with id " + std::to_string(int(entry.id)));
+            throw ConfigException("No settings entry with id {}", int(entry.id));
         }
 
         forValue(entry.value, [this, &guiNode, &key, &entry](auto& value) {
@@ -138,21 +140,21 @@ void Project::loadGui(Config& config) {
 void Project::loadPalettes(Config& config) {
     palettes.clear();
     SharedPtr<ConfigNode> paletteParentNode = config.getNode("palettes");
-    paletteParentNode->enumerateChildren([this](const std::string& name, ConfigNode& paletteNode) {
+    paletteParentNode->enumerateChildren([this](const String& name, ConfigNode& paletteNode) {
         const float lower = float(paletteNode.get<Float>("lower"));
         const float upper = float(paletteNode.get<Float>("upper"));
         const PaletteScale scale = PaletteScale(paletteNode.get<int>("scale"));
         Palette palette({ { lower, Rgba::black() }, { upper, Rgba::white() } }, scale);
 
         if (paletteNode.contains("data")) {
-            std::string data = paletteNode.get<std::string>("data");
-            data = replaceAll(data, ";", "\n");
-            std::stringstream ss(data);
+            String data = paletteNode.get<String>("data");
+            data.replaceAll(";", "\n");
+            StringTextInputStream ss(data);
             if (palette.loadFromStream(ss)) {
                 palettes.insert(name, palette);
             }
         } else { // older format, palettes in separate files
-            const std::string path = paletteNode.get<std::string>("file");
+            const String path = paletteNode.get<String>("file");
             if (palette.loadFromFile(Path(path))) {
                 palettes.insert(name, palette);
             }

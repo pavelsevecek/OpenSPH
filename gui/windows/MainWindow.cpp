@@ -12,11 +12,12 @@
 #include "gui/windows/SessionDialog.h"
 #include "io/FileSystem.h"
 #include "objects/utility/IteratorAdapters.h"
+#include "objects/utility/Streams.h"
 #include "post/Plot.h"
 #include "run/jobs/GeometryJobs.h"
 #include "run/jobs/IoJobs.h"
 #include "run/jobs/ParticleJobs.h"
-#include <fstream>
+
 #include <wx/aboutdlg.h>
 #include <wx/aui/auibook.h>
 #include <wx/menu.h>
@@ -44,12 +45,12 @@ static Expected<Path> getRecentSessionCache() {
 static Array<Path> getRecentSessions() {
     if (Expected<Path> recentCache = getRecentSessionCache()) {
         try {
-            std::ifstream ifs(recentCache->native());
-            std::string line;
-            if (std::getline(ifs, line)) {
-                Array<std::string> strings = split(line, ',');
+            FileTextInputStream ifs(recentCache.value());
+            String line;
+            if (ifs.readLine(line)) {
+                Array<String> strings = split(line, ',');
                 Array<Path> paths;
-                for (std::string& s : strings) {
+                for (String& s : strings) {
                     paths.emplaceBack(s);
                 }
                 return paths;
@@ -79,11 +80,11 @@ static void addToRecentSessions(const Path& sessionPath) {
     if (Expected<Path> recentCache = getRecentSessionCache()) {
         try {
             FileSystem::createDirectory(recentCache->parentPath());
-            std::ofstream ofs(recentCache->native());
+            FileTextOutputStream ofs(recentCache.value());
             for (Size i = 0; i < sessions.size(); ++i) {
-                ofs << sessions[i].native();
+                ofs.write(sessions[i].string());
                 if (i != sessions.size() - 1) {
-                    ofs << ",";
+                    ofs.write(L",");
                 }
             }
         } catch (const std::exception& UNUSED(e)) {
@@ -101,13 +102,13 @@ public:
 
     virtual void startRun(SharedPtr<INode> node,
         const RunSettings& globals,
-        const std::string& name) const override {
+        const String& name) const override {
         window->addRunPage(std::move(node), globals, name);
     }
 
     virtual void startRender(SharedPtr<INode> node,
         const RunSettings& globals,
-        const std::string& name) const override {
+        const String& name) const override {
         window->addRenderPage(std::move(node), globals, name);
     }
 
@@ -121,9 +122,9 @@ MainWindow::MainWindow(const Path& openPath)
     : wxFrame(nullptr,
           wxID_ANY,
 #ifdef SPH_DEBUG
-          std::string("OpenSPH - build: ") + __DATE__ + " (DEBUG)",
+          wxString("OpenSPH - build: ") + __DATE__ + " (DEBUG)",
 #else
-          std::string("OpenSPH - build: ") + __DATE__,
+          wxString("OpenSPH - build: ") + __DATE__,
 #endif
           wxDefaultPosition,
           wxSize(1024, 768)) {
@@ -193,7 +194,7 @@ MainWindow::MainWindow(const Path& openPath)
             info.SetVersion("unknown");
 #endif
 
-            std::string desc;
+            String desc;
 #ifdef SPH_DEBUG
             desc += "Debug build\n";
 #else
@@ -224,8 +225,8 @@ MainWindow::MainWindow(const Path& openPath)
 #else
             desc += "Chaiscript: disabled";
 #endif
-            info.SetDescription(desc);
-            info.SetCopyright("Pavel Sevecek <sevecek@sirrah.troja.mff.cuni.cz>");
+            info.SetDescription(desc.toUnicode());
+            info.SetCopyright(L"Pavel \u0160eve\u010Dek <sevecek@sirrah.troja.mff.cuni.cz>");
 
             wxAboutBox(info);
             break;
@@ -255,7 +256,7 @@ MainWindow::MainWindow(const Path& openPath)
 
     if (!openPath.empty()) {
         /// \todo generalize
-        const std::string ext = openPath.extension().native();
+        const String ext = openPath.extension().string();
         if (getIoEnum(ext)) {
             this->open(openPath, true);
         } else if (ext == "sph") {
@@ -331,7 +332,7 @@ void MainWindow::open(const Path& openPath, const bool setDefaults) {
     runs.insert(page, std::move(data));
 
     const Path displayedPath = openPath.parentPath().fileName() / openPath.fileName();
-    notebook->AddPage(page, displayedPath.native());
+    notebook->AddPage(page, displayedPath.string().toUnicode());
     notebook->SetSelection(index);
 
     this->enableMenus(index);
@@ -353,7 +354,7 @@ void MainWindow::load(const Path& openPath) {
     }
 
     if (!FileSystem::pathExists(pathToLoad)) {
-        wxMessageBox("File '" + pathToLoad.native() + "' does not exist.");
+        messageBox("File '" + pathToLoad.string() + "' does not exist.", "Error", wxOK);
         return;
     }
 
@@ -366,7 +367,7 @@ void MainWindow::load(const Path& openPath) {
     try {
         config.load(pathToLoad);
     } catch (const Exception& e) {
-        wxMessageBox(std::string("Cannot load: ") + e.what(), "Error", wxOK);
+        messageBox("Cannot load: " + exceptionMessage(e), "Error", wxOK);
         return;
     }
 
@@ -375,7 +376,7 @@ void MainWindow::load(const Path& openPath) {
         project.load(config);
         nodePage->load(config);
     } catch (const Exception& e) {
-        wxMessageBox(std::string("Cannot load: ") + e.what(), "Error", wxOK);
+        messageBox("Cannot load: " + exceptionMessage(e), "Error", wxOK);
         return;
     }
 
@@ -392,8 +393,8 @@ void MainWindow::setProjectPath(const Path& newPath) {
     projectPath = newPath;
     const int pageIndex = notebook->GetPageIndex(nodePage);
     if (!projectPath.empty()) {
-        notebook->SetPageText(
-            pageIndex, "Session '" + projectPath.fileName().removeExtension().native() + "'");
+        String sessionText = "Session '" + projectPath.fileName().removeExtension().string() + "'";
+        notebook->SetPageText(pageIndex, sessionText.toUnicode());
     } else {
         notebook->SetPageText(pageIndex, "Unnamed session");
     }
@@ -442,7 +443,7 @@ wxMenu* MainWindow::createProjectMenu() {
     SharedPtr<Array<Path>> recentSessions = makeShared<Array<Path>>();
     *recentSessions = getRecentSessions();
     for (Size i = 0; i < recentSessions->size(); ++i) {
-        recentMenu->Append(i, (*recentSessions)[i].native());
+        recentMenu->Append(i, (*recentSessions)[i].string().toUnicode());
     }
 
     // wx handlers need to be copyable, we thus cannot capture Array
@@ -704,8 +705,7 @@ wxMenu* MainWindow::createAnalysisMenu() {
             Array<AutoPtr<IPlot>> multiplot;
             multiplot.emplaceBack(makeAuto<SfdPlot>(flag, 0._f));
             Project& project = Project::getInstance();
-            const std::string overplotSfd =
-                project.getGuiSettings().get<std::string>(GuiSettingsId::PLOT_OVERPLOT_SFD);
+            const String overplotSfd = project.getGuiSettings().get<String>(GuiSettingsId::PLOT_OVERPLOT_SFD);
             if (!overplotSfd.empty()) {
                 multiplot.emplaceBack(getDataPlot(Path(overplotSfd), "overplot"));
             }
@@ -739,15 +739,15 @@ wxMenu* MainWindow::createAnalysisMenu() {
 
         const Size index = notebook->GetPageCount();
         // needs to be called before, AddPage calls onPaint, which locks the mutex
-        const std::string caption = plot->getCaption();
-        notebook->AddPage(plotPage, caption);
+        const String caption = plot->getCaption();
+        notebook->AddPage(plotPage, caption.toUnicode());
         notebook->SetSelection(index);
 
     });
     return analysisMenu;
 }
 
-void MainWindow::addRunPage(SharedPtr<INode> node, const RunSettings& globals, const std::string pageName) {
+void MainWindow::addRunPage(SharedPtr<INode> node, const RunSettings& globals, const String pageName) {
     AutoPtr<Controller> controller = makeAuto<Controller>(notebook);
     controller->start(std::move(node), globals);
 
@@ -758,19 +758,17 @@ void MainWindow::addRunPage(SharedPtr<INode> node, const RunSettings& globals, c
     runs.insert(page, std::move(data));
 
     const Size index = notebook->GetPageCount();
-    notebook->AddPage(page, pageName);
+    notebook->AddPage(page, pageName.toUnicode());
     notebook->SetSelection(index);
 
     this->enableMenus(index);
 }
 
-void MainWindow::addRenderPage(SharedPtr<INode> node,
-    const RunSettings& globals,
-    const std::string pageName) {
+void MainWindow::addRenderPage(SharedPtr<INode> node, const RunSettings& globals, const String pageName) {
     RenderPage* page = new RenderPage(notebook, globals, node);
 
     const Size index = notebook->GetPageCount();
-    notebook->AddPage(page, pageName);
+    notebook->AddPage(page, pageName.toUnicode());
     notebook->SetSelection(index);
 
     this->enableMenus(index);

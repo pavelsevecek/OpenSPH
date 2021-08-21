@@ -1,4 +1,5 @@
 #include "system/Timer.h"
+#include "objects/containers/String.h"
 #include <atomic>
 #include <iomanip>
 #include <mutex>
@@ -167,7 +168,7 @@ const int64_t MINUTE = 60 * SECOND;
 const int64_t HOUR = 60 * MINUTE;
 const int64_t DAY = 24 * HOUR;
 
-std::string getFormattedTime(int64_t time) {
+String getFormattedTime(int64_t time) {
     std::stringstream ss;
     if (time >= DAY) {
         ss << time / DAY << "d ";
@@ -183,7 +184,7 @@ std::string getFormattedTime(int64_t time) {
     }
     ss << std::setw(2) << std::setfill('0') << time / SECOND;
     ss << "." << std::setw(3) << std::setfill('0') << time % SECOND << "s";
-    return ss.str();
+    return String::fromAscii(ss.str().c_str());
 }
 
 NAMESPACE_SPH_END

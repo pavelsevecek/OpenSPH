@@ -320,10 +320,6 @@ static RegisterEnum<IoEnum> sIo({
         "Save output data into binary file. This data dump is lossless and can be use to restart run from "
         "saved snapshot. Stores values, all derivatives and materials of the storage." },
     { IoEnum::TEXT_FILE, "text_file", "Save output data into formatted human-readable text file" },
-    { IoEnum::GNUPLOT_OUTPUT,
-        "gnuplot_output",
-        "Extension of text file, additionally executing given gnuplot script, generating a plot from every "
-        "dump" },
     { IoEnum::VTK_FILE,
         "vtk_file",
         "File format used by Visualization Toolkit (VTK). Useful to view the results in Paraview and other "
@@ -336,31 +332,30 @@ static RegisterEnum<IoEnum> sIo({
     { IoEnum::PKDGRAV_INPUT, "pkdgrav_input", "Generate a pkdgrav input file." },
 });
 
-Optional<std::string> getIoExtension(const IoEnum type) {
+Optional<String> getIoExtension(const IoEnum type) {
     switch (type) {
     case IoEnum::NONE:
         return NOTHING;
     case IoEnum::TEXT_FILE:
-    case IoEnum::GNUPLOT_OUTPUT:
-        return std::string("txt");
+        return String("txt");
     case IoEnum::BINARY_FILE:
-        return std::string("ssf");
+        return String("ssf");
     case IoEnum::DATA_FILE:
-        return std::string("sdf");
+        return String("sdf");
     case IoEnum::PKDGRAV_INPUT:
-        return std::string("ss");
+        return String("ss");
     case IoEnum::VTK_FILE:
-        return std::string("vtu");
+        return String("vtu");
     case IoEnum::HDF5_FILE:
-        return std::string("h5");
+        return String("h5");
     case IoEnum::MPCORP_FILE:
-        return std::string("dat");
+        return String("dat");
     default:
         NOT_IMPLEMENTED;
     }
 }
 
-Optional<IoEnum> getIoEnum(const std::string& ext) {
+Optional<IoEnum> getIoEnum(const String& ext) {
     if (ext == "txt") {
         return IoEnum::TEXT_FILE;
     } else if (ext == "ssf") {
@@ -380,14 +375,12 @@ Optional<IoEnum> getIoEnum(const std::string& ext) {
     }
 }
 
-std::string getIoDescription(const IoEnum type) {
+String getIoDescription(const IoEnum type) {
     switch (type) {
     case IoEnum::NONE:
         NOT_IMPLEMENTED;
     case IoEnum::TEXT_FILE:
         return "Plain text file";
-    case IoEnum::GNUPLOT_OUTPUT:
-        return "Gnuplot image";
     case IoEnum::BINARY_FILE:
         return "SPH state file";
     case IoEnum::DATA_FILE:
@@ -411,8 +404,6 @@ Flags<IoCapability> getIoCapabilities(const IoEnum type) {
         return EMPTY_FLAGS;
     case IoEnum::TEXT_FILE:
         return IoCapability::INPUT | IoCapability::OUTPUT;
-    case IoEnum::GNUPLOT_OUTPUT:
-        return IoCapability::OUTPUT;
     case IoEnum::BINARY_FILE:
         return IoCapability::INPUT | IoCapability::OUTPUT;
     case IoEnum::DATA_FILE:
@@ -452,13 +443,13 @@ static RegisterEnum<UvMapEnum> sUv({
 template<>
 AutoPtr<RunSettings> RunSettings::instance
     = makeAuto<RunSettings>(RunSettings {
-    { RunSettingsId::RUN_NAME,                      "run.name",                 std::string("unnamed run"),
+    { RunSettingsId::RUN_NAME,                      "run.name",                 "unnamed run"_s,
         "User-specified name of the run. Can be stored in the metadata of output files." },
-    { RunSettingsId::RUN_COMMENT,                   "run.comment",              std::string(""),
+    { RunSettingsId::RUN_COMMENT,                   "run.comment",              ""_s,
         "Auxiliary comment of the run. Can be stored in the metadata of output files." },
-    { RunSettingsId::RUN_AUTHOR,                    "run.author",               std::string("Pavel Sevecek"),
+    { RunSettingsId::RUN_AUTHOR,                    "run.author",               "Pavel Sevecek"_s,
         "Name of the person performing this run." },
-    { RunSettingsId::RUN_EMAIL,                     "run.email",                std::string("sevecek@sirrah.troja.mff.cuni.cz"),
+    { RunSettingsId::RUN_EMAIL,                     "run.email",                "sevecek@sirrah.troja.mff.cuni.cz"_s,
         "E-mail of the run author." },
     { RunSettingsId::RUN_TYPE,                      "run.type",                 RunTypeEnum::SPH,
         "Specifies the type of the simulation. Does not have to be specified to run the simulation; this "
@@ -469,14 +460,14 @@ AutoPtr<RunSettings> RunSettings::instance
         "Interval of creating output files (in simulation time)." },
     { RunSettingsId::RUN_OUTPUT_SPACING,            "run.output.spacing",       OutputSpacing::LINEAR,
         "Type of output spacing in time. Can be one of the following:\n" + EnumMap::getDesc<OutputSpacing>() },
-    { RunSettingsId::RUN_OUTPUT_CUSTOM_TIMES,       "run.output.custom_times",  std::string("0, 0.5, 1, 2, 10"),
+    { RunSettingsId::RUN_OUTPUT_CUSTOM_TIMES,       "run.output.custom_times",  "0, 0.5, 1, 2, 10"_s,
         "List of comma-separated output times, used when the output spacing is set to 'custom'" },
     { RunSettingsId::RUN_OUTPUT_FIRST_INDEX,        "run.output.first_index",   0,
         "Index of the first generated output file. Might not be zero if the simulation is resumed." },
-    { RunSettingsId::RUN_OUTPUT_NAME,               "run.output.name",          std::string("out_%d.txt"),
+    { RunSettingsId::RUN_OUTPUT_NAME,               "run.output.name",          "out_%d.txt"_s,
         "File mask of the created files. It can contain a wildcard %d, which is replaced by the output number and "
         "%t which is replaced by current simulation time." },
-    { RunSettingsId::RUN_OUTPUT_PATH,               "run.output.path",          std::string("out"),
+    { RunSettingsId::RUN_OUTPUT_PATH,               "run.output.path",          "out"_s,
         "Directory where the output files are saved. Can be either absolute or relative path." },
     { RunSettingsId::RUN_OUTPUT_QUANTITIES, "run.output.quantitites", DEFAULT_QUANTITY_IDS,
         "List of quantities to write to output file. Applicable for text and VTK outputs, binary output always stores "
@@ -488,13 +479,13 @@ AutoPtr<RunSettings> RunSettings::instance
         "between threads more evenly, higher number means faster processing of particles within single thread." },
     { RunSettingsId::RUN_LOGGER,                    "run.logger",               LoggerEnum::STD_OUT,
         "Type of a log generated by the simulation. Can be one of the following:\n" + EnumMap::getDesc<LoggerEnum>() },
-    { RunSettingsId::RUN_LOGGER_FILE,               "run.logger.file",          std::string("log.txt"),
+    { RunSettingsId::RUN_LOGGER_FILE,               "run.logger.file",          "log.txt"_s,
         "Specifies the path where the log is saved (if applicable)" },
     { RunSettingsId::RUN_LOGGER_VERBOSITY,          "run.logger.verbosity",     2,
         "Number specifying log verbosity. Can be between 0 and 3, going from least to most verbose." },
     { RunSettingsId::RUN_VERBOSE_ENABLE,            "run.verbose.enable",       false,
         "Enables verbose log of a simulation. The log is written into a file, specified by parameter run.verbose.name." },
-    { RunSettingsId::RUN_VERBOSE_NAME,              "run.verbose.name",         std::string("run.log"),
+    { RunSettingsId::RUN_VERBOSE_NAME,              "run.verbose.name",         "run.log"_s,
         "Name of a file where the verbose log of the simulation is written." },
     { RunSettingsId::RUN_START_TIME,                "run.start_time",           0._f,
       "Starting time of the simulation in seconds. This is usually 0, although it can be set to a non-zero "
@@ -544,7 +535,7 @@ AutoPtr<RunSettings> RunSettings::instance
         "Alpha parameter of the density-independent SPH solver." },
     { RunSettingsId::SPH_SCRIPT_ENABLE,             "sph.script.enable",        false,
         "Whether to enable or disable script evaluation." },
-    { RunSettingsId::SPH_SCRIPT_FILE,               "sph.script.file",          std::string("script.chai"),
+    { RunSettingsId::SPH_SCRIPT_FILE,               "sph.script.file",          "script.chai"_s,
         "Path to the file containing an arbitrary ChaiScript script evaluated each time step." },
     { RunSettingsId::SPH_SCRIPT_PERIOD,             "sph.script.period",        0._f,
         "Period or time point to execute the script. Zero means the time step is executed "
@@ -949,11 +940,11 @@ AutoPtr<BodySettings> BodySettings::instance
          "Spin rate of the body along z-axis in units rev/day." },
 
     /// Visualization
-    { BodySettingsId::VISUALIZATION_TEXTURE,    "visualization.texture",        std::string(),
+    { BodySettingsId::VISUALIZATION_TEXTURE,    "visualization.texture",        ""_s,
          "Path to the texture used by a renderer. May be empty." },
 
     /// Metadata
-    { BodySettingsId::IDENTIFIER, "identifier", std::string("basalt"),
+    { BodySettingsId::IDENTIFIER, "identifier", "basalt"_s,
       "Arbitrary string identifying this material" },
 });
 

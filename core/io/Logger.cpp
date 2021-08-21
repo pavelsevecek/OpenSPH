@@ -3,8 +3,7 @@
 #include "io/FileSystem.h"
 #include "objects/Exceptions.h"
 #include "objects/containers/StaticArray.h"
-#include "objects/utility/StringUtils.h"
-#include <fstream>
+#include "objects/utility/Streams.h"
 #include <iostream>
 
 #ifdef SPH_WIN
@@ -14,76 +13,61 @@
 NAMESPACE_SPH_BEGIN
 
 ScopedConsole::ScopedConsole(const Console console) {
-    std::cout << console;
+    std::wcout << console;
 }
 
 ScopedConsole::~ScopedConsole() {
-    std::cout << Console::Foreground::DEFAULT << Console::Background::DEFAULT << Console::Series::NORMAL;
+    std::wcout << Console::Foreground::DEFAULT << Console::Background::DEFAULT << Console::Series::NORMAL;
 }
 
-void StdOutLogger::writeString(const std::string& s) {
-    std::cout << s << std::flush;
+void StdOutLogger::writeString(const String& s) {
+    std::wcout << s << std::flush;
 }
 
 #ifdef SPH_WIN
 
-void ConsoleLogger::writeString(const std::string& s) {
+void ConsoleLogger::writeString(const String& s) {
     OutputDebugStringA(s.c_str());
 }
 
 #endif
 
-void StringLogger::writeString(const std::string& s) {
+void StringLogger::writeString(const String& s) {
     ss << s << std::flush;
 }
 
 void StringLogger::clean() {
     // clear internal storage
-    ss.str(std::string());
+    ss.str(std::wstring());
     // reset flags
     ss.clear();
 }
 
-std::string StringLogger::toString() const {
-    return ss.str();
+String StringLogger::toString() const {
+    return String::fromWstring(ss.str());
 }
 
 
 FileLogger::FileLogger(const Path& path, const Flags<Options> flags)
     : path(path)
     , flags(flags) {
-    stream = makeAuto<std::ofstream>();
-    if (!flags.has(Options::OPEN_WHEN_WRITING)) {
-        auto mode = flags.has(Options::APPEND) ? std::ostream::app : std::ostream::out;
-        FileSystem::createDirectory(path.parentPath());
-        stream->open(path.native(), mode);
-        if (!*stream) {
-            throw IoError("Error opening FileLogger at " + path.native());
-        }
+    auto mode = flags.has(Options::APPEND) ? FileTextOutputStream::OpenMode::APPEND
+                                           : FileTextOutputStream::OpenMode::WRITE;
+    FileSystem::createDirectory(path.parentPath());
+    stream = makeAuto<FileTextOutputStream>(path, mode);
+    if (!stream->good()) {
+        throw IoError(L"Error opening FileLogger at " + path.string());
     }
 }
 
 FileLogger::~FileLogger() = default;
 
-void FileLogger::writeString(const std::string& s) {
-    auto write = [this](const std::string& s) {
-        if (flags.has(Options::ADD_TIMESTAMP)) {
-            std::time_t t = std::time(nullptr);
-            *stream << std::put_time(std::localtime(&t), "%b %d, %H:%M:%S -- ");
-        }
-        *stream << s << std::flush;
-    };
-
-    if (flags.has(Options::OPEN_WHEN_WRITING)) {
-        stream->open(path.native(), std::ostream::app);
-        if (*stream) {
-            write(s);
-            stream->close();
-        }
-    } else {
-        SPH_ASSERT(stream->is_open());
-        write(s);
+void FileLogger::writeString(const String& s) {
+    if (flags.has(Options::ADD_TIMESTAMP)) {
+        std::time_t t = std::time(nullptr);
+        stream->write() << std::put_time(std::localtime(&t), L"%b %d, %H:%M:%S -- ");
     }
+    stream->write() << s << std::flush;
 }
 
 struct VerboseLogThreadContext {
@@ -93,26 +77,26 @@ struct VerboseLogThreadContext {
 
 static VerboseLogThreadContext context;
 
-VerboseLogGuard::VerboseLogGuard(const std::string& functionName) {
+VerboseLogGuard::VerboseLogGuard(const String& functionName) {
     if (!context.logger) {
         // quick exit in case no logger is used
         return;
     }
     // remove unneeded parts of the pretty name
-    std::string printedName = functionName;
-    std::size_t n = printedName.find('(');
-    if (n != std::string::npos) {
+    String printedName = functionName;
+    Size n = printedName.find('(');
+    if (n != String::npos) {
         // no need for the list of parameters
         printedName = printedName.substr(0, n);
     }
     // remove unnecessary return types, common namespaces, ...
-    printedName = replaceAll(printedName, "Sph::", "");
-    printedName = replaceFirst(printedName, "virtual ", "");
-    printedName = replaceFirst(printedName, "void ", "");
-    printedName = replaceFirst(printedName, "int ", "");
-    printedName = replaceFirst(printedName, "auto ", "");
+    printedName.replaceAll("Sph::", "");
+    printedName.replaceFirst("virtual ", "");
+    printedName.replaceFirst("void ", "");
+    printedName.replaceFirst("int ", "");
+    printedName.replaceFirst("auto ", "");
 
-    const std::string prefix = std::string(4 * context.indent, ' ') + std::to_string(context.indent);
+    const String prefix = String::fromChar(' ', 4 * context.indent) + toString(context.indent);
     context.logger->writeString(prefix + "-" + printedName + "\n");
     context.indent++;
 }
@@ -124,9 +108,9 @@ VerboseLogGuard::~VerboseLogGuard() {
     }
 
     --context.indent;
-    const std::string prefix = std::string(4 * context.indent, ' ');
+    const String prefix = String::fromChar(' ', 4 * context.indent);
     context.logger->writeString(
-        prefix + "  took " + std::to_string(int(timer.elapsed(TimerUnit::MILLISECOND))) + "ms\n");
+        prefix + "  took " + toString(int(timer.elapsed(TimerUnit::MILLISECOND))) + "ms\n");
     SPH_ASSERT(context.indent >= 0);
 }
 

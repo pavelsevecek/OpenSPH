@@ -20,21 +20,21 @@ private:
 public:
     LoadFileJob(const Path& path = Path("file.ssf"))
         : IParticleJob("")
-        , path(path.native()) {}
+        , path(path) {}
 
-    virtual std::string instanceName() const override {
+    virtual String instanceName() const override {
         if (instName.empty()) {
-            return "Load '" + path.fileName().native() + "'";
+            return "Load '" + path.fileName().string() + "'";
         } else {
             return instName;
         }
     }
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "load file";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -52,15 +52,15 @@ private:
     int maxFps = 10;
 
 public:
-    FileSequenceJob(const std::string& name, const Path& firstFile = Path("file_0000.ssf"))
+    FileSequenceJob(const String& name, const Path& firstFile = Path("file_0000.ssf"))
         : IParticleJob(name)
-        , firstFile(firstFile.native()) {}
+        , firstFile(firstFile) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "load sequence";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -74,22 +74,22 @@ private:
     RunSettings settings;
 
 public:
-    explicit SaveFileJob(const std::string& name);
+    explicit SaveFileJob(const String& name);
 
-    virtual std::string instanceName() const override {
+    virtual String instanceName() const override {
         if (instName.empty()) {
-            const Path path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
-            return "Save to '" + path.fileName().native() + "'";
+            const Path path(settings.get<String>(RunSettingsId::RUN_OUTPUT_NAME));
+            return "Save to '" + path.fileName().string() + "'";
         } else {
             return instName;
         }
     }
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "save file";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
@@ -120,14 +120,14 @@ private:
     bool refine = false;
 
 public:
-    explicit SaveMeshJob(const std::string& name)
+    explicit SaveMeshJob(const String& name)
         : IParticleJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "save mesh";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 

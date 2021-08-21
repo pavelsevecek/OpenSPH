@@ -197,7 +197,7 @@ void ContourRenderer::render(const RenderParams& params,
             if (cached.palette) {
                 context.setColor(cached.palette.value()(isoAndCoord.key()), ColorFlag::TEXT);
             }
-            context.drawText(isoAndCoord.value(), TextAlign::TOP, std::to_wstring(int(isoAndCoord.key())));
+            context.drawText(isoAndCoord.value(), TextAlign::TOP, toString(int(isoAndCoord.key())));
         }
     }
 

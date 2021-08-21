@@ -292,7 +292,7 @@ void ComponentIdColorizer::initialize(const Storage& storage, const RefEnum ref)
     Post::findComponents(storage, 2._f, connectivity, components);
 }
 
-std::string ComponentIdColorizer::name() const {
+String ComponentIdColorizer::name() const {
     if (connectivity.has(Post::ComponentFlag::ESCAPE_VELOCITY)) {
         return "Bound component ID";
     } else if (connectivity.has(Post::ComponentFlag::SEPARATE_BY_FLAG)) {

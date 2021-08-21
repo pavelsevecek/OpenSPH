@@ -1,21 +1,21 @@
 #include "gui/Utils.h"
 #include "common/Assert.h"
 #include "io/FileSystem.h"
-#include "objects/utility/StringUtils.h"
 #include "thread/CheckFunction.h"
 #include <iomanip>
 #include <wx/dcmemory.h>
 #include <wx/filedlg.h>
+#include <wx/msgdlg.h>
 
 NAMESPACE_SPH_BEGIN
 
-static std::string getDesc(ArrayView<const FileFormat> formats, const bool doAll) {
-    std::string desc;
+static String getDesc(ArrayView<const FileFormat> formats, const bool doAll) {
+    String desc;
     bool isFirst = true;
     if (doAll && formats.size() > 1) {
-        desc += "All supported formats|";
+        desc += L"All supported formats|";
         for (const FileFormat& format : formats) {
-            desc += "*." + format.extension + ";";
+            desc += L"*." + format.extension + L";";
         }
         isFirst = false;
     }
@@ -24,27 +24,26 @@ static std::string getDesc(ArrayView<const FileFormat> formats, const bool doAll
             desc += "|";
         }
         isFirst = false;
-        desc += format.description + " (*." + format.extension + ")|*." + format.extension;
+        desc += format.description + L" (*." + format.extension + L")|*." + format.extension;
     }
     return desc;
 }
 
-static Optional<std::pair<Path, int>> doFileDialog(const std::string& title,
-    const std::string& fileMask,
-    std::string& defaultDir,
+static Optional<std::pair<Path, int>> doFileDialog(const String& title,
+    const String& fileMask,
+    String& defaultDir,
     const int flags) {
-    wxFileDialog dialog(nullptr, title, "", defaultDir, fileMask, flags);
+    wxFileDialog dialog(nullptr, title.toUnicode(), "", defaultDir.toUnicode(), fileMask.toUnicode(), flags);
     if (dialog.ShowModal() == wxID_CANCEL) {
         return NOTHING;
     }
-    std::string s(dialog.GetPath());
-    Path path(std::move(s));
-    defaultDir = path.parentPath().native();
+    Path path(dialog.GetPath().wc_str());
+    defaultDir = path.parentPath().string();
     return std::make_pair(path, !fileMask.empty() ? dialog.GetFilterIndex() : -1);
 }
 
-Optional<Path> doOpenFileDialog(const std::string& title, Array<FileFormat>&& formats) {
-    static std::string defaultDir = "";
+Optional<Path> doOpenFileDialog(const String& title, Array<FileFormat>&& formats) {
+    static String defaultDir = "";
     Optional<std::pair<Path, int>> pathAndIndex =
         doFileDialog(title, getDesc(formats, true), defaultDir, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     if (pathAndIndex) {
@@ -54,14 +53,14 @@ Optional<Path> doOpenFileDialog(const std::string& title, Array<FileFormat>&& fo
     }
 }
 
-Optional<Path> doSaveFileDialog(const std::string& title, Array<FileFormat>&& formats) {
-    static std::string defaultDir = "";
+Optional<Path> doSaveFileDialog(const String& title, Array<FileFormat>&& formats) {
+    static String defaultDir = "";
     Optional<std::pair<Path, int>> pathAndIndex =
         doFileDialog(title, getDesc(formats, false), defaultDir, wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (pathAndIndex) {
         const int index = pathAndIndex->second;
         if (index >= 0) {
-            const std::string ext = formats[index].extension;
+            const String& ext = formats[index].extension;
             pathAndIndex->first.replaceExtension(ext);
         }
         return pathAndIndex->first;
@@ -70,13 +69,17 @@ Optional<Path> doSaveFileDialog(const std::string& title, Array<FileFormat>&& fo
     }
 }
 
-static Size getSubscriptSize(const std::wstring& text) {
+int messageBox(const String& message, const String& title, const int buttons) {
+    return wxMessageBox(message.toUnicode(), title.toUnicode(), buttons);
+}
+
+static Size getSubscriptSize(const String& text) {
     Size size = 0;
     if (!text.empty() && text[0] == L'-') {
         size++;
     }
     for (; size < text.size(); ++size) {
-        const char c = text[size];
+        const wchar_t c = text[size];
         if ((c < L'0' || c > L'9') && (c < L'a' || c > L'z') && (c < L'A' || c > L'Z')) {
             return size;
         }
@@ -84,52 +87,49 @@ static Size getSubscriptSize(const std::wstring& text) {
     return text.size();
 }
 
-void drawTextWithSubscripts(wxDC& dc, const std::wstring& text, const wxPoint point) {
+void drawTextWithSubscripts(wxDC& dc, const String& text, const wxPoint point) {
     std::size_t n;
     std::size_t m = 0;
     wxPoint actPoint = point;
     const wxFont font = dc.GetFont();
     const wxFont subcriptFont = font.Smaller();
 
-    while ((n = text.find_first_of(L"_^", m)) != std::string::npos) {
+    StaticArray<wchar_t, 2> specialChars = { L'_', L'^' };
+    while ((n = text.findAny(specialChars, m)) != String::npos) {
         const bool isSubscript = text[n] == '_';
-        std::wstring part = text.substr(m, n - m);
-        wxSize extent = dc.GetTextExtent(part);
+        String part = text.substr(m, n - m);
+        wxSize extent = dc.GetTextExtent(part.toUnicode());
         // draw part up to subscript using current font
-        dc.DrawText(part, actPoint);
+        dc.DrawText(part.toUnicode(), actPoint);
 
         actPoint.x += extent.x;
         const Size subscriptSize = getSubscriptSize(text.substr(n + 1));
-        const std::wstring subscript = text.substr(n + 1, subscriptSize);
+        const String subscript = text.substr(n + 1, subscriptSize);
         dc.SetFont(subcriptFont);
         wxPoint subscriptPoint = isSubscript ? wxPoint(actPoint.x + 2, actPoint.y + extent.y / 3)
                                              : wxPoint(actPoint.x + 2, actPoint.y - extent.y / 4);
 
-        dc.DrawText(subscript, subscriptPoint);
-        actPoint.x = subscriptPoint.x + dc.GetTextExtent(subscript).x;
+        dc.DrawText(subscript.toUnicode(), subscriptPoint);
+        actPoint.x = subscriptPoint.x + dc.GetTextExtent(subscript.toUnicode()).x;
 
         dc.SetFont(font);
         m = n + 1 + subscriptSize; // skip _ and the subscript character
     }
     // draw last part of the text
-    dc.DrawText(text.substr(m), actPoint);
+    dc.DrawText(text.substr(m).toUnicode(), actPoint);
 }
 
-void drawTextWithSubscripts(wxDC& dc, const std::string& text, const wxPoint point) {
-    drawTextWithSubscripts(dc, std::wstring(text.begin(), text.end()), point);
-}
-
-std::wstring toPrintableString(const Float value, const Size precision, const Float decimalThreshold) {
+String toPrintableString(const Float value, const Size precision, const Float decimalThreshold) {
     const Float absValue = abs(value);
-    std::stringstream ss;
+    std::wstringstream ss;
     if (absValue == 0._f || (absValue >= 1._f / decimalThreshold && absValue <= decimalThreshold)) {
         ss << value;
     } else {
         ss << std::setprecision(precision) << std::scientific << value;
     }
-    std::string s = ss.str();
+    String s = String::fromWstring(ss.str());
 
-    std::wstring printable;
+    String printable;
     if (value > 0) {
         printable += ' ';
     }
@@ -161,9 +161,9 @@ std::wstring toPrintableString(const Float value, const Size precision, const Fl
     return printable;
 }
 
-static Pixel getOriginOffset(wxDC& dc, Flags<TextAlign> align, const std::wstring& text) {
-    wxSize extent = dc.GetTextExtent(text);
-    if (text.find(L"^") != std::string::npos) {
+static Pixel getOriginOffset(wxDC& dc, Flags<TextAlign> align, const String& text) {
+    wxSize extent = dc.GetTextExtent(text.toUnicode());
+    if (text.find(L"^") != String::npos) {
         // number with superscript is actually a bit shorter, shrink it
         /// \todo this should be done more correctly
         extent.x -= 6;

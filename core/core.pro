@@ -29,8 +29,7 @@ SOURCES += \
     objects/geometry/Domain.cpp \
     objects/geometry/SymmetricTensor.cpp \
     objects/utility/Dynamic.cpp \
-    objects/utility/StringUtils.cpp \
-    objects/wrappers/Interval.cpp \
+    objects/utility/Streams.cpp \
     physics/Damage.cpp \
     physics/Eos.cpp \
     physics/Functions.cpp \
@@ -157,6 +156,7 @@ HEADERS += \
     objects/geometry/Plane.h \
     objects/utility/OutputIterators.h \
     objects/utility/Progressible.h \
+    objects/utility/Streams.h \
     objects/wrappers/ExtendedEnum.h \
     objects/wrappers/SharedToken.h \
     quantities/Attractor.h \
@@ -211,7 +211,6 @@ HEADERS += \
     objects/utility/IteratorAdapters.h \
     objects/utility/OperatorTemplate.h \
     objects/utility/PerElementWrapper.h \
-    objects/utility/StringUtils.h \
     objects/wrappers/AlignedStorage.h \
     objects/wrappers/Any.h \
     objects/wrappers/AutoPtr.h \

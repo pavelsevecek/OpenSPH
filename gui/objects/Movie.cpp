@@ -6,7 +6,6 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "io/FileSystem.h"
-#include "objects/utility/StringUtils.h"
 #include "quantities/QuantityHelpers.h"
 #include "system/Process.h"
 #include "system/Statistics.h"
@@ -40,10 +39,11 @@ Movie::Movie(const GuiSettings& settings,
 
 Movie::~Movie() = default;
 
-std::string escapeColorizerName(const std::string& name) {
-    std::string escaped = replaceAll(name, " ", "");
-    escaped = replaceAll(escaped, ".", "_");
-    return lowercase(escaped);
+String escapeColorizerName(const String& name) {
+    String escaped = name;
+    escaped.replaceAll(" ", "");
+    escaped.replaceAll(".", "_");
+    return escaped.toLowercase();
 }
 
 void saveRender(Bitmap<Rgba>&& bitmap, Array<IRenderOutput::Label>&& labels, const Path& path) {
@@ -141,13 +141,14 @@ void Movie::renderImpl(const Storage& storage, Statistics& stats, ForwardingOutp
 
     const Path path = paths.getNextPath(stats);
     FileSystem::createDirectory(path.parentPath());
-    Path actPath(replaceAll(path.native(), "%e", escapeColorizerName(colorizer->name())));
+    String actPath = path.string();
+    actPath.replaceAll("%e", escapeColorizerName(colorizer->name()));
 
     if (output.hasData()) {
         executeOnMainThread([bitmap = std::move(output.getBitmap()),
                                 labels = std::move(output.getLabels()),
                                 actPath]() mutable { //
-            saveRender(std::move(bitmap), std::move(labels), actPath);
+            saveRender(std::move(bitmap), std::move(labels), Path(actPath));
         });
     }
 }

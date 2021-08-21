@@ -64,7 +64,7 @@ Bitmap<Rgba> toBitmap(wxBitmap& wx) {
 
 void saveToFile(const wxBitmap& wx, const Path& path) {
     FileSystem::createDirectory(path.parentPath());
-    wx.SaveFile(path.native().c_str(), wxBITMAP_TYPE_PNG);
+    wx.SaveFile(path.string().toUnicode(), wxBITMAP_TYPE_PNG);
 }
 
 void saveToFile(const Bitmap<Rgba>& bitmap, const Path& path) {
@@ -76,12 +76,12 @@ void saveToFile(const Bitmap<Rgba>& bitmap, const Path& path) {
 Bitmap<Rgba> loadBitmapFromFile(const Path& path) {
     wxLogNull logNullGuard; // we have custom error reporting
     wxImage image;
-    if (!image.LoadFile(path.native().c_str())) {
-        throw IoError("Cannot load bitmap '" + path.native() + "'");
+    if (!image.LoadFile(path.string().toUnicode())) {
+        throw IoError("Cannot load bitmap '" + path.string() + "'");
     }
 
     if (!image.IsOk()) {
-        throw IoError("Bitmap '" + path.native() + "' failed to load correctly");
+        throw IoError("Bitmap '" + path.string() + "' failed to load correctly");
     }
 
     wxBitmap wx(image, 24);

@@ -7,11 +7,11 @@ NAMESPACE_SPH_BEGIN
 JobNode::JobNode(AutoPtr<IJob>&& job)
     : job(std::move(job)) {}
 
-std::string JobNode::className() const {
+String JobNode::className() const {
     return job->className();
 }
 
-std::string JobNode::instanceName() const {
+String JobNode::instanceName() const {
     return job->instanceName();
 }
 
@@ -25,9 +25,9 @@ public:
         : node(node)
         , callbacks(callbacks) {}
 
-    virtual void onCategory(const std::string& UNUSED(name)) const override {}
+    virtual void onCategory(const String& UNUSED(name)) const override {}
 
-    virtual void onEntry(const std::string& key, IVirtualEntry& entry) const override {
+    virtual void onEntry(const String& key, IVirtualEntry& entry) const override {
         EntryControl* control = dynamic_cast<EntryControl*>(&entry);
         SPH_ASSERT(control);
         if (control) {
@@ -57,8 +57,8 @@ ExtJobType JobNode::provides() const {
     return job->provides();
 }
 
-void JobNode::connect(SharedPtr<JobNode> node, const std::string& slotName) {
-    UnorderedMap<std::string, ExtJobType> slots = node->job->getSlots();
+void JobNode::connect(SharedPtr<JobNode> node, const String& slotName) {
+    UnorderedMap<String, ExtJobType> slots = node->job->getSlots();
     if (slots.contains(slotName)) {
         const ExtJobType provided = job->provides();
         if (provided != slots[slotName]) {
@@ -74,7 +74,7 @@ void JobNode::connect(SharedPtr<JobNode> node, const std::string& slotName) {
         node->accessors(JobNotificationType::PROVIDER_CONNECTED, sharedFromThis());
 
     } else {
-        std::string list;
+        String list;
         for (const auto& element : slots) {
             list += element.key() + ", ";
         }
@@ -131,11 +131,11 @@ Size JobNode::getSlotCnt() const {
 }
 
 SlotData JobNode::getSlot(const Size index) const {
-    const UnorderedMap<std::string, ExtJobType> slots = job->getSlots();
-    const UnorderedMap<std::string, ExtJobType> required = job->requires();
+    const UnorderedMap<String, ExtJobType> slots = job->getSlots();
+    const UnorderedMap<String, ExtJobType> required = job->requires();
     if (index >= slots.size()) {
-        throw InvalidSetup("Cannot query slot #" + std::to_string(index) + ", node '" + job->instanceName() +
-                           "' has only " + std::to_string(slots.size()) + " slots");
+        throw InvalidSetup(
+            "Cannot query slot #{}, node '{}' has only {} slots", index, job->instanceName(), slots.size());
     }
 
     const auto iter = slots.begin() + index;
@@ -243,27 +243,27 @@ public:
     CopyEntriesProc(VirtualSettings& target)
         : target(target) {}
 
-    virtual void onCategory(const std::string& UNUSED(name)) const override {}
-    virtual void onEntry(const std::string& name, IVirtualEntry& entry) const override {
+    virtual void onCategory(const String& UNUSED(name)) const override {}
+    virtual void onEntry(const String& name, IVirtualEntry& entry) const override {
         if (name != "name") {
             target.set(name, entry.get());
         }
     }
 };
 
-static std::string clonedName(const std::string& name) {
-    const std::size_t n1 = name.find_last_of('(');
-    const std::size_t n2 = name.find_last_of(')');
-    if (n1 != std::string::npos && n2 != std::string::npos && n1 < n2) {
-        const std::string numStr = name.substr(n1 + 1, n2 - n1 - 1);
-        const int num = stoi(numStr);
-        return name.substr(0, n1) + " (" + std::to_string(num + 1) + ")";
-    } else {
-        return name + " (1)";
+static String clonedName(const String& name) {
+    const Size n1 = name.findLast(L'(');
+    const Size n2 = name.findLast(L')');
+    if (n1 != String::npos && n2 != String::npos && n1 < n2) {
+        const String numStr = name.substr(n1 + 1, n2 - n1 - 1);
+        if (Optional<int> num = fromString<int>(numStr)) {
+            return name.substr(0, n1) + " (" + toString(num.value() + 1) + ")";
+        }
     }
+    return name + " (1)";
 }
 
-AutoPtr<JobNode> cloneNode(const JobNode& node, const std::string& name) {
+AutoPtr<JobNode> cloneNode(const JobNode& node, const String& name) {
     RawPtr<IJobDesc> desc = getJobDesc(node.className());
     SPH_ASSERT(desc);
 
@@ -276,13 +276,13 @@ AutoPtr<JobNode> cloneNode(const JobNode& node, const std::string& name) {
     return makeAuto<JobNode>(std::move(job));
 }
 
-SharedPtr<JobNode> cloneHierarchy(JobNode& node, const Optional<std::string>& prefix) {
+SharedPtr<JobNode> cloneHierarchy(JobNode& node, const Optional<String>& prefix) {
     // maps original node to cloned nodes
     FlatMap<SharedPtr<JobNode>, SharedPtr<JobNode>> nodeMap;
 
     // first, clone all nodes and build up the map
     node.enumerate([&nodeMap, &prefix](SharedPtr<JobNode> node, Size UNUSED(depth)) {
-        std::string name;
+        String name;
         if (!prefix) {
             name = clonedName(node->instanceName());
         } else {

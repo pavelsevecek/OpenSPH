@@ -151,15 +151,15 @@ RunStatus Controller::getStatus() const {
 void Controller::saveState(const Path& path) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     auto dump = [path](const Storage& storage, const Statistics& stats) {
-        const Optional<IoEnum> type = getIoEnum(path.extension().native());
+        const Optional<IoEnum> type = getIoEnum(path.extension().string());
         if (!type) {
-            wxMessageBox("Unknown type of file '" + path.native() + "'", "Fail", wxOK | wxCENTRE);
+            messageBox("Unknown type of file '" + path.string() + "'", "Fail", wxOK | wxCENTRE);
             return;
         }
         RunSettings settings;
         settings.set(RunSettingsId::RUN_OUTPUT_TYPE, type.value());
-        settings.set(RunSettingsId::RUN_OUTPUT_NAME, path.native());
-        settings.set(RunSettingsId::RUN_OUTPUT_PATH, std::string(""));
+        settings.set(RunSettingsId::RUN_OUTPUT_NAME, path.string());
+        settings.set(RunSettingsId::RUN_OUTPUT_PATH, ""_s);
         Flags<OutputQuantityFlag> flags = OutputQuantityFlag::POSITION | OutputQuantityFlag::MASS |
                                           OutputQuantityFlag::VELOCITY | OutputQuantityFlag::DENSITY |
                                           OutputQuantityFlag::ENERGY | OutputQuantityFlag::DAMAGE |
@@ -169,7 +169,7 @@ void Controller::saveState(const Path& path) {
         AutoPtr<IOutput> output = Factory::getOutput(settings);
         Expected<Path> result = output->dump(storage, stats);
         if (!result) {
-            wxMessageBox("Cannot save the file.\n\n" + result.error(), "Fail", wxOK | wxCENTRE);
+            messageBox("Cannot save the file.\n\n" + result.error(), "Fail", wxOK | wxCENTRE);
         }
     };
 
@@ -232,8 +232,8 @@ void Controller::onSetUp(const Storage& storage, Statistics& stats) {
 }
 
 void Controller::onStart(const IJob& job) {
-    const std::string className = job.className();
-    const std::string instanceName = job.instanceName();
+    const String className = job.className();
+    const String instanceName = job.instanceName();
     this->safePageCall([className, instanceName](RunPage* page) { page->newPhase(className, instanceName); });
 }
 
@@ -678,9 +678,8 @@ void Controller::startRunThread() {
             sph.run->run(sph.globals, *this);
 
         } catch (const std::exception& e) {
-            executeOnMainThread([desc = std::string(e.what())] { //
-                wxMessageBox(
-                    std::string("Error encountered during the run: \n") + desc, "Fail", wxOK | wxCENTRE);
+            executeOnMainThread([desc = exceptionMessage(e)] { //
+                messageBox("Error encountered during the run: \n" + desc, "Fail", wxOK | wxCENTRE);
             });
         }
 

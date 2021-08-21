@@ -536,9 +536,8 @@ AutoPtr<ILogger> Factory::getLogger(const RunSettings& settings) {
     case LoggerEnum::STD_OUT:
         return makeAuto<StdOutLogger>();
     case LoggerEnum::FILE: {
-        const Path path(settings.get<std::string>(RunSettingsId::RUN_LOGGER_FILE));
-        const Flags<FileLogger::Options> flags =
-            FileLogger::Options::ADD_TIMESTAMP | FileLogger::Options::KEEP_OPENED;
+        const Path path(settings.get<String>(RunSettingsId::RUN_LOGGER_FILE));
+        const Flags<FileLogger::Options> flags = FileLogger::Options::ADD_TIMESTAMP;
         return makeAuto<FileLogger>(path, flags);
     }
     default:
@@ -564,15 +563,15 @@ AutoPtr<ILogWriter> Factory::getLogWriter(SharedPtr<ILogger> logger, const RunSe
 
 AutoPtr<IOutput> Factory::getOutput(const RunSettings& settings) {
     const IoEnum id = settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
-    const Path outputPath(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_PATH));
-    const Path fileMask(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
+    const Path outputPath(settings.get<String>(RunSettingsId::RUN_OUTPUT_PATH));
+    const Path fileMask(settings.get<String>(RunSettingsId::RUN_OUTPUT_NAME));
     const Size firstIndex = settings.get<int>(RunSettingsId::RUN_OUTPUT_FIRST_INDEX);
     const OutputFile file(outputPath / fileMask, firstIndex);
     switch (id) {
     case IoEnum::NONE:
         return makeAuto<NullOutput>();
     case IoEnum::TEXT_FILE: {
-        const std::string name = settings.get<std::string>(RunSettingsId::RUN_NAME);
+        const String name = settings.get<String>(RunSettingsId::RUN_NAME);
         const Flags<OutputQuantityFlag> flags =
             settings.getFlags<OutputQuantityFlag>(RunSettingsId::RUN_OUTPUT_QUANTITIES);
         return makeAuto<TextOutput>(file, name, flags);
@@ -601,7 +600,7 @@ AutoPtr<IOutput> Factory::getOutput(const RunSettings& settings) {
 }
 
 AutoPtr<IInput> Factory::getInput(const Path& path) {
-    const std::string ext = path.extension().native();
+    const String ext = path.extension().string();
     if (ext == "ssf") {
         return makeAuto<BinaryInput>();
     } else if (ext == "sdf" || ext == "scf") { // .scf is an older extension of this format
@@ -617,7 +616,7 @@ AutoPtr<IInput> Factory::getInput(const Path& path) {
             return makeAuto<PkdgravInput>();
         }
     }
-    throw InvalidSetup("Unknown file type: " + path.native());
+    throw InvalidSetup("Unknown file type: " + path.string());
 }
 
 AutoPtr<IRng> Factory::getRng(const RunSettings& settings) {

@@ -12,14 +12,14 @@ private:
     bool uniqueFlags = true;
 
 public:
-    explicit JoinParticlesJob(const std::string& name)
+    explicit JoinParticlesJob(const String& name)
         : IParticleJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "join";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {
             { "particles A", JobType::PARTICLES },
             { "particles B", JobType::PARTICLES },
@@ -38,14 +38,14 @@ private:
     Float v = 0._f;
 
 public:
-    explicit OrbitParticlesJob(const std::string& name)
+    explicit OrbitParticlesJob(const String& name)
         : IParticleJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "orbit";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {
             { "particles A", JobType::PARTICLES },
             { "particles B", JobType::PARTICLES },
@@ -64,17 +64,17 @@ private:
     bool uniqueFlags = true;
 
 public:
-    explicit MultiJoinParticlesJob(const std::string& name)
+    explicit MultiJoinParticlesJob(const String& name)
         : IParticleJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "multi join";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
-        UnorderedMap<std::string, ExtJobType> map;
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
+        UnorderedMap<String, ExtJobType> map;
         for (int i = 0; i < slotCnt; ++i) {
-            map.insert("particles " + std::to_string(i + 1), JobType::PARTICLES);
+            map.insert("particles " + toString(i + 1), JobType::PARTICLES);
         }
         return map;
     }
@@ -99,14 +99,14 @@ private:
     Vector spin = Vector(0._f);
 
 public:
-    explicit TransformParticlesJob(const std::string& name)
+    explicit TransformParticlesJob(const String& name)
         : IParticleJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "transform";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
@@ -121,14 +121,14 @@ private:
     bool centerVelocities = false;
 
 public:
-    explicit CenterParticlesJob(const std::string& name)
+    explicit CenterParticlesJob(const String& name)
         : IParticleJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "center";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
@@ -149,16 +149,16 @@ private:
     int matId = 0;
 
 public:
-    explicit ChangeMaterialJob(const std::string& name)
+    explicit ChangeMaterialJob(const String& name)
         : IParticleJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "change material";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType>
+    virtual UnorderedMap<String, ExtJobType>
     requires() const override {
-        UnorderedMap<std::string, ExtJobType> map{
+        UnorderedMap<String, ExtJobType> map{
             { "particles", JobType::PARTICLES },
             { "material", JobType::MATERIAL },
         };
@@ -168,7 +168,7 @@ public:
         return map;
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES },
             { "material", JobType::MATERIAL },
             { "domain", JobType::GEOMETRY } };
@@ -208,14 +208,14 @@ private:
     CollisionGeometrySettings geometry;
 
 public:
-    explicit CollisionGeometrySetup(const std::string& name,
+    explicit CollisionGeometrySetup(const String& name,
         const CollisionGeometrySettings& overrides = EMPTY_SETTINGS);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "collision setup";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "target", JobType::PARTICLES }, { "impactor", JobType::PARTICLES } };
     }
 
@@ -243,14 +243,14 @@ private:
     Float radiusMultiplier = 0.333_f;
 
 public:
-    explicit SmoothedToSolidHandoff(const std::string& name)
+    explicit SmoothedToSolidHandoff(const String& name)
         : IParticleJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "smoothed-to-solid handoff";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
@@ -266,14 +266,14 @@ private:
     bool center = false;
 
 public:
-    explicit ExtractComponentJob(const std::string& name)
+    explicit ExtractComponentJob(const String& name)
         : IParticleJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "extract component";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
@@ -292,14 +292,14 @@ private:
 
 
 public:
-    explicit RemoveParticlesJob(const std::string& name)
+    explicit RemoveParticlesJob(const String& name)
         : IParticleJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "remove particles";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
@@ -319,14 +319,14 @@ private:
     EnumWrapper connectivity = EnumWrapper(ConnectivityEnum::OVERLAP);
 
 public:
-    explicit MergeComponentsJob(const std::string& name)
+    explicit MergeComponentsJob(const String& name)
         : IParticleJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "merge components";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
@@ -340,14 +340,14 @@ private:
     bool center = false;
 
 public:
-    explicit ExtractParticlesInDomainJob(const std::string& name)
+    explicit ExtractParticlesInDomainJob(const String& name)
         : IParticleJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "extract particles in domain";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES }, { "domain", JobType::GEOMETRY } };
     }
 
@@ -361,14 +361,14 @@ private:
     Float factor = 1.5_f;
 
 public:
-    explicit EmplaceComponentsAsFlagsJob(const std::string& name)
+    explicit EmplaceComponentsAsFlagsJob(const String& name)
         : IParticleJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "emplace components";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {
             { "fragments", JobType::PARTICLES },
             { "original", JobType::PARTICLES },
@@ -387,14 +387,14 @@ private:
     bool adjustRadii = true;
 
 public:
-    explicit SubsampleJob(const std::string& name)
+    explicit SubsampleJob(const String& name)
         : IParticleJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "subsampler";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
@@ -415,14 +415,14 @@ class CompareJob : public IParticleJob {
     Float maxDeviation = 0.5_f;
 
 public:
-    explicit CompareJob(const std::string& name)
+    explicit CompareJob(const String& name)
         : IParticleJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "compare";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {
             { "test particles", JobType::PARTICLES },
             { "reference particles", JobType::PARTICLES },

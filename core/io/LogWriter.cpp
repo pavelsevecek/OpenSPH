@@ -24,9 +24,9 @@ template <typename T>
 void printStat(ILogger& logger,
     const Statistics& stats,
     const StatisticsId id,
-    const std::string& message,
-    const std::string& unit = "",
-    const std::string& emptyValue = "") {
+    const String& message,
+    const String& unit = "",
+    const String& emptyValue = "") {
     if (stats.has(id)) {
         logger.write(message, stats.get<T>(id), unit);
     } else if (!emptyValue.empty()) {
@@ -36,7 +36,7 @@ void printStat(ILogger& logger,
 
 StandardLogWriter::StandardLogWriter(const SharedPtr<ILogger>& logger, const RunSettings& settings)
     : ILogWriter(logger, 0._f) {
-    name = settings.get<std::string>(RunSettingsId::RUN_NAME);
+    name = settings.get<String>(RunSettingsId::RUN_NAME);
 }
 
 void StandardLogWriter::write(const Storage& storage, const Statistics& stats) {
@@ -44,14 +44,14 @@ void StandardLogWriter::write(const Storage& storage, const Statistics& stats) {
     const int index = stats.get<int>(StatisticsId::INDEX);
     const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
     const int wallclock = stats.get<int>(StatisticsId::WALLCLOCK_TIME);
-    const std::string formattedWallclock = getFormattedTime(wallclock);
+    const String formattedWallclock = getFormattedTime(wallclock);
     logger->write(name, " #", index, "  time = ", time, "  wallclock time: ", formattedWallclock);
 
     if (stats.has(StatisticsId::RELATIVE_PROGRESS)) {
         const Float progress = stats.get<Float>(StatisticsId::RELATIVE_PROGRESS);
         logger->write(" - progress:    ", int(progress * 100), "%");
         if (progress > 0.05_f) {
-            const std::string formattedEta = getFormattedTime(int64_t(wallclock * (1._f / progress - 1._f)));
+            const String formattedEta = getFormattedTime(int64_t(wallclock * (1._f / progress - 1._f)));
             logger->write(" - ETA:         ", formattedEta);
         } else {
             logger->write(" - ETA:         N/A");
@@ -67,7 +67,7 @@ void StandardLogWriter::write(const Storage& storage, const Statistics& stats) {
         ss << id;
     }
     const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
-    logger->write(" - timestep:    ", dt, " (set by ", ss.str(), ")");
+    logger->write(" - timestep:    ", dt, " (set by ", String::fromAscii(ss.str().c_str()), ")");
 
     // clang-format off
     printStat<int>(*logger, stats, StatisticsId::TIMESTEP_ELAPSED,             " - time spent:  ", "ms");
@@ -106,7 +106,7 @@ void VerboseLogWriter::write(const Storage& storage, const Statistics& stats) {
             range.extend(Interval(minElement(v[i]), maxElement(v[i])));
             drange.extend(Interval(minElement(dv[i]), maxElement(dv[i])));
         }
-        std::string name = lowercase(getMetadata(id).quantityName);
+        String name = getMetadata(id).quantityName.toLowercase();
         logger->write("    * ", name, ":  ", range, " (derivative ", drange, ")");
     });
     iterate<VisitorEnum::SECOND_ORDER>(
@@ -116,7 +116,7 @@ void VerboseLogWriter::write(const Storage& storage, const Statistics& stats) {
                 range.extend(Interval(minElement(v[i]), maxElement(v[i])));
                 drange.extend(Interval(minElement(d2v[i]), maxElement(d2v[i])));
             }
-            std::string name = lowercase(getMetadata(id).quantityName);
+            String name = getMetadata(id).quantityName.toLowercase();
             logger->write("    * ", name, ":  ", range, " (derivative ", drange, ")");
         });
     ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
@@ -134,7 +134,7 @@ void VerboseLogWriter::write(const Storage& storage, const Statistics& stats) {
 
 BriefLogWriter::BriefLogWriter(const SharedPtr<ILogger>& logger, const RunSettings& settings)
     : ILogWriter(logger, 0._f) {
-    name = settings.get<std::string>(RunSettingsId::RUN_NAME);
+    name = settings.get<String>(RunSettingsId::RUN_NAME);
 }
 
 void BriefLogWriter::write(const Storage& UNUSED(storage), const Statistics& stats) {

@@ -35,7 +35,7 @@ public:
     /// \brief Returns the name of the integral.
     ///
     /// Needed to label the integral in logs, GUI etc.
-    virtual std::string getName() const = 0;
+    virtual String getName() const = 0;
 };
 
 
@@ -50,7 +50,7 @@ class TotalMass : public IIntegral<Float> {
 public:
     virtual Float evaluate(const Storage& storage) const override;
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return "Total mass";
     }
 };
@@ -68,7 +68,7 @@ public:
 
     virtual Vector evaluate(const Storage& storage) const override;
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return "Total momentum";
     }
 };
@@ -87,7 +87,7 @@ public:
 
     virtual Vector evaluate(const Storage& storage) const override;
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return "Total angular momentum";
     }
 };
@@ -106,7 +106,7 @@ public:
 
     virtual Float evaluate(const Storage& storage) const override;
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return "Kinetic energy";
     }
 };
@@ -120,7 +120,7 @@ class TotalInternalEnergy : public IIntegral<Float> {
 public:
     virtual Float evaluate(const Storage& storage) const override;
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return "Internal energy";
     }
 };
@@ -138,7 +138,7 @@ public:
 
     virtual Float evaluate(const Storage& storage) const override;
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return "Total energy";
     }
 };
@@ -156,7 +156,7 @@ public:
 
     virtual Vector evaluate(const Storage& storage) const override;
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return "Center of mass";
     }
 };
@@ -171,7 +171,7 @@ public:
 
     virtual Float evaluate(const Size i) const = 0;
 
-    virtual std::string name() const = 0;
+    virtual String name() const = 0;
 };
 
 /// \brief Returns means of given scalar quantity.
@@ -194,7 +194,7 @@ public:
 
     virtual MinMaxMean evaluate(const Storage& storage) const override;
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         if (auto id = quantity.tryGet<QuantityId>()) {
             return getMetadata(id.value()).quantityName;
         } else {
@@ -216,8 +216,8 @@ public:
 
     virtual Float evaluate(const Storage& storage) const override;
 
-    virtual std::string getName() const override {
-        return getMetadata(id).quantityName + " " + std::to_string(idx);
+    virtual String getName() const override {
+        return getMetadata(id).quantityName + " " + toString(idx);
     }
 };
 
@@ -231,7 +231,7 @@ private:
     Function<Dynamic(const Storage& storage)> closure;
 
     /// Cached name of the object. This is not optimal, because the name can theorically change, but well ...
-    std::string name;
+    String name;
 
 public:
     IntegralWrapper() = default;
@@ -239,15 +239,16 @@ public:
     template <typename TIntegral>
     IntegralWrapper(AutoPtr<TIntegral>&& integral) {
         name = integral->getName();
-        closure = [i = std::move(integral)](
-                      const Storage& storage) -> Dynamic { return i->evaluate(storage); };
+        closure = [i = std::move(integral)](const Storage& storage) -> Dynamic { //
+            return i->evaluate(storage);
+        };
     }
 
     virtual Float evaluate(const Storage& storage) const override {
         return closure(storage).getScalar();
     }
 
-    virtual std::string getName() const override {
+    virtual String getName() const override {
         return name;
     }
 };

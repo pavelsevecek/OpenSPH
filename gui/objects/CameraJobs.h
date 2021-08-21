@@ -28,7 +28,7 @@ protected:
     GuiSettings gui;
 
 public:
-    explicit ICameraJob(const std::string& name)
+    explicit ICameraJob(const String& name)
         : IJob(name) {
         gui.set(GuiSettingsId::CAMERA_POSITION, Vector(0, 0, 1.e4_f));
     }
@@ -41,7 +41,7 @@ public:
         return result;
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {};
     }
 
@@ -50,9 +50,9 @@ public:
 
 class OrthoCameraJob : public ICameraJob {
 public:
-    explicit OrthoCameraJob(const std::string& name);
+    explicit OrthoCameraJob(const String& name);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "orthographic camera";
     }
 
@@ -61,9 +61,9 @@ public:
 
 class PerspectiveCameraJob : public ICameraJob {
 public:
-    explicit PerspectiveCameraJob(const std::string& name);
+    explicit PerspectiveCameraJob(const String& name);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "perspective camera";
     }
 
@@ -72,9 +72,9 @@ public:
 
 class FisheyeCameraJob : public ICameraJob {
 public:
-    explicit FisheyeCameraJob(const std::string& name);
+    explicit FisheyeCameraJob(const String& name);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "fisheye camera";
     }
 
@@ -83,9 +83,9 @@ public:
 
 class SphericalCameraJob : public ICameraJob {
 public:
-    explicit SphericalCameraJob(const std::string& name);
+    explicit SphericalCameraJob(const String& name);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "spherical camera";
     }
 

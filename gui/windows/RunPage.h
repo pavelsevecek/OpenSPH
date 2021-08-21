@@ -96,7 +96,7 @@ public:
 
     void setProgress(const Statistics& stats);
 
-    void newPhase(const std::string& className, const std::string& instanceName);
+    void newPhase(const String& className, const String& instanceName);
 
     void setColorizerList(Array<SharedPtr<IColorizer>>&& colorizers);
 

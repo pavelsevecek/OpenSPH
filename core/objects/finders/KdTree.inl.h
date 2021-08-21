@@ -414,7 +414,7 @@ Outcome KdTree<TNode, TMetric>::sanityCheck() const {
 
         // check index validity
         if (idx >= nodes.size()) {
-            return makeFailed("Invalid index found: ", idx, " (", nodes.size(), ")");
+            return makeFailed("Invalid index found: {} ({})", idx, nodes.size());
         }
 
         // if inner node, count children
@@ -426,7 +426,7 @@ Outcome KdTree<TNode, TMetric>::sanityCheck() const {
             const LeafNode<TNode>& leaf = (const LeafNode<TNode>&)nodes[idx];
             if (leaf.to == leaf.from) {
                 // empty leaf?
-                return makeFailed("Empty leaf: ", leaf.to);
+                return makeFailed("Empty leaf: {}", leaf.to);
             }
             for (Size i = leaf.from; i < leaf.to; ++i) {
                 if (!leaf.box.contains(this->values[idxs[i]])) {
@@ -434,7 +434,7 @@ Outcome KdTree<TNode, TMetric>::sanityCheck() const {
                 }
                 if (indices.find(i) != indices.end()) {
                     // child referenced twice?
-                    return makeFailed("Index repeated: ", i);
+                    return makeFailed("Index repeated: {}", i);
                 }
                 indices.insert(i);
             }
@@ -447,14 +447,14 @@ Outcome KdTree<TNode, TMetric>::sanityCheck() const {
     }
     // we should count exactly nodes.size()
     if (counter != nodes.size()) {
-        return makeFailed("Unexpected number of nodes: ", counter, " == ", nodes.size());
+        return makeFailed("Unexpected number of nodes: {} == {}", counter, nodes.size());
     }
     // each index should have been inserted exactly once
     Size i = 0;
     for (Size idx : indices) {
         // std::set is sorted, so we can check sequentially
         if (idx != i) {
-            return makeFailed("Invalid index: ", idx, " == ", i);
+            return makeFailed("Invalid index: {} == {}", idx, i);
         }
         ++i;
     }

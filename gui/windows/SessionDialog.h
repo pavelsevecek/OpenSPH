@@ -5,6 +5,8 @@
 
 NAMESPACE_SPH_BEGIN
 
+class UniqueNameManager;
+
 class SessionDialog : public wxDialog {
 private:
     SharedPtr<JobNode> preset;

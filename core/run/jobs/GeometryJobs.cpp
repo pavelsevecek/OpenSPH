@@ -15,14 +15,14 @@ NAMESPACE_SPH_BEGIN
 // SphereJob
 //-----------------------------------------------------------------------------------------------------------
 
-SphereJob::SphereJob(const std::string& name)
+SphereJob::SphereJob(const String& name)
     : IGeometryJob(name) {}
 
-std::string SphereJob::className() const {
+String SphereJob::className() const {
     return "sphere";
 }
 
-UnorderedMap<std::string, ExtJobType> SphereJob::getSlots() const {
+UnorderedMap<String, ExtJobType> SphereJob::getSlots() const {
     return {};
 }
 
@@ -41,7 +41,7 @@ void SphereJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSE
 static JobRegistrar sRegisterSphere(
     "sphere",
     "geometry",
-    [](const std::string& name) { return makeAuto<SphereJob>(name); },
+    [](const String& name) { return makeAuto<SphereJob>(name); },
     "Geometric shape representing a sphere with given radius.");
 
 //-----------------------------------------------------------------------------------------------------------
@@ -64,7 +64,7 @@ void BlockJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED
 static JobRegistrar sRegisterBlock(
     "block",
     "geometry",
-    [](const std::string& name) { return makeAuto<BlockJob>(name); },
+    [](const String& name) { return makeAuto<BlockJob>(name); },
     "Geometric shape representing a block with given dimensions.");
 
 //-----------------------------------------------------------------------------------------------------------
@@ -86,21 +86,21 @@ void EllipsoidJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UN
 static JobRegistrar sRegisterEllipsoid(
     "ellipsoid",
     "geometry",
-    [](const std::string& name) { return makeAuto<EllipsoidJob>(name); },
+    [](const String& name) { return makeAuto<EllipsoidJob>(name); },
     "Geometric shape representing a triaxial ellipsoid.");
 
 //-----------------------------------------------------------------------------------------------------------
 // CylinderJob
 //-----------------------------------------------------------------------------------------------------------
 
-CylinderJob::CylinderJob(const std::string& name)
+CylinderJob::CylinderJob(const String& name)
     : IGeometryJob(name) {}
 
-std::string CylinderJob::className() const {
+String CylinderJob::className() const {
     return "cylinder";
 }
 
-UnorderedMap<std::string, ExtJobType> CylinderJob::getSlots() const {
+UnorderedMap<String, ExtJobType> CylinderJob::getSlots() const {
     return {};
 }
 
@@ -120,7 +120,7 @@ void CylinderJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNU
 static JobRegistrar sRegisterCylinder(
     "cylinder",
     "geometry",
-    [](const std::string& name) { return makeAuto<CylinderJob>(name); },
+    [](const String& name) { return makeAuto<CylinderJob>(name); },
     "Geometric shape representing a cylinder aligned with z-axis, using provided radius and height.");
 
 //-----------------------------------------------------------------------------------------------------------
@@ -146,7 +146,7 @@ void ToroidJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSE
 static JobRegistrar sRegisterToroid(
     "toroid",
     "geometry",
-    [](const std::string& name) { return makeAuto<ToroidJob>(name); },
+    [](const String& name) { return makeAuto<ToroidJob>(name); },
     "Geometric shape representing a toroid aligned with z-axis.");
 
 
@@ -187,7 +187,7 @@ static JobRegistrar sRegisterMaclaurin(
     "Maclaurin spheroid",
     "spheroid",
     "geometry",
-    [](const std::string& name) { return makeAuto<MaclaurinSpheroidJob>(name); },
+    [](const String& name) { return makeAuto<MaclaurinSpheroidJob>(name); },
     "Creates a Maclaurin spheroid, given the density and the spin rate of the body.");
 
 //-----------------------------------------------------------------------------------------------------------
@@ -207,7 +207,7 @@ void HalfSpaceJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UN
 static JobRegistrar sRegisterHalfSpace(
     "half space",
     "geometry",
-    [](const std::string& name) { return makeAuto<HalfSpaceJob>(name); },
+    [](const String& name) { return makeAuto<HalfSpaceJob>(name); },
     "Represents a half space z>0. Note that this cannot be used as a domain for generating particles as the "
     "volume of the domain is infinite. It can be used as an input to a composite domain (boolean, etc.) or "
     "as a domain for boundary conditions of a simulation.");
@@ -234,21 +234,21 @@ void GaussianSphereJob::evaluate(const RunSettings& UNUSED(global), IRunCallback
 static JobRegistrar sRegisterGaussian(
     "Gaussian sphere",
     "geometry",
-    [](const std::string& name) { return makeAuto<GaussianSphereJob>(name); },
+    [](const String& name) { return makeAuto<GaussianSphereJob>(name); },
     "TODO");
 
 //-----------------------------------------------------------------------------------------------------------
 // MeshGeometryJob
 //-----------------------------------------------------------------------------------------------------------
 
-MeshGeometryJob::MeshGeometryJob(const std::string& name)
+MeshGeometryJob::MeshGeometryJob(const String& name)
     : IGeometryJob(name) {}
 
-std::string MeshGeometryJob::className() const {
+String MeshGeometryJob::className() const {
     return "triangle mesh";
 }
 
-UnorderedMap<std::string, ExtJobType> MeshGeometryJob::getSlots() const {
+UnorderedMap<String, ExtJobType> MeshGeometryJob::getSlots() const {
     return {};
 }
 
@@ -271,7 +271,7 @@ void MeshGeometryJob::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(
     AutoPtr<IMeshFile> meshLoader = getMeshFile(path);
     Expected<Array<Triangle>> triangles = meshLoader->load(path);
     if (!triangles) {
-        throw InvalidSetup("cannot load " + path.native());
+        throw InvalidSetup("cannot load " + path.string());
     }
 
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
@@ -285,7 +285,7 @@ static JobRegistrar sRegisterMeshGeometry(
     "triangle mesh",
     "mesh",
     "geometry",
-    [](const std::string& name) { return makeAuto<MeshGeometryJob>(name); },
+    [](const String& name) { return makeAuto<MeshGeometryJob>(name); },
     "Geometric shape given by provided triangular mesh.");
 
 //-----------------------------------------------------------------------------------------------------------
@@ -322,7 +322,7 @@ static JobRegistrar sRegisterParticleGeometry(
     "particle geometry",
     "particles",
     "geometry",
-    [](const std::string& name) { return makeAuto<ParticleGeometryJob>(name); },
+    [](const String& name) { return makeAuto<ParticleGeometryJob>(name); },
     "Geometric shape represented by input particles");
 
 
@@ -414,7 +414,7 @@ static JobRegistrar sRegisterSpheresGeometry(
     "spheres geometry",
     "spheres",
     "geometry",
-    [](const std::string& name) { return makeAuto<SpheresGeometryJob>(name); },
+    [](const String& name) { return makeAuto<SpheresGeometryJob>(name); },
     "Geometric shape given by a set of spheres, specifies by the input particles.");
 
 //-----------------------------------------------------------------------------------------------------------
@@ -488,7 +488,7 @@ static JobRegistrar sRegisterInvertGeometry(
     "invert geometry",
     "inverter",
     "geometry",
-    [](const std::string& name) { return makeAuto<InvertGeometryJob>(name); },
+    [](const String& name) { return makeAuto<InvertGeometryJob>(name); },
     "Shape modifier that inverts the geometry, i.e. swaps the outside and inside of a shape. This converts a "
     "sphere into a space with spherical hole, etc.");
 
@@ -521,7 +521,7 @@ static JobRegistrar sRegisterTransformGeometry(
     "transform geometry",
     "transform",
     "geometry",
-    [](const std::string& name) { return makeAuto<TransformGeometryJob>(name); },
+    [](const String& name) { return makeAuto<TransformGeometryJob>(name); },
     "Shape modifier, adding a translation and scaling to the input geometry.");
 
 //-----------------------------------------------------------------------------------------------------------
@@ -679,7 +679,7 @@ VirtualSettings BooleanGeometryJob::getSettings() {
 static JobRegistrar sRegisterBoolean(
     "boolean",
     "geometry",
-    [](const std::string& name) { return makeAuto<BooleanGeometryJob>(name); },
+    [](const String& name) { return makeAuto<BooleanGeometryJob>(name); },
     "Composite shape that applies given boolean operation to two input shapes.");
 
 

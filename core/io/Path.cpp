@@ -9,7 +9,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-Path::Path(const std::string& path)
+Path::Path(const String& path)
     : path(path) {
     this->convert();
 }
@@ -57,8 +57,8 @@ bool Path::hasExtension() const {
 }
 
 Path Path::parentPath() const {
-    std::size_t n = path.rfind(SEPARATOR);
-    if (n == std::string::npos) {
+    const Size n = path.findLast(SEPARATOR);
+    if (n == String::npos) {
         return Path();
     }
     if (n == path.size() - 1) {
@@ -69,8 +69,8 @@ Path Path::parentPath() const {
 }
 
 Path Path::fileName() const {
-    std::size_t n = path.rfind(SEPARATOR);
-    if (n == std::string::npos) {
+    const Size n = path.findLast(SEPARATOR);
+    if (n == String::npos) {
         // path is just a filename
         return Path(path);
     } else if (n == path.size() - 1) {
@@ -85,34 +85,42 @@ Path Path::extension() const {
     if (name.path.size() <= 1) {
         return Path();
     }
-    const std::size_t n = name.path.find_last_of('.');
-    if (n == 0 || n == std::string::npos) {
+    const Size n = name.path.findLast('.');
+    if (n == 0 || n == String::npos) {
         return Path();
     }
     return Path(name.path.substr(n + 1));
 }
 
-std::string Path::native() const {
+String Path::string() const {
     return path;
 }
 
-Path& Path::replaceExtension(const std::string& newExtension) {
+Path::NativePath Path::native() const {
+#ifndef SPH_WIN
+    return path.toUtf8();
+#else
+    return path.toUnicode();
+#endif
+}
+
+Path& Path::replaceExtension(const String& newExtension) {
     const Path name = this->fileName();
-    if (name.empty() || name.path == "." || name.path == "..") {
+    if (name.empty() || name.path == L"." || name.path == L"..") {
         return *this;
     }
     // skip first character, files like '.gitignore' are hidden, not just extension without filename
-    const std::size_t n = name.path.find_last_of('.');
-    if (n == 0 || n == std::string::npos) {
+    const Size n = name.path.findLast('.');
+    if (n == 0 || n == String::npos) {
         // no extension, append the new one
         if (!newExtension.empty()) {
-            path += "." + newExtension;
+            path += L'.' + newExtension;
         }
         return *this;
     } else {
-        const std::size_t indexInPath = path.size() - name.path.size() + n;
+        const Size indexInPath = path.size() - name.path.size() + n;
         if (!newExtension.empty()) {
-            path.replace(indexInPath + 1, std::string::npos, newExtension);
+            path.replace(indexInPath + 1, String::npos, newExtension);
         } else {
             path = path.substr(0, indexInPath);
         }
@@ -122,11 +130,11 @@ Path& Path::replaceExtension(const std::string& newExtension) {
 
 Path& Path::removeExtension() {
     const Path name = this->fileName();
-    if (name.empty() || name.path == "." || name.path == "..") {
+    if (name.empty() || name.path == L"." || name.path == L"..") {
         return *this;
     }
-    const std::size_t n = name.path.find_last_of('.');
-    if (n == 0 || n == std::string::npos) {
+    const Size n = name.path.findLast(L'.');
+    if (n == 0 || n == String::npos) {
         // no extension, do nothing
         return *this;
     } else {
@@ -136,13 +144,13 @@ Path& Path::removeExtension() {
 }
 
 Path& Path::removeSpecialDirs() {
-    std::size_t n;
-    while ((n = this->findFolder("..")) != std::string::npos) {
+    Size n;
+    while ((n = this->findFolder(L"..")) != String::npos) {
         Path parent = Path(path.substr(0, max(0, int(n) - 1))).parentPath();
         Path tail(path.substr(min(n + 3, path.size())));
         *this = parent / tail;
     }
-    while ((n = this->findFolder(".")) != std::string::npos) {
+    while ((n = this->findFolder(L".")) != String::npos) {
         Path parent = Path(path.substr(0, n));
         Path tail(path.substr(min(n + 2, path.size())));
         *this = parent / tail;
@@ -168,7 +176,7 @@ Path& Path::makeRelative() {
     // find shared part of the path
     while (true) {
         const std::size_t m = wd.path.find(SEPARATOR, n);
-        if (m == std::string::npos || wd.path.substr(0, m) != path.substr(0, m)) {
+        if (m == String::npos || wd.path.substr(0, m) != path.substr(0, m)) {
             break;
         } else {
             n = m + 1;
@@ -179,7 +187,7 @@ Path& Path::makeRelative() {
     // add .. for every directory not in path
     while (wd.path.substr(0, n + 1) != sharedPath.path) {
         wd = wd.parentPath();
-        newPath /= Path("..");
+        newPath /= Path(L"..");
     }
     // add the remaining path of the original path
     newPath /= Path(path.substr(n));
@@ -191,12 +199,12 @@ Path Path::currentPath() {
     constexpr Size bufferCnt = 1024;
     char buffer[bufferCnt];
     if (getcwd(buffer, sizeof(buffer))) {
-        std::string path(buffer);
+        String path = String::fromUtf8(buffer);
         return Path(path + SEPARATOR);
     } else {
         return Path();
     }
- #else
+#else
     char path[MAX_PATH];
     GetCurrentDirectoryA(MAX_PATH, path);
     return Path(std::string(path) + SEPARATOR);
@@ -209,7 +217,7 @@ Path Path::operator/(const Path& other) const {
     } else if (other.path.empty()) {
         return Path(path);
     } else {
-        return Path(path + "/" + other.path);
+        return Path(path + L'/' + other.path);
     }
 }
 
@@ -235,34 +243,43 @@ std::ostream& operator<<(std::ostream& stream, const Path& path) {
     return stream;
 }
 
+std::wostream& operator<<(std::wostream& stream, const Path& path) {
+    stream << path.path;
+    return stream;
+}
+
+#ifndef SPH_WIN
+static String DOUBLE_SEPARATOR = String(L"//");
+#else
+static String DOUBLE_SEPARATOR = String(L"\\\\");
+#endif
+
 void Path::convert() {
-    for (char& c : path) {
-        if (c == '\\' || c == '/') {
+    for (wchar_t& c : path) {
+        if (c == L'\\' || c == L'/') {
             c = SEPARATOR;
         }
     }
-    std::string duplicates = { SEPARATOR, SEPARATOR };
-    std::size_t n;
-    while ((n = path.find(duplicates)) != std::string::npos) {
-        path.replace(n, 2, 1, SEPARATOR);
+    while (path.find(DOUBLE_SEPARATOR) != String::npos) {
+        path.replaceAll(DOUBLE_SEPARATOR, SEPARATOR);
     }
 }
 
-std::size_t Path::findFolder(const std::string& folder) {
+Size Path::findFolder(const String& folder) {
     if (path == folder || path.substr(0, min(path.size(), folder.size() + 1)) == folder + SEPARATOR) {
         return 0;
     }
     const size_t n = path.find(SEPARATOR + folder + SEPARATOR);
-    if (n != std::string::npos) {
+    if (n != String::npos) {
         return n + 1;
     }
     if (path.substr(max(0, int(path.size()) - int(folder.size()) - 1)) == SEPARATOR + folder) {
         return path.size() - folder.size();
     }
-    return std::string::npos;
+    return String::npos;
 }
 
-Path operator"" _path(const char* nativePath, const std::size_t size) {
+Path operator"" _path(const wchar_t* nativePath, const std::size_t size) {
     SPH_ASSERT(size > 0);
     return Path(nativePath);
 }

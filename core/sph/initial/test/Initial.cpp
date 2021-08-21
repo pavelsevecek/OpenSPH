@@ -74,10 +74,10 @@ TEST_CASE("Initial velocity", "[initial]") {
 
     auto test = [&](const Size i) -> Outcome {
         if (rho[i] == 1._f && v[i] != Vector(2._f, 1._f, -1._f)) {
-            return makeFailed("Invalid velocity: ", v[i]);
+            return makeFailed("Invalid velocity: {}", v[i]);
         }
         if (rho[i] == 2._f && v[i] != Vector(0._f, 0._f, 1._f)) {
-            return makeFailed("Invalid velocity: ", v[i]);
+            return makeFailed("Invalid velocity: {}", v[i]);
         }
         return SUCCESS;
     };
@@ -100,13 +100,13 @@ TEST_CASE("Initial rotation", "[initial]") {
         const Float distFromAxis = getLength(r[i] - axis * dot(r[i], axis));
         if (getLength(v[i]) != approx(distFromAxis * magnitude, 1.e-6_f)) {
             return makeFailed(
-                "Invalid angular velocity magnitude: \n", getLength(v[i]), " == ", distFromAxis * magnitude);
+                "Invalid angular velocity magnitude: \n{} == {}", getLength(v[i]), distFromAxis * magnitude);
         }
         if (dot(v[i], axis) != approx(0._f, 1.e-6_f)) {
-            return makeFailed("Invalid angular velocity vector: \n", v[i], " == ", axis);
+            return makeFailed("Invalid angular velocity vector: \n{} == {}", v[i], axis);
         }
         if (dot(cross(r[i], v[i]), axis) <= 0) {
-            return makeFailed("Invalid angular velocity direction: \n", v[i], " == ", axis);
+            return makeFailed("Invalid angular velocity direction: \n {} == {}", v[i], axis);
         }
         return SUCCESS;
     };
@@ -133,7 +133,7 @@ TEST_CASE("Initial addHeterogeneousBody single", "[initial]") {
     iteratePair<VisitorEnum::ALL_BUFFERS>(storage1, storage2, [&](auto&& v1, auto&& v2) {
         auto test = [&](const Size i) -> Outcome {
             if (v1[i] != v2[i]) {
-                return makeFailed("Different values: ", v1[i], " == ", v2[i]);
+                return makeFailed("Different values: {} == {}", v1[i], v2[i]);
             }
             return SUCCESS;
         };

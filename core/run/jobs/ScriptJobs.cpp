@@ -9,23 +9,23 @@ NAMESPACE_SPH_BEGIN
 
 #ifdef SPH_USE_CHAISCRIPT
 
-ChaiScriptJob::ChaiScriptJob(const std::string& name)
+ChaiScriptJob::ChaiScriptJob(const String& name)
     : IParticleJob(name) {
     slotNames.resize(8);
     for (Size i = 0; i < slotNames.size(); ++i) {
-        slotNames[i] = "slot " + std::to_string(i + 1);
+        slotNames[i] = "slot " + toString(i + 1);
     }
 
     paramNames.resize(8);
     paramValues.resize(8);
     for (Size i = 0; i < paramNames.size(); ++i) {
-        paramNames[i] = "parameter " + std::to_string(i + 1);
+        paramNames[i] = "parameter " + toString(i + 1);
         paramValues[i] = 0._f;
     }
 }
 
-UnorderedMap<std::string, ExtJobType> ChaiScriptJob::getSlots() const {
-    UnorderedMap<std::string, ExtJobType> slots;
+UnorderedMap<String, ExtJobType> ChaiScriptJob::getSlots() const {
+    UnorderedMap<String, ExtJobType> slots;
     for (int i = 0; i < min<int>(inputCnt, slotNames.maxSize()); ++i) {
         slots.insert(slotNames[i], JobType::PARTICLES);
     }
@@ -40,13 +40,12 @@ VirtualSettings ChaiScriptJob::getSettings() {
     VirtualSettings::Category& inputCat = connector.addCategory("Input");
     inputCat.connect("Number of inputs", "inputCnt", inputCnt);
     for (int i = 0; i < inputCnt; ++i) {
-        inputCat.connect("Slot " + std::to_string(i + 1), "slot" + std::to_string(i + 1), slotNames[i]);
+        inputCat.connect("Slot " + toString(i + 1), "slot" + toString(i + 1), slotNames[i]);
     }
     inputCat.connect("Number of parameters", "paramCnt", paramCnt);
     for (int i = 0; i < paramCnt; ++i) {
-        inputCat.connect(
-            "Parameter " + std::to_string(i + 1), "param" + std::to_string(i + 1), paramNames[i]);
-        inputCat.connect("Value '" + paramNames[i] + "'", "value" + std::to_string(i + 1), paramValues[i]);
+        inputCat.connect("Parameter " + toString(i + 1), "param" + toString(i + 1), paramNames[i]);
+        inputCat.connect("Value '" + paramNames[i] + "'", "value" + toString(i + 1), paramValues[i]);
     }
 
     VirtualSettings::Category& scriptCat = connector.addCategory("Script");
@@ -66,14 +65,14 @@ void ChaiScriptJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& c
         SharedPtr<ParticleData> input = this->getInput<ParticleData>(slotNames[i]);
         chai.add(chaiscript::var(std::ref(input->storage)), slotNames[i]);
     }*/
-    chai.add(chaiscript::fun<std::function<Chai::Particles(std::string)>>([this](std::string name) {
+    chai.add(chaiscript::fun<std::function<Chai::Particles(String)>>([this](String name) {
         SharedPtr<ParticleData> input = this->getInput<ParticleData>(name);
         Chai::Particles particles;
         particles.bindToStorage(input->storage);
         return particles;
     }),
         "getInput");
-    chai.add(chaiscript::fun<std::function<Float(std::string)>>([this](std::string name) {
+    chai.add(chaiscript::fun<std::function<Float(String)>>([this](String name) {
         for (Size i = 0; i < paramNames.size(); ++i) {
             if (name == paramNames[i]) {
                 return paramValues[i];
@@ -92,8 +91,8 @@ void ChaiScriptJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& c
     chai.add(chaiscript::fun<std::function<bool()>>([&callbacks]() { return callbacks.shouldAbortRun(); }),
         "shouldAbort");
 
-
-    chaiscript::Boxed_Value scriptValue = chai.eval_file(file.native());
+    /// \todo use short path on Windows?
+    chaiscript::Boxed_Value scriptValue = chai.eval_file(std::string(file.string().toUtf8()));
     const Chai::Particles& particles = chaiscript::boxed_cast<const Chai::Particles&>(scriptValue);
     result = makeShared<ParticleData>();
     result->storage = particles.store().clone(VisitorEnum::ALL_BUFFERS);
@@ -102,7 +101,7 @@ void ChaiScriptJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& c
 static JobRegistrar sRegisterChaiJob(
     "custom script",
     "particle operators",
-    [](const std::string& name) { return makeAuto<ChaiScriptJob>(name); },
+    [](const String& name) { return makeAuto<ChaiScriptJob>(name); },
     "Custom particle operator, given by a ChaiScript file.");
 
 #endif

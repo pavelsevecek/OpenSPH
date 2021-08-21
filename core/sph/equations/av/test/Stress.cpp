@@ -86,21 +86,21 @@ TEST_CASE("StressAV test", "[av]") {
             if (ratio > 0.2_f) {
                 /// \todo can we achieve better accuracy than this??
                 return makeFailed(
-                    "Acceleration does not have correct direction: ", dv[i], "\n ratio = ", ratio);
+                    "Acceleration does not have correct direction: {}\n ratio = {}", dv[i], ratio);
             }
             // acceleration should be in the opposite direction than the velocity
             if (dot(r[i], dir) <= 0._f) {
                 if (as[i] == SymmetricTensor::null() || dot(dv[i], dir) > -1.e6_f) {
-                    return makeFailed("Incorrect acceleration in dot>0: ", dv[i]);
+                    return makeFailed("Incorrect acceleration in dot>0: {}", dv[i]);
                 }
             } else if (dot(r[i], dir) > 0._f) {
                 if (as[i] == SymmetricTensor::null() || dot(dv[i], dir) < 1.e6_f) {
                     return makeFailed(
-                        "Incorrect acceleration in dot<0: ", dv[i], "\nr=", r[i], "\nAS=", as[i]);
+                        "Incorrect acceleration in dot<0: {}\n r = {}\n AS = {}", dv[i], r[i], as[i]);
                 }
             }
         } else if (abs(dot(r[i], dir)) > 2._f * h && dv[i] != approx(Vector(0._f), 1._f)) {
-            return makeFailed("Accelerated where it shouldn't", dv[i]);
+            return makeFailed("Accelerated where it shouldn't\n dv = {}", dv[i]);
         }
         return SUCCESS;
     };

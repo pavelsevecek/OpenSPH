@@ -11,20 +11,20 @@ private:
     Path file = Path("script.chai");
 
     int inputCnt = 8; // needs to be max for proper loading ...
-    StaticArray<std::string, 8> slotNames;
+    StaticArray<String, 8> slotNames;
 
     int paramCnt = 8;
-    StaticArray<std::string, 8> paramNames;
+    StaticArray<String, 8> paramNames;
     StaticArray<Float, 8> paramValues;
 
 public:
-    ChaiScriptJob(const std::string& name);
+    ChaiScriptJob(const String& name);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "custom script";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override;
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override;
 
     virtual VirtualSettings getSettings() override;
 

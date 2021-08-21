@@ -1,7 +1,6 @@
 #include "gui/objects/Palette.h"
 #include "io/Path.h"
-#include "objects/utility/StringUtils.h"
-#include <fstream>
+#include "objects/utility/Streams.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -168,12 +167,13 @@ bool Palette::empty() const {
     return points.empty();
 }
 
-Outcome Palette::loadFromStream(std::istream& ifs) {
+Outcome Palette::loadFromStream(ITextInputStream& ifs) {
     try {
         Array<Rgba> colors;
-        std::string line;
-        while (std::getline(ifs, line)) {
-            std::stringstream ss(replaceAll(line, ",", " "));
+        String line;
+        while (ifs.readLine(line)) {
+            line.replaceAll(",", " ");
+            std::wstringstream ss(line.toUnicode());
             Rgba color;
             while (!ss.eof()) {
                 ss >> color.r() >> color.g() >> color.b();
@@ -197,34 +197,34 @@ Outcome Palette::loadFromStream(std::istream& ifs) {
         }
         return SUCCESS;
     } catch (const std::exception& e) {
-        return makeFailed("Cannot load palette: ", e.what());
+        return makeFailed("Cannot load palette: {}", exceptionMessage(e));
     }
 }
 
 Outcome Palette::loadFromFile(const Path& path) {
-    std::ifstream ifs(path.native());
+    FileTextInputStream ifs(path);
     return loadFromStream(ifs);
 }
 
-Outcome Palette::saveToStream(std::ostream& ofs, const Size lineCnt) const {
+Outcome Palette::saveToStream(ITextOutputStream& ofs, const Size lineCnt) const {
     try {
         for (Size i = 0; i < lineCnt; ++i) {
             const float value = this->relativeToPalette(float(i) / (lineCnt - 1));
             const Rgba color = operator()(value);
-            ofs << color.r() << "," << color.g() << "," << color.b();
+            ofs.write(format("{},{},{}", color.r(), color.g(), color.b()));
             if (i != lineCnt - 1) {
-                ofs << std::endl;
+                ofs.write(L'\n');
             }
         }
         return SUCCESS;
     } catch (const std::exception& e) {
-        return makeFailed("Cannot save palette: ", e.what());
+        return makeFailed("Cannot save palette: {}", exceptionMessage(e));
     }
 }
 
 Outcome Palette::saveToFile(const Path& path, const Size lineCnt) const {
-    std::ofstream os(path.native());
-    return this->saveToStream(os, lineCnt);
+    FileTextOutputStream ofs(path);
+    return this->saveToStream(ofs, lineCnt);
 }
 
 NAMESPACE_SPH_END

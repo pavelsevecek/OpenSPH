@@ -1,9 +1,8 @@
 #include "io/FileSystem.h"
 #include "objects/Exceptions.h"
-#include "objects/utility/StringUtils.h"
+#include "objects/utility/Streams.h"
 #include "objects/wrappers/Outcome.h"
 #include "system/Settings.h"
-#include <fstream>
 #include <regex>
 
 /// Settigs implementation, needs to be included in cpp with explicit instantiation of Settings.
@@ -64,12 +63,12 @@ Settings<TEnum>& Settings<TEnum>::operator=(Settings&& other) {
 }
 
 template <typename TEnum>
-bool Settings<TEnum>::setValueByType(Entry& entry, const Value& defaultValue, const std::string& str) {
+bool Settings<TEnum>::setValueByType(Entry& entry, const Value& defaultValue, const String& str) {
     const Size typeIdx = defaultValue.getTypeIdx();
-    std::stringstream ss(str.c_str());
+    std::wstringstream ss(str.toUnicode());
     switch (typeIdx) {
     case BOOL: {
-        std::string value;
+        String value;
         ss >> value;
         if (ss.fail()) {
             return false;
@@ -102,7 +101,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Value& defaultValue, co
             return true;
         }
     case INTERVAL: {
-        std::string s1, s2;
+        String s1, s2;
         ss >> s1 >> s2;
         if (ss.fail()) {
             return false;
@@ -112,7 +111,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Value& defaultValue, co
             lower = -INFTY;
         } else {
             ss.clear();
-            ss.str(s1);
+            ss.str(s1.toUnicode());
             Float value;
             ss >> value;
             lower = value;
@@ -121,7 +120,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Value& defaultValue, co
             upper = INFTY;
         } else {
             ss.clear();
-            ss.str(s2);
+            ss.str(s2.toUnicode());
             Float value;
             ss >> value;
             upper = value;
@@ -135,8 +134,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Value& defaultValue, co
     }
     case STRING: {
         // trim leading and trailing spaces
-        const std::string trimmed = trim(str);
-        entry.value = trimmed;
+        entry.value = str.trim();
         return true;
     }
     case VECTOR:
@@ -168,7 +166,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Value& defaultValue, co
         }
     case ENUM: {
         const EnumIndex index = defaultValue.template get<EnumWrapper>().index;
-        std::string textValue;
+        String textValue;
         int flags = 0;
         while (true) {
             ss >> textValue;
@@ -207,24 +205,24 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Value& defaultValue, co
 
 template <typename TEnum>
 Outcome Settings<TEnum>::loadFromFile(const Path& path) {
-    std::ifstream ifs(path.native());
-    if (!ifs) {
-        return makeFailed("File ", path.native(), " cannot be opened for reading.");
+    FileTextInputStream ifs(path);
+    if (!ifs.good()) {
+        return makeFailed("File {} cannot be opened for reading.", path.string());
     }
-    std::string line;
     const Settings& descriptors = getDefaults();
-    while (std::getline(ifs, line, '\n')) {
+    String line;
+    while (ifs.readLine(line, L'\n')) {
         if (line.empty() || line[0] == '#') {
             continue;
         }
-        const std::size_t idx = line.find("=", 0);
+        const std::size_t idx = line.find(L"=", 0);
         if (idx == std::string::npos) {
             return makeFailed("Invalid format of the file, didn't find separating '='");
         }
-        std::string key = line.substr(0, idx);
-        std::string value = line.substr(idx + 1);
+        String key = line.substr(0, idx);
+        String value = line.substr(idx + 1);
         // throw away spaces from key
-        std::string trimmedKey = trim(key);
+        String trimmedKey = key.trim();
 
         // find the key in decriptor settings
         bool found = false;
@@ -232,17 +230,16 @@ Outcome Settings<TEnum>::loadFromFile(const Path& path) {
             if (e.value().name == trimmedKey) {
                 entries.insert(e.value().id, e.value());
                 if (!setValueByType(entries[e.value().id], e.value().value, value)) {
-                    return makeFailed("Invalid value of key ", trimmedKey, ": ", value);
+                    return makeFailed("Invalid value of key {}: {}", trimmedKey, value);
                 }
                 found = true;
                 break;
             }
         }
         if (!found) {
-            return makeFailed("Key ", trimmedKey, " was not find in settings");
+            return makeFailed("Key {} was not find in settings", trimmedKey);
         }
     }
-    ifs.close();
     return SUCCESS;
 }
 
@@ -250,62 +247,61 @@ template <typename TEnum>
 Outcome Settings<TEnum>::saveToFile(const Path& path) const {
     const Outcome dirCreated = FileSystem::createDirectory(path.parentPath());
     if (!dirCreated) {
-        return makeFailed("Cannot save settings: ", dirCreated.error());
+        return makeFailed("Cannot save settings: {}", dirCreated.error());
     }
 
     const Settings& descriptors = getDefaults();
     try {
-        std::ofstream ofs(path.native());
+        FileTextOutputStream ofs(path);
         for (auto& e : entries) {
             const Entry& entry = e.value();
             const Entry& descriptor = descriptors.entries[e.key()];
             if (!descriptor.desc.empty()) {
-                std::string desc = "# " + descriptor.desc;
+                String desc = "# " + descriptor.desc;
                 desc = setLineBreak(desc, 120);
-                desc = replaceAll(desc, "\n", "\n# ");
-                ofs << desc << std::endl;
+                desc.replaceAll("\n", "\n# ");
+                ofs.write(desc + L'\n');
             }
 
-            ofs << std::setw(30) << std::left << descriptor.name << " = ";
+            ofs.write() << std::setw(30) << std::left << descriptor.name << " = ";
             switch (entry.value.getTypeIdx()) {
             case BOOL:
-                ofs << (entry.value.template get<bool>() ? "true" : "false");
+                ofs.write() << (entry.value.template get<bool>() ? "true" : "false");
                 break;
             case INT:
-                ofs << entry.value.template get<int>();
+                ofs.write() << entry.value.template get<int>();
                 break;
             case FLOAT:
-                ofs << entry.value.template get<Float>();
+                ofs.write() << entry.value.template get<Float>();
                 break;
             case INTERVAL:
-                ofs << entry.value.template get<Interval>();
+                ofs.write() << entry.value.template get<Interval>();
                 break;
             case STRING:
-                ofs << entry.value.template get<std::string>();
+                ofs.write() << entry.value.template get<String>();
                 break;
             case VECTOR:
-                ofs << entry.value.template get<Vector>();
+                ofs.write() << entry.value.template get<Vector>();
                 break;
             case SYMMETRIC_TENSOR:
-                ofs << entry.value.template get<SymmetricTensor>();
+                ofs.write() << entry.value.template get<SymmetricTensor>();
                 break;
             case TRACELESS_TENSOR:
-                ofs << entry.value.template get<TracelessTensor>();
+                ofs.write() << entry.value.template get<TracelessTensor>();
                 break;
             case ENUM: {
                 EnumWrapper e = entry.value.template get<EnumWrapper>();
-                ofs << EnumMap::toString(e.value, e.index);
+                ofs.write() << EnumMap::toString(e.value, e.index);
                 break;
             }
             default:
                 NOT_IMPLEMENTED;
             }
-            ofs << std::endl;
+            ofs.write() << std::endl;
         }
-        ofs.close();
         return SUCCESS;
     } catch (const std::exception& e) {
-        return makeFailed("Cannot save settings: ", e.what());
+        return makeFailed("Cannot save settings: {}", exceptionMessage(e));
     }
 }
 
@@ -328,8 +324,8 @@ bool Settings<TEnum>::tryLoadFileOrSaveCurrent(const Path& path, const Settings&
 }
 
 template <typename TEnum>
-std::string Settings<TEnum>::typeToString(const int type) {
-    static StaticArray<std::string, 9> names = {
+String Settings<TEnum>::typeToString(const int type) {
+    static StaticArray<String, 9> names = {
         "bool",
         "int",
         "float",
@@ -343,7 +339,7 @@ std::string Settings<TEnum>::typeToString(const int type) {
     if (type >= 0 && type < int(names.size())) {
         return names[type];
     } else {
-        throw Exception("Unknown settings type " + std::to_string(type));
+        throw Exception("Unknown settings type " + toString(type));
     }
 }
 

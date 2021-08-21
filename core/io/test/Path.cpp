@@ -156,13 +156,13 @@ TEST_CASE("Path makeRelative", "[path]") {
     REQUIRE(path.makeRelative().makeAbsolute() == path);
 }
 
-TEST_CASE("Path native", "[path]") {
-    REQUIRE(Path().native() == "");
+TEST_CASE("Path string", "[path]") {
+    REQUIRE(Path().string() == "");
 
 #ifndef SPH_WIN
-    REQUIRE(Path("/").native() == "/");
-    REQUIRE(Path("\\").native() == "/");
-    REQUIRE(Path("/usr\\\\local////test").native() == "/usr/local/test");
+    REQUIRE(Path("/").string() == "/");
+    REQUIRE(Path("\\").string() == "/");
+    REQUIRE(Path("/usr\\\\local////test").string() == "/usr/local/test");
 #else
     REQUIRE(Path("/").native() == "\\");
     REQUIRE(Path("\\").native() == "\\");

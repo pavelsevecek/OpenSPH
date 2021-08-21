@@ -3,6 +3,7 @@
 #include "gui/objects/Color.h"
 #include "gui/objects/Point.h"
 #include "gui/windows/BatchDialog.h"
+#include "io/FileManager.h"
 #include "objects/containers/UnorderedMap.h"
 #include "run/Node.h"
 #include <map>
@@ -58,13 +59,9 @@ using NodeMap = UnorderedMap<SharedPtr<JobNode>, VisNode>;
 
 class INodeManagerCallbacks : public Polymorphic {
 public:
-    virtual void startRun(SharedPtr<INode> node,
-        const RunSettings& settings,
-        const std::string& name) const = 0;
+    virtual void startRun(SharedPtr<INode> node, const RunSettings& settings, const String& name) const = 0;
 
-    virtual void startRender(SharedPtr<INode> node,
-        const RunSettings& global,
-        const std::string& name) const = 0;
+    virtual void startRender(SharedPtr<INode> node, const RunSettings& global, const String& name) const = 0;
 
     virtual void markUnsaved(bool addToUndo) const = 0;
 };

@@ -42,7 +42,7 @@ static void printBanner(ILogger& logger) {
 static void printNoConfigsMsg(ILogger& logger, const Path& outputDir) {
     logger.write("");
     logger.write("No configuration files found, the program will generate default configuration ");
-    logger.write("files and save them to directory '" + outputDir.native() + "'");
+    logger.write("files and save them to directory '" + outputDir.string() + "'");
     logger.write("");
     logger.write("To start a simulation, re-run this program; it will load the generated files. ");
     logger.write("You can also specify parameters of the simulation as command-line arguments.  ");
@@ -59,12 +59,12 @@ static Settings<TEnum> loadSettings(const Path& path,
     Settings<TEnum> settings = defaults;
     const bool result = settings.tryLoadFileOrSaveCurrent(path);
     if (result) {
-        logger.write("Loaded configuration file '" + path.native() + "'");
+        logger.write("Loaded configuration file '" + path.string() + "'");
 
         // at least one configuration file exists, run the simulation
         doDryRun = false;
     } else {
-        logger.write("No file '" + path.native() + "' found, it has been created with default parameters");
+        logger.write("No file '" + path.string() + "' found, it has been created with default parameters");
     }
     return settings;
 }
@@ -81,12 +81,12 @@ struct RunParams {
     Optional<Float> fragTime;
     Optional<Float> reacTime;
 
-    Optional<std::string> resumePath;
-    Optional<std::string> outputPath;
+    Optional<String> resumePath;
+    Optional<String> outputPath;
 
 
     /// \brief Returns the name of the created output directory.
-    std::string getOutputPath() const {
+    String getOutputPath() const {
         if (outputPath) {
             return outputPath.value();
         }
@@ -112,9 +112,9 @@ struct RunParams {
             ss << particleCnt.value() << "p_";
         }
 
-        std::string name = ss.str();
+        String name = String::fromAscii(ss.str().c_str());
         // drop the last "_";
-        name.pop_back();
+        name.erase(name.size() - 1, 1);
         return name;
     }
 };
@@ -125,7 +125,7 @@ private:
     RunParams params;
     Path outputDir;
     bool doDryRun;
-    std::string paramsMsg;
+    String paramsMsg;
 
 public:
     RunFactory(const RunParams& params)
@@ -162,7 +162,7 @@ public:
         return doDryRun;
     }
 
-    std::string getBannerMsg() const {
+    String getBannerMsg() const {
         return logger.toString() + "\n" + paramsMsg;
     }
 
@@ -206,7 +206,7 @@ private:
 
         // target stabilization
         RunSettings stabDefaults = SphStabilizationJob::getDefaultSettings("stabilization");
-        stabDefaults.set(RunSettingsId::RUN_OUTPUT_PATH, outputDir.native());
+        stabDefaults.set(RunSettingsId::RUN_OUTPUT_PATH, outputDir.string());
         overrideRunTime(stabDefaults, defaultSphTime(params.stabTime, params.targetRadius, 0.2_f));
 
         RunSettings stabRun =
@@ -231,7 +231,7 @@ private:
 
     SharedPtr<JobNode> makeFragmentation() {
         RunSettings fragDefaults = SphJob::getDefaultSettings("fragmentation");
-        fragDefaults.set(RunSettingsId::RUN_OUTPUT_PATH, outputDir.native());
+        fragDefaults.set(RunSettingsId::RUN_OUTPUT_PATH, outputDir.string());
         overrideRunTime(fragDefaults, defaultSphTime(params.fragTime, params.targetRadius, 1._f));
         RunSettings fragRun =
             loadSettings<RunSettingsId>(outputDir / Path("frag.cnf"), fragDefaults, logger, doDryRun);
@@ -241,7 +241,7 @@ private:
 
     SharedPtr<JobNode> makeReaccumulation() {
         RunSettings reacDefaults = NBodyJob::getDefaultSettings("reaccumulation");
-        reacDefaults.set(RunSettingsId::RUN_OUTPUT_PATH, outputDir.native());
+        reacDefaults.set(RunSettingsId::RUN_OUTPUT_PATH, outputDir.string());
         overrideRunTime(reacDefaults, params.reacTime.valueOr(3600._f * 24._f * 10._f));
         RunSettings reacRun =
             loadSettings<RunSettingsId>(outputDir / Path("reac.cnf"), reacDefaults, logger, doDryRun);
@@ -348,8 +348,8 @@ static void run(const ArgParser& parser, ILogger& logger) {
             targetRadius.value(), impactSpeed.value() * 1.e3_f, impactEnergy.value(), density);
     }
 
-    params.outputPath = parser.tryGetArg<std::string>("o");
-    params.resumePath = parser.tryGetArg<std::string>("i");
+    params.outputPath = parser.tryGetArg<String>("o");
+    params.resumePath = parser.tryGetArg<String>("i");
 
     params.stabTime = parser.tryGetArg<Float>("st");
     params.fragTime = parser.tryGetArg<Float>("ft");
