@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2021
 
+#include "objects/containers/BasicAllocators.h"
 #include "objects/wrappers/PropagateConst.h"
 #include "thread/Scheduler.h"
 
@@ -46,5 +47,9 @@ public:
     static SharedPtr<Tbb> getGlobalInstance();
 };
 
+struct TbbAllocator {
+    MemoryBlock allocate(const std::size_t size, const std::size_t align) noexcept;
+    void deallocate(MemoryBlock& block) noexcept;
+};
 
 NAMESPACE_SPH_END

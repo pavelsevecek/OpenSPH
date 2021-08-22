@@ -12,6 +12,7 @@
 #include "objects/geometry/Multipole.h"
 #include "physics/Constants.h"
 #include "sph/kernel/GravityKernel.h"
+#include "thread/Tbb.h"
 #include <atomic>
 
 NAMESPACE_SPH_BEGIN
@@ -127,17 +128,24 @@ protected:
 
     /// Data passed into each node during treewalk
     struct TreeWalkState {
+
+#ifdef SPH_USE_TBB
+        using Allocator = TbbAllocator;
+#else
+        using Allocator = Mallocator;
+#endif
+
         /// Indices of nodes that need to be checked for intersections with opening ball of the evaluated
         /// node. If the opening ball does not intersect the node box, the node is moved into the node
         /// interaction list. If the node box is contained within the opening ball, the node is moved into the
         /// particle interaction list.
-        List<Size> checkList;
+        List<Size, Allocator> checkList;
 
         /// Indices of nodes where the exact (pair-wise) gravity solution have to be used.
-        Array<Size> particleList;
+        Array<Size, Allocator> particleList;
 
         /// Indices of nodes that shall be evaluated using multipole approximation.
-        Array<Size> nodeList;
+        Array<Size, Allocator> nodeList;
 
         /// Current depth in the tree; root node has depth equal to zero.
         Size depth = 0;

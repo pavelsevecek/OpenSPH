@@ -218,7 +218,6 @@ void BarnesHut::evalNode(IScheduler& scheduler,
 
     if (box == Box::EMPTY()) {
         // no particles in the box, skip
-        /// \todo ASSERT FIRED !
         SPH_ASSERT(evaluatedNode.isLeaf());
         return;
     }

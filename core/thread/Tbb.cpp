@@ -3,6 +3,7 @@
 #include "objects/wrappers/Optional.h"
 
 #ifdef SPH_USE_TBB
+#include <tbb/scalable_allocator.h>
 #include <tbb/tbb.h>
 #endif
 
@@ -143,6 +144,22 @@ SharedPtr<Tbb> Tbb::getGlobalInstance() {
         globalInstance = makeShared<Tbb>();
     }
     return globalInstance;
+}
+
+MemoryBlock TbbAllocator::allocate(const std::size_t size, const std::size_t align) noexcept {
+    MemoryBlock block;
+    block.ptr = scalable_aligned_malloc(size, align);
+    if (block.ptr) {
+        block.size = size;
+    } else {
+        block.size = 0;
+    }
+    return block;
+}
+
+void TbbAllocator::deallocate(MemoryBlock& block) noexcept {
+    scalable_aligned_free(block.ptr);
+    block.ptr = nullptr;
 }
 
 #endif

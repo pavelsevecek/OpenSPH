@@ -28,6 +28,7 @@ do
      set bmargin 13;\
      set title '$testname';\
      set xtics rotate by -60;\
+     set yrange [0:];\
      plot '$f' using 2:xticlabels(1) w lp pt 7 not;\
      set output"
 done
