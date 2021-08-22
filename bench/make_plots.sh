@@ -12,12 +12,10 @@ do
         duration=`echo $line | awk -F',' '{print $4}'`
         echo "Test $fname took $duration"
         echo "\"$timestamp\" $duration" >> $fname
-        #echo "$((timestamp+1)) $duration" >> $fname
-        #echo "$((timestamp+2)) $duration" >> $fname
     done
 done
 
-for f in `ls Finder*.txt`
+for f in `ls *.txt`
 do
    sort -o $f $f
    plotfile="${f%.*}.pdf"
