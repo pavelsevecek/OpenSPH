@@ -15,8 +15,10 @@ SOURCES += main.cpp \
     ../core/objects/finders/benchmark/Finders.cpp \
     ../core/sph/kernel/benchmark/Kernel.cpp \
     ../core/gravity/benchmark/Gravity.cpp \
+    ../core/gravity/benchmark/NBodySolver.cpp \
     ../core/objects/containers/benchmark/Map.cpp \
-    ../core/sph/solvers/benchmark/Solvers.cpp
+    ../core/sph/solvers/benchmark/Solvers.cpp \
+    ../core/timestepping/benchmark/Timestepping.cpp
 
 HEADERS += \
     Session.h \
