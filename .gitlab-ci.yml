@@ -39,7 +39,7 @@ clang_debug:
     - cd gcc_debug
     - qmake -spec linux-clang CONFIG+=debug ../sph.pro
     - make
-    
+
 clang_release:
   stage: build
   script:
@@ -172,6 +172,28 @@ regression:
       - regression/rotation/result.scf
       - regression/rotation/plot.png
 
+performance:
+  tags:
+    - opensph # might take a long time, do not run on shared runners
+  stage: regression
+  only:
+    refs:
+      - devel
+      - master
+  script:
+    - mkdir performance_build
+    - cd performance_build
+    - qmake -spec linux-g++ CONFIG+=release CONFIG+=use_tbb DEFINES+="SPH_VERSION=$OPENSPH_VERSION" ../bench.pro
+    - make
+    - cd bench
+    - ./bench -b
+    - git clone https://github.com/pavelsevecek/pavelsevecek.github.io.git web
+    - mkdir -p web/perf
+    - cp perf*.csv web/perf/
+    - cd web
+    - git add perf/*.csv
+    - git commit -m "performance test"
+    - git push https://pavelsevecek:$GITHUB_TOKEN@github.com/pavelsevecek/pavelsevecek.github.io.git --all
 
 build_package:
   stage: deploy

@@ -61,6 +61,8 @@ private:
         ss << std::setprecision(precision);
         if (scientific) {
             ss << std::scientific;
+        } else {
+            ss << std::fixed;
         }
         ss << first;
         writeImpl(ss, std::forward<TArgs>(rest)...);

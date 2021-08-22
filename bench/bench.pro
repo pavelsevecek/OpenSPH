@@ -12,7 +12,6 @@ include(../core/sharedCore.pro)
 
 SOURCES += main.cpp \
     Session.cpp \
-    examples/TestBenchmark.cpp \
     ../core/objects/finders/benchmark/Finders.cpp \
     ../core/sph/kernel/benchmark/Kernel.cpp \
     ../core/gravity/benchmark/Gravity.cpp \
