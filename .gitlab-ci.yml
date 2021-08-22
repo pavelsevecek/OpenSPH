@@ -192,6 +192,8 @@ performance:
     - cp perf*.csv web/perf/
     - cd web
     - git add perf/*.csv
+    - git config user.name "gitlab CI"
+    - git config user.email "sevecek@sirrah.troja.mff.cuni.cz"
     - git commit -m "performance test"
     - git push https://pavelsevecek:$GITHUB_TOKEN@github.com/pavelsevecek/pavelsevecek.github.io.git --all
 
