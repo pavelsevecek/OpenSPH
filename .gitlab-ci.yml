@@ -198,6 +198,7 @@ performance:
     - git commit -m "performance test"
     - git push https://pavelsevecek:$GITHUB_TOKEN@github.com/pavelsevecek/pavelsevecek.github.io.git --all
     - cd ..
+    - cp web/perf/perf*.csv .
     - ./make_plots.sh
     - pdftk *.pdf cat output result.pdf
 
