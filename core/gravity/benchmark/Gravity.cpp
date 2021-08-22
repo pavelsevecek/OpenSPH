@@ -81,3 +81,8 @@ BENCHMARK("BarnesHut build ThreadPool", "[gravity]", Benchmark::Context& context
     BarnesHut gravity(0.5_f, MultipoleOrder::OCTUPOLE);
     benchmarkGravity(gravity, *ThreadPool::getGlobalInstance(), context);
 }
+
+BENCHMARK("BarnesHut build Tbb", "[gravity]", Benchmark::Context& context) {
+    BarnesHut gravity(0.5_f, MultipoleOrder::OCTUPOLE);
+    benchmarkGravity(gravity, *Tbb::getGlobalInstance(), context);
+}
