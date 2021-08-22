@@ -181,12 +181,13 @@ performance:
       - devel
       - master
   script:
+    - apt-get install -y gnuplot pdftk
     - mkdir performance_build
     - cd performance_build
     - qmake -spec linux-g++ CONFIG+=release CONFIG+=use_tbb DEFINES+="SPH_VERSION=$OPENSPH_VERSION" ../bench.pro
     - make
-    - cd bench
-    - ./bench -b
+    - cd ../bench
+    - ../performance_build/bench/bench -b
     - git clone https://github.com/pavelsevecek/pavelsevecek.github.io.git web
     - mkdir -p web/perf
     - cp perf*.csv web/perf/
@@ -196,6 +197,15 @@ performance:
     - git config user.email "sevecek@sirrah.troja.mff.cuni.cz"
     - git commit -m "performance test"
     - git push https://pavelsevecek:$GITHUB_TOKEN@github.com/pavelsevecek/pavelsevecek.github.io.git --all
+    - cd ..
+    - ./make_plots.sh
+    - pdftk *.pdf cat output result.pdf
+
+artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - bench/result.pdf
 
 build_package:
   stage: deploy
