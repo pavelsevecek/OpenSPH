@@ -34,28 +34,28 @@ static void benchmarkSolver(ISolver& solver, Benchmark::Context& context) {
 
 BENCHMARK("SymmetricSolver simple", "[solvers]", Benchmark::Context& context) {
     RunSettings settings;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    Tbb& pool = *Tbb::getGlobalInstance();
     SymmetricSolver<DIMENSIONS> solver(pool, settings, getStandardEquations(settings));
     benchmarkSolver(solver, context);
 }
 
 BENCHMARK("AsymmetricSolver simple", "[solvers]", Benchmark::Context& context) {
     RunSettings settings;
-    IScheduler& pool = *ThreadPool::getGlobalInstance();
+    Tbb& pool = *Tbb::getGlobalInstance();
     AsymmetricSolver solver(pool, settings, getStandardEquations(settings));
     benchmarkSolver(solver, context);
 }
 
 BENCHMARK("EnergyConservingSolver simple", "[solvers]", Benchmark::Context& context) {
     RunSettings settings;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    Tbb& pool = *Tbb::getGlobalInstance();
     EnergyConservingSolver solver(pool, settings, getStandardEquations(settings));
     benchmarkSolver(solver, context);
 }
 
 BENCHMARK("GravitySolver simple", "[solvers]", Benchmark::Context& context) {
     RunSettings settings;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    Tbb& pool = *Tbb::getGlobalInstance();
     GravitySolver<AsymmetricSolver> solver(pool, settings, getStandardEquations(settings));
     benchmarkSolver(solver, context);
 }
