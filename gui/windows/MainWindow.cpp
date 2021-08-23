@@ -466,6 +466,7 @@ wxMenu* MainWindow::createProjectMenu() {
             if (dialog->ShowModal() == wxID_OK) {
                 this->setProjectPath(Path());
                 nodePage->reset();
+                Project::getInstance().reset();
                 auto node = dialog->selectedPreset();
                 if (node) {
                     nodePage->addNodes(*node);

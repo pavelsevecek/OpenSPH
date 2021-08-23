@@ -37,6 +37,10 @@ void Project::load(Config& config) {
     this->loadGui(config);
 }
 
+void Project::reset(){
+    *this = Project();
+}
+
 template <typename T>
 INLINE auto settingsToConfigValue(const T& value) {
     return value;

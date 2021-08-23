@@ -66,6 +66,8 @@ public:
 
     void load(Config& config);
 
+    void reset();
+
 private:
     void savePalettes(Config& config);
     void saveGui(Config& config);
