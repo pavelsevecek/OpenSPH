@@ -1756,14 +1756,16 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
     this->SetAutoLayout(true);
 
     wxAuiPaneInfo info;
-    info.Left().MinSize(wxSize(300, -1));
+    info.Name("PropertyGrid").Left().MinSize(wxSize(300, -1));
     aui->AddPane(grid, info);
-    aui->AddPane(nodeEditor, wxCENTER);
 
-    info.Right();
+    info.Name("Editor").Center();
+    aui->AddPane(nodeEditor, info);
+
+    info.Name("JobView").Right();
     aui->AddPane(jobView, info);
 
-    info.Right().Hide();
+    info.Name("PalettePane").Right().Hide();
     aui->AddPane(palettePane, info);
     aui->Update();
 
@@ -1826,11 +1828,21 @@ void NodeWindow::save(Config& config) {
 
     nodeMgr->save(config);
     nodeEditor->save(config);
+
+    SharedPtr<ConfigNode> layoutNode = config.addNode("layout");
+    String data(aui->SavePerspective().wc_str());
+    layoutNode->set("perspective", data);
 }
 
 void NodeWindow::load(Config& config) {
     nodeMgr->load(config);
     nodeEditor->load(config);
+
+    SharedPtr<ConfigNode> layoutNode = config.tryGetNode("layout");
+    if (layoutNode) {
+        String data = layoutNode->get<String>("perspective");
+        aui->LoadPerspective(data.toUnicode());
+    }
 }
 
 void NodeWindow::addNode(const SharedPtr<JobNode>& node) {
@@ -1851,13 +1863,13 @@ SharedPtr<JobNode> NodeWindow::createNode(AutoPtr<IJob>&& job) {
 void NodeWindow::createRenderPreview(JobNode& node) {
     renderPane = nodeMgr->createRenderPreview(this, node);
     wxAuiPaneInfo info;
-    info.Right()
+    info.Name("Preview")
+        .Right()
         .MinSize(wxSize(300, 300))
         .CaptionVisible(true)
         .DockFixed(false)
         .CloseButton(true)
         .Caption("Preview")
-        //.Window(renderPane)
         .DestroyOnClose();
     aui->AddPane(renderPane, info);
 
