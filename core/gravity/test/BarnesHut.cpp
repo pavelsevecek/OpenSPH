@@ -91,9 +91,10 @@ static void testMoments(const MultipoleExpansion<3>& moments, const Storage& sto
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
     IndexSequence seq(0, r.size());
-    Multipole<0> m0 = computeMultipole<0>(r, m, r_com, seq);
-    Multipole<2> m2 = computeMultipole<2>(r, m, r_com, seq);
-    Multipole<3> m3 = computeMultipole<3>(r, m, r_com, seq);
+    Multipole<1> M_com = toMultipole(r_com);
+    Multipole<0> m0 = computeMultipole<0>(r, m, M_com, seq);
+    Multipole<2> m2 = computeMultipole<2>(r, m, M_com, seq);
+    Multipole<3> m3 = computeMultipole<3>(r, m, M_com, seq);
     TracelessMultipole<0> q0 = computeReducedMultipole(m0);
     TracelessMultipole<2> q2 = computeReducedMultipole(m2);
     TracelessMultipole<3> q3 = computeReducedMultipole(m3);
@@ -335,3 +336,12 @@ TEST_CASE("BarnesHut override accelerations bug", "[gravity]") {
     REQUIRE(dv[0] == Vector(3._f, 1._f, 1._f));
     REQUIRE(dv[1] == Vector(4._f, -2._f, 10._f));
 }
+
+// test that everything can be evaluated at compile time
+static_assert(parallelAxisTheorem(TracelessMultipole<4>{},
+                  TracelessMultipole<3>{},
+                  TracelessMultipole<2>{},
+                  0._f,
+                  Multipole<1>{})
+                      .value<0, 0, 0, 0>() == 0._f,
+    "Static test failed");
