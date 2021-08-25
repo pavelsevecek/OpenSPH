@@ -8,6 +8,7 @@
 #include "objects/utility/IteratorAdapters.h"
 #include "quantities/Quantity.h"
 #include "quantities/Storage.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -261,22 +262,37 @@ struct StoragePairVisitor<VisitorEnum::HIGHEST_DERIVATIVES> {
 /// overloaded operator() for each value type.
 /// \tparam Type Subset of visited quantities, also defines parameters of the functor, see VisitorEnum.
 /// \param storage Storage containing visited quantities
+/// \param scheduler Scheduler used to parallelize processing of quantities
 /// \param functor Functor executed for every quantity or buffer matching the specified criterion
 template <VisitorEnum Type, typename TFunctor>
-void iterate(Storage& storage, TFunctor&& functor) {
+void iterate(Storage& storage, IScheduler& scheduler, TFunctor&& functor) {
     StorageVisitor<Type> visitor;
-    for (auto q : storage.getQuantities()) {
+    StorageSequence sequence = storage.getQuantities();
+    parallelFor(scheduler, 0, sequence.size(), 1, [&](const Size i) {
+        const StorageElement& q = sequence[i];
         dispatch(q.quantity.getValueEnum(), visitor, q.quantity, q.id, std::forward<TFunctor>(functor));
-    }
+    });
+}
+
+template <VisitorEnum Type, typename TFunctor>
+void iterate(Storage& storage, TFunctor&& functor) {
+    iterate<Type>(storage, SEQUENTIAL, std::forward<TFunctor>(functor));
 }
 
 /// \copydoc iterate
 template <VisitorEnum Type, typename TFunctor>
-void iterate(const Storage& storage, TFunctor&& functor) {
+void iterate(const Storage& storage, IScheduler& scheduler, TFunctor&& functor) {
     StorageVisitor<Type> visitor;
-    for (auto q : storage.getQuantities()) {
+    ConstStorageSequence sequence = storage.getQuantities();
+    parallelFor(scheduler, 0, sequence.size(), 1, [&](const Size i) {
+        const ConstStorageElement& q = sequence[i];
         dispatch(q.quantity.getValueEnum(), visitor, q.quantity, q.id, std::forward<TFunctor>(functor));
-    }
+    });
+}
+
+template <VisitorEnum Type, typename TFunctor>
+void iterate(const Storage& storage, TFunctor&& functor) {
+    iterate<Type>(storage, SEQUENTIAL, std::forward<TFunctor>(functor));
 }
 
 struct StorageVisitorWithPositions {

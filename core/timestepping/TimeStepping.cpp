@@ -73,7 +73,7 @@ static void stepFirstOrder(Storage& storage, IScheduler& scheduler, const TFunc&
         });
     };
 
-    iterate<VisitorEnum::FIRST_ORDER>(storage, process);
+    iterate<VisitorEnum::FIRST_ORDER>(storage, SEQUENTIAL, process);
 }
 
 template <typename TFunc>
@@ -92,7 +92,7 @@ static void stepSecondOrder(Storage& storage, IScheduler& scheduler, const TFunc
         });
     };
 
-    iterate<VisitorEnum::SECOND_ORDER>(storage, process);
+    iterate<VisitorEnum::SECOND_ORDER>(storage, SEQUENTIAL, process);
 }
 
 template <typename TFunc>
@@ -214,7 +214,7 @@ void EulerExplicit::stepParticles(IScheduler& scheduler, ISolver& solver, Statis
     VERBOSE_LOG
 
     // clear derivatives from previous timestep
-    storage->zeroHighestDerivatives();
+    storage->zeroHighestDerivatives(scheduler);
 
     // compute derivatives
     solver.integrate(*storage, stats);
@@ -257,13 +257,13 @@ PredictorCorrector::PredictorCorrector(const SharedPtr<Storage>& storage, const 
     storage->addDependent(predictions);
 
     // clear derivatives before using them in step method
-    storage->zeroHighestDerivatives();
+    storage->zeroHighestDerivatives(SEQUENTIAL);
 }
 
 PredictorCorrector::~PredictorCorrector() = default;
 
 void PredictorCorrector::makePredictions(IScheduler& scheduler) {
-    PROFILE_SCOPE("PredictorCorrector::predictions")
+    PROFILE_SCOPE("PredictorCorrector predictions")
     const Float dt = timeStep;
     const Float dt2 = 0.5_f * sqr(dt);
     /// \todo this is currently incompatible with NBodySolver, because we advance positions by 0.5 adt^2 ...
@@ -279,7 +279,7 @@ void PredictorCorrector::makePredictions(IScheduler& scheduler) {
 }
 
 void PredictorCorrector::makeCorrections(IScheduler& scheduler) {
-    PROFILE_SCOPE("PredictorCorrector::step   Corrections");
+    PROFILE_SCOPE("PredictorCorrector corrections");
     const Float dt = timeStep;
     const Float dt2 = 0.5_f * sqr(dt);
     constexpr Float a = 1._f / 3._f;
@@ -310,7 +310,7 @@ void PredictorCorrector::stepParticles(IScheduler& scheduler, ISolver& solver, S
     storage->swap(*predictions, VisitorEnum::HIGHEST_DERIVATIVES);
 
     // clear derivatives
-    storage->zeroHighestDerivatives();
+    storage->zeroHighestDerivatives(scheduler);
 
     // compute derivatives
     solver.integrate(*storage, stats);
@@ -340,7 +340,7 @@ void LeapFrog::stepParticles(IScheduler& scheduler, ISolver& solver, Statistics&
     });
 
     // compute the derivatives
-    storage->zeroHighestDerivatives();
+    storage->zeroHighestDerivatives(scheduler);
     solver.integrate(*storage, stats);
 
     // integrate first-order quantities as in Euler
@@ -387,7 +387,7 @@ RungeKutta::RungeKutta(const SharedPtr<Storage>& storage, const RunSettings& set
     storage->addDependent(k4);
 
     // clear derivatives before using them in step method
-    storage->zeroHighestDerivatives();
+    storage->zeroHighestDerivatives(SEQUENTIAL);
 }
 
 RungeKutta::~RungeKutta() = default;
@@ -397,7 +397,7 @@ void RungeKutta::integrateAndAdvance(ISolver& solver,
     Storage& k,
     const Float m,
     const Float n) {
-    k.zeroHighestDerivatives();
+    k.zeroHighestDerivatives(SEQUENTIAL);
     solver.integrate(k, stats);
     iteratePair<VisitorEnum::FIRST_ORDER>(
         k, *storage, [&](const QuantityId UNUSED(id), auto& kv, auto& kdv, auto& v, auto&) {
@@ -420,11 +420,11 @@ void RungeKutta::integrateAndAdvance(ISolver& solver,
         });
 }
 
-void RungeKutta::stepParticles(IScheduler& UNUSED(scheduler), ISolver& solver, Statistics& stats) {
-    k1->zeroHighestDerivatives();
-    k2->zeroHighestDerivatives();
-    k3->zeroHighestDerivatives();
-    k4->zeroHighestDerivatives();
+void RungeKutta::stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
+    k1->zeroHighestDerivatives(scheduler);
+    k2->zeroHighestDerivatives(scheduler);
+    k3->zeroHighestDerivatives(scheduler);
+    k4->zeroHighestDerivatives(scheduler);
 
     solver.integrate(*k1, stats);
     integrateAndAdvance(solver, stats, *k1, 0.5_f, 1._f / 6._f);
@@ -498,7 +498,7 @@ void ModifiedMidpointMethod::stepParticles(IScheduler& scheduler, ISolver& solve
             SPH_ASSERT(isReal(px));
         });
 
-    mid->zeroHighestDerivatives();
+    mid->zeroHighestDerivatives(scheduler);
     // evaluate the derivatives, using the advanced values
     solver.integrate(*mid, stats);
 
@@ -530,7 +530,7 @@ void ModifiedMidpointMethod::stepParticles(IScheduler& scheduler, ISolver& solve
                 SPH_ASSERT(isReal(px));
             });
         storage->swap(*mid, VisitorEnum::ALL_BUFFERS);
-        mid->zeroHighestDerivatives();
+        mid->zeroHighestDerivatives(scheduler);
         solver.integrate(*mid, stats);
     }
 
