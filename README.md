@@ -2,6 +2,7 @@
 
 
 ## Screenshots
+See also the <a href="https://pavelsevecek.github.io/#two">render gallery</a>.
 
 <img src="http://sirrah.troja.mff.cuni.cz/~sevecek/sph/components.png" width="400">
 <img src="http://sirrah.troja.mff.cuni.cz/~sevecek/sph/raytraced.png" width="400">
