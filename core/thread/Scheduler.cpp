@@ -4,23 +4,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-class SequentialTaskHandle : public ITask {
-public:
-    virtual void wait() override {
-        // when we return this handle, the task has been already finished, so we do not have to wait
-    }
-
-    virtual bool completed() const override {
-        // when we return this handle, the task has been already finished
-        return true;
-    }
-};
-
-SharedPtr<ITask> SequentialScheduler::submit(const Function<void()>& task) {
-    task();
-    return makeShared<SequentialTaskHandle>();
-}
-
 Optional<Size> SequentialScheduler::getThreadIdx() const {
     // imitating ThreadPool with 1 thread, so that we can use ThreadLocal with this scheduler
     return 0;
@@ -38,8 +21,13 @@ Size SequentialScheduler::getRecommendedGranularity() const {
 void SequentialScheduler::parallelFor(const Size from,
     const Size to,
     const Size UNUSED(granularity),
-    const Function<void(Size n1, Size n2)>& functor) {
+    const RangeFunctor& functor) {
     functor(from, to);
+}
+
+void SequentialScheduler::parallelInvoke(const Functor& func1, const Functor& func2) {
+    func1();
+    func2();
 }
 
 SharedPtr<SequentialScheduler> SequentialScheduler::getGlobalInstance() {
@@ -48,24 +36,5 @@ SharedPtr<SequentialScheduler> SequentialScheduler::getGlobalInstance() {
 }
 
 SequentialScheduler SEQUENTIAL;
-
-
-void IScheduler::parallelFor(const Size from,
-    const Size to,
-    const Size granularity,
-    const Function<void(Size n1, Size n2)>& functor) {
-    SPH_ASSERT(to >= from);
-    SPH_ASSERT(granularity > 0);
-
-    SharedPtr<ITask> handle = this->submit([this, from, to, granularity, &functor] {
-        for (Size n = from; n < to; n += granularity) {
-            const Size n1 = n;
-            const Size n2 = min(n1 + granularity, to);
-            this->submit([n1, n2, &functor] { functor(n1, n2); });
-        }
-    });
-    handle->wait();
-    SPH_ASSERT(handle->completed());
-}
 
 NAMESPACE_SPH_END

@@ -138,7 +138,7 @@ TEST_CASE("Pool submit parallel", "[thread]") {
 
 TEST_CASE("Pool wait for child", "[thread]") {
     ThreadPool pool;
-    SharedPtr<ITask> taskRoot, taskChild;
+    SharedPtr<Task> taskRoot, taskChild;
     volatile bool childFinished = false;
     taskRoot = pool.submit([&pool, &taskChild, &childFinished] {
         taskChild = pool.submit([&childFinished] {
@@ -183,7 +183,7 @@ TEST_CASE("Pool task throw nested", "[thread]") {
     REQUIRE_THROWS_AS(task->wait(), TestException);
 }
 
-TEST_CASE("ParallelFor", "[thread]") {
+TEST_CASE("Pool ParallelFor", "[thread]") {
     ThreadPool pool;
     std::atomic<uint64_t> sum;
     sum = 0;
@@ -192,7 +192,7 @@ TEST_CASE("ParallelFor", "[thread]") {
     REQUIRE_THREAD_SAFE(pool.remainingTaskCnt() == 0);
 }
 
-TEST_CASE("GetThreadIdx", "[thread]") {
+TEST_CASE("Pool GetThreadIdx", "[thread]") {
     ThreadPool pool(2);
     REQUIRE_THREAD_SAFE(pool.getThreadCnt() == 2);
     REQUIRE_FALSE(pool.getThreadIdx()); // main thread, not within the pool
@@ -210,7 +210,7 @@ TEST_CASE("GetThreadIdx", "[thread]") {
     });
 }
 
-TEST_CASE("WaitForAll", "[thread]") {
+TEST_CASE("Pool WaitForAll", "[thread]") {
     ThreadPool pool;
     pool.waitForAll(); // waitForAll with no running tasks
 
@@ -228,7 +228,7 @@ TEST_CASE("WaitForAll", "[thread]") {
 }
 
 #ifdef SPH_DEBUG
-TEST_CASE("ParallelFor assert", "[thread]") {
+TEST_CASE("Pool ParallelFor assert", "[thread]") {
     ThreadPool pool(2);
     // throw from worker thread
     auto lambda = [](Size) { SPH_ASSERT(false); };

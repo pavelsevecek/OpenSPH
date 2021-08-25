@@ -154,7 +154,7 @@ ThreadPool::~ThreadPool() {
     }
 }
 
-SharedPtr<ITask> ThreadPool::submit(const Function<void()>& task) {
+SharedPtr<Task> ThreadPool::submit(const Function<void()>& task) {
     SharedPtr<Task> handle = makeShared<Task>(task);
     handle->setParent(threadLocalContext.current);
 
@@ -206,6 +206,31 @@ Optional<Size> ThreadPool::getThreadIdx() const {
 
 Size ThreadPool::getThreadCnt() const {
     return threads.size();
+}
+
+void ThreadPool::parallelFor(const Size from,
+    const Size to,
+    const Size granularity,
+    const RangeFunctor& functor) {
+    SPH_ASSERT(to >= from);
+    SPH_ASSERT(granularity > 0);
+
+    SharedPtr<Task> handle = this->submit([this, from, to, granularity, &functor] {
+        for (Size n = from; n < to; n += granularity) {
+            const Size n1 = n;
+            const Size n2 = min(n1 + granularity, to);
+            this->submit([n1, n2, &functor] { functor(n1, n2); });
+        }
+    });
+    handle->wait();
+    SPH_ASSERT(handle->completed());
+}
+
+void ThreadPool::parallelInvoke(const Functor& task1, const Functor& task2) {
+    SharedPtr<Task> handle = this->submit(task1);
+    task2();
+    handle->wait();
+    SPH_ASSERT(handle->completed());
 }
 
 SharedPtr<ThreadPool> ThreadPool::getGlobalInstance() {

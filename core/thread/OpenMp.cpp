@@ -19,36 +19,6 @@ OmpScheduler::OmpScheduler(const Size numThreads) {
     }
 }
 
-class OmpTaskHandle : public ITask {
-public:
-    virtual void wait() override {}
-
-    virtual bool completed() const override {
-        return true;
-    }
-};
-
-
-SharedPtr<ITask> OmpScheduler::submit(const Function<void()>& task) {
-    if (isMainThread()) {
-#pragma omp parallel
-        {
-#pragma omp single
-            {
-#pragma omp taskgroup
-                {
-#pragma omp task
-                    { task(); }
-                }
-            }
-        }
-    } else {
-#pragma omp task
-        { task(); }
-    }
-    return makeShared<OmpTaskHandle>();
-}
-
 Optional<Size> OmpScheduler::getThreadIdx() const {
     return omp_get_thread_num();
 }
@@ -64,12 +34,37 @@ Size OmpScheduler::getRecommendedGranularity() const {
 void OmpScheduler::parallelFor(const Size from,
     const Size to,
     const Size granularity,
-    const Function<void(Size n1, Size n2)>& functor) {
+    const RangeFunc& functor) {
 #pragma omp parallel for schedule(dynamic, 1)
     for (Size n = from; n < to; n += granularity) {
         const Size n1 = n;
         const Size n2 = min(n1 + granularity, to);
         functor(n1, n2);
+    }
+}
+
+static void invoke(const OmpScheduler::PlainFunc& task1, const OmpScheduler::PlainFunc& task2) {
+#pragma omp taskgroup
+    {
+#pragma omp task shared(task1)
+        task1();
+
+#pragma omp task shared(task2)
+        task2();
+    }
+}
+
+void OmpScheduler::parallelInvoke(const PlainFunc& task1, const PlainFunc& task2) {
+    if (omp_get_level() == 0) {
+// top-level call
+#pragma omp parallel shared(task1, task2)
+        {
+#pragma omp single
+            { invoke(task1, task2); }
+        }
+    } else {
+        // nested call
+        invoke(task1, task2);
     }
 }
 

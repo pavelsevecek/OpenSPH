@@ -11,26 +11,11 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// \brief Handle used to control tasks submitted into the scheduler.
-class ITask : public Polymorphic {
-public:
-    /// \brief Waits till the task and all the child tasks are completed.
-    virtual void wait() = 0;
-
-    /// \brief Checks if the task already finished.
-    virtual bool completed() const = 0;
-};
-
 /// \brief Interface that allows unified implementation of sequential and parallelized versions of algorithms.
 ///
 /// Currently suitable only for task-based schedulers, cannot be used for OpenMP, MPI, etc.
 class IScheduler : public Polymorphic {
 public:
-    /// \brief Submits a task to be potentially executed asynchronously.
-    ///
-    /// \return Handle to the task created from the functor.
-    virtual SharedPtr<ITask> submit(const Function<void()>& task) = 0;
-
     /// \brief Returns the index of the calling thread.
     ///
     /// If this thread was not invoked by the scheduler, returns NOTHING. The returned index is interval
@@ -45,11 +30,11 @@ public:
     /// \brief Returns a value of granularity that is expected to perform well with the current thread count.
     virtual Size getRecommendedGranularity() const = 0;
 
+    using Functor = Function<void()>;
+    using RangeFunctor = Function<void(Size n1, Size n2)>;
+
     /// \brief Processes the given range concurrently.
     ///
-    /// Default implementation simply divides the range into chunks with size specified by granularity and
-    /// submits them into the scheduler. It can be overriden by the derived class to provide an optimized
-    /// variant of the parallel for.
     /// \param from First index of the processed range.
     /// \param to One-past-last index of the processed range.
     /// \param granularity Recommended size of the chunks passed to the functor.
@@ -58,7 +43,10 @@ public:
     virtual void parallelFor(const Size from,
         const Size to,
         const Size granularity,
-        const Function<void(Size n1, Size n2)>& functor);
+        const RangeFunctor& functor) = 0;
+
+    /// \brief Executes two functors concurrently.
+    virtual void parallelInvoke(const Functor& task1, const Functor& task2) = 0;
 };
 
 /// \brief Dummy scheduler that simply executes the submitted tasks sequentially on calling thread.
@@ -66,8 +54,6 @@ public:
 /// Useful to run an algorithm with no parallelization, mainly for testing/debugging purposes.
 class SequentialScheduler : public IScheduler {
 public:
-    virtual SharedPtr<ITask> submit(const Function<void()>& task) override;
-
     virtual Optional<Size> getThreadIdx() const override;
 
     virtual Size getThreadCnt() const override;
@@ -77,7 +63,9 @@ public:
     virtual void parallelFor(const Size from,
         const Size to,
         const Size granularity,
-        const Function<void(Size n1, Size n2)>& functor) override;
+        const RangeFunctor& functor) override;
+
+    virtual void parallelInvoke(const Functor& func1, const Functor& func2) override;
 
     static SharedPtr<SequentialScheduler> getGlobalInstance();
 };
@@ -134,6 +122,12 @@ INLINE void parallelFor(IScheduler& scheduler,
 template <typename TFunctor>
 INLINE void parallelFor(IScheduler& scheduler, const IndexSequence& sequence, TFunctor&& functor) {
     parallelFor(scheduler, *sequence.begin(), *sequence.end(), std::forward<TFunctor>(functor));
+}
+
+/// \brief Syntactic sugar, calls \ref parallelInvoke in given scheduler.
+template <typename TFunctor1, typename TFunctor2>
+void parallelInvoke(IScheduler& scheduler, TFunctor1&& func1, TFunctor2&& func2) {
+    scheduler.parallelInvoke(std::forward<TFunctor1>(func1), std::forward<TFunctor2>(func2));
 }
 
 NAMESPACE_SPH_END

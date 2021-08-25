@@ -29,10 +29,7 @@ void KdTree<TNode, TMetric>::buildImpl(IScheduler& scheduler, ArrayView<const Ve
     const Size nodeCnt = max(2 * points.size() / config.leafSize + 1, currentCnt);
     nodes.resize(nodeCnt);
 
-    SharedPtr<ITask> rootTask = scheduler.submit([this, &scheduler, points] {
-        this->buildTree(scheduler, ROOT_PARENT_NODE, KdChild(-1), 0, points.size(), entireBox, 0, 0);
-    });
-    rootTask->wait();
+    this->buildTree(scheduler, ROOT_PARENT_NODE, KdChild(-1), 0, points.size(), entireBox, 0, 0);
 
     // shrink nodes to only the constructed ones
     nodes.resize(nodeCounter);
@@ -148,18 +145,21 @@ void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
 
         // recurse to left and right subtree
         const Size nextSlidingCnt = slidingMidpoint ? slidingCnt + 1 : 0;
+        auto processLeftSubTree = [this, &scheduler, index, from, n1, box1, nextSlidingCnt, depth] {
+            this->buildTree(scheduler, index, KdChild::LEFT, from, n1, box1, nextSlidingCnt, depth + 1);
+        };
         auto processRightSubTree = [this, &scheduler, index, to, n1, box2, nextSlidingCnt, depth] {
             this->buildTree(scheduler, index, KdChild::RIGHT, n1, to, box2, nextSlidingCnt, depth + 1);
         };
         if (depth < config.maxParallelDepth) {
             // ad hoc decision - split the build only for few topmost nodes, there is no point in splitting
             // the work for child node in the bottom, it would only overburden the ThreadPool.
-            scheduler.submit(processRightSubTree);
+            parallelInvoke(scheduler, processLeftSubTree, processRightSubTree);
         } else {
             // otherwise simply process both subtrees in the same thread
+            processLeftSubTree();
             processRightSubTree();
         }
-        this->buildTree(scheduler, index, KdChild::LEFT, from, n1, box1, nextSlidingCnt, depth + 1);
     }
 }
 
@@ -478,23 +478,22 @@ void iterateTree(KdTree<TNode, TMetric>& tree,
             }
         }
     }
-    SharedPtr<ITask> task;
     if (!node.isLeaf()) {
         InnerNode<TNode>& inner = reinterpret_cast<InnerNode<TNode>&>(node);
 
         const Size newDepth = depthLimit == 0 ? 0 : depthLimit - 1;
+        auto iterateLeftSubtree = [&tree, &scheduler, &functor, &inner, newDepth] {
+            iterateTree<Dir>(tree, scheduler, functor, inner.left, newDepth);
+        };
         auto iterateRightSubtree = [&tree, &scheduler, &functor, &inner, newDepth] {
             iterateTree<Dir>(tree, scheduler, functor, inner.right, newDepth);
         };
         if (newDepth > 0) {
-            task = scheduler.submit(iterateRightSubtree);
+            parallelInvoke(scheduler, iterateLeftSubtree, iterateRightSubtree);
         } else {
+            iterateLeftSubtree();
             iterateRightSubtree();
         }
-        iterateTree<Dir>(tree, scheduler, functor, inner.left, newDepth);
-    }
-    if (task) {
-        task->wait();
     }
     if (Dir == IterateDirection::BOTTOM_UP) {
         if (node.isLeaf()) {
