@@ -334,14 +334,13 @@ void BarnesHut::evalParticleList(const LeafNode<BarnesHutNode>& leaf,
         }
     }
     // evaluate intra-leaf interactions (the leaf itself is not included in the list)
-    for (Size i : seq1) {
-        for (Size j : seq1) {
-            if (i == j) {
-                // skip, we are doing a symmetric evaluation
-                continue;
-            }
+    for (Size n1 = leaf.from; n1 < leaf.to; ++n1) {
+        for (Size n2 = n1 + 1; n2 < leaf.to; ++n2) {
+            const Size i = seq1.map(n1);
+            const Size j = seq1.map(n2);
             const Vector grad = actKernel.grad(r[j], r[i]);
             dv[i] += m[j] * grad;
+            dv[j] -= m[i] * grad;
         }
     }
 }
