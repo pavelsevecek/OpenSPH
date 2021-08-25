@@ -177,7 +177,7 @@ void DensityIndependentSolver::integrate(Storage& storage, Statistics& stats) {
     };
     parallelFor(scheduler, threadData, 0, r.size(), equationFunc);
 
-    derivatives.getAccumulated().store(storage);
+    derivatives.getAccumulated().store(scheduler, storage);
     equations.finalize(scheduler, storage, t);
 
     // step 6: get an estimate of Y for next time step by computing its derivative
