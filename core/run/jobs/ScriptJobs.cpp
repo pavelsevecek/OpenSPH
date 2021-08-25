@@ -61,18 +61,16 @@ void ChaiScriptJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& c
     Chai::registerBindings(chai);
 
     // node-specific stuff
-    /*for (int i = 0; i < inputCnt; ++i) {
-        SharedPtr<ParticleData> input = this->getInput<ParticleData>(slotNames[i]);
-        chai.add(chaiscript::var(std::ref(input->storage)), slotNames[i]);
-    }*/
-    chai.add(chaiscript::fun<std::function<Chai::Particles(String)>>([this](String name) {
+    chai.add(chaiscript::fun<std::function<Chai::Particles(std::string)>>([this](std::string nameUtf) {
+        String name = String::fromUtf8(nameUtf.c_str());
         SharedPtr<ParticleData> input = this->getInput<ParticleData>(name);
         Chai::Particles particles;
         particles.bindToStorage(input->storage);
         return particles;
     }),
         "getInput");
-    chai.add(chaiscript::fun<std::function<Float(String)>>([this](String name) {
+    chai.add(chaiscript::fun<std::function<Float(std::string)>>([this](std::string nameUtf) {
+        String name = String::fromUtf8(nameUtf.c_str());
         for (Size i = 0; i < paramNames.size(); ++i) {
             if (name == paramNames[i]) {
                 return paramValues[i];
