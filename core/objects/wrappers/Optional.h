@@ -3,6 +3,7 @@
 /// \file Optional.h
 /// \brief Wrapper of type value of which may or may not be present
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2021
 
 #include "common/Assert.h"
 #include "common/Traits.h"

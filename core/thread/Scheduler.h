@@ -74,6 +74,11 @@ public:
 
     virtual Size getRecommendedGranularity() const override;
 
+    virtual void parallelFor(const Size from,
+        const Size to,
+        const Size granularity,
+        const Function<void(Size n1, Size n2)>& functor) override;
+
     static SharedPtr<SequentialScheduler> getGlobalInstance();
 };
 
@@ -116,7 +121,7 @@ INLINE void parallelFor(IScheduler& scheduler,
     const Size granularity,
     TFunctor&& functor) {
     scheduler.parallelFor(from, to, granularity, [&functor](Size n1, Size n2) {
-        SPH_ASSERT(n1 < n2);
+        SPH_ASSERT(n1 <= n2);
         for (Size i = n1; i < n2; ++i) {
             functor(i);
         }
@@ -130,6 +135,5 @@ template <typename TFunctor>
 INLINE void parallelFor(IScheduler& scheduler, const IndexSequence& sequence, TFunctor&& functor) {
     parallelFor(scheduler, *sequence.begin(), *sequence.end(), std::forward<TFunctor>(functor));
 }
-
 
 NAMESPACE_SPH_END

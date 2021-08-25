@@ -269,7 +269,7 @@ void iterate(Storage& storage, IScheduler& scheduler, TFunctor&& functor) {
     StorageVisitor<Type> visitor;
     StorageSequence sequence = storage.getQuantities();
     parallelFor(scheduler, 0, sequence.size(), 1, [&](const Size i) {
-        const StorageElement& q = sequence[i];
+        StorageElement q = sequence[i];
         dispatch(q.quantity.getValueEnum(), visitor, q.quantity, q.id, std::forward<TFunctor>(functor));
     });
 }
@@ -285,7 +285,7 @@ void iterate(const Storage& storage, IScheduler& scheduler, TFunctor&& functor) 
     StorageVisitor<Type> visitor;
     ConstStorageSequence sequence = storage.getQuantities();
     parallelFor(scheduler, 0, sequence.size(), 1, [&](const Size i) {
-        const ConstStorageElement& q = sequence[i];
+        ConstStorageElement q = sequence[i];
         dispatch(q.quantity.getValueEnum(), visitor, q.quantity, q.id, std::forward<TFunctor>(functor));
     });
 }
