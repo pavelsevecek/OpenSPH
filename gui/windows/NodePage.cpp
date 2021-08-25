@@ -927,9 +927,10 @@ void NodeEditor::onPaint(wxPaintEvent& UNUSED(evt)) {
     if (!gc) {
         return;
     }
-
-    const wxGraphicsMatrix matrix =
-        gc->CreateMatrix(state.zoom, 0.f, 0.f, state.zoom, state.offset.x, state.offset.y);
+    // wxGraphicsContext::CreateMatrix behaves differently on wxGTK3, so let's do the transform by hand
+    wxGraphicsMatrix matrix = gc->GetTransform();
+    matrix.Translate(state.offset.x, state.offset.y);
+    matrix.Scale(state.zoom, state.zoom);
     gc->SetTransform(matrix);
 
     const NodeMap& nodes = nodeMgr->getNodes();
