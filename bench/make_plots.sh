@@ -9,9 +9,9 @@ do
     do
         name=`echo $line | awk -F',' '{print $1}'`
         fname="${name// /_}.txt"
-        avgtime=`echo $line | awk -f',' '{print $4}'`
-        mintime=`echo $line | awk -f',' '{print $6}'`
-        maxtime=`echo $line | awk -f',' '{print $7}'`
+        avgtime=`echo $line | awk -F',' '{print $4}'`
+        mintime=`echo $line | awk -F',' '{print $6}'`
+        maxtime=`echo $line | awk -F',' '{print $7}'`
 
         echo "Test $fname took $avgtime"
         echo "\"$timestamp\" $avgtime $mintime $maxtime" >> $fname
