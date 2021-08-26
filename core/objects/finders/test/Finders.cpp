@@ -298,7 +298,7 @@ TEST_CASE("KdTree iterateTree bottomUp", "[finders]") {
     Array<Vector> storage = distr.generate(SEQUENTIAL, 100000, domain);
 
     KdTree<TestNode> tree;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    Tbb& pool = *Tbb::getGlobalInstance();
     tree.build(pool, storage);
 
     std::atomic_bool success{ true };
@@ -325,7 +325,7 @@ TEST_CASE("KdTree iterateTree topDown", "[finders]") {
     Array<Vector> storage = distr.generate(SEQUENTIAL, 100000, domain);
 
     KdTree<TestNode> tree;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    Tbb& pool = *Tbb::getGlobalInstance();
     tree.build(pool, storage);
 
     std::atomic_bool success{ true };
