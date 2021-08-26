@@ -20,6 +20,10 @@ utilizing modern CPU features (SSE/AVX instruction sets).
 
 ## Quick start
 
+### Windows
+
+OpenSPH can be easily installed using the <a href="https://pavelsevecek.github.io/OpenSPH-0.3.7.msi">MSI installer</a>. 
+
 ### Debian and Ubuntu
 
 The latest version can be downloaded as a <a href="https://gitlab.com/sevecekp/sph/-/jobs/artifacts/master/file/opensph_0.3.7-1.deb?job=build_package">Debian buster package</a>.
