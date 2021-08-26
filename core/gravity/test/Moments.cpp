@@ -1,8 +1,8 @@
 #include "gravity/Moments.h"
 #include "catch.hpp"
 #include "physics/Integrals.h"
-#include "tests/Setup.h"
 #include "tests/Approx.h"
+#include "tests/Setup.h"
 
 using namespace Sph;
 
@@ -69,18 +69,19 @@ TEST_CASE("Moments computation", "[gravity]") {
 
     // zero moment = total mass (center doesn't matter)
     IndexSequence seq(0, r.size());
-    REQUIRE(computeMultipole<0>(r, m, r_com, seq).value() == m_total);
-    REQUIRE(computeMultipole<0>(r, m, Vector(-2._f), seq).value() == m_total);
+    const Multipole<1> M_com = toMultipole(r_com);
+    REQUIRE(computeMultipole<0>(r, m, M_com, seq).value() == m_total);
+    REQUIRE(computeMultipole<0>(r, m, toMultipole(Vector(-2._f)), seq).value() == m_total);
 
     // first moment = dipole, should be zero if computed with center in r_com
-    REQUIRE(computeMultipole<1>(r, m, r_com, seq) == approx(Multipole<1>(0._f)));
+    REQUIRE(computeMultipole<1>(r, m, M_com, seq) == approx(Multipole<1>(0._f)));
     // nonzero around other point
     const Vector r0 = Vector(2._f);
-    Multipole<1> m1 = computeMultipole<1>(r, m, r0, seq);
+    Multipole<1> m1 = computeMultipole<1>(r, m, toMultipole(r0), seq);
     REQUIRE(Vector(m1[0], m1[1], m1[2]) == approx(m_total * (-r0)));
 
     // second moment, should be generally nonzero
-    Multipole<2> m2 = computeMultipole<2>(r, m, r_com, seq);
+    Multipole<2> m2 = computeMultipole<2>(r, m, M_com, seq);
     REQUIRE(m2 != approx(Multipole<2>(0._f)));
 }
 
@@ -103,17 +104,17 @@ TEST_CASE("Parallel axis theorem", "[gravity]") {
     ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
 
     IndexSequence seq(0, r.size());
-    const Float m0 = computeMultipole<0>(r, m, Vector(0._f), seq).value();
-    Multipole<1> m1 = computeMultipole<1>(r, m, Vector(0._f), seq);
-    Multipole<2> m2 = computeMultipole<2>(r, m, Vector(0._f), seq);
-    Multipole<3> m3 = computeMultipole<3>(r, m, Vector(0._f), seq);
-    Multipole<4> m4 = computeMultipole<4>(r, m, Vector(0._f), seq);
+    const Float m0 = computeMultipole<0>(r, m, Multipole<1>{}, seq).value();
+    Multipole<1> m1 = computeMultipole<1>(r, m, Multipole<1>{}, seq);
+    Multipole<2> m2 = computeMultipole<2>(r, m, Multipole<1>{}, seq);
+    Multipole<3> m3 = computeMultipole<3>(r, m, Multipole<1>{}, seq);
+    Multipole<4> m4 = computeMultipole<4>(r, m, Multipole<1>{}, seq);
     TracelessMultipole<1> q1 = computeReducedMultipole(m1);
     TracelessMultipole<2> q2 = computeReducedMultipole(m2);
     TracelessMultipole<3> q3 = computeReducedMultipole(m3);
     TracelessMultipole<4> q4 = computeReducedMultipole(m4);
 
-    const Vector d(2._f, 3._f, -1._f);
+    const Multipole<1> d = toMultipole(Vector(2._f, 3._f, -1._f));
     Multipole<1> md1 = computeMultipole<1>(r, m, d, seq);
     Multipole<2> md2 = computeMultipole<2>(r, m, d, seq);
     Multipole<3> md3 = computeMultipole<3>(r, m, d, seq);
@@ -124,10 +125,11 @@ TEST_CASE("Parallel axis theorem", "[gravity]") {
     TracelessMultipole<4> qd4 = computeReducedMultipole(md4);
 
     // the parameter is d = r - r_new, so to evaluate in d we need to pass -d
-    TracelessMultipole<1> qpat1 = parallelAxisTheorem(q1, m0, -d);
-    TracelessMultipole<2> qpat2 = parallelAxisTheorem(q2, m0, -d);
-    TracelessMultipole<3> qpat3 = parallelAxisTheorem(q3, q2, m0, -d);
-    TracelessMultipole<4> qpat4 = parallelAxisTheorem(q4, q3, q2, m0, -d);
+    Multipole<1> nd = toMultipole(-Vector(2._f, 3._f, -1._f));
+    TracelessMultipole<1> qpat1 = parallelAxisTheorem(q1, m0, nd);
+    TracelessMultipole<2> qpat2 = parallelAxisTheorem(q2, m0, nd);
+    TracelessMultipole<3> qpat3 = parallelAxisTheorem(q3, q2, m0, nd);
+    TracelessMultipole<4> qpat4 = parallelAxisTheorem(q4, q3, q2, m0, nd);
 
     REQUIRE(qd1 == approx(qpat1));
     REQUIRE(qd2 == approx(qpat2));

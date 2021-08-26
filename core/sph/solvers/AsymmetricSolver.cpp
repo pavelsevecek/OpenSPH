@@ -198,7 +198,6 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
         derivatives.eval(i, data.idxs, data.grads);
         neighs[i] = data.idxs.size();
     };
-    PROFILE_SCOPE("AsymmetricSolver::loop");
     parallelFor(scheduler, threadData, 0, r.size(), functor);
 }
 
@@ -207,7 +206,7 @@ void AsymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {
 
     // store the computed values into the storage
     Accumulated& accumulated = derivatives.getAccumulated();
-    accumulated.store(storage);
+    accumulated.store(scheduler, storage);
 
     // using the stored values, integrates all equation terms
     const Float t = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);

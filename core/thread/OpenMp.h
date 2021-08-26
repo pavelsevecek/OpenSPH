@@ -31,7 +31,9 @@ public:
     virtual void parallelFor(const Size from,
         const Size to,
         const Size granularity,
-        const Function<void(Size n1, Size n2)>& functor) override;
+        const RangeFunctor& functor) override;
+
+    virtual void parallelInvoke(const Functor& task1, const Functor& task2) override;
 
     static SharedPtr<OmpScheduler> getGlobalInstance();
 };

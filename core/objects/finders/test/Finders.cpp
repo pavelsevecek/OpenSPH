@@ -262,13 +262,9 @@ TEST_CASE("KdTree", "[finders]") {
     finder1.build(*ThreadPool::getGlobalInstance(), storage);
     REQUIRE(finder1.sanityCheck());
 
-#ifdef SPH_USE_TBB
     KdTree<KdNode> finder2;
     finder2.build(*Tbb::getGlobalInstance(), storage);
     REQUIRE(finder2.sanityCheck());
-#else
-    KdTree<KdNode>& finder2 = finder1;
-#endif
 
     KdTree<KdNode> finder3;
     finder3.build(SEQUENTIAL, storage);

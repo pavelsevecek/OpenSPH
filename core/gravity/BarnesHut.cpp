@@ -334,14 +334,13 @@ void BarnesHut::evalParticleList(const LeafNode<BarnesHutNode>& leaf,
         }
     }
     // evaluate intra-leaf interactions (the leaf itself is not included in the list)
-    for (Size i : seq1) {
-        for (Size j : seq1) {
-            if (i == j) {
-                // skip, we are doing a symmetric evaluation
-                continue;
-            }
+    for (Size n1 = leaf.from; n1 < leaf.to; ++n1) {
+        for (Size n2 = n1 + 1; n2 < leaf.to; ++n2) {
+            const Size i = seq1.map(n1);
+            const Size j = seq1.map(n2);
             const Vector grad = actKernel.grad(r[j], r[i]);
             dv[i] += m[j] * grad;
+            dv[j] -= m[i] * grad;
         }
     }
 }
@@ -419,13 +418,14 @@ void BarnesHut::buildLeaf(BarnesHutNode& node) {
 
     // compute gravitational moments from individual particles
     // M0 is a sum of particle masses, M1 is a dipole moment = zero around center of mass
-    SPH_ASSERT(computeMultipole<0>(r, m, leaf.com, sequence).value() == m_leaf);
-    const Multipole<2> m2 = computeMultipole<2>(r, m, leaf.com, sequence);
-    const Multipole<3> m3 = computeMultipole<3>(r, m, leaf.com, sequence);
+    Multipole<1> M_com = toMultipole(leaf.com);
+    SPH_ASSERT(computeMultipole<0>(r, m, M_com, sequence).value() == m_leaf);
+    const Multipole<2> M2 = computeMultipole<2>(r, m, M_com, sequence);
+    const Multipole<3> M3 = computeMultipole<3>(r, m, M_com, sequence);
 
     // compute traceless tensors to reduce number of independent components
-    const TracelessMultipole<2> q2 = computeReducedMultipole(m2);
-    const TracelessMultipole<3> q3 = computeReducedMultipole(m3);
+    const TracelessMultipole<2> q2 = computeReducedMultipole(M2);
+    const TracelessMultipole<3> q3 = computeReducedMultipole(M3);
 
     // save the moments to the leaf
     leaf.moments.order<0>() = m_leaf;
@@ -469,7 +469,7 @@ void BarnesHut::buildInner(BarnesHutNode& node, BarnesHutNode& left, BarnesHutNo
     inner.moments.order<0>() = ml + mr;
 
     // we already computed moments of children nodes, sum up using parallel axis theorem
-    Vector d = left.com - inner.com;
+    Multipole<1> d = toMultipole(left.com - inner.com);
     TracelessMultipole<1>& Ml1 = left.moments.order<1>();
     TracelessMultipole<2>& Ml2 = left.moments.order<2>();
     TracelessMultipole<3>& Ml3 = left.moments.order<3>();
@@ -477,7 +477,7 @@ void BarnesHut::buildInner(BarnesHutNode& node, BarnesHutNode& left, BarnesHutNo
     inner.moments.order<2>() = parallelAxisTheorem(Ml2, ml, d);
     inner.moments.order<3>() = parallelAxisTheorem(Ml3, Ml2, ml, d);
 
-    d = right.com - inner.com;
+    d = toMultipole(right.com - inner.com);
     TracelessMultipole<1>& Mr1 = right.moments.order<1>();
     TracelessMultipole<2>& Mr2 = right.moments.order<2>();
     TracelessMultipole<3>& Mr3 = right.moments.order<3>();

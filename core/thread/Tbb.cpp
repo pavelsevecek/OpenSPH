@@ -129,14 +129,15 @@ Size Tbb::getRecommendedGranularity() const {
     return data->granularity;
 }
 
-void Tbb::parallelFor(const Size from,
-    const Size to,
-    const Size granularity,
-    const Function<void(Size, Size)>& functor) {
+void Tbb::parallelFor(const Size from, const Size to, const Size granularity, const RangeFunctor& functor) {
     data->arena.execute([from, to, granularity, &functor] {
         tbb::parallel_for(tbb::blocked_range<Size>(from, to, granularity),
             [&functor](const tbb::blocked_range<Size> range) { functor(range.begin(), range.end()); });
     });
+}
+
+void Tbb::parallelInvoke(const Functor& task1, const Functor& task2) {
+    data->arena.execute([&task1, &task2] { tbb::parallel_invoke(task1, task2); });
 }
 
 SharedPtr<Tbb> Tbb::getGlobalInstance() {

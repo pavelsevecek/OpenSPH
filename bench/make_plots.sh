@@ -9,9 +9,12 @@ do
     do
         name=`echo $line | awk -F',' '{print $1}'`
         fname="${name// /_}.txt"
-        duration=`echo $line | awk -F',' '{print $4}'`
-        echo "Test $fname took $duration"
-        echo "\"$timestamp\" $duration" >> $fname
+        avgtime=`echo $line | awk -F',' '{print $4}'`
+        mintime=`echo $line | awk -F',' '{print $6}'`
+        maxtime=`echo $line | awk -F',' '{print $7}'`
+
+        echo "Test $fname took $avgtime"
+        echo "\"$timestamp\" $avgtime $mintime $maxtime" >> $fname
     done
 done
 
@@ -29,6 +32,8 @@ do
      set title '$testname';\
      set xtics rotate by -60;\
      set yrange [0:];\
-     plot '$f' using 2:xticlabels(1) w lp pt 7 not;\
+     plot '$f' using 2:xticlabels(1) w lp pt 7 not, \
+          '$f' using 3:xticlabels(1) w lp lt 0 not, \
+          '$f' using 4:xticlabels(1) w lp lt 0 not; \
      set output"
 done

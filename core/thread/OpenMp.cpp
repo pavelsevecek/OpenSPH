@@ -64,12 +64,37 @@ Size OmpScheduler::getRecommendedGranularity() const {
 void OmpScheduler::parallelFor(const Size from,
     const Size to,
     const Size granularity,
-    const Function<void(Size n1, Size n2)>& functor) {
+    const RangeFunctor& functor) {
 #pragma omp parallel for schedule(dynamic, 1)
     for (Size n = from; n < to; n += granularity) {
         const Size n1 = n;
         const Size n2 = min(n1 + granularity, to);
         functor(n1, n2);
+    }
+}
+
+static void invoke(const OmpScheduler::Functor& task1, const OmpScheduler::Functor& task2) {
+#pragma omp taskgroup
+    {
+#pragma omp task shared(task1)
+        task1();
+
+#pragma omp task shared(task2)
+        task2();
+    }
+}
+
+void OmpScheduler::parallelInvoke(const Functor& task1, const Functor& task2) {
+    if (omp_get_level() == 0) {
+// top-level call
+#pragma omp parallel shared(task1, task2)
+        {
+#pragma omp single
+            { invoke(task1, task2); }
+        }
+    } else {
+        // nested call
+        invoke(task1, task2);
     }
 }
 

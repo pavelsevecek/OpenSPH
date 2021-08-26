@@ -167,7 +167,7 @@ void SymmetricSolver<Dim>::afterLoop(Storage& storage, Statistics& stats) {
     first->sum(scheduler, threadLocalAccumulated);
 
     // store them to storage
-    first->store(storage);
+    first->store(scheduler, storage);
 
     // compute neighbor statistics
     MinMaxMean neighs;

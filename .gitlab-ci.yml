@@ -4,10 +4,10 @@ stages:
   - regression
   - deploy
 
-before_script:  
+before_script:
   - apt-get update -qy
   - apt-get install -y clang qt5-default libwxgtk3.0-dev wx3.0-headers wx-common libtbb-dev
- 
+
 gcc_debug:
   stage: build
   script:
@@ -15,7 +15,7 @@ gcc_debug:
     - cd gcc_debug
     - qmake -spec linux-g++ CONFIG+=debug ../sph.pro
     - make
-    
+
 gcc_release:
   stage: build
   script:
@@ -58,7 +58,7 @@ test_debug:
     - wget -P /usr/include/catch2/ "https://github.com/catchorg/Catch2/releases/download/v2.5.0/catch.hpp"
     - mkdir tests
     - cd tests
-    - qmake -spec linux-g++ DEFINES+="SPH_CONFIG_SET SPH_TEST_RESOURCE_PATH=\"../../test/resources/\"" CONFIG+=debug ../test.pro
+    - qmake -spec linux-g++ DEFINES+="SPH_CONFIG_SET SPH_TEST_RESOURCE_PATH=\"../../test/resources/\"" CONFIG+=debug CONFIG+=use_tbb ../test.pro
     - make
     - cd test
     - ./test -d yes exclude:[output] exclude:[filesystem] exclude:[path] exclude:[thread] exclude:[grid]
@@ -74,7 +74,7 @@ test_release:
     - wget -P /usr/include/catch2/ "https://github.com/catchorg/Catch2/releases/download/v2.5.0/catch.hpp" 
     - mkdir tests
     - cd tests
-    - qmake -spec linux-g++ DEFINES+="SPH_CONFIG_SET SPH_TEST_RESOURCE_PATH=\"../../test/resources\""  CONFIG+=release ../test.pro
+    - qmake -spec linux-g++ DEFINES+="SPH_CONFIG_SET SPH_TEST_RESOURCE_PATH=\"../../test/resources\""  CONFIG+=release CONFIG+=use_tbb ../test.pro
     - make
     - cd test
     - ./test -d yes exclude:[filesystem] exclude:[path] exclude:[thread] exclude:[grid]
