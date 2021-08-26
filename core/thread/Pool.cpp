@@ -215,7 +215,7 @@ void ThreadPool::parallelFor(const Size from,
     SPH_ASSERT(to >= from);
     SPH_ASSERT(granularity > 0);
 
-    SharedPtr<Task> handle = this->submit([this, from, to, granularity, &functor] {
+    SharedPtr<ITask> handle = this->submit([this, from, to, granularity, &functor] {
         for (Size n = from; n < to; n += granularity) {
             const Size n1 = n;
             const Size n2 = min(n1 + granularity, to);
@@ -227,7 +227,7 @@ void ThreadPool::parallelFor(const Size from,
 }
 
 void ThreadPool::parallelInvoke(const Functor& task1, const Functor& task2) {
-    SharedPtr<Task> handle = this->submit(task1);
+    SharedPtr<ITask> handle = this->submit(task1);
     task2();
     handle->wait();
     SPH_ASSERT(handle->completed());

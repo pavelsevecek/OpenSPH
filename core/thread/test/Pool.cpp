@@ -138,7 +138,7 @@ TEST_CASE("Pool submit parallel", "[thread]") {
 
 TEST_CASE("Pool wait for child", "[thread]") {
     ThreadPool pool;
-    SharedPtr<Task> taskRoot, taskChild;
+    SharedPtr<ITask> taskRoot, taskChild;
     volatile bool childFinished = false;
     taskRoot = pool.submit([&pool, &taskChild, &childFinished] {
         taskChild = pool.submit([&childFinished] {
