@@ -288,13 +288,13 @@ struct TestNode : public KdNode {
     }
 };
 
-TEMPLATE_TEST_CASE("KdTree iterateTree bottomUp", "[finders]", ThreadPool, Tbb) {
+TEST_CASE("KdTree iterateTree bottomUp", "[finders]") {
     HexagonalPacking distr;
     SphericalDomain domain(Vector(0._f), 2._f);
     Array<Vector> storage = distr.generate(SEQUENTIAL, 100000, domain);
 
     KdTree<TestNode> tree;
-    TestType& pool = *TestType::getGlobalInstance();
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     tree.build(pool, storage);
 
     std::atomic_bool success{ true };
@@ -315,13 +315,13 @@ TEMPLATE_TEST_CASE("KdTree iterateTree bottomUp", "[finders]", ThreadPool, Tbb) 
     REQUIRE(Size(visitedCnt) == tree.getNodeCnt());
 }
 
-TEMPLATE_TEST_CASE("KdTree iterateTree topDown", "[finders]", ThreadPool, Tbb) {
+TEST_CASE("KdTree iterateTree topDown", "[finders]") {
     HexagonalPacking distr;
     SphericalDomain domain(Vector(0._f), 2._f);
     Array<Vector> storage = distr.generate(SEQUENTIAL, 100000, domain);
 
     KdTree<TestNode> tree;
-    TestType& pool = *TestType::getGlobalInstance();
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     tree.build(pool, storage);
 
     std::atomic_bool success{ true };
