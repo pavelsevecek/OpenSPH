@@ -1557,7 +1557,7 @@ public:
 
         panel->onPaletteChanged = [quantityBox, &project](const Palette& palette) { //
             wxString name = quantityBox->GetStringSelection();
-            project.setPalette(name.wc_str(), palette);
+            project.setPalette(name.wc_str().data(), palette);
         };
     }
 };
@@ -1608,7 +1608,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             break;
         }
         case IVirtualEntry::Type::STRING: {
-            String stringValue(value.GetString().wc_str());
+            String stringValue(value.GetString().wc_str().data());
             /// \todo generalize, using some kind of validator
             if (entry->getName() == "Name") {
                 UniqueNameManager nameMgr = nodeMgr->makeUniqueNameManager();
@@ -1618,7 +1618,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             break;
         }
         case IVirtualEntry::Type::PATH:
-            entry->set(Path(String(value.GetString().wc_str())));
+            entry->set(Path(String(value.GetString().wc_str().data())));
             break;
         case IVirtualEntry::Type::ENUM:
         case IVirtualEntry::Type::FLAGS: {
@@ -1831,7 +1831,7 @@ void NodeWindow::save(Config& config) {
     nodeEditor->save(config);
 
     SharedPtr<ConfigNode> layoutNode = config.addNode("layout");
-    String data(aui->SavePerspective().wc_str());
+    String data(aui->SavePerspective().wc_str().data());
     layoutNode->set("perspective", data);
 }
 
