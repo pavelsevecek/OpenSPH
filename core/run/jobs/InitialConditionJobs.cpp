@@ -625,6 +625,7 @@ VirtualSettings NoiseQuantityIc::getSettings() {
     VirtualSettings::Category& quantityCat = connector.addCategory("Noise parameters");
     quantityCat.connect("Magnitude [m/s]", "magnitude", magnitude);
     quantityCat.connect("Grid dimensions", "grid_dims", gridDims);
+    quantityCat.connect("Random seed", "seed", seed);
 
     return connector;
 }
@@ -641,7 +642,7 @@ template <Size Dims, typename TSetter>
 void NoiseQuantityIc::randomize(IRunCallbacks& callbacks,
     ArrayView<const Vector> r,
     const TSetter& setter) const {
-    UniformRng rng;
+    UniformRng rng(seed);
 
     StaticArray<Grid<Vector>, Dims> gradients;
     for (Size dim = 0; dim < Dims; ++dim) {

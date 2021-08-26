@@ -193,6 +193,7 @@ class NoiseQuantityIc : public IParticleJob {
 private:
     Float magnitude = 1._f;
     Vector gridDims = Vector(8, 8, 8);
+    int seed = 1234;
 
 public:
     explicit NoiseQuantityIc(const String& name);
