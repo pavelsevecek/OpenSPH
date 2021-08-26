@@ -20,6 +20,8 @@ public:
         granularity = newGranularity;
     }
 
+    virtual SharedPtr<ITask> submit(const Function<void()>& task) override;
+
     virtual Optional<Size> getThreadIdx() const override;
 
     virtual Size getThreadCnt() const override;

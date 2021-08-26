@@ -19,6 +19,36 @@ OmpScheduler::OmpScheduler(const Size numThreads) {
     }
 }
 
+class OmpTaskHandle : public ITask {
+public:
+    virtual void wait() override {}
+
+    virtual bool completed() const override {
+        return true;
+    }
+};
+
+
+SharedPtr<ITask> OmpScheduler::submit(const Function<void()>& task) {
+    if (isMainThread()) {
+#pragma omp parallel
+        {
+#pragma omp single
+            {
+#pragma omp taskgroup
+                {
+#pragma omp task
+                    { task(); }
+                }
+            }
+        }
+    } else {
+#pragma omp task
+        { task(); }
+    }
+    return makeShared<OmpTaskHandle>();
+}
+
 Optional<Size> OmpScheduler::getThreadIdx() const {
     return omp_get_thread_num();
 }

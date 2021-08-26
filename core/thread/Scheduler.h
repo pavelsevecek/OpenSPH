@@ -11,11 +11,26 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Handle used to control tasks submitted into the scheduler.
+class ITask : public Polymorphic {
+public:
+    /// \brief Waits till the task and all the child tasks are completed.
+    virtual void wait() = 0;
+
+    /// \brief Checks if the task already finished.
+    virtual bool completed() const = 0;
+};
+
 /// \brief Interface that allows unified implementation of sequential and parallelized versions of algorithms.
 ///
 /// Currently suitable only for task-based schedulers, cannot be used for OpenMP, MPI, etc.
 class IScheduler : public Polymorphic {
 public:
+    /// \brief Submits a task to be potentially executed asynchronously.
+    ///
+    /// \return Handle to the task created from the functor.
+    virtual SharedPtr<ITask> submit(const Function<void()>& task) = 0;
+
     /// \brief Returns the index of the calling thread.
     ///
     /// If this thread was not invoked by the scheduler, returns NOTHING. The returned index is interval
@@ -54,6 +69,8 @@ public:
 /// Useful to run an algorithm with no parallelization, mainly for testing/debugging purposes.
 class SequentialScheduler : public IScheduler {
 public:
+    virtual SharedPtr<ITask> submit(const Function<void()>& task) override;
+
     virtual Optional<Size> getThreadIdx() const override;
 
     virtual Size getThreadCnt() const override;

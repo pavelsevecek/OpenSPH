@@ -17,7 +17,7 @@
 NAMESPACE_SPH_BEGIN
 
 /// \brief Task to be executed by one of available threads.
-class Task : public Shareable<Task> {
+class Task : public ITask, public Shareable<Task> {
 private:
     std::condition_variable waitVar;
     std::mutex waitMutex;
@@ -36,11 +36,9 @@ public:
 
     ~Task();
 
-    /// \brief Waits till the task and all the child tasks are completed.
-    void wait();
+    virtual void wait() override;
 
-    /// \brief Checks if the task already finished.
-    bool completed() const;
+    virtual bool completed() const override;
 
     /// \brief Assigns a task that spawned this task.
     ///
@@ -108,6 +106,11 @@ public:
 
     ~ThreadPool();
 
+    /// \brief Submits a task into the thread pool.
+    ///
+    /// The task will be executed asynchronously once tasks submitted before it are completed.
+    virtual SharedPtr<ITask> submit(const Function<void()>& task) override;
+
     /// \brief Returns the index of this thread, or NOTHING if this thread was not invoked by the thread pool.
     ///
     /// The index is within [0, numThreads-1].
@@ -126,13 +129,6 @@ public:
         const RangeFunctor& functor) override;
 
     virtual void parallelInvoke(const Functor& task1, const Functor& task2) override;
-
-
-    /// \brief Submits a task into the thread pool.
-    ///
-    /// The task will be executed asynchronously once tasks submitted before it are completed.
-    SharedPtr<Task> submit(const Function<void()>& task);
-
     /// \brief Blocks until all submitted tasks has been finished.
     void waitForAll();
 

@@ -154,7 +154,7 @@ ThreadPool::~ThreadPool() {
     }
 }
 
-SharedPtr<Task> ThreadPool::submit(const Function<void()>& task) {
+SharedPtr<ITask> ThreadPool::submit(const Function<void()>& task) {
     SharedPtr<Task> handle = makeShared<Task>(task);
     handle->setParent(threadLocalContext.current);
 

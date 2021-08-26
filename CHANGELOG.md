@@ -1,6 +1,5 @@
 ## 2021-08-25
 - added parallelInvoke to IScheduler
-- removed tasks from IScheduler
 - using parallelInvoke to parallelize tree traversal
 - parallelized Storage::zeroHighestDerivatives
 - fixed incorrect node drawing on wxGTK3

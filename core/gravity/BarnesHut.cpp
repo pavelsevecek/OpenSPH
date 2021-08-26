@@ -77,7 +77,8 @@ void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
         }
         return true;
     };
-    iterateTree<IterateDirection::BOTTOM_UP>(kdTree, scheduler, functor, 0, maxDepth);
+    /// \todo sequential needed because TBB cannot wait on child tasks yet
+    iterateTree<IterateDirection::BOTTOM_UP>(kdTree, SEQUENTIAL, functor, 0, maxDepth);
 }
 
 void BarnesHut::evalSelfGravity(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const {
@@ -85,7 +86,10 @@ void BarnesHut::evalSelfGravity(IScheduler& scheduler, ArrayView<Vector> dv, Sta
 
     TreeWalkState data;
     TreeWalkResult result;
-    this->evalNode(scheduler, dv, 0, std::move(data), result);
+    SharedPtr<ITask> rootTask = scheduler.submit([this, &scheduler, dv, &data, &result] { //
+        this->evalNode(scheduler, dv, 0, std::move(data), result);
+    });
+    rootTask->wait();
 
     stats.set<int>(StatisticsId::GRAVITY_NODES_APPROX, result.approximatedNodes);
     stats.set<int>(StatisticsId::GRAVITY_NODES_EXACT, result.exactNodes);
@@ -164,6 +168,34 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx) const {
 
     return f;
 }
+
+class BarnesHut::NodeTask : public Noncopyable {
+private:
+    const BarnesHut& bh;
+    IScheduler& scheduler;
+    ArrayView<Vector> dv;
+    Size nodeIdx;
+    BarnesHut::TreeWalkState data;
+    BarnesHut::TreeWalkResult& result;
+
+public:
+    NodeTask(const BarnesHut& bh,
+        IScheduler& scheduler,
+        ArrayView<Vector> dv,
+        const Size nodeIdx,
+        BarnesHut::TreeWalkState&& data,
+        BarnesHut::TreeWalkResult& result)
+        : bh(bh)
+        , scheduler(scheduler)
+        , dv(dv)
+        , nodeIdx(nodeIdx)
+        , data(std::move(data))
+        , result(result) {}
+
+    void operator()() {
+        bh.evalNode(scheduler, dv, nodeIdx, std::move(data), result);
+    }
+};
 
 BarnesHut::TreeWalkState BarnesHut::TreeWalkState::clone() const {
     TreeWalkState cloned;
@@ -254,32 +286,26 @@ void BarnesHut::evalNode(IScheduler& scheduler,
             reinterpret_cast<const InnerNode<BarnesHutNode>&>(evaluatedNode);
         // recurse into child nodes
         data.depth++;
-        const Size currentDepth = data.depth;
-        // we evaluate child nodes from a (possibly) different thread, we thus have to clone buffers now so
+        // we evaluate the left one from a (possibly) different thread, we thus have to clone buffers now so
         // that we don't override the lists when evaluating different node (each node has its own lists).
         TreeWalkState childData = data.clone();
         childData.checkList.pushBack(inner.right);
-        auto evalLeft = [this, &scheduler, &dv, &inner, leftData = std::move(childData), &result]() mutable {
-            this->evalNode(scheduler, dv, inner.left, std::move(leftData), result);
-        };
-        // since we go only once through the tree (we never go 'up'), we can simply move the lists into the
-        // right child and modify them for the child node
-        data.checkList.pushBack(inner.left);
-        auto evalRight = [this, &scheduler, &dv, &inner, rightData = std::move(data), &result]() mutable {
-            this->evalNode(scheduler, dv, inner.right, std::move(rightData), result);
-        };
-
-        if (currentDepth < maxDepth) {
+        auto task = makeShared<NodeTask>(*this, scheduler, dv, inner.left, std::move(childData), result);
+        if (childData.depth < maxDepth) {
             // Ad-hoc decision (see also KdTree.cpp where we do the same trick);
             // only split the treewalk in the topmost nodes, process the bottom nodes in the same thread to
             // avoid high scheduling overhead of ThreadPool (TBBs deal with this quite well)
             //
             // The expression above can be modified to get optimal performance.
-            parallelInvoke(scheduler, std::move(evalLeft), std::move(evalRight));
+            scheduler.submit(std::move(task));
         } else {
-            evalLeft();
-            evalRight();
+            task();
         }
+
+        // since we go only once through the tree (we never go 'up'), we can simply move the lists into the
+        // right child and modify them for the child node
+        data.checkList.pushBack(inner.left);
+        this->evalNode(scheduler, dv, inner.right, std::move(data), result);
     }
 }
 
