@@ -84,8 +84,9 @@ void Accumulated::sum(IScheduler& scheduler, ArrayView<Accumulated*> others) {
         });
     }
 }
-void Accumulated::store(Storage& storage) {
-    for (Element& e : buffers) {
+void Accumulated::store(IScheduler& scheduler, Storage& storage) {
+    parallelFor(scheduler, 0, buffers.size(), 1, [this, &storage](const Size i) {
+        Element& e = buffers[i];
         forValue(e.buffer, [&e, &storage](auto& buffer) {
             using T = typename std::decay_t<decltype(buffer)>::Type;
             // storage must already have the quantity, we cannot add quantities during the run because of
@@ -95,7 +96,7 @@ void Accumulated::store(Storage& storage) {
             storage.getAll<T>(e.id)[Size(e.order)] = std::move(buffer);
             buffer.fill(T(0._f));
         });
-    }
+    });
 }
 
 Size Accumulated::getBufferCnt() const {

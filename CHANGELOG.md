@@ -1,3 +1,14 @@
+## 2021-08-25
+- added parallelInvoke to IScheduler
+- using parallelInvoke to parallelize tree traversal
+- parallelized Storage::zeroHighestDerivatives
+- fixed incorrect node drawing on wxGTK3
+
+## 2021-08-24
+- optimized BarnesHut gravity using constexpr functions
+- persistent layout of panes
+- added performance tests to CI
+
 ## 2021-08-21
 - added support for Unicode
 

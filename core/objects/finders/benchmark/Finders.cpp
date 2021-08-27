@@ -12,7 +12,7 @@ using namespace Sph;
 template <typename TFinder>
 void finderRun(Benchmark::Context& context, TFinder& finder, const Size particleCnt) {
     HexagonalPacking distribution;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    Tbb& pool = *Tbb::getGlobalInstance();
     Array<Vector> r = distribution.generate(pool, particleCnt, SphericalDomain(Vector(0._f), 1._f));
     Array<NeighborRecord> neighs;
     double distSum = 0.;
@@ -42,14 +42,6 @@ BENCHMARK("Finder run BruteForce", "[finders]", Benchmark::Context& context) {
     finderRun(context, bf, 1000);
 }
 
-
-/*BENCHMARK("Finder run linkedListRun(benchmark::State& state) {
-    LinkedList linkedList;
-    finderRun(state, linkedList);
-}
-BENCHMARK(linkedListRun);*/
-
-
 static void finderBuild(Benchmark::Context& context, IBasicFinder& finder, IScheduler& scheduler) {
     HexagonalPacking distribution;
     Array<Vector> r = distribution.generate(scheduler, 1000000, SphericalDomain(Vector(0._f), 1._f));
@@ -69,9 +61,7 @@ BENCHMARK("Finder build KdTree ThreadPool", "[finders]", Benchmark::Context& con
     finderBuild(context, tree, *ThreadPool::getGlobalInstance());
 }
 
-#ifdef SPH_USE_TBB
 BENCHMARK("Finder build KdTree Tbb", "[finders]", Benchmark::Context& context) {
     KdTree<KdNode> tree;
     finderBuild(context, tree, *Tbb::getGlobalInstance());
 }
-#endif

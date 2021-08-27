@@ -45,11 +45,11 @@ public:
     /// \brief Returns a value of granularity that is expected to perform well with the current thread count.
     virtual Size getRecommendedGranularity() const = 0;
 
+    using Functor = Function<void()>;
+    using RangeFunctor = Function<void(Size n1, Size n2)>;
+
     /// \brief Processes the given range concurrently.
     ///
-    /// Default implementation simply divides the range into chunks with size specified by granularity and
-    /// submits them into the scheduler. It can be overriden by the derived class to provide an optimized
-    /// variant of the parallel for.
     /// \param from First index of the processed range.
     /// \param to One-past-last index of the processed range.
     /// \param granularity Recommended size of the chunks passed to the functor.
@@ -58,7 +58,10 @@ public:
     virtual void parallelFor(const Size from,
         const Size to,
         const Size granularity,
-        const Function<void(Size n1, Size n2)>& functor);
+        const RangeFunctor& functor) = 0;
+
+    /// \brief Executes two functors concurrently.
+    virtual void parallelInvoke(const Functor& task1, const Functor& task2) = 0;
 };
 
 /// \brief Dummy scheduler that simply executes the submitted tasks sequentially on calling thread.
@@ -73,6 +76,13 @@ public:
     virtual Size getThreadCnt() const override;
 
     virtual Size getRecommendedGranularity() const override;
+
+    virtual void parallelFor(const Size from,
+        const Size to,
+        const Size granularity,
+        const RangeFunctor& functor) override;
+
+    virtual void parallelInvoke(const Functor& func1, const Functor& func2) override;
 
     static SharedPtr<SequentialScheduler> getGlobalInstance();
 };
@@ -116,7 +126,7 @@ INLINE void parallelFor(IScheduler& scheduler,
     const Size granularity,
     TFunctor&& functor) {
     scheduler.parallelFor(from, to, granularity, [&functor](Size n1, Size n2) {
-        SPH_ASSERT(n1 < n2);
+        SPH_ASSERT(n1 <= n2);
         for (Size i = n1; i < n2; ++i) {
             functor(i);
         }
@@ -131,5 +141,10 @@ INLINE void parallelFor(IScheduler& scheduler, const IndexSequence& sequence, TF
     parallelFor(scheduler, *sequence.begin(), *sequence.end(), std::forward<TFunctor>(functor));
 }
 
+/// \brief Syntactic sugar, calls \ref parallelInvoke in given scheduler.
+template <typename TFunctor1, typename TFunctor2>
+void parallelInvoke(IScheduler& scheduler, TFunctor1&& func1, TFunctor2&& func2) {
+    scheduler.parallelInvoke(std::forward<TFunctor1>(func1), std::forward<TFunctor2>(func2));
+}
 
 NAMESPACE_SPH_END

@@ -28,7 +28,7 @@ TEST_CASE("BruteForceGravity single-thread", "[gravity]") {
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<Vector> d2v = storage.getD2t<Vector>(QuantityId::POSITION);
-    storage.zeroHighestDerivatives(); // clear derivatives computed by analytic
+    storage.zeroHighestDerivatives(SEQUENTIAL); // clear derivatives computed by analytic
     gravity.build(pool, storage);
     gravity.evalSelfGravity(pool, d2v, stats);
 

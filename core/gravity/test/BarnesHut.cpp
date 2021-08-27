@@ -2,10 +2,12 @@
 #include "catch.hpp"
 #include "gravity/BruteForceGravity.h"
 #include "gravity/Moments.h"
+#include "objects/utility/Algorithm.h"
 #include "physics/Integrals.h"
 #include "quantities/Quantity.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
+#include "thread/Tbb.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;
@@ -42,6 +44,7 @@ static Tuple<Storage, Vector> getTestParticles() {
     return { std::move(storage), r_com };
 }
 
+template <typename TScheduler>
 static void testOpeningAngle(const MultipoleOrder order) {
     Storage storage1 = getGravityStorage(100);
     Storage storage2 = storage1.clone(VisitorEnum::ALL_BUFFERS);
@@ -50,7 +53,7 @@ static void testOpeningAngle(const MultipoleOrder order) {
     BarnesHut bh(EPS, order, 5);
     BruteForceGravity bf;
 
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    TScheduler& pool = *TScheduler::getGlobalInstance();
     bf.build(pool, storage1);
     bh.build(pool, storage2);
 
@@ -70,10 +73,10 @@ static void testOpeningAngle(const MultipoleOrder order) {
     REQUIRE_SEQUENCE(test, 0, r.size());
 }
 
-TEST_CASE("BarnesHut zero opening angle", "[gravity]") {
-    testOpeningAngle(MultipoleOrder::MONOPOLE);
-    testOpeningAngle(MultipoleOrder::QUADRUPOLE);
-    testOpeningAngle(MultipoleOrder::OCTUPOLE);
+TEMPLATE_TEST_CASE("BarnesHut zero opening angle", "[gravity]", ThreadPool, Tbb) {
+    testOpeningAngle<TestType>(MultipoleOrder::MONOPOLE);
+    testOpeningAngle<TestType>(MultipoleOrder::QUADRUPOLE);
+    testOpeningAngle<TestType>(MultipoleOrder::OCTUPOLE);
 }
 
 /*TEST_CASE("BarnesHut empty", "[gravity]") {
@@ -91,9 +94,10 @@ static void testMoments(const MultipoleExpansion<3>& moments, const Storage& sto
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
     IndexSequence seq(0, r.size());
-    Multipole<0> m0 = computeMultipole<0>(r, m, r_com, seq);
-    Multipole<2> m2 = computeMultipole<2>(r, m, r_com, seq);
-    Multipole<3> m3 = computeMultipole<3>(r, m, r_com, seq);
+    Multipole<1> M_com = toMultipole(r_com);
+    Multipole<0> m0 = computeMultipole<0>(r, m, M_com, seq);
+    Multipole<2> m2 = computeMultipole<2>(r, m, M_com, seq);
+    Multipole<3> m3 = computeMultipole<3>(r, m, M_com, seq);
     TracelessMultipole<0> q0 = computeReducedMultipole(m0);
     TracelessMultipole<2> q2 = computeReducedMultipole(m2);
     TracelessMultipole<3> q3 = computeReducedMultipole(m3);
@@ -103,25 +107,25 @@ static void testMoments(const MultipoleExpansion<3>& moments, const Storage& sto
     REQUIRE(moments.order<3>() == approx(q3, 1.e-10_f));
 }
 
-TEST_CASE("BarnesHut simple moments", "[gravity]") {
+TEMPLATE_TEST_CASE("BarnesHut simple moments", "[gravity]", ThreadPool, Tbb) {
     // test that the moments in root node correspond to the moments computed from all particles
     Storage storage;
     Vector r_com;
     tieToTuple(storage, r_com) = getTestParticles();
     BarnesHut bh(0.5_f, MultipoleOrder::OCTUPOLE, 5);
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    TestType& pool = *TestType::getGlobalInstance();
     bh.build(pool, storage);
 
     MultipoleExpansion<3> moments = bh.getMoments();
     testMoments(moments, storage, r_com);
 }
 
-TEST_CASE("BarnesHut storage moments", "[gravity]") {
+TEMPLATE_TEST_CASE("BarnesHut storage moments", "[gravity]", ThreadPool, Tbb) {
     // test that the moments in root node correspond to the moments computed from all particles
     Storage storage = getGravityStorage();
 
     BarnesHut bh(0.5_f, MultipoleOrder::OCTUPOLE, 5);
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    TestType& pool = *TestType::getGlobalInstance();
     bh.build(pool, storage);
 
     MultipoleExpansion<3> moments = bh.getMoments();
@@ -130,8 +134,9 @@ TEST_CASE("BarnesHut storage moments", "[gravity]") {
     testMoments(moments, storage, r_com);
 }
 
+template <typename TScheduler>
 static void testSimpleAcceleration(const MultipoleOrder order, const Float eps) {
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    TScheduler& pool = *TScheduler::getGlobalInstance();
     Storage storage;
     Vector r_com;
     tieToTuple(storage, r_com) = getTestParticles();
@@ -146,14 +151,15 @@ static void testSimpleAcceleration(const MultipoleOrder order, const Float eps) 
     REQUIRE(a == approx(expected, eps));
 }
 
-TEST_CASE("BarnesHut simple acceleration", "[gravity]") {
-    testSimpleAcceleration(MultipoleOrder::MONOPOLE, 4.e-4_f);
-    testSimpleAcceleration(MultipoleOrder::QUADRUPOLE, 8.e-5_f);
-    testSimpleAcceleration(MultipoleOrder::OCTUPOLE, 1.e-5_f);
+TEMPLATE_TEST_CASE("BarnesHut simple acceleration", "[gravity]", ThreadPool, Tbb) {
+    testSimpleAcceleration<TestType>(MultipoleOrder::MONOPOLE, 4.e-4_f);
+    testSimpleAcceleration<TestType>(MultipoleOrder::QUADRUPOLE, 8.e-5_f);
+    testSimpleAcceleration<TestType>(MultipoleOrder::OCTUPOLE, 1.e-5_f);
 }
 
+template <typename TScheduler>
 static void testStorageAcceleration(const MultipoleOrder order, const Float eps) {
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    TScheduler& pool = *TScheduler::getGlobalInstance();
     Storage storage1 = getGravityStorage();
 
     BarnesHut bh(0.4_f, order, 5);
@@ -194,15 +200,16 @@ static void testStorageAcceleration(const MultipoleOrder order, const Float eps)
     REQUIRE_SEQUENCE(test, 0, r.size());
 }
 
-TEST_CASE("BarnesHut storage acceleration", "[gravity]") {
-    testStorageAcceleration(MultipoleOrder::MONOPOLE, 3.e-2f);
-    testStorageAcceleration(MultipoleOrder::QUADRUPOLE, 3.e-3_f);
-    testStorageAcceleration(
+TEMPLATE_TEST_CASE("BarnesHut storage acceleration", "[gravity]", ThreadPool, Tbb) {
+    testStorageAcceleration<TestType>(MultipoleOrder::MONOPOLE, 3.e-2f);
+    testStorageAcceleration<TestType>(MultipoleOrder::QUADRUPOLE, 3.e-3_f);
+    testStorageAcceleration<TestType>(
         MultipoleOrder::OCTUPOLE, 3.e-3_f); /// \todo fix this imprecission, should be 1.e-4
 }
 
+template <typename TScheduler>
 static void testEquality(const MultipoleOrder order, const Float eps) {
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    TScheduler& pool = *TScheduler::getGlobalInstance();
     Storage storage = getGravityStorage();
     Statistics stats;
 
@@ -223,15 +230,15 @@ static void testEquality(const MultipoleOrder order, const Float eps) {
     REQUIRE_SEQUENCE(test, 0, r.size());
 }
 
-TEST_CASE("BarnesHut eval evalAll equality", "[gravity]") {
-    testEquality(MultipoleOrder::MONOPOLE, 0.01_f);
-    testEquality(MultipoleOrder::QUADRUPOLE, 0.01_f);
-    testEquality(MultipoleOrder::OCTUPOLE, 0.01_f);
+TEMPLATE_TEST_CASE("BarnesHut eval evalAll equality", "[gravity]", ThreadPool, Tbb) {
+    testEquality<TestType>(MultipoleOrder::MONOPOLE, 0.01_f);
+    testEquality<TestType>(MultipoleOrder::QUADRUPOLE, 0.01_f);
+    testEquality<TestType>(MultipoleOrder::OCTUPOLE, 0.01_f);
 }
 
-TEST_CASE("BarnesHut opening angle convergence", "[gravity]") {
+TEMPLATE_TEST_CASE("BarnesHut opening angle convergence", "[gravity]", ThreadPool, Tbb) {
     Storage storage = getGravityStorage();
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    TestType& pool = *TestType::getGlobalInstance();
 
     BarnesHut bh8(0.8_f, MultipoleOrder::OCTUPOLE, 5);
     BarnesHut bh4(0.4_f, MultipoleOrder::OCTUPOLE, 5);
@@ -272,9 +279,9 @@ TEST_CASE("BarnesHut opening angle convergence", "[gravity]") {
 }
 
 /// \todo stolen from bruteforce gravity
-TEST_CASE("BarnesHut parallel", "[gravity]") {
+TEMPLATE_TEST_CASE("BarnesHut parallel", "[gravity]", ThreadPool, Tbb) {
     Storage storage = getGravityStorage();
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    TestType& pool = *TestType::getGlobalInstance();
 
     BarnesHut gravity(0.5, MultipoleOrder::OCTUPOLE);
     gravity.build(pool, storage);
@@ -298,14 +305,14 @@ TEST_CASE("BarnesHut parallel", "[gravity]") {
 }
 
 /// \todo stolen from bruteforce gravity
-TEST_CASE("BarnesHut symmetrization", "[gravity]") {
+TEMPLATE_TEST_CASE("BarnesHut symmetrization", "[gravity]", ThreadPool, Tbb) {
     Storage storage;
     storage.insert<Vector>(QuantityId::POSITION,
         OrderEnum::SECOND,
         Array<Vector>({ Vector(0.f, 0.f, 0.f, 1.f), Vector(2._f, 0.f, 0.f, 5._f) }));
     storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, 1.e10_f);
 
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    TestType& pool = *TestType::getGlobalInstance();
     BarnesHut gravity(0.5, MultipoleOrder::OCTUPOLE);
     gravity.build(pool, storage);
     Statistics stats;
@@ -314,7 +321,7 @@ TEST_CASE("BarnesHut symmetrization", "[gravity]") {
     REQUIRE(dv[0] == -dv[1]);
 }
 
-TEST_CASE("BarnesHut override accelerations bug", "[gravity]") {
+TEMPLATE_TEST_CASE("BarnesHut override accelerations bug", "[gravity]", ThreadPool, Tbb) {
     // checks that BarnesHut gravity does not override accelerations already stored in dv
     Storage storage;
     storage.insert<Vector>(QuantityId::POSITION,
@@ -325,7 +332,7 @@ TEST_CASE("BarnesHut override accelerations bug", "[gravity]") {
     dv[0] = Vector(3._f, 1._f, 1._f);
     dv[1] = Vector(4._f, -2._f, 10._f);
 
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    TestType& pool = *TestType::getGlobalInstance();
     BarnesHut gravity(0.5, MultipoleOrder::OCTUPOLE);
     gravity.build(pool, storage);
 
@@ -335,3 +342,30 @@ TEST_CASE("BarnesHut override accelerations bug", "[gravity]") {
     REQUIRE(dv[0] == Vector(3._f, 1._f, 1._f));
     REQUIRE(dv[1] == Vector(4._f, -2._f, 10._f));
 }
+
+TEST_CASE("BarnesHut scheduler independence", "[gravity]") {
+    Storage storage = getGravityStorage();
+
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    Tbb& tbb = *Tbb::getGlobalInstance();
+    BarnesHut gravity1(0.5, MultipoleOrder::OCTUPOLE);
+    gravity1.build(pool, storage);
+    BarnesHut gravity2(0.5, MultipoleOrder::OCTUPOLE);
+    gravity2.build(tbb, storage);
+    Array<Vector> dv1 = storage.getD2t<Vector>(QuantityId::POSITION).clone();
+    Array<Vector> dv2 = storage.getD2t<Vector>(QuantityId::POSITION).clone();
+    Statistics stats;
+    gravity1.evalSelfGravity(pool, dv1, stats);
+    gravity2.evalSelfGravity(tbb, dv2, stats);
+
+    REQUIRE(almostEqual(dv1, dv2, EPS));
+}
+
+// test that everything can be evaluated at compile time
+static_assert(parallelAxisTheorem(TracelessMultipole<4>{},
+                  TracelessMultipole<3>{},
+                  TracelessMultipole<2>{},
+                  0._f,
+                  Multipole<1>{})
+                      .value<0, 0, 0, 0>() == 0._f,
+    "Static test failed");

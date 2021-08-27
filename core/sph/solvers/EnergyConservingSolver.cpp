@@ -202,7 +202,7 @@ void EnergyConservingSolver::afterLoop(Storage& storage, Statistics& stats) {
     MEASURE_SCOPE("EnergyConservingSolver::afterLoop");
 
     Accumulated& accumulated = derivatives.getAccumulated();
-    accumulated.store(storage);
+    accumulated.store(scheduler, storage);
 
     const Float t = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
     equations.finalize(scheduler, storage, t);

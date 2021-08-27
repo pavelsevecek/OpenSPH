@@ -428,7 +428,7 @@ bool FileSystem::setWorkingDirectory(const Path& path) {
 
 Expected<Path> FileSystem::getDirectoryOfExecutable() {
 #ifndef SPH_WIN
-    char result[4096];
+    char result[4096] = { '\0' };
     ssize_t count = readlink("/proc/self/exe", result, sizeof(result));
     if (count != -1) {
         Path path(String::fromUtf8(result));

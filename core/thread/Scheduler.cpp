@@ -35,30 +35,23 @@ Size SequentialScheduler::getRecommendedGranularity() const {
     return 1;
 }
 
+void SequentialScheduler::parallelFor(const Size from,
+    const Size to,
+    const Size UNUSED(granularity),
+    const RangeFunctor& functor) {
+    functor(from, to);
+}
+
+void SequentialScheduler::parallelInvoke(const Functor& func1, const Functor& func2) {
+    func1();
+    func2();
+}
+
 SharedPtr<SequentialScheduler> SequentialScheduler::getGlobalInstance() {
     static SharedPtr<SequentialScheduler> scheduler = makeShared<SequentialScheduler>();
     return scheduler;
 }
 
 SequentialScheduler SEQUENTIAL;
-
-
-void IScheduler::parallelFor(const Size from,
-    const Size to,
-    const Size granularity,
-    const Function<void(Size n1, Size n2)>& functor) {
-    SPH_ASSERT(to > from);
-    SPH_ASSERT(granularity > 0);
-
-    SharedPtr<ITask> handle = this->submit([this, from, to, granularity, &functor] {
-        for (Size n = from; n < to; n += granularity) {
-            const Size n1 = n;
-            const Size n2 = min(n1 + granularity, to);
-            this->submit([n1, n2, &functor] { functor(n1, n2); });
-        }
-    });
-    handle->wait();
-    SPH_ASSERT(handle->completed());
-}
 
 NAMESPACE_SPH_END

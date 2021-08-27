@@ -8,7 +8,7 @@ NAMESPACE_BENCHMARK_BEGIN
 
 Session::Session() {
     logger = makeAuto<StdOutLogger>();
-    logger->setPrecision(3);
+    logger->setPrecision(4);
     logger->setScientific(false);
 }
 
@@ -126,19 +126,19 @@ void Session::run(int argc, char* argv[]) {
 
 Path Session::getBaselinePath() {
     /// \todo mode these paths to some config
-    Expected<String> sha = getGitCommit(Path("../../src/"), params.baseline.commit);
+    Expected<String> sha = getGitCommit(Path("."), params.baseline.commit);
     if (!sha) {
         this->logError("Cannot determine git commit SHA");
         return Path("");
     }
     this->log("Baseline for commit " + sha.value());
-    return Path("../../baseline/") / Path(sha.value());
+    return Path(L"perf-" + sha->substr(0, 8) + ".csv");
 }
 
 void Session::writeBaseline(const String& name, const Result& measured) {
     FileLogger logger(params.baseline.path, FileLogger::Options::APPEND);
     // clang-format off
-    logger.write(name, " / ", measured.duration, ", ", measured.iterateCnt, ", ",
+    logger.write(name, ", ", measured.duration, ", ", measured.iterateCnt, ", ",
         measured.mean, ", ", measured.variance, ", ", measured.min, ", ", measured.max);
     // clang-format on
 }

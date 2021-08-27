@@ -123,6 +123,12 @@ public:
 
     virtual Size getRecommendedGranularity() const override;
 
+    virtual void parallelFor(const Size from,
+        const Size to,
+        const Size granularity,
+        const RangeFunctor& functor) override;
+
+    virtual void parallelInvoke(const Functor& task1, const Functor& task2) override;
     /// \brief Blocks until all submitted tasks has been finished.
     void waitForAll();
 

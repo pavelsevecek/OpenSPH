@@ -95,7 +95,7 @@ TEST_CASE("Setting derivatives", "[equationterm]") {
 
     // initialize, creating buffers and settings up arrayviews for derivatives
     derivatives.initialize(storage);
-    derivatives.getAccumulated().store(storage);
+    derivatives.getAccumulated().store(SEQUENTIAL, storage);
     REQUIRE(storage.getParticleCnt() == 5);
     REQUIRE(TestDerivative::initialized);
 }

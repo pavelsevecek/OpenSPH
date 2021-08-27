@@ -1,7 +1,7 @@
 #pragma once
 
+#include "math/MathUtils.h"
 #include "objects/containers/StaticArray.h"
-#include "objects/geometry/Vector.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -40,7 +40,7 @@ template <Size... Idxs>
 struct MultipoleMappingImpl;
 
 template <Size Second, Size... Idxs>
-struct MultipoleMappingImpl<X, Second, Idxs...> {
+struct MultipoleMappingImpl<0, Second, Idxs...> {
     static constexpr Size value = MultipoleMappingImpl<Second, Idxs...>::value;
 };
 template <Size I>
@@ -48,12 +48,12 @@ struct MultipoleMappingImpl<I> {
     static constexpr Size value = I;
 };
 template <Size Second, Size... Idxs>
-struct MultipoleMappingImpl<Y, Second, Idxs...> {
+struct MultipoleMappingImpl<1, Second, Idxs...> {
     static constexpr Size value =
         multipoleComponentCnt(sizeof...(Idxs) + 1) - 1 - sizeof...(Idxs) + sum<Second, Idxs...>();
 };
 template <Size Second, Size... Idxs>
-struct MultipoleMappingImpl<Z, Second, Idxs...> {
+struct MultipoleMappingImpl<2, Second, Idxs...> {
     static constexpr Size value = multipoleComponentCnt(sizeof...(Idxs) + 2) - 1;
 };
 
@@ -90,16 +90,17 @@ private:
 public:
     static constexpr Size ORDER = Order;
 
-    Multipole() = default;
+    constexpr Multipole()
+        : data{ 0 } {}
 
-    Multipole(const Float f) {
+    constexpr Multipole(const Float f) {
         for (Float& v : data) {
             v = f;
         }
     }
 
     template <Size... Idxs>
-    INLINE Float value() const {
+    INLINE constexpr Float value() const {
         static_assert(sizeof...(Idxs) == Order, "Number of indices must match the order");
         const Size idx = Detail::MultipoleMapping<Idxs...>::value;
         SPH_ASSERT(idx < COMPONENT_CNT, idx);
@@ -107,34 +108,26 @@ public:
     }
 
     template <Size... Idxs>
-    INLINE Float& value() {
+    INLINE constexpr Float& value() {
         static_assert(sizeof...(Idxs) == Order, "Number of indices must match the order");
         const Size idx = Detail::MultipoleMapping<Idxs...>::value;
         SPH_ASSERT(idx < COMPONENT_CNT, idx);
         return *(&data[0] + idx);
     }
 
-    INLINE Float operator[](const Size idx) const {
+    INLINE constexpr Float operator[](const Size idx) const {
         SPH_ASSERT(idx < COMPONENT_CNT, idx);
         return data[idx];
     }
 
-    Multipole& operator+=(const Multipole& other) {
+    constexpr Multipole& operator+=(const Multipole& other) {
         for (Size i = 0; i < COMPONENT_CNT; ++i) {
             data[i] += other[i];
         }
         return *this;
     }
 
-    Multipole operator*(const Float f) const {
-        Multipole m;
-        for (Size i = 0; i < COMPONENT_CNT; ++i) {
-            m.data[i] = data[i] * f;
-        }
-        return m;
-    }
-
-    bool operator==(const Multipole& other) const {
+    constexpr bool operator==(const Multipole& other) const {
         for (Size i = 0; i < COMPONENT_CNT; ++i) {
             if (data[i] != other[i]) {
                 return false;
@@ -169,7 +162,7 @@ struct MakeMultipole;
 template <>
 struct MakeMultipole<0> {
     template <typename TValue>
-    static Multipole<0> make(const TValue& v) {
+    static constexpr Multipole<0> make(const TValue& v) {
         Multipole<0> m;
         m.value() = v.value();
         return m;
@@ -179,11 +172,11 @@ struct MakeMultipole<0> {
 template <>
 struct MakeMultipole<1> {
     template <typename TValue>
-    static Multipole<1> make(const TValue& v) {
+    static constexpr Multipole<1> make(const TValue& v) {
         Multipole<1> m;
-        m.value<X>() = v.template value<X>();
-        m.value<Y>() = v.template value<Y>();
-        m.value<Z>() = v.template value<Z>();
+        m.value<0>() = v.template value<0>();
+        m.value<1>() = v.template value<1>();
+        m.value<2>() = v.template value<2>();
         return m;
     }
 };
@@ -191,16 +184,16 @@ struct MakeMultipole<1> {
 template <>
 struct MakeMultipole<2> {
     template <typename TValue>
-    static Multipole<2> make(const TValue& v) {
+    static constexpr Multipole<2> make(const TValue& v) {
         Multipole<2> m;
-        m.value<X, X>() = v.template value<X, X>();
-        m.value<X, Y>() = v.template value<X, Y>();
-        m.value<X, Z>() = v.template value<X, Z>();
+        m.value<0, 0>() = v.template value<0, 0>();
+        m.value<0, 1>() = v.template value<0, 1>();
+        m.value<0, 2>() = v.template value<0, 2>();
 
-        m.value<Y, Y>() = v.template value<Y, Y>();
-        m.value<Y, Z>() = v.template value<Y, Z>();
+        m.value<1, 1>() = v.template value<1, 1>();
+        m.value<1, 2>() = v.template value<1, 2>();
 
-        m.value<Z, Z>() = v.template value<Z, Z>();
+        m.value<2, 2>() = v.template value<2, 2>();
         return m;
     }
 };
@@ -208,20 +201,20 @@ struct MakeMultipole<2> {
 template <>
 struct MakeMultipole<3> {
     template <typename TValue>
-    static Multipole<3> make(const TValue& v) {
+    static constexpr Multipole<3> make(const TValue& v) {
         Multipole<3> m;
-        m.value<X, X, X>() = v.template value<X, X, X>();
-        m.value<X, X, Y>() = v.template value<X, X, Y>();
-        m.value<X, X, Z>() = v.template value<X, X, Z>();
-        m.value<X, Y, Y>() = v.template value<X, Y, Y>();
-        m.value<X, Y, Z>() = v.template value<X, Y, Z>();
-        m.value<X, Z, Z>() = v.template value<X, Z, Z>();
+        m.value<0, 0, 0>() = v.template value<0, 0, 0>();
+        m.value<0, 0, 1>() = v.template value<0, 0, 1>();
+        m.value<0, 0, 2>() = v.template value<0, 0, 2>();
+        m.value<0, 1, 1>() = v.template value<0, 1, 1>();
+        m.value<0, 1, 2>() = v.template value<0, 1, 2>();
+        m.value<0, 2, 2>() = v.template value<0, 2, 2>();
 
-        m.value<Y, Y, Y>() = v.template value<Y, Y, Y>();
-        m.value<Y, Y, Z>() = v.template value<Y, Y, Z>();
-        m.value<Y, Z, Z>() = v.template value<Y, Z, Z>();
+        m.value<1, 1, 1>() = v.template value<1, 1, 1>();
+        m.value<1, 1, 2>() = v.template value<1, 1, 2>();
+        m.value<1, 2, 2>() = v.template value<1, 2, 2>();
 
-        m.value<Z, Z, Z>() = v.template value<Z, Z, Z>();
+        m.value<2, 2, 2>() = v.template value<2, 2, 2>();
         return m;
     }
 };
@@ -229,31 +222,31 @@ struct MakeMultipole<3> {
 template <>
 struct MakeMultipole<4> {
     template <typename TValue>
-    static Multipole<4> make(const TValue& v) {
+    static constexpr Multipole<4> make(const TValue& v) {
         Multipole<4> m;
-        m.value<X, X, X, X>() = v.template value<X, X, X, X>();
-        m.value<X, X, X, Y>() = v.template value<X, X, X, Y>();
-        m.value<X, X, X, Z>() = v.template value<X, X, X, Z>();
-        m.value<X, X, Y, Y>() = v.template value<X, X, Y, Y>();
-        m.value<X, X, Y, Z>() = v.template value<X, X, Y, Z>();
-        m.value<X, X, Z, Z>() = v.template value<X, X, Z, Z>();
-        m.value<X, Y, Y, Y>() = v.template value<X, Y, Y, Y>();
-        m.value<X, Y, Y, Z>() = v.template value<X, Y, Y, Z>();
-        m.value<X, Y, Z, Z>() = v.template value<X, Y, Z, Z>();
-        m.value<X, Z, Z, Z>() = v.template value<X, Z, Z, Z>();
+        m.value<0, 0, 0, 0>() = v.template value<0, 0, 0, 0>();
+        m.value<0, 0, 0, 1>() = v.template value<0, 0, 0, 1>();
+        m.value<0, 0, 0, 2>() = v.template value<0, 0, 0, 2>();
+        m.value<0, 0, 1, 1>() = v.template value<0, 0, 1, 1>();
+        m.value<0, 0, 1, 2>() = v.template value<0, 0, 1, 2>();
+        m.value<0, 0, 2, 2>() = v.template value<0, 0, 2, 2>();
+        m.value<0, 1, 1, 1>() = v.template value<0, 1, 1, 1>();
+        m.value<0, 1, 1, 2>() = v.template value<0, 1, 1, 2>();
+        m.value<0, 1, 2, 2>() = v.template value<0, 1, 2, 2>();
+        m.value<0, 2, 2, 2>() = v.template value<0, 2, 2, 2>();
 
-        m.value<Y, Y, Y, Y>() = v.template value<Y, Y, Y, Y>();
-        m.value<Y, Y, Y, Z>() = v.template value<Y, Y, Y, Z>();
-        m.value<Y, Y, Z, Z>() = v.template value<Y, Y, Z, Z>();
-        m.value<Y, Z, Z, Z>() = v.template value<Y, Z, Z, Z>();
+        m.value<1, 1, 1, 1>() = v.template value<1, 1, 1, 1>();
+        m.value<1, 1, 1, 2>() = v.template value<1, 1, 1, 2>();
+        m.value<1, 1, 2, 2>() = v.template value<1, 1, 2, 2>();
+        m.value<1, 2, 2, 2>() = v.template value<1, 2, 2, 2>();
 
-        m.value<Z, Z, Z, Z>() = v.template value<Z, Z, Z, Z>();
+        m.value<2, 2, 2, 2>() = v.template value<2, 2, 2, 2>();
         return m;
     }
 };
 
 template <Size N, typename TValue>
-Multipole<N> makeMultipole(const TValue& v) {
+constexpr Multipole<N> makeMultipole(const TValue& v) {
     return MakeMultipole<N>::make(v);
 }
 
@@ -267,11 +260,11 @@ template <Size... Idxs>
 struct TracelessMultipoleMappingImpl;
 
 template <Size Second, Size... Idxs>
-struct TracelessMultipoleMappingImpl<X, Second, Idxs...> {
+struct TracelessMultipoleMappingImpl<0, Second, Idxs...> {
     static constexpr Size value = TracelessMultipoleMappingImpl<Second, Idxs...>::value;
 };
 template <Size Second, Size... Idxs>
-struct TracelessMultipoleMappingImpl<Y, Second, Idxs...> {
+struct TracelessMultipoleMappingImpl<1, Second, Idxs...> {
     static constexpr Size value =
         tracelessMultipoleComponentCnt(sizeof...(Idxs) + 1) - 1 - sizeof...(Idxs) + sum<Second, Idxs...>();
 };
@@ -311,7 +304,8 @@ private:
 public:
     static constexpr Size ORDER = Order;
 
-    constexpr TracelessMultipole() = default;
+    constexpr TracelessMultipole()
+        : data{ 0 } {}
 
     constexpr TracelessMultipole(const Float f) {
         for (Float& v : data) {
@@ -325,7 +319,7 @@ public:
     }
 
     template <Size... Idxs>
-    INLINE Float& value() {
+    INLINE constexpr Float& value() {
         static_assert(sizeof...(Idxs) == Order, "Number of indices must match the order");
         const Size idx = Detail::TracelessMultipoleMapping<Idxs...>::value;
         SPH_ASSERT(idx < COMPONENT_CNT, idx);
@@ -345,7 +339,7 @@ public:
         return data[idx];
     }
 
-    INLINE Float& operator[](const Size idx) {
+    INLINE constexpr Float& operator[](const Size idx) {
         SPH_ASSERT(idx < COMPONENT_CNT, idx);
         return data[idx];
     }
@@ -354,14 +348,14 @@ public:
         return COMPONENT_CNT;
     }
 
-    TracelessMultipole& operator+=(const TracelessMultipole& other) {
+    constexpr TracelessMultipole& operator+=(const TracelessMultipole& other) {
         for (Size i = 0; i < COMPONENT_CNT; ++i) {
             data[i] += other.data[i];
         }
         return *this;
     }
 
-    bool operator==(const TracelessMultipole& other) const {
+    constexpr bool operator==(const TracelessMultipole& other) const {
         for (Size i = 0; i < COMPONENT_CNT; ++i) {
             if (data[i] != other.data[i]) {
                 return false;
@@ -379,69 +373,13 @@ public:
 };
 
 template <>
-class TracelessMultipole<1> {
-private:
-    Vector data;
-
-public:
-    INLINE TracelessMultipole() = default;
-
-    INLINE TracelessMultipole(const Float v)
-        : data(v) {}
-
-    static constexpr Size ORDER = 1;
-
-    template <Size Idx>
-    INLINE Float& value() {
-        return data[Idx];
-    }
-
-    template <Size Idx>
-    INLINE Float value() const {
-        return data[Idx];
-    }
-
-    INLINE Float operator[](const Size idx) const {
-        SPH_ASSERT(idx < 3, idx);
-        return data[idx];
-    }
-
-    INLINE Float& operator[](const Size idx) {
-        SPH_ASSERT(idx < 3, idx);
-        return data[idx];
-    }
-
-    INLINE constexpr Size size() const {
-        return 3;
-    }
-
-    Vector vector() const {
-        return data;
-    }
-
-    TracelessMultipole& operator+=(const TracelessMultipole& other) {
-        data += other.data;
-        return *this;
-    }
-
-    bool operator==(const TracelessMultipole& other) const {
-        return data == other.data;
-    }
-
-    friend std::ostream& operator<<(std::ostream& stream, const TracelessMultipole& m) {
-        stream << m.data;
-        return stream;
-    }
-};
-
-
-template <>
 class TracelessMultipole<0> {
 private:
     Float data;
 
 public:
-    TracelessMultipole() = default;
+    constexpr TracelessMultipole()
+        : data(0) {}
 
     constexpr INLINE TracelessMultipole(const Float v)
         : data(v) {}
@@ -456,7 +394,7 @@ public:
         return data;
     }
 
-    INLINE Float operator[](const Size idx) const {
+    INLINE constexpr Float operator[](const Size idx) const {
         SPH_ASSERT(idx == 0);
         return data;
     }
@@ -469,7 +407,7 @@ public:
         return data;
     }
 
-    TracelessMultipole& operator+=(const TracelessMultipole& other) {
+    constexpr TracelessMultipole& operator+=(const TracelessMultipole& other) {
         data += other.data;
         return *this;
     }
@@ -500,7 +438,7 @@ struct MakeTracelessMultipole;
 template <>
 struct MakeTracelessMultipole<0> {
     template <typename TValue>
-    static TracelessMultipole<0> make(const TValue& v) {
+    static constexpr TracelessMultipole<0> make(const TValue& v) {
         TracelessMultipole<0> m;
         m.value() = v.value();
         return m;
@@ -510,11 +448,11 @@ struct MakeTracelessMultipole<0> {
 template <>
 struct MakeTracelessMultipole<1> {
     template <typename TValue>
-    static TracelessMultipole<1> make(const TValue& v) {
+    static constexpr TracelessMultipole<1> make(const TValue& v) {
         TracelessMultipole<1> m;
-        m.value<X>() = v.template value<X>();
-        m.value<Y>() = v.template value<Y>();
-        m.value<Z>() = v.template value<Z>();
+        m.value<0>() = v.template value<0>();
+        m.value<1>() = v.template value<1>();
+        m.value<2>() = v.template value<2>();
         return m;
     }
 };
@@ -522,14 +460,14 @@ struct MakeTracelessMultipole<1> {
 template <>
 struct MakeTracelessMultipole<2> {
     template <typename TValue>
-    static TracelessMultipole<2> make(const TValue& v) {
+    static constexpr TracelessMultipole<2> make(const TValue& v) {
         TracelessMultipole<2> m;
-        m.value<X, X>() = v.template value<X, X>();
-        m.value<X, Y>() = v.template value<X, Y>();
-        m.value<X, Z>() = v.template value<X, Z>();
+        m.value<0, 0>() = v.template value<0, 0>();
+        m.value<0, 1>() = v.template value<0, 1>();
+        m.value<0, 2>() = v.template value<0, 2>();
 
-        m.value<Y, Y>() = v.template value<Y, Y>();
-        m.value<Y, Z>() = v.template value<Y, Z>();
+        m.value<1, 1>() = v.template value<1, 1>();
+        m.value<1, 2>() = v.template value<1, 2>();
         return m;
     }
 };
@@ -537,16 +475,16 @@ struct MakeTracelessMultipole<2> {
 template <>
 struct MakeTracelessMultipole<3> {
     template <typename TValue>
-    static TracelessMultipole<3> make(const TValue& v) {
+    static constexpr TracelessMultipole<3> make(const TValue& v) {
         TracelessMultipole<3> m;
-        m.value<X, X, X>() = v.template value<X, X, X>();
-        m.value<X, X, Y>() = v.template value<X, X, Y>();
-        m.value<X, X, Z>() = v.template value<X, X, Z>();
-        m.value<X, Y, Y>() = v.template value<X, Y, Y>();
-        m.value<X, Y, Z>() = v.template value<X, Y, Z>();
+        m.value<0, 0, 0>() = v.template value<0, 0, 0>();
+        m.value<0, 0, 1>() = v.template value<0, 0, 1>();
+        m.value<0, 0, 2>() = v.template value<0, 0, 2>();
+        m.value<0, 1, 1>() = v.template value<0, 1, 1>();
+        m.value<0, 1, 2>() = v.template value<0, 1, 2>();
 
-        m.value<Y, Y, Y>() = v.template value<Y, Y, Y>();
-        m.value<Y, Y, Z>() = v.template value<Y, Y, Z>();
+        m.value<1, 1, 1>() = v.template value<1, 1, 1>();
+        m.value<1, 1, 2>() = v.template value<1, 1, 2>();
         return m;
     }
 };
@@ -554,29 +492,29 @@ struct MakeTracelessMultipole<3> {
 template <>
 struct MakeTracelessMultipole<4> {
     template <typename TValue>
-    static TracelessMultipole<4> make(const TValue& v) {
+    static constexpr TracelessMultipole<4> make(const TValue& v) {
         TracelessMultipole<4> m;
-        m.value<X, X, X, X>() = v.template value<X, X, X, X>();
-        m.value<X, X, X, Y>() = v.template value<X, X, X, Y>();
-        m.value<X, X, X, Z>() = v.template value<X, X, X, Z>();
-        m.value<X, X, Y, Y>() = v.template value<X, X, Y, Y>();
-        m.value<X, X, Y, Z>() = v.template value<X, X, Y, Z>();
-        m.value<X, Y, Y, Y>() = v.template value<X, Y, Y, Y>();
-        m.value<X, Y, Y, Z>() = v.template value<X, Y, Y, Z>();
+        m.value<0, 0, 0, 0>() = v.template value<0, 0, 0, 0>();
+        m.value<0, 0, 0, 1>() = v.template value<0, 0, 0, 1>();
+        m.value<0, 0, 0, 2>() = v.template value<0, 0, 0, 2>();
+        m.value<0, 0, 1, 1>() = v.template value<0, 0, 1, 1>();
+        m.value<0, 0, 1, 2>() = v.template value<0, 0, 1, 2>();
+        m.value<0, 1, 1, 1>() = v.template value<0, 1, 1, 1>();
+        m.value<0, 1, 1, 2>() = v.template value<0, 1, 1, 2>();
 
-        m.value<Y, Y, Y, Y>() = v.template value<Y, Y, Y, Y>();
-        m.value<Y, Y, Y, Z>() = v.template value<Y, Y, Y, Z>();
+        m.value<1, 1, 1, 1>() = v.template value<1, 1, 1, 1>();
+        m.value<1, 1, 1, 2>() = v.template value<1, 1, 1, 2>();
         return m;
     }
 };
 
 template <Size N, typename TValue>
-TracelessMultipole<N> makeTracelessMultipole(const TValue& v) {
+constexpr TracelessMultipole<N> makeTracelessMultipole(const TValue& v) {
     return MakeTracelessMultipole<N>::make(v);
 }
 template <Size... Idxs>
 struct TracelessMultipoleComponentImpl {
-    INLINE static Float get(const TracelessMultipole<sizeof...(Idxs)>& m) {
+    INLINE static constexpr Float get(const TracelessMultipole<sizeof...(Idxs)>& m) {
         return m.template valueImpl<Idxs...>();
     }
 };
@@ -598,21 +536,21 @@ struct TracelessMultipoleComponent {
 };
 
 template <>
-struct TracelessMultipoleComponentImpl<Z, Z> {
+struct TracelessMultipoleComponentImpl<2, 2> {
     INLINE static constexpr Float get(const TracelessMultipole<2>& m) {
-        return -m.valueImpl<X, X>() - m.valueImpl<Y, Y>();
+        return -m.valueImpl<0, 0>() - m.valueImpl<1, 1>();
     }
 };
 template <Size I>
-struct TracelessMultipoleComponentImpl<I, Z, Z> {
+struct TracelessMultipoleComponentImpl<I, 2, 2> {
     INLINE static constexpr Float get(const TracelessMultipole<3>& m) {
-        return -m.valueImpl<X, X, I>() - m.valueImpl<Y, Y, I>();
+        return -m.valueImpl<0, 0, I>() - m.valueImpl<1, 1, I>();
     }
 };
 template <Size I, Size J>
-struct TracelessMultipoleComponentImpl<I, J, Z, Z> {
+struct TracelessMultipoleComponentImpl<I, J, 2, 2> {
     INLINE static constexpr Float get(const TracelessMultipole<4>& m) {
-        return -m.valueImpl<X, X, I, J>() - m.valueImpl<Y, Y, I, J>();
+        return -m.valueImpl<0, 0, I, J>() - m.valueImpl<1, 1, I, J>();
     }
 };
 
@@ -739,8 +677,7 @@ struct Permutations<1, 2, Value1, Value2> {
 };
 
 template <typename Value1, typename Value2>
-Permutations<Value1::ORDER, Value2::ORDER, Value1, Value2> makePermutations(const Value1& v1,
-    const Value2& v2) {
+constexpr auto makePermutations(const Value1& v1, const Value2& v2) {
     return Permutations<Value1::ORDER, Value2::ORDER, Value1, Value2>{ v1, v2 };
 }
 
@@ -756,7 +693,7 @@ struct Contraction {
 };
 
 template <typename TValue>
-Contraction<TValue> makeContraction(const TValue& v) {
+constexpr auto makeContraction(const TValue& v) {
     return Contraction<TValue>{ v };
 }
 
@@ -853,7 +790,7 @@ struct InnerProduct<3, 3, TValue1, TValue2> {
 };
 
 template <Size N, typename TValue1, typename TValue2>
-InnerProduct<N, TValue1::ORDER, TValue1, TValue2> makeInner(const TValue1& v1, const TValue2& v2) {
+constexpr InnerProduct<N, TValue1::ORDER, TValue1, TValue2> makeInner(const TValue1& v1, const TValue2& v2) {
     return InnerProduct<N, TValue1::ORDER, TValue1, TValue2>{ v1, v2 };
 }
 
@@ -909,12 +846,12 @@ struct MultiplyTwo<4, TValue1, TValue2> {
 };
 
 template <typename TValue>
-MultiplyByScalar<TValue> operator*(const TValue& v, const Float f) {
+constexpr MultiplyByScalar<TValue> operator*(const TValue& v, const Float f) {
     return MultiplyByScalar<TValue>{ v, f };
 }
 
 template <typename TValue1, typename TValue2>
-MultiplyTwo<TValue1::ORDER, TValue1, TValue2> makeMultiply(const TValue1& v1, const TValue2& v2) {
+constexpr MultiplyTwo<TValue1::ORDER, TValue1, TValue2> makeMultiply(const TValue1& v1, const TValue2& v2) {
     return MultiplyTwo<TValue1::ORDER, TValue1, TValue2>{ v1, v2 };
 }
 
@@ -930,7 +867,7 @@ struct Sum {
 };
 
 template <typename TValue1, typename TValue2>
-Sum<TValue1, TValue2> operator+(const TValue1& v1, const TValue2& v2) {
+constexpr auto operator+(const TValue1& v1, const TValue2& v2) {
     return Sum<TValue1, TValue2>{ v1, v2 };
 }
 
@@ -946,7 +883,7 @@ struct Difference {
 };
 
 template <typename TValue1, typename TValue2>
-Difference<TValue1, TValue2> operator-(const TValue1& v1, const TValue2& v2) {
+constexpr auto operator-(const TValue1& v1, const TValue2& v2) {
     return Difference<TValue1, TValue2>{ v1, v2 };
 }
 
@@ -954,7 +891,7 @@ template <Size Order>
 struct OuterProduct {
     static constexpr Size ORDER = Order;
 
-    const Vector& v;
+    const Multipole<1>& v;
 
     template <Size I, Size J, Size... Is>
     INLINE constexpr Float value() const {
@@ -976,22 +913,22 @@ struct MultipoleExpansion {
     MultipoleExpansion<N - 1> lower;
 
     template <Size M>
-    INLINE std::enable_if_t<M != N, TracelessMultipole<M>&> order() {
+    INLINE constexpr std::enable_if_t<M != N, TracelessMultipole<M>&> order() {
         return lower.template order<M>();
     }
     template <Size M>
-    INLINE std::enable_if_t<M != N, const TracelessMultipole<M>&> order() const {
+    INLINE constexpr std::enable_if_t<M != N, const TracelessMultipole<M>&> order() const {
         return lower.template order<M>();
     }
     template <Size M>
-    INLINE std::enable_if_t<M == N, TracelessMultipole<M>&> order() {
+    INLINE constexpr std::enable_if_t<M == N, TracelessMultipole<M>&> order() {
         return Qn;
     }
     template <Size M>
-    INLINE std::enable_if_t<M == N, const TracelessMultipole<M>&> order() const {
+    INLINE constexpr std::enable_if_t<M == N, const TracelessMultipole<M>&> order() const {
         return Qn;
     }
-    MultipoleExpansion multiply(const Float factor) const {
+    constexpr MultipoleExpansion multiply(const Float factor) const {
         MultipoleExpansion m = *this;
         m.lower = lower.multiply(factor);
         for (Size i = 0; i < Qn.size(); ++i) {
@@ -1006,243 +943,21 @@ struct MultipoleExpansion<0> {
     TracelessMultipole<0> Qn;
 
     template <Size M>
-    INLINE TracelessMultipole<0>& order() {
+    INLINE constexpr TracelessMultipole<0>& order() {
         static_assert(M == 0, "Invalid index");
         return Qn;
     }
 
     template <Size M>
-    INLINE const TracelessMultipole<0>& order() const {
+    INLINE constexpr const TracelessMultipole<0>& order() const {
         static_assert(M == 0, "Invalid index");
         return Qn;
     }
-    MultipoleExpansion multiply(const Float factor) const {
+    constexpr MultipoleExpansion multiply(const Float factor) const {
         MultipoleExpansion m = *this;
         m.Qn.value() *= factor;
         return m;
     }
 };
-
-
-/*template <Size M, Size N>
-INLINE const TracelessMultipole<M>& getOrder(const MultipoleExpansion<N>& ms) {
-    return getOrder<M>(ms.lower);
-}
-template <Size M, Size N>
-INLINE TracelessMultipole<M>& getOrder(MultipoleExpansion<N>& ms) {
-    return getOrder<M>(ms.lower);
-}
-template <Size M>
-INLINE const TracelessMultipole<M>& getOrder(const MultipoleExpansion<M>& ms) {
-    return ms.Qn;
-}
-template <Size M>
-INLINE TracelessMultipole<M>& getOrder(MultipoleExpansion<M>& ms) {
-    return ms.Qn;
-}*/
-/*
-template <>
-class Multipole<3> {
-private:
-    Vector data[3];
-
-
-    Float components[COMPONENT_CNT];
-
-public:
-    Multipole() = default;
-
-    Multipole(const Multipole& other) = default;
-
-    Multipole(const Float value) {
-        for (Size i = 0; i < COMPONENT_CNT; ++i) {
-            components[i] = value;
-        }
-    }
-
-    template <typename... TArgs>
-    INLINE Float& value()(const Size idx, const TArgs... rest) {
-        static_assert(sizeof...(T1Args) == Order - 1, "Number of indices must be equal to multipole
-order");
-        SPH_ASSERT(min(rest...) >= idx);
-        switch (idx) {
-        case Z:
-            // other components must be all Zs
-            return components[COMPONENT_CNT - 1];
-        }
-    }
-
-    /// Multiplication by scalar
-    INLINE Multipole operator*(const Float f) const {
-        return Multipole(data[0] * f, data[1] * f, data[2] * f);
-    }
-
-    /// Inner product with a vector
-    INLINE Multipole<Order - 1> operator*(const Vector& v) {
-        return v[0] * data[0] + v[1] * data[1] + v[2] * data[2];
-    }
-
-    template <typename... TArgs>
-    INLINE Float apply(const Vector& v1, const TArgs&... rest) {
-        static_assert(sizeof...(TArgs) == Order - 1, "Number of vectors must be equal to multipole
-order");
-        return (*this * v1).apply(rest...);
-    }
-
-    INLINE Multipole operator+(const Multipole& other) {
-        return Multipole(data[0] + other.data[0], data[1] + other.data[1], data[2] + other.data[2]);
-    }
-
-    INLINE Multipole& operator+=(const Multipole& other) {
-        data[0] += other.data[0];
-        data[1] += other.data[1];
-        data[2] += other.data[2];
-        return *this;
-    }
-
-    bool operator==(const Multipole& other) const {
-        return data[0] == other.data[0] && data[1] == other.data[1] && data[2] == other.data[2];
-    }
-
-    friend std::ostream& operator<<(std::ostream& stream, const Multipole& t) {
-        stream << t.data[0] << std::endl;
-        stream << t.data[1] << std::endl;
-        stream << t.data[2] << std::endl << std::endl;
-        return stream;
-    }
-};
-*/
-
-/*
-template <>
-class Multipole<0> {
-private:
-    Float data;
-
-public:
-    Multipole() = default;
-
-    Multipole(const Multipole& other) = default;
-
-    Multipole(const Float& v)
-        : data(v) {}
-
-    INLINE Float& value() {
-        return data;
-    }
-
-    INLINE const Float& value() const {
-        return data;
-    }
-
-    INLINE Multipole operator*(const Float f) const ,1{
-        return data * f;
-    }
-
-    INLINE Multipole operator+(const Multipole& other) {
-        return data + other.data;
-    }
-
-    INLINE Multipole& operator+=(const Multipole& other) {
-        data += other.data;
-        return *this;
-    }
-
-    INLINE bool operator==(const Multipole& other) const {
-        return data == other.data;
-    }
-
-    friend std::ostream& operator<<(std::ostream& stream, const Multipole& t) {
-        stream << t.data;
-        return stream;
-    }
-};
-
-/// Specialization for dipole = vector
-template <>
-class Multipole<1> {
-private:
-    Vector data;
-
-public:
-    Multipole() = default;
-
-    Multipole(const Multipole& other) = default;
-
-    Multipole(const Vector& v)
-        : data(v) {}
-
-    Multipole(const Float m1, const Float m2, const Float m3)
-        : data{ m1, m2, m3 } {}
-
-    Multipole(const Float value)
-        : data{ value, value, value } {}
-
-    INLINE Multipole<0>& operator[](const Size idx) {
-        SPH_ASSERT(unsigned(idx) < 3);
-        return (Multipole<0>&)data[idx];
-    }
-
-    INLINE Vector& value() {
-        return data;
-    }
-
-    INLINE const Vector& value() const {
-        return data;
-    }
-
-    INLINE Multipole<0> operator[](const Size idx) const {
-        SPH_ASSERT(unsigned(idx) < 3);
-        return data[idx];
-    }
-
-    INLINE Float& operator()(const Size idx) {
-        return data[idx];
-    }
-
-    INLINE Multipole operator*(const Float f) const {
-        return data * f;
-    }
-
-    INLINE Float operator*(const Vector& v) {
-        return dot(data, v);
-    }
-
-    INLINE Float apply(const Vector& v) {
-        return dot(data, v);
-    }
-
-    INLINE Multipole operator+(const Multipole& other) {
-        return data + other.data;
-    }
-
-    INLINE Multipole& operator+=(const Multipole& other) {
-        data += other.data;
-        return *this;
-    }
-
-    INLINE bool operator==(const Multipole& other) const {
-        return data == other.data;
-    }
-
-    friend std::ostream& operator<<(std::ostream& stream, const Multipole& t) {
-        stream << t.data;
-        return stream;
-    }
-};*/
-
-namespace Experimental {
-template <Size N>
-class MultipoleBase {
-protected:
-    static constexpr Size COMPONENT_CNT = (N + 1) * (N + 2) / 2;
-
-    Float data[COMPONENT_CNT];
-
-public:
-    // inner
-};
-} // namespace Experimental
-
 
 NAMESPACE_SPH_END

@@ -158,6 +158,7 @@ HEADERS += \
     objects/utility/Progressible.h \
     objects/utility/Streams.h \
     objects/wrappers/ExtendedEnum.h \
+    objects/wrappers/MultiLambda.h \
     objects/wrappers/SharedToken.h \
     quantities/Attractor.h \
     quantities/Utility.h \

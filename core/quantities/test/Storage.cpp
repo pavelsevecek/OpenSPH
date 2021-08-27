@@ -281,7 +281,7 @@ TEST_CASE("Storage zeroHighestDerivatives", "[storage]") {
     REQUIRE(storage.getAll<Float>(QuantityId::POSITION)[2] == makeArray(5._f, 5._f, 5._f));
     REQUIRE(storage.getAll<Float>(QuantityId::MASS)[1] == makeArray(5._f, 5._f, 5._f));
 
-    storage.zeroHighestDerivatives();
+    storage.zeroHighestDerivatives(SEQUENTIAL);
 
     REQUIRE(storage.getAll<Float>(QuantityId::POSITION)[2] == makeArray(0._f, 0._f, 0._f));
     REQUIRE(storage.getAll<Float>(QuantityId::POSITION)[1] == makeArray(5._f, 5._f, 5._f));

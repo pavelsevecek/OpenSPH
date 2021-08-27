@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2021
 
+#include "objects/containers/BasicAllocators.h"
 #include "objects/wrappers/PropagateConst.h"
 #include "thread/Scheduler.h"
 
@@ -41,10 +42,16 @@ public:
     virtual void parallelFor(const Size from,
         const Size to,
         const Size granularity,
-        const Function<void(Size n1, Size n2)>& functor) override;
+        const RangeFunctor& functor) override;
+
+    virtual void parallelInvoke(const Functor& task1, const Functor& task2) override;
 
     static SharedPtr<Tbb> getGlobalInstance();
 };
 
+struct TbbAllocator {
+    MemoryBlock allocate(const std::size_t size, const std::size_t align) noexcept;
+    void deallocate(MemoryBlock& block) noexcept;
+};
 
 NAMESPACE_SPH_END

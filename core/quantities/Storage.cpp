@@ -60,6 +60,11 @@ StorageIterator StorageSequence::end() {
     return StorageIterator(quantities.end(), {});
 }
 
+StorageElement StorageSequence::operator[](const Size i) const {
+    auto iter = quantities.begin() + i;
+    return { iter->key(), iter->value() };
+}
+
 Size StorageSequence::size() const {
     return quantities.size();
 }
@@ -73,6 +78,11 @@ ConstStorageIterator ConstStorageSequence::begin() {
 
 ConstStorageIterator ConstStorageSequence::end() {
     return ConstStorageIterator(quantities.end(), {});
+}
+
+ConstStorageElement ConstStorageSequence::operator[](const Size i) const {
+    auto iter = quantities.begin() + i;
+    return { iter->key(), iter->value() };
 }
 
 Size ConstStorageSequence::size() const {
@@ -581,8 +591,8 @@ void Storage::merge(Storage&& other) {
     SPH_ASSERT(this->isValid());
 }
 
-void Storage::zeroHighestDerivatives() {
-    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(*this, [](const QuantityId, auto& dv) {
+void Storage::zeroHighestDerivatives(IScheduler& scheduler) {
+    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(*this, scheduler, [](const QuantityId, auto& dv) {
         using TValue = typename std::decay_t<decltype(dv)>::Type;
         dv.fill(TValue(0._f));
     });
