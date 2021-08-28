@@ -121,7 +121,7 @@ bool RayMarcher::isInitialized() const {
 }
 
 void RayMarcher::setColorizer(const IColorizer& colorizer) {
-    cached.doEmission = typeid(colorizer) == typeid(BeautyColorizer);
+    cached.doEmission = false;
     cached.colors.resize(cached.r.size());
     for (Size i = 0; i < cached.r.size(); ++i) {
         cached.colors[i] = colorizer.evalColor(i);

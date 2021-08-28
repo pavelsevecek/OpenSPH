@@ -19,12 +19,12 @@ inline String getIdentifier(const String& name) {
 class Project {
 private:
     GuiSettings gui;
-    FlatMap<String, Palette> palettes;
+    FlatMap<String, ColorLut> luts;
 
     Project();
 
 public:
-    CallbackSet<void(const String& name, const Palette& palette)> onPaletteChanged;
+    CallbackSet<void(const String& name, const ColorLut& lut)> onLutChanged;
 
     static Project& getInstance() {
         static Project project;
@@ -34,19 +34,18 @@ public:
     Project clone() const {
         Project cloned;
         cloned.gui = gui;
-        cloned.palettes = palettes.clone();
+        cloned.luts = luts.clone();
         return cloned;
     }
 
-    void setPalette(const String& name, const Palette& palette) {
-        palettes.insert(name, palette);
-
-        onPaletteChanged(name, palette);
+    void setColorLut(const String& name, const ColorLut& lut) {
+        luts.insert(name, lut);
+        onLutChanged(name, lut);
     }
 
-    bool getPalette(const String& name, Palette& palette) const {
-        if (palettes.contains(name)) {
-            palette = palettes[name];
+    bool getColorLut(const String& name, ColorLut& lut) const {
+        if (luts.contains(name)) {
+            lut = luts[name];
             return true;
         } else {
             return false;
@@ -69,10 +68,10 @@ public:
     void reset();
 
 private:
-    void savePalettes(Config& config);
+    void setLuts(Config& config);
     void saveGui(Config& config);
 
-    void loadPalettes(Config& config);
+    void loadLuts(Config& config);
     void loadGui(Config& config);
 };
 

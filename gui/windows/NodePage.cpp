@@ -7,11 +7,12 @@
 #include "gui/objects/Colorizer.h"
 #include "gui/objects/DelayedCallback.h"
 #include "gui/objects/RenderJobs.h"
+#include "gui/objects/ShaderJobs.h"
 #include "gui/windows/BatchDialog.h"
 #include "gui/windows/CurveDialog.h"
 #include "gui/windows/PaletteDialog.h"
-#include "gui/windows/PreviewPane.h"
 #include "gui/windows/PaletteEditor.h"
+#include "gui/windows/PreviewPane.h"
 #include "gui/windows/RunSelectDialog.h"
 #include "gui/windows/Widgets.h"
 #include "io/FileSystem.h"
@@ -48,7 +49,8 @@ constexpr int SLOT_DY = 25;
 constexpr int SLOT_RADIUS = 6;
 
 /// \todo figure out why this is needed
-static AnimationJob animationDummy("dummy");
+static RaytracerJob raytracerDummy("dummy");
+static ShaderJob shaderDummy("dummy");
 static PerspectiveCameraJob cameraDummy("dummy");
 
 #ifdef SPH_USE_CHAISCRIPT
@@ -371,8 +373,7 @@ public:
                 break;
             }
             case IVirtualEntry::Type::EXTRA: {
-                /// \todo currently used only by curves, can be generalized if needed
-                ExtraEntry extra(makeAuto<CurveEntry>());
+                ExtraEntry extra = entry.get();
                 extra.fromString(input.get<String>(name));
                 entry.set(extra);
                 break;
@@ -687,6 +688,10 @@ static FlatMap<ExtJobType, wxPen> NODE_PENS_DARK = [] {
     wxPen& imagePen = pens.insert(GuiJobType::IMAGE, *wxBLACK_PEN);
     imagePen.SetColour(wxColour(255, 255, 100));
     imagePen.SetStyle(wxPENSTYLE_SOLID);
+
+    wxPen& shaderPen = pens.insert(GuiJobType::SHADER, pens[GuiJobType::IMAGE]);
+    shaderPen.SetStyle(wxPENSTYLE_SHORT_DASH);
+
     return pens;
 }();
 
@@ -710,6 +715,9 @@ static FlatMap<ExtJobType, wxPen> NODE_PENS_LIGHT = [] {
     wxPen& imagePen = pens.insert(GuiJobType::IMAGE, *wxBLACK_PEN);
     imagePen.SetColour(wxColour(250, 130, 0));
     imagePen.SetStyle(wxPENSTYLE_SOLID);
+
+    wxPen& shaderPen = pens.insert(GuiJobType::SHADER, pens[GuiJobType::IMAGE]);
+    shaderPen.SetStyle(wxPENSTYLE_SHORT_DASH);
     return pens;
 }();
 
@@ -1327,10 +1335,12 @@ public:
 class PropertyGrid {
 private:
     wxPropertyGrid* grid;
+    wxAuiManager* aui;
 
 public:
-    explicit PropertyGrid(wxPropertyGrid* grid)
-        : grid(grid) {}
+    PropertyGrid(wxPropertyGrid* grid, wxAuiManager* aui)
+        : grid(grid)
+        , aui(aui) {}
 
     wxPGProperty* addCategory(const String& name) const {
         return grid->Append(new wxPropertyCategory(name.toUnicode()));
@@ -1392,9 +1402,13 @@ public:
     }
 
     wxPGProperty* addExtra(const String& name, const ExtraEntry& extra) const {
-        RawPtr<CurveEntry> entry = dynamicCast<CurveEntry>(extra.getEntry());
-        SPH_ASSERT(entry);
-        return grid->Append(new CurveProperty(name, entry->getCurve()));
+        if (auto entry = dynamicCast<CurveEntry>(extra.getEntry())) {
+            return grid->Append(new CurveProperty(name, entry->getCurve(), aui));
+        } else if (auto entry = dynamicCast<PaletteEntry>(extra.getEntry())) {
+            return grid->Append(new PaletteProperty(grid, name, entry->getPalette(), aui));
+        } else {
+            NOT_IMPLEMENTED;
+        }
     }
 
     void setTooltip(wxPGProperty* prop, const String& tooltip) const {
@@ -1429,8 +1443,8 @@ private:
     PropertyEntryMap& propertyEntryMap;
 
 public:
-    explicit AddParamsProc(wxPropertyGrid* grid, PropertyEntryMap& propertyEntryMapping)
-        : wrapper(grid)
+    explicit AddParamsProc(PropertyGrid wrapper, PropertyEntryMap& propertyEntryMapping)
+        : wrapper(wrapper)
         , propertyEntryMap(propertyEntryMapping) {}
 
     virtual void onCategory(const String& name) const override {
@@ -1509,7 +1523,7 @@ public:
 
 class PalettePane : public wxPanel {
 private:
-    PalettePanel* panel;
+    ColorLutPanel* panel;
     PaletteEditor* editor;
     Array<ExtColorizerId> itemIds;
 
@@ -1526,15 +1540,15 @@ public:
 
         Array<ExtColorizerId> colorizerIds = getColorizerIds();
         wxArrayString items;
-        Palette firstPalette;
+        ColorLut firstLut;
         for (ExtColorizerId id : colorizerIds) {
             AutoPtr<IColorizer> colorizer = Factory::getColorizer(project, id);
-            if (Optional<Palette> palette = colorizer->getPalette()) {
+            if (Optional<ColorLut> lut = colorizer->getColorLut()) {
                 items.Add(colorizer->name().toUnicode());
                 itemIds.push(id);
 
-                if (firstPalette.empty()) {
-                    firstPalette = palette.value();
+                if (firstLut.getPalette().empty()) {
+                    firstLut = lut.value();
                 }
             }
         }
@@ -1543,14 +1557,21 @@ public:
 
         sizer->Add(quantitySizer, 0, wxALIGN_CENTER_HORIZONTAL);
 
-        panel = new PalettePanel(this, wxSize(300, 200), firstPalette);
+        panel = new ColorLutPanel(this, wxSize(300, 200), firstLut);
         sizer->Add(panel, 1, wxALIGN_CENTER_HORIZONTAL);
 
         editor = new PaletteEditor(this, wxSize(300, 200));
         sizer->Add(editor, 1, wxEXPAND | wxALIGN_CENTER_HORIZONTAL);
 
-        auto curve = new CurvePanel(this);
-        curve->setCurve(Curve(firstPalette.getInterval(), Interval(0, 1)));
+
+        // auto rangeX = firstPalette.getInterval();
+        auto curve = new CurvePanel(this, Interval(0, 1), Interval(0, 1), [firstLut](float x) {
+            return firstLut.relativeToPalette(clamp(x, 0.f, 1.f));
+        });
+        curve->setCurve(Curve(Array<CurvePoint>{
+            CurvePoint{ 0._f, 0.5_f },
+            CurvePoint{ 1._f, 0.5_f },
+        }));
         sizer->Add(curve, 1, wxEXPAND | wxALIGN_CENTER_HORIZONTAL);
 
         this->SetSizerAndFit(sizer);
@@ -1560,13 +1581,13 @@ public:
             const int idx = quantityBox->GetSelection();
             ExtColorizerId id = itemIds[idx];
             AutoPtr<IColorizer> colorizer = Factory::getColorizer(project, id);
-            panel->setPalette(colorizer->getPalette().value());
+            panel->setLut(colorizer->getColorLut().value());
             this->Refresh();
         });
 
-        panel->onPaletteChanged = [quantityBox, &project](const Palette& palette) { //
+        panel->onLutChanged = [quantityBox, &project](const ColorLut& lut) { //
             wxString name = quantityBox->GetStringSelection();
-            project.setPalette(String(name.wc_str()), palette);
+            project.setColorLut(String(name.wc_str()), lut);
         };
     }
 };
@@ -1637,10 +1658,9 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             break;
         }
         case IVirtualEntry::Type::EXTRA: {
-            CurveProperty* curveProp = dynamic_cast<CurveProperty*>(prop);
-            SPH_ASSERT(curveProp != nullptr);
-            Curve curve = curveProp->getCurve();
-            ExtraEntry extra(makeAuto<CurveEntry>(curve));
+            String data(value.GetString().wc_str());
+            ExtraEntry extra = entry->get();
+            extra.fromString(data);
             entry->set(extra);
             break;
         }
@@ -1892,7 +1912,7 @@ void NodeWindow::updateProperties() {
     propertyEntryMap.clear();
 
     try {
-        AddParamsProc proc(grid, propertyEntryMap);
+        AddParamsProc proc(PropertyGrid(grid, &*aui), propertyEntryMap);
         settings.enumerate(proc);
     } catch (const Exception& e) {
         SPH_ASSERT(false, e.what());

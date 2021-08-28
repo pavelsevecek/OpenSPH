@@ -10,7 +10,7 @@ NAMESPACE_SPH_BEGIN
 class IColorizer;
 struct RenderParams;
 class JobNode;
-class Palette;
+class ColorLut;
 
 enum class RenderColorizerId;
 
@@ -31,7 +31,7 @@ public:
 
     virtual void update(AutoPtr<IRenderer>&& renderer) = 0;
 
-    virtual void update(Palette&& palette) = 0;
+    virtual void update(ColorLut&& palette) = 0;
 
     virtual void cancel() = 0;
 };
@@ -61,28 +61,48 @@ struct AnimationFrame : public IStorageUserData {
     Array<IRenderOutput::Label> labels;
 };
 
-class AnimationJob : public IImageJob {
-private:
+struct SequenceParams {
+    Path firstFile = Path("out_0000.ssf");
+    int extraFrames = 0;
+};
+
+class IRenderJob : public IImageJob {
+protected:
     GuiSettings gui;
     EnumWrapper colorizerId;
+    bool transparentBackground = false;
     bool addSurfaceGravity = true;
+
     Path directory;
     String fileMask = "img_%d.png";
 
     EnumWrapper animationType;
 
-    bool transparentBackground = false;
-    int extraFrames = 0;
-
-    struct {
-        Path firstFile = Path("out_0000.ssf");
-    } sequence;
+    SequenceParams sequence;
 
 public:
-    explicit AnimationJob(const String& name);
+    explicit IRenderJob(const String& name)
+        : IImageJob(name) {}
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
+
+    AutoPtr<IRenderPreview> getRenderPreview(const RunSettings& global) const;
+
+    // needed for interactive rendering
+    AutoPtr<IRenderer> getRenderer(const RunSettings& global) const;
+    AutoPtr<IColorizer> getColorizer(const RunSettings& global) const;
+    RenderParams getRenderParams() const;
+
+private:
+    RenderParams getRenderParams(const GuiSettings& gui) const;
+};
+
+class ParticleRenderJob : public IRenderJob {
+public:
+    explicit ParticleRenderJob(const String& name);
 
     virtual String className() const override {
-        return "render animation";
+        return "particle renderer";
     }
 
     virtual UnorderedMap<String, ExtJobType> getSlots() const override {
@@ -96,18 +116,41 @@ public:
     requires() const override;
 
     virtual VirtualSettings getSettings() override;
+};
 
-    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+enum class ShaderFlag {
+    SURFACENESS = 1 << 0,
+    EMISSION = 1 << 1,
+    SCATTERING = 1 << 2,
+    ABSORPTION = 1 << 3,
+};
 
-    AutoPtr<IRenderPreview> getRenderPreview(const RunSettings& global) const;
-
-    // needed for interactive rendering
-    AutoPtr<IRenderer> getRenderer(const RunSettings& global) const;
-    AutoPtr<IColorizer> getColorizer(const RunSettings& global) const;
-    RenderParams getRenderParams() const;
-
+class RaytracerJob : public IRenderJob {
 private:
-    RenderParams getRenderParams(const GuiSettings& gui) const;
+    Flags<ShaderFlag> shaderFlags = ShaderFlag::SURFACENESS;
+
+public:
+    explicit RaytracerJob(const String& name);
+
+    virtual String className() const override {
+        return "raytracer";
+    }
+
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
+        return {
+            { "particles", JobType::PARTICLES },
+            { "camera", GuiJobType::CAMERA },
+            { "surfaceness", GuiJobType::SHADER },
+            { "emission", GuiJobType::SHADER },
+            { "scattering", GuiJobType::SHADER },
+            { "absorption", GuiJobType::SHADER },
+        };
+    }
+
+    virtual UnorderedMap<String, ExtJobType>
+    requires() const override;
+
+    virtual VirtualSettings getSettings() override;
 };
 
 class VdbJob : public IParticleJob {

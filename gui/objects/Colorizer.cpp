@@ -2,7 +2,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-DirectionColorizer::DirectionColorizer(const Vector& axis, const Palette& palette)
+DirectionColorizer::DirectionColorizer(const Vector& axis, const ColorLut& palette)
     : palette(palette)
     , axis(axis) {
     SPH_ASSERT(almostEqual(getLength(axis), 1._f));
@@ -28,7 +28,7 @@ Optional<float> DirectionColorizer::evalScalar(const Size idx) const {
 
 static thread_local Array<NeighborRecord> neighs;
 
-SummedDensityColorizer::SummedDensityColorizer(const RunSettings& settings, Palette palette)
+SummedDensityColorizer::SummedDensityColorizer(const RunSettings& settings, ColorLut palette)
     : palette(std::move(palette)) {
     finder = Factory::getFinder(settings);
     kernel = Factory::getKernel<3>(settings);
@@ -101,18 +101,9 @@ void DamageActivationColorizer::initialize(const Storage& storage, const RefEnum
     }
 }
 
-BeautyColorizer::BeautyColorizer() {
-    palette = Palette({ { u_0, Rgba(0.5f, 0.5f, 0.5) },
-                          { u_glow, Rgba(0.5f, 0.5f, 0.5f) },
-                          { u_red, Rgba(0.8f, 0.f, 0.f) },
-                          { u_yellow, Rgba(1.f, 1.f, 0.6f) } },
-        PaletteScale::LOGARITHMIC);
-    f_glow = (log10(u_glow) - log10(u_0)) / (log10(u_yellow) - log10(u_0));
-}
-
 BoundaryColorizer::BoundaryColorizer(const Detection detection, const Float threshold)
     : detection(detection) {
-    if (detection == Detection::NEIGBOUR_THRESHOLD) {
+    if (detection == Detection::NEIGBOR_THRESHOLD) {
         neighbors.threshold = Size(threshold);
     } else {
         normals.threshold = threshold;
@@ -137,7 +128,7 @@ void BoundaryColorizer::initialize(const Storage& storage, const RefEnum ref) {
 
 bool BoundaryColorizer::isInitialized() const {
     return (detection == Detection::NORMAL_BASED && !normals.values.empty()) ||
-           (detection == Detection::NEIGBOUR_THRESHOLD && !neighbors.values.empty());
+           (detection == Detection::NEIGBOR_THRESHOLD && !neighbors.values.empty());
 }
 
 Rgba BoundaryColorizer::evalColor(const Size idx) const {
@@ -150,7 +141,7 @@ Rgba BoundaryColorizer::evalColor(const Size idx) const {
 
 bool BoundaryColorizer::isBoundary(const Size idx) const {
     switch (detection) {
-    case Detection::NEIGBOUR_THRESHOLD:
+    case Detection::NEIGBOR_THRESHOLD:
         SPH_ASSERT(!neighbors.values.empty());
         return neighbors.values[idx] < neighbors.threshold;
     case Detection::NORMAL_BASED:

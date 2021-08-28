@@ -619,7 +619,8 @@ AutoPtr<RunSettings> RunSettings::instance
         "Opening angle (in radians) used in Barnes-Hut algorithm. Larger values means faster gravity evaluation "
         "at a cost of lower precision." },
     { RunSettingsId::GRAVITY_MULTIPOLE_ORDER,       "gravity.multipole_order",  3,
-        "Maximum order of gravitational moments. Use 0 for monopole, 2 for quadrupole, etc. " },
+        "Maximum order of gravitational moments. Use 0 for monopole, 2 for quadrupole, etc. Note that "
+        "the order 1 is the same as order 0, as the dipole moment is always zero by construction. " },
     { RunSettingsId::GRAVITY_KERNEL,                "gravity.kernel",           GravityKernelEnum::SPH_KERNEL,
         "Smoothing kernel of gravity. Can be one of the following:\n" + EnumMap::getDesc<GravityKernelEnum>() },
     { RunSettingsId::GRAVITY_CONSTANT,              "gravity.constant",         Constants::gravity,

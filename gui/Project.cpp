@@ -28,16 +28,16 @@ Project::Project() {
 }
 
 void Project::save(Config& config) {
-    this->savePalettes(config);
+    this->setLuts(config);
     this->saveGui(config);
 }
 
 void Project::load(Config& config) {
-    this->loadPalettes(config);
+    this->loadLuts(config);
     this->loadGui(config);
 }
 
-void Project::reset(){
+void Project::reset() {
     *this = Project();
 }
 
@@ -92,20 +92,20 @@ void Project::saveGui(Config& config) {
     }
 }
 
-void Project::savePalettes(Config& config) {
-    SharedPtr<ConfigNode> paletteParentNode = config.addNode("palettes");
-    for (auto& element : palettes) {
-        SharedPtr<ConfigNode> paletteNode = paletteParentNode->addChild(element.key());
-        const Palette& palette = element.value();
-        paletteNode->set("lower", palette.getInterval().lower());
-        paletteNode->set("upper", palette.getInterval().upper());
-        paletteNode->set("scale", int(palette.getScale()));
+void Project::setLuts(Config& config) {
+    SharedPtr<ConfigNode> lutParentNode = config.addNode("palettes");
+    for (auto& element : luts) {
+        SharedPtr<ConfigNode> lutNode = lutParentNode->addChild(element.key());
+        const ColorLut& lut = element.value();
+        lutNode->set("lower", lut.getInterval().lower());
+        lutNode->set("upper", lut.getInterval().upper());
+        lutNode->set("scale", int(lut.getScale()));
 
         StringTextOutputStream ss;
-        palette.saveToStream(ss);
+        lut.getPalette().saveToStream(ss);
         String data = ss.toString();
         data.replaceAll("\n", ";");
-        paletteNode->set("data", data);
+        lutNode->set("data", data);
     }
 }
 
@@ -141,26 +141,26 @@ void Project::loadGui(Config& config) {
     }
 }
 
-void Project::loadPalettes(Config& config) {
-    palettes.clear();
-    SharedPtr<ConfigNode> paletteParentNode = config.getNode("palettes");
-    paletteParentNode->enumerateChildren([this](const String& name, ConfigNode& paletteNode) {
-        const float lower = float(paletteNode.get<Float>("lower"));
-        const float upper = float(paletteNode.get<Float>("upper"));
-        const PaletteScale scale = PaletteScale(paletteNode.get<int>("scale"));
-        Palette palette({ { lower, Rgba::black() }, { upper, Rgba::white() } }, scale);
+void Project::loadLuts(Config& config) {
+    luts.clear();
+    SharedPtr<ConfigNode> lutParentNode = config.getNode("palettes");
+    lutParentNode->enumerateChildren([this](const String& name, ConfigNode& lutNode) {
+        const float lower = float(lutNode.get<Float>("lower"));
+        const float upper = float(lutNode.get<Float>("upper"));
+        const PaletteScale scale = PaletteScale(lutNode.get<int>("scale"));
 
-        if (paletteNode.contains("data")) {
-            String data = paletteNode.get<String>("data");
+        Palette palette;
+        if (lutNode.contains("data")) {
+            String data = lutNode.get<String>("data");
             data.replaceAll(";", "\n");
             StringTextInputStream ss(data);
             if (palette.loadFromStream(ss)) {
-                palettes.insert(name, palette);
+                luts.insert(name, ColorLut(palette, Interval(lower, upper), scale));
             }
         } else { // older format, palettes in separate files
-            const String path = paletteNode.get<String>("file");
-            if (palette.loadFromFile(Path(path))) {
-                palettes.insert(name, palette);
+            const String path = lutNode.get<String>("file");
+            if (palette.loadCsvFromFile(Path(path))) {
+                luts.insert(name, ColorLut(palette, Interval(lower, upper), scale));
             }
         }
     });

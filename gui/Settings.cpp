@@ -144,6 +144,8 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance
     { GuiSettingsId::RAYTRACE_SPHERES,      "raytrace.spheres",     false,
         "If true, raytraced surface is given by spheres centered at particles, "
         "otherwise isosurface of a colorfield is rendered." },
+    { GuiSettingsId::VOLUME_MAX_DISTENTION, "volume.max_distention", 50._f,
+        "TODO." },
     { GuiSettingsId::VOLUME_EMISSION,       "volume.emission",      1.e-3_f,
         "Volume emission per unit length. Used by volumetric renderer." },
     { GuiSettingsId::VOLUME_ABSORPTION,     "volume.absorption",    0._f,

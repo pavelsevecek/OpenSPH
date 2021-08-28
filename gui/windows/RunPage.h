@@ -36,7 +36,7 @@ struct DiagnosticsError;
 class SelectedParticlePlot;
 class TimeLine;
 class ProgressPanel;
-class PalettePanel;
+class ColorLutPanel;
 
 /// \brief Main frame of the application.
 ///
@@ -62,7 +62,7 @@ private:
 
     LockingPtr<SelectedParticlePlot> selectedParticlePlot;
 
-    PalettePanel* palettePanel = nullptr;
+    ColorLutPanel* palettePanel = nullptr;
 
     wxTextCtrl* statsText = nullptr;
     Timer statsTimer;

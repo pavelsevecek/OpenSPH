@@ -96,12 +96,10 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
     manager->AddPane(progressBar, info.Show(true));
 
     Flags<PaneEnum> paneIds = settings.getFlags<PaneEnum>(GuiSettingsId::DEFAULT_PANES);
-    const Optional<Palette> palette = controller->getCurrentColorizer()->getPalette();
+    const Optional<ColorLut> palette = controller->getCurrentColorizer()->getColorLut();
     if (paneIds.has(PaneEnum::PALETTE) && palette) {
-        palettePanel = new PalettePanel(this, wxSize(300, -1), palette.value());
-        palettePanel->onPaletteChanged = [this](const Palette& palette) {
-            controller->setPaletteOverride(palette);
-        };
+        palettePanel = new ColorLutPanel(this, wxSize(300, -1), palette.value());
+        palettePanel->onLutChanged = [this](const ColorLut& lut) { controller->setPaletteOverride(lut); };
         info.Left()
             .MinSize(wxSize(300, -1))
             .CaptionVisible(true)
@@ -733,9 +731,9 @@ void RunPage::setColorizer(const Size idx) {
     if (idx == selectedIdx) {
         return;
     }
-    Optional<Palette> palette = colorizerList[idx]->getPalette();
-    if (palettePanel && palette) {
-        palettePanel->setPalette(palette.value());
+    Optional<ColorLut> lut = colorizerList[idx]->getColorLut();
+    if (palettePanel && lut) {
+        palettePanel->setLut(lut.value());
     }
     this->replaceQuantityBar(idx);
     selectedIdx = idx;

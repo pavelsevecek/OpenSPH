@@ -9,6 +9,7 @@ NAMESPACE_SPH_BEGIN
 enum class GuiJobType {
     CAMERA = 3,
     IMAGE = 4,
+    SHADER = 5,
 };
 
 SPH_EXTEND_ENUM(GuiJobType, JobType);

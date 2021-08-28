@@ -13,7 +13,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class AnimationJob;
+class IRenderJob;
 class IRenderPreview;
 
 class BitmapOutput : public IRenderOutput {
@@ -40,7 +40,7 @@ public:
 
 class InteractiveRenderer : public Shareable<InteractiveRenderer> {
     SharedPtr<JobNode> node;
-    RawPtr<AnimationJob> job;
+    RawPtr<IRenderJob> job;
     AutoPtr<IRenderPreview> preview;
     Pixel resolution;
 
@@ -52,7 +52,7 @@ class InteractiveRenderer : public Shareable<InteractiveRenderer> {
         AutoPtr<IColorizer> colorizer;
         AutoPtr<IRenderer> renderer;
         SharedPtr<JobNode> node;
-        Optional<Palette> palette;
+        Optional<ColorLut> palette;
         bool resolution = false;
 
         bool pending() const {

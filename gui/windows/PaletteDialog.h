@@ -8,29 +8,52 @@
 
 NAMESPACE_SPH_BEGIN
 
+class Pixel;
 class ComboBox;
 class FloatTextCtrl;
-class PaletteCanvas;
 
-class PalettePanel : public wxPanel {
+void drawPalette(wxDC& dc, const wxPoint origin, const wxSize size, const Palette& palette);
+
+class PaletteViewCanvas : public wxPanel {
+protected:
+    ColorLut lut;
+
+public:
+    PaletteViewCanvas(wxWindow* parent, const ColorLut lut)
+        : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
+        , lut(lut) {
+        this->Connect(wxEVT_PAINT, wxPaintEventHandler(PaletteViewCanvas::onPaint));
+        this->SetMinSize(wxSize(320, 100));
+    }
+
+    void setPalette(const Palette& palette) {
+        lut.setPalette(palette);
+        this->Refresh();
+    }
+
+private:
+    void onPaint(wxPaintEvent& evt);
+};
+
+class ColorLutPanel : public wxPanel {
 private:
     ComboBox* paletteBox;
 
-    PaletteCanvas* canvas;
+    PaletteViewCanvas* canvas;
     FloatTextCtrl* lowerCtrl;
     FloatTextCtrl* upperCtrl;
 
     UnorderedMap<String, Palette> paletteMap;
 
-    Palette initial;
-    Palette selected;
+    ColorLut initial;
+    ColorLut selected;
 
 public:
-    PalettePanel(wxWindow* parent, wxSize size, const Palette palette);
+    ColorLutPanel(wxWindow* parent, wxSize size, const ColorLut lut);
 
-    void setPalette(const Palette& palette);
+    void setLut(const ColorLut& newLut);
 
-    Function<void(Palette)> onPaletteChanged;
+    Function<void(ColorLut)> onLutChanged;
 
 private:
     void setDefaultPaletteList();

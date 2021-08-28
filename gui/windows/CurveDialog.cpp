@@ -2,12 +2,20 @@
 #include "gui/Utils.h"
 #include "post/Plot.h"
 #include "post/Point.h"
+#include <iostream>
+#include <wx/aui/framemanager.h>
 #include <wx/graphics.h>
 
 NAMESPACE_SPH_BEGIN
 
-CurvePanel::CurvePanel(wxWindow* parent)
-    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(800, 600)) {
+CurvePanel::CurvePanel(wxWindow* parent,
+    const Interval& rangeX,
+    const Interval& rangeY,
+    const Function<Float(Float)>& ticsFuncX)
+    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(800, 200))
+    , rangeX(rangeX)
+    , rangeY(rangeY)
+    , ticsFuncX(ticsFuncX) {
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(CurvePanel::onPaint));
     this->Connect(wxEVT_MOTION, wxMouseEventHandler(CurvePanel::onMouseMotion));
     this->Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(CurvePanel::onLeftDown));
@@ -72,11 +80,13 @@ void CurvePanel::onPaint(wxPaintEvent& UNUSED(evt)) {
 
     // draw axes
     wxSize size = this->GetSize() - wxSize(2 * padding, 2 * padding);
-    dc.DrawLine(wxPoint(padding, padding + size.y), wxPoint(padding + size.x, padding + size.y));
-    dc.DrawLine(wxPoint(padding, padding), wxPoint(padding, padding + size.y));
+    dc.SetBrush(*wxTRANSPARENT_BRUSH);
+    dc.DrawRectangle(wxPoint(padding, padding), size);
+    /*padding + size.y), wxPoint(padding + size.x, padding + size.y));
+    dc.DrawLine(wxPoint(padding, padding), wxPoint(padding, padding + size.y));*/
 
     // draw tics
-    const Interval rangeX = curve.rangeX();
+    const Interval rangeX = this->getRangeX();
     Array<Float> ticsX = getLinearTics(rangeX, 4);
     for (Size i = 0; i < ticsX.size(); ++i) {
         const String label = toPrintableString(ticsX[i], 1);
@@ -84,14 +94,14 @@ void CurvePanel::onPaint(wxPaintEvent& UNUSED(evt)) {
         drawTextWithSubscripts(dc, label, wxPoint(x - 6, size.y + padding + 6));
         dc.DrawLine(wxPoint(x, size.y + padding - 2), wxPoint(x, size.y + padding + 2));
     }
-    const Interval rangeY = curve.rangeY();
+    /*const Interval rangeY = curve.rangeY();
     Array<Float> ticsY = getLinearTics(rangeY, 3);
     for (Size i = 0; i < ticsY.size(); ++i) {
         const String label = toPrintableString(ticsY[i], 1);
         const int y = padding + size.y - i * size.y / (ticsY.size() - 1);
         drawTextWithSubscripts(dc, label, wxPoint(2, y - 8));
         dc.DrawLine(wxPoint(padding - 2, y), wxPoint(padding + 2, y));
-    }
+    }*/
 
     // draw mouse position and curve value
     if (mousePosition != wxDefaultPosition) {
@@ -105,7 +115,7 @@ void CurvePanel::onPaint(wxPaintEvent& UNUSED(evt)) {
         dc.SetTextForeground(wxColour(128, 128, 128));
         wxFont font = dc.GetFont().Smaller();
         dc.SetFont(font);
-        const String labelX = toPrintableString(curvePos.x, 2);
+        const String labelX = toPrintableString(ticsFuncX(curvePos.x), 2);
         const String labelY = toPrintableString(curvePos.y, 2);
         drawTextWithSubscripts(dc, L"(" + labelX, center + wxPoint(-65, -15));
         drawTextWithSubscripts(dc, labelY + L")", center + wxPoint(5, -15));
@@ -120,7 +130,12 @@ void CurvePanel::onMouseMotion(wxMouseEvent& evt) {
     highlightSegment = this->getSegment(mousePosition);
     if (evt.Dragging() && lockedIdx) {
         CurvePoint newPos = windowToCurve(evt.GetPosition());
-        curve.setPoint(lockedIdx.value(), newPos);
+        Size idx = lockedIdx.value();
+        if (idx == 0 || idx == curve.getPointCnt() - 1) {
+            newPos.x = curve.getPoint(idx).x;
+        }
+        curve.setPoint(idx, this->clamp(newPos));
+        onCurveChanged.callIfNotNull(curve);
     }
     this->Refresh();
 }
@@ -132,8 +147,11 @@ void CurvePanel::onLeftDown(wxMouseEvent& evt) {
         lockedIdx = idx;
     } else {
         const CurvePoint newPos = windowToCurve(mousePosition);
-        curve.addPoint(newPos);
-        lockedIdx = this->getIdx(mousePosition);
+        if (newPos.x > 0.f && newPos.x < 1.f) {
+            curve.addPoint(newPos);
+            onCurveChanged.callIfNotNull(curve);
+            lockedIdx = this->getIdx(mousePosition);
+        }
     }
     this->Refresh();
 }
@@ -149,14 +167,27 @@ void CurvePanel::onRightUp(wxMouseEvent& evt) {
     } else if (Optional<Size> segmentIdx = this->getSegment(mousePosition)) {
         curve.setSegment(segmentIdx.value(), !curve.getSegment(segmentIdx.value()));
     }
+    onCurveChanged.callIfNotNull(curve);
     this->Refresh();
+}
+
+Interval CurvePanel::getRangeX() const {
+    return rangeX;
+}
+
+Interval CurvePanel::getRangeY() const {
+    return rangeY;
+}
+
+CurvePoint CurvePanel::clamp(const CurvePoint& p) const {
+    return CurvePoint{ rangeX.clamp(p.x), rangeY.clamp(p.y) };
 }
 
 template <typename TPoint, typename T>
 TPoint CurvePanel::curveToWindow(const CurvePoint& p) const {
     wxSize size = this->GetSize() - wxSize(2 * padding, 2 * padding);
-    const Interval rangeX = curve.rangeX();
-    const Interval rangeY = curve.rangeY();
+    const Interval rangeX = this->getRangeX();
+    const Interval rangeY = this->getRangeY();
 
     return TPoint(T(padding + (p.x - rangeX.lower()) / rangeX.size() * size.x),
         T(padding + size.y - (p.y - rangeY.lower()) / rangeY.size() * size.y));
@@ -164,8 +195,8 @@ TPoint CurvePanel::curveToWindow(const CurvePoint& p) const {
 
 CurvePoint CurvePanel::windowToCurve(const wxPoint2DDouble p) const {
     wxSize size = this->GetSize() - wxSize(2 * padding, 2 * padding);
-    const Interval rangeX = curve.rangeX();
-    const Interval rangeY = curve.rangeY();
+    const Interval rangeX = this->getRangeX();
+    const Interval rangeY = this->getRangeY();
     return CurvePoint{ float((p.m_x - padding) * rangeX.size() / size.x + rangeX.lower()),
         float(rangeY.size() - (p.m_y - padding) * rangeY.size() / size.y + rangeY.lower()) };
 }
@@ -196,45 +227,104 @@ Optional<Size> CurvePanel::getSegment(const wxPoint mousePos) const {
     return NOTHING;
 }
 
-wxPGWindowList CurveEditor::CreateControls(wxPropertyGrid* propgrid,
+static wxPoint curveToWindow(const Curve& curve, const wxSize size, const CurvePoint& p) {
+    const Interval rangeX = curve.rangeX();
+    const Interval rangeY = curve.rangeY();
+
+    return wxPoint((p.x - rangeX.lower()) / rangeX.size() * size.x,
+        size.y - (p.y - rangeY.lower()) / rangeY.size() * size.y);
+}
+
+static CurvePoint windowToCurve(const Curve& curve, const wxSize size, const wxPoint& p) {
+    const Interval rangeX = curve.rangeX();
+    const Interval rangeY = curve.rangeY();
+    return CurvePoint{ float(p.x * rangeX.size() / size.x + rangeX.lower()),
+        float(rangeY.size() - p.y * rangeY.size() / size.y + rangeY.lower()) };
+}
+
+void CurvePreview::onPaint(wxPaintEvent& UNUSED(evt)) {
+    wxPaintDC dc(this);
+    this->draw(dc, curve, wxRect(wxPoint(0, 0), this->GetSize()));
+}
+
+void CurvePreview::draw(wxDC& dc, const Curve& curve, const wxRect rect) {
+    std::cout << "Redrawing ... " << std::endl;
+    wxPen pen = *wxWHITE_PEN;
+    pen.SetWidth(2);
+    dc.SetPen(pen);
+
+    wxSize size = rect.GetSize();
+    wxPoint p0 = wxDefaultPosition;
+    for (Size i = 0; i < curve.getPointCnt() - 1; ++i) {
+        const int x1 = curveToWindow(curve, size, curve.getPoint(i)).x;
+        const int x2 = curveToWindow(curve, size, curve.getPoint(i + 1)).x;
+
+        for (int x = x1; x <= x2; ++x) {
+            const float f = float(curve(windowToCurve(curve, size, wxPoint(x, 0)).x));
+            const float y = float(curveToWindow(curve, size, CurvePoint{ 0.f, f }).y);
+            wxPoint p = wxPoint(x, y) + rect.GetPosition();
+            if (p0 != wxDefaultPosition) {
+                dc.DrawLine(p0, p);
+            }
+            p0 = p;
+        }
+    }
+}
+
+wxPGWindowList CurvePgEditor::CreateControls(wxPropertyGrid* propgrid,
     wxPGProperty* property,
     const wxPoint& pos,
     const wxSize& size) const {
-    (void)propgrid;
-    (void)property;
-    (void)pos;
-    (void)size;
-    CurveProperty* curve = dynamic_cast<CurveProperty*>(property);
-    CurveDialog* dialog =
-        new CurveDialog(propgrid, curve->getCurve(), [propgrid, property](const Curve& curve) {
-            wxPropertyGridEvent* changeEvent = new wxPropertyGridEvent(wxEVT_PG_CHANGED);
-            changeEvent->SetProperty(property);
-            CurveProperty* curveProp = dynamic_cast<CurveProperty*>(property);
-            SPH_ASSERT(curveProp);
-            curveProp->setCurve(curve);
-            propgrid->GetEventHandler()->ProcessEvent(*changeEvent);
-        });
-    dialog->Show();
-    return wxPGWindowList(nullptr);
+    CurveProperty* curveProp = dynamic_cast<CurveProperty*>(property);
+    SPH_ASSERT(curveProp);
+
+    CurvePanel* panel = new CurvePanel(propgrid->GetParent());
+    panel->setCurve(curveProp->getCurve());
+
+    wxAuiPaneInfo info;
+    info.Left()
+        .MinSize(wxSize(300, -1))
+        .Position(1)
+        .CaptionVisible(true)
+        .DockFixed(false)
+        .CloseButton(true)
+        .DestroyOnClose(true)
+        .Caption("Palette");
+    aui->AddPane(panel, info);
+    aui->Update();
+
+    CurvePreview* preview = new CurvePreview(propgrid, pos, size, curveProp->getCurve());
+
+    panel->setCurveChangedCallback([=](const Curve& curve) {
+        curveProp->setCurve(curve);
+        preview->setCurve(curve);
+        // propgrid->Refresh();
+    });
+
+    return wxPGWindowList(preview);
 }
 
-void CurveEditor::UpdateControl(wxPGProperty* property, wxWindow* ctrl) const {
+void CurvePgEditor::UpdateControl(wxPGProperty* property, wxWindow* ctrl) const {
     (void)property;
     (void)ctrl;
 }
 
-void CurveEditor::DrawValue(wxDC& dc,
+void CurvePgEditor::DrawValue(wxDC& dc,
     const wxRect& rect,
     wxPGProperty* property,
-    const wxString& text) const {
-    dc.SetBrush(*wxBLACK_BRUSH);
-    dc.DrawRectangle({ 0, 0 }, { 200, 100 });
+    const wxString& UNUSED(text)) const {
+    CurveProperty* curveProp = dynamic_cast<CurveProperty*>(property);
+    SPH_ASSERT(curveProp);
+
+    CurvePreview::draw(dc, curveProp->getCurve(), rect);
+    //    dc.SetBrush(*wxBLACK_BRUSH);
+    //  dc.DrawRectangle(rect);
+
     (void)rect;
     (void)property;
-    (void)text;
 }
 
-bool CurveEditor::OnEvent(wxPropertyGrid* propgrid,
+bool CurvePgEditor::OnEvent(wxPropertyGrid* propgrid,
     wxPGProperty* property,
     wxWindow* wnd_primary,
     wxEvent& event) const {
@@ -242,33 +332,11 @@ bool CurveEditor::OnEvent(wxPropertyGrid* propgrid,
     (void)property;
     (void)wnd_primary;
     (void)event;
-    return true;
+    /*if (wnd_primary) {
+        wnd_primary->Update();
+    }*/
+    return false;
 }
 
-CurveDialog::CurveDialog(wxWindow* parent, const Curve& curve, Function<void(const Curve&)> curveChanged)
-    : wxFrame(parent, wxID_ANY, "Curve", wxDefaultPosition, wxSize(600, 450))
-    , curveChanged(curveChanged) {
-    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-    CurvePanel* panel = new CurvePanel(this);
-    panel->setCurve(curve);
-    sizer->Add(panel, 1, wxEXPAND | wxALL);
-
-    wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
-    wxButton* okButton = new wxButton(this, wxID_ANY, "OK");
-    okButton->Bind(wxEVT_BUTTON, [this, panel](wxCommandEvent& UNUSED(evt)) {
-        this->curveChanged(panel->getCurve());
-        this->Close();
-    });
-    buttonSizer->Add(okButton, 0);
-
-    wxButton* cancelButton = new wxButton(this, wxID_ANY, "Cancel");
-    cancelButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { this->Close(); });
-    buttonSizer->Add(cancelButton, 0);
-
-    sizer->Add(buttonSizer);
-
-    this->SetSizer(sizer);
-    this->Layout();
-}
 
 NAMESPACE_SPH_END

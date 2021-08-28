@@ -34,14 +34,15 @@ SOURCES += \
     objects/Palette.cpp \
     objects/RenderContext.cpp \
     objects/RenderJobs.cpp \
-    renderers/ContourRenderer.cpp \
+    objects/Shader.cpp \
+    objects/ShaderJobs.cpp \
     renderers/IRenderer.cpp \
-    renderers/MeshRenderer.cpp \
     renderers/ParticleRenderer.cpp \
     renderers/RayMarcher.cpp \
     renderers/VolumeRenderer.cpp \
     renderers/Spectrum.cpp \
     windows/BatchDialog.cpp \
+    windows/PaletteEditor.cpp \
     windows/PreviewPane.cpp \
     windows/ProgressPanel.cpp \
     windows/RenderPage.cpp \
@@ -84,12 +85,12 @@ HEADERS += \
     objects/Point.h \
     objects/RenderContext.h \
     objects/RenderJobs.h \
+    objects/Shader.h \
+    objects/ShaderJobs.h \
     objects/SvgContext.h \
     renderers/Brdf.h \
-    renderers/ContourRenderer.h \
     renderers/FrameBuffer.h \
     renderers/IRenderer.h \
-    renderers/MeshRenderer.h \
     renderers/ParticleRenderer.h \
     renderers/RayMarcher.h \
     renderers/VolumeRenderer.h \
@@ -105,6 +106,7 @@ HEADERS += \
     windows/Icons.data.h \
     windows/OrthoPane.h \
     windows/PaletteDialog.h \
+    windows/PaletteEditor.h \
     windows/ParticleProbe.h \
     windows/PlotView.h \
     objects/Texture.h \

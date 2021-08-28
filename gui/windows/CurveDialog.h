@@ -15,19 +15,31 @@
 #include <wx/propgrid/propgrid.h>
 #include <wx/sizer.h>
 
+class wxAuiManager;
+
 NAMESPACE_SPH_BEGIN
 
 class CurvePanel : public wxPanel {
 private:
     Curve curve;
+    Interval rangeX;
+    Interval rangeY;
+
+    Function<Float(Float)> ticsFuncX;
 
     wxPoint mousePosition = wxDefaultPosition;
     Optional<Size> lockedIdx;
     Optional<Size> highlightIdx;
     Optional<Size> highlightSegment;
 
+    Function<void(const Curve& curve)> onCurveChanged;
+
 public:
-    CurvePanel(wxWindow* parent);
+    CurvePanel(
+        wxWindow* parent,
+        const Interval& rangeX = Interval(0, 1),
+        const Interval& rangeY = Interval(0, 1),
+        const Function<Float(Float)>& ticsFuncX = [](Float x) { return x; });
 
     void setCurve(const Curve& newCurve) {
         curve = newCurve;
@@ -35,6 +47,10 @@ public:
 
     Curve getCurve() const {
         return curve;
+    }
+
+    void setCurveChangedCallback(Function<void(const Curve& curve)> callback) {
+        onCurveChanged = callback;
     }
 
 private:
@@ -48,7 +64,12 @@ private:
 
     void onMouseMotion(wxMouseEvent& evt);
 
-    const static int padding = 30;
+    const static int padding = 10;
+
+    Interval getRangeX() const;
+    Interval getRangeY() const;
+
+    CurvePoint clamp(const CurvePoint& p) const;
 
     template <typename TPoint, typename T = int>
     TPoint curveToWindow(const CurvePoint& p) const;
@@ -60,8 +81,39 @@ private:
     Optional<Size> getSegment(const wxPoint mousePos) const;
 };
 
-class CurveEditor : public wxPGEditor {
+class CurvePreview : public wxPanel {
+private:
+    Curve curve;
+
 public:
+    CurvePreview(wxWindow* parent, wxPoint position, wxSize size, const Curve& curve)
+        : wxPanel(parent, wxPG_SUBID1, position, size)
+        , curve(curve) {
+        this->Connect(wxEVT_PAINT, wxPaintEventHandler(CurvePreview::onPaint));
+    }
+
+    void setCurve(const Curve& newCurve) {
+        curve = newCurve;
+        this->Refresh();
+    }
+
+    static void draw(wxDC& dc, const Curve& curve, const wxRect size);
+
+private:
+    void onPaint(wxPaintEvent& evt);
+};
+
+class CurvePgEditor : public wxPGEditor {
+private:
+    Curve curve;
+    wxAuiManager* aui;
+
+public:
+    CurvePgEditor(const Curve& curve, wxAuiManager* aui)
+        : curve(curve)
+        , aui(aui) {}
+
+
     virtual wxPGWindowList CreateControls(wxPropertyGrid* propgrid,
         wxPGProperty* property,
         const wxPoint& pos,
@@ -80,17 +132,20 @@ public:
         wxEvent& event) const override;
 };
 
-class CurveProperty : public wxStringProperty {
+class CurveProperty : public wxPGProperty {
 private:
     Curve curve;
+    wxAuiManager* aui;
 
 public:
-    CurveProperty(const String& label, const Curve& curve)
-        : wxStringProperty(label.toUnicode(), "curve")
-        , curve(curve) {}
+    CurveProperty(const String& label, const Curve& curve, wxAuiManager* aui)
+        : wxPGProperty(label.toUnicode(), "curve")
+        , curve(curve)
+        , aui(aui) {}
 
     virtual const wxPGEditor* DoGetEditorClass() const override {
-        static wxPGEditor* editor = wxPropertyGrid::RegisterEditorClass(new CurveEditor(), "MyEditor");
+        static wxPGEditor* editor =
+            wxPropertyGrid::DoRegisterEditorClass(new CurvePgEditor(curve, aui), wxString("CurveEditor"));
         return editor;
     }
 
@@ -101,15 +156,6 @@ public:
     const Curve& getCurve() const {
         return curve;
     }
-};
-
-
-class CurveDialog : public wxFrame {
-private:
-    Function<void(const Curve&)> curveChanged;
-
-public:
-    CurveDialog(wxWindow* parent, const Curve& curve, Function<void(const Curve&)> curveChanged);
 };
 
 NAMESPACE_SPH_END

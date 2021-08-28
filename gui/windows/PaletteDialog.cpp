@@ -1,6 +1,5 @@
 #include "gui/windows/PaletteDialog.h"
 #include "gui/Factory.h"
-#include "gui/objects/Colorizer.h"
 #include "gui/objects/RenderContext.h"
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/renderers/Spectrum.h"
@@ -18,81 +17,21 @@
 
 NAMESPACE_SPH_BEGIN
 
-class FlippedRenderContext : public IRenderContext {
-private:
-    AutoPtr<IRenderContext> context;
-
-public:
-    explicit FlippedRenderContext(AutoPtr<IRenderContext>&& context)
-        : context(std::move(context)) {}
-
-    virtual Pixel size() const override {
-        const Pixel p = context->size();
-        return Pixel(p.y, p.x);
-    }
-
-    virtual void setColor(const Rgba& color, const Flags<ColorFlag> flags) override {
-        context->setColor(color, flags);
-    }
-
-    virtual void setThickness(const float thickness) override {
-        context->setThickness(thickness);
-    }
-
-    virtual void setFontSize(const int fontSize) override {
-        context->setFontSize(fontSize);
-    }
-
-    virtual void fill(const Rgba& color) override {
-        context->fill(color);
-    }
-
-    virtual void drawLine(const Coords p1, const Coords p2) override {
-        context->drawLine(this->transform(p1), this->transform(p2));
-    }
-
-    virtual void drawCircle(const Coords center, const float radius) override {
-        context->drawCircle(this->transform(center), radius);
-    }
-
-    virtual void drawTriangle(const Coords, const Coords, const Coords) override {
-        NOT_IMPLEMENTED;
-    }
-
-    virtual void drawBitmap(const Coords, const Bitmap<Rgba>&) override {
-        NOT_IMPLEMENTED;
-    }
-
-    virtual void drawText(const Coords p, const Flags<TextAlign>, const String& s) override {
-        context->drawText(this->transform(p), TextAlign::VERTICAL_CENTER | TextAlign::HORIZONTAL_CENTER, s);
-    }
-
-private:
-    Pixel transform(const Pixel& p) {
-        return Pixel(context->size().x - p.y, p.x);
-    }
-
-    Coords transform(const Coords& p) {
-        return Coords(context->size().x - p.y, p.x);
-    }
-};
-
-void drawPalette(IRenderContext& context,
-    const Pixel origin,
-    const Pixel size,
-    const Rgba& lineColor,
-    const Palette& palette) {
-
+void drawPalette(wxDC& dc, const wxPoint origin, const wxSize size, const Palette& palette) {
     // draw palette
-    for (int i = 0; i < size.y; ++i) {
-        const float value = palette.relativeToPalette(float(i) / (size.y - 1));
-        context.setColor(palette(value), ColorFlag::LINE);
-        context.drawLine(Coords(origin.x, origin.y - i), Coords(origin.x + size.x, origin.y - i));
+    wxPen pen = dc.GetPen();
+    for (int i = 0; i < size.x; ++i) {
+        const float x = float(i) / float(size.x);
+        const Rgba color = palette(x);
+        pen.SetColour(wxColour(color));
+        dc.SetPen(pen);
+        dc.DrawLine(wxPoint(origin.x + i, origin.y), wxPoint(origin.x + i, origin.y + size.y));
     }
+}
 
-    // draw tics
-    const Interval interval = palette.getInterval();
-    const PaletteScale scale = palette.getScale();
+void drawTics(wxDC& dc, const Pixel origin, const Pixel size, const Rgba& lineColor, const ColorLut& lut) {
+    const Interval interval = lut.getInterval();
+    const PaletteScale scale = lut.getScale();
 
     Array<Float> tics;
     switch (scale) {
@@ -106,68 +45,49 @@ void drawPalette(IRenderContext& context,
         const Size ticsCnt = 5;
         // tics currently not implemented, so just split the range to equidistant steps
         for (Size i = 0; i < ticsCnt; ++i) {
-            tics.push(palette.relativeToPalette(float(i) / (ticsCnt - 1)));
+            tics.push(lut.relativeToPalette(float(i) / (ticsCnt - 1)));
         }
         break;
     }
     default:
         NOT_IMPLEMENTED;
     }
-    context.setColor(lineColor, ColorFlag::LINE | ColorFlag::TEXT);
+    wxPen pen = dc.GetPen();
+    pen.SetColour(wxColour(lineColor));
+    dc.SetPen(pen);
+
     for (Float tic : tics) {
-        const float value = palette.paletteToRelative(float(tic));
+        const float value = lut.paletteToRelative(float(tic));
         const int i = int(value * size.y);
-        context.drawLine(Coords(origin.x, origin.y - i), Coords(origin.x + 6, origin.y - i));
-        context.drawLine(
-            Coords(origin.x + size.x - 6, origin.y - i), Coords(origin.x + size.x, origin.y - i));
+        dc.DrawLine(wxPoint(origin.x + i, origin.y), wxPoint(origin.x + i, origin.y + 6));
+        dc.DrawLine(wxPoint(origin.x + i, origin.y + size.y - 6), wxPoint(origin.x + i, origin.y + size.y));
 
         String text = toPrintableString(tic, 1, 1000);
-        context.drawText(
-            Coords(origin.x - 15, origin.y - i), TextAlign::LEFT | TextAlign::VERTICAL_CENTER, text);
+        dc.DrawText(text.toUnicode(), wxPoint(origin.x + i, origin.y));
     }
 }
 
-class PaletteCanvas : public wxPanel {
-private:
-    Palette palette;
+void PaletteViewCanvas::onPaint(wxPaintEvent& UNUSED(evt)) {
+    wxPaintDC dc(this);
+    wxFont font = wxSystemSettings::GetFont(wxSystemFont::wxSYS_DEFAULT_GUI_FONT);
+    font.SetPointSize(10);
+    SPH_ASSERT(font.IsOk());
+    dc.SetFont(font);
+    // Rgba background(dc.GetBackground().GetColour());
+    // background.inverse(),
+    drawPalette(dc, wxPoint(40, 310), wxSize(40, 300), lut.getPalette());
+}
 
-public:
-    PaletteCanvas(wxWindow* parent, const Palette palette)
-        : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
-        , palette(palette) {
-        this->Connect(wxEVT_PAINT, wxPaintEventHandler(PaletteCanvas::onPaint));
-        this->SetMinSize(wxSize(320, 100));
-    }
-
-    void setPalette(const Palette newPalette) {
-        palette = newPalette;
-        this->Refresh();
-    }
-
-private:
-    void onPaint(wxPaintEvent& UNUSED(evt)) {
-        wxPaintDC dc(this);
-        wxFont font = wxSystemSettings::GetFont(wxSystemFont::wxSYS_DEFAULT_GUI_FONT);
-        font.SetPointSize(10);
-        SPH_ASSERT(font.IsOk());
-        dc.SetFont(font);
-        FlippedRenderContext context(makeAuto<WxRenderContext>(dc));
-        context.setFontSize(9);
-        Rgba background(dc.GetBackground().GetColour());
-        drawPalette(context, Pixel(40, 310), Pixel(40, 300), background.inverse(), palette);
-    }
-};
-
-PalettePanel::PalettePanel(wxWindow* parent, wxSize size, const Palette palette)
+ColorLutPanel::ColorLutPanel(wxWindow* parent, wxSize size, const ColorLut lut)
     : wxPanel(parent, wxID_ANY)
-    , initial(palette)
-    , selected(palette) {
+    , initial(lut)
+    , selected(lut) {
 
     this->SetMinSize(size);
 
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
-    canvas = new PaletteCanvas(this, initial);
+    canvas = new PaletteViewCanvas(this, initial);
     mainSizer->Add(canvas, 0, wxALIGN_CENTER_HORIZONTAL);
 
     wxBoxSizer* selectionSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -203,8 +123,8 @@ PalettePanel::PalettePanel(wxWindow* parent, wxSize size, const Palette palette)
             return false;
         }
         selected.setInterval(Interval(lower, value));
-        canvas->setPalette(selected);
-        onPaletteChanged.callIfNotNull(selected);
+        canvas->setPalette(selected.getPalette());
+        onLutChanged.callIfNotNull(selected);
         return true;
     };
     lowerCtrl->onValueChanged = [this](const Float value) {
@@ -216,8 +136,8 @@ PalettePanel::PalettePanel(wxWindow* parent, wxSize size, const Palette palette)
             return false;
         }
         selected.setInterval(Interval(value, upper));
-        canvas->setPalette(selected);
-        onPaletteChanged.callIfNotNull(selected);
+        canvas->setPalette(selected.getPalette());
+        onLutChanged.callIfNotNull(selected);
         return true;
     };
 
@@ -240,11 +160,11 @@ PalettePanel::PalettePanel(wxWindow* parent, wxSize size, const Palette palette)
     this->setDefaultPaletteList();
 }
 
-void PalettePanel::setPalette(const Palette& palette) {
-    selected = initial = palette;
-    paletteMap.insert("Current", 0, initial);
+void ColorLutPanel::setLut(const ColorLut& lut) {
+    selected = initial = lut;
+    paletteMap.insert("Current", 0, initial.getPalette());
     paletteBox->SetSelection(0);
-    canvas->setPalette(selected);
+    canvas->setPalette(selected.getPalette());
     lowerCtrl->setValue(initial.getInterval().lower());
     upperCtrl->setValue(initial.getInterval().upper());
 }
@@ -264,32 +184,35 @@ static UnorderedMap<ExtColorizerId, String> PALETTE_ID_LIST = {
 // some extra palettes
 namespace Palettes {
 
-const Palette GALAXY({ { 0.001f, Rgba(0.f, 0.02f, 0.09f) },
-                         { 0.01f, Rgba(0.4f, 0.106f, 0.38f) },
-                         { 0.1f, Rgba(0.78f, 0.18f, 0.38f) },
-                         { 1.f, Rgba(0.91f, 0.56f, 0.81f) },
-                         { 10.f, Rgba(0.29f, 0.69f, 0.93f) } },
-    PaletteScale::LOGARITHMIC);
+const Palette GALAXY({
+    { 0.f, Rgba(0.f, 0.02f, 0.09f) },
+    { 0.25f, Rgba(0.4f, 0.106f, 0.38f) },
+    { 0.5f, Rgba(0.78f, 0.18f, 0.38f) },
+    { 0.75f, Rgba(0.91f, 0.56f, 0.81f) },
+    { 1.f, Rgba(0.29f, 0.69f, 0.93f) },
+});
 
-const Palette ACCRETION({ { 0.001f, Rgba(0.43f, 0.70f, 1.f) },
-                            { 0.01f, Rgba(0.5f, 0.5f, 0.5f) },
-                            { 0.1f, Rgba(0.65f, 0.12f, 0.01f) },
-                            { 1.f, Rgba(0.79f, 0.38f, 0.02f) },
-                            { 10.f, Rgba(0.93f, 0.83f, 0.34f) },
-                            { 100.f, Rgba(0.94f, 0.90f, 0.84f) } },
-    PaletteScale::LOGARITHMIC);
+const Palette ACCRETION({
+    { 0.f, Rgba(0.43f, 0.70f, 1.f) },
+    { 0.2f, Rgba(0.5f, 0.5f, 0.5f) },
+    { 0.4f, Rgba(0.65f, 0.12f, 0.01f) },
+    { 0.6f, Rgba(0.79f, 0.38f, 0.02f) },
+    { 0.8f, Rgba(0.93f, 0.83f, 0.34f) },
+    { 1.f, Rgba(0.94f, 0.90f, 0.84f) },
+});
 
-const Palette STELLAR({ { 0.01f, Rgba(1.f, 0.75f, 0.1f) },
-                          { 0.1f, Rgba(0.75f, 0.25f, 0.1f)},
-                          { 1.f, Rgba(0.4f, 0.7f, 1.f) },
-                          { 10.f, Rgba(0.2f, 0.4f, 0.8f) } },
-    PaletteScale::LOGARITHMIC);
+const Palette STELLAR({
+    { 0.f, Rgba(1.f, 0.75f, 0.1f) },
+    { 0.33f, Rgba(0.75f, 0.25f, 0.1f) },
+    { 0.66f, Rgba(0.4f, 0.7f, 1.f) },
+    { 1.f, Rgba(0.2f, 0.4f, 0.8f) },
+});
 
 } // namespace Palettes
 
-void PalettePanel::setDefaultPaletteList() {
+void ColorLutPanel::setDefaultPaletteList() {
     paletteMap = {
-        { "Current", initial },
+        { "Current", initial.getPalette() },
         { "Blackbody", getBlackBodyPalette(Interval(300, 12000)) },
         { "Galaxy", Palettes::GALAXY },
         { "Accretion", Palettes::ACCRETION },
@@ -308,12 +231,12 @@ void PalettePanel::setDefaultPaletteList() {
     this->update();
 }
 
-void PalettePanel::loadPalettes(const Path& path) {
+void ColorLutPanel::loadPalettes(const Path& path) {
     paletteMap.clear();
     for (Path file : FileSystem::iterateDirectory(path.parentPath())) {
         if (file.extension().string() == "csv") {
-            Palette palette = initial;
-            if (palette.loadFromFile(path.parentPath() / file)) {
+            Palette palette = initial.getPalette();
+            if (palette.loadCsvFromFile(path.parentPath() / file)) {
                 paletteMap.insert(file.string(), palette);
             }
         }
@@ -334,13 +257,13 @@ void PalettePanel::loadPalettes(const Path& path) {
     this->update();
 }
 
-void PalettePanel::update() {
+void ColorLutPanel::update() {
     const int idx = paletteBox->GetSelection();
     const Interval range = selected.getInterval();
-    selected = (paletteMap.begin() + idx)->value();
+    selected.setPalette((paletteMap.begin() + idx)->value());
     selected.setInterval(range);
-    canvas->setPalette(selected);
-    onPaletteChanged.callIfNotNull(selected);
+    canvas->setPalette(selected.getPalette());
+    onLutChanged.callIfNotNull(selected);
 }
 
 NAMESPACE_SPH_END

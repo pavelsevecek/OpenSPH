@@ -33,6 +33,8 @@ public:
     AutoPtr<IExtraEntry> entry;
 
 public:
+    ExtraEntry() = default;
+
     explicit ExtraEntry(AutoPtr<IExtraEntry>&& entry)
         : entry(std::move(entry)) {}
 

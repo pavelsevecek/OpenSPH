@@ -1,97 +1,48 @@
 #pragma once
 
 #include "gui/objects/Color.h"
+#include "gui/objects/Palette.h"
 #include "objects/containers/Array.h"
+#include "objects/utility/Streams.h"
 #include "objects/wrappers/Optional.h"
+#include "run/SpecialEntries.h"
 #include <iostream>
 #include <wx/colordlg.h>
-#include <wx/dcclient.h>
+#include <wx/dcbuffer.h>
 #include <wx/frame.h>
+#include <wx/panel.h>
+#include <wx/propgrid/editors.h>
+#include <wx/propgrid/propgrid.h>
+
+class wxAuiManager;
 
 NAMESPACE_SPH_BEGIN
 
 class PaletteEditor : public wxPanel {
 private:
-    struct Point {
-        float position;
-        Rgba color;
-    };
-
-    Array<Point> points;
+    Array<Palette::Point> points;
 
     Optional<Size> active;
 
+    Function<void(const Palette& palette)> onPaletteChanged;
+
 public:
-    PaletteEditor(wxWindow* parent, wxSize size)
-        : wxPanel(parent, wxID_ANY, wxDefaultPosition, size) {
-        this->SetMinSize(wxSize(320, 100));
+    PaletteEditor(wxWindow* parent, wxSize size);
 
-        this->Connect(wxEVT_PAINT, wxPaintEventHandler(PaletteEditor::onPaint));
-        this->Connect(wxEVT_MOTION, wxMouseEventHandler(PaletteEditor::onMouseMotion));
-        this->Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(PaletteEditor::onLeftDown));
-        this->Connect(wxEVT_LEFT_UP, wxMouseEventHandler(PaletteEditor::onLeftUp));
-        this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(PaletteEditor::onDoubleClick));
-        this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(PaletteEditor::onRightUp));
+    Palette getPalette() const {
+        return Palette(points.clone());
+    }
 
-        points.push(Point{ 0.f, Rgba::black() });
-        points.push(Point{ 0.5f, Rgba::red() });
-        points.push(Point{ 1.f, Rgba::white() });
+    void setPaletteChangedCallback(Function<void(const Palette& palette)> callback) {
+        onPaletteChanged = callback;
     }
 
 private:
-    const wxSize margin = wxSize(10, 10);
-
-    void onPaint(wxPaintEvent& UNUSED(evt)) {
-        wxPaintDC dc(this);
-
-        const wxSize size = dc.GetSize() - 2 * margin;
-        wxPen pen = dc.GetPen();
-        const bool enabled = this->IsEnabled();
-        for (int x = 0; x < size.x; ++x) {
-            const float pos = float(x) / size.x;
-            const Rgba color = enabled ? getColor(pos) : Rgba::gray(0.4f);
-            pen.SetColour(wxColour(color));
-            dc.SetPen(pen);
-            dc.DrawLine(wxPoint(x + margin.x, margin.y), wxPoint(x + margin.x, margin.y + size.y));
-        }
-
-        pen.SetColour(*wxBLACK);
-        dc.SetPen(pen);
-        if (!enabled) {
-            wxBrush brush = dc.GetBrush();
-            brush.SetColour(wxColour(160, 160, 160));
-            dc.SetBrush(brush);
-        }
-        const int thickness = 4;
-        const int overhang = 6;
-        for (const Point& p : points) {
-            const int x = pointToWindow(p.position);
-            dc.DrawRectangle(
-                wxPoint(x - thickness / 2, margin.y - overhang), wxSize(thickness, size.y + 2 * overhang));
-        }
-    }
-
-    Rgba getColor(const float pos) const {
-        auto iter = std::lower_bound(points.begin(), points.end(), pos, [](const Point& p, const float pos) {
-            return p.position < pos;
-        });
-        if (iter == points.begin()) {
-            return points.front().color;
-        } else if (iter == points.end()) {
-            return points.back().color;
-        } else {
-            const Rgba color2 = iter->color;
-            const Rgba color1 = (iter - 1)->color;
-            const float pos2 = iter->position;
-            const float pos1 = (iter - 1)->position;
-            const float x = (pos - pos1) / (pos2 - pos1);
-            return lerp(color1, color2, x);
-        }
-    }
+    void onPaint(wxPaintEvent& evt);
 
     Optional<Size> lock(const int x) const {
         for (Size i = 0; i < points.size(); ++i) {
-            const int p = pointToWindow(points[i].position);
+            const int p = pointToWindow(points[i].value);
             if (abs(x - p) < 10) {
                 return i;
             }
@@ -99,33 +50,11 @@ private:
         return NOTHING;
     }
 
-    float windowToPoint(const int x) const {
-        const int width = this->GetSize().x - 2 * margin.x;
-        return float(x - margin.x) / width;
-    }
+    float windowToPoint(const int x) const;
 
-    int pointToWindow(const float x) const {
-        const int width = this->GetSize().x - 2 * margin.x;
-        return x * width + margin.x;
-    }
+    int pointToWindow(const float x) const;
 
-    void onMouseMotion(wxMouseEvent& evt) {
-        if (!active) {
-            return;
-        }
-        const int x = evt.GetPosition().x;
-        const Size index = active.value();
-        points[index].position = clamp(windowToPoint(x), 0.f, 1.f);
-        if (index > 0 && points[index].position < points[index - 1].position) {
-            std::swap(points[index], points[index - 1]);
-            active = index - 1;
-        } else if (index < points.size() - 1 && points[index].position > points[index + 1].position) {
-            std::swap(points[index], points[index + 1]);
-            active = index + 1;
-        }
-
-        this->Refresh();
-    }
+    void onMouseMotion(wxMouseEvent& evt);
 
     void onLeftUp(wxMouseEvent& UNUSED(evt)) {
         active = NOTHING;
@@ -139,42 +68,116 @@ private:
         const Optional<Size> index = this->lock(evt.GetPosition().x);
         if (index && index.value() > 0 && index.value() < points.size() - 1) {
             points.remove(index.value());
+            onPaletteChanged.callIfNotNull(this->getPalette());
             this->Refresh();
         }
     }
 
-    void onDoubleClick(wxMouseEvent& evt) {
-        Optional<Size> index = this->lock(evt.GetPosition().x);
-        if (!index) {
-            const float pos = windowToPoint(evt.GetPosition().x);
-            for (Size i = 0; i < points.size(); ++i) {
-                if (points[i].position > pos) {
-                    index = i;
-                    break;
-                }
-            }
-            if (!index) {
-                index = points.size();
-            }
-            points.insert(index.value(), Point{ pos, getColor(pos) });
-        }
+    void onDoubleClick(wxMouseEvent& evt);
+};
 
-        wxColourDialog* dialog = new wxColourDialog(this);
-        dialog->GetColourData().SetColour(wxColour(points[index.value()].color));
+class PaletteEntry : public IExtraEntry {
+private:
+    Palette palette;
 
-        if (dialog->ShowModal() == wxID_OK) {
-            const wxColourData& data = dialog->GetColourData();
-            points[index.value()].color = Rgba(data.GetColour());
-        }
-        this->Refresh();
+public:
+    PaletteEntry() = default;
+
+    PaletteEntry(const Palette& palette)
+        : palette(palette) {}
+
+    virtual String toString() const override;
+
+    virtual void fromString(const String& s) override;
+
+    virtual AutoPtr<IExtraEntry> clone() const override {
+        return makeAuto<PaletteEntry>(palette);
+    }
+
+    const Palette& getPalette() const {
+        return palette;
     }
 };
 
-class PaletteEditorFrame : public wxFrame {
+
+class PalettePreview : public wxPanel {
+private:
+    Palette palette;
+
 public:
-    PaletteEditorFrame(wxWindow* parent, wxSize size)
-        : wxFrame(parent, wxID_ANY, "test", wxDefaultPosition, size) {
-        new PaletteEditor(this, size);
+    PalettePreview(wxWindow* parent, const wxPoint point, const wxSize size, const Palette& palette);
+
+    void setPalette(const Palette& newPalette) {
+        palette = newPalette;
+        this->Refresh();
+    }
+
+private:
+    void onPaint(wxPaintEvent& evt);
+};
+
+class PalettePgEditor : public wxPGEditor {
+private:
+    Palette palette;
+    wxAuiManager* aui;
+
+public:
+    PalettePgEditor(const Palette& palette, wxAuiManager* aui)
+        : palette(palette)
+        , aui(aui) {}
+
+
+    virtual wxPGWindowList CreateControls(wxPropertyGrid* propgrid,
+        wxPGProperty* property,
+        const wxPoint& pos,
+        const wxSize& size) const override;
+
+    virtual void UpdateControl(wxPGProperty* property, wxWindow* ctrl) const override;
+
+    virtual void DrawValue(wxDC& dc,
+        const wxRect& rect,
+        wxPGProperty* property,
+        const wxString& text) const override;
+
+    virtual bool OnEvent(wxPropertyGrid* propgrid,
+        wxPGProperty* property,
+        wxWindow* wnd_primary,
+        wxEvent& event) const override;
+};
+
+
+class PaletteProperty : public wxPGProperty {
+private:
+    Palette palette;
+    wxAuiManager* aui;
+    wxWindow* parent;
+
+public:
+    PaletteProperty(wxWindow* parent, const String& label, const Palette& palette, wxAuiManager* aui)
+        : wxPGProperty(label.toUnicode(), "palette")
+        , palette(palette)
+        , aui(aui)
+        , parent(parent) {}
+
+    virtual const wxPGEditor* DoGetEditorClass() const override {
+        static wxPGEditor* editor =
+            wxPropertyGrid::DoRegisterEditorClass(new PalettePgEditor(palette, aui), "PaletteEditor");
+        return editor;
+    }
+
+    void setPalete(const Palette& newPalette) {
+        palette = newPalette;
+
+        StringTextOutputStream ss;
+        palette.saveToStream(ss);
+        this->SetValue(ss.toString().toUnicode());
+        wxPropertyGridEvent evt(wxEVT_PG_CHANGED);
+        evt.SetProperty(this);
+        parent->GetEventHandler()->ProcessEvent(evt);
+    }
+
+    const Palette& getPalette() const {
+        return palette;
     }
 };
 

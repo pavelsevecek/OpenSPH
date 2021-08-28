@@ -95,7 +95,7 @@ InteractiveRenderer::InteractiveRenderer(const SharedPtr<JobNode>& node, wxPanel
 void InteractiveRenderer::start(const RunSettings& globals) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
 
-    job = dynamicCast<AnimationJob, IJob>(node->getJob());
+    job = dynamicCast<IRenderJob, IJob>(node->getJob());
 
     // install the accessors
     this->setRendererAccessor(globals);
@@ -264,7 +264,7 @@ void InteractiveRenderer::setNodeAccessor(const SharedPtr<JobNode>& particleNode
 }
 
 void InteractiveRenderer::setPaletteAccessor(const RunSettings& globals) {
-    auto accessor = [this, globals](const String& name, const Palette& palette) {
+    auto accessor = [this, globals](const String& name, const ColorLut& palette) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
         AutoPtr<IColorizer> colorizer = job->getColorizer(globals);
         if (colorizer->name() == name) {
@@ -273,7 +273,7 @@ void InteractiveRenderer::setPaletteAccessor(const RunSettings& globals) {
             this->update();
         }
     };
-    Project::getInstance().onPaletteChanged.insert(this->sharedFromThis(), accessor);
+    Project::getInstance().onLutChanged.insert(this->sharedFromThis(), accessor);
 }
 
 void InteractiveRenderer::renderLoop(const RunSettings& globals) {
@@ -287,7 +287,7 @@ void InteractiveRenderer::renderLoop(const RunSettings& globals) {
                 logger->write("Updating ALL");
                 NullJobCallbacks callbacks;
                 evaluated->prepare(globals, callbacks);
-                RawPtr<AnimationJob> newJob = dynamicCast<AnimationJob, IJob>(evaluated->getJob());
+                RawPtr<IRenderJob> newJob = dynamicCast<IRenderJob, IJob>(evaluated->getJob());
                 preview = newJob->getRenderPreview(globals);
                 status.clear();
             } catch (const InvalidSetup& e) {

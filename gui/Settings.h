@@ -77,6 +77,38 @@ enum class PlotEnum {
     ALL = INTERNAL_ENERGY | KINETIC_ENERGY | TOTAL_ENERGY | TOTAL_MOMENTUM | TOTAL_ANGULAR_MOMENTUM,
 };
 
+
+/// \brief Special colorizers that do not directly correspond to quantities.
+///
+/// Must have strictly negative values. Function taking \ref ColorizerId as an argument also acceps \ref
+/// QuantityId casted to \ref ColorizerId, interpreting as \ref TypedColorizer with given quantity ID.
+enum class ColorizerId {
+    VELOCITY = -1,             ///< Particle velocities
+    ACCELERATION = -2,         ///< Acceleration of particles
+    MOVEMENT_DIRECTION = -3,   ///< Projected direction of motion
+    COROTATING_VELOCITY = -4,  ///< Velocities with a respect to the rotating body
+    DISPLACEMENT = -5,         ///< Difference between current positions and initial position
+    DENSITY_PERTURBATION = -6, ///< Relative difference of density and initial density (rho/rho0 - 1)
+    SUMMED_DENSITY = -7,       ///< Density computed from particle masses by direct summation of neighbors
+    TOTAL_STRESS = -8,         ///< Total stress (sigma = S - pI)
+    TOTAL_ENERGY = -9,         ///< Sum of kinetic and internal energy for given particle
+    TEMPERATURE = -10,         ///< Temperature, computed from internal energy
+    YIELD_REDUCTION = -11,     ///< Reduction of stress tensor due to yielding (1 - f_vonMises)
+    DAMAGE_ACTIVATION = -12,   ///< Ratio of the stress and the activation strain
+    RADIUS = -13,              ///< Radii/smoothing lenghts of particles
+    UVW = -15,                 ///< Shows UV mapping, u-coordinate in red and v-coordinate in blur
+    BOUNDARY = -16,            ///< Shows boundary particles
+    PARTICLE_ID = -17,         ///< Each particle drawn with different color
+    COMPONENT_ID = -18,        ///< Color assigned to each component (group of connected particles)
+    BOUND_COMPONENT_ID = -19,  ///< Color assigned to each group of gravitationally bound particles
+    AGGREGATE_ID = -20,        ///< Color assigned to each aggregate
+    FLAG = -21,                ///< Particles of different bodies are colored differently
+    MATERIAL_ID = -22,         ///< Particles with different materials are colored differently
+};
+
+SPH_EXTEND_ENUM(QuantityId, ColorizerId);
+using ExtColorizerId = ExtendedEnum<ColorizerId>;
+
 enum class BrdfEnum {
     LAMBERT,
     PHONG,
@@ -198,6 +230,8 @@ enum class GuiSettingsId {
     RAYTRACE_SHADOWS,
 
     RAYTRACE_SPHERES,
+
+    VOLUME_MAX_DISTENTION,
 
     VOLUME_EMISSION,
 

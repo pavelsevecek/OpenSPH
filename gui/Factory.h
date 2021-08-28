@@ -11,6 +11,7 @@ class ICamera;
 class IColorizer;
 class IRenderer;
 class Palette;
+class ColorLut;
 struct Pixel;
 class Interval;
 class ITracker;
@@ -18,8 +19,6 @@ class IBrdf;
 class IColorMap;
 class IScheduler;
 class Project;
-enum class ColorizerId;
-using ExtColorizerId = ExtendedEnum<ColorizerId>;
 
 namespace Factory {
 
@@ -40,6 +39,8 @@ AutoPtr<IColorMap> getColorMap(const GuiSettings& settings);
 AutoPtr<IColorizer> getColorizer(const Project& project, const ExtColorizerId id);
 
 Palette getPalette(const ExtColorizerId id);
+
+ColorLut getColorLut(const ExtColorizerId id);
 
 } // namespace Factory
 

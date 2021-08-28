@@ -6,6 +6,8 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/objects/Movie.h"
+#include "gui/objects/Shader.h"
+#include "gui/windows/PaletteEditor.h"
 #include "run/IRun.h"
 #include "run/VirtualSettings.h"
 #include "run/jobs/IoJobs.h"
@@ -16,145 +18,7 @@
 #include <openvdb/openvdb.h>
 #endif
 
-
 NAMESPACE_SPH_BEGIN
-
-//-----------------------------------------------------------------------------------------------------------
-// AnimationJob
-//-----------------------------------------------------------------------------------------------------------
-
-static RegisterEnum<AnimationType> sAnimation({
-    { AnimationType::SINGLE_FRAME, "single_frame", "Renders only single frame." },
-    { AnimationType::FILE_SEQUENCE, "file_sequence", "Make animation from saved files." },
-});
-
-enum class RenderColorizerId {
-    VELOCITY = int(ColorizerId::VELOCITY),
-    ENERGY = int(QuantityId::ENERGY),
-    DENSITY = int(QuantityId::DENSITY),
-    DAMAGE = int(QuantityId::DAMAGE),
-    GRAVITY = 666,
-    BEAUTY = int(ColorizerId::BEAUTY),
-};
-
-static RegisterEnum<RenderColorizerId> sColorizers({
-    { RenderColorizerId::VELOCITY, "velocity", "Particle velocities" },
-    { RenderColorizerId::ENERGY, "energy", "Specific internal energy" },
-    { RenderColorizerId::DENSITY, "density", "Density" },
-    { RenderColorizerId::DAMAGE, "damage", "Damage" },
-    { RenderColorizerId::GRAVITY, "gravity", "Gravitational acceleration" },
-    { RenderColorizerId::BEAUTY, "beauty", "Beauty" },
-});
-
-AnimationJob::AnimationJob(const String& name)
-    : IImageJob(name) {
-    animationType = EnumWrapper(AnimationType::SINGLE_FRAME);
-    colorizerId = EnumWrapper(RenderColorizerId::VELOCITY);
-}
-
-UnorderedMap<String, ExtJobType> AnimationJob::requires() const {
-    if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE &&
-        RenderColorizerId(colorizerId) != RenderColorizerId::GRAVITY) {
-        return { { "camera", GuiJobType::CAMERA } };
-    } else {
-        return this->getSlots();
-    }
-}
-
-VirtualSettings AnimationJob::getSettings() {
-    VirtualSettings connector;
-    addGenericCategory(connector, instName);
-
-    VirtualSettings::Category& outputCat = connector.addCategory("Output");
-    outputCat.connect("Directory", "directory", directory)
-        .setPathType(IVirtualEntry::PathType::DIRECTORY)
-        .setTooltip("Directory where the images are saved.");
-    outputCat.connect("File mask", "file_mask", fileMask)
-        .setTooltip(
-            "File mask of the created images. Can contain wildcard %d, which is replaced with the number of "
-            "the saved image");
-
-    auto particleEnabler = [this] {
-        return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::PARTICLE;
-    };
-    auto raymarcherEnabler = [this] {
-        return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::RAYMARCHER;
-    };
-    auto surfaceEnabler = [this] {
-        const RendererEnum type = gui.get<RendererEnum>(GuiSettingsId::RENDERER);
-        return type == RendererEnum::RAYMARCHER || type == RendererEnum::MESH;
-    };
-    auto volumeEnabler = [this] {
-        return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::VOLUME;
-    };
-
-    VirtualSettings::Category& rendererCat = connector.addCategory("Rendering");
-    rendererCat.connect<EnumWrapper>("Renderer", gui, GuiSettingsId::RENDERER);
-    rendererCat.connect("Quantity", "quantity", colorizerId);
-    rendererCat.connect("Include surface gravity", "surface_gravity", addSurfaceGravity)
-        .setEnabler([this] { return RenderColorizerId(colorizerId) == RenderColorizerId::GRAVITY; })
-        .setTooltip("Include the surface gravity of the particle itself.");
-    rendererCat.connect<bool>("Transparent background", "transparent", transparentBackground);
-    rendererCat.connect<EnumWrapper>("Color mapping", gui, GuiSettingsId::COLORMAP_TYPE);
-    rendererCat.connect<Float>("Logarithmic factor", gui, GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR)
-        .setEnabler(
-            [&] { return gui.get<ColorMapEnum>(GuiSettingsId::COLORMAP_TYPE) == ColorMapEnum::LOGARITHMIC; });
-    rendererCat.connect<Float>("Particle radius", gui, GuiSettingsId::PARTICLE_RADIUS)
-        .setEnabler(particleEnabler);
-    rendererCat.connect<bool>("Antialiasing", gui, GuiSettingsId::ANTIALIASED).setEnabler(particleEnabler);
-    rendererCat.connect<bool>("Show key", gui, GuiSettingsId::SHOW_KEY).setEnabler(particleEnabler);
-    rendererCat.connect<int>("Interation count", gui, GuiSettingsId::RAYTRACE_ITERATION_LIMIT)
-        .setEnabler([&] {
-            const RendererEnum type = gui.get<RendererEnum>(GuiSettingsId::RENDERER);
-            return type == RendererEnum::RAYMARCHER || type == RendererEnum::VOLUME;
-        });
-    rendererCat.connect<Float>("Surface level", gui, GuiSettingsId::SURFACE_LEVEL).setEnabler(surfaceEnabler);
-    rendererCat.connect<Vector>("Sun position", gui, GuiSettingsId::SURFACE_SUN_POSITION)
-        .setEnabler(surfaceEnabler);
-    rendererCat.connect<Float>("Sunlight intensity", gui, GuiSettingsId::SURFACE_SUN_INTENSITY)
-        .setEnabler(surfaceEnabler);
-    rendererCat.connect<Float>("Ambient intensity", gui, GuiSettingsId::SURFACE_AMBIENT)
-        .setEnabler(surfaceEnabler);
-    rendererCat.connect<Float>("Surface emission", gui, GuiSettingsId::SURFACE_EMISSION)
-        .setEnabler(raymarcherEnabler);
-    rendererCat.connect<EnumWrapper>("BRDF", gui, GuiSettingsId::RAYTRACE_BRDF).setEnabler(raymarcherEnabler);
-    rendererCat.connect<bool>("Render as spheres", gui, GuiSettingsId::RAYTRACE_SPHERES)
-        .setEnabler(raymarcherEnabler);
-    rendererCat.connect<bool>("Enable shadows", gui, GuiSettingsId::RAYTRACE_SHADOWS)
-        .setEnabler(raymarcherEnabler);
-    rendererCat.connect<Float>("Medium emission [km^-1]", gui, GuiSettingsId::VOLUME_EMISSION)
-        .setUnits(1.e-3_f)
-        .setEnabler(volumeEnabler);
-    rendererCat.connect<Float>("Medium absorption [km^-1]", gui, GuiSettingsId::VOLUME_ABSORPTION)
-        .setUnits(1.e-3_f)
-        .setEnabler(volumeEnabler);
-    rendererCat.connect<bool>("Reduce noise", gui, GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE)
-        .setEnabler(volumeEnabler);
-    rendererCat.connect<Float>("Bloom intensity", gui, GuiSettingsId::BLOOM_INTENSITY)
-        .setEnabler(volumeEnabler);
-
-    VirtualSettings::Category& textureCat = connector.addCategory("Texture paths");
-    textureCat.connect<Path>("Background", gui, GuiSettingsId::RAYTRACE_HDRI)
-        .setEnabler([this] {
-            const RendererEnum id = gui.get<RendererEnum>(GuiSettingsId::RENDERER);
-            return id == RendererEnum::VOLUME || id == RendererEnum::RAYMARCHER;
-        })
-        .setPathType(IVirtualEntry::PathType::INPUT_FILE);
-
-    auto sequenceEnabler = [this] { return AnimationType(animationType) == AnimationType::FILE_SEQUENCE; };
-
-    VirtualSettings::Category& animationCat = connector.addCategory("Animation");
-    animationCat.connect<EnumWrapper>("Animation type", "animation_type", animationType);
-    animationCat.connect<Path>("First file", "first_file", sequence.firstFile)
-        .setPathType(IVirtualEntry::PathType::INPUT_FILE)
-        .setFileFormats(getInputFormats())
-        .setEnabler(sequenceEnabler);
-    animationCat.connect("Interpolated frames", "extra_frames", extraFrames)
-        .setEnabler(sequenceEnabler)
-        .setTooltip("Sets the number of extra frames added between each two state files.");
-
-    return connector;
-}
 
 class GravityColorizer : public TypedColorizer<Float> {
 private:
@@ -166,7 +30,7 @@ private:
 
 public:
     GravityColorizer(const SharedPtr<IScheduler>& scheduler,
-        const Palette& palette,
+        const ColorLut& palette,
         const Float G,
         const bool addSurfaceGravity)
         : TypedColorizer<Float>(QuantityId::POSITION, std::move(palette))
@@ -205,7 +69,7 @@ public:
     }
 
     virtual Rgba evalColor(const Size idx) const override {
-        return palette(acc[idx]);
+        return lut(acc[idx]);
     }
 
     virtual Optional<Vector> evalVector(const Size UNUSED(idx)) const override {
@@ -217,17 +81,6 @@ public:
         return "Acceleration";
     }
 };
-
-RenderParams AnimationJob::getRenderParams(const GuiSettings& gui) const {
-    SharedPtr<CameraData> camera = getInput<CameraData>("camera");
-    RenderParams params;
-    params.camera = camera->camera->clone();
-    params.tracker = std::move(camera->tracker);
-    GuiSettings paramGui = gui;
-    paramGui.addEntries(camera->overrides);
-    params.initialize(paramGui);
-    return params;
-}
 
 class AnimationRenderOutput : public IRenderOutput {
 private:
@@ -265,69 +118,6 @@ public:
         }
     }
 };
-
-void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
-    /// \todo maybe also work with a copy of Gui ?
-    gui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f));
-    gui.set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 0);
-    int iterLimit = 1;
-    if (gui.get<RendererEnum>(GuiSettingsId::RENDERER) != RendererEnum::PARTICLE) {
-        iterLimit = gui.get<int>(GuiSettingsId::RAYTRACE_ITERATION_LIMIT);
-    }
-
-    SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
-    AutoPtr<IRenderer> renderer = Factory::getRenderer(scheduler, gui);
-    RawPtr<IRenderer> rendererPtr = renderer.get();
-
-    RenderParams params = this->getRenderParams(gui);
-    AutoPtr<IColorizer> colorizer = this->getColorizer(global);
-
-    int firstIndex = 0;
-    if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE) {
-        Optional<Size> sequenceFirstIndex = OutputFile::getDumpIdx(sequence.firstFile);
-        if (sequenceFirstIndex) {
-            firstIndex = sequenceFirstIndex.value();
-        }
-    }
-    OutputFile paths(directory / Path(fileMask), firstIndex);
-    Movie movie(gui, std::move(renderer), std::move(colorizer), std::move(params), extraFrames, paths);
-
-    switch (AnimationType(animationType)) {
-    case AnimationType::SINGLE_FRAME: {
-        SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
-        AnimationRenderOutput output(callbacks, *rendererPtr, iterLimit);
-        movie.render(std::move(data->storage), std::move(data->stats), output);
-        break;
-    }
-    case AnimationType::FILE_SEQUENCE: {
-        FlatMap<Size, Path> fileMap = getFileSequence(sequence.firstFile);
-        if (fileMap.empty()) {
-            throw InvalidSetup("No files to render.");
-        }
-
-        const Size iterationCnt = iterLimit * fileMap.size() * (extraFrames + 1);
-        AnimationRenderOutput output(callbacks, *rendererPtr, iterationCnt);
-        AutoPtr<IInput> input = Factory::getInput(sequence.firstFile);
-        for (auto& element : fileMap) {
-            Storage frame;
-            Statistics stats;
-            const Outcome result = input->load(element.value(), frame, stats);
-            if (!result) {
-                /// \todo how to report this? (don't do modal dialog)
-            }
-
-            if (callbacks.shouldAbortRun()) {
-                break;
-            }
-
-            movie.render(std::move(frame), std::move(stats), output);
-        }
-        break;
-    }
-    default:
-        NOT_IMPLEMENTED;
-    }
-}
 
 class RenderPreview : public IRenderPreview {
 private:
@@ -398,8 +188,8 @@ public:
         rendererDirty = true;
     }
 
-    virtual void update(Palette&& palette) override {
-        colorizer->setPalette(palette);
+    virtual void update(ColorLut&& palette) override {
+        colorizer->setColorLut(palette);
         renderer->setColorizer(*colorizer);
     }
 
@@ -419,7 +209,116 @@ private:
     }
 };
 
-AutoPtr<IRenderPreview> AnimationJob::getRenderPreview(const RunSettings& global) const {
+//-----------------------------------------------------------------------------------------------------------
+// IRenderJob
+//-----------------------------------------------------------------------------------------------------------
+
+static RegisterEnum<AnimationType> sAnimation({
+    { AnimationType::SINGLE_FRAME, "single_frame", "Renders only single frame." },
+    { AnimationType::FILE_SEQUENCE, "file_sequence", "Make animation from saved files." },
+});
+
+static void addOutputCategory(VirtualSettings& connector, Path& directory, String& fileMask) {
+    VirtualSettings::Category& outputCat = connector.addCategory("Output");
+    outputCat.connect("Directory", "directory", directory)
+        .setPathType(IVirtualEntry::PathType::DIRECTORY)
+        .setTooltip("Directory where the images are saved.");
+    outputCat.connect("File mask", "file_mask", fileMask)
+        .setTooltip(
+            "File mask of the created images. Can contain wildcard %d, which is replaced with the number of "
+            "the saved image");
+}
+
+static void addAnimationCategory(VirtualSettings& connector, EnumWrapper& type, SequenceParams& sequence) {
+    auto sequenceEnabler = [&type] { return AnimationType(type) == AnimationType::FILE_SEQUENCE; };
+
+    VirtualSettings::Category& animationCat = connector.addCategory("Animation");
+    animationCat.connect<EnumWrapper>("Animation type", "animation_type", type);
+    animationCat.connect<Path>("First file", "first_file", sequence.firstFile)
+        .setPathType(IVirtualEntry::PathType::INPUT_FILE)
+        .setFileFormats(getInputFormats())
+        .setEnabler(sequenceEnabler);
+    animationCat.connect("Interpolated frames", "extra_frames", sequence.extraFrames)
+        .setEnabler(sequenceEnabler)
+        .setTooltip("Sets the number of extra frames added between each two state files.");
+}
+
+void IRenderJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
+    /// \todo maybe also work with a copy of Gui ?
+    gui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f));
+    gui.set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 0);
+    int iterLimit = 1;
+    if (gui.get<RendererEnum>(GuiSettingsId::RENDERER) != RendererEnum::PARTICLE) {
+        iterLimit = gui.get<int>(GuiSettingsId::RAYTRACE_ITERATION_LIMIT);
+    }
+
+    SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
+    AutoPtr<IRenderer> renderer = Factory::getRenderer(scheduler, gui);
+    RawPtr<IRenderer> rendererPtr = renderer.get();
+
+    RenderParams params = this->getRenderParams(gui);
+    AutoPtr<IColorizer> colorizer = this->getColorizer(global);
+
+    int firstIndex = 0;
+    if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE) {
+        Optional<Size> sequenceFirstIndex = OutputFile::getDumpIdx(sequence.firstFile);
+        if (sequenceFirstIndex) {
+            firstIndex = sequenceFirstIndex.value();
+        }
+    }
+    OutputFile paths(directory / Path(fileMask), firstIndex);
+    Movie movie(
+        gui, std::move(renderer), std::move(colorizer), std::move(params), sequence.extraFrames, paths);
+
+    switch (AnimationType(animationType)) {
+    case AnimationType::SINGLE_FRAME: {
+        SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
+        AnimationRenderOutput output(callbacks, *rendererPtr, iterLimit);
+        movie.render(std::move(data->storage), std::move(data->stats), output);
+        break;
+    }
+    case AnimationType::FILE_SEQUENCE: {
+        FlatMap<Size, Path> fileMap = getFileSequence(sequence.firstFile);
+        if (fileMap.empty()) {
+            throw InvalidSetup("No files to render.");
+        }
+
+        const Size iterationCnt = iterLimit * fileMap.size() * (sequence.extraFrames + 1);
+        AnimationRenderOutput output(callbacks, *rendererPtr, iterationCnt);
+        AutoPtr<IInput> input = Factory::getInput(sequence.firstFile);
+        for (auto& element : fileMap) {
+            Storage frame;
+            Statistics stats;
+            const Outcome result = input->load(element.value(), frame, stats);
+            if (!result) {
+                /// \todo how to report this? (don't do modal dialog)
+            }
+
+            if (callbacks.shouldAbortRun()) {
+                break;
+            }
+
+            movie.render(std::move(frame), std::move(stats), output);
+        }
+        break;
+    }
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+RenderParams IRenderJob::getRenderParams(const GuiSettings& gui) const {
+    SharedPtr<CameraData> camera = getInput<CameraData>("camera");
+    RenderParams params;
+    params.camera = camera->camera->clone();
+    params.tracker = std::move(camera->tracker);
+    GuiSettings paramGui = gui;
+    paramGui.addEntries(camera->overrides);
+    params.initialize(paramGui);
+    return params;
+}
+
+AutoPtr<IRenderPreview> IRenderJob::getRenderPreview(const RunSettings& global) const {
     if (AnimationType(animationType) != AnimationType::SINGLE_FRAME) {
         throw InvalidSetup("Only enabled for single-frame renders");
     }
@@ -441,14 +340,14 @@ AutoPtr<IRenderPreview> AnimationJob::getRenderPreview(const RunSettings& global
     return makeAuto<RenderPreview>(std::move(params), std::move(renderer), std::move(colorizer), data);
 }
 
-AutoPtr<IColorizer> AnimationJob::getColorizer(const RunSettings& global) const {
+AutoPtr<IColorizer> IRenderJob::getColorizer(const RunSettings& global) const {
     Project project = Project::getInstance().clone();
     project.getGuiSettings() = gui;
     RenderColorizerId renderId(colorizerId);
     if (renderId == RenderColorizerId::GRAVITY) {
-        Palette palette;
-        if (!project.getPalette("Acceleration", palette)) {
-            palette = Factory::getPalette(ColorizerId::ACCELERATION);
+        ColorLut palette;
+        if (!project.getColorLut("Acceleration", palette)) {
+            palette = Factory::getColorLut(ColorizerId::ACCELERATION);
         }
         SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
         SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
@@ -462,7 +361,7 @@ AutoPtr<IColorizer> AnimationJob::getColorizer(const RunSettings& global) const 
     }
 }
 
-AutoPtr<IRenderer> AnimationJob::getRenderer(const RunSettings& global) const {
+AutoPtr<IRenderer> IRenderJob::getRenderer(const RunSettings& global) const {
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
     GuiSettings previewGui = gui;
     previewGui.set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 4);
@@ -471,19 +370,132 @@ AutoPtr<IRenderer> AnimationJob::getRenderer(const RunSettings& global) const {
     return renderer;
 }
 
-RenderParams AnimationJob::getRenderParams() const {
+RenderParams IRenderJob::getRenderParams() const {
     GuiSettings previewGui = gui;
     previewGui.set(GuiSettingsId::SHOW_KEY, false);
     previewGui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f));
     return this->getRenderParams(previewGui);
 }
 
-JobRegistrar sRegisterAnimation(
-    "render animation",
-    "animation",
+//-----------------------------------------------------------------------------------------------------------
+// ParticleRenderJob
+//-----------------------------------------------------------------------------------------------------------
+
+ParticleRenderJob::ParticleRenderJob(const String& name)
+    : IRenderJob(name) {
+    gui.set(GuiSettingsId::RENDERER, RendererEnum::PARTICLE);
+    animationType = EnumWrapper(AnimationType::SINGLE_FRAME);
+    colorizerId = EnumWrapper(RenderColorizerId::VELOCITY);
+}
+
+UnorderedMap<String, ExtJobType> ParticleRenderJob::requires() const {
+    if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE &&
+        RenderColorizerId(colorizerId) != RenderColorizerId::GRAVITY) {
+        return { { "camera", GuiJobType::CAMERA } };
+    } else {
+        return this->getSlots();
+    }
+}
+
+VirtualSettings ParticleRenderJob::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+
+    addOutputCategory(connector, directory, fileMask);
+
+    VirtualSettings::Category& rendererCat = connector.addCategory("Rendering");
+    rendererCat.connect("Quantity", "quantity", colorizerId);
+    rendererCat.connect<bool>("Transparent background", "transparent", transparentBackground);
+    rendererCat.connect<Float>("Particle radius", gui, GuiSettingsId::PARTICLE_RADIUS);
+    rendererCat.connect<bool>("Antialiasing", gui, GuiSettingsId::ANTIALIASED);
+
+    addAnimationCategory(connector, animationType, sequence);
+
+    return connector;
+}
+
+JobRegistrar sRegisterParticleRenderer(
+    "particle renderer",
     "rendering",
-    [](const String& name) { return makeAuto<AnimationJob>(name); },
-    "Renders an image or a sequence of images from given particle input(s)");
+    [](const String& name) { return makeAuto<ParticleRenderJob>(name); },
+    "Renders an image or a sequence of images. Particles are drawn as spheres using given color palette.");
+
+//-----------------------------------------------------------------------------------------------------------
+// RaytracerJob
+//-----------------------------------------------------------------------------------------------------------
+
+static RegisterEnum<ShaderFlag> sShaders({
+    { ShaderFlag::SURFACENESS, "surfaceness", "Fraction of surface" },
+    { ShaderFlag::EMISSION, "emission", "Emission" },
+    { ShaderFlag::SCATTERING, "scattering", "Scattering" },
+    { ShaderFlag::ABSORPTION, "absorption", "Absorption" },
+});
+
+RaytracerJob::RaytracerJob(const String& name)
+    : IRenderJob(name) {
+    gui.set(GuiSettingsId::RENDERER, RendererEnum::RAYMARCHER);
+    animationType = EnumWrapper(AnimationType::SINGLE_FRAME);
+}
+
+UnorderedMap<String, ExtJobType> RaytracerJob::requires() const {
+    UnorderedMap<String, ExtJobType> slots;
+    slots.insert("particles", JobType::PARTICLES);
+    slots.insert("camera", GuiJobType::CAMERA);
+    if (shaderFlags.has(ShaderFlag::SURFACENESS)) {
+        slots.insert("surfaceness", GuiJobType::SHADER);
+    }
+    if (shaderFlags.has(ShaderFlag::EMISSION)) {
+        slots.insert("emission", GuiJobType::SHADER);
+    }
+    if (shaderFlags.has(ShaderFlag::SCATTERING)) {
+        slots.insert("scattering", GuiJobType::SHADER);
+    }
+    if (shaderFlags.has(ShaderFlag::ABSORPTION)) {
+        slots.insert("absorption", GuiJobType::SHADER);
+    }
+    return slots;
+}
+
+VirtualSettings RaytracerJob::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+
+    addOutputCategory(connector, directory, fileMask);
+
+    VirtualSettings::Category& shaderCat = connector.addCategory("Shaders");
+    shaderCat.connect("Used shaders", "shaders", shaderFlags);
+
+    VirtualSettings::Category& rendererCat = connector.addCategory("Rendering");
+    rendererCat.connect<int>("Interation count", gui, GuiSettingsId::RAYTRACE_ITERATION_LIMIT);
+    rendererCat.connect<bool>("Transparent background", "transparent", transparentBackground);
+    rendererCat.connect<Float>("Surface level", gui, GuiSettingsId::SURFACE_LEVEL);
+    rendererCat.connect<Vector>("Sun position", gui, GuiSettingsId::SURFACE_SUN_POSITION);
+    rendererCat.connect<Float>("Sunlight intensity", gui, GuiSettingsId::SURFACE_SUN_INTENSITY);
+    rendererCat.connect<Float>("Ambient intensity", gui, GuiSettingsId::SURFACE_AMBIENT);
+    rendererCat.connect<bool>("Enable shadows", gui, GuiSettingsId::RAYTRACE_SHADOWS);
+    rendererCat.connect<Float>("Max distention", gui, GuiSettingsId::VOLUME_MAX_DISTENTION);
+
+    VirtualSettings::Category& textureCat = connector.addCategory("Texture paths");
+    textureCat.connect<Path>("Background", gui, GuiSettingsId::RAYTRACE_HDRI)
+        .setPathType(IVirtualEntry::PathType::INPUT_FILE);
+
+    VirtualSettings::Category& postCat = connector.addCategory("Postprocessing");
+    postCat.connect<EnumWrapper>("Color mapping", gui, GuiSettingsId::COLORMAP_TYPE);
+    postCat.connect<Float>("Logarithmic factor", gui, GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR)
+        .setEnabler(
+            [&] { return gui.get<ColorMapEnum>(GuiSettingsId::COLORMAP_TYPE) == ColorMapEnum::LOGARITHMIC; });
+    postCat.connect<bool>("Reduce noise", gui, GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE);
+    postCat.connect<Float>("Bloom intensity", gui, GuiSettingsId::BLOOM_INTENSITY);
+
+    addAnimationCategory(connector, animationType, sequence);
+    return connector;
+}
+
+JobRegistrar sRegisterRaytracer(
+    "raytracer",
+    "rendering",
+    [](const String& name) { return makeAuto<RaytracerJob>(name); },
+    "Renders an image or a sequence of images using raytracing.");
 
 //-----------------------------------------------------------------------------------------------------------
 // VdbJob

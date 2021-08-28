@@ -71,13 +71,13 @@ public:
     /// If no such value exists, returns NOTHING.
     virtual Optional<Particle> getParticle(const Size idx) const = 0;
 
-    /// \brief Returns recommended palette for drawing this colorizer.
+    /// \brief Returns recommended LUT for drawing this colorizer.
     ///
-    /// In case there is no palette, returns NOTHING.
-    virtual Optional<Palette> getPalette() const = 0;
+    /// In case there is no LUT, returns NOTHING.
+    virtual Optional<ColorLut> getColorLut() const = 0;
 
-    /// \brief Modifies the palette used by ths colorizer.
-    virtual void setPalette(const Palette& newPalette) = 0;
+    /// \brief Modifies the color LUT used by the colorizer.
+    virtual void setColorLut(const ColorLut& newLut) = 0;
 
     /// \brief Returns the name of the colorizer.
     ///
@@ -129,39 +129,6 @@ INLINE Optional<Vector> getColorizerVector(const Vector& value) {
 }
 } // namespace Detail
 
-/// \brief Special colorizers that do not directly correspond to quantities.
-///
-/// Must have strictly negative values. Function taking \ref ColorizerId as an argument also acceps \ref
-/// QuantityId casted to \ref ColorizerId, interpreting as \ref TypedColorizer with given quantity ID.
-enum class ColorizerId {
-    VELOCITY = -1,             ///< Particle velocities
-    ACCELERATION = -2,         ///< Acceleration of particles
-    MOVEMENT_DIRECTION = -3,   ///< Projected direction of motion
-    COROTATING_VELOCITY = -4,  ///< Velocities with a respect to the rotating body
-    DISPLACEMENT = -5,         ///< Difference between current positions and initial position
-    DENSITY_PERTURBATION = -6, ///< Relative difference of density and initial density (rho/rho0 - 1)
-    SUMMED_DENSITY = -7,       ///< Density computed from particle masses by direct summation of neighbors
-    TOTAL_STRESS = -8,         ///< Total stress (sigma = S - pI)
-    TOTAL_ENERGY = -9,         ///< Sum of kinetic and internal energy for given particle
-    TEMPERATURE = -10,         ///< Temperature, computed from internal energy
-    YIELD_REDUCTION = -11,     ///< Reduction of stress tensor due to yielding (1 - f_vonMises)
-    DAMAGE_ACTIVATION = -12,   ///< Ratio of the stress and the activation strain
-    RADIUS = -13,              ///< Radii/smoothing lenghts of particles
-    UVW = -15,                 ///< Shows UV mapping, u-coordinate in red and v-coordinate in blur
-    BOUNDARY = -16,            ///< Shows boundary particles
-    PARTICLE_ID = -17,         ///< Each particle drawn with different color
-    COMPONENT_ID = -18,        ///< Color assigned to each component (group of connected particles)
-    BOUND_COMPONENT_ID = -19,  ///< Color assigned to each group of gravitationally bound particles
-    AGGREGATE_ID = -20,        ///< Color assigned to each aggregate
-    FLAG = -21,                ///< Particles of different bodies are colored differently
-    MATERIAL_ID = -22,         ///< Particles with different materials are colored differently
-    BEAUTY = -23,              ///< Attempts to show the real-world look
-};
-
-using ExtColorizerId = ExtendedEnum<ColorizerId>;
-
-SPH_EXTEND_ENUM(QuantityId, ColorizerId);
-
 /// \brief Default colorizer simply converting quantity value to color using defined palette.
 ///
 /// Vector and tensor quantities are converted to floats using suitable norm.
@@ -169,13 +136,13 @@ template <typename Type>
 class TypedColorizer : public IColorizer {
 protected:
     QuantityId id;
-    Palette palette;
+    ColorLut lut;
     ArrayRef<const Type> values;
 
 public:
-    TypedColorizer(const QuantityId id, Palette palette)
+    TypedColorizer(const QuantityId id, ColorLut lut)
         : id(id)
-        , palette(std::move(palette)) {}
+        , lut(std::move(lut)) {}
 
     virtual bool hasData(const Storage& storage) const override {
         return storage.has(id);
@@ -190,7 +157,7 @@ public:
     }
 
     virtual Rgba evalColor(const Size idx) const override {
-        return palette(this->evalScalar(idx).value());
+        return lut(this->evalScalar(idx).value());
     }
 
     virtual Optional<float> evalScalar(const Size idx) const override {
@@ -206,12 +173,12 @@ public:
         return Particle(id, values[idx], idx);
     }
 
-    virtual Optional<Palette> getPalette() const override {
-        return palette;
+    virtual Optional<ColorLut> getColorLut() const override {
+        return lut;
     }
 
-    virtual void setPalette(const Palette& newPalette) override {
-        palette = newPalette;
+    virtual void setColorLut(const ColorLut& newPalette) override {
+        lut = newPalette;
     }
 
     virtual String name() const override {
@@ -227,7 +194,7 @@ inline bool hasVelocity(const Storage& storage) {
 /// \brief Displays the magnitudes of particle velocities.
 class VelocityColorizer : public TypedColorizer<Vector> {
 public:
-    explicit VelocityColorizer(Palette palette)
+    explicit VelocityColorizer(ColorLut palette)
         : TypedColorizer<Vector>(QuantityId::POSITION, std::move(palette)) {}
 
     virtual bool hasData(const Storage& storage) const override {
@@ -254,7 +221,7 @@ public:
 /// \brief Displays the magnitudes of accelerations.
 class AccelerationColorizer : public TypedColorizer<Vector> {
 public:
-    explicit AccelerationColorizer(Palette palette)
+    explicit AccelerationColorizer(ColorLut palette)
         : TypedColorizer<Vector>(QuantityId::POSITION, std::move(palette)) {}
 
     virtual bool hasData(const Storage& storage) const override {
@@ -277,14 +244,14 @@ public:
 /// \brief Shows direction of particle movement in color.
 class DirectionColorizer : public IColorizer {
 private:
-    Palette palette;
+    ColorLut palette;
     Vector axis;
     Vector dir1, dir2;
 
     ArrayRef<const Vector> values;
 
 public:
-    DirectionColorizer(const Vector& axis, const Palette& palette);
+    DirectionColorizer(const Vector& axis, const ColorLut& palette);
 
     virtual bool hasData(const Storage& storage) const override {
         return hasVelocity(storage);
@@ -309,11 +276,11 @@ public:
         return Particle(idx).addDt(QuantityId::POSITION, values[idx]);
     }
 
-    virtual Optional<Palette> getPalette() const override {
+    virtual Optional<ColorLut> getColorLut() const override {
         return palette;
     }
 
-    virtual void setPalette(const Palette& newPalette) override {
+    virtual void setColorLut(const ColorLut& newPalette) override {
         palette = newPalette;
     }
 
@@ -325,7 +292,7 @@ public:
 /// \brief Shows particle velocities with subtracted corotating component
 class CorotatingVelocityColorizer : public IColorizer {
 private:
-    Palette palette;
+    ColorLut palette;
     ArrayRef<const Vector> r;
     ArrayRef<const Vector> v;
     ArrayRef<const Size> matIds;
@@ -338,7 +305,7 @@ private:
     Array<BodyMetadata> data;
 
 public:
-    explicit CorotatingVelocityColorizer(Palette palette)
+    explicit CorotatingVelocityColorizer(ColorLut palette)
         : palette(std::move(palette)) {}
 
     virtual bool hasData(const Storage& storage) const override {
@@ -364,11 +331,11 @@ public:
         return Particle(idx).addDt(QuantityId::POSITION, this->getCorotatingVelocity(idx));
     }
 
-    virtual Optional<Palette> getPalette() const override {
+    virtual Optional<ColorLut> getColorLut() const override {
         return palette;
     }
 
-    virtual void setPalette(const Palette& newPalette) override {
+    virtual void setColorLut(const ColorLut& newPalette) override {
         palette = newPalette;
     }
 
@@ -385,12 +352,12 @@ private:
 
 class DensityPerturbationColorizer : public IColorizer {
 private:
-    Palette palette;
+    ColorLut palette;
     ArrayRef<const Float> rho;
     Array<Float> rho0;
 
 public:
-    explicit DensityPerturbationColorizer(Palette palette)
+    explicit DensityPerturbationColorizer(ColorLut palette)
         : palette(std::move(palette)) {}
 
     virtual bool hasData(const Storage& storage) const override {
@@ -419,11 +386,11 @@ public:
         return Particle(QuantityId::DENSITY, rho[idx] / rho0[idx] - 1.f, idx);
     }
 
-    virtual Optional<Palette> getPalette() const override {
+    virtual Optional<ColorLut> getColorLut() const override {
         return palette;
     }
 
-    virtual void setPalette(const Palette& newPalette) override {
+    virtual void setColorLut(const ColorLut& newPalette) override {
         palette = newPalette;
     }
 
@@ -434,7 +401,7 @@ public:
 
 class SummedDensityColorizer : public IColorizer {
 private:
-    Palette palette;
+    ColorLut palette;
     ArrayRef<const Float> m;
     ArrayRef<const Vector> r;
 
@@ -443,7 +410,7 @@ private:
     LutKernel<3> kernel;
 
 public:
-    SummedDensityColorizer(const RunSettings& settings, Palette palette);
+    SummedDensityColorizer(const RunSettings& settings, ColorLut palette);
 
     virtual bool hasData(const Storage& UNUSED(storage)) const override {
         // mass and positions must always be present
@@ -468,11 +435,11 @@ public:
         return Particle(QuantityId::DENSITY, Float(sum(idx)), idx);
     }
 
-    virtual Optional<Palette> getPalette() const override {
+    virtual Optional<ColorLut> getColorLut() const override {
         return palette;
     }
 
-    virtual void setPalette(const Palette& newPalette) override {
+    virtual void setColorLut(const ColorLut& newPalette) override {
         palette = newPalette;
     }
 
@@ -485,12 +452,12 @@ private:
 };
 
 class StressColorizer : public IColorizer {
-    Palette palette;
+    ColorLut palette;
     ArrayRef<const Float> p;
     ArrayRef<const TracelessTensor> s;
 
 public:
-    explicit StressColorizer(Palette palette)
+    explicit StressColorizer(ColorLut palette)
         : palette(std::move(palette)) {}
 
     virtual bool hasData(const Storage& storage) const override {
@@ -527,11 +494,11 @@ public:
         return Particle(QuantityId::DEVIATORIC_STRESS, sigma, idx);
     }
 
-    virtual Optional<Palette> getPalette() const override {
+    virtual Optional<ColorLut> getColorLut() const override {
         return palette;
     }
 
-    virtual void setPalette(const Palette& newPalette) override {
+    virtual void setColorLut(const ColorLut& newPalette) override {
         palette = newPalette;
     }
 
@@ -541,13 +508,13 @@ public:
 };
 
 class EnergyColorizer : public IColorizer {
-    Palette palette;
+    ColorLut lut;
     ArrayRef<const Float> u;
     ArrayRef<const Vector> v;
 
 public:
-    explicit EnergyColorizer(Palette palette)
-        : palette(std::move(palette)) {}
+    explicit EnergyColorizer(ColorLut lut)
+        : lut(std::move(lut)) {}
 
     virtual bool hasData(const Storage& storage) const override {
         return hasVelocity(storage) && storage.has(QuantityId::ENERGY);
@@ -563,7 +530,7 @@ public:
     }
 
     virtual Rgba evalColor(const Size idx) const override {
-        return palette(this->evalScalar(idx).value());
+        return lut(this->evalScalar(idx).value());
     }
 
     virtual Optional<float> evalScalar(const Size idx) const override {
@@ -580,12 +547,12 @@ public:
         return Particle(QuantityId::ENERGY, value, idx);
     }
 
-    virtual Optional<Palette> getPalette() const override {
-        return palette;
+    virtual Optional<ColorLut> getColorLut() const override {
+        return lut;
     }
 
-    virtual void setPalette(const Palette& newPalette) override {
-        palette = newPalette;
+    virtual void setColorLut(const ColorLut& newPalette) override {
+        lut = newPalette;
     }
 
     virtual String name() const override {
@@ -598,7 +565,10 @@ class TemperatureColorizer : public TypedColorizer<Float> {
 
 public:
     explicit TemperatureColorizer()
-        : TypedColorizer<Float>(QuantityId::ENERGY, getEmissionPalette(Interval(500, 10000))) {}
+        : TypedColorizer<Float>(QuantityId::ENERGY,
+              ColorLut(getEmissionPalette(Interval(500, 10000)),
+                  Interval(500, 10000),
+                  PaletteScale::LINEAR)) {}
 
     virtual bool hasData(const Storage& storage) const override {
         return storage.has(QuantityId::ENERGY) && storage.getMaterialCnt() > 0;
@@ -618,12 +588,12 @@ public:
         return Particle(QuantityId::TEMPERATURE, values[idx] / cp, idx);
     }
 
-    virtual Optional<Palette> getPalette() const override {
-        return palette;
+    virtual Optional<ColorLut> getColorLut() const override {
+        return lut;
     }
 
-    virtual void setPalette(const Palette& newPalette) override {
-        palette = newPalette;
+    virtual void setColorLut(const ColorLut& newPalette) override {
+        lut = newPalette;
     }
 
     virtual String name() const override {
@@ -634,13 +604,13 @@ public:
 
 class YieldReductionColorizer : public TypedColorizer<Float> {
 public:
-    explicit YieldReductionColorizer(Palette palette)
+    explicit YieldReductionColorizer(ColorLut palette)
         : TypedColorizer<Float>(QuantityId::STRESS_REDUCING, std::move(palette)) {}
 
     virtual Rgba evalColor(const Size idx) const override {
         SPH_ASSERT(this->isInitialized());
         SPH_ASSERT(values[idx] >= 0._f && values[idx] <= 1._f);
-        return palette(float(1._f - values[idx]));
+        return lut(float(1._f - values[idx]));
     }
 
     virtual String name() const override {
@@ -650,11 +620,11 @@ public:
 
 class DamageActivationColorizer : public IColorizer {
 private:
-    Palette palette;
+    ColorLut palette;
     Array<float> ratio;
 
 public:
-    explicit DamageActivationColorizer(const Palette& palette)
+    explicit DamageActivationColorizer(const ColorLut& palette)
         : palette(std::move(palette)) {}
 
     virtual bool hasData(const Storage& storage) const override;
@@ -673,11 +643,11 @@ public:
         return NOTHING;
     }
 
-    virtual Optional<Palette> getPalette() const override {
+    virtual Optional<ColorLut> getColorLut() const override {
         return palette;
     }
 
-    virtual void setPalette(const Palette& newPalette) override {
+    virtual void setColorLut(const ColorLut& newPalette) override {
         palette = newPalette;
     }
 
@@ -686,63 +656,9 @@ public:
     }
 };
 
-class BeautyColorizer : public IColorizer {
-private:
-    ArrayRef<const Float> u;
-    Palette palette;
-
-    const float u_0 = 3.e4f;
-    const float u_red = 3.e5f;
-    const float u_glow = 0.5f * u_red;
-    const float u_yellow = 5.e6f;
-
-    float f_glow;
-
-public:
-    BeautyColorizer();
-
-    virtual bool hasData(const Storage& storage) const override {
-        return storage.has(QuantityId::ENERGY);
-    }
-
-    virtual void initialize(const Storage& storage, const RefEnum ref) override {
-        u = makeArrayRef(storage.getValue<Float>(QuantityId::ENERGY), ref);
-    }
-
-    virtual bool isInitialized() const override {
-        return !u.empty();
-    }
-
-    virtual Rgba evalColor(const Size idx) const override {
-        SPH_ASSERT(this->isInitialized());
-        return palette(float(u[idx]));
-    }
-
-    virtual Optional<float> evalScalar(const Size idx) const override {
-        const float f = palette.paletteToRelative(u[idx]);
-        return max(0.f, (f - f_glow) / (1.f - f_glow));
-    }
-
-    virtual Optional<Particle> getParticle(const Size idx) const override {
-        return Particle(idx).addValue(QuantityId::ENERGY, u[idx]);
-    }
-
-    virtual Optional<Palette> getPalette() const override {
-        return palette;
-    }
-
-    virtual void setPalette(const Palette& newPalette) override {
-        palette = newPalette;
-    }
-
-    virtual String name() const override {
-        return "Beauty";
-    }
-};
-
 class RadiusColorizer : public TypedColorizer<Vector> {
 public:
-    explicit RadiusColorizer(Palette palette)
+    explicit RadiusColorizer(ColorLut palette)
         : TypedColorizer<Vector>(QuantityId::SMOOTHING_LENGTH, std::move(palette)) {}
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
@@ -751,7 +667,7 @@ public:
 
     virtual Rgba evalColor(const Size idx) const override {
         SPH_ASSERT(this->isInitialized());
-        return palette(float(values[idx][H]));
+        return lut(float(values[idx][H]));
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
@@ -794,11 +710,11 @@ public:
         return NOTHING;
     }
 
-    virtual Optional<Palette> getPalette() const override {
+    virtual Optional<ColorLut> getColorLut() const override {
         return NOTHING;
     }
 
-    virtual void setPalette(const Palette& UNUSED(newPalette)) override {}
+    virtual void setColorLut(const ColorLut& UNUSED(newPalette)) override {}
 
     virtual String name() const override {
         return "Uvws";
@@ -812,7 +728,7 @@ public:
         /// Particles with fewer neighbors are considered boundary. Not suitable if number of neighbors is
         /// enforced by adapting smoothing length. Note that increasing the threshold adds more particles into
         /// the boundary.
-        NEIGBOUR_THRESHOLD,
+        NEIGBOR_THRESHOLD,
 
         /// Boundary is determined by relative position vectors approximating surface normal. Has higher
         /// overhead, but does not depend sensitively on number of neighbors. Here, increasing the threshold
@@ -849,11 +765,11 @@ public:
         return NOTHING;
     }
 
-    virtual Optional<Palette> getPalette() const override {
+    virtual Optional<ColorLut> getColorLut() const override {
         return NOTHING;
     }
 
-    virtual void setPalette(const Palette& UNUSED(newPalette)) override {}
+    virtual void setColorLut(const ColorLut& UNUSED(newPalette)) override {}
 
     virtual String name() const override {
         return "Boundary";
@@ -882,11 +798,11 @@ public:
 
     virtual Optional<Particle> getParticle(const Size idx) const override;
 
-    virtual Optional<Palette> getPalette() const override {
+    virtual Optional<ColorLut> getColorLut() const override {
         return NOTHING;
     }
 
-    virtual void setPalette(const Palette& UNUSED(newPalette)) override {}
+    virtual void setColorLut(const ColorLut& UNUSED(newPalette)) override {}
 };
 
 class ParticleIdColorizer : public IdColorizerTemplate<ParticleIdColorizer> {

@@ -20,7 +20,7 @@ class Storage;
 class Statistics;
 class Timer;
 struct Pixel;
-class Palette;
+class ColorLut;
 class JobNode;
 class Project;
 class IRenderer;
@@ -225,7 +225,7 @@ public:
     /// \brief Modifies the color palette for current colorizer.
     ///
     /// Function must be called from main thread.
-    void setPaletteOverride(const Palette palette);
+    void setPaletteOverride(const ColorLut palette);
 
     /// \brief If possible, redraws the particles with data from storage.
     ///

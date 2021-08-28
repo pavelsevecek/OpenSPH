@@ -91,5 +91,4 @@ public:
     virtual AutoPtr<IExtraEntry> clone() const override;
 };
 
-
 NAMESPACE_SPH_END

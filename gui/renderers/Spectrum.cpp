@@ -200,12 +200,12 @@ Palette getBlackBodyPalette(const Interval range) {
         const float temperature = float(range.lower()) + float(i) / (points.size() - 1) * float(range.size());
         const Xyz xyz = getBlackBodyColor(temperature);
 
-        points[i].value = temperature;
+        points[i].value = float(i) / (points.size() - 1);
         const Rgba color = xyzToRgb(xyz);
         // normalize so that max component is 1
         points[i].color = color / max(color.r(), color.g(), color.b());
     }
-    return Palette(std::move(points), PaletteScale::LINEAR);
+    return Palette(std::move(points));
 }
 
 Palette getEmissionPalette(const Interval range) {
@@ -215,7 +215,7 @@ Palette getEmissionPalette(const Interval range) {
     Array<Palette::Point> points(256);
     for (Size i = 0; i < points.size(); ++i) {
         const float temperature = float(range.lower()) + float(i) / (points.size() - 1) * float(range.size());
-        points[i].value = temperature;
+        points[i].value = float(i) / (points.size() - 1);
 
         if (temperature < draperPoint) {
             points[i].color = darkColor;
@@ -227,7 +227,7 @@ Palette getEmissionPalette(const Interval range) {
             points[i].color = lerp(darkColor, normColor, weight);
         }
     }
-    return Palette(std::move(points), PaletteScale::LINEAR);
+    return Palette(std::move(points));
 }
 
 NAMESPACE_SPH_END

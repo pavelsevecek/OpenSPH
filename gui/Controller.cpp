@@ -6,7 +6,6 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/objects/Movie.h"
-#include "gui/renderers/MeshRenderer.h"
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/windows/RunPage.h"
 #include "run/Node.h"
@@ -399,8 +398,6 @@ Array<ExtColorizerId> getColorizerIds() {
         QuantityId::NEIGHBOR_CNT,
         ColorizerId::UVW,
         ColorizerId::BOUNDARY,
-        //
-        ColorizerId::BEAUTY,
     };
 
     return colorizerIds.clone();
@@ -511,9 +508,9 @@ Optional<Size> Controller::getIntersectedParticle(const Pixel position, const fl
 void Controller::setColorizer(const SharedPtr<IColorizer>& newColorizer) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     vis.colorizer = newColorizer;
-    Palette palette;
-    if (project.getPalette(vis.colorizer->name(), palette)) {
-        vis.colorizer->setPalette(palette);
+    ColorLut palette;
+    if (project.getColorLut(vis.colorizer->name(), palette)) {
+        vis.colorizer->setColorLut(palette);
     }
     if (!this->tryRedraw()) {
         this->redrawOnNextTimeStep();
@@ -565,11 +562,11 @@ void Controller::setSelectedParticle(const Optional<Size>& particleIdx) {
     page->deselectParticle();
 }
 
-void Controller::setPaletteOverride(const Palette palette) {
+void Controller::setPaletteOverride(const ColorLut palette) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
 
-    project.setPalette(vis.colorizer->name(), palette);
-    vis.colorizer->setPalette(palette);
+    project.setColorLut(vis.colorizer->name(), palette);
+    vis.colorizer->setColorLut(palette);
     this->tryRedraw();
 }
 
