@@ -108,8 +108,9 @@ private:
 
     } cached;
 
-    /// BVH for finding intersections of rays with particles
-    Bvh<BvhSphere> bvh;
+    /// BVHs for finding intersections of rays with particles
+    Bvh<BvhSphere> surfaceBvh;
+    Bvh<BvhSphere> volumeBvh;
 
     /// Finder for finding neighbors of intersected particles
     AutoPtr<IBasicFinder> finder;

@@ -10,6 +10,7 @@
 #include "objects/utility/OutputIterators.h"
 #include "quantities/Attractor.h"
 #include "system/Profiler.h"
+#include <mutex>
 
 NAMESPACE_SPH_BEGIN
 
@@ -176,7 +177,6 @@ constexpr Size BLEND_ALL_FLAG = 0x80;
 constexpr float MIN_NEIGHS = 8;
 
 void Raytracer::initialize(const Storage& storage, const ICamera& UNUSED(camera)) {
-    MEASURE_SCOPE("Building BVH");
     cached.r = storage.getValue<Vector>(QuantityId::POSITION).clone();
 
     if (storage.has(QuantityId::UVW)) {
@@ -227,7 +227,7 @@ void Raytracer::initializeAttractors(const Storage& storage) {
 
         // if (a.settings.has(AttractorSettingsId::VISUALIZATION_TEXTURE)) {
         //  String path = a.settings.get<String>(AttractorSettingsId::VISUALIZATION_TEXTURE);
-        String path = "/home/pavel/projects/astro/sph/external/saturn.jpg";
+        String path = "/home/pavel/projects/astro/runs/saturn_ring/saturn.jpg";
         SharedPtr<Texture> texture = makeShared<Texture>(Path(path), TextureFiltering::BILINEAR);
         cached.attractors[i].texture = texture;
         //}
@@ -317,37 +317,52 @@ void Raytracer::initializeStructures() {
     finder = Factory::getFinder(RunSettings::getDefaults());
     finder->build(*scheduler, cached.r);
 
-    Array<BvhSphere> spheres;
-    spheres.resize(cached.r.size() + cached.attractors.size());
+    Array<BvhSphere> surfaceSpheres;
+    Array<BvhSphere> volumeSpheres;
+    std::mutex mutex;
+
     cached.distention.resize(cached.r.size());
 
     ThreadLocal<Array<NeighborRecord>> neighs(*scheduler);
     parallelFor(*scheduler, neighs, 0, cached.r.size(), [&](const Size i, Array<NeighborRecord>& local) {
-        const float initialRadius = cached.r[i][H];
-        float radius = initialRadius;
-        while (radius < fixed.maxDistention * initialRadius) {
-            finder->findAll(cached.r[i], radius, local);
-            if (local.size() >= MIN_NEIGHS) {
-                break;
-            } else {
-                radius *= 1.5f;
-            }
+        if (!cached.surfaceness.empty() && cached.surfaceness[i] > 0.f) {
+            BvhSphere s(cached.r[i], cached.r[i][H]);
+            s.userData = i;
+            std::unique_lock<std::mutex> lock(mutex);
+            surfaceSpheres.push(s);
         }
 
-        BvhSphere s(cached.r[i], radius);
-        s.userData = i;
-        spheres[i] = s;
+        if (cached.surfaceness.empty() || cached.surfaceness[i] == 0.f) {
+            const float initialRadius = cached.r[i][H];
+            float radius = initialRadius;
+            while (radius < fixed.maxDistention * initialRadius) {
+                finder->findAll(cached.r[i], radius, local);
+                if (local.size() >= MIN_NEIGHS) {
+                    break;
+                } else {
+                    radius *= 1.5f;
+                }
+            }
 
-        cached.distention[i] = min(radius / initialRadius, fixed.maxDistention);
+            cached.distention[i] = min(radius / initialRadius, fixed.maxDistention);
+
+            BvhSphere s(cached.r[i], radius);
+            s.userData = i;
+            std::unique_lock<std::mutex> lock(mutex);
+            volumeSpheres.push(s);
+        } else {
+            cached.distention[i] = 1.f;
+        }
     });
 
     for (Size i = 0; i < cached.attractors.size(); ++i) {
         BvhSphere s(cached.attractors[i].position, cached.attractors[i].radius);
         s.userData = cached.r.size() + i;
-        spheres[i] = s;
+        surfaceSpheres.push(s);
     }
 
-    bvh.build(std::move(spheres));
+    surfaceBvh.build(std::move(surfaceSpheres));
+    volumeBvh.build(std::move(volumeSpheres));
 }
 
 bool Raytracer::isInitialized() const {
@@ -360,7 +375,7 @@ Rgba Raytracer::shade(const RenderParams& params, const CameraRay& cameraRay, Th
 
     // find all ray intersections
     data.intersections.clear();
-    bvh.getAllIntersections(ray, backInserter(data.intersections));
+    surfaceBvh.getAllIntersections(ray, backInserter(data.intersections));
     std::sort(data.intersections.begin(), data.intersections.end());
 
     // try to find surface
@@ -383,6 +398,10 @@ Rgba Raytracer::shade(const RenderParams& params, const CameraRay& cameraRay, Th
     }
 
     if (!cached.emission.empty() || !cached.absorption.empty() || !cached.scattering.empty()) {
+        data.intersections.clear();
+        volumeBvh.getAllIntersections(ray, backInserter(data.intersections));
+        std::sort(data.intersections.begin(), data.intersections.end());
+
         // modify color due to volume emission/absorption/scattering
         return this->getVolumeColor(data, params, cameraRay, baseColor, t_max);
     } else {
@@ -441,7 +460,7 @@ bool Raytracer::occluded(ThreadData& data, const Ray& ray, const Float surfaceLe
     }
 
     bool occlusion = false;
-    bvh.getIntersections(ray, [&](const IntersectionInfo& intersect) {
+    surfaceBvh.getIntersections(ray, [&](const IntersectionInfo& intersect) {
         IntersectContext sc;
         sc.index = intersect.object->userData;
         sc.ray = ray;
