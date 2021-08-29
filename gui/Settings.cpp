@@ -6,14 +6,7 @@ NAMESPACE_SPH_BEGIN
 
 static RegisterEnum<RendererEnum> sRenderer({
     { RendererEnum::PARTICLE, "particle", "Particles are visualized as circles. No shading." },
-    /*{ RendererEnum::MESH,
-        "mesh",
-        "Surfaces of bodies are meshed using Marching cubes and drawed as triangles." },*/
-    { RendererEnum::RAYMARCHER,
-        "raymarcher",
-        "Use raymarching to find intersections with implicit surface." },
-    { RendererEnum::VOLUME, "volumetric", "Use raytracing to find total emission along the ray." },
-    //{ RendererEnum::CONTOUR, "contour", "Draws contours (iso-lines) of quantities" },
+    { RendererEnum::RAYTRACER, "raymarcher", "Use raymarching to find intersections with implicit surface." },
 });
 
 static RegisterEnum<CameraEnum> sCamera({

@@ -147,6 +147,14 @@ Interval Curve::rangeY() const {
     return range;
 }
 
+Curve Curve::getScaled(const float factor) const {
+    Curve scaled = *this;
+    for (auto& p : scaled.points) {
+        p.first.y *= factor;
+    }
+    return scaled;
+}
+
 Float Curve::operator()(const Float x) const {
     auto lowerBoundIter = std::lower_bound(
         points.begin(), points.end(), x, [](const std::pair<CurvePoint, bool>& p, const Float x) {

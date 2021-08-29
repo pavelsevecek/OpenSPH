@@ -7,7 +7,6 @@
 #include "gui/objects/Colorizer.h"
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/renderers/RayMarcher.h"
-#include "gui/renderers/VolumeRenderer.h"
 #include "gui/windows/MainWindow.h"
 #include "gui/windows/OrthoPane.h"
 #include "gui/windows/PaletteDialog.h"
@@ -331,7 +330,7 @@ wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
     return raytraceBox;
 }
 
-wxWindow* RunPage::createVolumeBox(wxPanel* parent) {
+/*wxWindow* RunPage::createVolumeBox(wxPanel* parent) {
     wxStaticBox* volumeBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 100));
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
     boxPad(boxSizer);
@@ -388,7 +387,7 @@ wxWindow* RunPage::createVolumeBox(wxPanel* parent) {
 
     volumeBox->SetSizer(boxSizer);
     return volumeBox;
-}
+}*/
 
 static void enableRecursive(wxWindow* window, const bool enable) {
     window->Enable(enable);
@@ -530,12 +529,12 @@ wxPanel* RunPage::createVisBar() {
     visbarSizer->Add(raytracerBox, 0, wxALL, 5);
     visbarSizer->AddSpacer(10);
 
-    wxRadioButton* volumeButton =
+    /*wxRadioButton* volumeButton =
         new wxRadioButton(visbarPanel, wxID_ANY, "Volumetric raytracer", wxDefaultPosition, buttonSize, 0);
     visbarSizer->Add(volumeButton, 0, wxLEFT, 5);
     wxWindow* volumeBox = this->createVolumeBox(visbarPanel);
     visbarSizer->Add(volumeBox, 0, wxALL, 5);
-    visbarSizer->AddSpacer(10);
+    visbarSizer->AddSpacer(10);*/
 
     visbarSizer->AddStretchSpacer(1);
 
@@ -555,13 +554,13 @@ wxPanel* RunPage::createVisBar() {
     auto enableControls = [=](int renderIdx) {
         enableRecursive(particleBox, renderIdx == 0);
         enableRecursive(raytracerBox, renderIdx == 1);
-        enableRecursive(volumeBox, renderIdx == 2);
+        // enableRecursive(volumeBox, renderIdx == 2);
     };
     enableControls(0);
 
     particleButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-        controller->setRenderer(makeAuto<ParticleRenderer>(gui));
+        controller->setRenderer(makeAuto<ParticleRenderer>(gui, controller->getCurrentColorizer()));
         enableControls(0);
     });
     /*meshButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
@@ -578,27 +577,19 @@ wxPanel* RunPage::createVisBar() {
     });*/
     surfaceButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-        try {
-            SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
-            controller->setRenderer(makeAuto<RayMarcher>(scheduler, gui));
-            enableControls(1);
-        } catch (const std::exception& e) {
-            messageBox("Cannot initialize raytracer.\n\n" + exceptionMessage(e), "Error", wxOK);
 
-            // switch to particle renderer (fallback option)
-            particleButton->SetValue(true);
-            controller->setRenderer(makeAuto<ParticleRenderer>(gui));
-            enableControls(0);
-        }
-    });
-    volumeButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
-        CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
-        GuiSettings volumeGui = gui;
-        volumeGui.set(GuiSettingsId::COLORMAP_TYPE, ColorMapEnum::LOGARITHMIC);
-        controller->setRenderer(makeAuto<VolumeRenderer>(scheduler, volumeGui));
-        enableControls(2);
+        controller->setRenderer(makeAuto<Raytracer>(scheduler, gui));
+        enableControls(1);
     });
+    /*  volumeButton->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) {
+          CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+          SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
+          GuiSettings volumeGui = gui;
+          volumeGui.set(GuiSettingsId::COLORMAP_TYPE, ColorMapEnum::LOGARITHMIC);
+          controller->setRenderer(makeAuto<VolumeRenderer>(scheduler, volumeGui));
+          enableControls(2);
+      });*/
 
     visbarPanel->SetSizer(visbarSizer);
     return visbarPanel;

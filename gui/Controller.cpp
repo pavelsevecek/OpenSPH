@@ -528,8 +528,7 @@ void Controller::setRenderer(AutoPtr<IRenderer>&& newRenderer) {
         SPH_ASSERT(sph.run);
         std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
         vis.renderer = std::move(renderer);
-        vis.colorizer->initialize(storage, RefEnum::STRONG);
-        vis.renderer->initialize(storage, *vis.colorizer, *vis.camera);
+        vis.renderer->initialize(storage, *vis.camera);
         vis.refresh();
     };
 
@@ -588,13 +587,8 @@ void Controller::redraw(const Storage& storage, const Statistics& stats) {
     vis.stats = makeAuto<Statistics>(stats);
     vis.positions = copyable(storage.getValue<Vector>(QuantityId::POSITION));
 
-    // initialize the currently selected colorizer; we create a local copy as vis.colorizer might be changed
-    // in setColorizer before renderer->initialize is called
-    SPH_ASSERT(vis.isInitialized());
-    SharedPtr<IColorizer> colorizer = vis.colorizer;
-    colorizer->initialize(storage, RefEnum::STRONG);
-
     // setup camera
+    SPH_ASSERT(vis.isInitialized());
     SPH_ASSERT(vis.camera);
     vis.cameraMutex.lock();
     if (project.getGuiSettings().get<bool>(GuiSettingsId::CAMERA_AUTOSETUP)) {
@@ -605,7 +599,7 @@ void Controller::redraw(const Storage& storage, const Statistics& stats) {
     vis.cameraMutex.unlock();
 
     // update the renderer with new data
-    vis.renderer->initialize(storage, *colorizer, *camera);
+    vis.renderer->initialize(storage, *camera);
 
     // notify the render thread that new data are available
     vis.refresh();
@@ -616,13 +610,12 @@ bool Controller::tryRedraw() {
     if (status != RunStatus::RUNNING && sph.storage && !sph.storage->empty()) {
         vis.renderer->cancelRender();
         std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
-        vis.colorizer->initialize(*sph.storage, RefEnum::STRONG);
 
         vis.cameraMutex.lock();
         // vis.camera->initialize(sph.storage);
         AutoPtr<ICamera> camera = vis.camera->clone();
         vis.cameraMutex.unlock();
-        vis.renderer->initialize(*sph.storage, *vis.colorizer, *camera);
+        vis.renderer->initialize(*sph.storage, *camera);
         vis.timer->restart();
         vis.refresh();
 

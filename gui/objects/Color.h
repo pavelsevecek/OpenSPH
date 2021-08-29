@@ -116,6 +116,10 @@ public:
         return *this;
     }
 
+    Rgba operator-() const {
+        return preserveAlpha(-data);
+    }
+
     bool operator==(const Rgba& other) const {
         return data == other.data;
     }
@@ -227,6 +231,10 @@ private:
         return clamp(int(f * 255.f), 0, 255);
     }
 };
+
+inline Rgba exp(const Rgba& color) {
+    return Rgba(exp(color.r()), exp(color.g()), exp(color.b()), color.a());
+}
 
 class Hsv {
 private:

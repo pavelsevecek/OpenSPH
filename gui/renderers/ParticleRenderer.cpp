@@ -138,7 +138,8 @@ void drawAxis(IRenderContext& context, const Rgba& color, const Vector& axis, co
     context.drawText(origin + dir, TextAlign::TOP | TextAlign::HORIZONTAL_CENTER, label);
 }
 
-ParticleRenderer::ParticleRenderer(const GuiSettings& settings) {
+ParticleRenderer::ParticleRenderer(const GuiSettings& settings, const SharedPtr<IColorizer>& colorizer)
+    : colorizer(colorizer) {
     grid = float(settings.get<Float>(GuiSettingsId::VIEW_GRID_SIZE));
     shouldContinue = true;
 }
@@ -147,18 +148,18 @@ static bool isCutOff(const Vector& r, const Optional<float> cutoff, const Vector
     return cutoff && abs(dot(direction, r)) > cutoff.value();
 }
 
-void ParticleRenderer::initialize(const Storage& storage,
-    const IColorizer& colorizer,
-    const ICamera& camera) {
+void ParticleRenderer::initialize(const Storage& storage, const ICamera& camera) {
     MEASURE_SCOPE("ParticleRenderer::initialize");
     cached.idxs.clear();
     cached.positions.clear();
     cached.colors.clear();
     cached.vectors.clear();
 
+    colorizer->initialize(storage, RefEnum::WEAK);
+
     const Optional<float> cutoff = camera.getCutoff();
     const Vector direction = camera.getFrame().row(2);
-    bool hasVectorData = bool(colorizer.evalVector(0));
+    bool hasVectorData = bool(colorizer->evalVector(0));
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
         const Optional<ProjectedPoint> p = camera.project(r[i]);
@@ -166,11 +167,11 @@ void ParticleRenderer::initialize(const Storage& storage,
             cached.idxs.push(i);
             cached.positions.push(r[i]);
 
-            const Rgba color = colorizer.evalColor(i);
+            const Rgba color = colorizer->evalColor(i);
             cached.colors.push(color);
 
             if (hasVectorData) {
-                Optional<Vector> v = colorizer.evalVector(i);
+                Optional<Vector> v = colorizer->evalVector(i);
                 SPH_ASSERT(v);
                 cached.vectors.push(v.value());
             }
@@ -230,14 +231,14 @@ bool ParticleRenderer::isInitialized() const {
     return !cached.positions.empty();
 }
 
-void ParticleRenderer::setColorizer(const IColorizer& colorizer) {
+/*void ParticleRenderer::setColorizer(const IColorizer& colorizer) {
     for (Size i = 0; i < cached.idxs.size(); ++i) {
         if (cached.idxs[i] == Size(-1)) {
             continue; // ghost or attractor
         }
         cached.colors[i] = colorizer.evalColor(cached.idxs[i]);
     }
-}
+}*/
 
 static AutoPtr<IRenderContext> getContext(const RenderParams& params, Bitmap<Rgba>& bitmap) {
     if (params.particles.doAntialiasing) {

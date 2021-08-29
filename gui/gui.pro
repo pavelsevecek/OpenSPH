@@ -39,7 +39,6 @@ SOURCES += \
     renderers/IRenderer.cpp \
     renderers/ParticleRenderer.cpp \
     renderers/RayMarcher.cpp \
-    renderers/VolumeRenderer.cpp \
     renderers/Spectrum.cpp \
     windows/BatchDialog.cpp \
     windows/PaletteEditor.cpp \
@@ -93,7 +92,6 @@ HEADERS += \
     renderers/IRenderer.h \
     renderers/ParticleRenderer.h \
     renderers/RayMarcher.h \
-    renderers/VolumeRenderer.h \
     renderers/Spectrum.h \
     windows/BatchDialog.h \
     windows/PreviewPane.h \

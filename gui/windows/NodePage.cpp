@@ -50,7 +50,7 @@ constexpr int SLOT_RADIUS = 6;
 
 /// \todo figure out why this is needed
 static RaytracerJob raytracerDummy("dummy");
-static ShaderJob shaderDummy("dummy");
+static ColorShaderJob shaderDummy("dummy");
 static PerspectiveCameraJob cameraDummy("dummy");
 
 #ifdef SPH_USE_CHAISCRIPT
@@ -1403,7 +1403,7 @@ public:
 
     wxPGProperty* addExtra(const String& name, const ExtraEntry& extra) const {
         if (auto entry = dynamicCast<CurveEntry>(extra.getEntry())) {
-            return grid->Append(new CurveProperty(name, entry->getCurve(), aui));
+            return grid->Append(new CurveProperty(grid, name, entry->getCurve(), aui));
         } else if (auto entry = dynamicCast<PaletteEntry>(extra.getEntry())) {
             return grid->Append(new PaletteProperty(grid, name, entry->getPalette(), aui));
         } else {
@@ -1559,20 +1559,6 @@ public:
 
         panel = new ColorLutPanel(this, wxSize(300, 200), firstLut);
         sizer->Add(panel, 1, wxALIGN_CENTER_HORIZONTAL);
-
-        editor = new PaletteEditor(this, wxSize(300, 200));
-        sizer->Add(editor, 1, wxEXPAND | wxALIGN_CENTER_HORIZONTAL);
-
-
-        // auto rangeX = firstPalette.getInterval();
-        auto curve = new CurvePanel(this, Interval(0, 1), Interval(0, 1), [firstLut](float x) {
-            return firstLut.relativeToPalette(clamp(x, 0.f, 1.f));
-        });
-        curve->setCurve(Curve(Array<CurvePoint>{
-            CurvePoint{ 0._f, 0.5_f },
-            CurvePoint{ 1._f, 0.5_f },
-        }));
-        sizer->Add(curve, 1, wxEXPAND | wxALIGN_CENTER_HORIZONTAL);
 
         this->SetSizerAndFit(sizer);
 

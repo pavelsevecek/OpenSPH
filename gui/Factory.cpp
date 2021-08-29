@@ -6,7 +6,6 @@
 #include "gui/renderers/FrameBuffer.h"
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/renderers/RayMarcher.h"
-#include "gui/renderers/VolumeRenderer.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -64,24 +63,22 @@ AutoPtr<IRenderer> Factory::getRenderer(SharedPtr<IScheduler> scheduler, const G
     switch (id) {
     case RendererEnum::NONE:
         class NullRenderer : public IRenderer {
-            virtual void initialize(const Storage&, const IColorizer&, const ICamera&) override {}
+            virtual void initialize(const Storage&, const ICamera&) override {}
             virtual bool isInitialized() const override {
                 return true;
             }
-            virtual void setColorizer(const IColorizer&) override {}
             virtual void render(const RenderParams&, Statistics&, IRenderOutput&) const override {}
             virtual void cancelRender() override {}
         };
         renderer = makeAuto<NullRenderer>();
         break;
-    case RendererEnum::PARTICLE:
-        renderer = makeAuto<ParticleRenderer>(settings);
+    case RendererEnum::PARTICLE: {
+        AutoPtr<IColorizer> colorizer = Factory::getColorizer(Project::getInstance(), ColorizerId::VELOCITY);
+        renderer = makeAuto<ParticleRenderer>(settings, std::move(colorizer));
         break;
-    case RendererEnum::RAYMARCHER:
-        renderer = makeAuto<RayMarcher>(scheduler, settings);
-        break;
-    case RendererEnum::VOLUME:
-        renderer = makeAuto<VolumeRenderer>(scheduler, settings);
+    }
+    case RendererEnum::RAYTRACER:
+        renderer = makeAuto<Raytracer>(scheduler, settings);
         break;
     default:
         NOT_IMPLEMENTED;

@@ -72,6 +72,9 @@ public:
     /// \brief Returns the extent of the curve in y-direction.
     Interval rangeY() const;
 
+    /// \brief Returns a new curve, multiplied by given scaling factor.
+    Curve getScaled(const float factor) const;
+
 private:
     Float linear(const CurvePoint& p1, const CurvePoint& p2, const Float x) const;
 

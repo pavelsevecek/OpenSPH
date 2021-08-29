@@ -19,7 +19,6 @@ class ForwardingOutput;
 class Movie : public Noncopyable {
 private:
     AutoPtr<IRenderer> renderer;
-    AutoPtr<IColorizer> colorizer;
     RenderParams params;
     int interpolatedFrames;
 
@@ -36,7 +35,6 @@ private:
 public:
     Movie(const GuiSettings& settings,
         AutoPtr<IRenderer>&& renderer,
-        AutoPtr<IColorizer>&& colorizer,
         RenderParams&& params,
         const int interpolatedFrames,
         const OutputFile& paths);

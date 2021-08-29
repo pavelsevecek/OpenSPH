@@ -123,9 +123,6 @@ struct RenderParams {
         /// \brief Intensity of the sunlight.
         float sunLight = 0.7f;
 
-        /// \brief Emission multiplier
-        float emission = 1.f;
-
         /// \brief Width of the image reconstruction filter
         float filterWidth = 2.f;
 
@@ -133,11 +130,6 @@ struct RenderParams {
 
     /// \brief Parameters of volumetric renderer
     struct {
-        /// \brief Emission per unit distance [m^-1]
-        float emission = 1.f;
-
-        /// \brief Absorption coefficient [m^-1]
-        float absorption = 0.f;
 
         /// \brief Compression factor of the logarithmic tonemapper
         float compressionFactor = 2.f;
@@ -147,20 +139,7 @@ struct RenderParams {
 
         /// \brief Magnitude of bloom effect
         float bloomIntensity = 0.f;
-    } volume;
-
-    struct {
-
-        /// \brief Step between subsequent iso-lines
-        float isoStep = 30.f;
-
-        /// \brief Horizontal resolution of the grid
-        Size gridSize = 100;
-
-        /// \brief Show numerical values of iso-lines
-        bool showLabels = true;
-
-    } contours;
+    } post;
 
     /// \brief Sets up parameters using values stored in settings.
     ///
@@ -176,15 +155,11 @@ public:
     /// Called every time a parameter changes. Renderer should cache any data necessary for rendering of
     /// particles (particle positions, colors, etc.).
     /// \param storage Storage containing positions of particles, must match the particles in colorizer.
-    /// \param colorizer Data-to-color conversion object for particles. Must be already initialized!
     /// \param camera Camera used for rendering.
-    virtual void initialize(const Storage& storage, const IColorizer& colorizer, const ICamera& camera) = 0;
+    virtual void initialize(const Storage& storage, const ICamera& camera) = 0;
 
     /// \brief Checks if the renderer has been initialized.
     virtual bool isInitialized() const = 0;
-
-    /// \brief Called if only the colorizer changed since the last call of \ref initialize.
-    virtual void setColorizer(const IColorizer& colorizer) = 0;
 
     /// \brief Draws particles into the bitmap, given the data provided in \ref initialize.
     ///
@@ -199,74 +174,6 @@ public:
 
     /// \brief Stops the rendering if it is currently in progress.
     virtual void cancelRender() = 0;
-};
-
-/// \brief Base class for renderers based on raytracing
-class IRaytracer : public IRenderer {
-protected:
-    SharedPtr<IScheduler> scheduler;
-
-    struct ThreadData {
-        /// Random-number generator for this thread.
-        UniformRng rng;
-
-        /// Additional data used by the implementation
-        Any data;
-
-        ThreadData(int seed);
-    };
-
-    mutable ThreadLocal<ThreadData> threadData;
-
-    mutable std::atomic_bool shouldContinue;
-
-private:
-    /// \brief Parameters fixed for the renderer.
-    ///
-    /// Note that additional parameters which can differ for each rendered image are passed to \ref render.
-    struct {
-
-        /// Color mapping operator
-        AutoPtr<IColorMap> colorMap;
-
-        struct {
-
-            Rgba color = Rgba::black();
-
-            /// HDRI for the background. Can be empty.
-            Texture hdri;
-
-        } enviro;
-
-        /// Number of iterations of the progressive renderer.
-        Size iterationLimit;
-
-        /// Number of subsampled iterations.
-        Size subsampling;
-
-    } fixed;
-
-public:
-    IRaytracer(SharedPtr<IScheduler> scheduler, const GuiSettings& gui);
-
-    virtual void render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const final;
-
-    virtual void cancelRender() override {
-        shouldContinue = false;
-    }
-
-protected:
-    virtual Rgba shade(const RenderParams& params, const CameraRay& ray, ThreadData& data) const = 0;
-
-    Rgba getEnviroColor(const CameraRay& ray) const;
-
-private:
-    void refine(const RenderParams& params, const Size iteration, FrameBuffer& fb) const;
-
-    void postProcess(FrameBuffer& fb,
-        const RenderParams& params,
-        const bool isFinal,
-        IRenderOutput& output) const;
 };
 
 NAMESPACE_SPH_END

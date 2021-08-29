@@ -7,6 +7,8 @@
 #include "objects/containers/String.h"
 #include "objects/wrappers/Function.h"
 #include "objects/wrappers/Optional.h"
+#include "run/SpecialEntries.h"
+
 #include <algorithm>
 #include <wx/dcclient.h>
 #include <wx/frame.h>
@@ -19,7 +21,7 @@ class wxAuiManager;
 
 NAMESPACE_SPH_BEGIN
 
-class CurvePanel : public wxPanel {
+class CurveEditor : public wxPanel {
 private:
     Curve curve;
     Interval rangeX;
@@ -35,7 +37,7 @@ private:
     Function<void(const Curve& curve)> onCurveChanged;
 
 public:
-    CurvePanel(
+    CurveEditor(
         wxWindow* parent,
         const Interval& rangeX = Interval(0, 1),
         const Interval& rangeY = Interval(0, 1),
@@ -132,16 +134,18 @@ public:
         wxEvent& event) const override;
 };
 
-class CurveProperty : public wxPGProperty {
+class CurveProperty : public wxStringProperty {
 private:
     Curve curve;
     wxAuiManager* aui;
+    wxWindow* parent;
 
 public:
-    CurveProperty(const String& label, const Curve& curve, wxAuiManager* aui)
-        : wxPGProperty(label.toUnicode(), "curve")
+    CurveProperty(wxWindow* parent, const String& label, const Curve& curve, wxAuiManager* aui)
+        : wxStringProperty(label.toUnicode(), "curve")
         , curve(curve)
-        , aui(aui) {}
+        , aui(aui)
+        , parent(parent) {}
 
     virtual const wxPGEditor* DoGetEditorClass() const override {
         static wxPGEditor* editor =
@@ -151,6 +155,13 @@ public:
 
     void setCurve(const Curve& newCurve) {
         curve = newCurve;
+
+        CurveEntry entry(curve);
+        this->SetValue(entry.toString().toUnicode());
+
+        wxPropertyGridEvent evt(wxEVT_PG_CHANGED);
+        evt.SetProperty(this);
+        parent->GetEventHandler()->ProcessEvent(evt);
     }
 
     const Curve& getCurve() const {

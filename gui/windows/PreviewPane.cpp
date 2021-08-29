@@ -74,6 +74,8 @@ Outcome InteractiveRenderer::Status::isValid() const {
         return makeFailed("Initializing");
     } else if (particlesMissing) {
         return makeFailed("Particles not connected");
+    } else if (shaderMissing) {
+        return makeFailed("Shaders not connected");
     } else if (cameraMissing) {
         return makeFailed("Camera not connected");
     } else {
@@ -108,9 +110,19 @@ void InteractiveRenderer::start(const RunSettings& globals) {
             } else {
                 status.cameraMissing = true;
             }
+        } else if (slot.type == GuiJobType::SHADER) {
+            if (slot.provider) {
+                this->setShaderAccessor(slot.provider);
+            } else {
+                status.shaderMissing = true;
+            }
         } else if (slot.type == JobType::PARTICLES) {
             if (slot.provider) {
-                this->setNodeAccessor(slot.provider);
+                slot.provider->enumerate([this](const SharedPtr<JobNode>& node) {
+                    //                if (node->provides() == JobType::PARTICLES) {
+                    this->setNodeAccessor(node);
+                    //              }
+                });
             } else {
                 status.particlesMissing = true;
             }
@@ -182,32 +194,26 @@ void InteractiveRenderer::setRendererAccessor(const RunSettings& globals) {
         } else if (type == JobNotificationType::ENTRY_CHANGED) {
             const String key = anyCast<String>(value).value();
 
-            /// \todo avoid hardcoded string
-            if (key == "quantity" || key == "surface_gravity") {
-                changed.colorizer = job->getColorizer(globals);
-            } else {
+            /// \todo put this in AnimationJob, something like listOfColorizerEntries, etc.
 
-                /// \todo put this in AnimationJob, something like listOfColorizerEntries, etc.
+            const GuiSettingsId id = GuiSettings::getEntryId(key).valueOr(GuiSettingsId(-1));
+            static FlatSet<GuiSettingsId> SOFT_PARAMS(ELEMENTS_UNIQUE,
+                {
+                    GuiSettingsId::PARTICLE_RADIUS,
+                    GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR,
+                    GuiSettingsId::SURFACE_LEVEL,
+                    GuiSettingsId::SURFACE_AMBIENT,
+                    GuiSettingsId::SURFACE_SUN_INTENSITY,
+                    GuiSettingsId::SURFACE_EMISSION,
+                    GuiSettingsId::VOLUME_EMISSION,
+                    GuiSettingsId::VOLUME_ABSORPTION,
+                    GuiSettingsId::BLOOM_INTENSITY,
+                    GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE,
+                });
 
-                const GuiSettingsId id = GuiSettings::getEntryId(key).valueOr(GuiSettingsId(-1));
-                static FlatSet<GuiSettingsId> SOFT_PARAMS(ELEMENTS_UNIQUE,
-                    {
-                        GuiSettingsId::PARTICLE_RADIUS,
-                        GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR,
-                        GuiSettingsId::SURFACE_LEVEL,
-                        GuiSettingsId::SURFACE_AMBIENT,
-                        GuiSettingsId::SURFACE_SUN_INTENSITY,
-                        GuiSettingsId::SURFACE_EMISSION,
-                        GuiSettingsId::VOLUME_EMISSION,
-                        GuiSettingsId::VOLUME_ABSORPTION,
-                        GuiSettingsId::BLOOM_INTENSITY,
-                        GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE,
-                    });
-
-                changed.parameters = job->getRenderParams();
-                if (key != "transparent" && !SOFT_PARAMS.contains(id)) {
-                    changed.renderer = job->getRenderer(globals);
-                }
+            changed.parameters = job->getRenderParams();
+            if (key != "transparent" && !SOFT_PARAMS.contains(id)) {
+                changed.renderer = job->getRenderer(globals);
             }
         } else if (type == JobNotificationType::PROVIDER_CONNECTED) {
             SharedPtr<JobNode> provider = anyCast<SharedPtr<JobNode>>(value).value();
@@ -241,6 +247,17 @@ void InteractiveRenderer::setRendererAccessor(const RunSettings& globals) {
     node->addAccessor(this->sharedFromThis(), accessor);
 }
 
+void InteractiveRenderer::setShaderAccessor(const SharedPtr<JobNode>& shaderNode) {
+    auto accessor = [=](const JobNotificationType type, const Any& UNUSED(value)) {
+        if (type == JobNotificationType::ENTRY_CHANGED) {
+            /// \todo optimize
+            changed.node = cloneHierarchy(*node);
+            this->update();
+        }
+    };
+    shaderNode->addAccessor(this->sharedFromThis(), accessor);
+}
+
 void InteractiveRenderer::setNodeAccessor(const SharedPtr<JobNode>& particleNode) {
     SPH_ASSERT(particleNode);
 
@@ -266,12 +283,14 @@ void InteractiveRenderer::setNodeAccessor(const SharedPtr<JobNode>& particleNode
 void InteractiveRenderer::setPaletteAccessor(const RunSettings& globals) {
     auto accessor = [this, globals](const String& name, const ColorLut& palette) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
-        AutoPtr<IColorizer> colorizer = job->getColorizer(globals);
-        if (colorizer->name() == name) {
-            changed.palette = palette;
-            // changed.colorizer = std::move(colorizer);
-            this->update();
-        }
+        // AutoPtr<IColorizer> colorizer = job->getColorizer(globals);
+        // if (colorizer->name() == name) {
+        //  changed.palette = palette;
+        // changed.colorizer = std::move(colorizer);
+        // this->update();
+        //}
+        (void)name;
+        (void)palette;
     };
     Project::getInstance().onLutChanged.insert(this->sharedFromThis(), accessor);
 }
@@ -311,10 +330,10 @@ void InteractiveRenderer::renderLoop(const RunSettings& globals) {
                 preview->update(std::move(changed.parameters.value()));
                 changed.parameters = NOTHING;
             }
-            if (changed.colorizer) {
+            /*if (changed.colorizer) {
                 logger->write("Updating colorizer");
                 preview->update(std::move(changed.colorizer));
-            }
+            }*/
             if (changed.renderer) {
                 logger->write("Updating renderer");
                 preview->update(std::move(changed.renderer));

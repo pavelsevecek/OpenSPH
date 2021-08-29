@@ -13,22 +13,13 @@ NAMESPACE_SPH_BEGIN
 
 enum class RendererEnum {
     /// No particle visualization
-    NONE,
+    NONE = 0,
 
     /// 2D section showing particles as points
-    PARTICLE,
-
-    /// Surfaces of bodies are meshed using Marching cubes and drawed as triangles.
-    MESH,
+    PARTICLE = 1,
 
     /// Raymarcher that computes intersections with implicit surface.
-    RAYMARCHER,
-
-    /// Volumetric renderer
-    VOLUME,
-
-    /// Draws contours (iso-lines) of quantities
-    CONTOUR,
+    RAYTRACER = 2,
 
 };
 

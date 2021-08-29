@@ -11,15 +11,18 @@ static RegisterEnum<RenderColorizerId> sRenderColorizer({
     { RenderColorizerId::GRAVITY, "gravity", "Gravitational acceleration" },
 });
 
-void QuantityShader::initialize(const Storage& storage) {
-    data = makeArrayRef(storage.getValue<Float>(QuantityId::ENERGY), RefEnum::WEAK);
+void QuantityShader::initialize(const Storage& storage, const RefEnum ref) {
+    data = makeArrayRef(storage.getValue<Float>(QuantityId::ENERGY), ref);
 }
 
-Rgba QuantityShader::evaluate(const Size i) const {
+Rgba QuantityShader::evaluateColor(const Size i) const {
     const float value = data[i];
-    const Rgba color = lut(value);
-    const float mult = curve(lut.paletteToRelative(value));
-    return color * mult;
+    return lut(value);
+}
+
+float QuantityShader::evaluateScalar(const Size i) const {
+    const float value = data[i];
+    return curve(lut.paletteToRelative(value));
 }
 
 NAMESPACE_SPH_END

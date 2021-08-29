@@ -221,6 +221,12 @@ public:
     /// This erased previously stored objects.
     void build(Array<TBvhObject>&& objects);
 
+    /// \brief Processes intersections using given functor.
+    ///
+    /// The functor takes \ref IntersectionInfo and returns true if the search should proceed, false to stop.
+    template <typename TAddIntersection>
+    void getIntersections(const Ray& ray, const TAddIntersection& addIntersection) const;
+
     /// \brief Finds the closest intersection of the ray.
     ///
     /// Returns true if an intersection has been found.
@@ -238,10 +244,6 @@ public:
 
     /// \brief Returns the bounding box of all objects in BVH.
     Box getBoundingBox() const;
-
-private:
-    template <typename TAddIntersection>
-    void getIntersections(const Ray& ray, const TAddIntersection& addIntersection) const;
 };
 
 NAMESPACE_SPH_END

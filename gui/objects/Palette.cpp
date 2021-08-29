@@ -37,6 +37,10 @@ Rgba Palette::operator()(const float value) const {
     }
 }
 
+ArrayView<const Palette::Point> Palette::getPoints() const {
+    return points;
+}
+
 Palette Palette::transform(Function<Rgba(const Rgba&)> func) const {
     Palette cloned = *this;
     for (auto& point : cloned.points) {
@@ -51,7 +55,7 @@ bool Palette::empty() const {
 
 Outcome Palette::loadFromStream(ITextInputStream& ifs) {
     try {
-        Array<Point> points;
+        points.clear();
         String line;
         while (ifs.readLine(line)) {
             line.replaceAll(",", " ");

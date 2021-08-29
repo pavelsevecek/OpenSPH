@@ -74,6 +74,8 @@ private:
     Float mass = Constants::M_earth;
     Float radius = Constants::R_earth;
 
+    Path texture;
+
 public:
     explicit SingleParticleIc(const String& name)
         : IParticleJob(name) {}

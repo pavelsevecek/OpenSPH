@@ -27,7 +27,7 @@ private:
     Function<void(const Palette& palette)> onPaletteChanged;
 
 public:
-    PaletteEditor(wxWindow* parent, wxSize size);
+    PaletteEditor(wxWindow* parent, const wxSize size, const Palette& palette);
 
     Palette getPalette() const {
         return Palette(points.clone());
@@ -146,7 +146,7 @@ public:
 };
 
 
-class PaletteProperty : public wxPGProperty {
+class PaletteProperty : public wxStringProperty {
 private:
     Palette palette;
     wxAuiManager* aui;
@@ -154,7 +154,7 @@ private:
 
 public:
     PaletteProperty(wxWindow* parent, const String& label, const Palette& palette, wxAuiManager* aui)
-        : wxPGProperty(label.toUnicode(), "palette")
+        : wxStringProperty(label.toUnicode(), "palette")
         , palette(palette)
         , aui(aui)
         , parent(parent) {}
@@ -168,9 +168,8 @@ public:
     void setPalete(const Palette& newPalette) {
         palette = newPalette;
 
-        StringTextOutputStream ss;
-        palette.saveToStream(ss);
-        this->SetValue(ss.toString().toUnicode());
+        PaletteEntry entry(palette);
+        this->SetValue(entry.toString().toUnicode());
         wxPropertyGridEvent evt(wxEVT_PG_CHANGED);
         evt.SetProperty(this);
         parent->GetEventHandler()->ProcessEvent(evt);

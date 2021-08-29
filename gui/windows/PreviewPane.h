@@ -49,25 +49,26 @@ class InteractiveRenderer : public Shareable<InteractiveRenderer> {
         /// \todo changed need to be protected by a mutex
         AutoPtr<ICamera> camera;
         Optional<RenderParams> parameters;
-        AutoPtr<IColorizer> colorizer;
+        // AutoPtr<IColorizer> colorizer;
         AutoPtr<IRenderer> renderer;
         SharedPtr<JobNode> node;
         Optional<ColorLut> palette;
         bool resolution = false;
 
         bool pending() const {
-            return camera || parameters || colorizer || renderer || node || palette || resolution;
+            return camera || parameters || renderer || node || palette || resolution;
         }
     } changed;
 
     struct Status {
         bool notInitialized = true;
         bool particlesMissing = true;
+        bool shaderMissing = true;
         bool cameraMissing = true;
         String otherReason;
 
         void clear() {
-            notInitialized = particlesMissing = cameraMissing = false;
+            notInitialized = particlesMissing = shaderMissing = cameraMissing = false;
             otherReason.clear();
         }
 
@@ -107,6 +108,8 @@ private:
     void setCameraAccessor(const RunSettings& globals, const SharedPtr<JobNode>& cameraNode);
 
     void setRendererAccessor(const RunSettings& globals);
+
+    void setShaderAccessor(const SharedPtr<JobNode>& cameraNode);
 
     void setNodeAccessor(const SharedPtr<JobNode>& particleNode);
 

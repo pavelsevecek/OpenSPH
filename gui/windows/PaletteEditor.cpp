@@ -9,15 +9,16 @@
 NAMESPACE_SPH_BEGIN
 
 const Size MARGIN_TOP = 20;
-const Size MARGIN_LEFT = 10;
-const Size MARGIN_RIGHT = 10;
-const Size MARGIN_BOTTOM = 10;
+const Size MARGIN_LEFT = 20;
+const Size MARGIN_RIGHT = 20;
+const Size MARGIN_BOTTOM = 20;
 
 const wxPoint TOP_LEFT = wxPoint(MARGIN_LEFT, MARGIN_TOP);
 
-PaletteEditor::PaletteEditor(wxWindow* parent, wxSize size)
+PaletteEditor::PaletteEditor(wxWindow* parent, const wxSize size, const Palette& palette)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, size) {
     this->SetMinSize(wxSize(320, 100));
+    this->SetMaxSize(wxSize(-1, 100));
     this->SetBackgroundStyle(wxBG_STYLE_PAINT);
 
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(PaletteEditor::onPaint));
@@ -27,15 +28,17 @@ PaletteEditor::PaletteEditor(wxWindow* parent, wxSize size)
     this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(PaletteEditor::onDoubleClick));
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(PaletteEditor::onRightUp));
 
-    points.push(Palette::Point{ 0.f, Rgba::black() });
-    points.push(Palette::Point{ 0.5f, Rgba::red() });
-    points.push(Palette::Point{ 1.f, Rgba::white() });
+    for (const Palette::Point& p : palette.getPoints()) {
+        points.push(p);
+    }
 }
 
 void PaletteEditor::onPaint(wxPaintEvent& UNUSED(evt)) {
     wxAutoBufferedPaintDC dc(this);
+    dc.Clear();
 
-    const wxSize size = this->GetSize() - wxSize(MARGIN_LEFT + MARGIN_RIGHT, MARGIN_TOP + MARGIN_BOTTOM);
+    const wxSize size =
+        this->GetClientSize() - wxSize(MARGIN_LEFT + MARGIN_RIGHT, MARGIN_TOP + MARGIN_BOTTOM);
 
     drawPalette(dc, TOP_LEFT, size, Palette(points.clone()));
 
@@ -88,7 +91,7 @@ float PaletteEditor::windowToPoint(const int x) const {
 }
 
 int PaletteEditor::pointToWindow(const float x) const {
-    const int width = this->GetSize().x - -MARGIN_LEFT - MARGIN_RIGHT;
+    const int width = this->GetSize().x - MARGIN_LEFT - MARGIN_RIGHT;
     return x * width + MARGIN_LEFT;
 }
 
@@ -114,7 +117,6 @@ void PaletteEditor::onMouseMotion(wxMouseEvent& evt) {
 
 void PaletteEditor::onDoubleClick(wxMouseEvent& evt) {
     Optional<Size> index = this->lock(evt.GetPosition().x);
-    const Palette palette = this->getPalette();
     if (!index) {
         const float pos = windowToPoint(evt.GetPosition().x);
         for (Size i = 0; i < points.size(); ++i) {
@@ -126,6 +128,7 @@ void PaletteEditor::onDoubleClick(wxMouseEvent& evt) {
         if (!index) {
             index = points.size();
         }
+        const Palette palette = this->getPalette();
         points.insert(index.value(), Palette::Point{ pos, palette(pos) });
     }
 
@@ -136,7 +139,7 @@ void PaletteEditor::onDoubleClick(wxMouseEvent& evt) {
         const wxColourData& data = dialog->GetColourData();
         points[index.value()].color = Rgba(data.GetColour());
     }
-    onPaletteChanged.callIfNotNull(palette);
+    onPaletteChanged.callIfNotNull(this->getPalette());
     this->Refresh();
 }
 
@@ -178,7 +181,8 @@ wxPGWindowList PalettePgEditor::CreateControls(wxPropertyGrid* propgrid,
     PaletteProperty* paletteProp = dynamic_cast<PaletteProperty*>(property);
     SPH_ASSERT(paletteProp);
 
-    PaletteEditor* panel = new PaletteEditor(propgrid->GetParent(), wxSize(300, 200));
+    PaletteEditor* panel =
+        new PaletteEditor(propgrid->GetParent(), wxSize(300, 200), paletteProp->getPalette());
 
     wxAuiPaneInfo info;
     info.Left()
@@ -194,10 +198,13 @@ wxPGWindowList PalettePgEditor::CreateControls(wxPropertyGrid* propgrid,
 
     PalettePreview* preview = new PalettePreview(propgrid, pos, size, paletteProp->getPalette());
 
-    panel->setPaletteChangedCallback([=](const Palette& palette) {
-        paletteProp->setPalete(palette);
-        preview->setPalette(palette);
-    });
+    panel->setPaletteChangedCallback(
+        [paletteProp, preview = wxWeakRef<PalettePreview>(preview)](const Palette& palette) {
+            paletteProp->setPalete(palette);
+            if (preview) {
+                preview->setPalette(palette);
+            }
+        });
 
     return wxPGWindowList(preview);
 }

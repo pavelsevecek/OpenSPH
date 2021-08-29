@@ -18,6 +18,8 @@ class IRenderContext;
 
 class ParticleRenderer : public IRenderer {
 private:
+    SharedPtr<IColorizer> colorizer;
+
     /// Grid size
     float grid;
 
@@ -45,15 +47,11 @@ private:
     mutable Timer lastRenderTimer;
 
 public:
-    explicit ParticleRenderer(const GuiSettings& settings);
+    ParticleRenderer(const GuiSettings& settings, const SharedPtr<IColorizer>& colorizer);
 
-    virtual void initialize(const Storage& storage,
-        const IColorizer& colorizer,
-        const ICamera& camera) override;
+    virtual void initialize(const Storage& storage, const ICamera& camera) override;
 
     virtual bool isInitialized() const override;
-
-    virtual void setColorizer(const IColorizer& colorizer) override;
 
     virtual void render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const override;
 

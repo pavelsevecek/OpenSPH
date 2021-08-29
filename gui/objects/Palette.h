@@ -44,6 +44,9 @@ public:
     /// \brief Returns the color mapped to given number.
     Rgba operator()(const float value) const;
 
+    /// \brief Returns the control points.
+    ArrayView<const Point> getPoints() const;
+
     /// \brief Returns the palette with colors modified by generic transform.
     Palette transform(Function<Rgba(const Rgba&)> func) const;
 

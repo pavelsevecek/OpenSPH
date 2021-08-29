@@ -6,8 +6,8 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "io/FileSystem.h"
-#include "quantities/QuantityHelpers.h"
 #include "quantities/Attractor.h"
+#include "quantities/QuantityHelpers.h"
 #include "system/Process.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
@@ -23,12 +23,10 @@ std::once_flag initFlag;
 
 Movie::Movie(const GuiSettings& settings,
     AutoPtr<IRenderer>&& renderer,
-    AutoPtr<IColorizer>&& colorizer,
     RenderParams&& params,
     const int interpolatedFrames,
     const OutputFile& paths)
     : renderer(std::move(renderer))
-    , colorizer(std::move(colorizer))
     , params(std::move(params))
     , interpolatedFrames(interpolatedFrames)
     , paths(paths) {
@@ -39,13 +37,6 @@ Movie::Movie(const GuiSettings& settings,
 }
 
 Movie::~Movie() = default;
-
-String escapeColorizerName(const String& name) {
-    String escaped = name;
-    escaped.replaceAll(" ", "");
-    escaped.replaceAll(".", "_");
-    return escaped.toLowercase();
-}
 
 void saveRender(Bitmap<Rgba>&& bitmap, Array<IRenderOutput::Label>&& labels, const Path& path) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
@@ -132,24 +123,19 @@ void Movie::renderImpl(const Storage& storage, Statistics& stats, ForwardingOutp
     const Float time = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
     this->updateCamera(storage, time);
 
-    // initialize the colorizer
-    colorizer->initialize(storage, RefEnum::WEAK);
-
     // initialize render with new data (outside main thread)
-    renderer->initialize(storage, *colorizer, *params.camera);
+    renderer->initialize(storage, *params.camera);
 
     renderer->render(params, stats, output);
 
     const Path path = paths.getNextPath(stats);
     FileSystem::createDirectory(path.parentPath());
-    String actPath = path.string();
-    actPath.replaceAll("%e", escapeColorizerName(colorizer->name()));
 
     if (output.hasData()) {
         executeOnMainThread([bitmap = std::move(output.getBitmap()),
                                 labels = std::move(output.getLabels()),
-                                actPath]() mutable { //
-            saveRender(std::move(bitmap), std::move(labels), Path(actPath));
+                                path]() mutable { //
+            saveRender(std::move(bitmap), std::move(labels), path);
         });
     }
 }

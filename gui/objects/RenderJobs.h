@@ -27,7 +27,7 @@ public:
 
     virtual void update(AutoPtr<ICamera>&& newCamera) = 0;
 
-    virtual void update(AutoPtr<IColorizer>&& colorizer) = 0;
+    //    virtual void update(AutoPtr<IColorizer>&& colorizer) = 0;
 
     virtual void update(AutoPtr<IRenderer>&& renderer) = 0;
 
@@ -84,13 +84,12 @@ public:
     explicit IRenderJob(const String& name)
         : IImageJob(name) {}
 
-    virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override final;
 
     AutoPtr<IRenderPreview> getRenderPreview(const RunSettings& global) const;
 
     // needed for interactive rendering
-    AutoPtr<IRenderer> getRenderer(const RunSettings& global) const;
-    AutoPtr<IColorizer> getColorizer(const RunSettings& global) const;
+    virtual AutoPtr<IRenderer> getRenderer(const RunSettings& global) const = 0;
     RenderParams getRenderParams() const;
 
 private:
@@ -116,6 +115,10 @@ public:
     requires() const override;
 
     virtual VirtualSettings getSettings() override;
+
+private:
+    AutoPtr<IColorizer> getColorizer(const RunSettings& global) const;
+    virtual AutoPtr<IRenderer> getRenderer(const RunSettings& global) const override;
 };
 
 enum class ShaderFlag {
@@ -151,6 +154,9 @@ public:
     requires() const override;
 
     virtual VirtualSettings getSettings() override;
+
+private:
+    virtual AutoPtr<IRenderer> getRenderer(const RunSettings& global) const override;
 };
 
 class VdbJob : public IParticleJob {

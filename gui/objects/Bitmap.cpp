@@ -73,6 +73,11 @@ void saveToFile(const Bitmap<Rgba>& bitmap, const Path& path) {
     saveToFile(wx, path);
 }
 
+static int dummy = [] {
+    wxInitAllImageHandlers();
+    return 0;
+}();
+
 Bitmap<Rgba> loadBitmapFromFile(const Path& path) {
     wxLogNull logNullGuard; // we have custom error reporting
     wxImage image;
@@ -84,9 +89,21 @@ Bitmap<Rgba> loadBitmapFromFile(const Path& path) {
         throw IoError("Bitmap '" + path.string() + "' failed to load correctly");
     }
 
-    wxBitmap wx(image, 24);
-    SPH_ASSERT(wx.IsOk());
-    return toBitmap(wx);
+    Bitmap<Rgba> bitmap(Pixel(image.GetWidth(), image.GetHeight()));
+    unsigned char* data = image.GetData();
+    Size i = 0;
+    for (int y = 0; y < bitmap.size().y; ++y) {
+        for (int x = 0; x < bitmap.size().x; ++x) {
+            wxColour color(data[i], data[i + 1], data[i + 2]);
+            bitmap(x, y) = Rgba(color);
+            i += 3;
+        }
+    }
+
+    return bitmap;
+    // wxBitmap wx(image, 24);
+    // SPH_ASSERT(wx.IsOk());
+    // return toBitmap(wx);
 }
 
 NAMESPACE_SPH_END
