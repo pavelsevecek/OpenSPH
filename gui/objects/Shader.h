@@ -17,7 +17,7 @@ public:
     virtual float evaluateScalar(const Size i) const = 0;
 };
 
-enum class RenderColorizerId {
+enum class ShaderQuantityId {
     VELOCITY = int(ColorizerId::VELOCITY),
     ENERGY = int(QuantityId::ENERGY),
     DENSITY = int(QuantityId::DENSITY),
@@ -51,14 +51,17 @@ class QuantityShader : public IShader {
 private:
     ColorLut lut;
     Curve curve;
+    ShaderQuantityId id;
+
     ArrayRef<const Float> data;
 
 public:
     QuantityShader() = default;
 
-    QuantityShader(const ColorLut& lut, const Curve& curve)
+    QuantityShader(const ColorLut& lut, const Curve& curve, const ShaderQuantityId id)
         : lut(lut)
-        , curve(curve) {}
+        , curve(curve)
+        , id(id) {}
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override;
 

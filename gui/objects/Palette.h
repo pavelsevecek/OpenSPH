@@ -16,7 +16,7 @@ class ITextOutputStream;
 class Palette {
 public:
     struct Point {
-        float value;
+        double value;
         Rgba color;
 
         bool operator<(const Point& other) const {
@@ -42,7 +42,7 @@ public:
     Palette(Array<Point>&& controlPoints);
 
     /// \brief Returns the color mapped to given number.
-    Rgba operator()(const float value) const;
+    Rgba operator()(const double value) const;
 
     /// \brief Returns the control points.
     ArrayView<const Point> getPoints() const;
@@ -91,7 +91,7 @@ public:
         , range(range)
         , scale(scale) {}
 
-    Rgba operator()(const float value) const;
+    Rgba operator()(const double value) const;
 
     Palette getPalette() const;
 
@@ -117,15 +117,15 @@ public:
     /// The relative position is in interval <0, 1>, the absolute position is given by the control points of
     /// the palette. For linear palette, this function is simply scaling of the interval, for logarithmic and
     /// hybrid palettes it also transforms the input value by the corresponding function.
-    float relativeToPalette(const float value) const;
+    double relativeToPalette(const double value) const;
 
     /// \brief Inverse transform to \ref relativeToPalette.
-    float paletteToRelative(const float value) const;
+    double paletteToRelative(const double value) const;
 
 private:
-    float linearToPalette(const float value) const;
+    double paletteToLinear(const double value) const;
 
-    float paletteToLinear(const float value) const;
+    double linearToPalette(const double value) const;
 };
 
 

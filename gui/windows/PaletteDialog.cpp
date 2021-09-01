@@ -29,7 +29,7 @@ void drawPalette(wxDC& dc, const wxPoint origin, const wxSize size, const Palett
     }
 }
 
-void drawTics(wxDC& dc, const Pixel origin, const Pixel size, const Rgba& lineColor, const ColorLut& lut) {
+void drawTics(wxDC& dc, const wxPoint origin, const wxSize size, const Rgba& lineColor, const ColorLut& lut) {
     const Interval interval = lut.getInterval();
     const PaletteScale scale = lut.getScale();
 
@@ -45,7 +45,7 @@ void drawTics(wxDC& dc, const Pixel origin, const Pixel size, const Rgba& lineCo
         const Size ticsCnt = 5;
         // tics currently not implemented, so just split the range to equidistant steps
         for (Size i = 0; i < ticsCnt; ++i) {
-            tics.push(lut.relativeToPalette(float(i) / (ticsCnt - 1)));
+            tics.push(lut.relativeToPalette(double(i) / (ticsCnt - 1)));
         }
         break;
     }
@@ -57,26 +57,49 @@ void drawTics(wxDC& dc, const Pixel origin, const Pixel size, const Rgba& lineCo
     dc.SetPen(pen);
 
     for (Float tic : tics) {
-        const float value = lut.paletteToRelative(float(tic));
-        const int i = int(value * size.y);
+        const double value = lut.paletteToRelative(tic);
+        const int i = int(value * size.x);
         dc.DrawLine(wxPoint(origin.x + i, origin.y), wxPoint(origin.x + i, origin.y + 6));
         dc.DrawLine(wxPoint(origin.x + i, origin.y + size.y - 6), wxPoint(origin.x + i, origin.y + size.y));
 
         String text = toPrintableString(tic, 1, 1000);
-        dc.DrawText(text.toUnicode(), wxPoint(origin.x + i, origin.y));
+        wxSize ext = dc.GetTextExtent(text.toUnicode());
+        dc.DrawText(text.toUnicode(), wxPoint(origin.x + i, origin.y - 10) - ext / 2);
     }
 }
 
-void PaletteViewCanvas::onPaint(wxPaintEvent& UNUSED(evt)) {
-    wxPaintDC dc(this);
-    wxFont font = wxSystemSettings::GetFont(wxSystemFont::wxSYS_DEFAULT_GUI_FONT);
-    font.SetPointSize(10);
-    SPH_ASSERT(font.IsOk());
-    dc.SetFont(font);
-    // Rgba background(dc.GetBackground().GetColour());
-    // background.inverse(),
-    drawPalette(dc, wxPoint(40, 310), wxSize(40, 300), lut.getPalette());
-}
+class PaletteViewCanvas : public wxPanel {
+protected:
+    ColorLut lut;
+
+public:
+    PaletteViewCanvas(wxWindow* parent, const ColorLut lut)
+        : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
+        , lut(lut) {
+        this->Connect(wxEVT_PAINT, wxPaintEventHandler(PaletteViewCanvas::onPaint));
+        this->SetMinSize(wxSize(300, 100));
+    }
+
+    void setLut(const ColorLut& newLut) {
+        lut = newLut;
+        this->Refresh();
+    }
+
+private:
+    void onPaint(wxPaintEvent& UNUSED(evt)) {
+        wxPaintDC dc(this);
+        wxFont font = wxSystemSettings::GetFont(wxSystemFont::wxSYS_DEFAULT_GUI_FONT);
+        font.SetPointSize(9);
+        SPH_ASSERT(font.IsOk());
+        dc.SetFont(font);
+        const Rgba background(dc.GetBackground().GetColour());
+        const Rgba lineColor = background.inverse();
+        const wxPoint origin(20, 30);
+        const wxSize size = wxSize(this->GetMinSize().x - 2 * origin.x, 40);
+        drawPalette(dc, origin, size, lut.getPalette());
+        drawTics(dc, origin, size, lineColor, lut);
+    }
+};
 
 ColorLutPanel::ColorLutPanel(wxWindow* parent, wxSize size, const ColorLut lut)
     : wxPanel(parent, wxID_ANY)
@@ -123,7 +146,7 @@ ColorLutPanel::ColorLutPanel(wxWindow* parent, wxSize size, const ColorLut lut)
             return false;
         }
         selected.setInterval(Interval(lower, value));
-        canvas->setPalette(selected.getPalette());
+        canvas->setLut(selected);
         onLutChanged.callIfNotNull(selected);
         return true;
     };
@@ -136,7 +159,7 @@ ColorLutPanel::ColorLutPanel(wxWindow* parent, wxSize size, const ColorLut lut)
             return false;
         }
         selected.setInterval(Interval(value, upper));
-        canvas->setPalette(selected.getPalette());
+        canvas->setLut(selected);
         onLutChanged.callIfNotNull(selected);
         return true;
     };
@@ -164,7 +187,7 @@ void ColorLutPanel::setLut(const ColorLut& lut) {
     selected = initial = lut;
     paletteMap.insert("Current", 0, initial.getPalette());
     paletteBox->SetSelection(0);
-    canvas->setPalette(selected.getPalette());
+    canvas->setLut(selected);
     lowerCtrl->setValue(initial.getInterval().lower());
     upperCtrl->setValue(initial.getInterval().upper());
 }
@@ -262,7 +285,7 @@ void ColorLutPanel::update() {
     const Interval range = selected.getInterval();
     selected.setPalette((paletteMap.begin() + idx)->value());
     selected.setInterval(range);
-    canvas->setPalette(selected.getPalette());
+    canvas->setLut(selected);
     onLutChanged.callIfNotNull(selected);
 }
 

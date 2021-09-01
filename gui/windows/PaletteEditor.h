@@ -29,6 +29,12 @@ private:
 public:
     PaletteEditor(wxWindow* parent, const wxSize size, const Palette& palette);
 
+    void setPalette(const Palette& palette) {
+        points.clear();
+        ArrayView<const Palette::Point> newPoints = palette.getPoints();
+        points.pushAll(newPoints.begin(), newPoints.end());
+    }
+
     Palette getPalette() const {
         return Palette(points.clone());
     }

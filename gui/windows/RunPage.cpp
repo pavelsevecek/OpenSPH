@@ -98,7 +98,7 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
     const Optional<ColorLut> palette = controller->getCurrentColorizer()->getColorLut();
     if (paneIds.has(PaneEnum::PALETTE) && palette) {
         palettePanel = new ColorLutPanel(this, wxSize(300, -1), palette.value());
-        palettePanel->onLutChanged = [this](const ColorLut& lut) { controller->setPaletteOverride(lut); };
+        palettePanel->onLutChanged = [this](const ColorLut& lut) { controller->setColorLutOverride(lut); };
         info.Left()
             .MinSize(wxSize(300, -1))
             .CaptionVisible(true)

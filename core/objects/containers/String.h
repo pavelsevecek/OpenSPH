@@ -237,6 +237,8 @@ public:
 
     String substr(const Size pos, const Size n = String::npos) const;
 
+    bool startsWith(const String& s) const;
+
     enum class TrimFlag {
         SPACE = 1 << 0,
         END_LINE = 1 << 1,

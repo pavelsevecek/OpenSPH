@@ -19,10 +19,10 @@ Palette::Palette(Array<Point>&& controlPoints)
     SPH_ASSERT(std::is_sorted(points.begin(), points.end()));
 }
 
-Rgba Palette::operator()(const float value) const {
+Rgba Palette::operator()(const double value) const {
     SPH_ASSERT(points.size() >= 2);
     auto iter = std::lower_bound(
-        points.begin(), points.end(), value, [](const Point& p, const float pos) { return p.value < pos; });
+        points.begin(), points.end(), value, [](const Point& p, const double pos) { return p.value < pos; });
     if (iter == points.begin()) {
         return points.front().color;
     } else if (iter == points.end()) {
@@ -30,9 +30,9 @@ Rgba Palette::operator()(const float value) const {
     } else {
         const Rgba color2 = iter->color;
         const Rgba color1 = (iter - 1)->color;
-        const float pos2 = iter->value;
-        const float pos1 = (iter - 1)->value;
-        const float x = (value - pos1) / (pos2 - pos1);
+        const double pos2 = iter->value;
+        const double pos1 = (iter - 1)->value;
+        const double x = (value - pos1) / (pos2 - pos1);
         return lerp(color1, color2, x);
     }
 }
@@ -61,7 +61,7 @@ Outcome Palette::loadFromStream(ITextInputStream& ifs) {
             line.replaceAll(",", " ");
             std::wstringstream ss(line.toUnicode());
             Rgba color;
-            float value;
+            double value;
             while (!ss.eof()) {
                 ss >> value >> color.r() >> color.g() >> color.b();
                 color.a() = 1.f;
@@ -86,7 +86,7 @@ Outcome Palette::loadCsvFromFile(const Path& path) {
 Outcome Palette::saveToStream(ITextOutputStream& ofs) const {
     try {
         for (Size i = 0; i < points.size(); ++i) {
-            const float value = points[i].value;
+            const double value = points[i].value;
             const Rgba color = points[i].color;
             ofs.write(format("{},{},{},{}", value, color.r(), color.g(), color.b()));
             if (i != points.size() - 1) {
@@ -113,7 +113,7 @@ static RegisterEnum<PaletteScale> sPaletteScale({
 });
 
 
-Rgba ColorLut::operator()(const float value) const {
+Rgba ColorLut::operator()(const double value) const {
     if (scale == PaletteScale::LOGARITHMIC && value <= 0.f) {
         return palette(0);
     }
@@ -144,23 +144,25 @@ void ColorLut::setScale(const PaletteScale& newScale) {
     scale = newScale;
 }
 
-float ColorLut::relativeToPalette(const float value) const {
+double ColorLut::relativeToPalette(const double value) const {
     SPH_ASSERT(value >= 0.f && value <= 1.f);
-    const float x1 = paletteToLinear(range.lower());
-    const float x2 = paletteToLinear(range.upper());
-    const float x = lerp(x1, x2, value);
+    const double x1 = paletteToLinear(range.lower());
+    const double x2 = paletteToLinear(range.upper());
+    const double x = lerp(x1, x2, value);
     return linearToPalette(x);
 }
 
-float ColorLut::paletteToRelative(const float value) const {
-    const float x1 = paletteToLinear(range.lower());
-    const float x2 = paletteToLinear(range.upper());
-    const float x = paletteToLinear(value);
-    return (x - x1) / (x2 - x1);
+double ColorLut::paletteToRelative(const double value) const {
+    const double x1 = paletteToLinear(range.lower());
+    const double x2 = paletteToLinear(range.upper());
+    const double x = paletteToLinear(value);
+    const double rel = (x - x1) / (x2 - x1);
+    SPH_ASSERT(isReal(rel), rel);
+    return rel;
 }
 
-float ColorLut::linearToPalette(const float value) const {
-    float palette;
+double ColorLut::paletteToLinear(const double value) const {
+    double palette;
     switch (scale) {
     case PaletteScale::LINEAR:
         palette = value;
@@ -171,14 +173,14 @@ float ColorLut::linearToPalette(const float value) const {
         if (value < EPS) {
             palette = -LARGE;
         } else {
-            palette = float(log10(value));
+            palette = double(log10(value));
         }
         break;
     case PaletteScale::HYBRID:
         if (value > 1.f) {
-            palette = 1.f + float(log10(value));
+            palette = 1.f + double(log10(value));
         } else if (value < -1.f) {
-            palette = -1.f - float(log10(-value));
+            palette = -1.f - double(log10(-value));
         } else {
             palette = value;
         }
@@ -190,17 +192,17 @@ float ColorLut::linearToPalette(const float value) const {
     return palette;
 }
 
-float ColorLut::paletteToLinear(const float value) const {
+double ColorLut::linearToPalette(const double value) const {
     switch (scale) {
     case PaletteScale::LINEAR:
         return value;
     case PaletteScale::LOGARITHMIC:
-        return float(exp10(value));
+        return double(exp10(value));
     case PaletteScale::HYBRID:
         if (value > 1.f) {
-            return float(exp10(value - 1.f));
+            return double(exp10(value - 1.f));
         } else if (value < -1.f) {
-            return float(-exp10(-value - 1.f));
+            return double(-exp10(-value - 1.f));
         } else {
             return value;
         }

@@ -225,7 +225,7 @@ public:
     /// \brief Modifies the color palette for current colorizer.
     ///
     /// Function must be called from main thread.
-    void setPaletteOverride(const ColorLut palette);
+    void setColorLutOverride(const ColorLut& lut);
 
     /// \brief If possible, redraws the particles with data from storage.
     ///

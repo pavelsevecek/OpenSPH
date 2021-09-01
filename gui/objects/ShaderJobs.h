@@ -42,11 +42,15 @@ public:
         : color(color) {}
 
     virtual String toString() const override {
-        return format("{},{},{}", color.r(), color.g(), color.b());
+        // has to match wxColourProperty::ValueToString
+        wxColour rgb(color);
+        return format("({},{},{})", rgb.Red(), rgb.Green(), rgb.Blue());
     }
 
     virtual void fromString(const String& s) override {
-        sscanf(s.toAscii(), "%f%f%f", &color.r(), &color.g(), &color.b());
+        int r, g, b;
+        sscanf(s.toAscii(), "(%d,%d,%d)", &r, &g, &b);
+        color = Rgba(r / 255.f, g / 255.f, b / 255.f);
     }
 
     virtual AutoPtr<IExtraEntry> clone() const override {
@@ -90,7 +94,7 @@ public:
     explicit QuantityShaderJob(const String& name);
 
     virtual String className() const override {
-        return "shader";
+        return "quantity shader";
     }
 
     virtual VirtualSettings getSettings() override;

@@ -226,6 +226,10 @@ String String::substr(const Size pos, const Size n) const {
     return ss;
 }
 
+bool String::startsWith(const String& s) const {
+    return this->size() >= s.size() && this->substr(0, s.size()) == s;
+}
+
 static bool shouldTrim(const wchar_t c, const Flags<String::TrimFlag> flags) {
     return (flags.has(String::TrimFlag::SPACE) && c == L' ') ||
            (flags.has(String::TrimFlag::END_LINE) && c == L'\n') ||

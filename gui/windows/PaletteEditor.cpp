@@ -8,10 +8,10 @@
 
 NAMESPACE_SPH_BEGIN
 
-const Size MARGIN_TOP = 20;
-const Size MARGIN_LEFT = 20;
-const Size MARGIN_RIGHT = 20;
-const Size MARGIN_BOTTOM = 20;
+const int MARGIN_TOP = 20;
+const int MARGIN_LEFT = 20;
+const int MARGIN_RIGHT = 20;
+const int MARGIN_BOTTOM = 20;
 
 const wxPoint TOP_LEFT = wxPoint(MARGIN_LEFT, MARGIN_TOP);
 
@@ -181,22 +181,32 @@ wxPGWindowList PalettePgEditor::CreateControls(wxPropertyGrid* propgrid,
     PaletteProperty* paletteProp = dynamic_cast<PaletteProperty*>(property);
     SPH_ASSERT(paletteProp);
 
-    PaletteEditor* panel =
-        new PaletteEditor(propgrid->GetParent(), wxSize(300, 200), paletteProp->getPalette());
-
-    wxAuiPaneInfo info;
-    info.Left()
-        .MinSize(wxSize(300, -1))
-        .Position(1)
-        .CaptionVisible(true)
-        .DockFixed(false)
-        .CloseButton(true)
-        .DestroyOnClose(true)
-        .Caption("Palette");
-    aui->AddPane(panel, info);
-    aui->Update();
-
+    PaletteEditor* panel = nullptr;
     PalettePreview* preview = new PalettePreview(propgrid, pos, size, paletteProp->getPalette());
+
+    wxAuiPaneInfo info = aui->GetPane("PaletteEditor");
+    if (!info.IsOk()) {
+        panel = new PaletteEditor(propgrid->GetParent(), wxSize(300, 200), paletteProp->getPalette());
+
+        info = wxAuiPaneInfo();
+        info.Name("PaletteEditor")
+            .Left()
+            .MinSize(wxSize(300, -1))
+            .Position(1)
+            .CaptionVisible(true)
+            .DockFixed(false)
+            .CloseButton(true)
+            .DestroyOnClose(true)
+            .Caption("Palette");
+        aui->AddPane(panel, info);
+        aui->Update();
+    } else {
+        panel = dynamic_cast<PaletteEditor*>(info.window);
+        SPH_ASSERT(panel);
+        panel->setPalette(paletteProp->getPalette());
+        panel->Refresh();
+    }
+
 
     panel->setPaletteChangedCallback(
         [paletteProp, preview = wxWeakRef<PalettePreview>(preview)](const Palette& palette) {

@@ -472,7 +472,8 @@ Array<Float> getLogTics(const Interval& interval, const Size minCount) {
     };
 
     // try stepping in integer orders (1, 10, 100, ...)
-    for (Float order = fromOrder; order <= toOrder; order++) {
+    const Float orderStep = max(round((toOrder - fromOrder) / minCount), 1._f);
+    for (Float order = fromOrder; order <= toOrder; order += orderStep) {
         const Float value = pow(10._f, order);
         tryAdd(value);
     }

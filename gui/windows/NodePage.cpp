@@ -1406,6 +1406,9 @@ public:
             return grid->Append(new CurveProperty(grid, name, entry->getCurve(), aui));
         } else if (auto entry = dynamicCast<PaletteEntry>(extra.getEntry())) {
             return grid->Append(new PaletteProperty(grid, name, entry->getPalette(), aui));
+        } else if (auto entry = dynamicCast<ColorEntry>(extra.getEntry())) {
+            const wxColour color(entry->getColor());
+            return grid->Append(new wxColourProperty(name.toUnicode(), wxPG_LABEL, color));
         } else {
             NOT_IMPLEMENTED;
         }
@@ -1524,7 +1527,6 @@ public:
 class PalettePane : public wxPanel {
 private:
     ColorLutPanel* panel;
-    PaletteEditor* editor;
     Array<ExtColorizerId> itemIds;
 
 public:
@@ -1644,7 +1646,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             break;
         }
         case IVirtualEntry::Type::EXTRA: {
-            String data(value.GetString().wc_str());
+            String data(prop->ValueToString(value).wc_str());
             ExtraEntry extra = entry->get();
             extra.fromString(data);
             entry->set(extra);

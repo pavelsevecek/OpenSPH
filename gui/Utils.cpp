@@ -158,6 +158,10 @@ String toPrintableString(const Float value, const Size precision, const Float de
         printable += s[i];
         exponent = false;
     }
+    // if starts with "1.0x10...", get rid of the 1.0x
+    if (printable.startsWith(L" 1.0\u00D7")) {
+        printable.erase(1, 4);
+    }
     return printable;
 }
 

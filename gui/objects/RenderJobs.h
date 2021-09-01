@@ -12,7 +12,7 @@ struct RenderParams;
 class JobNode;
 class ColorLut;
 
-enum class RenderColorizerId;
+enum class ShaderQuantityId;
 
 enum class AnimationType {
     SINGLE_FRAME = 0,
@@ -143,10 +143,11 @@ public:
         return {
             { "particles", JobType::PARTICLES },
             { "camera", GuiJobType::CAMERA },
-            { "surfaceness", GuiJobType::SHADER },
-            { "emission", GuiJobType::SHADER },
-            { "scattering", GuiJobType::SHADER },
-            { "absorption", GuiJobType::SHADER },
+            { "surface albedo", GuiJobType::SHADER },
+            { "surface emission", GuiJobType::SHADER },
+            { "volume emission", GuiJobType::SHADER },
+            { "volume scattering", GuiJobType::SHADER },
+            { "volume absorption", GuiJobType::SHADER },
         };
     }
 

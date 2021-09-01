@@ -334,12 +334,12 @@ ParticleRenderJob::ParticleRenderJob(const String& name)
     : IRenderJob(name) {
     gui.set(GuiSettingsId::RENDERER, RendererEnum::PARTICLE);
     animationType = EnumWrapper(AnimationType::SINGLE_FRAME);
-    colorizerId = EnumWrapper(RenderColorizerId::VELOCITY);
+    colorizerId = EnumWrapper(ShaderQuantityId::VELOCITY);
 }
 
 UnorderedMap<String, ExtJobType> ParticleRenderJob::requires() const {
     if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE &&
-        RenderColorizerId(colorizerId) != RenderColorizerId::GRAVITY) {
+        ShaderQuantityId(colorizerId) != ShaderQuantityId::GRAVITY) {
         return { { "camera", GuiJobType::CAMERA } };
     } else {
         return this->getSlots();
@@ -374,8 +374,8 @@ AutoPtr<IRenderer> ParticleRenderJob::getRenderer(const RunSettings& global) con
 AutoPtr<IColorizer> ParticleRenderJob::getColorizer(const RunSettings& global) const {
     Project project = Project::getInstance().clone();
     project.getGuiSettings() = gui;
-    RenderColorizerId renderId(colorizerId);
-    if (renderId == RenderColorizerId::GRAVITY) {
+    ShaderQuantityId renderId(colorizerId);
+    if (renderId == ShaderQuantityId::GRAVITY) {
         ColorLut palette;
         if (!project.getColorLut("Acceleration", palette)) {
             palette = Factory::getColorLut(ColorizerId::ACCELERATION);
@@ -420,16 +420,17 @@ UnorderedMap<String, ExtJobType> RaytracerJob::requires() const {
     slots.insert("particles", JobType::PARTICLES);
     slots.insert("camera", GuiJobType::CAMERA);
     if (shaderFlags.has(ShaderFlag::SURFACENESS)) {
-        slots.insert("surfaceness", GuiJobType::SHADER);
+        slots.insert("surface albedo", GuiJobType::SHADER);
+        slots.insert("surface emission", GuiJobType::SHADER);
     }
     if (shaderFlags.has(ShaderFlag::EMISSION)) {
-        slots.insert("emission", GuiJobType::SHADER);
+        slots.insert("volume emission", GuiJobType::SHADER);
     }
     if (shaderFlags.has(ShaderFlag::SCATTERING)) {
-        slots.insert("scattering", GuiJobType::SHADER);
+        slots.insert("volume scattering", GuiJobType::SHADER);
     }
     if (shaderFlags.has(ShaderFlag::ABSORPTION)) {
-        slots.insert("absorption", GuiJobType::SHADER);
+        slots.insert("volume absorption", GuiJobType::SHADER);
     }
     return slots;
 }

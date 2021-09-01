@@ -43,7 +43,7 @@ JobRegistrar sRegisterColorShader(
 
 QuantityShaderJob::QuantityShaderJob(const String& name)
     : IShaderJob(name) {
-    colorizerId = EnumWrapper(RenderColorizerId::ENERGY);
+    colorizerId = EnumWrapper(ShaderQuantityId::ENERGY);
     scale = EnumWrapper(PaletteScale::LINEAR);
 
     Curve cur(Array<CurvePoint>{ { 0.f, 1.f }, { 1.f, 1.f } });
@@ -72,11 +72,12 @@ void QuantityShaderJob::evaluate(const RunSettings& UNUSED(global), IRunCallback
     PaletteEntry& paletteEntry = dynamic_cast<PaletteEntry&>(*palette.getEntry());
     CurveEntry& curveEntry = dynamic_cast<CurveEntry&>(*curve.getEntry());
     ColorLut lut(paletteEntry.getPalette(), Interval(lower, upper), PaletteScale(scale));
-    result = makeShared<QuantityShader>(lut, curveEntry.getCurve().getScaled(mult));
+    result =
+        makeShared<QuantityShader>(lut, curveEntry.getCurve().getScaled(mult), ShaderQuantityId(colorizerId));
 }
 
 JobRegistrar sRegisterShader(
-    "shader",
+    "quantity shader",
     "rendering",
     [](const String& name) { return makeAuto<QuantityShaderJob>(name); },
     "Shader. TODO!");

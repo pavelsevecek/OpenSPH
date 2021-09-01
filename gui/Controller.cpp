@@ -561,11 +561,11 @@ void Controller::setSelectedParticle(const Optional<Size>& particleIdx) {
     page->deselectParticle();
 }
 
-void Controller::setPaletteOverride(const ColorLut palette) {
+void Controller::setColorLutOverride(const ColorLut& lut) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
 
-    project.setColorLut(vis.colorizer->name(), palette);
-    vis.colorizer->setColorLut(palette);
+    project.setColorLut(vis.colorizer->name(), lut);
+    vis.colorizer->setColorLut(lut);
     this->tryRedraw();
 }
 

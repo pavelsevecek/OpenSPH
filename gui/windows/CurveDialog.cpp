@@ -298,6 +298,7 @@ wxPGWindowList CurvePgEditor::CreateControls(wxPropertyGrid* propgrid,
         panel = dynamic_cast<CurveEditor*>(info.window);
         SPH_ASSERT(panel);
         panel->setCurve(curveProp->getCurve());
+        panel->Refresh();
     }
 
     CurvePreview* preview = new CurvePreview(propgrid, pos, size, curveProp->getCurve());

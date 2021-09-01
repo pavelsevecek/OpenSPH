@@ -3,16 +3,37 @@
 
 NAMESPACE_SPH_BEGIN
 
-static RegisterEnum<RenderColorizerId> sRenderColorizer({
-    { RenderColorizerId::VELOCITY, "velocity", "Particle velocities" },
-    { RenderColorizerId::ENERGY, "energy", "Specific internal energy" },
-    { RenderColorizerId::DENSITY, "density", "Density" },
-    { RenderColorizerId::DAMAGE, "damage", "Damage" },
-    { RenderColorizerId::GRAVITY, "gravity", "Gravitational acceleration" },
+static RegisterEnum<ShaderQuantityId> sRenderColorizer({
+    { ShaderQuantityId::VELOCITY, "velocity", "Particle velocities" },
+    { ShaderQuantityId::ENERGY, "energy", "Specific internal energy" },
+    { ShaderQuantityId::DENSITY, "density", "Density" },
+    { ShaderQuantityId::DAMAGE, "damage", "Damage" },
+    { ShaderQuantityId::GRAVITY, "gravity", "Gravitational acceleration" },
 });
 
 void QuantityShader::initialize(const Storage& storage, const RefEnum ref) {
-    data = makeArrayRef(storage.getValue<Float>(QuantityId::ENERGY), ref);
+    switch (id) {
+    case ShaderQuantityId::ENERGY:
+        data = makeArrayRef(storage.getValue<Float>(QuantityId::ENERGY), ref);
+        break;
+    case ShaderQuantityId::VELOCITY: {
+        ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+        Array<Float> values(v.size());
+        for (Size i = 0; i < v.size(); ++i) {
+            values[i] = getLength(v[i]);
+        }
+        data = makeArrayRef(std::move(values), ref);
+        break;
+    }
+    case ShaderQuantityId::DENSITY:
+        data = makeArrayRef(storage.getValue<Float>(QuantityId::DENSITY), ref);
+        break;
+    case ShaderQuantityId::DAMAGE:
+        data = makeArrayRef(storage.getValue<Float>(QuantityId::DAMAGE), ref);
+        break;
+    default:
+        NOT_IMPLEMENTED;
+    }
 }
 
 Rgba QuantityShader::evaluateColor(const Size i) const {
