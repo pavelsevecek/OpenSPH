@@ -1557,7 +1557,7 @@ public:
 
         panel->onPaletteChanged = [quantityBox, &project](const Palette& palette) { //
             wxString name = quantityBox->GetStringSelection();
-            project.setPalette(name.wc_str(), palette);
+            project.setPalette(String(name.wc_str()), palette);
         };
     }
 };

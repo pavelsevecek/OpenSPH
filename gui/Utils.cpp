@@ -37,7 +37,7 @@ static Optional<std::pair<Path, int>> doFileDialog(const String& title,
     if (dialog.ShowModal() == wxID_CANCEL) {
         return NOTHING;
     }
-    Path path(dialog.GetPath().wc_str());
+    Path path(String(dialog.GetPath().wc_str()));
     defaultDir = path.parentPath().string();
     return std::make_pair(path, !fileMask.empty() ? dialog.GetFilterIndex() : -1);
 }
