@@ -397,6 +397,7 @@ public:
         if (SPH_UNLIKELY(idxs.empty())) {
             return;
         }
+        SPH_ASSERT(actSize > idxs.back());
 
         // move all elements between indices
         for (Size k = 0; k < idxs.size() - 1; ++k) {

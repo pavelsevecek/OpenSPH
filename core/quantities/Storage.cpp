@@ -819,7 +819,15 @@ void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags)
         sortedIdxs = sortedHolder;
     }
 
-    iterate<VisitorEnum::ALL_BUFFERS>(*this, [&sortedIdxs](auto& buffer) { buffer.remove(sortedIdxs); });
+    this->propagate([&sortedIdxs](Storage& storage) { //
+        storage.remove(sortedIdxs, IndicesFlag::INDICES_SORTED);
+    });
+
+    iterate<VisitorEnum::ALL_BUFFERS>(*this, [&sortedIdxs](auto& buffer) {
+        if (!buffer.empty()) {
+            buffer.remove(sortedIdxs);
+        }
+    });
 
     // update material ids
     this->update();
@@ -852,7 +860,7 @@ void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags)
         }
     }
 
-    SPH_ASSERT(this->isValid(), this->isValid().error());
+    SPH_ASSERT(this->isValid(EMPTY_FLAGS), this->isValid().error());
 }
 
 void Storage::removeAll() {
