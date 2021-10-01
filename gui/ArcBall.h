@@ -73,7 +73,7 @@ private:
     Vector mapToSphere(const Pixel point) {
         // rescale to <-1, 1> and invert y
         SPH_ASSERT(size.x > 0 && size.y > 0);
-        const Vector p(2.f * float(point.x) / size.x - 1.f, 1.f - 2.f * float(point.y) / size.y, 0._f);
+        const Vector p(2.f * float(point.x) / size.x - 1.f, 2.f * float(point.y) / size.y - 1.f, 0._f);
 
         const Float lengthSqr = getSqrLength(p);
         if (lengthSqr > 1.f) {
