@@ -360,7 +360,7 @@ Optional<IoEnum> getIoEnum(const String& ext) {
         return IoEnum::TEXT_FILE;
     } else if (ext == "ssf") {
         return IoEnum::BINARY_FILE;
-    } else if (ext == "sdf") {
+    } else if (ext == "sdf" || ext == "scf") { // legacy handling
         return IoEnum::DATA_FILE;
     } else if (ext == "ss") {
         return IoEnum::PKDGRAV_INPUT;
