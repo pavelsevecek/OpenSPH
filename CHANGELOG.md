@@ -1,3 +1,6 @@
+## 2021-10-02
+- fixed crashes on FreeBSD
+
 ## 2021-10-01
 - flipped mouse rotation in y-direction
 
