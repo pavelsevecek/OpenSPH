@@ -9,15 +9,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-#ifdef SPH_CLANG
-
-/// Instances are instantiated in separate translation units, add a explicit declaration to silence clang
-/// warning (-Wundefined-var-template)
-template <typename TEnum>
-AutoPtr<Settings<TEnum>> Settings<TEnum>::instance;
-
-#endif
-
 template <typename TEnum>
 Settings<TEnum>::Settings(std::initializer_list<Entry> list) {
     for (auto& entry : list) {
