@@ -19,8 +19,8 @@ NAMESPACE_SPH_BEGIN
 
 // clang-format off
 template<>
-AutoPtr<Settings<GalaxySettingsId>> Settings<GalaxySettingsId>::instance 
-    = makeAuto<Settings<GalaxySettingsId>>(GalaxySettings{
+const Settings<GalaxySettingsId>& getDefaultSettings() {
+    static Settings<GalaxySettingsId> instance({
     { GalaxySettingsId::DISK_PARTICLE_COUNT,    "disk.particle_count",  10000, "" },
     { GalaxySettingsId::DISK_RADIAL_CUTOFF,     "disk.radial_cutoff",   7.5_f, "" },
     { GalaxySettingsId::DISK_RADIAL_SCALE,      "disk.radial_scale",    1._f, "" },
@@ -38,7 +38,9 @@ AutoPtr<Settings<GalaxySettingsId>> Settings<GalaxySettingsId>::instance
     { GalaxySettingsId::BULGE_CUTOFF,           "bulge.cutoff",         5._f, "" },
     { GalaxySettingsId::BULGE_MASS,             "bulge.mass",           0.6_f, "" },
     { GalaxySettingsId::PARTICLE_RADIUS,        "particle_radius",      0.01_f, "" },
-});
+    });
+    return instance;
+}
 // clang-format on
 
 // Explicit instantiation

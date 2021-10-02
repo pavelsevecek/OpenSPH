@@ -102,9 +102,6 @@ INLINE void checkSettingsAccess(const bool result, const TEnum key) {
 /// specializations for specific enums should be used. The code defines two base specializations:
 ///     - \ref BodySettings (specialization with enum \ref BodySettingsId)
 ///     - \ref RunSettings (specialization with enum \ref RunSettingsId)
-///
-/// The object can be specialized for other usages, provided static member \ref Settings::instance is created,
-/// see one of existing specializations.
 template <typename TEnum>
 class Settings {
     template <typename>
@@ -183,15 +180,12 @@ private:
 
     FlatMap<TEnum, Entry> entries;
 
-    /// Global instance, needs to be specialized by each Settings instantiation.
-    static AutoPtr<Settings> instance;
-
-    /// Constructs settings from list of key-value pairs.
-    Settings(std::initializer_list<Entry> list);
-
 public:
     /// \brief Initialize settings by settings all value to their defaults.
     Settings();
+
+    /// Constructs settings from list of key-value pairs.
+    Settings(std::initializer_list<Entry> list);
 
     /// \brief Initialize empty settings object.
     Settings(EmptySettingsTag);
@@ -475,6 +469,12 @@ public:
 private:
     bool setValueByType(Entry& entry, const Value& defaultValue, const String& str);
 };
+
+/// \brief Returns the default settings.
+///
+/// Needs to be specialized for each TEnum.
+template <typename TEnum>
+const Settings<TEnum>& getDefaultSettings();
 
 /// \brief Iterator useful for iterating over all entries in the settings.
 template <typename TEnum>

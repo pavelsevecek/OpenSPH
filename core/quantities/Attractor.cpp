@@ -5,15 +5,17 @@ NAMESPACE_SPH_BEGIN
 
 // clang-format off
 template <>
-AutoPtr<AttractorSettings> AttractorSettings::instance
-    = makeAuto<AttractorSettings>(AttractorSettings{
+const AttractorSettings& getDefaultSettings() {
+    static AttractorSettings instance({
     { AttractorSettingsId::LABEL,                 "generic.label",         ""_s,
         "String identifier of the attractor" },
     { AttractorSettingsId::BLACK_HOLE,            "black_hole.enable",     false,
         "If true, the attractor absorbs any particle that falls below the attractor's radius." },
     { AttractorSettingsId::VISUALIZATION_TEXTURE, "visualization.texture", ""_s,
         "Path to the texture image used when rendering the attractor. "},
-});
+    });
+    return instance;
+}
 // clang-format on
 
 template class Settings<AttractorSettingsId>;

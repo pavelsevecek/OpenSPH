@@ -360,8 +360,7 @@ Size Settings<TEnum>::size() const {
 
 template <typename TEnum>
 const Settings<TEnum>& Settings<TEnum>::getDefaults() {
-    SPH_ASSERT(instance != nullptr);
-    return *instance;
+    return getDefaultSettings<TEnum>();
 }
 
 template <typename TEnum>

@@ -719,8 +719,8 @@ static JobRegistrar sRegisterNoise(
 
 // clang-format off
 template <>
-AutoPtr<NBodySettings> NBodySettings::instance
-    = makeAuto<NBodySettings>(NBodySettings{
+const NBodySettings& getDefaultSettings() {
+    static NBodySettings instance({
     { NBodySettingsId::PARTICLE_COUNT,      "particles.count",        10000,
         "Number of generated particles." },
     { NBodySettingsId::TOTAL_MASS,          "total_mass",             Constants::M_earth,
@@ -743,8 +743,9 @@ AutoPtr<NBodySettings> NBodySettings::instance
         "Multiplier of the Keplerian velocity of particles. " },
     { NBodySettingsId::VELOCITY_DISPERSION, "velocity.dispersion",    10._f,
         "Specifies a random component of initial particle velocities." },
-
-});
+    });
+    return instance;
+}
 // clang-format on
 
 template class Settings<NBodySettingsId>;
