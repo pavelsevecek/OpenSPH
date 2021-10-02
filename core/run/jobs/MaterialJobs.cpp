@@ -50,8 +50,8 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
             const EosEnum eos = body.get<EosEnum>(BodySettingsId::EOS);
             const YieldingEnum yield = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
             return (!enabler || enabler()) &&
-                   ((eos != EosEnum::NONE && eos != EosEnum::IDEAL_GAS) || (yield != YieldingEnum::NONE
-                    && yield != YieldingEnum::DUST));
+                   ((eos != EosEnum::NONE && eos != EosEnum::IDEAL_GAS) ||
+                       (yield != YieldingEnum::NONE && yield != YieldingEnum::DUST));
         });
     category.connect<Float>("Shear modulus [Pa]", body, BodySettingsId::SHEAR_MODULUS)
         .setEnabler(enablerRheo);
@@ -91,7 +91,7 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
 // MaterialJob
 // ----------------------------------------------------------------------------------------------------------
 
-MaterialJob::MaterialJob(const std::string& name, const BodySettings& overrides)
+MaterialJob::MaterialJob(const String& name, const BodySettings& overrides)
     : IMaterialJob(name)
     , MaterialProvider(overrides) {}
 
@@ -139,35 +139,35 @@ void MaterialJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNU
 static JobRegistrar sRegisterMaterial(
     "material",
     "materials",
-    [](const std::string& name) { return makeAuto<MaterialJob>(name); },
+    [](const String& name) { return makeAuto<MaterialJob>(name); },
     "Generic material");
 
 // these presets only differ in initial parameters, so it's ok if they have different class names
 static JobRegistrar sRegisterBasalt(
     "basalt",
     "materials",
-    [](const std::string& name) {
+    [](const String& name) {
         return makeAuto<MaterialJob>(name, getMaterial(MaterialEnum::BASALT)->getParams());
     },
     "Basalt");
 static JobRegistrar sRegisterIce(
     "ice",
     "materials",
-    [](const std::string& name) {
+    [](const String& name) {
         return makeAuto<MaterialJob>(name, getMaterial(MaterialEnum::ICE)->getParams());
     },
     "Ice");
 static JobRegistrar sRegisterOlivine(
     "olivine",
     "materials",
-    [](const std::string& name) {
+    [](const String& name) {
         return makeAuto<MaterialJob>(name, getMaterial(MaterialEnum::OLIVINE)->getParams());
     },
     "Olivine");
 static JobRegistrar sRegisterIron(
     "iron",
     "materials",
-    [](const std::string& name) {
+    [](const String& name) {
         return makeAuto<MaterialJob>(name, getMaterial(MaterialEnum::IRON)->getParams());
     },
     "Iron");
@@ -197,7 +197,7 @@ static JobRegistrar sRegisterDisabler(
     "optimize timestepping",
     "optimizer",
     "materials",
-    [](const std::string& name) { return makeAuto<DisableDerivativeCriterionJob>(name); },
+    [](const String& name) { return makeAuto<DisableDerivativeCriterionJob>(name); },
     "Helper material modifier that turns off the time step limitation for damage and stress "
     "tensor. Useful to avoid very low time steps due to particles that are deemed not important to "
     "the solution (such as impactor particles). If the time step is not limited by the derivative "

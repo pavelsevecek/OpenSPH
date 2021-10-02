@@ -24,7 +24,8 @@ public:
     }
 
     template <typename T>
-    void setParam(const std::string& key, const T value) {
+    void setParam(const std::string& keyUtf, const T value) {
+        String key = String::fromUtf8(keyUtf.c_str());
         IVirtualEntry::Value current = settings.get(key);
         if (!current.has<T>()) {
             throw InvalidSetup("Type mismatch when setting parameter '" + key + "'");
@@ -42,9 +43,11 @@ public:
 
 // either string, Path, or EnumWrapper
 template <>
-void Node::setParam(const std::string& key, const std::string value) {
+void Node::setParam(const std::string& keyUtf, const std::string valueUtf) {
+    String key = String::fromUtf8(keyUtf.c_str());
+    String value = String::fromUtf8(valueUtf.c_str());
     IVirtualEntry::Value current = settings.get(key);
-    if (current.has<std::string>()) {
+    if (current.has<String>()) {
         settings.set(key, value);
     } else if (current.has<Path>()) {
         settings.set(key, Path(value));
@@ -52,12 +55,12 @@ void Node::setParam(const std::string& key, const std::string value) {
         EnumWrapper ew = current.get<EnumWrapper>();
         Optional<int> enumValue = EnumMap::fromString(value, ew.index);
         if (!enumValue) {
-            throw InvalidSetup("Unknown value of parameter '" + key + "': " + value);
+            throw InvalidSetup("Unknown value of parameter '{}': {}", key, value);
         }
         ew.value = enumValue.value();
         settings.set(key, ew);
     } else {
-        throw InvalidSetup("Type mismatch when setting parameter '" + key + "'");
+        throw InvalidSetup("Type mismatch when setting parameter '{}'", key);
     }
 }
 
@@ -68,12 +71,13 @@ void ScriptNode::run(const RunSettings& global, IJobCallbacks& callbacks) {
     Chai::registerBindings(chai);
 
     chai.add(chaiscript::user_type<Chai::Node>(), "Node");
-    chai.add(chaiscript::fun(&Chai::Node::setParam<Float>), "setParam");
+    chai.add(chaiscript::fun(&Chai::Node::setParam<double>), "setParam");
     chai.add(chaiscript::fun(&Chai::Node::setParam<int>), "setParam");
     chai.add(chaiscript::fun(&Chai::Node::setParam<std::string>), "setParam");
     chai.add(chaiscript::fun(&Chai::Node::run), "run");
 
-    chai.add(chaiscript::fun<std::function<Chai::Node(std::string)>>([&](std::string name) {
+    chai.add(chaiscript::fun<std::function<Chai::Node(std::string)>>([&](std::string nameUtf) {
+        String name = String::fromUtf8(nameUtf.c_str());
         for (const auto& node : nodes) {
             if (node->instanceName() == name) {
                 return Chai::Node(node, global, callbacks);
@@ -83,7 +87,7 @@ void ScriptNode::run(const RunSettings& global, IJobCallbacks& callbacks) {
     }),
         "getNode");
 
-    chai.eval_file(file.native());
+    chai.eval_file(std::string(file.string().toUtf8()));
 }
 
 #endif

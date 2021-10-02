@@ -6,13 +6,14 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "io/FileSystem.h"
-#include "objects/utility/StringUtils.h"
 #include "quantities/QuantityHelpers.h"
+#include "quantities/Attractor.h"
 #include "system/Process.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
 #include <condition_variable>
 #include <mutex>
+#include <wx/dcgraph.h>
 #include <wx/dcmemory.h>
 #include <wx/image.h>
 
@@ -39,19 +40,19 @@ Movie::Movie(const GuiSettings& settings,
 
 Movie::~Movie() = default;
 
-std::string escapeColorizerName(const std::string& name) {
-    std::string escaped = replaceAll(name, " ", "");
-    escaped = replaceAll(escaped, ".", "_");
-    return lowercase(escaped);
+String escapeColorizerName(const String& name) {
+    String escaped = name;
+    escaped.replaceAll(" ", "");
+    escaped.replaceAll(".", "_");
+    return escaped.toLowercase();
 }
 
 void saveRender(Bitmap<Rgba>&& bitmap, Array<IRenderOutput::Label>&& labels, const Path& path) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     wxBitmap wx;
     toWxBitmap(bitmap, wx);
-    wxMemoryDC dc(wx);
+    wxGCDC dc(wx);
     printLabels(dc, labels);
-    dc.SelectObject(wxNullBitmap);
     saveToFile(wx, path);
 }
 
@@ -141,13 +142,14 @@ void Movie::renderImpl(const Storage& storage, Statistics& stats, ForwardingOutp
 
     const Path path = paths.getNextPath(stats);
     FileSystem::createDirectory(path.parentPath());
-    Path actPath(replaceAll(path.native(), "%e", escapeColorizerName(colorizer->name())));
+    String actPath = path.string();
+    actPath.replaceAll("%e", escapeColorizerName(colorizer->name()));
 
     if (output.hasData()) {
         executeOnMainThread([bitmap = std::move(output.getBitmap()),
                                 labels = std::move(output.getLabels()),
                                 actPath]() mutable { //
-            saveRender(std::move(bitmap), std::move(labels), actPath);
+            saveRender(std::move(bitmap), std::move(labels), Path(actPath));
         });
     }
 }
@@ -191,8 +193,8 @@ Array<TValue> interpolate(ArrayView<const TValue> v1, ArrayView<const TValue> v2
 struct InterpolateVisitor {
     template <typename TValue>
     void visit(const QuantityId id, const Quantity& q1, const Quantity& q2, const Float t, Storage& result) {
-        Array<TValue> values = interpolate<TValue>(q1.getValue<TValue>(), q2.getValue<TValue>(), t);
-        Quantity& q = result.insert<TValue>(id, OrderEnum::ZERO, std::move(values));
+        Quantity& q = result.getQuantity(id);
+        q.getValue<TValue>() = interpolate<TValue>(q1.getValue<TValue>(), q2.getValue<TValue>(), t);
         if (q1.getOrderEnum() != OrderEnum::ZERO) {
             /// todo interpolate second-order too?
             q.setOrder(OrderEnum::FIRST);
@@ -205,13 +207,25 @@ Storage interpolate(const Storage& frame1, const Storage& frame2, const Float t)
     if (frame1.getQuantityCnt() != frame2.getQuantityCnt()) {
         throw InvalidSetup("Different number of quantities");
     }
+    if (frame1.getAttractorCnt() != frame2.getAttractorCnt()) {
+        throw InvalidSetup("Different number of attractors");
+    }
 
-    Storage result;
+    Storage result = frame1.clone(VisitorEnum::ALL_BUFFERS);
     for (ConstStorageElement el1 : frame1.getQuantities()) {
         const Quantity& q1 = el1.quantity;
         const Quantity& q2 = frame2.getQuantity(el1.id);
         InterpolateVisitor visitor;
         dispatch(q1.getValueEnum(), visitor, el1.id, q1, q2, t, result);
+    }
+    for (Size i = 0; i < frame1.getAttractorCnt(); ++i) {
+        const Attractor& a1 = frame1.getAttractors()[i];
+        const Attractor& a2 = frame2.getAttractors()[i];
+        Attractor& a = result.getAttractors()[i];
+        a.position = lerp(a1.position, a2.position, t);
+        a.velocity = lerp(a1.velocity, a2.velocity, t);
+        a.mass = lerp(a1.mass, a2.mass, t);
+        a.radius = lerp(a1.radius, a2.radius, t);
     }
     return result;
 }

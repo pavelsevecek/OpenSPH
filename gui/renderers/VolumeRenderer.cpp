@@ -54,7 +54,9 @@ void VolumeRenderer::initialize(const Storage& storage,
     if (storage.getMaterialCnt() > 0) {
         for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
             MaterialView mat = storage.getMaterial(matId);
-            const Float rho = mat->getParam<Float>(BodySettingsId::DENSITY);
+            const Float rho = mat->getParams().has(BodySettingsId::DENSITY)
+                                  ? mat->getParam<Float>(BodySettingsId::DENSITY)
+                                  : 1000._f;
             for (Size i : mat.sequence()) {
                 const Float volume = m[i] / rho;
                 cached.referenceRadii[i] = root<3>(3._f * volume / (4._f * PI));

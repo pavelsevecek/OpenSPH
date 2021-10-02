@@ -116,10 +116,28 @@ TEST_CASE("Path removeSpecialDirs", "[path]") {
     REQUIRE(Path("usr/../lib").removeSpecialDirs() == Path("lib"));
 }
 
+TEST_CASE("Path isAbsolute", "[path]") {
+#ifndef SPH_WIN
+    REQUIRE(Path("/usr/lib").isAbsolute());
+    REQUIRE(Path("/etc/").isAbsolute());
+#else
+    REQUIRE(Path("C:/Windows").isAbsolute());
+    REQUIRE(Path("D:/").isAbsolute());
+#endif
+    REQUIRE_FALSE(Path("file.txt").isAbsolute());
+    REQUIRE_FALSE(Path("../dir/file").isAbsolute());
+}
+
 TEST_CASE("Path makeAbsolute", "[path]") {
     REQUIRE(Path().makeAbsolute() == Path());
+
+#ifndef SPH_WIN
     REQUIRE(Path("/").makeAbsolute() == Path("/"));
     REQUIRE(Path("/usr/lib/").makeAbsolute() == Path("/usr/lib/"));
+#else
+    REQUIRE(Path("A:/").makeAbsolute() == Path("A:/"));
+    REQUIRE(Path("C:/Windows").makeAbsolute() == Path("C:/Windows"));
+#endif
     REQUIRE(Path("file").makeAbsolute() == WORKING_DIR / Path("file"));
     REQUIRE(Path("./file").makeAbsolute() == WORKING_DIR / Path("file"));
     REQUIRE(Path(".").makeAbsolute() == WORKING_DIR);
@@ -131,16 +149,25 @@ TEST_CASE("Path makeRelative", "[path]") {
     REQUIRE(Path(".").makeRelative() == Path("."));
     REQUIRE(Path("file/file").makeRelative() == Path("file/file"));
     REQUIRE((WORKING_DIR / Path("file")).makeRelative() == Path("file"));
-    REQUIRE(Path("/home/pavel/projects/astro/").makeRelative() == Path("../../.."));
     REQUIRE(Path("file").makeAbsolute().makeRelative() == Path("file"));
-    REQUIRE(Path("/home/pavel/test").makeRelative().makeAbsolute() == Path("/home/pavel/test"));
+    REQUIRE(WORKING_DIR.parentPath().parentPath().parentPath().makeRelative() == Path("../../.."));
+
+    Path path = WORKING_DIR.parentPath().parentPath();
+    REQUIRE(path.makeRelative().makeAbsolute() == path);
 }
 
-TEST_CASE("Path native", "[path]") {
-    REQUIRE(Path().native() == "");
-    REQUIRE(Path("/").native() == "/");
-    REQUIRE(Path("\\").native() == "/");
-    REQUIRE(Path("/usr\\\\local////test").native() == "/usr/local/test");
+TEST_CASE("Path string", "[path]") {
+    REQUIRE(Path().string() == "");
+
+#ifndef SPH_WIN
+    REQUIRE(Path("/").string() == "/");
+    REQUIRE(Path("\\").string() == "/");
+    REQUIRE(Path("/usr\\\\local////test").string() == "/usr/local/test");
+#else
+    REQUIRE(Path("/").string() == "\\");
+    REQUIRE(Path("\\").string() == "\\");
+    REQUIRE(Path("C:/Windows\\Users").string() == "C:\\Windows\\Users");
+#endif
 }
 
 TEST_CASE("Current path", "[path]") {

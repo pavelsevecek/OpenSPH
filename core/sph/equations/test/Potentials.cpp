@@ -72,10 +72,10 @@ TEST_CASE("Inertial Centrifugal", "[equationterm]") {
         const Float r_perp = sqrt(sqr(r[i][X]) + sqr(r[i][Y]));
         const Float centrifugalForce = sqr(omega) * r_perp;
         if (centrifugalForce != approx(getLength(dv[i]))) {
-            return makeFailed("invalid acceleration magnitude:\n", centrifugalForce, dv[i]);
+            return makeFailed("invalid acceleration magnitude:\n{} == {}", centrifugalForce, dv[i]);
         }
         if (dot(r[i], dv[i]) < 0) {
-            return makeFailed("invalid acceleration direction:\n", r[i], dv[i]);
+            return makeFailed("invalid acceleration direction:\nr == {}\ndv == {}", r[i], dv[i]);
         }
         return SUCCESS;
     };
@@ -97,12 +97,12 @@ TEST_CASE("Inertial Coriolis", "[equationterm]") {
     auto test = [&](const Size i) -> Outcome {
         const Float coriolisForce = 2._f * omega * v0;
         if (abs(coriolisForce) != approx(getLength(dv[i]))) {
-            return makeFailed("invalid acceleration magnitude:\n", coriolisForce, dv[i]);
+            return makeFailed("invalid acceleration magnitude:\n{} == {}", coriolisForce, dv[i]);
         }
         if (dv[i][Y] < 0._f) {
             // (omega x v0)_Y has a positive sign, v0 is negative and there is a negative sign in Coriolis
             // force, so in total the force have a positive component Y
-            return makeFailed("invalid acceleration direction:\n", r[i], dv[i]);
+            return makeFailed("invalid acceleration direction:\nr == {}\ndv == {}", r[i], dv[i]);
         }
         return SUCCESS;
     };

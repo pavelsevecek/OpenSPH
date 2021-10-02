@@ -99,22 +99,22 @@ static void flywheel(const Float dt, const Float eps) {
         // angular momentum must be always conserved
         const Vector L = transform(I[0], convert<AffineMatrix>(E[0])) * w[0];
         if (L != approx(L0, eps)) {
-            return makeFailed("Angular momentum not conserved:\n", L, " == ", L0);
+            return makeFailed("Angular momentum not conserved:\n{} == {}", L, L0);
         }
 
         // length of the angular velocity is const
         if (getLength(w[0]) != approx(getLength(w0), eps)) {
-            return makeFailed("omega not conserved:\n", getLength(w[0]), " == ", getLength(w0));
+            return makeFailed("omega not conserved:\n{} == {}", getLength(w[0]), getLength(w0));
         }
 
         // moment of inertia should not change (must be exactly the same, not just eps-equal)
         if (I[0] != I0) {
-            return makeFailed("Moment of inertia changed:\n", I[0], " == ", I0);
+            return makeFailed("Moment of inertia changed:\n{} == {}", I[0], I0);
         }
 
         // angle between L and omega should be const
         if (dot(w[0], L) != approx(dot(w0, L0), eps)) {
-            return makeFailed("Angle between w and L not conserved:\n", dot(w[0], L), " == ", dot(w0, L0));
+            return makeFailed("Angle between w and L not conserved:\n{} == {}", dot(w[0], L), dot(w0, L0));
         }
 
         return SUCCESS;
@@ -182,10 +182,10 @@ TEMPLATE_TEST_CASE("Collision bounce two", "[nbody]", EulerExplicit, LeapFrog) {
             return makeFailed("Radius changed");
         }
         if (I[0] != approx(SymmetricTensor::identity() * I0)) {
-            return makeFailed("Moment of inertia changed\n", I[0], " == ", I0);
+            return makeFailed("Moment of inertia changed\n{} == {}", I[0], I0);
         }
         if (I[1] != approx(SymmetricTensor::identity() * I1)) {
-            return makeFailed("Moment of inertia changed\n", I[1], " == ", I1);
+            return makeFailed("Moment of inertia changed\n{} == {}", I[1], I1);
         }
         if (w[0] != Vector(0._f) || w[1] != Vector(0._f)) {
             return makeFailed("Angular velocity increased");
@@ -199,19 +199,15 @@ TEMPLATE_TEST_CASE("Collision bounce two", "[nbody]", EulerExplicit, LeapFrog) {
             }
             if (v[0] != approx(v0, 1.e-6_f) || v[1] != approx(v1, 1.e-6_f)) {
                 // clang-format off
-                return makeFailed("Velocities changed before bounce\nt = ",
-                    t, " (t_coll = ", t_coll, ")\n",
-                    v[0], " == ", v0, "\n",
-                    v[1], " == ", v1);
+                return makeFailed("Velocities changed before bounce\nt = {} (t_coll = {})\n{} == {}\n{} == {}",
+                                  t, t_coll, v[0], v0, v[1],  v1);
                 // clang-format on
             }
         } else {
             if (v[0] != approx(v1, 1.e-6_f) || v[1] != approx(v0, 1.e-6_f)) {
                 // clang-format off
-                return makeFailed("Velocities changed after bounce\nt = ",
-                    t, " (t_coll = ", t_coll, ")\n",
-                    v[0], " == ", v0, "\n",
-                    v[1], " == ", v1);
+                return makeFailed("Velocities changed after bounce\nt = {} (t_coll = {})\n{} == {}\n{} == {}",
+                                  t, t_coll, v[0], v0, v[1], v1);
                 // clang-format on
             }
         }
@@ -266,20 +262,18 @@ TEMPLATE_TEST_CASE("Collision merge two", "[nbody]", EulerExplicit, LeapFrog) {
             }
             if (v[0] != approx(v0, 1.e-6_f) || v[1] != approx(v1, 1.e-6_f)) {
                 // clang-format off
-                return makeFailed("Velocities changed before merge\nt = ",
-                    t, " (t_coll = ", t_coll, ")\n",
-                    v[0], " == ", v0, "\n",
-                    v[1], " == ", v1);
+                return makeFailed("Velocities changed before merge\nt = {} (t_coll = {})\n{} == {}\n{} == {}",
+                                  t, t_coll, v[0], v0, v[1], v1);
                 // clang-format on
             }
             if (r[0][H] != r0[H] || r[1][H] != r1[H]) {
                 return makeFailed("Radius changed");
             }
             if (I[0] != approx(SymmetricTensor::identity() * I0)) {
-                return makeFailed("Moment of inertia changed\n", I[0], " == ", I0);
+                return makeFailed("Moment of inertia changed\n{} == {}", I[0], I0);
             }
             if (I[1] != approx(SymmetricTensor::identity() * I1)) {
-                return makeFailed("Moment of inertia changed\n", I[1], " == ", I1);
+                return makeFailed("Moment of inertia changed\n{} == {}", I[1], I1);
             }
             if (w[0] != Vector(0._f) || w[1] != Vector(0._f)) {
                 return makeFailed("Angular velocity increased");
@@ -296,9 +290,8 @@ TEMPLATE_TEST_CASE("Collision merge two", "[nbody]", EulerExplicit, LeapFrog) {
             }
             if (v[0] != approx(Vector(0._f), 1.e-6_f)) {
                 // clang-format off
-                return makeFailed("Incorrect velocities after merge\nt = ",
-                    t, " (t_coll = ", t_coll, ")\n",
-                    v[0], " == 0.\n");
+                return makeFailed("Incorrect velocities after merge\nt = {} (t_coll = {})\n{} == 0.",
+                                   t, t_coll, v[0]);
                 // clang-format on
             }
             if (w[0] != Vector(0._f)) {
@@ -312,7 +305,7 @@ TEMPLATE_TEST_CASE("Collision merge two", "[nbody]", EulerExplicit, LeapFrog) {
                 return makeFailed("Moment of inertia not symmetric");
             }
             if (3._f * I[0](0, 0) > I[0](1, 1)) {
-                return makeFailed("Loo high value of Ixx:\n", I[0](0, 0), " > ", I[0](1, 1));
+                return makeFailed("Loo high value of Ixx:\n{} > {}", I[0](0, 0), I[0](1, 1));
             }
         }
         return SUCCESS;
@@ -358,17 +351,17 @@ TEMPLATE_TEST_CASE("Collision merge off-center", "[nbody]", EulerExplicit, LeapF
         ArrayView<const Tensor> E = storage->getValue<Tensor>(QuantityId::LOCAL_FRAME);
 
         if (w[0] == approx(Vector(0._f), 0.5_f)) {
-            return makeFailed("No rotation after merge:\n", w[0]);
+            return makeFailed("No rotation after merge:\n{}", w[0]);
         }
         const Float L = getLength(I[0] * w[0]);
         if (L != approx(L0, 1.e-6_f)) {
-            return makeFailed("Angular momentum not conserved:\n", L, " == ", L0);
+            return makeFailed("Angular momentum not conserved:\n{} == {}", L, L0);
         }
         if (E[0] == approx(E_prev, 1.e-6_f)) {
-            return makeFailed("Local frame not changed:\n", E[0], " == ", E_prev);
+            return makeFailed("Local frame not changed:\n{} == {}", E[0], E_prev);
         }
         if (convert<AffineMatrix>(I[0]).isIsotropic()) {
-            return makeFailed("I should not be isotropic:\n", I[0]);
+            return makeFailed("I should not be isotropic:\n{}", I[0]);
         }
         E_prev = E[0];
         return SUCCESS;

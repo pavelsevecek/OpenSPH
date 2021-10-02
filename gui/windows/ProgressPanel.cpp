@@ -2,16 +2,17 @@
 #include "gui/objects/Color.h"
 #include "system/Timer.h"
 #include "thread/CheckFunction.h"
-#include <wx/dcclient.h>
+#include <wx/dcbuffer.h>
 
 NAMESPACE_SPH_BEGIN
 
 ProgressPanel::ProgressPanel(wxWindow* parent)
     : wxPanel(parent, wxID_ANY) {
+    this->SetBackgroundStyle(wxBG_STYLE_PAINT);
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(ProgressPanel::onPaint));
 }
 
-void ProgressPanel::onRunStart(const std::string& className, const std::string& instanceName) {
+void ProgressPanel::onRunStart(const String& className, const String& instanceName) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
     name = instanceName + " (" + className + ")";
     this->reset();
@@ -52,8 +53,9 @@ void ProgressPanel::reset() {
 }
 
 void ProgressPanel::onPaint(wxPaintEvent& UNUSED(evt)) {
-    wxPaintDC dc(this);
-    wxSize size = dc.GetSize();
+    wxAutoBufferedPaintDC dc(this);
+    dc.Clear();
+    wxSize size = this->GetClientSize();
     constexpr int padding = 25;
     wxRect rect(wxPoint(padding, 0), wxSize(size.x - 2 * padding, size.y));
 
@@ -69,11 +71,11 @@ void ProgressPanel::onPaint(wxPaintEvent& UNUSED(evt)) {
 
     wxFont font = dc.GetFont();
     dc.SetFont(font.Bold());
-    dc.DrawLabel(name, rect, wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL);
+    dc.DrawLabel(name.toUnicode(), rect, wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL);
 
     dc.SetFont(font);
-    dc.DrawLabel(stat.eta, rect, wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL);
-    dc.DrawLabel(stat.simulationTime, rect, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
+    dc.DrawLabel(stat.eta.toUnicode(), rect, wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL);
+    dc.DrawLabel(stat.simulationTime.toUnicode(), rect, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
 }
 
 NAMESPACE_SPH_END

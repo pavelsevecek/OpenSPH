@@ -104,7 +104,7 @@ public:
     }
 
     Iterator<T> erase(Iterator<T> pos) {
-        const Size idx = pos - data.begin();
+        const Size idx = Size(pos - data.begin());
         data.remove(idx);
         return data.begin() + idx;
     }

@@ -35,10 +35,10 @@ TEMPLATE_TEST_CASE("MorrisMonaghan sanitycheck", "[av]", SymmetricSolver<3>, Asy
 
     auto test = [&](const Size i) -> Outcome {
         if (abs(r[i][X]) < h && dalpha[i] < 0.1_f) {
-            return makeFailed("AV didn't increase inside the shock: \n d_alpha = ", dalpha[i]);
+            return makeFailed("AV didn't increase inside the shock: \n d_alpha == {}", dalpha[i]);
         }
         if (abs(r[i][X]) > 2._f * h && dalpha[i] > -0.1_f) {
-            return makeFailed("AV didn't decrease far away from the shock: \n d_alpha = ", dalpha[i]);
+            return makeFailed("AV didn't decrease far away from the shock: \n d_alpha == {}", dalpha[i]);
         }
         return SUCCESS;
     };

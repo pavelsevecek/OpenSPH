@@ -24,8 +24,7 @@ set(CORE_SOURCES
     objects/geometry/Domain.cpp
     objects/geometry/SymmetricTensor.cpp
     objects/utility/Dynamic.cpp 
-    objects/utility/StringUtils.cpp 
-    objects/wrappers/Interval.cpp 
+    objects/utility/Streams.cpp 
     physics/Damage.cpp 
     physics/Eos.cpp 
     physics/Functions.cpp 
@@ -197,7 +196,7 @@ set(CORE_HEADERS
     objects/utility/OperatorTemplate.h 
     objects/utility/PerElementWrapper.h 
     objects/utility/Progressible.h
-    objects/utility/StringUtils.h 
+    objects/utility/Streams.h 
     objects/wrappers/AlignedStorage.h 
     objects/wrappers/Any.h 
     objects/wrappers/AutoPtr.h 
@@ -329,9 +328,16 @@ set(CORE_HEADERS
     timestepping/TimeStepping.h 
 )
 
-
 add_library(core STATIC ${CORE_HEADERS} ${CORE_SOURCES})
 
-set(CORE_LIBRARIES -pthread ${TBB_LIBRARIES} ${CHAISCRIPT_LIBRARIES})
-
+set(CORE_LIBRARIES ${TBB_LIBRARIES} ${CHAISCRIPT_LIBRARIES})
 target_link_libraries(core PRIVATE ${CORE_LIBRARIES})
+
+if (NOT WIN32 AND NOT WITH_TBB)
+    target_link_libraries(core PRIVATE -pthread)
+endif()
+
+if (WIN32)
+    # necessary for getting user directories (GetUserProfileDirectoryA)
+    target_link_libraries(core PRIVATE Userenv.lib)
+endif()

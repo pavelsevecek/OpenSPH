@@ -59,17 +59,17 @@ TEST_CASE("Ply save cube", "[meshfile]") {
 
     REQUIRE(file.save(Path("cube.ply"), triangles));
 
-    std::string plyData = FileSystem::readFile(Path("cube.ply"));
-    std::size_t n = plyData.find("element vertex");
-    REQUIRE(n != std::string::npos);
+    String plyData = FileSystem::readFile(Path("cube.ply"));
+    Size n = plyData.find("element vertex");
+    REQUIRE(n != String::npos);
 
-    Size vertexCnt = std::stoi(plyData.substr(n + 15, 2));
+    Size vertexCnt = fromString<Size>(plyData.substr(n + 15, 2)).value();
     REQUIRE(vertexCnt == 8);
 
     n = plyData.find("element face");
-    REQUIRE(n != std::string::npos);
+    REQUIRE(n != String::npos);
 
-    Size faceCnt = std::stoi(plyData.substr(n + 13, 3));
+    Size faceCnt = fromString<Size>(plyData.substr(n + 13, 3)).value();
     REQUIRE(faceCnt == 12);
 }
 

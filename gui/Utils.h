@@ -21,20 +21,18 @@ class Path;
 
 using FileFormat = IVirtualEntry::FileFormat;
 
-Optional<Path> doSaveFileDialog(const std::string& title, Array<FileFormat>&& formats);
+Optional<Path> doSaveFileDialog(const String& title, Array<FileFormat>&& formats);
 
-Optional<Path> doOpenFileDialog(const std::string& title, Array<FileFormat>&& formats);
+Optional<Path> doOpenFileDialog(const String& title, Array<FileFormat>&& formats);
+
+int messageBox(const String& message, const String& title, const int buttons);
 
 /// Draws a text into the DC using current font and color, replacing all _x with corresponding subscript
 /// character.
-void drawTextWithSubscripts(wxDC& dc, const std::wstring& text, const wxPoint point);
-
-void drawTextWithSubscripts(wxDC& dc, const std::string& text, const wxPoint point);
+void drawTextWithSubscripts(wxDC& dc, const String& text, const wxPoint point);
 
 /// Converts the value to a printable string.
-std::wstring toPrintableString(const Float value,
-    const Size precision = 5,
-    const Float decimalThreshold = 1000._f);
+String toPrintableString(const Float value, const Size precision = 5, const Float decimalThreshold = 1000._f);
 
 void printLabels(wxDC& dc, ArrayView<const IRenderOutput::Label> labels);
 

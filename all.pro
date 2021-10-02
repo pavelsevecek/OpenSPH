@@ -6,7 +6,6 @@ SUBDIRS = core \
           cli/launcher \
           cli/impact \
           cli/info \
-          cli/batch \
           cli/problems \
           cli/sandbox \
           gui \
@@ -26,7 +25,6 @@ run.depends = core
 launcher.depends = core
 impact.depends = core
 info.depends = core
-batch.depends = core
 problems.depends = core
 sandbox.depends = core
 gui.depends = core

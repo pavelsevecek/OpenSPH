@@ -58,11 +58,8 @@ TEST_CASE("InternalFriction", "[friction]") {
             // these particles should be slowed down
             if (dv[i][X] >= -1.e-5_f) {
                 // clang-format off
-                return makeFailed("Friction didn't decelerate:",
-                    "\ndv = ", dv[i],
-                    "\nr = ", r[i],
-                    "\nv = ", v[i],
-                    "\nneigh cnt = ", neighs[i]);
+                return makeFailed("Friction didn't decelerate:\n dv == {}\n r == {}\n v == {}\n neigh cnt == {}",
+                                  dv[i], r[i], v[i], neighs[i]);
                 // clang-format on
             }
             return SUCCESS;
@@ -70,7 +67,7 @@ TEST_CASE("InternalFriction", "[friction]") {
         if (Interval(h, 1._f).contains(r[i][Z])) {
             // these should either be slowed down or remain unaffected
             if (dv[i][X] > 0._f) {
-                return makeFailed("Friction accelerated where is shouldn't\n", dv[i]);
+                return makeFailed("Friction accelerated where is shouldn't\ndv == {}", dv[i]);
             }
             return SUCCESS;
         }
@@ -78,11 +75,8 @@ TEST_CASE("InternalFriction", "[friction]") {
             // these particles should be accelerated in X
             if (dv[i][X] <= 1.e-5_f) {
                 // clang-format off
-                return makeFailed("Friction didn't accelerate:",
-                    "\ndv = ", dv[i],
-                    "\nr = ", r[i],
-                    "\nv = ", v[i],
-                    "\nneigh cnt = ", neighs[i]);
+                return makeFailed("Friction didn't accelerate:\n dv == {}\n r == {}\n v == {}\n neigh cnt == {}",
+                                   dv[i], r[i], v[i], neighs[i]);
                 // clang-format on
             }
             return SUCCESS;
@@ -90,8 +84,10 @@ TEST_CASE("InternalFriction", "[friction]") {
         if (Interval(-1._f, -h).contains(r[i][Z])) {
             // these should either be accelerated or remain uaffected
             if (dv[i][X] < 0._f) {
-                return makeFailed(
-                    "Friction decelerated where is shouldn't\n", dv[i], "\nr = ", r[i], "\nv = ", v[i]);
+                return makeFailed("Friction decelerated where is shouldn't.\n dv == {}\n r == {}\n v == {}",
+                    dv[i],
+                    r[i],
+                    v[i]);
             }
             return SUCCESS;
         }

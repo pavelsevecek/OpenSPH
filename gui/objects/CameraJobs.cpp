@@ -20,7 +20,7 @@ void ICameraJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUS
 // OrthoCameraJob
 // ----------------------------------------------------------------------------------------------------------
 
-OrthoCameraJob::OrthoCameraJob(const std::string& name)
+OrthoCameraJob::OrthoCameraJob(const String& name)
     : ICameraJob(name) {
     gui.set(GuiSettingsId::CAMERA_TYPE, CameraEnum::ORTHO);
 }
@@ -79,14 +79,14 @@ JobRegistrar sRegisterOrtho(
     "orthographic camera",
     "camera",
     "rendering",
-    [](const std::string& name) { return makeAuto<OrthoCameraJob>(name); },
+    [](const String& name) { return makeAuto<OrthoCameraJob>(name); },
     "Creates an orthographic camera");
 
 // ----------------------------------------------------------------------------------------------------------
 // PerspectiveCameraJob
 // ----------------------------------------------------------------------------------------------------------
 
-PerspectiveCameraJob::PerspectiveCameraJob(const std::string& name)
+PerspectiveCameraJob::PerspectiveCameraJob(const String& name)
     : ICameraJob(name) {
     gui.set(GuiSettingsId::CAMERA_TYPE, CameraEnum::PERSPECTIVE);
 }
@@ -108,14 +108,14 @@ JobRegistrar sRegisterPerspective(
     "perspective camera",
     "camera",
     "rendering",
-    [](const std::string& name) { return makeAuto<PerspectiveCameraJob>(name); },
+    [](const String& name) { return makeAuto<PerspectiveCameraJob>(name); },
     "Creates a perspective (pinhole) camera.");
 
 // ----------------------------------------------------------------------------------------------------------
 // FisheyeCameraJob
 // ----------------------------------------------------------------------------------------------------------
 
-FisheyeCameraJob::FisheyeCameraJob(const std::string& name)
+FisheyeCameraJob::FisheyeCameraJob(const String& name)
     : ICameraJob(name) {
     gui.set(GuiSettingsId::CAMERA_TYPE, CameraEnum::FISHEYE);
 }
@@ -133,14 +133,14 @@ JobRegistrar sRegisterFisheye(
     "fisheye camera",
     "camera",
     "rendering",
-    [](const std::string& name) { return makeAuto<FisheyeCameraJob>(name); },
+    [](const String& name) { return makeAuto<FisheyeCameraJob>(name); },
     "Creates a fisheye camera.");
 
 // ----------------------------------------------------------------------------------------------------------
 // SphericalCameraJob
 // ----------------------------------------------------------------------------------------------------------
 
-SphericalCameraJob::SphericalCameraJob(const std::string& name)
+SphericalCameraJob::SphericalCameraJob(const String& name)
     : ICameraJob(name) {
     gui.set(GuiSettingsId::CAMERA_TYPE, CameraEnum::SPHERICAL);
 }
@@ -158,7 +158,7 @@ JobRegistrar sRegisterSpherical(
     "spherical camera",
     "camera",
     "rendering",
-    [](const std::string& name) { return makeAuto<SphericalCameraJob>(name); },
+    [](const String& name) { return makeAuto<SphericalCameraJob>(name); },
     "Creates a spherical 360° camera.");
 
 NAMESPACE_SPH_END

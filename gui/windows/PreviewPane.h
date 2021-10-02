@@ -8,6 +8,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <thread>
+#include <wx/bitmap.h>
 #include <wx/panel.h>
 
 NAMESPACE_SPH_BEGIN
@@ -63,7 +64,7 @@ class InteractiveRenderer : public Shareable<InteractiveRenderer> {
         bool notInitialized = true;
         bool particlesMissing = true;
         bool cameraMissing = true;
-        std::string otherReason;
+        String otherReason;
 
         void clear() {
             notInitialized = particlesMissing = cameraMissing = false;

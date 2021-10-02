@@ -97,28 +97,28 @@ class IJob : public Polymorphic {
     friend class JobNode;
 
 protected:
-    std::string instName;
+    String instName;
 
     /// Contains all input data, identified by names of input slots.
-    UnorderedMap<std::string, JobContext> inputs;
+    UnorderedMap<String, JobContext> inputs;
 
 public:
-    explicit IJob(const std::string& name)
+    explicit IJob(const String& name)
         : instName(name) {}
 
     /// \brief Unique name representing this job
-    virtual std::string instanceName() const {
+    virtual String instanceName() const {
         return instName;
     }
 
     /// \brief Name representing the type of the job (e.e. "SPH").
-    virtual std::string className() const = 0;
+    virtual String className() const = 0;
 
     /// \brief List of slots that need to be connected to evaluate the job.
     ///
     /// The returned map shall contain names of the slots and their types. No two slots can have the same
     /// name. This list can can be changed, based on internal state of the job.
-    virtual UnorderedMap<std::string, ExtJobType>
+    virtual UnorderedMap<String, ExtJobType>
     requires() const {
         return this->getSlots();
     }
@@ -127,7 +127,7 @@ public:
     ///
     /// This is the superset of slots returned by function \ref requires and it has to be fixed, i.e. cannot
     /// change when internal state of the job changes.
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const = 0;
+    virtual UnorderedMap<String, ExtJobType> getSlots() const = 0;
 
     /// \brief Specifies the type of the job, i.e. what kind of data the job provides.
     virtual ExtJobType provides() const = 0;
@@ -156,7 +156,7 @@ public:
 protected:
     /// \brief Convenient function to return input data for slot of given name.
     template <typename T>
-    SharedPtr<T> getInput(const std::string& name) const;
+    SharedPtr<T> getInput(const String& name) const;
 };
 
 /// \brief Provides a descriptor of a job that allows to create new instances.
@@ -171,16 +171,16 @@ public:
     ///
     /// It must be the same name as returned by \ref IJob::className. It is necessary to duplicate the name
     /// here, as we need to get the class name without having to create a new instance of the job.
-    virtual std::string className() const = 0;
+    virtual String className() const = 0;
 
     /// \brief Returns a name of the category of job.
     ///
     /// There is no predefined list of categories, it can be anything that describes the job, for example
     /// "simulations", "initial conditions", etc. For consistency, use plural nouns as in the examples.
-    virtual std::string category() const = 0;
+    virtual String category() const = 0;
 
     /// \brief Returns a help message, explaining what the job does and how it should be used.
-    virtual std::string tooltip() const {
+    virtual String tooltip() const {
         return "";
     }
 
@@ -188,10 +188,10 @@ public:
     ///
     /// \param instanceName Name of the instance, may be NOTHING in which case a generic name will be
     /// assigned based on the class name.
-    virtual AutoPtr<IJob> create(Optional<std::string> instanceName) const = 0;
+    virtual AutoPtr<IJob> create(Optional<String> instanceName) const = 0;
 };
 
-using CreateJobFunc = Function<AutoPtr<IJob>(std::string name)>;
+using CreateJobFunc = Function<AutoPtr<IJob>(String name)>;
 
 /// \brief Helper class, allowing to register job into the global list of jobs.
 ///
@@ -205,7 +205,7 @@ struct JobRegistrar {
     /// \param category Name of the job category.
     /// \param func Functor returning a new instance of the job.
     /// \param tooltip Optional description of the job
-    JobRegistrar(std::string className, std::string category, CreateJobFunc func, std::string tooltip);
+    JobRegistrar(String className, String category, CreateJobFunc func, String tooltip);
 
     /// \brief Registers a new job.
     ///
@@ -214,11 +214,7 @@ struct JobRegistrar {
     /// \param category Name of the job category.
     /// \param func Functor returning a new instance of the job.
     /// \param tooltip Optional description of the job
-    JobRegistrar(std::string className,
-        std::string shortName,
-        std::string category,
-        CreateJobFunc func,
-        std::string tooltip);
+    JobRegistrar(String className, String shortName, String category, CreateJobFunc func, String tooltip);
 };
 
 /// \brief Returns a view of all currently registered jobs.
@@ -228,12 +224,12 @@ ArrayView<const AutoPtr<IJobDesc>> enumerateRegisteredJobs();
 ///
 /// Only descriptors registered via \ref jobRegistrar can be obtained this way. If no descriptor with given
 /// name exists, the function returns nullptr.
-RawPtr<IJobDesc> getJobDesc(const std::string& name);
+RawPtr<IJobDesc> getJobDesc(const String& name);
 
 /// \brief Adds a common settings category, used by all jobs.
 ///
 /// The category currently obtains only an entry for the instance name of the job.
-VirtualSettings::Category& addGenericCategory(VirtualSettings& connector, std::string& instanceName);
+VirtualSettings::Category& addGenericCategory(VirtualSettings& connector, String& instanceName);
 
 
 /// \brief Base class for all jobs providing particle data.
@@ -243,7 +239,7 @@ protected:
     SharedPtr<ParticleData> result;
 
 public:
-    explicit IParticleJob(const std::string& name);
+    explicit IParticleJob(const String& name);
 
     ~IParticleJob() override;
 
@@ -263,7 +259,7 @@ public:
 /// job hierarchy if it is already implemented as \ref IRun.
 class IRunJob : public IParticleJob {
 public:
-    explicit IRunJob(const std::string& name);
+    explicit IRunJob(const String& name);
 
     ~IRunJob() override;
 
@@ -285,7 +281,7 @@ protected:
     SharedPtr<IDomain> result;
 
 public:
-    explicit IGeometryJob(const std::string& name)
+    explicit IGeometryJob(const String& name)
         : IJob(name) {}
 
     virtual ExtJobType provides() const override final {
@@ -304,7 +300,7 @@ protected:
     SharedPtr<IMaterial> result;
 
 public:
-    explicit IMaterialJob(const std::string& name)
+    explicit IMaterialJob(const String& name)
         : IJob(name) {}
 
     virtual ExtJobType provides() const override final {

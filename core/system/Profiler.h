@@ -22,9 +22,9 @@ NAMESPACE_SPH_BEGIN
 struct ScopedTimer {
 private:
     StoppableTimer impl;
-    std::string name;
+    String name;
 
-    using OnScopeEnds = std::function<void(const std::string&, const uint64_t)>;
+    using OnScopeEnds = std::function<void(const String&, const uint64_t)>;
     OnScopeEnds callback;
 
 public:
@@ -32,7 +32,7 @@ public:
     /// \param name User-defined name of the timer.
     /// \param callback Function called when the timer goes out of scoped. The timer passes its name and
     ///                 elapsed time as parameters of the function.
-    ScopedTimer(const std::string& name, const OnScopeEnds& callback)
+    ScopedTimer(const String& name, const OnScopeEnds& callback)
         : name(name)
         , callback(callback) {}
 
@@ -48,7 +48,7 @@ public:
         impl.resume();
     }
 
-    void next(const std::string& newName) {
+    void next(const String& newName) {
         callback(name, impl.elapsed(TimerUnit::MICROSECOND));
         impl.restart();
         name = newName;
@@ -57,7 +57,7 @@ public:
 
 #ifdef SPH_PROFILE
 #define MEASURE_SCOPE(name)                                                                                  \
-    ScopedTimer __timer("", [](const std::string&, const uint64_t time) {                                    \
+    ScopedTimer __timer("", [](const String&, const uint64_t time) {                                         \
         StdOutLogger logger;                                                                                 \
         logger.write(name, " took ", time / 1000, " ms");                                                    \
     });
@@ -75,7 +75,7 @@ public:
 
 struct ScopeStatistics {
     /// User defined name of the scope
-    std::string name;
+    String name;
 
     /// Time spent in the scope (in ms)
     uint64_t totalTime;
@@ -105,34 +105,19 @@ private:
     };
 
     // map of profiled scopes, its key being a string = name of the scope
-    std::map<std::string, ScopeRecord> records;
+    std::map<String, ScopeRecord> records;
 
     struct {
-        std::string currentScope;
+        String currentScope;
         std::thread thread;
     } cpuUsage;
 
     std::atomic_bool quitting{ false };
 
 public:
-    Profiler() {
-        cpuUsage.thread = std::thread([this] {
-            while (!quitting) {
-                const Optional<Float> usage = getCpuUsage();
-                if (usage && !cpuUsage.currentScope.empty()) {
-                    ScopeRecord& scope = records[cpuUsage.currentScope];
-                    scope.cpuUsage = (scope.cpuUsage * scope.weight + usage.value()) / (scope.weight + 1);
-                    scope.weight++;
-                }
-                std::this_thread::sleep_for(std::chrono::milliseconds(20));
-            }
-        });
-    }
+    Profiler();
 
-    ~Profiler() {
-        quitting = true;
-        cpuUsage.thread.join();
-    }
+    ~Profiler();
 
     static Profiler& getInstance() {
         if (!instance) {
@@ -144,10 +129,12 @@ public:
     /// \brief Creates a new scoped timer of given name.
     ///
     /// The timer will automatically adds elapsed time to the profile when being destroyed.
-    ScopedTimer makeScopedTimer(const std::string& name) {
+    ScopedTimer makeScopedTimer(const String& name) {
+        String __previousScope = cpuUsage.currentScope;
         cpuUsage.currentScope = name;
-        return ScopedTimer(name, [this](const std::string& n, const uint64_t elapsed) { //
+        return ScopedTimer(name, [=](const String& n, const uint64_t elapsed) { //
             records[n].duration += elapsed;
+            cpuUsage.currentScope = __previousScope;
         });
     }
 

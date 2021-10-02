@@ -170,22 +170,22 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
         Float length;
         tieToTuple(normalized, length) = getNormalizedWithLength(r[ghostIdx + i]);
         if (length != approx(2.1_f)) {
-            return makeFailed("Incorrect position of ghost: ", length);
+            return makeFailed("Incorrect position of ghost: {}", length);
         }
         if (normalized != approx(getNormalized(r[i]))) {
-            return makeFailed("Incorrect position of ghost: ", normalized);
+            return makeFailed("Incorrect position of ghost: {}", normalized);
         }
         // check that velocities are symmetric == their perpendicular component is inverted
         const Float vPerp = dot(v[i], normalized);
         const Float vgPerp = dot(v[ghostIdx + i], normalized);
         if (vPerp != approx(-vgPerp, 1.e-5_f)) {
-            return makeFailed("Perpendicular component not inverted: ", vPerp, "  ", vgPerp);
+            return makeFailed("Perpendicular component not inverted: {} == -{}", vPerp, vgPerp);
         }
         // parallel component should be equal
         const Vector vPar = v[i] - normalized * dot(v[i], normalized);
         const Vector vgPar = v[ghostIdx + i] - normalized * dot(v[ghostIdx + i], normalized);
         if (vPar != approx(vgPar, 1.e-5_f)) {
-            return makeFailed("Parallel component not copied: ", vPar, "  ", vgPar);
+            return makeFailed("Parallel component not copied: {} == {}", vPar, vgPar);
         }
         return SUCCESS;
     };
@@ -218,11 +218,11 @@ TEST_CASE("GhostParticles Sphere Projection", "[boundary]") {
     auto test = [&](const Size i) -> Outcome {
         if (i % 2 == 0) {
             if (getLength(r[i]) != approx(1.9_f)) {
-                return makeFailed("Invalid particle position: ", getLength(r[i]), " / 1.9");
+                return makeFailed("Invalid particle position: {} == 1.9", getLength(r[i]));
             }
         } else {
             if (getLength(r[i]) != approx(0.9_f)) {
-                return makeFailed("Invalid particle position: ", getLength(r[i]), " / 0.9");
+                return makeFailed("Invalid particle position: {} == 0.9", getLength(r[i]));
             }
         }
         return SUCCESS;
@@ -304,18 +304,14 @@ TEST_CASE("FrozenParticles by flag", "[boundary]") {
     auto test1 = [&](const Size i) -> Outcome {
         if (i < size0 && (v[i] != v0 || dv[i] != dv0 || du[i] != du0)) {
             // clang-format off
-            return makeFailed("Incorrect particles frozen: "
-                              "\n v: ", v[i], " == ", v0,
-                              "\n dv: ", dv[i], " == ", dv0,
-                              "\n du: ", du[i], " == ", du0);
+            return makeFailed("Incorrect particles frozen:\n v: {} == {}\n dv: {} == {}\n du: {} == {}",
+                              v[i], v0, dv[i], dv0, du[i], du0);
             // clang-format on
         }
         if (i >= size0 && (v[i] != v0 || dv[i] != Vector(0._f) || du[i] != 0._f)) {
             // clang-format off
-            return makeFailed("Particles didn't freeze correctly:\n "
-                              "\n v: ", v[i], " == ", v0,
-                              "\n dv: ", dv[i], " == ", Vector(0._f),
-                              "\n du: ", du[i], " == ", 0._f);
+            return makeFailed("Particles didn't freeze correctly:\n v: {} == {}\n dv: {} == {}\n du: {} == {}",
+                              v[i], v0, dv[i], Vector(0._f), du[i], 0._f);
             // clang-format on
         }
         return SUCCESS;
@@ -328,10 +324,8 @@ TEST_CASE("FrozenParticles by flag", "[boundary]") {
     auto test2 = [&](const Size i) -> Outcome {
         if (v[i] != v0 || dv[i] != Vector(0._f) || du[i] != 0._f) {
             // clang-format off
-            return makeFailed("Nonzero derivatives after freezing:\n "
-                              "\n v: ", v[i], " == ", v0,
-                              "\n dv: ", dv[i], " == ", Vector(0._f),
-                              "\n du: ", du[i], " == ", 0._f);
+            return makeFailed("Nonzero derivatives after freezing:\n v: {} == {}\n dv: {} == {}\n du: {} == {}",
+                              v[i], v0, dv[i], Vector(0._f), du[i], 0._f);
             // clang-format on
         }
         return SUCCESS;
@@ -344,18 +338,14 @@ TEST_CASE("FrozenParticles by flag", "[boundary]") {
     auto test3 = [&](const Size i) -> Outcome {
         if (i >= size0 && (v[i] != v0 || dv[i] != dv0 || du[i] != du0)) {
             // clang-format off
-            return makeFailed("Incorrect particles frozen:\n "
-                              "\n v: ", v[i], " == ", v0,
-                              "\n dv: ", dv[i], " == ", dv0,
-                              "\n du: ", du[i], " == ", du0);
+            return makeFailed("Incorrect particles frozen:\n v: {} == {}\n dv: {} == {}\n du: {} == {}",
+                              v[i], v0, dv[i], dv0, du[i], du0);
             // clang-format on
         }
         if (i < size0 && (v[i] != v0 || dv[i] != Vector(0._f) || du[i] != 0._f)) {
             // clang-format off
-            return makeFailed("Particles didn't freeze correctly:\n "
-                              "\n v: ", v[i], " == ", v0,
-                              "\n dv: ", dv[i], " == ", Vector(0._f),
-                              "\n du: ", du[i], " == ", 0._f);
+            return makeFailed("Particles didn't freeze correctly:\n v: {} == {}\n dv: {} == {}\n du: {} == {}",
+                              v[i], v0, dv[i], Vector(0._f), du[i], 0._f);
             // clang-format on
         }
         return SUCCESS;
@@ -395,16 +385,14 @@ TEST_CASE("FrozenParticles by distance", "[boundary]") {
     auto test = [&](const Size i) -> Outcome {
         const Float dist = getLength(r[i]);
         if (dist > 1._f + EPS) {
-            return makeFailed("Particle not projected inside the domain:\n dist = ", dist);
+            return makeFailed("Particle not projected inside the domain:\n dist == {}", dist);
         }
         if (dist > 1._f - radius * h) {
             // should be frozen
             if (v[i] != v0 || dv[i] != Vector(0._f) || du[i] != 0._f) {
                 // clang-format off
-                return makeFailed("Particles didn't freeze correctly:\n "
-                                  "\n v: ", v[i], " == ", v0,
-                                  "\n dv: ", dv[i], " == ", Vector(0._f),
-                                  "\n du: ", du[i], " == ", 0._f);
+                return makeFailed("Particles didn't freeze correctly:\n v: {} == {}\n dv: {} == {}\n du: {} == {}",
+                                   v[i], v0, dv[i], Vector(0._f), du[i], 0._f);
                 // clang-format on
             } else {
                 return SUCCESS;
@@ -412,10 +400,8 @@ TEST_CASE("FrozenParticles by distance", "[boundary]") {
         } else {
             if (v[i] != v0 || dv[i] != dv0 || du[i] != du0) {
                 // clang-format off
-                return makeFailed("Incorrect particles frozen: "
-                                  "\n v: ", v[i], " == ", v0,
-                                  "\n dv: ", dv[i], " == ", dv0,
-                                  "\n du: ", du[i], " == ", du0);
+                return makeFailed("Incorrect particles frozen: \n v: {} == {}\n dv: {} == {}\n du: {} == {}",
+                                   v[i], v0, dv[i], dv0, du[i], du0);
                 // clang-format on
             } else {
                 return SUCCESS;

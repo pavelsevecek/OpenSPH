@@ -48,7 +48,7 @@ public:
 
     void setColorizer(const SharedPtr<IColorizer>& newColorizer);
 
-    virtual std::string getCaption() const override;
+    virtual String getCaption() const override;
 
     virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;
 
@@ -68,6 +68,6 @@ private:
 
 Array<PlotData> getPlotList(const GuiSettings& gui);
 
-AutoPtr<IPlot> getDataPlot(const Path& path, const std::string& name = "reference");
+AutoPtr<IPlot> getDataPlot(const Path& path, const String& name = "reference");
 
 NAMESPACE_SPH_END

@@ -150,7 +150,7 @@ static void testEquivalence(const Size npart, const int maxdiff) {
         // use absolute, the relative number can easily differ by a lot (it should be compared relative to max
         // value of the distribution, not relative to the other value)
         if (abs(int(n1[i].count) - int(n2[i].count)) > maxdiff) {
-            return makeFailed("n_flaws bin different\n", n1[i].count, " == ", n2[i].count);
+            return makeFailed("n_flaws bin different\n{} == {}", n1[i].count, n2[i].count);
         }
         return SUCCESS;
     };
@@ -158,7 +158,7 @@ static void testEquivalence(const Size npart, const int maxdiff) {
 
     auto checkBinsM = [&](const Size i) -> Outcome {
         if (abs(int(m1[i].count) - int(m2[i].count)) > maxdiff) {
-            return makeFailed("m_zero bin different\n", m1[i].count, " == ", m2[i].count);
+            return makeFailed("m_zero bin different\n{} == {}", m1[i].count, m2[i].count);
         }
         return SUCCESS;
     };
@@ -180,10 +180,10 @@ static void testEquivalence(const Size npart, const int maxdiff) {
             return makeFailed("m_zero exactly equal, probably using the same code for both");
         }
         if (m_zero[i] != approx(m_zero[j], 0.3_f)) {
-            return makeFailed("m_zero different at i=", i, "\n", m_zero[i], " == ", m_zero[j]);
+            return makeFailed("m_zero different at i={}\n{} == {}", i, m_zero[i], m_zero[j]);
         }
         if (n_flaws[i] != approx(n_flaws[j], 0.35_f)) {
-            return makeFailed("n_flaws different at i=", i, "\n", n_flaws[i], " == ", n_flaws[j]);
+            return makeFailed("n_flaws different at i={}\n{} == {}", i, n_flaws[i], n_flaws[j]);
         }
         return SUCCESS;
     };

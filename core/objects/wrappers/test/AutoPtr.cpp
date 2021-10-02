@@ -107,7 +107,7 @@ TEST_CASE("AutoPtr release", "[autoptr]") {
         REQUIRE_FALSE(p.release());
     }
     REQUIRE(r->value == 4);
-    delete r;
+    alignedDelete(r);
 }
 
 TEST_CASE("AutoPtr reset", "[autoptr]") {

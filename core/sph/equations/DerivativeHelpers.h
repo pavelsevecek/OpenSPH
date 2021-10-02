@@ -2,6 +2,13 @@
 
 #include "quantities/Quantity.h"
 #include "sph/equations/Derivative.h"
+#include "objects/containers/Tuple.h"
+
+#ifdef SPH_WIN
+#if defined(IGNORE)
+#undef IGNORE
+#endif
+#endif
 
 NAMESPACE_SPH_BEGIN
 

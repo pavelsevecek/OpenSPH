@@ -4,10 +4,10 @@ stages:
   - regression
   - deploy
 
-before_script:  
+before_script:
   - apt-get update -qy
   - apt-get install -y clang qt5-default libwxgtk3.0-dev wx3.0-headers wx-common libtbb-dev
- 
+
 gcc_debug:
   stage: build
   script:
@@ -15,7 +15,7 @@ gcc_debug:
     - cd gcc_debug
     - qmake -spec linux-g++ CONFIG+=debug ../sph.pro
     - make
-    
+
 gcc_release:
   stage: build
   script:
@@ -39,7 +39,7 @@ clang_debug:
     - cd gcc_debug
     - qmake -spec linux-clang CONFIG+=debug ../sph.pro
     - make
-    
+
 clang_release:
   stage: build
   script:
@@ -58,7 +58,7 @@ test_debug:
     - wget -P /usr/include/catch2/ "https://github.com/catchorg/Catch2/releases/download/v2.5.0/catch.hpp"
     - mkdir tests
     - cd tests
-    - qmake -spec linux-g++ DEFINES+="SPH_CONFIG_SET" CONFIG+=debug ../test.pro
+    - qmake -spec linux-g++ DEFINES+="SPH_CONFIG_SET SPH_TEST_RESOURCE_PATH=\"../../test/resources/\"" CONFIG+=debug CONFIG+=use_tbb ../test.pro
     - make
     - cd test
     - ./test -d yes exclude:[output] exclude:[filesystem] exclude:[path] exclude:[thread] exclude:[grid]
@@ -74,10 +74,10 @@ test_release:
     - wget -P /usr/include/catch2/ "https://github.com/catchorg/Catch2/releases/download/v2.5.0/catch.hpp" 
     - mkdir tests
     - cd tests
-    - qmake -spec linux-g++ DEFINES+="SPH_CONFIG_SET" CONFIG+=release ../test.pro
+    - qmake -spec linux-g++ DEFINES+="SPH_CONFIG_SET SPH_TEST_RESOURCE_PATH=\"../../test/resources\""  CONFIG+=release CONFIG+=use_tbb ../test.pro
     - make
     - cd test
-    - ./test -d yes exclude:[output] exclude:[filesystem] exclude:[path] exclude:[thread] exclude:[grid]
+    - ./test -d yes exclude:[filesystem] exclude:[path] exclude:[thread] exclude:[grid]
 
       #cppcheck:
       #stage: test
@@ -172,6 +172,41 @@ regression:
       - regression/rotation/result.scf
       - regression/rotation/plot.png
 
+performance:
+  tags:
+    - opensph # might take a long time, do not run on shared runners
+  stage: regression
+  only:
+    refs:
+      - devel
+      - master
+  script:
+    - apt-get install -y gnuplot pdftk
+    - mkdir performance_build
+    - cd performance_build
+    - qmake -spec linux-g++ CONFIG+=release CONFIG+=use_tbb DEFINES+="SPH_VERSION=$OPENSPH_VERSION" ../bench.pro
+    - make
+    - cd ../bench
+    - ../performance_build/bench/bench -b
+    - git clone https://github.com/pavelsevecek/pavelsevecek.github.io.git web
+    - mkdir -p web/perf
+    - cp perf*.csv web/perf/
+    - cd web
+    - git add perf/*.csv
+    - git config user.name "gitlab CI"
+    - git config user.email "sevecek@sirrah.troja.mff.cuni.cz"
+    - git commit -m "performance test"
+    - git push https://pavelsevecek:$GITHUB_TOKEN@github.com/pavelsevecek/pavelsevecek.github.io.git --all
+    - cd ..
+    - cp web/perf/perf*.csv .
+    - ./make_plots.sh
+    - pdftk *.pdf cat output result.pdf
+
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - bench/result.pdf
 
 build_package:
   stage: deploy

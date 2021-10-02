@@ -15,6 +15,8 @@
 
 NAMESPACE_SPH_BEGIN
 
+class FileTextOutputStream;
+
 /// \brief Interface providing generic (text, human readable) output of the program.
 ///
 /// It's meant for logging current time, some statistics of the simulation, encountered warnings and errors,
@@ -28,17 +30,17 @@ public:
     /// \brief Logs a string message.
     ///
     /// \todo different types (log, warning, error, ...) and levels of verbosity
-    virtual void writeString(const std::string& s) = 0;
+    virtual void writeString(const String& s) = 0;
 
     /// \brief Creates and logs a message by concatenating arguments.
     ///
     /// Adds a new line to the output.
     template <typename... TArgs>
     void write(TArgs&&... args) {
-        std::stringstream ss;
+        std::wstringstream ss;
         writeImpl(ss, std::forward<TArgs>(args)...);
         ss << std::endl;
-        this->writeString(ss.str());
+        this->writeString(String::fromWstring(ss.str()));
     }
 
     /// \brief Changes the precision of printed numbers.
@@ -55,15 +57,17 @@ public:
 
 private:
     template <typename T0, typename... TArgs>
-    void writeImpl(std::stringstream& ss, T0&& first, TArgs&&... rest) {
+    void writeImpl(std::wstringstream& ss, T0&& first, TArgs&&... rest) {
         ss << std::setprecision(precision);
         if (scientific) {
             ss << std::scientific;
+        } else {
+            ss << std::fixed;
         }
         ss << first;
         writeImpl(ss, std::forward<TArgs>(rest)...);
     }
-    void writeImpl(std::stringstream& UNUSED(ss)) {}
+    void writeImpl(std::wstringstream& UNUSED(ss)) {}
 };
 
 
@@ -113,14 +117,16 @@ struct Console {
     Console(const Series series)
         : series(series) {}
 
-    friend std::ostream& operator<<(std::ostream& stream, const Console& mod) {
+    friend std::wostream& operator<<(std::wostream& stream, const Console& mod) {
         if (mod.bg != Background::UNCHANGED) {
             stream << "\033[" << int(mod.bg) << "m";
         }
         if (mod.fg != Foreground::UNCHANGED) {
             stream << "\033[" << int(mod.fg) << "m";
         }
+#ifndef SPH_WIN
         stream << "\e[" << int(mod.series) << "m";
+#endif
         return stream;
     }
 };
@@ -137,39 +143,36 @@ struct ScopedConsole {
 /// cost. All StdOutLoggers print to the same output.
 class StdOutLogger : public ILogger {
 public:
-    virtual void writeString(const std::string& s) override;
+    virtual void writeString(const String& s) override;
 };
 
+#ifdef SPH_WIN
+/// \brief Writes into the visual studio console
+class ConsoleLogger : public ILogger {
+public:
+    virtual void writeString(const String& s) override;
+};
+#endif
 
 /// \brief Logger writing messages to string stream
 class StringLogger : public ILogger {
 private:
-    std::stringstream ss;
+    std::wstringstream ss;
 
 public:
-    virtual void writeString(const std::string& s) override;
+    virtual void writeString(const String& s) override;
 
     /// Removes all written messages from the string.
     void clean();
 
     /// Returns all written messages as a string. Messages are not erased from the logger by this
-    std::string toString() const;
+    String toString() const;
 };
 
 /// File output logger
 class FileLogger : public ILogger {
 public:
     enum class Options {
-        /// Opens the associated file when the logger is constructed and closes it in destructor. This is
-        /// the default behavior of the logger, nevertheless this option can be explicitly specified to
-        /// increase readability of the code.
-        KEEP_OPENED = 0,
-
-        /// Open the file only for writing and close it immediately afterwards. If the file cannot be opened,
-        /// the message is not written into the log without throwing any exception. This option implies
-        /// appending to existing content.
-        OPEN_WHEN_WRITING = 1 << 0,
-
         /// If the file already exists, the new messages are appended to existing content instead of erasing
         /// the file.
         APPEND = 1 << 1,
@@ -179,7 +182,7 @@ public:
     };
 
 private:
-    AutoPtr<std::ofstream> stream;
+    AutoPtr<FileTextOutputStream> stream;
     Path path;
     Flags<Options> flags;
 
@@ -188,7 +191,7 @@ public:
 
     ~FileLogger();
 
-    virtual void writeString(const std::string& s) override;
+    virtual void writeString(const String& s) override;
 };
 
 /// \brief Class holding multiple loggers and writing messages to all of them.
@@ -207,7 +210,7 @@ public:
         loggers.push(std::move(logger));
     }
 
-    virtual void writeString(const std::string& s) override {
+    virtual void writeString(const String& s) override {
         for (auto& l : loggers) {
             l->writeString(s);
         }
@@ -217,7 +220,7 @@ public:
 /// \brief Helper logger that does not write anything.
 class NullLogger : public ILogger {
 public:
-    virtual void writeString(const std::string& UNUSED(s)) override {}
+    virtual void writeString(const String& UNUSED(s)) override {}
 };
 
 /// \brief RAII guard writing called functions and their durations to a special verbose logger.
@@ -227,7 +230,7 @@ private:
 
 public:
     /// \brief Creates a guard, should be at the very beginning of a function/scope.
-    VerboseLogGuard(const std::string& functionName);
+    VerboseLogGuard(const String& functionName);
 
     ~VerboseLogGuard();
 };
@@ -239,6 +242,6 @@ public:
 void setVerboseLogger(AutoPtr<ILogger>&& logger);
 
 /// \brief Helper macro, creating \brief VerboseLogGuard with name of the current function.
-#define VERBOSE_LOG VerboseLogGuard __verboseLogGuard(__PRETTY_FUNCTION__);
+#define VERBOSE_LOG VerboseLogGuard __verboseLogGuard(SPH_PRETTY_FUNCTION);
 
 NAMESPACE_SPH_END

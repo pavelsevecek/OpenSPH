@@ -24,8 +24,9 @@ SessionDialog::SessionDialog(wxWindow* parent, UniqueNameManager& nameMgr)
 
     wxArrayString options;
     for (Presets::Id id : EnumMap::getAll<Presets::Id>()) {
-        std::string name = replaceAll(EnumMap::toString(id), "_", " ");
-        options.Add(name);
+        String name = EnumMap::toString(id);
+        name.replaceAll("_", " ");
+        options.Add(name.toUnicode());
     }
     int height = this->GetClientSize().y - 100;
     wxListBox* list =

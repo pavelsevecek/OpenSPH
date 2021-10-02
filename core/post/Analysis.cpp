@@ -5,6 +5,7 @@
 #include "objects/finders/BruteForceFinder.h"
 #include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Box.h"
+#include "objects/utility/Algorithm.h"
 #include "objects/utility/IteratorAdapters.h"
 #include "post/MarchingCubes.h"
 #include "post/Point.h"
@@ -368,9 +369,9 @@ Storage Post::findFutureBodies(const Storage& storage, const Float particleRadiu
 Array<Post::MoonEnum> Post::findMoons(const Storage& storage, const Float radius, const Float limit) {
     // first, find the larget one
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-    const auto largestIter = std::max_element(m.begin(), m.end());
+    const auto largestIter = findMax(m);
     const Float largestM = *largestIter;
-    const Size largestIdx = std::distance(m.begin(), largestIter);
+    const Size largestIdx = Size(largestIter - m.begin());
 
     Array<MoonEnum> statuses(m.size());
 #ifdef SPH_DEBUG
@@ -702,19 +703,10 @@ static Array<Size> processComponentCutoffs(const Storage& storage,
 }
 
 /// \todo move directly to Storage?
-struct MissingQuantityException : public std::exception {
-private:
-    std::string message;
-
+struct MissingQuantityException : public Exception {
 public:
-    explicit MissingQuantityException(const QuantityId id) {
-        message = "Attempting to access missing quantity " + getMetadata(id).quantityName;
-    }
-
-
-    virtual const char* what() const noexcept override {
-        return message.c_str();
-    }
+    explicit MissingQuantityException(const QuantityId id)
+        : Exception("Attempting to access missing quantity " + getMetadata(id).quantityName) {}
 };
 
 /// \brief Returns the component values corresponding to given histogram quantity.

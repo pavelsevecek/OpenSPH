@@ -10,7 +10,6 @@
 #include "io/Logger.h"
 #include "io/Path.h"
 #include "objects/containers/Array.h"
-#include "objects/utility/StringUtils.h"
 #include "objects/wrappers/Expected.h"
 #include "objects/wrappers/Outcome.h"
 #include "objects/wrappers/SharedPtr.h"
@@ -58,10 +57,10 @@ private:
     Stats stats;
 
     /// Name of the running benchmark
-    std::string name;
+    String name;
 
 public:
-    Context(const Target target, const std::string& name)
+    Context(const Target target, const String& name)
         : target(target)
         , timer(target.duration)
         , name(name) {}
@@ -117,19 +116,19 @@ private:
 /// Single benchmark unit
 class Unit {
 private:
-    std::string name;
+    String name;
 
     using Function = void (*)(Context&);
     Function function;
 
 public:
-    Unit(const std::string& name, const Function func)
+    Unit(const String& name, const Function func)
         : name(name)
         , function(func) {
         SPH_ASSERT(function != nullptr);
     }
 
-    const std::string& getName() const {
+    const String& getName() const {
         return name;
     }
 
@@ -146,16 +145,16 @@ public:
 
 class Group {
 private:
-    std::string name;
+    String name;
     Array<SharedPtr<Unit>> benchmarks;
 
 public:
     Group() = default;
 
-    Group(const std::string& name)
+    Group(const String& name)
         : name(name) {}
 
-    const std::string& getName() const {
+    const String& getName() const {
         return name;
     }
 
@@ -193,43 +192,44 @@ INLINE void clobberMemory() {
 
 class Baseline {
 private:
-    std::map<std::string, Result> benchs;
+    std::map<String, Result> benchs;
 
 public:
     Baseline() = default;
 
     bool parse(const Path& path) {
         benchs.clear();
-        std::ifstream ifs(path.native());
-        std::string line;
-        while (std::getline(ifs, line)) {
-            std::size_t n = line.find_last_of('/');
-            if (n == std::string::npos) {
+        std::wifstream ifs(path.native());
+        std::wstring wstr;
+        while (std::getline(ifs, wstr)) {
+            String line = String::fromWstring(wstr);
+            std::size_t n = line.findLast(L'/');
+            if (n == String::npos) {
                 return false;
             }
-            const std::string name = trim(line.substr(0, n));
-            Array<std::string> values = split(line.substr(n + 1), ',');
+            const String name = line.substr(0, n).trim();
+            Array<String> values = split(line.substr(n + 1), ',');
             if (values.size() != 6) {
                 return false;
             }
             Result result;
-            result.duration = std::stoi(values[0]);
-            result.iterateCnt = std::stoi(values[1]);
-            result.mean = std::stof(values[2]);
-            result.variance = std::stof(values[3]);
-            result.min = std::stof(values[4]);
-            result.max = std::stof(values[5]);
+            result.duration = fromString<int>(values[0]).value();
+            result.iterateCnt = fromString<int>(values[1]).value();
+            result.mean = fromString<float>(values[2]).value();
+            result.variance = fromString<float>(values[3]).value();
+            result.min = fromString<float>(values[4]).value();
+            result.max = fromString<float>(values[5]).value();
 
             benchs[name] = result;
         }
         return true;
     }
 
-    bool isRecorded(const std::string& name) {
+    bool isRecorded(const String& name) {
         return benchs.find(name) != benchs.end();
     }
 
-    INLINE Result operator[](const std::string& name) {
+    INLINE Result operator[](const String& name) {
         return benchs[name];
     }
 };
@@ -261,7 +261,7 @@ private:
 
     struct {
         /// Run only selected group of benchmarks
-        std::string group;
+        String group;
 
         Flags<Flag> flags;
 
@@ -270,7 +270,7 @@ private:
             Size commit = 0;
         } baseline;
 
-        Array<std::string> benchmarksToRun;
+        Array<String> benchmarksToRun;
 
         Target target{ Mode::SIMPLE, 500 /*ms*/, 10 };
 
@@ -287,7 +287,7 @@ public:
     static Session& getInstance();
 
     /// Adds a new benchmark into the session.
-    void registerBenchmark(const SharedPtr<Unit>& benchmark, const std::string& groupName);
+    void registerBenchmark(const SharedPtr<Unit>& benchmark, const String& groupName);
 
     /// Runs all benchmarks.
     void run(int argc, char* argv[]);
@@ -295,13 +295,13 @@ public:
     ~Session();
 
 private:
-    Group& getGroupByName(const std::string& groupName);
+    Group& getGroupByName(const String& groupName);
 
     Outcome parseArgs(int arcs, char* argv[]);
 
     void printHelp();
 
-    void writeBaseline(const std::string& name, const Result& measured);
+    void writeBaseline(const String& name, const Result& measured);
 
     Path getBaselinePath();
 
@@ -320,7 +320,7 @@ private:
 
 class Register {
 public:
-    Register(const SharedPtr<Unit>& benchmark, const std::string& groupName);
+    Register(const SharedPtr<Unit>& benchmark, const String& groupName);
 };
 
 #define BENCHMARK_UNIQUE_NAME_IMPL(prefix, line) prefix##line

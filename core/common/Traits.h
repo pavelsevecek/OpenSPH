@@ -117,6 +117,19 @@ struct HasStreamOperator<T, TStream, VoidType<decltype(std::declval<TStream&>() 
     static constexpr bool value = true;
 };
 
+template <typename T>
+struct IsStringLiteral {
+    static constexpr bool value = false;
+};
+
+template <std::size_t N>
+struct IsStringLiteral<char[N]> {
+    static constexpr bool value = true;
+};
+template <std::size_t N>
+struct IsStringLiteral<wchar_t[N]> {
+    static constexpr bool value = true;
+};
 
 /// Helper class for storing l-value references. Has a default constructor for convenient usage in containers.
 template <typename T>

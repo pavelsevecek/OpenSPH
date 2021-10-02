@@ -8,7 +8,7 @@
 #include "gui/windows/PaletteDialog.h"
 #include "system/Profiler.h"
 #include "thread/CheckFunction.h"
-#include <wx/dcclient.h>
+#include <wx/dcbuffer.h>
 #include <wx/timer.h>
 
 NAMESPACE_SPH_BEGIN
@@ -16,6 +16,8 @@ NAMESPACE_SPH_BEGIN
 OrthoPane::OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings& UNUSED(gui))
     : IGraphicsPane(parent)
     , controller(controller) {
+    this->SetBackgroundStyle(wxBG_STYLE_PAINT);
+
     this->SetMinSize(wxSize(300, 300));
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(OrthoPane::onPaint));
     this->Connect(wxEVT_MOTION, wxMouseEventHandler(OrthoPane::onMouseMotion));
@@ -50,9 +52,10 @@ void OrthoPane::onTimeStep(const Storage& storage, const Statistics& UNUSED(stat
 void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
 
-    wxPaintDC dc(this);
+    wxAutoBufferedPaintDC dc(this);
     const wxBitmap& bitmap = controller->getRenderedBitmap();
     if (!bitmap.IsOk()) {
+        dc.Clear();
         return;
     }
 

@@ -51,7 +51,7 @@ TEST_CASE("Outcome copy/move", "[outcome]") {
 }
 
 TEST_CASE("makeFailed", "[outcome]") {
-    Outcome o = makeFailed("error", 5, 'x');
+    Outcome o = makeFailed("error{}{}", 5, 'x');
     REQUIRE(!o);
     REQUIRE(o.error() == "error5x");
 }

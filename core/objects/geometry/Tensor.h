@@ -152,7 +152,8 @@ public:
         return !(*this == other);
     }
 
-    friend std::ostream& operator<<(std::ostream& stream, const Tensor& t) {
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const Tensor& t) {
         stream << t.row(0) << std::endl << t.row(1) << std::endl << t.row(2);
         return stream;
     }

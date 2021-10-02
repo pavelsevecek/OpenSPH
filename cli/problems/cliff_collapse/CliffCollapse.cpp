@@ -16,15 +16,15 @@ private:
 
 public:
     CliffCollapse() {
-        settings.set(RunSettingsId::RUN_NAME, std::string("Cliff Collapse Problem"))
+        settings.set(RunSettingsId::RUN_NAME, String("Cliff Collapse Problem"))
             .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
             .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-8_f)
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
             .set(RunSettingsId::RUN_END_TIME, 200._f)
             .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
             .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 2000._f)
-            .set(RunSettingsId::RUN_OUTPUT_PATH, std::string("cliff_collapse"))
-            .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("cliff_%d.ssf"))
+            .set(RunSettingsId::RUN_OUTPUT_PATH, String("cliff_collapse"))
+            .set(RunSettingsId::RUN_OUTPUT_NAME, String("cliff_%d.ssf"))
             .set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS)
             .set(RunSettingsId::SPH_SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
             .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)

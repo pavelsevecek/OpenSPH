@@ -44,7 +44,7 @@ protected:
     GuiSettings gui;
 
 public:
-    explicit IImageJob(const std::string& name)
+    explicit IImageJob(const String& name)
         : IJob(name) {}
 
     virtual ExtJobType provides() const override final {
@@ -67,7 +67,7 @@ private:
     EnumWrapper colorizerId;
     bool addSurfaceGravity = true;
     Path directory;
-    std::string fileMask = "img_%d.png";
+    String fileMask = "img_%d.png";
 
     EnumWrapper animationType;
 
@@ -79,20 +79,21 @@ private:
     } sequence;
 
 public:
-    explicit AnimationJob(const std::string& name);
+    explicit AnimationJob(const String& name);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "render animation";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return {
             { "particles", JobType::PARTICLES },
             { "camera", GuiJobType::CAMERA },
         };
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> requires() const override;
+    virtual UnorderedMap<String, ExtJobType>
+    requires() const override;
 
     virtual VirtualSettings getSettings() override;
 
@@ -124,18 +125,18 @@ private:
     Path path = Path("grid.vdb");
 
 public:
-    VdbJob(const std::string& name)
+    explicit VdbJob(const String& name)
         : IParticleJob(name) {}
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "save VDB grid";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 
-    virtual UnorderedMap<std::string, ExtJobType>
+    virtual UnorderedMap<String, ExtJobType>
     requires() const override {
         if (sequence.enabled) {
             return {};

@@ -82,7 +82,7 @@ public:
     /// \brief Returns the name of the colorizer.
     ///
     /// This is used when showing the colorizer in the window and as filename suffix.
-    virtual std::string name() const = 0;
+    virtual String name() const = 0;
 };
 
 /// \todo
@@ -214,7 +214,7 @@ public:
         palette = newPalette;
     }
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return getMetadata(id).quantityName;
     }
 };
@@ -246,7 +246,7 @@ public:
         return Particle(idx).addDt(QuantityId::POSITION, values[idx]);
     }
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return "Velocity";
     }
 };
@@ -269,7 +269,7 @@ public:
         return Particle(idx).addD2t(QuantityId::POSITION, values[idx]);
     }
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return "Acceleration";
     }
 };
@@ -317,7 +317,7 @@ public:
         palette = newPalette;
     }
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return "Direction";
     }
 };
@@ -372,7 +372,7 @@ public:
         palette = newPalette;
     }
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return "Corot. velocity";
     }
 
@@ -427,7 +427,7 @@ public:
         palette = newPalette;
     }
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return "Delta Density";
     }
 };
@@ -476,7 +476,7 @@ public:
         palette = newPalette;
     }
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return "Summed Density";
     }
 
@@ -535,7 +535,7 @@ public:
         palette = newPalette;
     }
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return "Total stress";
     }
 };
@@ -588,7 +588,7 @@ public:
         palette = newPalette;
     }
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return "Total energy";
     }
 };
@@ -626,7 +626,7 @@ public:
         palette = newPalette;
     }
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return "Temperature";
     }
 };
@@ -643,7 +643,7 @@ public:
         return palette(float(1._f - values[idx]));
     }
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return "Yield reduction";
     }
 };
@@ -681,7 +681,7 @@ public:
         palette = newPalette;
     }
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return "Damage activation ratio";
     }
 };
@@ -735,7 +735,7 @@ public:
         palette = newPalette;
     }
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return "Beauty";
     }
 };
@@ -763,7 +763,7 @@ public:
         return true;
     }
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return "Radius";
     }
 };
@@ -800,7 +800,7 @@ public:
 
     virtual void setPalette(const Palette& UNUSED(newPalette)) override {}
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return "Uvws";
     }
 };
@@ -855,7 +855,7 @@ public:
 
     virtual void setPalette(const Palette& UNUSED(newPalette)) override {}
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return "Boundary";
     }
 
@@ -916,7 +916,7 @@ public:
 
     virtual Optional<Particle> getParticle(const Size idx) const override;
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return "Particle ID";
     }
 };
@@ -974,7 +974,7 @@ public:
         return !components.empty();
     }
 
-    virtual std::string name() const override;
+    virtual String name() const override;
 };
 
 class AggregateIdColorizer : public IdColorizerTemplate<AggregateIdColorizer> {
@@ -1004,7 +1004,7 @@ public:
         return ids != nullptr;
     }
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return "Aggregate ID";
     }
 };
@@ -1035,15 +1035,15 @@ public:
         return !idxs.empty();
     }
 
-    virtual std::string name() const override {
+    virtual String name() const override {
         return getMetadata(id).quantityName;
     }
 };
 
 class MaterialColorizer : public IndexColorizer {
 private:
-    Array<std::string> eosNames;
-    Array<std::string> rheoNames;
+    Array<String> eosNames;
+    Array<String> rheoNames;
 
 public:
     MaterialColorizer(const GuiSettings& gui)

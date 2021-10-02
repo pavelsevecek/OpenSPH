@@ -18,6 +18,9 @@ TEST_CASE("UniqueFileManager getPath", "[filemanager]") {
     REQUIRE(manager.getPath(Path("/absolute/path")) == Path("/absolute/path"));
     REQUIRE(manager.getPath(Path("/absolute/path")) == Path("/absolute/path_001"));
 
+    REQUIRE(manager.getPath(Path(L"path\u03B1/file\u03B2.txt")) == Path(L"path\u03B1/file\u03B2.txt"));
+    REQUIRE(manager.getPath(Path(L"path\u03B1/file\u03B2.txt")) == Path(L"path\u03B1/file\u03B2_001.txt"));
+
     /// \todo what to do in this cases? Detect the appendix _[0-9][0-9][0-9] ?
     REQUIRE(manager.getPath(Path("path_001")) == Path("path_001_001"));
     REQUIRE(manager.getPath(Path("path_004")) == Path("path_004"));
@@ -39,15 +42,27 @@ TEST_CASE("RandomPathManager", "[filemanager]") {
     Path path = manager.getPath();
     REQUIRE(path.extension().empty());
 
-    std::string name = path.native();
+    String name = path.string();
     REQUIRE(name.size() == 8); /// \todo make variable?
-    REQUIRE(std::find_if_not(name.begin(), name.end(), [](char c) { return std::isalnum(c); }) == name.end());
+    REQUIRE(
+        std::find_if_not(name.begin(), name.end(), [](wchar_t c) { return std::isalnum(c); }) == name.end());
 
     path = manager.getPath("txt");
     REQUIRE(path.extension() == Path("txt"));
-    REQUIRE(path.removeExtension().native().size() == 8);
+    REQUIRE(path.removeExtension().string().size() == 8);
 
     for (Size i = 0; i < 5; ++i) {
         REQUIRE(manager.getPath() != manager.getPath());
     }
+}
+
+TEST_CASE("Unique name manager", "[filemanager]") {
+    UniqueNameManager mgr;
+    REQUIRE(mgr.getName("name") == "name");
+    REQUIRE(mgr.getName("name") == "name (1)");
+    REQUIRE(mgr.getName("name") == "name (2)");
+    REQUIRE(mgr.getName("test") == "test");
+    REQUIRE(mgr.getName("test") == "test (1)");
+    REQUIRE(mgr.getName(L"name\u03B2") == L"name\u03B2");
+    REQUIRE(mgr.getName(L"name\u03B2") == L"name\u03B2 (1)");
 }

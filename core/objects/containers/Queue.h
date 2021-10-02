@@ -7,13 +7,13 @@
 
 #include "math/MathUtils.h"
 #include "objects/containers/ArrayView.h"
-#include <mm_malloc.h>
+#include "objects/containers/BasicAllocators.h"
 
 NAMESPACE_SPH_BEGIN
 
 /// \brief Container allowing to add and remove elements from both ends.
-template <typename T, typename TCounter = Size>
-class Queue : public Noncopyable {
+template <typename T, typename TAllocator = Mallocator, typename TCounter = Size>
+class Queue : public Noncopyable, private TAllocator {
 private:
     using StorageType = typename WrapReferenceType<T>::Type;
 
@@ -48,7 +48,7 @@ public:
     ///
     /// The elements are created using copy constructor.
     Queue(std::initializer_list<StorageType> list) {
-        this->alloc(list.size(), 0, 0);
+        this->alloc(TCounter(list.size()), 0, 0);
         TCounter i = 0;
         for (auto& l : list) {
             new (data + i) StorageType(l);
@@ -71,7 +71,10 @@ public:
             data[i].~StorageType();
         }
         if (data) {
-            _mm_free(data);
+            MemoryBlock block;
+            block.ptr = data;
+            block.size = maxSize * sizeof(StorageType);
+            TAllocator::deallocate(block);            
             data = nullptr;
         }
     }
@@ -244,7 +247,8 @@ private:
         maxSize = size + extraFront + extraBack;
         first = last = extraFront;
 
-        data = (StorageType*)_mm_malloc(maxSize * sizeof(StorageType), alignof(StorageType));
+        MemoryBlock block = TAllocator::allocate(maxSize * sizeof(StorageType), alignof(StorageType));
+        data = (StorageType*)block.ptr;
     }
 
     /// If there is currently less than num free elements in the front, reallocates the queue, adding at least

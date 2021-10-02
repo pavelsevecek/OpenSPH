@@ -1,6 +1,8 @@
 #include "quantities/Iterate.h"
 #include "catch.hpp"
+#include "objects/wrappers/MultiLambda.h"
 #include "quantities/Storage.h"
+#include "thread/Pool.h"
 
 using namespace Sph;
 
@@ -33,22 +35,39 @@ TEST_CASE("Iterate", "[iterate]") {
     /// \todo more tests
 }
 
-/*TEST_CASE("IterateCustom", "[iterate]") {
-    Storage storage;
-    storage.insert<Float, OrderEnum::SECOND_ORDER>(QuantityId::POSITIONS, makeArray(5._f));
-    storage.resize<VisitorEnum::ALL_BUFFERS>(5);
-    storage.insert<Vector, OrderEnum::FIRST_ORDER>(QuantityId::DENSITY, Vector(1._f));
-    storage.insert<Tensor, OrderEnum::FIRST_ORDER>(QuantityId::DEVIATORIC_STRESS, Tensor(3._f));
+#ifdef SPH_CPP17
 
-    int i = 0;
-    iterateCustom<VisitorEnum::ALL_VALUES>(
-        storage, { QuantityId::DEVIATORIC_STRESS, QuantityId::DENSITY }, [&i](auto&& value) {
-            if (i++ == 0) {
-                REQUIRE((std::is_same<typename std::decay_t<decltype(value)>::Type, Tensor>::value));
-                REQUIRE(*reinterpret_cast<Tensor*>(&value[0]) == Tensor(3._f));
-            } else {
-                REQUIRE((std::is_same<typename std::decay_t<decltype(value)>::Type, Vector>::value));
-                REQUIRE(*reinterpret_cast<Vector*>(&value[0]) == Vector(1._f));
-            }
-        });
-}*/
+TEST_CASE("Iterate parallel", "[iterate]") {
+    Storage storage;
+    storage.insert<Float>(QuantityId::POSITION, OrderEnum::SECOND, makeArray(5._f));
+    storage.resize(1);
+    storage.insert<Vector>(QuantityId::DENSITY, OrderEnum::FIRST, Vector(1._f));
+    storage.insert<TracelessTensor>(QuantityId::ENERGY, OrderEnum::ZERO, TracelessTensor(6._f));
+
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    iterate<VisitorEnum::ALL_VALUES>(storage,
+        pool,
+        makeMulti(
+            [](QuantityId id, Array<Float>& x) {
+                REQUIRE(id == QuantityId::POSITION);
+                REQUIRE(x[0] == 5._f);
+                x[0] = 2._f;
+            },
+            [](QuantityId id, Array<Vector>& x) {
+                REQUIRE(id == QuantityId::DENSITY);
+                REQUIRE(x[0] == Vector(1._f));
+                x[0] = Vector(2._f, 1._f, 0._f);
+            },
+            [](QuantityId id, Array<TracelessTensor>& t) {
+                REQUIRE(id == QuantityId::ENERGY);
+                REQUIRE(t[0] == TracelessTensor(6._f));
+                t[0] = TracelessTensor(3._f);
+            },
+            [](QuantityId, auto&) { throw; }));
+
+    REQUIRE(storage.getValue<Float>(QuantityId::POSITION)[0] == 2._f);
+    REQUIRE(storage.getValue<Vector>(QuantityId::DENSITY)[0] == Vector(2._f, 1._f, 0._f));
+    REQUIRE(storage.getValue<TracelessTensor>(QuantityId::ENERGY)[0] == TracelessTensor(3._f));
+}
+
+#endif

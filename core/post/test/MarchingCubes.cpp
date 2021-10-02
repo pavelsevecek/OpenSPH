@@ -31,7 +31,7 @@ TEST_CASE("MarchingCubes sphere", "[marchingcubes]") {
         Triangle& t = triangles[i];
         for (Size i = 0; i < 3; ++i) {
             if (getLength(t[i]) != approx(0.4_f, 1.e-3_f)) {
-                return makeFailed("Invalid vertex position: ", t[i], ", r = ", getLength(t[i]));
+                return makeFailed("Invalid vertex position: {}, r = {}", t[i], getLength(t[i]));
             }
         }
         return SUCCESS;

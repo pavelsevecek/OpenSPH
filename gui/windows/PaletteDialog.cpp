@@ -6,10 +6,13 @@
 #include "gui/renderers/Spectrum.h"
 #include "gui/windows/Widgets.h"
 #include "io/FileSystem.h"
+#include "post/Plot.h"
+#include "post/Point.h"
 #include <wx/button.h>
 #include <wx/combobox.h>
-#include <wx/dcclient.h>
+#include <wx/dcbuffer.h>
 #include <wx/panel.h>
+#include <wx/settings.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 
@@ -60,11 +63,7 @@ public:
         NOT_IMPLEMENTED;
     }
 
-    virtual void drawText(const Coords p, const Flags<TextAlign>, const std::string& s) override {
-        context->drawText(this->transform(p), TextAlign::VERTICAL_CENTER | TextAlign::HORIZONTAL_CENTER, s);
-    }
-
-    virtual void drawText(const Coords p, const Flags<TextAlign>, const std::wstring& s) override {
+    virtual void drawText(const Coords p, const Flags<TextAlign>, const String& s) override {
         context->drawText(this->transform(p), TextAlign::VERTICAL_CENTER | TextAlign::HORIZONTAL_CENTER, s);
     }
 
@@ -77,6 +76,56 @@ private:
         return Coords(context->size().x - p.y, p.x);
     }
 };
+
+void drawPalette(IRenderContext& context,
+    const Pixel origin,
+    const Pixel size,
+    const Rgba& lineColor,
+    const Palette& palette) {
+
+    // draw palette
+    for (int i = 0; i < size.y; ++i) {
+        const float value = palette.relativeToPalette(float(i) / (size.y - 1));
+        context.setColor(palette(value), ColorFlag::LINE);
+        context.drawLine(Coords(origin.x, origin.y - i), Coords(origin.x + size.x, origin.y - i));
+    }
+
+    // draw tics
+    const Interval interval = palette.getInterval();
+    const PaletteScale scale = palette.getScale();
+
+    Array<Float> tics;
+    switch (scale) {
+    case PaletteScale::LINEAR:
+        tics = getLinearTics(interval, 4);
+        break;
+    case PaletteScale::LOGARITHMIC:
+        tics = getLogTics(interval, 4);
+        break;
+    case PaletteScale::HYBRID: {
+        const Size ticsCnt = 5;
+        // tics currently not implemented, so just split the range to equidistant steps
+        for (Size i = 0; i < ticsCnt; ++i) {
+            tics.push(palette.relativeToPalette(float(i) / (ticsCnt - 1)));
+        }
+        break;
+    }
+    default:
+        NOT_IMPLEMENTED;
+    }
+    context.setColor(lineColor, ColorFlag::LINE | ColorFlag::TEXT);
+    for (Float tic : tics) {
+        const float value = palette.paletteToRelative(float(tic));
+        const int i = int(value * size.y);
+        context.drawLine(Coords(origin.x, origin.y - i), Coords(origin.x + 6, origin.y - i));
+        context.drawLine(
+            Coords(origin.x + size.x - 6, origin.y - i), Coords(origin.x + size.x, origin.y - i));
+
+        String text = toPrintableString(tic, 1, 1000);
+        context.drawText(
+            Coords(origin.x - 15, origin.y - i), TextAlign::LEFT | TextAlign::VERTICAL_CENTER, text);
+    }
+}
 
 class PaletteCanvas : public wxPanel {
 private:
@@ -98,6 +147,10 @@ public:
 private:
     void onPaint(wxPaintEvent& UNUSED(evt)) {
         wxPaintDC dc(this);
+        wxFont font = wxSystemSettings::GetFont(wxSystemFont::wxSYS_DEFAULT_GUI_FONT);
+        font.SetPointSize(10);
+        SPH_ASSERT(font.IsOk());
+        dc.SetFont(font);
         FlippedRenderContext context(makeAuto<WxRenderContext>(dc));
         context.setFontSize(9);
         Rgba background(dc.GetBackground().GetColour());
@@ -196,7 +249,7 @@ void PalettePanel::setPalette(const Palette& palette) {
     upperCtrl->setValue(initial.getInterval().upper());
 }
 
-static UnorderedMap<ExtColorizerId, std::string> PALETTE_ID_LIST = {
+static UnorderedMap<ExtColorizerId, String> PALETTE_ID_LIST = {
     { ColorizerId::VELOCITY, "Magnitude 1" },
     { QuantityId::DEVIATORIC_STRESS, "Magnitude 2" },
     { ColorizerId::TEMPERATURE, "Temperature" },
@@ -226,6 +279,12 @@ const Palette ACCRETION({ { 0.001f, Rgba(0.43f, 0.70f, 1.f) },
                             { 100.f, Rgba(0.94f, 0.90f, 0.84f) } },
     PaletteScale::LOGARITHMIC);
 
+const Palette STELLAR({ { 0.01f, Rgba(1.f, 0.75f, 0.1f) },
+                          { 0.1f, Rgba(0.75f, 0.25f, 0.1f)},
+                          { 1.f, Rgba(0.4f, 0.7f, 1.f) },
+                          { 10.f, Rgba(0.2f, 0.4f, 0.8f) } },
+    PaletteScale::LOGARITHMIC);
+
 } // namespace Palettes
 
 void PalettePanel::setDefaultPaletteList() {
@@ -234,14 +293,15 @@ void PalettePanel::setDefaultPaletteList() {
         { "Blackbody", getBlackBodyPalette(Interval(300, 12000)) },
         { "Galaxy", Palettes::GALAXY },
         { "Accretion", Palettes::ACCRETION },
+        { "Stellar", Palettes::STELLAR },
     };
     for (auto& pair : PALETTE_ID_LIST) {
-        paletteMap.insert(pair.value, Factory::getPalette(pair.key));
+        paletteMap.insert(pair.value(), Factory::getPalette(pair.key()));
     }
 
     wxArrayString items;
     for (const auto& e : paletteMap) {
-        items.Add(e.key);
+        items.Add(e.key().toUnicode());
     }
     paletteBox->Set(items);
     paletteBox->SetSelection(0);
@@ -251,18 +311,18 @@ void PalettePanel::setDefaultPaletteList() {
 void PalettePanel::loadPalettes(const Path& path) {
     paletteMap.clear();
     for (Path file : FileSystem::iterateDirectory(path.parentPath())) {
-        if (file.extension().native() == "csv") {
+        if (file.extension().string() == "csv") {
             Palette palette = initial;
             if (palette.loadFromFile(path.parentPath() / file)) {
-                paletteMap.insert(file.native(), palette);
+                paletteMap.insert(file.string(), palette);
             }
         }
     }
     wxArrayString items;
     int selectionIdx = 0, idx = 0;
     for (const auto& e : paletteMap) {
-        items.Add(e.key);
-        if (e.key == path.fileName().native()) {
+        items.Add(e.key().toUnicode());
+        if (e.key() == path.fileName().string()) {
             // this is the palette we selected
             selectionIdx = idx;
         }
@@ -277,7 +337,7 @@ void PalettePanel::loadPalettes(const Path& path) {
 void PalettePanel::update() {
     const int idx = paletteBox->GetSelection();
     const Interval range = selected.getInterval();
-    selected = (paletteMap.begin() + idx)->value;
+    selected = (paletteMap.begin() + idx)->value();
     selected.setInterval(range);
     canvas->setPalette(selected);
     onPaletteChanged.callIfNotNull(selected);

@@ -40,15 +40,12 @@ static Outcome checkNeighborsEqual(ArrayView<NeighborRecord> treeNeighs, ArrayVi
     }
 
     if (!(bfIdxs == treeIdxs)) {
-        return makeFailed("Different neighbors found:", "\n brute force: ", bfIdxs, "\n finder: ", treeIdxs);
+        return makeFailed("Different neighbors found:\n brute force: {}\n finder: {}", bfIdxs, treeIdxs);
     }
     for (Size i = 0; i < bfDist.size(); ++i) {
         if (bfDist[i] != approx(treeDist[i])) { /// \todo figure out why approx is needed here!
-            return makeFailed(
-                "Neighbors are at different distances!"
-                "\n brute force: ",
+            return makeFailed("Neighbors are at different distances!\n brute force: {}\n finder: {}",
                 bfDist[i],
-                "\n finder: ",
                 treeDist[i]);
         }
     }
@@ -74,7 +71,7 @@ static void checkNeighbors(ISymmetricFinder& finder) {
         const Size nBf = bf.findAll(refIdx, radius, bfNeighs);
 
         if (nTree != nBf) {
-            return makeFailed("Invalid number of neighbors:\n", nTree, " == ", nBf);
+            return makeFailed("Invalid number of neighbors:\n{} == {}", nTree, nBf);
         }
 
         return checkNeighborsEqual(treeNeighs, bfNeighs);
@@ -86,7 +83,7 @@ static void checkNeighbors(ISymmetricFinder& finder) {
         const Size nBf = bf.findLowerRank(refIdx, radius, bfNeighs);
 
         if (nTree != nBf) {
-            return makeFailed("Invalid number of neighbors:\n", nTree, " == ", nBf);
+            return makeFailed("Invalid number of neighbors:\n{} == {}", nTree, nBf);
         }
 
         return checkNeighborsEqual(treeNeighs, bfNeighs);
@@ -100,7 +97,7 @@ static void checkNeighbors(ISymmetricFinder& finder) {
         const Size nBf = bf.findAll(point, radius, bfNeighs);
 
         if (nTree != nBf) {
-            return makeFailed("Invalid number of neighbors:\n", nTree, " == ", nBf);
+            return makeFailed("Invalid number of neighbors:\n{} == {}", nTree, nBf);
         }
 
         return checkNeighborsEqual(treeNeighs, bfNeighs);
@@ -265,13 +262,9 @@ TEST_CASE("KdTree", "[finders]") {
     finder1.build(*ThreadPool::getGlobalInstance(), storage);
     REQUIRE(finder1.sanityCheck());
 
-#ifdef SPH_USE_TBB
     KdTree<KdNode> finder2;
     finder2.build(*Tbb::getGlobalInstance(), storage);
     REQUIRE(finder2.sanityCheck());
-#else
-    KdTree<KdNode>& finder2 = finder1;
-#endif
 
     KdTree<KdNode> finder3;
     finder3.build(SEQUENTIAL, storage);

@@ -6,7 +6,11 @@
 /// \date 2016-2021
 
 #include "common/Assert.h"
+#ifndef SPH_WIN
 #include <mm_malloc.h>
+#else
+#include <malloc.h>
+#endif
 
 NAMESPACE_SPH_BEGIN
 

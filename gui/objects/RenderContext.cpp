@@ -148,17 +148,7 @@ void PreviewRenderContext<PixelOp>::drawBitmap(const Coords p, const Bitmap<Rgba
 }
 
 template <typename PixelOp>
-void PreviewRenderContext<PixelOp>::drawText(const Coords p,
-    const Flags<TextAlign> align,
-    const std::string& s) {
-    std::wstring ws(s.begin(), s.end());
-    this->drawText(p, align, ws);
-}
-
-template <typename PixelOp>
-void PreviewRenderContext<PixelOp>::drawText(const Coords p,
-    const Flags<TextAlign> align,
-    const std::wstring& s) {
+void PreviewRenderContext<PixelOp>::drawText(const Coords p, const Flags<TextAlign> align, const String& s) {
     labels.push(IRenderOutput::Label{ s, colors.text, fontSize, align, Pixel(p) });
 }
 

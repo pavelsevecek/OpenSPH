@@ -6,12 +6,12 @@ using namespace Sph;
 /// Custom writer of simulation log
 class LogWriter : public ILogWriter {
 private:
-    std::string runName;
+    String runName;
 
 public:
     LogWriter(const RunSettings& settings)
         : ILogWriter(makeAuto<StdOutLogger>(), 1._f) {
-        runName = settings.get<std::string>(RunSettingsId::RUN_NAME);
+        runName = settings.get<String>(RunSettingsId::RUN_NAME);
     }
 
     virtual void write(const Storage& UNUSED(storage), const Statistics& stats) override {
@@ -27,7 +27,7 @@ public:
 class Fragmentation : public IRun {
 public:
     virtual void setUp(SharedPtr<Storage> storage) override {
-        settings.set(RunSettingsId::RUN_NAME, std::string("Fragmentation"));
+        settings.set(RunSettingsId::RUN_NAME, "Fragmentation"_s);
 
         // Define the parameters of the target
         const Float targetRadius = 1.e5_f; // R_pb = 100km;
@@ -88,7 +88,7 @@ public:
     // Here we do not create new particles, the storage already contains particles computed by the
     // fragmentation phase. Instead we convert the SPH particles to solid spheres (hand-off).
     virtual void setUp(SharedPtr<Storage> storage) override {
-        settings.set(RunSettingsId::RUN_NAME, std::string("Reaccumulation"));
+        settings.set(RunSettingsId::RUN_NAME, "Reaccumulation"_s);
 
         // Create an 'empty' material with default parameters. Note that we do not have to do that in other
         // examples, as it is done inside InitialConditions object.

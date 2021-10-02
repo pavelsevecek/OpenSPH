@@ -47,7 +47,7 @@ private:
     AutoPtr<TextOutput> analytic;
 
 public:
-    SodOutput(const std::string& name)
+    SodOutput(const String& name)
         : IOutput(Path("dummy")) {
         auto flags = OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY |
                      OutputQuantityFlag::DENSITY | OutputQuantityFlag::PRESSURE | OutputQuantityFlag::ENERGY;
@@ -114,11 +114,11 @@ class Sod : public IRun {
 public:
     Sod() {
         // Global settings of the problem
-        this->settings.set(RunSettingsId::RUN_NAME, std::string("Sod Shock Tube Problem"))
+        this->settings.set(RunSettingsId::RUN_NAME, String("Sod Shock Tube Problem"))
             .set(RunSettingsId::RUN_END_TIME, 0.3_f)
             .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.02_f)
-            .set(RunSettingsId::RUN_OUTPUT_PATH, std::string(""))
-            .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("sod_%d.txt"))
+            .set(RunSettingsId::RUN_OUTPUT_PATH, String(""))
+            .set(RunSettingsId::RUN_OUTPUT_NAME, String("sod_%d.txt"))
             .set(RunSettingsId::SPH_AV_ALPHA, 1._f)
             .set(RunSettingsId::SPH_AV_BETA, 2._f)
             .set(RunSettingsId::SPH_KERNEL, KernelEnum::CUBIC_SPLINE)
@@ -149,7 +149,7 @@ public:
             .set(BodySettingsId::ENERGY_MIN, 0.001_f);
         *storage = Storage(Factory::getMaterial(body));
 
-        this->output = makeAuto<SodOutput>(this->settings.get<std::string>(RunSettingsId::RUN_NAME));
+        this->output = makeAuto<SodOutput>(this->settings.get<String>(RunSettingsId::RUN_NAME));
 
         // 1) setup initial positions, with different spacing in each region
         const Float x1 = -0.5_f;

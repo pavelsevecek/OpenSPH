@@ -1,6 +1,9 @@
 #include "run/Config.h"
 #include "catch.hpp"
+#include "io/FileManager.h"
+#include "io/FileSystem.h"
 #include "objects/containers/FlatMap.h"
+#include "objects/utility/Streams.h"
 
 using namespace Sph;
 
@@ -8,9 +11,9 @@ TEST_CASE("Config serialize", "[config]") {
     Config config;
     SharedPtr<ConfigNode> node = config.addNode("node");
     node->set("number", 5);
-    node->set("string", std::string("test"));
+    node->set("string", String("test"));
 
-    const std::string serialized = config.write();
+    const String serialized = config.write();
     REQUIRE(serialized == R"("node" [
   "number" = 5
   "string" = "test"
@@ -28,16 +31,16 @@ TEST_CASE("Config write and read", "[config]") {
 
     SharedPtr<ConfigNode> node2 = config.addNode("node2");
     node2->set("value2", 3.14_f);
-    node2->set("text2", std::string("test"));
+    node2->set("text2", String(L"test \u03C1"));
     node2->set("vector2", Vector(1._f, 2._f, 3._f));
 
-    std::string serialized = config.write();
+    String serialized = config.write();
 
-    std::stringstream ss(serialized);
+    StringTextInputStream ss(serialized);
     REQUIRE_NOTHROW(config.read(ss));
 
-    FlatMap<std::string, ConfigNode*> readNodes;
-    config.enumerate([&](const std::string& name, ConfigNode& node) { //
+    FlatMap<String, ConfigNode*> readNodes;
+    config.enumerate([&](const String& name, ConfigNode& node) { //
         readNodes.insert(name, &node);
     });
 
@@ -54,7 +57,7 @@ TEST_CASE("Config write and read", "[config]") {
 
     ConfigNode* readNode2 = readNodes["node2"];
     REQUIRE(readNode2->get<Float>("value2") == 3.14_f);
-    REQUIRE(readNode2->get<std::string>("text2") == "test");
+    REQUIRE(readNode2->get<String>("text2") == L"test \u03C1");
     REQUIRE(readNode2->get<Vector>("vector2") == Vector(1._f, 2._f, 3._f));
 }
 
@@ -66,9 +69,9 @@ TEST_CASE("Config write and read children", "[config]") {
     SharedPtr<ConfigNode> childNode = rootNode->addChild("child");
     childNode->set("childValue", 5.1_f);
 
-    std::string serialized = config.write();
+    String serialized = config.write();
 
-    std::stringstream ss(serialized);
+    StringTextInputStream ss(serialized);
     REQUIRE_NOTHROW(config.read(ss));
     SharedPtr<ConfigNode> readRootNode = config.getNode("root");
     REQUIRE(readRootNode->size() == 1);
@@ -78,4 +81,29 @@ TEST_CASE("Config write and read children", "[config]") {
     SharedPtr<ConfigNode> readChildNode = readRootNode->getChild("child");
     REQUIRE(readChildNode->size() == 1);
     REQUIRE(readChildNode->get<Float>("childValue") == 5.1_f);
+}
+
+TEST_CASE("Config file I/O", "[config]") {
+    Config config;
+    SharedPtr<ConfigNode> node = config.addNode("node");
+    node->set("value", 5.31_f);
+    node->set("count", 3);
+
+    String text(L"\u03B1\u03B2\u03B3");
+    node->set("text", text);
+
+    RandomPathManager manager;
+    Path path = manager.getPath(L"\u03B1sph"); // must work with unicode paths
+    REQUIRE_NOTHROW(config.save(path));
+    REQUIRE(FileSystem::pathExists(path));
+    REQUIRE(FileSystem::fileSize(path) > 20);
+
+    Config loaded;
+    REQUIRE_NOTHROW(loaded.load(path));
+    node = loaded.getNode("node");
+    REQUIRE(node->get<Float>("value") == 5.31_f);
+    REQUIRE(node->get<int>("count") == 3);
+    REQUIRE(node->get<String>("text") == text);
+
+    REQUIRE_THROWS(loaded.load(Path("nonexistent")));
 }

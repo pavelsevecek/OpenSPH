@@ -2,7 +2,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-EntryControl& EntryControl::setTooltip(const std::string& newTooltip) {
+EntryControl& EntryControl::setTooltip(const String& newTooltip) {
     tooltip = newTooltip;
     return *this;
 }
@@ -58,7 +58,7 @@ bool EntryControl::enabled() const {
     return enabler ? enabler() : true;
 }
 
-std::string EntryControl::getTooltip() const {
+String EntryControl::getTooltip() const {
     return tooltip;
 }
 
@@ -76,9 +76,9 @@ bool EntryControl::set(const Value& value) {
 }
 
 
-void VirtualSettings::set(const std::string& key, const IVirtualEntry::Value& value) {
+void VirtualSettings::set(const String& key, const IVirtualEntry::Value& value) {
     for (auto& category : categories) {
-        auto entry = category.value.entries.tryGet(key);
+        auto entry = category.value().entries.tryGet(key);
         if (entry) {
             entry.value()->set(value);
             return;
@@ -87,9 +87,9 @@ void VirtualSettings::set(const std::string& key, const IVirtualEntry::Value& va
     throw InvalidSetup("Key '" + key + "' not found");
 }
 
-IVirtualEntry::Value VirtualSettings::get(const std::string& key) const {
+IVirtualEntry::Value VirtualSettings::get(const String& key) const {
     for (auto& category : categories) {
-        auto entry = category.value.entries.tryGet(key);
+        auto entry = category.value().entries.tryGet(key);
         if (entry) {
             return entry.value()->get();
         }
@@ -97,15 +97,15 @@ IVirtualEntry::Value VirtualSettings::get(const std::string& key) const {
     throw InvalidSetup("Key '" + key + "' not found");
 }
 
-VirtualSettings::Category& VirtualSettings::addCategory(const std::string& name) {
+VirtualSettings::Category& VirtualSettings::addCategory(const String& name) {
     return categories.insert(name, Category{});
 }
 
 void VirtualSettings::enumerate(const IEntryProc& proc) {
     for (auto& category : categories) {
-        proc.onCategory(category.key);
-        for (auto& entry : category.value.entries) {
-            proc.onEntry(entry.key, *entry.value);
+        proc.onCategory(category.key());
+        for (auto& entry : category.value().entries) {
+            proc.onEntry(entry.key(), *entry.value());
         }
     }
 }

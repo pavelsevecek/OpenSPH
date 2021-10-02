@@ -79,7 +79,7 @@ TEST_CASE("Accumulated sum parallelized", "[accumulated]") {
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     ac1.sum(pool, Array<Accumulated*>{ &ac2 });
     Storage storage = getStorage();
-    ac1.store(storage);
+    ac1.store(pool, storage);
 
     REQUIRE(storage.getQuantityCnt() == 4);
     REQUIRE(storage.getParticleCnt() == 5);
@@ -104,7 +104,7 @@ TEST_CASE("Accumulated store", "[accumulated]") {
         buffer1[i] = i;
     }
     Storage storage = getStorage();
-    ac.store(storage);
+    ac.store(SEQUENTIAL, storage);
     ArrayView<Size> buffer2 = storage.getValue<Size>(QuantityId::NEIGHBOR_CNT);
     REQUIRE(buffer2.size() == 5);
     for (Size i = 0; i < 5; ++i) {
@@ -121,9 +121,9 @@ TEST_CASE("Accumulate store second derivative", "[accumulated]") {
 
     Storage storage;
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST, makeArray(Vector(0._f)));
-    REQUIRE_SPH_ASSERT(ac.store(storage));
+    REQUIRE_SPH_ASSERT(ac.store(SEQUENTIAL, storage));
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, Vector(0._f));
-    REQUIRE_NOTHROW(ac.store(storage));
+    REQUIRE_NOTHROW(ac.store(SEQUENTIAL, storage));
     dv = storage.getD2t<Vector>(QuantityId::POSITION);
     REQUIRE(dv[0] == Vector(5._f));
 }

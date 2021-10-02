@@ -94,7 +94,7 @@ public:
     /// The accumulated quantity must already exist in the storage and its order must be at least the order of
     /// the accumulated buffer. The accumulated buffer is cleared (filled with zeroes) after storing the
     /// values into the storage.
-    void store(Storage& storage);
+    void store(IScheduler& scheduler, Storage& storage);
 
     Size getBufferCnt() const;
 

@@ -96,10 +96,10 @@ static void testHomogeneousField(TArgs&&... args) {
         const Vector pos(0.f, 0.f, 0.5 * sqr(t));
         const Vector vel(0.f, 0.f, t);
         if (r[0] != approx(pos, 2.f * timeStep)) {
-            return makeFailed("Invalid position: \n", r[0], " == ", pos, "\n t = ", t);
+            return makeFailed("Invalid position: \n{} == {}\n t == {}", r[0], pos, t);
         }
         if (v[0] != approx(vel, timeStep)) {
-            return makeFailed("Invalid velocity: \n", v[0], " == ", vel, "\n t = ", t);
+            return makeFailed("Invalid velocity: \n{} == {}\n t == {}", v[0], vel, t);
         }
         timestepping.step(pool, solver, stats);
         return SUCCESS;
@@ -126,15 +126,11 @@ static void testHarmonicOscillator(TArgs&&... args) {
         const Float t = i * timeStep;
         if (r[0] != approx(Vector(Sph::cos(2.f * PI * t), 0.f, 0.f), timeStep * 2._f * PI)) {
             return makeFailed(
-                "Invalid position: \n", r[0], " == ", Vector(Sph::cos(2.f * PI * t), 0.f, 0.f), "\n t = ", t);
+                "Invalid position: \n{} == {}\nt == {}", r[0], Vector(Sph::cos(2.f * PI * t), 0.f, 0.f), t);
         }
         if (v[0] != approx(Vector(-Sph::sin(2.f * PI * t) * 2.f * PI, 0.f, 0.f), timeStep * sqr(2._f * PI))) {
-            return makeFailed("Invalid velocity: \n",
-                v[0],
-                " == ",
-                Vector(-Sph::sin(2.f * PI * t), 0.f, 0.f),
-                "\n t = ",
-                t);
+            return makeFailed(
+                "Invalid velocity: \n{} == {}\nt == {}", v[0], Vector(-Sph::sin(2.f * PI * t), 0.f, 0.f), t);
         }
         timestepping.step(pool, solver, stats);
         return SUCCESS;
@@ -166,10 +162,10 @@ static void testGyroscopicMotion(TArgs&&... args) {
         const Vector pos = Vector(Sph::cos(t), -Sph::sin(t), 0.5_f * t);
         const Vector vel = Vector(-Sph::sin(t), -Sph::cos(t), 0.5_f);
         if (r[0] != approx(pos, 3.f * timeStep)) {
-            return makeFailed("Invalid position: \n", r[0], " == ", pos, "\n t = ", t);
+            return makeFailed("Invalid position: \n{} == {}\n t == {}", r[0], pos, t);
         }
         if (v[0] != approx(vel, 3._f * timeStep)) {
-            return makeFailed("Invalid velocity: \n", v[0], " == ", vel, "\n t = ", t);
+            return makeFailed("Invalid velocity: \n{} == {}\n t == {}", v[0], vel, t);
         }
         timestepping.step(pool, solver, stats);
         return SUCCESS;

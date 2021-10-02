@@ -11,13 +11,15 @@
 
 NAMESPACE_SPH_BEGIN
 
+class String;
+
 struct Assert {
     static bool isTest;
 
     /// \brief If true, assert throws an exception.
     static bool throwAssertException;
 
-    typedef bool (*Handler)(const std::string& message);
+    typedef bool (*Handler)(const String& message);
 
     /// \brief Custom assert handler.
     ///
@@ -99,7 +101,7 @@ struct Assert {
 /// Helper macro marking missing implementation
 #define NOT_IMPLEMENTED                                                                                      \
     SPH_ASSERT(false, "not implemented");                                                                    \
-    throw Assert::Exception(std::string("Functionality not implemented in function ") + __PRETTY_FUNCTION__);
+    throw Assert::Exception(std::string("Functionality not implemented in function ") + SPH_PRETTY_FUNCTION);
 
 /// Helper macro marking code that should never be executed (default branch of switch where there is finite
 /// number of options, for example)

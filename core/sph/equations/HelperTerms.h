@@ -125,7 +125,7 @@ public:
 
 class ChaiScriptTerm : public IEquationTerm {
 private:
-    std::string script;
+    String script;
     Float period;
     bool oneShot;
     bool done;
@@ -168,7 +168,7 @@ public:
         Chai::registerBindings(chai);
         chai.add(chaiscript::var(std::ref(particles)), "particles");
         chai.add(chaiscript::const_var(t), "time");
-        chai.eval(script);
+        chai.eval(std::string(script.toAscii()));
         particles.store();
 
         if (oneShot) {

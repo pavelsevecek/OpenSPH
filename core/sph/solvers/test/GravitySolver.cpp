@@ -35,7 +35,7 @@ static void testGravity(AutoPtr<IGravity>&& gravity) {
 
     auto test = [&](const Size i) -> Outcome {
         if (getLength(dv[i]) == 0._f) {
-            return makeFailed("No acceleration for particle ", i);
+            return makeFailed("No acceleration for particle {}", i);
         }
         if (getLength(r[i]) > EPS) {
             // check acceleration direction: dv ~ -r
@@ -45,7 +45,7 @@ static void testGravity(AutoPtr<IGravity>&& gravity) {
             /// \todo this is quite imprecise, is it to be expected?
             if (dv0 != approx(-r0, 0.1_f)) {
                 return makeFailed(
-                    "Incorrect acceleration direction for particle ", i, "\n r0 = ", r0, " / dv0 = ", dv0);
+                    "Incorrect acceleration direction for particle {}\n r0 == {}\n dv == {}", i, r0, dv0);
             }
         }
         // check magnitude of acceleration
@@ -56,7 +56,7 @@ static void testGravity(AutoPtr<IGravity>&& gravity) {
         /// \todo actual value seems to be under-estimated, is there some sort of discretization bias?
         if (actual != approx(expected, 0.1_f)) {
             return makeFailed(
-                "Incorrect acceleration magnitude for particle ", i, "\n", actual, " == ", expected);
+                "Incorrect acceleration magnitude for particle {}\n{} == {}", i, actual, expected);
         }
         return SUCCESS;
     };

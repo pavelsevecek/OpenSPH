@@ -1,7 +1,9 @@
 #pragma once
 
+#ifndef SPH_WIN
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wwrite-strings"
+#endif
 
 static char* playData[] = {
     /* columns rows colors chars-per-pixel */
@@ -163,5 +165,6 @@ static char* nextData[] = {
     "................................"
 };
 
-
+#ifndef SPH_WIN
 #pragma GCC diagnostic pop
+#endif

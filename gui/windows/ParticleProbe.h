@@ -9,7 +9,7 @@
 #include "gui/objects/Color.h"
 #include "quantities/Particle.h"
 #include <wx/clipbrd.h>
-#include <wx/dcclient.h>
+#include <wx/dcbuffer.h>
 #include <wx/menu.h>
 #include <wx/panel.h>
 #include <wx/textctrl.h>
@@ -41,6 +41,7 @@ public:
     ParticleProbe(wxWindow* parent, const wxSize size)
         : wxPanel(parent, wxID_ANY) {
         this->SetMinSize(size);
+        this->SetBackgroundStyle(wxBG_STYLE_PAINT);
 
         // Connect handlers
         Connect(wxEVT_PAINT, wxPaintEventHandler(ParticleProbe::onPaint));
@@ -71,10 +72,10 @@ private:
 
     void onPaint(wxPaintEvent& evt);
 
-    void printVector(wxDC& dc, const Vector& v, const std::wstring& label, const wxPoint offset) const;
+    void printVector(wxDC& dc, const Vector& v, const String& label, const wxPoint offset) const;
 
     template <typename Type>
-    void printTensor(wxDC& dc, const Type& tensor, const std::wstring& label, const wxPoint offset) const;
+    void printTensor(wxDC& dc, const Type& tensor, const String& label, const wxPoint offset) const;
 };
 
 NAMESPACE_SPH_END

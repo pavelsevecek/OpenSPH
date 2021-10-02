@@ -43,7 +43,7 @@ void refineMesh(Mesh& mesh) {
         Vector grad = -mesh.vertices[i];
 
         for (Size j : vertexNeighs[i]) {
-            grad += mesh.vertices[j] / vertexNeighs[i].size();
+            grad += mesh.vertices[j] / Float(vertexNeighs[i].size());
         }
         grads[i] = grad;
     }

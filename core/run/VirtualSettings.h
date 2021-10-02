@@ -14,14 +14,14 @@ NAMESPACE_SPH_BEGIN
 
 /// \brief Provides an interface for implementing new types of entries.
 ///
-/// Class \ref IVirtualEntry can store basic types, such as bool, int, std::string, etc. When necessary to
+/// Class \ref IVirtualEntry can store basic types, such as bool, int, String, etc. When necessary to
 /// store more complex data, the user can implement \ref IExtraEntry interface and store the data using \ref
 /// ExtraEntry wrapper.
 class IExtraEntry : public Polymorphic {
 public:
-    virtual std::string toString() const = 0;
+    virtual String toString() const = 0;
 
-    virtual void fromString(const std::string& s) = 0;
+    virtual void fromString(const String& s) = 0;
 
     /// \todo use ClonePtr instead
     virtual AutoPtr<IExtraEntry> clone() const = 0;
@@ -44,11 +44,11 @@ public:
         return *this;
     }
 
-    std::string toString() const {
+    String toString() const {
         return entry->toString();
     }
 
-    void fromString(const std::string& s) const {
+    void fromString(const String& s) const {
         entry->fromString(s);
     }
 
@@ -65,7 +65,7 @@ class IVirtualEntry : public Polymorphic {
 public:
     enum class Type { BOOL, INT, FLOAT, VECTOR, INTERVAL, STRING, PATH, ENUM, EXTRA, FLAGS };
 
-    using Value = Variant<bool, int, Float, Vector, Interval, std::string, Path, EnumWrapper, ExtraEntry>;
+    using Value = Variant<bool, int, Float, Vector, Interval, String, Path, EnumWrapper, ExtraEntry>;
 
     /// \brief Returns if this entry is currently enabled.
     ///
@@ -94,10 +94,10 @@ public:
     /// This name is intended to be presented to the user (in UI, printed in log, etc.). It may be the same as
     /// the key associated with an entry, although the key is only used as an unique identifier and does not
     /// have to be human-readable.
-    virtual std::string getName() const = 0;
+    virtual String getName() const = 0;
 
     /// \brief Returns an optional description of the entry.
-    virtual std::string getTooltip() const {
+    virtual String getTooltip() const {
         return "";
     }
 
@@ -124,8 +124,8 @@ public:
     }
 
     struct FileFormat {
-        std::string description;
-        std::string extension;
+        String description;
+        String extension;
     };
 
     /// \brief Returns the allowed file format for this file entry.
@@ -153,7 +153,7 @@ public:
     using Validator = Function<bool(const Value& newValue)>;
 
 protected:
-    std::string tooltip;
+    String tooltip;
     Float mult = 1._f;
     Optional<PathType> pathType = NOTHING;
     Array<FileFormat> fileFormats;
@@ -164,7 +164,7 @@ protected:
 
 public:
     /// \brief Adds or replaces the previous tooltip associanted with the entry.
-    EntryControl& setTooltip(const std::string& newTooltip);
+    EntryControl& setTooltip(const String& newTooltip);
 
     /// \brief Sets units in which the entry is stored.
     ///
@@ -205,7 +205,7 @@ public:
 protected:
     virtual bool enabled() const override final;
 
-    virtual std::string getTooltip() const override final;
+    virtual String getTooltip() const override final;
 
     virtual bool hasSideEffect() const override final;
 
@@ -232,27 +232,27 @@ public:
         friend class VirtualSettings;
 
     private:
-        UnorderedMap<std::string, AutoPtr<IVirtualEntry>> entries;
+        UnorderedMap<String, AutoPtr<IVirtualEntry>> entries;
 
     public:
         /// \brief Manually adds a new entry into the settings.
         ///
         /// Mostly intended for custom implementations of \ref IVirtualEntry. For most uses, using \ref
         /// connect is more conventient way to connect values with \ref IVirtualSettings.
-        void addEntry(const std::string& key, AutoPtr<IVirtualEntry>&& entry);
+        void addEntry(const String& key, AutoPtr<IVirtualEntry>&& entry);
 
         /// \brief Connects to given reference.
         template <typename TValue>
-        EntryControl& connect(const std::string& name, const std::string& key, TValue& value);
+        EntryControl& connect(const String& name, const String& key, TValue& value);
 
         /// \brief Connects to value in \ref Settings object
         template <typename TValue, typename TEnum>
-        EntryControl& connect(const std::string& name, Settings<TEnum>& settings, const TEnum id);
+        EntryControl& connect(const String& name, Settings<TEnum>& settings, const TEnum id);
     };
 
 
 private:
-    UnorderedMap<std::string, Category> categories;
+    UnorderedMap<String, Category> categories;
 
 public:
     /// \brief Modifies an existing entry in the settings.
@@ -261,7 +261,7 @@ public:
     /// \param key Identifier of the entry
     /// \param value New value of the entry
     /// \throw InvalidSetup if no entry with given key exists.
-    void set(const std::string& key, const IVirtualEntry::Value& value);
+    void set(const String& key, const IVirtualEntry::Value& value);
 
     /// \brief Overload allowing to use an ID associated with a \ref Settings entry.
     ///
@@ -281,13 +281,13 @@ public:
     ///
     /// \param key Identifier of the entry
     /// \throw InvalidSetup if no entry with given key exists.
-    IVirtualEntry::Value get(const std::string& key) const;
+    IVirtualEntry::Value get(const String& key) const;
 
     /// \brief Creates a new category of entries.
     ///
     /// Returned object can be used to add entries into settings.
     /// \param name Name of the created category.
-    Category& addCategory(const std::string& name);
+    Category& addCategory(const String& name);
 
     /// \brief Interface allowing to enumerate all entries in the settings.
     class IEntryProc : public Polymorphic {
@@ -296,13 +296,13 @@ public:
         ///
         /// Every subsequent call of \ref onEntry corresponds to an entry belonging to this category.
         /// \param name Name of the category
-        virtual void onCategory(const std::string& name) const = 0;
+        virtual void onCategory(const String& name) const = 0;
 
         /// \brief Called for every entry in the current category.
         ///
         /// \param key Identifier of the entry
         /// \param entry Stored entry
-        virtual void onEntry(const std::string& key, IVirtualEntry& entry) const = 0;
+        virtual void onEntry(const String& key, IVirtualEntry& entry) const = 0;
     };
 
     /// \brief Enumerates all entries stored in the settings.

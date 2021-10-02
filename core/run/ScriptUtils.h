@@ -16,6 +16,15 @@
 #include <chaiscript/chaiscript.hpp>
 #include <numeric>
 
+#ifdef SPH_WIN
+#if defined(min)
+#undef min
+#endif
+#if defined(max)
+#undef max
+#endif
+#endif
+
 NAMESPACE_SPH_BEGIN
 
 namespace Chai {

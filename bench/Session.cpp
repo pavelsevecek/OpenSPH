@@ -8,7 +8,7 @@ NAMESPACE_BENCHMARK_BEGIN
 
 Session::Session() {
     logger = makeAuto<StdOutLogger>();
-    logger->setPrecision(3);
+    logger->setPrecision(4);
     logger->setScientific(false);
 }
 
@@ -23,7 +23,7 @@ Session& Session::getInstance() {
     return *instance;
 }
 
-void Session::registerBenchmark(const SharedPtr<Unit>& benchmark, const std::string& groupName) {
+void Session::registerBenchmark(const SharedPtr<Unit>& benchmark, const String& groupName) {
     for (SharedPtr<Unit>& b : benchmarks) {
         if (b->getName() == benchmark->getName()) {
             status = makeFailed("Benchmark " + b->getName() + " defined more than once");
@@ -65,7 +65,7 @@ void Session::run(int argc, char* argv[]) {
     for (SharedPtr<Unit>& b : benchmarks) {
         if (!params.benchmarksToRun.empty()) {
             // check if we want to run the benchmark
-            Array<std::string>& names = params.benchmarksToRun;
+            Array<String>& names = params.benchmarksToRun;
             if (std::find(names.begin(), names.end(), b->getName()) == names.end()) {
                 continue;
             }
@@ -91,7 +91,7 @@ void Session::run(int argc, char* argv[]) {
                     if (baseline.isRecorded(b->getName())) {
                         Result result = baseline[b->getName()];
                         SPH_ASSERT(result.iterateCnt == act->iterateCnt, result.iterateCnt, act->iterateCnt);
-                        this->log(b->getName() + " ran " + std::to_string(act->iterateCnt) + " iterations");
+                        this->log(b->getName() + " ran " + toString(act->iterateCnt) + " iterations");
                         this->compareResults(act.value(), result);
                     } else {
                         this->log(b->getName() + " not recorded in the baseline");
@@ -118,7 +118,7 @@ void Session::run(int argc, char* argv[]) {
                 }
             }
         } catch (const std::exception& e) {
-            this->logError("Exception caught in benchmark " + b->getName() + ":\n" + e.what());
+            this->logError("Exception caught in benchmark " + b->getName() + ":\n" + exceptionMessage(e));
             return;
         }
     }
@@ -126,19 +126,19 @@ void Session::run(int argc, char* argv[]) {
 
 Path Session::getBaselinePath() {
     /// \todo mode these paths to some config
-    Expected<std::string> sha = getGitCommit(Path("../../src/"), params.baseline.commit);
+    Expected<String> sha = getGitCommit(Path("."), params.baseline.commit);
     if (!sha) {
         this->logError("Cannot determine git commit SHA");
         return Path("");
     }
     this->log("Baseline for commit " + sha.value());
-    return Path("../../baseline/") / Path(sha.value());
+    return Path(L"perf-" + sha->substr(0, 8) + ".csv");
 }
 
-void Session::writeBaseline(const std::string& name, const Result& measured) {
+void Session::writeBaseline(const String& name, const Result& measured) {
     FileLogger logger(params.baseline.path, FileLogger::Options::APPEND);
     // clang-format off
-    logger.write(name, " / ", measured.duration, ", ", measured.iterateCnt, ", ",
+    logger.write(name, ", ", measured.duration, ", ", measured.iterateCnt, ", ",
         measured.mean, ", ", measured.variance, ", ", measured.min, ", ", measured.max);
     // clang-format on
 }
@@ -158,7 +158,7 @@ void Session::compareResults(const Result& measured, const Result& baseline) {
     }
 }
 
-Group& Session::getGroupByName(const std::string& groupName) {
+Group& Session::getGroupByName(const String& groupName) {
     for (Group& group : groups) {
         if (group.getName() == groupName) {
             return group;
@@ -171,7 +171,7 @@ Group& Session::getGroupByName(const std::string& groupName) {
 
 Outcome Session::parseArgs(int argc, char* argv[]) {
     for (int i = 1; i < argc; ++i) { // first arg is path to the executable
-        std::string arg = argv[i];
+        String arg = String::fromAscii(argv[i]);
         SPH_ASSERT(!arg.empty());
         if (arg == "-b") {
             params.flags.set(Flag::MAKE_BASELINE);
@@ -223,7 +223,7 @@ void Session::logError(TArgs&&... args) {
     logger->write(std::forward<TArgs>(args)...);
 }
 
-Register::Register(const SharedPtr<Unit>& benchmark, const std::string& groupName) {
+Register::Register(const SharedPtr<Unit>& benchmark, const String& groupName) {
     Session::getInstance().registerBenchmark(benchmark, groupName);
 }
 

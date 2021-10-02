@@ -4,6 +4,7 @@
 #include "gui/objects/Point.h"
 #include "math/Curve.h"
 #include "objects/containers/Array.h"
+#include "objects/containers/String.h"
 #include "objects/wrappers/Function.h"
 #include "objects/wrappers/Optional.h"
 #include <algorithm>
@@ -84,8 +85,8 @@ private:
     Curve curve;
 
 public:
-    CurveProperty(const wxString& label, const Curve& curve)
-        : wxStringProperty(label, "curve")
+    CurveProperty(const String& label, const Curve& curve)
+        : wxStringProperty(label.toUnicode(), "curve")
         , curve(curve) {}
 
     virtual const wxPGEditor* DoGetEditorClass() const override {

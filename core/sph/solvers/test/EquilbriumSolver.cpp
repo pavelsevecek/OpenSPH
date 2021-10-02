@@ -34,7 +34,7 @@ TEST_CASE("EquilibriumStressSolver no forces", "[equilibriumsolver]") {
     auto test = [&](const Size i) -> Outcome {
         if (p[i] != 0._f || s[i] != TracelessTensor(0._f) || u[i] != 0._f) {
             return makeFailed(
-                "Invalid solutions for r = ", r[i], "\n p = ", p[i], "\n u = ", u[i], "\n s = ", s[i]);
+                "Invalid solutions for r = {}\n p = {}\n u = {}\n s = {}", r[i], p[i], u[i], s[i]);
         }
         return SUCCESS;
     };
@@ -88,7 +88,7 @@ TEST_CASE("EquilibriumStressSolver pressure", "[equilibriumsolver]") {
         }
         const Float p0 = expected(getLength(r[i]));
         if (p[i] != approx(p0, 0.05_f)) {
-            return makeFailed("Incorrect pressure: \n", p[i], " == ", p0);
+            return makeFailed("Incorrect pressure: \n{} == {}", p[i], p0);
         }
         return SUCCESS;
     };

@@ -41,7 +41,14 @@ INLINE Float minElement(const T& value) {
 /// \brief Checks for nans and infs.
 template <typename T>
 INLINE bool isReal(const T& value) {
+    static_assert(
+        std::is_floating_point<T>::value, "isReal needs to be specialized for non-floating-point types.");
     return !std::isnan(value) && !std::isinf(value);
+}
+
+template <>
+INLINE bool isReal(const Size& UNUSED(value)) {
+    return true;
 }
 
 /// \brief Compares two objects of the same time component-wise.

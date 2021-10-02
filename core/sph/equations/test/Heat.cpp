@@ -68,7 +68,7 @@ TEST_CASE("Heat Diffusion 1D", "[heat]") {
     auto test = [&](const Size i) -> Outcome {
         const Float u0 = solution(r[i][X]);
         if (abs(u[i] - u0) > 20._f) { // absolute difference rather than approx (relative)
-            return makeFailed("Incorrect solution: ", u[i], " == ", u0);
+            return makeFailed("Incorrect solution: {} == {}", u[i], u0);
         }
         return SUCCESS;
     };

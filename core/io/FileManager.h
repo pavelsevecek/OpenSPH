@@ -2,7 +2,7 @@
 
 #include "io/Path.h"
 #include "math/rng/Rng.h"
-#include <set>
+#include "objects/containers/FlatSet.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -12,7 +12,7 @@ NAMESPACE_SPH_BEGIN
 /// paths are requested from given path, it throws an exception.
 class UniquePathManager : public Noncopyable {
 private:
-    std::set<Path> usedPaths;
+    FlatSet<Path> usedPaths;
 
 public:
     /// \brief Generates a unique path, based on given input path.
@@ -23,14 +23,27 @@ public:
     Path getPath(const Path& expected);
 };
 
+/// \brief Object generating unique names.
+///
+/// Similar to \ref UniquePathManager, but does not include file extensions.
+class UniqueNameManager {
+private:
+    FlatSet<String> names;
+
+public:
+    UniqueNameManager() = default;
+
+    explicit UniqueNameManager(ArrayView<const String> initial);
+
+    String getName(const String& name);
+};
+
 /// \brief Generates random file names.
 ///
 /// Object generates random paths, given a parent directory. It has no seed, so each constructed object
 /// generates a different sequence of random paths. This does not create the file, only returns a usable path;
 /// it is guaranteed that no file with returned path exist, provided no other thread or process is creating
 /// random file names at the same time.
-///
-/// \todo TESTS!
 class RandomPathManager : public Noncopyable {
 private:
     UniformRng rng;
@@ -44,7 +57,7 @@ public:
     /// \brief Generates a new random path.
     ///
     /// \param extension Optional extension of the generated path. If empty, the path has no extension.
-    Path getPath(const std::string extension = "");
+    Path getPath(const String& extension = "");
 };
 
 

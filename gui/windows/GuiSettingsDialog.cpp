@@ -47,7 +47,7 @@ GuiSettingsDialog::GuiSettingsDialog(wxWindow* parent)
     colorizerIds = getColorizerIds();
     for (const ExtColorizerId& id : colorizerIds) {
         SharedPtr<IColorizer> colorizer = Factory::getColorizer(project, id);
-        colorizerBox->Append(colorizer->name());
+        colorizerBox->Append(colorizer->name().toUnicode());
         if (id == defaultId) {
             colorizerBox->SetSelection(colorizerBox->GetCount() - 1);
         }
@@ -89,8 +89,8 @@ GuiSettingsDialog::GuiSettingsDialog(wxWindow* parent)
     wxBoxSizer* overplotSizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* overplotText = new wxStaticText(plotBox->GetStaticBox(), wxID_ANY, "Reference SFD");
     overplotSizer->Add(overplotText, 0, wxALIGN_CENTER_VERTICAL);
-    const std::string overplotSfd = gui.get<std::string>(GuiSettingsId::PLOT_OVERPLOT_SFD);
-    overplotPath = new wxTextCtrl(plotBox->GetStaticBox(), wxID_ANY, overplotSfd);
+    const String overplotSfd = gui.get<String>(GuiSettingsId::PLOT_OVERPLOT_SFD);
+    overplotPath = new wxTextCtrl(plotBox->GetStaticBox(), wxID_ANY, overplotSfd.toUnicode());
     overplotPath->Enable(plotFlags.hasAny(PlotEnum::CURRENT_SFD, PlotEnum::PREDICTED_SFD));
     overplotPath->SetMinSize(wxSize(250, -1));
     overplotSizer->AddStretchSpacer(1);
@@ -123,7 +123,7 @@ GuiSettingsDialog::GuiSettingsDialog(wxWindow* parent)
     overplotBrowse->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
         Optional<Path> path = doOpenFileDialog("Select reference SFD", {});
         if (path) {
-            overplotPath->SetValue(path->native());
+            overplotPath->SetValue(path->string().toUnicode());
         }
     });
 
@@ -147,7 +147,7 @@ void GuiSettingsDialog::commit() {
     gui.set(GuiSettingsId::PLOT_INTEGRALS, enabledPlots);
 
     gui.set(GuiSettingsId::PLOT_INITIAL_PERIOD, Float(periodCtrl->getValue()));
-    gui.set(GuiSettingsId::PLOT_OVERPLOT_SFD, std::string(overplotPath->GetValue()));
+    gui.set(GuiSettingsId::PLOT_OVERPLOT_SFD, String(overplotPath->GetValue()));
 
     this->EndModal(wxID_OK);
 }

@@ -1,3 +1,26 @@
+## 2021-10-01
+- flipped mouse rotation in y-direction
+
+## 2021-08-25
+- added parallelInvoke to IScheduler
+- using parallelInvoke to parallelize tree traversal
+- parallelized Storage::zeroHighestDerivatives
+- fixed incorrect node drawing on wxGTK3
+
+## 2021-08-24
+- optimized BarnesHut gravity using constexpr functions
+- persistent layout of panes
+- added performance tests to CI
+
+## 2021-08-21
+- added support for Unicode
+
+## 2021-08-18
+- ported OpenSPH to Windows!
+- various fixes and tweaks made along the way
+- changed extension of the 'compressed' output to .sdf (.scf is taken on Windows)
+- added support for oneTBB
+
 ## 2021-08-12
 - optimized preview render refresh when palette changes
 - volumetric renderer: made emission independent of smoothing lengths

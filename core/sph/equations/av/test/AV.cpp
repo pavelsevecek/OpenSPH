@@ -61,12 +61,12 @@ TEMPLATE_TEST_CASE("AV shockwave", "[av]", StandardAV, RiemannAV) {
                 return SUCCESS;
             } else {
                 return makeFailed(
-                    "no acceleration or heating:\nr = ", r[i], "\ndv = ", dv[i], "\ndu = ", du[i]);
+                    "no acceleration or heating:\nr == {}\ndv == {}\ndu == {}", r[i], dv[i], du[i]);
             }
         }
         if (abs(r[i][X]) > 2._f) {
             return makeOutcome(dv[i] == Vector(0._f) && du[i] == 0._f,
-                "acceleration or heating in steady flow: ",
+                "acceleration or heating in steady flow: {}, {}",
                 dv[i],
                 du[i]);
         }

@@ -9,6 +9,8 @@
 NAMESPACE_SPH_BEGIN
 
 class Path;
+class ITextInputStream;
+class ITextOutputStream;
 
 enum class PaletteScale {
     /// Control points are interpolated on linear scale
@@ -81,13 +83,13 @@ public:
     bool empty() const;
 
     /// \brief Loads the palette from given input stream.
-    Outcome loadFromStream(std::istream& ifs);
+    Outcome loadFromStream(ITextInputStream& ifs);
 
     /// \brief Loads the palette from given .csv file.
     Outcome loadFromFile(const Path& path);
 
     /// \brief Saves the palettes into given output stream.
-    Outcome saveToStream(std::ostream& ofs, const Size lineCnt = 256) const;
+    Outcome saveToStream(ITextOutputStream& ofs, const Size lineCnt = 256) const;
 
     /// \brief Saves the palette to a .csv file.
     Outcome saveToFile(const Path& path, const Size lineCnt = 256) const;

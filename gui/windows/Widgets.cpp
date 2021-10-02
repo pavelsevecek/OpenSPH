@@ -1,5 +1,6 @@
 #include "gui/windows/Widgets.h"
-#include "objects/utility/StringUtils.h"
+#include "gui/MainLoop.h"
+#include "gui/Utils.h"
 #include "thread/CheckFunction.h"
 #include <wx/msgdlg.h>
 #include <wx/propgrid/propgrid.h>
@@ -24,8 +25,14 @@ FloatTextCtrl::FloatTextCtrl(wxWindow* parent, const double value, const Interva
         wxTE_PROCESS_ENTER | wxTE_RIGHT,
         *validator);
 
-    this->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent& UNUSED(evt)) { this->validate(); });
-    this->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& UNUSED(evt)) { this->validate(); });
+    this->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent& evt) {
+        this->validate();
+        evt.Skip();
+    });
+    this->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& evt) {
+        this->validate();
+        evt.Skip();
+    });
 
     this->validate();
 }
@@ -65,11 +72,11 @@ void FloatTextCtrl::validate() {
 
 class WaitDialog : public wxDialog {
 public:
-    WaitDialog(wxWindow* parent, const std::string& message)
+    WaitDialog(wxWindow* parent, const String& message)
         : wxDialog(parent, wxID_ANY, "Info", wxDefaultPosition, wxDefaultSize, wxCAPTION | wxSYSTEM_MENU) {
         const wxSize size = wxSize(320, 90);
         this->SetSize(size);
-        wxStaticText* text = new wxStaticText(this, wxID_ANY, message);
+        wxStaticText* text = new wxStaticText(this, wxID_ANY, message.toUnicode());
         wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
         sizer->AddStretchSpacer();
         sizer->Add(text, 1, wxALIGN_CENTER_HORIZONTAL);
@@ -80,14 +87,14 @@ public:
     }
 };
 
-ClosablePage::ClosablePage(wxWindow* parent, const std::string& label)
+ClosablePage::ClosablePage(wxWindow* parent, const String& label)
     : wxPanel(parent, wxID_ANY)
     , label(label) {}
 
 bool ClosablePage::close() {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
     if (this->isRunning()) {
-        const int retval = wxMessageBox(
+        const int retval = messageBox(
             capitalize(label) + " is currently in progress. Do you want to stop it and close the window?",
             "Stop?",
             wxYES_NO | wxCENTRE);
@@ -107,7 +114,11 @@ bool ClosablePage::close() {
 
 void ClosablePage::onStopped() {
     if (dialog) {
-        dialog->EndModal(0);
+        executeOnMainThread([weakDialog = wxWeakRef<WaitDialog>(dialog)] {
+            if (weakDialog) {
+                weakDialog->EndModal(0);
+            }
+        });
     }
 }
 

@@ -92,6 +92,9 @@ public:
     /// \brief Returns iterator pointing to the one-past-the-end element of the quantity storage.
     StorageIterator end();
 
+    /// Provides random access into the sequence.
+    StorageElement operator[](const Size i) const;
+
     /// \brief Returns the number of quantities.
     Size size() const;
 };
@@ -114,6 +117,9 @@ public:
     /// Returns iterator pointing to the one-past-the-end element of the quantity storage.
     ConstStorageIterator end();
 
+    /// Provides random access into the sequence.
+    ConstStorageElement operator[](const Size i) const;
+
     /// Returns the number of quantities.
     Size size() const;
 };
@@ -126,7 +132,7 @@ class InvalidStorageAccess : public Exception {
 public:
     explicit InvalidStorageAccess(const QuantityId id);
 
-    explicit InvalidStorageAccess(const std::string& message);
+    explicit InvalidStorageAccess(const String& message);
 };
 
 /// \brief Container storing all quantities used within the simulations.
@@ -498,7 +504,7 @@ public:
     /// \brief Sets all highest-level derivatives of quantities to zero.
     ///
     /// Other values are unchanged.
-    void zeroHighestDerivatives();
+    void zeroHighestDerivatives(IScheduler& scheduler);
 
     enum class IndicesFlag {
         /// Use if the given array is already sorted (optimization)

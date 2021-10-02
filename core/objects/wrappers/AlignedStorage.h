@@ -7,7 +7,11 @@
 
 #include "common/Assert.h"
 #include "common/Traits.h"
+#ifndef SPH_WIN
 #include <mm_malloc.h>
+#else
+#include <malloc.h>
+#endif
 
 NAMESPACE_SPH_BEGIN
 
@@ -49,13 +53,16 @@ INLINE bool isAligned(const T& value) {
 /// constructed multiple times. This is left to the user.
 
 // dereferencing type-punned pointer will break strict-aliasing rules
+#ifndef SPH_WIN
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
+#endif
 /// \todo It's weird that GCC issues this warning as we are using __may_alias__ attribute. Perhaps a bug?
 
 template <typename Type>
 class AlignedStorage {
 private:
-    struct __attribute__((__may_alias__)) Holder {
+    struct SPH_MAY_ALIAS Holder {
         alignas(Type) char storage[sizeof(Type)];
     } holder;
 
@@ -131,5 +138,8 @@ public:
     }
 };
 
+#ifndef SPH_WIN
+#pragma GCC diagnostic pop
+#endif
 
 NAMESPACE_SPH_END

@@ -51,13 +51,13 @@ TEST_CASE("IncrementalFinder findAll", "[incrementalfinder]") {
 
         if (neighs2.size() != neighs1.size()) {
             finder.findAll(points[i], 0.2_f, neighs2);
-            return makeFailed("Different number of neighbors.\n", neighs1.size(), " == ", neighs2.size());
+            return makeFailed("Different number of neighbors.\n{} == {}", neighs1.size(), neighs2.size());
         }
         for (Size i = 0; i < neighs1.size(); ++i) {
             const Vector p1 = neighs1[i];
             const Vector p2 = neighs2[i];
             if (p1 != p2) {
-                return makeFailed("Different neighbor found.\n", p1, " == ", p2);
+                return makeFailed("Different neighbor found.\n{} == {}", p1, p2);
             }
         }
         return SUCCESS;

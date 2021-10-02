@@ -26,11 +26,11 @@ RunSelectDialog::RunSelectDialog(wxWindow* parent, Array<SharedPtr<JobNode>>&& n
     for (auto& node : this->nodes) {
         wxListItem item;
         item.SetId(index);
-        item.SetText(node->instanceName());
+        item.SetText(node->instanceName().toUnicode());
         item.SetColumn(0);
         list->InsertItem(item);
 
-        list->SetItem(index, 1, node->className());
+        list->SetItem(index, 1, node->className().toUnicode());
 
         ++index;
     }

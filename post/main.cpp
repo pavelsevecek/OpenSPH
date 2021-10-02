@@ -8,7 +8,6 @@
 #include "io/Output.h"
 #include "objects/Exceptions.h"
 #include "objects/containers/ArrayRef.h"
-#include "objects/utility/StringUtils.h"
 #include "physics/Functions.h"
 #include "post/Analysis.h"
 #include "post/StatisticTests.h"
@@ -42,13 +41,13 @@ int pkdgravToSfd(const Path& filePath, const Path& sfdPath) {
     std::cout << "Processing pkdgrav file ... " << std::endl;
     Expected<Storage> storage = parsePkdgravOutput(filePath);
     if (!storage) {
-        std::cout << "Invalid file: " << storage.error() << std::endl;
+        std::wcout << "Invalid file: " << storage.error() << std::endl;
         return 0;
     }
     Post::HistogramParams params;
     Array<Post::HistPoint> sfd = Post::getCumulativeHistogram(
         storage.value(), Post::HistogramId::EQUIVALENT_MASS_RADII, Post::HistogramSource::PARTICLES, params);
-    FileLogger logRadiiSfd(sfdPath, FileLogger::Options::KEEP_OPENED);
+    FileLogger logRadiiSfd(sfdPath, EMPTY_FLAGS);
     for (Post::HistPoint& p : sfd) {
         logRadiiSfd.write(p.value, "  ", p.count);
     }
@@ -59,7 +58,7 @@ int pkdgravToOmega(const Path& filePath, const Path& omegaPath) {
     std::cout << "Processing pkdgrav file ... " << std::endl;
     Expected<Storage> storage = parsePkdgravOutput(filePath);
     if (!storage) {
-        std::cout << "Invalid file: " << storage.error() << std::endl;
+        std::wcout << "Invalid file: " << storage.error() << std::endl;
         return 0;
     }
     /*Post::HistogramParams params;
@@ -69,7 +68,7 @@ int pkdgravToOmega(const Path& filePath, const Path& omegaPath) {
     params.validator = [](const Float value) { return value > 0._f; };*/
 
     // Array<Post::SfdPoint> sfd = Post::getDifferentialSfd(storage.value(), params);
-    FileLogger logOmegaSfd(omegaPath, FileLogger::Options::KEEP_OPENED);
+    FileLogger logOmegaSfd(omegaPath, EMPTY_FLAGS);
     /*for (Post::SfdPoint& p : sfd) {
         logOmegaSfd.write(p.value, "  ", p.count);
     }*/
@@ -112,7 +111,7 @@ int ssfToSfd(const Post::HistogramSource source, const Path& filePath, const Pat
     Post::HistogramParams params;
     Array<Post::HistPoint> sfd =
         Post::getCumulativeHistogram(storage, Post::HistogramId::EQUIVALENT_MASS_RADII, source, params);
-    FileLogger logSfd(sfdPath, FileLogger::Options::KEEP_OPENED);
+    FileLogger logSfd(sfdPath, EMPTY_FLAGS);
     for (Post::HistPoint& p : sfd) {
         logSfd.write(p.value, "  ", p.count);
     }
@@ -150,7 +149,7 @@ int ssfToOmega(const Path& filePath,
     Array<Post::HistPoint> sfd = Post::getDifferentialHistogram(
         storage, Post::HistogramId::ROTATIONAL_FREQUENCY, Post::HistogramSource::PARTICLES, params);
 
-    FileLogger logOmega(omegaPath, FileLogger::Options::KEEP_OPENED);
+    FileLogger logOmega(omegaPath, EMPTY_FLAGS);
     for (Post::HistPoint& p : sfd) {
         logOmega.write(p.value, "  ", p.count); // / sum);
     }
@@ -159,7 +158,7 @@ int ssfToOmega(const Path& filePath,
     Array<Post::HistPoint> dirs = Post::getDifferentialHistogram(
         storage, Post::HistogramId::ROTATIONAL_AXIS, Post::HistogramSource::PARTICLES, params);
 
-    FileLogger logOmegaDir(omegaDirPath, FileLogger::Options::KEEP_OPENED);
+    FileLogger logOmegaDir(omegaDirPath, EMPTY_FLAGS);
     for (Post::HistPoint& p : dirs) {
         logOmegaDir.write(p.value, "  ", p.count);
     }
@@ -173,7 +172,7 @@ int ssfToOmega(const Path& filePath,
     }
 
 
-    FileLogger logOmegaD(omegaDPath, FileLogger::Options::KEEP_OPENED);
+    FileLogger logOmegaD(omegaDPath, EMPTY_FLAGS);
     for (Size i = 0; i < m.size(); ++i) {
         if (m[i] > 3._f * params.massCutoff * m_total) {
             // in m vs. rev/day
@@ -222,7 +221,7 @@ int ssfToVelocity(const Path& filePath, const Path& outPath) {
     Array<Post::HistPoint> hist = Post::getDifferentialHistogram(
         storage, Post::HistogramId::VELOCITIES, Post::HistogramSource::COMPONENTS, params);
 
-    FileLogger logSfd(outPath, FileLogger::Options::KEEP_OPENED);
+    FileLogger logSfd(outPath, EMPTY_FLAGS);
     for (Post::HistPoint& p : hist) {
         logSfd.write(p.value, "  ", p.count);
     }
@@ -276,7 +275,7 @@ void ssfToVelDir(const Path& filePath, const Path& outPath) {
     params.range = Interval(0._f, 360._f);
     params.binCnt = 72; // 5 deg bins
     Array<Post::HistPoint> hist = Post::getDifferentialHistogram(dirs, params);
-    FileLogger logSfd(outPath, FileLogger::Options::KEEP_OPENED);
+    FileLogger logSfd(outPath, EMPTY_FLAGS);
     for (Post::HistPoint& p : hist) {
         logSfd.write(p.value, "  ", p.count);
     }
@@ -284,31 +283,31 @@ void ssfToVelDir(const Path& filePath, const Path& outPath) {
 
 struct HarrisAsteroid {
     Optional<Size> number;
-    std::string name;
+    String name;
     Optional<Float> radius;
     Optional<Float> period;
 };
 
-static Array<HarrisAsteroid> loadHarris(std::ifstream& ifs) {
+static Array<HarrisAsteroid> loadHarris(std::wifstream& ifs) {
     Array<HarrisAsteroid> harris;
     while (ifs) {
-        std::string dummy;
-        std::string number;
+        String dummy;
+        String number;
         ifs >> number >> dummy;
 
-        std::string name;
+        String name;
         ifs >> name;
         for (int i = 0; i < 6; ++i) {
             ifs >> dummy;
         }
 
-        std::string radius;
+        String radius;
         ifs >> radius;
         for (int i = 0; i < 5; ++i) {
             ifs >> dummy;
         }
 
-        std::string period;
+        String period;
         ifs >> period;
         for (int i = 0; i < 10; ++i) {
             ifs >> dummy;
@@ -326,13 +325,13 @@ static Array<HarrisAsteroid> loadHarris(std::ifstream& ifs) {
 
 struct FamilyAsteroid {
     Optional<Size> number;
-    Optional<std::string> name;
+    Optional<String> name;
 };
 
-static Array<FamilyAsteroid> loadFamilies(std::ifstream& ifs) {
+static Array<FamilyAsteroid> loadFamilies(std::wifstream& ifs) {
     SPH_ASSERT(ifs);
     Array<FamilyAsteroid> asteroids;
-    std::string line;
+    std::wstring line;
     bool firstLine = true;
     int format = 1;
     while (std::getline(ifs, line)) {
@@ -346,12 +345,12 @@ static Array<FamilyAsteroid> loadFamilies(std::ifstream& ifs) {
             continue;
         }
         firstLine = false;
-        std::stringstream ss(line);
+        std::wstringstream ss(line);
         // both formats start with asteroid number
-        std::string number;
+        String number;
         ss >> number;
         if (format == 2) {
-            std::string name;
+            String name;
             ss >> name;
             asteroids.push(FamilyAsteroid{ fromString<Size>(number), name });
         } else {
@@ -393,7 +392,7 @@ static Optional<Post::KsResult> printDvsOmega(const Path& familyData,
     ArrayView<const HarrisAsteroid> catalog,
     Array<PlotPoint>& outPoints) {
 
-    std::ifstream ifs(familyData.native());
+    std::wifstream ifs(familyData.native());
     SPH_ASSERT(ifs);
     Array<FamilyAsteroid> family = loadFamilies(ifs);
     Array<HarrisAsteroid> found;
@@ -412,7 +411,7 @@ static Optional<Post::KsResult> printDvsOmega(const Path& familyData,
     }
 
     FileSystem::createDirectory(outputPath.parentPath());
-    std::ofstream ofs(outputPath.native());
+    std::wofstream ofs(outputPath.native());
     SPH_ASSERT(ofs);
 
     auto compare = [](HarrisAsteroid& ast1, HarrisAsteroid& ast2) {
@@ -426,9 +425,9 @@ static Optional<Post::KsResult> printDvsOmega(const Path& familyData,
     for (HarrisAsteroid& ast : found) {
         const Float omega = periodToOmega(ast.period.value());
         if (&ast != &*largestRemnant) {
-            std::string printedName = ast.name;
+            String printedName = ast.name;
             if (ast.number) {
-                printedName = "(" + std::to_string(ast.number.value()) + ") " + printedName;
+                printedName = "(" + toString(ast.number.value()) + ") " + printedName;
             }
             ofs << ast.radius.value() << "  " << omega << "   " << printedName << std::endl;
         }
@@ -445,7 +444,7 @@ static Optional<Post::KsResult> printDvsOmega(const Path& familyData,
     if (points.size() > 36) {
         const Path histPath = Path("histogram") / outputPath.fileName();
         FileSystem::createDirectory(histPath.parentPath());
-        std::ofstream histofs(histPath.native());
+        std::wofstream histofs(histPath.native());
         Array<Float> values;
         for (PlotPoint& p : points) {
             values.push(p.y);
@@ -462,7 +461,7 @@ static Optional<Post::KsResult> printDvsOmega(const Path& familyData,
     return result;
 }
 
-static std::string elliptize(const std::string& s, const Size maxSize) {
+static String elliptize(const String& s, const Size maxSize) {
     SPH_ASSERT(maxSize >= 5);
     if (s.size() < maxSize) {
         return s;
@@ -473,7 +472,7 @@ static std::string elliptize(const std::string& s, const Size maxSize) {
 
 void processHarrisFile() {
     Path harrisPath("/home/pavel/projects/astro/asteroids/grant3/harris.out");
-    std::ifstream ifs(harrisPath.native());
+    std::wifstream ifs(harrisPath.native());
     Array<HarrisAsteroid> harris = loadHarris(ifs);
     ifs.close();
 
@@ -529,11 +528,11 @@ void processHarrisFile() {
     parallelFor(pool, 0, paths.size(), [&](const Size index) {
         {
             std::unique_lock<std::mutex> lock(printMutex);
-            std::cout << paths[index].native() << std::endl;
+            std::wcout << paths[index].string() << std::endl;
         }
         const Path name = paths[index].fileName();
-        const Path targetPath = Path("D_omega") / Path(name.native() + ".txt");
-        const Path ksPath = Path("KS") / Path(name.native() + ".txt");
+        const Path targetPath = Path("D_omega") / Path(name.string() + ".txt");
+        const Path ksPath = Path("KS") / Path(name.string() + ".txt");
         Array<PlotPoint> points;
         Optional<Post::KsResult> ks = printDvsOmega(parentPath / paths[index], targetPath, harris, points);
 
@@ -542,7 +541,7 @@ void processHarrisFile() {
             return;
         }
         if (ks) {
-            kss << std::left << std::setw(35) << elliptize(Path(name).removeExtension().native(), 30)
+            kss << std::left << std::setw(35) << elliptize(Path(name).removeExtension().string(), 30)
                 << std::setw(15) << ks->D << std::setw(15) << ks->prob << std::endl;
         }
         for (PlotPoint p : points) {
@@ -625,8 +624,8 @@ void makeSwift(const Path& filePath) {
         logger.write("0");
         logger.write("0.0");
     }*/
-    std::ifstream ifs(filePath.native());
-    std::string line;
+    std::wifstream ifs(filePath.native());
+    std::wstring line;
 
     Array<Float> rs;
     while (std::getline(ifs, line)) {
@@ -773,51 +772,58 @@ int main(int argc, char** argv) {
     }
     try {
 
-        std::string mode(argv[1]);
+        String mode = String::fromAscii(argv[1]);
         if (mode == "pkdgravToSfd") {
             if (argc < 4) {
                 std::cout << "Expected parameters: post pkdgravToSfd ss.50000.bt sfd.txt";
                 return 0;
             }
-            return pkdgravToSfd(Path(argv[2]), Path(argv[3]));
+            return pkdgravToSfd(Path(String::fromAscii(argv[2])), Path(String::fromAscii(argv[3])));
         } else if (mode == "pkdgravToOmega") {
             if (argc < 4) {
                 std::cout << "Expected parameters: post pkdgravToOmega ss.50000.bt omega.txt";
                 return 0;
             }
-            return pkdgravToOmega(Path(argv[2]), Path(argv[3]));
+            return pkdgravToOmega(Path(String::fromAscii(argv[2])), Path(String::fromAscii(argv[3])));
         } else if (mode == "pkdgravToMoons") {
             if (argc < 4) {
                 std::cout << "Expected parameters: post pkdgravToMoons ss.50000.bt 0.1";
                 return 0;
             }
             const Float limit = std::atof(argv[3]);
-            return pkdgravToMoons(Path(argv[2]), limit);
+            return pkdgravToMoons(Path(String::fromAscii(argv[2])), limit);
         } else if (mode == "ssfToSfd") {
             if (argc < 4) {
                 std::cout << "Expected parameters: post ssfToSfd [--components] output.ssf sfd.txt";
                 return 0;
             }
-            if (std::string(argv[2]) == "--components") {
-                return ssfToSfd(Post::HistogramSource::COMPONENTS, Path(argv[3]), Path(argv[4]));
+            if (String(String::fromAscii(argv[2])) == "--components") {
+                return ssfToSfd(Post::HistogramSource::COMPONENTS,
+                    Path(String::fromAscii(argv[3])),
+                    Path(String::fromAscii(argv[4])));
             } else {
-                return ssfToSfd(Post::HistogramSource::PARTICLES, Path(argv[2]), Path(argv[3]));
+                return ssfToSfd(Post::HistogramSource::PARTICLES,
+                    Path(String::fromAscii(argv[2])),
+                    Path(String::fromAscii(argv[3])));
             }
         } else if (mode == "ssfToVelocity") {
-            return ssfToVelocity(Path(argv[2]), Path(argv[3]));
+            return ssfToVelocity(Path(String::fromAscii(argv[2])), Path(String::fromAscii(argv[3])));
         } else if (mode == "ssfToOmega") {
             if (argc < 6) {
                 std::cout << "Expected parameters: post ssfToOmega output.ssf omega.txt omega_D.txt "
                              "omega_dir.txt";
                 return 0;
             }
-            return ssfToOmega(Path(argv[2]), Path(argv[3]), Path(argv[4]), Path(argv[5]));
+            return ssfToOmega(Path(String::fromAscii(argv[2])),
+                Path(String::fromAscii(argv[3])),
+                Path(String::fromAscii(argv[4])),
+                Path(String::fromAscii(argv[5])));
         } else if (mode == "ssfToVelDir") {
             if (argc < 4) {
                 std::cout << "Expected parameters: post ssfToVelDir output.ssf veldir.txt" << std::endl;
                 return 0;
             }
-            ssfToVelDir(Path(argv[2]), Path(argv[3]));
+            ssfToVelDir(Path(String::fromAscii(argv[2])), Path(String::fromAscii(argv[3])));
         } else if (mode == "harris") {
             processHarrisFile();
         } else if (mode == "swift") {
@@ -825,19 +831,21 @@ int main(int argc, char** argv) {
                 std::cout << "Expected parameters: post maketp D.dat";
                 return 0;
             }
-            makeSwift(Path(argv[2]));
+            makeSwift(Path(String::fromAscii(argv[2])));
         } else if (mode == "origComponents") {
             if (argc < 5) {
                 std::cout << "Expected parameters: post origComponents lastDump.ssf firstDump.ssf "
                              "colorizedDump.ssf"
                           << std::endl;
             }
-            origComponents(Path(argv[2]), Path(argv[3]), Path(argv[4]));
+            origComponents(Path(String::fromAscii(argv[2])),
+                Path(String::fromAscii(argv[3])),
+                Path(String::fromAscii(argv[4])));
         } else if (mode == "extractLr") {
             if (argc < 4) {
                 std::cout << "Expected parameters: post extractLr input.ssf lr.ssf" << std::endl;
             }
-            extractLr(Path(argv[2]), Path(argv[3]));
+            extractLr(Path(String::fromAscii(argv[2])), Path(String::fromAscii(argv[3])));
         } else {
             printHelp();
             return 0;

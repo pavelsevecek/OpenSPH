@@ -1,42 +1,40 @@
 #include "system/Process.h"
 #include "io/FileSystem.h"
+#include "objects/Exceptions.h"
+
+#ifndef SPH_WIN
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <unistd.h>
+#endif
 
 NAMESPACE_SPH_BEGIN
 
-class ProcessException : public std::exception {
-private:
-    std::string message;
-
+class ProcessException : public Exception {
 public:
-    ProcessException(const std::string& message)
-        : message(message) {}
-
-    virtual const char* what() const noexcept override {
-        return message.c_str();
-    }
+    using Exception::Exception;
 };
 
-Process::Process(const Path& path, Array<std::string>&& args) {
+Process::Process(const Path& path, Array<String>&& args) {
     if (!FileSystem::pathExists(path)) {
-        throw ProcessException("Path " + path.native() + " does not exist");
+        throw ProcessException(format("Path '{}' does not exist", path.string()));
     }
+#ifndef SPH_WIN
     pid_t pid = fork();
     if (pid == -1) {
         throw ProcessException("Process fork failed");
     } else if (pid == 0) {
         // child process
+        Array<CharString> arguments;
         Array<char*> argv;
-        std::string fileName = path.native();
-        /// \todo hopefully c_str doesn't return pointer to some temporary stuff ...
-        argv.push(const_cast<char*>(fileName.c_str()));
-        for (std::string& arg : args) {
-            argv.push(const_cast<char*>(arg.c_str()));
+        String fileName = path.string();
+        arguments.push(fileName.toAscii());
+        for (String& arg : args) {
+            arguments.push(arg.toAscii());
+            argv.push(arguments.back());
         }
         argv.push(nullptr);
-
-        execvp(fileName.c_str(), &argv[0]);
+        execvp(path.native(), &argv[0]);
 
         // execl replaces the current process with a new one, so we should never get past the call
         throw ProcessException("Cannot execute file " + fileName);
@@ -45,14 +43,21 @@ Process::Process(const Path& path, Array<std::string>&& args) {
         // parent process, save the child pid
         childPid = pid;
     }
+#else
+    NOT_IMPLEMENTED
+#endif
 }
 
 void Process::wait() {
+#ifndef SPH_WIN
     int status;
     pid_t pid;
     do {
         pid = waitpid(childPid, &status, 0);
     } while (pid != childPid && status != -1);
+#else
+    NOT_IMPLEMENTED
+#endif
 }
 
 NAMESPACE_SPH_END

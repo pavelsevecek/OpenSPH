@@ -95,7 +95,7 @@ TEST_CASE("Setting derivatives", "[equationterm]") {
 
     // initialize, creating buffers and settings up arrayviews for derivatives
     derivatives.initialize(storage);
-    derivatives.getAccumulated().store(storage);
+    derivatives.getAccumulated().store(SEQUENTIAL, storage);
     REQUIRE(storage.getParticleCnt() == 5);
     REQUIRE(TestDerivative::initialized);
 }
@@ -167,7 +167,7 @@ TEMPLATE_TEST_CASE("NeighborCount", "[equationterm]", SymmetricSolver<3>, Asymme
         const Size cnt = finder.findAll(i, r[i][H] * radius, neighs);
         if (cnt != neighCnts[i] + 1) {
             // +1 for the particle itself
-            return makeFailed("Incorrect neighbor count for particle ", i, "\n", cnt, " == ", neighCnts[i]);
+            return makeFailed("Incorrect neighbor count for particle {}\n{} == {}", i, cnt, neighCnts[i]);
         }
         return SUCCESS;
     };
@@ -191,10 +191,8 @@ TEMPLATE_TEST_CASE("Div v of position vectors", "[equationterm]", SymmetricSolve
             return SUCCESS;
         }
         if (divv[i] != approx(3._f, 0.03_f)) {
-            // clang-format off
-            return makeFailed("Incorrect velocity divergence: \n",
-                              "divv: ", divv[i], " == -3", "\n particle: r = ", r[i]);
-            // clang-format on
+            return makeFailed(
+                "Incorrect velocity divergence: \ndivv: {} == -3\nparticle: r == {}", divv[i], r[i]);
         }
         return SUCCESS;
     };
@@ -213,12 +211,10 @@ TEMPLATE_TEST_CASE("Grad v of const field", "[equationterm]", SymmetricSolver<3>
     auto test = [&](const Size i) -> Outcome {
         // here we ALWAYS subtract two equal values, so the result should be zero EXACTLY
         if (gradv[i] != SymmetricTensor::null()) {
-            // clang-format off
-            return makeFailed("Invalid grad v"
-                              "\n r = ", r[i],
-                              "\n grad v = ", gradv[i],
-                              "\n expected = ", SymmetricTensor::null());
-            // clang-format on
+            return makeFailed("Invalid grad v\n r == {}\n grad v == {}\n expected == {}",
+                r[i],
+                gradv[i],
+                SymmetricTensor::null());
         }
         return SUCCESS;
     };
@@ -238,12 +234,10 @@ TEMPLATE_TEST_CASE("Grad v of position vector", "[equationterm]", SymmetricSolve
             return SUCCESS;
         }
         if (gradv[i] != approx(SymmetricTensor::identity(), 0.05_f)) {
-            // clang-format off
-            return makeFailed("Invalid grad v"
-                              "\n r = ", r[i],
-                              "\n grad v = ", gradv[i],
-                              "\n expected = ", SymmetricTensor::identity());
-            // clang-format on
+            return makeFailed("Invalid grad v\n r == {}\n grad v == {}\n expected == {}",
+                r[i],
+                gradv[i],
+                SymmetricTensor::identity());
         }
         return SUCCESS;
     };
@@ -271,12 +265,8 @@ TEMPLATE_TEST_CASE("Grad v of non-trivial field", "[equationterm]", SymmetricSol
         SymmetricTensor expected(
             Vector(sqr(y), 0._f, Sph::cos(z)), Vector(0.5_f * (1._f + 2._f * x * y), 0._f, 0.25_f));
         if (gradv[i] != approx(expected, 0.05_f)) {
-            // clang-format off
-            return makeFailed("Invalid grad v"
-                              "\n r = ", r[i],
-                              "\n grad v = ", gradv[i],
-                              "\n expected = ", expected);
-            // clang-format on
+            return makeFailed(
+                "Invalid grad v\n r == {}\n grad v == {}\n expected == {}", r[i], gradv[i], expected);
         }
         return SUCCESS;
     };
@@ -304,12 +294,8 @@ static void testRotation(QuantityId id) {
         const Float z = r[i][Z];
         Vector expected(Sph::cos(y) - 0.5_f, sqr(y) - 0._f, 1._f - 2._f * z * y);
         if (rotV[i] != approx(expected, 0.03_f)) {
-            // clang-format off
-                 return makeFailed("Invalid rot v"
-                                   "\n r = ", r[i],
-                                   "\n rot v = ", rotV[i],
-                                   "\n expected = ", expected);
-            // clang-format on
+            return makeFailed(
+                "Invalid rot v\n r == {}\n rot v == {}\n expected == {}", r[i], rotV[i], expected);
         }
         return SUCCESS;
     };
@@ -380,12 +366,8 @@ TEMPLATE_TEST_CASE("Laplacian vector", "[equationterm]", SymmetricSolver<3>, Asy
                           + Vector(2._f * sqr(x), 0._f, 0._f)                 // d^2v/dy^2
                           + Vector(0._f, -0.5_f * Sph::cos(z), -Sph::sin(z)); // d^2v/dz^2
         if (divGradV[i] != approx(expected, 0.05_f)) {
-            // clang-format off
-            return makeFailed("Invalid laplacian"
-                              "\n r = ", r[i],
-                              "\n Delta v = ", divGradV[i],
-                              "\n expected = ", expected);
-            // clang-format on
+            return makeFailed(
+                "Invalid laplacian\n r == {}\n Delta v == {}\n expected == {}", r[i], divGradV[i], expected);
         }
         return SUCCESS;
     };
@@ -454,12 +436,10 @@ TEMPLATE_TEST_CASE("Gradient of divergence", "[equationterm]", SymmetricSolver<3
         // div v = 2*x*y^2 + 0 + cos(z)
         Vector expected(2._f * sqr(y), 4._f * x * y, -Sph::sin(z));
         if (gradDivV[i] != approx(expected, 0.05_f)) {
-            // clang-format off
-            return makeFailed("Invalid gradient of divergence"
-                              "\n r = ", r[i],
-                              "\n grad div v = ", gradDivV[i],
-                              "\n expected = ", expected);
-            // clang-format on
+            return makeFailed("Invalid gradient of divergence.\n r == {}\n grad div v == {}\n expected == {}",
+                r[i],
+                gradDivV[i],
+                expected);
         }
         return SUCCESS;
     };
@@ -490,23 +470,21 @@ TEST_CASE("Strain rate correction", "[equationterm]") {
         // should be alpha * Id (very roughly)
         const Float det = corr[i].determinant();
         if (det > 20._f || det < 0.5_f) {
-            return makeFailed("Invalid correction tensor: C[i] == ", corr[i]);
+            return makeFailed("Invalid correction tensor: C[i] == {}", corr[i]);
         }
         const SymmetricTensor expected = root<3>(det) * SymmetricTensor::identity();
         if (corr[i].diagonal() != approx(expected.diagonal(), 0.25_f)) {
-            return makeFailed("Invalid diagonal part of correction tensor: \nC[i] == ",
+            return makeFailed("Invalid diagonal part of correction tensor: \nC[i] == {}\nexpected == {}",
                 corr[i].diagonal(),
-                "\nexpected == ",
                 expected.diagonal());
         }
         if (corr[i].offDiagonal() != approx(expected.offDiagonal(), 0.3_f * root<3>(det))) {
-            return makeFailed("Invalid off-diagonal part of correction tensor: \nC[i] == ",
+            return makeFailed("Invalid off-diagonal part of correction tensor: \nC[i] == {}\nexpected == {}",
                 corr[i].offDiagonal(),
-                "\nexpected == ",
                 expected.offDiagonal());
         }
         if (corr[i] == SymmetricTensor::identity()) {
-            return makeFailed("Correction tensor is 'exactly' identity matrix: \nC[i] == ", corr[i]);
+            return makeFailed("Correction tensor is 'exactly' identity matrix: \nC[i] == {}", corr[i]);
         }
         return SUCCESS;
     };
@@ -521,7 +499,7 @@ TEST_CASE("Strain rate correction", "[equationterm]") {
         // currently results in zero, may change in the future
         if (corr[i] != SymmetricTensor::identity()) {
             return makeFailed(
-                "Correction tensors of damaged particle is not identity matrix:\nC[i] == ", corr[i]);
+                "Correction tensors of damaged particle is not identity matrix:\nC[i] == {}", corr[i]);
         }
         return SUCCESS;
     };
@@ -537,7 +515,7 @@ TEST_CASE("Strain rate correction", "[equationterm]") {
     auto test3 = [corr](Size i) -> Outcome {
         // currently results in identity matrix, may change in the future
         if (corr[i] != SymmetricTensor::identity()) {
-            return makeFailed("Incorrect inversion of singular matrix:\nC[i] == ", corr[i]);
+            return makeFailed("Incorrect inversion of singular matrix:\nC[i] == {}", corr[i]);
         }
         return SUCCESS;
     };

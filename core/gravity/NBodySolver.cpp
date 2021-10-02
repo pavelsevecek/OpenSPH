@@ -258,7 +258,7 @@ public:
     void removeByCollision(const CollisionRecord& col) {
         removeIndex(col, col.i);
         removeIndex(col, col.j);
-        const Size removed = collisions.erase(col);
+        const Size removed = Size(collisions.erase(col));
         SPH_ASSERT(removed == 1);
         checkConsistency();
     }
@@ -268,7 +268,7 @@ public:
         removed.insert(idx);
         std::tie(first, last) = indexToCollision.equal_range(idx);
         // last iterator may be invalidated, so we need to be careful
-        for (Itc itc = first; itc->first == idx && itc != indexToCollision.end();) {
+        for (Itc itc = first; itc != indexToCollision.end() && itc->first == idx;) {
             const Size otherIdx = (itc->second.i == idx) ? itc->second.j : itc->second.i;
             removed.insert(otherIdx);
             collisions.erase(itc->second);
@@ -379,8 +379,7 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
             if (!main) {
                 main = &data;
             } else {
-                main->collisions.insert(
-                    main->collisions.size(), data.collisions.begin(), data.collisions.end());
+                main->collisions.pushAll(data.collisions);
                 data.collisions.clear();
             }
         }

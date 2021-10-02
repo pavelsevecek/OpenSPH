@@ -32,7 +32,7 @@ Outcome PlyFile::save(const Path& path, ArrayView<const Triangle> triangles) {
         }
         return SUCCESS;
     } catch (const std::exception& e) {
-        return makeFailed(e.what());
+        return makeFailed(exceptionMessage(e));
     }
 }
 
@@ -131,7 +131,7 @@ Expected<Array<Triangle>> PlyFile::load(const Path& path) {
         return Expected<Array<Triangle>>(std::move(triangles));
 
     } catch (const std::exception& e) {
-        return makeUnexpected<Array<Triangle>>(e.what());
+        return makeUnexpected<Array<Triangle>>(exceptionMessage(e));
     }
 }
 
@@ -172,7 +172,7 @@ Expected<Array<Triangle>> TabFile::load(const Path& path) {
         return Expected<Array<Triangle>>(std::move(triangles));
 
     } catch (const std::exception& e) {
-        return makeUnexpected<Array<Triangle>>(e.what());
+        return makeUnexpected<Array<Triangle>>(exceptionMessage(e));
     }
 }
 
@@ -205,12 +205,12 @@ Expected<Array<Triangle>> ObjFile::load(const Path& path) {
         return Expected<Array<Triangle>>(std::move(triangles));
 
     } catch (const std::exception& e) {
-        return makeUnexpected<Array<Triangle>>(e.what());
+        return makeUnexpected<Array<Triangle>>(exceptionMessage(e));
     }
 }
 
 AutoPtr<IMeshFile> getMeshFile(const Path& path) {
-    const std::string extension = path.extension().native();
+    const String extension = path.extension().string();
     if (extension == "ply") {
         return makeAuto<PlyFile>();
     } else if (extension == "obj") {

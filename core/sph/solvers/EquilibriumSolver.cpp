@@ -294,7 +294,7 @@ Outcome EquilibriumStressSolver::solve(Storage& storage, Statistics& stats) {
     finder->build(scheduler, r);
 
     // compute right-hand side of equations by solving equations for acceleration
-    storage.zeroHighestDerivatives();
+    storage.zeroHighestDerivatives(scheduler);
     equationSolver.integrate(storage, stats);
 
     ArrayView<Float> m, rho;

@@ -3,6 +3,7 @@
 #include "gui/objects/Color.h"
 #include "gui/objects/Point.h"
 #include "gui/windows/BatchDialog.h"
+#include "io/FileManager.h"
 #include "objects/containers/UnorderedMap.h"
 #include "run/Node.h"
 #include <map>
@@ -58,13 +59,9 @@ using NodeMap = UnorderedMap<SharedPtr<JobNode>, VisNode>;
 
 class INodeManagerCallbacks : public Polymorphic {
 public:
-    virtual void startRun(SharedPtr<INode> node,
-        const RunSettings& settings,
-        const std::string& name) const = 0;
+    virtual void startRun(SharedPtr<INode> node, const RunSettings& settings, const String& name) const = 0;
 
-    virtual void startRender(SharedPtr<INode> node,
-        const RunSettings& global,
-        const std::string& name) const = 0;
+    virtual void startRender(SharedPtr<INode> node, const RunSettings& global, const String& name) const = 0;
 
     virtual void markUnsaved(bool addToUndo) const = 0;
 };
@@ -137,6 +134,12 @@ public:
 
 class NodeWindow;
 
+#ifndef SPH_WIN
+constexpr float DEFAULT_ZOOM = 1.f;
+#else
+constexpr float DEFAULT_ZOOM = 0.8f;
+#endif
+
 class NodeEditor : public wxPanel {
 private:
     SharedPtr<NodeManager> nodeMgr;
@@ -150,7 +153,7 @@ private:
         Pixel offset = Pixel(0, 0);
 
         /// Zoom of the panel.
-        float zoom = 1.f;
+        float zoom = DEFAULT_ZOOM;
 
         Optional<Pixel> mousePosition = NOTHING;
 
@@ -221,7 +224,7 @@ using PropertyEntryMap = FlatMap<wxPGProperty*, IVirtualEntry*>;
 class NodeWindow : public wxPanel {
 public:
     enum PanelId {
-        ID_PROPERTIES,
+        ID_PROPERTIES = 5500, // 5000 seems to be reserved
         ID_LIST,
         ID_PALETTE,
     };

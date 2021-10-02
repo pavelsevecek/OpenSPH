@@ -7,15 +7,15 @@ using namespace Sph;
 TEST_CASE("Serialize", "[serialize]") {
     Path path("serialized");
     {
-        Serializer<true> serializer(makeAuto<FileOutputStream>(path));
+        Serializer<true> serializer(makeAuto<FileBinaryOutputStream>(path));
         serializer.serialize(5, 5u, 'c', 3.f, 4., "SPH");
         serializer.addPadding(13);
-        serializer.write(std::string("test"));
+        serializer.write(String("test"));
     }
     REQUIRE(FileSystem::fileSize(path) == 44 + 13 + 5);
 
     {
-        Deserializer<true> deserializer(makeAuto<FileInputStream>(path));
+        Deserializer<true> deserializer(makeAuto<FileBinaryInputStream>(path));
         Size p1;
         int64_t p2;
         int p3;
@@ -28,7 +28,7 @@ TEST_CASE("Serialize", "[serialize]") {
         REQUIRE_NOTHROW(deserializer.deserialize(f, d));
         REQUIRE(f == 3.f);
         REQUIRE(d == 4.);
-        std::string s;
+        String s;
         REQUIRE_NOTHROW(deserializer.deserialize(s));
         REQUIRE(s == "SPH");
 

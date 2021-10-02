@@ -37,7 +37,7 @@ VirtualSettings LoadFileJob::getSettings() {
 
 void LoadFileJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
     if (!FileSystem::pathExists(path)) {
-        throw InvalidSetup("File '" + path.native() + "' does not exist or cannot be accessed.");
+        throw InvalidSetup("File '" + path.string() + "' does not exist or cannot be accessed.");
     }
     AutoPtr<IInput> input = Factory::getInput(path);
     Storage storage;
@@ -85,7 +85,7 @@ void LoadFileJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNU
 static JobRegistrar sRegisterLoadFile(
     "load file",
     "I/O",
-    [](const std::string& UNUSED(name)) { return makeAuto<LoadFileJob>(); },
+    [](const String& UNUSED(name)) { return makeAuto<LoadFileJob>(); },
     "Loads particle state from a file");
 
 // ----------------------------------------------------------------------------------------------------------
@@ -108,13 +108,13 @@ VirtualSettings FileSequenceJob::getSettings() {
 /// \todo deduplicate with timeline
 FlatMap<Size, Path> getFileSequence(const Path& firstFile) {
     if (!FileSystem::pathExists(firstFile)) {
-        throw InvalidSetup("File '" + firstFile.native() + "' does not exist.");
+        throw InvalidSetup("File '" + firstFile.string() + "' does not exist.");
     }
 
     FlatMap<Size, Path> fileMap;
     Optional<OutputFile> referenceMask = OutputFile::getMaskFromPath(firstFile);
     if (!referenceMask) {
-        throw InvalidSetup("Cannot deduce sequence from file '" + firstFile.native() + "'.");
+        throw InvalidSetup("Cannot deduce sequence from file '" + firstFile.string() + "'.");
     }
 
     Optional<Size> firstIndex = OutputFile::getDumpIdx(firstFile);
@@ -171,7 +171,7 @@ void FileSequenceJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks&
             break;
         }
 
-        const Size elapsed = frameTimer.elapsed(TimerUnit::MILLISECOND);
+        const Size elapsed = Size(frameTimer.elapsed(TimerUnit::MILLISECOND));
         const Size minElapsed = 1000 / maxFps;
         if (elapsed < minElapsed) {
             std::this_thread::sleep_for(std::chrono::milliseconds(minElapsed - elapsed));
@@ -187,18 +187,18 @@ static JobRegistrar sRegisterFileSequence(
     "load sequence",
     "sequence",
     "I/O",
-    [](const std::string& name) { return makeAuto<FileSequenceJob>(name); },
+    [](const String& name) { return makeAuto<FileSequenceJob>(name); },
     "Loads and displays a sequence of particle states.");
 
 // ----------------------------------------------------------------------------------------------------------
 // SaveFileJob
 // ----------------------------------------------------------------------------------------------------------
 
-SaveFileJob::SaveFileJob(const std::string& name)
+SaveFileJob::SaveFileJob(const String& name)
     : IParticleJob(name) {
     settings.set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
-        .set(RunSettingsId::RUN_OUTPUT_PATH, std::string(""))
-        .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("final.ssf"))
+        .set(RunSettingsId::RUN_OUTPUT_PATH, String(""))
+        .set(RunSettingsId::RUN_OUTPUT_NAME, String("final.ssf"))
         .set(RunSettingsId::RUN_OUTPUT_QUANTITIES,
             OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY);
 }
@@ -233,7 +233,7 @@ void SaveFileJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNU
 static JobRegistrar sRegisterOutput(
     "save file",
     "I/O",
-    [](const std::string& name) { return makeAuto<SaveFileJob>(name); },
+    [](const String& name) { return makeAuto<SaveFileJob>(name); },
     "Saves the input particle state into a file.");
 
 // ----------------------------------------------------------------------------------------------------------
@@ -359,7 +359,7 @@ Array<Triangle> SaveMeshJob::runAlphaShape(const Storage& storage, IRunCallbacks
 static JobRegistrar sRegisterMeshSaver(
     "save mesh",
     "I/O",
-    [](const std::string& name) { return makeAuto<SaveMeshJob>(name); },
+    [](const String& name) { return makeAuto<SaveMeshJob>(name); },
     "Creates a triangular mesh from the input particles and saves it to file.");
 
 NAMESPACE_SPH_END

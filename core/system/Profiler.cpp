@@ -7,6 +7,25 @@ NAMESPACE_SPH_BEGIN
 #ifdef SPH_PROFILE
 AutoPtr<Profiler> Profiler::instance;
 
+Profiler::Profiler() {
+    cpuUsage.thread = std::thread([this] {
+        while (!quitting) {
+            const Optional<Float> usage = getCpuUsage();
+            if (usage && !cpuUsage.currentScope.empty()) {
+                ScopeRecord& scope = records[cpuUsage.currentScope];
+                scope.cpuUsage = (scope.cpuUsage * scope.weight + usage.value()) / (scope.weight + 1);
+                scope.weight++;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    });
+}
+
+Profiler::~Profiler() {
+    quitting = true;
+    cpuUsage.thread.join();
+}
+
 Array<ScopeStatistics> Profiler::getStatistics() const {
     Array<ScopeStatistics> stats;
     uint64_t totalTime = 0;
@@ -31,7 +50,7 @@ void Profiler::printStatistics(ILogger& logger) const {
            << "mus   | rel: " << std::setw(8) << std::right << std::setprecision(3) << std::fixed
            << 100._f * s.relativeTime << "%  | cpu: " << std::setw(8) << std::right << std::setprecision(3)
            << std::fixed << 100._f * s.cpuUsage << "%";
-        logger.write(ss.str());
+        logger.write(String::fromAscii(ss.str().c_str()));
     }
 }
 #endif

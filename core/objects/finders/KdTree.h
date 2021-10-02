@@ -115,6 +115,10 @@ public:
     INLINE LeafIndexIterator end() const {
         return LeafIndexIterator(to, mapping);
     }
+
+    INLINE Size map(const Size i) const {
+        return mapping[i];
+    }
 };
 
 struct EuclideanMetric {

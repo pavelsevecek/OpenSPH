@@ -25,14 +25,14 @@ NAMESPACE_SPH_BEGIN
 // MonolithicBodyIc
 // ----------------------------------------------------------------------------------------------------------
 
-MonolithicBodyIc::MonolithicBodyIc(const std::string& name, const BodySettings& overrides)
+MonolithicBodyIc::MonolithicBodyIc(const String& name, const BodySettings& overrides)
     : IParticleJob(name)
     , MaterialProvider(overrides) {
     body.set(BodySettingsId::SMOOTHING_LENGTH_ETA, 1.3_f).set(BodySettingsId::DISTRIBUTE_MODE_SPH5, false);
 }
 
-UnorderedMap<std::string, ExtJobType> MonolithicBodyIc::requires() const {
-    UnorderedMap<std::string, ExtJobType> map;
+UnorderedMap<String, ExtJobType> MonolithicBodyIc::requires() const {
+    UnorderedMap<String, ExtJobType> map;
     if (slotUsage.shape) {
         map.insert("shape", JobType::GEOMETRY);
     }
@@ -144,7 +144,7 @@ void MonolithicBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callba
         slotUsage.material ? this->getInput<IMaterial>("material") : Factory::getMaterial(body);
 
     // override the material texture
-    std::string texturePath = body.get<std::string>(BodySettingsId::VISUALIZATION_TEXTURE);
+    String texturePath = body.get<String>(BodySettingsId::VISUALIZATION_TEXTURE);
     material->setParam(BodySettingsId::VISUALIZATION_TEXTURE, std::move(texturePath));
 
     const DistributionEnum distType = body.get<DistributionEnum>(BodySettingsId::INITIAL_DISTRIBUTION);
@@ -187,14 +187,14 @@ static JobRegistrar sRegisterMonolithic(
     "create monolithic body",
     "body",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<MonolithicBodyIc>(name); },
+    [](const String& name) { return makeAuto<MonolithicBodyIc>(name); },
     "Creates a single monolithic homogeneous body.");
 
 // ----------------------------------------------------------------------------------------------------------
 // DifferentiatedBodyIc
 // ----------------------------------------------------------------------------------------------------------
 
-DifferentiatedBodyIc::DifferentiatedBodyIc(const std::string& name)
+DifferentiatedBodyIc::DifferentiatedBodyIc(const String& name)
     : IParticleJob(name) {}
 
 VirtualSettings DifferentiatedBodyIc::getSettings() {
@@ -224,8 +224,8 @@ void DifferentiatedBodyIc::evaluate(const RunSettings& global, IRunCallbacks& UN
     Array<InitialConditions::BodySetup> layers;
     for (int i = layerCnt - 1; i >= 0; --i) {
         InitialConditions::BodySetup& layer = layers.emplaceBack();
-        layer.domain = this->getInput<IDomain>("shape " + std::to_string(i + 1));
-        layer.material = this->getInput<IMaterial>("material " + std::to_string(i + 1));
+        layer.domain = this->getInput<IDomain>("shape " + toString(i + 1));
+        layer.material = this->getInput<IMaterial>("material " + toString(i + 1));
         layer.material->setParam(BodySettingsId::SMOOTHING_LENGTH_ETA, eta);
     }
 
@@ -238,7 +238,7 @@ static JobRegistrar sRegisterDifferentiated(
     "create differentiated body",
     "body",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<DifferentiatedBodyIc>(name); },
+    [](const String& name) { return makeAuto<DifferentiatedBodyIc>(name); },
     "Creates a body consisting of multiple different materials. The base shape/material describes the "
     "global shape of body and material of a particles not assigned to any layer. The indexed layers than "
     "assign a specific material to a subset of particles.");
@@ -274,7 +274,7 @@ static JobRegistrar sRegisterSingleParticle(
     "create single particle",
     "particle",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<SingleParticleIc>(name); },
+    [](const String& name) { return makeAuto<SingleParticleIc>(name); },
     "Creates a single particle with given mass, providing a convenient central potential for simulations of "
     "circumplanetary (circumstelar, circumbinary) disk.");
 
@@ -318,7 +318,7 @@ static JobRegistrar sRegisterImpactorBody(
     "create impactor",
     "impactor",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<ImpactorIc>(name); },
+    [](const String& name) { return makeAuto<ImpactorIc>(name); },
     "Creates a monolithic body with automatic particle count. The number of particles is assigned "
     "to match the particle concentration (number density) of a target body.");
 
@@ -338,7 +338,7 @@ static RegisterEnum<EquilSolveEnum> sSolverType({
     { EquilSolveEnum::PRECISE, "precise", "Computes equilibrium by solving a least-squares problem." },
 });
 
-EquilibriumIc::EquilibriumIc(const std::string& name)
+EquilibriumIc::EquilibriumIc(const String& name)
     : IParticleJob(name)
     , solver(EquilSolveEnum::SPHERICAL) {
     boundaryThreshold = 40;
@@ -469,7 +469,7 @@ static JobRegistrar sRegisterEquilibriumIc(
     "set equilibrium energy",
     "equilibrium",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<EquilibriumIc>(name); },
+    [](const String& name) { return makeAuto<EquilibriumIc>(name); },
     "Modifies the internal energy of the input body to create a pressure gradient that balances "
     "the gravitational acceleration. This can be used only for material with equation of state, "
     "it further expects spherical symmetry of the input body (although homogeneity is not "
@@ -511,7 +511,7 @@ static JobRegistrar sRegisterKeplerianVelocity(
     "set Keplerian velocity",
     "Keplerian velocity",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<KeplerianVelocityIc>(name); },
+    [](const String& name) { return makeAuto<KeplerianVelocityIc>(name); },
     "Sets velocities of particles the Keplerian orbiting velocity with respect to given source of gravity "
     "(star, planet, etc.).");
 
@@ -540,7 +540,7 @@ static RegisterEnum<ChangeableQuantityId> sChangeableQuantity({
     { ChangeableQuantityId::ENERGY, "specific energy", "Initial specific energy." },
 });
 
-ModifyQuantityIc::ModifyQuantityIc(const std::string& name)
+ModifyQuantityIc::ModifyQuantityIc(const String& name)
     : IParticleJob(name)
     , mode(ChangeMode::PARAMETRIC)
     , curve(makeAuto<CurveEntry>()) {
@@ -607,7 +607,7 @@ static JobRegistrar sRegisterModifyQuantityIc(
     "modify quantity",
     "modifier",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<ModifyQuantityIc>(name); },
+    [](const String& name) { return makeAuto<ModifyQuantityIc>(name); },
     "Modifies given quantity of the input body, optionally specifying a radial gradient or generic radial "
     "dependency via a user-defined curve.");
 
@@ -615,31 +615,16 @@ static JobRegistrar sRegisterModifyQuantityIc(
 // NoiseQuantity
 // ----------------------------------------------------------------------------------------------------------
 
-enum class NoiseQuantityId {
-    DENSITY,
-    VELOCITY,
-};
-
-static RegisterEnum<NoiseQuantityId> sNoiseQuantity({
-    { NoiseQuantityId::DENSITY, "density", "Material density" },
-    { NoiseQuantityId::VELOCITY, "velocity", "Particle velocity" },
-});
-
-const Indices GRID_DIMS(8, 8, 8);
-
-NoiseQuantityIc::NoiseQuantityIc(const std::string& name)
-    : IParticleJob(name) {
-    id = EnumWrapper(NoiseQuantityId::DENSITY);
-}
+NoiseQuantityIc::NoiseQuantityIc(const String& name)
+    : IParticleJob(name) {}
 
 VirtualSettings NoiseQuantityIc::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
     VirtualSettings::Category& quantityCat = connector.addCategory("Noise parameters");
-    quantityCat.connect("Quantity", "quantity", id);
-    quantityCat.connect("Mean [si]", "mean", mean);
-    quantityCat.connect("Magnitude [si]", "magnitude", magnitude);
+    quantityCat.connect("Magnitude [m/s]", "magnitude", magnitude);
+    quantityCat.connect("Grid dimensions", "grid_dims", gridDims);
 
     return connector;
 }
@@ -648,23 +633,8 @@ void NoiseQuantityIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks&
     result = this->getInput<ParticleData>("particles");
     Storage& storage = result->storage;
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-
-    switch (NoiseQuantityId(id)) {
-    case NoiseQuantityId::DENSITY: {
-        ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
-        this->randomize<1>(callbacks, r, [&rho](Float value, Size i, Size UNUSED(j)) { //
-            rho[i] = value;
-        });
-        break;
-    }
-    case NoiseQuantityId::VELOCITY: {
-        ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
-        this->randomize<3>(callbacks, r, [&v](Float value, Size i, Size j) { v[i][j] = value; });
-        break;
-    }
-    default:
-        NOT_IMPLEMENTED;
-    }
+    ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+    this->randomize<3>(callbacks, r, [&v](Float value, Size i, Size j) { v[i][j] = value; });
 }
 
 template <Size Dims, typename TSetter>
@@ -675,7 +645,7 @@ void NoiseQuantityIc::randomize(IRunCallbacks& callbacks,
 
     StaticArray<Grid<Vector>, Dims> gradients;
     for (Size dim = 0; dim < Dims; ++dim) {
-        gradients[dim] = Grid<Vector>(GRID_DIMS);
+        gradients[dim] = Grid<Vector>(Indices(gridDims));
         for (Vector& grad : gradients[dim]) {
             grad = sampleUnitSphere(rng);
         }
@@ -691,8 +661,8 @@ void NoiseQuantityIc::randomize(IRunCallbacks& callbacks,
     for (Size i = 0; i < r.size(); ++i) {
 
         for (Size dim = 0; dim < Dims; ++dim) {
-            const Vector pos = (r[i] - box.lower()) / box.size() * GRID_DIMS;
-            const Float value = mean + magnitude * perlin(gradients[dim], pos);
+            const Vector pos = (r[i] - box.lower()) / box.size() * Indices(gridDims);
+            const Float value = magnitude * perlin(gradients[dim], pos);
             SPH_ASSERT(isReal(value));
             setter(value, i, dim);
         }
@@ -730,19 +700,18 @@ Float NoiseQuantityIc::perlin(const Grid<Vector>& gradients, const Vector& v) co
 
 Float NoiseQuantityIc::dotGradient(const Grid<Vector>& gradients, const Indices& i, const Vector& v) const {
     const Vector& dv = Vector(i) - v;
-    const Indices is(
-        positiveMod(i[X], GRID_DIMS[X]), positiveMod(i[Y], GRID_DIMS[Y]), positiveMod(i[Z], GRID_DIMS[Z]));
+    Indices dims(gridDims);
+    const Indices is(positiveMod(i[X], dims[X]), positiveMod(i[Y], dims[Y]), positiveMod(i[Z], dims[Z]));
 
     return dot(dv, gradients[is]);
 }
-
 
 static JobRegistrar sRegisterNoise(
     "Perlin noise",
     "noise",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<NoiseQuantityIc>(name); },
-    "Perturbs selected quantity of the input body using a noise function.");
+    [](const String& name) { return makeAuto<NoiseQuantityIc>(name); },
+    "Perturbs particle velocities of the input body using a noise function.");
 
 // ----------------------------------------------------------------------------------------------------------
 // NBodyIc
@@ -750,7 +719,8 @@ static JobRegistrar sRegisterNoise(
 
 // clang-format off
 template <>
-AutoPtr<NBodySettings> NBodySettings::instance(new NBodySettings{
+AutoPtr<NBodySettings> NBodySettings::instance
+    = makeAuto<NBodySettings>(NBodySettings{
     { NBodySettingsId::PARTICLE_COUNT,      "particles.count",        10000,
         "Number of generated particles." },
     { NBodySettingsId::TOTAL_MASS,          "total_mass",             Constants::M_earth,
@@ -779,7 +749,7 @@ AutoPtr<NBodySettings> NBodySettings::instance(new NBodySettings{
 
 template class Settings<NBodySettingsId>;
 
-NBodyIc::NBodyIc(const std::string& name, const NBodySettings& overrides)
+NBodyIc::NBodyIc(const String& name, const NBodySettings& overrides)
     : IParticleJob(name) {
     settings.addEntries(overrides);
 }
@@ -933,7 +903,7 @@ void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
 static JobRegistrar sRegisterNBodyIc(
     "N-body ICs",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<NBodyIc>(name); },
+    [](const String& name) { return makeAuto<NBodyIc>(name); },
     "Creates a spherical or ellipsoidal cloud of particles.");
 
 
@@ -941,7 +911,7 @@ static JobRegistrar sRegisterNBodyIc(
 // PolytropicStarICs
 // ----------------------------------------------------------------------------------------------------------
 
-PolytropeIc::PolytropeIc(const std::string& name)
+PolytropeIc::PolytropeIc(const String& name)
     : IParticleJob(name) {}
 
 VirtualSettings PolytropeIc::getSettings() {
@@ -982,14 +952,14 @@ void PolytropeIc::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(call
 static JobRegistrar sRegisterPolytropeIc(
     "polytrope ICs",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<PolytropeIc>(name); },
+    [](const String& name) { return makeAuto<PolytropeIc>(name); },
     "Creates a spherical star or planet using the polytrope model.");
 
 // ----------------------------------------------------------------------------------------------------------
 // IsothermalSphereICs
 // ----------------------------------------------------------------------------------------------------------
 
-IsothermalSphereIc::IsothermalSphereIc(const std::string& name)
+IsothermalSphereIc::IsothermalSphereIc(const String& name)
     : IParticleJob(name) {}
 
 VirtualSettings IsothermalSphereIc::getSettings() {
@@ -1051,7 +1021,7 @@ static JobRegistrar sRegisterIsothermalSphereIc(
     "isothermal sphere ICs",
     "star ICs",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<IsothermalSphereIc>(name); },
+    [](const String& name) { return makeAuto<IsothermalSphereIc>(name); },
     "Creates a single isothermal sphere.");
 
 // ----------------------------------------------------------------------------------------------------------
@@ -1060,7 +1030,7 @@ static JobRegistrar sRegisterIsothermalSphereIc(
 
 extern template class Settings<GalaxySettingsId>;
 
-GalaxyIc::GalaxyIc(const std::string& name, const GalaxySettings& overrides)
+GalaxyIc::GalaxyIc(const String& name, const GalaxySettings& overrides)
     : IParticleJob(name) {
     settings.addEntries(overrides);
 }
@@ -1146,7 +1116,7 @@ void GalaxyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
 static JobRegistrar sRegisterGalaxyIc(
     "galaxy ICs",
     "initial conditions",
-    [](const std::string& name) { return makeAuto<GalaxyIc>(name); },
+    [](const String& name) { return makeAuto<GalaxyIc>(name); },
     "Creates a single galaxy.");
 
 NAMESPACE_SPH_END

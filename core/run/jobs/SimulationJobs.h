@@ -10,21 +10,21 @@ protected:
     bool isResumed = false;
 
 public:
-    explicit SphJob(const std::string& name, const RunSettings& overrides = EMPTY_SETTINGS);
+    explicit SphJob(const String& name, const RunSettings& overrides = EMPTY_SETTINGS);
 
-    static RunSettings getDefaultSettings(const std::string& name);
+    static RunSettings getDefaultSettings(const String& name);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "SPH run";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES }, { "boundary", JobType::GEOMETRY } };
     }
 
-    virtual UnorderedMap<std::string, ExtJobType>
+    virtual UnorderedMap<String, ExtJobType>
     requires() const override {
-        UnorderedMap<std::string, ExtJobType> map{ { "particles", JobType::PARTICLES } };
+        UnorderedMap<String, ExtJobType> map{ { "particles", JobType::PARTICLES } };
         if (settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY) != BoundaryEnum::NONE) {
             map.insert("boundary", JobType::GEOMETRY);
         }
@@ -40,7 +40,7 @@ class SphStabilizationJob : public SphJob {
 public:
     using SphJob::SphJob;
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "SPH stabilization";
     }
 
@@ -56,15 +56,15 @@ private:
     bool isResumed = false;
 
 public:
-    explicit NBodyJob(const std::string& name, const RunSettings& overrides = EMPTY_SETTINGS);
+    explicit NBodyJob(const String& name, const RunSettings& overrides = EMPTY_SETTINGS);
 
-    static RunSettings getDefaultSettings(const std::string& name);
+    static RunSettings getDefaultSettings(const String& name);
 
-    virtual std::string className() const override {
+    virtual String className() const override {
         return "N-body run";
     }
 
-    virtual UnorderedMap<std::string, ExtJobType> getSlots() const override {
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
         return { { "particles", JobType::PARTICLES } };
     }
 

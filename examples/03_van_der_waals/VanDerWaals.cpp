@@ -52,7 +52,7 @@ public:
 class VanDerWallsSimulation : public IRun {
 public:
     virtual void setUp(SharedPtr<Storage> storage) override {
-        settings.set(RunSettingsId::RUN_NAME, std::string("Van der Waals"));
+        settings.set(RunSettingsId::RUN_NAME, "Van der Waals"_s);
 
         // We simulate a gass, so the only force in the system is due to pressure gradient
         settings.set(RunSettingsId::SPH_SOLVER_FORCES, ForceEnum::PRESSURE);

@@ -41,12 +41,12 @@ class KelvinHelmholtz : public IRun {
 public:
     KelvinHelmholtz() {
         // Global settings of the problem
-        this->settings.set(RunSettingsId::RUN_NAME, std::string("Kelvin-Helmholtz instability"))
+        this->settings.set(RunSettingsId::RUN_NAME, String("Kelvin-Helmholtz instability"))
             .set(RunSettingsId::RUN_END_TIME, 8._f)
             .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::TEXT_FILE)
             .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.1_f)
-            .set(RunSettingsId::RUN_OUTPUT_PATH, std::string(""))
-            .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("kh/kh_%d.txt"))
+            .set(RunSettingsId::RUN_OUTPUT_PATH, String(""))
+            .set(RunSettingsId::RUN_OUTPUT_NAME, String("kh/kh_%d.txt"))
             .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
             .set(RunSettingsId::SPH_AV_BETA, 3._f)
             .set(RunSettingsId::SPH_USE_AC, true)

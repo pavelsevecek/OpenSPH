@@ -20,7 +20,7 @@ private:
     FloatTextCtrl* lowerCtrl;
     FloatTextCtrl* upperCtrl;
 
-    UnorderedMap<std::string, Palette> paletteMap;
+    UnorderedMap<String, Palette> paletteMap;
 
     Palette initial;
     Palette selected;

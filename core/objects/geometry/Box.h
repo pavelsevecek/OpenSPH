@@ -197,7 +197,8 @@ public:
     /// \brief Prints the bounds of the box into the stream.
     ///
     /// The box can be empty, in which case EMPTY is written instead of the bounds.
-    friend std::ostream& operator<<(std::ostream& stream, const Box& box) {
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const Box& box) {
         if (box == Box::EMPTY()) {
             stream << "EMPTY";
         } else {

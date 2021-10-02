@@ -28,20 +28,20 @@ OutputFile::OutputFile(const Path& pathMask, const Size firstDumpIdx)
 
 Path OutputFile::getNextPath(const Statistics& stats) const {
     SPH_ASSERT(!pathMask.empty());
-    std::string path = pathMask.native();
-    std::size_t n = path.find("%d");
-    if (n != std::string::npos) {
-        std::ostringstream ss;
-        ss << std::setw(4) << std::setfill('0') << dumpNum;
-        path.replace(n, 2, ss.str());
+    String path = pathMask.string();
+    Size n = path.find(L"%d");
+    if (n != String::npos) {
+        std::wostringstream ss;
+        ss << std::setw(4) << std::setfill(L'0') << dumpNum;
+        path.replace(n, 2, String::fromWstring(ss.str()));
     }
-    n = path.find("%t");
-    if (n != std::string::npos) {
-        std::ostringstream ss;
+    n = path.find(L"%t");
+    if (n != String::npos) {
+        std::wostringstream ss;
         const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
         ss << std::fixed << t;
         /// \todo replace decimal dot as docs say
-        path.replace(n, 2, ss.str());
+        path.replace(n, 2, String::fromWstring(ss.str()));
     }
     dumpNum++;
     return Path(path);
@@ -49,7 +49,7 @@ Path OutputFile::getNextPath(const Statistics& stats) const {
 
 Optional<Size> OutputFile::getDumpIdx(const Path& path) {
     // look for 4 consecutive digits.
-    const std::string s = path.fileName().native();
+    const String s = path.fileName().string();
     for (int i = 0; i < int(s.size()) - 3; ++i) {
         if (std::isdigit(s[i]) && std::isdigit(s[i + 1]) && std::isdigit(s[i + 2]) &&
             std::isdigit(s[i + 3])) {
@@ -58,11 +58,11 @@ Optional<Size> OutputFile::getDumpIdx(const Path& path) {
                 // 4-digit sequence is not unique, report error
                 return NOTHING;
             }
-            try {
-                Size index = std::stoul(s.substr(i, 4));
-                return index;
-            } catch (const std::exception& e) {
-                SPH_ASSERT(false, e.what());
+            Optional<Size> index = fromString<Size>(s.substr(i, 4));
+            SPH_ASSERT(index);
+            if (index) {
+                return index.value();
+            } else {
                 return NOTHING;
             }
         }
@@ -72,14 +72,14 @@ Optional<Size> OutputFile::getDumpIdx(const Path& path) {
 
 Optional<OutputFile> OutputFile::getMaskFromPath(const Path& path, const Size firstDumpIdx) {
     /// \todo could be deduplicated a bit
-    const std::string s = path.fileName().native();
+    const String s = path.fileName().string();
     for (int i = 0; i < int(s.size()) - 3; ++i) {
         if (std::isdigit(s[i]) && std::isdigit(s[i + 1]) && std::isdigit(s[i + 2]) &&
             std::isdigit(s[i + 3])) {
             if (i + 4 < int(s.size()) && std::isdigit(s[i + 4])) {
                 return NOTHING;
             }
-            std::string mask = s.substr(0, i) + "%d" + s.substr(i + 4);
+            String mask = s.substr(0, i) + L"%d" + s.substr(i + 4);
             // prepend the original parent path
             return OutputFile(path.parentPath() / Path(mask), firstDumpIdx);
         }
@@ -88,8 +88,8 @@ Optional<OutputFile> OutputFile::getMaskFromPath(const Path& path, const Size fi
 }
 
 bool OutputFile::hasWildcard() const {
-    std::string path = pathMask.native();
-    return path.find("%d") != std::string::npos || path.find("%t") != std::string::npos;
+    String path = pathMask.string();
+    return path.find("%d") != String::npos || path.find("%t") != String::npos;
 }
 
 Path OutputFile::getMask() const {
@@ -179,7 +179,7 @@ struct DumpAllVisitor {
 };
 
 TextOutput::TextOutput(const OutputFile& fileMask,
-    const std::string& runName,
+    const String& runName,
     const Flags<OutputQuantityFlag> quantities,
     const Flags<Options> options)
     : IOutput(fileMask)
@@ -214,24 +214,25 @@ Expected<Path> TextOutput::dump(const Storage& storage, const Statistics& stats)
     Outcome dirResult = FileSystem::createDirectory(fileName.parentPath());
     if (!dirResult) {
         return makeUnexpected<Path>(
-            "Cannot create directory " + fileName.parentPath().native() + ": " + dirResult.error());
+            "Cannot create directory {}: {}", fileName.parentPath().string(), dirResult.error());
     }
 
     try {
         std::ofstream ofs(fileName.native());
         // print description
-        ofs << "# Run: " << runName << std::endl;
+        ofs << "# Run: " << runName.toAscii() << std::endl;
         if (stats.has(StatisticsId::RUN_TIME)) {
             ofs << "# SPH dump, time = " << stats.get<Float>(StatisticsId::RUN_TIME) << std::endl;
         }
         ofs << "# ";
-        for (auto& column : columns) {
-            printHeader(ofs, column->getName(), column->getType());
+        for (const auto& column : columns) {
+            std::string asciiName(column->getName().toAscii());
+            printHeader(ofs, asciiName, column->getType());
         }
         ofs << std::endl;
         // print data lines, starting with second-order quantities
         for (Size i = 0; i < storage.getParticleCnt(); ++i) {
-            for (auto& column : columns) {
+            for (const auto& column : columns) {
                 // write one extra space to be sure numbers won't merge
                 if (options.has(Options::SCIENTIFIC)) {
                     ofs << std::scientific << std::setprecision(PRECISION)
@@ -245,7 +246,7 @@ Expected<Path> TextOutput::dump(const Storage& storage, const Statistics& stats)
         ofs.close();
         return fileName;
     } catch (const std::exception& e) {
-        return makeUnexpected<Path>("Cannot save output file " + fileName.native() + ": " + e.what());
+        return makeUnexpected<Path>("Cannot save output file {}: {}", fileName.string(), exceptionMessage(e));
     }
 }
 
@@ -264,12 +265,13 @@ Outcome TextInput::load(const Path& path, Storage& storage, Statistics& UNUSED(s
         if (!ifs) {
             return makeFailed("Failed to open the file");
         }
-        std::string line;
+
         storage.removeAll();
         // storage currently requires at least one quantity for insertion by value
         storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 0 });
 
         Size particleCnt = 0;
+        std::string line;
         while (std::getline(ifs, line)) {
             if (line[0] == '#') { // comment
                 continue;
@@ -323,7 +325,7 @@ Outcome TextInput::load(const Path& path, Storage& storage, Statistics& UNUSED(s
         }
 
     } catch (const std::exception& e) {
-        return makeFailed(e.what());
+        return makeFailed(exceptionMessage(e));
     }
     return SUCCESS;
 }
@@ -331,24 +333,6 @@ Outcome TextInput::load(const Path& path, Storage& storage, Statistics& UNUSED(s
 TextInput& TextInput::addColumn(AutoPtr<ITextColumn>&& column) {
     columns.push(std::move(column));
     return *this;
-}
-
-// ----------------------------------------------------------------------------------------------------------
-// GnuplotOutput
-// ----------------------------------------------------------------------------------------------------------
-
-Expected<Path> GnuplotOutput::dump(const Storage& storage, const Statistics& stats) {
-    const Expected<Path> path = TextOutput::dump(storage, stats);
-    if (!path) {
-        return path;
-    }
-    const Path pathWithoutExt = Path(path.value()).removeExtension();
-    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
-    const std::string command = "gnuplot -e \"filename='" + pathWithoutExt.native() +
-                                "'; time=" + std::to_string(time) + "\" " + scriptPath;
-    const int returned = system(command.c_str());
-    MARK_USED(returned);
-    return path;
 }
 
 // ----------------------------------------------------------------------------------------------------------
@@ -428,11 +412,13 @@ struct LoadBuffersVisitor {
     }
 };
 
-void writeString(const std::string& s, Serializer<true>& serializer) {
+void writeString(const String& s, Serializer<true>& serializer) {
+    SPH_ASSERT(s.size() < 16);
+    SPH_ASSERT(s.isAscii(), s);
     char buffer[16];
     for (Size i = 0; i < 16; ++i) {
         if (i < s.size()) {
-            buffer[i] = s[i];
+            buffer[i] = char(s[i]);
         } else {
             buffer[i] = '\0';
         }
@@ -500,13 +486,13 @@ Expected<Path> BinaryOutput::dump(const Storage& storage, const Statistics& stat
     Outcome dirResult = FileSystem::createDirectory(fileName.parentPath());
     if (!dirResult) {
         return makeUnexpected<Path>(
-            "Cannot create directory " + fileName.parentPath().native() + ": " + dirResult.error());
+            "Cannot create directory {}: {}", fileName.parentPath().string(), dirResult.error());
     }
 
     const Float runTime = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
-    const Size wallclockTime = stats.getOr<int>(StatisticsId::WALLCLOCK_TIME, 0._f);
+    const Size wallclockTime = stats.getOr<int>(StatisticsId::WALLCLOCK_TIME, 0);
 
-    Serializer<true> serializer(makeAuto<FileOutputStream>(fileName));
+    Serializer<true> serializer(makeAuto<FileBinaryOutputStream>(fileName));
 
     // file format identifier
     const Size materialCnt = storage.getMaterialCnt();
@@ -615,15 +601,15 @@ static Expected<Storage> loadMaterial(const Size matIdx,
     ArrayView<QuantityId> ids,
     const BinaryIoVersion version) {
     Size matIdxCheck;
-    std::string identifier;
+    String identifier;
     deserializer.deserialize(identifier, matIdxCheck);
     // some consistency checks
-    if (identifier != "MAT") {
-        return makeUnexpected<Storage>("Invalid material identifier, expected MAT, got " + identifier);
+    if (identifier != L"MAT") {
+        return makeUnexpected<Storage>(L"Invalid material identifier, expected MAT, got " + identifier);
     }
     if (matIdxCheck != matIdx) {
-        return makeUnexpected<Storage>("Unexpected material index, expected " + std::to_string(matIdx) +
-                                       ", got " + std::to_string(matIdxCheck));
+        return makeUnexpected<Storage>(
+            L"Unexpected material index, expected {}, got {}, ", matIdx, matIdxCheck);
     }
 
     Size matParamCnt;
@@ -689,7 +675,7 @@ static Expected<Storage> loadMaterial(const Size matIdx,
 }
 
 static Optional<RunTypeEnum> readRunType(char* buffer, const BinaryIoVersion version) {
-    std::string runTypeStr(buffer);
+    String runTypeStr = String::fromAscii(buffer);
     if (!runTypeStr.empty()) {
         return EnumMap::fromString<RunTypeEnum>(runTypeStr).value();
     } else {
@@ -698,9 +684,9 @@ static Optional<RunTypeEnum> readRunType(char* buffer, const BinaryIoVersion ver
     }
 }
 
-static Optional<std::string> readBuildDate(char* buffer, const BinaryIoVersion version) {
+static Optional<String> readBuildDate(char* buffer, const BinaryIoVersion version) {
     if (version >= BinaryIoVersion::V2021_03_20) {
-        return std::string(buffer);
+        return String::fromAscii(buffer);
     } else {
         return NOTHING;
     }
@@ -708,8 +694,8 @@ static Optional<std::string> readBuildDate(char* buffer, const BinaryIoVersion v
 
 Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats) {
     storage.removeAll();
-    Deserializer<true> deserializer(makeAuto<FileInputStream>(path));
-    std::string identifier;
+    Deserializer<true> deserializer(makeAuto<FileBinaryInputStream>(path));
+    String identifier;
     Float time, timeStep;
     Size wallclockTime;
     Size particleCnt, quantityCnt, materialCnt, attractorCnt;
@@ -728,11 +714,14 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
             buildDateBuffer,
             wallclockTime,
             attractorCnt);
-    } catch (SerializerException&) {
-        return makeFailed("Invalid file format");
+    } catch (const SerializerException&) {
+        return makeFailed("Cannot read file '{}', invalid file format.", path.string());
+    } catch (const Exception& e) {
+        return makeFailed("Cannot read file '{}'. {}.", path.string(), exceptionMessage(e));
     }
+
     if (identifier != "SPH") {
-        return makeFailed("Invalid format specifier: expected SPH, got ", identifier);
+        return makeFailed("Invalid format specifier: expected SPH, got " + identifier);
     }
     stats.set(StatisticsId::RUN_TIME, time);
     stats.set(StatisticsId::TIMESTEP_VALUE, timeStep);
@@ -755,7 +744,7 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
             deserializer.deserialize(quantityIds[i], orders[i], valueTypes[i]);
         }
     } catch (SerializerException& e) {
-        return makeFailed(e.what());
+        return makeFailed(exceptionMessage(e));
     }
 
     // Size loadedQuantities = 0;
@@ -771,16 +760,17 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
                     bodyStorage = std::move(loadedStorage.value());
                 }
             } catch (SerializerException& e) {
-                return makeFailed(e.what());
+                return makeFailed(exceptionMessage(e));
             }
         } else {
             try {
                 deserializer.deserialize(identifier);
             } catch (SerializerException& e) {
-                return makeFailed(e.what());
+                return makeFailed(exceptionMessage(e));
             }
             if (identifier != "NOMAT") {
-                return makeFailed("Unexpected missing material identifier, expected NOMAT, got ", identifier);
+                return makeFailed(
+                    "Unexpected missing material identifier, expected NOMAT, got " + identifier);
             }
         }
 
@@ -798,7 +788,7 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
                     orders[i]);
             }
         } catch (SerializerException& e) {
-            return makeFailed(e.what());
+            return makeFailed(exceptionMessage(e));
         }
         storage.merge(std::move(bodyStorage));
     }
@@ -810,13 +800,13 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
     return SUCCESS;
 }
 
-Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) const {
+Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) {
     Info info;
     char runTypeBuffer[16];
     char dateBuffer[16];
-    std::string identifier;
+    String identifier;
     try {
-        Deserializer<true> deserializer(makeAuto<FileInputStream>(path));
+        Deserializer<true> deserializer(makeAuto<FileBinaryInputStream>(path));
         deserializer.deserialize(identifier,
             info.runTime,
             info.particleCnt,
@@ -829,7 +819,9 @@ Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) const {
             info.wallclockTime,
             info.attractorCnt);
     } catch (SerializerException&) {
-        return makeUnexpected<Info>("Invalid file format");
+        return makeUnexpected<Info>("Cannot read file '{}', invalid file format.", path.string());
+    } catch (const Exception& e) {
+        return makeUnexpected<Info>("Cannot open file '{}'. {}.", path.string(), exceptionMessage(e));
     }
     if (identifier != "SPH") {
         return makeUnexpected<Info>("Invalid format specifier: expected SPH, got " + identifier);
@@ -855,7 +847,7 @@ CompressedOutput::CompressedOutput(const OutputFile& fileMask,
 
 const int MAGIC_NUMBER = 42;
 
-struct NullOutputStream : public IOutputStream {
+struct NullOutputStream : public IBinaryOutputStream {
 public:
     virtual bool write(ArrayView<const char> UNUSED(buffer)) override {
         return true;
@@ -915,11 +907,11 @@ static void decompressQuantity(Deserializer<false>& deserializer,
             throw SerializerException("Invalid compression");
         }
 
-        T lastValue = T(NAN);
+        Optional<T> lastValue = NOTHING;
         Size i = 0;
         while (i < values.size()) {
             deserializer.read(values[i]);
-            if (values[i] != lastValue) {
+            if (!lastValue || values[i] != lastValue.value()) {
                 lastValue = values[i];
                 ++i;
             } else {
@@ -927,7 +919,7 @@ static void decompressQuantity(Deserializer<false>& deserializer,
                 deserializer.deserialize(count);
                 SPH_ASSERT(i + count <= values.size());
                 for (Size j = 0; j < count; ++j) {
-                    values[i++] = lastValue;
+                    values[i++] = lastValue.value();
                 }
             }
         }
@@ -945,12 +937,12 @@ Expected<Path> CompressedOutput::dump(const Storage& storage, const Statistics& 
     Outcome dirResult = FileSystem::createDirectory(fileName.parentPath());
     if (!dirResult) {
         return makeUnexpected<Path>(
-            "Cannot create directory " + fileName.parentPath().native() + ": " + dirResult.error());
+            "Cannot create directory {}: {}", fileName.parentPath().string(), dirResult.error());
     }
 
     const Float time = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
 
-    Serializer<false> serializer(makeAuto<FileOutputStream>(fileName));
+    Serializer<false> serializer(makeAuto<FileBinaryOutputStream>(fileName));
     serializer.serialize("CPRSPH", time, storage.getParticleCnt(), compression, CompressedIoVersion::LATEST);
 
     /// \todo runType as string
@@ -991,8 +983,8 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
     // create any material
     storage = Storage(Factory::getMaterial(BodySettings::getDefaults()));
 
-    Deserializer<false> deserializer(makeAuto<FileInputStream>(path));
-    std::string identifier;
+    Deserializer<false> deserializer(makeAuto<FileBinaryInputStream>(path));
+    String identifier;
     Float time;
     Size particleCnt;
     Size attractorCnt;
@@ -1003,10 +995,12 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
         deserializer.deserialize(
             identifier, time, particleCnt, compression, version, runTypeId, attractorCnt);
     } catch (SerializerException&) {
-        return makeFailed("Invalid file format");
+        return makeFailed("Cannot read file '{}', invalid file format.", path.string());
+    } catch (const Exception& e) {
+        return makeFailed("Cannot read file '{}'. {}.", path.string(), exceptionMessage(e));
     }
     if (identifier != "CPRSPH") {
-        return makeFailed("Invalid format specifier: expected CPRSPH, got ", identifier);
+        return makeFailed("Invalid format specifier: expected CPRSPH, got " + identifier);
     }
 
     if (version < CompressedIoVersion::V2021_08_08) {
@@ -1044,7 +1038,7 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
             storage.addAttractor(a);
         }
     } catch (SerializerException& e) {
-        return makeFailed(e.what());
+        return makeFailed(exceptionMessage(e));
     }
 
     SPH_ASSERT(storage.isValid());
@@ -1052,9 +1046,8 @@ Outcome CompressedInput::load(const Path& path, Storage& storage, Statistics& st
     return SUCCESS;
 }
 
-Expected<CompressedInput::Info> CompressedInput::getInfo(const Path& path) const {
-    Deserializer<false> deserializer(makeAuto<FileInputStream>(path));
-    std::string identifier;
+Expected<CompressedInput::Info> CompressedInput::getInfo(const Path& path) {
+    String identifier;
     Float time;
     Size particleCnt;
     Size attractorCnt;
@@ -1062,11 +1055,15 @@ Expected<CompressedInput::Info> CompressedInput::getInfo(const Path& path) const
     CompressionEnum compression;
     RunTypeEnum runTypeId;
     try {
+        Deserializer<false> deserializer(makeAuto<FileBinaryInputStream>(path));
         deserializer.deserialize(
             identifier, time, particleCnt, compression, version, runTypeId, attractorCnt);
-    } catch (SerializerException&) {
-        return makeUnexpected<CompressedInput::Info>("Invalid file format");
+    } catch (const SerializerException&) {
+        return makeUnexpected<Info>("Cannot read file '{}', invalid file format.", path.string());
+    } catch (const Exception& e) {
+        return makeUnexpected<Info>("Cannot open file '{}'. {}.", path.string(), exceptionMessage(e));
     }
+
     if (identifier != "CPRSPH") {
         return makeUnexpected<CompressedInput::Info>(
             "Invalid format specifier: expected CPRSPH, got " + identifier);
@@ -1094,21 +1091,23 @@ static void writeDataArray(std::ofstream& of,
     const ITextColumn& column) {
     switch (column.getType()) {
     case ValueEnum::SCALAR:
-        of << R"(      <DataArray type="Float32" Name=")" << column.getName() << R"(" format="ascii">)";
+        of << R"(      <DataArray type="Float32" Name=")" << column.getName().toAscii()
+           << R"(" format="ascii">)";
         break;
     case ValueEnum::VECTOR:
-        of << R"(      <DataArray type="Float32" Name=")" << column.getName()
+        of << R"(      <DataArray type="Float32" Name=")" << column.getName().toAscii()
            << R"(" NumberOfComponents="3" format="ascii">)";
         break;
     case ValueEnum::INDEX:
-        of << R"(      <DataArray type="Int32" Name=")" << column.getName() << R"(" format="ascii">)";
+        of << R"(      <DataArray type="Int32" Name=")" << column.getName().toAscii()
+           << R"(" format="ascii">)";
         break;
     case ValueEnum::SYMMETRIC_TENSOR:
-        of << R"(      <DataArray type="Float32" Name=")" << column.getName()
+        of << R"(      <DataArray type="Float32" Name=")" << column.getName().toAscii()
            << R"(" NumberOfComponents="6" format="ascii">)";
         break;
     case ValueEnum::TRACELESS_TENSOR:
-        of << R"(      <DataArray type="Float32" Name=")" << column.getName()
+        of << R"(      <DataArray type="Float32" Name=")" << column.getName().toAscii()
            << R"(" NumberOfComponents="5" format="ascii">)";
         break;
     default:
@@ -1139,7 +1138,7 @@ Expected<Path> VtkOutput::dump(const Storage& storage, const Statistics& stats) 
     Outcome dirResult = FileSystem::createDirectory(fileName.parentPath());
     if (!dirResult) {
         return makeUnexpected<Path>(
-            "Cannot create directory " + fileName.parentPath().native() + ": " + dirResult.error());
+            "Cannot create directory {}: {}", fileName.parentPath().string(), dirResult.error());
     }
 
     try {
@@ -1182,7 +1181,7 @@ Expected<Path> VtkOutput::dump(const Storage& storage, const Statistics& stats) 
 
         return fileName;
     } catch (const std::exception& e) {
-        return makeUnexpected<Path>("Cannot save file " + fileName.native() + ": " + e.what());
+        return makeUnexpected<Path>("Cannot save file {}: {}", fileName.string(), exceptionMessage(e));
     }
 }
 
@@ -1247,16 +1246,16 @@ static void loadQuantity(const hid_t fileId,
 }
 
 Outcome Hdf5Input::load(const Path& path, Storage& storage, Statistics& stats) {
-    const hid_t fileId = H5Fopen(path.native().c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    const hid_t fileId = H5Fopen(path.native(), H5F_ACC_RDONLY, H5P_DEFAULT);
     if (fileId < 0) {
-        return makeFailed("Cannot open file '", path.native(), "'");
+        return makeFailed("Cannot open file '{}'", path.string());
     }
 
     storage = Storage(Factory::getMaterial(BodySettings::getDefaults()));
 
     const hid_t posId = H5Dopen(fileId, "/x", H5P_DEFAULT);
     if (posId < 0) {
-        return makeFailed("Cannot read position data from file  '", path.native(), "'");
+        return makeFailed("Cannot read position data from file '{}'", path.string());
     }
     const hid_t dspace = H5Dget_space(posId);
     const Size ndims = H5Sget_simple_extent_ndims(dspace);
@@ -1268,7 +1267,7 @@ Outcome Hdf5Input::load(const Path& path, Storage& storage, Statistics& stats) {
 
     const hid_t timeId = H5Dopen(fileId, "/time", H5P_DEFAULT);
     if (timeId < 0) {
-        return makeFailed("Cannot read simulation time from file '", path.native(), "'");
+        return makeFailed("Cannot read simulation time from file '{}'", path.string());
     }
     double runTime;
     H5Dread(timeId, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &runTime);
@@ -1284,7 +1283,7 @@ Outcome Hdf5Input::load(const Path& path, Storage& storage, Statistics& stats) {
         loadQuantity<Float>(fileId, "/e", QuantityId::ENERGY, OrderEnum::ZERO, storage);
         loadQuantity<Float>(fileId, "/sml", QuantityId::SMOOTHING_LENGTH, OrderEnum::ZERO, storage);
     } catch (const IoError& e) {
-        return makeFailed("Cannot read file '", path.native(), "'.\n", e.what());
+        return makeFailed("Cannot read file '{}'.\n{}", path.string(), exceptionMessage(e));
     }
 
     // copy the smoothing lengths
@@ -1383,12 +1382,12 @@ Outcome MpcorpInput::load(const Path& path, Storage& storage, Statistics& UNUSED
     try {
         std::ifstream ifs(path.native());
         if (!ifs) {
-            return makeFailed("Failed to open file '", path.native(), "'");
+            return makeFailed("Failed to open file '{}'", path.string());
         }
         parseMpcorp(ifs, storage, rho, albedo);
         return SUCCESS;
     } catch (const std::exception& e) {
-        return makeFailed("Cannot load file '", path.native(), "'\n", e.what());
+        return makeFailed("Cannot load file '{}'\n{}", path.string(), exceptionMessage(e));
     }
 }
 
@@ -1455,7 +1454,7 @@ Outcome PkdgravInput::load(const Path& path, Storage& storage, Statistics& stats
 
         virtual void accumulate(Storage&, const Dynamic, const Size) const override {}
 
-        virtual std::string getName() const override {
+        virtual String getName() const override {
             return "dummy";
         }
 

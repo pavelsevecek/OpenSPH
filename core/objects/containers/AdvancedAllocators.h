@@ -18,7 +18,7 @@ public:
         resource = &other;
     }
 
-    INLINE MemoryBlock allocate(const std::size_t size, const Size align) noexcept {
+    INLINE MemoryBlock allocate(const std::size_t size, const std::size_t align) noexcept {
         if (resource) {
             return resource->allocate(size, align);
         } else {
@@ -91,7 +91,7 @@ public:
         }
     }
 
-    INLINE MemoryBlock allocate(const std::size_t size, const Size align) noexcept {
+    INLINE MemoryBlock allocate(const std::size_t size, const std::size_t align) noexcept {
         if (list != nullptr) {
             SPH_ASSERT(list->block.ptr);
             SPH_ASSERT(list->block.size == size); // could be generalized if needed

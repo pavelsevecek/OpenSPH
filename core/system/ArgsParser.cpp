@@ -1,5 +1,4 @@
 #include "system/ArgsParser.h"
-#include "objects/utility/StringUtils.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -16,7 +15,7 @@ ArgParser::ArgParser(ArrayView<const ArgDesc> args) {
 void ArgParser::parse(const int argc, char** argv) {
     params.clear();
     for (int i = 1; i < argc; ++i) {
-        const std::string name = argv[i];
+        const String name = String::fromAscii(argv[i]);
         auto iter =
             std::find_if(descs.begin(), descs.end(), [&name](ArgDesc& desc) { return desc.matches(name); });
         if (iter != descs.end()) {
@@ -26,7 +25,7 @@ void ArgParser::parse(const int argc, char** argv) {
                 if (i + 1 == argc) {
                     throw ArgError("Missing parameter value: " + name);
                 }
-                parseValueArg(*iter, argv[i + 1]);
+                parseValueArg(*iter, String::fromAscii(argv[i + 1]));
                 ++i;
             }
         } else {
@@ -35,7 +34,7 @@ void ArgParser::parse(const int argc, char** argv) {
     }
 }
 
-INLINE std::string toString(const ArgEnum type) {
+INLINE String toString(const ArgEnum type) {
     switch (type) {
     case ArgEnum::INT:
         return "INT";
@@ -50,15 +49,16 @@ INLINE std::string toString(const ArgEnum type) {
 
 void ArgParser::printHelp(ILogger& logger) {
     for (ArgDesc& arg : descs) {
-        std::string line = "-" + arg.shortName + ", --" + arg.longName + " ";
+        String line = "-" + arg.shortName + ", --" + arg.longName + " ";
         if (arg.type != ArgEnum::NONE) {
             line += toString(arg.type);
         }
         /// \todo make padding adaptive
-        line += std::string(max(1, 35 - int(line.size())), ' ');
+        line += String::fromChar(' ', max(1, 35 - int(line.size())));
 
-        const std::string desc = setLineBreak(arg.desc, 40);
-        line += replaceAll(desc, "\n", "\n" + std::string(35, ' '));
+        String desc = setLineBreak(arg.desc, 40);
+        desc.replaceAll("\n", "\n" + String::fromChar(' ', 35));
+        line += desc;
         logger.write(line);
     }
 }
@@ -74,7 +74,7 @@ void ArgParser::parseValuelessArg(const ArgDesc& desc) {
     }
 }
 
-void ArgParser::parseValueArg(const ArgDesc& desc, const std::string& value) {
+void ArgParser::parseValueArg(const ArgDesc& desc, const String& value) {
     if (params.contains(desc.shortName)) {
         throw ArgError("Duplicate parameter: " + desc.shortName);
     }
@@ -87,7 +87,7 @@ void ArgParser::parseValueArg(const ArgDesc& desc, const std::string& value) {
         insertArg<Float>(desc.shortName, value);
         break;
     case ArgEnum::STRING:
-        insertArg<std::string>(desc.shortName, value);
+        insertArg<String>(desc.shortName, value);
         break;
     default:
         STOP;
@@ -99,7 +99,7 @@ void ArgParser::parseValueArg(const ArgDesc& desc, const std::string& value) {
 }
 
 template <typename TValue>
-void ArgParser::insertArg(const std::string& name, const std::string& textValue) {
+void ArgParser::insertArg(const String& name, const String& textValue) {
     const Optional<TValue> value = fromString<TValue>(textValue);
     if (!value) {
         throw ArgError("Cannot parse value of parameter " + name);
@@ -107,7 +107,7 @@ void ArgParser::insertArg(const std::string& name, const std::string& textValue)
     params.insert(name, value.value());
 }
 
-void ArgParser::throwIfUnknownArg(const std::string& name) const {
+void ArgParser::throwIfUnknownArg(const String& name) const {
     auto iter = std::find_if(descs.begin(), descs.end(), [&name](const ArgDesc& desc) { //
         return desc.shortName == name;
     });
