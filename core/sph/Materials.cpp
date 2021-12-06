@@ -121,7 +121,7 @@ AutoPtr<IMaterial> getMaterial(const MaterialEnum type) {
             .set(BodySettingsId::TILLOTSON_BETA, 5._f)
             .set(BodySettingsId::HEAT_CAPACITY, 449._f)
             .set(BodySettingsId::WEIBULL_COEFFICIENT, 1.e23_f)
-            .set(BodySettingsId::WEIBULL_EXPONENT, 8);
+            .set(BodySettingsId::WEIBULL_EXPONENT, 8._f);
         break;
     case MaterialEnum::OLIVINE:
         settings.set(BodySettingsId::TILLOTSON_SMALL_A, 0.5_f)
