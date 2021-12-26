@@ -14,13 +14,11 @@ int main(int argc, char* argv[]) {
     BinaryInput input;
     Storage storage;
     Statistics stats;
-    Path inputPath(argv[1]);
+    Path inputPath(String::fromAscii(argv[1]));
     Path outputPath = Path(inputPath).replaceExtension("txt");
 
     Outcome outcome = input.load(inputPath, storage, stats);
-    if (outcome) {
-        std::cout << "Success" << std::endl;
-    } else {
+    if (!outcome) {
         std::cout << "Cannot load binary file:" << std::endl << outcome.error() << std::endl;
         return -1;
     }
@@ -32,6 +30,8 @@ int main(int argc, char* argv[]) {
         std::cout << "Cannot save text file: " << std::endl << e.what() << std::endl;
         return -2;
     }
+
+    std::cout << "Data written to '" << outputPath.string() << "'" << std::endl;
 
     return 0;
 }
