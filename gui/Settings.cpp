@@ -122,13 +122,13 @@ const Settings<GuiSettingsId>& getDefaultSettings() {
     { GuiSettingsId::SURFACE_LEVEL,         "surface.level",        0.13_f,
         "Surface level for mesh renderer and raytracer. Specifies the value of the constructed/intersected "
         "iso-surface of color field." },
-    { GuiSettingsId::SURFACE_SUN_POSITION,  "surface.sun_position", Vector(0.f, 0.f, 1.f),
+    { GuiSettingsId::SURFACE_SUN_POSITION,  "surface.sun_position", Vector(0.f, 0.f, -1.f),
         "Direction to the sun, used for shading in mesh renderer in raytracer." },
-    { GuiSettingsId::SURFACE_SUN_INTENSITY, "surface.sun_intentity", 0.7_f,
+    { GuiSettingsId::SURFACE_SUN_INTENSITY, "surface.sun_intentity", 0.8_f,
         "Relative intensity of the sun, used for shading in mesh renderer in raytracer." },
-    { GuiSettingsId::SURFACE_AMBIENT,       "surface.ambient",      0.3_f,
+    { GuiSettingsId::SURFACE_AMBIENT,       "surface.ambient",      0.1_f,
         "Relative intensity of an ambient light, illuminating all shaded points." },
-    { GuiSettingsId::SURFACE_EMISSION,      "surface.emission",     1._f,
+    { GuiSettingsId::SURFACE_EMISSION,      "surface.emission",     2._f,
         "Emission multiplier used by raytracer. Note that emission is only enabled for Beauty quantity." },
     { GuiSettingsId::RAYTRACE_SUBSAMPLING,  "raytrace.subsampling", 1,
         "Specifies a number of subsampled iterations of the progressive renderer. Larger values speed up the "

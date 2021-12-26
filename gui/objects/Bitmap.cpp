@@ -62,6 +62,22 @@ Bitmap<Rgba> toBitmap(wxBitmap& wx) {
     return bitmap;
 }
 
+Bitmap<Rgba> toBitmap(const wxImage& image) {
+    const wxSize size = image.GetSize();
+    Bitmap<Rgba> bitmap(Pixel(size.x, size.y));
+    unsigned char* data = image.GetData();
+    for (int y = 0; y < size.y; ++y) {
+        for (int x = 0; x < size.x; ++x) {
+            uint64_t offset = x + uint64_t(y) * size.x;
+            auto r = data[3 * offset];
+            auto g = data[3 * offset + 1];
+            auto b = data[3 * offset + 2];
+            bitmap(x, y) = Rgba(wxColour(r, g, b));
+        }
+    }
+    return bitmap;
+}
+
 void saveToFile(const wxBitmap& wx, const Path& path) {
     FileSystem::createDirectory(path.parentPath());
     wx.SaveFile(path.string().toUnicode(), wxBITMAP_TYPE_PNG);
@@ -84,9 +100,7 @@ Bitmap<Rgba> loadBitmapFromFile(const Path& path) {
         throw IoError("Bitmap '" + path.string() + "' failed to load correctly");
     }
 
-    wxBitmap wx(image, 24);
-    SPH_ASSERT(wx.IsOk());
-    return toBitmap(wx);
+    return toBitmap(image);
 }
 
 NAMESPACE_SPH_END
