@@ -40,6 +40,7 @@ set(GUI_SOURCES
     windows/NodePage.cpp 
     windows/MainWindow.cpp 
     windows/TimeLine.cpp
+    windows/Tooltip.cpp
     windows/ProgressPanel.cpp
     windows/Widgets.cpp)
 
@@ -94,7 +95,8 @@ set(GUI_HEADERS
     windows/RenderPage.h
     windows/NodePage.h 
     windows/MainWindow.h 
-    windows/TimeLine.h 
+    windows/TimeLine.h
+    windows/Tooltip.h
     windows/ProgressPanel.h 
     windows/Widgets.h)
 

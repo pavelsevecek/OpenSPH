@@ -12,6 +12,7 @@
 #include "gui/windows/PaletteDialog.h"
 #include "gui/windows/PreviewPane.h"
 #include "gui/windows/RunSelectDialog.h"
+#include "gui/windows/Tooltip.h"
 #include "gui/windows/Widgets.h"
 #include "io/FileSystem.h"
 #include "objects/utility/IteratorAdapters.h"
@@ -27,7 +28,6 @@
 #include <wx/graphics.h>
 #include <wx/menu.h>
 #include <wx/msgdlg.h>
-#include <wx/richtooltip.h>
 #include <wx/settings.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
@@ -1652,8 +1652,8 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
     });
 
 
-    wxTreeCtrl* jobView =
-        new wxTreeCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTR_DEFAULT_STYLE | wxTR_HIDE_ROOT);
+    TooltippedWindow<wxTreeCtrl, wxTreeItemId>* jobView = new TooltippedWindow<wxTreeCtrl, wxTreeItemId>(
+        this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTR_DEFAULT_STYLE | wxTR_HIDE_ROOT);
     jobView->SetMinSize(wxSize(300, -1));
 
     wxTreeItemId rootId = jobView->AddRoot("Nodes");
@@ -1691,11 +1691,10 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             JobTreeData* data = dynamic_cast<JobTreeData*>(jobView->GetItemData(id));
             if (data) {
                 callback.start(600, [this, jobView, id, data, pos] {
-                    const wxString name = jobView->GetItemText(id);
-                    wxRichToolTip tip(name, setLineBreak(data->tooltip(), 50).toUnicode());
-                    const wxRect rect(pos, pos);
-                    tip.ShowFor(jobView, &rect);
-                    tip.SetTimeout(1e6);
+                    wxRect rect;
+                    jobView->GetBoundingRect(id, rect);
+                    String text = setLineBreak(data->tooltip(), 50);
+                    jobView->showTooltip(pos, rect, id, text);
 
                     nodeEditor->invalidateMousePosition();
                 });
@@ -1703,6 +1702,13 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         } else {
             callback.stop();
         }
+
+        jobView->checkTooltips(pos);
+    });
+
+    jobView->Bind(wxEVT_LEAVE_WINDOW, [jobView](wxMouseEvent& evt) {
+        wxPoint pos = evt.GetPosition();
+        jobView->checkTooltips(pos);
     });
 
     jobView->Bind(wxEVT_TREE_ITEM_ACTIVATED, [=](wxTreeEvent& evt) {
