@@ -1703,12 +1703,17 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             callback.stop();
         }
 
-        jobView->checkTooltips(pos);
+        jobView->hideTooltipsIfOutsideRect(pos);
     });
 
     jobView->Bind(wxEVT_LEAVE_WINDOW, [jobView](wxMouseEvent& evt) {
         wxPoint pos = evt.GetPosition();
-        jobView->checkTooltips(pos);
+        jobView->hideTooltipsIfOutsideRect(pos);
+    });
+
+    jobView->Bind(wxEVT_KILL_FOCUS, [jobView](wxFocusEvent& evt) {
+        jobView->hideTooltips();
+        evt.Skip();
     });
 
     jobView->Bind(wxEVT_TREE_ITEM_ACTIVATED, [=](wxTreeEvent& evt) {

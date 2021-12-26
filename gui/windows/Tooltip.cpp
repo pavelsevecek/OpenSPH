@@ -1,5 +1,6 @@
 #include "gui/windows/Tooltip.h"
 #include <wx/display.h>
+#include <wx/settings.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 
@@ -7,6 +8,8 @@ NAMESPACE_SPH_BEGIN
 
 Tooltip::Tooltip(wxWindow* parent, wxPoint position, const String& text)
     : wxPopupWindow(parent) {
+    this->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_INFOTEXT));
+    this->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_INFOBK));
     this->SetSize(wxSize(500, -1));
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     wxStaticText* content = new wxStaticText(this, wxID_ANY, text.toUnicode());

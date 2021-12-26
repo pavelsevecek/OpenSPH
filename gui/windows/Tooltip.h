@@ -37,12 +37,19 @@ public:
         activeId = id;
     }
 
-    void checkTooltips(wxPoint position) {
+    void hideTooltipsIfOutsideRect(wxPoint position) {
         if (!activeTooltip) {
             return;
         }
 
         if (!activeRect.Contains(position)) {
+            activeTooltip->Destroy();
+            activeTooltip = nullptr;
+        }
+    }
+
+    void hideTooltips() {
+        if (activeTooltip) {
             activeTooltip->Destroy();
             activeTooltip = nullptr;
         }
