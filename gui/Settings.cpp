@@ -61,8 +61,8 @@ static RegisterEnum<ColorMapEnum> sColorMap({
 
 // clang-format off
 template<>
-AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance
-    = makeAuto<Settings<GuiSettingsId>>(Settings<GuiSettingsId> {
+const Settings<GuiSettingsId>& getDefaultSettings() {
+    static Settings<GuiSettingsId> instance({
     /// Camera pameters
     { GuiSettingsId::PARTICLE_RADIUS,       "particle_radius",      0.5_f,
         "Multiplier of the particle radius for drawing." },
@@ -122,13 +122,13 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance
     { GuiSettingsId::SURFACE_LEVEL,         "surface.level",        0.13_f,
         "Surface level for mesh renderer and raytracer. Specifies the value of the constructed/intersected "
         "iso-surface of color field." },
-    { GuiSettingsId::SURFACE_SUN_POSITION,  "surface.sun_position", Vector(0.f, 0.f, 1.f),
+    { GuiSettingsId::SURFACE_SUN_POSITION,  "surface.sun_position", Vector(0.f, 0.f, -1.f),
         "Direction to the sun, used for shading in mesh renderer in raytracer." },
-    { GuiSettingsId::SURFACE_SUN_INTENSITY, "surface.sun_intentity", 0.7_f,
+    { GuiSettingsId::SURFACE_SUN_INTENSITY, "surface.sun_intentity", 0.8_f,
         "Relative intensity of the sun, used for shading in mesh renderer in raytracer." },
-    { GuiSettingsId::SURFACE_AMBIENT,       "surface.ambient",      0.3_f,
+    { GuiSettingsId::SURFACE_AMBIENT,       "surface.ambient",      0.1_f,
         "Relative intensity of an ambient light, illuminating all shaded points." },
-    { GuiSettingsId::SURFACE_EMISSION,      "surface.emission",     1._f,
+    { GuiSettingsId::SURFACE_EMISSION,      "surface.emission",     2._f,
         "Emission multiplier used by raytracer. Note that emission is only enabled for Beauty quantity." },
     { GuiSettingsId::RAYTRACE_SUBSAMPLING,  "raytrace.subsampling", 1,
         "Specifies a number of subsampled iterations of the progressive renderer. Larger values speed up the "
@@ -198,15 +198,10 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance
     { GuiSettingsId::PLOT_OVERPLOT_SFD,     "plot.overplot_sfd",    ""_s,
         "Path to the file containing SFD to plot over the computed one. The file must contain lines with value "
         "N(>D) and D [km]. If empty, no SFD is drawn."},
-});
-// clang-format on
-
-/// \todo do we really need to specialize the function here to avoid linker error?
-template <>
-const Settings<GuiSettingsId>& Settings<GuiSettingsId>::getDefaults() {
-    SPH_ASSERT(instance != nullptr);
-    return *instance;
+    });
+    return instance;
 }
+// clang-format on
 
 // Explicit instantiation
 template class Settings<GuiSettingsId>;

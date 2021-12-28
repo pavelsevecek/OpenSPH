@@ -159,6 +159,6 @@ JobRegistrar sRegisterSpherical(
     "camera",
     "rendering",
     [](const String& name) { return makeAuto<SphericalCameraJob>(name); },
-    "Creates a spherical 360° camera.");
+    L"Creates a spherical 360° camera.");
 
 NAMESPACE_SPH_END

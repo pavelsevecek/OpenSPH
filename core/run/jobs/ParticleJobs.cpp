@@ -403,8 +403,8 @@ static JobRegistrar sRegisterChangeMaterial(
 
 // clang-format off
 template <>
-AutoPtr<CollisionGeometrySettings> CollisionGeometrySettings::instance
-    = makeAuto<CollisionGeometrySettings>(CollisionGeometrySettings{
+const CollisionGeometrySettings& getDefaultSettings() {
+    static CollisionGeometrySettings instance({
     { CollisionGeometrySettingsId::IMPACTOR_OPTIMIZE,      "impactor.optimize",        true,
         "If true, some quantities of the impactor particles are not taken into account when computing the required "
         "time step. Otherwise, the time step might be unnecessarily too low, as the quantities in the impactor change "
@@ -423,7 +423,9 @@ AutoPtr<CollisionGeometrySettings> CollisionGeometrySettings::instance
     { CollisionGeometrySettingsId::CENTER_OF_MASS_FRAME,   "center_of_mass_frame",     false,
         "If true, colliding bodies are moved to the center-of-mass system, otherwise the target is located "
         "at origin and has zero velocity." },
-});
+    });
+    return instance;
+}
 // clang-format on
 
 template class Settings<CollisionGeometrySettingsId>;

@@ -128,6 +128,7 @@ MainWindow::MainWindow(const Path& openPath)
 #endif
           wxDefaultPosition,
           wxSize(1024, 768)) {
+    wxInitAllImageHandlers();
 
     this->Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(MainWindow::onClose));
 

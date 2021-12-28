@@ -6,20 +6,17 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "io/FileSystem.h"
-#include "quantities/QuantityHelpers.h"
 #include "quantities/Attractor.h"
+#include "quantities/QuantityHelpers.h"
 #include "system/Process.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
 #include <condition_variable>
-#include <mutex>
 #include <wx/dcgraph.h>
 #include <wx/dcmemory.h>
 #include <wx/image.h>
 
 NAMESPACE_SPH_BEGIN
-
-std::once_flag initFlag;
 
 Movie::Movie(const GuiSettings& settings,
     AutoPtr<IRenderer>&& renderer,
@@ -34,8 +31,6 @@ Movie::Movie(const GuiSettings& settings,
     , paths(paths) {
     cameraVelocity = settings.get<Vector>(GuiSettingsId::CAMERA_VELOCITY);
     cameraOrbit = settings.get<Float>(GuiSettingsId::CAMERA_ORBIT);
-
-    std::call_once(initFlag, [] { executeOnMainThread(wxInitAllImageHandlers); });
 }
 
 Movie::~Movie() = default;

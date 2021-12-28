@@ -57,6 +57,7 @@ SOURCES += \
     windows/NodePage.cpp \
     windows/MainWindow.cpp \
     windows/TimeLine.cpp \
+    windows/Tooltip.cpp \
     windows/Widgets.cpp \
     windows/GuiSettingsDialog.cpp \
     objects/Plots.cpp
@@ -113,6 +114,7 @@ HEADERS += \
     windows/MainWindow.h \
     windows/TimeLine.h \
     windows/ProgressPanel.h \
+    windows/Tooltip.h \
     windows/Widgets.h \
     windows/GuiSettingsDialog.h \
     objects/Plots.h

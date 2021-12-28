@@ -8,6 +8,7 @@ SUBDIRS = core \
           cli/info \
           cli/problems \
           cli/sandbox \
+          cli/ssftotxt \
           gui \
           gui/launcherGui \
           gui/sandboxGui \
@@ -27,6 +28,7 @@ impact.depends = core
 info.depends = core
 problems.depends = core
 sandbox.depends = core
+ssftotxt.depends = core
 gui.depends = core
 launcherGui.depends = core gui
 sandboxGui.depends = core gui

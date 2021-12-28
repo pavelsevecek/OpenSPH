@@ -360,7 +360,7 @@ Optional<IoEnum> getIoEnum(const String& ext) {
         return IoEnum::TEXT_FILE;
     } else if (ext == "ssf") {
         return IoEnum::BINARY_FILE;
-    } else if (ext == "sdf") {
+    } else if (ext == "sdf" || ext == "scf") { // legacy handling
         return IoEnum::DATA_FILE;
     } else if (ext == "ss") {
         return IoEnum::PKDGRAV_INPUT;
@@ -441,8 +441,8 @@ static RegisterEnum<UvMapEnum> sUv({
 
 // clang-format off
 template<>
-AutoPtr<RunSettings> RunSettings::instance
-    = makeAuto<RunSettings>(RunSettings {
+const RunSettings& getDefaultSettings() {
+    static RunSettings instance({
     { RunSettingsId::RUN_NAME,                      "run.name",                 "unnamed run"_s,
         "User-specified name of the run. Can be stored in the metadata of output files." },
     { RunSettingsId::RUN_COMMENT,                   "run.comment",              ""_s,
@@ -736,8 +736,9 @@ AutoPtr<RunSettings> RunSettings::instance
         "Useful to visualize the simulation results with surface textures." },
     { RunSettingsId::UVW_MAPPING,       "misc.uvw_mapping",     UvMapEnum::SPHERICAL,
         "Type of the UV mapping" },
-
-});
+    });
+    return instance;
+}
 
 static RegisterEnum<DistributionEnum> sDistribution({
     { DistributionEnum::HEXAGONAL, "hexagonal", "Hexagonally close packing" },
@@ -769,8 +770,8 @@ static RegisterEnum<EosEnum> sEos({
 
 
 template<>
-AutoPtr<BodySettings> BodySettings::instance
-    = makeAuto<BodySettings>(BodySettings {
+const BodySettings& getDefaultSettings() {
+    static BodySettings instance({
     /// Equation of state
     { BodySettingsId::EOS,                     "eos",                          EosEnum::TILLOTSON,
         "Equation of state for this material. Can be one of the following:\n" + EnumMap::getDesc<EosEnum>() },
@@ -946,8 +947,9 @@ AutoPtr<BodySettings> BodySettings::instance
     /// Metadata
     { BodySettingsId::IDENTIFIER, "identifier", "basalt"_s,
       "Arbitrary string identifying this material" },
-});
-
+    });
+    return instance;
+}
 // clang-format on
 
 

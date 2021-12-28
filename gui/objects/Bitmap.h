@@ -9,6 +9,8 @@
 #include "gui/objects/Point.h"
 #include "objects/containers/Array.h"
 
+class wxImage;
+
 NAMESPACE_SPH_BEGIN
 
 class Path;
@@ -86,6 +88,8 @@ private:
 void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx, const float scale = 1.f);
 
 Bitmap<Rgba> toBitmap(wxBitmap& wx);
+
+Bitmap<Rgba> toBitmap(const wxImage& image);
 
 void saveToFile(const wxBitmap& wx, const Path& path);
 

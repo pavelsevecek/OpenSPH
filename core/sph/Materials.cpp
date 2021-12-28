@@ -112,11 +112,16 @@ AutoPtr<IMaterial> getMaterial(const MaterialEnum type) {
             .set(BodySettingsId::DENSITY, 7860._f)
             .set(BodySettingsId::BULK_MODULUS, 1.28e11_f)
             .set(BodySettingsId::TILLOTSON_NONLINEAR_B, 1.05e11_f)
-            .set(BodySettingsId::TILLOTSON_ENERGY_IV, 1.42e10_f)
-            .set(BodySettingsId::TILLOTSON_ENERGY_CV, 8.45e10_f)
+            .set(BodySettingsId::SHEAR_MODULUS, 8.2e10_f)
+            .set(BodySettingsId::ELASTICITY_LIMIT, 3.5e8_f)
+            .set(BodySettingsId::MELT_ENERGY, 1.e6_f)
+            .set(BodySettingsId::TILLOTSON_ENERGY_IV, 1.42e6_f)
+            .set(BodySettingsId::TILLOTSON_ENERGY_CV, 8.45e6_f)
             .set(BodySettingsId::TILLOTSON_ALPHA, 5._f)
             .set(BodySettingsId::TILLOTSON_BETA, 5._f)
-            .set(BodySettingsId::HEAT_CAPACITY, 449._f);
+            .set(BodySettingsId::HEAT_CAPACITY, 449._f)
+            .set(BodySettingsId::WEIBULL_COEFFICIENT, 1.e23_f)
+            .set(BodySettingsId::WEIBULL_EXPONENT, 8._f);
         break;
     case MaterialEnum::OLIVINE:
         settings.set(BodySettingsId::TILLOTSON_SMALL_A, 0.5_f)

@@ -4,13 +4,13 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 
-DEPENDPATH += . ../../lib
-INCLUDEPATH += ../../lib
-PRE_TARGETDEPS += ../../lib/liblib.a
+DEPENDPATH += . ../../core
+INCLUDEPATH += ../../core
+PRE_TARGETDEPS += ../../core/libcore.a
 
-LIBS += ../../lib/liblib.a
+LIBS += ../../core/libcore.a
 
-include(../../lib/sharedLib.pro)
+include(../../core/sharedCore.pro)
 
 SOURCES += \
     SsfToTxt.cpp

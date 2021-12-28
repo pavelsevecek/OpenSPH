@@ -1,3 +1,9 @@
+## 2021-10-02
+- fixed crashes on FreeBSD
+
+## 2021-10-01
+- flipped mouse rotation in y-direction
+
 ## 2021-08-25
 - added parallelInvoke to IScheduler
 - using parallelInvoke to parallelize tree traversal
