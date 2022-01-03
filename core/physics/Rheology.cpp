@@ -240,16 +240,14 @@ void DustRheology::create(Storage& UNUSED(storage),
     IMaterial& UNUSED(material),
     const MaterialInitialContext& UNUSED(context)) const {}
 
-void DustRheology::initialize(IScheduler& UNUSED(scheduler),
-    Storage& UNUSED(storage),
-    const MaterialView UNUSED(material)) {}
-
-void DustRheology::integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) {
+void DustRheology::initialize(IScheduler& scheduler, Storage& storage, const MaterialView material) {
     const IndexSequence seq = material.sequence();
     ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
-    parallelFor(scheduler, *seq.begin(), *seq.end(), [&](const Size i) {
-        p[i] = max(p[i], 0._f);
-    });
+    parallelFor(scheduler, *seq.begin(), *seq.end(), [&](const Size i) { p[i] = max(p[i], 0._f); });
 }
+
+void DustRheology::integrate(IScheduler& UNUSED(scheduler),
+    Storage& UNUSED(storage),
+    const MaterialView UNUSED(material)) {}
 
 NAMESPACE_SPH_END
