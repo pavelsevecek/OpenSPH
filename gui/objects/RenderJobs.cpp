@@ -4,7 +4,6 @@
 #include "gui/Factory.h"
 #include "gui/Project.h"
 #include "gui/objects/Camera.h"
-#include "gui/objects/Colorizer.h"
 #include "gui/objects/Movie.h"
 #include "run/IRun.h"
 #include "run/VirtualSettings.h"
@@ -27,15 +26,6 @@ static RegisterEnum<AnimationType> sAnimation({
     { AnimationType::SINGLE_FRAME, "single_frame", "Renders only single frame." },
     { AnimationType::FILE_SEQUENCE, "file_sequence", "Make animation from saved files." },
 });
-
-enum class RenderColorizerId {
-    VELOCITY = int(ColorizerId::VELOCITY),
-    ENERGY = int(QuantityId::ENERGY),
-    DENSITY = int(QuantityId::DENSITY),
-    DAMAGE = int(QuantityId::DAMAGE),
-    GRAVITY = 666,
-    BEAUTY = int(ColorizerId::BEAUTY),
-};
 
 static RegisterEnum<RenderColorizerId> sColorizers({
     { RenderColorizerId::VELOCITY, "velocity", "Particle velocities" },

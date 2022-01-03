@@ -8,12 +8,12 @@
 
 NAMESPACE_SPH_BEGIN
 
-RunSelectDialog::RunSelectDialog(wxWindow* parent, Array<SharedPtr<JobNode>>&& nodes)
+RunSelectDialog::RunSelectDialog(wxWindow* parent, Array<SharedPtr<JobNode>>&& nodes, const String& label)
     : wxDialog(parent, wxID_ANY, "Select run", wxDefaultPosition, wxSize(800, 500))
     , nodes(std::move(nodes)) {
 
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-    sizer->Add(new wxStaticText(this, wxID_ANY, "Select run:"));
+    sizer->Add(new wxStaticText(this, wxID_ANY, wxString("Select ") + label.toUnicode() + ":"));
     const int listHeight = this->GetClientSize().y - 70;
     wxListCtrl* list = new wxListCtrl(
         this, wxID_ANY, wxDefaultPosition, wxSize(800, listHeight), wxLC_REPORT | wxLC_SINGLE_SEL);
@@ -40,7 +40,7 @@ RunSelectDialog::RunSelectDialog(wxWindow* parent, Array<SharedPtr<JobNode>>&& n
     sizer->Add(rememberBox);
 
     wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
-    wxButton* runButton = new wxButton(this, wxID_ANY, "Run");
+    wxButton* runButton = new wxButton(this, wxID_ANY, capitalize(label).toUnicode());
     runButton->Bind(wxEVT_BUTTON, [this, list](wxCommandEvent& UNUSED(evt)) {
         int item = list->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
         if (item == -1) {

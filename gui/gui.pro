@@ -45,6 +45,7 @@ SOURCES += \
     windows/PreviewPane.cpp \
     windows/ProgressPanel.cpp \
     windows/RenderPage.cpp \
+    windows/RenderSetup.cpp \
     windows/RunSelectDialog.cpp \
     windows/SessionDialog.cpp \
     windows/CurveDialog.cpp \
@@ -98,6 +99,7 @@ HEADERS += \
     windows/BatchDialog.h \
     windows/PreviewPane.h \
     windows/RenderPage.h \
+    windows/RenderSetup.h \
     windows/RunSelectDialog.h \
     windows/SessionDialog.h \
     windows/CurveDialog.h \
@@ -115,6 +117,7 @@ HEADERS += \
     windows/TimeLine.h \
     windows/ProgressPanel.h \
     windows/Tooltip.h \
+    windows/WeakRef.h \
     windows/Widgets.h \
     windows/GuiSettingsDialog.h \
     objects/Plots.h

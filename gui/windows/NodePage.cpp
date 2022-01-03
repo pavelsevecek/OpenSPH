@@ -11,6 +11,7 @@
 #include "gui/windows/CurveDialog.h"
 #include "gui/windows/PaletteDialog.h"
 #include "gui/windows/PreviewPane.h"
+#include "gui/windows/RenderSetup.h"
 #include "gui/windows/RunSelectDialog.h"
 #include "gui/windows/Tooltip.h"
 #include "gui/windows/Widgets.h"
@@ -581,8 +582,118 @@ PreviewPane* NodeManager::createRenderPreview(wxWindow* parent, JobNode& node) {
     return new PreviewPane(parent, wxDefaultSize, node.sharedFromThis(), globals);
 }
 
+void NodeManager::selectRender() {
+    SharedPtr<JobNode> node = activeRender.lock();
+    if (node) {
+        callbacks->startRender(node, globals, node->instanceName());
+        return;
+    }
+
+    Array<SharedPtr<JobNode>> nodeList;
+    for (auto& element : nodes) {
+        SharedPtr<JobNode> node = element.key();
+        const ExtJobType provided = node->provides();
+        if (provided == GuiJobType::IMAGE) {
+            nodeList.push(node);
+        }
+    }
+    if (nodeList.empty()) {
+        messageBox(
+            "No render nodes added. Use 'Setup render' or create a 'Render animation' node manually from the "
+            "'Rendering' category.",
+            "No renders",
+            wxOK);
+        return;
+    }
+
+    if (nodeList.size() == 1) {
+        // only a single node, no need for render select dialog
+        SharedPtr<JobNode> node = nodeList.front();
+        callbacks->startRender(node, globals, node->instanceName());
+        return;
+    }
+
+    RunSelectDialog* dialog = new RunSelectDialog(editor, std::move(nodeList), "render");
+    if (dialog->ShowModal() == wxID_OK) {
+        node = dialog->selectedNode();
+        if (dialog->remember()) {
+            activeRender = node;
+        }
+        callbacks->startRender(node, globals, node->instanceName());
+    }
+    dialog->Destroy();
+}
+
+void NodeManager::renderSetup() {
+    RenderSetup* dialog = new RenderSetup(editor);
+    if (dialog->ShowModal() == wxID_OK) {
+        Float scale;
+        try {
+            AutoPtr<IInput> input = Factory::getInput(dialog->firstFilePath);
+            Storage storage;
+            Statistics stats;
+            Outcome result = input->load(dialog->firstFilePath, storage, stats);
+            if (!result) {
+                throw InvalidSetup(result.error());
+            }
+            ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+            Box box;
+            for (Size i = 0; i < r.size(); ++i) {
+                box.extend(r[i]);
+            }
+            scale = maxElement(box.size()) * 1.e-3_f; // to km
+        } catch (const InvalidSetup& e) {
+            messageBox("Cannot setup renderer: " + exceptionMessage(e), "Error", wxOK | wxCENTRE);
+            return;
+        }
+
+        UniqueNameManager nameMgr = this->makeUniqueNameManager();
+        SharedPtr<JobNode> renderNode =
+            addNode(makeNode<AnimationJob>(nameMgr.getName("Render")))->node->sharedFromThis();
+        VirtualSettings renderSettings = renderNode->getSettings();
+        renderSettings.set("directory", dialog->outputDir);
+        renderSettings.set(GuiSettingsId::RENDERER, EnumWrapper(dialog->selectedRenderer));
+        renderSettings.set("quantity", EnumWrapper(RenderColorizerId::BEAUTY));
+        renderSettings.set("first_file", dialog->firstFilePath);
+        renderSettings.set("animation_type",
+            EnumWrapper(dialog->doSequence ? AnimationType::FILE_SEQUENCE : AnimationType::SINGLE_FRAME));
+
+        SharedPtr<JobNode> fileNode =
+            addNode(makeNode<LoadFileJob>(dialog->firstFilePath))->node->sharedFromThis();
+        fileNode->connect(renderNode, "particles");
+
+        SharedPtr<JobNode> cameraNode;
+        switch (dialog->selectedCamera) {
+        case CameraEnum::PERSPECTIVE: {
+            cameraNode = addNode(makeNode<PerspectiveCameraJob>("Camera"))->node->sharedFromThis();
+            VirtualSettings cameraSettings = cameraNode->getSettings();
+            cameraSettings.set(GuiSettingsId::CAMERA_POSITION, Vector(0, 0, 2.5_f * scale));
+            break;
+        }
+        case CameraEnum::ORTHO: {
+            cameraNode = addNode(makeNode<OrthoCameraJob>("Camera"))->node->sharedFromThis();
+            VirtualSettings cameraSettings = cameraNode->getSettings();
+            cameraSettings.set(GuiSettingsId::CAMERA_ORTHO_FOV, 2 * scale);
+            break;
+        }
+        case CameraEnum::FISHEYE:
+            cameraNode = addNode(makeNode<FisheyeCameraJob>("Camera"))->node->sharedFromThis();
+            break;
+        default:
+            NOT_IMPLEMENTED;
+        }
+        cameraNode->connect(renderNode, "camera");
+
+        layoutNodes(*renderNode, Pixel(800, 200) - editor->offset());
+        if (dialog->doRender) {
+            callbacks->startRender(renderNode, globals, renderNode->instanceName());
+        }
+    }
+    dialog->Destroy();
+}
+
 void NodeManager::selectRun() {
-    SharedPtr<JobNode> node = activeNode.lock();
+    SharedPtr<JobNode> node = activeRun.lock();
     if (node) {
         callbacks->startRun(node, globals, node->instanceName());
         return;
@@ -609,7 +720,7 @@ void NodeManager::selectRun() {
     if (dialog->ShowModal() == wxID_OK) {
         node = dialog->selectedNode();
         if (dialog->remember()) {
-            activeNode = node;
+            activeRun = node;
         }
         callbacks->startRun(node, globals, node->instanceName());
     }
@@ -1824,6 +1935,14 @@ void NodeWindow::showBatchDialog() {
 
 void NodeWindow::selectRun() {
     nodeMgr->selectRun();
+}
+
+void NodeWindow::selectRender() {
+    nodeMgr->selectRender();
+}
+
+void NodeWindow::renderSetup() {
+    nodeMgr->renderSetup();
 }
 
 void NodeWindow::startScript(const Path& file) {

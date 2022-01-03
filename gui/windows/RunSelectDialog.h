@@ -14,7 +14,7 @@ private:
     wxCheckBox* rememberBox;
 
 public:
-    RunSelectDialog(wxWindow* parent, Array<SharedPtr<JobNode>>&& nodes);
+    RunSelectDialog(wxWindow* parent, Array<SharedPtr<JobNode>>&& nodes, const String& label = "run");
 
     SharedPtr<JobNode> selectedNode() const {
         return selected;

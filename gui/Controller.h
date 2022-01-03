@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui/Settings.h"
+#include "gui/windows/WeakRef.h"
 #include "io/Path.h"
 #include "objects/wrappers/Locking.h"
 #include "objects/wrappers/SharedPtr.h"
@@ -42,7 +43,7 @@ enum class RunStatus {
 class Controller : public IJobCallbacks {
 private:
     /// Run page
-    RawPtr<RunPage> page;
+    WeakRef<RunPage> page;
 
     /// Parent project
     Project& project;
@@ -150,7 +151,7 @@ public:
 
     ~Controller();
 
-    RawPtr<RunPage> getPage() const;
+    RunPage* getPage() const;
 
     /// \addtogroup Run queries
 

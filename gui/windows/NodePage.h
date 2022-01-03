@@ -78,7 +78,8 @@ private:
 
     SharedPtr<INodeManagerCallbacks> callbacks;
 
-    WeakPtr<JobNode> activeNode;
+    WeakPtr<JobNode> activeRun;
+    WeakPtr<JobNode> activeRender;
 
 public:
     NodeManager(NodeEditor* editor, SharedPtr<INodeManagerCallbacks> callbacks);
@@ -128,6 +129,10 @@ public:
     PreviewPane* createRenderPreview(wxWindow* parent, JobNode& node);
 
     void selectRun();
+
+    void selectRender();
+
+    void renderSetup();
 
     UniqueNameManager makeUniqueNameManager() const;
 };
@@ -262,6 +267,10 @@ public:
     void showBatchDialog();
 
     void selectRun();
+
+    void selectRender();
+
+    void renderSetup();
 
     void startScript(const Path& file);
 
