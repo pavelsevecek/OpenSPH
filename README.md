@@ -22,7 +22,7 @@ utilizing modern CPU features (SSE/AVX instruction sets).
 
 ### Windows
 
-OpenSPH can be easily installed using the <a href="https://pavelsevecek.github.io/OpenSPH-0.3.7.msi">MSI installer</a>. 
+OpenSPH can be easily installed using the <a href="https://pavelsevecek.github.io/OpenSPH-0.3.9.msi">MSI installer</a>. 
 
 ### Debian and Ubuntu
 
