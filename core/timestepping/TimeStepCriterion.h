@@ -13,6 +13,7 @@
 NAMESPACE_SPH_BEGIN
 
 class IScheduler;
+class String;
 
 enum class CriterionId {
     INITIAL_VALUE, ///< Timestep is not computed, using given initial value
@@ -23,6 +24,8 @@ enum class CriterionId {
     DIVERGENCE,    ///< Timestep computed by velocity divergence
     MAX_CHANGE,    ///< Timestep is limited by the maximum allowed change from previous timestep
 };
+
+String toString(const CriterionId id);
 
 std::ostream& operator<<(std::ostream& stream, const CriterionId id);
 
@@ -43,8 +46,15 @@ public:
     /// \param storage Storage containing all physical quantities from which the time step is determined.
     /// \param maxStep Maximal allowed time step.
     /// \param stats Used to save statistics of the criterion.
+    /// \param dts Optional output parameter where time steps determined for each particle are stored.
+    ///            The values in the view are overridden only if the time step is lower than the previous
+    ///            value. The view may be null.
     /// \returns Computed time step and ID of criterion that determined the value.
-    virtual TimeStep compute(IScheduler& scheduler, Storage& storage, Float maxStep, Statistics& stats) = 0;
+    virtual TimeStep compute(IScheduler& scheduler,
+        Storage& storage,
+        Float maxStep,
+        Statistics& stats,
+        ArrayView<TimeStep> dts = nullptr) = 0;
 };
 
 /// \brief Criterion setting time step based on value-to-derivative ratio for time-dependent quantities.
@@ -91,11 +101,16 @@ public:
     virtual TimeStep compute(IScheduler& scheduler,
         Storage& storage,
         Float maxStep,
-        Statistics& stats) override;
+        Statistics& stats,
+        ArrayView<TimeStep> dts = nullptr) override;
 
 private:
     template <template <typename> class Tls>
-    TimeStep computeImpl(IScheduler& scheduler, Storage& storage, Float maxStep, Statistics& stats);
+    TimeStep computeImpl(IScheduler& scheduler,
+        Storage& storage,
+        Float maxStep,
+        Statistics& stats,
+        ArrayView<TimeStep> dts);
 };
 
 /// \brief Criterion setting time step based on computed acceleration of particles.
@@ -112,7 +127,8 @@ public:
     virtual TimeStep compute(IScheduler& scheduler,
         Storage& storage,
         Float maxStep,
-        Statistics& stats) override;
+        Statistics& stats,
+        ArrayView<TimeStep> dts = nullptr) override;
 };
 
 /// \brief Criterion computing time step from velocity divergence.
@@ -128,7 +144,8 @@ public:
     virtual TimeStep compute(IScheduler& scheduler,
         Storage& storage,
         Float maxStep,
-        Statistics& stats) override;
+        Statistics& stats,
+        ArrayView<TimeStep> dts = nullptr) override;
 };
 
 /// \brief Time step based on CFL criterion.
@@ -147,7 +164,8 @@ public:
     virtual TimeStep compute(IScheduler& scheduler,
         Storage& storage,
         Float maxStep,
-        Statistics& stats) override;
+        Statistics& stats,
+        ArrayView<TimeStep> dts = nullptr) override;
 };
 
 
@@ -173,7 +191,8 @@ public:
     virtual TimeStep compute(IScheduler& scheduler,
         Storage& storage,
         const Float maxStep,
-        Statistics& stats) override;
+        Statistics& stats,
+        ArrayView<TimeStep> dts = nullptr) override;
 };
 
 NAMESPACE_SPH_END

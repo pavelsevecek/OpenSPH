@@ -42,6 +42,7 @@ set(GUI_SOURCES
     windows/TimeLine.cpp
     windows/Tooltip.cpp
     windows/ProgressPanel.cpp
+    windows/RenderSetup.cpp
     windows/Widgets.cpp)
 
 set(GUI_HEADERS
@@ -98,6 +99,8 @@ set(GUI_HEADERS
     windows/TimeLine.h
     windows/Tooltip.h
     windows/ProgressPanel.h 
+    windows/RenderSetup.h
+    windows/WeakRef.h
     windows/Widgets.h)
 
 add_library(gui STATIC ${GUI_HEADERS} ${GUI_SOURCES})

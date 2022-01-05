@@ -194,6 +194,12 @@ enum class QuantityId {
     /// be useful for other uses of quantities, like data output, visualization etc.
     SMOOTHING_LENGTH = 41,
 
+    /// Time step determined by each particle.
+    TIME_STEP = 48,
+
+    /// Criterion used to determine the time step of each particle.
+    TIME_STEP_CRITERION = 49,
+
     ///@}
 
     /// \name Particle flags & Materials

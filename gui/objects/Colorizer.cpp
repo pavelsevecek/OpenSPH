@@ -1,4 +1,5 @@
 #include "gui/objects/Colorizer.h"
+#include "timestepping/TimeStepCriterion.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -325,6 +326,18 @@ Optional<Particle> MaterialColorizer::getParticle(const Size idx) const {
         particle.addParameter(BodySettingsId::EOS, eosNames[id.value()]);
         particle.addParameter(BodySettingsId::RHEOLOGY_YIELDING, rheoNames[id.value()]);
     }
+    return particle;
+}
+
+void TimeStepColorizer::initialize(const Storage& storage, const RefEnum ref) {
+    TypedColorizer<Float>::initialize(storage, ref);
+    critIds = makeArrayRef(storage.getValue<Size>(QuantityId::TIME_STEP_CRITERION), ref);
+}
+
+Optional<Particle> TimeStepColorizer::getParticle(const Size idx) const {
+    Particle particle(idx);
+    particle.addValue(QuantityId::TIME_STEP, values[idx]);
+    particle.addValue(QuantityId::TIME_STEP_CRITERION, toString(CriterionId(critIds[idx])));
     return particle;
 }
 

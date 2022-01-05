@@ -166,6 +166,9 @@ MainWindow::MainWindow(const Path& openPath)
     runMenu = this->createRunMenu();
     bar->Append(runMenu, "&Simulation");
 
+    wxMenu* renderMenu = this->createRenderMenu();
+    bar->Append(renderMenu, "Ren&dering");
+
     wxMenu* analysisMenu = this->createAnalysisMenu();
     bar->Append(analysisMenu, "&Analysis");
 
@@ -659,6 +662,33 @@ wxMenu* MainWindow::createRunMenu() {
     return runMenu;
 }
 
+
+enum RenderMenuId {
+    RN_SETUP = 3500,
+    RN_RENDER,
+};
+
+wxMenu* MainWindow::createRenderMenu() {
+    wxMenu* renderMenu = new wxMenu();
+    renderMenu->Append(RN_SETUP, "Setup rendering");
+    renderMenu->Append(RN_RENDER, "Render");
+
+    renderMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this, renderMenu](wxCommandEvent& evt) { //
+        switch (evt.GetId()) {
+        case RN_SETUP:
+            nodePage->renderSetup();
+            break;
+        case RN_RENDER:
+            nodePage->selectRender();
+            break;
+        default:
+            NOT_IMPLEMENTED;
+        }
+    });
+
+    return renderMenu;
+}
+
 enum AnalysisMenuId {
     AN_CURRENT_SFD = 4000,
     AN_PREDICTED_SFD,
@@ -802,7 +832,7 @@ void MainWindow::enableMenus(const Size id) {
     if (page == nullptr) {
         enableRunMenu(false, false);
         // disable analysis
-        bar->EnableTop(2, false);
+        bar->EnableTop(3, false);
         return;
     }
     SPH_ASSERT(runs.contains(page));
@@ -810,7 +840,7 @@ void MainWindow::enableMenus(const Size id) {
     const bool enableControls = runs[page].isRun;
     enableRunMenu(enableControls, true);
     // enable/disable analysis
-    bar->EnableTop(2, true);
+    bar->EnableTop(3, true);
 }
 
 void MainWindow::enableRunMenu(const bool enableControls, const bool enableCamera) {

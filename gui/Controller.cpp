@@ -41,8 +41,8 @@ Controller::~Controller() {
     this->quit(true);
 }
 
-RawPtr<RunPage> Controller::getPage() const {
-    return page;
+RunPage* Controller::getPage() const {
+    return page.get();
 }
 
 Controller::Vis::Vis() {
@@ -280,7 +280,7 @@ void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
     }
 
     // update the data in all window controls (can be done from any thread)
-    page->onTimeStep(storage, stats);
+    page.nonMainThreadGet()->onTimeStep(storage, stats);
 
     // executed all waiting callbacks (before redrawing as it is used to change renderers)
     if (!sph.onTimeStepCallbacks->empty()) {
@@ -391,6 +391,7 @@ Array<ExtColorizerId> getColorizerIds() {
         QuantityId::AV_STRESS,
         //
         ColorizerId::RADIUS,
+        ColorizerId::TIME_STEP,
         ColorizerId::PARTICLE_ID,
         ColorizerId::COMPONENT_ID,
         ColorizerId::AGGREGATE_ID,
@@ -662,9 +663,9 @@ void Controller::refresh() {
 }
 
 void Controller::safePageCall(Function<void(RunPage*)> func) {
-    executeOnMainThread([func, weakPage = wxWeakRef<RunPage>(page.get())] {
-        if (weakPage && weakPage->isOk()) {
-            func(weakPage);
+    executeOnMainThread([page = page, func] {
+        if (page && page->isOk()) {
+            func(page.get());
         }
     });
 }
@@ -695,10 +696,10 @@ void Controller::startRenderThread() {
     class RenderOutput : public IRenderOutput {
     private:
         Vis& vis;
-        wxWeakRef<RunPage> page;
+        WeakRef<RunPage> page;
 
     public:
-        RenderOutput(Vis& vis, wxWeakRef<RunPage> page)
+        RenderOutput(Vis& vis, WeakRef<RunPage> page)
             : vis(vis)
             , page(page) {}
 
@@ -743,7 +744,7 @@ void Controller::startRenderThread() {
     };
 
     vis.renderThread = std::thread([this] {
-        RenderOutput output(vis, page.get());
+        RenderOutput output(vis, page);
         while (status != RunStatus::QUITTING) {
 
             // wait till render data are available
@@ -758,7 +759,7 @@ void Controller::startRenderThread() {
                 continue;
             }
 
-            const wxSize canvasSize = page->getCanvasSize();
+            const wxSize canvasSize = page.nonMainThreadGet()->getCanvasSize();
             RenderParams params;
             params.particles.selected = vis.selectedParticle;
 

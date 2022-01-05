@@ -1275,6 +1275,9 @@ enum class RunSettingsId {
     /// Required relative accuracy of the Bulirsch-Stoer integrator.
     TIMESTEPPING_BS_ACCURACY,
 
+    /// Stores per-particle time steps
+    SAVE_PARTICLE_TIMESTEPS,
+
     /// Global rotation of the coordinate system around axis (0, 0, 1) passing through origin. If non-zero,
     /// causes non-intertial acceleration.
     FRAME_ANGULAR_FREQUENCY,

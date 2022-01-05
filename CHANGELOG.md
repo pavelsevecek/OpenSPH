@@ -1,3 +1,15 @@
+## 2022-01-05
+- added an option to store and display per-particle time steps
+
+## 2022-01-03
+- added menu entry for starting renders
+- added simple render setup dialog
+- fixed race conditions in safePageCall
+
+## 2021-12-26
+- replaced wxRichToolTip with custom window
+- fixed issues with loading bitmaps
+
 ## 2021-10-02
 - fixed crashes on FreeBSD
 

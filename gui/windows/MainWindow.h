@@ -47,6 +47,8 @@ private:
 
     wxMenu* createRunMenu();
 
+    wxMenu* createRenderMenu();
+
     wxMenu* createAnalysisMenu();
 
     wxMenu* createResultMenu();

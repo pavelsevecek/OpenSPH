@@ -3,16 +3,23 @@
 #include "gui/Settings.h"
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/CameraJobs.h"
+#include "gui/objects/Colorizer.h"
 #include "gui/renderers/IRenderer.h"
 
 NAMESPACE_SPH_BEGIN
 
-class IColorizer;
 struct RenderParams;
 class JobNode;
 class Palette;
 
-enum class RenderColorizerId;
+enum class RenderColorizerId {
+    VELOCITY = int(ColorizerId::VELOCITY),
+    ENERGY = int(QuantityId::ENERGY),
+    DENSITY = int(QuantityId::DENSITY),
+    DAMAGE = int(QuantityId::DAMAGE),
+    GRAVITY = 666,
+    BEAUTY = int(ColorizerId::BEAUTY),
+};
 
 enum class AnimationType {
     SINGLE_FRAME = 0,

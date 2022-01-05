@@ -81,6 +81,7 @@ static void addTimeSteppingCategory(VirtualSettings& connector, RunSettings& set
     rangeCat.connect<Float>("Divergence factor", settings, RunSettingsId::TIMESTEPPING_DIVERGENCE_FACTOR)
         .setEnabler(divergenceEnabler);
     rangeCat.connect<Float>("Max step change", settings, RunSettingsId::TIMESTEPPING_MAX_INCREASE);
+    rangeCat.connect<bool>("Save particle time steps", settings, RunSettingsId::SAVE_PARTICLE_TIMESTEPS);
 }
 
 static void addGravityCategory(VirtualSettings& connector, RunSettings& settings) {

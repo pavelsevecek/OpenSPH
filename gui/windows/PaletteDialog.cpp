@@ -99,9 +99,12 @@ void drawPalette(IRenderContext& context,
     case PaletteScale::LINEAR:
         tics = getLinearTics(interval, 4);
         break;
-    case PaletteScale::LOGARITHMIC:
-        tics = getLogTics(interval, 4);
+    case PaletteScale::LOGARITHMIC: {
+        const Float lower = max(interval.lower(), EPS);
+        const Float upper = interval.upper();
+        tics = getLogTics(Interval(lower, upper), 4);
         break;
+    }
     case PaletteScale::HYBRID: {
         const Size ticsCnt = 5;
         // tics currently not implemented, so just split the range to equidistant steps
@@ -280,7 +283,7 @@ const Palette ACCRETION({ { 0.001f, Rgba(0.43f, 0.70f, 1.f) },
     PaletteScale::LOGARITHMIC);
 
 const Palette STELLAR({ { 0.01f, Rgba(1.f, 0.75f, 0.1f) },
-                          { 0.1f, Rgba(0.75f, 0.25f, 0.1f)},
+                          { 0.1f, Rgba(0.75f, 0.25f, 0.1f) },
                           { 1.f, Rgba(0.4f, 0.7f, 1.f) },
                           { 10.f, Rgba(0.2f, 0.4f, 0.8f) } },
     PaletteScale::LOGARITHMIC);

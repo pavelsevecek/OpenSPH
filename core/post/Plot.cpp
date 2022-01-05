@@ -459,7 +459,7 @@ Array<Float> getLinearTics(const Interval& interval, const Size minCount) {
 }
 
 Array<Float> getLogTics(const Interval& interval, const Size minCount) {
-    SPH_ASSERT(interval.lower() > EPS); // could be relaxed if we need to plot some very low quantities
+    SPH_ASSERT(interval.lower() > EPS); // could be relaxed if we need to plot some very small quantities
     const Float fromOrder = floor(log10(interval.lower()));
     const Float toOrder = ceil(log10(interval.upper()));
     SPH_ASSERT(isReal(fromOrder) && isReal(toOrder) && toOrder >= fromOrder);

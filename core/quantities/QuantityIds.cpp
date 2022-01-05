@@ -120,6 +120,10 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Smoothing length", L"h", ValueEnum::SCALAR);
     case QuantityId::DELTASPH_DENSITY_GRADIENT:
         return QuantityMetadata("Density gradient", L"\u2207\u03C1", ValueEnum::VECTOR);
+    case QuantityId::TIME_STEP:
+        return QuantityMetadata("Time step", L"\u0394t" /*Delta t*/, ValueEnum::SCALAR);
+    case QuantityId::TIME_STEP_CRITERION:
+        return QuantityMetadata("Time step criterion", L"criterion" /*Delta t*/, ValueEnum::INDEX);
     case QuantityId::UVW:
         return QuantityMetadata("Mapping coordinates", L"uvw", ValueEnum::VECTOR);
     default:
