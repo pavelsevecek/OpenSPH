@@ -18,6 +18,12 @@ ITimeStepping::ITimeStepping(const SharedPtr<Storage>& storage,
     , criterion(std::move(criterion)) {
     timeStep = settings.get<Float>(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP);
     maxTimeStep = settings.get<Float>(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP);
+    saveParticleTimeSteps = settings.get<bool>(RunSettingsId::SAVE_PARTICLE_TIMESTEPS);
+
+    if (saveParticleTimeSteps) {
+        storage->insert<Float>(QuantityId::TIME_STEP, OrderEnum::ZERO, LARGE);
+        storage->insert<Size>(QuantityId::TIME_STEP_CRITERION, OrderEnum::ZERO, 0);
+    }
 }
 
 ITimeStepping::ITimeStepping(const SharedPtr<Storage>& storage, const RunSettings& settings)
@@ -44,9 +50,21 @@ void ITimeStepping::step(IScheduler& scheduler, ISolver& solver, Statistics& sta
     // update time step
     CriterionId criterionId = CriterionId::INITIAL_VALUE;
     if (criterion) {
-        const TimeStep result = criterion->compute(scheduler, *storage, maxTimeStep, stats);
+        Array<TimeStep> dts;
+        if (saveParticleTimeSteps) {
+            dts.resizeAndSet(storage->getParticleCnt(), TimeStep{ LARGE, CriterionId::MAXIMAL_VALUE });
+        }
+        const TimeStep result = criterion->compute(scheduler, *storage, maxTimeStep, stats, dts);
         timeStep = result.value;
         criterionId = result.id;
+        if (saveParticleTimeSteps) {
+            ArrayView<Float> values = storage->getValue<Float>(QuantityId::TIME_STEP);
+            ArrayView<Size> critIds = storage->getValue<Size>(QuantityId::TIME_STEP_CRITERION);
+            parallelFor(scheduler, 0, dts.size(), [&values, &critIds, &dts](const Size i) {
+                values[i] = dts[i].value;
+                critIds[i] = Size(dts[i].id);
+            });
+        }
     }
     stats.set(StatisticsId::TIMESTEP_VALUE, timeStep);
     stats.set(StatisticsId::TIMESTEP_CRITERION, criterionId);

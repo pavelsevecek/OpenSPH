@@ -155,7 +155,8 @@ enum class ColorizerId {
     AGGREGATE_ID = -20,        ///< Color assigned to each aggregate
     FLAG = -21,                ///< Particles of different bodies are colored differently
     MATERIAL_ID = -22,         ///< Particles with different materials are colored differently
-    BEAUTY = -23,              ///< Attempts to show the real-world look
+    TIME_STEP = -23,           ///< Time step of each particle
+    BEAUTY = -24,              ///< Attempts to show the real-world look
 };
 
 using ExtColorizerId = ExtendedEnum<ColorizerId>;
@@ -1048,6 +1049,19 @@ private:
 public:
     MaterialColorizer(const GuiSettings& gui)
         : IndexColorizer(QuantityId::MATERIAL_ID, gui) {}
+
+    virtual void initialize(const Storage& storage, const RefEnum ref) override;
+
+    virtual Optional<Particle> getParticle(const Size idx) const override;
+};
+
+class TimeStepColorizer : public TypedColorizer<Float> {
+private:
+    ArrayRef<const Size> critIds;
+
+public:
+    TimeStepColorizer(const Palette& palette)
+        : TypedColorizer<Float>(QuantityId::TIME_STEP, palette) {}
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override;
 

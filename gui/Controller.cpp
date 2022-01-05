@@ -391,6 +391,7 @@ Array<ExtColorizerId> getColorizerIds() {
         QuantityId::AV_STRESS,
         //
         ColorizerId::RADIUS,
+        ColorizerId::TIME_STEP,
         ColorizerId::PARTICLE_ID,
         ColorizerId::COMPONENT_ID,
         ColorizerId::AGGREGATE_ID,

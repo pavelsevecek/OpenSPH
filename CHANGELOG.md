@@ -1,3 +1,6 @@
+## 2022-01-05
+- added an option to store and display per-particle time steps
+
 ## 2022-01-03
 - added menu entry for starting renders
 - added simple render setup dialog

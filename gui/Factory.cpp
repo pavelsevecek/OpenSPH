@@ -172,6 +172,8 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const ExtCo
         return makeAuto<IndexColorizer>(QuantityId::FLAG, settings);
     case ColorizerId::MATERIAL_ID:
         return makeAuto<MaterialColorizer>(settings);
+    case ColorizerId::TIME_STEP:
+        return makeAuto<TimeStepColorizer>(getPalette(id));
     case ColorizerId::BEAUTY:
         return makeAuto<BeautyColorizer>();
     default:
@@ -246,6 +248,7 @@ static FlatMap<ExtColorizerId, PaletteDesc> paletteDescs(ELEMENTS_UNIQUE,
         { ColorizerId::DAMAGE_ACTIVATION, { Interval(2.e-4_f, 8.e-4_f), PaletteScale::LINEAR } },
         { ColorizerId::YIELD_REDUCTION, { Interval(0._f, 1._f), PaletteScale::LINEAR } },
         { ColorizerId::TOTAL_STRESS, { Interval(0._f, 1e6_f), PaletteScale::LINEAR } },
+        { ColorizerId::TIME_STEP, { Interval(0._f, 100._f), PaletteScale::LINEAR } },
     });
 
 static Palette getDefaultPalette(const Interval range) {

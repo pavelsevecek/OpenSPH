@@ -1,5 +1,6 @@
 #include "timestepping/TimeStepCriterion.h"
 #include "io/Logger.h"
+#include "objects/containers/String.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Iterate.h"
 #include "system/Profiler.h"
@@ -9,39 +10,31 @@
 
 NAMESPACE_SPH_BEGIN
 
-std::ostream& operator<<(std::ostream& stream, const CriterionId id) {
+String toString(const CriterionId id) {
     switch (id) {
     case CriterionId::CFL_CONDITION:
-        stream << "CFL condition";
-        break;
+        return "CFL condition";
     case CriterionId::ACCELERATION:
-        stream << "Acceleration";
-        break;
+        return "Acceleration";
     case CriterionId::DERIVATIVE:
-        stream << "Derivative";
-        break;
+        return "Derivative";
     case CriterionId::DIVERGENCE:
-        stream << "Divergence";
-        break;
+        return "Divergence";
     case CriterionId::MAXIMAL_VALUE:
-        stream << "Maximal value";
-        break;
+        return "Maximal value";
     case CriterionId::INITIAL_VALUE:
-        stream << "Default value";
-        break;
+        return "Default value";
     case CriterionId::MAX_CHANGE:
-        stream << "Max. change limit";
-        break;
+        return "Max. change limit";
     default:
         NOT_IMPLEMENTED;
     }
-    return stream;
 }
 
-
-//-----------------------------------------------------------------------------------------------------------
-// DerivativeCriterion implementation
-//-----------------------------------------------------------------------------------------------------------
+std::ostream& operator<<(std::ostream& stream, const CriterionId id) {
+    stream << toString(id);
+    return stream;
+}
 
 /// Helper class storing a minimal value of time step and corresponding statistics.
 template <typename T>
@@ -117,6 +110,9 @@ struct MeanStepTls {
     }
 };
 
+//-----------------------------------------------------------------------------------------------------------
+// DerivativeCriterion implementation
+//-----------------------------------------------------------------------------------------------------------
 
 DerivativeCriterion::DerivativeCriterion(const RunSettings& settings) {
     factor = settings.get<Float>(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR);
@@ -127,14 +123,15 @@ DerivativeCriterion::DerivativeCriterion(const RunSettings& settings) {
 TimeStep DerivativeCriterion::compute(IScheduler& scheduler,
     Storage& storage,
     const Float maxStep,
-    Statistics& stats) {
+    Statistics& stats,
+    ArrayView<TimeStep> dts) {
     VERBOSE_LOG
     if (power < -1.e3_f) {
         // very high negative power, this is effectively computing minimal timestep
-        return this->computeImpl<MinimalStepTls>(scheduler, storage, maxStep, stats);
+        return this->computeImpl<MinimalStepTls>(scheduler, storage, maxStep, stats, dts);
     } else {
         // generic case, compute a generalized mean of timesteps
-        return this->computeImpl<MeanStepTls>(scheduler, storage, maxStep, stats);
+        return this->computeImpl<MeanStepTls>(scheduler, storage, maxStep, stats, dts);
     }
 }
 
@@ -142,7 +139,8 @@ template <template <typename> class Tls>
 TimeStep DerivativeCriterion::computeImpl(IScheduler& scheduler,
     Storage& storage,
     const Float maxStep,
-    Statistics& stats) {
+    Statistics& stats,
+    ArrayView<TimeStep> dts) {
     Float totalMinStep = INFTY;
     CriterionId minId = CriterionId::INITIAL_VALUE;
 
@@ -172,6 +170,10 @@ TimeStep DerivativeCriterion::computeImpl(IScheduler& scheduler,
                 const Float value = factor * (vs[j] + minValue) / (dvs[j] + EPS);
                 SPH_ASSERT(isReal(value));
                 tls.add(value, v[i], dv[i], i);
+                if (!dts.empty() && value < dts[i].value) {
+                    dts[i].value = value;
+                    dts[i].id = CriterionId::DERIVATIVE;
+                }
             }
         };
 
@@ -219,7 +221,8 @@ AccelerationCriterion::AccelerationCriterion(const RunSettings& settings) {
 TimeStep AccelerationCriterion::compute(IScheduler& scheduler,
     Storage& storage,
     const Float maxStep,
-    Statistics& UNUSED(stats)) {
+    Statistics& UNUSED(stats),
+    ArrayView<TimeStep> dts) {
     VERBOSE_LOG
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
@@ -233,6 +236,10 @@ TimeStep AccelerationCriterion::compute(IScheduler& scheduler,
             const Float step = factor * root<4>(sqr(r[i][H]) / dvNorm);
             SPH_ASSERT(isReal(step) && step > 0._f && step < INFTY);
             tl.minStep = min(tl.minStep, step);
+            if (!dts.empty() && step < dts[i].value) {
+                dts[i].value = step;
+                dts[i].id = CriterionId::ACCELERATION;
+            }
         }
     };
     Tl result;
@@ -260,7 +267,8 @@ DivergenceCriterion::DivergenceCriterion(const RunSettings& settings) {
 TimeStep DivergenceCriterion::compute(IScheduler& scheduler,
     Storage& storage,
     const Float maxStep,
-    Statistics& UNUSED(stats)) {
+    Statistics& UNUSED(stats),
+    ArrayView<TimeStep> dts) {
     VERBOSE_LOG
     if (!storage.has(QuantityId::VELOCITY_DIVERGENCE)) {
         return { maxStep, CriterionId::MAXIMAL_VALUE };
@@ -276,6 +284,10 @@ TimeStep DivergenceCriterion::compute(IScheduler& scheduler,
             const Float step = factor / dv;
             SPH_ASSERT(isReal(step) && step > 0._f && step < INFTY);
             tl.minStep = min(tl.minStep, step);
+            if (!dts.empty() && step < dts[i].value) {
+                dts[i].value = step;
+                dts[i].id = CriterionId::DIVERGENCE;
+            }
         }
     };
     Tl result;
@@ -300,11 +312,11 @@ CourantCriterion::CourantCriterion(const RunSettings& settings) {
     courant = settings.get<Float>(RunSettingsId::TIMESTEPPING_COURANT_NUMBER);
 }
 
-
 TimeStep CourantCriterion::compute(IScheduler& scheduler,
     Storage& storage,
     const Float maxStep,
-    Statistics& UNUSED(stats)) {
+    Statistics& UNUSED(stats),
+    ArrayView<TimeStep> dts) {
     VERBOSE_LOG
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
@@ -323,6 +335,10 @@ TimeStep CourantCriterion::compute(IScheduler& scheduler,
             const Float value = courant * r[i][H] / cs[i];
             SPH_ASSERT(isReal(value) && value > 0._f && value < INFTY);
             tl.minStep = min(tl.minStep, value);
+            if (!dts.empty() && value < dts[i].value) {
+                dts[i].value = value;
+                dts[i].id = CriterionId::CFL_CONDITION;
+            }
         }
     };
     Tl result;
@@ -373,13 +389,14 @@ MultiCriterion::MultiCriterion(Array<AutoPtr<ITimeStepCriterion>>&& criteria,
 TimeStep MultiCriterion::compute(IScheduler& scheduler,
     Storage& storage,
     const Float maxStep,
-    Statistics& stats) {
+    Statistics& stats,
+    ArrayView<TimeStep> dts) {
     VERBOSE_LOG
     SPH_ASSERT(!criteria.empty());
     Float minStep = INFTY;
     CriterionId minId = CriterionId::INITIAL_VALUE;
-    for (auto& crit : criteria) {
-        const TimeStep step = crit->compute(scheduler, storage, maxStep, stats);
+    for (AutoPtr<ITimeStepCriterion>& crit : criteria) {
+        const TimeStep step = crit->compute(scheduler, storage, maxStep, stats, dts);
         if (step.value < minStep) {
             minStep = step.value;
             minId = step.id;

@@ -148,6 +148,11 @@ void ParticleProbe::onPaint(wxPaintEvent& UNUSED(evt)) {
             offset.y += 6 * config.lineSkip;
             break;
         }
+        case DynamicId::STRING: {
+            drawTextWithSubscripts(dc, toKey(label) + " = " + toName(data.value.get<String>()), offset);
+            offset.y += config.lineSkip;
+            break;
+        }
 
         default:
             // don't throw, but don't print anything

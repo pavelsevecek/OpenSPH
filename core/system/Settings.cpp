@@ -681,13 +681,15 @@ const RunSettings& getDefaultSettings() {
         "particles. Negative infinity means the minimal timestep is used. This value will also set statistics "
         "of the restricting particle, namely the particle index and the quantity value and corresponding "
         "derivative of the particle; these statistics are not saved for other powers." },
-    { RunSettingsId::TIMESTEPPING_MAX_INCREASE,       "timestep.max_change",      INFTY,
+    { RunSettingsId::TIMESTEPPING_MAX_INCREASE,     "timestep.max_change",      INFTY,
         "Maximum relative growth of the time steps in subsequent iterations. Used to 'smooth' the integration and "
         "to avoid rapid changes of time steps."},
     { RunSettingsId::TIMESTEPPING_MIDPOINT_COUNT,   "timestep.midpoint_count",  5,
         "Applicable for modified midpoint method. Specified the number of sub-steps within one time step." },
     { RunSettingsId::TIMESTEPPING_BS_ACCURACY,      "timestep.bs.accuracy",     1.e-3_f,
         "Required relative accuracy (epsilon value) of the Bulirsch-Stoer integrator." },
+    { RunSettingsId::SAVE_PARTICLE_TIMESTEPS,       "save_particle_timesteps",  false,
+        "If true, time steps determined for each particle are stored in the 'time step' quantity." },
 
     /// Kd-tree and other finders
     { RunSettingsId::FINDER_LEAF_SIZE,          "finder.leaf_size",             25,

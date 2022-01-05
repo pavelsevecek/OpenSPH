@@ -57,6 +57,9 @@ protected:
     /// Criterion used to compute the time step
     AutoPtr<ITimeStepCriterion> criterion;
 
+    /// If true, per-particle time steps are stored into storage
+    bool saveParticleTimeSteps;
+
 public:
     /// \brief Constructs the timestepping, using timestep criteria from parameters in settings.
     ///
