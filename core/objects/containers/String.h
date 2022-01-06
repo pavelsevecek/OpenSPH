@@ -240,7 +240,8 @@ public:
     enum class TrimFlag {
         SPACE = 1 << 0,
         END_LINE = 1 << 1,
-        TAB = 1 << 2,
+        RETURN = 1 << 2,
+        TAB = 1 << 3,
     };
 
     String trim(const Flags<TrimFlag> flags = TrimFlag::SPACE) const;
