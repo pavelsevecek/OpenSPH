@@ -478,7 +478,7 @@ public:
         return cnt;
     }
 
-    virtual void remove(ArrayView<const Size> idxs) {
+    virtual void remove(ArrayView<const Size> idxs) override {
         for (Size i : reverse(idxs)) {
             Aggregate& ag = getAggregate(i);
             ag.remove(i);
