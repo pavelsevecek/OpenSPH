@@ -42,7 +42,6 @@ void ITimeStepping::step(IScheduler& scheduler, ISolver& solver, Statistics& sta
     this->stepParticles(scheduler, solver, stats);
 
     // kick & drift attractors
-    ArrayView<const Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
     Array<Size> toRemove;
     for (Attractor& a : storage->getAttractors()) {
         a.velocity += a.acceleration * timeStep;
@@ -51,6 +50,7 @@ void ITimeStepping::step(IScheduler& scheduler, ISolver& solver, Statistics& sta
         // process black holes
         if (a.settings.getOr<bool>(AttractorSettingsId::BLACK_HOLE, false)) {
             /// \todo parallelize
+            ArrayView<const Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
             for (Size i = 0; i < r.size(); ++i) {
                 if (getSqrLength(a.position - r[i]) < sqr(a.radius)) {
                     toRemove.push(i);
