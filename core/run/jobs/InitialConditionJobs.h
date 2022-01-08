@@ -73,6 +73,7 @@ private:
     Vector v0 = Vector(0._f);
     Float mass = Constants::M_earth;
     Float radius = Constants::R_earth;
+    bool absorb = false;
 
 public:
     explicit SingleParticleIc(const String& name)

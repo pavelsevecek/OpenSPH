@@ -166,7 +166,7 @@ void FixedParticles::initialize(Storage& storage) {
     storage.merge(fixedParticles.clone(VisitorEnum::ALL_BUFFERS));
     SPH_ASSERT(storage.isValid());
     SPH_ASSERT(storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS).size() ==
-           storage.getValue<Vector>(QuantityId::POSITION).size());
+               storage.getValue<Vector>(QuantityId::POSITION).size());
 }
 
 void FixedParticles::finalize(Storage& storage) {
@@ -428,7 +428,7 @@ void KillEscapersBoundary::initialize(Storage& storage) {
             toRemove.push(i);
         }
     }
-    storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED);
+    storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED | Storage::IndicesFlag::PROPAGATE);
 }
 
 void KillEscapersBoundary::finalize(Storage& UNUSED(storage)) {}

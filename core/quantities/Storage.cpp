@@ -797,6 +797,12 @@ Array<Size> Storage::duplicate(ArrayView<const Size> idxs, const Flags<IndicesFl
     this->update();
     SPH_ASSERT(this->isValid(), this->isValid().error());
 
+    if (flags.has(IndicesFlag::PROPAGATE)) {
+        this->propagate([sorted](Storage& storage) { //
+            storage.duplicate(sorted, IndicesFlag::INDICES_SORTED);
+        });
+    }
+
     std::sort(createdIdxs.begin(), createdIdxs.end());
     return createdIdxs;
 }
@@ -819,7 +825,23 @@ void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags)
         sortedIdxs = sortedHolder;
     }
 
-    iterate<VisitorEnum::ALL_BUFFERS>(*this, [&sortedIdxs](auto& buffer) { buffer.remove(sortedIdxs); });
+    this->removeSorted(sortedIdxs, ValidFlag::COMPLETE);
+
+    if (flags.has(IndicesFlag::PROPAGATE)) {
+        this->propagate([sortedIdxs](Storage& storage) { //
+            storage.removeSorted(sortedIdxs, EMPTY_FLAGS);
+        });
+    }
+}
+
+void Storage::removeSorted(ArrayView<const Size> sortedIdxs, const Flags<ValidFlag> flags) {
+    const Size particleCnt = this->getParticleCnt();
+    iterate<VisitorEnum::ALL_BUFFERS>(*this, [particleCnt, sortedIdxs, flags](auto& buffer) {
+        SPH_ASSERT(!flags.has(ValidFlag::COMPLETE) || buffer.size() == particleCnt);
+        if (!buffer.empty()) {
+            buffer.remove(sortedIdxs);
+        }
+    });
 
     // update material ids
     this->update();
@@ -852,7 +874,7 @@ void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags)
         }
     }
 
-    SPH_ASSERT(this->isValid(), this->isValid().error());
+    SPH_ASSERT(this->isValid(flags), this->isValid(flags).error());
 }
 
 void Storage::removeAll() {
