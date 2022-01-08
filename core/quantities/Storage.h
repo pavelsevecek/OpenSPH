@@ -125,7 +125,13 @@ public:
 };
 
 /// \brief Base class for arbitrary data stored in the storage alongside particles
-class IStorageUserData : public Polymorphic {};
+class IStorageUserData : public Polymorphic {
+public:
+    /// \brief Removes particle data for given set of indices.
+    ///
+    /// \param idxs Sorted particle indices (in ascending order).
+    virtual void remove(ArrayView<const Size> idxs) = 0;
+};
 
 /// \brief Exception thrown when accessing missing quantities, casting to different types, etc.
 class InvalidStorageAccess : public Exception {

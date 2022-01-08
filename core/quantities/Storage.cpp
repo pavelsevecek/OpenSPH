@@ -808,7 +808,6 @@ Array<Size> Storage::duplicate(ArrayView<const Size> idxs, const Flags<IndicesFl
 }
 
 void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags) {
-    SPH_ASSERT(!userData, "Removing particles from storages with user data is currently not supported");
     if (idxs.empty()) {
         // job well done!
         return;
@@ -874,11 +873,14 @@ void Storage::removeSorted(ArrayView<const Size> sortedIdxs, const Flags<ValidFl
         }
     }
 
+    if (userData) {
+        userData->remove(sortedIdxs);
+    }
+
     SPH_ASSERT(this->isValid(flags), this->isValid(flags).error());
 }
 
 void Storage::removeAll() {
-    SPH_ASSERT(!userData, "Removing particles from storages with user data is currently not supported");
     this->propagate([](Storage& storage) { storage.removeAll(); });
     *this = Storage();
 }

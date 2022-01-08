@@ -16,6 +16,18 @@ NAMESPACE_SPH_BEGIN
 // GhostParticles implementation
 //-----------------------------------------------------------------------------------------------------------
 
+void GhostParticlesData::remove(ArrayView<const Size> idxs) {
+    for (Size i = 0; i < ghosts.size();) {
+        const Size pi = ghosts[i].index;
+        if (std::binary_search(idxs.begin(), idxs.end(), pi)) {
+            std::swap(ghosts[i], ghosts.back());
+            ghosts.pop();
+        } else {
+            ++i;
+        }
+    }
+}
+
 GhostParticles::GhostParticles(SharedPtr<IDomain> domain, const Float searchRadius, const Float minimalDist)
     : domain(std::move(domain)) {
     SPH_ASSERT(this->domain);

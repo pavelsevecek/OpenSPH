@@ -66,6 +66,8 @@ public:
 struct AnimationFrame : public IStorageUserData {
     Bitmap<Rgba> bitmap;
     Array<IRenderOutput::Label> labels;
+
+    virtual void remove(ArrayView<const Size> UNUSED(idxs)) override {}
 };
 
 class AnimationJob : public IImageJob {
