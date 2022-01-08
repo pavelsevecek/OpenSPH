@@ -366,6 +366,8 @@ void InteractiveRenderer::stop() {
     quitting = true;
     if (preview) {
         preview->cancel();
+    }
+    {
         std::unique_lock<std::mutex> lock(mutex);
         cv.notify_one();
     }
