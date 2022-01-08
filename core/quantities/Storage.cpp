@@ -835,7 +835,7 @@ void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags)
 
 void Storage::removeSorted(ArrayView<const Size> sortedIdxs, const Flags<ValidFlag> flags) {
     const Size particleCnt = this->getParticleCnt();
-    iterate<VisitorEnum::ALL_BUFFERS>(*this, [particleCnt, sortedIdxs, flags](auto& buffer) {
+    iterate<VisitorEnum::ALL_BUFFERS>(*this, [=](auto& buffer) {
         SPH_ASSERT(!flags.has(ValidFlag::COMPLETE) || buffer.size() == particleCnt);
         if (!buffer.empty()) {
             buffer.remove(sortedIdxs);
