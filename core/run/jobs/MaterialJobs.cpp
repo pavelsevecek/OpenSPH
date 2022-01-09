@@ -43,6 +43,11 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
     category.connect<EnumWrapper>("EoS", body, BodySettingsId::EOS).setEnabler(enabler);
     category.connect<Float>("Density [kg/m^3]", body, BodySettingsId::DENSITY).setEnabler(enabler);
     category.connect<Float>("Specific energy [J/kg]", body, BodySettingsId::ENERGY).setEnabler(enabler);
+    category.connect<Float>("Adiabatic index []", body, BodySettingsId::ADIABATIC_INDEX)
+        .setEnabler([this, enabler] {
+            const EosEnum eos = body.get<EosEnum>(BodySettingsId::EOS);
+            return (!enabler || enabler()) && eos == EosEnum::IDEAL_GAS;
+        });
     category.connect<Float>("Damage []", body, BodySettingsId::DAMAGE).setEnabler(enabler);
     category.connect<EnumWrapper>("Rheology", body, BodySettingsId::RHEOLOGY_YIELDING).setEnabler(enabler);
     category.connect<Float>("Bulk modulus [Pa]", body, BodySettingsId::BULK_MODULUS)

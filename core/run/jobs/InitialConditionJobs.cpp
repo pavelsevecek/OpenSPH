@@ -927,6 +927,15 @@ VirtualSettings PolytropeIc::getSettings() {
     starCat.connect("Minimal density [kg/m^3]", "rho_min", rho_min);
     starCat.connect("Polytrope index", "polytrope_index", n);
 
+    VirtualSettings::Category& visCat = connector.addCategory("Visualization");
+    visCat.connect<Path>("Texture path", "texture", texture)
+        .setPathType(IVirtualEntry::PathType::INPUT_FILE)
+        .setFileFormats({
+            { "JPEG image", "jpg" },
+            { "PNG image", "png" },
+            { "TIFF image", "tif" },
+        });
+
     return connector;
 }
 
@@ -934,6 +943,7 @@ void PolytropeIc::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(call
     SharedPtr<IMaterial> material = this->getInput<IMaterial>("material");
     material->setParam(BodySettingsId::ADIABATIC_INDEX, (n + 1._f) / n);
     material->setParam(BodySettingsId::DENSITY_RANGE, Interval(rho_min, INFTY));
+    material->setParam(BodySettingsId::VISUALIZATION_TEXTURE, texture.string());
 
     /// \todo to settings?
     material->setParam(BodySettingsId::SMOOTHING_LENGTH_ETA, eta);
@@ -942,10 +952,17 @@ void PolytropeIc::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(call
 
     BodySettings body;
     body.set(BodySettingsId::INITIAL_DISTRIBUTION, distId);
+    
     AutoPtr<IDistribution> distribution = Factory::getDistribution(body);
     const Float rho0 = material->getParam<Float>(BodySettingsId::DENSITY);
     const Float mass = sphereVolume(radius) * rho0;
     Storage storage = Stellar::generateIc(scheduler, material, *distribution, particleCnt, radius, mass);
+
+    if (!texture.empty()) {
+        SphericalUvMapping uvMap;
+        Array<Vector> uvws = uvMap.generate(storage);
+        storage.insert<Vector>(QuantityId::UVW, OrderEnum::ZERO, std::move(uvws));
+    }
 
     result = makeShared<ParticleData>();
     result->storage = std::move(storage);

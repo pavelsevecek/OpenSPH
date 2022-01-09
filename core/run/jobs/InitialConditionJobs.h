@@ -265,6 +265,8 @@ private:
     Float n = 1._f;
     Float eta = 1.3_f;
 
+    Path texture;
+
 public:
     explicit PolytropeIc(const String& name);
 
