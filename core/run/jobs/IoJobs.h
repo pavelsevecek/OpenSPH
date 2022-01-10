@@ -12,6 +12,8 @@ enum class UnitEnum {
     NBODY,
 };
 
+Float getGravityConstant(const UnitEnum units);
+
 class LoadFileJob : public IParticleJob {
 private:
     Path path;

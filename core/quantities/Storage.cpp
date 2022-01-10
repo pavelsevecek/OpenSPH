@@ -797,12 +797,17 @@ Array<Size> Storage::duplicate(ArrayView<const Size> idxs, const Flags<IndicesFl
     this->update();
     SPH_ASSERT(this->isValid(), this->isValid().error());
 
+    if (flags.has(IndicesFlag::PROPAGATE)) {
+        this->propagate([sorted](Storage& storage) { //
+            storage.duplicate(sorted, IndicesFlag::INDICES_SORTED);
+        });
+    }
+
     std::sort(createdIdxs.begin(), createdIdxs.end());
     return createdIdxs;
 }
 
 void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags) {
-    SPH_ASSERT(!userData, "Removing particles from storages with user data is currently not supported");
     if (idxs.empty()) {
         // job well done!
         return;
@@ -819,12 +824,21 @@ void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags)
         sortedIdxs = sortedHolder;
     }
 
-    this->propagate([&sortedIdxs](Storage& storage) { //
-        storage.remove(sortedIdxs, IndicesFlag::INDICES_SORTED);
-    });
+    this->removeSorted(sortedIdxs, ValidFlag::COMPLETE);
 
-    iterate<VisitorEnum::ALL_BUFFERS>(*this, [&sortedIdxs](auto& buffer) {
-        if (!buffer.empty()) {
+    if (flags.has(IndicesFlag::PROPAGATE)) {
+        this->propagate([sortedIdxs](Storage& storage) { //
+            storage.removeSorted(sortedIdxs, EMPTY_FLAGS);
+        });
+    }
+}
+
+void Storage::removeSorted(ArrayView<const Size> sortedIdxs, const Flags<ValidFlag> flags) {
+    Size particleCnt = this->getParticleCnt();
+    iterate<VisitorEnum::ALL_BUFFERS>(*this, [sortedIdxs, flags, particleCnt](auto& buffer) {
+        MARK_USED(particleCnt);
+        SPH_ASSERT(!flags.has(ValidFlag::COMPLETE) || buffer.size() == particleCnt);
+        if (buffer.size() == particleCnt) {
             buffer.remove(sortedIdxs);
         }
     });
@@ -860,11 +874,14 @@ void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags)
         }
     }
 
-    SPH_ASSERT(this->isValid(EMPTY_FLAGS), this->isValid().error());
+    if (userData) {
+        userData->remove(sortedIdxs);
+    }
+
+    SPH_ASSERT(this->isValid(flags), this->isValid(flags).error());
 }
 
 void Storage::removeAll() {
-    SPH_ASSERT(!userData, "Removing particles from storages with user data is currently not supported");
     this->propagate([](Storage& storage) { storage.removeAll(); });
     *this = Storage();
 }

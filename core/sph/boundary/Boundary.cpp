@@ -16,6 +16,18 @@ NAMESPACE_SPH_BEGIN
 // GhostParticles implementation
 //-----------------------------------------------------------------------------------------------------------
 
+void GhostParticlesData::remove(ArrayView<const Size> idxs) {
+    for (Size i = 0; i < ghosts.size();) {
+        const Size pi = ghosts[i].index;
+        if (std::binary_search(idxs.begin(), idxs.end(), pi)) {
+            std::swap(ghosts[i], ghosts.back());
+            ghosts.pop();
+        } else {
+            ++i;
+        }
+    }
+}
+
 GhostParticles::GhostParticles(SharedPtr<IDomain> domain, const Float searchRadius, const Float minimalDist)
     : domain(std::move(domain)) {
     SPH_ASSERT(this->domain);
@@ -166,7 +178,7 @@ void FixedParticles::initialize(Storage& storage) {
     storage.merge(fixedParticles.clone(VisitorEnum::ALL_BUFFERS));
     SPH_ASSERT(storage.isValid());
     SPH_ASSERT(storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS).size() ==
-           storage.getValue<Vector>(QuantityId::POSITION).size());
+               storage.getValue<Vector>(QuantityId::POSITION).size());
 }
 
 void FixedParticles::finalize(Storage& storage) {
@@ -428,7 +440,7 @@ void KillEscapersBoundary::initialize(Storage& storage) {
             toRemove.push(i);
         }
     }
-    storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED);
+    storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED | Storage::IndicesFlag::PROPAGATE);
 }
 
 void KillEscapersBoundary::finalize(Storage& UNUSED(storage)) {}

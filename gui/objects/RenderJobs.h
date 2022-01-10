@@ -66,6 +66,8 @@ public:
 struct AnimationFrame : public IStorageUserData {
     Bitmap<Rgba> bitmap;
     Array<IRenderOutput::Label> labels;
+
+    virtual void remove(ArrayView<const Size> UNUSED(idxs)) override {}
 };
 
 class AnimationJob : public IImageJob {
@@ -83,6 +85,7 @@ private:
 
     struct {
         Path firstFile = Path("out_0000.ssf");
+        EnumWrapper units;
     } sequence;
 
 public:

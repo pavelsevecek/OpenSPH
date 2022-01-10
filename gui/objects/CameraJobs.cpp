@@ -41,7 +41,8 @@ static VirtualSettings::Category& addTransformCategory(VirtualSettings& connecto
             return gui.get<int>(GuiSettingsId::CAMERA_TRACK_PARTICLE) == -1 &&
                    !gui.get<bool>(GuiSettingsId::CAMERA_TRACK_MEDIAN);
         });
-    transformCat.connect<Float>("Orbit speed [s^-1]", gui, GuiSettingsId::CAMERA_ORBIT);
+    transformCat.connect<Float>("Orbit speed [rev/day]", gui, GuiSettingsId::CAMERA_ORBIT)
+        .setUnits(2._f * PI / (3600._f * 24._f));
     transformCat.connect<Vector>("Target [km]", gui, GuiSettingsId::CAMERA_TARGET).setUnits(1.e3_f);
     transformCat.connect<Vector>("Up-direction", gui, GuiSettingsId::CAMERA_UP)
         .setValidator([](const IVirtualEntry::Value& value) {

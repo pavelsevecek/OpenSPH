@@ -62,6 +62,8 @@ public:
     Size size() const {
         return ghosts.size();
     }
+
+    virtual void remove(ArrayView<const Size> idxs) override;
 };
 
 /// \brief Adds ghost particles symmetrically for each SPH particle close to boundary.

@@ -13,15 +13,31 @@
 
 NAMESPACE_SPH_BEGIN
 
-// ----------------------------------------------------------------------------------------------------------
-// LoadFileJob
-// ----------------------------------------------------------------------------------------------------------
-
 static RegisterEnum<UnitEnum> sUnits({
     { UnitEnum::SI, "SI", "SI unit system" },
     { UnitEnum::CGS, "CGS", "CGS unit system" },
     { UnitEnum::NBODY, "nbody", "N-body (Hénon) units" },
 });
+
+Float getGravityConstant(const UnitEnum units) {
+    switch (UnitEnum(units)) {
+    case UnitEnum::SI:
+        return Constants::gravity;
+        break;
+    case UnitEnum::CGS:
+        return 1.e3_f * Constants::gravity;
+        break;
+    case UnitEnum::NBODY:
+        return 1._f;
+        break;
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+// ----------------------------------------------------------------------------------------------------------
+// LoadFileJob
+// ----------------------------------------------------------------------------------------------------------
 
 VirtualSettings LoadFileJob::getSettings() {
     VirtualSettings connector;
@@ -61,21 +77,7 @@ void LoadFileJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNU
         result->overrides.set(RunSettingsId::RUN_OUTPUT_FIRST_INDEX, int(dumpIdx.value()));
     }
 
-    Float G;
-    switch (UnitEnum(units)) {
-    case UnitEnum::SI:
-        G = Constants::gravity;
-        break;
-    case UnitEnum::CGS:
-        G = 1.e3_f * Constants::gravity;
-        break;
-    case UnitEnum::NBODY:
-        G = 1._f;
-        break;
-    default:
-        NOT_IMPLEMENTED;
-    }
-
+    const Float G = getGravityConstant(UnitEnum(units));
     result->overrides.set(RunSettingsId::GRAVITY_CONSTANT, G);
 
     result->storage = std::move(storage);

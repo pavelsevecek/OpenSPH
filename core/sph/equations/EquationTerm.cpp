@@ -346,7 +346,7 @@ AdaptiveSmoothingLength::AdaptiveSmoothingLength(const RunSettings& settings, co
     } else {
         enforcing.strength = -INFTY;
     }
-    minimal = settings.get<Float>(RunSettingsId::SPH_SMOOTHING_LENGTH_MIN);
+    range = settings.get<Interval>(RunSettingsId::SPH_SMOOTHING_LENGTH_RANGE);
 }
 
 void AdaptiveSmoothingLength::setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) {
@@ -359,7 +359,7 @@ void AdaptiveSmoothingLength::initialize(IScheduler& UNUSED(scheduler),
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     // clamp smoothing lengths
     for (Size i = 0; i < r.size(); ++i) {
-        r[i][H] = max(r[i][H], minimal);
+        r[i][H] = range.clamp(r[i][H]);
     }
 }
 
@@ -372,7 +372,7 @@ void AdaptiveSmoothingLength::finalize(IScheduler& scheduler, Storage& storage, 
 
     parallelFor(scheduler, 0, r.size(), [&](const Size i) INL {
         // 'continuity equation' for smoothing lengths
-        if (r[i][H] > 2._f * minimal) {
+        if (r[i][H] > 2._f * range.lower()) {
             v[i][H] = r[i][H] / dimensions * divv[i];
         } else {
             v[i][H] = 0._f;

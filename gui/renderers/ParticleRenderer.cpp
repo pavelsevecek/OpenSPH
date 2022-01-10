@@ -147,6 +147,9 @@ static bool isCutOff(const Vector& r, const Optional<float> cutoff, const Vector
     return cutoff && abs(dot(direction, r)) > cutoff.value();
 }
 
+constexpr Size GHOST_INDEX = Size(-1);
+constexpr Size ATTRACTOR_INDEX = Size(-2);
+
 void ParticleRenderer::initialize(const Storage& storage,
     const IColorizer& colorizer,
     const ICamera& camera) {
@@ -182,7 +185,7 @@ void ParticleRenderer::initialize(const Storage& storage,
         for (Size i = 0; i < ghosts->size(); ++i) {
             const Vector pos = ghosts->getGhost(i).position;
             if (!isCutOff(pos, cutoff, direction)) {
-                cached.idxs.push(Size(-1));
+                cached.idxs.push(GHOST_INDEX);
                 cached.positions.push(pos);
                 cached.colors.push(Rgba::transparent());
 
@@ -195,7 +198,7 @@ void ParticleRenderer::initialize(const Storage& storage,
 
     for (const Attractor& a : storage.getAttractors()) {
         if (!isCutOff(a.position, cutoff, direction)) {
-            cached.idxs.push(Size(-1));
+            cached.idxs.push(ATTRACTOR_INDEX);
             cached.positions.push(setH(a.position, a.radius));
             cached.colors.push(Rgba::white());
 
@@ -232,7 +235,7 @@ bool ParticleRenderer::isInitialized() const {
 
 void ParticleRenderer::setColorizer(const IColorizer& colorizer) {
     for (Size i = 0; i < cached.idxs.size(); ++i) {
-        if (cached.idxs[i] == Size(-1)) {
+        if (cached.idxs[i] == GHOST_INDEX || cached.idxs[i] == ATTRACTOR_INDEX) {
             continue; // ghost or attractor
         }
         cached.colors[i] = colorizer.evalColor(cached.idxs[i]);
@@ -282,7 +285,7 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
     const bool reverseOrder = dot(cached.cameraDir, params.camera->getFrame().row(2)) < 0._f;
     for (Size k = 0; k < cached.positions.size(); ++k) {
         const Size i = reverseOrder ? cached.positions.size() - k - 1 : k;
-        if (!params.particles.renderGhosts && cached.idxs[i] == Size(-1)) {
+        if (!params.particles.renderGhosts && cached.idxs[i] == GHOST_INDEX) {
             continue;
         }
         if (params.particles.selected && cached.idxs[i] == params.particles.selected.value()) {
@@ -301,15 +304,20 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
                 color = Rgba(color.intensity());
             }
             context->setColor(color, ColorFlag::FILL | ColorFlag::LINE);
-            if (cached.idxs[i] == Size(-1)) {
-                // ghost
+            if (cached.idxs[i] == GHOST_INDEX || cached.idxs[i] == ATTRACTOR_INDEX) {
                 context->setColor(Rgba::gray(0.7f), ColorFlag::LINE);
             }
         }
 
         const Optional<ProjectedPoint> p = params.camera->project(cached.positions[i]);
         if (p) {
-            const float size = min<float>(p->radius * params.particles.scale, context->size().x);
+            float radius;
+            if (cached.idxs[i] != ATTRACTOR_INDEX) {
+                radius = p->radius * params.particles.scale;
+            } else {
+                radius = p->radius;
+            }
+            const float size = min<float>(radius, context->size().x);
             context->drawCircle(p->coords, size);
         }
     }

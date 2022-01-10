@@ -125,7 +125,13 @@ public:
 };
 
 /// \brief Base class for arbitrary data stored in the storage alongside particles
-class IStorageUserData : public Polymorphic {};
+class IStorageUserData : public Polymorphic {
+public:
+    /// \brief Removes particle data for given set of indices.
+    ///
+    /// \param idxs Sorted particle indices (in ascending order).
+    virtual void remove(ArrayView<const Size> idxs) = 0;
+};
 
 /// \brief Exception thrown when accessing missing quantities, casting to different types, etc.
 class InvalidStorageAccess : public Exception {
@@ -509,6 +515,9 @@ public:
     enum class IndicesFlag {
         /// Use if the given array is already sorted (optimization)
         INDICES_SORTED = 1 << 0,
+
+        /// Propagate the action to dependent storages
+        PROPAGATE = 1 << 1,
     };
 
     /// \brief Duplicates some particles in the storage.
@@ -526,7 +535,6 @@ public:
     /// \brief Removes specified particles from the storage.
     ///
     /// If all particles of some material are removed by this, the material is also removed from the storage.
-    /// Same particles are also removed from all dependent storages.
     /// \param idxs Indices of particles to remove. No need to sort the indices.
     void remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags = EMPTY_FLAGS);
 
@@ -593,6 +601,8 @@ private:
     ///
     /// All added quantities are initialized to zero.
     void addMissingBuffers(const Storage& source);
+
+    void removeSorted(ArrayView<const Size> idxs, const Flags<ValidFlag> flags = ValidFlag::COMPLETE);
 
     /// \brief Updates the cached matIds view.
     void update();

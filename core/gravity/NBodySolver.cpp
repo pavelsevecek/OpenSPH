@@ -465,9 +465,8 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
 
     // apply the removal list
     if (!removed.empty()) {
-        storage.remove(removed, Storage::IndicesFlag::INDICES_SORTED);
         // remove it also from all dependent storages, since this is a permanent action
-        storage.propagate([this](Storage& dependent) { dependent.remove(removed); });
+        storage.remove(removed, Storage::IndicesFlag::INDICES_SORTED | Storage::IndicesFlag::PROPAGATE);
     }
     SPH_ASSERT(storage.isValid());
 

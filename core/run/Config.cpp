@@ -57,6 +57,7 @@ void ConfigNode::write(const String& padding, std::wstringstream& source) {
 void ConfigNode::read(ITextInputStream& source) {
     String line;
     while (source.readLine(line)) {
+        line = line.trim(String::TrimFlag::SPACE | String::TrimFlag::TAB | String::TrimFlag::RETURN);
         if (line.empty()) {
             continue;
         } else if (line[line.size() - 1] == L']') {
@@ -104,6 +105,8 @@ void Config::read(ITextInputStream& source) {
         SharedPtr<ConfigNode> node = makeShared<ConfigNode>();
         String line;
         source.readLine(line, L'[');
+        line = line.trim(String::TrimFlag::SPACE | String::TrimFlag::END_LINE | String::TrimFlag::RETURN |
+                         String::TrimFlag::TAB);
         if (line.empty() || line == L"\n") {
             continue;
         }

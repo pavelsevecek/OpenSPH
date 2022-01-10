@@ -524,9 +524,8 @@ wxPanel* RunPage::createVisBar() {
     visbarSizer->Add(particleBox, 0, wxALL, 5);
     visbarSizer->AddSpacer(10);
 
-
     wxRadioButton* surfaceButton =
-        new wxRadioButton(visbarPanel, wxID_ANY, "Raymarched surface", wxDefaultPosition, buttonSize, 0);
+        new wxRadioButton(visbarPanel, wxID_ANY, "Surface raytracer", wxDefaultPosition, buttonSize, 0);
     visbarSizer->Add(surfaceButton, 0, wxLEFT, 5);
     wxWindow* raytracerBox = this->createRaymarcherBox(visbarPanel);
     visbarSizer->Add(raytracerBox, 0, wxALL, 5);

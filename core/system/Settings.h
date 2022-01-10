@@ -330,6 +330,16 @@ public:
         return TValue(wrapper.value);
     }
 
+    /// \brief Returns a value if stored in the settings, otherwise returns given alternative.
+    template <typename TValue>
+    TValue getOr(const TEnum idx, const TValue& defaultValue) {
+        if (this->has(idx)) {
+            return this->get<TValue>(idx);
+        } else {
+            return defaultValue;
+        }
+    }
+
     /// \brief Returns Flags from underlying value stored in settings.
     ///
     /// Syntactic suggar, avoid cumbersome conversion to underlying type and then to Flags.
@@ -1089,8 +1099,8 @@ enum class RunSettingsId {
     /// Artificial viscosity beta coefficient
     SPH_AV_BETA,
 
-    /// Minimal value of smoothing length
-    SPH_SMOOTHING_LENGTH_MIN,
+    /// Interval of smoothing lengths
+    SPH_SMOOTHING_LENGTH_RANGE,
 
     /// Type of used artificial viscosity.
     SPH_AV_TYPE,

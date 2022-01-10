@@ -228,6 +228,7 @@ String String::substr(const Size pos, const Size n) const {
 static bool shouldTrim(const wchar_t c, const Flags<String::TrimFlag> flags) {
     return (flags.has(String::TrimFlag::SPACE) && c == L' ') ||
            (flags.has(String::TrimFlag::END_LINE) && c == L'\n') ||
+           (flags.has(String::TrimFlag::RETURN) && c == L'\r') ||
            (flags.has(String::TrimFlag::TAB) && c == L'\t');
 }
 

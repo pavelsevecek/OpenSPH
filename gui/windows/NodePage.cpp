@@ -193,9 +193,8 @@ void NodeManager::deleteTree(JobNode& node) {
     Array<SharedPtr<JobNode>> toRemove;
     node.enumerate([&toRemove](SharedPtr<JobNode> node) { toRemove.push(node); });
     for (SharedPtr<JobNode> n : toRemove) {
-        nodes.remove(n);
+        this->deleteNode(*n);
     }
-    callbacks->markUnsaved(true);
 }
 
 void NodeManager::deleteAll() {

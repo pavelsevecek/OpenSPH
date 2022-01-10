@@ -73,10 +73,11 @@ private:
     Vector v0 = Vector(0._f);
     Float mass = Constants::M_earth;
     Float radius = Constants::R_earth;
+    EnumWrapper interaction;
+    Path texture;
 
 public:
-    explicit SingleParticleIc(const String& name)
-        : IParticleJob(name) {}
+    explicit SingleParticleIc(const String& name);
 
     virtual String className() const override {
         return "create single particle";

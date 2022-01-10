@@ -1,3 +1,14 @@
+## 2022-01-10
+- option to make attractor repel particles
+- added texture to differentiated body
+- improved "body properties" page, added mass and average density
+- added upper limit of smoothing lengths
+
+## 2022-01-07
+- attractors can absorb particles
+- fixed freeze when exiting the preview renderer in error state
+- fixed crash when deleting node tree
+
 ## 2022-01-05
 - added an option to store and display per-particle time steps
 

@@ -45,6 +45,9 @@ void ITimeStepping::step(IScheduler& scheduler, ISolver& solver, Statistics& sta
     for (Attractor& a : storage->getAttractors()) {
         a.velocity += a.acceleration * timeStep;
         a.position += 0.5_f * a.velocity * timeStep;
+
+        // process particle interactions
+        a.interact(scheduler, *storage);
     }
 
     // update time step
