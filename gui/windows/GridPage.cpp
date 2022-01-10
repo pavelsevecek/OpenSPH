@@ -27,25 +27,27 @@ NAMESPACE_SPH_BEGIN
 /// position of the parameter within \ref CheckFlag.
 enum class CheckFlag {
     PARTICLE_COUNT = 1 << 0,
-    MASS_FRACTION = 1 << 1,
-    DIAMETER = 1 << 2,
-    VELOCITY_DIFFERENCE = 1 << 3,
-    PERIOD = 1 << 4,
-    RATIO_CB = 1 << 5,
-    RATIO_BA = 1 << 6,
-    SPHERICITY = 1 << 7,
-    MOONS = 1 << 8,
+    MASS = 1 << 1,
+    MASS_FRACTION = 1 << 2,
+    AVERAGE_DENSITY = 1 << 3,
+    DIAMETER = 1 << 4,
+    VELOCITY_DIFFERENCE = 1 << 5,
+    PERIOD = 1 << 6,
+    RATIO_CB = 1 << 7,
+    RATIO_BA = 1 << 8,
+    SPHERICITY = 1 << 9,
+    MOONS = 1 << 10,
 };
-const Size CHECK_COUNT = 9;
+const Size CHECK_COUNT = 11;
 
 GridPage::GridPage(wxWindow* parent, const wxSize size, const Storage& storage)
-    : wxPanel(parent, wxID_ANY, wxDefaultPosition, size)
+    : ClosablePage(parent, "Body properties")
     , storage(storage) {
 
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
     wxBoxSizer* countSizer = new wxBoxSizer(wxHORIZONTAL);
-    countSizer->Add(new wxStaticText(this, wxID_ANY, "Number of fragments"));
+    countSizer->Add(new wxStaticText(this, wxID_ANY, "Number of largest bodies"));
     countSpinner = new wxSpinCtrl(this, wxID_ANY);
     countSpinner->SetValue(4);
     countSizer->Add(countSpinner);
@@ -53,10 +55,12 @@ GridPage::GridPage(wxWindow* parent, const wxSize size, const Storage& storage)
 
     wxGridSizer* boxSizer = new wxGridSizer(4, 2, 2);
     boxSizer->Add(new wxCheckBox(this, int(CheckFlag::PARTICLE_COUNT), "Particle count"));
+    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::MASS), "Mass"));
     boxSizer->Add(new wxCheckBox(this, int(CheckFlag::MASS_FRACTION), "Mass fraction"));
-    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::DIAMETER), "Diameter [km]"));
-    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::VELOCITY_DIFFERENCE), "Velocity difference [m/s]"));
-    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::PERIOD), "Period [h]"));
+    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::AVERAGE_DENSITY), "Average density"));
+    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::DIAMETER), "Diameter"));
+    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::VELOCITY_DIFFERENCE), "Velocity difference"));
+    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::PERIOD), "Period"));
     boxSizer->Add(new wxCheckBox(this, int(CheckFlag::RATIO_CB), "Ratio c/b"));
     boxSizer->Add(new wxCheckBox(this, int(CheckFlag::RATIO_BA), "Ratio b/a"));
     boxSizer->Add(new wxCheckBox(this, int(CheckFlag::SPHERICITY), "Sphericity"));
@@ -287,15 +291,15 @@ static Float getVelocityDifference(const Storage& s1, const Storage& s2) {
     return getLength(p1 / mtot1 - p2 / mtot2);
 }
 
-static Float getPeriod(const Storage& storage) {
+static Optional<Float> getPeriod(const Storage& storage) {
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     const Float omega = getLength(Post::getAngularFrequency(m, r, v));
-    if (omega == 0._f) {
-        return 0._f;
+    if (omega > EPS) {
+        return 2._f * PI / omega;
     } else {
-        return 2._f * PI / (3600._f * omega);
+        return NOTHING;
     }
 }
 
@@ -363,23 +367,65 @@ void GridPage::updateAsync(const Storage& storage,
             this->updateCell(i, colIdx++, fragment.getParticleCnt());
         }
 
-        if (checks.hasAny(CheckFlag::MASS_FRACTION, CheckFlag::DIAMETER)) {
-            const Pair<Float> massAndDiameter = getMassAndDiameter(fragment);
+        if (checks.hasAny(
+                CheckFlag::MASS, CheckFlag::MASS_FRACTION, CheckFlag::AVERAGE_DENSITY, CheckFlag::DIAMETER)) {
+            Float mass, diameter;
+            tie(mass, diameter) = getMassAndDiameter(fragment);
+            if (checks.has(CheckFlag::MASS)) {
+                Float displayedMass = mass;
+                std::string displayedUnit = "kg";
+                if (mass > 1.e-6 * Constants::M_earth) {
+                    displayedMass /= Constants::M_earth;
+                    displayedUnit = "M_earth";
+                }
+                this->updateCell(i, colIdx++, displayedMass, displayedUnit);
+            }
             if (checks.has(CheckFlag::MASS_FRACTION)) {
-                this->updateCell(i, colIdx++, massAndDiameter[0] / totalMass);
+                this->updateCell(i, colIdx++, mass / totalMass);
+            }
+            if (checks.has(CheckFlag::AVERAGE_DENSITY)) {
+                const Float density = mass / sphereVolume(0.5_f * diameter);
+                this->updateCell(i, colIdx++, density, "kg/m^3");
             }
             if (checks.has(CheckFlag::DIAMETER)) {
-                this->updateCell(i, colIdx++, massAndDiameter[1] / 1.e3_f);
+                Float displayedDiameter = diameter;
+                std::string displayedUnit = "m";
+                if (diameter > 1.e3_f) {
+                    displayedDiameter /= 1.e3_f;
+                    displayedUnit = "km";
+                }
+                this->updateCell(i, colIdx++, displayedDiameter, displayedUnit);
             }
         }
 
         if (checks.has(CheckFlag::VELOCITY_DIFFERENCE)) {
-            this->updateCell(i, colIdx++, getVelocityDifference(fragment, lr));
+            Float dv = getVelocityDifference(fragment, lr);
+            std::string unit = "m/s";
+            if (dv >= 1.e3_f) {
+                dv /= 1.e3_f;
+                unit = "km/s";
+            }
+            this->updateCell(i, colIdx++, dv, unit);
         }
 
         if (checks.has(CheckFlag::PERIOD)) {
-            const Float period = getPeriod(fragment);
-            this->updateCell(i, colIdx++, period);
+            if (Optional<Float> optPeriod = getPeriod(fragment)) {
+                Float period = optPeriod.value();
+                std::string unit = "s";
+                if (period > Constants::day) {
+                    period /= Constants::day;
+                    unit = "days";
+                } else if (period > 3600) {
+                    period /= 3600;
+                    unit = "h";
+                } else if (period > 60) {
+                    period /= 60;
+                    unit = "min";
+                }
+                this->updateCell(i, colIdx++, period, unit);
+            } else {
+                this->updateCell(i, colIdx++, std::string("undefined"));
+            }
         }
 
         if (checks.hasAny(CheckFlag::RATIO_BA, CheckFlag::RATIO_CB)) {
@@ -412,9 +458,21 @@ void GridPage::updateAsync(const Storage& storage,
 }
 
 template <typename T>
-void GridPage::updateCell(const Size rowIdx, const Size colIdx, const T& value) {
+void GridPage::updateCell(const Size rowIdx, const Size colIdx, const T& value, const std::string& unit) {
+    executeOnMainThread([this, rowIdx, colIdx, value, unit] { //
+        std::ostringstream out;
+        if (value > 10000) {
+            out << std::scientific << value << " " << unit;
+        } else {
+            out << value << " " << unit;
+        }
+        grid->SetCellValue(rowIdx, colIdx, out.str());
+    });
+}
+
+void GridPage::updateCell(const Size rowIdx, const Size colIdx, const std::string& value) {
     executeOnMainThread([this, rowIdx, colIdx, value] { //
-        grid->SetCellValue(rowIdx, colIdx, std::to_string(value));
+        grid->SetCellValue(rowIdx, colIdx, value);
     });
 }
 
@@ -428,7 +486,9 @@ Size GridPage::getCheckedCount() const {
     Size count = 0;
     const StaticArray<CheckFlag, CHECK_COUNT> allIds = {
         CheckFlag::PARTICLE_COUNT,
+        CheckFlag::MASS,
         CheckFlag::MASS_FRACTION,
+        CheckFlag::AVERAGE_DENSITY,
         CheckFlag::DIAMETER,
         CheckFlag::VELOCITY_DIFFERENCE,
         CheckFlag::PERIOD,

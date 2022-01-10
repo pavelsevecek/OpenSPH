@@ -1,16 +1,16 @@
 #pragma once
 
+#include "gui/windows/Widgets.h"
 #include "post/Analysis.h"
 #include "quantities/Storage.h"
 #include <thread>
 #include <wx/grid.h>
-#include <wx/panel.h>
 
 NAMESPACE_SPH_BEGIN
 
 enum class CheckFlag;
 
-class GridPage : public wxPanel {
+class GridPage : public ClosablePage {
 private:
     wxGrid* grid = nullptr;
     std::thread thread;
@@ -37,11 +37,20 @@ private:
         const Config& config);
 
     template <typename T>
-    void updateCell(const Size rowIdx, const Size colIdx, const T& value);
+    void updateCell(const Size rowIdx, const Size colIdx, const T& value, const std::string& unit = {});
+
+    void updateCell(const Size rowIdx, const Size colIdx, const std::string& value);
 
     wxCheckBox* getCheck(const CheckFlag check) const;
 
     Size getCheckedCount() const;
+
+private:
+    virtual bool isRunning() const override {
+        return false;
+    }
+    virtual void stop() override {}
+    virtual void quit() override {}
 };
 
 NAMESPACE_SPH_END

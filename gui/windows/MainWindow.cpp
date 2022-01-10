@@ -708,7 +708,7 @@ wxMenu* MainWindow::createAnalysisMenu() {
     analysisMenu->Append(AN_DENSITY, "Density profile");
     analysisMenu->Append(AN_ENERGY, "Energy profile");
     analysisMenu->Append(AN_PRESSURE, "Pressure profile");
-    analysisMenu->Append(AN_FRAGMENTS, "Fragment parameters");
+    analysisMenu->Append(AN_FRAGMENTS, "Body properties");
     analysisMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& evt) { //
         BusyCursor wait(this);
         RunPage* page = dynamic_cast<RunPage*>(notebook->GetCurrentPage());
@@ -721,7 +721,7 @@ wxMenu* MainWindow::createAnalysisMenu() {
             GridPage* gridPage = new GridPage(notebook, wxSize(800, 600), controller->getStorage());
 
             const Size index = notebook->GetPageCount();
-            notebook->AddPage(gridPage, "Fragments");
+            notebook->AddPage(gridPage, "Body properties");
             notebook->SetSelection(index);
             return;
         }
