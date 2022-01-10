@@ -1,5 +1,6 @@
 ## 2022-01-10
 - option to make attractor repel particles
+- added texture to differentiated body
 
 ## 2022-01-07
 - attractors can absorb particles

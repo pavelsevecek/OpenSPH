@@ -207,6 +207,15 @@ VirtualSettings DifferentiatedBodyIc::getSettings() {
     particleCat.connect<Float>("Radius multiplier", mainBody, BodySettingsId::SMOOTHING_LENGTH_ETA);
     particleCat.connect<EnumWrapper>("Distribution", mainBody, BodySettingsId::INITIAL_DISTRIBUTION);
 
+    VirtualSettings::Category& visCat = connector.addCategory("Visualization");
+    visCat.connect<Path>("Texture path", mainBody, BodySettingsId::VISUALIZATION_TEXTURE)
+        .setPathType(IVirtualEntry::PathType::INPUT_FILE)
+        .setFileFormats({
+            { "JPEG image", "jpg" },
+            { "PNG image", "png" },
+            { "TIFF image", "tif" },
+        });
+
     return connector;
 }
 
@@ -220,6 +229,8 @@ void DifferentiatedBodyIc::evaluate(const RunSettings& global, IRunCallbacks& UN
         mainBody.get<DistributionEnum>(BodySettingsId::INITIAL_DISTRIBUTION));
     const Float eta = mainBody.get<Float>(BodySettingsId::SMOOTHING_LENGTH_ETA);
     mantle.material->setParam(BodySettingsId::SMOOTHING_LENGTH_ETA, eta);
+    const String texture = mainBody.get<String>(BodySettingsId::VISUALIZATION_TEXTURE);
+    mantle.material->setParam(BodySettingsId::VISUALIZATION_TEXTURE, texture);
 
     Array<InitialConditions::BodySetup> layers;
     for (int i = layerCnt - 1; i >= 0; --i) {
