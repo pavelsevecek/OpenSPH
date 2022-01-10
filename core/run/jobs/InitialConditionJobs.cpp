@@ -247,6 +247,11 @@ static JobRegistrar sRegisterDifferentiated(
 // SingleParticleIc
 // ----------------------------------------------------------------------------------------------------------
 
+SingleParticleIc::SingleParticleIc(const String& name)
+    : IParticleJob(name) {
+    interaction = EnumWrapper(ParticleInteractionEnum::NONE);
+}
+
 VirtualSettings SingleParticleIc::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
@@ -255,7 +260,7 @@ VirtualSettings SingleParticleIc::getSettings() {
     particleCat.connect("Radius [km]", "radius", radius).setUnits(1.e3_f);
     particleCat.connect("Position [km]", "r0", r0).setUnits(1.e3_f);
     particleCat.connect("Velocity [km/s]", "v0", v0).setUnits(1.e3_f);
-    particleCat.connect("Absorb particles", "black_hole", absorb);
+    particleCat.connect("Interaction", "interaction", interaction);
 
     return connector;
 }
@@ -268,8 +273,9 @@ void SingleParticleIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
     a.velocity = v0;
     a.radius = radius;
     a.mass = mass;
-    if (absorb) {
-        a.settings.set(AttractorSettingsId::BLACK_HOLE, true);
+    a.settings.set(AttractorSettingsId::INTERACTION, ParticleInteractionEnum(interaction));
+    if (!texture.empty()) {
+        a.settings.set(AttractorSettingsId::VISUALIZATION_TEXTURE, texture.string());
     }
     result->storage.addAttractor(a);
 }

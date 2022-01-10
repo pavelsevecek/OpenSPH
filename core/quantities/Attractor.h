@@ -4,12 +4,26 @@
 
 NAMESPACE_SPH_BEGIN
 
+enum class ParticleInteractionEnum {
+    /// No interaction
+    NONE,
+
+    /// Particles are absorbed
+    ABSORB,
+
+    /// Particles are repelled
+    REPEL,
+};
+
 enum class AttractorSettingsId {
     /// String identifier of the attractor
     LABEL = 0,
 
-    /// If true, the attractor absorbs any particle that falls below the attractor's radius.
+    // deprecated
     BLACK_HOLE = 1,
+
+    /// Specifies how the attractor interacts with particle
+    INTERACTION = 2,
 
     /// Texture
     VISUALIZATION_TEXTURE = 100,
@@ -36,6 +50,9 @@ struct Attractor {
         , velocity(velocity)
         , radius(radius)
         , mass(mass) {}
+
+    /// \brief Evaluates interactions of the attractor with all particles.
+    void interact(IScheduler& scheduler, Storage& storage);
 };
 
 NAMESPACE_SPH_END

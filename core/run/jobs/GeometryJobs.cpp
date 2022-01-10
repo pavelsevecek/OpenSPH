@@ -271,7 +271,7 @@ void MeshGeometryJob::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(
     AutoPtr<IMeshFile> meshLoader = getMeshFile(path);
     Expected<Array<Triangle>> triangles = meshLoader->load(path);
     if (!triangles) {
-        throw InvalidSetup("cannot load " + path.string());
+        throw InvalidSetup("Cannot load " + path.string() + "\n" + triangles.error());
     }
 
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);

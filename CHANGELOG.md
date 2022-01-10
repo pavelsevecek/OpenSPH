@@ -1,3 +1,6 @@
+## 2022-01-10
+- option to make attractor repel particles
+
 ## 2022-01-07
 - attractors can absorb particles
 - fixed freeze when exiting the preview renderer in error state
