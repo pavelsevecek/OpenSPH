@@ -282,6 +282,7 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
         }
     }
     OutputFile paths(directory / Path(fileMask), firstIndex);
+    SharedPtr<CameraData> camera = this->getInput<CameraData>("camera");
     Movie movie(
         camera->overrides, std::move(renderer), std::move(colorizer), std::move(params), extraFrames, paths);
 
