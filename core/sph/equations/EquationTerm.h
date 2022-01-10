@@ -67,8 +67,8 @@ protected:
     /// Number of spatial dimensions of the simulation. This should match the dimensions of the SPH kernel.
     Size dimensions;
 
-    /// Minimal allowed value of the smoothing length
-    Float minimal;
+    /// Minimal range of the smoothing length
+    Interval range;
 
     struct {
         Float strength;

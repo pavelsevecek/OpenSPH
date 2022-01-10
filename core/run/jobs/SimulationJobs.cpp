@@ -258,7 +258,9 @@ VirtualSettings SphJob::getSettings() {
     solverCat.connect<EnumWrapper>("SPH discretization", settings, RunSettingsId::SPH_DISCRETIZATION);
     solverCat.connect<Flags<SmoothingLengthEnum>>(
         "Adaptive smoothing length", settings, RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH);
-    solverCat.connect<Float>("Minimal smoothing length", settings, RunSettingsId::SPH_SMOOTHING_LENGTH_MIN)
+    solverCat
+        .connect<Interval>(
+            "Allowed smoothing length range [m]", settings, RunSettingsId::SPH_SMOOTHING_LENGTH_RANGE)
         .setEnabler([this] {
             return settings.getFlags<SmoothingLengthEnum>(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH) !=
                    EMPTY_FLAGS;

@@ -1099,8 +1099,8 @@ enum class RunSettingsId {
     /// Artificial viscosity beta coefficient
     SPH_AV_BETA,
 
-    /// Minimal value of smoothing length
-    SPH_SMOOTHING_LENGTH_MIN,
+    /// Interval of smoothing lengths
+    SPH_SMOOTHING_LENGTH_RANGE,
 
     /// Type of used artificial viscosity.
     SPH_AV_TYPE,
