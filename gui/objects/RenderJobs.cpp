@@ -40,6 +40,7 @@ AnimationJob::AnimationJob(const String& name)
     : IImageJob(name) {
     animationType = EnumWrapper(AnimationType::SINGLE_FRAME);
     colorizerId = EnumWrapper(RenderColorizerId::VELOCITY);
+    sequence.units = EnumWrapper(UnitEnum::SI);
 }
 
 UnorderedMap<String, ExtJobType> AnimationJob::requires() const {
@@ -139,6 +140,7 @@ VirtualSettings AnimationJob::getSettings() {
         .setPathType(IVirtualEntry::PathType::INPUT_FILE)
         .setFileFormats(getInputFormats())
         .setEnabler(sequenceEnabler);
+    animationCat.connect<EnumWrapper>("Unit system", "units", sequence.units).setEnabler(sequenceEnabler);
     animationCat.connect("Interpolated frames", "extra_frames", extraFrames)
         .setEnabler(sequenceEnabler)
         .setTooltip("Sets the number of extra frames added between each two state files.");
@@ -441,10 +443,18 @@ AutoPtr<IColorizer> AnimationJob::getColorizer(const RunSettings& global) const 
             palette = Factory::getPalette(ColorizerId::ACCELERATION);
         }
         SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
-        SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
         Float G = Constants::gravity;
-        if (data->overrides.has(RunSettingsId::GRAVITY_CONSTANT)) {
-            G = data->overrides.get<Float>(RunSettingsId::GRAVITY_CONSTANT);
+        switch (AnimationType(animationType)) {
+        case AnimationType::SINGLE_FRAME: {
+            SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
+            if (data->overrides.has(RunSettingsId::GRAVITY_CONSTANT)) {
+                G = data->overrides.get<Float>(RunSettingsId::GRAVITY_CONSTANT);
+            }
+            break;
+        }
+        case AnimationType::FILE_SEQUENCE:
+            G = getGravityConstant(UnitEnum(sequence.units));
+            break;
         }
         return makeAuto<GravityColorizer>(scheduler, palette, G, addSurfaceGravity);
     } else {

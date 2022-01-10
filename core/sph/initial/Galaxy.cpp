@@ -145,6 +145,9 @@ Storage Galaxy::generateHalo(UniformRng& rng, const GalaxySettings& settings) {
     MEASURE_SCOPE("Galaxy::generateHalo");
 
     const Size n_halo = settings.get<int>(GalaxySettingsId::HALO_PARTICLE_COUNT);
+    if (n_halo == 0) {
+        return {};
+    }
     const Float cutoff = settings.get<Float>(GalaxySettingsId::HALO_CUTOFF);
     const Float r0 = settings.get<Float>(GalaxySettingsId::HALO_SCALE_LENGTH);
     const Float g0 = settings.get<Float>(GalaxySettingsId::HALO_GAMMA);
@@ -177,7 +180,10 @@ Storage Galaxy::generateHalo(UniformRng& rng, const GalaxySettings& settings) {
 Storage Galaxy::generateBulge(UniformRng& rng, const GalaxySettings& settings) {
     MEASURE_SCOPE("Galaxy::generateBulge");
 
-    const Size n_bulge = settings.get<int>(GalaxySettingsId::HALO_PARTICLE_COUNT);
+    const Size n_bulge = settings.get<int>(GalaxySettingsId::BULGE_PARTICLE_COUNT);
+    if (n_bulge == 0) {
+        return {};
+    }
     const Float cutoff = settings.get<Float>(GalaxySettingsId::BULGE_CUTOFF);
     const Float a = settings.get<Float>(GalaxySettingsId::BULGE_SCALE_LENGTH);
     const Float h = settings.get<Float>(GalaxySettingsId::PARTICLE_RADIUS);

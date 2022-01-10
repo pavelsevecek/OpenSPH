@@ -85,6 +85,7 @@ private:
 
     struct {
         Path firstFile = Path("out_0000.ssf");
+        EnumWrapper units;
     } sequence;
 
 public:
