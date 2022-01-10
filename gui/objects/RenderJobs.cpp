@@ -211,7 +211,7 @@ public:
 };
 
 RenderParams AnimationJob::getRenderParams(const GuiSettings& gui) const {
-    SharedPtr<CameraData> camera = getInput<CameraData>("camera");
+    SharedPtr<CameraData> camera = this->getInput<CameraData>("camera");
     RenderParams params;
     params.camera = camera->camera->clone();
     params.tracker = std::move(camera->tracker);
@@ -282,7 +282,8 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
         }
     }
     OutputFile paths(directory / Path(fileMask), firstIndex);
-    Movie movie(gui, std::move(renderer), std::move(colorizer), std::move(params), extraFrames, paths);
+    Movie movie(
+        camera->overrides, std::move(renderer), std::move(colorizer), std::move(params), extraFrames, paths);
 
     switch (AnimationType(animationType)) {
     case AnimationType::SINGLE_FRAME: {
