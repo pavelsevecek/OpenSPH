@@ -390,4 +390,7 @@ Array<Float> getLinearTics(const Interval& interval, const Size minCount);
 /// \brief Returns the tics to be drawn on a logarithmic axis of a plot.
 Array<Float> getLogTics(const Interval& interval, const Size minCount);
 
+/// \brief Returns the tics to be drawn on a hybrid axis of a plot.
+Array<Float> getHybridTics(const Interval& interval, const Size minCount);
+
 NAMESPACE_SPH_END

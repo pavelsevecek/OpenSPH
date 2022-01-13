@@ -77,6 +77,9 @@ public:
 
     template <typename TIter>
     void insert(TIter first, TIter last) {
+        if (first == last) {
+            return; // inserting empty range
+        }
         data.insert(data.size(), first, last);
         std::sort(data.begin(), data.end(), TLess{});
         data.remove(std::unique(data.begin(), data.end()), data.end());

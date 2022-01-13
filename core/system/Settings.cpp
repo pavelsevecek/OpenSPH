@@ -746,7 +746,7 @@ static RegisterEnum<DistributionEnum> sDistribution({
     { DistributionEnum::HEXAGONAL, "hexagonal", "Hexagonally close packing" },
     { DistributionEnum::CUBIC, "cubic", "Cubic close packing (generally unstable, mainly for tests!)" },
     { DistributionEnum::RANDOM, "random", "Randomly distributed particles" },
-    { DistributionEnum::DIEHL_ET_AL, "diehl_et_al", "Isotropic uniform distribution by Diehl et al. (2012)" },
+    { DistributionEnum::DIEHL_ET_AL, "relaxing", "Isotropic uniform distribution by Diehl et al. (2012)" },
     { DistributionEnum::STRATIFIED, "stratified", "Stratified distribution" },
     { DistributionEnum::PARAMETRIZED_SPIRALING, "parametrized_spiraling", "Parametrized spiraling scheme" },
 });

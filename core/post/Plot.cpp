@@ -1,5 +1,6 @@
 #include "post/Plot.h"
 #include "io/Logger.h"
+#include "objects/containers/FlatSet.h"
 #include "post/Point.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Storage.h"
@@ -464,7 +465,7 @@ Array<Float> getLogTics(const Interval& interval, const Size minCount) {
     const Float toOrder = ceil(log10(interval.upper()));
     SPH_ASSERT(isReal(fromOrder) && isReal(toOrder) && toOrder >= fromOrder);
 
-    std::set<Float> tics;
+    FlatSet<Float> tics;
     auto tryAdd = [&](const Float value) {
         if (interval.contains(value)) {
             tics.insert(value);
@@ -477,21 +478,33 @@ Array<Float> getLogTics(const Interval& interval, const Size minCount) {
         tryAdd(value);
     }
 
-    if (tics.size() < minCount) {
-        // add 2, 5, 20, 50, ...
-        for (Float order = fromOrder; order <= toOrder; order++) {
-            const Float value = pow(10._f, order);
-            tryAdd(2 * value);
-            tryAdd(5 * value);
+    if (tics.size() > 2 * minCount) {
+        Size removeEach = tics.size() / (2 * minCount);
+        Size i = 0;
+        for (auto iter = tics.begin(); iter != tics.end(); ++i) {
+            if (i % removeEach == 1) {
+                iter = tics.erase(iter);
+            } else {
+                iter++;
+            }
         }
-    }
-    if (tics.size() < minCount) {
-        // add more values
-        for (Float order = fromOrder; order <= toOrder; order++) {
-            const Float value = pow(10._f, order);
-            tryAdd(1.5_f * value);
-            tryAdd(2.5_f * value);
-            tryAdd(7.5_f * value);
+    } else {
+        if (tics.size() < minCount) {
+            // add 2, 5, 20, 50, ...
+            for (Float order = fromOrder; order <= toOrder; order++) {
+                const Float value = pow(10._f, order);
+                tryAdd(2 * value);
+                tryAdd(5 * value);
+            }
+        }
+        if (tics.size() < minCount) {
+            // add more values
+            for (Float order = fromOrder; order <= toOrder; order++) {
+                const Float value = pow(10._f, order);
+                tryAdd(1.5_f * value);
+                tryAdd(2.5_f * value);
+                tryAdd(7.5_f * value);
+            }
         }
     }
 
@@ -500,6 +513,22 @@ Array<Float> getLogTics(const Interval& interval, const Size minCount) {
         result.push(t);
     }
     return result;
+}
+
+Array<Float> getHybridTics(const Interval& interval, const Size minCount) {
+    SPH_ASSERT(interval.lower() < -1.f && interval.upper() > 1.f, interval);
+    Array<Float> negLogTics = getLogTics(Interval(1.f, -interval.lower()), minCount / 2);
+    Array<Float> linearTics = getLinearTics(Interval(-1.f, 1.f), 3);
+    Array<Float> posLogTics = getLogTics(Interval(1.f, interval.upper()), minCount / 2);
+
+    for (Float& tic : negLogTics) {
+        tic *= -1;
+    }
+    FlatSet<Float> result;
+    result.insert(negLogTics.begin(), negLogTics.end());
+    result.insert(linearTics.begin(), linearTics.end());
+    result.insert(posLogTics.begin(), posLogTics.end());
+    return std::move(result).array();
 }
 
 NAMESPACE_SPH_END

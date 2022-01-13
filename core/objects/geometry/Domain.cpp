@@ -511,15 +511,62 @@ void ToroidalDomain::getDistanceToBoundary(ArrayView<const Vector> UNUSED(vs),
     NOT_IMPLEMENTED;
 }
 
-void ToroidalDomain::project(ArrayView<Vector> UNUSED(vs), Optional<ArrayView<Size>> UNUSED(indices)) const {
-    NOT_IMPLEMENTED;
+void ToroidalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices) const {
+    if (indices) {
+        for (Size i : indices.value()) {
+            if (!this->isInsideImpl(vs[i])) {
+                vs[i] = setH(this->project(vs[i] - center) + center, vs[i][H]);
+            }
+        }
+    } else {
+        for (Size i = 0; i < vs.size(); ++i) {
+            if (!this->isInsideImpl(vs[i])) {
+                vs[i] = setH(this->project(vs[i] - center) + center, vs[i][H]);
+            }
+        }
+    }
 }
 
-void ToroidalDomain::addGhosts(ArrayView<const Vector> UNUSED(vs),
-    Array<Ghost>& UNUSED(ghosts),
-    const Float UNUSED(eta),
-    const Float UNUSED(eps)) const {
-    NOT_IMPLEMENTED;
+Vector ToroidalDomain::closestRingCenter(const Vector& v) const {
+    const Vector c0(v[X], v[Y], 0._f);
+    if (c0 != Vector(0._f)) {
+        return a * getNormalized(c0);
+    } else {
+        return Vector(a, 0._f, 0._f);
+    }
+}
+
+Vector ToroidalDomain::project(const Vector& r) const {
+    Vector c0 = this->closestRingCenter(r);
+
+    if (r != c0) {
+        return b * getNormalized(r - c0) + c0;
+    } else {
+        return c0 + Vector(0, b, 0);
+    }
+}
+
+void ToroidalDomain::addGhosts(ArrayView<const Vector> vs,
+    Array<Ghost>& ghosts,
+    const Float eta,
+    const Float eps) const {
+    SPH_ASSERT(eps < eta);
+    ghosts.clear();
+    for (Size i = 0; i < vs.size(); ++i) {
+        if (!isInsideImpl(vs[i])) {
+            continue;
+        }
+
+        const Vector r = vs[i] - center;
+        const Vector c0 = this->closestRingCenter(r);
+        const Float h = vs[i][H];
+        const Float dist = getLength(r - c0);
+        if (b - dist < h * eta) {
+            Vector v = getNormalized(r - c0) * (2 * b - dist) + c0 + center;
+            v[H] = h;
+            ghosts.push(Ghost{ v, i });
+        }
+    }
 }
 
 INLINE bool ToroidalDomain::isInsideImpl(const Vector& v) const {

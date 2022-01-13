@@ -54,11 +54,11 @@ void Attractor::interact(IScheduler& scheduler, Storage& storage) {
         parallelFor(scheduler, 0, r.size(), [&](const Size i) {
             if (getSqrLength(position - r[i]) < sqr(radius)) {
                 const Vector dir = getNormalized(r[i] - position);
-                r[i] = position + dir * radius;
+                r[i] = setH(position + dir * radius, r[i][H]);
                 const Float v_par = dot(v[i] - velocity, dir);
                 if (v_par < 0) {
                     // flies towards the attractor, remove the parallel component of velocity
-                    v[i] -= v_par * dir;
+                    v[i] = clearH(v[i] - v_par * dir);
                 }
             }
         });

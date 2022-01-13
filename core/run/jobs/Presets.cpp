@@ -62,10 +62,6 @@ SharedPtr<JobNode> Presets::make(const Id id, UniqueNameManager& nameMgr, const 
 SharedPtr<JobNode> Presets::makeAsteroidCollision(UniqueNameManager& nameMgr, const Size particleCnt) {
     BodySettings materialOverrides = EMPTY_SETTINGS;
     materialOverrides.set(BodySettingsId::ENERGY, 0._f);
-    SharedPtr<JobNode> targetMaterial = makeNode<MaterialJob>(nameMgr.getName("material"), materialOverrides);
-    SharedPtr<JobNode> impactorMaterial =
-        makeNode<DisableDerivativeCriterionJob>(nameMgr.getName("optimize impactor"));
-    targetMaterial->connect(impactorMaterial, "material");
 
     SharedPtr<JobNode> targetIc = makeNode<MonolithicBodyIc>(nameMgr.getName("target body"));
     VirtualSettings targetSettings = targetIc->getSettings();
@@ -77,8 +73,10 @@ SharedPtr<JobNode> Presets::makeAsteroidCollision(UniqueNameManager& nameMgr, co
     VirtualSettings impactorSettings = impactorIc->getSettings();
     impactorSettings.set("useMaterialSlot", true);
     impactorSettings.set("body.radius", 10._f); // D=20km
-    targetMaterial->connect(targetIc, "material");
-    impactorMaterial->connect(impactorIc, "material");
+
+    SharedPtr<JobNode> material = makeNode<MaterialJob>(nameMgr.getName("material"), materialOverrides);
+    material->connect(targetIc, "material");
+    material->connect(impactorIc, "material");
     targetIc->connect(impactorIc, "target");
 
     CollisionGeometrySettings geometry;
@@ -86,7 +84,10 @@ SharedPtr<JobNode> Presets::makeAsteroidCollision(UniqueNameManager& nameMgr, co
     targetIc->connect(setup, "target");
     impactorIc->connect(setup, "impactor");
 
-    SharedPtr<JobNode> frag = makeNode<SphJob>(nameMgr.getName("fragmentation"), EMPTY_SETTINGS);
+    RunSettings settings(EMPTY_SETTINGS);
+    settings.set(RunSettingsId::TIMESTEPPING_CRITERION,
+        TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::DIVERGENCE);
+    SharedPtr<JobNode> frag = makeNode<SphJob>(nameMgr.getName("fragmentation"), settings);
     setup->connect(frag, "particles");
 
     return frag;
@@ -124,7 +125,10 @@ SharedPtr<JobNode> Presets::makeFragmentationAndReaccumulation(UniqueNameManager
     stabTarget->connect(setup, "target");
     impactorIc->connect(setup, "impactor");
 
-    SharedPtr<JobNode> frag = makeNode<SphJob>(nameMgr.getName("fragmentation"), EMPTY_SETTINGS);
+    RunSettings settings(EMPTY_SETTINGS);
+    settings.set(RunSettingsId::TIMESTEPPING_CRITERION,
+        TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::DIVERGENCE);
+    SharedPtr<JobNode> frag = makeNode<SphJob>(nameMgr.getName("fragmentation"), settings);
     setup->connect(frag, "particles");
     SharedPtr<JobNode> handoff = makeNode<SmoothedToSolidHandoff>(nameMgr.getName("handoff"));
     frag->connect(handoff, "particles");
