@@ -15,6 +15,7 @@ NAMESPACE_SPH_BEGIN
 
 class IDomain;
 class IScheduler;
+class Storage;
 
 /// \brief Base class for generating vertices with specific distribution.
 ///
@@ -136,7 +137,7 @@ struct DiehlParams {
 /// \brief Distribution with given particle density.
 ///
 /// Particles are placed using algorithm by Diehl et al. (2012) \cite Diehl_2012
-class DiehlDistribution : public IDistribution, public Progressible<ArrayView<const Vector>> {
+class DiehlDistribution : public IDistribution, public Progressible<const Storage&> {
 private:
     DiehlParams params;
 

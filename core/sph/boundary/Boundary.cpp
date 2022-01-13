@@ -2,6 +2,7 @@
 #include "objects/finders/PeriodicFinder.h"
 #include "objects/geometry/Domain.h"
 #include "objects/utility/Iterator.h"
+#include "quantities/Attractor.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Iterate.h"
 #include "sph/initial/Distribution.h"
@@ -343,9 +344,7 @@ void PeriodicBoundary::initialize(Storage& storage) {
             int(r[i][Y] > domain.upper()[Y]),
             int(r[i][Z] > domain.upper()[Z]));
 
-        const Float h = r[i][H]; // backup for safety
-        r[i] += domain.size() * (lowerFlags - upperFlags);
-        r[i][H] = h;
+        r[i] = setH(r[i] + domain.size() * (lowerFlags - upperFlags), r[i][H]);
 
         // for particles close to the boundary, add ghosts
         for (Size j = 0; j < 3; ++j) {
@@ -358,6 +357,17 @@ void PeriodicBoundary::initialize(Storage& storage) {
                 ghosts.push(Ghost{ r[i] - domain.size()[j] * UNIT[j], i });
             }
         }
+    }
+
+    // handle attractors
+    for (Attractor& a : storage.getAttractors()) {
+        Vector& p = a.position;
+        const Vector lowerFlags(
+            int(p[X] < domain.lower()[X]), int(p[Y] < domain.lower()[Y]), int(p[Z] < domain.lower()[Z]));
+        const Vector upperFlags(
+            int(p[X] > domain.upper()[X]), int(p[Y] > domain.upper()[Y]), int(p[Z] > domain.upper()[Z]));
+
+        p += domain.size() * (lowerFlags - upperFlags);
     }
 
     ghostIdxs = storage.duplicate(duplIdxs);

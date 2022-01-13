@@ -290,6 +290,10 @@ public:
 
 private:
     bool isInsideImpl(const Vector& v) const;
+
+    Vector closestRingCenter(const Vector& v) const;
+
+    Vector project(const Vector& v) const;
 };
 
 

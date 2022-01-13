@@ -121,11 +121,7 @@ public:
     DiehlReporter(IRunCallbacks& callbacks)
         : callbacks(callbacks) {}
 
-    bool operator()(const Float progress, const ArrayView<const Vector> positions) const {
-        Storage storage;
-        Array<Vector> r;
-        r.pushAll(positions.begin(), positions.end());
-        storage.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST, std::move(r));
+    bool operator()(const Float progress, const Storage& storage) const {
         Statistics stats;
         stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
 

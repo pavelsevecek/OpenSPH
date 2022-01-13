@@ -84,7 +84,6 @@ TEST_CASE("Set array unique", "[flatset]") {
     REQUIRE_SPH_ASSERT(FlatSet<RecordType>(ELEMENTS_UNIQUE, Array<RecordType>({ 4, 3, 3 })));
 }
 
-
 TEST_CASE("Set insert", "[flatset]") {
     FlatSet<RecordType> set;
     REQUIRE(set.insert(5));
@@ -119,6 +118,18 @@ TEST_CASE("Set insert range", "[flatset]") {
     values = { 3, 5, 3, 3, 1 };
     set.insert(values.begin(), values.end());
     REQUIRE(ArrayView<int>(set) == Array<int>({ 1, 2, 3, 5, 9, 10 }).view());
+
+    Array<int> empty;
+    set.insert(empty.begin(), empty.end());
+    REQUIRE(ArrayView<int>(set) == Array<int>({ 1, 2, 3, 5, 9, 10 }).view());
+
+    FlatSet<int> emptySet;
+    emptySet.insert(empty.begin(), empty.end());
+    REQUIRE(emptySet.empty());
+
+    values = { 1, 2 };
+    emptySet.insert(values.begin(), values.end());
+    REQUIRE(ArrayView<int>(emptySet) == Array<int>({ 1, 2 }).view());
 }
 
 TEST_CASE("Set find", "[flatset]") {

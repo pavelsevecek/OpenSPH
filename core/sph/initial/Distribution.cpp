@@ -359,7 +359,7 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
         VerboseLogGuard guard("DiehlDistribution::generate - iteration " + toString(k));
 
         // notify caller, if requested
-        if (!this->tickProgress(r)) {
+        if (!this->tickProgress(storage)) {
             break;
         }
 
@@ -376,8 +376,12 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
         // clean up the previous displacements
         deltas.fill(Vector(0._f));
 
+        // precompute densities
+        Array<Float> rho(N);
+        parallelFor(scheduler, 0, N, [&rho, &actDensity, &r](const Size i) { rho[i] = actDensity(r[i]); });
+
         auto lambda = [&](const Size i, Array<NeighborRecord>& neighsTl) {
-            const Float rhoi = actDensity(r[i]); // average particle density
+            const Float rhoi = rho[i]; // average particle density
             // average interparticle distance at given point
             const Float neighborRadius = kernelRadius / root<3>(rhoi);
             finder.findAll(i, neighborRadius, neighsTl);
@@ -387,7 +391,7 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
                 const Vector diff = r[k] - r[i];
                 const Float lengthSqr = getSqrLength(diff);
                 // for ghost particles, just copy the density (density outside the domain is always 0)
-                const Float rhok = (k >= N) ? rhoi : actDensity(r[k]);
+                const Float rhok = (k >= N) ? rhoi : rho[k];
                 if (rhoi == 0._f || rhok == 0._f) {
                     // outside of the domain? do not move
                     continue;

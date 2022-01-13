@@ -446,9 +446,8 @@ private:
 public:
     SummedDensityColorizer(const RunSettings& settings, Palette palette);
 
-    virtual bool hasData(const Storage& UNUSED(storage)) const override {
-        // mass and positions must always be present
-        return true;
+    virtual bool hasData(const Storage& storage) const override {
+        return storage.has(QuantityId::POSITION) && storage.has(QuantityId::MASS);
     }
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override;
