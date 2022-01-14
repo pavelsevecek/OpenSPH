@@ -598,7 +598,7 @@ class TemperatureColorizer : public TypedColorizer<Float> {
 
 public:
     explicit TemperatureColorizer()
-        : TypedColorizer<Float>(QuantityId::ENERGY, getEmissionPalette(Interval(500, 10000))) {}
+        : TypedColorizer<Float>(QuantityId::ENERGY, getEmissionPalette(Interval(500, 10000), 256)) {}
 
     virtual bool hasData(const Storage& storage) const override {
         return storage.has(QuantityId::ENERGY) && storage.getMaterialCnt() > 0;
@@ -719,7 +719,7 @@ public:
     }
 
     virtual Optional<float> evalScalar(const Size idx) const override {
-        const float f = palette.paletteToRelative(u[idx]);
+        const float f = palette.rangeToRelative(u[idx]);
         return max(0.f, (f - f_glow) / (1.f - f_glow));
     }
 

@@ -8,8 +8,8 @@ NAMESPACE_SPH_BEGIN
 ///
 /// The temperature is specified in Kelvins.
 /// \param range Range of input temperatures.
-Palette getBlackBodyPalette(const Interval range);
+Palette getBlackBodyPalette(const Interval range, const Size pointCnt);
 
-Palette getEmissionPalette(const Interval range);
+Palette getEmissionPalette(const Interval range, const Size pointCnt);
 
 NAMESPACE_SPH_END

@@ -42,6 +42,7 @@ SOURCES += \
     renderers/VolumeRenderer.cpp \
     renderers/Spectrum.cpp \
     windows/BatchDialog.cpp \
+    windows/PaletteEditor.cpp \
     windows/PreviewPane.cpp \
     windows/ProgressPanel.cpp \
     windows/RenderPage.cpp \
@@ -97,6 +98,7 @@ HEADERS += \
     renderers/VolumeRenderer.h \
     renderers/Spectrum.h \
     windows/BatchDialog.h \
+    windows/PaletteEditor.h \
     windows/PreviewPane.h \
     windows/RenderPage.h \
     windows/RenderSetup.h \

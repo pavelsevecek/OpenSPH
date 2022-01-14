@@ -103,11 +103,12 @@ void DamageActivationColorizer::initialize(const Storage& storage, const RefEnum
 }
 
 BeautyColorizer::BeautyColorizer() {
-    palette = Palette({ { u_0, Rgba(0.5f, 0.5f, 0.5) },
-                          { u_glow, Rgba(0.5f, 0.5f, 0.5f) },
-                          { u_red, Rgba(0.8f, 0.f, 0.f) },
-                          { u_yellow, Rgba(1.f, 1.f, 0.6f) } },
+    palette = Palette({ { 0.f, Rgba(0.5f, 0.5f, 0.5) }, { 1.f, Rgba(1.f, 1.f, 0.6f) } },
+        Interval(u_0, u_yellow),
         PaletteScale::LOGARITHMIC);
+    /// \todo maybe not fixed?
+    palette.addFixedPoint(u_glow, Rgba(0.5f, 0.5f, 0.5f));
+    palette.addFixedPoint(u_red, Rgba(0.8f, 0.f, 0.f));
     f_glow = (log10(u_glow) - log10(u_0)) / (log10(u_yellow) - log10(u_0));
 }
 

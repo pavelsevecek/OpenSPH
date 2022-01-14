@@ -1620,10 +1620,13 @@ class PalettePane : public wxPanel {
 private:
     PalettePanel* panel;
     Array<ExtColorizerId> itemIds;
+    ExtColorizerId currentId;
+    wxAuiManager* aui;
 
 public:
-    PalettePane(wxWindow* parent, Project& project)
-        : wxPanel(parent, wxID_ANY) {
+    PalettePane(wxWindow* parent, Project& project, wxAuiManager* auiManager)
+        : wxPanel(parent, wxID_ANY)
+        , aui(auiManager) {
         wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
         wxBoxSizer* quantitySizer = new wxBoxSizer(wxHORIZONTAL);
@@ -1643,6 +1646,7 @@ public:
 
                 if (firstPalette.empty()) {
                     firstPalette = palette.value();
+                    currentId = id;
                 }
             }
         }
@@ -1652,15 +1656,18 @@ public:
         sizer->Add(quantitySizer, 0, wxALIGN_CENTER_HORIZONTAL);
 
         panel = new PalettePanel(this, wxSize(300, 200), firstPalette);
-        sizer->Add(panel, 1, wxALIGN_CENTER_HORIZONTAL);
+        sizer->Add(panel, 0, wxALIGN_CENTER_HORIZONTAL);
+
+        wxButton* customButton = new wxButton(this, wxID_ANY, "Customize...");
+        sizer->Add(customButton, 0, wxALIGN_CENTER_HORIZONTAL);
 
         this->SetSizerAndFit(sizer);
 
         quantityBox->Bind(wxEVT_COMBOBOX, [this, quantityBox, &project](wxCommandEvent& UNUSED(evt)) {
             CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
             const int idx = quantityBox->GetSelection();
-            ExtColorizerId id = itemIds[idx];
-            AutoPtr<IColorizer> colorizer = Factory::getColorizer(project, id);
+            currentId = itemIds[idx];
+            AutoPtr<IColorizer> colorizer = Factory::getColorizer(project, currentId);
             panel->setPalette(colorizer->getPalette().value());
             this->Refresh();
         });
@@ -1669,6 +1676,34 @@ public:
             wxString name = quantityBox->GetStringSelection();
             project.setPalette(String(name.wc_str()), palette);
         };
+
+        customButton->Bind(wxEVT_BUTTON, [this, quantityBox, &project](wxCommandEvent& UNUSED(evt)) {
+            const wxString name = "PaletteSetup";
+            /*            wxAuiPaneInfo query = aui->GetPane(name);
+                        if (query.IsOk()) {
+                            query.Show();
+                        } else */
+            {
+                // wxAuiPaneInfo info;
+                // info.Name(name).Float().Show().DestroyOnClose();
+                AutoPtr<IColorizer> colorizer = Factory::getColorizer(project, currentId);
+                PaletteSetup* setup = new PaletteSetup(
+                    this->GetParent(), wxSize(300, -1), panel->getPalette(), colorizer->getPalette().value());
+                setup->setPaletteChangedCallback([quantityBox, &project, this](const Palette& palette) {
+                    panel->setPalette(palette);
+
+                    /// \todo deduplicate
+                    wxString name = quantityBox->GetStringSelection();
+                    project.setPalette(String(name.wc_str()), panel->getPalette());
+                });
+                if (setup->ShowModal() == wxOK) {
+                    panel->setPalette(setup->getPalette());
+                }
+                // aui->AddPane(setup, info);
+            }
+
+            aui->Update();
+        });
     }
 };
 
@@ -1868,7 +1903,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         }
     });
 
-    PalettePane* palettePane = new PalettePane(this, project);
+    PalettePane* palettePane = new PalettePane(this, project, &*aui);
 
     /*wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
     sizer->Add(grid, 1, wxEXPAND | wxLEFT);

@@ -163,7 +163,7 @@ public:
         const bool addSurfaceGravity)
         : TypedColorizer<Float>(QuantityId::POSITION, std::move(palette))
         , scheduler(scheduler)
-        , gravity(0.8_f, MultipoleOrder::OCTUPOLE, 25, 50, G)
+        , gravity(0.8_f, MultipoleOrder::OCTUPOLE, SolidSphereKernel{}, 25, 50, G)
         , G(G)
         , addSurfaceGravity(addSurfaceGravity) {}
 
@@ -436,6 +436,7 @@ AutoPtr<IRenderPreview> AnimationJob::getRenderPreview(const RunSettings& global
 }
 
 AutoPtr<IColorizer> AnimationJob::getColorizer(const RunSettings& global) const {
+    CHECK_FUNCTION(CheckFunction::NO_THROW);
     Project project = Project::getInstance().clone();
     project.getGuiSettings() = gui;
     RenderColorizerId renderId(colorizerId);
@@ -457,6 +458,8 @@ AutoPtr<IColorizer> AnimationJob::getColorizer(const RunSettings& global) const 
         case AnimationType::FILE_SEQUENCE:
             G = getGravityConstant(UnitEnum(sequence.units));
             break;
+        default:
+            NOT_IMPLEMENTED;
         }
         return makeAuto<GravityColorizer>(scheduler, palette, G, addSurfaceGravity);
     } else {

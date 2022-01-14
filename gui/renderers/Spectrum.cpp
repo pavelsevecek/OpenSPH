@@ -194,29 +194,29 @@ inline Xyz getBlackBodyColor(const float temperature) {
     return result / weight;
 }
 
-Palette getBlackBodyPalette(const Interval range) {
-    Array<Palette::Point> points(256);
+Palette getBlackBodyPalette(const Interval range, const Size pointCnt) {
+    Array<Palette::Point> points(pointCnt);
     for (Size i = 0; i < points.size(); ++i) {
+        points[i].value = float(i) / (points.size() - 1);
+
         const float temperature = float(range.lower()) + float(i) / (points.size() - 1) * float(range.size());
         const Xyz xyz = getBlackBodyColor(temperature);
-
-        points[i].value = temperature;
         const Rgba color = xyzToRgb(xyz);
         // normalize so that max component is 1
         points[i].color = color / max(color.r(), color.g(), color.b());
     }
-    return Palette(std::move(points), PaletteScale::LINEAR);
+    return Palette(std::move(points), range, PaletteScale::LINEAR);
 }
 
-Palette getEmissionPalette(const Interval range) {
+Palette getEmissionPalette(const Interval range, const Size pointCnt) {
     const float draperPoint = 798.f;
     const float pureEmissionColor = draperPoint * 1.5f;
     const Rgba darkColor = Rgba::gray(0.2f);
-    Array<Palette::Point> points(256);
+    Array<Palette::Point> points(pointCnt);
     for (Size i = 0; i < points.size(); ++i) {
-        const float temperature = float(range.lower()) + float(i) / (points.size() - 1) * float(range.size());
-        points[i].value = temperature;
+        points[i].value = float(i) / (points.size() - 1);
 
+        const float temperature = float(range.lower()) + float(i) / (points.size() - 1) * float(range.size());
         if (temperature < draperPoint) {
             points[i].color = darkColor;
         } else {
@@ -227,7 +227,7 @@ Palette getEmissionPalette(const Interval range) {
             points[i].color = lerp(darkColor, normColor, weight);
         }
     }
-    return Palette(std::move(points), PaletteScale::LINEAR);
+    return Palette(std::move(points), range, PaletteScale::LINEAR);
 }
 
 NAMESPACE_SPH_END

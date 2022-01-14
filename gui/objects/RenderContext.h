@@ -245,4 +245,63 @@ public:
     }
 };
 
+class FlippedRenderContext : public IRenderContext {
+private:
+    AutoPtr<IRenderContext> context;
+
+public:
+    explicit FlippedRenderContext(AutoPtr<IRenderContext>&& context)
+        : context(std::move(context)) {}
+
+    virtual Pixel size() const override {
+        const Pixel p = context->size();
+        return Pixel(p.y, p.x);
+    }
+
+    virtual void setColor(const Rgba& color, const Flags<ColorFlag> flags) override {
+        context->setColor(color, flags);
+    }
+
+    virtual void setThickness(const float thickness) override {
+        context->setThickness(thickness);
+    }
+
+    virtual void setFontSize(const int fontSize) override {
+        context->setFontSize(fontSize);
+    }
+
+    virtual void fill(const Rgba& color) override {
+        context->fill(color);
+    }
+
+    virtual void drawLine(const Coords p1, const Coords p2) override {
+        context->drawLine(this->transform(p1), this->transform(p2));
+    }
+
+    virtual void drawCircle(const Coords center, const float radius) override {
+        context->drawCircle(this->transform(center), radius);
+    }
+
+    virtual void drawTriangle(const Coords, const Coords, const Coords) override {
+        NOT_IMPLEMENTED;
+    }
+
+    virtual void drawBitmap(const Coords, const Bitmap<Rgba>&) override {
+        NOT_IMPLEMENTED;
+    }
+
+    virtual void drawText(const Coords p, const Flags<TextAlign>, const String& s) override {
+        context->drawText(this->transform(p), TextAlign::VERTICAL_CENTER | TextAlign::HORIZONTAL_CENTER, s);
+    }
+
+private:
+    Pixel transform(const Pixel& p) {
+        return Pixel(context->size().x - p.y, p.x);
+    }
+
+    Coords transform(const Coords& p) {
+        return Coords(context->size().x - p.y, p.x);
+    }
+};
+
 NAMESPACE_SPH_END
