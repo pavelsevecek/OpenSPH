@@ -135,6 +135,12 @@ AutoPtr<IMaterial> getMaterial(const MaterialEnum type) {
             .set(BodySettingsId::TILLOTSON_ALPHA, 5._f)
             .set(BodySettingsId::TILLOTSON_BETA, 5._f);
         break;
+    case MaterialEnum::HYDROGEN_GAS:
+        settings.set(BodySettingsId::EOS, EosEnum::IDEAL_GAS)
+            .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE)
+            .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE)
+            .set(BodySettingsId::DENSITY, 1._f);
+        break;
     default:
         NOT_IMPLEMENTED;
     }

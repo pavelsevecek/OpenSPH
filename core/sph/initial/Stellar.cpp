@@ -27,7 +27,11 @@ Lut<Float> Stellar::solveLaneEmden(const Float n, const Float dz, const Float z_
     return Lut<Float>(Interval(z0, z), std::move(solution));
 }
 
-Stellar::Star Stellar::polytropicStar(const IEos& eos, const Float radius, const Float mass, const Float n) {
+Stellar::Star Stellar::polytropicStar(const IEos& eos,
+    const Float radius,
+    const Float mass,
+    const Float rho_min,
+    const Float n) {
     const Float G = Constants::gravity;
 
     Lut<Float> phi = solveLaneEmden(n);
@@ -42,7 +46,7 @@ Stellar::Star Stellar::polytropicStar(const IEos& eos, const Float radius, const
     for (auto el : iterateWithIndex(phi)) {
         const Size i = el.index();
         const Float x = el.value().y;
-        rho[i] = rho_c * pow(x, n);
+        rho[i] = max(rho_c * pow(x, n), rho_min);
         P[i] = P_c * pow(x, n + 1);
         u[i] = eos.getInternalEnergy(rho[i], P[i]);
 
@@ -71,11 +75,11 @@ Storage Stellar::generateIc(const SharedPtr<IScheduler>& scheduler,
     if (!eos) {
         throw Exception("Cannot generate IC without equation of state");
     }
+    const Float rho_min = material->getParam<Interval>(BodySettingsId::DENSITY_RANGE).lower();
     const Float gamma = material->getParam<Float>(BodySettingsId::ADIABATIC_INDEX);
     const Float n = 1._f / (gamma - 1._f);
-    Star star = polytropicStar(eos->getEos(), radius, mass, n);
+    Star star = polytropicStar(eos->getEos(), radius, mass, rho_min, n);
 
-    const Float rho_min = material->getParam<Interval>(BodySettingsId::DENSITY_RANGE).lower();
     Array<Float> m(points.size());
     Array<Float> rho(points.size());
     Array<Float> u(points.size());
@@ -83,7 +87,7 @@ Storage Stellar::generateIc(const SharedPtr<IScheduler>& scheduler,
     const Float v = domain.getVolume() / points.size();
     for (Size i = 0; i < points.size(); ++i) {
         const Float r = getLength(points[i]);
-        rho[i] = max(star.rho(r), rho_min);
+        rho[i] = star.rho(r);
         u[i] = star.u(r);
         p[i] = star.p(r);
         m[i] = rho[i] * v;

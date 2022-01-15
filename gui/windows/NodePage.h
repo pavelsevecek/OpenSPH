@@ -108,6 +108,8 @@ public:
 
     NodeSlot getSlotAtPosition(const Pixel position);
 
+    VisNode* getNodeIcon(const Pixel position);
+
     void save(Config& config);
 
     void load(Config& config);
@@ -172,7 +174,7 @@ private:
         Optional<NodeSlot> connectingSlot;
 
         NodeSlot lastSlot;
-
+        VisNode* lastIcon = nullptr;
     } state;
 
 public:
@@ -222,6 +224,8 @@ private:
     void onRightUp(wxMouseEvent& evt);
 
     void onDoubleClick(wxMouseEvent& evt);
+
+    void doPopupMenu(VisNode* vis);
 };
 
 using PropertyEntryMap = FlatMap<wxPGProperty*, IVirtualEntry*>;

@@ -24,7 +24,11 @@ struct Star {
 };
 
 /// \brief Computes radial profiles of state quantities for a polytropic star.
-Star polytropicStar(const IEos& eos, const Float radius, const Float mass, const Float n);
+Star polytropicStar(const IEos& eos,
+    const Float radius,
+    const Float mass,
+    const Float rho_min,
+    const Float n);
 
 /// \brief Creates a spherical polytropic star.
 ///

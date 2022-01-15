@@ -47,7 +47,8 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
         .setEnabler([this, enabler] {
             const EosEnum eos = body.get<EosEnum>(BodySettingsId::EOS);
             return (!enabler || enabler()) && eos == EosEnum::IDEAL_GAS;
-        });
+        })
+        .setValidator([](const IVirtualEntry::Value& gamma) { return gamma.get<Float>() > 1.01_f; });
     category.connect<Float>("Damage []", body, BodySettingsId::DAMAGE).setEnabler(enabler);
     category.connect<EnumWrapper>("Rheology", body, BodySettingsId::RHEOLOGY_YIELDING).setEnabler(enabler);
     category.connect<Float>("Bulk modulus [Pa]", body, BodySettingsId::BULK_MODULUS)
@@ -176,7 +177,13 @@ static JobRegistrar sRegisterIron(
         return makeAuto<MaterialJob>(name, getMaterial(MaterialEnum::IRON)->getParams());
     },
     "Iron");
-
+static JobRegistrar sRegisterGas(
+    "hydrogen gas",
+    "materials",
+    [](const String& name) {
+        return makeAuto<MaterialJob>(name, getMaterial(MaterialEnum::HYDROGEN_GAS)->getParams());
+    },
+    "Basalt");
 
 // ----------------------------------------------------------------------------------------------------------
 // DisableDerivativeCriterionJob

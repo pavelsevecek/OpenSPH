@@ -47,6 +47,14 @@ NAMESPACE_SPH_BEGIN
 constexpr int FIRST_SLOT_Y = 60;
 constexpr int SLOT_DY = 25;
 constexpr int SLOT_RADIUS = 6;
+const Pixel ICON_POS = Pixel(120, 51);
+constexpr int ICON_WIDTH = 22;
+constexpr int ICON_HEIGHT = 14;
+constexpr int ICON_MARGIN = 5;
+const wxRect ICON_RECT(ICON_POS.x - ICON_MARGIN,
+    ICON_POS.y - ICON_MARGIN,
+    ICON_WIDTH + 2 * ICON_MARGIN,
+    ICON_HEIGHT + 2 * ICON_MARGIN);
 
 /// \todo figure out why this is needed
 static AnimationJob animationDummy("dummy");
@@ -218,7 +226,7 @@ VisNode* NodeManager::getSelectedNode(const Pixel position) {
 }
 
 NodeSlot NodeManager::getSlotAtPosition(const Pixel position) {
-    for (auto& element : nodes) {
+    for (auto& element : reverse(nodes)) {
         VisNode& node = element.value();
         const Pixel relative = position - node.position;
         for (Size i = 0; i < node.node->getSlotCnt(); ++i) {
@@ -234,6 +242,17 @@ NodeSlot NodeManager::getSlotAtPosition(const Pixel position) {
         }
     }
     return { nullptr, 0 };
+}
+
+VisNode* NodeManager::getNodeIcon(const Pixel position) {
+    for (auto& element : reverse(nodes)) {
+        VisNode& node = element.value();
+        const Pixel relative = position - node.position;
+        if (ICON_RECT.Contains(wxPoint(relative))) {
+            return &node;
+        }
+    }
+    return nullptr;
 }
 
 class SaveProc : public VirtualSettings::IEntryProc {
@@ -946,23 +965,6 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
         Pixel(position.x + size.x, position.y + 40));
     gc->SetFont(font, wxColour(lineColor));
 
-    // separating line for particle nodes
-    pen = *wxBLACK_PEN;
-    if (provided == JobType::PARTICLES) {
-        pen.SetColour(isLightTheme ? wxColour(160, 160, 160) : wxColour(20, 20, 20));
-        gc->SetPen(pen);
-        const int lineY = 44;
-        const int padding = (&vis == state.activated) ? 2 : 1;
-        gc->StrokeLine(
-            position.x + padding, position.y + lineY, position.x + size.x - padding, position.y + lineY);
-        pen.SetColour(isLightTheme ? wxColour(240, 240, 240) : wxColour(100, 100, 100));
-        gc->SetPen(pen);
-        gc->StrokeLine(position.x + padding,
-            position.y + lineY + 1,
-            position.x + size.x - padding,
-            position.y + lineY + 1);
-    }
-
     // input slots
     for (Size i = 0; i < vis.node->getSlotCnt(); ++i) {
         SlotData slot = vis.node->getSlot(i);
@@ -995,6 +997,20 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
     pen.SetWidth(1);
     gc->SetPen(pen);
     gc->DrawEllipse(resultSlot.x - SLOT_RADIUS, resultSlot.y - SLOT_RADIUS, 2 * SLOT_RADIUS, 2 * SLOT_RADIUS);
+
+    // menu icon
+    const Pixel iconPos = position + ICON_POS;
+    brush.SetColour(wxColour(brushColor));
+    if (state.mousePosition) {
+        const Pixel relative = this->transform(state.mousePosition.value()) - position;
+        if (ICON_RECT.Contains(wxPoint(relative))) {
+            brush.SetColour(pen.GetColour());
+        }
+    }
+    gc->SetBrush(brush);
+    gc->DrawRectangle(iconPos.x, iconPos.y, ICON_WIDTH, 3);
+    gc->DrawRectangle(iconPos.x, iconPos.y + ICON_HEIGHT / 2, ICON_WIDTH, 3);
+    gc->DrawRectangle(iconPos.x, iconPos.y + ICON_HEIGHT, ICON_WIDTH, 3);
 }
 
 void NodeEditor::save(Config& config) {
@@ -1087,9 +1103,15 @@ void NodeEditor::onMouseMotion(wxMouseEvent& evt) {
         this->Refresh();
         callbacks->markUnsaved(false);
     } else {
-        const NodeSlot slot = nodeMgr->getSlotAtPosition(this->transform(mousePosition));
+        const Pixel pos = this->transform(mousePosition);
+        const NodeSlot slot = nodeMgr->getSlotAtPosition(pos);
         if (slot != state.lastSlot) {
             state.lastSlot = slot;
+            this->Refresh();
+        }
+        VisNode* iconNode = nodeMgr->getNodeIcon(pos);
+        if (iconNode != state.lastIcon) {
+            state.lastIcon = iconNode;
             this->Refresh();
         }
     }
@@ -1115,6 +1137,11 @@ void NodeEditor::onMouseWheel(wxMouseEvent& evt) {
 void NodeEditor::onLeftDown(wxMouseEvent& evt) {
     const Pixel mousePosition(evt.GetPosition());
     const Pixel position = this->transform(mousePosition);
+    if (VisNode* iconNode = nodeMgr->getNodeIcon(position)) {
+        this->doPopupMenu(iconNode);
+        state.mousePosition = mousePosition;
+        return;
+    }
 
     const NodeSlot slot = nodeMgr->getSlotAtPosition(position);
     if (slot.vis != nullptr) {
@@ -1170,13 +1197,27 @@ void NodeEditor::onLeftUp(wxMouseEvent& evt) {
 
 void NodeEditor::onRightUp(wxMouseEvent& evt) {
     const Pixel position = (Pixel(evt.GetPosition()) - state.offset) / state.zoom;
-
-    wxMenu menu;
     VisNode* vis = nodeMgr->getSelectedNode(position);
     if (vis == nullptr) {
         // no node selected
         return;
     }
+    this->doPopupMenu(vis);
+}
+
+void NodeEditor::onDoubleClick(wxMouseEvent& evt) {
+    const Pixel position(evt.GetPosition());
+    VisNode* vis = nodeMgr->getSelectedNode((position - state.offset) / state.zoom);
+    if (vis) {
+        state.activated = vis;
+        this->Refresh();
+        nodeWindow->selectNode(*vis->node);
+    }
+}
+
+void NodeEditor::doPopupMenu(VisNode* vis) {
+    wxMenu menu;
+
     const ExtJobType provided = vis->node->provides();
     if (provided == JobType::PARTICLES) {
         menu.Append(0, "Start");
@@ -1184,7 +1225,6 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
         menu.Append(1, "Render");
         menu.Append(2, "Preview");
     }
-
 
     menu.Append(3, "Clone");
     menu.Append(4, "Clone tree");
@@ -1240,17 +1280,6 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
     });
     this->PopupMenu(&menu);
 }
-
-void NodeEditor::onDoubleClick(wxMouseEvent& evt) {
-    const Pixel position(evt.GetPosition());
-    VisNode* vis = nodeMgr->getSelectedNode((position - state.offset) / state.zoom);
-    if (vis) {
-        state.activated = vis;
-        this->Refresh();
-        nodeWindow->selectNode(*vis->node);
-    }
-}
-
 
 //-----------------------------------------------------------------------------------------------------------
 // NodeWindow
@@ -1370,6 +1399,12 @@ public:
         return v;
     }
 
+    void setVector(const Vector& v) {
+        for (Size i = 0; i < 3; ++i) {
+            components[i]->SetValue(v[i]);
+        }
+    }
+
     void update(const bool notify = true) {
         wxString value;
         for (Size i = 0; i < 3; ++i) {
@@ -1425,6 +1460,11 @@ public:
 
     Interval getInterval() const {
         return Interval(components[0]->GetValue().GetDouble(), components[1]->GetValue().GetDouble());
+    }
+
+    void setInterval(const Interval& range) {
+        components[0]->SetValue(range.lower());
+        components[1]->SetValue(range.upper());
     }
 
     void update(const bool notify = true) {
@@ -1656,24 +1696,34 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
 
         switch (entry->getType()) {
         case IVirtualEntry::Type::BOOL:
-            entry->set(value.GetBool());
+            if (!entry->set(value.GetBool())) {
+                prop->SetValue((bool)entry->get());
+            }
             break;
         case IVirtualEntry::Type::INT:
-            entry->set(int(value.GetLong()));
+            if (!entry->set(int(value.GetLong()))) {
+                prop->SetValue((int)entry->get());
+            }
             break;
         case IVirtualEntry::Type::FLOAT:
-            entry->set(Float(value.GetDouble()));
+            if (!entry->set(Float(value.GetDouble()))) {
+                prop->SetValue((Float)entry->get());
+            }
             break;
         case IVirtualEntry::Type::VECTOR: {
             VectorProperty* vector = dynamic_cast<VectorProperty*>(prop);
             SPH_ASSERT(vector);
-            entry->set(vector->getVector());
+            if (!entry->set(vector->getVector())) {
+                vector->setVector(entry->get().get<Vector>());
+            }
             break;
         }
         case IVirtualEntry::Type::INTERVAL: {
             IntervalProperty* i = dynamic_cast<IntervalProperty*>(prop);
             SPH_ASSERT(i);
-            entry->set(i->getInterval());
+            if (!entry->set(i->getInterval())) {
+                i->setInterval(entry->get().get<Interval>());
+            }
             break;
         }
         case IVirtualEntry::Type::STRING: {

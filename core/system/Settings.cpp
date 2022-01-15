@@ -57,12 +57,12 @@ static RegisterEnum<KernelEnum> sKernel({
 static RegisterEnum<TimesteppingEnum> sTimestepping({
     { TimesteppingEnum::EULER_EXPLICIT, "euler_explicit", "Explicit (forward) 1st-order integration" },
     { TimesteppingEnum::LEAP_FROG, "leap_frog", "Leap-frog 2nd-order integration" },
-    { TimesteppingEnum::RUNGE_KUTTA, "runge_kutta", "Runge-Kutta 4-th order integration" },
+    //{ TimesteppingEnum::RUNGE_KUTTA, "runge_kutta", "Runge-Kutta 4-th order integration" },
     { TimesteppingEnum::PREDICTOR_CORRECTOR, "predictor_corrector", "Predictor-corrector scheme" },
     { TimesteppingEnum::MODIFIED_MIDPOINT,
         "modified_midpoint",
         "Modified midpoint method with constant number of substeps." },
-    { TimesteppingEnum::BULIRSCH_STOER, "bulirsch_stoer", "Bulirsch-Stoer integrator" },
+    //{ TimesteppingEnum::BULIRSCH_STOER, "bulirsch_stoer", "Bulirsch-Stoer integrator" },
 });
 
 static RegisterEnum<TimeStepCriterionEnum> sTimeStepCriterion({
@@ -81,8 +81,8 @@ static RegisterEnum<FinderEnum> sFinder({
         "brute_force",
         "Brute-force search by going through each pair of particles (O(N^2) complexity)" },
     { FinderEnum::KD_TREE, "kd_tree", "Using K-d tree" },
-    { FinderEnum::OCTREE, "octree", "Using octree" },
-    { FinderEnum::LINKED_LIST, "linked_list", "Using linked list" },
+    //{ FinderEnum::OCTREE, "octree", "Using octree" },
+    //{ FinderEnum::LINKED_LIST, "linked_list", "Using linked list" },
     { FinderEnum::UNIFORM_GRID, "uniform_grid", "Partitioning particles into a grid uniform in space" },
     { FinderEnum::HASH_MAP, "hash_map", "Using hash map" },
 });
@@ -99,22 +99,22 @@ static RegisterEnum<BoundaryEnum> sBoundary({
     { BoundaryEnum::FIXED_PARTICLES,
         "fixed_particles",
         "Boundary is created by immovable particles placed along the boundary." },
-    { BoundaryEnum::WIND_TUNNEL,
+    /*{ BoundaryEnum::WIND_TUNNEL,
         "wind_tunnel",
         "Simulates a wind tunnel by pushing air particles into the domain and removing them on the other "
         "side of the domain. The air particles are kept inside the domain using Frozen Particles boundary "
-        "conditions." },
+        "conditions." },*/
     { BoundaryEnum::PERIODIC,
         "periodic",
         "Periodic boundary conditions; particles can interact accross boundaries. When particles leave the "
         "domain, they re-enter on the other side of the domain. " },
     { BoundaryEnum::SYMMETRIC, "symmetric", "Particles are duplicated along the z=0 plane." },
     { BoundaryEnum::KILL_ESCAPERS, "kill_escapers", "Removes all particles outside the domain" },
-    { BoundaryEnum::PROJECT_1D,
+    /*{ BoundaryEnum::PROJECT_1D,
         "project_1D",
         "Debug boundary condition, used to emulate 1D SPH solver. While the solver is still "
         "three-dimensional under the hood, the particles are projected on a line and can move only in one "
-        "dimension. Note that this has to be supplied by correct kernel normalization, etc." },
+        "dimension. Note that this has to be supplied by correct kernel normalization, etc." },*/
 });
 
 static RegisterEnum<DomainEnum> sDomain({ { DomainEnum::NONE, "none", "No computational domain." },
@@ -126,20 +126,20 @@ static RegisterEnum<DomainEnum> sDomain({ { DomainEnum::NONE, "none", "No comput
 static RegisterEnum<ForceEnum> sForce({
     { ForceEnum::PRESSURE, "pressure", "Force given by pressure gradient." },
     { ForceEnum::SOLID_STRESS,
-        "solid_stress",
+        "shear_strength",
         "Use force from stress divergence in the model. Must be used together with pressure gradient. Stress "
         "tensor is evolved in time using Hooke's equation." },
     { ForceEnum::NAVIER_STOKES,
-        "navier_stokes",
+        "viscosity",
         "Stress tensor for the simulation of fluids. Must be used together with pressure gradient, cannot be "
         "used together with solid stress force." },
     { ForceEnum::INERTIAL,
         "inertial",
         "Centrifugal force and Coriolis force given by angular frequency of the coordinate frame." },
     { ForceEnum::SELF_GRAVITY, "gravity", "Self-gravity of particles" },
-    { ForceEnum::SURFACE_TENSION,
+    /*{ ForceEnum::SURFACE_TENSION,
         "surface_tension",
-        "Surface tension, proportional to the curvature of the surface." },
+        "Surface tension, proportional to the curvature of the surface." },*/
 });
 
 static RegisterEnum<ArtificialViscosityEnum> sArtificialViscosity({
@@ -169,9 +169,9 @@ static RegisterEnum<SolverEnum> sSolver({
     { SolverEnum::ELASTIC_DEFORMATION_SOLVER,
         "elastic_deformation_solver",
         "Solver used for extreme elastic deformations." },
-    { SolverEnum::DENSITY_INDEPENDENT,
+    /*{ SolverEnum::DENSITY_INDEPENDENT,
         "density_independent",
-        "Density independent solver by Saitoh & Makino (2013). Experimental!" },
+        "Density independent solver by Saitoh & Makino (2013). Experimental!" },*/
     { SolverEnum::ENERGY_CONSERVING_SOLVER,
         "energy_conserving_solver",
         "Solver advancing internal energy using pair-wise work done by particles, by Owen (2009). "
@@ -235,7 +235,6 @@ static RegisterEnum<SignalSpeedEnum> sSignalSpeed({
         "pressure_difference",
         "Signal speed given by the absolute value of pressure difference, as in Price (2008). Cannot be used "
         "in simulations with gravity." },
-
     { SignalSpeedEnum::VELOCITY_DIFFERENCE,
         "velocity_difference",
         "Signal speed given by relative velocity projected to the positive vector, as in Valdarnini "
@@ -316,7 +315,7 @@ static RegisterEnum<IoEnum> sIo({
         "format for storing full simulation in high resolution in time. Cannot be used to continue "
         "simulation." },
     { IoEnum::BINARY_FILE,
-        "binary_file",
+        "state_file",
         "Save output data into binary file. This data dump is lossless and can be use to restart run from "
         "saved snapshot. Stores values, all derivatives and materials of the storage." },
     { IoEnum::TEXT_FILE, "text_file", "Save output data into formatted human-readable text file" },
@@ -743,7 +742,7 @@ static RegisterEnum<DistributionEnum> sDistribution({
     { DistributionEnum::RANDOM, "random", "Randomly distributed particles" },
     { DistributionEnum::DIEHL_ET_AL, "relaxing", "Isotropic uniform distribution by Diehl et al. (2012)" },
     { DistributionEnum::STRATIFIED, "stratified", "Stratified distribution" },
-    { DistributionEnum::PARAMETRIZED_SPIRALING, "parametrized_spiraling", "Parametrized spiraling scheme" },
+    { DistributionEnum::PARAMETRIZED_SPIRALING, "spherical", "Parametrized spiraling scheme" },
 });
 
 static RegisterEnum<EosEnum> sEos({
@@ -760,9 +759,9 @@ static RegisterEnum<EosEnum> sEos({
     { EosEnum::TILLOTSON, "tillotson", "Tillotson equation of stats." },
     { EosEnum::MURNAGHAN, "murnaghan", "Murnaghan equation of state." },
     { EosEnum::SIMPLIFIED_TILLOTSON, "simplified_tillotson", "Simplified version of the Tillotson equation."},
-    { EosEnum::ANEOS,
+    /*{ EosEnum::ANEOS,
         "aneos",
-        "ANEOS equation of state, requires look-up table of values for given material." },
+        "ANEOS equation of state, requires look-up table of values for given material." },*/
 });
 
 

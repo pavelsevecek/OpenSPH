@@ -75,6 +75,7 @@ enum class MaterialEnum {
     IRON,
     ICE,
     OLIVINE,
+    HYDROGEN_GAS,
 };
 
 AutoPtr<IMaterial> getMaterial(const MaterialEnum type);

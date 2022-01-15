@@ -15,13 +15,13 @@ NAMESPACE_SPH_BEGIN
 namespace Presets {
 
 static RegisterEnum<Id> sPresetsId({
-    { Id::COLLISION, "collision", "Simple simulation of a two-body collision." },
+    { Id::COLLISION, "asteroid_collision", "Simple simulation of two asteroids colliding." },
     { Id::FRAGMENTATION_REACCUMULATION,
         "fragmentation_and_reaccumulation",
         "SPH simulation of an impact and fragmentation followed by an N-body simulation of gravitational "
         "reaccumulation of fragments." },
     { Id::CRATERING,
-        "cratering",
+        "meteoroid_cratering",
         "Meteoroid impact to a horizontal surface enclosed by boundary conditions." },
     { Id::PLANETESIMAL_MERGING,
         "planetesimal_merging",
@@ -273,8 +273,8 @@ SharedPtr<JobNode> Presets::makeGalaxyCollision(UniqueNameManager& nameMgr, cons
     SharedPtr<JobNode> galaxyIc = makeNode<GalaxyIc>(nameMgr.getName("galaxy"));
     VirtualSettings galaxySettings = galaxyIc->getSettings();
     galaxySettings.set(GalaxySettingsId::PARTICLE_RADIUS, 0.01_f);
-    galaxySettings.set(GalaxySettingsId::DISK_PARTICLE_COUNT, int(particleCnt) / 2);
-    galaxySettings.set(GalaxySettingsId::BULGE_PARTICLE_COUNT, int(particleCnt) / 4);
+    galaxySettings.set(GalaxySettingsId::DISK_PARTICLE_COUNT, 3 * int(particleCnt) / 4);
+    galaxySettings.set(GalaxySettingsId::BULGE_PARTICLE_COUNT, int(particleCnt) / 16);
     galaxySettings.set(GalaxySettingsId::HALO_PARTICLE_COUNT, int(particleCnt) / 4);
 
     SharedPtr<JobNode> merger = makeNode<JoinParticlesJob>(nameMgr.getName("merge"));

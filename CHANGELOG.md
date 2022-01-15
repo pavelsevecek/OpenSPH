@@ -1,3 +1,8 @@
+## 2021-01-16
+- added hamburger menu to nodes
+- added hydrogen gas material preset
+- resetting property grid values if validator rejects the change
+
 ## 2022-01-15
 - storing palettes in the renderer properties (instead of globals)
 - created palette editor

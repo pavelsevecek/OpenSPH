@@ -68,7 +68,10 @@ static void addTimeSteppingCategory(VirtualSettings& connector, RunSettings& set
 
     VirtualSettings::Category& rangeCat = connector.addCategory("Integration");
     rangeCat.connect<Float>("Duration [s]", settings, RunSettingsId::RUN_END_TIME);
-    rangeCat.connect("Use start time of input", "is_resumed", resumeRun);
+    rangeCat.connect("Use start time of input", "is_resumed", resumeRun)
+        .setTooltip(
+            "If the simulation continues from a saved state, start from the time of the input instead of "
+            "zero.");
     rangeCat.connect<Float>("Maximal timestep [s]", settings, RunSettingsId::TIMESTEPPING_MAX_TIMESTEP);
     rangeCat.connect<Float>("Initial timestep [s]", settings, RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP);
     rangeCat.connect<EnumWrapper>("Integrator", settings, RunSettingsId::TIMESTEPPING_INTEGRATOR);
