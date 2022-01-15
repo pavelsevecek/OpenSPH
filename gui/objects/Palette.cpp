@@ -43,12 +43,12 @@ float Palette::linearToPalette(const float value) const {
     case PaletteScale::LINEAR:
         return value;
     case PaletteScale::LOGARITHMIC:
-        return double(exp10(value));
+        return float(exp10(value));
     case PaletteScale::HYBRID:
         if (value > 1.f) {
-            return double(exp10(value - 1.f));
+            return float(exp10(value - 1.f));
         } else if (value < -1.f) {
-            return double(-exp10(-value - 1.f));
+            return float(-exp10(-value - 1.f));
         } else {
             return value;
         }

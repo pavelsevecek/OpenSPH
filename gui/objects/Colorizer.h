@@ -598,7 +598,7 @@ class TemperatureColorizer : public TypedColorizer<Float> {
 
 public:
     explicit TemperatureColorizer()
-        : TypedColorizer<Float>(QuantityId::ENERGY, getEmissionPalette(Interval(500, 10000), 256)) {}
+        : TypedColorizer<Float>(QuantityId::ENERGY, getEmissionPalette(Interval(500, 10000), 8)) {}
 
     virtual bool hasData(const Storage& storage) const override {
         return storage.has(QuantityId::ENERGY) && storage.getMaterialCnt() > 0;

@@ -249,14 +249,15 @@ static FlatMap<ExtColorizerId, PaletteDesc> paletteDescs(ELEMENTS_UNIQUE,
         { ColorizerId::TIME_STEP, { Interval(0._f, 100._f), PaletteScale::LINEAR } },
     });
 
-static Palette getDefaultPalette(const Interval range) {
-    return Palette({ { 0.f, Rgba(0.f, 0.f, 0.6f) },
-                       { 0.25f, Rgba(0.1f, 0.1f, 0.1f) },
-                       { 0.5f, Rgba(0.9f, 0.9f, 0.9f) },
-                       { 0.75f, Rgba(1.f, 1.f, 0.f) },
-                       { 1.f, Rgba(0.6f, 0.f, 0.f) } },
+Palette Factory::getDefaultPalette(const Interval range) {
+    return Palette({ { 0.f, Rgba(0.43f, 0.70f, 1.f) },
+                       { 0.2f, Rgba(0.5f, 0.5f, 0.5f) },
+                       { 0.4f, Rgba(0.65f, 0.12f, 0.01f) },
+                       { 0.6f, Rgba(0.79f, 0.38f, 0.02f) },
+                       { 0.8f, Rgba(0.93f, 0.83f, 0.34f) },
+                       { 1.f, Rgba(0.94f, 0.90f, 0.84f) } },
         range,
-        PaletteScale::LINEAR);
+        PaletteScale::LOGARITHMIC);
 }
 
 Palette Factory::getPalette(const ExtColorizerId id) {

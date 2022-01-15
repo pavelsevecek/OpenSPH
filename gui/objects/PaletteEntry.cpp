@@ -5,8 +5,7 @@ NAMESPACE_SPH_BEGIN
 String PaletteEntry::toString() const {
     std::stringstream ss;
     ss << palette.getInterval() << ";" << int(palette.getScale()) << ";";
-    ArrayView<const Palette::Point> points = palette.getPoints();
-    for (const Palette::Point& p : points) {
+    for (const Palette::Point& p : palette.getPoints()) {
         ss << p.value << " " << p.color.r() << " " << p.color.g() << " " << p.color.b() << ";";
     }
     return String::fromAscii(ss.str().c_str());
@@ -41,10 +40,6 @@ void PaletteEntry::fromString(const String& s) {
     }
 
     palette = Palette(std::move(points), Interval(from, to), PaletteScale(scale));
-    /*    split()
-        expanded.replaceAll(";", "\n");
-        StringTextInputStream ss(expanded);
-        palette.loadFromStream(ss);*/
 }
 
 

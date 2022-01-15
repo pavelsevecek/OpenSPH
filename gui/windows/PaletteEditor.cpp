@@ -30,23 +30,17 @@ PaletteEditor::PaletteEditor(wxWindow* parent, const wxSize size, const Palette&
     this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(PaletteEditor::onDoubleClick));
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(PaletteEditor::onRightUp));
 
-    for (const Palette::Point& p : palette.getPoints()) {
-        points.push(p);
-    }
+    points = palette.getPoints().clone();
 }
 
 void PaletteEditor::setPalette(const Palette& newPalette) {
     palette = newPalette;
-    points.clear();
-    for (const Palette::Point& point : palette.getPoints()) {
-        points.push(point);
-    }
+    points = palette.getPoints().clone();
     this->Refresh();
 }
 
 void PaletteEditor::setPaletteColors(const Palette& newPalette) {
-    points.clear();
-    points.pushAll(newPalette.getPoints().begin(), newPalette.getPoints().end());
+    points = newPalette.getPoints().clone();
     this->updatePaletteFromPoints(false);
 }
 

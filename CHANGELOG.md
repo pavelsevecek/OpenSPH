@@ -1,3 +1,10 @@
+## 2022-01-15
+- storing palettes in the renderer properties (instead of globals)
+- created palette editor
+- tweaked preset defaults
+- automatically setting particle radius to 0.35 for SPH preset simulations
+- chaned the default palette to 'accretion'
+
 ## 2022-01-10
 - option to make attractor repel particles
 - added texture to differentiated body

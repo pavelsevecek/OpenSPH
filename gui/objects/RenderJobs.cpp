@@ -51,8 +51,10 @@ AnimationJob::AnimationJob(const String& name)
     : IImageJob(name) {
     animationType = EnumWrapper(AnimationType::SINGLE_FRAME);
     colorizerId = EnumWrapper(RenderColorizerId::BEAUTY);
-    BeautyColorizer beauty;
-    paletteEntry = ExtraEntry(makeAuto<PaletteEntry>(beauty.getPalette().value()));
+
+    Palette palette = Factory::getDefaultPalette(Interval(1, 1e5));
+    paletteEntry = ExtraEntry(makeAuto<PaletteEntry>(palette));
+
     sequence.units = EnumWrapper(UnitEnum::SI);
 }
 

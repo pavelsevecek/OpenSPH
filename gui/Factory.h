@@ -45,6 +45,8 @@ AutoPtr<IColorizer> getColorizer(const Project& project, const ExtColorizerId id
 
 Palette getPalette(const ExtColorizerId id);
 
+Palette getDefaultPalette(const Interval range);
+
 } // namespace Factory
 
 NAMESPACE_SPH_END
