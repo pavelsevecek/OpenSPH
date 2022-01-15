@@ -32,6 +32,7 @@ SOURCES += \
     objects/Filmic.cpp \
     objects/Movie.cpp \
     objects/Palette.cpp \
+    objects/PaletteEntry.cpp \
     objects/RenderContext.cpp \
     objects/RenderJobs.cpp \
     renderers/ContourRenderer.cpp \
@@ -84,6 +85,7 @@ HEADERS += \
     objects/GraphicsContext.h \
     objects/Movie.h \
     objects/Palette.h \
+    objects/PaletteEntry.h \
     objects/Point.h \
     objects/RenderContext.h \
     objects/RenderJobs.h \

@@ -110,8 +110,6 @@ private:
 
     void setNodeAccessor(const SharedPtr<JobNode>& particleNode);
 
-    void setPaletteAccessor(const RunSettings& globals);
-
     void renderLoop(const RunSettings& globals);
 
     void update();

@@ -117,8 +117,6 @@ void InteractiveRenderer::start(const RunSettings& globals) {
         }
     }
 
-    this->setPaletteAccessor(globals);
-
     // parse everything when the thread starts
     changed.node = node;
 
@@ -185,6 +183,8 @@ void InteractiveRenderer::setRendererAccessor(const RunSettings& globals) {
             /// \todo avoid hardcoded string
             if (key == "quantity" || key == "surface_gravity") {
                 changed.colorizer = job->getColorizer(globals);
+            } else if (key == "palette") {
+                changed.palette = job->getPalette();
             } else {
 
                 /// \todo put this in AnimationJob, something like listOfColorizerEntries, etc.
@@ -261,19 +261,6 @@ void InteractiveRenderer::setNodeAccessor(const SharedPtr<JobNode>& particleNode
     };
 
     particleNode->addAccessor(this->sharedFromThis(), accessor);
-}
-
-void InteractiveRenderer::setPaletteAccessor(const RunSettings& globals) {
-    auto accessor = [this, globals](const String& name, const Palette& palette) {
-        CHECK_FUNCTION(CheckFunction::MAIN_THREAD | CheckFunction::NO_THROW);
-        AutoPtr<IColorizer> colorizer = job->getColorizer(globals);
-        if (colorizer->name() == name) {
-            changed.palette = palette;
-            // changed.colorizer = std::move(colorizer);
-            this->update();
-        }
-    };
-    Project::getInstance().onPaletteChanged.insert(this->sharedFromThis(), accessor);
 }
 
 void InteractiveRenderer::renderLoop(const RunSettings& globals) {

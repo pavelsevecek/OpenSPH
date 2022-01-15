@@ -5,6 +5,7 @@
 #include "gui/Project.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Movie.h"
+#include "gui/objects/PaletteEntry.h"
 #include "run/IRun.h"
 #include "run/VirtualSettings.h"
 #include "run/jobs/IoJobs.h"
@@ -36,20 +37,23 @@ static RegisterEnum<RenderColorizerId> sColorizers({
     { RenderColorizerId::BEAUTY, "beauty", "Beauty" },
 });
 
+static Palette getPaletteFromProject(Project& project, RenderColorizerId id) {
+    AutoPtr<IColorizer> colorizer;
+    if (id == RenderColorizerId::GRAVITY) {
+        colorizer = Factory::getColorizer(project, ColorizerId::ACCELERATION);
+    } else {
+        colorizer = Factory::getColorizer(project, ColorizerId(id));
+    }
+    return colorizer->getPalette().value();
+}
+
 AnimationJob::AnimationJob(const String& name)
     : IImageJob(name) {
     animationType = EnumWrapper(AnimationType::SINGLE_FRAME);
-    colorizerId = EnumWrapper(RenderColorizerId::VELOCITY);
+    colorizerId = EnumWrapper(RenderColorizerId::BEAUTY);
+    BeautyColorizer beauty;
+    paletteEntry = ExtraEntry(makeAuto<PaletteEntry>(beauty.getPalette().value()));
     sequence.units = EnumWrapper(UnitEnum::SI);
-}
-
-UnorderedMap<String, ExtJobType> AnimationJob::requires() const {
-    if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE &&
-        RenderColorizerId(colorizerId) != RenderColorizerId::GRAVITY) {
-        return { { "camera", GuiJobType::CAMERA } };
-    } else {
-        return this->getSlots();
-    }
 }
 
 VirtualSettings AnimationJob::getSettings() {
@@ -81,7 +85,16 @@ VirtualSettings AnimationJob::getSettings() {
 
     VirtualSettings::Category& rendererCat = connector.addCategory("Rendering");
     rendererCat.connect<EnumWrapper>("Renderer", gui, GuiSettingsId::RENDERER);
-    rendererCat.connect("Quantity", "quantity", colorizerId);
+    rendererCat.connect("Quantity", "quantity", colorizerId)
+        .setTooltip("Physical quantity used to assign values to particles.");
+    rendererCat.connect("Palette", "palette", paletteEntry)
+        .setTooltip("Color palette assigning colors to quantity values.")
+        .setFallback([this] {
+            // handle backward compatibility
+            RawPtr<PaletteEntry> entry = dynamicCast<PaletteEntry>(paletteEntry.getEntry());
+            Palette palette = getPaletteFromProject(Project::getInstance(), RenderColorizerId(colorizerId));
+            entry->setPalette(palette.subsample(8));
+        });
     rendererCat.connect("Include surface gravity", "surface_gravity", addSurfaceGravity)
         .setEnabler([this] { return RenderColorizerId(colorizerId) == RenderColorizerId::GRAVITY; })
         .setTooltip("Include the surface gravity of the particle itself.");
@@ -437,14 +450,8 @@ AutoPtr<IRenderPreview> AnimationJob::getRenderPreview(const RunSettings& global
 
 AutoPtr<IColorizer> AnimationJob::getColorizer(const RunSettings& global) const {
     CHECK_FUNCTION(CheckFunction::NO_THROW);
-    Project project = Project::getInstance().clone();
-    project.getGuiSettings() = gui;
     RenderColorizerId renderId(colorizerId);
     if (renderId == RenderColorizerId::GRAVITY) {
-        Palette palette;
-        if (!project.getPalette("Acceleration", palette)) {
-            palette = Factory::getPalette(ColorizerId::ACCELERATION);
-        }
         SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
         Float G = Constants::gravity;
         switch (AnimationType(animationType)) {
@@ -461,9 +468,10 @@ AutoPtr<IColorizer> AnimationJob::getColorizer(const RunSettings& global) const 
         default:
             NOT_IMPLEMENTED;
         }
+        Palette palette = this->getPalette();
         return makeAuto<GravityColorizer>(scheduler, palette, G, addSurfaceGravity);
     } else {
-        return Factory::getColorizer(project, ColorizerId(renderId));
+        return Factory::getColorizer(gui, ColorizerId(renderId));
     }
 }
 
@@ -474,6 +482,11 @@ AutoPtr<IRenderer> AnimationJob::getRenderer(const RunSettings& global) const {
     previewGui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f));
     AutoPtr<IRenderer> renderer = Factory::getRenderer(scheduler, previewGui);
     return renderer;
+}
+
+Palette AnimationJob::getPalette() const {
+    RawPtr<PaletteEntry> palette = dynamicCast<PaletteEntry>(paletteEntry.getEntry());
+    return palette->getPalette();
 }
 
 RenderParams AnimationJob::getRenderParams() const {

@@ -211,7 +211,7 @@ public:
     ///
     /// \throw ConfigException if the value does not exist or cannot be deserialized.
     template <typename Type>
-    Type get(const String& name) {
+    Type get(const String& name) const {
         Optional<Type> opt = this->tryGet<Type>(name);
         if (!opt) {
             throw ConfigException("Entry '" + name + "' not in config");
@@ -223,7 +223,7 @@ public:
     ///
     /// If the value does not exist or cannot be deserialized, the function returns NOTHING.
     template <typename Type>
-    Optional<Type> tryGet(const String& name) {
+    Optional<Type> tryGet(const String& name) const {
         auto value = entries.tryGet(name);
         if (!value) {
             return NOTHING;
@@ -234,7 +234,7 @@ public:
     }
 
     /// \brief Checks if the node contains an entry of given name.
-    bool contains(const String& name) {
+    bool contains(const String& name) const {
         return entries.contains(name);
     }
 

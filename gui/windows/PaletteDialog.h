@@ -3,7 +3,6 @@
 #include "gui/objects/Palette.h"
 #include "objects/containers/UnorderedMap.h"
 #include "objects/wrappers/Function.h"
-#include <wx/dialog.h>
 #include <wx/panel.h>
 
 class wxRadioBox;
@@ -40,7 +39,7 @@ private:
     void update();
 };
 
-class PaletteSetup : public wxDialog {
+class PaletteSetup : public wxPanel {
 private:
     PaletteEditor* editor;
 
@@ -57,9 +56,10 @@ private:
 public:
     PaletteSetup(wxWindow* parent, wxSize size, const Palette& palette, const Palette& defaultPalette);
 
-    void setPaletteChangedCallback(Function<void(const Palette& palette)> onPointsChanged);
+    Function<void(const Palette& palette)> onPaletteChanged;
 
     const Palette& getPalette() const;
+    const Palette& getInitialPalette() const;
 
 private:
     void setDefaultPaletteList();

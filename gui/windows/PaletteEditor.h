@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui/objects/Color.h"
-#include "gui/objects/Palette.h"
+#include "gui/objects/PaletteEntry.h"
 #include "objects/containers/Array.h"
 #include "objects/utility/Streams.h"
 #include "objects/wrappers/Optional.h"
@@ -43,11 +43,11 @@ public:
         this->Refresh();
     }
 
-    Function<void(const Palette& palette)> onPaletteChanged;
+    Function<void(const Palette& palette)> onPaletteChangedByUser;
     // Function<void(Array<Palette::Point>&& points)> onPointsChanged;
 
 private:
-    void updatePaletteFromPoints();
+    void updatePaletteFromPoints(const bool notify);
 
     void onPaint(wxPaintEvent& evt);
 
@@ -80,30 +80,8 @@ private:
     void onDoubleClick(wxMouseEvent& evt);
 };
 
-/*class PaletteEntry : public IExtraEntry {
-private:
-    Palette palette;
 
-public:
-    PaletteEntry() = default;
-
-    PaletteEntry(const Palette& palette)
-        : palette(palette) {}
-
-    virtual String toString() const override;
-
-    virtual void fromString(const String& s) override;
-
-    virtual AutoPtr<IExtraEntry> clone() const override {
-        return makeAuto<PaletteEntry>(palette);
-    }
-
-    const Palette& getPalette() const {
-        return palette;
-    }
-};
-
-
+/*
 class PalettePreview : public wxPanel {
 private:
     Palette palette;
@@ -120,7 +98,7 @@ private:
     void onPaint(wxPaintEvent& evt);
 };*/
 
-/*class PalettePgEditor : public wxPGEditor {
+class PalettePgEditor : public wxPGEditor {
 private:
     Palette palette;
     wxAuiManager* aui;
@@ -154,14 +132,16 @@ class PaletteProperty : public wxStringProperty {
 private:
     Palette palette;
     wxAuiManager* aui;
-    wxWindow* parent;
+    //  wxWindow* parent;
 
 public:
-    PaletteProperty(wxWindow* parent, const String& label, const Palette& palette, wxAuiManager* aui)
+    PaletteProperty(const String& label, const Palette& palette, wxAuiManager* aui)
         : wxStringProperty(label.toUnicode(), "palette")
         , palette(palette)
-        , aui(aui)
-        , parent(parent) {}
+        , aui(aui) {}
+
+    ~PaletteProperty();
+    //, parent(parent) {}
 
     virtual const wxPGEditor* DoGetEditorClass() const override {
         static wxPGEditor* editor =
@@ -169,7 +149,7 @@ public:
         return editor;
     }
 
-    void setPalete(const Palette& newPalette) {
+    void setPalete(wxWindow* parent, const Palette& newPalette) {
         palette = newPalette;
 
         PaletteEntry entry(palette);
@@ -183,5 +163,5 @@ public:
         return palette;
     }
 };
-*/
+
 NAMESPACE_SPH_END

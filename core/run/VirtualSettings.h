@@ -33,6 +33,8 @@ public:
     AutoPtr<IExtraEntry> entry;
 
 public:
+    ExtraEntry() = default;
+
     explicit ExtraEntry(AutoPtr<IExtraEntry>&& entry)
         : entry(std::move(entry)) {}
 
@@ -79,6 +81,11 @@ public:
     /// the entry.
     /// \return True if the value was changed, false if it was rejected.
     virtual bool set(const Value& value) = 0;
+
+    /// \brief Modifies the entry if the value is missing or no reasonable value can be assigned.
+    ///
+    /// This is used when e.g. loading older session that does not contain newly added entry.
+    virtual bool setFromFallback() = 0;
 
     /// \brief Returns the currently stored value.
     virtual Value get() const = 0;
@@ -151,6 +158,7 @@ public:
     using Enabler = Function<bool()>;
     using Accessor = Function<void(const Value& newValue)>;
     using Validator = Function<bool(const Value& newValue)>;
+    using Fallback = Function<void()>;
 
 protected:
     String tooltip;
@@ -160,6 +168,7 @@ protected:
     Enabler enabler = nullptr;
     CallbackSet<Accessor> accessors;
     Validator validator = nullptr;
+    Fallback fallback = nullptr;
     bool sideEffect = false;
 
 public:
@@ -180,6 +189,9 @@ public:
     /// entries associated with parameters of the boundary if there are no boundary conditions in the
     /// simulations.
     EntryControl& setEnabler(const Enabler& newEnabler);
+
+    /// \brief Sets a function used when no value can be assigned to the entry.
+    EntryControl& setFallback(const Fallback& newFallback);
 
     /// \brief Adds a functor called when the entry changes, i.e. when \ref set function is called.
     ///
@@ -219,6 +231,8 @@ protected:
 
 private:
     virtual bool set(const Value& value) override final;
+
+    virtual bool setFromFallback() override final;
 };
 
 /// \brief Holds a map of virtual entries, associated with a unique name.

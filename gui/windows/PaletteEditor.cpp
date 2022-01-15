@@ -41,13 +41,14 @@ void PaletteEditor::setPalette(const Palette& newPalette) {
     for (const Palette::Point& point : palette.getPoints()) {
         points.push(point);
     }
+    //    onPaletteChanged.callIfNotNull(palette);
     this->Refresh();
 }
 
 void PaletteEditor::setPaletteColors(const Palette& newPalette) {
-    Array<Palette::Point> newPoints;
-    newPoints.pushAll(newPalette.getPoints().begin(), newPalette.getPoints().end());
-    this->setPalette(Palette(std::move(newPoints), palette.getInterval(), palette.getScale()));
+    points.clear();
+    points.pushAll(newPalette.getPoints().begin(), newPalette.getPoints().end());
+    this->updatePaletteFromPoints(false);
 }
 
 /*void PaletteEditor::setPointsFromPalette(const Palette& palette) {
@@ -56,9 +57,13 @@ void PaletteEditor::setPaletteColors(const Palette& newPalette) {
     points.pushAll(newPoints.begin(), newPoints.end());
 }*/
 
-void PaletteEditor::updatePaletteFromPoints() {
+void PaletteEditor::updatePaletteFromPoints(const bool notify) {
     palette = Palette(points.clone(), palette.getInterval(), palette.getScale());
-    onPaletteChanged.callIfNotNull(palette);
+    this->Refresh();
+
+    if (notify) {
+        onPaletteChangedByUser.callIfNotNull(palette);
+    }
 }
 
 void PaletteEditor::onPaint(wxPaintEvent& UNUSED(evt)) {
@@ -146,7 +151,7 @@ void PaletteEditor::onMouseMotion(wxMouseEvent& evt) {
         active = index + 1;
     }
     SPH_ASSERT(std::is_sorted(points.begin(), points.end()));
-    this->updatePaletteFromPoints();
+    this->updatePaletteFromPoints(true);
     this->Refresh();
 }
 
@@ -157,7 +162,7 @@ void PaletteEditor::onRightUp(wxMouseEvent& evt) {
     const Optional<Size> index = this->lock(evt.GetPosition().x);
     if (index && index.value() > 0 && index.value() < points.size() - 1) {
         points.remove(index.value());
-        this->updatePaletteFromPoints();
+        this->updatePaletteFromPoints(true);
         this->Refresh();
     }
 }
@@ -189,25 +194,11 @@ void PaletteEditor::onDoubleClick(wxMouseEvent& evt) {
         const wxColourData& data = dialog->GetColourData();
         points[index.value()].color = Rgba(data.GetColour());
     }
-    this->updatePaletteFromPoints();
+    this->updatePaletteFromPoints(true);
     this->Refresh();
 }
 
-/*String PaletteEntry::toString() const {
-    StringTextOutputStream ss;
-    palette.saveToStream(ss);
-    String s = ss.toString();
-    s.replaceAll("\n", ";");
-    return s;
-}
-
-void PaletteEntry::fromString(const String& s) {
-    String expanded = s;
-    expanded.replaceAll(";", "\n");
-    StringTextInputStream ss(expanded);
-    palette.loadFromStream(ss);
-}
-
+/*
 PalettePreview::PalettePreview(wxWindow* parent,
     const wxPoint point,
     const wxSize size,
@@ -222,7 +213,7 @@ void PalettePreview::onPaint(wxPaintEvent& UNUSED(evt)) {
     wxSize size = this->GetSize();
     // drawPalette(dc, wxPoint(0, 0), size, palette);
 }*/
-/*
+
 
 wxPGWindowList PalettePgEditor::CreateControls(wxPropertyGrid* propgrid,
     wxPGProperty* property,
@@ -231,42 +222,54 @@ wxPGWindowList PalettePgEditor::CreateControls(wxPropertyGrid* propgrid,
     PaletteProperty* paletteProp = dynamic_cast<PaletteProperty*>(property);
     SPH_ASSERT(paletteProp);
 
-    PaletteEditor* panel = nullptr;
-    PalettePreview* preview = new PalettePreview(propgrid, pos, size, paletteProp->getPalette());
-
-    wxAuiPaneInfo info = aui->GetPane("PaletteEditor");
-    if (!info.IsOk()) {
-        panel = new PaletteEditor(propgrid->GetParent(), wxSize(300, 200), paletteProp->getPalette());
-
-        info = wxAuiPaneInfo();
-        info.Name("PaletteEditor")
-            .Left()
-            .MinSize(wxSize(300, -1))
-            .Position(1)
-            .CaptionVisible(true)
-            .DockFixed(false)
-            .CloseButton(true)
-            .DestroyOnClose(true)
-            .Caption("Palette");
-        aui->AddPane(panel, info);
-        aui->Update();
-    } else {
-        panel = dynamic_cast<PaletteEditor*>(info.window);
-        SPH_ASSERT(panel);
-        panel->setPalette(paletteProp->getPalette());
-        panel->Refresh();
+    if (aui->GetPane("PaletteSetup").IsOk()) {
+        return wxPGWindowList(nullptr);
     }
 
+    //   PaletteSetup* panel = nullptr;
+    // PalettePreview* preview = new PalettePreview(propgrid, pos, size, paletteProp->getPalette());
 
-    panel->setPaletteChangedCallback(
-        [paletteProp, preview = wxWeakRef<PalettePreview>(preview)](const Palette& palette) {
-            paletteProp->setPalete(palette);
-            if (preview) {
-                preview->setPalette(palette);
-            }
-        });
+    // wxAuiPaneInfo info = aui->GetPane("PaletteEditor");
+    // if (!info.IsOk()) {
+    PaletteSetup* panel = nullptr;
+    panel = new PaletteSetup(
+        propgrid->GetParent(), wxSize(300, 200), paletteProp->getPalette(), paletteProp->getPalette());
+    panel->onPaletteChanged = [propgrid, paletteProp](const Palette& palette) { //
+        paletteProp->setPalete(propgrid, palette);
+    };
+    panel->Bind(wxEVT_DESTROY, [propgrid, property](wxWindowDestroyEvent& UNUSED(evt)) { //
+        propgrid->RemoveFromSelection(property);
+    });
 
-    return wxPGWindowList(preview);
+    wxAuiPaneInfo info;
+    info.Name("PaletteSetup")
+        .Left()
+        .MinSize(wxSize(300, -1))
+        .Position(1)
+        .CaptionVisible(true)
+        .DockFixed(false)
+        .CloseButton(true)
+        .DestroyOnClose(true)
+        .Caption("Palette");
+    aui->AddPane(panel, info);
+    aui->Update();
+    /* else {
+        panel = dynamic_cast<PaletteSetup*>(info.window);
+        SPH_ASSERT(panel);
+        // panel->setPalette(paletteProp->getPalette());
+        panel->Refresh();
+    }*/
+
+
+    /* panel->setPaletteChangedCallback(
+         [paletteProp, preview = wxWeakRef<PalettePreview>(preview)](const Palette& palette) {
+             paletteProp->setPalete(palette);
+             if (preview) {
+                 preview->setPalette(palette);
+             }
+         });*/
+
+    return wxPGWindowList(nullptr);
 }
 
 void PalettePgEditor::UpdateControl(wxPGProperty* property, wxWindow* ctrl) const {
@@ -281,7 +284,10 @@ void PalettePgEditor::DrawValue(wxDC& dc,
     PaletteProperty* paletteProp = dynamic_cast<PaletteProperty*>(property);
     SPH_ASSERT(paletteProp);
 
-    drawPalette(dc, rect.GetPosition(), rect.GetSize(), paletteProp->getPalette());
+    WxRenderContext context(dc);
+    Pixel position(rect.GetPosition());
+    Pixel size(rect.GetWidth(), rect.GetHeight());
+    drawPalette(context, position, size, paletteProp->getPalette(), NOTHING);
 
 
     (void)rect;
@@ -299,6 +305,13 @@ bool PalettePgEditor::OnEvent(wxPropertyGrid* propgrid,
 
     return false;
 }
-*/
+
+PaletteProperty::~PaletteProperty() {
+    wxAuiPaneInfo& info = aui->GetPane("PaletteSetup");
+    if (info.IsOk()) {
+        aui->ClosePane(info);
+    }
+}
+
 
 NAMESPACE_SPH_END

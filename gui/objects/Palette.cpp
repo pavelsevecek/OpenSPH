@@ -78,6 +78,9 @@ Palette::Palette(Array<Point>&& controlPoints, const Interval& range, const Pale
     if (scale == PaletteScale::LOGARITHMIC) {
         SPH_ASSERT(range.lower() > 0.f);
     }
+    SPH_ASSERT(std::all_of(points.begin(), points.end(), [](const Point& p) { //
+        return p.value >= 0 && p.value <= 1;
+    }));
     // sanity check, points must be sorted
     SPH_ASSERT(std::is_sorted(points.begin(), points.end()));
 #endif
@@ -136,6 +139,16 @@ Palette Palette::transform(Function<Rgba(const Rgba&)> func) const {
         point.color = func(point.color);
     }
     return cloned;
+}
+
+Palette Palette::subsample(const Size pointCnt) const {
+    Array<Palette::Point> subsampled;
+    for (Size i = 0; i < pointCnt; ++i) {
+        const float x = float(i) / (pointCnt - 1);
+        const float v = this->relativeToRange(x);
+        subsampled.push(Palette::Point{ x, (*this)(v) });
+    }
+    return Palette(std::move(subsampled), this->getInterval(), this->getScale());
 }
 
 float Palette::relativeToRange(const float value) const {
@@ -267,7 +280,7 @@ void drawPalette(IRenderContext& context,
 
             String text = toPrintableString(tic, 1, 1000);
             context.drawText(Coords(origin.x + i, origin.y + size.y + 15),
-                TextAlign::LEFT | TextAlign::VERTICAL_CENTER,
+                TextAlign::HORIZONTAL_CENTER | TextAlign::VERTICAL_CENTER,
                 text);
         }
     }

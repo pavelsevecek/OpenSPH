@@ -31,7 +31,7 @@ public:
         : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
         , palette(palette) {
         this->Connect(wxEVT_PAINT, wxPaintEventHandler(PaletteCanvas::onPaint));
-        this->SetMinSize(wxSize(320, 80));
+        this->SetMinSize(wxSize(300, 80));
     }
 
     void setPalette(const Palette newPalette) {
@@ -49,7 +49,7 @@ private:
         WxRenderContext context(dc);
         context.setFontSize(9);
         Rgba background(dc.GetBackground().GetColour());
-        drawPalette(context, Pixel(10, 10), Pixel(300, 40), palette, background.inverse());
+        drawPalette(context, Pixel(10, 10), Pixel(280, 40), palette, background.inverse());
     }
 };
 
@@ -78,12 +78,6 @@ PalettePanel::PalettePanel(wxWindow* parent, wxSize size, const Palette& palette
 
     mainSizer->Add(rangeSizer, 0, wxALIGN_CENTER_HORIZONTAL);
     mainSizer->AddSpacer(10);
-
-    wxString scales[] = { "Linear", "Logarithmic", "Log-linear" };
-    scaleBox = new wxRadioBox(this, wxID_ANY, "Scale", wxDefaultPosition, wxDefaultSize, 3, scales);
-    scaleBox->SetSelection(int(selected.getScale()));
-    scaleBox->SetMinSize(wxSize(300, -1));
-    mainSizer->Add(scaleBox, 0, wxALIGN_CENTER_HORIZONTAL);
 
     canvas = new PaletteCanvas(this, initial);
     mainSizer->Add(canvas, 0, wxALIGN_CENTER_HORIZONTAL);
@@ -162,7 +156,7 @@ PaletteSetup::PaletteSetup(wxWindow* parent,
     wxSize size,
     const Palette& palette,
     const Palette& defaultPalette)
-    : wxDialog(parent, wxID_ANY, "Palette setup", wxDefaultPosition, size)
+    : wxPanel(parent, wxID_ANY, wxDefaultPosition, size)
     , initialPalette(palette)
     , customPalette(palette)
     , defaultPalette(defaultPalette) {
@@ -193,7 +187,10 @@ PaletteSetup::PaletteSetup(wxWindow* parent,
     mainSizer->Add(scaleBox, 0, wxALIGN_CENTER_HORIZONTAL);
 
     editor = new PaletteEditor(this, wxSize(300, 40), palette);
-    editor->onPaletteChanged = [this](const Palette& newPalette) { customPalette = newPalette; };
+    editor->onPaletteChangedByUser = [this](const Palette& newPalette) {
+        customPalette = newPalette;
+        onPaletteChanged.callIfNotNull(newPalette);
+    };
     mainSizer->Add(editor, 0, wxALIGN_CENTER_HORIZONTAL);
     mainSizer->AddSpacer(10);
 
@@ -232,13 +229,6 @@ PaletteSetup::PaletteSetup(wxWindow* parent,
     mainSizer->Add(colorSizer, 0, wxALIGN_CENTER_HORIZONTAL);
     mainSizer->AddSpacer(5);
 
-    wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
-    wxButton* commitButton = new wxButton(this, wxID_ANY, "Commit");
-    wxButton* cancelButton = new wxButton(this, wxID_ANY, "Cancel");
-    buttonSizer->Add(commitButton);
-    buttonSizer->Add(cancelButton);
-    mainSizer->Add(buttonSizer, 0, wxALIGN_CENTER_HORIZONTAL);
-
     this->SetSizerAndFit(mainSizer);
 
     upperCtrl->onValueChanged = [this](const Float value) {
@@ -250,7 +240,7 @@ PaletteSetup::PaletteSetup(wxWindow* parent,
         }
         palette.setInterval(Interval(lower, value));
         editor->setPalette(palette);
-        // onPaletteChanged.callIfNotNull(selected);
+        onPaletteChanged.callIfNotNull(palette);
         return true;
     };
     lowerCtrl->onValueChanged = [this](const Float value) {
@@ -264,7 +254,7 @@ PaletteSetup::PaletteSetup(wxWindow* parent,
         }
         palette.setInterval(Interval(value, upper));
         editor->setPalette(palette);
-        // onPaletteChanged.callIfNotNull(selected);
+        onPaletteChanged.callIfNotNull(palette);
         return true;
     };
 
@@ -273,13 +263,10 @@ PaletteSetup::PaletteSetup(wxWindow* parent,
         Palette palette = editor->getPalette();
         palette.setScale(scale);
         editor->setPalette(palette);
-        // onPaletteChanged.callIfNotNull(selected);
+        onPaletteChanged.callIfNotNull(palette);
     });
 
     loadButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { this->fileDialog(); });
-
-    commitButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { this->EndModal(wxOK); });
-    cancelButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { this->EndModal(wxCANCEL); });
 
     presetBox->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& UNUSED(evt)) {
         this->setFromPresets();
@@ -290,8 +277,6 @@ PaletteSetup::PaletteSetup(wxWindow* parent,
         this->setFromFile();
         this->Refresh();
     });
-
-    /*commitButton->Bind(wxEVT_BUTTON, [=](wxCommandEvent& UNUSED(evt)) { currentRadio->SetValue(true); });*/
 
     auto update = [=] {
         bool useCustom = customRadio->GetValue();
@@ -307,14 +292,16 @@ PaletteSetup::PaletteSetup(wxWindow* parent,
         loadButton->Enable(useFile);
 
         if (useCustom) {
-            editor->setPalette(customPalette);
+            editor->setPaletteColors(customPalette);
         } else if (useDefault) {
-            editor->setPalette(defaultPalette);
+            editor->setPaletteColors(defaultPalette);
         } else if (usePresets) {
             this->setFromPresets();
         } else if (useFile) {
             this->setFromFile();
         }
+
+        onPaletteChanged.callIfNotNull(editor->getPalette());
         this->Refresh();
     };
 
@@ -355,8 +342,8 @@ const Palette& PaletteSetup::getPalette() const {
     return editor->getPalette();
 }
 
-void PaletteSetup::setPaletteChangedCallback(Function<void(const Palette& palette)> onPaletteChanged) {
-    editor->onPaletteChanged = std::move(onPaletteChanged);
+const Palette& PaletteSetup::getInitialPalette() const {
+    return initialPalette;
 }
 
 void PaletteSetup::setDefaultPaletteList() {
@@ -385,17 +372,7 @@ void PaletteSetup::loadPalettes(const Path& path) {
         if (file.extension().string() == "csv") {
             Palette loaded = editor->getPalette();
             if (loaded.loadFromFile(path.parentPath() / file)) {
-                // subsample to 8 points
-                loaded.setInterval(Interval(0, 1));
-                loaded.setScale(PaletteScale::LINEAR);
-                Array<Palette::Point> points;
-                const Size pointCnt = 8;
-                for (Size i = 0; i < pointCnt; ++i) {
-                    const float x = float(i) / (pointCnt - 1);
-                    points.push(Palette::Point{ x, loaded(x) });
-                }
-                presetMap.insert(
-                    file.string(), Palette(std::move(points), loaded.getInterval(), loaded.getScale()));
+                presetMap.insert(file.string(), loaded.subsample(8));
             }
         }
     }

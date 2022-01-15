@@ -242,8 +242,10 @@ SharedPtr<JobNode> Presets::makePlanetesimalMerging(UniqueNameManager& nameMgr, 
     SharedPtr<JobNode> stab = makeNode<SphStabilizationJob>(nameMgr.getName("stabilize"));
     VirtualSettings stabSettings = stab->getSettings();
     stabSettings.set(RunSettingsId::RUN_END_TIME, 1000._f);
-    const TimeStepCriterionEnum criteria = TimeStepCriterionEnum::COURANT;
-    stabSettings.set(RunSettingsId::TIMESTEPPING_CRITERION, EnumWrapper(criteria));
+    const Flags<TimeStepCriterionEnum> criteria =
+        TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::DIVERGENCE;
+    stabSettings.set(
+        RunSettingsId::TIMESTEPPING_CRITERION, EnumWrapper(TimeStepCriterionEnum(criteria.value())));
     equilibrium->connect(stab, "particles");
 
     SharedPtr<JobNode> merger = makeNode<JoinParticlesJob>(nameMgr.getName("merge"));
@@ -259,7 +261,8 @@ SharedPtr<JobNode> Presets::makePlanetesimalMerging(UniqueNameManager& nameMgr, 
     SharedPtr<JobNode> sim = makeNode<SphJob>(nameMgr.getName("impact simulation"));
     VirtualSettings simSettings = sim->getSettings();
     simSettings.set(RunSettingsId::RUN_END_TIME, 15000._f);
-    simSettings.set(RunSettingsId::TIMESTEPPING_CRITERION, EnumWrapper(criteria));
+    simSettings.set(
+        RunSettingsId::TIMESTEPPING_CRITERION, EnumWrapper(TimeStepCriterionEnum(criteria.value())));
     merger->connect(sim, "particles");
 
     return sim;

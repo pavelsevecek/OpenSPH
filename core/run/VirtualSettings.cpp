@@ -17,6 +17,11 @@ EntryControl& EntryControl::setEnabler(const Enabler& newEnabler) {
     return *this;
 }
 
+EntryControl& EntryControl::setFallback(const Fallback& newFallback) {
+    fallback = newFallback;
+    return *this;
+}
+
 EntryControl& EntryControl::addAccessor(const SharedToken& owner, const Accessor& accessor) {
     accessors.insert(owner, accessor);
     return *this;
@@ -75,6 +80,10 @@ bool EntryControl::set(const Value& value) {
     return true;
 }
 
+bool EntryControl::setFromFallback() {
+    fallback.callIfNotNull();
+    return true;
+}
 
 void VirtualSettings::set(const String& key, const IVirtualEntry::Value& value) {
     for (auto& category : categories) {

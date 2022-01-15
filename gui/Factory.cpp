@@ -126,9 +126,7 @@ AutoPtr<IColorMap> Factory::getColorMap(const GuiSettings& settings) {
     }
 }
 
-static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const ExtColorizerId id) {
-    using Factory::getPalette;
-
+AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings, const ExtColorizerId id) {
     switch (id) {
     case ColorizerId::VELOCITY:
         return makeAuto<VelocityColorizer>(getPalette(id));
@@ -199,7 +197,7 @@ static AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const ExtCo
 }
 
 AutoPtr<IColorizer> Factory::getColorizer(const Project& project, const ExtColorizerId id) {
-    AutoPtr<IColorizer> colorizer = Sph::getColorizer(project.getGuiSettings(), id);
+    AutoPtr<IColorizer> colorizer = getColorizer(project.getGuiSettings(), id);
     Optional<Palette> palette = colorizer->getPalette();
     if (palette && project.getPalette(colorizer->name(), palette.value())) {
         colorizer->setPalette(palette.value());

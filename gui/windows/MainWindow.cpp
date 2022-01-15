@@ -178,7 +178,6 @@ MainWindow::MainWindow(const Path& openPath)
     wxMenu* viewMenu = new wxMenu();
     viewMenu->Append(NodeWindow::ID_PROPERTIES, "&Node properties");
     viewMenu->Append(NodeWindow::ID_LIST, "&Node list");
-    viewMenu->Append(NodeWindow::ID_PALETTE, "&Palette setup");
     viewMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this](wxCommandEvent& evt) { //
         nodePage->showPanel(NodeWindow::PanelId(evt.GetId()));
     });
@@ -192,11 +191,7 @@ MainWindow::MainWindow(const Path& openPath)
         case 6000: {
             wxAboutDialogInfo info;
             info.SetName("OpenSPH");
-#ifdef SPH_VERSION
-            info.SetVersion(SPH_STR(SPH_VERSION));
-#else
-            info.SetVersion("unknown");
-#endif
+            info.SetVersion(SPH_CODE_VERSION);
 
             String desc;
 #ifdef SPH_DEBUG
@@ -287,6 +282,10 @@ void MainWindow::save() {
     BusyCursor wait(this);
 
     Config config;
+
+    SharedPtr<ConfigNode> metaNode = config.addNode("metadata");
+    metaNode->set("version", String::fromAscii(SPH_CODE_VERSION));
+
     // get project data (gui, palettes, ...)
     Project& project = Project::getInstance();
     project.save(config);

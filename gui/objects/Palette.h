@@ -90,6 +90,9 @@ public:
     /// \brief Returns the palette with colors modified by generic transform.
     Palette transform(Function<Rgba(const Rgba&)> func) const;
 
+    /// \brief Returns a palette with reduced point count.
+    Palette subsample(const Size pointCnt) const;
+
     /// \brief Converts a relative position to an absolute position on a palette.
     ///
     /// The relative position is in interval <0, 1>, the absolute position is given by the control points of

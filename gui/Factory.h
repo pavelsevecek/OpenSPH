@@ -37,6 +37,10 @@ AutoPtr<IBrdf> getBrdf(const GuiSettings& settings);
 
 AutoPtr<IColorMap> getColorMap(const GuiSettings& settings);
 
+/// Creates a colorizer using its default palette
+AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const ExtColorizerId id);
+
+/// Creates a colorizer with a (potentially) overriden palette
 AutoPtr<IColorizer> getColorizer(const Project& project, const ExtColorizerId id);
 
 Palette getPalette(const ExtColorizerId id);

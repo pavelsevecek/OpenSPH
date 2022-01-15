@@ -1294,10 +1294,6 @@ enum class RunSettingsId {
 
     FRAME_CONSTANT_ACCELERATION,
 
-    FRAME_TIDES_MASS,
-
-    FRAME_TIDES_POSITION,
-
     /// Maximum number of particles in a leaf node.
     FINDER_LEAF_SIZE,
 
