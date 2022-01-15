@@ -295,6 +295,7 @@ PaletteAdvancedWidget::PaletteAdvancedWidget(wxWindow* parent, wxSize size, cons
     wxStaticBoxSizer* colorSizer = new wxStaticBoxSizer(wxVERTICAL, this, "Colors");
 
     wxRadioButton* customRadio = new wxRadioButton(this, wxID_ANY, "Custom");
+    customRadio->SetValue(true);
     colorSizer->Add(customRadio, 0, wxALIGN_CENTER_HORIZONTAL | wxRIGHT, 200);
 
     wxRadioButton* presetRadio = new wxRadioButton(this, wxID_ANY, "Presets ");

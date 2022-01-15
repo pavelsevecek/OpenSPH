@@ -825,7 +825,7 @@ static FlatMap<ExtJobType, wxPen> NODE_PENS_LIGHT = [] {
     cameraPen.SetStyle(wxPENSTYLE_SHORT_DASH);
 
     wxPen& imagePen = pens.insert(GuiJobType::IMAGE, *wxBLACK_PEN);
-    imagePen.SetColour(wxColour(120, 120, 70));
+    imagePen.SetColour(wxColour(131, 67, 51));
     imagePen.SetStyle(wxPENSTYLE_SOLID);
     return pens;
 }();

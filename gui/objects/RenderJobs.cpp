@@ -176,7 +176,7 @@ public:
         const Palette& palette,
         const Float G,
         const bool addSurfaceGravity)
-        : TypedColorizer<Float>(QuantityId::POSITION, std::move(palette))
+        : TypedColorizer<Float>(QuantityId::POSITION, palette)
         , scheduler(scheduler)
         , gravity(0.8_f, MultipoleOrder::OCTUPOLE, SolidSphereKernel{}, 25, 50, G)
         , G(G)
@@ -470,10 +470,11 @@ AutoPtr<IColorizer> AnimationJob::getColorizer(const RunSettings& global) const 
         default:
             NOT_IMPLEMENTED;
         }
-        Palette palette = this->getPalette();
-        return makeAuto<GravityColorizer>(scheduler, palette, G, addSurfaceGravity);
+        return makeAuto<GravityColorizer>(scheduler, this->getPalette(), G, addSurfaceGravity);
     } else {
-        return Factory::getColorizer(gui, ColorizerId(renderId));
+        AutoPtr<IColorizer> colorizer = Factory::getColorizer(gui, ColorizerId(renderId));
+        colorizer->setPalette(this->getPalette());
+        return colorizer;
     }
 }
 

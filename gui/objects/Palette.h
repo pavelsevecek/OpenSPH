@@ -9,7 +9,7 @@
 NAMESPACE_SPH_BEGIN
 
 class Path;
-class Pixel;
+struct Pixel;
 class ITextInputStream;
 class ITextOutputStream;
 class IRenderContext;
