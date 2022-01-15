@@ -3,7 +3,8 @@
 - created palette editor
 - tweaked preset defaults
 - automatically setting particle radius to 0.35 for SPH preset simulations
-- chaned the default palette to 'accretion'
+- changed the default palette to 'accretion'
+- fixed central pressure in polytropes
 
 ## 2022-01-10
 - option to make attractor repel particles

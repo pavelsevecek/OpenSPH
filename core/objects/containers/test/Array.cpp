@@ -233,7 +233,7 @@ TEST_CASE("Array Remove multiple", "[array]") {
     REQUIRE(ar == Array<int>({ 1, 2, 3 }));
     ar.remove(Array<Size>{ 1 });
     REQUIRE(ar == Array<int>({ 1, 3 }));
-    ar.remove(Array<Size>{ 1, 2 });
+    ar.remove(Array<Size>{ 0, 1 });
     REQUIRE(ar == Array<int>());
 
     ar = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };

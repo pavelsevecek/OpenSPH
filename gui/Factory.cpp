@@ -257,7 +257,7 @@ Palette Factory::getDefaultPalette(const Interval range) {
                        { 0.8f, Rgba(0.93f, 0.83f, 0.34f) },
                        { 1.f, Rgba(0.94f, 0.90f, 0.84f) } },
         range,
-        PaletteScale::LOGARITHMIC);
+        PaletteScale::LINEAR);
 }
 
 Palette Factory::getPalette(const ExtColorizerId id) {

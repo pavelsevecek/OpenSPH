@@ -34,8 +34,9 @@ Stellar::Star Stellar::polytropicStar(const IEos& eos, const Float radius, const
     const Float z_star = phi.getRange().upper();
     const Float dphi_star = phi.derivative()(z_star);
 
-    const Float rho_c = 3._f * mass / (4._f * PI * pow<3>(radius)) * z_star / (-3._f * dphi_star);
-    const Float P_c = G * sqr(mass) / pow<4>(radius) * 1._f / (-4._f * PI * (n + 1) * z_star * dphi_star);
+    const Float rho_avg = mass / sphereVolume(radius);
+    const Float rho_c = rho_avg * z_star / (-3._f * dphi_star);
+    const Float P_c = G * sqr(mass) / pow<4>(radius) * 1._f / (4._f * PI * (n + 1) * sqr(dphi_star));
 
     Array<Float> rho(phi.size()), u(phi.size()), P(phi.size());
     for (auto el : iterateWithIndex(phi)) {
@@ -44,6 +45,8 @@ Stellar::Star Stellar::polytropicStar(const IEos& eos, const Float radius, const
         rho[i] = rho_c * pow(x, n);
         P[i] = P_c * pow(x, n + 1);
         u[i] = eos.getInternalEnergy(rho[i], P[i]);
+
+        SPH_ASSERT(rho[i] > 0 && P[i] > 0, rho[i], P[i]);
     }
 
     Star star;
