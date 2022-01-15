@@ -5,6 +5,7 @@
 - automatically setting particle radius to 0.35 for SPH preset simulations
 - changed the default palette to 'accretion'
 - fixed central pressure in polytropes
+- tweaked particle volume in Raymarcher
 
 ## 2022-01-10
 - option to make attractor repel particles

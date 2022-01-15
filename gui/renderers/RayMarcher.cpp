@@ -81,16 +81,13 @@ void RayMarcher::initialize(const Storage& storage,
     if (storage.has(QuantityId::MASS) && storage.has(QuantityId::DENSITY)) {
         ArrayView<const Float> rho, m;
         tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
-        for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
-            MaterialView material = storage.getMaterial(matId);
-            const Float rho = material->getParam<Float>(BodySettingsId::DENSITY);
-            for (Size i : material.sequence()) {
-                cached.v[i] = m[i] / rho;
-            }
+        for (Size i = 0; i < particleCnt; ++i) {
+            // avoid expanded particles - if the density is too low, use smoothing length instead
+            cached.v[i] = min(0.1_f * sphereVolume(cached.r[i][H]), m[i] / rho[i]);
         }
     } else {
         for (Size i = 0; i < particleCnt; ++i) {
-            cached.v[i] = sphereVolume(cached.r[i][H]);
+            cached.v[i] = 0.1_f * sphereVolume(cached.r[i][H]);
         }
     }
 
