@@ -14,6 +14,7 @@ set(GUI_SOURCES
     objects/Filmic.cpp 
     objects/Movie.cpp 
     objects/Palette.cpp 
+    objects/PaletteEntry.cpp
     objects/Plots.cpp 
     objects/RenderContext.cpp 
     objects/RenderJobs.cpp 
@@ -32,7 +33,9 @@ set(GUI_SOURCES
     windows/GridPage.cpp 
     windows/PreviewPane.cpp
     windows/OrthoPane.cpp 
-    windows/PaletteDialog.cpp 
+    windows/PaletteProperty.cpp
+    windows/PaletteWidget.cpp
+    windows/PaletteEditor.cpp
     windows/ParticleProbe.cpp 
     windows/PlotView.cpp 
     windows/RunPage.cpp 
@@ -64,6 +67,7 @@ set(GUI_HEADERS
     objects/GraphicsContext.h 
     objects/Movie.h 
     objects/Palette.h 
+    objects/PaletteEntry.h
     objects/Point.h 
     objects/Plots.h 
     objects/RenderContext.h 
@@ -88,7 +92,9 @@ set(GUI_HEADERS
     windows/IGraphicsPane.h 
     windows/Icons.data.h 
     windows/OrthoPane.h 
-    windows/PaletteDialog.h 
+    windows/PaletteProperty.cpp
+    windows/PaletteWidget.cpp
+    windows/PaletteEditor.cpp
     windows/ParticleProbe.h 
     windows/PlotView.h 
     objects/Texture.h 

@@ -44,6 +44,8 @@ SOURCES += \
     renderers/Spectrum.cpp \
     windows/BatchDialog.cpp \
     windows/PaletteEditor.cpp \
+    windows/PaletteProperty.cpp \
+    windows/PaletteWidget.cpp \
     windows/PreviewPane.cpp \
     windows/ProgressPanel.cpp \
     windows/RenderPage.cpp \
@@ -53,7 +55,6 @@ SOURCES += \
     windows/CurveDialog.cpp \
     windows/GridPage.cpp \
     windows/OrthoPane.cpp \
-    windows/PaletteDialog.cpp \
     windows/ParticleProbe.cpp \
     windows/PlotView.cpp \
     windows/RunPage.cpp \
@@ -101,6 +102,8 @@ HEADERS += \
     renderers/Spectrum.h \
     windows/BatchDialog.h \
     windows/PaletteEditor.h \
+    windows/PaletteProperty.h \
+    windows/PaletteWidget.h \
     windows/PreviewPane.h \
     windows/RenderPage.h \
     windows/RenderSetup.h \
@@ -111,7 +114,6 @@ HEADERS += \
     windows/IGraphicsPane.h \
     windows/Icons.data.h \
     windows/OrthoPane.h \
-    windows/PaletteDialog.h \
     windows/ParticleProbe.h \
     windows/PlotView.h \
     objects/Texture.h \

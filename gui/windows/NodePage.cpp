@@ -10,8 +10,7 @@
 #include "gui/objects/RenderJobs.h"
 #include "gui/windows/BatchDialog.h"
 #include "gui/windows/CurveDialog.h"
-#include "gui/windows/PaletteDialog.h"
-#include "gui/windows/PaletteEditor.h"
+#include "gui/windows/PaletteProperty.h"
 #include "gui/windows/PreviewPane.h"
 #include "gui/windows/RenderSetup.h"
 #include "gui/windows/RunSelectDialog.h"
@@ -1632,93 +1631,7 @@ public:
     }
 };
 
-/*class PalettePane : public wxPanel {
-private:
-    PalettePanel* panel;
-    Array<ExtColorizerId> itemIds;
-    ExtColorizerId currentId;
-    wxAuiManager* aui;
-
-public:
-    PalettePane(wxWindow* parent, Project& project, wxAuiManager* auiManager)
-        : wxPanel(parent, wxID_ANY)
-        , aui(auiManager) {
-        wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-
-        wxBoxSizer* quantitySizer = new wxBoxSizer(wxHORIZONTAL);
-        quantitySizer->Add(new wxStaticText(this, wxID_ANY, "Quantity"), 0, wxALIGN_CENTER_VERTICAL);
-        quantitySizer->AddSpacer(10);
-        ComboBox* quantityBox = new ComboBox(this, "", 200);
-        quantitySizer->Add(quantityBox, 0, wxALIGN_CENTER_VERTICAL);
-
-        Array<ExtColorizerId> colorizerIds = getColorizerIds();
-        wxArrayString items;
-        Palette firstPalette;
-        for (ExtColorizerId id : colorizerIds) {
-            AutoPtr<IColorizer> colorizer = Factory::getColorizer(project, id);
-            if (Optional<Palette> palette = colorizer->getPalette()) {
-                items.Add(colorizer->name().toUnicode());
-                itemIds.push(id);
-
-                if (firstPalette.empty()) {
-                    firstPalette = palette.value();
-                    currentId = id;
-                }
-            }
-        }
-        quantityBox->Set(items);
-        quantityBox->SetSelection(0);
-
-        sizer->Add(quantitySizer, 0, wxALIGN_CENTER_HORIZONTAL);
-
-        panel = new PalettePanel(this, wxSize(300, 200), firstPalette);
-        sizer->Add(panel, 0, wxALIGN_CENTER_HORIZONTAL);
-
-        wxButton* customButton = new wxButton(this, wxID_ANY, "Customize...");
-        sizer->Add(customButton, 0, wxALIGN_CENTER_HORIZONTAL);
-
-        this->SetSizerAndFit(sizer);
-
-        quantityBox->Bind(wxEVT_COMBOBOX, [this, quantityBox, &project](wxCommandEvent& UNUSED(evt)) {
-            CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-            const int idx = quantityBox->GetSelection();
-            currentId = itemIds[idx];
-            AutoPtr<IColorizer> colorizer = Factory::getColorizer(project, currentId);
-            panel->setPalette(colorizer->getPalette().value());
-            this->Refresh();
-        });
-
-        panel->onPaletteChanged = [quantityBox, &project](const Palette& palette) { //
-            wxString name = quantityBox->GetStringSelection();
-            project.setPalette(String(name.wc_str()), palette);
-        };
-
-        customButton->Bind(wxEVT_BUTTON, [this, quantityBox, &project](wxCommandEvent& UNUSED(evt)) {
-            const wxString name = "PaletteSetup";
-
-            {
-                // wxAuiPaneInfo info;
-                // info.Name(name).Float().Show().DestroyOnClose();
-                AutoPtr<IColorizer> colorizer = Factory::getColorizer(project, currentId);
-                PaletteSetup* setup = new PaletteSetup(
-                    this->GetParent(), wxSize(300, -1), panel->getPalette(), colorizer->getPalette().value());
-                setup->setPaletteChangedCallback([quantityBox, &project, this](const Palette& palette) {
-                    panel->setPalette(palette);
-
-                    /// \todo deduplicate
-                    wxString name = quantityBox->GetStringSelection();
-                    project.setPalette(String(name.wc_str()), panel->getPalette());
-                });
-
-                // aui->AddPane(setup, info);
-            }
-
-            aui->Update();
-        });
-    }
-};*/
-
-NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callbacks, Project& project)
+NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callbacks)
     : wxPanel(parent, wxID_ANY) {
     aui = makeAuto<wxAuiManager>(this);
 
@@ -1878,8 +1791,24 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         wxTreeItemId id = evt.GetItem();
         UniqueNameManager nameMgr = nodeMgr->makeUniqueNameManager();
         if (presetsIdMap.find(id) != presetsIdMap.end()) {
-            SharedPtr<JobNode> presetNode = Presets::make(presetsIdMap.at(id), nameMgr);
+            const Presets::Id presetId = presetsIdMap.at(id);
+            SharedPtr<JobNode> presetNode = Presets::make(presetId, nameMgr);
             nodeMgr->addNodes(*presetNode);
+
+            // hack to set default particle radius to 0.35 for SPH sims
+            static FlatSet<Presets::Id> SPH_SIMS = FlatSet<Presets::Id>(ElementsUniqueTag{},
+                {
+                    Presets::Id::COLLISION,
+                    Presets::Id::CRATERING,
+                    Presets::Id::PLANETESIMAL_MERGING,
+                    Presets::Id::ACCRETION_DISK,
+                });
+            static bool defaultSet = false;
+            if (!defaultSet && SPH_SIMS.contains(presetId)) {
+                defaultSet = true;
+                GuiSettings& gui = Project::getInstance().getGuiSettings();
+                gui.set(GuiSettingsId::PARTICLE_RADIUS, 0.35_f);
+            }
         }
 
         JobTreeData* data = dynamic_cast<JobTreeData*>(jobView->GetItemData(id));

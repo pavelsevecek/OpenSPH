@@ -35,6 +35,9 @@ INLINE constexpr Float operator"" _f(const long double v) {
 
 constexpr char SPH_CODE_NAME[] = "OpenSPH";
 
+#define SPH_STR(x) SPH_XSTR(x)
+#define SPH_XSTR(x) #x
+
 #ifdef SPH_VERSION
 constexpr char SPH_CODE_VERSION[] = SPH_STR(SPH_VERSION);
 #else

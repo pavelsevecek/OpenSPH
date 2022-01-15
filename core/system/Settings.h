@@ -52,6 +52,11 @@ struct EnumWrapper {
         : value(value)
         , index(index) {}
 
+    template <typename TEnum>
+    static EnumWrapper fromFlags(const Flags<TEnum>& flags) {
+        return EnumWrapper(TEnum(flags.value()));
+    }
+
     explicit operator int() const {
         return value;
     }

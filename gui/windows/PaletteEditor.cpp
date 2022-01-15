@@ -1,11 +1,11 @@
 #include "gui/windows/PaletteEditor.h"
-#include "gui/Utils.h"
 #include "gui/objects/RenderContext.h"
-#include "gui/windows/PaletteDialog.h"
-#include "post/Plot.h"
 #include "post/Point.h"
 #include <algorithm>
+
 #include <wx/aui/framemanager.h>
+#include <wx/colordlg.h>
+#include <wx/dcbuffer.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -41,7 +41,6 @@ void PaletteEditor::setPalette(const Palette& newPalette) {
     for (const Palette::Point& point : palette.getPoints()) {
         points.push(point);
     }
-    //    onPaletteChanged.callIfNotNull(palette);
     this->Refresh();
 }
 
@@ -51,11 +50,10 @@ void PaletteEditor::setPaletteColors(const Palette& newPalette) {
     this->updatePaletteFromPoints(false);
 }
 
-/*void PaletteEditor::setPointsFromPalette(const Palette& palette) {
-    points.clear();
-    ArrayView<const Palette::Point> newPoints = palette.getPoints();
-    points.pushAll(newPoints.begin(), newPoints.end());
-}*/
+void PaletteEditor::enable(const bool value) {
+    enabled = value;
+    this->Refresh();
+}
 
 void PaletteEditor::updatePaletteFromPoints(const bool notify) {
     palette = Palette(points.clone(), palette.getInterval(), palette.getScale());
@@ -82,23 +80,6 @@ void PaletteEditor::onPaint(wxPaintEvent& UNUSED(evt)) {
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
     dc.DrawRectangle(TOP_LEFT, size);
 
-    // tics
-    /*Array<Float> tics;
-    if (palette.getScale() == PaletteScale::LOGARITHMIC) {
-        tics = getLogTics(palette.getInterval(), 4);
-    } else {
-        tics = getLinearTics(palette.getInterval(), 4);
-    }
-    for (Float tic : tics) {
-        const float value = palette.paletteToRelative(tic);
-        const int i = int(value * size.x);
-        dc.DrawLine(wxPoint(i, 0) + TOP_LEFT, wxPoint(i, 6) + TOP_LEFT);
-        dc.DrawLine(wxPoint(i, size.y) + TOP_LEFT, wxPoint(i, size.y - 6) + TOP_LEFT);
-
-        String text = toPrintableString(tic, 1, 1000);
-        dc.DrawText(text.toUnicode(), wxPoint(i, -15) + TOP_LEFT);
-    }*/
-
     if (!enabled) {
         return;
     }
@@ -124,6 +105,17 @@ void PaletteEditor::onPaint(wxPaintEvent& UNUSED(evt)) {
     }
 }
 
+Optional<Size> PaletteEditor::lock(const int x) const {
+    for (Size i = 0; i < points.size(); ++i) {
+        const int p = pointToWindow(points[i].value);
+        if (abs(x - p) < 10) {
+            return i;
+        }
+    }
+    return NOTHING;
+}
+
+
 float PaletteEditor::windowToPoint(const int x) const {
     const int width = this->GetSize().x - MARGIN_LEFT - MARGIN_RIGHT;
     return float(x - MARGIN_LEFT) / width;
@@ -138,7 +130,6 @@ void PaletteEditor::onMouseMotion(wxMouseEvent& evt) {
     if (!enabled || !active) {
         return;
     }
-    // palette.getPoints()
     const int x = evt.GetPosition().x;
     const Size index = active.value();
     SPH_ASSERT(std::is_sorted(points.begin(), points.end()));
@@ -153,6 +144,14 @@ void PaletteEditor::onMouseMotion(wxMouseEvent& evt) {
     SPH_ASSERT(std::is_sorted(points.begin(), points.end()));
     this->updatePaletteFromPoints(true);
     this->Refresh();
+}
+
+void PaletteEditor::onLeftUp(wxMouseEvent& UNUSED(evt)) {
+    active = NOTHING;
+}
+
+void PaletteEditor::onLeftDown(wxMouseEvent& evt) {
+    active = this->lock(evt.GetPosition().x);
 }
 
 void PaletteEditor::onRightUp(wxMouseEvent& evt) {
@@ -183,8 +182,8 @@ void PaletteEditor::onDoubleClick(wxMouseEvent& evt) {
         if (!index) {
             index = points.size();
         }
-        /// \todo lerp
-        points.insert(index.value(), Palette::Point{ pos, points[index.value()].color });
+        Rgba color = palette(palette.relativeToRange(pos));
+        points.insert(index.value(), Palette::Point{ pos, color });
     }
 
     wxColourDialog* dialog = new wxColourDialog(this);
@@ -197,121 +196,5 @@ void PaletteEditor::onDoubleClick(wxMouseEvent& evt) {
     this->updatePaletteFromPoints(true);
     this->Refresh();
 }
-
-/*
-PalettePreview::PalettePreview(wxWindow* parent,
-    const wxPoint point,
-    const wxSize size,
-    const Palette& palette)
-    : wxPanel(parent, wxID_ANY, point, size)
-    , palette(palette) {
-    this->Connect(wxEVT_PAINT, wxPaintEventHandler(PalettePreview::onPaint));
-}
-
-void PalettePreview::onPaint(wxPaintEvent& UNUSED(evt)) {
-    wxPaintDC dc(this);
-    wxSize size = this->GetSize();
-    // drawPalette(dc, wxPoint(0, 0), size, palette);
-}*/
-
-
-wxPGWindowList PalettePgEditor::CreateControls(wxPropertyGrid* propgrid,
-    wxPGProperty* property,
-    const wxPoint& pos,
-    const wxSize& size) const {
-    PaletteProperty* paletteProp = dynamic_cast<PaletteProperty*>(property);
-    SPH_ASSERT(paletteProp);
-
-    if (aui->GetPane("PaletteSetup").IsOk()) {
-        return wxPGWindowList(nullptr);
-    }
-
-    //   PaletteSetup* panel = nullptr;
-    // PalettePreview* preview = new PalettePreview(propgrid, pos, size, paletteProp->getPalette());
-
-    // wxAuiPaneInfo info = aui->GetPane("PaletteEditor");
-    // if (!info.IsOk()) {
-    PaletteSetup* panel = nullptr;
-    panel = new PaletteSetup(
-        propgrid->GetParent(), wxSize(300, 200), paletteProp->getPalette(), paletteProp->getPalette());
-    panel->onPaletteChanged = [propgrid, paletteProp](const Palette& palette) { //
-        paletteProp->setPalete(propgrid, palette);
-    };
-    panel->Bind(wxEVT_DESTROY, [propgrid, property](wxWindowDestroyEvent& UNUSED(evt)) { //
-        propgrid->RemoveFromSelection(property);
-    });
-
-    wxAuiPaneInfo info;
-    info.Name("PaletteSetup")
-        .Left()
-        .MinSize(wxSize(300, -1))
-        .Position(1)
-        .CaptionVisible(true)
-        .DockFixed(false)
-        .CloseButton(true)
-        .DestroyOnClose(true)
-        .Caption("Palette");
-    aui->AddPane(panel, info);
-    aui->Update();
-    /* else {
-        panel = dynamic_cast<PaletteSetup*>(info.window);
-        SPH_ASSERT(panel);
-        // panel->setPalette(paletteProp->getPalette());
-        panel->Refresh();
-    }*/
-
-
-    /* panel->setPaletteChangedCallback(
-         [paletteProp, preview = wxWeakRef<PalettePreview>(preview)](const Palette& palette) {
-             paletteProp->setPalete(palette);
-             if (preview) {
-                 preview->setPalette(palette);
-             }
-         });*/
-
-    return wxPGWindowList(nullptr);
-}
-
-void PalettePgEditor::UpdateControl(wxPGProperty* property, wxWindow* ctrl) const {
-    (void)property;
-    (void)ctrl;
-}
-
-void PalettePgEditor::DrawValue(wxDC& dc,
-    const wxRect& rect,
-    wxPGProperty* property,
-    const wxString& UNUSED(text)) const {
-    PaletteProperty* paletteProp = dynamic_cast<PaletteProperty*>(property);
-    SPH_ASSERT(paletteProp);
-
-    WxRenderContext context(dc);
-    Pixel position(rect.GetPosition());
-    Pixel size(rect.GetWidth(), rect.GetHeight());
-    drawPalette(context, position, size, paletteProp->getPalette(), NOTHING);
-
-
-    (void)rect;
-    (void)property;
-}
-
-bool PalettePgEditor::OnEvent(wxPropertyGrid* propgrid,
-    wxPGProperty* property,
-    wxWindow* wnd_primary,
-    wxEvent& event) const {
-    (void)propgrid;
-    (void)property;
-    (void)wnd_primary;
-    (void)event;
-
-    return false;
-}
-
-PaletteProperty::~PaletteProperty() {
-    wxAuiPaneInfo& info = aui->GetPane("PaletteSetup");
-    if (info.IsOk()) {
-        aui->ClosePane(info);
-    }
-}
-
 
 NAMESPACE_SPH_END

@@ -5,7 +5,8 @@
 #include "objects/wrappers/Function.h"
 #include <wx/panel.h>
 
-class wxRadioBox;
+class wxCheckBox;
+class wxButton;
 
 NAMESPACE_SPH_BEGIN
 
@@ -14,47 +15,48 @@ class FloatTextCtrl;
 class PaletteCanvas;
 class PaletteEditor;
 
-class PalettePanel : public wxPanel {
+class PaletteSimpleWidget : public wxPanel {
 private:
     PaletteCanvas* canvas;
+    ComboBox* presetBox;
     FloatTextCtrl* lowerCtrl;
     FloatTextCtrl* upperCtrl;
-    wxRadioBox* scaleBox;
+    wxCheckBox* presetCheck;
+    wxButton* defaultButton;
 
-    Palette initial;
-    Palette selected;
+    UnorderedMap<String, Palette> presetMap;
+    Palette defaultPalette;
 
 public:
-    PalettePanel(wxWindow* parent, wxSize size, const Palette& palette);
+    PaletteSimpleWidget(wxWindow* parent, wxSize size, const Palette& palette, const Palette& defaultPalette);
 
-    void setPalette(const Palette& palette);
+    void setPalette(const Palette& palette, const Palette& defaultPalette);
 
-    Palette getPalette() const {
-        return selected;
-    }
+    Palette getPalette() const;
 
     Function<void(Palette)> onPaletteChanged;
 
 private:
-    void update();
+    void setFromPresets();
+
+    void setPaletteColors(const Palette& palette);
 };
 
-class PaletteSetup : public wxPanel {
+class PaletteAdvancedWidget : public wxPanel {
 private:
     PaletteEditor* editor;
 
     ComboBox* presetBox;
     ComboBox* fileBox;
 
-    UnorderedMap<String, Palette> presetMap;
     UnorderedMap<String, Palette> fileMap;
+    UnorderedMap<String, Palette> presetMap;
 
-    Palette initialPalette; // palette when the dialog opened
+    Palette initialPalette; // palette when the panel was created
     Palette customPalette;  // customized palette
-    Palette defaultPalette; // default palette for this colorizer
 
 public:
-    PaletteSetup(wxWindow* parent, wxSize size, const Palette& palette, const Palette& defaultPalette);
+    PaletteAdvancedWidget(wxWindow* parent, wxSize size, const Palette& palette);
 
     Function<void(const Palette& palette)> onPaletteChanged;
 
@@ -62,8 +64,6 @@ public:
     const Palette& getInitialPalette() const;
 
 private:
-    void setDefaultPaletteList();
-
     void loadPalettes(const Path& path);
 
     void setFromPresets();

@@ -1,4 +1,4 @@
-#include "gui/windows/PaletteDialog.h"
+#include "gui/windows/PaletteWidget.h"
 #include "gui/Factory.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/objects/RenderContext.h"
@@ -10,7 +10,7 @@
 #include "post/Plot.h"
 #include "post/Point.h"
 #include <wx/button.h>
-#include <wx/combobox.h>
+#include <wx/checkbox.h>
 #include <wx/dcbuffer.h>
 #include <wx/panel.h>
 #include <wx/radiobox.h>
@@ -21,85 +21,6 @@
 #include <wx/stattext.h>
 
 NAMESPACE_SPH_BEGIN
-
-class PaletteCanvas : public wxPanel {
-private:
-    Palette palette;
-
-public:
-    PaletteCanvas(wxWindow* parent, const Palette palette)
-        : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
-        , palette(palette) {
-        this->Connect(wxEVT_PAINT, wxPaintEventHandler(PaletteCanvas::onPaint));
-        this->SetMinSize(wxSize(300, 80));
-    }
-
-    void setPalette(const Palette newPalette) {
-        palette = newPalette;
-        this->Refresh();
-    }
-
-private:
-    void onPaint(wxPaintEvent& UNUSED(evt)) {
-        wxPaintDC dc(this);
-        wxFont font = wxSystemSettings::GetFont(wxSystemFont::wxSYS_DEFAULT_GUI_FONT);
-        font.SetPointSize(10);
-        SPH_ASSERT(font.IsOk());
-        dc.SetFont(font);
-        WxRenderContext context(dc);
-        context.setFontSize(9);
-        Rgba background(dc.GetBackground().GetColour());
-        drawPalette(context, Pixel(10, 10), Pixel(280, 40), palette, background.inverse());
-    }
-};
-
-PalettePanel::PalettePanel(wxWindow* parent, wxSize size, const Palette& palette)
-    : wxPanel(parent, wxID_ANY)
-    , initial(palette)
-    , selected(palette) {
-
-    this->SetMinSize(size);
-
-    wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
-
-    wxStaticBoxSizer* rangeSizer = new wxStaticBoxSizer(wxHORIZONTAL, this, "Range");
-
-    wxStaticText* text = new wxStaticText(this, wxID_ANY, "From ");
-    rangeSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
-    lowerCtrl = new FloatTextCtrl(this, double(initial.getInterval().lower()));
-    rangeSizer->Add(lowerCtrl);
-    rangeSizer->AddSpacer(30);
-
-    text = new wxStaticText(this, wxID_ANY, "To ");
-    rangeSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
-    upperCtrl = new FloatTextCtrl(this, double(initial.getInterval().upper()));
-    rangeSizer->Add(upperCtrl);
-    rangeSizer->SetMinSize(wxSize(300, -1));
-
-    mainSizer->Add(rangeSizer, 0, wxALIGN_CENTER_HORIZONTAL);
-    mainSizer->AddSpacer(10);
-
-    canvas = new PaletteCanvas(this, initial);
-    mainSizer->Add(canvas, 0, wxALIGN_CENTER_HORIZONTAL);
-
-    this->SetSizerAndFit(mainSizer);
-
-    this->Bind(wxEVT_RADIOBOX, [this](wxCommandEvent& UNUSED(evt)) {
-        const PaletteScale scale = PaletteScale(scaleBox->GetSelection());
-        selected.setScale(scale);
-        canvas->setPalette(selected);
-        onPaletteChanged.callIfNotNull(selected);
-    });
-}
-
-void PalettePanel::setPalette(const Palette& palette) {
-    selected = initial = palette;
-    // presetBox->SetSelection(0);
-    canvas->setPalette(selected);
-    lowerCtrl->setValue(initial.getInterval().lower());
-    upperCtrl->setValue(initial.getInterval().upper());
-    scaleBox->SetSelection(int(initial.getScale()));
-}
 
 static UnorderedMap<ExtColorizerId, String> PALETTE_ID_LIST = {
     { ColorizerId::VELOCITY, "Magnitude 1" },
@@ -142,24 +63,201 @@ const Palette STELLAR({ { 0.f, Rgba(1.f, 0.75f, 0.1f) },
 
 } // namespace Palettes
 
-
-void PalettePanel::update() {
-    // const int idx = presetBox->GetSelection();
-    const Interval range = selected.getInterval();
-    // selected = (paletteMap.begin() + idx)->value();
-    selected.setInterval(range);
-    canvas->setPalette(selected);
-    onPaletteChanged.callIfNotNull(selected);
+static UnorderedMap<String, Palette> createPresetMap() {
+    UnorderedMap<String, Palette> map = {
+        { "Blackbody", getBlackBodyPalette(Interval(300, 12000), 6) },
+        { "Galaxy", Palettes::GALAXY },
+        { "Accretion", Palettes::ACCRETION },
+        { "Stellar", Palettes::STELLAR },
+    };
+    for (auto& pair : PALETTE_ID_LIST) {
+        map.insert(pair.value(), Factory::getPalette(pair.key()));
+    }
+    return map;
 }
 
-PaletteSetup::PaletteSetup(wxWindow* parent,
+class PaletteCanvas : public wxPanel {
+private:
+    Palette palette;
+
+public:
+    PaletteCanvas(wxWindow* parent, const Palette palette)
+        : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
+        , palette(palette) {
+        this->Connect(wxEVT_PAINT, wxPaintEventHandler(PaletteCanvas::onPaint));
+        this->SetMinSize(wxSize(300, 80));
+    }
+
+    void setPalette(const Palette newPalette) {
+        palette = newPalette;
+        this->Refresh();
+    }
+
+    Palette getPalette() const {
+        return palette;
+    }
+
+private:
+    void onPaint(wxPaintEvent& UNUSED(evt)) {
+        wxPaintDC dc(this);
+        wxFont font = wxSystemSettings::GetFont(wxSystemFont::wxSYS_DEFAULT_GUI_FONT);
+        font.SetPointSize(10);
+        SPH_ASSERT(font.IsOk());
+        dc.SetFont(font);
+        WxRenderContext context(dc);
+        context.setFontSize(9);
+        Rgba background(dc.GetBackground().GetColour());
+        drawPalette(context, Pixel(10, 10), Pixel(280, 40), palette, background.inverse());
+    }
+};
+
+static bool setLowerBound(Palette& palette, const float value) {
+    const Float lower = palette.getInterval().lower();
+    if (lower >= value) {
+        return false;
+    }
+    palette.setInterval(Interval(lower, value));
+    return true;
+}
+
+static bool setUpperBound(Palette& palette, const float value) {
+    const Float upper = palette.getInterval().upper();
+    if (value >= upper) {
+        return false;
+    }
+    if (palette.getScale() == PaletteScale::LOGARITHMIC && value <= 0.f) {
+        return false;
+    }
+    palette.setInterval(Interval(value, upper));
+    return true;
+}
+
+PaletteSimpleWidget::PaletteSimpleWidget(wxWindow* parent,
     wxSize size,
     const Palette& palette,
     const Palette& defaultPalette)
+    : wxPanel(parent, wxID_ANY)
+    , defaultPalette(defaultPalette) {
+    this->SetMinSize(size);
+
+    wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
+
+    canvas = new PaletteCanvas(this, palette);
+    mainSizer->Add(canvas, 0, wxALIGN_CENTER_HORIZONTAL);
+    mainSizer->AddSpacer(10);
+
+    wxBoxSizer* rangeSizer = new wxBoxSizer(wxHORIZONTAL);
+    wxStaticText* text = new wxStaticText(this, wxID_ANY, "From ");
+    rangeSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
+    lowerCtrl = new FloatTextCtrl(this, double(palette.getInterval().lower()));
+    rangeSizer->Add(lowerCtrl);
+    rangeSizer->AddSpacer(30);
+
+    text = new wxStaticText(this, wxID_ANY, "To ");
+    rangeSizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
+    upperCtrl = new FloatTextCtrl(this, double(palette.getInterval().upper()));
+    rangeSizer->Add(upperCtrl);
+    rangeSizer->SetMinSize(wxSize(300, -1));
+
+    mainSizer->Add(rangeSizer, 0, wxALIGN_CENTER_HORIZONTAL);
+
+    wxBoxSizer* presetSizer = new wxBoxSizer(wxHORIZONTAL);
+    presetCheck = new wxCheckBox(this, wxID_ANY, "");
+    presetSizer->Add(presetCheck);
+
+    presetBox = new ComboBox(this, "Select palette ...", 180);
+    {
+        presetBox->Enable(false);
+        presetMap = createPresetMap();
+        wxArrayString items;
+        for (const auto& e : presetMap) {
+            items.Add(e.key().toUnicode());
+        }
+        presetBox->Set(items);
+        presetBox->SetSelection(0);
+    }
+    presetSizer->Add(presetBox);
+
+    defaultButton = new wxButton(this, wxID_ANY, "Default");
+    defaultButton->Enable(false);
+    presetSizer->Add(defaultButton);
+
+    mainSizer->Add(presetSizer, 0, wxALIGN_CENTER_HORIZONTAL);
+    this->SetSizerAndFit(mainSizer);
+
+    this->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { //
+        this->setPaletteColors(this->defaultPalette);
+        presetCheck->SetValue(false);
+        presetBox->Enable(false);
+        defaultButton->Enable(false);
+    });
+
+    this->Bind(wxEVT_CHECKBOX, [=](wxCommandEvent& UNUSED(evt)) {
+        bool enable = presetCheck->GetValue();
+        presetBox->Enable(enable);
+        defaultButton->Enable(enable);
+        if (enable) {
+            this->setFromPresets();
+        } else {
+            this->setPaletteColors(palette);
+        }
+    });
+
+    this->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& UNUSED(evt)) { //
+        this->setFromPresets();
+    });
+
+    upperCtrl->onValueChanged = [this](const Float value) {
+        Palette palette = canvas->getPalette();
+        if (!setLowerBound(palette, value)) {
+            return false;
+        }
+        canvas->setPalette(palette);
+        onPaletteChanged.callIfNotNull(palette);
+        return true;
+    };
+    lowerCtrl->onValueChanged = [this](const Float value) {
+        Palette palette = canvas->getPalette();
+        if (!setUpperBound(palette, value)) {
+            return false;
+        }
+        canvas->setPalette(palette);
+        onPaletteChanged.callIfNotNull(palette);
+        return true;
+    };
+}
+
+void PaletteSimpleWidget::setFromPresets() {
+    const int idx = presetBox->GetSelection();
+    Palette selected = (presetMap.begin() + idx)->value();
+    Palette current = canvas->getPalette();
+    Palette newPalette(selected.getPoints().clone(), current.getInterval(), current.getScale());
+    canvas->setPalette(newPalette);
+    onPaletteChanged.callIfNotNull(newPalette);
+}
+
+void PaletteSimpleWidget::setPalette(const Palette& palette, const Palette& defaultPalette) {
+    canvas->setPalette(palette);
+    lowerCtrl->setValue(palette.getInterval().lower());
+    upperCtrl->setValue(palette.getInterval().upper());
+
+    this->defaultPalette = defaultPalette;
+    presetCheck->SetValue(false);
+    presetBox->Enable(false);
+    defaultButton->Enable(false);
+}
+
+void PaletteSimpleWidget::setPaletteColors(const Palette& palette) {
+    const Palette current = canvas->getPalette();
+    const Palette newPalette(palette.getPoints().clone(), current.getInterval(), current.getScale());
+    canvas->setPalette(newPalette);
+    onPaletteChanged.callIfNotNull(newPalette);
+}
+
+PaletteAdvancedWidget::PaletteAdvancedWidget(wxWindow* parent, wxSize size, const Palette& palette)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, size)
     , initialPalette(palette)
-    , customPalette(palette)
-    , defaultPalette(defaultPalette) {
+    , customPalette(palette) {
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
     wxStaticBoxSizer* rangeSizer = new wxStaticBoxSizer(wxHORIZONTAL, this, "Range");
@@ -204,14 +302,20 @@ PaletteSetup::PaletteSetup(wxWindow* parent,
 
     wxStaticBoxSizer* presetSizer = new wxStaticBoxSizer(wxVERTICAL, this);
 
-    wxRadioButton* defaultRadio =
-        new wxRadioButton(this, wxID_ANY, "Default", wxDefaultPosition, wxDefaultSize, wxRB_GROUP);
-    presetSizer->Add(defaultRadio);
-
-    wxRadioButton* listRadio = new wxRadioButton(this, wxID_ANY, "From list");
+    wxRadioButton* listRadio =
+        new wxRadioButton(this, wxID_ANY, "From list", wxDefaultPosition, wxDefaultSize, wxRB_GROUP);
     presetSizer->Add(listRadio);
 
     presetBox = new ComboBox(this, "Select palette ...", 200);
+    {
+        presetMap = createPresetMap();
+        wxArrayString items;
+        for (const auto& e : presetMap) {
+            items.Add(e.key().toUnicode());
+        }
+        presetBox->Set(items);
+        presetBox->SetSelection(0);
+    }
     presetSizer->Add(presetBox, 0, wxALIGN_CENTER_HORIZONTAL);
 
     wxRadioButton* fileRadio = new wxRadioButton(this, wxID_ANY, "From file");
@@ -232,27 +336,19 @@ PaletteSetup::PaletteSetup(wxWindow* parent,
     this->SetSizerAndFit(mainSizer);
 
     upperCtrl->onValueChanged = [this](const Float value) {
-        /// \todo deduplicate
         Palette palette = editor->getPalette();
-        const Float lower = palette.getInterval().lower();
-        if (lower >= value) {
+        if (!setLowerBound(palette, value)) {
             return false;
         }
-        palette.setInterval(Interval(lower, value));
         editor->setPalette(palette);
         onPaletteChanged.callIfNotNull(palette);
         return true;
     };
     lowerCtrl->onValueChanged = [this](const Float value) {
         Palette palette = editor->getPalette();
-        const Float upper = palette.getInterval().upper();
-        if (value >= upper) {
+        if (!setUpperBound(palette, value)) {
             return false;
         }
-        if (palette.getScale() == PaletteScale::LOGARITHMIC && value <= 0.f) {
-            return false;
-        }
-        palette.setInterval(Interval(value, upper));
         editor->setPalette(palette);
         onPaletteChanged.callIfNotNull(palette);
         return true;
@@ -270,21 +366,21 @@ PaletteSetup::PaletteSetup(wxWindow* parent,
 
     presetBox->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& UNUSED(evt)) {
         this->setFromPresets();
+        onPaletteChanged.callIfNotNull(editor->getPalette());
         this->Refresh();
     });
 
     fileBox->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& UNUSED(evt)) {
         this->setFromFile();
+        onPaletteChanged.callIfNotNull(editor->getPalette());
         this->Refresh();
     });
 
     auto update = [=] {
         bool useCustom = customRadio->GetValue();
-        bool useDefault = !useCustom && defaultRadio->GetValue();
         bool usePresets = !useCustom && listRadio->GetValue();
         bool useFile = !useCustom && fileRadio->GetValue();
         editor->enable(useCustom);
-        defaultRadio->Enable(!useCustom);
         listRadio->Enable(!useCustom);
         fileRadio->Enable(!useCustom);
         presetBox->Enable(usePresets);
@@ -293,8 +389,6 @@ PaletteSetup::PaletteSetup(wxWindow* parent,
 
         if (useCustom) {
             editor->setPaletteColors(customPalette);
-        } else if (useDefault) {
-            editor->setPaletteColors(defaultPalette);
         } else if (usePresets) {
             this->setFromPresets();
         } else if (useFile) {
@@ -307,17 +401,15 @@ PaletteSetup::PaletteSetup(wxWindow* parent,
 
     update();
     this->Bind(wxEVT_RADIOBUTTON, [=](wxCommandEvent& UNUSED(evt)) { update(); });
-
-    this->setDefaultPaletteList();
 }
 
-void PaletteSetup::setFromPresets() {
+void PaletteAdvancedWidget::setFromPresets() {
     const int idx = presetBox->GetSelection();
     Palette selected = (presetMap.begin() + idx)->value();
     editor->setPaletteColors(selected);
 }
 
-void PaletteSetup::setFromFile() {
+void PaletteAdvancedWidget::setFromFile() {
     if (fileBox->GetCount() == 0) {
         bool palettesLoaded = this->fileDialog();
         if (!palettesLoaded) {
@@ -329,7 +421,7 @@ void PaletteSetup::setFromFile() {
     editor->setPaletteColors(selected);
 }
 
-bool PaletteSetup::fileDialog() {
+bool PaletteAdvancedWidget::fileDialog() {
     Optional<Path> path = doOpenFileDialog("Load palette", { { "Palette files", "csv" } });
     if (!path) {
         return false;
@@ -338,35 +430,15 @@ bool PaletteSetup::fileDialog() {
     return fileBox->GetCount() > 0;
 }
 
-const Palette& PaletteSetup::getPalette() const {
+const Palette& PaletteAdvancedWidget::getPalette() const {
     return editor->getPalette();
 }
 
-const Palette& PaletteSetup::getInitialPalette() const {
+const Palette& PaletteAdvancedWidget::getInitialPalette() const {
     return initialPalette;
 }
 
-void PaletteSetup::setDefaultPaletteList() {
-    presetMap = {
-        { "Blackbody", getBlackBodyPalette(Interval(300, 12000), 6) },
-        { "Galaxy", Palettes::GALAXY },
-        { "Accretion", Palettes::ACCRETION },
-        { "Stellar", Palettes::STELLAR },
-    };
-    for (auto& pair : PALETTE_ID_LIST) {
-        presetMap.insert(pair.value(), Factory::getPalette(pair.key()));
-    }
-
-    wxArrayString items;
-    for (const auto& e : presetMap) {
-        items.Add(e.key().toUnicode());
-    }
-    presetBox->Set(items);
-    presetBox->SetSelection(0);
-    // this->update();
-}
-
-void PaletteSetup::loadPalettes(const Path& path) {
+void PaletteAdvancedWidget::loadPalettes(const Path& path) {
     fileMap.clear();
     for (Path file : FileSystem::iterateDirectory(path.parentPath())) {
         if (file.extension().string() == "csv") {

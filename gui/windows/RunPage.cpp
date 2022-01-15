@@ -10,7 +10,7 @@
 #include "gui/renderers/VolumeRenderer.h"
 #include "gui/windows/MainWindow.h"
 #include "gui/windows/OrthoPane.h"
-#include "gui/windows/PaletteDialog.h"
+#include "gui/windows/PaletteWidget.h"
 #include "gui/windows/ParticleProbe.h"
 #include "gui/windows/PlotView.h"
 #include "gui/windows/ProgressPanel.h"
@@ -85,9 +85,6 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
 
     wxAuiPaneInfo info;
 
-    // info.Top().MinSize(wxSize(-1, 35)).CaptionVisible(false).DockFixed(true).CloseButton(false);
-    // manager->AddPane(toolBar, info);
-
     info.Center().MinSize(wxSize(300, 300)).CaptionVisible(false).DockFixed(true).CloseButton(false);
     manager->AddPane(&*pane, info);
 
@@ -98,7 +95,12 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
     Flags<PaneEnum> paneIds = settings.getFlags<PaneEnum>(GuiSettingsId::DEFAULT_PANES);
     const Optional<Palette> palette = controller->getCurrentColorizer()->getPalette();
     if (paneIds.has(PaneEnum::PALETTE) && palette) {
-        palettePanel = new PalettePanel(this, wxSize(300, -1), palette.value());
+        // awkward, creating colorizer only to get the palette ...
+        const ColorizerId defaultId = gui.get<ColorizerId>(GuiSettingsId::DEFAULT_COLORIZER);
+        Optional<Palette> defaultPalette = Factory::getColorizer(gui, defaultId)->getPalette().value();
+
+        palettePanel =
+            new PaletteSimpleWidget(this, wxSize(300, -1), palette.value(), defaultPalette.value());
         palettePanel->onPaletteChanged = [this](const Palette& palette) {
             controller->setPaletteOverride(palette);
         };
@@ -728,13 +730,23 @@ void RunPage::makeStatsText(const Size particleCnt, const Size attractorCnt, con
 void RunPage::setColorizer(const Size idx) {
     // do this even if idx==selectedIdx, we might change the colorizerList
     // (weird behavior, but it will do for now)
-    controller->setColorizer(colorizerList[idx]);
+
+    ColorizerData data = colorizerList[idx];
+    controller->setColorizer(data.colorizer);
     if (idx == selectedIdx) {
         return;
     }
-    Optional<Palette> palette = colorizerList[idx]->getPalette();
-    if (palettePanel && palette) {
-        palettePanel->setPalette(palette.value());
+    Optional<Palette> palette = data.colorizer->getPalette();
+    if (palettePanel) {
+        if (palette) {
+            Optional<Palette> defaultPalette = Factory::getColorizer(gui, data.id)->getPalette();
+            palettePanel->setPalette(palette.value(), defaultPalette.value());
+            manager->GetPane(palettePanel).Show();
+            manager->Update();
+        } else {
+            manager->GetPane(palettePanel).Hide();
+            manager->Update();
+        }
     }
     this->replaceQuantityBar(idx);
     selectedIdx = idx;
@@ -816,7 +828,7 @@ void RunPage::addComponentIdBar(wxWindow* parent, wxSizer* sizer, SharedPtr<ICol
 
 void RunPage::replaceQuantityBar(const Size idx) {
     // so far only needed for component id, so it is hacked like this
-    SharedPtr<IColorizer> newColorizer = colorizerList[idx];
+    SharedPtr<IColorizer> newColorizer = colorizerList[idx].colorizer;
     bool panelExists = bool(wxWeakRef<wxPanel>(quantityPanel));
 
     /// \todo implement SharedPtr dynamicCast
@@ -952,12 +964,12 @@ void RunPage::onRunEnd() {
     this->onStopped();
 }
 
-void RunPage::setColorizerList(Array<SharedPtr<IColorizer>>&& colorizers) {
+void RunPage::setColorizerList(Array<ColorizerData>&& colorizers) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     colorizerList = std::move(colorizers);
     wxArrayString items;
-    for (auto& e : colorizerList) {
-        items.Add(e->name().toUnicode());
+    for (const auto& e : colorizerList) {
+        items.Add(e.colorizer->name().toUnicode());
     }
     quantityBox->Set(items);
     const Size actSelectedIdx = (selectedIdx < colorizerList.size()) ? selectedIdx : 0;

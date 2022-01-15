@@ -68,7 +68,7 @@ public:
     void addFixedPoint(const float value, const Rgba color);
 
     /// \brief Returns all points.
-    ArrayView<const Point> getPoints() const;
+    const Array<Point>& getPoints() const;
 
     /// \brief Returns the interval for which the palette is defined.
     ///

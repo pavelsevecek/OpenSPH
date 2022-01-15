@@ -92,7 +92,7 @@ void Palette::addFixedPoint(const float value, const Rgba color) {
     std::sort(points.begin(), points.end());
 }
 
-ArrayView<const Palette::Point> Palette::getPoints() const {
+const Array<Palette::Point>& Palette::getPoints() const {
     return points;
 }
 

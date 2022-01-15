@@ -242,10 +242,11 @@ SharedPtr<JobNode> Presets::makePlanetesimalMerging(UniqueNameManager& nameMgr, 
     SharedPtr<JobNode> stab = makeNode<SphStabilizationJob>(nameMgr.getName("stabilize"));
     VirtualSettings stabSettings = stab->getSettings();
     stabSettings.set(RunSettingsId::RUN_END_TIME, 1000._f);
-    const Flags<TimeStepCriterionEnum> criteria =
-        TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::DIVERGENCE;
-    stabSettings.set(
-        RunSettingsId::TIMESTEPPING_CRITERION, EnumWrapper(TimeStepCriterionEnum(criteria.value())));
+    const EnumWrapper criteria =
+        EnumWrapper::fromFlags(TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::DIVERGENCE);
+    const EnumWrapper forces = EnumWrapper::fromFlags(ForceEnum::PRESSURE | ForceEnum::SELF_GRAVITY);
+    stabSettings.set(RunSettingsId::SPH_SOLVER_FORCES, forces);
+    stabSettings.set(RunSettingsId::TIMESTEPPING_CRITERION, criteria);
     equilibrium->connect(stab, "particles");
 
     SharedPtr<JobNode> merger = makeNode<JoinParticlesJob>(nameMgr.getName("merge"));
@@ -261,8 +262,8 @@ SharedPtr<JobNode> Presets::makePlanetesimalMerging(UniqueNameManager& nameMgr, 
     SharedPtr<JobNode> sim = makeNode<SphJob>(nameMgr.getName("impact simulation"));
     VirtualSettings simSettings = sim->getSettings();
     simSettings.set(RunSettingsId::RUN_END_TIME, 15000._f);
-    simSettings.set(
-        RunSettingsId::TIMESTEPPING_CRITERION, EnumWrapper(TimeStepCriterionEnum(criteria.value())));
+    simSettings.set(RunSettingsId::SPH_SOLVER_FORCES, forces);
+    simSettings.set(RunSettingsId::TIMESTEPPING_CRITERION, criteria);
     merger->connect(sim, "particles");
 
     return sim;
@@ -333,20 +334,12 @@ SharedPtr<JobNode> Presets::makeAccretionDisk(UniqueNameManager& nameMgr, const 
     VirtualSettings simSettings = sim->getSettings();
     simSettings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 50._f);
     simSettings.set(RunSettingsId::RUN_END_TIME, 28800._f);
-    const Flags<ForceEnum> forces = ForceEnum::PRESSURE | ForceEnum::SELF_GRAVITY;
-    simSettings.set(RunSettingsId::SPH_SOLVER_FORCES, EnumWrapper(ForceEnum(forces.value())));
+    const EnumWrapper forces = EnumWrapper::fromFlags(ForceEnum::PRESSURE | ForceEnum::SELF_GRAVITY);
+    simSettings.set(RunSettingsId::SPH_SOLVER_FORCES, forces);
 
     join->connect(sim, "particles");
     return sim;
 }
-
-/*static void setPositionAndVelocity(VirtualSettings& settings, const Float radius, const Float longitude) {
-    const Float vel = sqrt(Constants::gravity * Constants::M_sun / (radius * Constants::au));
-    const Float l = longitude * DEG_TO_RAD + vel / (radius * Constants::au) * 3._f * Constants::year;
-    const Vector dir = Vector(cos(l), sin(l), 0._f);
-    settings.set("r0", radius * Constants::au / Constants::R_sun * dir);
-    settings.set("v0", vel * Constants::year / Constants::R_sun * Vector(-dir[Y], dir[X], 0._f));
-}*/
 
 // Ephemeris at epoch K20CH
 StaticArray<Vector, 8> POSITIONS = {

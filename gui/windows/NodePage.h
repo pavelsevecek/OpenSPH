@@ -254,7 +254,7 @@ private:
     FlatMap<PanelId, wxAuiPaneInfo*> panelInfoMap;
 
 public:
-    NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callbacks, Project& project);
+    NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callbacks);
 
     ~NodeWindow();
 

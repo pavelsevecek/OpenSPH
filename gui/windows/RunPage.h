@@ -21,9 +21,9 @@ class wxAuiNotebookEvent;
 NAMESPACE_SPH_BEGIN
 
 class IColorizer;
+struct ColorizerData;
 class IGraphicsPane;
 class IPlot;
-class IPluginControls;
 class Controller;
 class OrthoPane;
 class ParticleProbe;
@@ -36,7 +36,7 @@ struct DiagnosticsError;
 class SelectedParticlePlot;
 class TimeLine;
 class ProgressPanel;
-class PalettePanel;
+class PaletteSimpleWidget;
 
 /// \brief Main frame of the application.
 ///
@@ -62,7 +62,7 @@ private:
 
     LockingPtr<SelectedParticlePlot> selectedParticlePlot;
 
-    PalettePanel* palettePanel = nullptr;
+    PaletteSimpleWidget* palettePanel = nullptr;
 
     wxTextCtrl* statsText = nullptr;
     Timer statsTimer;
@@ -77,7 +77,7 @@ private:
     wxPanel* statsBar = nullptr;
 
     /// Colorizers corresponding to the items in combobox
-    Array<SharedPtr<IColorizer>> colorizerList;
+    Array<ColorizerData> colorizerList;
 
 public:
     RunPage(wxWindow* window, Controller* controller, GuiSettings& guiSettings);
@@ -98,7 +98,7 @@ public:
 
     void newPhase(const String& className, const String& instanceName);
 
-    void setColorizerList(Array<SharedPtr<IColorizer>>&& colorizers);
+    void setColorizerList(Array<ColorizerData>&& colorizers);
 
     void setSelectedParticle(const Particle& particle, const Rgba color);
 

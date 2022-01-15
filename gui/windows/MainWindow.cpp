@@ -150,7 +150,7 @@ MainWindow::MainWindow(const Path& openPath)
         evt.Skip();
     });
 
-    nodePage = new NodeWindow(notebook, makeShared<NodeManagerCallbacks>(this), Project::getInstance());
+    nodePage = new NodeWindow(notebook, makeShared<NodeManagerCallbacks>(this));
     notebook->AddPage(nodePage, "Unnamed session");
 
     wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -604,10 +604,15 @@ wxMenu* MainWindow::createRunMenu() {
         RawPtr<Controller> controller = runs[page].controller.get();
 
         switch (evt.GetId()) {
-        case RU_RESTART:
-            controller->stop(true);
-            controller->restart();
+        case RU_RESTART: {
+            const int retval =
+                wxMessageBox("Really restart the simulation?", "Restart?", wxYES_NO | wxCENTRE);
+            if (retval == wxYES) {
+                controller->stop(true);
+                controller->restart();
+            }
             break;
+        }
         case RU_PAUSE: {
             RunStatus status = controller->getStatus();
             wxMenuItem* item = runMenu->FindItem(RU_PAUSE);
