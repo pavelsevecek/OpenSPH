@@ -10,7 +10,7 @@ Outcome PlyFile::save(const Path& path, ArrayView<const Triangle> triangles) {
         // http://paulbourke.net/dataformats/ply/
         ofs << "ply\n";
         ofs << "format ascii 1.0\n";
-        ofs << "comment Exported by " << CODE_NAME << "\n";
+        ofs << "comment Exported by " << SPH_CODE_NAME << "\n";
 
         Mesh mesh = getMeshFromTriangles(triangles, EPS);
 

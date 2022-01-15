@@ -6,10 +6,11 @@
 #include "gui/objects/CameraJobs.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/objects/DelayedCallback.h"
+#include "gui/objects/PaletteEntry.h"
 #include "gui/objects/RenderJobs.h"
 #include "gui/windows/BatchDialog.h"
 #include "gui/windows/CurveDialog.h"
-#include "gui/windows/PaletteDialog.h"
+#include "gui/windows/PaletteProperty.h"
 #include "gui/windows/PreviewPane.h"
 #include "gui/windows/RenderSetup.h"
 #include "gui/windows/RunSelectDialog.h"
@@ -327,11 +328,13 @@ void NodeManager::save(Config& config) {
 
 class LoadProc : public VirtualSettings::IEntryProc {
 private:
-    ConfigNode& input;
+    const ConfigNode& input;
+    Array<RawPtr<IVirtualEntry>>& missingEntries;
 
 public:
-    LoadProc(ConfigNode& input)
-        : input(input) {}
+    LoadProc(const ConfigNode& input, Array<RawPtr<IVirtualEntry>>& missingEntries)
+        : input(input)
+        , missingEntries(missingEntries) {}
 
     virtual void onCategory(const String& UNUSED(name)) const override {}
 
@@ -370,8 +373,7 @@ public:
                 break;
             }
             case IVirtualEntry::Type::EXTRA: {
-                /// \todo currently used only by curves, can be generalized if needed
-                ExtraEntry extra(makeAuto<CurveEntry>());
+                ExtraEntry extra = entry.get();
                 extra.fromString(input.get<String>(name));
                 entry.set(extra);
                 break;
@@ -381,7 +383,9 @@ public:
             }
         } catch (const Exception& e) {
             /// \todo better logging
-            std::wcout << L"Failed to load value, keeping the default.\n" << exceptionMessage(e) << std::endl;
+            std::wcout << L"Failed to load value, deferring.\n" << exceptionMessage(e) << std::endl;
+            // process missing entries after all the other entries have been loaded.
+            missingEntries.push(addressOf(entry));
         }
     }
 };
@@ -395,17 +399,18 @@ void NodeManager::load(Config& config) {
     try {
         SharedPtr<ConfigNode> inGlobals = config.getNode("globals");
         VirtualSettings globalSettings = this->getGlobalSettings();
-        globalSettings.enumerate(LoadProc(*inGlobals));
+        Array<RawPtr<IVirtualEntry>> missingEntries;
+        globalSettings.enumerate(LoadProc(*inGlobals, missingEntries));
 
         SharedPtr<ConfigNode> inNodes = config.getNode("nodes");
         Array<Tuple<SharedPtr<JobNode>, String, String>> allToConnect;
-        inNodes->enumerateChildren([this, &allToConnect](String name, ConfigNode& input) {
+        inNodes->enumerateChildren([this, &allToConnect, &missingEntries](String name, ConfigNode& input) {
             RawPtr<IJobDesc> desc;
             try {
                 const String className = input.get<String>("class_name");
                 desc = getJobDesc(className);
                 if (!desc) {
-                    throw Exception("cannot find desc for node '" + className + "'");
+                    throw Exception("Cannot find desc for node '" + className + "'");
                 }
             } catch (const Exception& e) {
                 messageBox(exceptionMessage(e), "Error", wxOK);
@@ -415,7 +420,11 @@ void NodeManager::load(Config& config) {
             SharedPtr<JobNode> node = makeShared<JobNode>(desc->create(name));
             this->addNode(node, input.get<Pixel>("position"));
             VirtualSettings settings = node->getSettings();
-            settings.enumerate(LoadProc(input));
+            missingEntries.clear();
+            settings.enumerate(LoadProc(input, missingEntries));
+            for (RawPtr<IVirtualEntry> entry : missingEntries) {
+                entry->setFromFallback();
+            }
 
             for (Size i = 0; i < node->getSlotCnt(); ++i) {
                 const String slotName = node->getSlot(i).name;
@@ -765,7 +774,6 @@ Pixel NodeSlot::position() const {
     }
 }
 
-
 static wxColour getLineColor(const Rgba& background) {
     if (background.intensity() > 0.5f) {
         // light theme
@@ -794,7 +802,7 @@ static FlatMap<ExtJobType, wxPen> NODE_PENS_DARK = [] {
     cameraPen.SetStyle(wxPENSTYLE_SHORT_DASH);
 
     wxPen& imagePen = pens.insert(GuiJobType::IMAGE, *wxBLACK_PEN);
-    imagePen.SetColour(wxColour(255, 255, 100));
+    imagePen.SetColour(wxColour(245, 245, 220));
     imagePen.SetStyle(wxPENSTYLE_SOLID);
     return pens;
 }();
@@ -817,7 +825,7 @@ static FlatMap<ExtJobType, wxPen> NODE_PENS_LIGHT = [] {
     cameraPen.SetStyle(wxPENSTYLE_SHORT_DASH);
 
     wxPen& imagePen = pens.insert(GuiJobType::IMAGE, *wxBLACK_PEN);
-    imagePen.SetColour(wxColour(250, 130, 0));
+    imagePen.SetColour(wxColour(131, 67, 51));
     imagePen.SetStyle(wxPENSTYLE_SOLID);
     return pens;
 }();
@@ -1219,10 +1227,10 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
             nodeMgr->layoutNodes(*vis->node, vis->position);
             break;
         case 6:
-            nodeMgr->deleteNode(*vis->node);
+            nodeWindow->deleteNode(vis->node->sharedFromThis());
             break;
         case 7:
-            nodeMgr->deleteTree(*vis->node);
+            nodeWindow->deleteTree(vis->node->sharedFromThis());
             break;
         default:
             NOT_IMPLEMENTED;
@@ -1500,10 +1508,15 @@ public:
         return addEnum<wxFlagsProperty>(name, entry);
     }
 
-    wxPGProperty* addExtra(const String& name, const ExtraEntry& extra) const {
-        RawPtr<CurveEntry> entry = dynamicCast<CurveEntry>(extra.getEntry());
-        SPH_ASSERT(entry);
-        return grid->Append(new CurveProperty(name, entry->getCurve()));
+    wxPGProperty* addExtra(const String& name, const ExtraEntry& extra, wxAuiManager* aui) const {
+        IExtraEntry* entry = extra.getEntry().get();
+        if (CurveEntry* curve = dynamic_cast<CurveEntry*>(entry)) {
+            return grid->Append(new CurveProperty(name, curve->getCurve()));
+        } else if (PaletteEntry* palette = dynamic_cast<PaletteEntry*>(entry)) {
+            return grid->Append(new PaletteProperty(name, palette->getPalette(), aui));
+        } else {
+            NOT_IMPLEMENTED;
+        }
     }
 
     void setTooltip(wxPGProperty* prop, const String& tooltip) const {
@@ -1536,11 +1549,13 @@ private:
     PropertyGrid wrapper;
 
     PropertyEntryMap& propertyEntryMap;
+    wxAuiManager* aui;
 
 public:
-    explicit AddParamsProc(wxPropertyGrid* grid, PropertyEntryMap& propertyEntryMapping)
+    AddParamsProc(wxPropertyGrid* grid, PropertyEntryMap& propertyEntryMapping, wxAuiManager* aui)
         : wrapper(grid)
-        , propertyEntryMap(propertyEntryMapping) {}
+        , propertyEntryMap(propertyEntryMapping)
+        , aui(aui) {}
 
     virtual void onCategory(const String& name) const override {
         wrapper.addCategory(name);
@@ -1582,7 +1597,7 @@ public:
             prop = wrapper.addFlags(name, entry);
             break;
         case IVirtualEntry::Type::EXTRA:
-            prop = wrapper.addExtra(name, entry.get());
+            prop = wrapper.addExtra(name, entry.get(), aui);
             break;
         default:
             NOT_IMPLEMENTED;
@@ -1616,63 +1631,7 @@ public:
     }
 };
 
-class PalettePane : public wxPanel {
-private:
-    PalettePanel* panel;
-    Array<ExtColorizerId> itemIds;
-
-public:
-    PalettePane(wxWindow* parent, Project& project)
-        : wxPanel(parent, wxID_ANY) {
-        wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-
-        wxBoxSizer* quantitySizer = new wxBoxSizer(wxHORIZONTAL);
-        quantitySizer->Add(new wxStaticText(this, wxID_ANY, "Quantity"), 0, wxALIGN_CENTER_VERTICAL);
-        quantitySizer->AddSpacer(10);
-        ComboBox* quantityBox = new ComboBox(this, "", 200);
-        quantitySizer->Add(quantityBox, 0, wxALIGN_CENTER_VERTICAL);
-
-        Array<ExtColorizerId> colorizerIds = getColorizerIds();
-        wxArrayString items;
-        Palette firstPalette;
-        for (ExtColorizerId id : colorizerIds) {
-            AutoPtr<IColorizer> colorizer = Factory::getColorizer(project, id);
-            if (Optional<Palette> palette = colorizer->getPalette()) {
-                items.Add(colorizer->name().toUnicode());
-                itemIds.push(id);
-
-                if (firstPalette.empty()) {
-                    firstPalette = palette.value();
-                }
-            }
-        }
-        quantityBox->Set(items);
-        quantityBox->SetSelection(0);
-
-        sizer->Add(quantitySizer, 0, wxALIGN_CENTER_HORIZONTAL);
-
-        panel = new PalettePanel(this, wxSize(300, 200), firstPalette);
-        sizer->Add(panel, 1, wxALIGN_CENTER_HORIZONTAL);
-
-        this->SetSizerAndFit(sizer);
-
-        quantityBox->Bind(wxEVT_COMBOBOX, [this, quantityBox, &project](wxCommandEvent& UNUSED(evt)) {
-            CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-            const int idx = quantityBox->GetSelection();
-            ExtColorizerId id = itemIds[idx];
-            AutoPtr<IColorizer> colorizer = Factory::getColorizer(project, id);
-            panel->setPalette(colorizer->getPalette().value());
-            this->Refresh();
-        });
-
-        panel->onPaletteChanged = [quantityBox, &project](const Palette& palette) { //
-            wxString name = quantityBox->GetStringSelection();
-            project.setPalette(String(name.wc_str()), palette);
-        };
-    }
-};
-
-NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callbacks, Project& project)
+NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callbacks)
     : wxPanel(parent, wxID_ANY) {
     aui = makeAuto<wxAuiManager>(this);
 
@@ -1738,11 +1697,13 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             break;
         }
         case IVirtualEntry::Type::EXTRA: {
-            CurveProperty* curveProp = dynamic_cast<CurveProperty*>(prop);
-            SPH_ASSERT(curveProp != nullptr);
-            Curve curve = curveProp->getCurve();
-            ExtraEntry extra(makeAuto<CurveEntry>(curve));
-            entry->set(extra);
+            if (CurveProperty* curve = dynamic_cast<CurveProperty*>(prop)) {
+                ExtraEntry extra(makeAuto<CurveEntry>(curve->getCurve()));
+                entry->set(extra);
+            } else if (PaletteProperty* palette = dynamic_cast<PaletteProperty*>(prop)) {
+                ExtraEntry extra(makeAuto<PaletteEntry>(palette->getPalette()));
+                entry->set(extra);
+            }
             break;
         }
         default:
@@ -1830,8 +1791,24 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         wxTreeItemId id = evt.GetItem();
         UniqueNameManager nameMgr = nodeMgr->makeUniqueNameManager();
         if (presetsIdMap.find(id) != presetsIdMap.end()) {
-            SharedPtr<JobNode> presetNode = Presets::make(presetsIdMap.at(id), nameMgr);
+            const Presets::Id presetId = presetsIdMap.at(id);
+            SharedPtr<JobNode> presetNode = Presets::make(presetId, nameMgr);
             nodeMgr->addNodes(*presetNode);
+
+            // hack to set default particle radius to 0.35 for SPH sims
+            static FlatSet<Presets::Id> SPH_SIMS = FlatSet<Presets::Id>(ElementsUniqueTag{},
+                {
+                    Presets::Id::COLLISION,
+                    Presets::Id::CRATERING,
+                    Presets::Id::PLANETESIMAL_MERGING,
+                    Presets::Id::ACCRETION_DISK,
+                });
+            static bool defaultSet = false;
+            if (!defaultSet && SPH_SIMS.contains(presetId)) {
+                defaultSet = true;
+                GuiSettings& gui = Project::getInstance().getGuiSettings();
+                gui.set(GuiSettingsId::PARTICLE_RADIUS, 0.35_f);
+            }
         }
 
         JobTreeData* data = dynamic_cast<JobTreeData*>(jobView->GetItemData(id));
@@ -1868,7 +1845,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         }
     });
 
-    PalettePane* palettePane = new PalettePane(this, project);
+    // PalettePane* palettePane = new PalettePane(this, project, &*aui);
 
     /*wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
     sizer->Add(grid, 1, wxEXPAND | wxLEFT);
@@ -1887,17 +1864,12 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
     info.Name("JobView").Right();
     aui->AddPane(jobView, info);
 
-    info.Name("PalettePane").Right().Hide();
-    aui->AddPane(palettePane, info);
+    // info.Name("PalettePane").Right().Hide();
+    // aui->AddPane(palettePane, info);
     aui->Update();
 
     panelInfoMap.insert(ID_LIST, &aui->GetPane(jobView));
     panelInfoMap.insert(ID_PROPERTIES, &aui->GetPane(grid));
-    panelInfoMap.insert(ID_PALETTE, &aui->GetPane(palettePane));
-    /*this->Bind(wxEVT_SIZE, [this](wxSizeEvent& UNUSED(evt)) {
-        // this->Fit();
-        this->Layout();
-    });*/
 }
 
 NodeWindow::~NodeWindow() {
@@ -1913,6 +1885,7 @@ void NodeWindow::showPanel(const PanelId id) {
 void NodeWindow::selectNode(const JobNode& node) {
     grid->CommitChangesFromEditor();
 
+    displayedNode = node.sharedFromThis();
     settings = node.getSettings();
     this->updateProperties();
 }
@@ -1920,6 +1893,7 @@ void NodeWindow::selectNode(const JobNode& node) {
 void NodeWindow::clearGrid() {
     grid->CommitChangesFromEditor();
     grid->Clear();
+    displayedNode = nullptr;
     propertyEntryMap.clear();
 }
 
@@ -1983,6 +1957,21 @@ void NodeWindow::addNodes(JobNode& node) {
     nodeMgr->addNodes(node);
 }
 
+void NodeWindow::deleteNode(const SharedPtr<JobNode>& node) {
+    if (displayedNode == node) {
+        this->clearGrid();
+    }
+    nodeMgr->deleteNode(*node);
+}
+
+void NodeWindow::deleteTree(const SharedPtr<JobNode>& node) {
+    node->enumerate([this](const SharedPtr<JobNode>& child) {
+        if (displayedNode == child) {
+            this->clearGrid();
+        }
+    });
+    nodeMgr->deleteTree(*node);
+}
 
 SharedPtr<JobNode> NodeWindow::createNode(AutoPtr<IJob>&& job) {
     SharedPtr<JobNode> node = makeShared<JobNode>(std::move(job));
@@ -2012,7 +2001,7 @@ void NodeWindow::updateProperties() {
     propertyEntryMap.clear();
 
     try {
-        AddParamsProc proc(grid, propertyEntryMap);
+        AddParamsProc proc(grid, propertyEntryMap, &*aui);
         settings.enumerate(proc);
     } catch (const Exception& e) {
         SPH_ASSERT(false, e.what());

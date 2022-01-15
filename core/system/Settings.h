@@ -52,6 +52,11 @@ struct EnumWrapper {
         : value(value)
         , index(index) {}
 
+    template <typename TEnum>
+    static EnumWrapper fromFlags(const Flags<TEnum>& flags) {
+        return EnumWrapper(TEnum(flags.value()));
+    }
+
     explicit operator int() const {
         return value;
     }
@@ -1293,10 +1298,6 @@ enum class RunSettingsId {
     FRAME_ANGULAR_FREQUENCY,
 
     FRAME_CONSTANT_ACCELERATION,
-
-    FRAME_TIDES_MASS,
-
-    FRAME_TIDES_POSITION,
 
     /// Maximum number of particles in a leaf node.
     FINDER_LEAF_SIZE,

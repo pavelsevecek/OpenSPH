@@ -329,9 +329,9 @@ void Controller::update(const Storage& storage, const Statistics& stats) {
         page->runStarted(storage, sph.path);
 
         // fill the combobox with available colorizer
-        Array<SharedPtr<IColorizer>> list = this->getColorizerList(storage);
+        Array<ColorizerData> list = this->getColorizerList(storage);
         if (!vis.colorizer->hasData(storage)) {
-            this->setColorizer(list.front());
+            this->setColorizer(list.front().colorizer);
         }
         page->setColorizerList(std::move(list));
         updateVar.notify_one();
@@ -407,20 +407,20 @@ Array<ExtColorizerId> getColorizerIds() {
     return colorizerIds.clone();
 }
 
-Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage) const {
+Array<ColorizerData> Controller::getColorizerList(const Storage& storage) const {
     const GuiSettings& gui = project.getGuiSettings();
     const ExtColorizerId defaultId = gui.get<ColorizerId>(GuiSettingsId::DEFAULT_COLORIZER);
     Array<ExtColorizerId> colorizerIds = getColorizerIds();
-    Array<SharedPtr<IColorizer>> colorizers;
+    Array<ColorizerData> colorizers;
     for (ExtColorizerId id : colorizerIds) {
         SharedPtr<IColorizer> colorizer = Factory::getColorizer(project, id);
         if (!colorizer->hasData(storage)) {
             continue;
         }
         if (id == defaultId) {
-            colorizers.insert(0, colorizer);
+            colorizers.insert(0, ColorizerData{ id, colorizer });
         } else {
-            colorizers.push(colorizer);
+            colorizers.push(ColorizerData{ id, colorizer });
         }
     }
     return colorizers;

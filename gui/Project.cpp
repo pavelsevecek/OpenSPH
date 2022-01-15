@@ -37,7 +37,7 @@ void Project::load(Config& config) {
     this->loadGui(config);
 }
 
-void Project::reset(){
+void Project::reset() {
     *this = Project();
 }
 
@@ -148,7 +148,7 @@ void Project::loadPalettes(Config& config) {
         const float lower = float(paletteNode.get<Float>("lower"));
         const float upper = float(paletteNode.get<Float>("upper"));
         const PaletteScale scale = PaletteScale(paletteNode.get<int>("scale"));
-        Palette palette({ { lower, Rgba::black() }, { upper, Rgba::white() } }, scale);
+        Palette palette({ { 0.f, Rgba::black() }, { 1.f, Rgba::white() } }, Interval(lower, upper), scale);
 
         if (paletteNode.contains("data")) {
             String data = paletteNode.get<String>("data");

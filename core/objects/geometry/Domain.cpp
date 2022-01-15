@@ -562,7 +562,7 @@ void ToroidalDomain::addGhosts(ArrayView<const Vector> vs,
         const Float h = vs[i][H];
         const Float dist = getLength(r - c0);
         if (b - dist < h * eta) {
-            Vector v = getNormalized(r - c0) * (2 * b - dist) + c0 + center;
+            Vector v = getNormalized(r - c0) * (b + max(b - dist, eps)) + c0 + center;
             v[H] = h;
             ghosts.push(Ghost{ v, i });
         }

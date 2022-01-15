@@ -5,7 +5,6 @@
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
-#include "gui/windows/PaletteDialog.h"
 #include "system/Profiler.h"
 #include "thread/CheckFunction.h"
 #include <wx/dcbuffer.h>

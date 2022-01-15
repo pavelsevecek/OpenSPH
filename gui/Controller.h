@@ -38,6 +38,10 @@ enum class RunStatus {
     QUITTING, ///< \ref quit has been called, waiting for threads to finish
 };
 
+struct ColorizerData {
+    ExtColorizerId id;
+    SharedPtr<IColorizer> colorizer;
+};
 
 /// \brief Main GUI class connection the simulation with UI controls.
 class Controller : public IJobCallbacks {
@@ -162,7 +166,7 @@ public:
 
     /// Returns a list of quantities that can be displayed.
     /// \param storage Particle storage containing data for the colorizer
-    Array<SharedPtr<IColorizer>> getColorizerList(const Storage& storage) const;
+    Array<ColorizerData> getColorizerList(const Storage& storage) const;
 
     /// \brief Renders a bitmap of current view.
     ///

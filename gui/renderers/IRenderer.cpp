@@ -43,8 +43,13 @@ IRaytracer::IRaytracer(SharedPtr<IScheduler> scheduler, const GuiSettings& setti
 
     fixed.enviro.color = settings.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
     String hdriPath = settings.get<String>(GuiSettingsId::RAYTRACE_HDRI);
+
     if (!hdriPath.empty()) {
-        fixed.enviro.hdri = Texture(Path(hdriPath), TextureFiltering::BILINEAR);
+        try {
+            fixed.enviro.hdri = Texture(Path(hdriPath), TextureFiltering::BILINEAR);
+        } catch (const IoError&) {
+            // ignoring for now
+        }
     }
 
     shouldContinue = true;

@@ -74,6 +74,7 @@ class AnimationJob : public IImageJob {
 private:
     GuiSettings gui;
     EnumWrapper colorizerId;
+    ExtraEntry paletteEntry;
     bool addSurfaceGravity = true;
     Path directory;
     String fileMask = "img_%d.png";
@@ -102,9 +103,6 @@ public:
         };
     }
 
-    virtual UnorderedMap<String, ExtJobType>
-    requires() const override;
-
     virtual VirtualSettings getSettings() override;
 
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
@@ -113,6 +111,7 @@ public:
 
     // needed for interactive rendering
     AutoPtr<IRenderer> getRenderer(const RunSettings& global) const;
+    Palette getPalette() const;
     AutoPtr<IColorizer> getColorizer(const RunSettings& global) const;
     RenderParams getRenderParams() const;
 

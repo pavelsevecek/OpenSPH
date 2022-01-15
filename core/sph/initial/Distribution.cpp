@@ -2,7 +2,7 @@
 #include "math/Functional.h"
 #include "math/Morton.h"
 #include "math/rng/VectorRng.h"
-#include "objects/finders/UniformGrid.h"
+#include "objects/finders/HashMapFinder.h"
 #include "objects/geometry/Domain.h"
 #include "objects/wrappers/Optional.h"
 #include "quantities/Quantity.h"
@@ -344,7 +344,7 @@ Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
 
     GhostParticles bc(makeAuto<ForwardingDomain>(domain), 2._f, EPS);
 
-    UniformGridFinder finder;
+    HashMapFinder finder(RunSettings::getDefaults());
     ThreadLocal<Array<NeighborRecord>> neighs(scheduler);
     finder.build(scheduler, r);
 

@@ -13,7 +13,6 @@ class wxAuiNotebook;
 NAMESPACE_SPH_BEGIN
 
 class Controller;
-class IPluginControls;
 class RunPage;
 class ClosablePage;
 class NodeWindow;

@@ -42,7 +42,7 @@ private:
             : functor(std::forward<TFunctor>(functor)) {}
 
         virtual TReturn operator()(TArgs... args) override {
-            return functor(args...);
+            return functor(std::forward<TArgs>(args)...);
         }
     };
 

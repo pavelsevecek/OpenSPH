@@ -231,16 +231,18 @@ public:
     enum PanelId {
         ID_PROPERTIES = 5500, // 5000 seems to be reserved
         ID_LIST,
-        ID_PALETTE,
     };
 
 private:
     SharedPtr<NodeManager> nodeMgr;
 
+    NodeEditor* nodeEditor;
+
+    /// Node associated with currently displayed properties
+    SharedPtr<JobNode> displayedNode;
+
     /// Settings associated with currently displayed properties
     VirtualSettings settings;
-
-    NodeEditor* nodeEditor;
 
     /// Maps properties in grid to entries in settings
     PropertyEntryMap propertyEntryMap;
@@ -252,7 +254,7 @@ private:
     FlatMap<PanelId, wxAuiPaneInfo*> panelInfoMap;
 
 public:
-    NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callbacks, Project& project);
+    NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callbacks);
 
     ~NodeWindow();
 
@@ -281,6 +283,10 @@ public:
     void addNode(const SharedPtr<JobNode>& node);
 
     void addNodes(JobNode& node);
+
+    void deleteNode(const SharedPtr<JobNode>& node);
+
+    void deleteTree(const SharedPtr<JobNode>& node);
 
     SharedPtr<JobNode> createNode(AutoPtr<IJob>&& job);
 

@@ -705,11 +705,6 @@ const RunSettings& getDefaultSettings() {
         "introduces centrifugal and Coriolis force." },
     { RunSettingsId::FRAME_CONSTANT_ACCELERATION,   "frame.constant_acceleration",  Vector(0._f),
         "Used to implement homogeneous gravity field." },
-    { RunSettingsId::FRAME_TIDES_MASS,              "frame.tides.mass",             0._f,
-        "." },
-    { RunSettingsId::FRAME_TIDES_POSITION,          "frame.tides.position",         Vector(Constants::R_earth, 0._f, 0._f),
-        "." },
-
 
     /// Computational domain and boundary conditions
     { RunSettingsId::DOMAIN_TYPE,                   "domain.type",              DomainEnum::NONE,
