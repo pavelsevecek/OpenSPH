@@ -27,6 +27,7 @@ private:
 
     Vector cameraVelocity;
     Float cameraOrbit;
+    bool trackerMovesCamera;
 
     struct {
         Float time = 0._f;

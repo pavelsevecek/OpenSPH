@@ -62,7 +62,7 @@ struct RenderParams {
     /// \brief Camera used for rendering.
     AutoPtr<ICamera> camera;
 
-    /// \brief Tracker used for camera motion.
+    /// \brief Tracker used to change camera direction and position
     ///
     /// May be nullptr for static camera.
     AutoPtr<ITracker> tracker;

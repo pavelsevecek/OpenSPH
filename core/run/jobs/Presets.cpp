@@ -1,6 +1,7 @@
 #include "run/jobs/Presets.h"
 #include "io/FileManager.h"
 #include "io/FileSystem.h"
+#include "quantities/Attractor.h"
 #include "run/jobs/GeometryJobs.h"
 #include "run/jobs/InitialConditionJobs.h"
 #include "run/jobs/IoJobs.h"
@@ -30,6 +31,9 @@ static RegisterEnum<Id> sPresetsId({
     { Id::ACCRETION_DISK,
         "accretion_disk",
         "Gas giant orbiting a neutron star and creating an accretion disk." },
+    { Id::PLANET_FORMATION,
+        "planet_formation",
+        "N-body simulation of particles orbiting the Sun, colliding and growing into planets." },
     { Id::SOLAR_SYSTEM,
         "solar_system",
         "N-body simulation of the Sun and eight planets of our Solar System." },
@@ -52,6 +56,8 @@ SharedPtr<JobNode> Presets::make(const Id id, UniqueNameManager& nameMgr, const 
         return makeGalaxyCollision(nameMgr, particleCnt);
     case Id::ACCRETION_DISK:
         return makeAccretionDisk(nameMgr, particleCnt);
+    case Id::PLANET_FORMATION:
+        return makePlanetFormation(nameMgr, particleCnt);
     case Id::SOLAR_SYSTEM:
         return makeSolarSystem(nameMgr);
     default:
@@ -338,6 +344,60 @@ SharedPtr<JobNode> Presets::makeAccretionDisk(UniqueNameManager& nameMgr, const 
     simSettings.set(RunSettingsId::SPH_SOLVER_FORCES, forces);
 
     join->connect(sim, "particles");
+    return sim;
+}
+
+SharedPtr<JobNode> Presets::makePlanetFormation(UniqueNameManager& nameMgr, const Size particleCnt) {
+    SharedPtr<JobNode> diskIc = makeNode<NBodyIc>(nameMgr.getName("protoplanetary disk"));
+    VirtualSettings beltSettings = diskIc->getSettings();
+    beltSettings.set(NBodySettingsId::PARTICLE_COUNT, int(particleCnt));
+    beltSettings.set(NBodySettingsId::TOTAL_MASS, 5000._f); // M_earth
+    beltSettings.set(NBodySettingsId::RADIAL_PROFILE, 0.333_f);
+    beltSettings.set(NBodySettingsId::MIN_SEPARATION, 2._f);
+    beltSettings.set(NBodySettingsId::POWER_LAW_EXPONENT, 3._f);
+    beltSettings.set("min_size", 2.e8_f); // m
+    beltSettings.set("max_size", 2.e9_f); // m
+
+    SharedPtr<JobNode> diskDomain = makeNode<BooleanGeometryJob>(nameMgr.getName("disk domain"));
+    SharedPtr<JobNode> diskEllipsoid = makeNode<EllipsoidJob>(nameMgr.getName("disk ellipsoid"));
+    VirtualSettings diskEllipsoidSettings = diskEllipsoid->getSettings();
+    const Float a = 10._f * Constants::au / 1.e3_f; // km
+    const Float c = 0.05_f * a;
+    diskEllipsoidSettings.set("semixes", Vector(a, a, c));
+    SharedPtr<JobNode> centralGapDomain = makeNode<CylinderJob>(nameMgr.getName("central gap"));
+    VirtualSettings innerGapSettings = centralGapDomain->getSettings();
+    innerGapSettings.set("radius", 0.5_f * Constants::au / 1.e3_f); // km
+    innerGapSettings.set("height", 2 * c);
+
+    diskEllipsoid->connect(diskDomain, "operand A");
+    centralGapDomain->connect(diskDomain, "operand B");
+
+    diskDomain->connect(diskIc, "domain");
+
+    SharedPtr<JobNode> sunIc = makeNode<SingleParticleIc>(nameMgr.getName("Sun"));
+    VirtualSettings sunSettings = sunIc->getSettings();
+    sunSettings.set("mass", Constants::M_sun / Constants::M_earth);
+    sunSettings.set("radius", 20 * Constants::R_sun / 1.e3_f);
+    sunSettings.set("interaction", EnumWrapper(ParticleInteractionEnum::ABSORB));
+
+    SharedPtr<JobNode> diskVelocities =
+        makeNode<KeplerianVelocityIc>(nameMgr.getName("set orbital velocities"));
+    diskIc->connect(diskVelocities, "orbiting");
+    sunIc->connect(diskVelocities, "gravity source");
+
+    SharedPtr<JobNode> merger = makeNode<JoinParticlesJob>("merge");
+    diskVelocities->connect(merger, "particles A");
+    sunIc->connect(merger, "particles B");
+
+    SharedPtr<JobNode> sim = makeNode<NBodyJob>(nameMgr.getName("orbital simulation"), EMPTY_SETTINGS);
+    merger->connect(sim, "particles");
+    VirtualSettings simSettings = sim->getSettings();
+    simSettings.set(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR, 10._f);
+    simSettings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 5.e5_f);
+    simSettings.set(RunSettingsId::RUN_END_TIME, Constants::year * 1000._f);
+    simSettings.set(RunSettingsId::RUN_LOGGER_VERBOSITY, 0);
+    simSettings.set(RunSettingsId::COLLISION_HANDLER, EnumWrapper(CollisionHandlerEnum::PERFECT_MERGING));
+    simSettings.set(RunSettingsId::COLLISION_OVERLAP, EnumWrapper(OverlapEnum::FORCE_MERGE));
     return sim;
 }
 

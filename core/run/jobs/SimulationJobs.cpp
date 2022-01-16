@@ -504,6 +504,16 @@ VirtualSettings NBodyJob::getSettings() {
                settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER) !=
                    CollisionHandlerEnum::NONE;
     };
+    auto restitutionEnabler = [this] {
+        if (useSoft || settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE)) {
+            return false;
+        }
+        const CollisionHandlerEnum handler =
+            settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER);
+        const OverlapEnum overlap = settings.get<OverlapEnum>(RunSettingsId::COLLISION_OVERLAP);
+        return handler == CollisionHandlerEnum::ELASTIC_BOUNCE ||
+               handler == CollisionHandlerEnum::MERGE_OR_BOUNCE || overlap == OverlapEnum::INTERNAL_BOUNCE;
+    };
     auto mergeLimitEnabler = [this] {
         if (useSoft) {
             return false;
@@ -527,10 +537,10 @@ VirtualSettings NBodyJob::getSettings() {
     collisionCat.connect<EnumWrapper>("Overlap handler", settings, RunSettingsId::COLLISION_OVERLAP)
         .setEnabler(collisionEnabler);
     collisionCat.connect<Float>("Normal restitution", settings, RunSettingsId::COLLISION_RESTITUTION_NORMAL)
-        .setEnabler(collisionEnabler);
+        .setEnabler(restitutionEnabler);
     collisionCat
         .connect<Float>("Tangential restitution", settings, RunSettingsId::COLLISION_RESTITUTION_TANGENT)
-        .setEnabler(collisionEnabler);
+        .setEnabler(restitutionEnabler);
     collisionCat.connect<Float>("Merge velocity limit", settings, RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT)
         .setEnabler(mergeLimitEnabler);
     collisionCat
@@ -544,6 +554,11 @@ VirtualSettings NBodyJob::getSettings() {
 
 AutoPtr<IRun> NBodyJob::getRun(const RunSettings& overrides) const {
     RunSettings run = overrideSettings(settings, overrides, isResumed);
+    if (run.get<TimesteppingEnum>(RunSettingsId::TIMESTEPPING_INTEGRATOR) ==
+        TimesteppingEnum::PREDICTOR_CORRECTOR) {
+        throw InvalidSetup(
+            "Predictor-corrector is incompatible with N-body solver. Please select a different integrator.");
+    }
     return makeAuto<NBodyRun>(run, useSoft);
 }
 

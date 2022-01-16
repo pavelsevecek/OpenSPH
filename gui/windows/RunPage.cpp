@@ -682,6 +682,24 @@ static void printStat(wxTextCtrl* text,
     }
 }
 
+template <>
+void printStat<Float>(wxTextCtrl* text,
+    const Statistics& stats,
+    const String& desc,
+    const StatisticsId id,
+    const String units) {
+    if (stats.has(id)) {
+        const Float value = stats.get<Float>(id);
+        if (value < 0.01_f) {
+            std::stringstream ss;
+            ss << std::setprecision(2) << std::scientific << value;
+            *text << desc.toUnicode() << ss.str() << units.toUnicode() << "\n";
+        } else {
+            *text << desc.toUnicode() << value << units.toUnicode() << "\n";
+        }
+    }
+}
+
 void RunPage::makeStatsText(const Size particleCnt, const Size attractorCnt, const Statistics& stats) {
     statsText->Freeze();
     statsText->Clear();

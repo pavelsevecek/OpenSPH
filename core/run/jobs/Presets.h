@@ -15,6 +15,7 @@ enum class Id {
     PLANETESIMAL_MERGING,
     GALAXY_COLLISION,
     ACCRETION_DISK,
+    PLANET_FORMATION,
     SOLAR_SYSTEM,
 };
 
@@ -40,6 +41,9 @@ SharedPtr<JobNode> makeGalaxyCollision(UniqueNameManager& nameMgr, const Size pa
 
 /// \brief Creates a node tree for accretion simulation
 SharedPtr<JobNode> makeAccretionDisk(UniqueNameManager& nameMgr, const Size particleCnt = 10000);
+
+/// \brief Creates a node tree for N-body simulation of planet growth
+SharedPtr<JobNode> makePlanetFormation(UniqueNameManager& nameMgr, const Size particleCnt = 10000);
 
 /// \brief Creates a node tree for the Solar System
 SharedPtr<JobNode> makeSolarSystem(UniqueNameManager& nameMgr, const Size particleCnt = 10000);

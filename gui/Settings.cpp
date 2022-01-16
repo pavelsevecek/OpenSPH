@@ -99,6 +99,9 @@ const Settings<GuiSettingsId>& getDefaultSettings() {
         "This overrides other parameters, such as field of view, camera position, etc." },
     { GuiSettingsId::CAMERA_TRACK_MEDIAN,   "camera.track_median",      false,
         "If true, camera tracks the median position of particles. Not used if camera.track_particle is set." },
+    { GuiSettingsId::CAMERA_TRACKING_MOVE_CAMERA, "camera.tracking_move_camera", true,
+        "If true, the camera moves to keep the direction towards the tracking point unchanged. "
+        "Otherwise, the camera tracks given point by changing its direction." },
     { GuiSettingsId::CAMERA_TRACKING_OFFSET, "camera.tracking_offset",  Vector(0._f),
         "Constant offset from the median." },
 

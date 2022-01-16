@@ -1,7 +1,12 @@
+## 2021-01-17
+- added camera tracking using camera direction only
+- added planet formation preset
+
 ## 2021-01-16
 - added hamburger menu to nodes
 - added hydrogen gas material preset
 - resetting property grid values if validator rejects the change
+- added planet formation preset
 
 ## 2022-01-15
 - storing palettes in the renderer properties (instead of globals)

@@ -14,6 +14,8 @@ void ICameraJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUS
     result->tracker = std::move(tracker);
     result->overrides.set(GuiSettingsId::CAMERA_VELOCITY, gui.get<Vector>(GuiSettingsId::CAMERA_VELOCITY));
     result->overrides.set(GuiSettingsId::CAMERA_ORBIT, gui.get<Float>(GuiSettingsId::CAMERA_ORBIT));
+    result->overrides.set(GuiSettingsId::CAMERA_TRACKING_MOVE_CAMERA,
+        gui.get<bool>(GuiSettingsId::CAMERA_TRACKING_MOVE_CAMERA));
 }
 
 // ----------------------------------------------------------------------------------------------------------
@@ -38,8 +40,9 @@ static VirtualSettings::Category& addTransformCategory(VirtualSettings& connecto
     transformCat.connect<Vector>("Velocity [km/s]", gui, GuiSettingsId::CAMERA_VELOCITY)
         .setUnits(1.e3_f)
         .setEnabler([&gui] {
-            return gui.get<int>(GuiSettingsId::CAMERA_TRACK_PARTICLE) == -1 &&
-                   !gui.get<bool>(GuiSettingsId::CAMERA_TRACK_MEDIAN);
+            bool trackingEnabled = gui.get<int>(GuiSettingsId::CAMERA_TRACK_PARTICLE) != -1 ||
+                                   gui.get<bool>(GuiSettingsId::CAMERA_TRACK_MEDIAN);
+            return !trackingEnabled || !gui.get<bool>(GuiSettingsId::CAMERA_TRACKING_MOVE_CAMERA);
         });
     transformCat.connect<Float>("Orbit speed [rev/day]", gui, GuiSettingsId::CAMERA_ORBIT)
         .setUnits(2._f * PI / (3600._f * 24._f));
@@ -60,6 +63,11 @@ static void addTrackingCategory(VirtualSettings& connector, GuiSettings& gui) {
     trackingCat.connect<bool>("Track median", gui, GuiSettingsId::CAMERA_TRACK_MEDIAN).setEnabler([gui] {
         return gui.get<int>(GuiSettingsId::CAMERA_TRACK_PARTICLE) == -1;
     });
+    trackingCat.connect<bool>("Move camera", gui, GuiSettingsId::CAMERA_TRACKING_MOVE_CAMERA)
+        .setEnabler([gui] {
+            return gui.get<int>(GuiSettingsId::CAMERA_TRACK_PARTICLE) != -1 ||
+                   gui.get<bool>(GuiSettingsId::CAMERA_TRACK_MEDIAN);
+        });
     trackingCat.connect<Vector>("Tracking offset", gui, GuiSettingsId::CAMERA_TRACKING_OFFSET)
         .setEnabler([gui] { return gui.get<bool>(GuiSettingsId::CAMERA_TRACK_MEDIAN); });
 }

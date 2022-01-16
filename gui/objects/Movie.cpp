@@ -31,6 +31,7 @@ Movie::Movie(const GuiSettings& settings,
     , paths(paths) {
     cameraVelocity = settings.get<Vector>(GuiSettingsId::CAMERA_VELOCITY);
     cameraOrbit = settings.get<Float>(GuiSettingsId::CAMERA_ORBIT);
+    trackerMovesCamera = settings.get<bool>(GuiSettingsId::CAMERA_TRACKING_MOVE_CAMERA);
 }
 
 Movie::~Movie() = default;
@@ -166,7 +167,11 @@ void Movie::updateCamera(const Storage& storage, const Float time) {
     if (params.tracker != nullptr) {
         Vector trackedPos, trackedVel;
         tie(trackedPos, trackedVel) = params.tracker->getTrackedPoint(storage);
-        params.camera->setPosition(trackedPos + dir);
+        if (trackerMovesCamera) {
+            params.camera->setPosition(trackedPos + dir);
+        } else {
+            params.camera->setPosition(target + dir + dt * cameraVelocity);
+        }
         params.camera->setTarget(trackedPos);
     } else {
         params.camera->setTarget(target + dt * cameraVelocity);

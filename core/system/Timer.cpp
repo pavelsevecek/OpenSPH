@@ -167,23 +167,38 @@ const int64_t SECOND = 1000;
 const int64_t MINUTE = 60 * SECOND;
 const int64_t HOUR = 60 * MINUTE;
 const int64_t DAY = 24 * HOUR;
+const int64_t YEAR = 365 * DAY;
 
 String getFormattedTime(int64_t time) {
     std::stringstream ss;
+    bool doMinutes = time < YEAR;
+    bool doSeconds = time < DAY;
+    bool fixedDay = false;
+    if (time >= YEAR) {
+        ss << time / YEAR << "yr ";
+        time = time % YEAR;
+        fixedDay = true;
+    }
     if (time >= DAY) {
-        ss << time / DAY << "d ";
+        if (fixedDay) {
+            ss << std::setw(3) << std::setfill('0') << time / DAY << "d ";
+        } else {
+            ss << time / DAY << "d ";
+        }
         time = time % DAY;
     }
     if (time >= HOUR) {
         ss << std::setw(2) << std::setfill('0') << time / HOUR << "h ";
         time = time % HOUR;
     }
-    if (time >= MINUTE) {
+    if (doMinutes && time >= MINUTE) {
         ss << std::setw(2) << std::setfill('0') << time / MINUTE << "min ";
         time = time % MINUTE;
     }
-    ss << std::setw(2) << std::setfill('0') << time / SECOND;
-    ss << "." << std::setw(3) << std::setfill('0') << time % SECOND << "s";
+    if (doSeconds) {
+        ss << std::setw(2) << std::setfill('0') << time / SECOND;
+        ss << "." << std::setw(3) << std::setfill('0') << time % SECOND << "s";
+    }
     return String::fromAscii(ss.str().c_str());
 }
 

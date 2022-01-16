@@ -153,7 +153,6 @@ public:
 
     Holder clone(const Flags<VisitorEnum> flags) const;
 
-
     Holder createZeros(const Size particleCnt) const;
 
     void swap(Holder& other, Flags<VisitorEnum> flags);
