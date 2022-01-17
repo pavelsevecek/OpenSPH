@@ -101,6 +101,7 @@ Bitmap<Rgba> filter(IScheduler& scheduler,
 }
 
 Bitmap<Rgba> gaussianBlur(IScheduler& scheduler, const Bitmap<Rgba>& input, const int radius) {
+    SPH_ASSERT(radius < min(input.size().x, input.size().y) / 2);
     const float sigma = radius / 4.f;
     const float norm = 1.f / (2.f * sqr(sigma));
     Array<float> weights(2 * radius + 1);
@@ -189,10 +190,15 @@ Bitmap<Rgba> bloomEffect(IScheduler& scheduler,
     const Bitmap<Rgba>& input,
     const int radius,
     const float magnitude,
-    const float brightnessThreshold) {
+    const float intensityThreshold) {
     Bitmap<Rgba> brightPixels =
-        transform(input, [brightnessThreshold](const Pixel UNUSED(p), const Rgba& color) {
-            return color.intensity() > brightnessThreshold ? color : Rgba::black();
+        transform(input, [intensityThreshold](const Pixel UNUSED(p), const Rgba& color) {
+            const float intensity = color.intensity();
+            if (intensity > intensityThreshold) {
+                return color;
+            } else {
+                return Rgba::black();
+            }
         });
     Bitmap<Rgba> bloom = gaussianBlur(scheduler, brightPixels, radius);
     for (int y = 0; y < input.size().y; ++y) {

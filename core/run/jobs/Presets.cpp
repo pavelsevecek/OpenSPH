@@ -72,13 +72,17 @@ SharedPtr<JobNode> Presets::makeAsteroidCollision(UniqueNameManager& nameMgr, co
     SharedPtr<JobNode> targetIc = makeNode<MonolithicBodyIc>(nameMgr.getName("target body"));
     VirtualSettings targetSettings = targetIc->getSettings();
     targetSettings.set("useMaterialSlot", true);
-    targetSettings.set("body.radius", 50._f); // D=100km
-    targetSettings.set("particles.count", int(particleCnt));
+    targetSettings.set(BodySettingsId::BODY_RADIUS, 50._f); // D=100km
+    targetSettings.set(BodySettingsId::PARTICLE_COUNT, int(particleCnt));
+    targetSettings.set(
+        BodySettingsId::INITIAL_DISTRIBUTION, EnumWrapper(DistributionEnum::PARAMETRIZED_SPIRALING));
 
     SharedPtr<JobNode> impactorIc = makeNode<ImpactorIc>(nameMgr.getName("impactor body"));
     VirtualSettings impactorSettings = impactorIc->getSettings();
     impactorSettings.set("useMaterialSlot", true);
-    impactorSettings.set("body.radius", 10._f); // D=20km
+    impactorSettings.set(BodySettingsId::BODY_RADIUS, 10._f); // D=20km
+    impactorSettings.set(
+        BodySettingsId::INITIAL_DISTRIBUTION, EnumWrapper(DistributionEnum::PARAMETRIZED_SPIRALING));
 
     SharedPtr<JobNode> material = makeNode<MaterialJob>(nameMgr.getName("material"), materialOverrides);
     material->connect(targetIc, "material");
@@ -111,13 +115,17 @@ SharedPtr<JobNode> Presets::makeFragmentationAndReaccumulation(UniqueNameManager
     SharedPtr<JobNode> targetIc = makeNode<MonolithicBodyIc>(nameMgr.getName("target body"));
     VirtualSettings targetSettings = targetIc->getSettings();
     targetSettings.set("useMaterialSlot", true);
-    targetSettings.set("body.radius", 50._f); // D=100km
-    targetSettings.set("particles.count", int(particleCnt));
+    targetSettings.set(BodySettingsId::BODY_RADIUS, 50._f); // D=100km
+    targetSettings.set(BodySettingsId::PARTICLE_COUNT, int(particleCnt));
+    targetSettings.set(
+        BodySettingsId::INITIAL_DISTRIBUTION, EnumWrapper(DistributionEnum::PARAMETRIZED_SPIRALING));
 
     SharedPtr<JobNode> impactorIc = makeNode<ImpactorIc>(nameMgr.getName("impactor body"));
     VirtualSettings impactorSettings = impactorIc->getSettings();
     impactorSettings.set("useMaterialSlot", true);
-    impactorSettings.set("body.radius", 10._f); // D=20km
+    impactorSettings.set(BodySettingsId::BODY_RADIUS, 10._f); // D=20km
+    impactorSettings.set(
+        BodySettingsId::INITIAL_DISTRIBUTION, EnumWrapper(DistributionEnum::PARAMETRIZED_SPIRALING));
     targetMaterial->connect(targetIc, "material");
     impactorMaterial->connect(impactorIc, "material");
     targetIc->connect(impactorIc, "target");
@@ -165,7 +173,7 @@ SharedPtr<JobNode> Presets::makeCratering(UniqueNameManager& nameMgr, const Size
     SharedPtr<JobNode> targetIc = makeNode<MonolithicBodyIc>(nameMgr.getName("target body"));
     VirtualSettings targetSettings = targetIc->getSettings();
     targetSettings.set("useMaterialSlot", true);
-    targetSettings.set("particles.count", int(particleCnt));
+    targetSettings.set(BodySettingsId::PARTICLE_COUNT, int(particleCnt));
     targetSettings.set(BodySettingsId::BODY_SHAPE_TYPE, EnumWrapper(DomainEnum::BLOCK));
     targetSettings.set(BodySettingsId::BODY_DIMENSIONS, targetSize);
     targetMaterial->connect(targetIc, "material");
@@ -222,6 +230,8 @@ SharedPtr<JobNode> Presets::makePlanetesimalMerging(UniqueNameManager& nameMgr, 
     SharedPtr<JobNode> planetesimal = makeNode<DifferentiatedBodyIc>(nameMgr.getName("planetesimal"));
     VirtualSettings planetSettings = planetesimal->getSettings();
     planetSettings.set(BodySettingsId::PARTICLE_COUNT, int(particleCnt));
+    planetSettings.set(
+        BodySettingsId::INITIAL_DISTRIBUTION, EnumWrapper(DistributionEnum::PARAMETRIZED_SPIRALING));
 
     SharedPtr<JobNode> olivine =
         makeNode<MaterialJob>(nameMgr.getName("olivine"), getMaterial(MaterialEnum::OLIVINE)->getParams());

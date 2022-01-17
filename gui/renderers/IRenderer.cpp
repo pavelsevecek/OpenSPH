@@ -22,9 +22,10 @@ void RenderParams::initialize(const GuiSettings& gui) {
     surface.emission = float(gui.get<Float>(GuiSettingsId::SURFACE_EMISSION));
     volume.emission = float(gui.get<Float>(GuiSettingsId::VOLUME_EMISSION));
     volume.absorption = 1.e-6f * float(gui.get<Float>(GuiSettingsId::VOLUME_ABSORPTION));
-    volume.compressionFactor = float(gui.get<Float>(GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR));
-    volume.denoise = gui.get<bool>(GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE);
-    volume.bloomIntensity = gui.get<Float>(GuiSettingsId::BLOOM_INTENSITY);
+    post.compressionFactor = float(gui.get<Float>(GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR));
+    post.denoise = gui.get<bool>(GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE);
+    post.bloomRadius = gui.get<Float>(GuiSettingsId::BLOOM_RADIUS);
+    post.bloomIntensity = gui.get<Float>(GuiSettingsId::BLOOM_INTENSITY);
 }
 
 inline auto seeder() {
@@ -59,7 +60,7 @@ void IRaytracer::render(const RenderParams& params, Statistics& UNUSED(stats), I
     shouldContinue = true;
 
     if (RawPtr<LogarithmicColorMap> logMap = dynamicCast<LogarithmicColorMap>(fixed.colorMap.get())) {
-        logMap->setFactor(params.volume.compressionFactor);
+        logMap->setFactor(params.post.compressionFactor);
     }
 
     FrameBuffer fb(params.camera->getSize());
@@ -75,7 +76,7 @@ void IRaytracer::postProcess(FrameBuffer& fb,
     const RenderParams& params,
     const bool isFinal,
     IRenderOutput& output) const {
-    if (!fixed.colorMap && (!isFinal || (!params.volume.denoise && params.volume.bloomIntensity == 0.f))) {
+    if (!fixed.colorMap && (!isFinal || (!params.post.denoise && params.post.bloomIntensity == 0.f))) {
         // no postprocessing in this case, we can optimize and return the bitmap directly
         output.update(fb.getBitmap(), {}, isFinal);
         return;
@@ -88,15 +89,17 @@ void IRaytracer::postProcess(FrameBuffer& fb,
         bitmap = fb.getBitmap().clone();
     }
 
-    if (isFinal && params.volume.bloomIntensity > 0.f) {
-        bitmap = bloomEffect(*scheduler, bitmap, 30, params.volume.bloomIntensity);
+    if (isFinal && params.post.bloomIntensity > 0.f) {
+        const int maxRadius = min(bitmap.size().x, bitmap.size().y) / 2 - 1;
+        const int radius = clamp<int>(params.post.bloomRadius * bitmap.size().x, 1, maxRadius);
+        bitmap = bloomEffect(*scheduler, bitmap, radius, params.post.bloomIntensity);
     }
 
     if (fixed.colorMap) {
         fixed.colorMap->map(*scheduler, bitmap);
     }
 
-    if (isFinal && params.volume.denoise) {
+    if (isFinal && params.post.denoise) {
         bitmap = denoiseLowFrequency(*scheduler, bitmap, {});
     }
 

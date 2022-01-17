@@ -201,6 +201,7 @@ void InteractiveRenderer::setRendererAccessor(const RunSettings& globals) {
                         GuiSettingsId::VOLUME_EMISSION,
                         GuiSettingsId::VOLUME_ABSORPTION,
                         GuiSettingsId::BLOOM_INTENSITY,
+                        GuiSettingsId::BLOOM_RADIUS,
                         GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE,
                     });
 

@@ -1,6 +1,8 @@
 ## 2021-01-17
+- added OpenVDB as output format
 - added camera tracking using camera direction only
 - added planet formation preset
+- added bloom radius to GUI
 
 ## 2021-01-16
 - added hamburger menu to nodes

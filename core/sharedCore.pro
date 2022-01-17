@@ -42,6 +42,11 @@ CONFIG(use_chaiscript) {
     LIBS += -ldl
 }
 
+CONFIG(use_vdb) {
+    DEFINES += SPH_USE_VDB
+    LIBS += -ltbb -lImath -lopenvdb
+}
+
 CONFIG(static_libc) {
     QMAKE_LFLAGS += -static -static-libstdc++ -static-libgcc -Wl,--whole-archive -lpthread -Wl,--no-whole-archive
 }

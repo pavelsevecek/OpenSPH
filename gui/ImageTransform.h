@@ -28,7 +28,7 @@ Bitmap<Rgba> bloomEffect(IScheduler& scheduler,
     const Bitmap<Rgba>& input,
     const int radius = 25,
     const float magnitude = 1.f,
-    const float brightnessThreshold = 0.5f);
+    const float intensityThreshold = 0.75f);
 
 struct DenoiserParams {
     Size filterRadius = 5;

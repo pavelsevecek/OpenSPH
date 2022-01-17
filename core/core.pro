@@ -14,6 +14,7 @@ SOURCES += \
     io/Logger.cpp \
     io/Output.cpp \
     io/Path.cpp \
+    io/Vdb.cpp \
     math/Curve.cpp \
     math/Morton.cpp \
     math/SparseMatrix.cpp \
@@ -134,6 +135,7 @@ HEADERS += \
     io/Path.h \
     io/Serializer.h \
     io/Table.h \
+    io/Vdb.h \
     math/AffineMatrix.h \
     math/Curve.h \
     math/Functional.h \

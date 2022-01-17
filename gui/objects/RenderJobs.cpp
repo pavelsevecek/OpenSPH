@@ -84,6 +84,10 @@ VirtualSettings AnimationJob::getSettings() {
     auto volumeEnabler = [this] {
         return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::VOLUME;
     };
+    auto raytraceEnabler = [this] {
+        const RendererEnum type = gui.get<RendererEnum>(GuiSettingsId::RENDERER);
+        return type == RendererEnum::RAYMARCHER || type == RendererEnum::VOLUME;
+    };
 
     VirtualSettings::Category& rendererCat = connector.addCategory("Rendering");
     rendererCat.connect<EnumWrapper>("Renderer", gui, GuiSettingsId::RENDERER);
@@ -105,15 +109,17 @@ VirtualSettings AnimationJob::getSettings() {
     rendererCat.connect<Float>("Logarithmic factor", gui, GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR)
         .setEnabler(
             [&] { return gui.get<ColorMapEnum>(GuiSettingsId::COLORMAP_TYPE) == ColorMapEnum::LOGARITHMIC; });
+    rendererCat.connect<Float>("Bloom intensity", gui, GuiSettingsId::BLOOM_INTENSITY)
+        .setEnabler(raytraceEnabler);
+    rendererCat.connect<Float>("Bloom radius [%]", gui, GuiSettingsId::BLOOM_RADIUS)
+        .setUnits(0.01f)
+        .setEnabler(raytraceEnabler);
     rendererCat.connect<Float>("Particle radius", gui, GuiSettingsId::PARTICLE_RADIUS)
         .setEnabler(particleEnabler);
     rendererCat.connect<bool>("Antialiasing", gui, GuiSettingsId::ANTIALIASED).setEnabler(particleEnabler);
     rendererCat.connect<bool>("Show key", gui, GuiSettingsId::SHOW_KEY).setEnabler(particleEnabler);
     rendererCat.connect<int>("Interation count", gui, GuiSettingsId::RAYTRACE_ITERATION_LIMIT)
-        .setEnabler([&] {
-            const RendererEnum type = gui.get<RendererEnum>(GuiSettingsId::RENDERER);
-            return type == RendererEnum::RAYMARCHER || type == RendererEnum::VOLUME;
-        });
+        .setEnabler(raytraceEnabler);
     rendererCat.connect<Float>("Surface level", gui, GuiSettingsId::SURFACE_LEVEL).setEnabler(surfaceEnabler);
     rendererCat.connect<Vector>("Sun position", gui, GuiSettingsId::SURFACE_SUN_POSITION)
         .setEnabler(surfaceEnabler);
@@ -135,8 +141,6 @@ VirtualSettings AnimationJob::getSettings() {
         .setUnits(1.e-3_f)
         .setEnabler(volumeEnabler);
     rendererCat.connect<bool>("Reduce noise", gui, GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE)
-        .setEnabler(volumeEnabler);
-    rendererCat.connect<Float>("Bloom intensity", gui, GuiSettingsId::BLOOM_INTENSITY)
         .setEnabler(volumeEnabler);
 
     VirtualSettings::Category& textureCat = connector.addCategory("Texture paths");
@@ -517,17 +521,17 @@ INLINE openvdb::Vec3f vectorToVec3f(const Vector& v) {
     return openvdb::Vec3f(v[X], v[Y], v[Z]);
 }
 
-INLINE Vector worldToRelative(const Vector& r, const Box& box, const Indices& dims) {
+INLINE Vector worldToGrid(const Vector& r, const Box& box, const Indices& dims) {
     return (r - box.lower()) / box.size() * Vector(dims);
 }
 
-INLINE Vector relativeToWorld(const Vector& r, const Box& box, const Indices& dims) {
+INLINE Vector gridToWorld(const Vector& r, const Box& box, const Indices& dims) {
     return r * box.size() / Vector(dims) + box.lower();
 }
 
 Tuple<Indices, Indices> getParticleBox(const Vector& r, const Box& box, const Indices& dims) {
-    const Vector from = worldToRelative(r - Vector(2._f * r[H]), box, dims);
-    const Vector to = worldToRelative(r + Vector(2._f * r[H]), box, dims);
+    const Vector from = worldToGrid(r - Vector(2._f * r[H]), box, dims);
+    const Vector to = worldToGrid(r + Vector(2._f * r[H]), box, dims);
     const Indices fromIdxs(ceil(from[X]), ceil(from[Y]), ceil(from[Z]));
     const Indices toIdxs(floor(to[X]), floor(to[Y]), floor(to[Z]));
     return { max(fromIdxs, Indices(0._f)), min(toIdxs, dims - Indices(1)) };
@@ -644,7 +648,7 @@ void VdbJob::generate(Storage& storage, const RunSettings& global, const Path& o
             for (int y = from[Y]; y <= to[Y]; ++y) {
                 for (int z = from[Z]; z <= to[Z]; ++z) {
                     const Indices idxs(x, y, z);
-                    const Vector pos = relativeToWorld(idxs, box, gridIdxs);
+                    const Vector pos = gridToWorld(idxs, box, gridIdxs);
                     const Float w = kernel.value(r[i] - pos, r[i][H]);
                     const Float c = m[i] / rho_i * w;
 

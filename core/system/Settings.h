@@ -892,6 +892,9 @@ enum class IoEnum {
 
     /// Pkdgrav input file.
     PKDGRAV_INPUT = 8,
+
+    /// OpenVDB grid
+    VDB_FILE = 9,
 };
 
 /// \brief Returns the file extension associated with given IO type.

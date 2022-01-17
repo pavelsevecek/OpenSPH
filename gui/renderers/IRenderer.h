@@ -139,14 +139,6 @@ struct RenderParams {
         /// \brief Absorption coefficient [m^-1]
         float absorption = 0.f;
 
-        /// \brief Compression factor of the logarithmic tonemapper
-        float compressionFactor = 2.f;
-
-        /// \brief Suppress the low-frequency noise
-        bool denoise;
-
-        /// \brief Magnitude of bloom effect
-        float bloomIntensity = 0.f;
     } volume;
 
     struct {
@@ -161,6 +153,21 @@ struct RenderParams {
         bool showLabels = true;
 
     } contours;
+
+    /// \brief Postprocessing parameters
+    struct {
+        /// \brief Compression factor of the logarithmic tonemapper
+        float compressionFactor = 2.f;
+
+        /// \brief Bloom radius, relative to images size
+        float bloomRadius = 0.1f;
+
+        /// \brief Magnitude of bloom effect
+        float bloomIntensity = 0.f;
+
+        /// \brief Suppress the low-frequency noise
+        bool denoise;
+    } post;
 
     /// \brief Sets up parameters using values stored in settings.
     ///

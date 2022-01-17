@@ -42,6 +42,10 @@
 #include "timestepping/TimeStepCriterion.h"
 #include "timestepping/TimeStepping.h"
 
+#ifdef SPH_USE_VDB
+#include "io/Vdb.h"
+#endif
+
 NAMESPACE_SPH_BEGIN
 
 AutoPtr<IEos> Factory::getEos(const BodySettings& body) {
@@ -594,6 +598,10 @@ AutoPtr<IOutput> Factory::getOutput(const RunSettings& settings) {
         pkd.omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
         return makeAuto<PkdgravOutput>(file, std::move(pkd));
     }
+#ifdef SPH_USE_VDB
+    case IoEnum::VDB_FILE:
+        return makeAuto<VdbOutput>(file);
+#endif
     default:
         NOT_IMPLEMENTED;
     }

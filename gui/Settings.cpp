@@ -162,6 +162,8 @@ const Settings<GuiSettingsId>& getDefaultSettings() {
         "intensive pixels. Low values (~0.01) effectively produce a linear colormapping." },
     { GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE, "reduce_lowfrequency_noise", false,
         "Reduces the low-frequency noise ('splotches') in the render." },
+    { GuiSettingsId::BLOOM_RADIUS,          "bloom.radius",         0.1_f,
+        "Bloom radius, relative to the image size." },
     { GuiSettingsId::BLOOM_INTENSITY,       "bloom.intensity",      0._f,
         "Magnitude of the bloom effect" },
     { GuiSettingsId::SHOW_KEY,              "show_key",             true,

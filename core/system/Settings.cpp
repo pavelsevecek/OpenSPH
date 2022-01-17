@@ -329,6 +329,9 @@ static RegisterEnum<IoEnum> sIo({
         "miluphcuda. Requires to build the code with libhdf5." },
     { IoEnum::MPCORP_FILE, "mpcorp_file", "Export from Minor Planet Center Orbit Database" },
     { IoEnum::PKDGRAV_INPUT, "pkdgrav_input", "Generate a pkdgrav input file." },
+#ifdef SPH_USE_VDB
+    { IoEnum::VDB_FILE, "vdb_file", "Save output data as OpenVDB grid." },
+#endif
 });
 
 Optional<String> getIoExtension(const IoEnum type) {
@@ -349,6 +352,8 @@ Optional<String> getIoExtension(const IoEnum type) {
         return String("h5");
     case IoEnum::MPCORP_FILE:
         return String("dat");
+    case IoEnum::VDB_FILE:
+        return String("vdb");
     default:
         NOT_IMPLEMENTED;
     }
@@ -369,6 +374,8 @@ Optional<IoEnum> getIoEnum(const String& ext) {
         return IoEnum::HDF5_FILE;
     } else if (ext == "dat") {
         return IoEnum::MPCORP_FILE;
+    } else if (ext == "vdb") {
+        return IoEnum::VDB_FILE;
     } else {
         return NOTHING;
     }
@@ -392,6 +399,8 @@ String getIoDescription(const IoEnum type) {
         return "miluphcuda output file";
     case IoEnum::MPCORP_FILE:
         return "mpcorp dump";
+    case IoEnum::VDB_FILE:
+        return "OpenVDB grid";
     default:
         NOT_IMPLEMENTED;
     }
@@ -415,6 +424,8 @@ Flags<IoCapability> getIoCapabilities(const IoEnum type) {
         return IoCapability::INPUT;
     case IoEnum::MPCORP_FILE:
         return IoCapability::INPUT;
+    case IoEnum::VDB_FILE:
+        return IoCapability::OUTPUT;
     default:
         NOT_IMPLEMENTED;
     }
