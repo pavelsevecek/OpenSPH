@@ -8,24 +8,24 @@ TEST_CASE("Bvh box intersect", "[bvh]") {
     Box box(Vector(0._f), Vector(1._f));
 
     Ray ray1(Vector(2._f, 0.5_f, 0.5_f), Vector(-1._f, 0._f, 0._f));
-    Float t_min, t_max;
-    REQUIRE(intersectBox(box, ray1, t_min, t_max));
-    REQUIRE(t_min == 1._f);
-    REQUIRE(t_max == 2._f);
+    Interval segment;
+    REQUIRE(intersectBox(box, ray1, segment));
+    REQUIRE(segment.lower() == 1._f);
+    REQUIRE(segment.upper() == 2._f);
 
     // same ray, different parametrization
     Ray ray2(Vector(2._f, 0.5_f, 0.5_f), Vector(-0.5_f, 0._f, 0._f));
-    REQUIRE(intersectBox(box, ray2, t_min, t_max));
-    REQUIRE(t_min == 2._f);
-    REQUIRE(t_max == 4._f);
+    REQUIRE(intersectBox(box, ray2, segment));
+    REQUIRE(segment.lower() == 2._f);
+    REQUIRE(segment.upper() == 4._f);
 
     Ray ray3(Vector(-2._f, -2._f, -2._f), Vector(1._f, 1._f, 1._f));
-    REQUIRE(intersectBox(box, ray3, t_min, t_max));
-    REQUIRE(t_min == 2._f);
-    REQUIRE(t_max == 3._f);
+    REQUIRE(intersectBox(box, ray3, segment));
+    REQUIRE(segment.lower() == 2._f);
+    REQUIRE(segment.upper() == 3._f);
 
     Ray ray4(Vector(0._f, 2._f, 0._f), Vector(-0.2_f, 0.2_f, 1._f));
-    REQUIRE_FALSE(intersectBox(box, ray4, t_min, t_max));
+    REQUIRE_FALSE(intersectBox(box, ray4, segment));
 }
 
 TEST_CASE("BvhBox", "[bvh]") {

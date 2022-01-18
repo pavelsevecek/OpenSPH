@@ -2,6 +2,7 @@
 
 #include "gui/objects/Color.h"
 #include "gui/renderers/IRenderer.h"
+#include "gui/renderers/Lensing.h"
 #include "objects/finders/Bvh.h"
 #include <atomic>
 
@@ -25,11 +26,15 @@ private:
         /// Distention factor of each particle
         Array<float> distention;
 
+        /// All attractors distorting rays
+        Array<AttractorData> attractors;
+
     } cached;
 
     struct RayData {
         /// Intersection for the current ray
         Array<IntersectionInfo> intersections;
+        HyperbolicRay curvedRay;
 
         RayData() = default;
         RayData(RayData&& other) = default;

@@ -73,6 +73,10 @@ void VolumeRenderer::initialize(const Storage& storage,
 
     bvh.build(std::move(spheres));
 
+    for (const Attractor& a : storage.getAttractors()) {
+        cached.attractors.push(AttractorData{ a.mass, a.position, a.radius });
+    }
+
     for (ThreadData& data : threadData) {
         data.data = RayData{};
     }
@@ -92,36 +96,42 @@ void VolumeRenderer::setColorizer(const IColorizer& colorizer) {
 }
 
 Rgba VolumeRenderer::shade(const RenderParams& params, const CameraRay& cameraRay, ThreadData& data) const {
-    const Vector dir = getNormalized(cameraRay.target - cameraRay.origin);
-    const Ray ray(cameraRay.origin, dir);
+    const Vector primaryDir = getNormalized(cameraRay.target - cameraRay.origin);
+    const Ray primaryRay(cameraRay.origin, primaryDir);
 
     RayData& rayData(data.data);
-    Array<IntersectionInfo>& intersections = rayData.intersections;
-    intersections.clear();
-    bvh.getAllIntersections(ray, backInserter(intersections));
-    if (params.volume.absorption > 0.f) {
-        std::sort(intersections.begin(), intersections.end());
-    }
-
     Rgba result = this->getEnviroColor(cameraRay);
-    for (const IntersectionInfo& is : reverse(intersections)) {
-        const BvhSphere* s = static_cast<const BvhSphere*>(is.object);
-        const Size i = s->userData;
-        const Vector hit = ray.origin() + ray.direction() * is.t;
-        const Vector center = cached.r[i];
-        const Vector toCenter = getNormalized(center - hit);
-        const float cosPhi = abs(dot(toCenter, ray.direction()));
-        const float distention = cached.distention[i];
-        // smoothing length should not have effect on the total emission
-        const float radiiFactor = cached.referenceRadii[i] / cached.r[i][H];
-        const float secant = 2._f * getLength(center - hit) * cosPhi * radiiFactor;
-        // make dilated particles absorb more
-        result = result * exp(-params.volume.absorption * secant * distention * pow<3>(cosPhi));
-        // 3th power of cosPhi to give more weight to the sphere center,
-        // divide by distention^3; distention should not affect the total emission
-        const float magnitude = params.volume.emission * pow<3>(cosPhi / distention) * secant;
-        result += cached.colors[i] * magnitude;
-        result.a() += magnitude;
+    HyperbolicRay& curvedRay = rayData.curvedRay;
+    curvedRay =
+        HyperbolicRay::getFromRay(primaryRay, cached.attractors, params.distortionMagnitude, 3.e5_f, 3.e6_f);
+
+    for (const RaySegment& ray : curvedRay.getSegments()) {
+        Array<IntersectionInfo>& intersections = rayData.intersections;
+        intersections.clear();
+        bvh.getAllIntersections(ray, backInserter(intersections));
+        if (params.volume.absorption > 0.f) {
+            std::sort(intersections.begin(), intersections.end());
+        }
+
+        for (const IntersectionInfo& is : reverse(intersections)) {
+            const BvhSphere* s = static_cast<const BvhSphere*>(is.object);
+            const Size i = s->userData;
+            const Vector hit = ray.origin() + ray.direction() * is.t;
+            const Vector center = cached.r[i];
+            const Vector toCenter = getNormalized(center - hit);
+            const float cosPhi = abs(dot(toCenter, ray.direction()));
+            const float distention = cached.distention[i];
+            // smoothing length should not have effect on the total emission
+            const float radiiFactor = cached.referenceRadii[i] / cached.r[i][H];
+            const float secant = 2._f * getLength(center - hit) * cosPhi * radiiFactor;
+            // make dilated particles absorb more
+            result = result * exp(-params.volume.absorption * secant * distention * pow<3>(cosPhi));
+            // 3th power of cosPhi to give more weight to the sphere center,
+            // divide by distention^3; distention should not affect the total emission
+            const float magnitude = params.volume.emission * pow<3>(cosPhi / distention) * secant;
+            result += cached.colors[i] * magnitude;
+            result.a() += magnitude;
+        }
     }
     result.a() = min(result.a(), 1.f);
     return result;

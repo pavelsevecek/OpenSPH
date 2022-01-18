@@ -7,8 +7,10 @@
 
 NAMESPACE_SPH_BEGIN
 
+class RaySegment;
+
 class Ray {
-    friend bool intersectBox(const Box& box, const Ray& ray, Float& t_min, Float& t_max);
+    friend bool intersectBox(const Box& box, const RaySegment& ray, Interval& segment);
 
 private:
     Vector orig;
@@ -37,11 +39,33 @@ public:
     }
 };
 
+class RaySegment : public Ray {
+    friend bool intersectBox(const Box& box, const RaySegment& ray, Interval& ts);
+
+private:
+    Interval seg = Interval(0._f, LARGE);
+
+public:
+    RaySegment(const Ray& ray)
+        : Ray(ray) {}
+
+    RaySegment(const Vector& origin, const Vector& dir)
+        : Ray(origin, dir) {}
+
+    RaySegment(const Vector& origin, const Vector& dir, const Interval& segment)
+        : Ray(origin, dir)
+        , seg(segment) {}
+
+    const Interval& segment() const {
+        return seg;
+    }
+};
+
 /// \brief Finds intersections of ray with a box.
 ///
 /// There is always either zero or two intersections. If the ray intersects the box, the function returns true
 /// and the intersection distances (near and far distance) are returned as t_min and t_max.
-inline bool intersectBox(const Box& box, const Ray& ray, Float& t_min, Float& t_max);
+inline bool intersectBox(const Box& box, const RaySegment& ray, Interval& segment);
 
 
 struct BvhPrimitive {
@@ -80,7 +104,7 @@ public:
         dir2 = v2 - v0;
     }
 
-    INLINE bool getIntersection(const Ray& ray, IntersectionInfo& intersection) const {
+    INLINE bool getIntersection(const RaySegment& ray, IntersectionInfo& intersection) const {
         // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm#C++_Implementation
 
         const Float eps = EPS * dot(dir1, dir2);
@@ -135,7 +159,7 @@ public:
         SPH_ASSERT(r > 0._f);
     }
 
-    INLINE bool getIntersection(const Ray& ray, IntersectionInfo& intersection) const {
+    INLINE bool getIntersection(const RaySegment& ray, IntersectionInfo& intersection) const {
         const Vector delta = center - ray.origin();
         const Float deltaSqr = getSqrLength(delta);
         const Float deltaCos = dot(delta, ray.direction());
@@ -146,7 +170,8 @@ public:
 
         intersection.object = this;
         intersection.t = deltaCos - sqrt(disc);
-        return intersection.t > 0.f;
+        /// \todo we can hit the inner side!
+        return ray.segment().contains(intersection.t);
     }
 
     INLINE Box getBBox() const {
@@ -167,13 +192,13 @@ public:
     explicit BvhBox(const Box& box)
         : box(box) {}
 
-    INLINE bool getIntersection(const Ray& ray, IntersectionInfo& intersection) const {
-        Float t_min, t_max;
-        const bool result = intersectBox(box, ray, t_min, t_max);
+    INLINE bool getIntersection(const RaySegment& ray, IntersectionInfo& intersection) const {
+        Interval segment;
+        const bool result = intersectBox(box, ray, segment);
         if (result) {
-            intersection.t = t_min;
+            intersection.t = segment.lower();
             intersection.object = this;
-            return intersection.t > 0.f;
+            return ray.segment().intersects(segment);
         } else {
             return false;
         }
@@ -224,24 +249,24 @@ public:
     /// \brief Finds the closest intersection of the ray.
     ///
     /// Returns true if an intersection has been found.
-    bool getFirstIntersection(const Ray& ray, IntersectionInfo& intersection) const;
+    bool getFirstIntersection(const RaySegment& ray, IntersectionInfo& intersection) const;
 
     /// \brief Returns all intersections of the ray.
     ///
     /// Intersections are returned via a generic output iterator.
     /// \returns Total number of intersections.
     template <typename TOutIter>
-    Size getAllIntersections(const Ray& ray, TOutIter iter) const;
+    Size getAllIntersections(const RaySegment& ray, TOutIter iter) const;
 
     /// \brief Returns true if the ray is occluded by some geometry
-    bool isOccluded(const Ray& ray) const;
+    bool isOccluded(const RaySegment& ray) const;
 
     /// \brief Returns the bounding box of all objects in BVH.
     Box getBoundingBox() const;
 
 private:
     template <typename TAddIntersection>
-    void getIntersections(const Ray& ray, const TAddIntersection& addIntersection) const;
+    void getIntersections(const RaySegment& ray, const TAddIntersection& addIntersection) const;
 };
 
 NAMESPACE_SPH_END

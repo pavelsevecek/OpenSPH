@@ -147,6 +147,8 @@ const Settings<GuiSettingsId>& getDefaultSettings() {
     { GuiSettingsId::RAYTRACE_SPHERES,      "raytrace.spheres",     false,
         "If true, raytraced surface is given by spheres centered at particles, "
         "otherwise isosurface of a colorfield is rendered." },
+    { GuiSettingsId::RAYTRACE_LENSING_MAGNITUDE, "raytrace.lensing_magnitude", 0._f,
+        "Magnitude of the lensing effect." },
     { GuiSettingsId::VOLUME_EMISSION,       "volume.emission",      1.e-3_f,
         "Volume emission per unit length. Used by volumetric renderer." },
     { GuiSettingsId::VOLUME_ABSORPTION,     "volume.absorption",    0._f,

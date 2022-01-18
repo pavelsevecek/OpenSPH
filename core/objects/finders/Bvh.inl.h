@@ -13,7 +13,7 @@ struct BvhBuildEntry {
     Size end;
 };
 
-bool intersectBox(const Box& box, const Ray& ray, Float& t_min, Float& t_max) {
+bool intersectBox(const Box& box, const RaySegment& ray, Interval& segment) {
     StaticArray<Vector, 2> b = { box.lower(), box.upper() };
     Float tmin = (b[ray.signs[X]][X] - ray.orig[X]) * ray.invDir[X];
     Float tmax = (b[1 - ray.signs[X]][X] - ray.orig[X]) * ray.invDir[X];
@@ -38,17 +38,15 @@ bool intersectBox(const Box& box, const Ray& ray, Float& t_min, Float& t_max) {
     tmin = max(tmin, tzmin);
     tmax = min(tmax, tzmax);
 
-    t_min = tmin;
-    t_max = tmax;
+    segment = Interval(tmin, tmax);
 
-    // reject intersections at t<0
-    return t_max > 0.f;
+    // check intersections in parameter
+    return segment.intersects(ray.segment());
 }
 
 template <typename TBvhObject>
 template <typename TAddIntersection>
-void Bvh<TBvhObject>::getIntersections(const Ray& ray, const TAddIntersection& addIntersection) const {
-    StaticArray<Float, 4> boxHits{ LARGE, LARGE, LARGE, LARGE };
+void Bvh<TBvhObject>::getIntersections(const RaySegment& ray, const TAddIntersection& addIntersection) const {
     Size closer;
     Size other;
 
@@ -60,14 +58,10 @@ void Bvh<TBvhObject>::getIntersections(const Ray& ray, const TAddIntersection& a
 
     while (stackIdx >= 0) {
         const Size idx = stack[stackIdx].idx;
-        // const Float t_min = stack[stackIdx].t_min;
         stackIdx--;
         const BvhNode& node = nodes[idx];
 
         /// \todo optimization for the single intersection case
-        /*        if (t_min > intersection.t) {
-                    continue;
-                }*/
         if (node.rightOffset == 0) {
             // leaf
             for (Size primIdx = 0; primIdx < node.primCnt; ++primIdx) {
@@ -86,32 +80,32 @@ void Bvh<TBvhObject>::getIntersections(const Ray& ray, const TAddIntersection& a
             }
         } else {
             // inner node
-            const bool hitc0 = intersectBox(nodes[idx + 1].box, ray, boxHits[0], boxHits[1]);
-            const bool hitc1 = intersectBox(nodes[idx + node.rightOffset].box, ray, boxHits[2], boxHits[3]);
+            Interval segmentLeft, segmentRight;
+            const bool hitc0 = intersectBox(nodes[idx + 1].box, ray, segmentLeft);
+            const bool hitc1 = intersectBox(nodes[idx + node.rightOffset].box, ray, segmentRight);
 
             if (hitc0 && hitc1) {
                 closer = idx + 1;
                 other = idx + node.rightOffset;
 
-                if (boxHits[2] < boxHits[0]) {
-                    std::swap(boxHits[0], boxHits[2]);
-                    std::swap(boxHits[1], boxHits[3]);
+                if (segmentRight.lower() < segmentLeft.lower()) {
+                    std::swap(segmentRight, segmentLeft);
                     std::swap(closer, other);
                 }
 
-                stack[++stackIdx] = BvhTraversal{ other, boxHits[2] };
-                stack[++stackIdx] = BvhTraversal{ closer, boxHits[0] };
+                stack[++stackIdx] = BvhTraversal{ other, segmentRight.lower() };
+                stack[++stackIdx] = BvhTraversal{ closer, segmentLeft.lower() };
             } else if (hitc0) {
-                stack[++stackIdx] = BvhTraversal{ idx + 1, boxHits[0] };
+                stack[++stackIdx] = BvhTraversal{ idx + 1, segmentLeft.lower() };
             } else if (hitc1) {
-                stack[++stackIdx] = BvhTraversal{ idx + node.rightOffset, boxHits[2] };
+                stack[++stackIdx] = BvhTraversal{ idx + node.rightOffset, segmentRight.lower() };
             }
         }
     }
 }
 
 template <typename TBvhObject>
-bool Bvh<TBvhObject>::getFirstIntersection(const Ray& ray, IntersectionInfo& intersection) const {
+bool Bvh<TBvhObject>::getFirstIntersection(const RaySegment& ray, IntersectionInfo& intersection) const {
     intersection.t = INFTY;
     intersection.object = nullptr;
 
@@ -126,7 +120,7 @@ bool Bvh<TBvhObject>::getFirstIntersection(const Ray& ray, IntersectionInfo& int
 
 template <typename TBvhObject>
 template <typename TOutIter>
-Size Bvh<TBvhObject>::getAllIntersections(const Ray& ray, TOutIter iter) const {
+Size Bvh<TBvhObject>::getAllIntersections(const RaySegment& ray, TOutIter iter) const {
     Size count = 0;
     this->getIntersections(ray, [&iter, &count](IntersectionInfo& current) { //
         *iter = current;
@@ -138,7 +132,7 @@ Size Bvh<TBvhObject>::getAllIntersections(const Ray& ray, TOutIter iter) const {
 }
 
 template <typename TBvhObject>
-bool Bvh<TBvhObject>::isOccluded(const Ray& ray) const {
+bool Bvh<TBvhObject>::isOccluded(const RaySegment& ray) const {
     bool occluded = false;
     this->getIntersections(ray, [&occluded](IntersectionInfo&) {
         occluded = true;

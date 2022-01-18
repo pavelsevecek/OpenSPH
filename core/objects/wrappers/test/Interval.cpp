@@ -25,12 +25,12 @@ TEST_CASE("Interval contains", "[interval]") {
 
 TEST_CASE("Interval intersection", "[interval]") {
     Interval range(1._f, 5._f);
-    REQUIRE(range.intersect(Interval(2._f, 3._f)) == Interval(2._f, 3._f));
-    REQUIRE(range.intersect(Interval(4._f, 7._f)) == Interval(4._f, 5._f));
-    REQUIRE(range.intersect(Interval(0._f, 6._f)) == Interval(1._f, 5._f));
-    REQUIRE(range.intersect(Interval(-1._f, 2._f)) == Interval(1._f, 2._f));
-    REQUIRE(range.intersect(Interval(-1._f, 0._f)).empty());
-    REQUIRE(range.intersect(Interval(6._f, 7._f)).empty());
+    REQUIRE(range.intersection(Interval(2._f, 3._f)) == Interval(2._f, 3._f));
+    REQUIRE(range.intersection(Interval(4._f, 7._f)) == Interval(4._f, 5._f));
+    REQUIRE(range.intersection(Interval(0._f, 6._f)) == Interval(1._f, 5._f));
+    REQUIRE(range.intersection(Interval(-1._f, 2._f)) == Interval(1._f, 2._f));
+    REQUIRE(range.intersection(Interval(-1._f, 0._f)).empty());
+    REQUIRE(range.intersection(Interval(6._f, 7._f)).empty());
 }
 
 TEST_CASE("Interval clamp", "[interval]") {

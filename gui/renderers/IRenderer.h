@@ -154,6 +154,12 @@ struct RenderParams {
 
     } contours;
 
+    struct {
+        /// \brief Magnitude of the lensing effect
+        float lensingMagnitude = 0.f;
+
+    } relativity;
+
     /// \brief Postprocessing parameters
     struct {
         /// \brief Compression factor of the logarithmic tonemapper

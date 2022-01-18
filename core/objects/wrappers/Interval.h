@@ -57,8 +57,13 @@ public:
         return minBound <= value && value <= maxBound;
     }
 
+    /// \brief Checks if two intervals have non-empty intersection.
+    INLINE bool intersects(const Interval& other) const {
+        return !intersection(other).empty();
+    }
+
     /// \brief Computes the intersection with another interval.
-    INLINE Interval intersect(const Interval& other) const {
+    INLINE Interval intersection(const Interval& other) const {
         Interval is;
         is.minBound = max(minBound, other.minBound);
         is.maxBound = min(maxBound, other.maxBound);

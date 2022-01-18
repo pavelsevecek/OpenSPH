@@ -160,7 +160,7 @@ Lut<TValue, TScalar> lutOperation(const Lut<TValue, TScalar>& lut1,
     // use the higher resolution
     const Float dx = min(lut1.getRange().size() / lut1.size(), lut2.getRange().size() / lut2.size());
 
-    const Interval range = lut1.getRange().intersect(lut2.getRange());
+    const Interval range = lut1.getRange().intersection(lut2.getRange());
     const Size resolution = Size(round(range.size() / dx));
 
     auto func = [&lut1, &lut2, &op](const Float x) { return op(lut1(x), lut2(x)); };

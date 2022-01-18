@@ -22,6 +22,7 @@ void RenderParams::initialize(const GuiSettings& gui) {
     surface.emission = float(gui.get<Float>(GuiSettingsId::SURFACE_EMISSION));
     volume.emission = float(gui.get<Float>(GuiSettingsId::VOLUME_EMISSION));
     volume.absorption = 1.e-6f * float(gui.get<Float>(GuiSettingsId::VOLUME_ABSORPTION));
+    relativity.lensingMagnitude = gui.get<Float>(GuiSettingsId::RAYTRACE_LENSING_MAGNITUDE);
     post.compressionFactor = float(gui.get<Float>(GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR));
     post.denoise = gui.get<bool>(GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE);
     post.bloomRadius = gui.get<Float>(GuiSettingsId::BLOOM_RADIUS);
