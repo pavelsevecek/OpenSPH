@@ -17,11 +17,13 @@ void RenderParams::initialize(const GuiSettings& gui) {
     particles.smoothed = gui.get<bool>(GuiSettingsId::SMOOTH_PARTICLES);
     particles.renderGhosts = gui.get<bool>(GuiSettingsId::RENDER_GHOST_PARTICLES);
     surface.level = float(gui.get<Float>(GuiSettingsId::SURFACE_LEVEL));
-    surface.ambientLight = float(gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT));
-    surface.sunLight = float(gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY));
     surface.emission = float(gui.get<Float>(GuiSettingsId::SURFACE_EMISSION));
     volume.emission = float(gui.get<Float>(GuiSettingsId::VOLUME_EMISSION));
     volume.absorption = 1.e-6f * float(gui.get<Float>(GuiSettingsId::VOLUME_ABSORPTION));
+    volume.scattering = float(gui.get<Float>(GuiSettingsId::VOLUME_SCATTERING));
+    lighting.ambientLight = float(gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT));
+    lighting.sunLight = float(gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY));
+    lighting.dirToSun = getNormalized(gui.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION));
     relativity.lensingMagnitude = gui.get<Float>(GuiSettingsId::RAYTRACE_LENSING_MAGNITUDE);
     post.compressionFactor = float(gui.get<Float>(GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR));
     post.denoise = gui.get<bool>(GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE);

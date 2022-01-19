@@ -674,7 +674,7 @@ enum RenderMenuId {
 
 wxMenu* MainWindow::createRenderMenu() {
     wxMenu* renderMenu = new wxMenu();
-    renderMenu->Append(RN_SETUP, "Setup rendering");
+    renderMenu->Append(RN_SETUP, "Setup rendering...");
     renderMenu->Append(RN_RENDER, "Render");
 
     renderMenu->Bind(wxEVT_COMMAND_MENU_SELECTED, [this, renderMenu](wxCommandEvent& evt) { //

@@ -28,9 +28,6 @@ private:
     /// Note that additional parameters which can differ for each rendered image are passed to \ref render.
     struct {
 
-        /// Direction to sun; sun is assumed to be a point light source.
-        Vector dirToSun;
-
         /// BRDF used to get the surface reflectance.
         AutoPtr<IBrdf> brdf;
 

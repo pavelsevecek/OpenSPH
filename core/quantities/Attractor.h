@@ -25,6 +25,9 @@ enum class AttractorSettingsId {
     /// Specifies how the attractor interacts with particle
     INTERACTION = 2,
 
+    /// Visible when rendered
+    VISIBLE = 99,
+
     /// Texture
     VISUALIZATION_TEXTURE = 100,
 };

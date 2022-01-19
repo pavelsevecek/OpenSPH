@@ -22,30 +22,31 @@ Box getBoundingBox(const Storage& storage, const Float radius) {
 }
 
 Vector getCenterOfMass(const Storage& storage) {
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    if (storage.has(QuantityId::MASS)) {
-        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-
-        Float m_sum = 0._f;
-        Vector r_com(0._f);
-        for (Size i = 0; i < r.size(); ++i) {
-            m_sum += m[i];
-            r_com += m[i] * r[i];
+    Vector r_com = Vector(0._f);
+    Float m_sum = 0._f;
+    if (!storage.empty()) {
+        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        if (storage.has(QuantityId::MASS)) {
+            ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+            for (Size i = 0; i < r.size(); ++i) {
+                m_sum += m[i];
+                r_com += m[i] * r[i];
+            }
+        } else {
+            // mass is unknown, cannot combine with mass of attractors
+            SPH_ASSERT(storage.getAttractors().empty());
+            for (Size i = 0; i < r.size(); ++i) {
+                m_sum += 1._f;
+                r_com += r[i];
+            }
         }
-        // add attractors
-        for (const Attractor& pm : storage.getAttractors()) {
-            m_sum += pm.mass;
-            r_com += pm.mass * pm.position;
-        }
-        return clearH(r_com / m_sum);
-    } else {
-        SPH_ASSERT(storage.getAttractors().empty()); // cannot combine "weightless" particles with attractors
-        Vector r_com(0._f);
-        for (Size i = 0; i < r.size(); ++i) {
-            r_com += r[i];
-        }
-        return clearH(r_com / r.size());
     }
+    // add attractors
+    for (const Attractor& a : storage.getAttractors()) {
+        m_sum += a.mass;
+        r_com += a.mass * a.position;
+    }
+    return clearH(r_com / m_sum);
 }
 
 Float getTotalMass(const Storage& storage) {

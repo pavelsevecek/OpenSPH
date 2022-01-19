@@ -9,6 +9,7 @@ struct AttractorData {
     Float mass;
     Vector position;
     Float radius;
+    bool visible;
 };
 
 class HyperbolicRay {
@@ -21,7 +22,7 @@ public:
         const Float step,
         const Float maxDist);
 
-    const Array<RaySegment>& getSegments() const {
+    Array<RaySegment>& getSegments() {
         return segments;
     }
 };

@@ -122,11 +122,11 @@ VirtualSettings AnimationJob::getSettings() {
         .setEnabler(raytraceEnabler);
     rendererCat.connect<Float>("Surface level", gui, GuiSettingsId::SURFACE_LEVEL).setEnabler(surfaceEnabler);
     rendererCat.connect<Vector>("Sun position", gui, GuiSettingsId::SURFACE_SUN_POSITION)
-        .setEnabler(surfaceEnabler);
+        .setEnabler(raytraceEnabler);
     rendererCat.connect<Float>("Sunlight intensity", gui, GuiSettingsId::SURFACE_SUN_INTENSITY)
-        .setEnabler(surfaceEnabler);
+        .setEnabler(raytraceEnabler);
     rendererCat.connect<Float>("Ambient intensity", gui, GuiSettingsId::SURFACE_AMBIENT)
-        .setEnabler(surfaceEnabler);
+        .setEnabler(raytraceEnabler);
     rendererCat.connect<Float>("Surface emission", gui, GuiSettingsId::SURFACE_EMISSION)
         .setEnabler(raymarcherEnabler);
     rendererCat.connect<EnumWrapper>("BRDF", gui, GuiSettingsId::RAYTRACE_BRDF).setEnabler(raymarcherEnabler);

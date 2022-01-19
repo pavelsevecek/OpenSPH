@@ -26,8 +26,14 @@ private:
         /// Distention factor of each particle
         Array<float> distention;
 
-        /// All attractors distorting rays
+        /// All attractors
         Array<AttractorData> attractors;
+
+        /// Attractor textures
+        Array<SharedPtr<Texture>> textures;
+
+        /// Helper storage of textures, kept in memory between renders
+        FlatMap<String, SharedPtr<Texture>> textureCache;
 
     } cached;
 
@@ -62,6 +68,8 @@ private:
     virtual Rgba shade(const RenderParams& params,
         const CameraRay& cameraRay,
         ThreadData& data) const override;
+
+    Rgba getAttractorColor(const RenderParams& params, const Size index, const Vector& hit) const;
 };
 
 NAMESPACE_SPH_END

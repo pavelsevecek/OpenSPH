@@ -40,8 +40,8 @@ RenderSetup::RenderSetup(wxWindow* parent)
     renderTypeSizer->Add(new wxStaticText(this, wxID_ANY, "Renderer"));
     renderTypeSizer->AddStretchSpacer();
     ComboBox* renderType = new ComboBox(this, "Renderer", 250);
-    renderType->Append("Raymarcher", (void*)RendererEnum::RAYMARCHER);
-    renderType->Append("Volume raytracer", (void*)RendererEnum::VOLUME);
+    renderType->Append("Surface", (void*)RendererEnum::RAYMARCHER);
+    renderType->Append("Volumetric", (void*)RendererEnum::VOLUME);
     renderType->Select(0);
     renderTypeSizer->Add(renderType);
     sizer->Add(renderTypeSizer, 0, wxEXPAND);
@@ -110,7 +110,7 @@ RenderSetup::RenderSetup(wxWindow* parent)
     buttonSizer->Add(cancelButton);
     sizer->Add(buttonSizer, 0, wxALIGN_RIGHT);
 
-    this->SetSizer(sizer);
+    this->SetSizerAndFit(sizer);
 }
 
 

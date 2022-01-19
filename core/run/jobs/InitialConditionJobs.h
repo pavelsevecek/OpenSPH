@@ -74,6 +74,8 @@ private:
     Float mass = Constants::M_earth;
     Float radius = Constants::R_earth;
     EnumWrapper interaction;
+
+    bool visible = true;
     Path texture;
 
 public:

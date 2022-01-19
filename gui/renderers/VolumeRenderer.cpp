@@ -71,11 +71,32 @@ void VolumeRenderer::initialize(const Storage& storage,
         }
     }
 
-    bvh.build(std::move(spheres));
+    cached.textures.clear();
+    for (Size i = 0; i < storage.getAttractorCnt(); ++i) {
+        const Attractor& a = storage.getAttractors()[i];
+        const bool visible = a.settings.getOr(AttractorSettingsId::VISIBLE, true);
+        cached.attractors.push(AttractorData{ a.mass, a.position, a.radius, visible });
 
-    for (const Attractor& a : storage.getAttractors()) {
-        cached.attractors.push(AttractorData{ a.mass, a.position, a.radius });
+        String texturePath = a.settings.getOr<String>(AttractorSettingsId::VISUALIZATION_TEXTURE, "");
+        if (!texturePath.empty()) {
+            if (cached.textureCache.contains(texturePath)) {
+                cached.textures.push(cached.textureCache[texturePath]);
+            } else {
+                SharedPtr<Texture> texture =
+                    makeShared<Texture>(Path(texturePath), TextureFiltering::BILINEAR);
+                cached.textureCache.insert(texturePath, texture);
+                cached.textures.push(texture);
+            }
+        } else {
+            cached.textures.push(nullptr);
+        }
+
+        BvhSphere sphere(a.position, a.radius);
+        sphere.userData = cached.r.size() + i;
+        spheres.push(sphere);
     }
+
+    bvh.build(std::move(spheres));
 
     for (ThreadData& data : threadData) {
         data.data = RayData{};
@@ -102,10 +123,10 @@ Rgba VolumeRenderer::shade(const RenderParams& params, const CameraRay& cameraRa
     RayData& rayData(data.data);
     Rgba result = this->getEnviroColor(cameraRay);
     HyperbolicRay& curvedRay = rayData.curvedRay;
-    curvedRay =
-        HyperbolicRay::getFromRay(primaryRay, cached.attractors, params.distortionMagnitude, 3.e5_f, 3.e6_f);
+    curvedRay = HyperbolicRay::getFromRay(
+        primaryRay, cached.attractors, params.relativity.lensingMagnitude, 3.e5_f, 3.e6_f);
 
-    for (const RaySegment& ray : curvedRay.getSegments()) {
+    for (RaySegment& ray : reverse(curvedRay.getSegments())) {
         Array<IntersectionInfo>& intersections = rayData.intersections;
         intersections.clear();
         bvh.getAllIntersections(ray, backInserter(intersections));
@@ -117,8 +138,18 @@ Rgba VolumeRenderer::shade(const RenderParams& params, const CameraRay& cameraRa
             const BvhSphere* s = static_cast<const BvhSphere*>(is.object);
             const Size i = s->userData;
             const Vector hit = ray.origin() + ray.direction() * is.t;
-            const Vector center = cached.r[i];
+            const Vector center = s->getCenter();
             const Vector toCenter = getNormalized(center - hit);
+
+            if (i >= cached.r.size()) {
+                // attractor, a solid object -> erase the emission accumulated so far
+                const Size idx = i - cached.r.size();
+                if (cached.attractors[idx].visible) {
+                    result = this->getAttractorColor(params, idx, hit);
+                }
+                continue;
+            }
+
             const float cosPhi = abs(dot(toCenter, ray.direction()));
             const float distention = cached.distention[i];
             // smoothing length should not have effect on the total emission
@@ -135,6 +166,29 @@ Rgba VolumeRenderer::shade(const RenderParams& params, const CameraRay& cameraRa
     }
     result.a() = min(result.a(), 1.f);
     return result;
+}
+
+Rgba VolumeRenderer::getAttractorColor(const RenderParams& params,
+    const Size index,
+    const Vector& hit) const {
+    const AttractorData& a = cached.attractors[index];
+    Rgba diffuse = Rgba::white();
+    const SharedPtr<Texture>& texture = cached.textures[index];
+    if (texture) {
+        const Vector r0 = hit - a.position;
+        SphericalCoords spherical = cartensianToSpherical(r0);
+        Vector uvw = Vector(0.5_f - spherical.phi / (2._f * PI), spherical.theta / PI, 0._f);
+        diffuse = texture->eval(uvw);
+    }
+
+    const Vector n = getNormalized(a.position - hit);
+    const Float cosPhi = dot(n, params.lighting.dirToSun);
+    if (cosPhi <= 0._f) {
+        // not illuminated -> just ambient light
+        return diffuse * params.lighting.ambientLight;
+    }
+
+    return diffuse * float(PI * cosPhi * params.lighting.sunLight + params.lighting.ambientLight);
 }
 
 NAMESPACE_SPH_END

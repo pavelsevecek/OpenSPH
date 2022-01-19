@@ -462,13 +462,12 @@ Attractor readAttractor(Deserializer<Precise>& deserializer) {
         forValue(iteratorValue.value, [&deserializer, &a, paramId](auto& entry) {
             deserializer.read(entry);
             try {
+                setEnumIndex(a.settings, paramId, entry);
                 a.settings.set(paramId, entry);
             } catch (const Exception& UNUSED(e)) {
                 // can be a parameter from newer version, silence the exception for backwards compatibility
             }
         });
-        // needs to be handled the same way as BodySettings if Enums are ever included in the attractor
-        SPH_ASSERT(!a.settings.hasType<EnumWrapper>(paramId));
     }
     return a;
 }
@@ -582,15 +581,18 @@ Expected<Path> BinaryOutput::dump(const Storage& storage, const Statistics& stat
     return fileName;
 }
 
-template <typename T>
-static void setEnumIndex(const BodySettings& UNUSED(settings),
-    const BodySettingsId UNUSED(paramId),
-    T& UNUSED(entry)) {
+template <typename TId, typename T>
+static void setEnumIndex(const Settings<TId>& UNUSED(settings), const TId UNUSED(paramId), T& UNUSED(entry)) {
     // do nothing for other types
 }
 
 template <>
 void setEnumIndex(const BodySettings& settings, const BodySettingsId paramId, EnumWrapper& entry) {
+    EnumWrapper current = settings.get<EnumWrapper>(paramId);
+    entry.index = current.index;
+}
+template <>
+void setEnumIndex(const AttractorSettings& settings, const AttractorSettingsId paramId, EnumWrapper& entry) {
     EnumWrapper current = settings.get<EnumWrapper>(paramId);
     entry.index = current.index;
 }

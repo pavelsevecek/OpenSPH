@@ -215,26 +215,34 @@ void TransformParticlesJob::evaluate(const RunSettings& UNUSED(global), IRunCall
     AffineMatrix velocityTm = rotator * AffineMatrix::scale(Vector(velocities.mult));
     velocityTm.translate(velocities.offset);
 
-    ArrayView<Vector> r = result->storage.getValue<Vector>(QuantityId::POSITION);
-    ArrayView<Vector> v = result->storage.getDt<Vector>(QuantityId::POSITION);
+    Storage& storage = result->storage;
+    const Vector r_com = getCenterOfMass(storage);
+    if (!storage.empty()) {
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
 
-    for (Size i = 0; i < r.size(); ++i) {
-        const Float h = r[i][H];
-        r[i] = positionTm * r[i];
-        r[i][H] = h;
-
-        v[i] = velocityTm * v[i];
-        v[i][H] = 0._f;
-    }
-
-    if (spin != Vector(0._f)) {
-        const Vector r_com = getCenterOfMass(result->storage);
         for (Size i = 0; i < r.size(); ++i) {
-            v[i] += cross(spin, r[i] - r_com);
+            r[i] = setH(positionTm * r[i], r[i][H]);
+            v[i] = clearH(velocityTm * v[i]);
+        }
+
+        if (spin != Vector(0._f)) {
+            for (Size i = 0; i < r.size(); ++i) {
+                v[i] = clearH(v[i] + cross(spin, r[i] - r_com));
+            }
         }
     }
 
-    callbacks.onSetUp(result->storage, result->stats);
+    for (Attractor& a : storage.getAttractors()) {
+        a.position = positionTm * a.position;
+        a.velocity = velocityTm * a.velocity;
+
+        if (spin != Vector(0._f)) {
+            a.velocity += cross(spin, a.position - r_com);
+        }
+    }
+
+    callbacks.onSetUp(storage, result->stats);
 }
 
 

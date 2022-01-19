@@ -209,6 +209,8 @@ enum class GuiSettingsId {
 
     VOLUME_ABSORPTION,
 
+    VOLUME_SCATTERING,
+
     CONTOUR_SPACING,
 
     CONTOUR_GRID_SIZE,

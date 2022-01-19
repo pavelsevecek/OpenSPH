@@ -9,9 +9,7 @@ static RegisterEnum<RendererEnum> sRenderer({
     /*{ RendererEnum::MESH,
         "mesh",
         "Surfaces of bodies are meshed using Marching cubes and drawed as triangles." },*/
-    { RendererEnum::RAYMARCHER,
-        "raymarcher",
-        "Use raymarching to find intersections with implicit surface." },
+    { RendererEnum::RAYMARCHER, "surface", "Use raymarching to find intersections with implicit surface." },
     { RendererEnum::VOLUME, "volumetric", "Use raytracing to find total emission along the ray." },
     //{ RendererEnum::CONTOUR, "contour", "Draws contours (iso-lines) of quantities" },
 });
@@ -153,6 +151,8 @@ const Settings<GuiSettingsId>& getDefaultSettings() {
         "Volume emission per unit length. Used by volumetric renderer." },
     { GuiSettingsId::VOLUME_ABSORPTION,     "volume.absorption",    0._f,
         "Absorption per unit length. Used by volumetric renderer." },
+    { GuiSettingsId::VOLUME_SCATTERING,     "volume.scattering",    0._f,
+        "Scattering coefficient per unit length. Used by volumetric renderer." },
     { GuiSettingsId::RENDER_GHOST_PARTICLES, "render_ghost_particles", true,
         "If true, ghost particles will be displayed as transparent circles, otherwise they are hidden." },
     { GuiSettingsId::BACKGROUND_COLOR,      "background_color",     Vector(0._f, 0._f, 0._f, 1._f),

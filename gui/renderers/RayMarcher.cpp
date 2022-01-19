@@ -13,7 +13,6 @@ NAMESPACE_SPH_BEGIN
 RayMarcher::RayMarcher(SharedPtr<IScheduler> scheduler, const GuiSettings& settings)
     : IRaytracer(scheduler, settings) {
     kernel = CubicSpline<3>();
-    fixed.dirToSun = getNormalized(settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION));
     fixed.brdf = Factory::getBrdf(settings);
     fixed.renderSpheres = settings.get<bool>(GuiSettingsId::RAYTRACE_SPHERES);
     fixed.shadows = settings.get<bool>(GuiSettingsId::RAYTRACE_SHADOWS);
@@ -268,25 +267,25 @@ Rgba RayMarcher::getSurfaceColor(MarchData& data,
     const Vector n = fixed.renderSpheres ? cached.r[index] - hit : this->evalGradient(data.neighs, hit);
     SPH_ASSERT(n != Vector(0._f));
     const Vector n_norm = getNormalized(n);
-    const Float cosPhi = dot(n_norm, fixed.dirToSun);
+    const Float cosPhi = dot(n_norm, params.lighting.dirToSun);
     if (cosPhi <= 0._f) {
         // not illuminated -> just ambient light + emission
-        return diffuse * params.surface.ambientLight + emission;
+        return diffuse * params.lighting.ambientLight + emission;
     }
 
     // check for occlusion
     if (fixed.shadows) {
-        Ray rayToSun(hit - 0.5_f * n_norm * cached.r[index][H], -fixed.dirToSun);
+        Ray rayToSun(hit - 0.5_f * n_norm * cached.r[index][H], -params.lighting.dirToSun);
         if (this->intersect(data, rayToSun, params.surface.level, true)) {
             // casted shadow
-            return diffuse * params.surface.ambientLight + emission;
+            return diffuse * params.lighting.ambientLight + emission;
         }
     }
 
     // evaluate BRDF
-    const Float f = fixed.brdf->transport(n_norm, -dir, fixed.dirToSun);
+    const Float f = fixed.brdf->transport(n_norm, -dir, params.lighting.dirToSun);
 
-    return diffuse * float(PI * f * cosPhi * params.surface.sunLight + params.surface.ambientLight) +
+    return diffuse * float(PI * f * cosPhi * params.lighting.sunLight + params.lighting.ambientLight) +
            emission;
 }
 

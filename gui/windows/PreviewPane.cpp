@@ -197,12 +197,15 @@ void InteractiveRenderer::setRendererAccessor(const RunSettings& globals) {
                         GuiSettingsId::SURFACE_LEVEL,
                         GuiSettingsId::SURFACE_AMBIENT,
                         GuiSettingsId::SURFACE_SUN_INTENSITY,
+                        GuiSettingsId::SURFACE_SUN_POSITION,
                         GuiSettingsId::SURFACE_EMISSION,
                         GuiSettingsId::VOLUME_EMISSION,
                         GuiSettingsId::VOLUME_ABSORPTION,
+                        GuiSettingsId::VOLUME_SCATTERING,
                         GuiSettingsId::BLOOM_INTENSITY,
                         GuiSettingsId::BLOOM_RADIUS,
                         GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE,
+                        GuiSettingsId::RAYTRACE_LENSING_MAGNITUDE,
                     });
 
                 changed.parameters = job->getRenderParams();

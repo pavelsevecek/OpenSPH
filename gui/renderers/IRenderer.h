@@ -117,12 +117,6 @@ struct RenderParams {
         /// \brief Value of the iso-surface defining the rendered surface
         float level = 0.15f;
 
-        /// \brief Intensity of the ambient light, illuminating every point unconditionally.
-        float ambientLight = 0.3f;
-
-        /// \brief Intensity of the sunlight.
-        float sunLight = 0.7f;
-
         /// \brief Emission multiplier
         float emission = 1.f;
 
@@ -139,6 +133,9 @@ struct RenderParams {
         /// \brief Absorption coefficient [m^-1]
         float absorption = 0.f;
 
+        /// \brief Scattering coefficient [m^-1]
+        float scattering = 0.f;
+
     } volume;
 
     struct {
@@ -153,6 +150,18 @@ struct RenderParams {
         bool showLabels = true;
 
     } contours;
+
+    struct {
+        /// Direction to sun; sun is assumed to be a point light source.
+        Vector dirToSun;
+
+        /// \brief Intensity of the ambient light, illuminating every point unconditionally.
+        float ambientLight = 0.3f;
+
+        /// \brief Intensity of the sunlight.
+        float sunLight = 0.7f;
+
+    } lighting;
 
     struct {
         /// \brief Magnitude of the lensing effect

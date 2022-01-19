@@ -269,6 +269,15 @@ VirtualSettings SingleParticleIc::getSettings() {
     particleCat.connect("Velocity [km/s]", "v0", v0).setUnits(1.e3_f);
     particleCat.connect("Interaction", "interaction", interaction);
 
+    VirtualSettings::Category& visCat = connector.addCategory("Visualization");
+    visCat.connect("Visible", "visible", visible);
+    visCat.connect("Texture path", "texture", texture)
+        .setPathType(IVirtualEntry::PathType::INPUT_FILE)
+        .setFileFormats({
+            { "JPEG image", "jpg" },
+            { "PNG image", "png" },
+            { "TIFF image", "tif" },
+        });
     return connector;
 }
 
@@ -281,6 +290,7 @@ void SingleParticleIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
     a.radius = radius;
     a.mass = mass;
     a.settings.set(AttractorSettingsId::INTERACTION, ParticleInteractionEnum(interaction));
+    a.settings.set(AttractorSettingsId::VISIBLE, visible);
     if (!texture.empty()) {
         a.settings.set(AttractorSettingsId::VISUALIZATION_TEXTURE, texture.string());
     }
@@ -969,7 +979,7 @@ void PolytropeIc::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(call
 
     BodySettings body;
     body.set(BodySettingsId::INITIAL_DISTRIBUTION, distId);
-    
+
     AutoPtr<IDistribution> distribution = Factory::getDistribution(body);
     const Float rho0 = material->getParam<Float>(BodySettingsId::DENSITY);
     const Float mass = sphereVolume(radius) * rho0;

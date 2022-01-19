@@ -20,6 +20,8 @@ const AttractorSettings& getDefaultSettings() {
     { AttractorSettingsId::INTERACTION,           "interactions",     ParticleInteractionEnum::NONE,
         "Specifies how the attractor interacts with particles. Can be one of:\n" +
         EnumMap::getDesc<ParticleInteractionEnum>() },
+    { AttractorSettingsId::VISIBLE,               "visualization.visible", true,
+        "Visible when rendered. "},
     { AttractorSettingsId::VISUALIZATION_TEXTURE, "visualization.texture", ""_s,
         "Path to the texture image used when rendering the attractor. "},
     });
