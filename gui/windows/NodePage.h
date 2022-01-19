@@ -225,6 +225,8 @@ private:
 
     void onRightUp(wxMouseEvent& evt);
 
+    void onKeyUp(wxKeyEvent& evt);
+
     void doPopupMenu(VisNode* vis);
 };
 

@@ -773,6 +773,7 @@ NodeEditor::NodeEditor(NodeWindow* parent, SharedPtr<INodeManagerCallbacks> call
     this->Connect(wxEVT_LEFT_UP, wxMouseEventHandler(NodeEditor::onLeftUp));
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(NodeEditor::onRightUp));
     this->Connect(wxEVT_MOTION, wxMouseEventHandler(NodeEditor::onMouseMotion));
+    this->Connect(wxEVT_CHAR_HOOK, wxKeyEventHandler(NodeEditor::onKeyUp));
 
     this->Bind(wxEVT_ERASE_BACKGROUND, [](wxEraseEvent&) {});
 }
@@ -1218,6 +1219,24 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
     this->doPopupMenu(vis);
 }
 
+void NodeEditor::onKeyUp(wxKeyEvent& evt) {
+    const auto code = evt.GetKeyCode();
+    switch (code) {
+    case WXK_DELETE:
+    case WXK_NUMPAD_DELETE:
+        if ( state.activated ) {
+            const auto vis = state.activated;
+            state.activated = nullptr;
+            nodeWindow->deleteNode(vis->node->sharedFromThis());
+            this->Refresh();
+        }
+        break;
+    default:
+        evt.Skip();
+        break;
+    }
+}
+
 void NodeEditor::doPopupMenu(VisNode* vis) {
     wxMenu menu;
 
@@ -1270,9 +1289,13 @@ void NodeEditor::doPopupMenu(VisNode* vis) {
             nodeMgr->layoutNodes(*vis->node, vis->position);
             break;
         case 6:
+            if ( state.activated == vis)
+                state.activated = nullptr;
             nodeWindow->deleteNode(vis->node->sharedFromThis());
             break;
         case 7:
+            if ( state.activated == vis)
+                state.activated = nullptr;
             nodeWindow->deleteTree(vis->node->sharedFromThis());
             break;
         default:
