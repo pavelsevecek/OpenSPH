@@ -1224,10 +1224,9 @@ void NodeEditor::onKeyUp(wxKeyEvent& evt) {
     switch (code) {
     case WXK_DELETE:
     case WXK_NUMPAD_DELETE:
-        if ( state.activated ) {
+        if (state.activated) {
             const auto vis = state.activated;
-            state.activated = nullptr;
-            nodeWindow->deleteNode(vis->node->sharedFromThis());
+            this->deleteNode(vis);
             this->Refresh();
         }
         break;
@@ -1289,14 +1288,10 @@ void NodeEditor::doPopupMenu(VisNode* vis) {
             nodeMgr->layoutNodes(*vis->node, vis->position);
             break;
         case 6:
-            if ( state.activated == vis)
-                state.activated = nullptr;
-            nodeWindow->deleteNode(vis->node->sharedFromThis());
+            this->deleteNode(vis);
             break;
         case 7:
-            if ( state.activated == vis)
-                state.activated = nullptr;
-            nodeWindow->deleteTree(vis->node->sharedFromThis());
+            this->deleteNode(vis);
             break;
         default:
             NOT_IMPLEMENTED;
@@ -1305,6 +1300,11 @@ void NodeEditor::doPopupMenu(VisNode* vis) {
         this->Refresh();
     });
     this->PopupMenu(&menu);
+}
+void NodeEditor::deleteNode(const VisNode* vis) {
+    if (state.activated == vis)
+        state.activated = nullptr;
+    nodeWindow->deleteNode(vis->node->sharedFromThis());
 }
 
 //-----------------------------------------------------------------------------------------------------------
