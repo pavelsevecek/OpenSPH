@@ -773,7 +773,7 @@ NodeEditor::NodeEditor(NodeWindow* parent, SharedPtr<INodeManagerCallbacks> call
     this->Connect(wxEVT_LEFT_UP, wxMouseEventHandler(NodeEditor::onLeftUp));
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(NodeEditor::onRightUp));
     this->Connect(wxEVT_MOTION, wxMouseEventHandler(NodeEditor::onMouseMotion));
-    this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(NodeEditor::onDoubleClick));
+    this->Connect(wxEVT_CHAR_HOOK, wxKeyEventHandler(NodeEditor::onKeyUp));
 
     this->Bind(wxEVT_ERASE_BACKGROUND, [](wxEraseEvent&) {});
 }
@@ -1157,15 +1157,21 @@ void NodeEditor::onLeftDown(wxMouseEvent& evt) {
         state.selected = nodeMgr->getSelectedNode(position);
     }
     state.mousePosition = mousePosition;
+    evt.Skip(); // required to allow the panel to receive focus
 }
 
 void NodeEditor::onLeftUp(wxMouseEvent& evt) {
     const Pixel mousePosition(evt.GetPosition());
     state.selected = nullptr;
 
-    if (!state.connectingSlot) {
-        return;
+    if (state.connectingSlot) {
+        onLeftUpConnecting(mousePosition);
+    } else {
+        onLeftUpSelecting(mousePosition);
     }
+    evt.Skip(); // required to allow the panel to receive focus
+}
+void NodeEditor::onLeftUpConnecting(const Pixel& mousePosition) {
     NodeSlot sourceSlot = state.connectingSlot.value();
 
     const Pixel position = this->transform(mousePosition);
@@ -1194,6 +1200,14 @@ void NodeEditor::onLeftUp(wxMouseEvent& evt) {
     state.connectingSlot = NOTHING;
     this->Refresh();
 }
+void NodeEditor::onLeftUpSelecting(const Pixel& mousePosition) {
+    VisNode* vis = nodeMgr->getSelectedNode((mousePosition - state.offset) / state.zoom);
+    if (vis) {
+        state.activated = vis;
+        this->Refresh();
+        nodeWindow->selectNode(*vis->node);
+    }
+}
 
 void NodeEditor::onRightUp(wxMouseEvent& evt) {
     const Pixel position = (Pixel(evt.GetPosition()) - state.offset) / state.zoom;
@@ -1205,13 +1219,20 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
     this->doPopupMenu(vis);
 }
 
-void NodeEditor::onDoubleClick(wxMouseEvent& evt) {
-    const Pixel position(evt.GetPosition());
-    VisNode* vis = nodeMgr->getSelectedNode((position - state.offset) / state.zoom);
-    if (vis) {
-        state.activated = vis;
-        this->Refresh();
-        nodeWindow->selectNode(*vis->node);
+void NodeEditor::onKeyUp(wxKeyEvent& evt) {
+    const auto code = evt.GetKeyCode();
+    switch (code) {
+    case WXK_DELETE:
+    case WXK_NUMPAD_DELETE:
+        if (state.activated) {
+            const auto vis = state.activated;
+            this->deleteNode(vis);
+            this->Refresh();
+        }
+        break;
+    default:
+        evt.Skip();
+        break;
     }
 }
 
@@ -1267,10 +1288,10 @@ void NodeEditor::doPopupMenu(VisNode* vis) {
             nodeMgr->layoutNodes(*vis->node, vis->position);
             break;
         case 6:
-            nodeWindow->deleteNode(vis->node->sharedFromThis());
+            this->deleteNode(vis);
             break;
         case 7:
-            nodeWindow->deleteTree(vis->node->sharedFromThis());
+            this->deleteNode(vis);
             break;
         default:
             NOT_IMPLEMENTED;
@@ -1279,6 +1300,11 @@ void NodeEditor::doPopupMenu(VisNode* vis) {
         this->Refresh();
     });
     this->PopupMenu(&menu);
+}
+void NodeEditor::deleteNode(const VisNode* vis) {
+    if (state.activated == vis)
+        state.activated = nullptr;
+    nodeWindow->deleteNode(vis->node->sharedFromThis());
 }
 
 //-----------------------------------------------------------------------------------------------------------

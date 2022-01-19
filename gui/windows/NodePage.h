@@ -220,12 +220,15 @@ private:
     void onLeftDown(wxMouseEvent& evt);
 
     void onLeftUp(wxMouseEvent& evt);
+    void onLeftUpSelecting(const Pixel& mousePosition);
+    void onLeftUpConnecting(const Pixel& mousePosition);
 
     void onRightUp(wxMouseEvent& evt);
 
-    void onDoubleClick(wxMouseEvent& evt);
+    void onKeyUp(wxKeyEvent& evt);
 
     void doPopupMenu(VisNode* vis);
+    void deleteNode(const VisNode* vis);
 };
 
 using PropertyEntryMap = FlatMap<wxPGProperty*, IVirtualEntry*>;
