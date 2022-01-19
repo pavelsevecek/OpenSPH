@@ -220,10 +220,10 @@ private:
     void onLeftDown(wxMouseEvent& evt);
 
     void onLeftUp(wxMouseEvent& evt);
+    void onLeftUpSelecting(const Pixel& mousePosition);
+    void onLeftUpConnecting(const Pixel& mousePosition);
 
     void onRightUp(wxMouseEvent& evt);
-
-    void onDoubleClick(wxMouseEvent& evt);
 
     void doPopupMenu(VisNode* vis);
 };

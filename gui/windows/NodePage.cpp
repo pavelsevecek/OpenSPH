@@ -773,7 +773,6 @@ NodeEditor::NodeEditor(NodeWindow* parent, SharedPtr<INodeManagerCallbacks> call
     this->Connect(wxEVT_LEFT_UP, wxMouseEventHandler(NodeEditor::onLeftUp));
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(NodeEditor::onRightUp));
     this->Connect(wxEVT_MOTION, wxMouseEventHandler(NodeEditor::onMouseMotion));
-    this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(NodeEditor::onDoubleClick));
 
     this->Bind(wxEVT_ERASE_BACKGROUND, [](wxEraseEvent&) {});
 }
@@ -1163,9 +1162,13 @@ void NodeEditor::onLeftUp(wxMouseEvent& evt) {
     const Pixel mousePosition(evt.GetPosition());
     state.selected = nullptr;
 
-    if (!state.connectingSlot) {
-        return;
+    if (state.connectingSlot) {
+        onLeftUpConnecting(mousePosition);
+    } else {
+        onLeftUpSelecting(mousePosition);
     }
+}
+void NodeEditor::onLeftUpConnecting(const Pixel& mousePosition) {
     NodeSlot sourceSlot = state.connectingSlot.value();
 
     const Pixel position = this->transform(mousePosition);
@@ -1194,6 +1197,14 @@ void NodeEditor::onLeftUp(wxMouseEvent& evt) {
     state.connectingSlot = NOTHING;
     this->Refresh();
 }
+void NodeEditor::onLeftUpSelecting(const Pixel& mousePosition) {
+    VisNode* vis = nodeMgr->getSelectedNode((mousePosition - state.offset) / state.zoom);
+    if (vis) {
+        state.activated = vis;
+        this->Refresh();
+        nodeWindow->selectNode(*vis->node);
+    }
+}
 
 void NodeEditor::onRightUp(wxMouseEvent& evt) {
     const Pixel position = (Pixel(evt.GetPosition()) - state.offset) / state.zoom;
@@ -1203,16 +1214,6 @@ void NodeEditor::onRightUp(wxMouseEvent& evt) {
         return;
     }
     this->doPopupMenu(vis);
-}
-
-void NodeEditor::onDoubleClick(wxMouseEvent& evt) {
-    const Pixel position(evt.GetPosition());
-    VisNode* vis = nodeMgr->getSelectedNode((position - state.offset) / state.zoom);
-    if (vis) {
-        state.activated = vis;
-        this->Refresh();
-        nodeWindow->selectNode(*vis->node);
-    }
 }
 
 void NodeEditor::doPopupMenu(VisNode* vis) {
