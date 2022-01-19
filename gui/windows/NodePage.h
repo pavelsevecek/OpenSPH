@@ -228,6 +228,7 @@ private:
     void onKeyUp(wxKeyEvent& evt);
 
     void doPopupMenu(VisNode* vis);
+    void deleteNode(const VisNode* vis);
 };
 
 using PropertyEntryMap = FlatMap<wxPGProperty*, IVirtualEntry*>;
