@@ -136,10 +136,12 @@ void CurvePanel::onLeftDown(wxMouseEvent& evt) {
         lockedIdx = this->getIdx(mousePosition);
     }
     this->Refresh();
+    evt.Skip(); // required to allow the panel to receive focus
 }
 
-void CurvePanel::onLeftUp(wxMouseEvent& UNUSED(evt)) {
+void CurvePanel::onLeftUp(wxMouseEvent& evt) {
     lockedIdx = NOTHING;
+    evt.Skip(); // required to allow the panel to receive focus
 }
 
 void CurvePanel::onRightUp(wxMouseEvent& evt) {

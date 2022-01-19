@@ -1156,6 +1156,7 @@ void NodeEditor::onLeftDown(wxMouseEvent& evt) {
         state.selected = nodeMgr->getSelectedNode(position);
     }
     state.mousePosition = mousePosition;
+    evt.Skip(); // required to allow the panel to receive focus
 }
 
 void NodeEditor::onLeftUp(wxMouseEvent& evt) {
@@ -1167,6 +1168,7 @@ void NodeEditor::onLeftUp(wxMouseEvent& evt) {
     } else {
         onLeftUpSelecting(mousePosition);
     }
+    evt.Skip(); // required to allow the panel to receive focus
 }
 void NodeEditor::onLeftUpConnecting(const Pixel& mousePosition) {
     NodeSlot sourceSlot = state.connectingSlot.value();

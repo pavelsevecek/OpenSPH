@@ -140,12 +140,14 @@ void PaletteEditor::onMouseMotion(wxMouseEvent& evt) {
     this->Refresh();
 }
 
-void PaletteEditor::onLeftUp(wxMouseEvent& UNUSED(evt)) {
+void PaletteEditor::onLeftUp(wxMouseEvent& evt) {
     active = NOTHING;
+    evt.Skip(); // required to allow the panel to receive focus
 }
 
 void PaletteEditor::onLeftDown(wxMouseEvent& evt) {
     active = this->lock(evt.GetPosition().x);
+    evt.Skip(); // required to allow the panel to receive focus
 }
 
 void PaletteEditor::onRightUp(wxMouseEvent& evt) {
