@@ -22,9 +22,10 @@ class Quantity;
 class Box;
 class StorageSequence;
 class ConstStorageSequence;
-struct Attractor;
+class IndexSequence;
 enum class OrderEnum;
 enum class VisitorEnum;
+struct Attractor;
 
 struct StorageElement {
     QuantityId id;
@@ -258,6 +259,10 @@ private:
         MatRange() = default;
 
         MatRange(const SharedPtr<IMaterial>& material, const Size from, const Size to);
+
+        bool empty() const {
+            return from >= to;
+        }
     };
 
     /// \brief Materials of particles in the storage.
@@ -438,6 +443,9 @@ public:
     /// The new material cannot be nullptr.
     void setMaterial(const Size matIdx, const SharedPtr<IMaterial>& material);
 
+    /// \brief Modifies material for given sequence of particles.
+    void setMaterial(const IndexSequence sequence, const SharedPtr<IMaterial>& material);
+
     /// \brief Returns the bounding range of given quantity.
     ///
     /// Provides an easy access to the material range without construcing intermediate object of \ref
@@ -607,6 +615,17 @@ private:
     /// \brief Updates the cached matIds view.
     void update();
 };
+
+/// \brief Convenience function to get the bounding box of all particles.
+///
+/// This takes into account particle radii, using given kernel radius.
+Box getBoundingBox(const Storage& storage, const Float radius = 2._f);
+
+/// \brief Returns the center of mass of all particles.
+///
+/// Function can be called even if the storage does not store particle masses, in which case all particles are
+/// assumed to have equal mass.
+Vector getCenterOfMass(const Storage& storage);
 
 /// \brief Adds or updates a quantity holding particle indices to the storage.
 ///

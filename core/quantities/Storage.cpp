@@ -395,8 +395,66 @@ void Storage::setMaterial(const Size matIdx, const SharedPtr<IMaterial>& materia
         throw InvalidStorageAccess("No material with index " + toString(matIdx));
     }
 
-    /// \todo merge material ranes if they have the same material
+    /// \todo merge material ranges if they have the same material
     mats[matIdx].material = material;
+}
+
+void Storage::setMaterial(const IndexSequence sequence, const SharedPtr<IMaterial>& material) {
+    SPH_ASSERT(!mats.empty());
+    MatRange newMat;
+    newMat.material = material;
+    newMat.from = *sequence.begin();
+    newMat.to = *sequence.end();
+    for (Size matId = 0; matId < mats.size();) {
+        MatRange mat = mats[matId];
+        if (mat.to <= newMat.from || mat.from >= newMat.to) {
+            // no intersection
+            ++matId;
+            continue;
+        } else {
+            // compute the intersection
+            MatRange m1 = mat;
+            MatRange m2 = mat;
+            m1.from = mat.from;
+            m1.to = newMat.from;
+            m2.from = newMat.to;
+            m2.to = mat.to;
+
+            mats.remove(matId);
+            if (!m1.empty()) {
+                mats.insert(matId++, m1);
+            }
+            mats.insert(matId++, newMat);
+            if (!m2.empty()) {
+                mats.insert(matId++, m2);
+            }
+        }
+    }
+    if (mats.size() == 1) {
+        return;
+    }
+
+    // merge the consecutive ranges
+    for (Size matId = 0; matId < mats.size() - 1;) {
+        if (mats[matId].material == mats[matId + 1].material) {
+            MatRange mat1 = mats[matId];
+            MatRange mat2 = mats[matId + 1];
+            mats.remove(matId);
+            mat1.to = mat2.to;
+            mats[matId] = mat1;
+        } else {
+            ++matId;
+        }
+    }
+
+    // fix material ID
+    if (matIds) {
+        for (Size matId = 0; matId < mats.size(); ++matId) {
+            for (Size i = mats[matId].from; i < mats[matId].to; ++i) {
+                matIds[i] = matId;
+            }
+        }
+    }
 }
 
 bool Storage::isHomogeneous(const BodySettingsId param) const {
@@ -428,6 +486,16 @@ Array<TValue> Storage::getMaterialParams(const BodySettingsId param) const {
     }
     return values;
 }
+
+template Array<bool> Storage::getMaterialParams(const BodySettingsId param) const;
+template Array<int> Storage::getMaterialParams(const BodySettingsId param) const;
+template Array<Interval> Storage::getMaterialParams(const BodySettingsId param) const;
+template Array<String> Storage::getMaterialParams(const BodySettingsId param) const;
+template Array<EnumWrapper> Storage::getMaterialParams(const BodySettingsId param) const;
+template Array<Float> Storage::getMaterialParams(const BodySettingsId param) const;
+template Array<Vector> Storage::getMaterialParams(const BodySettingsId param) const;
+template Array<SymmetricTensor> Storage::getMaterialParams(const BodySettingsId param) const;
+template Array<TracelessTensor> Storage::getMaterialParams(const BodySettingsId param) const;
 
 StorageSequence Storage::getQuantities() {
     return StorageSequence(quantities, {});
@@ -900,6 +968,39 @@ void Storage::setUserData(SharedPtr<IStorageUserData> newData) {
 
 SharedPtr<IStorageUserData> Storage::getUserData() const {
     return userData;
+}
+
+Box getBoundingBox(const Storage& storage, const Float radius) {
+    Box box;
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    for (Size i = 0; i < r.size(); ++i) {
+        box.extend(r[i] + radius * Vector(r[i][H]));
+        box.extend(r[i] - radius * Vector(r[i][H]));
+    }
+    return box;
+}
+
+Vector getCenterOfMass(const Storage& storage) {
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    if (storage.has(QuantityId::MASS)) {
+        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+
+        Float m_sum = 0._f;
+        Vector r_com(0._f);
+        for (Size i = 0; i < r.size(); ++i) {
+            m_sum += m[i];
+            r_com += m[i] * r[i];
+        }
+        r_com[H] = 0._f;
+        return r_com / m_sum;
+    } else {
+        Vector r_com(0._f);
+        for (Size i = 0; i < r.size(); ++i) {
+            r_com += r[i];
+        }
+        r_com[H] = 0._f;
+        return r_com / r.size();
+    }
 }
 
 void setPersistentIndices(Storage& storage) {

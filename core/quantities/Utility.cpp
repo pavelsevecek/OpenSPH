@@ -7,7 +7,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-Box getBoundingBox(const Storage& storage, const Float radius) {
+/*Box getBoundingBox(const Storage& storage, const Float radius) {
     Box box;
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
@@ -46,7 +46,7 @@ Vector getCenterOfMass(const Storage& storage) {
         }
         return clearH(r_com / r.size());
     }
-}
+}*/
 
 Float getTotalMass(const Storage& storage) {
     Float m_tot = 0._f;

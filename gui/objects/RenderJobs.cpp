@@ -58,6 +58,17 @@ AnimationJob::AnimationJob(const String& name)
     sequence.units = EnumWrapper(UnitEnum::SI);
 }
 
+UnorderedMap<String, ExtJobType> AnimationJob::requires() const {
+    UnorderedMap<String, ExtJobType> slots = this->getSlots();
+    if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE) {
+        slots.remove("particles");
+    }
+    if (!overrideUv) {
+        slots.remove("UV override");
+    }
+    return slots;
+}
+
 VirtualSettings AnimationJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
@@ -150,6 +161,7 @@ VirtualSettings AnimationJob::getSettings() {
             return id == RendererEnum::VOLUME || id == RendererEnum::RAYMARCHER;
         })
         .setPathType(IVirtualEntry::PathType::INPUT_FILE);
+    textureCat.connect("Override UVs", "override_uv", overrideUv).setEnabler(raymarcherEnabler);
 
     auto sequenceEnabler = [this] { return AnimationType(animationType) == AnimationType::FILE_SEQUENCE; };
 
@@ -297,9 +309,15 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
     if (AnimationType(animationType) == AnimationType::FILE_SEQUENCE) {
         Optional<Size> sequenceFirstIndex = OutputFile::getDumpIdx(sequence.firstFile);
         if (sequenceFirstIndex) {
-            firstIndex = sequenceFirstIndex.value();
+            firstIndex = sequenceFirstIndex.value() * (extraFrames + 1);
         }
     }
+
+    SharedPtr<ParticleData> uvOverrideData;
+    if (overrideUv) {
+        uvOverrideData = this->getInput<ParticleData>("UV override");
+    }
+
     OutputFile paths(directory / Path(fileMask), firstIndex);
     SharedPtr<CameraData> camera = this->getInput<CameraData>("camera");
     Movie movie(
@@ -309,6 +327,24 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
     case AnimationType::SINGLE_FRAME: {
         SharedPtr<ParticleData> data = this->getInput<ParticleData>("particles");
         AnimationRenderOutput output(callbacks, *rendererPtr, iterLimit);
+
+        if (uvOverrideData) {
+            const Storage& reference = uvOverrideData->storage;
+            Storage& frame = data->storage;
+            if (reference.getParticleCnt() != frame.getParticleCnt()) {
+                throw InvalidSetup("UV override has a different number of particles.");
+            }
+
+            const Array<Vector>& uvw = reference.getValue<Vector>(QuantityId::UVW);
+            frame.insert<Vector>(QuantityId::UVW, OrderEnum::ZERO, uvw.clone());
+
+            for (Size matId = 0; matId < reference.getMaterialCnt(); ++matId) {
+                MaterialView view = reference.getMaterial(matId);
+                SharedPtr<NullMaterial> newMaterial = makeShared<NullMaterial>(view.material().getParams());
+                frame.setMaterial(view.sequence(), newMaterial);
+            }
+        }
+
         movie.render(std::move(data->storage), std::move(data->stats), output);
         break;
     }
@@ -327,6 +363,23 @@ void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks)
             const Outcome result = input->load(element.value(), frame, stats);
             if (!result) {
                 /// \todo how to report this? (don't do modal dialog)
+            }
+
+            if (uvOverrideData) {
+                const Storage& reference = uvOverrideData->storage;
+                if (reference.getParticleCnt() != frame.getParticleCnt()) {
+                    throw InvalidSetup("UV override has a different number of particles.");
+                }
+
+                const Array<Vector>& uvw = reference.getValue<Vector>(QuantityId::UVW);
+                frame.insert<Vector>(QuantityId::UVW, OrderEnum::ZERO, uvw.clone());
+
+                for (Size matId = 0; matId < reference.getMaterialCnt(); ++matId) {
+                    MaterialView view = reference.getMaterial(matId);
+                    SharedPtr<NullMaterial> newMaterial =
+                        makeShared<NullMaterial>(view.material().getParams());
+                    frame.setMaterial(view.sequence(), newMaterial);
+                }
             }
 
             if (callbacks.shouldAbortRun()) {
