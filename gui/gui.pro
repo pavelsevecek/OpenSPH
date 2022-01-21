@@ -37,7 +37,6 @@ SOURCES += \
     objects/RenderJobs.cpp \
     renderers/ContourRenderer.cpp \
     renderers/IRenderer.cpp \
-    renderers/Lensing.cpp \
     renderers/MeshRenderer.cpp \
     renderers/ParticleRenderer.cpp \
     renderers/RayMarcher.cpp \

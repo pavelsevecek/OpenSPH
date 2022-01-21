@@ -24,6 +24,9 @@ RenderSetup::RenderSetup(wxWindow* parent)
         wxDefaultPosition,
         wxDefaultSize,
         wxFLP_OPEN | wxFLP_USE_TEXTCTRL | wxFLP_FILE_MUST_EXIST);
+    dataFiles->SetToolTip(
+        "Select the first file your simulation created. Simulation files can be set up in the 'Output' "
+        "category of the simulation node. Use a 'data file' or a 'state file' for rendering.");
     sizer->Add(dataFiles, 0, wxEXPAND);
 
     sizer->Add(new wxStaticText(this, wxID_ANY, "Output directory"));

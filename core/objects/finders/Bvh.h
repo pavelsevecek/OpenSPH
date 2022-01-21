@@ -46,6 +46,8 @@ private:
     Interval seg = Interval(0._f, LARGE);
 
 public:
+    RaySegment() = default;
+
     RaySegment(const Ray& ray)
         : Ray(ray) {}
 
@@ -258,15 +260,17 @@ public:
     template <typename TOutIter>
     Size getAllIntersections(const RaySegment& ray, TOutIter iter) const;
 
+    /// \brief Returns intersections filtered using given functor.
+    ///
+    /// Function returns true to search for more intersections.
+    template <typename TAddIntersection>
+    void getIntersections(const RaySegment& ray, const TAddIntersection& addIntersection) const;
+
     /// \brief Returns true if the ray is occluded by some geometry
     bool isOccluded(const RaySegment& ray) const;
 
     /// \brief Returns the bounding box of all objects in BVH.
     Box getBoundingBox() const;
-
-private:
-    template <typename TAddIntersection>
-    void getIntersections(const RaySegment& ray, const TAddIntersection& addIntersection) const;
 };
 
 NAMESPACE_SPH_END

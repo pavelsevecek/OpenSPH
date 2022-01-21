@@ -141,6 +141,10 @@ AffineMatrix OrthoCamera::getFrame() const {
     return AffineMatrix(cached.u, cached.v, cached.w).removeTranslation().translate(data.position);
 }
 
+Vector OrthoCamera::getPosition() const {
+    return data.position;
+}
+
 Vector OrthoCamera::getTarget() const {
     return data.target;
 }
@@ -281,6 +285,10 @@ AffineMatrix PerspectiveCamera::getFrame() const {
         .translate(data.position);
 }
 
+Vector PerspectiveCamera::getPosition() const {
+    return data.position;
+}
+
 Vector PerspectiveCamera::getTarget() const {
     return data.target;
 }
@@ -382,6 +390,10 @@ Pixel PanoCameraBase::getSize() const {
 
 AffineMatrix PanoCameraBase::getFrame() const {
     return AffineMatrix(matrix).removeTranslation().translate(data.position);
+}
+
+Vector PanoCameraBase::getPosition() const {
+    return data.position;
 }
 
 Vector PanoCameraBase::getTarget() const {

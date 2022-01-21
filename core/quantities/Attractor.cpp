@@ -23,7 +23,9 @@ const AttractorSettings& getDefaultSettings() {
     { AttractorSettingsId::VISIBLE,               "visualization.visible", true,
         "Visible when rendered. "},
     { AttractorSettingsId::VISUALIZATION_TEXTURE, "visualization.texture", ""_s,
-        "Path to the texture image used when rendering the attractor. "},
+        "Path to the texture image used when rendering the attractor." },
+    { AttractorSettingsId::ALBEDO,                "visualization.albedo", 1._f,
+        "Albedo of the object." },
     });
     return instance;
 }

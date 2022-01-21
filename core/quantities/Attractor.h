@@ -30,6 +30,9 @@ enum class AttractorSettingsId {
 
     /// Texture
     VISUALIZATION_TEXTURE = 100,
+
+    /// Albedo
+    ALBEDO = 101,
 };
 
 using AttractorSettings = Settings<AttractorSettingsId>;

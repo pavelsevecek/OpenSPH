@@ -81,6 +81,9 @@ public:
     /// and x-axis is perpendicular, i.e. left-vector.
     virtual AffineMatrix getFrame() const = 0;
 
+    /// \brief Returns the current camera position
+    virtual Vector getPosition() const = 0;
+
     /// \brief Returns the current target point of the camera.
     virtual Vector getTarget() const = 0;
 
@@ -187,6 +190,8 @@ public:
 
     virtual AffineMatrix getFrame() const override;
 
+    virtual Vector getPosition() const override;
+
     virtual Vector getTarget() const override;
 
     virtual Vector getUpVector() const override;
@@ -253,6 +258,8 @@ public:
 
     virtual AffineMatrix getFrame() const override;
 
+    virtual Vector getPosition() const override;
+
     virtual Vector getTarget() const override;
 
     virtual Vector getUpVector() const override;
@@ -300,6 +307,8 @@ public:
     virtual Pixel getSize() const override;
 
     virtual AffineMatrix getFrame() const override;
+
+    virtual Vector getPosition() const override;
 
     virtual Vector getTarget() const override;
 

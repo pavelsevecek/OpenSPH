@@ -1,6 +1,7 @@
 #include "objects/containers/StaticArray.h"
 #include "catch.hpp"
 #include "utils/RecordType.h"
+#include "utils/Utils.h"
 
 using namespace Sph;
 
@@ -82,6 +83,17 @@ TEST_CASE("StaticArray modify", "[staticarray]") {
     }
     REQUIRE(ar[0].wasMoveAssigned);
     REQUIRE(ar[1].wasCopyAssigned);
+}
+
+TEST_CASE("StaticArray front & back", "[staticarray]") {
+    StaticArray<int, 4> ar{ 1, 2, 3, 4 };
+    REQUIRE(ar.back() == 4);
+    REQUIRE(ar.front() == 1);
+    ar.back() = 3;
+    REQUIRE(ar.back() == 3);
+
+    ar.resize(0);
+    REQUIRE_SPH_ASSERT(ar.back());
 }
 
 TEST_CASE("StaticArray push & pop", "[staticarray]") {

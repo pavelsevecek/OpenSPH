@@ -271,6 +271,7 @@ VirtualSettings SingleParticleIc::getSettings() {
 
     VirtualSettings::Category& visCat = connector.addCategory("Visualization");
     visCat.connect("Visible", "visible", visible);
+    visCat.connect("Albedo", "albedo", albedo);
     visCat.connect("Texture path", "texture", texture)
         .setPathType(IVirtualEntry::PathType::INPUT_FILE)
         .setFileFormats({
@@ -291,6 +292,7 @@ void SingleParticleIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
     a.mass = mass;
     a.settings.set(AttractorSettingsId::INTERACTION, ParticleInteractionEnum(interaction));
     a.settings.set(AttractorSettingsId::VISIBLE, visible);
+    a.settings.set(AttractorSettingsId::ALBEDO, albedo);
     if (!texture.empty()) {
         a.settings.set(AttractorSettingsId::VISUALIZATION_TEXTURE, texture.string());
     }

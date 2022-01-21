@@ -35,12 +35,17 @@ private:
         /// Helper storage of textures, kept in memory between renders
         FlatMap<String, SharedPtr<Texture>> textureCache;
 
+        /// Maximal distance for raymarching
+        double maxDistance;
+
     } cached;
 
     struct RayData {
-        /// Intersection for the current ray
-        Array<IntersectionInfo> intersections;
-        HyperbolicRay curvedRay;
+        /// Current path
+        LensingEffect::Segments segments = EMPTY_ARRAY;
+
+        /// Intersection for the current path
+        Array<CurvedRayIntersectionInfo> intersections;
 
         RayData() = default;
         RayData(RayData&& other) = default;

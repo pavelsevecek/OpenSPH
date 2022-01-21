@@ -136,6 +136,30 @@ public:
         return data[idx].get();
     }
 
+    /// \brief Returns the first element in the array.
+    INLINE T& front() noexcept {
+        SPH_ASSERT(!empty());
+        return data[0].get();
+    }
+
+    /// \brief Returns the first element in the array.
+    INLINE const T& front() const noexcept {
+        SPH_ASSERT(!empty());
+        return data[0].get();
+    }
+
+    /// \brief Returns the last element of the array.
+    INLINE T& back() noexcept {
+        SPH_ASSERT(!empty());
+        return data[actSize - 1].get();
+    }
+
+    /// \brief Returns the last element of the array.
+    INLINE const T& back() const noexcept {
+        SPH_ASSERT(!empty());
+        return data[actSize - 1].get();
+    }
+
     /// \brief Returns the maximum allowed size of the array.
     INLINE constexpr TCounter maxSize() const noexcept {
         return N;

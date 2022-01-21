@@ -76,6 +76,7 @@ private:
     EnumWrapper interaction;
 
     bool visible = true;
+    Float albedo = 1._f;
     Path texture;
 
 public:
