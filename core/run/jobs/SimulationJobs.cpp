@@ -342,6 +342,17 @@ AutoPtr<IRun> SphJob::getRun(const RunSettings& overrides) const {
     if (!run.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES).has(ForceEnum::SOLID_STRESS)) {
         run.set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, false);
     }
+    const IoEnum output = run.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
+    const OutputSpacing spacing = run.get<OutputSpacing>(RunSettingsId::RUN_OUTPUT_SPACING);
+    if (output != IoEnum::NONE && spacing == OutputSpacing::LINEAR) {
+        const Float maxTimeStep = run.get<Float>(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP);
+        const Float outputInterval = run.get<Float>(RunSettingsId::RUN_OUTPUT_INTERVAL);
+        if (maxTimeStep > outputInterval) {
+            throw InvalidSetup(
+                "Output interval is larger than the maximal time step. This could cause inconsistent "
+                "simulation speed in the output file sequence.");
+        }
+    }
 
     return makeAuto<SphRun>(run, domain);
 }
