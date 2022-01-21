@@ -36,7 +36,7 @@ private:
         FlatMap<String, SharedPtr<Texture>> textureCache;
 
         /// Maximal distance for raymarching
-        double maxDistance;
+        Float maxDistance;
 
     } cached;
 
