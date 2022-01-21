@@ -462,7 +462,7 @@ Attractor readAttractor(Deserializer<Precise>& deserializer) {
         forValue(iteratorValue.value, [&deserializer, &a, paramId](auto& entry) {
             deserializer.read(entry);
             try {
-                setEnumIndex(a.settings, paramId, entry);
+                setEnumIndex(AttractorSettings::getDefaults(), paramId, entry);
                 a.settings.set(paramId, entry);
             } catch (const Exception& UNUSED(e)) {
                 // can be a parameter from newer version, silence the exception for backwards compatibility
