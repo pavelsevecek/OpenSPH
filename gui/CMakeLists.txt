@@ -18,6 +18,7 @@ set(GUI_SOURCES
     objects/Plots.cpp 
     objects/RenderContext.cpp 
     objects/RenderJobs.cpp 
+    jobs/Presets.cpp
     renderers/ContourRenderer.cpp 
     renderers/IRenderer.cpp 
     renderers/MeshRenderer.cpp 
@@ -73,6 +74,8 @@ set(GUI_HEADERS
     objects/RenderContext.h 
     objects/RenderJobs.h 
     objects/SvgContext.h 
+    objects/Texture.h
+    jobs/Presets.h
     renderers/Brdf.h 
     renderers/ContourRenderer.h 
     renderers/FrameBuffer.h 
@@ -81,6 +84,7 @@ set(GUI_HEADERS
     renderers/ParticleRenderer.h 
     renderers/VolumeRenderer.h 
     renderers/RayMarcher.h
+    renderers/Lensing.h
     renderers/Spectrum.h 
     windows/BatchDialog.h 
     windows/RunSelectDialog.h 
@@ -97,7 +101,6 @@ set(GUI_HEADERS
     windows/PaletteEditor.cpp
     windows/ParticleProbe.h 
     windows/PlotView.h 
-    objects/Texture.h 
     windows/RunPage.h 
     windows/RenderPage.h
     windows/NodePage.h 

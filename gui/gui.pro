@@ -25,6 +25,7 @@ SOURCES += \
     Project.cpp \
     Settings.cpp \
     Utils.cpp \
+    jobs/Presets.cpp \
     objects/Bitmap.cpp \
     objects/Camera.cpp \
     objects/CameraJobs.cpp \
@@ -76,6 +77,7 @@ HEADERS += \
     Renderer.h \
     Settings.h \
     Utils.h \
+    jobs/Presets.h \
     objects/Bitmap.h \
     objects/Camera.h \
     objects/CameraJobs.h \

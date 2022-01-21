@@ -3,6 +3,7 @@
 #include "gui/Factory.h"
 #include "gui/Project.h"
 #include "gui/Utils.h"
+#include "gui/jobs/Presets.h"
 #include "gui/objects/CameraJobs.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/objects/DelayedCallback.h"
@@ -22,7 +23,6 @@
 #include "run/ScriptNode.h"
 #include "run/SpecialEntries.h"
 #include "run/jobs/IoJobs.h"
-#include "run/jobs/Presets.h"
 #include "run/jobs/ScriptJobs.h"
 #include "thread/CheckFunction.h"
 #include <wx/dcbuffer.h>
@@ -1819,8 +1819,15 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
     }
 
     wxTreeItemId presetsId = jobView->AppendItem(rootId, "presets");
-    std::map<wxTreeItemId, Presets::Id> presetsIdMap;
+    std::map<wxTreeItemId, Presets::ExtId> presetsIdMap;
     for (Presets::Id id : EnumMap::getAll<Presets::Id>()) {
+        String name = EnumMap::toString(id);
+        name.replaceAll("_", " ");
+
+        wxTreeItemId itemId = jobView->AppendItem(presetsId, name.toUnicode());
+        presetsIdMap[itemId] = id;
+    }
+    for (Presets::GuiId id : EnumMap::getAll<Presets::GuiId>()) {
         String name = EnumMap::toString(id);
         name.replaceAll("_", " ");
 
@@ -1867,17 +1874,18 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
         wxTreeItemId id = evt.GetItem();
         UniqueNameManager nameMgr = nodeMgr->makeUniqueNameManager();
         if (presetsIdMap.find(id) != presetsIdMap.end()) {
-            const Presets::Id presetId = presetsIdMap.at(id);
+            const Presets::ExtId presetId = presetsIdMap.at(id);
             SharedPtr<JobNode> presetNode = Presets::make(presetId, nameMgr);
             nodeMgr->addNodes(*presetNode);
 
             // hack to set default particle radius to 0.35 for SPH sims
-            static FlatSet<Presets::Id> SPH_SIMS = FlatSet<Presets::Id>(ElementsUniqueTag{},
+            static FlatSet<Presets::ExtId> SPH_SIMS = FlatSet<Presets::ExtId>(ElementsUniqueTag{},
                 {
                     Presets::Id::COLLISION,
                     Presets::Id::CRATERING,
                     Presets::Id::PLANETESIMAL_MERGING,
                     Presets::Id::ACCRETION_DISK,
+                    Presets::GuiId::BLACK_HOLE,
                 });
             static bool defaultSet = false;
             if (!defaultSet && SPH_SIMS.contains(presetId)) {
