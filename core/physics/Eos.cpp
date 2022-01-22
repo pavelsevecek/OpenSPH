@@ -17,16 +17,16 @@ Pair<Float> IdealGasEos::evaluate(const Float rho, const Float u) const {
     return { p, sqrt(gamma * p / rho) };
 }
 
+Float IdealGasEos::getTemperature(const Float UNUSED(rho), const Float u) const {
+    return u / Constants::gasConstant;
+}
+
 Float IdealGasEos::getInternalEnergy(const Float rho, const Float p) const {
     return p / ((gamma - 1._f) * rho);
 }
 
 Float IdealGasEos::getDensity(const Float p, const Float u) const {
     return p / ((gamma - 1._f) * u);
-}
-
-Float IdealGasEos::getTemperature(const Float u) const {
-    return u / Constants::gasConstant;
 }
 
 Float IdealGasEos::getSpecificEntropy(const Float rho, const Float p) const {
@@ -41,11 +41,16 @@ TaitEos::TaitEos(const BodySettings& settings) {
     c0 = settings.get<Float>(BodySettingsId::TAIT_SOUND_SPEED);
     rho0 = settings.get<Float>(BodySettingsId::DENSITY);
     gamma = settings.get<Float>(BodySettingsId::TAIT_GAMMA);
+    c_p = settings.get<Float>(BodySettingsId::HEAT_CAPACITY);
 }
 
 Pair<Float> TaitEos::evaluate(const Float rho, const Float UNUSED(u)) const {
     const Float p = sqr(c0) * rho0 / gamma * (pow(rho / rho0, gamma) - 1._f);
     return { p, c0 };
+}
+
+Float TaitEos::getTemperature(const Float UNUSED(rho), const Float u) const {
+    return u / c_p;
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -57,6 +62,7 @@ MieGruneisenEos::MieGruneisenEos(const BodySettings& settings) {
     rho0 = settings.get<Float>(BodySettingsId::DENSITY);
     Gamma = settings.get<Float>(BodySettingsId::GRUNEISEN_GAMMA);
     s = settings.get<Float>(BodySettingsId::HUGONIOT_SLOPE);
+    c_p = settings.get<Float>(BodySettingsId::HEAT_CAPACITY);
 }
 
 Pair<Float> MieGruneisenEos::evaluate(const Float rho, const Float u) const {
@@ -68,21 +74,27 @@ Pair<Float> MieGruneisenEos::evaluate(const Float rho, const Float u) const {
     return { num / denom + Gamma * u * rho, c0 }; /// \todo derive the sound speed
 }
 
+Float MieGruneisenEos::getTemperature(const Float UNUSED(rho), const Float u) const {
+    return u / c_p;
+}
+
 //-----------------------------------------------------------------------------------------------------------
 // TillotsonEos implementation
 //-----------------------------------------------------------------------------------------------------------
 
-TillotsonEos::TillotsonEos(const BodySettings& settings)
-    : u0(settings.get<Float>(BodySettingsId::TILLOTSON_SUBLIMATION))
-    , uiv(settings.get<Float>(BodySettingsId::TILLOTSON_ENERGY_IV))
-    , ucv(settings.get<Float>(BodySettingsId::TILLOTSON_ENERGY_CV))
-    , a(settings.get<Float>(BodySettingsId::TILLOTSON_SMALL_A))
-    , b(settings.get<Float>(BodySettingsId::TILLOTSON_SMALL_B))
-    , rho0(settings.get<Float>(BodySettingsId::DENSITY))
-    , A(settings.get<Float>(BodySettingsId::BULK_MODULUS))
-    , B(settings.get<Float>(BodySettingsId::TILLOTSON_NONLINEAR_B))
-    , alpha(settings.get<Float>(BodySettingsId::TILLOTSON_ALPHA))
-    , beta(settings.get<Float>(BodySettingsId::TILLOTSON_BETA)) {}
+TillotsonEos::TillotsonEos(const BodySettings& settings) {
+    u0 = settings.get<Float>(BodySettingsId::TILLOTSON_SUBLIMATION);
+    uiv = settings.get<Float>(BodySettingsId::TILLOTSON_ENERGY_IV);
+    ucv = settings.get<Float>(BodySettingsId::TILLOTSON_ENERGY_CV);
+    a = settings.get<Float>(BodySettingsId::TILLOTSON_SMALL_A);
+    b = settings.get<Float>(BodySettingsId::TILLOTSON_SMALL_B);
+    rho0 = settings.get<Float>(BodySettingsId::DENSITY);
+    A = settings.get<Float>(BodySettingsId::BULK_MODULUS);
+    B = settings.get<Float>(BodySettingsId::TILLOTSON_NONLINEAR_B);
+    alpha = settings.get<Float>(BodySettingsId::TILLOTSON_ALPHA);
+    beta = settings.get<Float>(BodySettingsId::TILLOTSON_BETA);
+    c_p = settings.get<Float>(BodySettingsId::HEAT_CAPACITY);
+}
 
 Pair<Float> TillotsonEos::evaluate(const Float rho, const Float u) const {
     const Float eta = rho / rho0;
@@ -167,6 +179,10 @@ Float TillotsonEos::getDensity(const Float p, const Float u) const {
     return root.value();
 }
 
+Float TillotsonEos::getTemperature(const Float UNUSED(rho), const Float u) const {
+    return u / c_p;
+}
+
 //-----------------------------------------------------------------------------------------------------------
 // SimplifiedTillotsonEos implementation
 //-----------------------------------------------------------------------------------------------------------
@@ -177,6 +193,7 @@ SimplifiedTillotsonEos::SimplifiedTillotsonEos(const BodySettings& settings) {
     c = a + b;
     rho0 = settings.get<Float>(BodySettingsId::DENSITY);
     A = settings.get<Float>(BodySettingsId::BULK_MODULUS);
+    c_p = settings.get<Float>(BodySettingsId::HEAT_CAPACITY);
 }
 
 Pair<Float> SimplifiedTillotsonEos::evaluate(const Float rho, const Float u) const {
@@ -186,13 +203,19 @@ Pair<Float> SimplifiedTillotsonEos::evaluate(const Float rho, const Float u) con
     return { p, cs };
 }
 
+Float SimplifiedTillotsonEos::getTemperature(const Float UNUSED(rho), const Float u) const {
+    return u / c_p;
+}
+
 //-----------------------------------------------------------------------------------------------------------
 // MurnaghanEos implementation
 //-----------------------------------------------------------------------------------------------------------
 
-MurnaghanEos::MurnaghanEos(const BodySettings& settings)
-    : rho0(settings.get<Float>(BodySettingsId::DENSITY))
-    , A(settings.get<Float>(BodySettingsId::BULK_MODULUS)) {}
+MurnaghanEos::MurnaghanEos(const BodySettings& settings) {
+    rho0 = settings.get<Float>(BodySettingsId::DENSITY);
+    A = settings.get<Float>(BodySettingsId::BULK_MODULUS);
+    c_p = settings.get<Float>(BodySettingsId::HEAT_CAPACITY);
+}
 
 Pair<Float> MurnaghanEos::evaluate(const Float rho, const Float UNUSED(u)) const {
     const Float cs = sqrt(A / rho0);
@@ -200,17 +223,8 @@ Pair<Float> MurnaghanEos::evaluate(const Float rho, const Float UNUSED(u)) const
     return { p, cs };
 }
 
-//-----------------------------------------------------------------------------------------------------------
-// Aneos implementation
-//-----------------------------------------------------------------------------------------------------------
-
-Aneos::Aneos(const BodySettings& settings) {
-    (void)settings;
-}
-
-Pair<Float> Aneos::evaluate(const Float rho, const Float u) const {
-    NOT_IMPLEMENTED;
-    return { rho, u };
+Float MurnaghanEos::getTemperature(const Float UNUSED(rho), const Float u) const {
+    return u / c_p;
 }
 
 NAMESPACE_SPH_END

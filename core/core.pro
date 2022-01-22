@@ -31,6 +31,7 @@ SOURCES += \
     objects/geometry/SymmetricTensor.cpp \
     objects/utility/Dynamic.cpp \
     objects/utility/Streams.cpp \
+    physics/Aneos.cpp \
     physics/Damage.cpp \
     physics/Eos.cpp \
     physics/Functions.cpp \
@@ -234,6 +235,7 @@ HEADERS += \
     objects/wrappers/RawPtr.h \
     objects/wrappers/SharedPtr.h \
     objects/wrappers/Variant.h \
+    physics/Aneos.h \
     physics/Constants.h \
     physics/Damage.h \
     physics/Eos.h \

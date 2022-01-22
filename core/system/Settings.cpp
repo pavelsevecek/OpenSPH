@@ -770,9 +770,9 @@ static RegisterEnum<EosEnum> sEos({
     { EosEnum::TILLOTSON, "tillotson", "Tillotson equation of stats." },
     { EosEnum::MURNAGHAN, "murnaghan", "Murnaghan equation of state." },
     { EosEnum::SIMPLIFIED_TILLOTSON, "simplified_tillotson", "Simplified version of the Tillotson equation."},
-    /*{ EosEnum::ANEOS,
+    { EosEnum::ANEOS,
         "aneos",
-        "ANEOS equation of state, requires look-up table of values for given material." },*/
+        "ANEOS equation of state, requires look-up table of values for given material." },
 });
 
 
@@ -804,6 +804,8 @@ const BodySettings& getDefaultSettings() {
         "Specific energy of incipient vaporization, used in Tillotson EoS." },
     { BodySettingsId::TILLOTSON_ENERGY_CV,     "eos.tillotson.energy_cv",      1.82e7_f,
         "Specific energy of complete vaporization, used in Tillotson EoS." },
+    { BodySettingsId::ANEOS_FILE,              "eos.aneos.file",               ""_s,
+        "Input file describing the ANEOS material." },
     { BodySettingsId::GRUNEISEN_GAMMA,         "eos.mie_gruneisen.gamma",      2._f,      // value for copper taken from wikipedia
         "Gruneisen gamma, used in Mie-Gruneisen EoS." },
     { BodySettingsId::HUGONIOT_SLOPE,          "eos.mie_gruneises.hugoniot_slope",   1.5_f, // value for copper taken from wikipedia

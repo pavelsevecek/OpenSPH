@@ -37,6 +37,10 @@ public:
         return { p, cs };
     }
 
+    virtual Float getTemperature(const Float, const Float) const override {
+        // not needed for this example
+        NOT_IMPLEMENTED
+    }
 
     virtual Float getInternalEnergy(const Float, const Float) const override {
         // not needed for this example

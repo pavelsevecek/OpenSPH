@@ -16,6 +16,7 @@
 #include "objects/finders/Octree.h"
 #include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Domain.h"
+#include "physics/Aneos.h"
 #include "physics/Damage.h"
 #include "physics/Eos.h"
 #include "physics/Rheology.h"
@@ -63,6 +64,8 @@ AutoPtr<IEos> Factory::getEos(const BodySettings& body) {
         return makeAuto<SimplifiedTillotsonEos>(body);
     case EosEnum::MURNAGHAN:
         return makeAuto<MurnaghanEos>(body);
+    case EosEnum::ANEOS:
+        return makeAuto<Aneos>(body);
     case EosEnum::NONE:
         return nullptr;
     default:

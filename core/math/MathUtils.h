@@ -335,8 +335,16 @@ INLINE Float exp10(const Float f) {
     return std::pow(10._f, f);
 }
 
+INLINE Float exp2(const Float f) {
+    return std::exp2(f);
+}
+
 INLINE Float log10(const Float f) {
     return std::log10(f);
+}
+
+INLINE Float log2(const Float f) {
+    return std::log2(f);
 }
 
 template <typename T>

@@ -40,7 +40,7 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
         return enablerRheo() && id != FractureEnum::NONE;
     };
 
-    category.connect<EnumWrapper>("EoS", body, BodySettingsId::EOS).setEnabler(enabler);
+    category.connect<EnumWrapper>("Equation of state", body, BodySettingsId::EOS).setEnabler(enabler);
     category.connect<Float>("Density [kg/m^3]", body, BodySettingsId::DENSITY).setEnabler(enabler);
     category.connect<Float>("Specific energy [J/kg]", body, BodySettingsId::ENERGY).setEnabler(enabler);
     category.connect<Float>("Adiabatic index []", body, BodySettingsId::ADIABATIC_INDEX)
@@ -127,6 +127,11 @@ VirtualSettings MaterialJob::getSettings() {
         .setEnabler(tillotsonEnabler);
     tillotsonCat.connect<Float>("Sublimation energy", body, BodySettingsId::TILLOTSON_SUBLIMATION)
         .setEnabler(tillotsonEnabler);
+
+    VirtualSettings::Category& aneosCat = connector.addCategory("ANEOS");
+    aneosCat.connect<Path>("ANEOS material file", body, BodySettingsId::ANEOS_FILE)
+        .setEnabler([this] { return body.get<EosEnum>(BodySettingsId::EOS) == EosEnum::ANEOS; })
+        .setPathType(IVirtualEntry::PathType::INPUT_FILE);
 
     VirtualSettings::Category& integratorCat = connector.addCategory("Time step control");
     integratorCat.connect<Float>("Density coeff. [kg/m^3]", body, BodySettingsId::DENSITY_MIN);

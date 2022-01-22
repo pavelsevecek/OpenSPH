@@ -1500,6 +1500,9 @@ enum class BodySettingsId {
     /// Specific energy of complete vaporization
     TILLOTSON_ENERGY_CV = 29,
 
+    /// Material file for the ANEOS equation of state
+    ANEOS_FILE = 75,
+
     /// Gruneisen's gamma paraemter used in Mie-Gruneisen equation of state
     GRUNEISEN_GAMMA = 30,
 

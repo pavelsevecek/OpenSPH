@@ -2113,6 +2113,7 @@ void NodeWindow::updateProperties() {
     this->updateEnabled(grid);
 
     grid->RestoreEditableState(states, wxPropertyGrid::ScrollPosState);
+    aui->Update(); // selecting a node may hide the palette editor
 }
 
 void NodeWindow::updateEnabled(wxPropertyGrid* grid) {

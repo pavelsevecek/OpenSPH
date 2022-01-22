@@ -18,6 +18,9 @@ public:
     /// Computes pressure and local sound speed from given density rho and specific internal energy u.
     virtual Pair<Float> evaluate(const Float rho, const Float u) const = 0;
 
+    /// Computes the temperature from given density rho and specific internal energy u.
+    virtual Float getTemperature(const Float rho, const Float u) const = 0;
+
     /// Inverted function; computes specific internal energy u from given density rho and pressure p.
     virtual Float getInternalEnergy(const Float rho, const Float p) const = 0;
 
@@ -36,11 +39,11 @@ public:
 
     virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
 
+    virtual Float getTemperature(const Float rho, const Float u) const override;
+
     virtual Float getInternalEnergy(const Float rho, const Float p) const override;
 
     virtual Float getDensity(const Float p, const Float u) const override;
-
-    Float getTemperature(const Float u) const;
 
     Float getSpecificEntropy(const Float rho, const Float p) const;
 };
@@ -54,11 +57,14 @@ private:
     Float c0;    ///< Sound speed at reference density
     Float rho0;  ///< Reference density
     Float gamma; ///< Density exponent
+    Float c_p;   ///< Heat capacity
 
 public:
     explicit TaitEos(const BodySettings& settings);
 
     virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
+
+    virtual Float getTemperature(const Float rho, const Float u) const override;
 
     virtual Float getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const override {
         NOT_IMPLEMENTED;
@@ -80,11 +86,14 @@ private:
     Float rho0;  ///< Reference density
     Float Gamma; ///< Gruneisen Gamma
     Float s;     ///< Linear Hugoniot slope coefficient
+    Float c_p;   ///< Heat capacity
 
 public:
     explicit MieGruneisenEos(const BodySettings& settings);
 
     virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
+
+    virtual Float getTemperature(const Float rho, const Float u) const override;
 
     virtual Float getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const override {
         NOT_IMPLEMENTED;
@@ -119,10 +128,14 @@ private:
     Float alpha;
     Float beta;
 
+    Float c_p;
+
 public:
     explicit TillotsonEos(const BodySettings& settings);
 
     virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
+
+    virtual Float getTemperature(const Float rho, const Float u) const override;
 
     virtual Float getInternalEnergy(const Float rho, const Float p) const override;
 
@@ -138,11 +151,14 @@ private:
     Float rho0;
     Float A;
     Float c;
+    Float c_p;
 
 public:
     explicit SimplifiedTillotsonEos(const BodySettings& settings);
 
     virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
+
+    virtual Float getTemperature(const Float rho, const Float u) const override;
 
     /// Currently not implemented.
     virtual Float getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const override {
@@ -162,30 +178,14 @@ class MurnaghanEos : public IEos {
 private:
     Float rho0;
     Float A;
+    Float c_p;
 
 public:
     explicit MurnaghanEos(const BodySettings& settings);
 
     virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
 
-    /// Currently not implemented.
-    virtual Float getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const override {
-        NOT_IMPLEMENTED;
-    }
-
-    /// Currently not implemented.
-    virtual Float getDensity(const Float UNUSED(p), const Float UNUSED(u)) const override {
-        NOT_IMPLEMENTED;
-    }
-};
-
-/// \brief ANEOS equation defined by a look-up table.
-class Aneos : public IEos {
-private:
-public:
-    explicit Aneos(const BodySettings& settings);
-
-    virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
+    virtual Float getTemperature(const Float rho, const Float u) const override;
 
     /// Currently not implemented.
     virtual Float getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const override {
@@ -197,6 +197,5 @@ public:
         NOT_IMPLEMENTED;
     }
 };
-
 
 NAMESPACE_SPH_END

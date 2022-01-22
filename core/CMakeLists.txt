@@ -27,6 +27,7 @@ set(CORE_SOURCES
     objects/utility/Streams.cpp 
     physics/Damage.cpp 
     physics/Eos.cpp 
+    physics/Aneos.cpp
     physics/Functions.cpp 
     physics/Integrals.cpp 
     physics/Rheology.cpp 
@@ -209,6 +210,7 @@ set(CORE_HEADERS
     objects/wrappers/Locking.h 
     objects/wrappers/LockingPtr.h 
     objects/wrappers/Lut.h 
+    objects/wrappers/Lut2D.h
     objects/wrappers/Optional.h 
     objects/wrappers/Outcome.h 
     objects/wrappers/PropagateConst.h 
@@ -218,6 +220,7 @@ set(CORE_HEADERS
     physics/Constants.h 
     physics/Damage.h 
     physics/Eos.h 
+    physics/Aneos.h
     physics/Functions.h 
     physics/Integrals.h 
     physics/Rheology.h 

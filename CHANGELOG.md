@@ -1,4 +1,5 @@
 ## 2021-01-22
+- added ANEOS
 - added an experimental lensing effect to the volumetric renderer
 - added a "black hole" preset
 - renamed raymarcher to "surface" renderer in UI

@@ -1,4 +1,6 @@
 #include "gui/objects/Colorizer.h"
+#include "physics/Eos.h"
+#include "sph/Materials.h"
 #include "timestepping/TimeStepCriterion.h"
 
 NAMESPACE_SPH_BEGIN
@@ -49,6 +51,36 @@ float SummedDensityColorizer::sum(const Size idx) const {
         rho += m[n.index] * kernel.value(r[idx] - r[n.index], r[idx][H]);
     }
     return float(rho);
+}
+
+bool TemperatureColorizer::hasData(const Storage& storage) const {
+    if (!storage.has(QuantityId::DENSITY) || !storage.has(QuantityId::ENERGY)) {
+        return false;
+    }
+    if (storage.getMaterialCnt() == 0) {
+        return false;
+    }
+    for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
+        const IMaterial& material = storage.getMaterial(matId);
+        if (!dynamic_cast<const EosMaterial*>(&material)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void TemperatureColorizer::initialize(const Storage& storage, const RefEnum UNUSED(ref)) {
+    ArrayView<const Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
+    ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
+    Array<Float> T(rho.size());
+    for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
+        MaterialView view = storage.getMaterial(matId);
+        EosMaterial& material = dynamic_cast<EosMaterial&>(view.material());
+        for (Size i : view.sequence()) {
+            T[i] = material.getEos().getTemperature(rho[i], u[i]);
+        }
+    }
+    values = makeArrayRef(std::move(T));
 }
 
 void CorotatingVelocityColorizer::initialize(const Storage& storage, const RefEnum ref) {

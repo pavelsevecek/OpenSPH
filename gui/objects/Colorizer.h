@@ -594,41 +594,13 @@ public:
 };
 
 class TemperatureColorizer : public TypedColorizer<Float> {
-    Float cp;
-
 public:
     explicit TemperatureColorizer()
-        : TypedColorizer<Float>(QuantityId::ENERGY, getEmissionPalette(Interval(500, 10000), 8)) {}
+        : TypedColorizer<Float>(QuantityId::TEMPERATURE, getEmissionPalette(Interval(500, 10000), 8)) {}
 
-    virtual bool hasData(const Storage& storage) const override {
-        return storage.has(QuantityId::ENERGY) && storage.getMaterialCnt() > 0;
-    }
+    virtual bool hasData(const Storage& storage) const override;
 
-    virtual void initialize(const Storage& storage, const RefEnum ref) override {
-        TypedColorizer<Float>::initialize(storage, ref);
-        cp = storage.getMaterial(0)->getParam<Float>(BodySettingsId::HEAT_CAPACITY);
-    }
-
-    virtual Optional<float> evalScalar(const Size idx) const override {
-        SPH_ASSERT(this->isInitialized());
-        return float(this->values[idx] / cp);
-    }
-
-    virtual Optional<Particle> getParticle(const Size idx) const override {
-        return Particle(QuantityId::TEMPERATURE, values[idx] / cp, idx);
-    }
-
-    virtual Optional<Palette> getPalette() const override {
-        return palette;
-    }
-
-    virtual void setPalette(const Palette& newPalette) override {
-        palette = newPalette;
-    }
-
-    virtual String name() const override {
-        return "Temperature";
-    }
+    virtual void initialize(const Storage& storage, const RefEnum ref) override;
 };
 
 

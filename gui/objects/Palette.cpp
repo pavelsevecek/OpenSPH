@@ -264,7 +264,7 @@ void drawPalette(IRenderContext& context,
         case PaletteScale::HYBRID: {
             const Float lower = min(interval.lower(), -2._f);
             const Float upper = max(interval.upper(), 2._f);
-            tics = getHybridTics(Interval(lower, upper), 4);
+            tics = getHybridTics(Interval(lower, upper), 3);
             break;
         }
         default:
@@ -279,7 +279,7 @@ void drawPalette(IRenderContext& context,
             context.drawLine(
                 Coords(origin.x + i, origin.y + size.y - 6), Coords(origin.x + i, origin.y + size.y));
 
-            String text = toPrintableString(tic, 1, 1000);
+            String text = toPrintableString(tic, 1, 10000);
             context.drawText(Coords(origin.x + i, origin.y + size.y + 15),
                 TextAlign::HORIZONTAL_CENTER | TextAlign::VERTICAL_CENTER,
                 text);
