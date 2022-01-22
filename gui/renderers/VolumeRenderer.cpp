@@ -148,7 +148,7 @@ Rgba VolumeRenderer::shade(const RenderParams& params, const CameraRay& cameraRa
             // attractor, a solid object -> erase the emission accumulated so far if visible
             const Size idx = i - cached.r.size();
             if (cached.attractors[idx].visible) {
-                result = this->getAttractorColor(params, idx, hit) * cached.attractors[idx].albedo;
+                result = this->getAttractorColor(params, idx, hit);
             }
             continue;
         }
@@ -174,13 +174,13 @@ Rgba VolumeRenderer::getAttractorColor(const RenderParams& params,
     const Size index,
     const Vector& hit) const {
     const AttractorData& a = cached.attractors[index];
-    Rgba diffuse = Rgba::white();
+    Rgba diffuse = Rgba::gray(a.albedo);
     const SharedPtr<Texture>& texture = cached.textures[index];
     if (texture) {
         const Vector r0 = hit - a.position;
         SphericalCoords spherical = cartensianToSpherical(r0);
         Vector uvw = Vector(0.5_f - spherical.phi / (2._f * PI), spherical.theta / PI, 0._f);
-        diffuse = texture->eval(uvw);
+        diffuse = texture->eval(uvw) * a.albedo;
     }
 
     const Vector n = getNormalized(a.position - hit);

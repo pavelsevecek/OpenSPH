@@ -459,7 +459,7 @@ Array<Float> getLinearTics(const Interval& interval, const Size minCount) {
     return tics;
 }
 
-Array<Float> getLogTics(const Interval& interval, const Size minCount) {
+Array<Float> getLogTics(const Interval& interval, const Size minCount, const Size maxCount) {
     SPH_ASSERT(interval.lower() > EPS); // could be relaxed if we need to plot some very small quantities
     const Float fromOrder = floor(log10(interval.lower()));
     const Float toOrder = ceil(log10(interval.upper()));
@@ -478,32 +478,31 @@ Array<Float> getLogTics(const Interval& interval, const Size minCount) {
         tryAdd(value);
     }
 
-    if (tics.size() > 2 * minCount) {
-        Size removeEach = tics.size() / (2 * minCount);
+    if (tics.size() < minCount) {
+        // add 2, 5, 20, 50, ...
+        for (Float order = fromOrder; order <= toOrder; order++) {
+            const Float value = pow(10._f, order);
+            tryAdd(2 * value);
+            tryAdd(5 * value);
+        }
+    }
+    if (tics.size() < minCount) {
+        // add more values
+        for (Float order = fromOrder; order <= toOrder; order++) {
+            const Float value = pow(10._f, order);
+            tryAdd(1.5_f * value);
+            tryAdd(2.5_f * value);
+            tryAdd(7.5_f * value);
+        }
+    }
+    if (tics.size() > maxCount) {
+        Size removeEach = (tics.size() + maxCount - 1) / maxCount;
         Size i = 0;
         for (auto iter = tics.begin(); iter != tics.end(); ++i) {
             if (i % removeEach == 1) {
                 iter = tics.erase(iter);
             } else {
                 iter++;
-            }
-        }
-    } else {
-        if (tics.size() < minCount) {
-            // add 2, 5, 20, 50, ...
-            for (Float order = fromOrder; order <= toOrder; order++) {
-                const Float value = pow(10._f, order);
-                tryAdd(2 * value);
-                tryAdd(5 * value);
-            }
-        }
-        if (tics.size() < minCount) {
-            // add more values
-            for (Float order = fromOrder; order <= toOrder; order++) {
-                const Float value = pow(10._f, order);
-                tryAdd(1.5_f * value);
-                tryAdd(2.5_f * value);
-                tryAdd(7.5_f * value);
             }
         }
     }
@@ -517,9 +516,9 @@ Array<Float> getLogTics(const Interval& interval, const Size minCount) {
 
 Array<Float> getHybridTics(const Interval& interval, const Size minCount) {
     SPH_ASSERT(interval.lower() < -1.f && interval.upper() > 1.f, interval);
-    Array<Float> negLogTics = getLogTics(Interval(1.f, -interval.lower()), minCount / 2);
+    Array<Float> negLogTics = getLogTics(Interval(1.f, -interval.lower()), minCount / 2, minCount);
     Array<Float> linearTics = getLinearTics(Interval(-1.f, 1.f), 3);
-    Array<Float> posLogTics = getLogTics(Interval(1.f, interval.upper()), minCount / 2);
+    Array<Float> posLogTics = getLogTics(Interval(1.f, interval.upper()), minCount / 2, minCount);
 
     for (Float& tic : negLogTics) {
         tic *= -1;

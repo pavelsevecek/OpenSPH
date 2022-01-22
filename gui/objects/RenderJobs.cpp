@@ -52,8 +52,8 @@ AnimationJob::AnimationJob(const String& name)
     animationType = EnumWrapper(AnimationType::SINGLE_FRAME);
     colorizerId = EnumWrapper(RenderColorizerId::BEAUTY);
 
-    Palette palette = Factory::getDefaultPalette(Interval(1, 1e5));
-    paletteEntry = ExtraEntry(makeAuto<PaletteEntry>(palette));
+    BeautyColorizer colorizer;
+    paletteEntry = ExtraEntry(makeAuto<PaletteEntry>(colorizer.getPalette().value()));
 
     sequence.units = EnumWrapper(UnitEnum::SI);
 }
@@ -138,6 +138,9 @@ VirtualSettings AnimationJob::getSettings() {
         .setUnits(1.e-3_f)
         .setEnabler(volumeEnabler);
     rendererCat.connect<Float>("Medium absorption [km^-1]", gui, GuiSettingsId::VOLUME_ABSORPTION)
+        .setUnits(1.e-3_f)
+        .setEnabler(volumeEnabler);
+    rendererCat.connect<Float>("Medium scattering [km^-1]", gui, GuiSettingsId::VOLUME_SCATTERING)
         .setUnits(1.e-3_f)
         .setEnabler(volumeEnabler);
     rendererCat.connect<Float>("Lensing magnitude", gui, GuiSettingsId::RAYTRACE_LENSING_MAGNITUDE);

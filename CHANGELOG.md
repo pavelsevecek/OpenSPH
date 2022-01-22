@@ -1,3 +1,13 @@
+## 2021-01-22
+- added an experimental lensing effect to the volumetric renderer
+- added a "black hole" preset
+- renamed raymarcher to "surface" renderer in UI
+- option to texture attractors (volume renderer only)
+- throwing an exception when the output interval is lower than the maximal time step
+- fixed transform node ignoring attractors
+- fixed loading of attractors
+- changed the default renderer palette
+
 ## 2021-01-17
 - added OpenVDB as output format
 - added camera tracking using camera direction only

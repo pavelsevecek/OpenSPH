@@ -54,7 +54,7 @@ void Bvh<TBvhObject>::getIntersections(const RaySegment& ray, const TAddIntersec
     int stackIdx = 0;
 
     stack[stackIdx].idx = 0;
-    stack[stackIdx].t_min = 0._f; // -INFTY;
+    stack[stackIdx].t_min = ray.segment().lower();
 
     while (stackIdx >= 0) {
         const Size idx = stack[stackIdx].idx;

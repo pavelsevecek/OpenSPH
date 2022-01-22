@@ -1820,19 +1820,19 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
 
     wxTreeItemId presetsId = jobView->AppendItem(rootId, "presets");
     std::map<wxTreeItemId, Presets::ExtId> presetsIdMap;
-    for (Presets::Id id : EnumMap::getAll<Presets::Id>()) {
+    auto addId = [&](const auto id) {
         String name = EnumMap::toString(id);
         name.replaceAll("_", " ");
 
         wxTreeItemId itemId = jobView->AppendItem(presetsId, name.toUnicode());
         presetsIdMap[itemId] = id;
+    };
+
+    for (Presets::Id id : EnumMap::getAll<Presets::Id>()) {
+        addId(id);
     }
     for (Presets::GuiId id : EnumMap::getAll<Presets::GuiId>()) {
-        String name = EnumMap::toString(id);
-        name.replaceAll("_", " ");
-
-        wxTreeItemId itemId = jobView->AppendItem(presetsId, name.toUnicode());
-        presetsIdMap[itemId] = id;
+        addId(id);
     }
 
     jobView->Bind(wxEVT_MOTION, [this, jobView](wxMouseEvent& evt) {

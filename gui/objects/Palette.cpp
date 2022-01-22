@@ -258,7 +258,7 @@ void drawPalette(IRenderContext& context,
         case PaletteScale::LOGARITHMIC: {
             const Float lower = max(interval.lower(), 1.e-6_f);
             const Float upper = interval.upper();
-            tics = getLogTics(Interval(lower, upper), 4);
+            tics = getLogTics(Interval(lower, upper), 3, 5);
             break;
         }
         case PaletteScale::HYBRID: {
@@ -271,6 +271,7 @@ void drawPalette(IRenderContext& context,
             NOT_IMPLEMENTED;
         }
         context.setColor(lineColor.value(), ColorFlag::LINE | ColorFlag::TEXT);
+        context.setFontSize(7);
         for (Float tic : tics) {
             const float value = palette.rangeToRelative(float(tic));
             const int i = int(value * size.x);
