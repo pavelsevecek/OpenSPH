@@ -2,7 +2,7 @@
 #include "gui/Controller.h"
 #include "gui/Settings.h"
 #include "gui/Utils.h"
-#include "gui/objects/CameraJobs.h"
+#include "gui/jobs/CameraJobs.h"
 #include "gui/windows/GridPage.h"
 #include "gui/windows/GuiSettingsDialog.h"
 #include "gui/windows/NodePage.h"

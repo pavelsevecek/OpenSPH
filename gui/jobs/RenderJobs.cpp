@@ -1,4 +1,4 @@
-#include "gui/objects/RenderJobs.h"
+#include "gui/jobs/RenderJobs.h"
 #include "gravity/BarnesHut.h"
 #include "gravity/Moments.h"
 #include "gui/Factory.h"

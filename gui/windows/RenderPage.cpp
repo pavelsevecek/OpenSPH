@@ -1,7 +1,7 @@
 #include "gui/windows/RenderPage.h"
 #include "gui/MainLoop.h"
 #include "gui/Utils.h"
-#include "gui/objects/RenderJobs.h"
+#include "gui/jobs/RenderJobs.h"
 #include "gui/windows/Widgets.h"
 #include "run/Node.h"
 #include "thread/CheckFunction.h"

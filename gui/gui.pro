@@ -26,16 +26,16 @@ SOURCES += \
     Settings.cpp \
     Utils.cpp \
     jobs/Presets.cpp \
+    jobs/CameraJobs.cpp \
+    jobs/RenderJobs.cpp \
     objects/Bitmap.cpp \
     objects/Camera.cpp \
-    objects/CameraJobs.cpp \
     objects/Colorizer.cpp \
     objects/Filmic.cpp \
     objects/Movie.cpp \
     objects/Palette.cpp \
     objects/PaletteEntry.cpp \
     objects/RenderContext.cpp \
-    objects/RenderJobs.cpp \
     renderers/ContourRenderer.cpp \
     renderers/IRenderer.cpp \
     renderers/MeshRenderer.cpp \
@@ -78,9 +78,10 @@ HEADERS += \
     Settings.h \
     Utils.h \
     jobs/Presets.h \
+    jobs/CameraJobs.h \
+    jobs/RenderJobs.h \
     objects/Bitmap.h \
     objects/Camera.h \
-    objects/CameraJobs.h \
     objects/Color.h \
     objects/Colorizer.h \
     objects/DelayedCallback.h \
@@ -91,7 +92,6 @@ HEADERS += \
     objects/PaletteEntry.h \
     objects/Point.h \
     objects/RenderContext.h \
-    objects/RenderJobs.h \
     objects/SvgContext.h \
     renderers/Brdf.h \
     renderers/ContourRenderer.h \

@@ -1,4 +1,4 @@
-#include "gui/objects/CameraJobs.h"
+#include "gui/jobs/CameraJobs.h"
 #include "gui/Factory.h"
 
 NAMESPACE_SPH_BEGIN

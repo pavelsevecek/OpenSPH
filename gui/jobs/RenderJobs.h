@@ -1,8 +1,8 @@
 #pragma once
 
 #include "gui/Settings.h"
+#include "gui/jobs/CameraJobs.h"
 #include "gui/objects/Bitmap.h"
-#include "gui/objects/CameraJobs.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/renderers/IRenderer.h"
 

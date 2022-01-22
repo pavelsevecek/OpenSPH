@@ -9,7 +9,6 @@ set(GUI_SOURCES
     ImageTransform.cpp
     objects/Bitmap.cpp 
     objects/Camera.cpp 
-    objects/CameraJobs.cpp
     objects/Colorizer.cpp 
     objects/Filmic.cpp 
     objects/Movie.cpp 
@@ -17,7 +16,8 @@ set(GUI_SOURCES
     objects/PaletteEntry.cpp
     objects/Plots.cpp 
     objects/RenderContext.cpp 
-    objects/RenderJobs.cpp 
+    jobs/CameraJobs.cpp
+    jobs/RenderJobs.cpp 
     jobs/Presets.cpp
     renderers/ContourRenderer.cpp 
     renderers/IRenderer.cpp 
@@ -60,7 +60,6 @@ set(GUI_HEADERS
     ImageTransform.h
     objects/Bitmap.h 
     objects/Camera.h 
-    objects/CameraJobs.h
     objects/Color.h 
     objects/Colorizer.h 
     objects/DelayedCallback.h 
@@ -72,9 +71,10 @@ set(GUI_HEADERS
     objects/Point.h 
     objects/Plots.h 
     objects/RenderContext.h 
-    objects/RenderJobs.h 
     objects/SvgContext.h 
     objects/Texture.h
+    jobs/RenderJobs.h 
+    jobs/CameraJobs.h
     jobs/Presets.h
     renderers/Brdf.h 
     renderers/ContourRenderer.h 
