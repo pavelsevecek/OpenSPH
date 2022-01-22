@@ -76,11 +76,6 @@ Lut2D<Aneos::TabValue> Aneos::parseAneosFile(IScheduler& scheduler, const Path& 
         if (!ifs) {
             throw InvalidSetup("Failed reading dimensions from the ANEOS file '" + path.string() + "'");
         }
-        Size dummy;
-        ss >> dummy;
-        if (ifs) { // did not hit end of line, probably a different file format
-            throw InvalidSetup("Unexpected file format of the ANEOS file '" + path.string() + "'");
-        }
     }
 
     Array<Float> rhos = readValuesFromLine(ifs);
@@ -132,20 +127,28 @@ Lut2D<Aneos::TabValue> Aneos::parseAneosFile(IScheduler& scheduler, const Path& 
             ArrayView<const TRhoValue> row = ilut.row(i_rho);
             const auto iter = std::upper_bound(
                 row.begin(), row.end(), u, [](const Float u, const TRhoValue& iv) { return u < iv.u; });
-            SPH_ASSERT(iter != row.begin());
             const Size i_T2 = iter - row.begin();
-            const Size i_T1 = i_T2 - 1;
-            const TRhoValue iv1 = row[i_T1];
-            const TRhoValue iv2 = row[i_T2];
-            const Float u1 = iv1.u;
-            const Float u2 = iv2.u;
-            SPH_ASSERT(u1 <= u && u < u2, u1, u, u2);
-            const Float f = 1._f - (u - u1) / (u2 - u1);
+            if (i_T2 > 0 && i_T2 < us.size()) {
+                const Size i_T1 = i_T2 - 1;
+                const TRhoValue iv1 = row[i_T1];
+                const TRhoValue iv2 = row[i_T2];
+                const Float u1 = iv1.u;
+                const Float u2 = iv2.u;
+                SPH_ASSERT(u1 <= u && u <= u2, u1, u, u2);
+                const Float f = u2 != u1 ? 1._f - (u - u1) / (u2 - u1) : 0._f;
 
-            const Float P = lerp(iv1.P, iv2.P, f);
-            const Float cs = lerp(iv1.cs, iv2.cs, f);
-            const Float T = lerp(Ts[i_T1], Ts[i_T2], f);
-            lut.at(i_rho, i_u) = TabValue{ P, cs, T };
+                const Float P = lerp(iv1.P, iv2.P, f);
+                const Float cs = lerp(iv1.cs, iv2.cs, f);
+                const Float T = lerp(Ts[i_T1], Ts[i_T2], f);
+                lut.at(i_rho, i_u) = TabValue{ P, cs, T };
+            } else if (i_T2 == 0) {
+                const TRhoValue iv = row.front();
+                lut.at(i_rho, i_u) = TabValue{ iv.P, iv.cs, Ts.front() };
+            } else {
+                SPH_ASSERT(i_T2 == us.size());
+                const TRhoValue iv = row.back();
+                lut.at(i_rho, i_u) = TabValue{ iv.P, iv.cs, Ts.back() };
+            }
         }
     });
     return lut;
