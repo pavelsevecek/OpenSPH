@@ -91,9 +91,6 @@ TEST_CASE("StaticArray front & back", "[staticarray]") {
     REQUIRE(ar.front() == 1);
     ar.back() = 3;
     REQUIRE(ar.back() == 3);
-
-    ar.resize(0);
-    REQUIRE_SPH_ASSERT(ar.back());
 }
 
 TEST_CASE("StaticArray push & pop", "[staticarray]") {
