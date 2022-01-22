@@ -1159,7 +1159,6 @@ void NodeEditor::onLeftDown(wxMouseEvent& evt) {
     if (VisNode* iconNode = nodeMgr->getNodeIcon(position)) {
         this->doPopupMenu(iconNode);
         state.mousePosition = mousePosition;
-        evt.Skip();
         return;
     }
 
