@@ -211,6 +211,8 @@ private:
 
     wxColour getSlotColor(const NodeSlot& slot, const Rgba& background);
 
+    bool mouseAboveIcon(const Pixel& position) const;
+
     void onPaint(wxPaintEvent& evt);
 
     void onMouseMotion(wxMouseEvent& evt);

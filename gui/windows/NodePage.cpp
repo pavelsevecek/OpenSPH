@@ -47,9 +47,9 @@ NAMESPACE_SPH_BEGIN
 constexpr int FIRST_SLOT_Y = 60;
 constexpr int SLOT_DY = 25;
 constexpr int SLOT_RADIUS = 6;
-const Pixel ICON_POS = Pixel(120, 51);
-constexpr int ICON_WIDTH = 22;
-constexpr int ICON_HEIGHT = 14;
+const Pixel ICON_POS = Pixel(120, 54);
+constexpr int ICON_WIDTH = 18;
+constexpr int ICON_HEIGHT = 8;
 constexpr int ICON_MARGIN = 5;
 const wxRect ICON_RECT(ICON_POS.x - ICON_MARGIN,
     ICON_POS.y - ICON_MARGIN,
@@ -922,6 +922,16 @@ wxColour NodeEditor::getSlotColor(const NodeSlot& slot, const Rgba& background) 
     }
 }
 
+bool NodeEditor::mouseAboveIcon(const Pixel& position) const {
+    if (state.mousePosition) {
+        const Pixel relative = this->transform(state.mousePosition.value()) - position;
+        if (ICON_RECT.Contains(wxPoint(relative))) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const VisNode& vis) {
     const Pixel position = vis.position;
     const Pixel size = vis.size();
@@ -1000,17 +1010,26 @@ void NodeEditor::paintNode(wxGraphicsContext* gc, const Rgba& background, const 
 
     // menu icon
     const Pixel iconPos = position + ICON_POS;
-    brush.SetColour(wxColour(brushColor));
-    if (state.mousePosition) {
-        const Pixel relative = this->transform(state.mousePosition.value()) - position;
-        if (ICON_RECT.Contains(wxPoint(relative))) {
-            brush.SetColour(pen.GetColour());
-        }
-    }
+    brush.SetColour(pen.GetColour());
     gc->SetBrush(brush);
-    gc->DrawRectangle(iconPos.x, iconPos.y, ICON_WIDTH, 3);
+    /*gc->DrawRectangle(iconPos.x, iconPos.y, ICON_WIDTH, 3);
     gc->DrawRectangle(iconPos.x, iconPos.y + ICON_HEIGHT / 2, ICON_WIDTH, 3);
-    gc->DrawRectangle(iconPos.x, iconPos.y + ICON_HEIGHT, ICON_WIDTH, 3);
+    gc->DrawRectangle(iconPos.x, iconPos.y + ICON_HEIGHT, ICON_WIDTH, 3);*/
+    constexpr int THICKNESS = 4;
+    wxGraphicsPath path = gc->CreatePath();
+    path.MoveToPoint(iconPos.x, iconPos.y);
+    path.AddLineToPoint(iconPos.x + ICON_WIDTH / 2, iconPos.y + ICON_HEIGHT);
+    path.AddLineToPoint(iconPos.x + ICON_WIDTH, iconPos.y);
+    path.AddLineToPoint(iconPos.x + ICON_WIDTH, iconPos.y + THICKNESS);
+    path.AddLineToPoint(iconPos.x + ICON_WIDTH / 2, iconPos.y + ICON_HEIGHT + THICKNESS);
+    path.AddLineToPoint(iconPos.x, iconPos.y + THICKNESS);
+    path.CloseSubpath();
+
+    if (this->mouseAboveIcon(position)) {
+        gc->FillPath(path);
+    } else {
+        gc->StrokePath(path);
+    }
 }
 
 void NodeEditor::save(Config& config) {
@@ -1140,6 +1159,7 @@ void NodeEditor::onLeftDown(wxMouseEvent& evt) {
     if (VisNode* iconNode = nodeMgr->getNodeIcon(position)) {
         this->doPopupMenu(iconNode);
         state.mousePosition = mousePosition;
+        evt.Skip();
         return;
     }
 
