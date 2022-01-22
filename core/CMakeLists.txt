@@ -8,6 +8,7 @@ set(CORE_SOURCES
     io/FileSystem.cpp 
     io/Logger.cpp 
     io/Output.cpp 
+    io/Vdb.cpp
     io/Path.cpp 
     math/Curve.cpp 
     math/Morton.cpp 
@@ -127,6 +128,7 @@ set(CORE_HEADERS
     io/FileSystem.h 
     io/Logger.h 
     io/Output.h 
+    io/Vdb.h
     io/Path.h 
     io/Serializer.h 
     io/Table.h 

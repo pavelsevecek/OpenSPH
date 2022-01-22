@@ -86,7 +86,7 @@ public:
 
 private:
     bool needsRayMarch() const {
-        return !attractors.empty() > 0 && magnitude > 0;
+        return !attractors.empty() && magnitude > 0;
     }
 
     template <typename TRayFunc>
