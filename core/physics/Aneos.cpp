@@ -127,7 +127,7 @@ Lut2D<Aneos::TabValue> Aneos::parseAneosFile(IScheduler& scheduler, const Path& 
             ArrayView<const TRhoValue> row = ilut.row(i_rho);
             const auto iter = std::upper_bound(
                 row.begin(), row.end(), u, [](const Float u, const TRhoValue& iv) { return u < iv.u; });
-            const Size i_T2 = iter - row.begin();
+            const Size i_T2 = Size(iter - row.begin());
             if (i_T2 > 0 && i_T2 < us.size()) {
                 const Size i_T1 = i_T2 - 1;
                 const TRhoValue iv1 = row[i_T1];

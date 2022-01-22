@@ -82,7 +82,7 @@ private:
         } else if (iter == values.end()) {
             return values.size() - 1;
         } else {
-            const Size idx = iter - values.begin();
+            const Size idx = Size(iter - values.begin());
             SPH_ASSERT(idx > 0);
             return idx - 1;
         }
