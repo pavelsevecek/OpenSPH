@@ -1,4 +1,5 @@
 #include "run/jobs/MaterialJobs.h"
+#include "physics/Aneos.h"
 #include "sph/Materials.h"
 #include "system/Factory.h"
 
@@ -41,7 +42,10 @@ void MaterialProvider::addMaterialEntries(VirtualSettings::Category& category, F
     };
 
     category.connect<EnumWrapper>("Equation of state", body, BodySettingsId::EOS).setEnabler(enabler);
-    category.connect<Float>("Density [kg/m^3]", body, BodySettingsId::DENSITY).setEnabler(enabler);
+    category.connect<Float>("Density [kg/m^3]", body, BodySettingsId::DENSITY).setEnabler([this, enabler] {
+        const EosEnum id = body.get<EosEnum>(BodySettingsId::EOS);
+        return (!enabler || enabler()) && id != EosEnum::ANEOS;
+    });
     category.connect<Float>("Specific energy [J/kg]", body, BodySettingsId::ENERGY).setEnabler(enabler);
     category.connect<Float>("Adiabatic index []", body, BodySettingsId::ADIABATIC_INDEX)
         .setEnabler([this, enabler] {
@@ -142,8 +146,13 @@ VirtualSettings MaterialJob::getSettings() {
     return connector;
 }
 
-
 void MaterialJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+    if (body.get<EosEnum>(BodySettingsId::EOS) == EosEnum::ANEOS) {
+        // override the initial density
+        const Path path(body.get<String>(BodySettingsId::ANEOS_FILE));
+        const Float rho0 = getInitialDensity(parseAneosFile(path));
+        body.set(BodySettingsId::DENSITY, rho0);
+    }
     result = Factory::getMaterial(body);
 }
 

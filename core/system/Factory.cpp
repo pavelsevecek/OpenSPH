@@ -64,8 +64,10 @@ AutoPtr<IEos> Factory::getEos(const BodySettings& body) {
         return makeAuto<SimplifiedTillotsonEos>(body);
     case EosEnum::MURNAGHAN:
         return makeAuto<MurnaghanEos>(body);
-    case EosEnum::ANEOS:
-        return makeAuto<Aneos>(body);
+    case EosEnum::ANEOS: {
+        const Path path(body.get<String>(BodySettingsId::ANEOS_FILE));
+        return makeAuto<Aneos>(path);
+    }
     case EosEnum::NONE:
         return nullptr;
     default:

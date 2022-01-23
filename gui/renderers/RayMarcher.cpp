@@ -16,6 +16,7 @@ RayMarcher::RayMarcher(SharedPtr<IScheduler> scheduler, const GuiSettings& setti
     fixed.brdf = Factory::getBrdf(settings);
     fixed.renderSpheres = settings.get<bool>(GuiSettingsId::RAYTRACE_SPHERES);
     fixed.shadows = settings.get<bool>(GuiSettingsId::RAYTRACE_SHADOWS);
+    fixed.smoothFactor = settings.get<Float>(GuiSettingsId::RAYTRACE_SMOOTH_FACTOR);
 }
 
 RayMarcher::~RayMarcher() = default;
@@ -77,16 +78,17 @@ void RayMarcher::initialize(const Storage& storage,
     }
 
     cached.v.resize(particleCnt);
+    constexpr Float VOLUME_MULT = 0.1_f;
     if (storage.has(QuantityId::MASS) && storage.has(QuantityId::DENSITY)) {
         ArrayView<const Float> rho, m;
         tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
         for (Size i = 0; i < particleCnt; ++i) {
             // avoid expanded particles - if the density is too low, use smoothing length instead
-            cached.v[i] = min(0.1_f * sphereVolume(cached.r[i][H]), m[i] / rho[i]);
+            cached.v[i] = fixed.smoothFactor * min(VOLUME_MULT * sphereVolume(cached.r[i][H]), m[i] / rho[i]);
         }
     } else {
         for (Size i = 0; i < particleCnt; ++i) {
-            cached.v[i] = 0.1_f * sphereVolume(cached.r[i][H]);
+            cached.v[i] = fixed.smoothFactor * VOLUME_MULT * sphereVolume(cached.r[i][H]);
         }
     }
 

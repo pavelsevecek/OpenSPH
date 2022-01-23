@@ -14,7 +14,7 @@ Project::Project() {
         .set(GuiSettingsId::SURFACE_RESOLUTION, 1.e2_f)
         .set(GuiSettingsId::SURFACE_LEVEL, 0.13_f)
         .set(GuiSettingsId::SURFACE_AMBIENT, 0.1_f)
-        .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-0.4f, -0.1f, 0.6f)))
+        .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(0.5, 0, -1)))
         .set(GuiSettingsId::RAYTRACE_ITERATION_LIMIT, 10)
         .set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 4)
         .set(GuiSettingsId::CAMERA_TYPE, CameraEnum::ORTHO)

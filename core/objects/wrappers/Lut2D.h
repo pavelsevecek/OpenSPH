@@ -10,7 +10,7 @@ NAMESPACE_SPH_BEGIN
 template <typename TValue>
 class Lut2D : public Noncopyable {
 private:
-    Array<TValue> data;
+    Array<TValue> values;
     Size width;
     Size height;
     Array<Float> valuesX;
@@ -26,19 +26,31 @@ public:
         , valuesY(std::move(valuesY)) {
         SPH_ASSERT(std::is_sorted(this->valuesX.begin(), this->valuesX.end()));
         SPH_ASSERT(std::is_sorted(this->valuesY.begin(), this->valuesY.end()));
-        data.resize(width * height);
+        values.resize(width * height);
+    }
+
+    const Array<Float>& getValuesX() const {
+        return valuesX;
+    }
+
+    const Array<Float>& getValuesY() const {
+        return valuesY;
     }
 
     INLINE TValue& at(const Size x, const Size y) {
-        return data[map(x, y)];
+        return values[map(x, y)];
     }
 
     INLINE const TValue& at(const Size x, const Size y) const {
-        return data[map(x, y)];
+        return values[map(x, y)];
     }
 
     ArrayView<const TValue> row(const Size y) const {
-        return ArrayView<const TValue>(&data[map(0, y)], width);
+        return ArrayView<const TValue>(&values[map(0, y)], width);
+    }
+
+    ArrayView<const TValue> data() const {
+        return values;
     }
 
     const TValue interpolate(const Float x, const Float y) const {

@@ -1,4 +1,5 @@
 #include "run/jobs/ParticleJobs.h"
+#include "gravity/Handoff.h"
 #include "io/LogWriter.h"
 #include "io/Logger.h"
 #include "objects/geometry/Sphere.h"
@@ -454,12 +455,13 @@ static Sphere getBoundingSphere(const Storage& storage) {
     return sphere;
 }
 
-CollisionGeometrySetup::CollisionGeometrySetup(const String& name, const CollisionGeometrySettings& overrides)
+CollisionGeometrySetupJob::CollisionGeometrySetupJob(const String& name,
+    const CollisionGeometrySettings& overrides)
     : IParticleJob(name) {
     geometry.addEntries(overrides);
 }
 
-VirtualSettings CollisionGeometrySetup::getSettings() {
+VirtualSettings CollisionGeometrySetupJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
     VirtualSettings::Category& positionCat = connector.addCategory("Collision geometry");
@@ -473,7 +475,8 @@ VirtualSettings CollisionGeometrySetup::getSettings() {
     return connector;
 }
 
-void CollisionGeometrySetup::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void CollisionGeometrySetupJob::evaluate(const RunSettings& UNUSED(global),
+    IRunCallbacks& UNUSED(callbacks)) {
     Storage target = std::move(this->getInput<ParticleData>("target")->storage);
     Storage impactor = std::move(this->getInput<ParticleData>("impactor")->storage);
     SPH_ASSERT(target.isValid());
@@ -523,7 +526,7 @@ static JobRegistrar sRegisterCollisionSetup(
     "collision setup",
     "setup",
     "particle operators",
-    [](const String& name) { return makeAuto<CollisionGeometrySetup>(name); },
+    [](const String& name) { return makeAuto<CollisionGeometrySetupJob>(name); },
     "Adds two input particle states (bodies) into a single state, moving the second body (impactor) to a "
     "position specified by the impact angle and adding an impact velocity to the impactor.");
 
@@ -532,16 +535,12 @@ static JobRegistrar sRegisterCollisionSetup(
 // SmoothedToSolidHandoff
 // ----------------------------------------------------------------------------------------------------------
 
-static RegisterEnum<HandoffRadius> sHandoffRadius({
-    { HandoffRadius::EQUAL_VOLUME,
-        "equal_volume",
-        "Assume equal volume for solid spheres; r_solid = m / (4/3 pi rho_sph)^(1/3)." },
-    { HandoffRadius::SMOOTHING_LENGTH,
-        "smoothing_length",
-        "Use a multiple of the smoothing length; r_solid = multiplier * h." },
-});
+SmoothedToSolidHandoffJob::SmoothedToSolidHandoffJob(const String& name)
+    : IParticleJob(name) {
+    type = EnumWrapper(HandoffRadius::EQUAL_VOLUME);
+}
 
-VirtualSettings SmoothedToSolidHandoff::getSettings() {
+VirtualSettings SmoothedToSolidHandoffJob::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
@@ -556,54 +555,16 @@ VirtualSettings SmoothedToSolidHandoff::getSettings() {
     return connector;
 }
 
-void SmoothedToSolidHandoff::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUSED(callbacks)) {
+void SmoothedToSolidHandoffJob::evaluate(const RunSettings& UNUSED(global),
+    IRunCallbacks& UNUSED(callbacks)) {
 
-    // we don't need any material, so just pass some dummy
-    Storage spheres(makeAuto<NullMaterial>(EMPTY_SETTINGS));
     Storage input = std::move(this->getInput<ParticleData>("particles")->storage);
 
-    // clone required quantities
-    spheres.insert<Vector>(
-        QuantityId::POSITION, OrderEnum::SECOND, input.getValue<Vector>(QuantityId::POSITION).clone());
-    spheres.getDt<Vector>(QuantityId::POSITION) = input.getDt<Vector>(QuantityId::POSITION).clone();
-    spheres.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, input.getValue<Float>(QuantityId::MASS).clone());
+    HandoffParams params;
+    params.radiusType = HandoffRadius(type);
+    params.smoothingLengthMult = radiusMultiplier;
 
-    // radii handoff
-    ArrayView<const Float> m = input.getValue<Float>(QuantityId::MASS);
-    ArrayView<const Float> rho = input.getValue<Float>(QuantityId::DENSITY);
-    ArrayView<Vector> r_sphere = spheres.getValue<Vector>(QuantityId::POSITION);
-    SPH_ASSERT(r_sphere.size() == rho.size());
-    for (Size i = 0; i < r_sphere.size(); ++i) {
-        switch (HandoffRadius(type)) {
-        case (HandoffRadius::EQUAL_VOLUME):
-            r_sphere[i][H] = cbrt(3._f * m[i] / (4._f * PI * rho[i]));
-            break;
-        case (HandoffRadius::SMOOTHING_LENGTH):
-            r_sphere[i][H] = radiusMultiplier * r_sphere[i][H];
-            break;
-        default:
-            NOT_IMPLEMENTED;
-        }
-    }
-
-    // remove all sublimated particles
-    Array<Size> toRemove;
-    ArrayView<const Float> u = input.getValue<Float>(QuantityId::ENERGY);
-    for (Size matId = 0; matId < input.getMaterialCnt(); ++matId) {
-        MaterialView mat = input.getMaterial(matId);
-        const Float u_max = mat->getParam<Float>(BodySettingsId::TILLOTSON_SUBLIMATION);
-        for (Size i : mat.sequence()) {
-            if (u[i] > u_max) {
-                toRemove.push(i);
-            }
-        }
-    }
-    spheres.remove(toRemove);
-
-    // copy attractors as-is
-    for (const Attractor& a : input.getAttractors()) {
-        spheres.addAttractor(a);
-    }
+    Storage spheres = smoothedToSolidHandoff(input, params);
 
     moveToCenterOfMassFrame(spheres);
 
@@ -615,10 +576,44 @@ static JobRegistrar sRegisterHandoff(
     "smoothed-to-solid handoff",
     "handoff",
     "particle operators",
-    [](const String& name) { return makeAuto<SmoothedToSolidHandoff>(name); },
+    [](const String& name) { return makeAuto<SmoothedToSolidHandoffJob>(name); },
     "Converts smoothed particles, an output of SPH simulation, into hard spheres that can be handed off to "
     "a N-body simulation.");
 
+
+// ----------------------------------------------------------------------------------------------------------
+// MergeOverlappingParticlesJob
+// ----------------------------------------------------------------------------------------------------------
+
+VirtualSettings MergeOverlappingParticlesJob::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+
+    VirtualSettings::Category& category = connector.addCategory("Merging options");
+    category.connect("Surfaceness threshold", "surfaceness", surfacenessThreshold);
+    category.connect("Min component size", "minComponentSize", minComponentSize);
+    category.connect("Iterations", "iterations", iterationCnt);
+
+    return connector;
+}
+
+void MergeOverlappingParticlesJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
+    SharedPtr<ParticleData> input = this->getInput<ParticleData>("particles");
+
+    SharedPtr<IScheduler> scheduler = Factory::getScheduler(global);
+    callbacks.onSetUp(input->storage, input->stats);
+
+    mergeOverlappingSpheres(*scheduler, input->storage, surfacenessThreshold, iterationCnt, minComponentSize);
+
+    result = input;
+}
+
+static JobRegistrar sRegisterOverlapMerge(
+    "merge overlapping particles",
+    "merger",
+    "particle operators",
+    [](const String& name) { return makeAuto<MergeOverlappingParticlesJob>(name); },
+    "Merges overlapping particles into larger spheres while preserving the surface of bodies");
 
 // ----------------------------------------------------------------------------------------------------------
 // ExtractComponentJob

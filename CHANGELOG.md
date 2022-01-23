@@ -1,3 +1,7 @@
+## 2021-01-23
+- added a node for merging overlapping particles
+- added smoothing factor to Raymarcher
+
 ## 2021-01-22
 - added ANEOS
 - added an experimental lensing effect to the volumetric renderer

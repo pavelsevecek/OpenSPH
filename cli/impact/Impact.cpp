@@ -220,7 +220,7 @@ private:
             .set(CollisionGeometrySettingsId::IMPACT_ANGLE, params.impactAngle.valueOr(45._f));
         CollisionGeometrySettings geometry = loadSettings<CollisionGeometrySettingsId>(
             outputDir / Path("geometry.cnf"), geometryDefaults, logger, doDryRun);
-        SharedPtr<JobNode> setup = makeNode<CollisionGeometrySetup>("geometry", geometry);
+        SharedPtr<JobNode> setup = makeNode<CollisionGeometrySetupJob>("geometry", geometry);
         stabTarget->connect(setup, "target");
         impactorIc->connect(setup, "impactor");
 
@@ -254,7 +254,7 @@ private:
         SharedPtr<JobNode> frag = makeFragmentation();
         setup->connect(frag, "particles");
 
-        SharedPtr<JobNode> handoff = makeNode<SmoothedToSolidHandoff>("handoff"); // has no parameters
+        SharedPtr<JobNode> handoff = makeNode<SmoothedToSolidHandoffJob>("handoff"); // has no parameters
         frag->connect(handoff, "particles");
 
         SharedPtr<JobNode> reac = makeReaccumulation();
@@ -268,7 +268,7 @@ private:
         SharedPtr<JobNode> frag = makeFragmentation();
         loadFile->connect(frag, "particles");
 
-        SharedPtr<JobNode> handoff = makeNode<SmoothedToSolidHandoff>("handoff");
+        SharedPtr<JobNode> handoff = makeNode<SmoothedToSolidHandoffJob>("handoff");
         frag->connect(handoff, "particles");
 
         SharedPtr<JobNode> reac = makeReaccumulation();
