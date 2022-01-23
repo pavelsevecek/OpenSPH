@@ -90,7 +90,7 @@ SharedPtr<JobNode> Presets::makeAsteroidCollision(UniqueNameManager& nameMgr, co
     targetIc->connect(impactorIc, "target");
 
     CollisionGeometrySettings geometry;
-    SharedPtr<JobNode> setup = makeNode<CollisionGeometrySetup>(nameMgr.getName("geometry"), geometry);
+    SharedPtr<JobNode> setup = makeNode<CollisionGeometrySetupJob>(nameMgr.getName("geometry"), geometry);
     targetIc->connect(setup, "target");
     impactorIc->connect(setup, "impactor");
 
@@ -135,7 +135,7 @@ SharedPtr<JobNode> Presets::makeFragmentationAndReaccumulation(UniqueNameManager
     targetIc->connect(stabTarget, "particles");
 
     CollisionGeometrySettings geometry;
-    SharedPtr<JobNode> setup = makeNode<CollisionGeometrySetup>(nameMgr.getName("geometry"), geometry);
+    SharedPtr<JobNode> setup = makeNode<CollisionGeometrySetupJob>(nameMgr.getName("geometry"), geometry);
     stabTarget->connect(setup, "target");
     impactorIc->connect(setup, "impactor");
 
@@ -144,7 +144,7 @@ SharedPtr<JobNode> Presets::makeFragmentationAndReaccumulation(UniqueNameManager
         TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::DIVERGENCE);
     SharedPtr<JobNode> frag = makeNode<SphJob>(nameMgr.getName("fragmentation"), settings);
     setup->connect(frag, "particles");
-    SharedPtr<JobNode> handoff = makeNode<SmoothedToSolidHandoff>(nameMgr.getName("handoff"));
+    SharedPtr<JobNode> handoff = makeNode<SmoothedToSolidHandoffJob>(nameMgr.getName("handoff"));
     frag->connect(handoff, "particles");
 
     SharedPtr<JobNode> reacc = makeNode<NBodyJob>(nameMgr.getName("reaccumulation"), EMPTY_SETTINGS);

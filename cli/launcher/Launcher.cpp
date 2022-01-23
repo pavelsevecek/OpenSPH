@@ -90,7 +90,7 @@ public:
 /// \todo AVOID THIS
 static void registerJobs() {
     static SphJob sSph("");
-    static CollisionGeometrySetup sSetup("");
+    static CollisionGeometrySetupJob sSetup("");
     static MonolithicBodyIc sIc("");
     static SaveFileJob sIo("");
     static BlockJob sBlock("");

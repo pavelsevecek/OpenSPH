@@ -37,6 +37,9 @@ private:
         /// Render surface of spheres instead of an isosurface.
         bool renderSpheres = true;
 
+        /// Multiplier of smoothing lengths
+        float smoothFactor = 1.f;
+
     } fixed;
 
     struct MarchData {

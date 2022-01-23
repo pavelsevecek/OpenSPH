@@ -33,15 +33,7 @@ Array<Size> Post::findNeighborCounts(const Storage& storage, const Float particl
     return counts;
 }
 
-// Checks if two particles belong to the same component
-struct ComponentChecker : public Polymorphic {
-    virtual bool belong(const Size UNUSED(i), const Size UNUSED(j)) {
-        // by default, any two particles within the search radius belong to the same component
-        return true;
-    }
-};
-
-static Size findComponentsImpl(ComponentChecker& checker,
+static Size findComponentsImpl(const Post::IComponentChecker& checker,
     ArrayView<const Vector> r,
     const Float radius,
     Array<Size>& indices) {
@@ -85,26 +77,50 @@ static Size findComponentsImpl(ComponentChecker& checker,
     return componentIdx;
 }
 
+struct ComponentChecker : public Post::IComponentChecker {
+    virtual bool belong(const Size UNUSED(i), const Size UNUSED(j)) const override {
+        // by default, any two particles within the search radius belong to the same component
+        return true;
+    }
+};
+
+class FlagComponentChecker : public Post::IComponentChecker {
+    ArrayView<const Size> flag;
+
+public:
+    explicit FlagComponentChecker(const Storage& storage) {
+        flag = storage.getValue<Size>(QuantityId::FLAG);
+    }
+    virtual bool belong(const Size i, const Size j) const override {
+        return flag[i] == flag[j];
+    }
+};
+
+// Helper checker connecting components with relative velocity lower than v_esc
+struct EscapeVelocityComponentChecker : public Post::IComponentChecker {
+    ArrayView<const Vector> r;
+    ArrayView<const Vector> v;
+    ArrayView<const Float> m;
+    Float radius;
+
+    virtual bool belong(const Size i, const Size j) const override {
+        const Float dv = getLength(v[i] - v[j]);
+        const Float dr = getLength(r[i] - r[j]);
+        const Float m_tot = m[i] + m[j];
+        const Float v_esc = sqrt(2._f * Constants::gravity * m_tot / dr);
+        return dv < v_esc;
+    }
+};
+
 Size Post::findComponents(const Storage& storage,
     const Float radius,
     const Flags<ComponentFlag> flags,
     Array<Size>& indices) {
     SPH_ASSERT(radius > 0._f);
 
-    AutoPtr<ComponentChecker> checker = makeAuto<ComponentChecker>();
+    AutoPtr<IComponentChecker> checker = makeAuto<ComponentChecker>();
 
     if (flags.has(ComponentFlag::SEPARATE_BY_FLAG)) {
-        class FlagComponentChecker : public ComponentChecker {
-            ArrayView<const Size> flag;
-
-        public:
-            explicit FlagComponentChecker(const Storage& storage) {
-                flag = storage.getValue<Size>(QuantityId::FLAG);
-            }
-            virtual bool belong(const Size i, const Size j) override {
-                return flag[i] == flag[j];
-            }
-        };
         checker = makeAuto<FlagComponentChecker>(storage);
     }
 
@@ -141,21 +157,6 @@ Size Post::findComponents(const Storage& storage,
             velocities[k] /= masses[k];
         }
 
-        // Helper checker connecting components with relative velocity lower than v_esc
-        struct EscapeVelocityComponentChecker : public ComponentChecker {
-            ArrayView<const Vector> r;
-            ArrayView<const Vector> v;
-            ArrayView<const Float> m;
-            Float radius;
-
-            virtual bool belong(const Size i, const Size j) override {
-                const Float dv = getLength(v[i] - v[j]);
-                const Float dr = getLength(r[i] - r[j]);
-                const Float m_tot = m[i] + m[j];
-                const Float v_esc = sqrt(2._f * Constants::gravity * m_tot / dr);
-                return dv < v_esc;
-            }
-        };
         EscapeVelocityComponentChecker velocityChecker;
         velocityChecker.r = positions;
         velocityChecker.v = velocities;
@@ -215,6 +216,14 @@ Size Post::findComponents(const Storage& storage,
     return componentCnt;
 }
 
+Size Post::findComponents(const Storage& storage,
+    const Float radius,
+    const IComponentChecker& checker,
+    Array<Size>& indices) {
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    return findComponentsImpl(checker, r, radius, indices);
+}
+
 Array<Size> Post::findLargestComponent(const Storage& storage,
     const Float particleRadius,
     const Flags<ComponentFlag> flags) {
@@ -230,141 +239,6 @@ Array<Size> Post::findLargestComponent(const Storage& storage,
     }
     return idxs;
 }
-
-
-/*static Storage clone(const Storage& storage) {
-    Storage cloned;
-    const Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
-    cloned.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST, r.clone());
-
-    const Array<Vector>& v = storage.getDt<Vector>(QuantityId::POSITION);
-    cloned.getDt<Vector>(QuantityId::POSITION) = v.clone();
-
-    if (storage.has(QuantityId::MASS)) {
-        const Array<Float>& m = storage.getValue<Float>(QuantityId::MASS);
-        cloned.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, m.clone());
-    } else {
-        ArrayView<const Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
-        Float rhoAvg = 0._f;
-        for (Size i = 0; i < r.size(); ++i) {
-            rhoAvg += rho[i];
-        }
-        rhoAvg /= r.size();
-
-        /// \todo ASSUMING 10km body!
-        const Float m = sphereVolume(5.e3_f) * rhoAvg / r.size();
-        cloned.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, m);
-    }
-
-    return cloned;
-}*/
-
-/*Storage Post::findFutureBodies2(const Storage& storage, ILogger& logger) {
-    Array<Vector> r = storage.getValue<Vector>(QuantityId::POSITION).clone();
-    Array<Vector> v = storage.getDt<Vector>(QuantityId::POSITION).clone();
-    const Float m = sphereVolume(5.e3_f) * 2700.f / r.size();
-    Float W_tot = 0._f;
-    for (Size i = 0; i < r.size(); ++i) {
-        for (Size j = i + 1; j < r.size(); ++j) {
-            W_tot += Constants::gravity * sqr(m) / getLength(r[i] - r[j]);
-            SPH_ASSERT(isReal(W_tot));
-        }
-    }
-
-    Size iteration = 0;
-    while (true) {
-        // find velocity of COM
-        Vector v0(0._f);
-        for (Size i = 0; i < v.size(); ++i) {
-            v0 += v[i];
-        }
-        v0 /= v.size();
-
-        // find kinetic energies
-        Float K_tot = 0._f;
-        Float K_largest = 0._f;
-        Size idx_largest = 0;
-        for (Size i = 0; i < r.size(); ++i) {
-            const Float k = 0.5_f * m * getSqrLength(v[i] - v0);
-            K_tot += k;
-            if (k > K_largest) {
-                K_largest = k;
-                idx_largest = i;
-            }
-        }
-
-        logger.write("Iteration ", iteration++, ", W = ", W_tot, " / K = ", K_tot);
-        if (K_tot > W_tot) {
-            for (Size i = 0; i < r.size(); ++i) {
-                if (i != idx_largest) {
-                    W_tot -= Constants::gravity * sqr(m) / getLength(r[i] - r[idx_largest]);
-                }
-                SPH_ASSERT(W_tot > 0._f);
-            }
-
-            r.remove(idx_largest);
-            v.remove(idx_largest);
-        } else {
-            break;
-        }
-    }
-
-    logger.write("Find largest remnant with ", r.size(), " particles");
-    return clone(storage);
-}
-
-Storage Post::findFutureBodies(const Storage& storage, const Float particleRadius, ILogger& logger) {
-    Storage cloned = clone(storage);
-    Size numComponents = 0, prevNumComponents;
-    Size iter = 0;
-    do {
-        Array<Size> indices;
-        prevNumComponents = numComponents;
-
-        logger.write(
-            "Iteration ", iter, ": number of bodies: ", iter == 0 ? storage.getParticleCnt() : numComponents);
-
-        // do merging the first iteration, the follow with energy considerations
-        ComponentConnectivity connectivity =
-            (iter == 0) ? ComponentConnectivity::OVERLAP : ComponentConnectivity::ESCAPE_VELOCITY;
-        numComponents = findComponents(cloned, particleRadius, connectivity, indices);
-
-        Array<Vector> r_new(numComponents);
-        Array<Vector> v_new(numComponents);
-        Array<Float> h_new(numComponents);
-        Array<Float> m_new(numComponents);
-        r_new.fill(Vector(0._f));
-        v_new.fill(Vector(0._f));
-        h_new.fill(0._f);
-        m_new.fill(0._f);
-
-
-        ArrayView<const Vector> r = cloned.getValue<Vector>(QuantityId::POSITION);
-        ArrayView<const Vector> v = cloned.getDt<Vector>(QuantityId::POSITION);
-        ArrayView<const Float> m = cloned.getValue<Float>(QuantityId::MASS);
-
-        for (Size i = 0; i < r.size(); ++i) {
-            m_new[indices[i]] += m[i];
-            r_new[indices[i]] += m[i] * r[i];
-            h_new[indices[i]] += pow<3>(r[i][H]);
-            v_new[indices[i]] += m[i] * v[i];
-        }
-        for (Size i = 0; i < numComponents; ++i) {
-            SPH_ASSERT(m_new[i] != 0._f);
-            r_new[i] /= m_new[i];
-            r_new[i][H] = root<3>(h_new[i]);
-            v_new[i] /= m_new[i];
-        }
-
-        cloned.getValue<Vector>(QuantityId::POSITION) = std::move(r_new);
-        cloned.getDt<Vector>(QuantityId::POSITION) = std::move(v_new);
-        cloned.getValue<Float>(QuantityId::MASS) = std::move(m_new);
-
-        iter++;
-    } while (numComponents != prevNumComponents);
-
-    return cloned;
-}*/
 
 Array<Post::MoonEnum> Post::findMoons(const Storage& storage, const Float radius, const Float limit) {
     // first, find the larget one

@@ -963,7 +963,7 @@ void RunPage::onTimeStep(const Storage& storage, const Statistics& stats) {
         selectedParticlePlot->setColorizer(colorizer);
     }
 
-    if (storage.has(QuantityId::MASS)) {
+    if (storage.has(QuantityId::MASS) && stats.has(StatisticsId::RUN_TIME)) {
         // skip plots if we don't have mass, for simplicity; this can be generalized if needed
         for (auto plot : plots) {
             plot->onTimeStep(storage, stats);

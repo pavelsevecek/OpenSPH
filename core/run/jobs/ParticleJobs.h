@@ -203,12 +203,12 @@ enum class CollisionGeometrySettingsId {
 
 using CollisionGeometrySettings = Settings<CollisionGeometrySettingsId>;
 
-class CollisionGeometrySetup : public IParticleJob {
+class CollisionGeometrySetupJob : public IParticleJob {
 private:
     CollisionGeometrySettings geometry;
 
 public:
-    explicit CollisionGeometrySetup(const String& name,
+    explicit CollisionGeometrySetupJob(const String& name,
         const CollisionGeometrySettings& overrides = EMPTY_SETTINGS);
 
     virtual String className() const override {
@@ -221,30 +221,20 @@ public:
 
     virtual VirtualSettings getSettings() override;
 
-    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
-/// \brief Determines how to compute the radii of the spheres
-enum class HandoffRadius {
-    /// The created sphere has the same volume as the SPH particles (=mass/density)
-    EQUAL_VOLUME,
-
-    /// The radius is proportional to the smoothing length of the particles.
-    SMOOTHING_LENGTH,
-};
-
-class SmoothedToSolidHandoff : public IParticleJob {
+class SmoothedToSolidHandoffJob : public IParticleJob {
 private:
-    EnumWrapper type = EnumWrapper(HandoffRadius::EQUAL_VOLUME);
+    EnumWrapper type;
 
     /// \brief Conversion factor between smoothing length and particle radius.
     ///
-    /// Used only for Radius::SMOOTHING_LENGTH.
+    /// Used only for HandoffRadius::SMOOTHING_LENGTH.
     Float radiusMultiplier = 0.333_f;
 
 public:
-    explicit SmoothedToSolidHandoff(const String& name)
-        : IParticleJob(name) {}
+    explicit SmoothedToSolidHandoffJob(const String& name);
 
     virtual String className() const override {
         return "smoothed-to-solid handoff";
@@ -256,7 +246,30 @@ public:
 
     virtual VirtualSettings getSettings() override;
 
-    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
+};
+
+class MergeOverlappingParticlesJob : public IParticleJob {
+private:
+    Float surfacenessThreshold = 0.5_f;
+    int minComponentSize = 100;
+    int iterationCnt = 3;
+
+public:
+    explicit MergeOverlappingParticlesJob(const String& name)
+        : IParticleJob(name) {}
+
+    virtual String className() const override {
+        return "merge overlapping particles";
+    }
+
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
 class ExtractComponentJob : public IParticleJob {
@@ -400,7 +413,7 @@ public:
 
     virtual VirtualSettings getSettings() override;
 
-    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
 enum class CompareMode {
@@ -431,7 +444,7 @@ public:
 
     virtual VirtualSettings getSettings() override;
 
-    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
 NAMESPACE_SPH_END

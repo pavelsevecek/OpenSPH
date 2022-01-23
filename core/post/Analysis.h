@@ -69,6 +69,19 @@ Size findComponents(const Storage& storage,
     const Flags<ComponentFlag> flags,
     Array<Size>& indices);
 
+/// \brief Checks if two particles belong to the same component
+struct IComponentChecker : public Polymorphic {
+    virtual bool belong(const Size i, const Size j) const = 0;
+};
+
+/// \brief Finds and marks connected components (a.k.a. separated bodies) in the array of vertices.
+///
+/// Overload with a generic checker that returns whether two particles belong to the same component.
+Size findComponents(const Storage& storage,
+    const Float particleRadius,
+    const IComponentChecker& checker,
+    Array<Size>& indices);
+
 /// \brief Returns the indices of particles belonging to the largest remnant.
 ///
 /// The returned indices are sorted.

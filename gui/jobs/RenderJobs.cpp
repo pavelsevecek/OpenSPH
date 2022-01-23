@@ -130,6 +130,8 @@ VirtualSettings AnimationJob::getSettings() {
     rendererCat.connect<Float>("Surface emission", gui, GuiSettingsId::SURFACE_EMISSION)
         .setEnabler(raymarcherEnabler);
     rendererCat.connect<EnumWrapper>("BRDF", gui, GuiSettingsId::RAYTRACE_BRDF).setEnabler(raymarcherEnabler);
+    rendererCat.connect<bool>("Smoothing factor", gui, GuiSettingsId::RAYTRACE_SMOOTH_FACTOR)
+        .setEnabler(raymarcherEnabler);
     rendererCat.connect<bool>("Render as spheres", gui, GuiSettingsId::RAYTRACE_SPHERES)
         .setEnabler(raymarcherEnabler);
     rendererCat.connect<bool>("Enable shadows", gui, GuiSettingsId::RAYTRACE_SHADOWS)

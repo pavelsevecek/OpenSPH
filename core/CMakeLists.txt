@@ -3,6 +3,7 @@ set(CORE_SOURCES
     common/Assert.cpp 
     gravity/AggregateSolver.cpp 
     gravity/BarnesHut.cpp 
+    gravity/Handoff.cpp
     gravity/NBodySolver.cpp 
     io/FileManager.cpp 
     io/FileSystem.cpp 
@@ -119,6 +120,7 @@ set(CORE_HEADERS
     gravity/CachedGravity.h 
     gravity/Collision.h 
     gravity/IGravity.h 
+    gravity/Handoff.h
     gravity/Moments.h 
     gravity/NBodySolver.h 
     gravity/SphericalGravity.h 

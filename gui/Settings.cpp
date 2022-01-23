@@ -123,7 +123,7 @@ const Settings<GuiSettingsId>& getDefaultSettings() {
     { GuiSettingsId::SURFACE_LEVEL,         "surface.level",        0.13_f,
         "Surface level for mesh renderer and raytracer. Specifies the value of the constructed/intersected "
         "iso-surface of color field." },
-    { GuiSettingsId::SURFACE_SUN_POSITION,  "surface.sun_position", Vector(0.f, 0.f, -1.f),
+    { GuiSettingsId::SURFACE_SUN_POSITION,  "surface.sun_position", Vector(0.5f, 0.f, -1.f),
         "Direction to the sun, used for shading in mesh renderer in raytracer." },
     { GuiSettingsId::SURFACE_SUN_INTENSITY, "surface.sun_intentity", 0.8_f,
         "Relative intensity of the sun, used for shading in mesh renderer in raytracer." },
@@ -142,6 +142,8 @@ const Settings<GuiSettingsId>& getDefaultSettings() {
         "Surface BRDF. Applicable for raytracer. "},
     { GuiSettingsId::RAYTRACE_SHADOWS,      "raytrace.shadows",     true,
         "Take into account occlusions when computing surface illumination." },
+    { GuiSettingsId::RAYTRACE_SMOOTH_FACTOR,"raytrace.smooth_factor", 1._f,
+        "Smoothing factor, larger values means smoother results, but also less pronounced details." },
     { GuiSettingsId::RAYTRACE_SPHERES,      "raytrace.spheres",     false,
         "If true, raytraced surface is given by spheres centered at particles, "
         "otherwise isosurface of a colorfield is rendered." },

@@ -363,7 +363,7 @@ TEST_CASE("KdTree empty leaf bug", "[finders]") {
     geometry.set(CollisionGeometrySettingsId::IMPACT_ANGLE, 0._f)
         .set(CollisionGeometrySettingsId::IMPACT_SPEED, 5.e3_f);
 
-    SharedPtr<JobNode> setup = makeNode<CollisionGeometrySetup>("collision", geometry);
+    SharedPtr<JobNode> setup = makeNode<CollisionGeometrySetupJob>("collision", geometry);
 
     BodySettings body;
     body.set(BodySettingsId::BODY_SHAPE_TYPE, DomainEnum::SPHERICAL);
