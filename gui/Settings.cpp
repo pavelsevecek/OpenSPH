@@ -142,7 +142,7 @@ const Settings<GuiSettingsId>& getDefaultSettings() {
         "Surface BRDF. Applicable for raytracer. "},
     { GuiSettingsId::RAYTRACE_SHADOWS,      "raytrace.shadows",     true,
         "Take into account occlusions when computing surface illumination." },
-    { GuiSettingsId::RAYTRACE_SMOOTH_FACTOR,"raytrace.smooth_factor", 1._f,
+    { GuiSettingsId::RAYTRACE_SMOOTH_FACTOR, "raytrace.smooth_factor", 1._f,
         "Smoothing factor, larger values means smoother results, but also less pronounced details." },
     { GuiSettingsId::RAYTRACE_SPHERES,      "raytrace.spheres",     false,
         "If true, raytraced surface is given by spheres centered at particles, "

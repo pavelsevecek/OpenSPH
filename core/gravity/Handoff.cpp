@@ -1,4 +1,5 @@
 #include "gravity/Handoff.h"
+#include "gravity/Collision.h"
 #include "objects/containers/FlatSet.h"
 #include "objects/finders/KdTree.h"
 #include "objects/utility/EnumMap.h"
@@ -85,17 +86,6 @@ public:
     }
 };
 
-static void merge(ArrayView<Float> m, ArrayView<Vector> r, ArrayView<Vector> v, const Size i, const Size j) {
-    const Float h_merger = root<3>(pow<3>(r[i][H]) + pow<3>(r[j][H]));
-    const Float m_merger = m[i] + m[j];
-    const Vector r_merger = (m[i] * r[i] + m[j] * r[j]) / m_merger;
-    const Vector v_merger = (m[i] * v[i] + m[j] * v[j]) / m_merger;
-
-    r[i] = setH(r_merger, h_merger);
-    v[i] = clearH(v_merger);
-    m[i] = m_merger;
-}
-
 static Array<uint8_t> flagSurfaceParticles(IScheduler& scheduler,
     const IBasicFinder& finder,
     ArrayView<const Vector> r,
@@ -126,10 +116,9 @@ static Array<uint8_t> flagSurfaceParticles(IScheduler& scheduler,
     return surface;
 }
 
-static void mergeComponent(ArrayView<Float> m,
-    ArrayView<Vector> r,
-    ArrayView<Vector> v,
+static void mergeComponent(ArrayView<Vector> r,
     ArrayView<const Size> indices,
+    MergingCollisionHandler& handler,
     const Size index,
     const IBasicFinder& finder,
     FlatSet<Size>& toRemove,
@@ -171,8 +160,7 @@ static void mergeComponent(ArrayView<Float> m,
             if (dirty[j]) {
                 continue;
             }
-            merge(m, r, v, i, j);
-            toRemove.insert(j);
+            handler.collide(i, j, toRemove);
             dirty[j] = 1;
         }
     }
@@ -184,11 +172,13 @@ void mergeOverlappingSpheres(IScheduler& scheduler,
     const Size numIterations,
     const Size minComponentSize) {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    storage.insert<Vector>(QuantityId::ANGULAR_FREQUENCY, OrderEnum::ZERO, Vector(0._f));
 
     // flag surface spheres
     KdTree<KdNode> finder;
     finder.build(scheduler, r, FinderFlag::SKIP_RANK);
     Array<uint8_t> surface = flagSurfaceParticles(scheduler, finder, r, surfacenessThreshold);
+
 
     for (Size iter = 0; iter < numIterations; ++iter) {
         // find connected components
@@ -203,14 +193,15 @@ void mergeOverlappingSpheres(IScheduler& scheduler,
 
         FlatSet<Size> toRemove;
         Array<uint8_t> dirty = surface.clone();
-        ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
-        ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
+        MergingCollisionHandler handler(0, 0);
+        handler.initialize(storage);
+
         for (Size index = 0; index < numComponents; ++index) {
             if (componentSizes[index] < minComponentSize) {
                 // component too small, skip
                 continue;
             }
-            mergeComponent(m, r, v, indices, index, finder, toRemove, dirty);
+            mergeComponent(r, indices, handler, index, finder, toRemove, dirty);
         }
         storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED | Storage::IndicesFlag::PROPAGATE);
         surface.remove(toRemove);
