@@ -84,11 +84,13 @@ void RayMarcher::initialize(const Storage& storage,
         tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
         for (Size i = 0; i < particleCnt; ++i) {
             // avoid expanded particles - if the density is too low, use smoothing length instead
-            cached.v[i] = fixed.smoothFactor * min(VOLUME_MULT * sphereVolume(cached.r[i][H]), m[i] / rho[i]);
+            cached.v[i] = min(VOLUME_MULT * sphereVolume(cached.r[i][H]), m[i] / rho[i]);
+            cached.r[i][H] *= fixed.smoothFactor;
         }
     } else {
         for (Size i = 0; i < particleCnt; ++i) {
-            cached.v[i] = fixed.smoothFactor * VOLUME_MULT * sphereVolume(cached.r[i][H]);
+            cached.v[i] = VOLUME_MULT * sphereVolume(cached.r[i][H]);
+            cached.r[i][H] *= fixed.smoothFactor;
         }
     }
 
