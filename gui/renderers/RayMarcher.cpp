@@ -64,7 +64,7 @@ void RayMarcher::initialize(const Storage& storage,
             cached.materialIDs[i] = matId;
         }
 
-        String texturePath = body->getParam<String>(BodySettingsId::VISUALIZATION_TEXTURE);
+        String texturePath = body->getParams().getOr<String>(BodySettingsId::VISUALIZATION_TEXTURE, "");
         if (loadTextures && !texturePath.empty()) {
             if (textureMap.contains(texturePath)) {
                 cached.textures[matId] = textureMap[texturePath];
@@ -85,11 +85,14 @@ void RayMarcher::initialize(const Storage& storage,
         for (Size i = 0; i < particleCnt; ++i) {
             // avoid expanded particles - if the density is too low, use smoothing length instead
             cached.v[i] = min(VOLUME_MULT * sphereVolume(cached.r[i][H]), m[i] / rho[i]);
-            cached.r[i][H] *= fixed.smoothFactor;
         }
     } else {
         for (Size i = 0; i < particleCnt; ++i) {
             cached.v[i] = VOLUME_MULT * sphereVolume(cached.r[i][H]);
+        }
+    }
+    if (!fixed.renderSpheres) {
+        for (Size i = 0; i < particleCnt; ++i) {
             cached.r[i][H] *= fixed.smoothFactor;
         }
     }
