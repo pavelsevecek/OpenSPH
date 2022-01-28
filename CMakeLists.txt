@@ -45,7 +45,7 @@ if (WITH_TBB)
     find_package(TBB REQUIRED tbb tbbmalloc)
     add_definitions(-DSPH_USE_TBB)
     set(TBB_LIBRARIES TBB::tbb TBB::tbbmalloc)
-    if(${TBB_VERSION_MAJOR} LESS 2021)
+    if(${Tbb_VERSION_MAJOR} LESS 2021)
         message(STATUS "Using classic TBB")
         add_definitions(-DTBB_SUPPRESS_DEPRECATED_MESSAGES)
     else()
@@ -57,6 +57,16 @@ if (WITH_VDB)
     find_package(OpenVDB REQUIRED)
     add_definitions(-DSPH_USE_VDB)
     include_directories(${OpenVDB_INCLUDE_DIRS})
+
+    if (NOT OpenVDB_USES_IMATH_HALF)
+        message("OpenVDB ${OpenVDB_VERSION} version does not use IMath Half. Requiring IlmBase Half implementation.")
+        find_package(IlmBase COMPONENTS Half REQUIRED) # "Half" for "libHalf"
+    endif()
+
+    if (IlmBase_FOUND)
+        # if IlmBase was required (either directly or indirectly via OpenVDB) add it to all occurances of OpenVDB
+        set(OpenVDB_LIBRARIES ${OpenVDB_LIBRARIES} ${IlmBase_LIBRARIES})
+    endif()
 endif()
 
 if (WIN32)
