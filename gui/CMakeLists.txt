@@ -115,5 +115,5 @@ set(GUI_HEADERS
 add_library(gui STATIC ${GUI_HEADERS} ${GUI_SOURCES})
 target_include_directories(gui PUBLIC ../core ..)
 
-set(GUI_LIBRARIES core ${wxWidgets_LIBRARIES} ${TBB_LIBRARIES} ${OpenVDB_LIBRARIES})
+set(GUI_LIBRARIES core ${wxWidgets_LIBRARIES} ${TBB_LIBRARIES} ${OpenVDB_ALL_LIBRARIES})
 target_link_libraries(gui PUBLIC ${GUI_LIBRARIES})
