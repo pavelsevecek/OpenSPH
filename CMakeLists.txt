@@ -63,10 +63,8 @@ if (WITH_VDB)
         find_package(IlmBase COMPONENTS Half REQUIRED) # "Half" for "libHalf"
     endif()
 
-    if (IlmBase_FOUND)
-        # if IlmBase was required (either directly or indirectly via OpenVDB) add it to all occurances of OpenVDB
-        set(OpenVDB_LIBRARIES ${OpenVDB_LIBRARIES} ${IlmBase_LIBRARIES})
-    endif()
+    # if IlmBase was required (either directly or indirectly via OpenVDB) add it to all occurances of OpenVDB
+    set(OpenVDB_ALL_LIBRARIES ${OpenVDB_LIBRARIES} ${IlmBase_LIBRARIES})
 endif()
 
 if (WIN32)
