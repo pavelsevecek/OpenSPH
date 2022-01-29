@@ -58,13 +58,19 @@ if (WITH_VDB)
     add_definitions(-DSPH_USE_VDB)
     include_directories(${OpenVDB_INCLUDE_DIRS})
 
+    # OpenVDB requires TBB
+    if (NOT WITH_TBB)
+        find_package(TBB REQUIRED tbb)
+        set(TBB_LIBRARIES TBB::tbb)
+    endif()
+
     if (NOT OpenVDB_USES_IMATH_HALF)
         message("OpenVDB ${OpenVDB_VERSION} version does not use IMath Half. Requiring IlmBase Half implementation.")
         find_package(IlmBase COMPONENTS Half REQUIRED) # "Half" for "libHalf"
     endif()
 
     # if IlmBase was required (either directly or indirectly via OpenVDB) add it to all occurances of OpenVDB
-    set(OpenVDB_ALL_LIBRARIES ${OpenVDB_LIBRARIES} ${IlmBase_LIBRARIES})
+    set(OpenVDB_ALL_LIBRARIES ${OpenVDB_LIBRARIES} ${IlmBase_LIBRARIES} ${TBB_LIBRARIES})
 endif()
 
 if (WIN32)
