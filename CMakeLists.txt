@@ -64,8 +64,9 @@ if (WITH_VDB)
         set(TBB_LIBRARIES TBB::tbb)
     endif()
 
-    if (NOT OpenVDB_USES_IMATH_HALF)
-        message("OpenVDB ${OpenVDB_VERSION} version does not use IMath Half. Requiring IlmBase Half implementation.")
+    # Workaround for OpenVDB before version 8.1
+    if (OpenVDB_MAJOR_VERSION LESS "9" OR (OpenVDB_MAJOR_VERSION EQUAL "8" AND OpenVDB_MINOR_VERSION LESS "1"))
+        message("OpenVDB ${OpenVDB_VERSION} version requires external IlmBase IMath Half implementation.")
         find_package(IlmBase COMPONENTS Half REQUIRED) # "Half" for "libHalf"
     endif()
 
