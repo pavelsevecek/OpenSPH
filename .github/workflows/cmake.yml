@@ -11,6 +11,7 @@ on:
     branches:
       - devel
       - master
+  workflow_dispatch:
 
 jobs:
   build:
