@@ -74,7 +74,8 @@ jobs:
           -DWITH_EIGEN:STRING=${{ matrix.with_eigen }} \
           -DWITH_CHAISCRIPT:STRING=${{ matrix.with_chaiscript }} \
           -DWITH_VDB:STRING=${{ matrix.with_vdb }} \
-          -DWITH_TBB:STRING=${{ matrix.with_tbb }}
+          -DWITH_TBB:STRING=${{ matrix.with_tbb }} \
+          -DBUILD_UTILS=ON
 
       - name: Build
         # Build your program with the given configuration
