@@ -1,6 +1,32 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(OpenSPH VERSION 0.3.9 LANGUAGES CXX)
+# Generate version string if it was not specified
+if (NOT DEFINED SPH_VERSION)
+    set(SPH_VERSION "unknown") # Set Fallback SPH version
+    find_package(Git)
+    if(Git_FOUND)
+        execute_process(
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            COMMAND ${GIT_EXECUTABLE} describe --tags --always
+            OUTPUT_VARIABLE GIT_DESCRIBE
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            RESULT_VARIABLE GIT_RETURN)
+        # Check if the command was successful
+        if(GIT_RETURN EQUAL "0")
+            # Strip leading "v" from "v0.3.8-111-g04be8d2b"
+            string(REGEX REPLACE "^v" "" SPH_VERSION ${GIT_DESCRIBE})
+        else()
+            message(WARNING "git describe failed, version detection not possible.")
+        endif()
+    else()
+        message(WARNING "Git not found, version detection not possible.")
+    endif()
+    message(STATUS "Using auto-detected version \"${SPH_VERSION}\"")
+endif()
+
+project(OpenSPH LANGUAGES CXX)
+# Setting project version separately: https://gitlab.kitware.com/cmake/cmake/-/issues/16716
+set(CMAKE_PROJECT_VERSION ${SPH_VERSION})
 
 option(WITH_TBB "Enable TBB parallelization" ON)
 option(WITH_EIGEN "Enable additional algorithms using Eigen" OFF)
