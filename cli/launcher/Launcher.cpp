@@ -20,9 +20,8 @@ static Array<ArgDesc> params{
 };
 
 static void printBanner(ILogger& logger) {
-    logger.write("*******************************************************************************");
-    logger.write("******************************** OpenSPH CLI **********************************");
-    logger.write("*******************************************************************************");
+    logger.write("opensph-cli (version ", SPH_CODE_VERSION, ")");
+    logger.write();
 }
 
 /// \todo deduplicate
@@ -102,11 +101,7 @@ static void registerJobs() {
 }
 
 static void run(const ArgParser& parser, ILogger& logger) {
-#ifdef SPH_VERSION
-    logger.write("Running opensph-cli (version ", SPH_STR(SPH_VERSION), ")");
-#else
-    logger.write("Running opensph-cli (unknown version)");
-#endif
+    printBanner(logger);
     const Path projectPath(parser.getArg<String>("p"));
     const String nodeToRun(parser.getArg<String>("n"));
 
