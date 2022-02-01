@@ -27,8 +27,17 @@ jobs:
         with_eigen: ["ON", "OFF"]
         with_tbb: ["ON", "OFF"]
         with_chaiscript: ["OFF"]  # TODO: Chaiscript support needs to be added
+        use_single_precision: ["OFF"]
         container: [""]
         include:
+          # Build everything with single precision
+          - container: ""
+            build_type: "Debug"
+            with_vdb: "ON"
+            with_eigen: "ON"
+            with_tbb: "ON"
+            with_chaiscript: "OFF"
+            use_single_precision: "ON"
           # Build a modern version of OpenSPH based on VFX Reference Platforms
           - container: aswf/ci-vfxall:2021
             build_type: "Release"
@@ -36,12 +45,14 @@ jobs:
             with_eigen: "ON"
             with_tbb: "ON"
             with_chaiscript: "OFF"
+            use_single_precision: "OFF"
           - container: aswf/ci-vfxall:2022
             build_type: "Release"
             with_vdb: "ON"
             with_eigen: "ON"
             with_tbb: "ON"
             with_chaiscript: "OFF"
+            use_single_precision: "OFF"
 
     container: ${{ matrix.container }}
 
@@ -71,6 +82,7 @@ jobs:
         # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: |
           cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE:STRING=${{ matrix.build_type }} \
+          -DUSE_SINGLE_PRECISION=${{ matrix.use_single_precision }} \
           -DWITH_EIGEN:STRING=${{ matrix.with_eigen }} \
           -DWITH_CHAISCRIPT:STRING=${{ matrix.with_chaiscript }} \
           -DWITH_VDB:STRING=${{ matrix.with_vdb }} \
