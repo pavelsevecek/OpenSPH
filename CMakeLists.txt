@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.12)
 
 project(OpenSPH VERSION 0.3.9 LANGUAGES CXX)
 
