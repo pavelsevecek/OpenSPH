@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.12)
 
 project(OpenSPH VERSION 0.3.9 LANGUAGES CXX)
 
@@ -7,6 +7,7 @@ option(WITH_EIGEN "Enable additional algorithms using Eigen" OFF)
 option(WITH_CHAISCRIPT "Enable scripting tools" OFF)
 option(WITH_VDB "Enable conversion to OpenVDB files" OFF)
 option(BUILD_UTILS "Build auxiliary utilities" OFF)
+option(USE_SINGLE_PRECISION "Build OpenSPH with single precision" OFF)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -30,6 +31,11 @@ if (WITH_EIGEN)
     add_definitions(-DSPH_USE_EIGEN)
 endif()
 
+if (USE_SINGLE_PRECISION)
+    message(STATUS "Building ${CMAKE_PROJECT_NAME} with single precision")
+    add_definitions(-DSPH_SINGLE_PRECISION)
+endif()
+
 if (WITH_CHAISCRIPT)
     add_definitions(-DSPH_USE_CHAISCRIPT)
     if (WIN32)
@@ -45,7 +51,7 @@ if (WITH_TBB)
     find_package(TBB REQUIRED tbb tbbmalloc)
     add_definitions(-DSPH_USE_TBB)
     set(TBB_LIBRARIES TBB::tbb TBB::tbbmalloc)
-    if(${TBB_VERSION_MAJOR} LESS 2021)
+    if(${Tbb_VERSION_MAJOR} LESS 2021)
         message(STATUS "Using classic TBB")
         add_definitions(-DTBB_SUPPRESS_DEPRECATED_MESSAGES)
     else()
@@ -57,6 +63,21 @@ if (WITH_VDB)
     find_package(OpenVDB REQUIRED)
     add_definitions(-DSPH_USE_VDB)
     include_directories(${OpenVDB_INCLUDE_DIRS})
+
+    # OpenVDB requires TBB
+    if (NOT WITH_TBB)
+        find_package(TBB REQUIRED tbb)
+        set(TBB_LIBRARIES TBB::tbb)
+    endif()
+
+    # Workaround for OpenVDB before version 8.1
+    if (OpenVDB_MAJOR_VERSION LESS "9" OR (OpenVDB_MAJOR_VERSION EQUAL "8" AND OpenVDB_MINOR_VERSION LESS "1"))
+        message("OpenVDB ${OpenVDB_VERSION} version requires external IlmBase IMath Half implementation.")
+        find_package(IlmBase COMPONENTS Half REQUIRED) # "Half" for "libHalf"
+    endif()
+
+    # if IlmBase was required (either directly or indirectly via OpenVDB) add it to all occurances of OpenVDB
+    set(OpenVDB_ALL_LIBRARIES ${OpenVDB_LIBRARIES} ${IlmBase_LIBRARIES} ${TBB_LIBRARIES})
 endif()
 
 if (WIN32)

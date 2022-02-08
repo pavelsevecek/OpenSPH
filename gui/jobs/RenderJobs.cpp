@@ -685,7 +685,7 @@ void VdbJob::generate(Storage& storage, const RunSettings& global, const Path& o
 
     Path vdbPath = outputPath;
     vdbPath.replaceExtension("vdb");
-    io::File vdbFile(vdbPath.native().cstr());
+    io::File vdbFile(vdbPath.string().toAscii().cstr());
     vdbFile.write(vdbGrids);
     vdbFile.close();
 }

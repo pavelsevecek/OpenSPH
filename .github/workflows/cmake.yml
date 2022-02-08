@@ -1,0 +1,102 @@
+---
+name: CMake
+
+# yamllint disable-line rule:truthy
+on:
+  push:
+    branches:
+      - devel
+      - master
+  pull_request:
+    branches:
+      - devel
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # We want to build all combinations on ubuntu-latest to verify it works
+    # Additionally, we want to build versions with newer dependencies based
+    # on the VFX Reference platforms CY2021+
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: ["Release", "Debug"]
+        with_vdb: ["ON", "OFF"]
+        with_eigen: ["ON", "OFF"]
+        with_tbb: ["ON", "OFF"]
+        with_chaiscript: ["OFF"]  # TODO: Chaiscript support needs to be added
+        use_single_precision: ["OFF"]
+        container: [""]
+        include:
+          # Build everything with single precision
+          - container: ""
+            build_type: "Debug"
+            with_vdb: "ON"
+            with_eigen: "ON"
+            with_tbb: "ON"
+            with_chaiscript: "OFF"
+            use_single_precision: "ON"
+          # Build a modern version of OpenSPH based on VFX Reference Platforms
+          - container: aswf/ci-vfxall:2021
+            build_type: "Release"
+            with_vdb: "ON"
+            with_eigen: "ON"
+            with_tbb: "ON"
+            with_chaiscript: "OFF"
+            use_single_precision: "OFF"
+          - container: aswf/ci-vfxall:2022
+            build_type: "Release"
+            with_vdb: "ON"
+            with_eigen: "ON"
+            with_tbb: "ON"
+            with_chaiscript: "OFF"
+            use_single_precision: "OFF"
+
+    container: ${{ matrix.container }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install GTK3 wxWidgets
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y --no-install-recommends libwxgtk3.0-gtk3-dev || yum install -y --setopt=tsflags=nodocs wxGTK3-devel
+
+      - name: Install Eigen3
+        if: runner.os == 'Linux' && matrix.with_eigen == 'ON'
+        run: sudo apt-get install -y --no-install-recommends libeigen3-dev || yum install -y --setopt=tsflags=nodocs eigen3-devel
+
+      - name: Install TBB
+        # TBB is pre-installed on VFX Reference platform containers
+        if: runner.os == 'Linux' && matrix.with_tbb == 'ON' && matrix.container == ''
+        run: sudo apt-get install -y --no-install-recommends libtbb-dev
+
+      - name: Install OpenVDB and dependencies
+        # OpenVDB is pre-installed on VFX Reference platform containers
+        if: runner.os == 'Linux' && matrix.with_vdb == 'ON' && matrix.container == ''
+        run: sudo apt-get install -y --no-install-recommends libopenvdb-dev libboost-iostreams-dev libboost-system-dev
+
+      - name: Configure CMake
+        # `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+        # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+        run: |
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE:STRING=${{ matrix.build_type }} \
+          -DUSE_SINGLE_PRECISION=${{ matrix.use_single_precision }} \
+          -DWITH_EIGEN:STRING=${{ matrix.with_eigen }} \
+          -DWITH_CHAISCRIPT:STRING=${{ matrix.with_chaiscript }} \
+          -DWITH_VDB:STRING=${{ matrix.with_vdb }} \
+          -DWITH_TBB:STRING=${{ matrix.with_tbb }} \
+          -DBUILD_UTILS=ON
+
+      - name: Build
+        # Build your program with the given configuration
+        run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build_type }} -j4
+
+      - name: Test
+        if: ${{ false }}  # Skip tests until they work properly
+        working-directory: ${{github.workspace}}/build
+        # Execute tests defined by the CMake configuration.
+        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+        run: ctest -C ${{ matrix.build_type }}
