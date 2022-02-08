@@ -1,6 +1,7 @@
 /// \brief Executable running a simulation previously set up by GUI appliaction
 
 #include "Sph.h"
+#include "common/VersionHelper.h"
 #include "run/Config.h"
 #include "run/Node.h"
 #include "run/SpecialEntries.h"
@@ -181,6 +182,8 @@ int main(int argc, char* argv[]) {
 
     } catch (HelpException& e) {
         printBanner(logger);
+        logger.write(getEnabledFeatures());
+        logger.write();
         logger.write(e.what());
         return 0;
     } catch (const Exception& e) {
