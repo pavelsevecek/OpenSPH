@@ -101,6 +101,7 @@ static GridPtrVec particlesToGrids(const Storage& storage) {
     FloatGrid::Ptr energyField = FloatGrid::create(0._f);
 
     colorField->setName("density");
+    colorField->setSaveFloatAsHalf(false);
     velocityField->setName("velocity");
     energyField->setName("emission");
 
@@ -113,7 +114,7 @@ static GridPtrVec particlesToGrids(const Storage& storage) {
     Float distention;
     if (storage.has(QuantityId::DENSITY)) {
         rho = storage.getValue<Float>(QuantityId::DENSITY).clone();
-        distention = 1;
+        distention = 2;
     } else {
         tieToTuple(rho, distention) = getDensities(m, r, kernel);
     }
