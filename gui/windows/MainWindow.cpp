@@ -1,3 +1,4 @@
+#include "common/VersionHelper.h"
 #include "gui/windows/MainWindow.h"
 #include "gui/Controller.h"
 #include "gui/Settings.h"
@@ -193,37 +194,7 @@ MainWindow::MainWindow(const Path& openPath)
             info.SetName("OpenSPH");
             info.SetVersion(SPH_CODE_VERSION);
 
-            String desc;
-#ifdef SPH_DEBUG
-            desc += "Debug build\n";
-#else
-            desc += "Release build\n";
-#endif
-#ifdef SPH_PROFILE
-            desc += "Profiling enabled\n";
-#endif
-#ifdef SPH_USE_TBB
-            desc += "Parallelization: TBB\n";
-#elif SPH_USE_OPENMP
-            desc += "Parallelization: OpenMP\n";
-#else
-            desc += "Parallelization: built-in thread pool\n";
-#endif
-#ifdef SPH_USE_EIGEN
-            desc += "Eigen: enabled\n";
-#else
-            desc += "Eigen: disabled\n";
-#endif
-#ifdef SPH_USE_VDB
-            desc += "OpenVDB: enabled\n";
-#else
-            desc += "OpenVDB: disabled\n";
-#endif
-#ifdef SPH_USE_CHAISCRIPT
-            desc += "Chaiscript: enabled";
-#else
-            desc += "Chaiscript: disabled";
-#endif
+            const String desc = getEnabledFeatures();
             info.SetDescription(desc.toUnicode());
             info.SetCopyright(L"Pavel \u0160eve\u010Dek <sevecek@sirrah.troja.mff.cuni.cz>");
 

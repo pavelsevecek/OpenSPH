@@ -36,9 +36,10 @@ enum class CheckFlag {
     RATIO_CB = 1 << 7,
     RATIO_BA = 1 << 8,
     SPHERICITY = 1 << 9,
-    MOONS = 1 << 10,
+    COMPOSITION = 1 << 10,
+    MOONS = 1 << 11,
 };
-const Size CHECK_COUNT = 11;
+const Size CHECK_COUNT = 12;
 
 GridPage::GridPage(wxWindow* parent, const wxSize size, const Storage& storage)
     : ClosablePage(parent, "Body properties")
@@ -64,6 +65,7 @@ GridPage::GridPage(wxWindow* parent, const wxSize size, const Storage& storage)
     boxSizer->Add(new wxCheckBox(this, int(CheckFlag::RATIO_CB), "Ratio c/b"));
     boxSizer->Add(new wxCheckBox(this, int(CheckFlag::RATIO_BA), "Ratio b/a"));
     boxSizer->Add(new wxCheckBox(this, int(CheckFlag::SPHERICITY), "Sphericity"));
+    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::COMPOSITION), "Composition"));
     sizer->Add(boxSizer);
 
     wxStaticBox* moonGroup = new wxStaticBox(this, wxID_ANY, "Moons", wxDefaultPosition, wxSize(-1, 60));
@@ -267,6 +269,38 @@ static Float getSphericity(const Storage& storage) {
     return Post::getSphericity(*scheduler, storage, 0.02_f);
 }
 
+static String getCompositionDesc(const Storage& storage) {
+    if (storage.getMaterialCnt() == 0) {
+        return "N/A";
+    }
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    Array<Tuple<String, Float>> composition;
+    Float m_tot = 0._f;
+    for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
+        MaterialView view = storage.getMaterial(matId);
+        Float m_mat = 0._f;
+        for (Size i : view.sequence()) {
+            m_mat += m[i];
+        }
+        m_tot += m_mat;
+        const String name = view.material().getParam<String>(BodySettingsId::IDENTIFIER);
+        composition.emplaceBack(name, m_mat);
+    }
+    std::sort(composition.begin(), composition.end(), [](const auto& c1, const auto& c2) {
+        return c1.template get<1>() > c2.template get<1>();
+    });
+    std::wstringstream desc;
+    for (Size c = 0; c < composition.size(); ++c) {
+        String name = composition[c].get<0>();
+        Float massFraction = composition[c].get<1>() / m_tot;
+        desc << name << " (" << std::fixed << std::setw(2) << massFraction * 100 << "%)";
+        if (c != composition.size() - 1) {
+            desc << ", ";
+        }
+    }
+    return String(desc.str().c_str());
+}
+
 static Float getVelocityDifference(const Storage& s1, const Storage& s2) {
     ArrayView<const Float> m1 = s1.getValue<Float>(QuantityId::MASS);
     ArrayView<const Vector> v1 = s1.getDt<Vector>(QuantityId::POSITION);
@@ -424,7 +458,7 @@ void GridPage::updateAsync(const Storage& storage,
                 }
                 this->updateCell(i, colIdx++, period, unit);
             } else {
-                this->updateCell(i, colIdx++, std::string("undefined"));
+                this->updateCell(i, colIdx++, String("undefined"));
             }
         }
 
@@ -440,6 +474,10 @@ void GridPage::updateAsync(const Storage& storage,
 
         if (checks.has(CheckFlag::SPHERICITY)) {
             this->updateCell(i, colIdx++, getSphericity(fragment));
+        }
+
+        if (checks.has(CheckFlag::COMPOSITION)) {
+            this->updateCell(i, colIdx++, getCompositionDesc(fragment));
         }
 
         if (checks.has(CheckFlag::MOONS)) {
@@ -470,9 +508,9 @@ void GridPage::updateCell(const Size rowIdx, const Size colIdx, const T& value, 
     });
 }
 
-void GridPage::updateCell(const Size rowIdx, const Size colIdx, const std::string& value) {
+void GridPage::updateCell(const Size rowIdx, const Size colIdx, const String& value) {
     executeOnMainThread([this, rowIdx, colIdx, value] { //
-        grid->SetCellValue(rowIdx, colIdx, value);
+        grid->SetCellValue(rowIdx, colIdx, value.toUnicode());
     });
 }
 
@@ -495,6 +533,7 @@ Size GridPage::getCheckedCount() const {
         CheckFlag::RATIO_CB,
         CheckFlag::RATIO_BA,
         CheckFlag::SPHERICITY,
+        CheckFlag::COMPOSITION,
         CheckFlag::MOONS,
     };
     SPH_ASSERT(allIds.size() == CHECK_COUNT);

@@ -153,6 +153,7 @@ void MaterialJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNU
         const Float rho0 = getInitialDensity(parseAneosFile(path));
         body.set(BodySettingsId::DENSITY, rho0);
     }
+    body.set(BodySettingsId::IDENTIFIER, instName);
     result = Factory::getMaterial(body);
 }
 

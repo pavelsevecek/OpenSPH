@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.12)
 
 # Generate version string if it was not specified
 if (NOT DEFINED SPH_VERSION)
@@ -33,6 +33,7 @@ option(WITH_EIGEN "Enable additional algorithms using Eigen" OFF)
 option(WITH_CHAISCRIPT "Enable scripting tools" OFF)
 option(WITH_VDB "Enable conversion to OpenVDB files" OFF)
 option(BUILD_UTILS "Build auxiliary utilities" OFF)
+option(USE_SINGLE_PRECISION "Build OpenSPH with single precision" OFF)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -54,6 +55,11 @@ if (WITH_EIGEN)
     find_package(Eigen REQUIRED)
     include_directories(${EIGEN_INCLUDE_DIRS})
     add_definitions(-DSPH_USE_EIGEN)
+endif()
+
+if (USE_SINGLE_PRECISION)
+    message(STATUS "Building ${CMAKE_PROJECT_NAME} with single precision")
+    add_definitions(-DSPH_SINGLE_PRECISION)
 endif()
 
 if (WITH_CHAISCRIPT)

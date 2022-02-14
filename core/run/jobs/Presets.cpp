@@ -140,6 +140,7 @@ SharedPtr<JobNode> Presets::makeFragmentationAndReaccumulation(UniqueNameManager
     impactorIc->connect(setup, "impactor");
 
     RunSettings settings(EMPTY_SETTINGS);
+    settings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1._f);
     settings.set(RunSettingsId::TIMESTEPPING_CRITERION,
         TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::DIVERGENCE);
     SharedPtr<JobNode> frag = makeNode<SphJob>(nameMgr.getName("fragmentation"), settings);
@@ -213,6 +214,7 @@ SharedPtr<JobNode> Presets::makeCratering(UniqueNameManager& nameMgr, const Size
 
     SharedPtr<JobNode> cratering = makeNode<SphJob>(nameMgr.getName("cratering"), EMPTY_SETTINGS);
     VirtualSettings crateringSettings = cratering->getSettings();
+    crateringSettings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1._f);
     crateringSettings.set(RunSettingsId::RUN_END_TIME, 60._f);
     crateringSettings.set(RunSettingsId::DOMAIN_BOUNDARY, EnumWrapper(BoundaryEnum::GHOST_PARTICLES));
     crateringSettings.set(RunSettingsId::SPH_SOLVER_FORCES, EnumWrapper(ForceEnum(forces.value())));
@@ -277,6 +279,8 @@ SharedPtr<JobNode> Presets::makePlanetesimalMerging(UniqueNameManager& nameMgr, 
 
     SharedPtr<JobNode> sim = makeNode<SphJob>(nameMgr.getName("impact simulation"));
     VirtualSettings simSettings = sim->getSettings();
+    simSettings.set(RunSettingsId::RUN_OUTPUT_INTERVAL, 500._f);
+    simSettings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 50._f);
     simSettings.set(RunSettingsId::RUN_END_TIME, 15000._f);
     simSettings.set(RunSettingsId::SPH_SOLVER_FORCES, forces);
     simSettings.set(RunSettingsId::TIMESTEPPING_CRITERION, criteria);
@@ -348,6 +352,7 @@ SharedPtr<JobNode> Presets::makeAccretionDisk(UniqueNameManager& nameMgr, const 
 
     SharedPtr<JobNode> sim = makeNode<SphJob>(nameMgr.getName("accretion"), EMPTY_SETTINGS);
     VirtualSettings simSettings = sim->getSettings();
+    simSettings.set(RunSettingsId::RUN_OUTPUT_INTERVAL, 500._f);
     simSettings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 50._f);
     simSettings.set(RunSettingsId::RUN_END_TIME, 28800._f);
     const EnumWrapper forces = EnumWrapper::fromFlags(ForceEnum::PRESSURE | ForceEnum::SELF_GRAVITY);
@@ -402,6 +407,7 @@ SharedPtr<JobNode> Presets::makePlanetFormation(UniqueNameManager& nameMgr, cons
     SharedPtr<JobNode> sim = makeNode<NBodyJob>(nameMgr.getName("orbital simulation"), EMPTY_SETTINGS);
     merger->connect(sim, "particles");
     VirtualSettings simSettings = sim->getSettings();
+    simSettings.set(RunSettingsId::RUN_OUTPUT_INTERVAL, 5.e6_f);
     simSettings.set(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR, 10._f);
     simSettings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 5.e5_f);
     simSettings.set(RunSettingsId::RUN_END_TIME, Constants::year * 1000._f);
@@ -550,6 +556,7 @@ SharedPtr<JobNode> Presets::makeSolarSystem(UniqueNameManager& nameMgr, const Si
     SharedPtr<JobNode> sim = makeNode<NBodyJob>(nameMgr.getName("orbital simulation"), EMPTY_SETTINGS);
     join->connect(sim, "particles");
     VirtualSettings simSettings = sim->getSettings();
+    simSettings.set(RunSettingsId::RUN_OUTPUT_INTERVAL, 360000._f);
     simSettings.set(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR, 10._f);
     simSettings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 36000._f);
     simSettings.set(RunSettingsId::RUN_END_TIME, Constants::year * 100._f);

@@ -6,6 +6,7 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Movie.h"
 #include "gui/objects/PaletteEntry.h"
+#include "quantities/Attractor.h"
 #include "run/IRun.h"
 #include "run/VirtualSettings.h"
 #include "run/jobs/IoJobs.h"
@@ -104,6 +105,9 @@ VirtualSettings AnimationJob::getSettings() {
     rendererCat.connect("Include surface gravity", "surface_gravity", addSurfaceGravity)
         .setEnabler([this] { return RenderColorizerId(colorizerId) == RenderColorizerId::GRAVITY; })
         .setTooltip("Include the surface gravity of the particle itself.");
+    rendererCat.connect("Include attractors", "attractor_gravity", addAttractorGravity)
+        .setEnabler([this] { return RenderColorizerId(colorizerId) == RenderColorizerId::GRAVITY; })
+        .setTooltip("Include the gravity from attractors.");
     rendererCat.connect<bool>("Transparent background", "transparent", transparentBackground);
     rendererCat.connect<EnumWrapper>("Color mapping", gui, GuiSettingsId::COLORMAP_TYPE);
     rendererCat.connect<Float>("Logarithmic factor", gui, GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR)
@@ -180,17 +184,20 @@ private:
     Array<Float> acc;
     Float G;
     bool addSurfaceGravity;
+    bool addAttractorGravity;
 
 public:
     GravityColorizer(const SharedPtr<IScheduler>& scheduler,
         const Palette& palette,
         const Float G,
-        const bool addSurfaceGravity)
+        const bool addSurfaceGravity,
+        const bool addAttractorGravity)
         : TypedColorizer<Float>(QuantityId::POSITION, palette)
         , scheduler(scheduler)
         , gravity(0.8_f, MultipoleOrder::OCTUPOLE, SolidSphereKernel{}, 25, 50, G)
         , G(G)
-        , addSurfaceGravity(addSurfaceGravity) {}
+        , addSurfaceGravity(addSurfaceGravity)
+        , addAttractorGravity(addAttractorGravity) {}
 
     virtual void initialize(const Storage& storage, const RefEnum UNUSED(ref)) override {
         acc.resize(storage.getParticleCnt());
@@ -203,6 +210,10 @@ public:
         dv.fill(Vector(0._f));
         Statistics stats;
         gravity.evalSelfGravity(*scheduler, dv, stats);
+        if (addAttractorGravity) {
+            Array<Attractor> attractors = viewToArray(storage.getAttractors());
+            gravity.evalAttractors(*scheduler, attractors, dv);
+        }
         for (Size i = 0; i < dv.size(); ++i) {
             acc[i] = getLength(dv[i]);
         }
@@ -480,7 +491,8 @@ AutoPtr<IColorizer> AnimationJob::getColorizer(const RunSettings& global) const 
         default:
             NOT_IMPLEMENTED;
         }
-        return makeAuto<GravityColorizer>(scheduler, this->getPalette(), G, addSurfaceGravity);
+        return makeAuto<GravityColorizer>(
+            scheduler, this->getPalette(), G, addSurfaceGravity, addAttractorGravity);
     } else {
         AutoPtr<IColorizer> colorizer = Factory::getColorizer(gui, ColorizerId(renderId));
         colorizer->setPalette(this->getPalette());

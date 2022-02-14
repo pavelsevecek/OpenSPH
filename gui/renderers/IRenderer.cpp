@@ -19,7 +19,7 @@ void RenderParams::initialize(const GuiSettings& gui) {
     surface.level = float(gui.get<Float>(GuiSettingsId::SURFACE_LEVEL));
     surface.emission = float(gui.get<Float>(GuiSettingsId::SURFACE_EMISSION));
     volume.emission = float(gui.get<Float>(GuiSettingsId::VOLUME_EMISSION));
-    volume.absorption = 1.e-6f * float(gui.get<Float>(GuiSettingsId::VOLUME_ABSORPTION));
+    volume.absorption = float(gui.get<Float>(GuiSettingsId::VOLUME_ABSORPTION));
     volume.scattering = float(gui.get<Float>(GuiSettingsId::VOLUME_SCATTERING));
     lighting.ambientLight = float(gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT));
     lighting.sunLight = float(gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY));
