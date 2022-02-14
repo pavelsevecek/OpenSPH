@@ -1309,9 +1309,13 @@ void NodeEditor::doPopupMenu(VisNode* vis) {
         case 6:
             this->deleteNode(vis);
             break;
-        case 7:
-            this->deleteNode(vis);
+        case 7: {
+            if (state.activated == vis) {
+                state.activated = nullptr;
+            }
+            nodeWindow->deleteTree(vis->node->sharedFromThis());
             break;
+        }
         default:
             NOT_IMPLEMENTED;
         }
@@ -1320,9 +1324,11 @@ void NodeEditor::doPopupMenu(VisNode* vis) {
     });
     this->PopupMenu(&menu);
 }
+
 void NodeEditor::deleteNode(const VisNode* vis) {
-    if (state.activated == vis)
+    if (state.activated == vis) {
         state.activated = nullptr;
+    }
     nodeWindow->deleteNode(vis->node->sharedFromThis());
 }
 

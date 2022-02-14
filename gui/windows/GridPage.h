@@ -39,7 +39,7 @@ private:
     template <typename T>
     void updateCell(const Size rowIdx, const Size colIdx, const T& value, const std::string& unit = {});
 
-    void updateCell(const Size rowIdx, const Size colIdx, const std::string& value);
+    void updateCell(const Size rowIdx, const Size colIdx, const String& value);
 
     wxCheckBox* getCheck(const CheckFlag check) const;
 

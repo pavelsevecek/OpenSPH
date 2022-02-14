@@ -529,7 +529,7 @@ private:
     }
 };
 
-    /// \brief Prints content of array to stream.
+/// \brief Prints content of array to stream.
 ///
 /// Enabled only if the stored type has overloaded << operator.
 template <typename TStream, typename T, typename = std::enable_if_t<HasStreamOperator<T, TStream>::value>>
@@ -571,6 +571,13 @@ Array<std::decay_t<T0>> makeArray(T0&& t0, TArgs&&... rest) {
 template <typename T0, typename... TArgs>
 Array<T0&> tieToArray(T0& t0, TArgs&... rest) {
     return Array<T0&>{ t0, rest... };
+}
+
+template <typename T>
+Array<std::decay_t<T>> viewToArray(ArrayView<T> view) {
+    Array<std::decay_t<T>> a;
+    a.pushAll(view.begin(), view.end());
+    return a;
 }
 
 

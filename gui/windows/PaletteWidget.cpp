@@ -66,6 +66,7 @@ const Palette STELLAR({ { 0.f, Rgba(1.f, 0.75f, 0.1f) },
 static UnorderedMap<String, Palette> createPresetMap() {
     UnorderedMap<String, Palette> map = {
         { "Blackbody", getBlackBodyPalette(Interval(300, 12000), 8) },
+        { "Emission", getEmissionPalette(Interval(300, 12000), 8) },
         { "Galaxy", Palettes::GALAXY },
         { "Accretion", Palettes::ACCRETION },
         { "Stellar", Palettes::STELLAR },

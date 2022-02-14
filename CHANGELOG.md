@@ -1,3 +1,6 @@
+## 2021-02-14
+- added composition to the "body properties" page
+
 ## 2021-01-23
 - added a node for merging overlapping particles
 - added smoothing factor to Raymarcher

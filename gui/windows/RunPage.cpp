@@ -690,7 +690,7 @@ void printStat<Float>(wxTextCtrl* text,
     const String units) {
     if (stats.has(id)) {
         const Float value = stats.get<Float>(id);
-        if (value < 0.01_f) {
+        if (value < 0.01_f || value > 1.e5_f) {
             std::stringstream ss;
             ss << std::setprecision(2) << std::scientific << value;
             *text << desc.toUnicode() << ss.str() << units.toUnicode() << "\n";

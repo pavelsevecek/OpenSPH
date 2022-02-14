@@ -1,11 +1,11 @@
 #include "io/Vdb.h"
-#include "thread/ThreadLocal.h"
 #include "objects/finders/KdTree.h"
 #include "objects/geometry/Box.h"
 #include "objects/geometry/Indices.h"
 #include "quantities/IMaterial.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
+#include "thread/ThreadLocal.h"
 #include <algorithm>
 
 #ifdef SPH_USE_VDB
@@ -41,7 +41,7 @@ static T median(Array<T>&& values) {
     return values[mid];
 }
 
-template<typename T>
+template <typename T>
 static T median(ArrayView<const T> values) {
     Array<T> copy;
     copy.pushAll(values.begin(), values.end());
@@ -69,7 +69,9 @@ VdbOutput::~VdbOutput() {
 constexpr Size MIN_NEIGHT = 8;
 constexpr Float MAX_DISTENTION = 50;
 
-static Tuple<Array<Float>, Float> getDensities(ArrayView<const Float> m, ArrayView<const Vector> r, const LutKernel<3>& kernel) {
+static Tuple<Array<Float>, Float> getDensities(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    const LutKernel<3>& kernel) {
     KdTree<KdNode> finder;
     SharedPtr<IScheduler> scheduler = Factory::getScheduler();
     finder.build(*scheduler, r, FinderFlag::SKIP_RANK);
@@ -77,7 +79,7 @@ static Tuple<Array<Float>, Float> getDensities(ArrayView<const Float> m, ArrayVi
     Array<Float> rho(r.size());
     Array<Float> distentions(r.size());
     parallelFor(*scheduler, neighsTl, 0, r.size(), [&](const Size i, Array<NeighborRecord>& neighs) {
-        Float radius = 2._f; 
+        Float radius = 2._f;
         for (; radius < MAX_DISTENTION; radius *= 2) {
             finder.findAll(r[i], r[i][H] * radius, neighs);
             if (neighs.size() >= MIN_NEIGHT) {
@@ -130,7 +132,7 @@ static GridPtrVec particlesToGrids(const Storage& storage) {
     }
     const Float e0 = median<Float>(e.view());
 
-    const float voxelSize = getVoxelSize(r) * distention;
+    const float voxelSize = float(getVoxelSize(r) * distention);
     openvdb::math::Transform::Ptr transform = openvdb::math::Transform::createLinearTransform(voxelSize);
 
     typename FloatGrid::Accessor colorAccessor = colorField->getAccessor();
