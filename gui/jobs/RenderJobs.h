@@ -76,6 +76,7 @@ private:
     EnumWrapper colorizerId;
     ExtraEntry paletteEntry;
     bool addSurfaceGravity = true;
+    bool addAttractorGravity = true;
     Path directory;
     String fileMask = "img_%d.png";
 
