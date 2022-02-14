@@ -279,7 +279,8 @@ SharedPtr<JobNode> Presets::makePlanetesimalMerging(UniqueNameManager& nameMgr, 
 
     SharedPtr<JobNode> sim = makeNode<SphJob>(nameMgr.getName("impact simulation"));
     VirtualSettings simSettings = sim->getSettings();
-    simSettings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1._f);
+    simSettings.set(RunSettingsId::RUN_OUTPUT_INTERVAL, 500._f);
+    simSettings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 50._f);
     simSettings.set(RunSettingsId::RUN_END_TIME, 15000._f);
     simSettings.set(RunSettingsId::SPH_SOLVER_FORCES, forces);
     simSettings.set(RunSettingsId::TIMESTEPPING_CRITERION, criteria);
