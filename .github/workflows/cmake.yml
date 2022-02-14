@@ -62,7 +62,7 @@ jobs:
 
       - name: Install GTK3 wxWidgets
         if: runner.os == 'Linux'
-        run: sudo apt-get install -y --no-install-recommends libwxgtk3.0-gtk3-dev || yum install -y --setopt=tsflags=nodocs wxGTK3-devel
+        run: sudo apt-get update -qy && sudo apt-get install -y --no-install-recommends libwxgtk3.0-gtk3-dev || yum install -y --setopt=tsflags=nodocs wxGTK3-devel
 
       - name: Install Eigen3
         if: runner.os == 'Linux' && matrix.with_eigen == 'ON'
