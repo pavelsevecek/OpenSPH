@@ -478,23 +478,22 @@ void iterateTree(KdTree<TNode, TMetric>& tree,
             }
         }
     }
-    SharedPtr<ITask> task;
     if (!node.isLeaf()) {
         InnerNode<TNode>& inner = reinterpret_cast<InnerNode<TNode>&>(node);
 
         const Size newDepth = depthLimit == 0 ? 0 : depthLimit - 1;
+        auto iterateLeftSubtree = [&tree, &scheduler, &functor, &inner, newDepth] {
+            iterateTree<Dir>(tree, scheduler, functor, inner.left, newDepth);
+        };
         auto iterateRightSubtree = [&tree, &scheduler, &functor, &inner, newDepth] {
             iterateTree<Dir>(tree, scheduler, functor, inner.right, newDepth);
         };
         if (newDepth > 0) {
-            task = scheduler.submit(iterateRightSubtree);
+            parallelInvoke(scheduler, iterateLeftSubtree, iterateRightSubtree);
         } else {
+            iterateLeftSubtree();
             iterateRightSubtree();
         }
-        iterateTree<Dir>(tree, scheduler, functor, inner.left, newDepth);
-    }
-    if (task) {
-        task->wait();
     }
     if (Dir == IterateDirection::BOTTOM_UP) {
         if (node.isLeaf()) {

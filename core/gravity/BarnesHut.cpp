@@ -53,14 +53,17 @@ void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
     // save source data
     r = storage.getValue<Vector>(QuantityId::POSITION);
 
-    m.resize(r.size());
-    ArrayView<const Float> masses = storage.getValue<Float>(QuantityId::MASS);
-    for (Size i = 0; i < m.size(); ++i) {
-        m[i] = G * masses[i];
-    }
-
-    // build K-d Tree; no need for rank as we are never searching neighbors
-    kdTree.build(scheduler, r, FinderFlag::SKIP_RANK);
+    parallelInvoke(
+        scheduler,
+        [&] {
+            m.resize(r.size());
+            ArrayView<const Float> masses = storage.getValue<Float>(QuantityId::MASS);
+            parallelFor(scheduler, 0, m.size(), [this, masses](const Size i) { m[i] = G * masses[i]; });
+        },
+        [&] {
+            // build K-d Tree; no need for rank as we are never searching neighbors
+            kdTree.build(scheduler, r, FinderFlag::SKIP_RANK);
+        });
 
     if (SPH_UNLIKELY(r.empty())) {
         return;
@@ -77,8 +80,7 @@ void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
         }
         return true;
     };
-    /// \todo sequential needed because TBB cannot wait on child tasks yet
-    iterateTree<IterateDirection::BOTTOM_UP>(kdTree, SEQUENTIAL, functor, 0, maxDepth);
+    iterateTree<IterateDirection::BOTTOM_UP>(kdTree, scheduler, functor, 0, maxDepth);
 }
 
 void BarnesHut::evalSelfGravity(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const {
