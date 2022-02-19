@@ -35,6 +35,7 @@ static RegisterEnum<RenderColorizerId> sColorizers({
     { RenderColorizerId::DENSITY, "density", "Density" },
     { RenderColorizerId::DAMAGE, "damage", "Damage" },
     { RenderColorizerId::GRAVITY, "gravity", "Gravitational acceleration" },
+    { RenderColorizerId::COMPONENT_ID, "component", "Index of connected component" },
     { RenderColorizerId::BEAUTY, "beauty", "Beauty" },
 });
 

@@ -284,7 +284,8 @@ Rgba ComponentIdColorizer::evalColor(const Size idx) const {
             return Rgba::gray(0.3f);
         }
     } else {
-        return IdColorizerTemplate<ComponentIdColorizer>::evalColor(idx);
+        const Size id = this->evalId(idx).value();
+        return getRandomizedColor(compIdxs[id], seed);
     }
 }
 
@@ -323,7 +324,15 @@ void ComponentIdColorizer::initialize(const Storage& storage, const RefEnum ref)
 
     cached.r = current.clone();
 
-    Post::findComponents(storage, 2._f, connectivity, components);
+    const Size numComponents = Post::findComponents(storage, 2.5_f, connectivity, components);
+
+    // sort by the smallest index in each component
+    compIdxs.resize(numComponents);
+    compIdxs.fill(Size(-1));
+    for (Size i = 0; i < components.size(); ++i) {
+        const Size ci = components[i];
+        compIdxs[ci] = min(compIdxs[ci], i);
+    }
 }
 
 String ComponentIdColorizer::name() const {

@@ -837,7 +837,7 @@ private:
 
 template <typename TDerived>
 class IdColorizerTemplate : public IColorizer {
-private:
+protected:
     Rgba backgroundColor;
     Size seed = 1;
 
@@ -898,6 +898,7 @@ private:
     Flags<Post::ComponentFlag> connectivity;
 
     Array<Size> components;
+    Array<Size> compIdxs;
 
     ArrayRef<const Float> m;
     ArrayRef<const Vector> r, v;
