@@ -19,7 +19,7 @@ TEST_CASE("Accumulated sum simple", "[accumulated]") {
     ac1.insert<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO, BufferSource::SHARED);
     REQUIRE(ac1.getBufferCnt() == 1);
 
-    ac1.initialize(5);
+    ac1.initialize(SEQUENTIAL, 5);
     ArrayView<Size> buffer1 = ac1.getBuffer<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO);
     REQUIRE(buffer1.size() == 5);
     REQUIRE_NOTHROW(ac1.getBuffer<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO));
@@ -30,7 +30,7 @@ TEST_CASE("Accumulated sum simple", "[accumulated]") {
 
     Accumulated ac2;
     ac2.insert<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO, BufferSource::SHARED);
-    ac2.initialize(5);
+    ac2.initialize(SEQUENTIAL, 5);
     ArrayView<Size> buffer2 = ac2.getBuffer<Size>(QuantityId::NEIGHBOR_CNT, OrderEnum::ZERO);
     REQUIRE(ac2.getBufferCnt() == 1);
     for (Size i = 0; i < 5; ++i) {
@@ -45,7 +45,7 @@ TEST_CASE("Accumulated sum simple", "[accumulated]") {
 template <typename TValue>
 ArrayView<TValue> getInserted(Accumulated& ac, const QuantityId id, const Size size) {
     ac.insert<TValue>(id, OrderEnum::ZERO, BufferSource::SHARED);
-    ac.initialize(size); // multiple initialization do not matter, it's only a bit inefficient
+    ac.initialize(SEQUENTIAL, size); // multiple initialization do not matter, it's only a bit inefficient
     return ac.getBuffer<TValue>(id, OrderEnum::ZERO);
 }
 
@@ -115,7 +115,7 @@ TEST_CASE("Accumulated store", "[accumulated]") {
 TEST_CASE("Accumulate store second derivative", "[accumulated]") {
     Accumulated ac;
     ac.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
-    ac.initialize(1);
+    ac.initialize(SEQUENTIAL, 1);
     ArrayView<Vector> dv = ac.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
     dv[0] = Vector(5._f);
 

@@ -122,7 +122,7 @@ void DensityIndependentSolver::integrate(Storage& storage, Statistics& stats) {
 
     const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
     equations.initialize(scheduler, storage, t);
-    derivatives.initialize(storage);
+    derivatives.initialize(scheduler, storage);
 
     // step 3: update Y from the pressure
 

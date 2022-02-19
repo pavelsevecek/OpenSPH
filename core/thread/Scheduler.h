@@ -6,6 +6,7 @@
 /// \date 2016-2021
 
 #include "common/ForwardDecl.h"
+#include "objects/containers/Array.h"
 #include "objects/utility/IteratorAdapters.h"
 #include "objects/wrappers/Function.h"
 
@@ -139,6 +140,14 @@ INLINE void parallelFor(IScheduler& scheduler,
 template <typename TFunctor>
 INLINE void parallelFor(IScheduler& scheduler, const IndexSequence& sequence, TFunctor&& functor) {
     parallelFor(scheduler, *sequence.begin(), *sequence.end(), std::forward<TFunctor>(functor));
+}
+
+/// \brief Executes a functor concurrently from all available threads.
+///
+/// Overload using an array
+template <typename TValue, typename TFunctor>
+INLINE void parallelFor(IScheduler& scheduler, Array<TValue>& values, TFunctor&& functor) {
+    parallelFor(scheduler, 0, values.size(), 1, [&functor, &values](const Size i) { functor(values[i]); });
 }
 
 /// \brief Syntactic sugar, calls \ref parallelInvoke in given scheduler.

@@ -93,7 +93,7 @@ void DerivativeHolder::require(AutoPtr<IDerivative>&& derivative) {
     derivatives.insert(std::move(derivative));
 }
 
-void DerivativeHolder::initialize(const Storage& input) {
+void DerivativeHolder::initialize(IScheduler& scheduler, const Storage& input) {
     if (needsCreate) {
         // lazy buffer creation
         for (const auto& deriv : derivatives) {
@@ -102,7 +102,7 @@ void DerivativeHolder::initialize(const Storage& input) {
         needsCreate = false;
     }
     // initialize buffers first, possibly resizing then and invalidating previously stored arrayviews
-    accumulated.initialize(input.getParticleCnt());
+    accumulated.initialize(scheduler, input.getParticleCnt());
 
     for (const auto& deriv : derivatives) {
         // then get the arrayviews for derivatives

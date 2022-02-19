@@ -205,7 +205,7 @@ public:
     virtual void require(AutoPtr<IDerivative>&& derivative);
 
     /// \brief Initialize derivatives before loop.
-    virtual void initialize(const Storage& input);
+    virtual void initialize(IScheduler& scheduler, const Storage& input);
 
     /// \brief Evaluates all held derivatives for given particle.
     void eval(const Size idx, ArrayView<const Size> neighs, ArrayView<const Vector> grads);

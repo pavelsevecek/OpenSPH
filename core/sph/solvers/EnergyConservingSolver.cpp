@@ -190,7 +190,7 @@ void EnergyConservingSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
 void EnergyConservingSolver::beforeLoop(Storage& storage, Statistics& stats) {
     const Float t = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
     equations.initialize(scheduler, storage, t);
-    derivatives.initialize(storage);
+    derivatives.initialize(scheduler, storage);
     const Size particleCnt = storage.getParticleCnt();
     for (ThreadData& data : threadData) {
         data.energyChange.resize(particleCnt);

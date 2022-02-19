@@ -145,7 +145,7 @@ void SymmetricSolver<Dim>::beforeLoop(Storage& storage, Statistics& UNUSED(stats
     // clear thread local storages
     PROFILE_SCOPE("GenericSolver::beforeLoop");
     for (ThreadData& data : threadData) {
-        data.derivatives.initialize(storage);
+        data.derivatives.initialize(scheduler, storage);
     }
 }
 

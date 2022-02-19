@@ -35,8 +35,8 @@ template void Accumulated::insert<Vector>(const QuantityId, const OrderEnum, con
 template void Accumulated::insert<SymmetricTensor>(const QuantityId, const OrderEnum, const BufferSource);
 template void Accumulated::insert<TracelessTensor>(const QuantityId, const OrderEnum, const BufferSource);
 
-void Accumulated::initialize(const Size size) {
-    for (Element& e : buffers) {
+void Accumulated::initialize(IScheduler& scheduler, const Size size) {
+    parallelFor(scheduler, buffers, [size](Element& e) {
         forValue(e.buffer, [size](auto& values) {
             using T = typename std::decay_t<decltype(values)>::Type;
             if (values.size() != size) {
@@ -47,7 +47,7 @@ void Accumulated::initialize(const Size size) {
                 SPH_ASSERT(std::count(values.begin(), values.end(), T(0._f)) == values.size());
             }
         });
-    }
+    });
 }
 
 template <typename TValue>

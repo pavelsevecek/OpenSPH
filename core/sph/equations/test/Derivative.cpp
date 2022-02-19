@@ -2,6 +2,7 @@
 #include "objects/Exceptions.h"
 #include "objects/utility/PerElementWrapper.h"
 #include "sph/equations/DerivativeHelpers.h"
+#include "thread/Scheduler.h"
 #include "utils/Utils.h"
 
 using namespace Sph;
@@ -31,7 +32,7 @@ TEST_CASE("Derivative initialize", "[derivative]") {
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, 1._f); // quantities needed by divv
     storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, 1._f);
 
-    derivatives.initialize(storage);
+    derivatives.initialize(SEQUENTIAL, storage);
     Accumulated& ac = derivatives.getAccumulated();
     REQUIRE(ac.getBufferCnt() == 1);
     ArrayView<Float> divv = ac.getBuffer<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO);
@@ -81,7 +82,7 @@ TEST_CASE("Derivative unique buffer", "[derivative]") {
 
     Storage storage;
     storage.insert<Float>(QuantityId::POSITION, OrderEnum::FIRST, Array<Float>{ 1._f, 2._f, 3._f });
-    REQUIRE_SPH_ASSERT(derivatives.initialize(storage));
+    REQUIRE_SPH_ASSERT(derivatives.initialize(SEQUENTIAL, storage));
 }
 
 TEST_CASE("Derivative shared buffer", "[derivative]") {
@@ -91,7 +92,7 @@ TEST_CASE("Derivative shared buffer", "[derivative]") {
 
     Storage storage;
     storage.insert<Float>(QuantityId::POSITION, OrderEnum::FIRST, Array<Float>{ 1._f, 2._f, 3._f });
-    REQUIRE_NOTHROW(derivatives.initialize(storage));
+    REQUIRE_NOTHROW(derivatives.initialize(SEQUENTIAL, storage));
 }
 
 TEST_CASE("Derivative isSymmetric", "[derivative]") {

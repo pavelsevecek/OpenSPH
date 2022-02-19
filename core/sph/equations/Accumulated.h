@@ -70,7 +70,7 @@ public:
     /// \brief Initialize all storages.
     ///
     /// Storages are resized if needed and cleared out of all previously accumulated values.
-    void initialize(const Size size);
+    void initialize(IScheduler& scheduler, const Size size);
 
     /// \brief Returns the buffer of given quantity and given order.
     ///

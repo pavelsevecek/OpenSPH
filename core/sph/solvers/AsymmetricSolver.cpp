@@ -147,7 +147,7 @@ void AsymmetricSolver::beforeLoop(Storage& storage, Statistics& stats) {
     equations.initialize(scheduler, storage, t);
 
     // sets up references to storage buffers for all derivatives
-    derivatives.initialize(storage);
+    derivatives.initialize(scheduler, storage);
 }
 
 void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
