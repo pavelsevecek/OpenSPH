@@ -663,7 +663,8 @@ const RunSettings& getDefaultSettings() {
         "Particles can only be merged if the angular frequency multiplied by this parameter is lower than the "
         "breakup frequency. If zero, particles are always merged, values larger than 1 can be used to avoid "
         "fast rotators in the simulation." },
-
+    { RunSettingsId::COLLISION_MAX_BOUNCES,     "collision.max_bounces",  100,
+        "Maximum number of bounces per particle, per time step." },
 
     /// Parameters of the soft-body solver
     { RunSettingsId::SOFT_REPEL_STRENGTH,       "soft.repel_strength",    1._f,

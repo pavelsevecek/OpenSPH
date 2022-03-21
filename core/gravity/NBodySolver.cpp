@@ -36,6 +36,7 @@ HardSphereSolver::HardSphereSolver(IScheduler& scheduler,
     , threadData(scheduler) {
     collision.handler = std::move(collisionHandler);
     collision.finder = Factory::getFinder(settings);
+    collision.maxBounces = settings.get<int>(RunSettingsId::COLLISION_MAX_BOUNCES);
     overlap.handler = std::move(overlapHandler);
     overlap.allowedRatio = settings.get<Float>(RunSettingsId::COLLISION_ALLOWED_OVERLAP);
     rigidBody.use = settings.get<bool>(RunSettingsId::NBODY_INERTIA_TENSOR);
@@ -345,7 +346,7 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
     // const Float searchRadius = getSearchRadius(r, v, dt);
 
     // tree for finding collisions
-    collision.finder->buildWithRank(SEQUENTIAL, r, [this, dt](const Size i, const Size j) {
+    collision.finder->buildWithRank(scheduler, r, [this, dt](const Size i, const Size j) {
         return r[i][H] + getLength(v[i]) * dt < r[j][H] + getLength(v[j]) * dt;
     });
 
@@ -355,6 +356,9 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
 
     searchRadii.resize(r.size());
     searchRadii.fill(0._f);
+
+    numBounces.resize(r.size());
+    numBounces.fill(0);
 
     for (ThreadData& data : threadData) {
         data.collisions.clear();
@@ -441,11 +445,18 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
         SPH_ASSERT(!collisions.has(i));
         SPH_ASSERT(!collisions.has(j));
 
+        numBounces[i]++;
+        numBounces[j]++;
+
         const Interval interval(t_coll + EPS, dt);
         if (!interval.empty()) {
             for (Size idx : invalidIdxs) {
                 // here we shouldn't search any removed particle
                 if (removed.find(idx) != removed.end()) {
+                    continue;
+                }
+                if (numBounces[idx] > collision.maxBounces) {
+                    // limit reached
                     continue;
                 }
                 if (CollisionRecord c =
@@ -521,6 +532,10 @@ CollisionRecord HardSphereSolver::findClosestCollision(const Size i,
         }
         if (i == j || removed.find(j) != removed.end()) {
             // particle already removed, skip
+            continue;
+        }
+        if (numBounces[j] > collision.maxBounces) {
+            // limit reached
             continue;
         }
         // advance positions to the start of the interval

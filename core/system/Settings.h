@@ -1245,6 +1245,9 @@ enum class RunSettingsId {
     /// fast rotators in the simulation.
     COLLISION_ROTATION_MERGE_LIMIT,
 
+    /// Maximum number of bounces per particle, per time step.
+    COLLISION_MAX_BOUNCES,
+
     /// Magnitude of the repel force for the soft-body solver
     SOFT_REPEL_STRENGTH,
 
