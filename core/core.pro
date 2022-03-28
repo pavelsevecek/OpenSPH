@@ -115,6 +115,7 @@ SOURCES += \
 
 HEADERS += \
     Sph.h \
+    common/AlignedAlloc.h \
     common/Assert.h \
     common/ForwardDecl.h \
     common/Globals.h \

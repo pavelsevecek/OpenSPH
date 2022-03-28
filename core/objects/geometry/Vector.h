@@ -9,9 +9,11 @@
 #include "objects/containers/Tuple.h"
 #include "objects/geometry/Generic.h"
 #include "objects/wrappers/Interval.h"
-#include <immintrin.h>
 #include <iomanip>
+#ifndef SPH_ARM
+#include <immintrin.h>
 #include <smmintrin.h>
+#endif
 
 NAMESPACE_SPH_BEGIN
 
@@ -47,10 +49,162 @@ constexpr bool IsVector = IsVectorType<T>::value;
 static_assert(!IsVector<float>, "static test failed");
 static_assert(IsVector<BasicVector<float>>, "Static test failed");
 
+#ifdef SPH_ARM
+
+template <typename T>
+class alignas(4 * sizeof(T)) BasicVector {
+private:
+    T data[4];
+
+public:
+    INLINE BasicVector() = default;
+
+    /// Constructs by copying a value to all vector components
+    INLINE explicit BasicVector(const T f)
+        : data{ f, f, f, f } {}
+
+    /// Constructs the vector from given components.
+    INLINE BasicVector(const T x, const T y, const T z, const T h = T(0))
+        : data{ x, y, z, h } {}
+
+    /// Copy constructor
+    INLINE BasicVector(const BasicVector& v) = default;
+
+    /// Get component by given index.
+    INLINE const T& operator[](const int i) const {
+        SPH_ASSERT(unsigned(i) < 4);
+        return data[i];
+    }
+
+    /// Get component by given index.
+    INLINE T& operator[](const int i) {
+        SPH_ASSERT(unsigned(i) < 4);
+        return data[i];
+    }
+
+    /// Get component by given compile-time constant index
+    template <int i>
+    INLINE const T& get() const {
+        static_assert(unsigned(i) < 4, "Invalid index");
+        return data[i];
+    }
+
+    /// Get component by given compile-time constant index
+    template <int i>
+    INLINE T& get() {
+        static_assert(unsigned(i) < 4, "Invalid index");
+        return data[i];
+    }
+
+    /// Returns a unit vector for given coordinate
+    INLINE static BasicVector unit(const int i) {
+        SPH_ASSERT(unsigned(i) < 3, i);
+        return BasicVector(i == 0, i == 1, i == 2);
+    }
+
+    /// Copy operator
+    INLINE BasicVector& operator=(const BasicVector& v) = default;
+
+    INLINE BasicVector& operator+=(const BasicVector& v) {
+        data[0] += v[0];
+        data[1] += v[1];
+        data[2] += v[2];
+        return *this;
+    }
+
+    INLINE BasicVector& operator-=(const BasicVector& v) {
+        data[0] -= v[0];
+        data[1] -= v[1];
+        data[2] -= v[2];
+        return *this;
+    }
+
+    INLINE BasicVector& operator*=(const T f) {
+        data[0] *= f;
+        data[1] *= f;
+        data[2] *= f;
+        return *this;
+    }
+
+    INLINE BasicVector& operator/=(const T f) {
+        data[0] /= f;
+        data[1] /= f;
+        data[2] /= f;
+        return *this;
+    }
+
+    INLINE BasicVector& operator*=(const BasicVector& v) {
+        data[0] *= v[0];
+        data[1] *= v[1];
+        data[2] *= v[2];
+        return *this;
+    }
+
+    INLINE BasicVector& operator/=(const BasicVector& v) {
+        data[0] /= v[0];
+        data[1] /= v[1];
+        data[2] /= v[2];
+        return *this;
+    }
+
+    INLINE friend BasicVector operator-(const BasicVector& v) {
+        return BasicVector(-v[0], -v[1], -v[2]);
+    }
+
+    INLINE friend BasicVector operator+(const BasicVector& v1, const BasicVector& v2) {
+        return BasicVector(v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]);
+    }
+
+    INLINE friend BasicVector operator-(const BasicVector& v1, const BasicVector& v2) {
+        return BasicVector(v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]);
+    }
+
+    /// Multiplication of vector by a value or unit
+    INLINE friend auto operator*(const BasicVector& v, const T f) {
+        return BasicVector(v[0] * f, v[1] * f, v[2] * f);
+    }
+
+    INLINE friend auto operator*(const T f, const BasicVector& v) {
+        return v * f;
+    }
+
+    INLINE friend auto operator*(const BasicVector& v1, const BasicVector& v2) {
+        return BasicVector(v1[0] * v2[0], v1[1] * v2[1], v1[2] * v2[2]);
+    }
+
+    INLINE friend auto operator/(const BasicVector& v, const T f) {
+        SPH_ASSERT(f != 0.f);
+        return BasicVector(v[0] / f, v[1] / f, v[2] / f);
+    }
+
+    INLINE friend auto operator/(const BasicVector& v1, const BasicVector& v2) {
+        return BasicVector(v1[0] / v2[0], v1[1] / v2[1], v1[2] / v2[2]);
+    }
+
+    /// Comparison operator, only compares first three components of vectors
+    INLINE friend bool operator==(const BasicVector& v1, const BasicVector& v2) {
+        return v1[0] == v2[0] && v1[1] == v2[1] && v1[2] == v2[2];
+    }
+
+    INLINE friend bool operator!=(const BasicVector& v1, const BasicVector& v2) {
+        return !(v1 == v2);
+    }
+
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const BasicVector& v) {
+        constexpr int digits = 6;
+        stream << std::setprecision(digits);
+        for (int i = 0; i < 3; ++i) {
+            stream << std::setw(20) << v[i];
+        }
+        return stream;
+    }
+};
+
+#else
 
 template <typename T>
 class BasicVector;
-
 
 /// 3-dimensional vector, float precision
 template <>
@@ -546,6 +700,8 @@ public:
 
 #endif
 
+#endif
+
 static_assert(alignof(BasicVector<double>) == 32, "Incorrect alignment of Vector");
 
 
@@ -557,6 +713,20 @@ static_assert(std::is_trivially_destructible<Vector>::value, "must be trivially 
 
 /// Vector utils
 
+#ifdef SPH_ARM
+
+template <typename T>
+INLINE T dot(const BasicVector<T>& v1, const BasicVector<T>& v2) {
+    return v1[X] * v2[X] + v1[Y] * v2[Y] + v1[Z] * v2[Z];
+}
+
+template <typename T>
+INLINE BasicVector<T> cross(const BasicVector<T>& v1, const BasicVector<T>& v2) {
+    return BasicVector<T>(
+        v1[Y] * v2[Z] - v1[Z] * v2[Y], v1[Z] * v2[X] - v1[X] * v2[Z], v1[X] * v2[Y] - v1[Y] * v2[X]);
+}
+
+#else
 /// Generic dot product between two vectors.
 INLINE float dot(const BasicVector<float>& v1, const BasicVector<float>& v2) {
     constexpr int d = 3;
@@ -581,6 +751,8 @@ INLINE BasicVector<double> cross(const BasicVector<double>& v1, const BasicVecto
     return BasicVector<double>(
         v1[Y] * v2[Z] - v1[Z] * v2[Y], v1[Z] * v2[X] - v1[X] * v2[Z], v1[X] * v2[Y] - v1[Y] * v2[X]);
 }
+
+#endif
 
 /// Returns squared length of the vector. Faster than simply getting length as there is no need to compute
 /// square root.
@@ -625,6 +797,19 @@ INLINE Vector clearH(const Vector& v) {
     return setH(v, 0._f);
 }
 
+#ifdef SPH_ARM
+
+template <typename T>
+INLINE BasicVector<T> min(const BasicVector<T>& v1, const BasicVector<T>& v2) {
+    return BasicVector<T>(max(v1[0], v2[0]), max(v1[1], v2[1]), max(v1[2], v2[2]));
+}
+
+template <typename T>
+INLINE BasicVector<T> max(const BasicVector<T>& v1, const BasicVector<T>& v2) {
+    return BasicVector<T>(min(v1[0], v2[0]), min(v1[1], v2[1]), min(v1[2], v2[2]));
+}
+
+#else
 /// Component-wise minimum
 template <>
 INLINE BasicVector<float> min(const BasicVector<float>& v1, const BasicVector<float>& v2) {
@@ -658,6 +843,7 @@ INLINE BasicVector<double> max(const BasicVector<double>& v1, const BasicVector<
 }
 #endif
 
+#endif
 
 /// Component-wise clamping
 template <>
@@ -729,6 +915,13 @@ INLINE Size argMax(const Vector& v) {
     return maxIdx;
 }
 
+#ifdef SPH_ARM
+template <typename T>
+INLINE BasicVector<T> abs(const BasicVector<T>& v) {
+    return BasicVector<T>(abs(v[0]), abs(v[1]), abs(v[2]));
+}
+
+#else
 /// Computes vector of absolute values.
 template <>
 INLINE BasicVector<float> abs(const BasicVector<float>& v) {
@@ -747,6 +940,8 @@ INLINE BasicVector<double> abs(const BasicVector<double>& v) {
     return BasicVector<double>(
         _mm_andnot_pd(_mm_set1_pd(-0.), v.sse<0>()), _mm_andnot_pd(_mm_set1_pd(-0.), v.sse<1>()));
 }
+#endif
+
 #endif
 
 /// Returns the L1 norm (sum of absolute values) of the vector

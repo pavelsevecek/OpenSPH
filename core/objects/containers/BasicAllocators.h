@@ -5,12 +5,8 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2021
 
+#include "common/AlignedAlloc.h"
 #include "common/Assert.h"
-#ifndef SPH_WIN
-#include <mm_malloc.h>
-#else
-#include <malloc.h>
-#endif
 
 NAMESPACE_SPH_BEGIN
 
@@ -74,7 +70,7 @@ class Mallocator {
 public:
     INLINE MemoryBlock allocate(const std::size_t size, const std::size_t align) noexcept {
         MemoryBlock block;
-        block.ptr = _mm_malloc(size, align);
+        block.ptr = alignedAlloc(size, align);
         if (block.ptr) {
             block.size = size;
         } else {
@@ -84,7 +80,7 @@ public:
     }
 
     INLINE void deallocate(MemoryBlock& block) noexcept {
-        _mm_free(block.ptr);
+        alignedFree(block.ptr);
         block.ptr = nullptr;
     }
 };

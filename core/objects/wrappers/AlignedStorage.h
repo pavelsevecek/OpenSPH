@@ -5,13 +5,9 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2021
 
+#include "common/AlignedAlloc.h"
 #include "common/Assert.h"
 #include "common/Traits.h"
-#ifndef SPH_WIN
-#include <mm_malloc.h>
-#else
-#include <malloc.h>
-#endif
 
 NAMESPACE_SPH_BEGIN
 
@@ -20,7 +16,7 @@ template <typename T, typename... TArgs>
 INLINE T* alignedNew(TArgs&&... args) {
     constexpr Size size = sizeof(T);
     constexpr Size alignment = alignof(T);
-    void* ptr = _mm_malloc(size, alignment);
+    void* ptr = alignedAlloc(size, alignment);
     SPH_ASSERT(ptr);
     return new (ptr) T(std::forward<TArgs>(args)...);
 }
@@ -33,7 +29,7 @@ INLINE void alignedDelete(T* ptr) {
     }
 
     ptr->~T();
-    _mm_free(ptr);
+    alignedFree(ptr);
     ptr = nullptr;
 }
 
