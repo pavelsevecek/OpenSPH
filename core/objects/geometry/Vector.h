@@ -109,6 +109,7 @@ public:
         data[0] += v[0];
         data[1] += v[1];
         data[2] += v[2];
+        data[3] += v[3];
         return *this;
     }
 
@@ -116,6 +117,7 @@ public:
         data[0] -= v[0];
         data[1] -= v[1];
         data[2] -= v[2];
+        data[3] -= v[3];
         return *this;
     }
 
@@ -123,6 +125,7 @@ public:
         data[0] *= f;
         data[1] *= f;
         data[2] *= f;
+        data[3] *= f;
         return *this;
     }
 
@@ -130,6 +133,7 @@ public:
         data[0] /= f;
         data[1] /= f;
         data[2] /= f;
+        data[3] /= f;
         return *this;
     }
 
@@ -137,6 +141,7 @@ public:
         data[0] *= v[0];
         data[1] *= v[1];
         data[2] *= v[2];
+        data[3] *= v[3];
         return *this;
     }
 
@@ -144,24 +149,25 @@ public:
         data[0] /= v[0];
         data[1] /= v[1];
         data[2] /= v[2];
+        data[3] /= v[3];
         return *this;
     }
 
     INLINE friend BasicVector operator-(const BasicVector& v) {
-        return BasicVector(-v[0], -v[1], -v[2]);
+        return BasicVector(-v[0], -v[1], -v[2], -v[3]);
     }
 
     INLINE friend BasicVector operator+(const BasicVector& v1, const BasicVector& v2) {
-        return BasicVector(v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]);
+        return BasicVector(v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2], v1[3] + v2[3]);
     }
 
     INLINE friend BasicVector operator-(const BasicVector& v1, const BasicVector& v2) {
-        return BasicVector(v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]);
+        return BasicVector(v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2], v1[3] - v2[3]);
     }
 
     /// Multiplication of vector by a value or unit
     INLINE friend auto operator*(const BasicVector& v, const T f) {
-        return BasicVector(v[0] * f, v[1] * f, v[2] * f);
+        return BasicVector(v[0] * f, v[1] * f, v[2] * f, v[3] * f);
     }
 
     INLINE friend auto operator*(const T f, const BasicVector& v) {
@@ -169,16 +175,16 @@ public:
     }
 
     INLINE friend auto operator*(const BasicVector& v1, const BasicVector& v2) {
-        return BasicVector(v1[0] * v2[0], v1[1] * v2[1], v1[2] * v2[2]);
+        return BasicVector(v1[0] * v2[0], v1[1] * v2[1], v1[2] * v2[2], v1[3] * v2[3]);
     }
 
     INLINE friend auto operator/(const BasicVector& v, const T f) {
         SPH_ASSERT(f != 0.f);
-        return BasicVector(v[0] / f, v[1] / f, v[2] / f);
+        return BasicVector(v[0] / f, v[1] / f, v[2] / f, v[3] / f);
     }
 
     INLINE friend auto operator/(const BasicVector& v1, const BasicVector& v2) {
-        return BasicVector(v1[0] / v2[0], v1[1] / v2[1], v1[2] / v2[2]);
+        return BasicVector(v1[0] / v2[0], v1[1] / v2[1], v1[2] / v2[2], v1[3] / v2[3]);
     }
 
     /// Comparison operator, only compares first three components of vectors
