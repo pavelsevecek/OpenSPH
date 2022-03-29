@@ -4,16 +4,16 @@
 
 void* operator new(std::size_t s) {
 #ifdef SPH_SINGLE_PRECISION
-    return _mm_malloc(s, 16);
+    return alignedAlloc(s, 16);
 #else
-    return _mm_malloc(s, 32);
+    return alignedAlloc(s, 32);
 #endif
 }
 
 void operator delete(void* p) {
-    _mm_free(p);
+    alignedFree(p);
 }
 
 void operator delete(void* p, std::size_t UNUSED(sz)) {
-    _mm_free(p);
+    alignedFree(p);
 }
