@@ -807,12 +807,12 @@ INLINE Vector clearH(const Vector& v) {
 
 template <typename T>
 INLINE BasicVector<T> min(const BasicVector<T>& v1, const BasicVector<T>& v2) {
-    return BasicVector<T>(max(v1[0], v2[0]), max(v1[1], v2[1]), max(v1[2], v2[2]));
+    return BasicVector<T>(min(v1[0], v2[0]), min(v1[1], v2[1]), min(v1[2], v2[2]), min(v1[3], v2[3]));
 }
 
 template <typename T>
 INLINE BasicVector<T> max(const BasicVector<T>& v1, const BasicVector<T>& v2) {
-    return BasicVector<T>(min(v1[0], v2[0]), min(v1[1], v2[1]), min(v1[2], v2[2]));
+    return BasicVector<T>(max(v1[0], v2[0]), max(v1[1], v2[1]), max(v1[2], v2[2]), max(v1[3], v2[3]));
 }
 
 #else

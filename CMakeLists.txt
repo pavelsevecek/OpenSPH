@@ -51,6 +51,9 @@ endif()
 find_package(wxWidgets REQUIRED COMPONENTS core base adv propgrid aui)
 include(${wxWidgets_USE_FILE})
 
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
+SET(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
+
 if (WITH_EIGEN)
     find_package(Eigen REQUIRED)
     include_directories(${EIGEN_INCLUDE_DIRS})
