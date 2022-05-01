@@ -45,11 +45,6 @@ void allocatorDelete(TAllocator& allocator, T* ptr) {
     allocator.deallocate(block);
 }
 
-INLINE constexpr std::size_t roundToAlignment(const std::size_t value, const std::size_t align) noexcept {
-    const std::size_t remainder = value % align;
-    return value + ((remainder == 0) ? 0 : (align - remainder));
-}
-
 template <typename T>
 INLINE T* roundToAlignment(T* value, const std::size_t align) noexcept {
     const std::size_t remainder = reinterpret_cast<std::size_t>(value) % align;
