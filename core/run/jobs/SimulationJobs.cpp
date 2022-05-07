@@ -274,7 +274,7 @@ VirtualSettings SphJob::getSettings() {
         .setEnabler([this] {
             return settings.get<SolverEnum>(RunSettingsId::SPH_SOLVER_TYPE) == SolverEnum::ASYMMETRIC_SOLVER;
         });
-    solverCat.connect<bool>("Iteration count", settings, RunSettingsId::SPH_POSITION_BASED_ITERATION_COUNT)
+    solverCat.connect<int>("Iteration count", settings, RunSettingsId::SPH_POSITION_BASED_ITERATION_COUNT)
         .setEnabler([this] {
             return settings.get<SolverEnum>(RunSettingsId::SPH_SOLVER_TYPE) == SolverEnum::POSITION_BASED;
         });

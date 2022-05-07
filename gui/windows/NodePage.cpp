@@ -56,12 +56,28 @@ const wxRect ICON_RECT(ICON_POS.x - ICON_MARGIN,
     ICON_WIDTH + 2 * ICON_MARGIN,
     ICON_HEIGHT + 2 * ICON_MARGIN);
 
-/// \todo figure out why this is needed
-static AnimationJob animationDummy("dummy");
-static PerspectiveCameraJob cameraDummy("dummy");
+
+class FakeInstantiator {
+private:
+    const volatile static bool inst;
+
+public:
+    template <typename T>
+    static T* instantiate() {
+        if (inst) {
+            return new T("dummy");
+        }
+        return nullptr;
+    }
+};
+
+const volatile bool FakeInstantiator::inst = false;
+
+static auto animationDummy = FakeInstantiator::instantiate<AnimationJob>();
+static auto cameraDummy = FakeInstantiator::instantiate<PerspectiveCameraJob>();
 
 #ifdef SPH_USE_CHAISCRIPT
-static ChaiScriptJob scriptDummy("dummy");
+static auto scriptDummy = FakeInstantiator::instantiate<ChaiScriptJob>();
 #endif
 
 //-----------------------------------------------------------------------------------------------------------

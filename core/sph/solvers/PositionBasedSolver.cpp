@@ -45,12 +45,10 @@ void PositionBasedSolver::integrate(Storage& storage, Statistics& stats) {
         doIteration(r1, rho1, m);
     }
 
-    // velocity and acceleration update (& other auxiliary quantities)
+    // velocity update (& other auxiliary quantities)
     ArrayView<Size> neighCnt = storage.getValue<Size>(QuantityId::NEIGHBOR_CNT);
     parallelFor(scheduler, 0, r.size(), [this, &neighCnt, &r, &v, &dv, &r1, dt](Size i) {
-        const Vector v1 = clearH((r1[i] - r[i]) / dt);
-        dv[i] = clearH((v1 - v[i]) / dt);
-        v[i] = v1;
+        v[i] = clearH((r1[i] - r[i]) / dt);
         neighCnt[i] = neighbors[i].size();
     });
 }
