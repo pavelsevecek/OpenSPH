@@ -85,7 +85,8 @@ set(CORE_SOURCES
     sph/solvers/GravitySolver.cpp 
     sph/solvers/StandardSets.cpp 
     sph/solvers/SummationSolver.cpp 
-    sph/solvers/SymmetricSolver.cpp 
+    sph/solvers/SymmetricSolver.cpp
+    sph/solvers/PositionBasedSolver.cpp 
     system/ArgsParser.cpp 
     system/Factory.cpp 
     system/Platform.cpp 
@@ -310,6 +311,7 @@ set(CORE_HEADERS
     sph/solvers/SummationSolver.h 
     sph/solvers/SymmetricSolver.h 
     sph/solvers/ElasticDeformationSolver.h
+    sph/solvers/PositionBasedSolver.h
     system/ArgsParser.h 
     system/ArrayStats.h 
     system/Crashpad.h 

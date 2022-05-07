@@ -34,6 +34,7 @@
 #include "sph/solvers/ElasticDeformationSolver.h"
 #include "sph/solvers/EnergyConservingSolver.h"
 #include "sph/solvers/GravitySolver.h"
+#include "sph/solvers/PositionBasedSolver.h"
 #include "sph/solvers/SimpleSolver.h"
 #include "sph/solvers/StandardSets.h"
 #include "sph/solvers/SummationSolver.h"
@@ -324,6 +325,9 @@ AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler,
     case SolverEnum::DENSITY_INDEPENDENT:
         throwIfGravity();
         return makeAuto<DensityIndependentSolver>(scheduler, settings);
+    case SolverEnum::POSITION_BASED:
+        throwIfGravity();
+        return makeAuto<PositionBasedSolver>(scheduler, settings);
     case SolverEnum::SIMPLE_SOLVER:
         throwIfGravity();
         return makeAuto<SimpleSolver>(scheduler, settings);
