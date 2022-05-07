@@ -723,6 +723,9 @@ enum class SolverEnum {
     /// Solver advancing internal energy using pair-wise work done by particles, by Owen (2009).
     ENERGY_CONSERVING_SOLVER,
 
+    /// Position based fluid solver by Macklin & Muller (2013).
+    POSITION_BASED,
+
     /// Simple solver with pressure gradient only, mainly used for supporting purposes (benchmarking,
     /// teaching, etc.)
     SIMPLE_SOLVER,
@@ -1065,6 +1068,9 @@ enum class RunSettingsId {
     /// Otherwise, the radius is determined from the maximal smoothing length in the simulation. Used only by
     /// the AsymmetricSolver.
     SPH_ASYMMETRIC_COMPUTE_RADII_HASH_MAP,
+
+    /// Number of iterations per time step taken by the position based solver.
+    SPH_POSITION_BASED_ITERATION_COUNT,
 
     /// Index of SPH Kernel, see KernelEnum
     SPH_KERNEL,

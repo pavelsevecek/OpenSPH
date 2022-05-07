@@ -176,6 +176,9 @@ static RegisterEnum<SolverEnum> sSolver({
         "energy_conserving_solver",
         "Solver advancing internal energy using pair-wise work done by particles, by Owen (2009). "
         "Experimental!" },
+    { SolverEnum::POSITION_BASED,
+        "position_based",
+        "Position based fluid solver by Macklin & Muller (2013)." },
     { SolverEnum::SIMPLE_SOLVER,
         "simple_solver",
         "Simple solver with pressure gradient only, mainly used for supporting purposes (benchmarking, "
@@ -531,6 +534,8 @@ const RunSettings& getDefaultSettings() {
         "If true, the SPH solver computes a hash map connecting position in space with required search radius. "
         "Otherwise, the radius is determined from the maximal smoothing length in the simulation. Used only by "
         "the AsymmetricSolver." },
+    { RunSettingsId::SPH_POSITION_BASED_ITERATION_COUNT, "sph.position_based.iteration_count", 5,
+        "Number of iterations per time step taken by the position based solver." },
     { RunSettingsId::SPH_USE_XSPH,                  "sph.xsph.enable",          false,
         "Enables the XSPH modification" },
     { RunSettingsId::SPH_XSPH_EPSILON,              "sph.xsph.epsilon",         1._f,

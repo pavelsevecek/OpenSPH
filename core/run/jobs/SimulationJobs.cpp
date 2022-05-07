@@ -274,6 +274,10 @@ VirtualSettings SphJob::getSettings() {
         .setEnabler([this] {
             return settings.get<SolverEnum>(RunSettingsId::SPH_SOLVER_TYPE) == SolverEnum::ASYMMETRIC_SOLVER;
         });
+    solverCat.connect<bool>("Iteration count", settings, RunSettingsId::SPH_POSITION_BASED_ITERATION_COUNT)
+        .setEnabler([this] {
+            return settings.get<SolverEnum>(RunSettingsId::SPH_SOLVER_TYPE) == SolverEnum::POSITION_BASED;
+        });
     solverCat
         .connect<bool>("Apply correction tensor", settings, RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR)
         .setEnabler(stressEnabler);
