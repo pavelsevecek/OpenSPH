@@ -5,10 +5,13 @@
 
 NAMESPACE_SPH_BEGIN
 
+class IGravity;
+
 class PositionBasedSolver : public ISolver {
 private:
     IScheduler& scheduler;
     AutoPtr<IBasicFinder> finder;
+    AutoPtr<IGravity> gravity;
 
     LutKernel<3> poly6;
     LutKernel<3> spiky;
@@ -30,6 +33,10 @@ public:
     virtual void create(Storage& storage, IMaterial& material) const override;
 
 private:
+    void evalHydro(Storage& storage, Statistics& stats);
+
+    void evalGravity(Storage& storage, Statistics& stats);
+
     void doIteration(Array<Vector>& r1, ArrayView<Float> rho1, ArrayView<const Float> m);
 };
 
