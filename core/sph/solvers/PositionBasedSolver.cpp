@@ -1,4 +1,5 @@
 #include "sph/solvers/PositionBasedSolver.h"
+#include "gravity/IGravity.h"
 #include "objects/finders/NeighborFinder.h"
 #include "quantities/Quantity.h"
 #include "system/Factory.h"
@@ -14,9 +15,16 @@ PositionBasedSolver::PositionBasedSolver(IScheduler& scheduler, const RunSetting
 
     finder = Factory::getFinder(settings);
     iterCnt = settings.get<int>(RunSettingsId::SPH_POSITION_BASED_ITERATION_COUNT);
+
+    gravity = Factory::getGravity(settings);
 }
 
 void PositionBasedSolver::integrate(Storage& storage, Statistics& stats) {
+    parallelInvoke(
+        scheduler, [&] { this->evalHydro(storage, stats); }, [&] { this->evalGravity(storage, stats); });
+}
+
+void PositionBasedSolver::evalHydro(Storage& storage, Statistics& stats) {
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
@@ -47,10 +55,16 @@ void PositionBasedSolver::integrate(Storage& storage, Statistics& stats) {
 
     // velocity update (& other auxiliary quantities)
     ArrayView<Size> neighCnt = storage.getValue<Size>(QuantityId::NEIGHBOR_CNT);
-    parallelFor(scheduler, 0, r.size(), [this, &neighCnt, &r, &v, &dv, &r1, dt](Size i) {
+    parallelFor(scheduler, 0, r.size(), [this, &neighCnt, &r, &v, &r1, dt](Size i) {
         v[i] = clearH((r1[i] - r[i]) / dt);
         neighCnt[i] = neighbors[i].size();
     });
+}
+
+void PositionBasedSolver::evalGravity(Storage& storage, Statistics& stats) {
+    gravity->build(scheduler, storage);
+    ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
+    gravity->evalSelfGravity(scheduler, dv, stats);
 }
 
 void PositionBasedSolver::create(Storage& storage, IMaterial& UNUSED(material)) const {

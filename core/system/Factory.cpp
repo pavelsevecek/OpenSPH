@@ -326,7 +326,6 @@ AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler,
         throwIfGravity();
         return makeAuto<DensityIndependentSolver>(scheduler, settings);
     case SolverEnum::POSITION_BASED:
-        throwIfGravity();
         return makeAuto<PositionBasedSolver>(scheduler, settings);
     case SolverEnum::SIMPLE_SOLVER:
         throwIfGravity();
