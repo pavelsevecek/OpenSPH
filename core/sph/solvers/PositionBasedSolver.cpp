@@ -37,7 +37,7 @@ void PositionBasedSolver::evalHydro(Storage& storage, Statistics& stats) {
 
     // predict positions
     Array<Vector> r1(r.size());
-    parallelFor(scheduler, 0, r.size(), [&r, &r1, &v, &dv, dt](Size i) { r1[i] = r[i] + v[i] * dt; });
+    parallelFor(scheduler, 0, r.size(), [&r, &r1, &v, dt](Size i) { r1[i] = r[i] + v[i] * dt; });
 
     // find neighbors
     finder->build(scheduler, r1);

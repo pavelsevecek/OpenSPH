@@ -611,7 +611,8 @@ PositionBasedJob::PositionBasedJob(const String& name, const RunSettings& overri
     settings.set(RunSettingsId::TIMESTEPPING_CRITERION, EMPTY_FLAGS);
     settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1._f);
     settings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 10._f);
-    settings.set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f);
+    settings.set(RunSettingsId::GRAVITY_MULTIPOLE_ORDER, 0);
+    settings.set(RunSettingsId::GRAVITY_OPENING_ANGLE, 1._f);
     settings.addEntries(overrides);
 }
 
@@ -623,6 +624,7 @@ VirtualSettings PositionBasedJob::getSettings() {
     VirtualSettings::Category& solverCat = connector.addCategory("Solver");
     solverCat.connect<int>("Iteration count", settings, RunSettingsId::PBD_ITERATION_COUNT);
     solverCat.connect<Float>("Relaxation parameter", settings, RunSettingsId::PBD_RELAXATION_PARAMETER);
+    solverCat.connect<EnumWrapper>("Neighbor finder", settings, RunSettingsId::SPH_FINDER);
 
     addGravityCategory(connector, settings);
     addOutputCategory(connector, settings, *this);
