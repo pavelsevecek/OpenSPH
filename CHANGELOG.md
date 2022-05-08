@@ -1,3 +1,6 @@
+## 2021-05-08
+- added a solver based on position based dynamics
+
 ## 2021-02-14
 - added composition to the "body properties" page
 

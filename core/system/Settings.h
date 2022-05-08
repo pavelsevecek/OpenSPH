@@ -723,9 +723,6 @@ enum class SolverEnum {
     /// Solver advancing internal energy using pair-wise work done by particles, by Owen (2009).
     ENERGY_CONSERVING_SOLVER,
 
-    /// Position based fluid solver by Macklin & Muller (2013).
-    POSITION_BASED,
-
     /// Simple solver with pressure gradient only, mainly used for supporting purposes (benchmarking,
     /// teaching, etc.)
     SIMPLE_SOLVER,
@@ -1069,9 +1066,6 @@ enum class RunSettingsId {
     /// the AsymmetricSolver.
     SPH_ASYMMETRIC_COMPUTE_RADII_HASH_MAP,
 
-    /// Number of iterations per time step taken by the position based solver.
-    SPH_POSITION_BASED_ITERATION_COUNT,
-
     /// Index of SPH Kernel, see KernelEnum
     SPH_KERNEL,
 
@@ -1185,6 +1179,12 @@ enum class RunSettingsId {
 
     /// Whether to execute the script only once or periodically.
     SPH_SCRIPT_ONESHOT,
+
+    /// Number of iterations per time step taken by the position based solver.
+    PBD_ITERATION_COUNT,
+
+    /// Relaxation parameter used to stabilize the method.
+    PBD_RELAXATION_PARAMETER,
 
     /// If true, all particles have also a moment of inertia, representing a non-homogeneous mass
     /// distribution. Otherwise, particles are spherical with inertia tensor I = 2/5 mr^2
