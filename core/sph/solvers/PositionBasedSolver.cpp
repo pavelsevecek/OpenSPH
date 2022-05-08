@@ -15,15 +15,18 @@ PositionBasedSolver::PositionBasedSolver(IScheduler& scheduler, const RunSetting
     spiky = SpikyKernel();
 
     finder = Factory::getFinder(settings);
-    iterCnt = settings.get<int>(RunSettingsId::SPH_POSITION_BASED_ITERATION_COUNT);
-
     gravity = Factory::getGravity(settings);
+
+    iterCnt = settings.get<int>(RunSettingsId::PBD_ITERATION_COUNT);
+    eps = settings.get<Float>(RunSettingsId::PBD_RELAXATION_PARAMETER);
 }
 
+PositionBasedSolver::~PositionBasedSolver() = default;
+
 void PositionBasedSolver::integrate(Storage& storage, Statistics& stats) {
-     parallelInvoke(
+    parallelInvoke(
         scheduler, [&] { this->evalHydro(storage, stats); }, [&] { this->evalGravity(storage, stats); });
- }
+}
 
 void PositionBasedSolver::evalHydro(Storage& storage, Statistics& stats) {
     Timer timer;
@@ -34,9 +37,7 @@ void PositionBasedSolver::evalHydro(Storage& storage, Statistics& stats) {
 
     // predict positions
     Array<Vector> r1(r.size());
-    parallelFor(scheduler, 0, r.size(), [&r, &r1, &v, &dv, dt](Size i) {
-        r1[i] = r[i] + v[i] * dt;
-    });
+    parallelFor(scheduler, 0, r.size(), [&r, &r1, &v, &dv, dt](Size i) { r1[i] = r[i] + v[i] * dt; });
 
     // find neighbors
     finder->build(scheduler, r1);
@@ -92,13 +93,13 @@ void PositionBasedSolver::doIteration(Array<Vector>& r1, ArrayView<Float> rho1, 
         rho0.pushAll(rho1.begin(), rho1.end());
     }
     lambda.resize(r1.size());
-    parallelFor(scheduler, 0, r1.size(), [this, &rho1](Size i) {
+    parallelFor(scheduler, 0, r1.size(), [this, &rho1, &r1](Size i) {
         const Float C = rho1[i] / rho0[i] - 1;
         Float sumGradC = 0;
         for (Size j : neighbors[i]) {
             sumGradC += getSqrLength(drho1[j] / rho0[j]);
         }
-        lambda[i] = -C / (sumGradC + eps);
+        lambda[i] = -C / (sumGradC + eps / sqr(r1[i][H]));
     });
     dp.resize(r1.size());
     parallelFor(scheduler, 0, r1.size(), [this, &r1](Size i) {

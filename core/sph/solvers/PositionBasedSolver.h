@@ -23,10 +23,12 @@ private:
     Array<Vector> dp;
 
     Size iterCnt;
-    Float eps = 1.e-10_f;
+    Float eps;
 
 public:
     PositionBasedSolver(IScheduler& scheduler, const RunSettings& settings);
+
+    ~PositionBasedSolver();
 
     virtual void integrate(Storage& storage, Statistics& stats) override;
 
