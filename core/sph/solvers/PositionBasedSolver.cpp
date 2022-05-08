@@ -4,6 +4,7 @@
 #include "quantities/Quantity.h"
 #include "system/Factory.h"
 #include "system/Statistics.h"
+#include "system/Timer.h"
 #include "thread/ThreadLocal.h"
 
 NAMESPACE_SPH_BEGIN
@@ -20,20 +21,22 @@ PositionBasedSolver::PositionBasedSolver(IScheduler& scheduler, const RunSetting
 }
 
 void PositionBasedSolver::integrate(Storage& storage, Statistics& stats) {
-    parallelInvoke(
+     parallelInvoke(
         scheduler, [&] { this->evalHydro(storage, stats); }, [&] { this->evalGravity(storage, stats); });
-}
+ }
 
 void PositionBasedSolver::evalHydro(Storage& storage, Statistics& stats) {
+    Timer timer;
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+
     const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
 
     // predict positions
     Array<Vector> r1(r.size());
-    for (Size i = 0; i < r.size(); ++i) {
+    parallelFor(scheduler, 0, r.size(), [&r, &r1, &v, &dv, dt](Size i) {
         r1[i] = r[i] + v[i] * dt;
-    }
+    });
 
     // find neighbors
     finder->build(scheduler, r1);
@@ -59,12 +62,15 @@ void PositionBasedSolver::evalHydro(Storage& storage, Statistics& stats) {
         v[i] = clearH((r1[i] - r[i]) / dt);
         neighCnt[i] = neighbors[i].size();
     });
+    stats.set(StatisticsId::SPH_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
 }
 
 void PositionBasedSolver::evalGravity(Storage& storage, Statistics& stats) {
-    gravity->build(scheduler, storage);
+    Timer timer;
     ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
+    gravity->build(scheduler, storage);
     gravity->evalSelfGravity(scheduler, dv, stats);
+    stats.set(StatisticsId::GRAVITY_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
 }
 
 void PositionBasedSolver::create(Storage& storage, IMaterial& UNUSED(material)) const {

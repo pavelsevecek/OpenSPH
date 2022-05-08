@@ -11,6 +11,7 @@
 #include <wx/sizer.h>
 #include <wx/statbox.h>
 #include <wx/stattext.h>
+#include <wx/spinctrl.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -55,6 +56,14 @@ GuiSettingsDialog::GuiSettingsDialog(wxWindow* parent)
     colorizerSizer->Add(colorizerBox, 1, wxEXPAND);
     renderBox->Add(colorizerSizer);
 
+    wxBoxSizer* subsamplingSizer = new wxBoxSizer(wxHORIZONTAL);
+    wxStaticText* subsamplingText = new wxStaticText(renderBox->GetStaticBox(), wxID_ANY, "Subsampling iterations");
+    subsamplingSizer->Add(subsamplingText, 0, wxALIGN_CENTER_VERTICAL);
+    subsamplingSpinner = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(100, -1));
+    subsamplingSizer->AddStretchSpacer(100);
+    subsamplingSizer->Add(subsamplingSpinner, 1, wxALIGN_CENTER_VERTICAL);
+    subsamplingSpinner->SetValue(gui.get<int>(GuiSettingsId::RAYTRACE_SUBSAMPLING));
+    renderBox->Add(subsamplingSizer);
     sizer->Add(renderBox, 1, wxEXPAND);
 
 
@@ -148,6 +157,7 @@ void GuiSettingsDialog::commit() {
 
     gui.set(GuiSettingsId::PLOT_INITIAL_PERIOD, Float(periodCtrl->getValue()));
     gui.set(GuiSettingsId::PLOT_OVERPLOT_SFD, String(overplotPath->GetValue()));
+    gui.set(GuiSettingsId::RAYTRACE_SUBSAMPLING, subsamplingSpinner->GetValue());
 
     this->EndModal(wxID_OK);
 }

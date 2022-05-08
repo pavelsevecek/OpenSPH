@@ -6,6 +6,7 @@
 
 class wxCheckBox;
 class wxTextCtrl;
+class wxSpinCtrl;
 
 NAMESPACE_SPH_BEGIN
 
@@ -19,6 +20,7 @@ private:
 
     FloatTextCtrl* periodCtrl;
     wxTextCtrl* overplotPath;
+    wxSpinCtrl* subsamplingSpinner;
 
     FlatMap<wxCheckBox*, PlotEnum> plotBoxMap;
 

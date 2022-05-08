@@ -23,7 +23,7 @@ private:
     Array<Vector> dp;
 
     Size iterCnt;
-    Float eps = 1.e-6_f;
+    Float eps = 1.e-10_f;
 
 public:
     PositionBasedSolver(IScheduler& scheduler, const RunSettings& settings);
