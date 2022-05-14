@@ -271,6 +271,11 @@ INLINE T exp(const T f) {
 }
 
 template <typename T>
+INLINE T log(const T f) {
+    return T(::log(f));
+}
+
+template <typename T>
 struct AbsoluteValueType {
     using Type = T;
 };
