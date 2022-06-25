@@ -639,8 +639,9 @@ AutoPtr<IRun> PositionBasedJob::getRun(const RunSettings& overrides) const {
 
 static JobRegistrar sRegisterPbd(
     "Position based run",
+    "PBD run",
     "simulations",
     [](const String& name) { return makeAuto<PositionBasedJob>(name, EMPTY_SETTINGS); },
-    L"Runs a simulation using the position based solver by Macklin & M\u00FCller.");
+    L"Runs a simulation using the position based solver by Macklin && M\u00FCller.");
 
 NAMESPACE_SPH_END
