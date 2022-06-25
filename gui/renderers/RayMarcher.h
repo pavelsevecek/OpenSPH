@@ -6,6 +6,7 @@
 #include "gui/renderers/IRenderer.h"
 #include "objects/finders/Bvh.h"
 #include "sph/kernel/Kernel.h"
+#include "gui/renderers/Lensing.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -86,6 +87,12 @@ private:
         /// material IDs.
         Array<SharedPtr<Texture>> textures;
 
+        /// List of attractors to be rendered
+        Array<AttractorData> attractors;
+
+        /// Texture associated with each attractor; can be null.
+        Array<SharedPtr<Texture>> attractorTextures;
+
         /// If true, the colors are used for emission, otherwise for diffuse reflectance.
         bool doEmission;
 
@@ -123,6 +130,8 @@ private:
         const Float surfaceLevel,
         const bool occlusion) const;
 
+    bool isAttractorHit(const Size index) const;
+
     struct IntersectContext {
         /// Particle hit by the ray.
         Size index;
@@ -143,6 +152,13 @@ private:
     Optional<Vector> getSurfaceHit(MarchData& data,
         const IntersectContext& context,
         const bool occlusion) const;
+
+    /// \brief Returns the surface color of an attractor.
+    Rgba getAttractorColor(MarchData& data,
+        const RenderParams& params,
+        const Size index,
+        const Vector& hit,
+        const Vector& dir) const;
 
     /// \brief Returns the color of given hit point.
     Rgba getSurfaceColor(MarchData& data,

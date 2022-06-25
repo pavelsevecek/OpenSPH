@@ -1,3 +1,6 @@
+## 2021-06-25
+- added attractors to the surface renderer
+
 ## 2021-05-08
 - added a solver based on position based dynamics
 
