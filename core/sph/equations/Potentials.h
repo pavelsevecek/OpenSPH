@@ -39,7 +39,7 @@ public:
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
         /// \todo parallelize
         for (Size i = 0; i < r.size(); ++i) {
-            dv[i] += functor(r[i], t);
+            dv[i] += clearH(functor(r[i], t));
         }
     }
 
