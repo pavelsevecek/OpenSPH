@@ -1,6 +1,9 @@
 #include "gui/Utils.h"
 #include "common/Assert.h"
+#include "gui/objects/RenderContext.h"
 #include "io/FileSystem.h"
+#include "system/Statistics.h"
+#include "system/Timer.h"
 #include "thread/CheckFunction.h"
 #include <iomanip>
 #include <wx/dcmemory.h>
@@ -194,6 +197,56 @@ void printLabels(wxDC& dc, ArrayView<const IRenderOutput::Label> labels) {
         drawTextWithSubscripts(dc, label.text, origin);
     }
 }
+
+
+void drawKey(IRenderContext& context, const Statistics& stats, const float wtp, const Rgba& background) {
+    const Coords size = Coords(context.size());
+    const Coords keyStart = size - Coords(85, 80);
+    Flags<TextAlign> flags = TextAlign::HORIZONTAL_CENTER | TextAlign::BOTTOM;
+
+    context.setColor(background.inverse(), ColorFlag::TEXT | ColorFlag::LINE);
+    if (stats.has(StatisticsId::RUN_TIME)) {
+        const float time = float(stats.get<Float>(StatisticsId::RUN_TIME));
+        context.drawText(keyStart, flags, "t = " + getFormattedTime(int64_t(1.e3f * time)));
+    }
+    // context.drawText(keyStart + Coords(0, 50), flags, "fps = " + std::to_string(int(fps)));
+
+    const float dFov_dPx = 1.f / wtp;
+    const float minimalScaleFov = dFov_dPx * 16;
+    float actScaleFov = pow(10.f, float(ceil(log10(minimalScaleFov))));
+    const float scaleSize = actScaleFov / dFov_dPx;
+    const Coords lineStart = keyStart + Coords(0, 30);
+    context.drawLine(lineStart + Coords(-scaleSize / 2, 0), lineStart + Coords(scaleSize / 2, 0));
+    context.drawLine(lineStart + Coords(-scaleSize / 2, -4), lineStart + Coords(-scaleSize / 2, 4));
+    context.drawLine(lineStart + Coords(scaleSize / 2 + 1, -4), lineStart + Coords(scaleSize / 2 + 1, 4));
+
+    /// \todo finally implement the units!
+    String units = L" m";
+    if (actScaleFov > Constants::au) {
+        actScaleFov /= float(Constants::au);
+        units = L" au";
+    } else if (actScaleFov > 1.e3f) {
+        actScaleFov /= 1.e3f;
+        units = L" km";
+    }
+    String scaleText = toPrintableString(actScaleFov, 0, 10);
+    if (scaleText.find(L'\u00D7') != String::npos) {
+        // convert 1x10^n  -> 10^n
+        scaleText = scaleText.substr(3);
+    }
+    context.drawText(keyStart + Coords(0, 36), flags, scaleText + units);
+}
+
+void drawAxis(IRenderContext& context, const Rgba& color, const Vector& axis, const String& label) {
+    const float length = 40;
+    const Coords origin(50, context.size().y - 50);
+    const Coords dir = Coords(-axis[0], axis[1]) * length;
+    context.setColor(color.brighten(0.25), ColorFlag::LINE);
+    context.drawLine(origin, origin + dir);
+    context.setColor(Rgba::white(), ColorFlag::TEXT);
+    context.drawText(origin + dir, TextAlign::TOP | TextAlign::HORIZONTAL_CENTER, label);
+}
+
 
 TransparencyPattern::TransparencyPattern(const Size side, const Rgba& dark, const Rgba& light) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);

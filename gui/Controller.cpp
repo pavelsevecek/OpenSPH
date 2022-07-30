@@ -650,7 +650,7 @@ void Controller::refresh(AutoPtr<ICamera>&& camera) {
 
     // save the current fov to settings
     /// \todo generalize
-    if (const Optional<float> wtp = vis.camera->getWorldToPixel()) {
+    if (const Optional<float> wtp = vis.camera->getWorldToPixel(vis.camera->getTarget())) {
         const Pixel imageSize = vis.camera->getSize();
         const Float fov = imageSize.y / wtp.value();
         project.getGuiSettings().set(GuiSettingsId::CAMERA_ORTHO_FOV, fov);

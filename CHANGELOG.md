@@ -1,3 +1,6 @@
+## 2021-07-30
+- added render overlay to surface and volume renderers
+
 ## 2021-06-25
 - added attractors to the surface renderer
 
