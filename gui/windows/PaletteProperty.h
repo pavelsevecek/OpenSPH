@@ -1,5 +1,8 @@
 #pragma once
 
+// for some reason this is missing in wx headers
+class wxBitmapBundle;
+
 #include "gui/objects/Palette.h"
 #include <wx/window.h>
 // must be after window.h
