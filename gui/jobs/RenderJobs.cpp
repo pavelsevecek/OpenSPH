@@ -296,6 +296,12 @@ public:
 };
 
 void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
+    if (directory.empty()) {
+        throw InvalidSetup(
+            L"No output directory specified. Please set the output directory to where you want to save the "
+            "rendered images.");
+    }
+
     /// \todo maybe also work with a copy of Gui ?
     gui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f));
     gui.set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 0);

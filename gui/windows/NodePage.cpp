@@ -671,6 +671,7 @@ void NodeManager::renderSetup() {
     RenderSetup* dialog = new RenderSetup(editor);
     if (dialog->ShowModal() == wxID_OK) {
         Float scale;
+        bool hasEnergy = false;
         try {
             AutoPtr<IInput> input = Factory::getInput(dialog->firstFilePath);
             Storage storage;
@@ -685,6 +686,7 @@ void NodeManager::renderSetup() {
                 box.extend(r[i]);
             }
             scale = maxElement(box.size()) * 1.e-3_f; // to km
+            hasEnergy = storage.has(QuantityId::ENERGY);
         } catch (const InvalidSetup& e) {
             messageBox("Cannot setup renderer: " + exceptionMessage(e), "Error", wxOK | wxCENTRE);
             return;
@@ -696,7 +698,9 @@ void NodeManager::renderSetup() {
         VirtualSettings renderSettings = renderNode->getSettings();
         renderSettings.set("directory", dialog->outputDir);
         renderSettings.set(GuiSettingsId::RENDERER, EnumWrapper(dialog->selectedRenderer));
-        renderSettings.set("quantity", EnumWrapper(RenderColorizerId::BEAUTY));
+
+        RenderColorizerId quantity = hasEnergy ? RenderColorizerId::BEAUTY : RenderColorizerId::GRAVITY;
+        renderSettings.set("quantity", EnumWrapper(quantity));
         renderSettings.set("first_file", dialog->firstFilePath);
         renderSettings.set("animation_type",
             EnumWrapper(dialog->doSequence ? AnimationType::FILE_SEQUENCE : AnimationType::SINGLE_FRAME));

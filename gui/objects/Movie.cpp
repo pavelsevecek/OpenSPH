@@ -98,6 +98,12 @@ public:
 };
 
 void Movie::render(Storage&& storage, Statistics&& stats, IRenderOutput& output) {
+    if (!colorizer->hasData(storage)) {
+        throw InvalidSetup(
+            L"Render input does not contain data to compute quantity {}. Please select a different quantity.",
+            colorizer->name());
+    }
+
     const Float time = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
 
     ForwardingOutput forwardingOutput(output);
