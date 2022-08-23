@@ -115,7 +115,7 @@ TEST_CASE("Sample normal distribution", "[rng]") {
     }
 
     testDistribution(values, 1.e-3_f, false, [mu, sigma](const Float x) {
-        return 1._f / sqrt(2._f * PI * sqr(sigma)) * exp(-sqr(x - mu) / (2._f * sqr(sigma)));
+        return 1._f / sqrt(2._f * PI * sqr(sigma)) * Sph::exp(-sqr(x - mu) / (2._f * sqr(sigma)));
     });
 }
 
@@ -128,7 +128,7 @@ TEST_CASE("Sample exponential distribution", "[rng]") {
         values.push(sampleExponentialDistribution(rng, lambda));
     }
 
-    testDistribution(values, 2.e-3_f, false, [lambda](const Float x) { return lambda * exp(-lambda * x); });
+    testDistribution(values, 2.e-3_f, false, [lambda](const Float x) { return lambda * Sph::exp(-lambda * x); });
 }
 
 TEST_CASE("Sample Poisson distribution", "[rng]") {
@@ -141,6 +141,6 @@ TEST_CASE("Sample Poisson distribution", "[rng]") {
     }
 
     testDistribution(values, 0.01_f, true, [lambda](const Float x) {
-        return pow(lambda, x) * exp(-lambda) / std::tgamma(x + 1);
+        return pow(lambda, x) * Sph::exp(-lambda) / std::tgamma(x + 1);
     });
 }
