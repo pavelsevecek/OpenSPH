@@ -264,7 +264,7 @@ static Pair<Float> getSemiaxisRatios(const Storage& storage) {
     return { c / b, b / a };
 }
 
-static Float getSphericity(const Storage& storage) {
+static Optional<Float> getSphericity(const Storage& storage) {
     SharedPtr<IScheduler> scheduler = Factory::getScheduler(RunSettings::getDefaults());
     return Post::getSphericity(*scheduler, storage, 0.02_f);
 }
@@ -473,7 +473,8 @@ void GridPage::updateAsync(const Storage& storage,
         }
 
         if (checks.has(CheckFlag::SPHERICITY)) {
-            this->updateCell(i, colIdx++, getSphericity(fragment));
+            Optional<Float> sphericity = getSphericity(fragment);
+            this->updateCell(i, colIdx++, sphericity ? toString(sphericity.value()) : L"undefined");
         }
 
         if (checks.has(CheckFlag::COMPOSITION)) {
