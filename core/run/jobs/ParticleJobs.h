@@ -115,6 +115,28 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
 };
 
+class ScatterJob : public IParticleJob {
+private:
+    int number = 5;
+
+public:
+    explicit ScatterJob(const String& name)
+        : IParticleJob(name) {}
+
+    virtual String className() const override {
+        return "scatter";
+    }
+
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES }, { "domain", JobType::GEOMETRY } };
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& callbacks) override;
+};
+
+
 class CenterParticlesJob : public IParticleJob {
 private:
     bool centerPositions = true;

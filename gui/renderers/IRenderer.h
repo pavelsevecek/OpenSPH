@@ -21,6 +21,7 @@ struct CameraRay;
 class ITracker;
 class IColorizer;
 class IColorMap;
+class IRenderContext;
 class FrameBuffer;
 class Statistics;
 class GuiSettings;
@@ -223,6 +224,8 @@ public:
     virtual void cancelRender() = 0;
 };
 
+void renderOverlay(IRenderContext& context, const RenderParams& params, const Statistics& stats);
+
 /// \brief Base class for renderers based on raytracing
 class IRaytracer : public IRenderer {
 protected:
@@ -287,6 +290,7 @@ private:
 
     void postProcess(FrameBuffer& fb,
         const RenderParams& params,
+        const Statistics& stats,
         const bool isFinal,
         IRenderOutput& output) const;
 };

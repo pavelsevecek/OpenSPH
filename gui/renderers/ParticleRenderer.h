@@ -42,8 +42,6 @@ private:
 
     mutable std::atomic_bool shouldContinue;
 
-    mutable Timer lastRenderTimer;
-
 public:
     explicit ParticleRenderer(const GuiSettings& settings);
 

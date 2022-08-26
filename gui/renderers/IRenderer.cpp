@@ -2,7 +2,9 @@
 #include "gui/Factory.h"
 #include "gui/ImageTransform.h"
 #include "gui/Settings.h"
+#include "gui/Utils.h"
 #include "gui/objects/Camera.h"
+#include "gui/objects/RenderContext.h"
 #include "gui/renderers/FrameBuffer.h"
 #include "system/Profiler.h"
 
@@ -29,6 +31,19 @@ void RenderParams::initialize(const GuiSettings& gui) {
     post.denoise = gui.get<bool>(GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE);
     post.bloomRadius = gui.get<Float>(GuiSettingsId::BLOOM_RADIUS);
     post.bloomIntensity = gui.get<Float>(GuiSettingsId::BLOOM_INTENSITY);
+}
+
+void renderOverlay(IRenderContext& context, const RenderParams& params, const Statistics& stats) {
+    if (params.showKey) {
+        if (Optional<float> wtp = params.camera->getWorldToPixel(params.camera->getTarget())) {
+            drawKey(context, stats, wtp.value(), params.background);
+        }
+
+        const AffineMatrix frame = params.camera->getFrame().inverse();
+        drawAxis(context, Rgba::red(), frame.row(0), "x");
+        drawAxis(context, Rgba::green(), -frame.row(1), "y");
+        drawAxis(context, Rgba::blue(), frame.row(2), "z");
+    }
 }
 
 inline auto seeder() {
@@ -59,7 +74,7 @@ IRaytracer::IRaytracer(SharedPtr<IScheduler> scheduler, const GuiSettings& setti
     shouldContinue = true;
 }
 
-void IRaytracer::render(const RenderParams& params, Statistics& UNUSED(stats), IRenderOutput& output) const {
+void IRaytracer::render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const {
     shouldContinue = true;
 
     if (RawPtr<LogarithmicColorMap> logMap = dynamicCast<LogarithmicColorMap>(fixed.colorMap.get())) {
@@ -71,15 +86,17 @@ void IRaytracer::render(const RenderParams& params, Statistics& UNUSED(stats), I
         this->refine(params, iteration, fb);
 
         const bool isFinal = (iteration == fixed.iterationLimit - 1);
-        postProcess(fb, params, isFinal, output);
+        postProcess(fb, params, stats, isFinal, output);
     }
 }
 
 void IRaytracer::postProcess(FrameBuffer& fb,
     const RenderParams& params,
+    const Statistics& stats,
     const bool isFinal,
     IRenderOutput& output) const {
-    if (!fixed.colorMap && (!isFinal || (!params.post.denoise && params.post.bloomIntensity == 0.f))) {
+    if (!fixed.colorMap && !params.showKey &&
+        (!isFinal || (!params.post.denoise && params.post.bloomIntensity == 0.f))) {
         // no postprocessing in this case, we can optimize and return the bitmap directly
         output.update(fb.getBitmap(), {}, isFinal);
         return;
@@ -106,7 +123,9 @@ void IRaytracer::postProcess(FrameBuffer& fb,
         bitmap = denoiseLowFrequency(*scheduler, bitmap, {});
     }
 
-    output.update(std::move(bitmap), {}, isFinal);
+    PreviewRenderContext<OverridePixelOp> context(bitmap);
+    renderOverlay(context, params, stats);
+    output.update(std::move(bitmap), context.getLabels(), isFinal);
 }
 
 INLINE float sampleTent(const float x) {

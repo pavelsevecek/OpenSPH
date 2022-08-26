@@ -1180,6 +1180,12 @@ enum class RunSettingsId {
     /// Whether to execute the script only once or periodically.
     SPH_SCRIPT_ONESHOT,
 
+    /// Number of iterations per time step taken by the position based solver.
+    PBD_ITERATION_COUNT,
+
+    /// Relaxation parameter used to stabilize the method.
+    PBD_RELAXATION_PARAMETER,
+
     /// If true, all particles have also a moment of inertia, representing a non-homogeneous mass
     /// distribution. Otherwise, particles are spherical with inertia tensor I = 2/5 mr^2
     NBODY_INERTIA_TENSOR,
@@ -1244,6 +1250,9 @@ enum class RunSettingsId {
     /// breakup frequency. If zero, particles are always merged, values larger than 1 can be used to avoid
     /// fast rotators in the simulation.
     COLLISION_ROTATION_MERGE_LIMIT,
+
+    /// Maximum number of bounces per particle, per time step.
+    COLLISION_MAX_BOUNCES,
 
     /// Magnitude of the repel force for the soft-body solver
     SOFT_REPEL_STRENGTH,

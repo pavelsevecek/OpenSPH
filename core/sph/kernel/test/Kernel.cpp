@@ -227,6 +227,23 @@ TEST_CASE("Wendland C6 kernel", "[kernel]") {
         kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 2._f); }, ALL_TEST_FLAGS, 0.05_f);
 }
 
+TEST_CASE("Poly-6 kernel", "[kernel]") {
+    Poly6 kernel;
+    testKernel<3>(
+        kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 1._f); }, ALL_TEST_FLAGS, 0.1_f);
+}
+
+TEST_CASE("Spiky kernel", "[kernel]") {
+    SpikyKernel kernel;
+    testKernel<3>(
+        kernel,
+        [](const auto& kernel) { REQUIRE(kernel.radius() == 1._f); },
+        KernelTestFlag::NORMALIZATION | KernelTestFlag::VALUE_GRADIENT_CONSISTENCY |
+            KernelTestFlag::VALUES_CONTINUOUS | KernelTestFlag::GRADIENT_CONTINUOUS |
+            KernelTestFlag::EQUALS_LUT,
+        0.3_f);
+}
+
 TEST_CASE("Thomas-Couchman kernel", "[kernel]") {
     ThomasCouchmanKernel<3> kernel;
 

@@ -415,6 +415,66 @@ public:
     }
 };
 
+/// Poly-6 kernel of Muller et al. 2003
+class Poly6 : public Kernel<Poly6, 3> {
+private:
+    const Float normalization = 315._f / (64._f * PI);
+
+public:
+    INLINE Float radius() const {
+        return 1._f;
+    }
+
+    INLINE Float valueImpl(const Float qSqr) const {
+        const Float q = sqrt(qSqr);
+        SPH_ASSERT(q >= 0);
+        if (q < 1._f) {
+            return normalization * pow<3>(1._f - pow<2>(q));
+        }
+        return 0._f;
+    }
+
+    INLINE Float gradImpl(const Float qSqr) const {
+        const Float q = sqrt(qSqr);
+        if (q == 0._f) {
+            return -6._f * normalization;
+        } else if (q < 1._f) {
+            return (1._f / q) * normalization * 3 * pow<2>(1._f - pow<2>(q)) * (-2 * q);
+        }
+        return 0._f;
+    }
+};
+
+/// Spiky kernel of Muller et al. 2003
+class SpikyKernel : public Kernel<SpikyKernel, 3> {
+private:
+    const Float normalization = 15._f / PI;
+
+public:
+    INLINE Float radius() const {
+        return 1._f;
+    }
+
+    INLINE Float valueImpl(const Float qSqr) const {
+        const Float q = sqrt(qSqr);
+        SPH_ASSERT(q >= 0);
+        if (q < 1._f) {
+            return normalization * pow<3>(1._f - q);
+        }
+        return 0._f;
+    }
+
+    INLINE Float gradImpl(const Float qSqr) const {
+        const Float q = sqrt(qSqr);
+        if (q == 0._f) {
+            return -100._f;
+        } else if (q < 1._f) {
+            return (1._f / q) * normalization * 3 * pow<2>(1._f - q) * (-1);
+        }
+        return 0._f;
+    }
+};
+
 /// \brief Gaussian kernel
 ///
 /// Clamped to zero at radius 5, the error is therefore about exp(-5^2) = 10^-11.

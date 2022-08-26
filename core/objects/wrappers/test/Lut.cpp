@@ -53,11 +53,11 @@ TEST_CASE("Lut quotient", "[lut]") {
 }
 
 TEST_CASE("Lut add scalar", "[lut]") {
-    Lut<Float> lut(Interval(-1, 5), 10000, Sph::exp<Float>);
+    Lut<Float> lut(Interval(-1, 5), 10000, Sph::exp);
     Lut<Float> result = lut + 5._f;
     REQUIRE(result.getRange() == lut.getRange());
     REQUIRE(result.size() == lut.size());
-    REQUIRE(lutEquals(result, [](const Float x) { return exp(x) + 5; }));
+    REQUIRE(lutEquals(result, [](const Float x) { return Sph::exp(x) + 5; }));
 }
 
 using Value = LutIterator<Float>::Value;

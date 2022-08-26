@@ -5,6 +5,7 @@
 #include "io/Output.h"
 #include "run/IRun.h"
 #include "run/SpecialEntries.h"
+#include "sph/solvers/PositionBasedSolver.h"
 #include "sph/solvers/StabilizationSolver.h"
 
 NAMESPACE_SPH_BEGIN
@@ -557,6 +558,7 @@ VirtualSettings NBodyJob::getSettings() {
     collisionCat
         .connect<Float>("Merge rotation limit", settings, RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT)
         .setEnabler(mergeLimitEnabler);
+    collisionCat.connect<int>("Max bounces", settings, RunSettingsId::COLLISION_MAX_BOUNCES);
 
     addLoggerCategory(connector, settings);
     addOutputCategory(connector, settings, *this);
@@ -579,5 +581,67 @@ static JobRegistrar sRegisterNBody(
     [](const String& name) { return makeAuto<NBodyJob>(name, EMPTY_SETTINGS); },
     "Runs N-body simulation using given initial conditions.");
 
+// ----------------------------------------------------------------------------------------------------------
+// PositionBasedJob
+// ----------------------------------------------------------------------------------------------------------
+
+class PositionBasedRun : public IRun {
+public:
+    explicit PositionBasedRun(const RunSettings& run) {
+        settings = run;
+        scheduler = Factory::getScheduler(settings);
+    }
+
+    virtual void setUp(SharedPtr<Storage> storage) override {
+        solver = makeAuto<PositionBasedSolver>(*scheduler, settings);
+
+        NullMaterial mtl(BodySettings::getDefaults());
+        solver->create(*storage, mtl);
+    }
+
+    virtual void tearDown(const Storage& storage, const Statistics& stats) override {
+        output->dump(storage, stats);
+    }
+};
+
+
+PositionBasedJob::PositionBasedJob(const String& name, const RunSettings& overrides)
+    : IRunJob(name) {
+    settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT);
+    settings.set(RunSettingsId::TIMESTEPPING_CRITERION, EMPTY_FLAGS);
+    settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1._f);
+    settings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 10._f);
+    settings.set(RunSettingsId::GRAVITY_MULTIPOLE_ORDER, 0);
+    settings.set(RunSettingsId::GRAVITY_OPENING_ANGLE, 1._f);
+    settings.addEntries(overrides);
+}
+
+VirtualSettings PositionBasedJob::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+    addTimeSteppingCategory(connector, settings, isResumed);
+
+    VirtualSettings::Category& solverCat = connector.addCategory("Solver");
+    solverCat.connect<int>("Iteration count", settings, RunSettingsId::PBD_ITERATION_COUNT);
+    solverCat.connect<Float>("Relaxation parameter", settings, RunSettingsId::PBD_RELAXATION_PARAMETER);
+    solverCat.connect<EnumWrapper>("Neighbor finder", settings, RunSettingsId::SPH_FINDER);
+
+    addGravityCategory(connector, settings);
+    addOutputCategory(connector, settings, *this);
+    addLoggerCategory(connector, settings);
+    return connector;
+}
+
+AutoPtr<IRun> PositionBasedJob::getRun(const RunSettings& overrides) const {
+    RunSettings run = overrideSettings(settings, overrides, isResumed);
+    return makeAuto<PositionBasedRun>(run);
+}
+
+static JobRegistrar sRegisterPbd(
+    "Position based run",
+    "PBD run",
+    "simulations",
+    [](const String& name) { return makeAuto<PositionBasedJob>(name, EMPTY_SETTINGS); },
+    L"Runs a simulation using the position based solver by Macklin && M\u00FCller.");
 
 NAMESPACE_SPH_END

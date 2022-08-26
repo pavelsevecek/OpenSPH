@@ -18,6 +18,8 @@ class wxPaintDC;
 NAMESPACE_SPH_BEGIN
 
 class Path;
+class IRenderContext;
+class Statistics;
 
 using FileFormat = IVirtualEntry::FileFormat;
 
@@ -35,6 +37,10 @@ void drawTextWithSubscripts(wxDC& dc, const String& text, const wxPoint point);
 String toPrintableString(const Float value, const Size precision = 5, const Float decimalThreshold = 1000._f);
 
 void printLabels(wxDC& dc, ArrayView<const IRenderOutput::Label> labels);
+
+void drawKey(IRenderContext& context, const Statistics& stats, const float wtp, const Rgba& background);
+
+void drawAxis(IRenderContext& context, const Rgba& color, const Vector& axis, const String& label);
 
 class BusyCursor {
 private:

@@ -49,6 +49,9 @@ private:
     /// Maximum distance to search for impactors, per particle.
     Array<Float> searchRadii;
 
+    /// Number of bounces this time step, per particle.
+    Array<Size> numBounces;
+
     struct {
 
         /// Handler used to resolve particle collisions
@@ -56,6 +59,9 @@ private:
 
         /// Finder for searching the neighbors
         AutoPtr<ISymmetricFinder> finder;
+
+        /// Maximal number of bounces per particle per time step
+        Size maxBounces = 100;
 
     } collision;
 

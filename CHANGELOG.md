@@ -1,3 +1,12 @@
+## 2021-07-30
+- added render overlay to surface and volume renderers
+
+## 2021-06-25
+- added attractors to the surface renderer
+
+## 2021-05-08
+- added a solver based on position based dynamics
+
 ## 2021-02-14
 - added composition to the "body properties" page
 

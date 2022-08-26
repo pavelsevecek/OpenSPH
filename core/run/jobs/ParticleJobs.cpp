@@ -4,6 +4,7 @@
 #include "io/Logger.h"
 #include "objects/geometry/Sphere.h"
 #include "objects/utility/Algorithm.h"
+#include "math/rng/VectorRng.h"
 #include "post/Analysis.h"
 #include "post/Compare.h"
 #include "post/TwoBody.h"
@@ -252,6 +253,59 @@ static JobRegistrar sRegisterParticleTransform(
     "particle operators",
     [](const String& name) { return makeAuto<TransformParticlesJob>(name); },
     "Modifies positions and velocities of the input particles.");
+
+
+//-----------------------------------------------------------------------------------------------------------
+// ScatterJob
+//-----------------------------------------------------------------------------------------------------------
+
+VirtualSettings ScatterJob::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+
+    VirtualSettings::Category& posCat = connector.addCategory("Scatter");
+    posCat.connect("Number", "number", number);
+    return connector;
+}
+
+void ScatterJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& callbacks) {
+    SharedPtr<ParticleData> particles = this->getInput<ParticleData>("particles");
+    SharedPtr<IDomain> domain = this->getInput<IDomain>("domain");
+
+    Storage target;
+    const Box domainBox = domain->getBoundingBox();
+    VectorRng<UniformRng> rng;
+    Array<Box> instanceBoxes;
+    for (Size i = 0; i < Size(number);) {
+        const Vector r = domainBox.lower() + rng() * domainBox.size();
+        if (!domain->contains(r)) {
+            continue;
+        }
+        Storage instance = particles->storage.clone(VisitorEnum::ALL_BUFFERS);
+        moveInertialFrame(instance, r, Vector(0._f));
+        const Box instanceBox = getBoundingBox(instance);
+        bool overlaps = false;
+        for (const Box& box : instanceBoxes) {
+            overlaps |= instanceBox.intersect(box).isValid();
+        }
+        if (overlaps) {
+            continue;
+        }
+        instanceBoxes.push(instanceBox);
+        target.merge(std::move(instance));
+        ++i;
+    }
+
+    result = makeShared<ParticleData>();
+    result->storage = std::move(target);
+    callbacks.onSetUp(result->storage, result->stats);
+}
+
+static JobRegistrar sRegisterScatter(
+    "scatter",
+    "particle operators",
+    [](const String& name) { return makeAuto<ScatterJob>(name); },
+    "Creates a given number of copies randomly distributed in a domain.");
 
 //-----------------------------------------------------------------------------------------------------------
 // CenterParticlesJob

@@ -608,6 +608,12 @@ const RunSettings& getDefaultSettings() {
         "Specifies the damping coefficient of particle velocities. This is mainly intended for stabilization phase, "
        "it should not be used in the main simulation." },
 
+    /// Parameters of the position-based solver
+    { RunSettingsId::PBD_ITERATION_COUNT, "pbd.iteration_count", 5,
+        "Number of iterations per time step taken by the position based solver." },
+    { RunSettingsId::PBD_RELAXATION_PARAMETER, "pbd.relaxation_parameter", 50._f,
+        "Relaxation parameter used to stabilize the method." },
+
     /// Global parameters of N-body simulations
     { RunSettingsId::NBODY_INERTIA_TENSOR,          "nbody.inertia_tensor",     false,
         "If true, each particle has generally non-isotropic inertia tensor. The inertia tensor is evolved using "
@@ -663,7 +669,8 @@ const RunSettings& getDefaultSettings() {
         "Particles can only be merged if the angular frequency multiplied by this parameter is lower than the "
         "breakup frequency. If zero, particles are always merged, values larger than 1 can be used to avoid "
         "fast rotators in the simulation." },
-
+    { RunSettingsId::COLLISION_MAX_BOUNCES,     "collision.max_bounces",  100,
+        "Maximum number of bounces per particle, per time step." },
 
     /// Parameters of the soft-body solver
     { RunSettingsId::SOFT_REPEL_STRENGTH,       "soft.repel_strength",    1._f,

@@ -207,7 +207,6 @@ public:
         return stream;
     }
 
-private:
     bool isValid() const {
         return minElement(maxBound - minBound) >= 0._f;
     }

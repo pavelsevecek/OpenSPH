@@ -618,7 +618,7 @@ wxMenu* MainWindow::createRunMenu() {
             settings.set(GuiSettingsId::CAMERA_POSITION, posKm);
             settings.set(GuiSettingsId::CAMERA_UP, frame.row(1));
             settings.set(GuiSettingsId::CAMERA_TARGET, posKm + frame.row(2));
-            const Optional<float> wtp = camera->getWorldToPixel();
+            const Optional<float> wtp = camera->getWorldToPixel(camera->getTarget());
             if (wtp) {
                 settings.set(GuiSettingsId::CAMERA_ORTHO_FOV, 1.e-3_f * camera->getSize().y / wtp.value());
             }

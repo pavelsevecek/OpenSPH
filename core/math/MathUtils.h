@@ -265,9 +265,12 @@ INLINE Float powFast(Float value, const Float power) {
     return Float(r * u.d);
 }
 
-template <typename T>
-INLINE T exp(const T f) {
-    return T(::exp(f));
+INLINE Float exp(const Float f) {
+    return Float(::exp(f));
+}
+
+INLINE Float log(const Float f) {
+    return Float(::log(f));
 }
 
 template <typename T>

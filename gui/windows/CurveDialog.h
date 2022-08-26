@@ -1,5 +1,8 @@
 #pragma once
 
+// for some reason this is missing in wx headers
+class wxBitmapBundle;
+
 #include "gui/objects/Color.h"
 #include "gui/objects/Point.h"
 #include "math/Curve.h"

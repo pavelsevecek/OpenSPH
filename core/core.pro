@@ -88,6 +88,7 @@ SOURCES += \
     sph/solvers/EquilibriumSolver.cpp \
     sph/solvers/GradHSolver.cpp \
     sph/solvers/GravitySolver.cpp \
+    sph/solvers/PositionBasedSolver.cpp \
     sph/solvers/StandardSets.cpp \
     sph/solvers/SummationSolver.cpp \
     sph/solvers/SymmetricSolver.cpp \
@@ -316,6 +317,7 @@ HEADERS += \
     sph/solvers/EquilibriumSolver.h \
     sph/solvers/GradHSolver.h \
     sph/solvers/GravitySolver.h \
+    sph/solvers/PositionBasedSolver.h \
     sph/solvers/SimpleSolver.h \
     sph/solvers/StabilizationSolver.h \
     sph/solvers/StandardSets.h \

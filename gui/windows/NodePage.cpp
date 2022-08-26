@@ -56,12 +56,28 @@ const wxRect ICON_RECT(ICON_POS.x - ICON_MARGIN,
     ICON_WIDTH + 2 * ICON_MARGIN,
     ICON_HEIGHT + 2 * ICON_MARGIN);
 
-/// \todo figure out why this is needed
-static AnimationJob animationDummy("dummy");
-static PerspectiveCameraJob cameraDummy("dummy");
+
+class FakeInstantiator {
+private:
+    const volatile static bool inst;
+
+public:
+    template <typename T>
+    static T* instantiate() {
+        if (inst) {
+            return new T("dummy");
+        }
+        return nullptr;
+    }
+};
+
+const volatile bool FakeInstantiator::inst = false;
+
+static auto animationDummy = FakeInstantiator::instantiate<AnimationJob>();
+static auto cameraDummy = FakeInstantiator::instantiate<PerspectiveCameraJob>();
 
 #ifdef SPH_USE_CHAISCRIPT
-static ChaiScriptJob scriptDummy("dummy");
+static auto scriptDummy = FakeInstantiator::instantiate<ChaiScriptJob>();
 #endif
 
 //-----------------------------------------------------------------------------------------------------------
@@ -655,6 +671,7 @@ void NodeManager::renderSetup() {
     RenderSetup* dialog = new RenderSetup(editor);
     if (dialog->ShowModal() == wxID_OK) {
         Float scale;
+        bool hasEnergy = false;
         try {
             AutoPtr<IInput> input = Factory::getInput(dialog->firstFilePath);
             Storage storage;
@@ -669,6 +686,7 @@ void NodeManager::renderSetup() {
                 box.extend(r[i]);
             }
             scale = maxElement(box.size()) * 1.e-3_f; // to km
+            hasEnergy = storage.has(QuantityId::ENERGY);
         } catch (const InvalidSetup& e) {
             messageBox("Cannot setup renderer: " + exceptionMessage(e), "Error", wxOK | wxCENTRE);
             return;
@@ -680,7 +698,9 @@ void NodeManager::renderSetup() {
         VirtualSettings renderSettings = renderNode->getSettings();
         renderSettings.set("directory", dialog->outputDir);
         renderSettings.set(GuiSettingsId::RENDERER, EnumWrapper(dialog->selectedRenderer));
-        renderSettings.set("quantity", EnumWrapper(RenderColorizerId::BEAUTY));
+
+        RenderColorizerId quantity = hasEnergy ? RenderColorizerId::BEAUTY : RenderColorizerId::GRAVITY;
+        renderSettings.set("quantity", EnumWrapper(quantity));
         renderSettings.set("first_file", dialog->firstFilePath);
         renderSettings.set("animation_type",
             EnumWrapper(dialog->doSequence ? AnimationType::FILE_SEQUENCE : AnimationType::SINGLE_FRAME));

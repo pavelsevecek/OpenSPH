@@ -200,6 +200,8 @@ void Chai::registerBindings(chaiscript::ChaiScript& chai) {
     chai.add(chaiscript::fun(&Sph::lerp<double, double>), "lerp");
     chai.add(chaiscript::fun(&Sph::abs<double>), "abs");
     chai.add(chaiscript::fun(&Sph::pow<double>), "pow");
+    chai.add(chaiscript::fun(&Sph::exp<double>), "exp");
+    chai.add(chaiscript::fun(&Sph::log<double>), "log");
 
     // vector utils
     chai.add(chaiscript::user_type<Vec3>(), "Vec3");

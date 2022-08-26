@@ -157,7 +157,7 @@ Optional<float> OrthoCamera::getCutoff() const {
     return data.ortho.cutoff;
 }
 
-Optional<float> OrthoCamera::getWorldToPixel() const {
+Optional<float> OrthoCamera::getWorldToPixel(const Vector& UNUSED(position)) const {
     return data.ortho.fov;
 }
 
@@ -298,8 +298,13 @@ Optional<float> PerspectiveCamera::getCutoff() const {
     return NOTHING;
 }
 
-Optional<float> PerspectiveCamera::getWorldToPixel() const {
-    return NOTHING;
+Optional<float> PerspectiveCamera::getWorldToPixel(const Vector& position) const {
+    Optional<ProjectedPoint> projected = this->project(setH(position, 1));
+    if (projected) {
+        return projected->radius;
+    } else {
+        return NOTHING;
+   }
 }
 
 void PerspectiveCamera::setCutoff(const Optional<float> UNUSED(newCutoff)) {}
@@ -409,7 +414,7 @@ Optional<float> PanoCameraBase::getCutoff() const {
     return NOTHING;
 }
 
-Optional<float> PanoCameraBase::getWorldToPixel() const {
+Optional<float> PanoCameraBase::getWorldToPixel(const Vector& UNUSED(position)) const {
     return NOTHING;
 }
 

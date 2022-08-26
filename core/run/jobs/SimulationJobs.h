@@ -73,4 +73,25 @@ public:
     virtual AutoPtr<IRun> getRun(const RunSettings& overrides) const override;
 };
 
+class PositionBasedJob : public IRunJob, public SharedToken {
+protected:
+    RunSettings settings;
+    bool isResumed = false;
+
+public:
+    explicit PositionBasedJob(const String& name, const RunSettings& overrides = EMPTY_SETTINGS);
+
+    virtual String className() const override {
+        return "Position based run";
+    }
+
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual AutoPtr<IRun> getRun(const RunSettings& overrides) const override;
+};
+
 NAMESPACE_SPH_END

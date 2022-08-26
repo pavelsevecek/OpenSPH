@@ -349,7 +349,7 @@ TEMPLATE_TEST_CASE("Laplacian vector", "[equationterm]", SymmetricSolver<3>, Asy
     Storage storage = Tests::getStorage(10000);
     storage.insert<Vector>(QuantityId::VELOCITY_LAPLACIAN, OrderEnum::ZERO, Vector(0._f));
     Tests::computeField<VelocityLaplacian, TestType>(storage, [](const Vector& r) { //
-        return Vector(sqr(r[0]) * sqr(r[1]), exp(r[0]) + 0.5_f * Sph::cos(r[2]), Sph::sin(r[2]));
+        return Vector(sqr(r[0]) * sqr(r[1]), Sph::exp(r[0]) + 0.5_f * Sph::cos(r[2]), Sph::sin(r[2]));
     });
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<Vector> divGradV = storage.getValue<Vector>(QuantityId::VELOCITY_LAPLACIAN);
@@ -362,7 +362,7 @@ TEMPLATE_TEST_CASE("Laplacian vector", "[equationterm]", SymmetricSolver<3>, Asy
         const Float x = r[i][X];
         const Float y = r[i][Y];
         const Float z = r[i][Z];
-        Vector expected = Vector(2._f * sqr(y), exp(x), 0._f)                 // d^2v/dx^2
+        Vector expected = Vector(2._f * sqr(y), Sph::exp(x), 0._f)                 // d^2v/dx^2
                           + Vector(2._f * sqr(x), 0._f, 0._f)                 // d^2v/dy^2
                           + Vector(0._f, -0.5_f * Sph::cos(z), -Sph::sin(z)); // d^2v/dz^2
         if (divGradV[i] != approx(expected, 0.05_f)) {
@@ -420,7 +420,7 @@ TEMPLATE_TEST_CASE("Gradient of divergence", "[equationterm]", SymmetricSolver<3
     Storage storage = Tests::getStorage(10000);
     storage.insert<Vector>(QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE, OrderEnum::ZERO, Vector(0._f));
     Tests::computeField<GradientOfVelocityDivergence, TestType>(storage, [](const Vector& r) { //
-        return Vector(sqr(r[X]) * sqr(r[Y]), exp(r[X]) + 0.5_f * Sph::cos(r[Z]), Sph::sin(r[Z]));
+        return Vector(sqr(r[X]) * sqr(r[Y]), Sph::exp(r[X]) + 0.5_f * Sph::cos(r[Z]), Sph::sin(r[Z]));
     });
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<Vector> gradDivV = storage.getValue<Vector>(QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE);
