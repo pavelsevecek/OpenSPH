@@ -119,7 +119,13 @@ public:
 
     template <typename TEnum>
     static String getDesc() {
+#ifdef SPH_ARM
+        // MacOS uses different order of initialization of global variables, this currently cannot be used.
+        // It needs to be fixed properly at some point.
+        return L"";
+#else
         return getDesc(std::type_index(typeid(TEnum)));
+#endif
     }
 
     static String getDesc(const EnumIndex& index) {

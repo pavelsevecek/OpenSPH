@@ -34,6 +34,9 @@ INLINE constexpr std::size_t roundUpToPower2(std::size_t v) {
 INLINE void* alignedAlloc(std::size_t size, std::size_t align) noexcept {
 #ifdef SPH_ARM
     align = roundUpToPower2(align);
+    if (align < 16) {
+        align = 16;
+    }
     size = roundToAlignment(size, align);
     return std::aligned_alloc(align, size);
 #else

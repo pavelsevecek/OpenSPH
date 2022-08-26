@@ -188,6 +188,9 @@ const int checkBoxBorder = 1;
 
 wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     wxStaticBox* particleBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 118));
+#ifdef SPH_ARM
+    particleBox->SetMinSize(wxSize(300, 118));
+#endif
 
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
     boxPad(boxSizer);
@@ -264,6 +267,9 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
 
 wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
     wxStaticBox* raytraceBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 125));
+#ifdef SPH_ARM
+    raytraceBox->SetMinSize(wxSize(300, 125));
+#endif
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
     boxPad(boxSizer);
 
@@ -337,6 +343,9 @@ wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
 
 wxWindow* RunPage::createVolumeBox(wxPanel* parent) {
     wxStaticBox* volumeBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 100));
+#ifdef SPH_ARM
+    volumeBox->SetMinSize(wxSize(300, 100));
+#endif
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
     boxPad(boxSizer);
 
@@ -506,7 +515,6 @@ wxPanel* RunPage::createVisBar() {
     quantityBox->SetToolTip(
         "Selects which quantity to visualize using associated color scale. Quantity values can be also "
         "obtained by left-clicking on a particle.");
-    quantityBox->SetSelection(0);
     quantityBox->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         const int idx = quantityBox->GetSelection();

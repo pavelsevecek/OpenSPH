@@ -13,8 +13,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-#define SPH_ARM
-
 /// Macros for conditional compilation based on selected compiler
 #ifdef __GNUC__
 #ifdef __clang__
