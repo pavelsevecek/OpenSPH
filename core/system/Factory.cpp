@@ -54,6 +54,9 @@ AutoPtr<IEos> Factory::getEos(const BodySettings& body) {
     switch (id) {
     case EosEnum::IDEAL_GAS:
         return makeAuto<IdealGasEos>(body.get<Float>(BodySettingsId::ADIABATIC_INDEX));
+    case EosEnum::POLYTROPIC:
+        return makeAuto<PolytropicEos>(body.get<Float>(BodySettingsId::POLYTROPIC_CONSTANT),
+            body.get<Float>(BodySettingsId::ADIABATIC_INDEX));
     case EosEnum::TAIT:
         return makeAuto<TaitEos>(body);
     case EosEnum::MIE_GRUNEISEN:

@@ -88,9 +88,9 @@ public:
 
     INLINE TValue operator()(const TScalar x) const {
         const TScalar fidx = TScalar((x - range.lower()) / range.size() * (data.size() - 1));
-        const int idx1 = int(floor(fidx));
-        const int idx2 = idx1 + 1;
-        if (idx2 >= int(data.size()) - 1) {
+        const TScalar idx1 = floor(fidx);
+        const TScalar idx2 = idx1 + 1;
+        if (idx2 >= data.size() - 1) {
             /// \todo possibly make linear interpolation rather than just const value
             return data.back();
         } else if (idx1 <= 0) {
@@ -98,7 +98,7 @@ public:
         } else {
             const TScalar ratio = fidx - idx1;
             SPH_ASSERT(ratio >= TScalar(0) && ratio < TScalar(1));
-            return lerp(data[idx1], data[idx2], ratio);
+            return lerp(data[int(idx1)], data[int(idx2)], ratio);
         }
     }
 
@@ -110,6 +110,10 @@ public:
     /// \brief Returns an iterator accessing tabulated values.
     LutIterator<TValue, TScalar> end() const {
         return LutIterator<TValue, TScalar>(data.end(), data.size(), data.size(), range, {});
+    }
+
+    typename LutIterator<TValue, TScalar>::Value valueAtIndex(int index) const {
+        return { Float(index) / Float(data.size() - 1) * range.size() + range.lower(), data[index] };
     }
 
     /// \brief Returns the number of tabulated value.

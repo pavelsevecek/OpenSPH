@@ -770,6 +770,7 @@ static RegisterEnum<EosEnum> sEos({
         "body, can be used to simulate "
         "dust interacting only by friction or gravity." },
     { EosEnum::IDEAL_GAS, "ideal_gas", "Equation of state for ideal gas." },
+    { EosEnum::POLYTROPIC, "polytropic", "Polytropic equation of state." },
     { EosEnum::TAIT, "tait", "Tait equation of state for simulations of liquids." },
     { EosEnum::MIE_GRUNEISEN,
         "mie_gruneisen",
@@ -819,6 +820,8 @@ const BodySettings& getDefaultSettings() {
         "Slope of the Hugoniot curve, used in Mie-Gruneisen EoS." },
     { BodySettingsId::BULK_SOUND_SPEED,        "eos.mie_gruneises.bulk_sound_speed", 3933._f,  // value for copper taken from wikipedia
         "Bulk sound speed used in Mie-Gruneisen EoS." },
+    { BodySettingsId::POLYTROPIC_CONSTANT,     "eos.polytrope.constant",       2e6_f,
+        "Constant K used by the polytropic equation of state" },
 
     /// Yielding & Damage
     { BodySettingsId::RHEOLOGY_YIELDING,    "rheology.yielding",            YieldingEnum::VON_MISES,

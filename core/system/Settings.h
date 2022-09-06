@@ -1398,7 +1398,10 @@ enum class EosEnum {
     SIMPLIFIED_TILLOTSON,
 
     /// ANEOS given by look-up table
-    ANEOS
+    ANEOS,
+
+    /// Polytropic EoS
+    POLYTROPIC,
 };
 
 /// \brief Settings of a single body / gas phase / ...
@@ -1520,6 +1523,9 @@ enum class BodySettingsId {
 
     /// Linear Hugoniot slope coefficient used in Mie-Gruneisen equation of state
     HUGONIOT_SLOPE = 32,
+
+    /// Constant for the polytropic equation of state.
+    POLYTROPIC_CONSTANT = 76,
 
     /// Model of stress reducing used within the rheological model
     RHEOLOGY_YIELDING = 33,
