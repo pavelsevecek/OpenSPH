@@ -14,6 +14,7 @@ public:
 class LogarithmicColorMap : public IColorMap {
 private:
     float factor = 2.f;
+    float saturation = 0.5f;
 
 public:
     explicit LogarithmicColorMap(const float factor)
@@ -23,7 +24,11 @@ public:
         parallelFor(scheduler, 0, values.size().y, 1, [this, &values](const int y) {
             for (int x = 0; x < values.size().x; ++x) {
                 Rgba& color = values[Pixel(x, y)];
-                color = Rgba(map(color.r()), map(color.g()), map(color.b()), color.a());
+                float oldIntensity = color.intensity();
+                float newIntensity = map(oldIntensity);
+                const Rgba saturatedColor = color * newIntensity / oldIntensity;
+                const Rgba desaturatedColor = Rgba(map(color.r()), map(color.g()), map(color.b()), color.a());
+                color = lerp(desaturatedColor, saturatedColor, saturation);
             }
         });
     }

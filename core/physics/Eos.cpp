@@ -34,6 +34,31 @@ Float IdealGasEos::getSpecificEntropy(const Float rho, const Float p) const {
 }
 
 //-----------------------------------------------------------------------------------------------------------
+// Polytropic implementation
+//-----------------------------------------------------------------------------------------------------------
+
+PolytropicEos::PolytropicEos(const Float K, const Float gamma)
+    : K(K)
+    , gamma(gamma) {}
+
+Pair<Float> PolytropicEos::evaluate(const Float rho, const Float UNUSED(u)) const {
+    const Float p = K * pow(rho, gamma);
+    return { p, sqrt(gamma * p / rho) };
+}
+
+Float PolytropicEos::getTemperature(const Float UNUSED(rho), const Float UNUSED(u)) const {
+    NOT_IMPLEMENTED;
+}
+
+Float PolytropicEos::getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const {
+    NOT_IMPLEMENTED;
+}
+
+Float PolytropicEos::getDensity(const Float p, const Float UNUSED(u)) const {
+    return pow(p / K, 1.f / gamma);
+}
+
+//-----------------------------------------------------------------------------------------------------------
 // TaitEos implementation
 //-----------------------------------------------------------------------------------------------------------
 
@@ -169,12 +194,27 @@ Float TillotsonEos::getInternalEnergy(const Float rho, const Float p) const {
 Float TillotsonEos::getDensity(const Float p, const Float u) const {
     // both phases are highly non-linear in density, no chance of getting an analytic solution ...
     // so let's find the root
+    Float rhoMax = rho0;
+    while (rhoMax < 1.e6_f * rho0) {
+        rhoMax *= 2;
+        if (this->evaluate(rhoMax, u)[0] > p) {
+            break;
+        }
+    }
+    Float rhoMin = rho0;
+    while (rhoMin > 1.e-6_f * rho0) {
+        rhoMin *= 0.5;
+        if (this->evaluate(rhoMin, u)[0] < p) {
+            break;
+        }
+    }
+
     auto func = [this, u, p0 = p](const Float rho) {
         Float p, cs;
         tie(p, cs) = this->evaluate(rho, u);
         return p0 - p;
     };
-    Optional<Float> root = getRoot(Interval(0.95_f * rho0, 1.05 * rho0), EPS, func);
+    Optional<Float> root = getRoot(Interval(rhoMin, rhoMax), EPS, func);
     SPH_ASSERT(root);
     return root.value();
 }

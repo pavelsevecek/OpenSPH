@@ -48,6 +48,23 @@ public:
     Float getSpecificEntropy(const Float rho, const Float p) const;
 };
 
+class PolytropicEos : public IEos {
+private:
+    Float K;
+    Float gamma;
+
+public:
+    PolytropicEos(const Float K, const Float gamma);
+
+    virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
+
+    virtual Float getTemperature(const Float rho, const Float u) const override;
+
+    virtual Float getInternalEnergy(const Float rho, const Float p) const override;
+
+    virtual Float getDensity(const Float p, const Float u) const override;
+};
+
 /// \brief Tait equation of state
 ///
 /// Equation describing behavior of water and other fluids. Depends only on density, does not require energy
