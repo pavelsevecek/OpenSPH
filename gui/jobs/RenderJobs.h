@@ -19,6 +19,7 @@ enum class RenderColorizerId {
     DAMAGE = int(QuantityId::DAMAGE),
     GRAVITY = 666,
     COMPONENT_ID = int(ColorizerId::COMPONENT_ID),
+    MATERIAL_ID = int(ColorizerId::MATERIAL_ID),
     BEAUTY = int(ColorizerId::BEAUTY),
 };
 
