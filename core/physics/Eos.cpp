@@ -5,6 +5,32 @@
 
 NAMESPACE_SPH_BEGIN
 
+static Float bisectDensity(const IEos& eos, const Float p, const Float u, const Float rho0) {
+    Float rhoMax = rho0;
+    while (rhoMax < 1.e6_f * rho0) {
+        rhoMax *= 2;
+        if (eos.evaluate(rhoMax, u)[0] > p) {
+            break;
+        }
+    }
+    Float rhoMin = rho0;
+    while (rhoMin > 1.e-6_f * rho0) {
+        rhoMin *= 0.5;
+        if (eos.evaluate(rhoMin, u)[0] < p) {
+            break;
+        }
+    }
+
+    auto func = [&eos, u, p0 = p](const Float rho) {
+        Float p, cs;
+        tie(p, cs) = eos.evaluate(rho, u);
+        return p0 - p;
+    };
+    Optional<Float> root = getRoot(Interval(rhoMin, rhoMax), EPS, func);
+    SPH_ASSERT(root);
+    return root.value();
+}
+
 //-----------------------------------------------------------------------------------------------------------
 // IdealGasEos implementation
 //-----------------------------------------------------------------------------------------------------------
@@ -194,29 +220,7 @@ Float TillotsonEos::getInternalEnergy(const Float rho, const Float p) const {
 Float TillotsonEos::getDensity(const Float p, const Float u) const {
     // both phases are highly non-linear in density, no chance of getting an analytic solution ...
     // so let's find the root
-    Float rhoMax = rho0;
-    while (rhoMax < 1.e6_f * rho0) {
-        rhoMax *= 2;
-        if (this->evaluate(rhoMax, u)[0] > p) {
-            break;
-        }
-    }
-    Float rhoMin = rho0;
-    while (rhoMin > 1.e-6_f * rho0) {
-        rhoMin *= 0.5;
-        if (this->evaluate(rhoMin, u)[0] < p) {
-            break;
-        }
-    }
-
-    auto func = [this, u, p0 = p](const Float rho) {
-        Float p, cs;
-        tie(p, cs) = this->evaluate(rho, u);
-        return p0 - p;
-    };
-    Optional<Float> root = getRoot(Interval(rhoMin, rhoMax), EPS, func);
-    SPH_ASSERT(root);
-    return root.value();
+    return bisectDensity(*this, p, u, rho0);
 }
 
 Float TillotsonEos::getTemperature(const Float UNUSED(rho), const Float u) const {
@@ -248,6 +252,84 @@ Float SimplifiedTillotsonEos::getTemperature(const Float UNUSED(rho), const Floa
 }
 
 //-----------------------------------------------------------------------------------------------------------
+// HubbardMacFarlaneEos implementation
+//-----------------------------------------------------------------------------------------------------------
+
+static RegisterEnum<HubbardMacFarlaneEos::Type> sType({
+    { HubbardMacFarlaneEos::Type::ROCK, "rock", "Suitable for rocky cores of planets." },
+    { HubbardMacFarlaneEos::Type::ICE, "ice", "Suitable for icy mantles of planets." },
+});
+
+// http://etheses.dur.ac.uk/13349/1/thesis_jacob_kegerreis.pdf?DDD25+
+HubbardMacFarlaneEos::HubbardMacFarlaneEos(const Type type, ArrayView<const Abundance> abundances)
+    : type(type) {
+    c_v = 0;
+    const Float n = type == Type::ICE ? 2.1_f : 3._f;
+    for (const Abundance& a : abundances) {
+        c_v += a.fraction * a.numberOfAtoms * n * Constants::gasConstant / a.molarMass;
+    }
+    c_v *= 1000; // cgs -> si
+
+    if (type == Type::ICE) {
+        rho0 = 947.8_f;
+        A = 2e9_f;
+    } else {
+        rho0 = 2704.8_f;
+        A = 2e10_f;
+    }
+
+    const Float rho_min = rho0;
+    const Float rho_max = 5e4;
+    const Size resolution = 100000;
+    Float u = 0;
+    Float drho = rho_max / resolution;
+    Array<Float> us;
+    for (Float rho = rho_min; rho < rho_max; rho += drho) {
+        const Float P = evaluateZeroTemperaturePressure(rho);
+        const Float dudrho = max(P, 0._f) / sqr(rho);
+        u += dudrho * drho;
+        SPH_ASSERT(u >= 0.f);
+        us.push(u);
+    }
+    adiabat = Lut<Float>(Interval(rho_min, rho_max), std::move(us));
+}
+
+Pair<Float> HubbardMacFarlaneEos::evaluate(const Float rho, const Float u) const {
+    const Float p0 = evaluateZeroTemperaturePressure(rho);
+    const Float u0 = adiabat(rho);
+    const Float T = max(u - u0, 0._f) / c_v;
+    const Float p = p0 + c_v * rho * T;
+    const Float cs = sqrt(A / rho);
+    return { p, cs };
+}
+
+Float HubbardMacFarlaneEos::getInternalEnergy(const Float rho, const Float p) const {
+    const Float p0 = evaluateZeroTemperaturePressure(rho);
+    const Float T = max((p - p0) / (c_v * rho), 0._f);
+    const Float u0 = adiabat(rho);
+    return u0 + c_v * T;
+}
+
+Float HubbardMacFarlaneEos::getDensity(const Float p, const Float u) const {
+    // both phases are highly non-linear in density, no chance of getting an analytic solution ...
+    // so let's find the root
+    return bisectDensity(*this, p, u, rho0);
+}
+
+Float HubbardMacFarlaneEos::evaluateZeroTemperaturePressure(const Float rho) const {
+    const Float rho_cgs = rho * 1.e-3_f;
+    Float p0_Mbar;
+    const float clampedRho = min(rho_cgs, 6._f);
+    if (type == Type::ICE) {
+        p0_Mbar = pow(rho_cgs, 4.067_f) * exp(-3.097_f - 0.228_f * clampedRho - 0.0102_f * sqr(clampedRho));
+    } else {
+        p0_Mbar = pow(rho_cgs, 14.563_f) * exp(-15.041_f - 2.130_f * clampedRho + 0.0483_f * sqr(clampedRho));
+    }
+    SPH_ASSERT(p0_Mbar > 0);
+    return p0_Mbar * 1.e11_f;
+}
+
+//-----------------------------------------------------------------------------------------------------------
 // MurnaghanEos implementation
 //-----------------------------------------------------------------------------------------------------------
 
@@ -265,6 +347,21 @@ Pair<Float> MurnaghanEos::evaluate(const Float rho, const Float UNUSED(u)) const
 
 Float MurnaghanEos::getTemperature(const Float UNUSED(rho), const Float u) const {
     return u / c_p;
+}
+
+Lut<Float> computeAdiabat(const IEos& eos, const Interval& range, float u0, Size resolution) {
+    // For adiabat, ds=0, this du/d(rho) = P/rho^2
+    Float u = u0;
+    Float drho = range.size() / resolution;
+    Array<Float> us;
+    for (Float rho = range.lower(); rho < range.upper(); rho += drho) {
+        const Float P = eos.evaluate(rho, u)[0];
+        const Float dudrho = max(P, 0._f) / sqr(rho);
+        u += dudrho * drho;
+        SPH_ASSERT(u >= 0.f);
+        us.push(u);
+    }
+    return Lut<Float>(range, std::move(us));
 }
 
 NAMESPACE_SPH_END

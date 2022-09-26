@@ -67,6 +67,16 @@ AutoPtr<IEos> Factory::getEos(const BodySettings& body) {
         return makeAuto<SimplifiedTillotsonEos>(body);
     case EosEnum::MURNAGHAN:
         return makeAuto<MurnaghanEos>(body);
+    case EosEnum::HUBBARD_MACFARLANE: {
+        HubbardMacFarlaneEos::Type type =
+            body.get<HubbardMacFarlaneEos::Type>(BodySettingsId::HUBBARD_MACFARLANE_TYPE);
+        HubbardMacFarlaneEos::Abundance abundance;
+        abundance.fraction = 1._f;
+        // assuming H2O
+        abundance.numberOfAtoms = 3;
+        abundance.molarMass = 18._f;
+        return makeAuto<HubbardMacFarlaneEos>(type, makeArray(abundance));
+    }
     case EosEnum::ANEOS: {
         const Path path(body.get<String>(BodySettingsId::ANEOS_FILE));
         return makeAuto<Aneos>(path);

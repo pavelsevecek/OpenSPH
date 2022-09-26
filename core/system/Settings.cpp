@@ -1,6 +1,7 @@
 #include "gravity/AggregateSolver.h"
 #include "io/Output.h"
 #include "system/Settings.impl.h"
+#include "physics/Eos.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -778,6 +779,7 @@ static RegisterEnum<EosEnum> sEos({
     { EosEnum::TILLOTSON, "tillotson", "Tillotson equation of stats." },
     { EosEnum::MURNAGHAN, "murnaghan", "Murnaghan equation of state." },
     { EosEnum::SIMPLIFIED_TILLOTSON, "simplified_tillotson", "Simplified version of the Tillotson equation."},
+    { EosEnum::HUBBARD_MACFARLANE, "hubbard_macfarlane", "Equation of state from Hubbard & MacFarlane (1980)."},
     { EosEnum::ANEOS,
         "aneos",
         "ANEOS equation of state, requires look-up table of values for given material." },
@@ -822,6 +824,8 @@ const BodySettings& getDefaultSettings() {
         "Bulk sound speed used in Mie-Gruneisen EoS." },
     { BodySettingsId::POLYTROPIC_CONSTANT,     "eos.polytrope.constant",       2e6_f,
         "Constant K used by the polytropic equation of state" },
+    { BodySettingsId::HUBBARD_MACFARLANE_TYPE, "eos.hubbard_macfarlane.type", HubbardMacFarlaneEos::Type::ROCK,
+        "Type of material used by the Hubbard & MacFarlane EoS." },
 
     /// Yielding & Damage
     { BodySettingsId::RHEOLOGY_YIELDING,    "rheology.yielding",            YieldingEnum::VON_MISES,

@@ -132,6 +132,10 @@ VirtualSettings MaterialJob::getSettings() {
     tillotsonCat.connect<Float>("Sublimation energy", body, BodySettingsId::TILLOTSON_SUBLIMATION)
         .setEnabler(tillotsonEnabler);
 
+       VirtualSettings::Category& hmCat = connector.addCategory("Hubbard & MacFarlane");
+    hmCat.connect<EnumWrapper>("Material type", body, BodySettingsId::HUBBARD_MACFARLANE_TYPE)
+        .setEnabler([this] { return body.get<EosEnum>(BodySettingsId::EOS) == EosEnum::HUBBARD_MACFARLANE; });
+
     VirtualSettings::Category& aneosCat = connector.addCategory("ANEOS");
     aneosCat.connect<Path>("ANEOS material file", body, BodySettingsId::ANEOS_FILE)
         .setEnabler([this] { return body.get<EosEnum>(BodySettingsId::EOS) == EosEnum::ANEOS; })
