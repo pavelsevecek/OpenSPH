@@ -10,6 +10,7 @@
 #include "objects/containers/Array.h"
 #include "objects/containers/StaticArray.h"
 #include "objects/wrappers/Lut.h"
+#include "objects/wrappers/Lut2D.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -193,7 +194,8 @@ class HubbardMacFarlaneEos : public IEos {
 public:
     enum class Type {
         ROCK,
-        ICE,
+        ICE, // H2O + NH3 + CH4 mixture
+        GAS, // H + He mixture
     };
 
     struct Abundance {
@@ -207,7 +209,7 @@ private:
     Float c_v;
     Float rho0;
     Float A;
-    Lut<Float> adiabat;
+    Lut2D<Float> temperatureTable;
 
 public:
     explicit HubbardMacFarlaneEos(const Type type, ArrayView<const Abundance> abundances);
@@ -223,7 +225,9 @@ public:
     virtual Float getDensity(const Float p, const Float u) const override;
 
 private:
-    Float evaluateZeroTemperaturePressure(const Float rho) const;
+    Float evaluateFromDensityAndTemperature(const Float rho, const Float T) const;
+
+    void calculateTemperatureTable();
 };
 
 /// \brief Murnaghan equation of state.

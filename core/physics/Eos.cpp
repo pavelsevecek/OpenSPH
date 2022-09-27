@@ -2,6 +2,7 @@
 #include "math/Functional.h"
 #include "physics/Constants.h"
 #include "system/Settings.h"
+#include <fstream>
 
 NAMESPACE_SPH_BEGIN
 
@@ -278,45 +279,14 @@ HubbardMacFarlaneEos::HubbardMacFarlaneEos(const Type type, ArrayView<const Abun
         A = 2e10_f;
     }
 
-    const Float rho_min = rho0;
-    const Float rho_max = 5e4;
-    const Size resolution = 100000;
-    Float u = 0;
-    Float drho = rho_max / resolution;
-    Array<Float> us;
-    for (Float rho = rho_min; rho < rho_max; rho += drho) {
-        const Float P = evaluateZeroTemperaturePressure(rho);
-        const Float dudrho = max(P, 0._f) / sqr(rho);
-        u += dudrho * drho;
-        SPH_ASSERT(u >= 0.f);
-        us.push(u);
-    }
-    adiabat = Lut<Float>(Interval(rho_min, rho_max), std::move(us));
+    //calculateTemperatureTable();
 }
 
 Pair<Float> HubbardMacFarlaneEos::evaluate(const Float rho, const Float u) const {
-    const Float p0 = evaluateZeroTemperaturePressure(rho);
-    const Float u0 = adiabat(rho);
-    const Float T = max(u - u0, 0._f) / c_v;
-    const Float p = p0 + c_v * rho * T;
-    const Float cs = sqrt(A / rho);
-    return { p, cs };
-}
+    /*/ const Float T = temperatureTable.interpolate(rho, u);
+    //const Float T = 0;
+    const Float p = evaluateFromDensityAndTemperature(rho, T);*/
 
-Float HubbardMacFarlaneEos::getInternalEnergy(const Float rho, const Float p) const {
-    const Float p0 = evaluateZeroTemperaturePressure(rho);
-    const Float T = max((p - p0) / (c_v * rho), 0._f);
-    const Float u0 = adiabat(rho);
-    return u0 + c_v * T;
-}
-
-Float HubbardMacFarlaneEos::getDensity(const Float p, const Float u) const {
-    // both phases are highly non-linear in density, no chance of getting an analytic solution ...
-    // so let's find the root
-    return bisectDensity(*this, p, u, rho0);
-}
-
-Float HubbardMacFarlaneEos::evaluateZeroTemperaturePressure(const Float rho) const {
     const Float rho_cgs = rho * 1.e-3_f;
     Float p0_Mbar;
     const float clampedRho = min(rho_cgs, 6._f);
@@ -326,7 +296,88 @@ Float HubbardMacFarlaneEos::evaluateZeroTemperaturePressure(const Float rho) con
         p0_Mbar = pow(rho_cgs, 14.563_f) * exp(-15.041_f - 2.130_f * clampedRho + 0.0483_f * sqr(clampedRho));
     }
     SPH_ASSERT(p0_Mbar > 0);
-    return p0_Mbar * 1.e11_f;
+    const Float p = p0_Mbar * 1.e11_f + 4 * rho * u;
+
+    const Float cs = sqrt(A / rho);
+    return { p, cs };
+}
+
+Float HubbardMacFarlaneEos::getInternalEnergy(const Float rho, const Float p) const {
+    NOT_IMPLEMENTED;
+}
+
+Float HubbardMacFarlaneEos::getDensity(const Float p, const Float u) const {
+    // both phases are highly non-linear in density, no chance of getting an analytic solution ...
+    // so let's find the root
+    return bisectDensity(*this, p, u, rho0);
+}
+
+Float HubbardMacFarlaneEos::evaluateFromDensityAndTemperature(const Float rho, const Float T) const {
+    const Float rho_cgs = rho * 1.e-3_f;
+    Float p0_Mbar;
+    const float clampedRho = min(rho_cgs, 5._f);
+    if (type == Type::ICE) {
+        p0_Mbar = pow(rho_cgs, 4.067_f) * exp(-3.097_f - 0.228_f * clampedRho - 0.0102_f * sqr(clampedRho));
+    } else {
+        p0_Mbar = pow(rho_cgs, 14.563_f) * exp(-15.041_f - 2.130_f * clampedRho + 0.0483_f * sqr(clampedRho));
+    }
+    SPH_ASSERT(p0_Mbar > 0);
+    return p0_Mbar * 1.e11_f + c_v * rho * T;
+}
+
+void HubbardMacFarlaneEos::calculateTemperatureTable() {
+    const Float rho_min = rho0;
+    const Float rho_max = 5e4;
+    const Float rho_step = 1.02_f;
+    const Float T_min = 1;
+    const Float T_max = 1e6;
+    const Float T_step = 1.25_f;
+    Array<Float> rhos;
+    for (Float rho = rho_min; rho < rho_max; rho *= rho_step) {
+        rhos.push(rho);
+    }
+    Array<Float> Ts;
+    for (Float T = T_min; T < T_max; T *= T_step) {
+        Ts.push(T);
+    }
+    Lut2D<Float> energyTable(rhos.size(), Ts.size(), rhos.clone(), std::move(Ts));
+    Float u_max = 0;
+    std::ofstream ofs(format("temperature_{}.txt", EnumMap::toString(type)).toAscii());
+    Size i = 0;
+    for (Float rho = rho_min; rho < rho_max; rho *= rho_step, ++i) {
+        const Float drho = rho * (rho_step - 1);
+        Size j = 0;
+        Float u = 0;
+        for (Float T = T_min; T < T_max; T *= T_step, ++j) {
+            const Float dT = T * (T_step - 1);
+            const Float P = evaluateFromDensityAndTemperature(rho, T);
+            const Float du = c_v * dT - (T * c_v * rho - P) * drho / sqr(rho);
+            u += du;
+            energyTable.at(i, j) = u;
+            u_max = max(u_max, u);
+        }
+        
+    }
+    Array<Float> us;
+    for (Float u = 1; u < u_max;  u *= T_step) {
+        us.push(u);
+    }
+    temperatureTable = Lut2D<Float>(rhos.size(), us.size(), std::move(rhos), std::move(us));
+    for (Size i = 0; i < temperatureTable.getValuesX().size(); ++i) {
+        for (Size j = 0; j < temperatureTable.getValuesY().size(); ++j) {
+            const Float rho = temperatureTable.getValuesX()[i];
+            const Float u = temperatureTable.getValuesY()[j];
+            ArrayView<const Float> Ts = energyTable.getValuesY();
+            temperatureTable.at(i, j) = T_max;
+            for (Size k = 0; k < Ts.size(); ++k) {
+                if (energyTable.interpolate(rho, Ts[k]) > u) {
+                    temperatureTable.at(i, j) = Ts[k];
+                }
+            }
+            ofs << rho << " " << u << " " << temperatureTable.at(i, j) << "\n";
+        }
+        ofs << "\n";
+    }
 }
 
 //-----------------------------------------------------------------------------------------------------------
