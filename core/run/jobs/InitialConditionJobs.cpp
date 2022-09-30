@@ -664,7 +664,7 @@ void NoiseQuantityIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks&
     Storage& storage = result->storage;
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
-    this->randomize<3>(callbacks, r, [&v](Float value, Size i, Size j) { v[i][j] = value; });
+    this->randomize<3>(callbacks, r, [&v](Float value, Size i, Size j) { v[i][j] += value; });
 }
 
 template <Size Dims, typename TSetter>
