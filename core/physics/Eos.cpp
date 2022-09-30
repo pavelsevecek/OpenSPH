@@ -259,6 +259,7 @@ Float SimplifiedTillotsonEos::getTemperature(const Float UNUSED(rho), const Floa
 static RegisterEnum<HubbardMacFarlaneEos::Type> sType({
     { HubbardMacFarlaneEos::Type::ROCK, "rock", "Suitable for rocky cores of planets." },
     { HubbardMacFarlaneEos::Type::ICE, "ice", "Suitable for icy mantles of planets." },
+    { HubbardMacFarlaneEos::Type::GAS, "gas", "Suitable for H/He atmospheres." },
 });
 
 // http://etheses.dur.ac.uk/13349/1/thesis_jacob_kegerreis.pdf?DDD25+
@@ -271,34 +272,70 @@ HubbardMacFarlaneEos::HubbardMacFarlaneEos(const Type type, ArrayView<const Abun
     }
     c_v *= 1000; // cgs -> si
 
-    if (type == Type::ICE) {
+    switch (type) {
+    case Type::ICE:
         rho0 = 947.8_f;
         A = 2e9_f;
-    } else {
+        break;
+    case Type::ROCK:
         rho0 = 2704.8_f;
         A = 2e10_f;
+        break;
+    case Type::GAS:
+        rho0 = 5._f;
+        break;
+    default:
+        NOT_IMPLEMENTED;
     }
-
-    //calculateTemperatureTable();
 }
 
 Pair<Float> HubbardMacFarlaneEos::evaluate(const Float rho, const Float u) const {
-    /*/ const Float T = temperatureTable.interpolate(rho, u);
-    //const Float T = 0;
-    const Float p = evaluateFromDensityAndTemperature(rho, T);*/
-
     const Float rho_cgs = rho * 1.e-3_f;
-    Float p0_Mbar;
-    const float clampedRho = min(rho_cgs, 6._f);
-    if (type == Type::ICE) {
-        p0_Mbar = pow(rho_cgs, 4.067_f) * exp(-3.097_f - 0.228_f * clampedRho - 0.0102_f * sqr(clampedRho));
-    } else {
-        p0_Mbar = pow(rho_cgs, 14.563_f) * exp(-15.041_f - 2.130_f * clampedRho + 0.0483_f * sqr(clampedRho));
+    Float p;
+    const Float clampedRho = min(rho_cgs, 6._f);
+    switch (type) {
+    case Type::ICE: {
+        const Float p0_Mbar =
+            pow(rho_cgs, 4.067_f) * exp(-3.097_f - 0.228_f * clampedRho - 0.0102_f * sqr(clampedRho));
+        SPH_ASSERT(p0_Mbar > 0);
+        p = p0_Mbar * 1.e11_f + 4 * rho * u;
+        break;
     }
-    SPH_ASSERT(p0_Mbar > 0);
-    const Float p = p0_Mbar * 1.e11_f + 4 * rho * u;
+    case Type::ROCK: {
+        const Float p0_Mbar =
+            pow(rho_cgs, 14.563_f) * exp(-15.041_f - 2.130_f * clampedRho + 0.0483_f * sqr(clampedRho));
+        SPH_ASSERT(p0_Mbar > 0);
+        p = p0_Mbar * 1.e11_f + 4 * rho * u;
+        break;
+    }
+    case Type::GAS: {
+        const Float T = max(u / c_v, 1._f);
+        const Float u1 = -16.05895_f;
+        const Float u2 = 1.22808_f;
+        const Float u3 = -0.0217930_f;
+        const Float u4 = 0.141021_f;
+        const Float u5 = 0.147156_f;
+        const Float u6 = 0.277708_f;
+        const Float u7 = 0.0455347_f;
+        const Float u8 = -0.0558596_f;
+        const Float x = log(rho / rho0);
+        const Float y = log(T);
+        const Float logP =
+            u1 + u2 * y + u3 * sqr(y) + u4 * x * y + u5 * x + u6 * sqr(x) + u7 * pow<3>(x) + u8 * y * sqr(x);
+        p = exp(logP) * 1e11_f;
+        SPH_ASSERT(p > 0);
+    } break;
+    default:
+        NOT_IMPLEMENTED;
+    }
 
-    const Float cs = sqrt(A / rho);
+    Float cs;
+    if (type == Type::GAS) {
+        const Float gamma = 1.6667f;
+        cs = sqrt(gamma * p / rho);
+    } else {
+        cs = sqrt(A / rho);
+    }
     return { p, cs };
 }
 
@@ -310,74 +347,6 @@ Float HubbardMacFarlaneEos::getDensity(const Float p, const Float u) const {
     // both phases are highly non-linear in density, no chance of getting an analytic solution ...
     // so let's find the root
     return bisectDensity(*this, p, u, rho0);
-}
-
-Float HubbardMacFarlaneEos::evaluateFromDensityAndTemperature(const Float rho, const Float T) const {
-    const Float rho_cgs = rho * 1.e-3_f;
-    Float p0_Mbar;
-    const float clampedRho = min(rho_cgs, 5._f);
-    if (type == Type::ICE) {
-        p0_Mbar = pow(rho_cgs, 4.067_f) * exp(-3.097_f - 0.228_f * clampedRho - 0.0102_f * sqr(clampedRho));
-    } else {
-        p0_Mbar = pow(rho_cgs, 14.563_f) * exp(-15.041_f - 2.130_f * clampedRho + 0.0483_f * sqr(clampedRho));
-    }
-    SPH_ASSERT(p0_Mbar > 0);
-    return p0_Mbar * 1.e11_f + c_v * rho * T;
-}
-
-void HubbardMacFarlaneEos::calculateTemperatureTable() {
-    const Float rho_min = rho0;
-    const Float rho_max = 5e4;
-    const Float rho_step = 1.02_f;
-    const Float T_min = 1;
-    const Float T_max = 1e6;
-    const Float T_step = 1.25_f;
-    Array<Float> rhos;
-    for (Float rho = rho_min; rho < rho_max; rho *= rho_step) {
-        rhos.push(rho);
-    }
-    Array<Float> Ts;
-    for (Float T = T_min; T < T_max; T *= T_step) {
-        Ts.push(T);
-    }
-    Lut2D<Float> energyTable(rhos.size(), Ts.size(), rhos.clone(), std::move(Ts));
-    Float u_max = 0;
-    std::ofstream ofs(format("temperature_{}.txt", EnumMap::toString(type)).toAscii());
-    Size i = 0;
-    for (Float rho = rho_min; rho < rho_max; rho *= rho_step, ++i) {
-        const Float drho = rho * (rho_step - 1);
-        Size j = 0;
-        Float u = 0;
-        for (Float T = T_min; T < T_max; T *= T_step, ++j) {
-            const Float dT = T * (T_step - 1);
-            const Float P = evaluateFromDensityAndTemperature(rho, T);
-            const Float du = c_v * dT - (T * c_v * rho - P) * drho / sqr(rho);
-            u += du;
-            energyTable.at(i, j) = u;
-            u_max = max(u_max, u);
-        }
-        
-    }
-    Array<Float> us;
-    for (Float u = 1; u < u_max;  u *= T_step) {
-        us.push(u);
-    }
-    temperatureTable = Lut2D<Float>(rhos.size(), us.size(), std::move(rhos), std::move(us));
-    for (Size i = 0; i < temperatureTable.getValuesX().size(); ++i) {
-        for (Size j = 0; j < temperatureTable.getValuesY().size(); ++j) {
-            const Float rho = temperatureTable.getValuesX()[i];
-            const Float u = temperatureTable.getValuesY()[j];
-            ArrayView<const Float> Ts = energyTable.getValuesY();
-            temperatureTable.at(i, j) = T_max;
-            for (Size k = 0; k < Ts.size(); ++k) {
-                if (energyTable.interpolate(rho, Ts[k]) > u) {
-                    temperatureTable.at(i, j) = Ts[k];
-                }
-            }
-            ofs << rho << " " << u << " " << temperatureTable.at(i, j) << "\n";
-        }
-        ofs << "\n";
-    }
 }
 
 //-----------------------------------------------------------------------------------------------------------

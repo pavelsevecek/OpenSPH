@@ -209,7 +209,6 @@ private:
     Float c_v;
     Float rho0;
     Float A;
-    Lut2D<Float> temperatureTable;
 
 public:
     explicit HubbardMacFarlaneEos(const Type type, ArrayView<const Abundance> abundances);
@@ -223,11 +222,6 @@ public:
     virtual Float getInternalEnergy(const Float rho, const Float p) const override;
 
     virtual Float getDensity(const Float p, const Float u) const override;
-
-private:
-    Float evaluateFromDensityAndTemperature(const Float rho, const Float T) const;
-
-    void calculateTemperatureTable();
 };
 
 /// \brief Murnaghan equation of state.
