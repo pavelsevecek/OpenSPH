@@ -86,6 +86,53 @@ Float PolytropicEos::getDensity(const Float p, const Float UNUSED(u)) const {
 }
 
 //-----------------------------------------------------------------------------------------------------------
+// PengRobinsonEosimplementation
+//-----------------------------------------------------------------------------------------------------------
+
+PengRobinsonEos::PengRobinsonEos(const Float mu, const Float omega, const Float P_crit, const Float T_crit)
+    : M(mu * Constants::molarMassConstant)
+    , omega(omega)
+    , P_crit(P_crit)
+    , T_crit(T_crit) {
+    a = 0.45724_f * sqr(Constants::gasConstant) * sqr(T_crit) / sqr(P_crit);
+    b = 0.07780_f * Constants::gasConstant * T_crit / P_crit;
+    c_p = Constants::gasConstant / M;
+
+    Array<Float> temperatures;
+    Float T = 0._f;
+    Float u = 0._f;
+    Float drho = 10;
+    while (evaluatePressure(drho, T) < 0) {
+        T += 1._f;
+    }
+    for (Float rho = drho; rho < 1.e5_f; rho += drho) {
+        const Float P = evaluatePressure(rho, T);
+        const Float du = P / sqr(rho) * drho;
+        const Float V_m = M / rho;
+        const Float dp_dT = Constants::gasConstant / (V_m - b);
+        T += 1.f / c_p * (du + (T * dp_dT - P) * drho / sqr(rho));
+        u += du;
+        SPH_ASSERT(T > 0 && u > 0, T, u);     
+    }
+}
+
+Pair<Float> PengRobinsonEos::evaluate(const Float rho, const Float u) const {
+    const Float T = max(u / c_p, 0._f);
+    const Float p = evaluatePressure(rho, T);
+    return { p, sqrt(1.666_f * p / rho) };
+}
+
+Float PengRobinsonEos::evaluatePressure(const Float rho, const Float T) const {
+    const Float V_m = M / rho;
+    const Float T_r = T / T_crit;
+    const Float kappa = 0.37464_f + 1.54226_f * omega - 0.26992_f * sqr(omega);
+    const Float alpha = sqr(1 + kappa * (1 - sqrt(T_r)));
+    const Float p = Constants::gasConstant * T / (V_m - b) - a * alpha / (sqr(V_m) + 2 * b * V_m - sqr(b));
+    SPH_ASSERT(isReal(p) && (T == 0 || p >= 0), p);
+    return p;
+}
+
+//-----------------------------------------------------------------------------------------------------------
 // TaitEos implementation
 //-----------------------------------------------------------------------------------------------------------
 

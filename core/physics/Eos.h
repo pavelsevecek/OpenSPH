@@ -67,6 +67,39 @@ public:
     virtual Float getDensity(const Float p, const Float u) const override;
 };
 
+class PengRobinsonEos : public IEos {
+private:
+    Float M;
+    Float omega;
+    Float P_crit;
+    Float T_crit;
+
+    Float a, b;
+    Float c_p;
+
+    Lut<Float> temperatureCurve;
+
+public:
+    PengRobinsonEos(const Float mu, const Float omega, const Float P_crit, const Float T_crit);
+
+    virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
+
+    virtual Float getTemperature(const Float rho, const Float u) const override {
+        NOT_IMPLEMENTED;
+    }
+
+    virtual Float getInternalEnergy(const Float rho, const Float p) const override {
+        NOT_IMPLEMENTED;
+    }
+
+    virtual Float getDensity(const Float p, const Float u) const override {
+        NOT_IMPLEMENTED;
+    }
+
+private:
+    Float evaluatePressure(const Float rho, const Float u) const;
+};
+
 /// \brief Tait equation of state
 ///
 /// Equation describing behavior of water and other fluids. Depends only on density, does not require energy
