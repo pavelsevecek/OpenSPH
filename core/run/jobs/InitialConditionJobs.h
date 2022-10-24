@@ -125,16 +125,36 @@ private:
     virtual void addParticleCategory(VirtualSettings& settings) override;
 };
 
-class EquilibriumIc : public IParticleJob {
+class EquilibriumEnergyIc : public IParticleJob {
 private:
     EnumWrapper solver;
     int boundaryThreshold;
 
 public:
-    explicit EquilibriumIc(const String& name);
+    explicit EquilibriumEnergyIc(const String& name);
 
     virtual String className() const override {
         return "set equilibrium energy";
+    }
+
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
+        return { { "particles", JobType::PARTICLES } };
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+};
+
+class EquilibriumDensityIc : public IParticleJob {
+private:
+    EnumWrapper temperatureProfile;
+
+public:
+    explicit EquilibriumDensityIc(const String& name);
+
+    virtual String className() const override {
+        return "set equilibrium density";
     }
 
     virtual UnorderedMap<String, ExtJobType> getSlots() const override {

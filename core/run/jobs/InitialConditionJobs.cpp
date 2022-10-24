@@ -11,6 +11,7 @@
 #include "run/SpecialEntries.h"
 #include "sph/Materials.h"
 #include "sph/initial/Distribution.h"
+#include "sph/initial/Equilibrium.h"
 #include "sph/initial/Initial.h"
 #include "sph/initial/Stellar.h"
 #include "sph/solvers/EquilibriumSolver.h"
@@ -352,7 +353,7 @@ static JobRegistrar sRegisterImpactorBody(
     "to match the particle concentration (number density) of a target body.");
 
 // ----------------------------------------------------------------------------------------------------------
-// EquilibriumIc
+// EquilibriumEnergyIc
 // ----------------------------------------------------------------------------------------------------------
 
 enum class EquilSolveEnum {
@@ -367,13 +368,13 @@ static RegisterEnum<EquilSolveEnum> sSolverType({
     { EquilSolveEnum::PRECISE, "precise", "Computes equilibrium by solving a least-squares problem." },
 });
 
-EquilibriumIc::EquilibriumIc(const String& name)
+EquilibriumEnergyIc::EquilibriumEnergyIc(const String& name)
     : IParticleJob(name)
     , solver(EquilSolveEnum::SPHERICAL) {
     boundaryThreshold = 40;
 }
 
-VirtualSettings EquilibriumIc::getSettings() {
+VirtualSettings EquilibriumEnergyIc::getSettings() {
     VirtualSettings connector;
     addGenericCategory(connector, instName);
 
@@ -462,7 +463,7 @@ static void solveSpherical(Storage& storage) {
     }
 }
 
-void EquilibriumIc::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) {
+void EquilibriumEnergyIc::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) {
     result = this->getInput<ParticleData>("particles");
     Storage& storage = result->storage;
 
@@ -498,11 +499,101 @@ static JobRegistrar sRegisterEquilibriumIc(
     "set equilibrium energy",
     "equilibrium",
     "initial conditions",
-    [](const String& name) { return makeAuto<EquilibriumIc>(name); },
+    [](const String& name) { return makeAuto<EquilibriumEnergyIc>(name); },
     "Modifies the internal energy of the input body to create a pressure gradient that balances "
     "the gravitational acceleration. This can be used only for material with equation of state, "
     "it further expects spherical symmetry of the input body (although homogeneity is not "
     "required).");
+
+// ----------------------------------------------------------------------------------------------------------
+// EquilibriumDensityIc
+// ----------------------------------------------------------------------------------------------------------
+
+static RegisterEnum<TemperatureProfileEnum> sTemperatureProfileType({
+    { TemperatureProfileEnum::ISOTHERMAL, "isothermal", "The body has constant temperature everywhere." },
+    { TemperatureProfileEnum::ADIABATIC, "adiabatic", "Temperature follows an adiabatic profile.." },
+});
+
+EquilibriumDensityIc::EquilibriumDensityIc(const String& name)
+    : IParticleJob(name)
+    , temperatureProfile(TemperatureProfileEnum::ADIABATIC) {}
+
+VirtualSettings EquilibriumDensityIc::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+
+    VirtualSettings::Category& solverCat = connector.addCategory("Parameters");
+    solverCat.connect("Temperature profile", "temperature_profile", temperatureProfile);
+
+    return connector;
+}
+
+void EquilibriumDensityIc::evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) {
+    result = this->getInput<ParticleData>("particles");
+    Storage& storage = result->storage;
+
+    Array<RadialShell> shells(storage.getMaterialCnt());
+    for (Size matId = 0; matId < shells.size(); ++matId) {
+        EosMaterial& material = dynamic_cast<EosMaterial&>(storage.getMaterial(matId).material());
+        shells[matId].eos = &material.getEos();
+        shells[matId].referenceDensity = material.getParam<Float>(BodySettingsId::DENSITY);
+    }
+
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
+    ArrayView<const Size> matId = storage.getValue<Size>(QuantityId::MATERIAL_ID);
+    Float r_max = 0;
+    for (Size i = 0; i < r.size(); ++i) {
+        r_max = max(r_max, getLength(r[i]) + r[i][H]);
+        shells[matId[i]].radialRange.extend(getLength(r[i]));
+    }
+
+    // sort and fill the empty bits between radial ranges
+    std::sort(shells.begin(), shells.end(), [](const RadialShell& s1, const RadialShell& s2) {
+        return s1.radialRange.lower() < s2.radialRange.lower();
+    });
+    for (Size shellId = 0; shellId < shells.size() - 1; ++shellId) {
+        shells[shellId].radialRange.extend(shells[shellId + 1].radialRange.lower());
+    }
+    shells.front().radialRange.extend(0);
+    shells.back().radialRange.extend(r_max);
+
+    Array<Float> densityValues(1000);
+    densityValues.fill(0._f);
+    for (Size i = 0; i < densityValues.size(); ++i) {
+        const Float r = Float(i) / (densityValues.size() - 1) * r_max;
+        for (Size shellId = 0; shellId < shells.size(); ++shellId) {
+            if (shells[shellId].radialRange.contains(r)) {
+                densityValues[i] = shells[shellId].referenceDensity;
+                break;
+            }
+        }
+        SPH_ASSERT(densityValues[i] > 0);
+    }
+
+    Lut<Float> densityGuess(Interval(0, r_max), std::move(densityValues));
+    EquilibriumParams params;
+    params.temperatureProfile = TemperatureProfileEnum(temperatureProfile);
+    PlanetaryProfile profile = computeEquilibriumRadialProfile(shells, densityGuess, params);
+    ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
+    ArrayView<Float> u = storage.getValue<Float>(QuantityId::ENERGY);
+    ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
+    for (Size i = 0; i < r.size(); ++i) {
+        const Float x = getLength(r[i]);
+        const Float rho0 = rho[i];
+        rho[i] = profile.rho(x);
+        u[i] = profile.u(x);
+        p[i] = profile.p(x);
+        m[i] *= rho[i] / rho0;
+    }
+}
+
+static JobRegistrar sRegisterEquilibriumDensityIc(
+    "set equilibrium density",
+    "equilibrium",
+    "initial conditions",
+    [](const String& name) { return makeAuto<EquilibriumDensityIc>(name); },
+    "Solves the equations of hydrostatic equilibrium by modifying the density of the object.");
 
 // ----------------------------------------------------------------------------------------------------------
 // KeplerianVelocityIc

@@ -605,7 +605,7 @@ const RunSettings& getDefaultSettings() {
         "Specifies how the density is evolved. Can be one of the following:\n" + EnumMap::getDesc<ContinuityEnum>() },
     { RunSettingsId::SPH_DISCRETIZATION,            "sph.discretization",              DiscretizationEnum::STANDARD,
         "Specifies a discretization of SPH equations. Can be one of the following:\n" + EnumMap::getDesc<DiscretizationEnum>() },
-    { RunSettingsId::SPH_STABILIZATION_DAMPING,     "sph.stabilization_damping",       0.1_f,
+    { RunSettingsId::SPH_STABILIZATION_DAMPING,     "sph.stabilization_damping",       0.01_f,
         "Specifies the damping coefficient of particle velocities. This is mainly intended for stabilization phase, "
        "it should not be used in the main simulation." },
 
