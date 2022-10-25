@@ -72,6 +72,10 @@ private:
 public:
     Lut() = default;
 
+    Lut(const Lut& other) {
+        *this = other;
+    }
+
     Lut(const Interval range, Array<TValue>&& data)
         : data(std::move(data))
         , range(range) {}
@@ -84,6 +88,12 @@ public:
             const Float x = range.lower() + Float(i) * range.size() / (resolution - 1);
             data[i] = func(x);
         }
+    }
+
+    Lut& operator=(const Lut& other) {
+        data = other.data.clone();
+        range = other.range;
+        return *this;
     }
 
     INLINE TValue operator()(const TScalar x) const {
@@ -124,6 +134,15 @@ public:
     /// \brief Returns the definition interval of the function.
     Interval getRange() const {
         return range;
+    }
+
+    /// \brief Returns the value interval of the function.
+    Interval getValueRange() const {
+        Interval values;
+        for (Size i = 0; i < data.size(); ++i) {
+            values.extend(data[i]);
+        }
+        return values;
     }
 
     /// \brief Computes the derivative of the function.

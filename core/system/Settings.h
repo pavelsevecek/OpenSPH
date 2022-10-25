@@ -1402,6 +1402,9 @@ enum class EosEnum {
 
     /// Polytropic EoS
     POLYTROPIC,
+
+    /// Equation of state from Hubbard & MacFarlane (1980).
+    HUBBARD_MACFARLANE,
 };
 
 /// \brief Settings of a single body / gas phase / ...
@@ -1526,6 +1529,9 @@ enum class BodySettingsId {
 
     /// Constant for the polytropic equation of state.
     POLYTROPIC_CONSTANT = 76,
+
+    /// Material type used by the Hubbard & MacFarlane EoS
+    HUBBARD_MACFARLANE_TYPE = 77,
 
     /// Model of stress reducing used within the rheological model
     RHEOLOGY_YIELDING = 33,

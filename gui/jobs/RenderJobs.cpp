@@ -32,10 +32,12 @@ static RegisterEnum<AnimationType> sAnimation({
 static RegisterEnum<RenderColorizerId> sColorizers({
     { RenderColorizerId::VELOCITY, "velocity", "Particle velocities" },
     { RenderColorizerId::ENERGY, "energy", "Specific internal energy" },
+    { RenderColorizerId::TEMPERATURE, "temperature", "Temperature" },
     { RenderColorizerId::DENSITY, "density", "Density" },
     { RenderColorizerId::DAMAGE, "damage", "Damage" },
     { RenderColorizerId::GRAVITY, "gravity", "Gravitational acceleration" },
     { RenderColorizerId::COMPONENT_ID, "component", "Index of connected component" },
+    { RenderColorizerId::MATERIAL_ID, "material", "Index of material" },
     { RenderColorizerId::BEAUTY, "beauty", "Beauty" },
 });
 

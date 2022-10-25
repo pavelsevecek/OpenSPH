@@ -1,3 +1,6 @@
+## 2022-10-25
+- added a node for stabilization by adjusting the particle densities
+
 ## 2021-07-30
 - added render overlay to surface and volume renderers
 

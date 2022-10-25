@@ -9,6 +9,8 @@
 #include "common/Globals.h"
 #include "objects/containers/Array.h"
 #include "objects/containers/StaticArray.h"
+#include "objects/wrappers/Lut.h"
+#include "objects/wrappers/Lut2D.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -63,6 +65,39 @@ public:
     virtual Float getInternalEnergy(const Float rho, const Float p) const override;
 
     virtual Float getDensity(const Float p, const Float u) const override;
+};
+
+class PengRobinsonEos : public IEos {
+private:
+    Float M;
+    Float omega;
+    Float P_crit;
+    Float T_crit;
+
+    Float a, b;
+    Float c_p;
+
+    Lut<Float> temperatureCurve;
+
+public:
+    PengRobinsonEos(const Float mu, const Float omega, const Float P_crit, const Float T_crit);
+
+    virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
+
+    virtual Float getTemperature(const Float rho, const Float u) const override {
+        NOT_IMPLEMENTED;
+    }
+
+    virtual Float getInternalEnergy(const Float rho, const Float p) const override {
+        NOT_IMPLEMENTED;
+    }
+
+    virtual Float getDensity(const Float p, const Float u) const override {
+        NOT_IMPLEMENTED;
+    }
+
+private:
+    Float evaluatePressure(const Float rho, const Float u) const;
 };
 
 /// \brief Tait equation of state
@@ -188,6 +223,40 @@ public:
     }
 };
 
+class HubbardMacFarlaneEos : public IEos {
+public:
+    enum class Type {
+        ROCK,
+        ICE, // H2O + NH3 + CH4 mixture
+        GAS, // H + He mixture
+    };
+
+    struct Abundance {
+        Float fraction;
+        Size numberOfAtoms;
+        Float molarMass;
+    };
+
+private:
+    Type type;
+    Float c_v;
+    Float rho0;
+    Float A;
+
+public:
+    explicit HubbardMacFarlaneEos(const Type type, ArrayView<const Abundance> abundances);
+
+    virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
+
+    virtual Float getTemperature(const Float UNUSED(rho), const Float UNUSED(u)) const override {
+        NOT_IMPLEMENTED;
+    }
+
+    virtual Float getInternalEnergy(const Float rho, const Float p) const override;
+
+    virtual Float getDensity(const Float p, const Float u) const override;
+};
+
 /// \brief Murnaghan equation of state.
 ///
 /// Pressure is computed from density only (does not depend on energy).
@@ -214,5 +283,8 @@ public:
         NOT_IMPLEMENTED;
     }
 };
+
+/// \brief Integrates the equation of adiabat, starting from given initial energy u0.
+Lut<Float> computeAdiabat(const IEos& eos, const Interval& range, float u0, Size resolution);
 
 NAMESPACE_SPH_END

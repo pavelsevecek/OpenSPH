@@ -16,6 +16,9 @@ constexpr Float gasConstant = 8.3144598_f; // J mol^−1 K^−1
 /// Atomic mass constant
 constexpr Float atomicMass = 1.660539040e-27_f; // kg
 
+/// Molar mass constantt
+constexpr Float molarMassConstant = 0.99999999965e-3_f; // kg mol^-1
+
 /// Boltzmann constant
 constexpr Float boltzmann = 1.380648e-23_f; // J K^-1
 
