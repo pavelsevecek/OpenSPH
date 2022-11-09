@@ -31,6 +31,17 @@ public:
     virtual Pair<Vector> getTrackedPoint(const Storage& storage) const override;
 };
 
+class AttractorTracker : public ITracker {
+private:
+    Size index;
+
+public:
+    explicit AttractorTracker(const Size index)
+        : index(index) {}
+
+    virtual Pair<Vector> getTrackedPoint(const Storage& storage) const override;
+};
+
 class MedianTracker : public ITracker {
 private:
     Vector offset;

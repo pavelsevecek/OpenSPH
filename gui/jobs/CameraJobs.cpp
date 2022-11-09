@@ -41,6 +41,7 @@ static VirtualSettings::Category& addTransformCategory(VirtualSettings& connecto
         .setUnits(1.e3_f)
         .setEnabler([&gui] {
             bool trackingEnabled = gui.get<int>(GuiSettingsId::CAMERA_TRACK_PARTICLE) != -1 ||
+                                   gui.get<int>(GuiSettingsId::CAMERA_TRACK_ATTRACTOR) != -1 ||
                                    gui.get<bool>(GuiSettingsId::CAMERA_TRACK_MEDIAN);
             return !trackingEnabled || !gui.get<bool>(GuiSettingsId::CAMERA_TRACKING_MOVE_CAMERA);
         });
@@ -60,12 +61,15 @@ static VirtualSettings::Category& addTransformCategory(VirtualSettings& connecto
 static void addTrackingCategory(VirtualSettings& connector, GuiSettings& gui) {
     VirtualSettings::Category& trackingCat = connector.addCategory("Tracking");
     trackingCat.connect<int>("Track particle", gui, GuiSettingsId::CAMERA_TRACK_PARTICLE);
+    trackingCat.connect<int>("Track attractor", gui, GuiSettingsId::CAMERA_TRACK_ATTRACTOR);
     trackingCat.connect<bool>("Track median", gui, GuiSettingsId::CAMERA_TRACK_MEDIAN).setEnabler([gui] {
-        return gui.get<int>(GuiSettingsId::CAMERA_TRACK_PARTICLE) == -1;
+        return gui.get<int>(GuiSettingsId::CAMERA_TRACK_PARTICLE) == -1 &&
+               gui.get<int>(GuiSettingsId::CAMERA_TRACK_ATTRACTOR) == -1;
     });
     trackingCat.connect<bool>("Move camera", gui, GuiSettingsId::CAMERA_TRACKING_MOVE_CAMERA)
         .setEnabler([gui] {
             return gui.get<int>(GuiSettingsId::CAMERA_TRACK_PARTICLE) != -1 ||
+                   gui.get<int>(GuiSettingsId::CAMERA_TRACK_ATTRACTOR) != -1 ||
                    gui.get<bool>(GuiSettingsId::CAMERA_TRACK_MEDIAN);
         });
     trackingCat.connect<Vector>("Tracking offset", gui, GuiSettingsId::CAMERA_TRACKING_OFFSET)

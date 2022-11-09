@@ -77,8 +77,7 @@ static PlanetaryProfile integrateRadialProfiles(ArrayView<const RadialShell> she
         const IEos& eos = *shells[shellIndices[i]].eos;
         const Lut<Float>& adiabat = adiabats[shellIndices[i]];
 
-        // why 1.33333 though??
-        Float p = p0 + /*1.3333f */ Constants::gravity * M * rho0 / sqr(r) * dr;
+        const Float p = p0 + Constants::gravity * M * rho0 / sqr(r) * dr;
         Float rho = getRoot(densityRange, 1.e-6f, [&](Float rho) {
             return eos.evaluate(rho, u0)[0] - p;
         }).valueOr(densityRange.upper());

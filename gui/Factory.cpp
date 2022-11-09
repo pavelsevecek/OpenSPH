@@ -17,6 +17,10 @@ AutoPtr<ITracker> Factory::getTracker(const GuiSettings& settings) {
     if (trackedIndex >= 0) {
         return makeAuto<ParticleTracker>(trackedIndex);
     }
+    const int trackedAttractor = settings.get<int>(GuiSettingsId::CAMERA_TRACK_ATTRACTOR);
+    if (trackedAttractor >= 0) {
+        return makeAuto<AttractorTracker>(trackedAttractor);
+    }
     const bool useMedian = settings.get<bool>(GuiSettingsId::CAMERA_TRACK_MEDIAN);
     if (useMedian) {
         const Vector offset = settings.get<Vector>(GuiSettingsId::CAMERA_TRACKING_OFFSET);
