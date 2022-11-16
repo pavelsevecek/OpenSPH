@@ -72,6 +72,10 @@ private:
 public:
     Lut() = default;
 
+    Lut(const Lut& other) {
+        *this = other;
+    }
+
     Lut(const Interval range, Array<TValue>&& data)
         : data(std::move(data))
         , range(range) {}
@@ -86,11 +90,17 @@ public:
         }
     }
 
+    Lut& operator=(const Lut& other) {
+        data = other.data.clone();
+        range = other.range;
+        return *this;
+    }
+
     INLINE TValue operator()(const TScalar x) const {
         const TScalar fidx = TScalar((x - range.lower()) / range.size() * (data.size() - 1));
-        const int idx1 = int(floor(fidx));
-        const int idx2 = idx1 + 1;
-        if (idx2 >= int(data.size()) - 1) {
+        const TScalar idx1 = floor(fidx);
+        const TScalar idx2 = idx1 + 1;
+        if (idx2 >= data.size() - 1) {
             /// \todo possibly make linear interpolation rather than just const value
             return data.back();
         } else if (idx1 <= 0) {
@@ -98,7 +108,7 @@ public:
         } else {
             const TScalar ratio = fidx - idx1;
             SPH_ASSERT(ratio >= TScalar(0) && ratio < TScalar(1));
-            return lerp(data[idx1], data[idx2], ratio);
+            return lerp(data[int(idx1)], data[int(idx2)], ratio);
         }
     }
 
@@ -112,6 +122,10 @@ public:
         return LutIterator<TValue, TScalar>(data.end(), data.size(), data.size(), range, {});
     }
 
+    typename LutIterator<TValue, TScalar>::Value valueAtIndex(int index) const {
+        return { Float(index) / Float(data.size() - 1) * range.size() + range.lower(), data[index] };
+    }
+
     /// \brief Returns the number of tabulated value.
     Size size() const {
         return data.size();
@@ -120,6 +134,15 @@ public:
     /// \brief Returns the definition interval of the function.
     Interval getRange() const {
         return range;
+    }
+
+    /// \brief Returns the value interval of the function.
+    Interval getValueRange() const {
+        Interval values;
+        for (Size i = 0; i < data.size(); ++i) {
+            values.extend(data[i]);
+        }
+        return values;
     }
 
     /// \brief Computes the derivative of the function.

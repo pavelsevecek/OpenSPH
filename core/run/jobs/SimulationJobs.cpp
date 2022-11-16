@@ -222,7 +222,7 @@ RunSettings SphJob::getDefaultSettings(const String& name) {
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
         .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 5._f)
         .set(RunSettingsId::FINDER_LEAF_SIZE, 20)
-        .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.1_f)
+        .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.01_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 1000)
         .set(RunSettingsId::SPH_ADAPTIVE_SMOOTHING_LENGTH, EMPTY_FLAGS)
         .set(RunSettingsId::SPH_ASYMMETRIC_COMPUTE_RADII_HASH_MAP, false)

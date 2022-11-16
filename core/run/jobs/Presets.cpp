@@ -254,7 +254,7 @@ SharedPtr<JobNode> Presets::makePlanetesimalMerging(UniqueNameManager& nameMgr, 
     core->connect(planetesimal, "shape 1");
     iron->connect(planetesimal, "material 1");
 
-    SharedPtr<JobNode> equilibrium = makeNode<EquilibriumIc>("hydrostatic equilibrium");
+    SharedPtr<JobNode> equilibrium = makeNode<EquilibriumDensityIc>("hydrostatic equilibrium");
     planetesimal->connect(equilibrium, "particles");
 
     SharedPtr<JobNode> stab = makeNode<SphStabilizationJob>(nameMgr.getName("stabilize"));
@@ -334,7 +334,7 @@ SharedPtr<JobNode> Presets::makeAccretionDisk(UniqueNameManager& nameMgr, const 
     starSettings.set(BodySettingsId::EOS, EnumWrapper(EosEnum::IDEAL_GAS));
     starSettings.set(BodySettingsId::RHEOLOGY_YIELDING, EnumWrapper(YieldingEnum::NONE));
 
-    SharedPtr<JobNode> equilibriumIc = makeNode<EquilibriumIc>(nameMgr.getName("hydrostatic equilibrium"));
+    SharedPtr<JobNode> equilibriumIc = makeNode<EquilibriumDensityIc>(nameMgr.getName("hydrostatic equilibrium"));
     starIc->connect(equilibriumIc, "particles");
 
     SharedPtr<JobNode> nsIc = makeNode<SingleParticleIc>(nameMgr.getName("neutron star"));

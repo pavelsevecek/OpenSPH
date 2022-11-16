@@ -77,6 +77,7 @@ set(CORE_SOURCES
     sph/initial/MeshDomain.cpp 
     sph/initial/Galaxy.cpp
     sph/initial/Stellar.cpp
+    sph/initial/Equilibrium.cpp
     sph/initial/UvMapping.cpp
     sph/solvers/AsymmetricSolver.cpp 
     sph/solvers/EnergyConservingSolver.cpp 
@@ -293,6 +294,7 @@ set(CORE_HEADERS
     sph/initial/Initial.h 
     sph/initial/MeshDomain.h 
     sph/initial/Stellar.h
+    sph/initial/Equilibrium.h
     sph/initial/Galaxy.h
     sph/initial/UvMapping.h 
     sph/kernel/GravityKernel.h 

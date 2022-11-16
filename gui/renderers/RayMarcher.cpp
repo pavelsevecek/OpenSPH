@@ -99,11 +99,44 @@ void RayMarcher::initialize(const Storage& storage,
 
     this->setColorizer(colorizer);
 
+    cached.attractors.clear();
+    cached.attractorTextures.clear();
+    for (const Attractor& a : storage.getAttractors()) {
+        if (!a.settings.getOr(AttractorSettingsId::VISIBLE, true)) {
+            continue;
+        }
+        AttractorData ad;
+        ad.position = a.position;
+        ad.mass = a.mass;
+        ad.radius = a.radius;
+        ad.visible = true;
+        ad.albedo = a.settings.getOr(AttractorSettingsId::ALBEDO, 1._f);
+        cached.attractors.push(ad);
+
+        const String path = a.settings.getOr<String>(AttractorSettingsId::VISUALIZATION_TEXTURE, "");
+        if (!path.empty()) {
+            SharedPtr<Texture> texture;
+            if (textureMap.contains(path)) {
+                texture = textureMap[path];
+            } else {
+                texture = makeShared<Texture>(Path(path), TextureFiltering::BILINEAR);
+                textureMap.insert(path, texture);
+            }
+            cached.attractorTextures.push(texture);
+        } else {
+            cached.attractorTextures.push(nullptr);
+        }
+    }
+
     Array<BvhSphere> spheres;
-    spheres.reserve(particleCnt);
+    spheres.reserve(particleCnt + cached.attractors.size());
     for (Size i = 0; i < particleCnt; ++i) {
         BvhSphere& s = spheres.emplaceBack(cached.r[i], /*2.f * */ cached.r[i][H]);
         s.userData = i;
+    }
+    for (Size i = 0; i < cached.attractors.size(); ++i) {
+        BvhSphere& s = spheres.emplaceBack(cached.attractors[i].position, cached.attractors[i].radius);
+        s.userData = particleCnt + i;
     }
     bvh.build(std::move(spheres));
 
@@ -140,7 +173,12 @@ Rgba RayMarcher::shade(const RenderParams& params, const CameraRay& cameraRay, T
 
     MarchData& march(data.data);
     if (Optional<Vector> hit = this->intersect(march, ray, params.surface.level, false)) {
-        return this->getSurfaceColor(march, params, march.previousIdx, hit.value(), ray.direction());
+        if (isAttractorHit(march.previousIdx)) {
+            const Size attractorIndex = march.previousIdx - cached.r.size();
+            return this->getAttractorColor(march, params, attractorIndex, hit.value(), ray.direction());
+        } else {
+            return this->getSurfaceColor(march, params, march.previousIdx, hit.value(), ray.direction());
+        }
     } else {
         return this->getEnviroColor(cameraRay);
     }
@@ -180,6 +218,10 @@ Optional<Vector> RayMarcher::intersect(MarchData& data,
         sc.ray = ray;
         sc.t_min = intersect.t;
         sc.surfaceLevel = surfaceLevel;
+        if (this->isAttractorHit(sc.index)) {
+            data.previousIdx = sc.index;
+            return sc.ray.origin() + sc.ray.direction() * intersect.t;
+        }
         const Optional<Vector> hit = this->getSurfaceHit(data, sc, occlusion);
         if (hit) {
             return hit;
@@ -187,6 +229,10 @@ Optional<Vector> RayMarcher::intersect(MarchData& data,
         // rejected, process another intersection
     }
     return NOTHING;
+}
+
+bool RayMarcher::isAttractorHit(const Size index) const {
+    return index >= cached.r.size();
 }
 
 Optional<Vector> RayMarcher::getSurfaceHit(MarchData& data,
@@ -239,6 +285,43 @@ Optional<Vector> RayMarcher::getSurfaceHit(MarchData& data,
     } else {
         return v2;
     }
+}
+
+Rgba RayMarcher::getAttractorColor(MarchData& data,
+    const RenderParams& params,
+    const Size index,
+    const Vector& hit,
+    const Vector& dir) const {
+    const AttractorData& a = cached.attractors[index];
+    Rgba diffuse = Rgba::gray(a.albedo);
+    const SharedPtr<Texture>& texture = cached.attractorTextures[index];
+    if (texture) {
+        const Vector r0 = hit - a.position;
+        SphericalCoords spherical = cartensianToSpherical(r0);
+        Vector uvw = Vector(0.5_f - spherical.phi / (2._f * PI), spherical.theta / PI, 0._f);
+        diffuse = texture->eval(uvw) * a.albedo;
+    }
+
+    const Vector n = getNormalized(a.position - hit);
+    const Float cosPhi = dot(n, params.lighting.dirToSun);
+    if (cosPhi <= 0._f) {
+        // not illuminated -> just ambient light
+        return diffuse * params.lighting.ambientLight;
+    }
+
+     // check for occlusion
+    if (fixed.shadows) {
+        Ray rayToSun(hit - 1.e-6_f * n * a.radius, -params.lighting.dirToSun);
+        if (this->intersect(data, rayToSun, params.surface.level, true)) {
+            // casted shadow
+            return diffuse * params.lighting.ambientLight;
+        }
+    }
+
+    // evaluate BRDF
+    const Float f = fixed.brdf->transport(n, -dir, params.lighting.dirToSun);
+
+    return diffuse * float(PI * f * cosPhi * params.lighting.sunLight + params.lighting.ambientLight);
 }
 
 Rgba RayMarcher::getSurfaceColor(MarchData& data,

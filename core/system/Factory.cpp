@@ -54,6 +54,9 @@ AutoPtr<IEos> Factory::getEos(const BodySettings& body) {
     switch (id) {
     case EosEnum::IDEAL_GAS:
         return makeAuto<IdealGasEos>(body.get<Float>(BodySettingsId::ADIABATIC_INDEX));
+    case EosEnum::POLYTROPIC:
+        return makeAuto<PolytropicEos>(body.get<Float>(BodySettingsId::POLYTROPIC_CONSTANT),
+            body.get<Float>(BodySettingsId::ADIABATIC_INDEX));
     case EosEnum::TAIT:
         return makeAuto<TaitEos>(body);
     case EosEnum::MIE_GRUNEISEN:
@@ -64,6 +67,29 @@ AutoPtr<IEos> Factory::getEos(const BodySettings& body) {
         return makeAuto<SimplifiedTillotsonEos>(body);
     case EosEnum::MURNAGHAN:
         return makeAuto<MurnaghanEos>(body);
+    case EosEnum::HUBBARD_MACFARLANE: {
+        HubbardMacFarlaneEos::Type type =
+            body.get<HubbardMacFarlaneEos::Type>(BodySettingsId::HUBBARD_MACFARLANE_TYPE);
+        HubbardMacFarlaneEos::Abundance abundance;
+        abundance.fraction = 1._f;
+        switch (type) {
+        case HubbardMacFarlaneEos::Type::ICE: // assuming H2O
+            abundance.numberOfAtoms = 3;
+            abundance.molarMass = 18._f;
+            break;
+        case HubbardMacFarlaneEos::Type::ROCK:
+            abundance.numberOfAtoms = 3;
+            abundance.molarMass = 60._f;
+            break;
+        case HubbardMacFarlaneEos::Type::GAS:
+            abundance.numberOfAtoms = 2;
+            abundance.molarMass = 2._f;
+            break;
+        default:
+            NOT_IMPLEMENTED;
+        }
+        return makeAuto<HubbardMacFarlaneEos>(type, makeArray(abundance));
+    }
     case EosEnum::ANEOS: {
         const Path path(body.get<String>(BodySettingsId::ANEOS_FILE));
         return makeAuto<Aneos>(path);

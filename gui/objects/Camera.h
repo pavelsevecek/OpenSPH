@@ -98,7 +98,7 @@ public:
     virtual Optional<float> getCutoff() const = 0;
 
     /// \brief Returns the world-to-pixel ratio.
-    virtual Optional<float> getWorldToPixel() const = 0;
+    virtual Optional<float> getWorldToPixel(const Vector& position) const = 0;
 
     /// \brief Modifies the clipping distance of the camera.
     ///
@@ -198,7 +198,7 @@ public:
 
     virtual Optional<float> getCutoff() const override;
 
-    virtual Optional<float> getWorldToPixel() const override;
+    virtual Optional<float> getWorldToPixel(const Vector& position) const override;
 
     virtual void setCutoff(const Optional<float> newCutoff) override;
 
@@ -266,7 +266,7 @@ public:
 
     virtual Optional<float> getCutoff() const override;
 
-    virtual Optional<float> getWorldToPixel() const override;
+    virtual Optional<float> getWorldToPixel(const Vector& position) const override;
 
     virtual void setCutoff(const Optional<float> newCutoff) override;
 
@@ -316,7 +316,7 @@ public:
 
     virtual Optional<float> getCutoff() const override;
 
-    virtual Optional<float> getWorldToPixel() const override;
+    virtual Optional<float> getWorldToPixel(const Vector& position) const override;
 
     virtual void setCutoff(const Optional<float> newCutoff) override;
 

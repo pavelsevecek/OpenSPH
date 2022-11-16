@@ -423,7 +423,7 @@ Vector Post::getAngularFrequency(ArrayView<const Float> m,
     return getAngularFrequency(m, r, v, r_com, v_com, idxs);
 }
 
-Float Post::getSphericity(IScheduler& scheduler, const Storage& storage, const Float resolution) {
+Optional<Float> Post::getSphericity(IScheduler& scheduler, const Storage& storage, const Float resolution) {
     const Box boundingBox = getBoundingBox(storage);
     McConfig config;
     config.gridResolution = resolution * maxElement(boundingBox.size());
@@ -433,7 +433,11 @@ Float Post::getSphericity(IScheduler& scheduler, const Storage& storage, const F
     for (const Triangle& triangle : mesh) {
         area += triangle.area();
     }
-    SPH_ASSERT(area > 0._f);
+
+    if (area == 0._f) {
+        // sphericity undefined 
+        return NOTHING;
+    }
 
     MeshParams params;
     params.precomputeInside = false;

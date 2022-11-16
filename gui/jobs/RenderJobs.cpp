@@ -32,10 +32,12 @@ static RegisterEnum<AnimationType> sAnimation({
 static RegisterEnum<RenderColorizerId> sColorizers({
     { RenderColorizerId::VELOCITY, "velocity", "Particle velocities" },
     { RenderColorizerId::ENERGY, "energy", "Specific internal energy" },
+    { RenderColorizerId::TEMPERATURE, "temperature", "Temperature" },
     { RenderColorizerId::DENSITY, "density", "Density" },
     { RenderColorizerId::DAMAGE, "damage", "Damage" },
     { RenderColorizerId::GRAVITY, "gravity", "Gravitational acceleration" },
     { RenderColorizerId::COMPONENT_ID, "component", "Index of connected component" },
+    { RenderColorizerId::MATERIAL_ID, "material", "Index of material" },
     { RenderColorizerId::BEAUTY, "beauty", "Beauty" },
 });
 
@@ -122,7 +124,7 @@ VirtualSettings AnimationJob::getSettings() {
     rendererCat.connect<Float>("Particle radius", gui, GuiSettingsId::PARTICLE_RADIUS)
         .setEnabler(particleEnabler);
     rendererCat.connect<bool>("Antialiasing", gui, GuiSettingsId::ANTIALIASED).setEnabler(particleEnabler);
-    rendererCat.connect<bool>("Show key", gui, GuiSettingsId::SHOW_KEY).setEnabler(particleEnabler);
+    rendererCat.connect<bool>("Show key", gui, GuiSettingsId::SHOW_KEY);
     rendererCat.connect<int>("Interation count", gui, GuiSettingsId::RAYTRACE_ITERATION_LIMIT)
         .setEnabler(raytraceEnabler);
     rendererCat.connect<Float>("Surface level", gui, GuiSettingsId::SURFACE_LEVEL).setEnabler(surfaceEnabler);
@@ -296,6 +298,12 @@ public:
 };
 
 void AnimationJob::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
+    if (directory.empty()) {
+        throw InvalidSetup(
+            L"No output directory specified. Please set the output directory to where you want to save the "
+            "rendered images.");
+    }
+
     /// \todo maybe also work with a copy of Gui ?
     gui.set(GuiSettingsId::BACKGROUND_COLOR, Rgba(0.f, 0.f, 0.f, transparentBackground ? 0.f : 1.f));
     gui.set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 0);

@@ -50,7 +50,7 @@ TEST_CASE("Interpolate velocity", "[interpolation]") {
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     auto field = [](const Vector& x) {
         // some nontrivial velocity field
-        return Vector(3._f * x[X] + x[Z], exp(x[Y]) * x[Z], -x[X] / (4._f + x[Z]));
+        return Vector(3._f * x[X] + x[Z], Sph::exp(x[Y]) * x[Z], -x[X] / (4._f + x[Z]));
     };
     for (Size i = 0; i < r.size(); ++i) {
         v[i] = field(r[i]);

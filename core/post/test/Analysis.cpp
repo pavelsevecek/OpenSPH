@@ -201,8 +201,9 @@ TEST_CASE("Angular Frequency", "[post]") {
 
 static void testSphericity(const IDomain& domain, const Float expected) {
     const Storage storage = Tests::getGassStorage(10000, BodySettings::getDefaults(), domain);
-    const Float sphericity = Post::getSphericity(SEQUENTIAL, storage, 0.03_f);
-    REQUIRE(sphericity == approx(expected, 0.025_f));
+    const Optional<Float> sphericity = Post::getSphericity(SEQUENTIAL, storage, 0.03_f);
+	REQUIRE(sphericity);
+    REQUIRE(sphericity.value() == approx(expected, 0.025_f));
 }
 
 TEST_CASE("Sphericity sphere", "[post]") {
