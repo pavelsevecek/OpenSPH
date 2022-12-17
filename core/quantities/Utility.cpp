@@ -7,48 +7,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-Box getBoundingBox(const Storage& storage, const Float radius) {
-    Box box;
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    for (Size i = 0; i < r.size(); ++i) {
-        box.extend(r[i] + radius * Vector(r[i][H]));
-        box.extend(r[i] - radius * Vector(r[i][H]));
-    }
-    for (const Attractor& a : storage.getAttractors()) {
-        box.extend(a.position + radius * Vector(a.radius));
-        box.extend(a.position - radius * Vector(a.radius));
-    }
-    return box;
-}
-
-Vector getCenterOfMass(const Storage& storage) {
-    Vector r_com = Vector(0._f);
-    Float m_sum = 0._f;
-    if (!storage.empty()) {
-        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-        if (storage.has(QuantityId::MASS)) {
-            ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-            for (Size i = 0; i < r.size(); ++i) {
-                m_sum += m[i];
-                r_com += m[i] * r[i];
-            }
-        } else {
-            // mass is unknown, cannot combine with mass of attractors
-            SPH_ASSERT(storage.getAttractors().empty());
-            for (Size i = 0; i < r.size(); ++i) {
-                m_sum += 1._f;
-                r_com += r[i];
-            }
-        }
-    }
-    // add attractors
-    for (const Attractor& a : storage.getAttractors()) {
-        m_sum += a.mass;
-        r_com += a.mass * a.position;
-    }
-    return clearH(r_com / m_sum);
-}
-
 Float getTotalMass(const Storage& storage) {
     Float m_tot = 0._f;
     if (!storage.empty()) {
