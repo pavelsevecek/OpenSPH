@@ -1,6 +1,7 @@
 #include "gui/objects/Camera.h"
 #include "objects/containers/ArrayRef.h"
 #include "objects/geometry/Box.h"
+#include "quantities/Attractor.h"
 #include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 
@@ -21,6 +22,15 @@ Pair<Vector> ParticleTracker::getTrackedPoint(const Storage& storage) const {
         return { pos.getValue<Vector>()[index], pos.getDt<Vector>()[index] };
     }
     // fallback if no such particle exists
+    return { Vector(0._f), Vector(0._f) };
+}
+
+Pair<Vector> AttractorTracker::getTrackedPoint(const Storage& storage) const {
+    if (index < storage.getAttractorCnt()) {
+        const Attractor& a = storage.getAttractors()[index];
+        return { a.position, a.velocity };
+    }
+    // fallback if no such attractor exists
     return { Vector(0._f), Vector(0._f) };
 }
 
@@ -304,7 +314,7 @@ Optional<float> PerspectiveCamera::getWorldToPixel(const Vector& position) const
         return projected->radius;
     } else {
         return NOTHING;
-   }
+    }
 }
 
 void PerspectiveCamera::setCutoff(const Optional<float> UNUSED(newCutoff)) {}

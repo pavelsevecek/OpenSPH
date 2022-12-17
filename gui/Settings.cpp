@@ -92,6 +92,8 @@ const Settings<GuiSettingsId>& getDefaultSettings() {
         "Field of view of the orthographic camera. Specified as distance (not an angle)."},
     { GuiSettingsId::CAMERA_TRACK_PARTICLE, "camera.track_particle",    -1,
         "Index of the particle tracked by the camera. -1 means no tracking is used. " },
+    { GuiSettingsId::CAMERA_TRACK_ATTRACTOR, "camera.track_attractor",    -1,
+        "Index of the attractor tracked by the camera. -1 means no tracking is used. " },
     { GuiSettingsId::CAMERA_AUTOSETUP,      "camera.autosetup",         true,
         "If true, camera parameters are automatically adjusted based on particle data. "
         "This overrides other parameters, such as field of view, camera position, etc." },

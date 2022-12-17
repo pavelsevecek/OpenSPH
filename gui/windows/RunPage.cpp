@@ -506,7 +506,6 @@ wxPanel* RunPage::createVisBar() {
     quantityBox->SetToolTip(
         "Selects which quantity to visualize using associated color scale. Quantity values can be also "
         "obtained by left-clicking on a particle.");
-    quantityBox->SetSelection(0);
     quantityBox->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         const int idx = quantityBox->GetSelection();
