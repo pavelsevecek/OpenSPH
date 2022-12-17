@@ -5,17 +5,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// \brief Convenience function to get the bounding box of all particles.
-///
-/// This takes into account particle radii, using given kernel radius.
-Box getBoundingBox(const Storage& storage, const Float radius = 2._f);
-
-/// \brief Returns the center of mass of all particles.
-///
-/// Function can be called even if the storage does not store particle masses, in which case all particles are
-/// assumed to have equal mass.
-Vector getCenterOfMass(const Storage& storage);
-
 /// \brief Computes the total mass of the storage.
 Float getTotalMass(const Storage& storage);
 

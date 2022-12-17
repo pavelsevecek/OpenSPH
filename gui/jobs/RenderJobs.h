@@ -88,6 +88,8 @@ private:
     bool transparentBackground = false;
     int extraFrames = 0;
 
+    bool overrideUv = false;
+
     struct {
         Path firstFile = Path("out_0000.ssf");
         EnumWrapper units;
@@ -104,8 +106,12 @@ public:
         return {
             { "particles", JobType::PARTICLES },
             { "camera", GuiJobType::CAMERA },
+            { "UV override", JobType::PARTICLES },
         };
     }
+
+    virtual UnorderedMap<String, ExtJobType>
+    requires() const override;
 
     virtual VirtualSettings getSettings() override;
 
