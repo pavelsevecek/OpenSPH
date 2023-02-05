@@ -350,7 +350,7 @@ AutoPtr<IRun> SphJob::getRun(const RunSettings& overrides) const {
         const Float outputInterval = run.get<Float>(RunSettingsId::RUN_OUTPUT_INTERVAL);
         if (maxTimeStep > outputInterval) {
             throw InvalidSetup(
-                "Output interval is larger than the maximal time step. This could cause inconsistent "
+                "The maximal time step is larger than the output interval. This could cause inconsistent "
                 "simulation speed in the output file sequence.");
         }
     }
