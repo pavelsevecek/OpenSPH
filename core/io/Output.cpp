@@ -50,6 +50,7 @@ Path OutputFile::getNextPath(const Statistics& stats) const {
 Optional<Size> OutputFile::getDumpIdx(const Path& path) {
     // look for 4 consecutive digits.
     const String s = path.fileName().string();
+    Optional<Size> index = NOTHING;
     for (int i = 0; i < int(s.size()) - 3; ++i) {
         if (std::isdigit(s[i]) && std::isdigit(s[i + 1]) && std::isdigit(s[i + 2]) &&
             std::isdigit(s[i + 3])) {
@@ -58,21 +59,16 @@ Optional<Size> OutputFile::getDumpIdx(const Path& path) {
                 // 4-digit sequence is not unique, report error
                 return NOTHING;
             }
-            Optional<Size> index = fromString<Size>(s.substr(i, 4));
-            SPH_ASSERT(index);
-            if (index) {
-                return index.value();
-            } else {
-                return NOTHING;
-            }
+            index = fromString<Size>(s.substr(i, 4));
         }
     }
-    return NOTHING;
+    return index;
 }
 
 Optional<OutputFile> OutputFile::getMaskFromPath(const Path& path, const Size firstDumpIdx) {
     /// \todo could be deduplicated a bit
     const String s = path.fileName().string();
+    Optional<OutputFile> result = NOTHING;
     for (int i = 0; i < int(s.size()) - 3; ++i) {
         if (std::isdigit(s[i]) && std::isdigit(s[i + 1]) && std::isdigit(s[i + 2]) &&
             std::isdigit(s[i + 3])) {
@@ -81,10 +77,10 @@ Optional<OutputFile> OutputFile::getMaskFromPath(const Path& path, const Size fi
             }
             String mask = s.substr(0, i) + L"%d" + s.substr(i + 4);
             // prepend the original parent path
-            return OutputFile(path.parentPath() / Path(mask), firstDumpIdx);
+            result = OutputFile(path.parentPath() / Path(mask), firstDumpIdx);
         }
     }
-    return NOTHING;
+    return result;
 }
 
 bool OutputFile::hasWildcard() const {
@@ -233,12 +229,18 @@ Expected<Path> TextOutput::dump(const Storage& storage, const Statistics& stats)
         // print data lines, starting with second-order quantities
         for (Size i = 0; i < storage.getParticleCnt(); ++i) {
             for (const auto& column : columns) {
+                Dynamic value;
+                try {
+                    value = column->evaluate(storage, stats, i);
+                } catch (const Exception&) {
+                    // if it cannot be evaluated, use a placeholder zero rather than failing to write the file
+                    value = Size(0);
+                }
                 // write one extra space to be sure numbers won't merge
                 if (options.has(Options::SCIENTIFIC)) {
-                    ofs << std::scientific << std::setprecision(PRECISION)
-                        << column->evaluate(storage, stats, i);
+                    ofs << std::scientific << std::setprecision(PRECISION) << value;
                 } else {
-                    ofs << std::setprecision(PRECISION) << column->evaluate(storage, stats, i);
+                    ofs << std::setprecision(PRECISION) << value;
                 }
             }
             ofs << std::endl;

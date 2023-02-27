@@ -1,6 +1,7 @@
 #include "gui/objects/Camera.h"
 #include "objects/containers/ArrayRef.h"
 #include "objects/geometry/Box.h"
+#include "quantities/Attractor.h"
 #include "quantities/Quantity.h"
 #include "quantities/Attractor.h"
 #include "quantities/Storage.h"
@@ -314,7 +315,7 @@ Optional<float> PerspectiveCamera::getWorldToPixel(const Vector& position) const
         return projected->radius;
     } else {
         return NOTHING;
-   }
+    }
 }
 
 void PerspectiveCamera::setCutoff(const Optional<float> UNUSED(newCutoff)) {}
