@@ -168,6 +168,9 @@ struct RenderParams {
         /// \brief Magnitude of the lensing effect
         float lensingMagnitude = 0.f;
 
+        /// \brief Relative raymarching step
+        float rayStep = 0.05f;
+
     } relativity;
 
     /// \brief Postprocessing parameters

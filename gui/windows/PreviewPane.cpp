@@ -206,6 +206,7 @@ void InteractiveRenderer::setRendererAccessor(const RunSettings& globals) {
                         GuiSettingsId::BLOOM_RADIUS,
                         GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE,
                         GuiSettingsId::RAYTRACE_LENSING_MAGNITUDE,
+                        GuiSettingsId::RAYTRACE_LENSING_STEP,
                     });
 
                 changed.parameters = job->getRenderParams();

@@ -27,6 +27,7 @@ void RenderParams::initialize(const GuiSettings& gui) {
     lighting.sunLight = float(gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY));
     lighting.dirToSun = getNormalized(gui.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION));
     relativity.lensingMagnitude = gui.get<Float>(GuiSettingsId::RAYTRACE_LENSING_MAGNITUDE);
+    relativity.rayStep = gui.get<Float>(GuiSettingsId::RAYTRACE_LENSING_STEP);
     post.compressionFactor = float(gui.get<Float>(GuiSettingsId::COLORMAP_LOGARITHMIC_FACTOR));
     post.denoise = gui.get<bool>(GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE);
     post.bloomRadius = gui.get<Float>(GuiSettingsId::BLOOM_RADIUS);
