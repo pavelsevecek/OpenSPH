@@ -163,7 +163,13 @@ VirtualSettings AnimationJob::getSettings() {
     rendererCat.connect<Float>("Medium scattering [km^-1]", gui, GuiSettingsId::VOLUME_SCATTERING)
         .setUnits(1.e-3_f)
         .setEnabler(volumeEnabler);
-    rendererCat.connect<Float>("Lensing magnitude", gui, GuiSettingsId::RAYTRACE_LENSING_MAGNITUDE);
+    rendererCat.connect<Float>("Lensing magnitude", gui, GuiSettingsId::RAYTRACE_LENSING_MAGNITUDE)
+        .setEnabler(volumeEnabler);
+    rendererCat.connect<Float>("Lensing ray step", gui, GuiSettingsId::RAYTRACE_LENSING_STEP)
+        .setEnabler([this] {
+            return gui.get<RendererEnum>(GuiSettingsId::RENDERER) == RendererEnum::VOLUME &&
+                   gui.get<Float>(GuiSettingsId::RAYTRACE_LENSING_MAGNITUDE) > 0._f;
+        });
     rendererCat.connect<bool>("Reduce noise", gui, GuiSettingsId::REDUCE_LOWFREQUENCY_NOISE)
         .setEnabler(volumeEnabler);
 

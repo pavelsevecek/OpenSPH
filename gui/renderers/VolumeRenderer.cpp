@@ -70,6 +70,7 @@ void VolumeRenderer::initialize(const Storage& storage, const IColorizer& colori
     }
 
     cached.textures.clear();
+    cached.attractors.clear();
     for (Size i = 0; i < storage.getAttractorCnt(); ++i) {
         const Attractor& a = storage.getAttractors()[i];
         const bool visible = a.settings.getOr(AttractorSettingsId::VISIBLE, true);
@@ -131,9 +132,9 @@ Rgba VolumeRenderer::shade(const RenderParams& params, const CameraRay& cameraRa
 
     LensingEffect lensing(cached.attractors,
         params.relativity.lensingMagnitude,
-        0.1_f * cached.maxDistance,
+        params.relativity.rayStep * cached.maxDistance,
         cached.maxDistance,
-        params.volume.absorption > 0.f);
+        params.volume.absorption > 0.f || !cached.attractors.empty());
     const Ray lastRay = lensing.getAllIntersections(bvh, primaryRay, segments, intersections);
     Rgba result = this->getEnviroColor(CameraRay{ lastRay.origin(), lastRay.origin() + lastRay.direction() });
 
