@@ -37,9 +37,7 @@ private:
     bool sort;
 
 public:
-    static constexpr Size MAX_STEPS = 20;
-
-    using Segments = StaticArray<RaySegment, MAX_STEPS>;
+    using Segments = Array<RaySegment>;
 
     LensingEffect(ArrayView<const AttractorData> attractors,
         const Float magnitude,
@@ -57,7 +55,7 @@ public:
         const Ray& ray,
         Segments& segments,
         Array<CurvedRayIntersectionInfo>& intersections) {
-        segments.resize(0);
+        segments.clear();
         intersections.clear();
         if (this->needsRayMarch()) {
             return this->rayMarch(ray, [this, &bvh, &segments, &intersections](const RaySegment& segment) {
