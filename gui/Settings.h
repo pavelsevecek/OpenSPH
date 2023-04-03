@@ -112,6 +112,8 @@ enum class GuiSettingsId {
 
     CAMERA_ORBIT,
 
+    CAMERA_ORBIT_AXIS,
+
     CAMERA_TARGET,
 
     CAMERA_UP,

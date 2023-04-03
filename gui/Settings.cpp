@@ -76,6 +76,8 @@ const Settings<GuiSettingsId>& getDefaultSettings() {
         "Velocity of the camera in space." },
     { GuiSettingsId::CAMERA_ORBIT,          "camera.orbit",         0._f,
         "Angular velocity of the camera orbiting arount its target." },
+    { GuiSettingsId::CAMERA_ORBIT_AXIS,     "camera.orbit_axis",    Vector(0._f, 1._f, 0._f),
+        "Axis around which the camera is rotated." },
     { GuiSettingsId::CAMERA_TARGET,         "camera.target",        Vector(0._f),
         "Look-at point of the perspective camera. Actual distance from the camera does not matter." },
     { GuiSettingsId::CAMERA_UP,             "camera.up",            Vector(0._f, 1._f, 0._f),

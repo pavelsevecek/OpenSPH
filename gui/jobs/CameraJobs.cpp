@@ -14,6 +14,7 @@ void ICameraJob::evaluate(const RunSettings& UNUSED(global), IRunCallbacks& UNUS
     result->tracker = std::move(tracker);
     result->overrides.set(GuiSettingsId::CAMERA_VELOCITY, gui.get<Vector>(GuiSettingsId::CAMERA_VELOCITY));
     result->overrides.set(GuiSettingsId::CAMERA_ORBIT, gui.get<Float>(GuiSettingsId::CAMERA_ORBIT));
+    result->overrides.set(GuiSettingsId::CAMERA_ORBIT_AXIS, gui.get<Vector>(GuiSettingsId::CAMERA_ORBIT_AXIS));
     result->overrides.set(GuiSettingsId::CAMERA_TRACKING_MOVE_CAMERA,
         gui.get<bool>(GuiSettingsId::CAMERA_TRACKING_MOVE_CAMERA));
 }
@@ -47,6 +48,7 @@ static VirtualSettings::Category& addTransformCategory(VirtualSettings& connecto
         });
     transformCat.connect<Float>("Orbit speed [rev/day]", gui, GuiSettingsId::CAMERA_ORBIT)
         .setUnits(2._f * PI / (3600._f * 24._f));
+    transformCat.connect<Vector>("Orbit axis", gui, GuiSettingsId::CAMERA_ORBIT_AXIS);
     transformCat.connect<Vector>("Target [km]", gui, GuiSettingsId::CAMERA_TARGET).setUnits(1.e3_f);
     transformCat.connect<Vector>("Up-direction", gui, GuiSettingsId::CAMERA_UP)
         .setValidator([](const IVirtualEntry::Value& value) {

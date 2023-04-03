@@ -26,7 +26,8 @@ private:
     OutputFile paths;
 
     Vector cameraVelocity;
-    Float cameraOrbit;
+    Float cameraOrbitSpeed;
+    Vector cameraOrbitAxis;
     bool trackerMovesCamera;
 
     struct {
