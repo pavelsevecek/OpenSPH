@@ -139,6 +139,8 @@ VirtualSettings AnimationJob::getSettings() {
     rendererCat.connect<int>("Interation count", gui, GuiSettingsId::RAYTRACE_ITERATION_LIMIT)
         .setEnabler(raytraceEnabler);
     rendererCat.connect<Float>("Surface level", gui, GuiSettingsId::SURFACE_LEVEL).setEnabler(surfaceEnabler);
+    rendererCat.connect<Float>("Filter width", gui, GuiSettingsId::SURFACE_FILTER_WIDTH)
+        .setEnabler(raytraceEnabler);
     rendererCat.connect<Vector>("Sun position", gui, GuiSettingsId::SURFACE_SUN_POSITION)
         .setEnabler(raytraceEnabler);
     rendererCat.connect<Float>("Sunlight intensity", gui, GuiSettingsId::SURFACE_SUN_INTENSITY)

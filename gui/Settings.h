@@ -192,6 +192,8 @@ enum class GuiSettingsId {
 
     SURFACE_EMISSION,
 
+    SURFACE_FILTER_WIDTH,
+
     /// Ambient color for surface renderer
     SURFACE_AMBIENT,
 

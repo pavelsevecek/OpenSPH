@@ -163,10 +163,12 @@ void Movie::updateCamera(const Storage& storage, const Float time) {
     const Vector target = params.camera->getTarget();
     const Vector cameraPos = params.camera->getFrame().translation();
     Vector dir = cameraPos - target;
+    Vector up = params.camera->getUpVector();
     dir[H] = 0._f;
     if (cameraOrbitSpeed != 0._f) {
         AffineMatrix rotation = AffineMatrix::rotateAxis(cameraOrbitAxis, cameraOrbitSpeed * dt);
         dir = rotation * dir;
+        up = rotation * up;
     }
 
     // move the camera (shared for all colorizers)
@@ -183,6 +185,7 @@ void Movie::updateCamera(const Storage& storage, const Float time) {
         params.camera->setTarget(target + dt * cameraVelocity);
         params.camera->setPosition(target + dir + dt * cameraVelocity);
     }
+    params.camera->setUpVector(up);
 }
 
 

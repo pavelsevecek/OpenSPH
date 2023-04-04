@@ -135,6 +135,8 @@ const Settings<GuiSettingsId>& getDefaultSettings() {
         "Relative intensity of an ambient light, illuminating all shaded points." },
     { GuiSettingsId::SURFACE_EMISSION,      "surface.emission",     2._f,
         "Emission multiplier used by raytracer. Note that emission is only enabled for Beauty quantity." },
+    { GuiSettingsId::SURFACE_FILTER_WIDTH,  "surface.filter_width", 2._f,
+        "Width (in pixels) of the reconstruction filter." },
     { GuiSettingsId::RAYTRACE_SUBSAMPLING,  "raytrace.subsampling", 1,
         "Specifies a number of subsampled iterations of the progressive renderer. Larger values speed up the "
         "start-up of the render at a cost of lower resolution of the render." },

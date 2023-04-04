@@ -129,6 +129,8 @@ public:
 
     virtual void setTarget(const Vector& newTarget) = 0;
 
+    virtual void setUpVector(const Vector& newUp) = 0;
+
     /// \brief Transforms the current view by given matrix.
     ///
     /// This replaces previous transformation matrix, i.e. subsequent calls do not accumulate.
@@ -219,6 +221,8 @@ public:
 
     virtual void setTarget(const Vector& newTarget) override;
 
+    virtual void setUpVector(const Vector& newUp) override;
+
     virtual void transform(const AffineMatrix& matrix) override;
 
     virtual void pan(const Pixel offset) override;
@@ -287,6 +291,8 @@ public:
 
     virtual void setTarget(const Vector& newTarget) override;
 
+    virtual void setUpVector(const Vector& newUp) override;
+
     virtual void transform(const AffineMatrix& matrix) override;
 
     virtual void pan(const Pixel offset) override;
@@ -336,6 +342,8 @@ public:
     virtual void setPosition(const Vector& newPosition) override;
 
     virtual void setTarget(const Vector& newTarget) override;
+
+    virtual void setUpVector(const Vector& newUp) override;
 
     virtual void transform(const AffineMatrix& matrix) override;
 
