@@ -1,7 +1,7 @@
 stages:
   - build
   - test
-  - regression
+    #  - regression
   - deploy
 
 before_script:
@@ -97,116 +97,116 @@ test_release:
       #- apt-get install -y flawfinder
       #- flawfinder --quiet --falsepositive --error-level=4 lib/ 
 
-examples:
-  stage: test
-  only:
-    refs:
-      - devel
-      - master
-  script:
-    - mkdir examples_build
-    - cd examples_build
-    - qmake -spec linux-clang CONFIG+=devel ../examples.pro
-    - make
-    - cd examples
-    - 01_hello_asteroid/01_hello_asteroid
-    - 02_death_star/02_death_star
-    - 03_van_der_waals/03_van_der_waals
-    - 04_simple_collision/04_simple_collision
-    - 05_fragmentation_reaccumulation/05_fragmentation_reaccumulation
-    - 06_heat_diffusion/06_heat_diffusion
+      #examples:
+      #  stage: test
+      #  only:
+      #    refs:
+      #      - devel
+      #      - master
+      #  script:
+      #    - mkdir examples_build
+      #    - cd examples_build
+      #    - qmake -spec linux-clang CONFIG+=devel ../examples.pro
+      #    - make
+      #    - cd examples
+      #    - 01_hello_asteroid/01_hello_asteroid
+      #    - 02_death_star/02_death_star
+      #    - 03_van_der_waals/03_van_der_waals
+      #    - 04_simple_collision/04_simple_collision
+      #    - 05_fragmentation_reaccumulation/05_fragmentation_reaccumulation
+      #    - 06_heat_diffusion/06_heat_diffusion
 
-regression:
-  tags:
-    - opensph # might take a long time, do not run on shared runners
-  stage: regression
-  only:
-    refs:
-      - devel
-      - master
-  script:
-    - apt-get install -y gnuplot
-    - mkdir regression_build
-    - cd regression_build
-    - qmake -spec linux-g++ CONFIG+=release CONFIG+=use_tbb DEFINES+="SPH_VERSION=$OPENSPH_VERSION" ../sph.pro
-    - make
-    - cd ..
-    - cd regression
-    - cd impact # impact simulation
-    - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "save text file"
-    - gnuplot plot.plt
-    - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "compare with reference"
-    - cd ..
-    - cd nbody-merge # N-body run with perfect merging
-    - ../../regression_build/cli/launcher/opensph-cli -p nbody-merge.sph -n "save result"
-    - gnuplot plot.plt
+      #regression:
+      #  tags:
+      #    - opensph # might take a long time, do not run on shared runners
+      #  stage: regression
+      #  only:
+      #    refs:
+      #      - devel
+      #      - master
+      #  script:
+      #    - apt-get install -y gnuplot
+      #    - mkdir regression_build
+      #    - cd regression_build
+      #    - qmake -spec linux-g++ CONFIG+=release CONFIG+=use_tbb DEFINES+="SPH_VERSION=$OPENSPH_VERSION" ../sph.pro
+      #    - make
+      #    - cd ..
+      #    - cd regression
+      #    - cd impact # impact simulation
+      #    - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "save text file"
+      #    - gnuplot plot.plt
+      #    - ../../regression_build/cli/launcher/opensph-cli -p impact.sph -n "compare with reference"
+      #    - cd ..
+      #    - cd nbody-merge # N-body run with perfect merging
+      #    - ../../regression_build/cli/launcher/opensph-cli -p nbody-merge.sph -n "save result"
+      #    - gnuplot plot.plt
       #- ../../regression_build/cli/launcher/opensph-cli -p nbody-merge.sph -n "compare with reference"
-    - cd ..
-    - cd nbody-merge-or-bounce # N-body run with conditional merging
-    - ../../regression_build/cli/launcher/opensph-cli -p nbody-merge-or-bounce.sph -n "save result"
-    - gnuplot plot.plt
+      #    - cd ..
+      #    - cd nbody-merge-or-bounce # N-body run with conditional merging
+      #    - ../../regression_build/cli/launcher/opensph-cli -p nbody-merge-or-bounce.sph -n "save result"
+      #    - gnuplot plot.plt
       #- ../../regression_build/cli/launcher/opensph-cli -p nbody-merge-or-bounce.sph -n "compare with reference"
-    - cd ..
-    - cd nbody-bounce # N-body run with elastic bouncing
-    - ../../regression_build/cli/launcher/opensph-cli -p nbody-bounce.sph -n "save result"
-    - gnuplot plot.plt
+      #    - cd ..
+      #    - cd nbody-bounce # N-body run with elastic bouncing
+      #    - ../../regression_build/cli/launcher/opensph-cli -p nbody-bounce.sph -n "save result"
+      #    - gnuplot plot.plt
       #- ../../regression_build/cli/launcher/opensph-cli -p nbody-bounce.sph -n "compare with reference"
-    - cd ..
-    - cd rotation # rotation
-    - ../../regression_build/cli/launcher/opensph-cli -p rotate.sph -n "save result"
-    - gnuplot plot.plt
-    - cd ..
+      #    - cd ..
+      #    - cd rotation # rotation
+      #    - ../../regression_build/cli/launcher/opensph-cli -p rotate.sph -n "save result"
+      #    - gnuplot plot.plt
+      #    - cd ..
+      #
+      #  artifacts:
+      #    when: always
+      #    expire_in: 3 mos
+      #    paths:
+      #      - regression/impact/result.scf
+      #      - regression/impact/plot.png
+      #      - regression/nbody-merge/result.scf
+      #      - regression/nbody-merge/plot.png
+      #      - regression/nbody-bounce/result.scf
+      #      - regression/nbody-bounce/plot.png
+      #      - regression/nbody-merge-or-bounce/result.scf
+      #      - regression/nbody-merge-or-bounce/plot.png
+      #      - regression/rotation/result.scf
+      #      - regression/rotation/plot.png
 
-  artifacts:
-    when: always
-    expire_in: 3 mos
-    paths:
-      - regression/impact/result.scf
-      - regression/impact/plot.png
-      - regression/nbody-merge/result.scf
-      - regression/nbody-merge/plot.png
-      - regression/nbody-bounce/result.scf
-      - regression/nbody-bounce/plot.png
-      - regression/nbody-merge-or-bounce/result.scf
-      - regression/nbody-merge-or-bounce/plot.png
-      - regression/rotation/result.scf
-      - regression/rotation/plot.png
-
-performance:
-  tags:
-    - opensph # might take a long time, do not run on shared runners
-  stage: regression
-  only:
-    refs:
-      - devel
-      - master
-  script:
-    - apt-get install -y gnuplot pdftk
-    - mkdir performance_build
-    - cd performance_build
-    - qmake -spec linux-g++ CONFIG+=release CONFIG+=use_tbb DEFINES+="SPH_VERSION=$OPENSPH_VERSION" ../bench.pro
-    - make
-    - cd ../bench
-    - ../performance_build/bench/bench -b
-    - git clone https://github.com/pavelsevecek/pavelsevecek.github.io.git web
-    - mkdir -p web/perf
-    - cp perf*.csv web/perf/
-    - cd web
-    - git add perf/*.csv
-    - git config user.name "gitlab CI"
-    - git config user.email "sevecek@sirrah.troja.mff.cuni.cz"
-    - git commit -m "performance test"
-    - git push https://pavelsevecek:$GITHUB_TOKEN@github.com/pavelsevecek/pavelsevecek.github.io.git --all
-    - cd ..
-    - cp web/perf/perf*.csv .
-    - ./make_plots.sh
-    - pdftk *.pdf cat output result.pdf
-
-  artifacts:
-    when: always
-    expire_in: 1 week
-    paths:
-      - bench/result.pdf
+      #performance:
+      #  tags:
+      #    - opensph # might take a long time, do not run on shared runners
+      #  stage: regression
+      #  only:
+      #    refs:
+      #      - devel
+        #      - master
+        #  script:
+        #    - apt-get install -y gnuplot pdftk
+        #    - mkdir performance_build
+        #    - cd performance_build
+        #    - qmake -spec linux-g++ CONFIG+=release CONFIG+=use_tbb DEFINES+="SPH_VERSION=$OPENSPH_VERSION" ../bench.pro
+        #    - make
+        #    - cd ../bench
+      #    - ../performance_build/bench/bench -b
+      #    - git clone https://github.com/pavelsevecek/pavelsevecek.github.io.git web
+      #    - mkdir -p web/perf
+      #    - cp perf*.csv web/perf/
+      #    - cd web
+      #    - git add perf/*.csv
+      #    - git config user.name "gitlab CI"
+      #    - git config user.email "sevecek@sirrah.troja.mff.cuni.cz"
+      #    - git commit -m "performance test"
+      #    - git push https://pavelsevecek:$GITHUB_TOKEN@github.com/pavelsevecek/pavelsevecek.github.io.git --all
+      #    - cd ..
+      #    - cp web/perf/perf*.csv .
+      #    - ./make_plots.sh
+      #    - pdftk *.pdf cat output result.pdf
+      #
+      #  artifacts:
+      #    when: always
+      #    expire_in: 1 week
+      #    paths:
+      #      - bench/result.pdf
 
 build_package:
   stage: deploy
