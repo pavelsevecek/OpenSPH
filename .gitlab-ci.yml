@@ -9,7 +9,7 @@ default:
 
 before_script:
   - apt-get update -qy
-  - apt-get install -y clang qt5-default libwxgtk3.0-dev wx3.0-headers wx-common libtbb-dev
+  - apt-get install -y make g++ clang qt5-default libwxgtk3.0-dev wx3.0-headers wx-common libtbb-dev wget
 
 gcc_debug:
   stage: build
