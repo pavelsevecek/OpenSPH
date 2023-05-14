@@ -4,6 +4,9 @@ stages:
     #  - regression
   - deploy
 
+default:
+  image: debian:10
+
 before_script:
   - apt-get update -qy
   - apt-get install -y clang qt5-default libwxgtk3.0-dev wx3.0-headers wx-common libtbb-dev

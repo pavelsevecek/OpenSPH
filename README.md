@@ -26,10 +26,10 @@ OpenSPH can be easily installed using the <a href="https://pavelsevecek.github.i
 
 ### Debian and Ubuntu
 
-The latest version can be downloaded as a <a href="https://gitlab.com/sevecekp/sph/-/jobs/artifacts/master/file/opensph_0.4.0-1.deb?job=build_package">Debian buster package</a>.
+The latest version can be downloaded as a <a href="https://gitlab.com/sevecekp/sph/-/jobs/artifacts/master/file/opensph_0.4.1-1.deb?job=build_package">Debian buster package</a>.
 Install it via:
 ```
-sudo dpkg -i opensph_0.4.0-1.deb
+sudo dpkg -i opensph_0.4.1-1.deb
 ```
 The package contains three executables:
 - `opensph` - main program with graphical interface
