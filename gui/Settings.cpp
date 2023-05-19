@@ -76,6 +76,8 @@ const Settings<GuiSettingsId>& getDefaultSettings() {
         "Velocity of the camera in space." },
     { GuiSettingsId::CAMERA_ORBIT,          "camera.orbit",         0._f,
         "Angular velocity of the camera orbiting arount its target." },
+    { GuiSettingsId::CAMERA_ORBIT_AXIS,     "camera.orbit_axis",    Vector(0._f, 1._f, 0._f),
+        "Axis around which the camera is rotated." },
     { GuiSettingsId::CAMERA_TARGET,         "camera.target",        Vector(0._f),
         "Look-at point of the perspective camera. Actual distance from the camera does not matter." },
     { GuiSettingsId::CAMERA_UP,             "camera.up",            Vector(0._f, 1._f, 0._f),
@@ -133,6 +135,8 @@ const Settings<GuiSettingsId>& getDefaultSettings() {
         "Relative intensity of an ambient light, illuminating all shaded points." },
     { GuiSettingsId::SURFACE_EMISSION,      "surface.emission",     2._f,
         "Emission multiplier used by raytracer. Note that emission is only enabled for Beauty quantity." },
+    { GuiSettingsId::SURFACE_FILTER_WIDTH,  "surface.filter_width", 2._f,
+        "Width (in pixels) of the reconstruction filter." },
     { GuiSettingsId::RAYTRACE_SUBSAMPLING,  "raytrace.subsampling", 1,
         "Specifies a number of subsampled iterations of the progressive renderer. Larger values speed up the "
         "start-up of the render at a cost of lower resolution of the render." },

@@ -198,6 +198,11 @@ void OrthoCamera::setTarget(const Vector& newTarget) {
     this->update();
 }
 
+void OrthoCamera::setUpVector(const Vector& newUp) {
+    data.up = newUp;
+    this->update();
+}
+
 void OrthoCamera::transform(const AffineMatrix& matrix) {
     // reset camera position
     this->update();
@@ -336,6 +341,11 @@ void PerspectiveCamera::setTarget(const Vector& newTarget) {
     this->update();
 }
 
+void PerspectiveCamera::setUpVector(const Vector& newUp) {
+    data.up = newUp;
+    this->update();
+}
+
 Vector PerspectiveCamera::getUpVector() const {
     return getNormalized(data.up);
 }
@@ -442,6 +452,11 @@ void PanoCameraBase::setPosition(const Vector& newPosition) {
 
 void PanoCameraBase::setTarget(const Vector& newTarget) {
     data.target = newTarget;
+    this->update();
+}
+
+void PanoCameraBase::setUpVector(const Vector& newUp) {
+    data.up = newUp;
     this->update();
 }
 

@@ -20,6 +20,7 @@ void RenderParams::initialize(const GuiSettings& gui) {
     particles.renderGhosts = gui.get<bool>(GuiSettingsId::RENDER_GHOST_PARTICLES);
     surface.level = float(gui.get<Float>(GuiSettingsId::SURFACE_LEVEL));
     surface.emission = float(gui.get<Float>(GuiSettingsId::SURFACE_EMISSION));
+    surface.filterWidth = float(gui.get<Float>(GuiSettingsId::SURFACE_FILTER_WIDTH));
     volume.emission = float(gui.get<Float>(GuiSettingsId::VOLUME_EMISSION));
     volume.absorption = float(gui.get<Float>(GuiSettingsId::VOLUME_ABSORPTION));
     volume.scattering = float(gui.get<Float>(GuiSettingsId::VOLUME_SCATTERING));

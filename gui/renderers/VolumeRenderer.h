@@ -42,7 +42,7 @@ private:
 
     struct RayData {
         /// Current path
-        LensingEffect::Segments segments = EMPTY_ARRAY;
+        LensingEffect::Segments segments;
 
         /// Intersection for the current path
         Array<CurvedRayIntersectionInfo> intersections;

@@ -112,6 +112,8 @@ enum class GuiSettingsId {
 
     CAMERA_ORBIT,
 
+    CAMERA_ORBIT_AXIS,
+
     CAMERA_TARGET,
 
     CAMERA_UP,
@@ -189,6 +191,8 @@ enum class GuiSettingsId {
     SURFACE_SUN_INTENSITY,
 
     SURFACE_EMISSION,
+
+    SURFACE_FILTER_WIDTH,
 
     /// Ambient color for surface renderer
     SURFACE_AMBIENT,

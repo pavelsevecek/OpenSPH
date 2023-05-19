@@ -30,7 +30,8 @@ Movie::Movie(const GuiSettings& settings,
     , interpolatedFrames(interpolatedFrames)
     , paths(paths) {
     cameraVelocity = settings.get<Vector>(GuiSettingsId::CAMERA_VELOCITY);
-    cameraOrbit = settings.get<Float>(GuiSettingsId::CAMERA_ORBIT);
+    cameraOrbitSpeed = settings.get<Float>(GuiSettingsId::CAMERA_ORBIT);
+    cameraOrbitAxis = getNormalized(settings.get<Vector>(GuiSettingsId::CAMERA_ORBIT_AXIS));
     trackerMovesCamera = settings.get<bool>(GuiSettingsId::CAMERA_TRACKING_MOVE_CAMERA);
 }
 
@@ -162,11 +163,12 @@ void Movie::updateCamera(const Storage& storage, const Float time) {
     const Vector target = params.camera->getTarget();
     const Vector cameraPos = params.camera->getFrame().translation();
     Vector dir = cameraPos - target;
+    Vector up = params.camera->getUpVector();
     dir[H] = 0._f;
-    if (cameraOrbit != 0._f) {
-        const Vector up = params.camera->getUpVector();
-        AffineMatrix rotation = AffineMatrix::rotateAxis(up, cameraOrbit * dt);
+    if (cameraOrbitSpeed != 0._f) {
+        AffineMatrix rotation = AffineMatrix::rotateAxis(cameraOrbitAxis, cameraOrbitSpeed * dt);
         dir = rotation * dir;
+        up = rotation * up;
     }
 
     // move the camera (shared for all colorizers)
@@ -183,6 +185,7 @@ void Movie::updateCamera(const Storage& storage, const Float time) {
         params.camera->setTarget(target + dt * cameraVelocity);
         params.camera->setPosition(target + dir + dt * cameraVelocity);
     }
+    params.camera->setUpVector(up);
 }
 
 
