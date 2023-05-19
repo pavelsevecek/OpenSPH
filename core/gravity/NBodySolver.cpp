@@ -596,22 +596,25 @@ Optional<Float> HardSphereSolver::checkCollision(const Vector& r1,
     return NOTHING;
 }
 
-SoftSphereSolver::SoftSphereSolver(IScheduler& scheduler, const RunSettings& settings)
-    : SoftSphereSolver(scheduler, settings, Factory::getGravity(settings)) {}
+ElasticSphereSolver::ElasticSphereSolver(IScheduler& scheduler, const RunSettings& settings)
+    : ElasticSphereSolver(scheduler, settings, Factory::getGravity(settings)) {}
 
-SoftSphereSolver::SoftSphereSolver(IScheduler& scheduler,
+ElasticSphereSolver::ElasticSphereSolver(IScheduler& scheduler,
     const RunSettings& settings,
     AutoPtr<IGravity>&& gravity)
     : gravity(std::move(gravity))
     , scheduler(scheduler)
     , threadData(scheduler) {
-    force.repel = settings.get<Float>(RunSettingsId::SOFT_REPEL_STRENGTH);
-    force.friction = settings.get<Float>(RunSettingsId::SOFT_FRICTION_STRENGTH);
+    iterationCnt = settings.get<int>(RunSettingsId::COLLISION_MAX_ITERATIONS);
+    restitution = settings.get<Float>(RunSettingsId::COLLISION_RESTITUTION_NORMAL);
+    precomputeNeighbors = settings.get<bool>(RunSettingsId::COLLISION_PRECOMPUTE_NEIGHBORS);
+
+    finder = Factory::getFinder(settings);
 }
 
-SoftSphereSolver::~SoftSphereSolver() = default;
+ElasticSphereSolver::~ElasticSphereSolver() = default;
 
-void SoftSphereSolver::integrate(Storage& storage, Statistics& stats) {
+void ElasticSphereSolver::integrate(Storage& storage, Statistics& stats) {
     VERBOSE_LOG;
 
     Timer timer;
@@ -628,7 +631,50 @@ void SoftSphereSolver::integrate(Storage& storage, Statistics& stats) {
 
     stats.set(StatisticsId::GRAVITY_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
     timer.restart();
-    const IBasicFinder& finder = *gravity->getFinder();
+}
+
+static void collideParticles(const Size i,
+    const Size j,
+    ArrayView<const Vector> r,
+    ArrayView<const Vector> v,
+    ArrayView<const Float> m,
+    ArrayView<Vector> r1,
+    ArrayView<Vector> vc_max,
+    const Float restitution) {
+    const Float hi = r[i][H];
+    const Float hj = r[j][H];
+    if (i == j || getSqrLength(r[i] - r[j]) >= sqr(hi + hj)) {
+        // aren't actual neighbors
+        return;
+    }
+
+    const Float dist = getLength(r[i] - r[j]);
+    SPH_ASSERT(dist > 0);
+    const Vector dir = (r[i] - r[j]) / dist;
+    r1[i] += dir * (hi + hj - dist) * m[j] / (m[i] + m[j]);
+
+    const Vector v_com = (m[i] * v[i] + m[j] * v[j]) / (m[i] + m[j]);
+    const Vector v_rel = v[i] - v_com;
+
+    if (dot(v_rel, dir) > 0) {
+        // moving away from each other
+        return;
+    }
+
+    const Vector vc = -(1._f + restitution) * dot(v_rel, dir) * dir;
+    // store only the largest velocity correction to avoid instabilities when there is large number of
+    // colliders
+    if (getSqrLength(vc) > getSqrLength(vc_max[i])) {
+        vc_max[i] = vc;
+    }
+}
+
+void ElasticSphereSolver::collide(Storage& storage, Statistics& stats, const Float dt) {
+    Timer timer;
+
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    ArrayView<Vector> r, v, dv;
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
 
     // precompute the search radii
     Float maxRadius = 0._f;
@@ -636,41 +682,64 @@ void SoftSphereSolver::integrate(Storage& storage, Statistics& stats) {
         maxRadius = max(maxRadius, r[i][H]);
     }
 
-    auto functor = [this, r, maxRadius, m, &v, &dv, &finder](Size i, ThreadData& data) {
-        finder.findAll(i, 2._f * maxRadius, data.neighs);
-        Vector f(0._f);
-        for (auto& n : data.neighs) {
-            const Size j = n.index;
-            const Float hi = r[i][H];
-            const Float hj = r[j][H];
-            if (i == j || n.distanceSqr >= sqr(hi + hj)) {
-                // aren't actual neighbors
-                continue;
-            }
-            const Float hbar = 0.5_f * (hi + hj);
-            // dimensionless acceleration to SI
-            const Float unit = Constants::gravity / sqr(hbar);
-            const Float dist = sqrt(n.distanceSqr);
-            const Float radialForce = force.repel * pow<6>((hi + hj) / dist);
-            const Vector dir = getNormalized(r[i] - r[j]);
-            f += unit * m[j] * dir * radialForce;
+    // make a prediction
+    parallelFor(scheduler, 0, r.size(), [&](Size i) { r[i] += v[i] * dt; });
+    finder->build(scheduler, r);
 
-            const Float vsqr = getSqrLength(v[i] - v[j]);
-            if (vsqr > EPS) {
-                const Vector velocityDir = getNormalized(v[i] - v[j]);
-                f -= unit * m[j] * velocityDir * force.friction;
+    if (precomputeNeighbors) {
+        neighs.resize(r.size());
+
+        parallelFor(scheduler, threadData, 0, r.size(), [&](const Size i, ThreadData& data) {
+            finder->findAll(i, 2._f * maxRadius, data.neighs);
+            neighs[i].clear();
+            for (const auto& n : data.neighs) {
+                neighs[i].push(n.index);
             }
+        });
+    }
+
+    Array<Vector> r1(r.size());
+    Array<Vector> vc(r.size());
+    for (Size iter = 0; iter < iterationCnt; ++iter) {
+        if (precomputeNeighbors) {
+            auto functor = [&](Size i) {
+                r1[i] = r[i];
+                vc[i] = Vector(0);
+                for (Size j : neighs[i]) {
+                    collideParticles(i, j, r, v, m, r1, vc, restitution);
+                }
+            };
+            parallelFor(scheduler, 0, r.size(), functor);
+        } else {
+            auto functor = [&](Size i, ThreadData& data) {
+                finder->findAll(i, 2._f * maxRadius, data.neighs);
+                r1[i] = r[i];
+                vc[i] = Vector(0);
+                for (auto& n : data.neighs) {
+                    const Size j = n.index;
+                    collideParticles(i, j, r, v, m, r1, vc, restitution);
+                }
+            };
+            parallelFor(scheduler, threadData, 0, r.size(), functor);
         }
-        dv[i] += f;
+
+        parallelFor(scheduler, 0, r.size(), [&](Size i) {
+            r[i] = r1[i];
+            v[i] += vc[i];
+        });
+    }
+
+    parallelFor(scheduler, 0, r.size(), [&](Size i) {
+        r[i] -= v[i] * dt;
 
         // null all derivatives of smoothing lengths (particle radii)
         v[i][H] = 0._f;
         dv[i][H] = 0._f;
-    };
-    parallelFor(scheduler, threadData, 0, r.size(), functor);
+    });
+
     stats.set(StatisticsId::COLLISION_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
 }
 
-void SoftSphereSolver::create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const {}
+void ElasticSphereSolver::create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const {}
 
 NAMESPACE_SPH_END

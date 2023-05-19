@@ -415,12 +415,8 @@ static JobRegistrar sRegisterSphStab(
 // ----------------------------------------------------------------------------------------------------------
 
 class NBodyRun : public IRun {
-private:
-    bool useSoft;
-
 public:
-    NBodyRun(const RunSettings& run, const bool useSoft)
-        : useSoft(useSoft) {
+    NBodyRun(const RunSettings& run) {
         settings = run;
         scheduler = Factory::getScheduler(settings);
     }
@@ -431,12 +427,14 @@ public:
         const bool aggregateEnable = settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE);
         const AggregateEnum aggregateSource =
             settings.get<AggregateEnum>(RunSettingsId::NBODY_AGGREGATES_SOURCE);
+        const CollisionHandlerEnum handler =
+            settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER);
         if (aggregateEnable) {
             AutoPtr<AggregateSolver> aggregates = makeAuto<AggregateSolver>(*scheduler, settings);
             aggregates->createAggregateData(*storage, aggregateSource);
             solver = std::move(aggregates);
-        } else if (useSoft) {
-            solver = makeAuto<SoftSphereSolver>(*scheduler, settings);
+        } else if (handler == CollisionHandlerEnum::ELASTIC_PARALLEL) {
+            solver = makeAuto<ElasticSphereSolver>(*scheduler, settings);
         } else {
             solver = makeAuto<HardSphereSolver>(*scheduler, settings);
         }
@@ -499,25 +497,14 @@ VirtualSettings NBodyJob::getSettings() {
     addTimeSteppingCategory(connector, settings, isResumed);
     addGravityCategory(connector, settings);
 
-    VirtualSettings::Category& aggregateCat = connector.addCategory("Aggregates (experimental)");
-    aggregateCat.connect<bool>("Enable aggregates", settings, RunSettingsId::NBODY_AGGREGATES_ENABLE);
-    aggregateCat.connect<EnumWrapper>("Initial aggregates", settings, RunSettingsId::NBODY_AGGREGATES_SOURCE)
-        .setEnabler([this] { return settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE); });
-
-    VirtualSettings::Category& softCat = connector.addCategory("Soft-body physics (experimental)");
-    softCat.connect("Enable soft-body", "soft.enable", useSoft);
-    softCat.connect<Float>("Repel force strength", settings, RunSettingsId::SOFT_REPEL_STRENGTH)
-        .setEnabler([this] { return useSoft; });
-    softCat.connect<Float>("Friction force strength", settings, RunSettingsId::SOFT_FRICTION_STRENGTH)
-        .setEnabler([this] { return useSoft; });
-
     auto collisionEnabler = [this] {
-        return !useSoft && !settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE) &&
-               settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER) !=
-                   CollisionHandlerEnum::NONE;
+        const CollisionHandlerEnum handler =
+            settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER);
+        return !settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE) &&
+               handler != CollisionHandlerEnum::NONE && handler != CollisionHandlerEnum::ELASTIC_PARALLEL;
     };
     auto restitutionEnabler = [this] {
-        if (useSoft || settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE)) {
+        if (settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE)) {
             return false;
         }
         const CollisionHandlerEnum handler =
@@ -527,12 +514,9 @@ VirtualSettings NBodyJob::getSettings() {
                handler == CollisionHandlerEnum::MERGE_OR_BOUNCE || overlap == OverlapEnum::INTERNAL_BOUNCE;
     };
     auto mergeLimitEnabler = [this] {
-        if (useSoft) {
-            return false;
-        }
         const CollisionHandlerEnum handler =
             settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER);
-        if (handler == CollisionHandlerEnum::NONE) {
+        if (handler == CollisionHandlerEnum::NONE || handler == CollisionHandlerEnum::ELASTIC_PARALLEL) {
             return false;
         }
         const bool aggregates = settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE);
@@ -544,12 +528,16 @@ VirtualSettings NBodyJob::getSettings() {
     VirtualSettings::Category& collisionCat = connector.addCategory("Collisions");
     collisionCat.connect<EnumWrapper>("Collision handler", settings, RunSettingsId::COLLISION_HANDLER)
         .setEnabler([this] { //
-            return !useSoft && !settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE);
+            return !settings.get<bool>(RunSettingsId::NBODY_AGGREGATES_ENABLE);
         });
     collisionCat.connect<EnumWrapper>("Overlap handler", settings, RunSettingsId::COLLISION_OVERLAP)
         .setEnabler(collisionEnabler);
     collisionCat.connect<Float>("Normal restitution", settings, RunSettingsId::COLLISION_RESTITUTION_NORMAL)
-        .setEnabler(restitutionEnabler);
+        .setEnabler([this, restitutionEnabler] {
+            return restitutionEnabler() ||
+                   settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER) ==
+                       CollisionHandlerEnum::ELASTIC_PARALLEL;
+        });
     collisionCat
         .connect<Float>("Tangential restitution", settings, RunSettingsId::COLLISION_RESTITUTION_TANGENT)
         .setEnabler(restitutionEnabler);
@@ -558,7 +546,18 @@ VirtualSettings NBodyJob::getSettings() {
     collisionCat
         .connect<Float>("Merge rotation limit", settings, RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT)
         .setEnabler(mergeLimitEnabler);
-    collisionCat.connect<int>("Max bounces", settings, RunSettingsId::COLLISION_MAX_BOUNCES);
+    collisionCat.connect<int>("Max bounces", settings, RunSettingsId::COLLISION_MAX_BOUNCES)
+        .setEnabler(collisionEnabler);
+    collisionCat.connect<int>("Collision iterations", settings, RunSettingsId::COLLISION_MAX_ITERATIONS)
+        .setEnabler([this] {
+            return settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER) ==
+                   CollisionHandlerEnum::ELASTIC_PARALLEL;
+        });
+    collisionCat.connect<bool>("Precompute neighbors", settings, RunSettingsId::COLLISION_PRECOMPUTE_NEIGHBORS)
+        .setEnabler([this] {
+            return settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER) ==
+                   CollisionHandlerEnum::ELASTIC_PARALLEL;
+        });
 
     addLoggerCategory(connector, settings);
     addOutputCategory(connector, settings, *this);
@@ -572,7 +571,7 @@ AutoPtr<IRun> NBodyJob::getRun(const RunSettings& overrides) const {
         throw InvalidSetup(
             "Predictor-corrector is incompatible with N-body solver. Please select a different integrator.");
     }
-    return makeAuto<NBodyRun>(run, useSoft);
+    return makeAuto<NBodyRun>(run);
 }
 
 static JobRegistrar sRegisterNBody(

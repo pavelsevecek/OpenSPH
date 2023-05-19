@@ -829,6 +829,9 @@ enum class CollisionHandlerEnum {
     /// merged, otherwise the particle bounce. To ensure that the particles are always merged, set the
     /// COLLISION_MERGE_LIMIT to zero, on the other hand large values make particles more difficult to merge.
     MERGE_OR_BOUNCE,
+
+    /// Handling elastic bounces in parallel
+    ELASTIC_PARALLEL,
 };
 
 enum class OverlapEnum {
@@ -1253,6 +1256,13 @@ enum class RunSettingsId {
 
     /// Maximum number of bounces per particle, per time step.
     COLLISION_MAX_BOUNCES,
+
+    /// Maximum correction iterations of the bounce solver
+    COLLISION_MAX_ITERATIONS,
+
+    /// If true, neighbors are calculated once per collision evaluation, otherwise they are calculated each
+    /// iteration.
+    COLLISION_PRECOMPUTE_NEIGHBORS,
 
     /// Magnitude of the repel force for the soft-body solver
     SOFT_REPEL_STRENGTH,

@@ -139,12 +139,15 @@ private:
         const Float dt) const;
 };
 
-/// \brief Solver computing gravitational interactions and repulsive forces between particles.
-class SoftSphereSolver : public ISolver {
+class ElasticSphereSolver : public ISolver {
     /// Gravity used by the solver
     AutoPtr<IGravity> gravity;
 
     IScheduler& scheduler;
+
+    AutoPtr<IBasicFinder> finder;
+
+    Array<Array<Size>> neighs;
 
     struct ThreadData {
         /// Neighbors for parallelized queries
@@ -153,22 +156,24 @@ class SoftSphereSolver : public ISolver {
 
     ThreadLocal<ThreadData> threadData;
 
-    /// Dimensionless parameters defining interparticle forces
-    struct {
-        Float repel;
-        Float friction;
-    } force;
+    bool precomputeNeighbors;
+    Size iterationCnt;
+    Float restitution;
 
 public:
-    SoftSphereSolver(IScheduler& scheduler, const RunSettings& settings);
+    ElasticSphereSolver(IScheduler& scheduler, const RunSettings& settings);
 
-    SoftSphereSolver(IScheduler& scheduler, const RunSettings& settings, AutoPtr<IGravity>&& gravity);
+    ElasticSphereSolver(IScheduler& scheduler,
+        const RunSettings& settings,
+        AutoPtr<IGravity>&& gravity);
 
-    ~SoftSphereSolver() override;
+    ~ElasticSphereSolver() override;
 
     virtual void integrate(Storage& storage, Statistics& stats) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
+
+    virtual void collide(Storage& storage, Statistics& stats, const Float dt) override;
 };
 
 NAMESPACE_SPH_END

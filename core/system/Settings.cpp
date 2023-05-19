@@ -1,7 +1,7 @@
 #include "gravity/AggregateSolver.h"
 #include "io/Output.h"
-#include "system/Settings.impl.h"
 #include "physics/Eos.h"
+#include "system/Settings.impl.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -282,6 +282,10 @@ static RegisterEnum<CollisionHandlerEnum> sCollisionHandler({
         "are merged, otherwise the particle bounce. To ensure that the particles are always merged, set the "
         "collision.merging_limit to zero, on the other hand large values make particles more difficult to "
         "merge." },
+    { CollisionHandlerEnum::ELASTIC_PARALLEL,
+        "elastic_parallel",
+        "Particle bounces are evaluated in parallel. Similar to \"elastic bounce\" but potentially less "
+        "accurate." },
 });
 
 static RegisterEnum<OverlapEnum> sOverlap({
@@ -672,6 +676,11 @@ const RunSettings& getDefaultSettings() {
         "fast rotators in the simulation." },
     { RunSettingsId::COLLISION_MAX_BOUNCES,     "collision.max_bounces",  100,
         "Maximum number of bounces per particle, per time step." },
+    { RunSettingsId::COLLISION_MAX_ITERATIONS,  "collision.max_iterations",  5,
+        "Number of iterations in each collision step." },
+    { RunSettingsId::COLLISION_PRECOMPUTE_NEIGHBORS,  "collision.precompute_neighbors",  true,
+        "If true, neighbors are calculated once per collision evaluation, otherwise they are calculated each iteration." },
+        
 
     /// Parameters of the soft-body solver
     { RunSettingsId::SOFT_REPEL_STRENGTH,       "soft.repel_strength",    1._f,
