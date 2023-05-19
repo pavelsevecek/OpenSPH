@@ -683,7 +683,7 @@ void ElasticSphereSolver::collide(Storage& storage, Statistics& stats, const Flo
     }
 
     // make a prediction
-    parallelFor(scheduler, 0, r.size(), [&](Size i) { r[i] += v[i] * dt; });
+    parallelFor(scheduler, 0, r.size(), [&](Size i) { r[i] += clearH(v[i] * dt); });
     finder->build(scheduler, r);
 
     if (precomputeNeighbors) {
@@ -724,17 +724,17 @@ void ElasticSphereSolver::collide(Storage& storage, Statistics& stats, const Flo
         }
 
         parallelFor(scheduler, 0, r.size(), [&](Size i) {
-            r[i] = r1[i];
-            v[i] += vc[i];
+            r[i] = setH(r1[i], r[i][H]);
+            v[i] += clearH(vc[i]);
         });
     }
 
     parallelFor(scheduler, 0, r.size(), [&](Size i) {
-        r[i] -= v[i] * dt;
-
         // null all derivatives of smoothing lengths (particle radii)
         v[i][H] = 0._f;
         dv[i][H] = 0._f;
+
+        r[i] -= v[i] * dt;
     });
 
     stats.set(StatisticsId::COLLISION_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
