@@ -52,7 +52,6 @@ public:
 class NBodyJob : public IRunJob, public SharedToken {
 private:
     RunSettings settings;
-    bool useSoft = false;
     bool isResumed = false;
 
 public:

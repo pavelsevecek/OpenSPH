@@ -100,6 +100,9 @@ INLINE bool areParticlesBound(const Float m_sum, const Float h_sum, const Vector
 /// for testing purposes or in composite handlers (such as \ref FallbackHandler).
 class NullCollisionHandler : public ICollisionHandler {
 public:
+    NullCollisionHandler() = default;
+    NullCollisionHandler(const RunSettings& UNUSED(settings)) {}
+
     virtual void initialize(Storage& UNUSED(storage)) override {}
 
     virtual CollisionResult collide(const Size UNUSED(i),
