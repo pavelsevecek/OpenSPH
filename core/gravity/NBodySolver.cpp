@@ -596,25 +596,26 @@ Optional<Float> HardSphereSolver::checkCollision(const Vector& r1,
     return NOTHING;
 }
 
-ElasticSphereSolver::ElasticSphereSolver(IScheduler& scheduler, const RunSettings& settings)
-    : ElasticSphereSolver(scheduler, settings, Factory::getGravity(settings)) {}
+SoftSphereSolver::SoftSphereSolver(IScheduler& scheduler, const RunSettings& settings)
+    : SoftSphereSolver(scheduler, settings, Factory::getGravity(settings)) {}
 
-ElasticSphereSolver::ElasticSphereSolver(IScheduler& scheduler,
+SoftSphereSolver::SoftSphereSolver(IScheduler& scheduler,
     const RunSettings& settings,
     AutoPtr<IGravity>&& gravity)
     : gravity(std::move(gravity))
     , scheduler(scheduler)
     , threadData(scheduler) {
-    iterationCnt = settings.get<int>(RunSettingsId::COLLISION_MAX_ITERATIONS);
-    restitution = settings.get<Float>(RunSettingsId::COLLISION_RESTITUTION_NORMAL);
-    precomputeNeighbors = settings.get<bool>(RunSettingsId::COLLISION_PRECOMPUTE_NEIGHBORS);
-
     finder = Factory::getFinder(settings);
+    springConstant = settings.get<Float>(RunSettingsId::NBODY_SOFTSPHERE_SPRING_CONSTANT);
+    epsilon = settings.get<Float>(RunSettingsId::NBODY_SOFTSPHERE_RESTITUTION_COEFFICIENT);
+
+    h1 = sqr(PI);
+    h2 = 2 * PI / sqrt(sqr(PI / log(epsilon)) + 1);
 }
 
-ElasticSphereSolver::~ElasticSphereSolver() = default;
+SoftSphereSolver::~SoftSphereSolver() = default;
 
-void ElasticSphereSolver::integrate(Storage& storage, Statistics& stats) {
+void SoftSphereSolver::integrate(Storage& storage, Statistics& stats) {
     VERBOSE_LOG;
 
     Timer timer;
@@ -631,115 +632,58 @@ void ElasticSphereSolver::integrate(Storage& storage, Statistics& stats) {
 
     stats.set(StatisticsId::GRAVITY_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
     timer.restart();
-}
 
-static void collideParticles(const Size i,
-    const Size j,
-    ArrayView<const Vector> r,
-    ArrayView<const Vector> v,
-    ArrayView<const Float> m,
-    ArrayView<Vector> r1,
-    ArrayView<Vector> vc_max,
-    const Float restitution) {
-    const Float hi = r[i][H];
-    const Float hj = r[j][H];
-    if (i == j || getSqrLength(r[i] - r[j]) >= sqr(hi + hj)) {
-        // aren't actual neighbors
-        return;
+    if (RawPtr<const IBasicFinder> gravityFinder = gravity->getFinder()) {
+        evalCollisions(storage, *gravityFinder);
+    } else {
+        finder->build(scheduler, r);
+        evalCollisions(storage, *finder);
     }
-
-    const Float dist = getLength(r[i] - r[j]);
-    SPH_ASSERT(dist > 0);
-    const Vector dir = (r[i] - r[j]) / dist;
-    r1[i] += dir * (hi + hj - dist) * m[j] / (m[i] + m[j]);
-
-    const Vector v_com = (m[i] * v[i] + m[j] * v[j]) / (m[i] + m[j]);
-    const Vector v_rel = v[i] - v_com;
-
-    if (dot(v_rel, dir) > 0) {
-        // moving away from each other
-        return;
-    }
-
-    const Vector vc = -(1._f + restitution) * dot(v_rel, dir) * dir;
-    // store only the largest velocity correction to avoid instabilities when there is large number of
-    // colliders
-    if (getSqrLength(vc) > getSqrLength(vc_max[i])) {
-        vc_max[i] = vc;
-    }
-}
-
-void ElasticSphereSolver::collide(Storage& storage, Statistics& stats, const Float dt) {
-    Timer timer;
-
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-    ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-
-    // precompute the search radii
-    Float maxRadius = 0._f;
-    for (Size i = 0; i < r.size(); ++i) {
-        maxRadius = max(maxRadius, r[i][H]);
-    }
-
-    // make a prediction
-    parallelFor(scheduler, 0, r.size(), [&](Size i) { r[i] += clearH(v[i] * dt); });
-    finder->build(scheduler, r);
-
-    if (precomputeNeighbors) {
-        neighs.resize(r.size());
-
-        parallelFor(scheduler, threadData, 0, r.size(), [&](const Size i, ThreadData& data) {
-            finder->findAll(i, 2._f * maxRadius, data.neighs);
-            neighs[i].clear();
-            for (const auto& n : data.neighs) {
-                neighs[i].push(n.index);
-            }
-        });
-    }
-
-    Array<Vector> r1(r.size());
-    Array<Vector> vc(r.size());
-    for (Size iter = 0; iter < iterationCnt; ++iter) {
-        if (precomputeNeighbors) {
-            auto functor = [&](Size i) {
-                r1[i] = r[i];
-                vc[i] = Vector(0);
-                for (Size j : neighs[i]) {
-                    collideParticles(i, j, r, v, m, r1, vc, restitution);
-                }
-            };
-            parallelFor(scheduler, 0, r.size(), functor);
-        } else {
-            auto functor = [&](Size i, ThreadData& data) {
-                finder->findAll(i, 2._f * maxRadius, data.neighs);
-                r1[i] = r[i];
-                vc[i] = Vector(0);
-                for (auto& n : data.neighs) {
-                    const Size j = n.index;
-                    collideParticles(i, j, r, v, m, r1, vc, restitution);
-                }
-            };
-            parallelFor(scheduler, threadData, 0, r.size(), functor);
-        }
-
-        parallelFor(scheduler, 0, r.size(), [&](Size i) {
-            r[i] = setH(r1[i], r[i][H]);
-            v[i] += clearH(vc[i]);
-        });
-    }
-
-    parallelFor(scheduler, 0, r.size(), [&](Size i) {
-        // null all derivatives of smoothing lengths (particle radii)
-        v[i][H] = 0._f;
-        dv[i][H] = 0._f;
-
-        r[i] -= v[i] * dt;
-    });
 
     stats.set(StatisticsId::COLLISION_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
 }
 
-void ElasticSphereSolver::create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const {}
+inline Float orbitTime(Float mass, Float a, Float G = Constants::gravity) {
+    const Float rhs = (G * mass) / (4 * sqr(PI));
+    return sqrt(pow<3>(a) / rhs);
+}
+
+void SoftSphereSolver::evalCollisions(Storage& storage, const IBasicFinder& finder) {
+    ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
+    ArrayView<Vector> r, v, dv;
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+
+    Float searchRadius = 0;
+    for (Size i = 0; i < r.size(); ++i) {
+        searchRadius = max(searchRadius, 2 * r[i][H]);
+    }
+
+    parallelFor(scheduler, threadData, 0, r.size(), [&](const Size i, ThreadData& data) {
+        finder.findAll(r[i], searchRadius, data.neighs);
+        for (const auto& n : data.neighs) {
+            const Size j = n.index;
+            if (i == j || n.distanceSqr >= sqr(r[i][H] + r[j][H])) {
+                continue;
+            }
+
+            Vector dir;
+            Float dist;
+            tieToTuple(dir, dist) = getNormalizedWithLength(r[j] - r[i]);
+            const Float alpha = r[i][H] + r[j][H] - dist;
+            SPH_ASSERT(alpha >= 0);
+            const Vector delta_v = v[j] - v[i];
+            const Float alpha_dot = -dot(delta_v, dir);
+            const Float m_eff = (m[i] * m[j]) / (m[i] + m[j]);
+            const Float t_dur = springConstant * orbitTime(m[i] + m[j], r[i][H] + r[j][H]);
+            const Float k1 = m_eff * h1 / sqr(t_dur);
+            const Float k2 = m_eff * h2 / t_dur;
+            const Vector force = (k1 * alpha + k2 * alpha_dot) * dir;
+            dv[i] -= force / m[i];
+        }
+        dv[i][H] = 0;
+    });
+}
+
+void SoftSphereSolver::create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const {}
 
 NAMESPACE_SPH_END

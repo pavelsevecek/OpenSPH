@@ -282,10 +282,6 @@ static RegisterEnum<CollisionHandlerEnum> sCollisionHandler({
         "are merged, otherwise the particle bounce. To ensure that the particles are always merged, set the "
         "collision.merging_limit to zero, on the other hand large values make particles more difficult to "
         "merge." },
-    { CollisionHandlerEnum::ELASTIC_PARALLEL,
-        "elastic_parallel",
-        "Particle bounces are evaluated in parallel. Similar to \"elastic bounce\" but potentially less "
-        "accurate." },
 });
 
 static RegisterEnum<OverlapEnum> sOverlap({
@@ -632,6 +628,12 @@ const RunSettings& getDefaultSettings() {
         "that enabling aggregates overrides handlers of collisions and overlaps." },
     { RunSettingsId::NBODY_AGGREGATES_SOURCE,       "nbody.aggregates.source",  AggregateEnum::PARTICLES,
         "Specifies the initial aggregates used in the simulation. Can be one of the following:\n" + EnumMap::getDesc<AggregateEnum>() },
+    { RunSettingsId::NBODY_SOFTSPHERE_ENABLE,       "nbody.softsphere.enable",  false,
+        "If true, collisions are handled using the soft-sphere method. " },
+    { RunSettingsId::NBODY_SOFTSPHERE_SPRING_CONSTANT,         "nbody.softsphere.spring_constant",   0.004_f,
+        "Constant determining the \"softness\" of spheres." },
+    { RunSettingsId::NBODY_SOFTSPHERE_RESTITUTION_COEFFICIENT, "nbody.softsphere.restitution",       0.5_f,
+        "Coefficient of restitution used by the soft-sphere handler." },
 
     /// Gravity
     { RunSettingsId::GRAVITY_SOLVER,                "gravity.solver",           GravityEnum::BARNES_HUT,
@@ -676,10 +678,6 @@ const RunSettings& getDefaultSettings() {
         "fast rotators in the simulation." },
     { RunSettingsId::COLLISION_MAX_BOUNCES,     "collision.max_bounces",  100,
         "Maximum number of bounces per particle, per time step." },
-    { RunSettingsId::COLLISION_MAX_ITERATIONS,  "collision.max_iterations",  5,
-        "Number of iterations in each collision step." },
-    { RunSettingsId::COLLISION_PRECOMPUTE_NEIGHBORS,  "collision.precompute_neighbors",  true,
-        "If true, neighbors are calculated once per collision evaluation, otherwise they are calculated each iteration." },
         
 
     /// Parameters of the soft-body solver
