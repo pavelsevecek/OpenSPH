@@ -139,15 +139,13 @@ private:
         const Float dt) const;
 };
 
-class ElasticSphereSolver : public ISolver {
+class SoftSphereSolver : public ISolver {
     /// Gravity used by the solver
     AutoPtr<IGravity> gravity;
 
     IScheduler& scheduler;
 
     AutoPtr<IBasicFinder> finder;
-
-    Array<Array<Size>> neighs;
 
     struct ThreadData {
         /// Neighbors for parallelized queries
@@ -156,24 +154,24 @@ class ElasticSphereSolver : public ISolver {
 
     ThreadLocal<ThreadData> threadData;
 
-    bool precomputeNeighbors;
-    Size iterationCnt;
-    Float restitution;
+    Float springConstant;
+    Float epsilon;
+    Float h1;
+    Float h2;
 
 public:
-    ElasticSphereSolver(IScheduler& scheduler, const RunSettings& settings);
+    SoftSphereSolver(IScheduler& scheduler, const RunSettings& settings);
 
-    ElasticSphereSolver(IScheduler& scheduler,
-        const RunSettings& settings,
-        AutoPtr<IGravity>&& gravity);
+    SoftSphereSolver(IScheduler& scheduler, const RunSettings& settings, AutoPtr<IGravity>&& gravity);
 
-    ~ElasticSphereSolver() override;
+    ~SoftSphereSolver() override;
 
     virtual void integrate(Storage& storage, Statistics& stats) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 
-    virtual void collide(Storage& storage, Statistics& stats, const Float dt) override;
+private:
+    void evalCollisions(Storage& storage, const IBasicFinder& finder);
 };
 
 NAMESPACE_SPH_END
