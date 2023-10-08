@@ -269,6 +269,12 @@ VirtualSettings SingleParticleIc::getSettings() {
     particleCat.connect("Position [km]", "r0", r0).setUnits(1.e3_f);
     particleCat.connect("Velocity [km/s]", "v0", v0).setUnits(1.e3_f);
     particleCat.connect("Interaction", "interaction", interaction);
+    particleCat.connect("Spring constant", "spring_constant", springConstant).setEnabler([this] {
+        return ParticleInteractionEnum(interaction) == ParticleInteractionEnum::REPEL;
+    });
+    particleCat.connect("Restitution", "restitution", epsilon).setEnabler([this] {
+        return ParticleInteractionEnum(interaction) == ParticleInteractionEnum::REPEL;
+    });
 
     VirtualSettings::Category& visCat = connector.addCategory("Visualization");
     visCat.connect("Visible", "visible", visible);
@@ -294,6 +300,8 @@ void SingleParticleIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
     a.settings.set(AttractorSettingsId::INTERACTION, ParticleInteractionEnum(interaction));
     a.settings.set(AttractorSettingsId::VISIBLE, visible);
     a.settings.set(AttractorSettingsId::ALBEDO, albedo);
+    a.settings.set(AttractorSettingsId::SPRING_CONSTANT, springConstant);
+    a.settings.set(AttractorSettingsId::EPSILON, epsilon);
     if (!texture.empty()) {
         a.settings.set(AttractorSettingsId::VISUALIZATION_TEXTURE, texture.string());
     }
