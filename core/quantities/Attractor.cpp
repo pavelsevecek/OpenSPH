@@ -20,6 +20,10 @@ const AttractorSettings& getDefaultSettings() {
     { AttractorSettingsId::INTERACTION,           "interactions",     ParticleInteractionEnum::NONE,
         "Specifies how the attractor interacts with particles. Can be one of:\n" +
         EnumMap::getDesc<ParticleInteractionEnum>() },
+    { AttractorSettingsId::SPRING_CONSTANT,       "spring_constant",  0.004_f,
+        "Constant determining the softness of the collision." },
+    { AttractorSettingsId::EPSILON,               "epsilon",          0.5_f,
+        "Constant determining how inelastic the collision is." },
     { AttractorSettingsId::VISIBLE,               "visualization.visible", true,
         "Visible when rendered. "},
     { AttractorSettingsId::VISUALIZATION_TEXTURE, "visualization.texture", ""_s,
@@ -34,7 +38,12 @@ const AttractorSettings& getDefaultSettings() {
 template class Settings<AttractorSettingsId>;
 template class SettingsIterator<AttractorSettingsId>;
 
-void Attractor::interact(IScheduler& scheduler, Storage& storage) {
+inline Float orbitTime(Float mass, Float a, Float G = Constants::gravity) {
+    const Float rhs = (G * mass) / (4 * sqr(PI));
+    return sqrt(pow<3>(a) / rhs);
+}
+
+void Attractor::interact(IScheduler& scheduler, Storage& storage, const Float dt) {
     const ParticleInteractionEnum type = settings.getOr<ParticleInteractionEnum>(
         AttractorSettingsId::INTERACTION, ParticleInteractionEnum::NONE);
     switch (type) {
@@ -55,15 +64,27 @@ void Attractor::interact(IScheduler& scheduler, Storage& storage) {
     case ParticleInteractionEnum::REPEL: {
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+        const Float springConstant = settings.getOr<Float>(AttractorSettingsId::SPRING_CONSTANT, 0.004_f);
+        const Float epsilon = settings.getOr<Float>(AttractorSettingsId::EPSILON, 0.5_f);
+        constexpr Float h1 = sqr(PI);
+        const Float h2 = 2 * PI / sqrt(sqr(PI / log(epsilon)) + 1);
         parallelFor(scheduler, 0, r.size(), [&](const Size i) {
-            if (getSqrLength(position - r[i]) < sqr(radius)) {
-                const Vector dir = getNormalized(r[i] - position);
-                r[i] = setH(position + dir * radius, r[i][H]);
-                const Float v_par = dot(v[i] - velocity, dir);
-                if (v_par < 0) {
-                    // flies towards the attractor, remove the parallel component of velocity
-                    v[i] = clearH(v[i] - v_par * dir);
-                }
+            if (getSqrLength(position - r[i]) < sqr(radius + r[i][H])) {
+                Vector dir;
+                Float dist;
+                tieToTuple(dir, dist) = getNormalizedWithLength(r[i] - position);
+                const Float alpha = r[i][H] + radius - dist;
+                SPH_ASSERT(alpha >= 0);
+                const Vector delta_v = v[i] - velocity;
+                const Float alpha_dot = -dot(delta_v, dir);
+                const Float m_eff = (m[i] * mass) / (m[i] + mass);
+                const Float t_dur = springConstant * orbitTime(m[i] + mass, r[i][H] + radius);
+                const Float k1 = m_eff * h1 / sqr(t_dur);
+                const Float k2 = m_eff * h2 / t_dur;
+                const Vector force = (k1 * alpha + k2 * alpha_dot) * dir;
+                acceleration -= force / mass;
+                v[i] += clearH(force / m[i] * dt);
             }
         });
         break;

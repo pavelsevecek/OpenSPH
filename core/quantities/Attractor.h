@@ -25,6 +25,10 @@ enum class AttractorSettingsId {
     /// Specifies how the attractor interacts with particle
     INTERACTION = 2,
 
+    SPRING_CONSTANT = 3,
+
+    EPSILON = 4,
+
     /// Visible when rendered
     VISIBLE = 99,
 
@@ -58,7 +62,7 @@ struct Attractor {
         , mass(mass) {}
 
     /// \brief Evaluates interactions of the attractor with all particles.
-    void interact(IScheduler& scheduler, Storage& storage);
+    void interact(IScheduler& scheduler, Storage& storage, const Float dt);
 };
 
 NAMESPACE_SPH_END

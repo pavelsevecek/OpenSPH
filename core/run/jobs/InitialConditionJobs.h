@@ -74,6 +74,8 @@ private:
     Float mass = Constants::M_earth;
     Float radius = Constants::R_earth;
     EnumWrapper interaction;
+    Float springConstant = 0.004_f;
+    Float epsilon = 0.5_f;
 
     bool visible = true;
     Float albedo = 1._f;
