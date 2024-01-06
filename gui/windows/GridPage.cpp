@@ -233,17 +233,17 @@ private:
 };
 
 static Pair<Float> getMassAndDiameter(const Storage& storage) {
-    if (!storage.has(QuantityId::DENSITY)) {
-        return { 0._f, 0._f }; // some fallback?
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<const Float> rho;
+    if (storage.has(QuantityId::DENSITY)) {
+        rho = storage.getValue<Float>(QuantityId::DENSITY);
     }
-    ArrayView<const Float> m, rho;
-    tie(m, rho) = storage.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
-
     Float mass = 0._f;
     Float diameter = 0._f;
     for (Size i = 0; i < m.size(); ++i) {
         mass += m[i];
-        diameter += m[i] / rho[i];
+        diameter += !rho.empty() ? m[i] / rho[i] : sphereVolume(r[i][H]);
     }
     diameter = cbrt(3._f * diameter / (4._f * PI)) * 2._f;
     return { mass, diameter };
