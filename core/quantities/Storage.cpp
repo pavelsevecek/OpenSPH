@@ -977,6 +977,10 @@ Box getBoundingBox(const Storage& storage, const Float radius) {
         box.extend(r[i] + radius * Vector(r[i][H]));
         box.extend(r[i] - radius * Vector(r[i][H]));
     }
+    for (const Attractor& a : storage.getAttractors()) {
+        box.extend(a.position + radius * Vector(a.radius));
+        box.extend(a.position - radius * Vector(a.radius));
+    }
     return box;
 }
 

@@ -170,16 +170,16 @@ BodyView InitialConditions::addHeterogeneousBody(Storage& storage,
     }
 
     // Initialize storages
-    Float environVolume = environment.domain->getVolume();
+    const Float environVolume = environment.domain->getVolume();
     for (Size i = 0; i < bodyStorages.size(); ++i) {
+        const Float volume = environVolume * Float(pos_bodies[i].size()) / positions.size();
+        SPH_ASSERT(volume > 0._f);
         bodyStorages[i].insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(pos_bodies[i]));
-        const Float volume = bodies[i].domain->getVolume();
         this->setQuantities(bodyStorages[i], bodyStorages[i].getMaterial(0), volume);
-        environVolume -= volume;
     }
-    SPH_ASSERT(environVolume >= 0._f);
+    const Float restVolume = environVolume * Float(pos_env.size()) / positions.size();
     enviroStorage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(pos_env));
-    this->setQuantities(enviroStorage, enviroStorage.getMaterial(0), environVolume);
+    this->setQuantities(enviroStorage, enviroStorage.getMaterial(0), restVolume);
 
     // merge all storages
     storage.merge(std::move(enviroStorage));

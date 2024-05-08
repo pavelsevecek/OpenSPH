@@ -233,20 +233,30 @@ private:
 };
 
 static Pair<Float> getMassAndDiameter(const Storage& storage) {
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    ArrayView<const Float> rho;
     if (storage.has(QuantityId::DENSITY)) {
-        rho = storage.getValue<Float>(QuantityId::DENSITY);
+        ArrayView<const Float> m, rho;
+        tie(m, rho) = storage.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
+
+        Float mass = 0._f;
+        Float diameter = 0._f;
+        for (Size i = 0; i < m.size(); ++i) {
+            mass += m[i];
+            diameter += m[i] / rho[i];
+        }
+        diameter = cbrt(3._f * diameter / (4._f * PI)) * 2._f;
+        return { mass, diameter };
+    } else {
+        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        Float mass = 0._f;
+        Float diameter = 0._f;
+        for (Size i = 0; i < m.size(); ++i) {
+            mass += m[i];
+            diameter += sphereVolume(r[i][H]);
+        }
+        diameter = cbrt(3._f * diameter / (4._f * PI)) * 2._f;
+        return { mass, diameter };
     }
-    Float mass = 0._f;
-    Float diameter = 0._f;
-    for (Size i = 0; i < m.size(); ++i) {
-        mass += m[i];
-        diameter += !rho.empty() ? m[i] / rho[i] : sphereVolume(r[i][H]);
-    }
-    diameter = cbrt(3._f * diameter / (4._f * PI)) * 2._f;
-    return { mass, diameter };
 }
 
 static Pair<Float> getSemiaxisRatios(const Storage& storage) {
@@ -388,9 +398,6 @@ void GridPage::updateAsync(const Storage& storage,
     Storage lr;
     for (Size i = 0; i < fragmentCnt; ++i) {
         const Storage fragment = getter.getComponent(i);
-        if (fragment.getParticleCnt() < 2) {
-            break;
-        }
         if (i == 0) {
             lr = fragment.clone(VisitorEnum::ALL_BUFFERS);
         }

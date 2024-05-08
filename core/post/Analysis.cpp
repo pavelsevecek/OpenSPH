@@ -400,10 +400,16 @@ Vector Post::getAngularFrequency(ArrayView<const Float> m,
     };
 
     if (idxs) {
+        if (idxs.size() == 1) {
+            return Vector(0);
+        }
         for (Size i : idxs) {
             functor(i);
         }
     } else {
+        if (r.size() == 1) {
+            return Vector(0);
+        }
         for (Size i = 0; i < r.size(); ++i) {
             functor(i);
         }
@@ -435,7 +441,7 @@ Optional<Float> Post::getSphericity(IScheduler& scheduler, const Storage& storag
     }
 
     if (area == 0._f) {
-        // sphericity undefined 
+        // sphericity undefined
         return NOTHING;
     }
 
