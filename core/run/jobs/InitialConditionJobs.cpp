@@ -626,12 +626,12 @@ void KeplerianVelocityIc::evaluate(const RunSettings& UNUSED(global), IRunCallba
     for (Size i = 0; i < r.size(); ++i) {
         const Float v_kepl = sqrt(Constants::gravity * m_source / getLength(r[i]));
         const Vector dir = getNormalized(cross(Vector::unit(Z), r[i]));
-        v[i] = v_source + dir * v_kepl;
+        v[i] = clearH(v_source + dir * v_kepl);
     }
     for (Attractor& a : orbiting.getAttractors()) {
         const Float v_kepl = sqrt(Constants::gravity * m_source / getLength(a.position));
         const Vector dir = getNormalized(cross(Vector::unit(Z), a.position));
-        a.velocity = v_source + dir * v_kepl;
+        a.velocity = clearH(v_source + dir * v_kepl);
     }
 }
 
@@ -1017,7 +1017,7 @@ void NBodyIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
         const Vector dir = getNormalized(Vector(positions[i][Y], -positions[i][X], 0._f));
         Vector v_random = sampleSphere(velocityDispersion, 0.333_f, *rng);
         v_random[Z] *= heightScale;
-        velocities[i] = dir * v_kepl + v_random;
+        velocities[i] = clearH(dir * v_kepl + v_random);
     }
 
     Storage storage(makeAuto<NullMaterial>(BodySettings::getDefaults()));

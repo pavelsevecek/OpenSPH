@@ -398,9 +398,6 @@ void GridPage::updateAsync(const Storage& storage,
     Storage lr;
     for (Size i = 0; i < fragmentCnt; ++i) {
         const Storage fragment = getter.getComponent(i);
-        if (fragment.getParticleCnt() < 2) {
-            break;
-        }
         if (i == 0) {
             lr = fragment.clone(VisitorEnum::ALL_BUFFERS);
         }
