@@ -3,6 +3,6 @@ Version: 0.4.1-1
 Section: base
 Priority: optional
 Architecture: amd64
-Depends: libtbb-dev, libwxgtk3.0-dev
+Depends: libtbb-dev, libwxgtk3.0-gtk3-dev
 Maintainer: Pavel Sevecek <sevecek at sirrah.troja.mff.cuni.cz>
 Description: Program for astrophysical SPH/N-body simulations"
