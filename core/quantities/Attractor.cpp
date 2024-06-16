@@ -52,11 +52,28 @@ void Attractor::interact(IScheduler& scheduler, Storage& storage, const Float dt
     case ParticleInteractionEnum::ABSORB: {
         /// \todo parallelize
         ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+        ArrayView<const Float> rho;
+        if (storage.has(QuantityId::DENSITY)) {
+            rho = storage.getValue<Float>(QuantityId::DENSITY);
+        }
         Array<Size> toRemove;
+        Float absorbed_mass = 0._f;
+        Float absorbed_volume = 0._f;
+        Vector absorbed_momentum = Vector(0);
         for (Size i = 0; i < r.size(); ++i) {
             if (getSqrLength(position - r[i]) < sqr(radius)) {
                 toRemove.push(i);
+                absorbed_mass += m[i];
+                absorbed_volume += !rho.empty() ? m[i] / rho[i] : 0;
+                absorbed_momentum += m[i] * (v[i] - velocity);
             }
+        }
+        if (absorbed_mass > 0) {
+            velocity += absorbed_momentum / mass;
+            mass += absorbed_mass;
+            radius = volumeEquivalentRadius(sphereVolume(radius) + absorbed_volume);
         }
         storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED | Storage::IndicesFlag::PROPAGATE);
         break;
