@@ -49,38 +49,47 @@ Path OutputFile::getNextPath(const Statistics& stats) const {
 
 Optional<Size> OutputFile::getDumpIdx(const Path& path) {
     // look for 4 consecutive digits.
-    const String s = path.fileName().string();
-    Optional<Size> index = NOTHING;
-    for (int i = 0; i < int(s.size()) - 3; ++i) {
-        if (std::isdigit(s[i]) && std::isdigit(s[i + 1]) && std::isdigit(s[i + 2]) &&
-            std::isdigit(s[i + 3])) {
-            // next digit must NOT be a number
-            if (i + 4 < int(s.size()) && std::isdigit(s[i + 4])) {
-                // 4-digit sequence is not unique, report error
-                return NOTHING;
+    const String name = path.fileName().removeExtension().string();
+    if (name.size() < 4) {
+        return NOTHING;
+    }
+
+    Size digitCount = 0;
+    for (int i = name.size() - 1; i >= 0; --i) {
+        if (std::isdigit(name[i])) {
+            digitCount++;
+            if (digitCount == 4) {
+                String mask = name.substr(0, i) + L"%d" + name.substr(i + 4);
+                return fromString<Size>(name.substr(i, 4));
             }
-            index = fromString<Size>(s.substr(i, 4));
+        } else {
+            digitCount = 0;
         }
     }
-    return index;
+    return NOTHING;
 }
 
 Optional<OutputFile> OutputFile::getMaskFromPath(const Path& path, const Size firstDumpIdx) {
-    /// \todo could be deduplicated a bit
-    const String s = path.fileName().string();
-    Optional<OutputFile> result = NOTHING;
-    for (int i = 0; i < int(s.size()) - 3; ++i) {
-        if (std::isdigit(s[i]) && std::isdigit(s[i + 1]) && std::isdigit(s[i + 2]) &&
-            std::isdigit(s[i + 3])) {
-            if (i + 4 < int(s.size()) && std::isdigit(s[i + 4])) {
-                return NOTHING;
+    /// \todo could be deduplicated a bit with the above
+    const String name = path.fileName().removeExtension().string();
+    if (name.size() < 4) {
+        return NOTHING;
+    }
+
+    Size digitCount = 0;
+    for (int i = name.size() - 1; i >= 0; --i) {
+        if (std::isdigit(name[i])) {
+            digitCount++;
+            if (digitCount == 4) {
+                String mask = name.substr(0, i) + L"%d" + name.substr(i + 4);
+                return OutputFile(
+                    path.parentPath() / Path(mask).replaceExtension(path.extension().string()), firstDumpIdx);
             }
-            String mask = s.substr(0, i) + L"%d" + s.substr(i + 4);
-            // prepend the original parent path
-            result = OutputFile(path.parentPath() / Path(mask), firstDumpIdx);
+        } else {
+            digitCount = 0;
         }
     }
-    return result;
+    return NOTHING;
 }
 
 bool OutputFile::hasWildcard() const {
