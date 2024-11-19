@@ -19,6 +19,8 @@ static Array<ArgDesc> params{
         "elements",
         ArgEnum::BOOL,
         "Compute orbital elements of bodies (semi-major axis and eccentricity)." },
+    { "am", "angularMomentum", ArgEnum::BOOL, "Compute the angular momentum of bodies." },
+    { "pm", "planetMass", ArgEnum::BOOL, "Compute the mass of the central planet." },
     { "c",
         "components",
         ArgEnum::BOOL,
@@ -36,17 +38,46 @@ int main(int argc, char* argv[]) {
         String filemask = parser.getArg<String>("f");
         bool doComponents = parser.tryGetArg<bool>("c").valueOr(true);
         bool doElements = parser.tryGetArg<bool>("e").valueOr(false);
+        bool doAngularMomentum = parser.tryGetArg<bool>("am").valueOr(false);
+        bool doPlanetMass = parser.tryGetArg<bool>("pm").valueOr(false);
+
         OutputFile mask = OutputFile(Path(filemask));
         Statistics stats;
         Table table(5);
         table.setCell(0, 0, "# Time [s]");
+        Size nextColumn = 1;
+        Size massColumn = 1;
         for (Size c = 0; c < outputCount; ++c) {
-            table.setCell(c + 1, 0, "# Mass " + toString(c + 1) + "[kg]");
+            table.setCell(c + 1, 0, "# Mass " + toString(c + 1) + " [kg]");
+        }
+        nextColumn += outputCount;
 
-            if (doElements) {
-                table.setCell(outputCount + c + 1, 0, "# SMA " + toString(c + 1) + "[m]");
-                table.setCell(2 * outputCount + c + 1, 0, "# Eccentricity " + toString(c + 1) + "[]");
+        Size smaColumn = 1;
+        Size eccentricityColumn = 1;
+        if (doElements) {
+            smaColumn = nextColumn;
+            eccentricityColumn = nextColumn + outputCount;
+            for (Size c = 0; c < outputCount; ++c) {
+                table.setCell(smaColumn + c, 0, "# SMA " + toString(c + 1) + " [m]");
+                table.setCell(eccentricityColumn + c, 0, "# Eccentricity " + toString(c + 1) + " []");
             }
+            nextColumn += 2 * outputCount;
+        }
+
+        Size pmColumn = 1;
+        if (doPlanetMass) {
+            pmColumn = nextColumn;
+            table.setCell(pmColumn, 0, "# Planet mass [kg]");
+            nextColumn++;
+        }
+
+        Size amColumn = 1;
+        if (doAngularMomentum) {
+            amColumn = nextColumn;
+            for (Size c = 0; c < outputCount; ++c) {
+                table.setCell(amColumn + c, 0, "# AM " + toString(c + 1) + "[kg m^2 s^-1]");
+            }
+            table.setCell(amColumn + outputCount, 0, "# AM [kg m^2 s^-1]");
         }
 
         Size tableRow = 1;
@@ -91,20 +122,27 @@ int main(int argc, char* argv[]) {
                     }
 
                     std::cout << "Body " << c << " has mass " << totalMass << std::endl;
-                    table.setCell(c + 1, tableRow, toString(totalMass));
+                    table.setCell(massColumn + c, tableRow, toString(totalMass));
 
                     if (storage.getAttractorCnt() > 0 && totalMass > 0) {
                         const Attractor& a = storage.getAttractors()[0];
                         position -= a.position;
                         velocity -= a.velocity;
 
-                        const Float M = totalMass + a.mass;
-                        const Float mu = (totalMass * a.mass) / M;
-                        Optional<Kepler::Elements> elements =
-                            Kepler::computeOrbitalElements(M, mu, position, velocity);
-                        if (elements) {
-                            table.setCell(outputCount + c + 1, tableRow, toString(elements->a));
-                            table.setCell(2 * outputCount + c + 1, tableRow, toString(elements->e));
+                        if (doElements) {
+                            const Float M = totalMass + a.mass;
+                            const Float mu = (totalMass * a.mass) / M;
+                            Optional<Kepler::Elements> elements =
+                                Kepler::computeOrbitalElements(M, mu, position, velocity);
+                            if (elements) {
+                                table.setCell(smaColumn + c, tableRow, toString(elements->a));
+                                table.setCell(eccentricityColumn + c, tableRow, toString(elements->e));
+                            }
+                        }
+
+                        if (doAngularMomentum) {
+                            const Float am = totalMass * norm(cross(position, velocity));
+                            table.setCell(amColumn + c, tableRow, toString(am));
                         }
                     }
                 }
@@ -119,34 +157,52 @@ int main(int argc, char* argv[]) {
                 for (Size c = 0; c < outputCount; ++c) {
                     Size i = idxs[c];
                     std::cout << "Particle " << c << " has mass " << m[i] << std::endl;
-                    table.setCell(c + 1, tableRow, toString(m[i]));
+                    table.setCell(massColumn + c, tableRow, toString(m[i]));
 
-                    if (doElements) {
-                        Vector position = r[i];
-                        Vector velocity = v[i];
 
-                        if (storage.getAttractorCnt() > 0 && m[i] > 0) {
-                            const Attractor& a = storage.getAttractors()[0];
-                            position -= a.position;
-                            velocity -= a.velocity;
+                    Vector position = r[i];
+                    Vector velocity = v[i];
 
+                    if (storage.getAttractorCnt() > 0 && m[i] > 0) {
+                        const Attractor& a = storage.getAttractors()[0];
+                        position -= a.position;
+                        velocity -= a.velocity;
+
+                        if (doElements) {
                             const Float M = m[i] + a.mass;
                             const Float mu = (m[i] * a.mass) / M;
                             Optional<Kepler::Elements> elements =
                                 Kepler::computeOrbitalElements(M, mu, position, velocity);
                             if (elements) {
-                                table.setCell(outputCount + c + 1, tableRow, toString(elements->a));
-                                table.setCell(2 * outputCount + c + 1, tableRow, toString(elements->e));
+                                table.setCell(smaColumn + c, tableRow, toString(elements->a));
+                                table.setCell(eccentricityColumn + c, tableRow, toString(elements->e));
                             }
+                        }
+
+                        if (doAngularMomentum) {
+                            const Float am = m[i] * getLength(cross(position, velocity));
+                            table.setCell(amColumn + c, tableRow, toString(am));
                         }
                     }
                 }
             }
+
+            if (doAngularMomentum) {
+                TotalAngularMomentum am;
+                const double value = getLength(am.evaluate(storage));
+                table.setCell(amColumn + outputCount, tableRow, toString(value));
+            }
+
+            if (doPlanetMass && storage.getAttractorCnt() > 0) {
+                const Attractor& a = storage.getAttractors()[0];
+                table.setCell(pmColumn, tableRow, toString(a.mass));
+            }
+
             tableRow++;
         }
 
         std::cout << "Writing to " << outputFile << std::endl;
-        std::ofstream ofs(outputFile.toWstring());
+        std::ofstream ofs(Path(outputFile).native());
 
         ofs << table.toString();
 
