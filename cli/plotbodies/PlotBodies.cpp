@@ -20,6 +20,10 @@ static Array<ArgDesc> params{
         ArgEnum::BOOL,
         "Compute orbital elements of bodies (semi-major axis and eccentricity)." },
     { "am", "angularMomentum", ArgEnum::BOOL, "Compute the angular momentum of bodies." },
+    { "p", "position", ArgEnum::BOOL, "Compute the positions (x,y,z) of bodies." },
+    { "v", "velocity", ArgEnum::BOOL, "Compute the velocities (x,y,z) of bodies." },
+    { "r", "radius", ArgEnum::BOOL, "Compute the radii of bodies." },
+    { "rp", "rotationPeriod", ArgEnum::BOOL, "Compute the rotation period of bodies." },
     { "pm", "planetMass", ArgEnum::BOOL, "Compute the mass of the central planet." },
     { "c",
         "components",
@@ -40,6 +44,10 @@ int main(int argc, char* argv[]) {
         bool doElements = parser.tryGetArg<bool>("e").valueOr(false);
         bool doAngularMomentum = parser.tryGetArg<bool>("am").valueOr(false);
         bool doPlanetMass = parser.tryGetArg<bool>("pm").valueOr(false);
+        bool doPosition = parser.tryGetArg<bool>("p").valueOr(false);
+        bool doVelocity = parser.tryGetArg<bool>("v").valueOr(false);
+        bool doRadius = parser.tryGetArg<bool>("r").valueOr(false);
+        bool doRotationPeriod = parser.tryGetArg<bool>("rp").valueOr(false);
 
         OutputFile mask = OutputFile(Path(filemask));
         Statistics stats;
@@ -78,6 +86,47 @@ int main(int argc, char* argv[]) {
                 table.setCell(amColumn + c, 0, "# AM " + toString(c + 1) + "[kg m^2 s^-1]");
             }
             table.setCell(amColumn + outputCount, 0, "# AM [kg m^2 s^-1]");
+            nextColumn += outputCount + 1;
+        }
+
+        Size positionColumn = 1;
+        if (doPosition) {
+            positionColumn = nextColumn;
+            for (Size c = 0; c < outputCount; ++c) {
+                table.setCell(positionColumn + 3 * c + 0, 0, "# X [m]");
+                table.setCell(positionColumn + 3 * c + 1, 0, "# Y [m]");
+                table.setCell(positionColumn + 3 * c + 2, 0, "# Z [m]");
+            }
+            nextColumn += 3 * outputCount;
+        }
+
+        Size velocityColumn = 1;
+        if (doPosition) {
+            velocityColumn = nextColumn;
+            for (Size c = 0; c < outputCount; ++c) {
+                table.setCell(velocityColumn + 3 * c + 0, 0, "# VX [m]");
+                table.setCell(velocityColumn + 3 * c + 1, 0, "# VY [m]");
+                table.setCell(velocityColumn + 3 * c + 2, 0, "# VZ [m]");
+            }
+            nextColumn += 3 * outputCount;
+        }
+
+        Size radiusColumn = 1;
+        if (doRadius) {
+            radiusColumn = nextColumn;
+            for (Size c = 0; c < outputCount; ++c) {
+                table.setCell(radiusColumn + c, 0, "# Radius [m]");
+            }
+            radiusColumn += outputCount;
+        }
+
+        Size rotationPeriodColumn = 1;
+        if (doRotationPeriod) {
+            rotationPeriodColumn = nextColumn;
+            for (Size c = 0; c < outputCount; ++c) {
+                table.setCell(rotationPeriodColumn + c, 0, "# Period [s]");
+            }
+            nextColumn += outputCount;
         }
 
         Size tableRow = 1;
@@ -104,16 +153,23 @@ int main(int argc, char* argv[]) {
                 Array<Size> indices;
                 Size componentCount = Post::findComponents(
                     storage, 2.f, Post::ComponentFlag::OVERLAP | Post::ComponentFlag::SORT_BY_MASS, indices);
-
+                Array<Size> bodyIdxs;
                 for (Size c = 0; c < outputCount; ++c) {
                     Float totalMass = 0;
+                    Float totalVolume = 0;
                     Vector position = Vector(0);
                     Vector velocity = Vector(0);
+                    bodyIdxs.clear();
                     for (Size i = 0; i < indices.size(); ++i) {
                         if (indices[i] == c) {
                             totalMass += m[i];
+                            totalVolume += sphereVolume(r[i][H]);
                             position += m[i] * r[i];
                             velocity += m[i] * v[i];
+
+                            if (doRotationPeriod) {
+                                bodyIdxs.push(i);
+                            }
                         }
                     }
                     if (totalMass > 0) {
@@ -121,8 +177,31 @@ int main(int argc, char* argv[]) {
                         velocity /= totalMass;
                     }
 
+                    if (doRotationPeriod) {
+                        Vector omega = Post::getAngularFrequency(m, r, v, position, velocity, bodyIdxs);
+                        Float period = getLength(omega) > EPS ? 2 * PI / getLength(omega) : 0;
+                        table.setCell(rotationPeriodColumn + c, tableRow, toString(period));
+                    }
+
                     std::cout << "Body " << c << " has mass " << totalMass << std::endl;
                     table.setCell(massColumn + c, tableRow, toString(totalMass));
+
+                    if (doPosition) {
+                        table.setCell(positionColumn + 3 * c + 0, tableRow, toString(position[0]));
+                        table.setCell(positionColumn + 3 * c + 1, tableRow, toString(position[1]));
+                        table.setCell(positionColumn + 3 * c + 2, tableRow, toString(position[2]));
+                    }
+
+                    if (doVelocity) {
+                        table.setCell(velocityColumn + 3 * c + 0, tableRow, toString(velocity[0]));
+                        table.setCell(velocityColumn + 3 * c + 1, tableRow, toString(velocity[1]));
+                        table.setCell(velocityColumn + 3 * c + 2, tableRow, toString(velocity[2]));
+                    }
+
+                    if (doRadius) {
+                        table.setCell(
+                            radiusColumn + c, tableRow, toString(volumeEquivalentRadius(totalVolume)));
+                    }
 
                     if (storage.getAttractorCnt() > 0 && totalMass > 0) {
                         const Attractor& a = storage.getAttractors()[0];
@@ -150,6 +229,11 @@ int main(int argc, char* argv[]) {
                 ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
                 ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
                 ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+                ArrayView<const Vector> omega;
+                if (storage.has(QuantityId::ANGULAR_FREQUENCY)) {
+                    omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
+                }
+
                 Array<Size> idxs(m.size());
                 std::iota(idxs.begin(), idxs.end(), 0);
                 std::sort(idxs.begin(), idxs.end(), [m](Size i1, Size i2) { return m[i1] > m[i2]; });
@@ -159,9 +243,30 @@ int main(int argc, char* argv[]) {
                     std::cout << "Particle " << c << " has mass " << m[i] << std::endl;
                     table.setCell(massColumn + c, tableRow, toString(m[i]));
 
-
                     Vector position = r[i];
                     Vector velocity = v[i];
+
+                    if (doPosition) {
+                        table.setCell(positionColumn + 3 * c + 0, tableRow, toString(position[0]));
+                        table.setCell(positionColumn + 3 * c + 1, tableRow, toString(position[1]));
+                        table.setCell(positionColumn + 3 * c + 2, tableRow, toString(position[2]));
+                    }
+
+                    if (doVelocity) {
+                        table.setCell(velocityColumn + 3 * c + 0, tableRow, toString(velocity[0]));
+                        table.setCell(velocityColumn + 3 * c + 1, tableRow, toString(velocity[1]));
+                        table.setCell(velocityColumn + 3 * c + 2, tableRow, toString(velocity[2]));
+                    }
+
+                    if (doRadius) {
+                        table.setCell(radiusColumn + c, tableRow, toString(r[i][H]));
+                    }
+
+                    if (doRotationPeriod) {
+                        Float period =
+                            !omega.empty() && getLength(omega[i]) > EPS ? 2 * PI / getLength(omega[i]) : 0;
+                        table.setCell(rotationPeriodColumn + c, tableRow, toString(period));
+                    }
 
                     if (storage.getAttractorCnt() > 0 && m[i] > 0) {
                         const Attractor& a = storage.getAttractors()[0];
