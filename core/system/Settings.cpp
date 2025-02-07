@@ -676,6 +676,8 @@ const RunSettings& getDefaultSettings() {
         "Particles can only be merged if the angular frequency multiplied by this parameter is lower than the "
         "breakup frequency. If zero, particles are always merged, values larger than 1 can be used to avoid "
         "fast rotators in the simulation." },
+    { RunSettingsId::COLLISION_TIDAL_MERGE_LIMIT,     "collision.tidal_merging_limit",  1._f,
+        "Prevents merging of particles inside of Roche limit of another object." },
     { RunSettingsId::COLLISION_MAX_BOUNCES,     "collision.max_bounces",  100,
         "Maximum number of bounces per particle, per time step." },
         

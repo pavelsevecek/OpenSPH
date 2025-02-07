@@ -549,6 +549,9 @@ VirtualSettings NBodyJob::getSettings() {
     collisionCat
         .connect<Float>("Merge rotation limit", settings, RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT)
         .setEnabler(mergeLimitEnabler);
+    collisionCat
+        .connect<Float>("Merge tidal limit", settings, RunSettingsId::COLLISION_TIDAL_MERGE_LIMIT)
+        .setEnabler(mergeLimitEnabler);
     collisionCat.connect<int>("Max bounces", settings, RunSettingsId::COLLISION_MAX_BOUNCES)
         .setEnabler(collisionEnabler);
 

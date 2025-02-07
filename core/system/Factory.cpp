@@ -420,7 +420,7 @@ AutoPtr<ICollisionHandler> Factory::getCollisionHandler(const RunSettings& setti
     case CollisionHandlerEnum::ELASTIC_BOUNCE:
         return makeAuto<ElasticBounceHandler>(settings);
     case CollisionHandlerEnum::PERFECT_MERGING:
-        return makeAuto<MergingCollisionHandler>(0._f, 0._f);
+        return makeAuto<MergingCollisionHandler>(0._f, 0._f, 0._f);
     case CollisionHandlerEnum::MERGE_OR_BOUNCE:
         return makeAuto<FallbackHandler<MergingCollisionHandler, ElasticBounceHandler>>(settings);
     default:
