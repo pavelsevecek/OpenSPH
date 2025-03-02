@@ -50,6 +50,10 @@ void ITimeStepping::step(IScheduler& scheduler, ISolver& solver, Statistics& sta
         a.position += 0.5_f * a.velocity * timeStep;
     }
 
+    stats.set(StatisticsId::TIMESTEP_ELAPSED, int(timer.elapsed(TimerUnit::MILLISECOND)));
+}
+
+void ITimeStepping::updateTimestep(IScheduler& scheduler, Statistics& stats) {
     // update time step
     CriterionId criterionId = CriterionId::INITIAL_VALUE;
     if (criterion) {
@@ -71,7 +75,6 @@ void ITimeStepping::step(IScheduler& scheduler, ISolver& solver, Statistics& sta
     }
     stats.set(StatisticsId::TIMESTEP_VALUE, timeStep);
     stats.set(StatisticsId::TIMESTEP_CRITERION, criterionId);
-    stats.set(StatisticsId::TIMESTEP_ELAPSED, int(timer.elapsed(TimerUnit::MILLISECOND)));
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -240,6 +243,8 @@ void EulerExplicit::stepParticles(IScheduler& scheduler, ISolver& solver, Statis
     // compute derivatives
     solver.integrate(*storage, stats);
 
+    updateTimestep(scheduler, stats);
+
     PROFILE_SCOPE("EulerExplicit::step")
     const Float dt = timeStep;
 
@@ -342,6 +347,9 @@ void PredictorCorrector::stepParticles(IScheduler& scheduler, ISolver& solver, S
     // make corrections
     this->makeCorrections(scheduler);
 
+    updateTimestep(scheduler, stats);
+
+
     SPH_ASSERT(storage->isValid());
 }
 
@@ -363,6 +371,8 @@ void LeapFrog::stepParticles(IScheduler& scheduler, ISolver& solver, Statistics&
     // compute the derivatives
     storage->zeroHighestDerivatives(scheduler);
     solver.integrate(*storage, stats);
+
+    updateTimestep(scheduler, stats);
 
     // integrate first-order quantities as in Euler
     /// \todo this is not LeapFrog !

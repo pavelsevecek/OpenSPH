@@ -30,7 +30,7 @@ void KdTree<TNode, TMetric>::buildImpl(IScheduler& scheduler, ArrayView<const Ve
     nodes.resize(nodeCnt);
 
     SharedPtr<ITask> rootTask = scheduler.submit([this, &scheduler, points] {
-        this->buildTree(scheduler, ROOT_PARENT_NODE, KdChild(-1), 0, points.size(), entireBox, 0, 0);
+        this->buildTree(scheduler, ROOT_PARENT_NODE, KdChild(-1), 0, points.size(), entireBox, 0);
     });
     rootTask->wait();
 
@@ -47,7 +47,6 @@ void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
     const Size from,
     const Size to,
     const Box& box,
-    const Size slidingCnt,
     const Size depth) {
 
     Box box1, box2;
@@ -56,7 +55,6 @@ void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
     // split by the dimension of largest extent
     Size splitIdx = argMax(boxSize);
 
-    bool slidingMidpoint = false;
     bool degeneratedBox = false;
 
     if (to - from <= config.leafSize) {
@@ -87,7 +85,7 @@ void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
         Float splitPosition = box.center()[splitIdx];
         std::make_signed_t<Size> n1 = from, n2 = to - 1; // use ints for easier for loop ending with 0
 
-        if (slidingCnt <= 5 && !degeneratedBox) {
+        if (!degeneratedBox) {
             for (;; std::swap(idxs[n1], idxs[n2])) {
                 for (; n1 < int(to) && this->values[idxs[n1]][splitIdx] <= splitPosition; ++n1)
                     ;
@@ -110,7 +108,6 @@ void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
                 }
                 std::swap(idxs[from], idxs[idx]);
                 n1++;
-                slidingMidpoint = true;
             } else if (n1 == int(to)) {
                 Size idx = from;
                 splitPosition = this->values[idxs[from]][splitIdx];
@@ -123,7 +120,6 @@ void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
                 }
                 std::swap(idxs[to - 1], idxs[idx]);
                 n1--;
-                slidingMidpoint = true;
             }
 
             tie(box1, box2) = box.split(splitIdx, splitPosition);
@@ -147,9 +143,8 @@ void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
         const Size index = this->addInner(parent, child, splitPosition, splitIdx);
 
         // recurse to left and right subtree
-        const Size nextSlidingCnt = slidingMidpoint ? slidingCnt + 1 : 0;
-        auto processRightSubTree = [this, &scheduler, index, to, n1, box2, nextSlidingCnt, depth] {
-            this->buildTree(scheduler, index, KdChild::RIGHT, n1, to, box2, nextSlidingCnt, depth + 1);
+        auto processRightSubTree = [this, &scheduler, index, to, n1, box2, depth] {
+            this->buildTree(scheduler, index, KdChild::RIGHT, n1, to, box2, depth + 1);
         };
         if (depth < config.maxParallelDepth) {
             // ad hoc decision - split the build only for few topmost nodes, there is no point in splitting
@@ -159,7 +154,7 @@ void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
             // otherwise simply process both subtrees in the same thread
             processRightSubTree();
         }
-        this->buildTree(scheduler, index, KdChild::LEFT, from, n1, box1, nextSlidingCnt, depth + 1);
+        this->buildTree(scheduler, index, KdChild::LEFT, from, n1, box1, depth + 1);
     }
 }
 

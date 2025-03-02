@@ -84,6 +84,8 @@ public:
 
 protected:
     virtual void stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) = 0;
+
+    void updateTimestep(IScheduler& scheduler, Statistics& stats);
 };
 
 
