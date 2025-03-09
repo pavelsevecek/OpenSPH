@@ -31,6 +31,7 @@ static Array<ArgDesc> params{
         "Compute the rotational angular momentum of bodies." },
     { "moif", "momentOfInertiaFactor", ArgEnum::BOOL, "Compute the moment of inertia factor." },
     { "pm", "planetMass", ArgEnum::BOOL, "Compute the mass of the central planet." },
+    { "rd", "reconstructDensity", ArgEnum::BOOL, "Recompute particle densities using kernel sum." },
     { "c",
         "components",
         ArgEnum::BOOL,
@@ -76,6 +77,7 @@ int main(int argc, char* argv[]) {
         bool doAxesRatii = parser.tryGetArg<bool>("ar").valueOr(false);
         bool doRotationalAngularMomentum = parser.tryGetArg<bool>("ram").valueOr(false);
         bool doMomentOfInertia = parser.tryGetArg<bool>("moif").valueOr(false);
+        bool reconstructDensity = parser.tryGetArg<bool>("rd").valueOr(true);
 
         OutputFile mask = OutputFile(Path(filemask));
         Statistics stats;
@@ -205,12 +207,47 @@ int main(int argc, char* argv[]) {
 
             if (doComponents) {
                 ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-                ArrayView<const Float> rho;
-                if (storage.has(QuantityId::DENSITY)) {
-                    rho = storage.getValue<Float>(QuantityId::DENSITY);
-                }
                 ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
                 ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+                /* ArrayView<const Float> rho;
+                if (storage.has(QuantityId::DENSITY)) {
+                    rho = storage.getValue<Float>(QuantityId::DENSITY);
+                }*/
+                Array<Float> rho(r.size());
+                if (reconstructDensity) {
+                    auto finder = Factory::getFinder(RunSettings::getDefaults());
+                    finder->build(SEQUENTIAL, r, FinderFlag::SKIP_RANK);
+                    LutKernel<3> kernel = Factory::getKernel<3>(RunSettings::getDefaults());
+                    auto scheduler = Factory::getScheduler(RunSettings::getDefaults());
+                    Array<Float> shepardCorrection(r.size());
+                    shepardCorrection.fill(1._f);
+                    for (int iter = 0; iter < 5; ++iter) {
+                        ThreadLocal<Array<NeighborRecord>> neighsTl(*scheduler);
+                        parallelFor(
+                            *scheduler, neighsTl, 0, r.size(), [&](Size i, Array<NeighborRecord>& neighs) {
+                                finder->findAll(i, r[i][H] * kernel.radius(), neighs);
+                                rho[i] = 0.f;
+                                for (const auto& n : neighs) {
+                                    Size j = n.index;
+                                    rho[i] +=
+                                        m[j] * shepardCorrection[i] * kernel.value(r[j] - r[i], r[j][H]);
+                                }
+                            });
+                        parallelFor(
+                            *scheduler, neighsTl, 0, r.size(), [&](Size i, Array<NeighborRecord>& neighs) {
+                                finder->findAll(i, r[i][H] * kernel.radius(), neighs);
+                                Float sum = 0._f;
+                                for (const auto& n : neighs) {
+                                    Size j = n.index;
+                                    sum += m[j] / rho[j] * kernel.value(r[j] - r[i], r[j][H]);
+                                }
+                                shepardCorrection[i] = 1.f / sum;
+                            });
+                    }
+                } else {
+                    rho = storage.getValue<Float>(QuantityId::DENSITY).clone();
+                }
+
                 Array<Size> indices;
                 Size componentCount = Post::findComponents(
                     storage, 2.f, Post::ComponentFlag::OVERLAP | Post::ComponentFlag::SORT_BY_MASS, indices);
