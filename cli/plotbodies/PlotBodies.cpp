@@ -24,6 +24,12 @@ static Array<ArgDesc> params{
     { "v", "velocity", ArgEnum::BOOL, "Compute the velocities (x,y,z) of bodies." },
     { "r", "radius", ArgEnum::BOOL, "Compute the radii of bodies." },
     { "rp", "rotationPeriod", ArgEnum::BOOL, "Compute the rotation period of bodies." },
+    { "ar", "axesRatii", ArgEnum::BOOL, "Compute the ratios c/b and b/a." },
+    { "ram",
+        "rotationalAngularMomentum",
+        ArgEnum::BOOL,
+        "Compute the rotational angular momentum of bodies." },
+    { "moif", "momentOfInertiaFactor", ArgEnum::BOOL, "Compute the moment of inertia factor." },
     { "pm", "planetMass", ArgEnum::BOOL, "Compute the mass of the central planet." },
     { "c",
         "components",
@@ -31,6 +37,25 @@ static Array<ArgDesc> params{
         "Whether the bodies are components (groups of overlapping particles, for SPH solver), or isolated "
         "particles (for hard-sphere solver with merging). Defaults to true." },
 };
+
+static Pair<Float> getSemiaxisRatios(const Storage& storage, ArrayView<const Size> idxs) {
+    if (idxs.empty()) {
+        return { 0, 0 };
+    }
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    const SymmetricTensor I = Post::getInertiaTensor(m, r, idxs);
+    const Eigen e = eigenDecomposition(I);
+    const Float A = e.values[0];
+    const Float B = e.values[1];
+    const Float C = e.values[2];
+    const Float a = sqrt(B + C - A);
+    const Float b = sqrt(A + C - B);
+    const Float c = sqrt(A + B - C);
+    SPH_ASSERT(a > 0._f && b > 0._f && c > 0._f, a, b, c);
+    return { c / b, b / a };
+}
+
 
 int main(int argc, char* argv[]) {
     try {
@@ -48,6 +73,9 @@ int main(int argc, char* argv[]) {
         bool doVelocity = parser.tryGetArg<bool>("v").valueOr(false);
         bool doRadius = parser.tryGetArg<bool>("r").valueOr(false);
         bool doRotationPeriod = parser.tryGetArg<bool>("rp").valueOr(false);
+        bool doAxesRatii = parser.tryGetArg<bool>("ar").valueOr(false);
+        bool doRotationalAngularMomentum = parser.tryGetArg<bool>("ram").valueOr(false);
+        bool doMomentOfInertia = parser.tryGetArg<bool>("moif").valueOr(false);
 
         OutputFile mask = OutputFile(Path(filemask));
         Statistics stats;
@@ -93,9 +121,9 @@ int main(int argc, char* argv[]) {
         if (doPosition) {
             positionColumn = nextColumn;
             for (Size c = 0; c < outputCount; ++c) {
-                table.setCell(positionColumn + 3 * c + 0, 0, "# X [m]");
-                table.setCell(positionColumn + 3 * c + 1, 0, "# Y [m]");
-                table.setCell(positionColumn + 3 * c + 2, 0, "# Z [m]");
+                table.setCell(positionColumn + 3 * c + 0, 0, "# X " + toString(c + 1) + " [m]");
+                table.setCell(positionColumn + 3 * c + 1, 0, "# Y " + toString(c + 1) + " [m]");
+                table.setCell(positionColumn + 3 * c + 2, 0, "# Z " + toString(c + 1) + " [m]");
             }
             nextColumn += 3 * outputCount;
         }
@@ -104,9 +132,9 @@ int main(int argc, char* argv[]) {
         if (doPosition) {
             velocityColumn = nextColumn;
             for (Size c = 0; c < outputCount; ++c) {
-                table.setCell(velocityColumn + 3 * c + 0, 0, "# VX [m]");
-                table.setCell(velocityColumn + 3 * c + 1, 0, "# VY [m]");
-                table.setCell(velocityColumn + 3 * c + 2, 0, "# VZ [m]");
+                table.setCell(velocityColumn + 3 * c + 0, 0, "# VX " + toString(c + 1) + " [m]");
+                table.setCell(velocityColumn + 3 * c + 1, 0, "# VY " + toString(c + 1) + " [m]");
+                table.setCell(velocityColumn + 3 * c + 2, 0, "# VZ " + toString(c + 1) + " [m]");
             }
             nextColumn += 3 * outputCount;
         }
@@ -115,7 +143,7 @@ int main(int argc, char* argv[]) {
         if (doRadius) {
             radiusColumn = nextColumn;
             for (Size c = 0; c < outputCount; ++c) {
-                table.setCell(radiusColumn + c, 0, "# Radius [m]");
+                table.setCell(radiusColumn + c, 0, "# Radius " + toString(c + 1) + " [m]");
             }
             radiusColumn += outputCount;
         }
@@ -124,9 +152,38 @@ int main(int argc, char* argv[]) {
         if (doRotationPeriod) {
             rotationPeriodColumn = nextColumn;
             for (Size c = 0; c < outputCount; ++c) {
-                table.setCell(rotationPeriodColumn + c, 0, "# Period [s]");
+                table.setCell(rotationPeriodColumn + c, 0, "# Period " + toString(c + 1) + " [s]");
             }
             nextColumn += outputCount;
+        }
+
+        Size momentOfInertiaColumn = 1;
+        if (doMomentOfInertia) {
+            momentOfInertiaColumn = nextColumn;
+            for (Size c = 0; c < outputCount; ++c) {
+                table.setCell(momentOfInertiaColumn + c, 0, "# MOIF " + toString(c + 1));
+            }
+            nextColumn += outputCount;
+        }
+
+        Size rotationalAngularMomentumColumn = 1;
+        if (doRotationalAngularMomentum) {
+            rotationalAngularMomentumColumn = nextColumn;
+            for (Size c = 0; c < outputCount; ++c) {
+                table.setCell(
+                    rotationalAngularMomentumColumn + c, 0, "# RAM " + toString(c + 1) + " [kg m^2 s^-1]");
+            }
+            nextColumn += outputCount;
+        }
+
+        Size axesRatiiColumn = 1;
+        if (doAxesRatii) {
+            axesRatiiColumn = nextColumn;
+            for (Size c = 0; c < outputCount; ++c) {
+                table.setCell(axesRatiiColumn + c, 0, "# c/b " + toString(c + 1));
+                table.setCell(axesRatiiColumn + outputCount + c, 0, "# b/a " + toString(c + 1));
+            }
+            nextColumn += 2 * outputCount;
         }
 
         Size tableRow = 1;
@@ -148,6 +205,10 @@ int main(int argc, char* argv[]) {
 
             if (doComponents) {
                 ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+                ArrayView<const Float> rho;
+                if (storage.has(QuantityId::DENSITY)) {
+                    rho = storage.getValue<Float>(QuantityId::DENSITY);
+                }
                 ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
                 ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
                 Array<Size> indices;
@@ -163,13 +224,11 @@ int main(int argc, char* argv[]) {
                     for (Size i = 0; i < indices.size(); ++i) {
                         if (indices[i] == c) {
                             totalMass += m[i];
-                            totalVolume += sphereVolume(r[i][H]);
+                            totalVolume += rho.empty() ? sphereVolume(r[i][H]) : m[i] / rho[i];
                             position += m[i] * r[i];
                             velocity += m[i] * v[i];
 
-                            if (doRotationPeriod) {
-                                bodyIdxs.push(i);
-                            }
+                            bodyIdxs.push(i);
                         }
                     }
                     if (totalMass > 0) {
@@ -198,9 +257,34 @@ int main(int argc, char* argv[]) {
                         table.setCell(velocityColumn + 3 * c + 2, tableRow, toString(velocity[2]));
                     }
 
+                    Float radius = volumeEquivalentRadius(totalVolume);
                     if (doRadius) {
-                        table.setCell(
-                            radiusColumn + c, tableRow, toString(volumeEquivalentRadius(totalVolume)));
+                        table.setCell(radiusColumn + c, tableRow, toString(radius));
+                    }
+
+                    if (doMomentOfInertia) {
+                        Float moif = 0;
+                        if (!bodyIdxs.empty()) {
+                            const SymmetricTensor I = Post::getInertiaTensor(m, r, bodyIdxs);
+                            const Eigen e = eigenDecomposition(I);
+                            moif = maxElement(e.values) / (totalMass * sqr(radius));
+                        }
+                        table.setCell(momentOfInertiaColumn + c, tableRow, toString(moif));
+                    }
+
+
+                    if (doRotationalAngularMomentum) {
+                        Vector L = Vector(0);
+                        for (Size i : bodyIdxs) {
+                            L += m[i] * (cross(r[i] - position, v[i] - velocity));
+                        }
+                        table.setCell(rotationalAngularMomentumColumn + c, tableRow, toString(getLength(L)));
+                    }
+
+                    if (doAxesRatii) {
+                        Pair<Float> ratii = getSemiaxisRatios(storage, bodyIdxs);
+                        table.setCell(axesRatiiColumn + c, tableRow, toString(ratii[0]));
+                        table.setCell(axesRatiiColumn + outputCount + c, tableRow, toString(ratii[1]));
                     }
 
                     if (storage.getAttractorCnt() > 0 && totalMass > 0) {
