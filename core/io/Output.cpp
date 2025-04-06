@@ -55,18 +55,22 @@ Optional<Size> OutputFile::getDumpIdx(const Path& path) {
     }
 
     Size digitCount = 0;
+    int startPos = 0;
     for (int i = name.size() - 1; i >= 0; --i) {
         if (std::isdigit(name[i])) {
             digitCount++;
-            if (digitCount == 4) {
-                String mask = name.substr(0, i) + L"%d" + name.substr(i + 4);
-                return fromString<Size>(name.substr(i, 4));
-            }
+        } else if (digitCount >= 4) {
+            startPos = i + 1;
+            break;
         } else {
             digitCount = 0;
         }
     }
-    return NOTHING;
+    if (digitCount >= 4) {
+        return fromString<Size>(name.substr(startPos, digitCount));
+    } else {
+        return NOTHING;
+    }
 }
 
 Optional<OutputFile> OutputFile::getMaskFromPath(const Path& path, const Size firstDumpIdx) {
@@ -77,17 +81,21 @@ Optional<OutputFile> OutputFile::getMaskFromPath(const Path& path, const Size fi
     }
 
     Size digitCount = 0;
+    int startPos = 0;
     for (int i = name.size() - 1; i >= 0; --i) {
         if (std::isdigit(name[i])) {
             digitCount++;
-            if (digitCount == 4) {
-                String mask = name.substr(0, i) + L"%d" + name.substr(i + 4);
-                return OutputFile(
-                    path.parentPath() / Path(mask).replaceExtension(path.extension().string()), firstDumpIdx);
-            }
+        } else if (digitCount >= 4) {
+            startPos = i + 1;
+            break;
         } else {
             digitCount = 0;
         }
+    }
+    if (digitCount >= 4) {
+        String mask = name.substr(0, startPos) + L"%d" + name.substr(startPos + digitCount);
+        return OutputFile(
+            path.parentPath() / Path(mask).replaceExtension(path.extension().string()), firstDumpIdx);
     }
     return NOTHING;
 }
