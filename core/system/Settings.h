@@ -1260,6 +1260,8 @@ enum class RunSettingsId {
     /// fast rotators in the simulation.
     COLLISION_ROTATION_MERGE_LIMIT,
 
+    COLLISION_TIDAL_MERGE_LIMIT,
+
     /// Maximum number of bounces per particle, per time step.
     COLLISION_MAX_BOUNCES,
 

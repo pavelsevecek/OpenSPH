@@ -193,7 +193,7 @@ void mergeOverlappingSpheres(IScheduler& scheduler,
 
         FlatSet<Size> toRemove;
         Array<uint8_t> dirty = surface.clone();
-        MergingCollisionHandler handler(0, 0);
+        MergingCollisionHandler handler(0, 0, 0);
         handler.initialize(storage);
 
         for (Size index = 0; index < numComponents; ++index) {

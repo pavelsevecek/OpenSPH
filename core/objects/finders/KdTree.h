@@ -204,7 +204,6 @@ private:
         const Size from,
         const Size to,
         const Box& box,
-        const Size slidingCnt,
         const Size depth);
 
     void addLeaf(const Size parent, const KdChild child, const Size from, const Size to);

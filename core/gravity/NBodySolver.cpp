@@ -652,14 +652,17 @@ void SoftSphereSolver::evalCollisions(Storage& storage, const IBasicFinder& find
     ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+    ArrayView<Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
 
     Float searchRadius = 0;
     for (Size i = 0; i < r.size(); ++i) {
         searchRadius = max(searchRadius, 2 * r[i][H]);
     }
 
+
     parallelFor(scheduler, threadData, 0, r.size(), [&](const Size i, ThreadData& data) {
         finder.findAll(r[i], searchRadius, data.neighs);
+        divv[i] = 0._f;
         for (const auto& n : data.neighs) {
             const Size j = n.index;
             if (i == j || n.distanceSqr >= sqr(r[i][H] + r[j][H])) {
@@ -679,11 +682,16 @@ void SoftSphereSolver::evalCollisions(Storage& storage, const IBasicFinder& find
             const Float k2 = m_eff * h2 / t_dur;
             const Vector force = (k1 * alpha + k2 * alpha_dot) * dir;
             dv[i] -= force / m[i];
+
+            const Vector delta_r = r[j] - r[i];
+            divv[i] += dot(delta_v, delta_r) / getSqrLength(delta_r);
         }
         dv[i][H] = 0;
     });
 }
 
-void SoftSphereSolver::create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const {}
+void SoftSphereSolver::create(Storage& storage, IMaterial& UNUSED(material)) const {
+    storage.insert(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
+}
 
 NAMESPACE_SPH_END

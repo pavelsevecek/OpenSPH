@@ -119,7 +119,7 @@ public:
 /// merger is lower than the break-up frequency; if not, CollisionResult::NONE is returned.
 class MergingCollisionHandler : public ICollisionHandler {
 private:
-    ArrayView<Vector> r, v;
+    ArrayView<Vector> r, v, dv;
     ArrayView<Float> m;
     ArrayView<Vector> L;
     ArrayView<Vector> omega;
@@ -130,19 +130,23 @@ private:
 
     Float bounceLimit;
     Float rotationLimit;
+    Float tidalLimit;
 
 public:
     explicit MergingCollisionHandler(const RunSettings& settings) {
         bounceLimit = settings.get<Float>(RunSettingsId::COLLISION_BOUNCE_MERGE_LIMIT);
         rotationLimit = settings.get<Float>(RunSettingsId::COLLISION_ROTATION_MERGE_LIMIT);
+        tidalLimit = settings.get<Float>(RunSettingsId::COLLISION_TIDAL_MERGE_LIMIT);
     }
 
-    explicit MergingCollisionHandler(const Float bounceLimit, const Float rotationLimit)
+    explicit MergingCollisionHandler(const Float bounceLimit,
+        const Float rotationLimit,
+        const Float tidalLimit)
         : bounceLimit(bounceLimit)
-        , rotationLimit(rotationLimit) {}
+        , rotationLimit(rotationLimit)
+        , tidalLimit(tidalLimit) {}
 
     virtual void initialize(Storage& storage) override {
-        ArrayView<Vector> dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
         m = storage.getValue<Float>(QuantityId::MASS);
         omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
@@ -255,6 +259,13 @@ private:
             /// \todo shouldn't we check velocities AFTER the bounce?
             return false;
         }
+
+        const Float attractiveAcc = Constants::gravity * (m[i] + m[j]) / sqr(h);
+        const Float tidalAcc = getLength(dv[i] - dv[j]);
+        if (attractiveAcc < tidalAcc * tidalLimit) {
+            return false;
+        }
+
         const Float omegaCritSqr = Constants::gravity * (m[i] + m[j]) / pow<3>(h);
         const Float omegaSqr = getSqrLength(omega_merge);
         if (omegaSqr * rotationLimit > omegaCritSqr) {
@@ -398,7 +409,7 @@ private:
 
 public:
     MergeOverlapHandler()
-        : handler(0._f, 0._f) {}
+        : handler(0._f, 0._f, 0._f) {}
 
     virtual void initialize(Storage& storage) override {
         handler.initialize(storage);

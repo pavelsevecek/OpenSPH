@@ -49,38 +49,55 @@ Path OutputFile::getNextPath(const Statistics& stats) const {
 
 Optional<Size> OutputFile::getDumpIdx(const Path& path) {
     // look for 4 consecutive digits.
-    const String s = path.fileName().string();
-    Optional<Size> index = NOTHING;
-    for (int i = 0; i < int(s.size()) - 3; ++i) {
-        if (std::isdigit(s[i]) && std::isdigit(s[i + 1]) && std::isdigit(s[i + 2]) &&
-            std::isdigit(s[i + 3])) {
-            // next digit must NOT be a number
-            if (i + 4 < int(s.size()) && std::isdigit(s[i + 4])) {
-                // 4-digit sequence is not unique, report error
-                return NOTHING;
-            }
-            index = fromString<Size>(s.substr(i, 4));
+    const String name = path.fileName().removeExtension().string();
+    if (name.size() < 4) {
+        return NOTHING;
+    }
+
+    Size digitCount = 0;
+    int startPos = 0;
+    for (int i = name.size() - 1; i >= 0; --i) {
+        if (std::isdigit(name[i])) {
+            digitCount++;
+        } else if (digitCount >= 4) {
+            startPos = i + 1;
+            break;
+        } else {
+            digitCount = 0;
         }
     }
-    return index;
+    if (digitCount >= 4) {
+        return fromString<Size>(name.substr(startPos, digitCount));
+    } else {
+        return NOTHING;
+    }
 }
 
 Optional<OutputFile> OutputFile::getMaskFromPath(const Path& path, const Size firstDumpIdx) {
-    /// \todo could be deduplicated a bit
-    const String s = path.fileName().string();
-    Optional<OutputFile> result = NOTHING;
-    for (int i = 0; i < int(s.size()) - 3; ++i) {
-        if (std::isdigit(s[i]) && std::isdigit(s[i + 1]) && std::isdigit(s[i + 2]) &&
-            std::isdigit(s[i + 3])) {
-            if (i + 4 < int(s.size()) && std::isdigit(s[i + 4])) {
-                return NOTHING;
-            }
-            String mask = s.substr(0, i) + L"%d" + s.substr(i + 4);
-            // prepend the original parent path
-            result = OutputFile(path.parentPath() / Path(mask), firstDumpIdx);
+    /// \todo could be deduplicated a bit with the above
+    const String name = path.fileName().removeExtension().string();
+    if (name.size() < 4) {
+        return NOTHING;
+    }
+
+    Size digitCount = 0;
+    int startPos = 0;
+    for (int i = name.size() - 1; i >= 0; --i) {
+        if (std::isdigit(name[i])) {
+            digitCount++;
+        } else if (digitCount >= 4) {
+            startPos = i + 1;
+            break;
+        } else {
+            digitCount = 0;
         }
     }
-    return result;
+    if (digitCount >= 4) {
+        String mask = name.substr(0, startPos) + L"%d" + name.substr(startPos + digitCount);
+        return OutputFile(
+            path.parentPath() / Path(mask).replaceExtension(path.extension().string()), firstDumpIdx);
+    }
+    return NOTHING;
 }
 
 bool OutputFile::hasWildcard() const {

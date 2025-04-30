@@ -399,6 +399,11 @@ INLINE constexpr Float sphereSurfaceArea(const Float radius) {
     return 4._f * PI * pow<2>(radius);
 }
 
+/// Inverse to \ref sphereVolume.
+INLINE Float volumeEquivalentRadius(const Float volume) {
+    return cbrt(3 * volume / (4 * PI));
+}
+
 /// Checks if two values are equal to some given accuracy.
 /// \note We use <= rather than < on purpose as EPS for integral types is zero.
 INLINE bool almostEqual(const Float& f1, const Float& f2, const Float& eps = EPS) {

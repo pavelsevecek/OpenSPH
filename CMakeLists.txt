@@ -137,4 +137,5 @@ add_subdirectory(cli/info)
 
 if (BUILD_UTILS)
     add_subdirectory(cli/ssftotxt)
+	add_subdirectory(cli/plotbodies)
 endif()

@@ -1,5 +1,6 @@
 #include "physics/Integrals.h"
 #include "post/Analysis.h"
+#include "quantities/Attractor.h"
 #include "quantities/Storage.h"
 #include "system/Factory.h"
 
@@ -47,6 +48,11 @@ Vector TotalAngularMomentum::evaluate(const Storage& storage) const {
     SPH_ASSERT(!v.empty());
     for (Size i = 0; i < v.size(); ++i) {
         total += vectorCast<double>(m[i] * cross(r[i], (v[i] + cross(frameFrequency, r[i]))));
+    }
+
+    for (const Attractor& a : storage.getAttractors()) {
+        total +=
+            vectorCast<double>(a.mass * cross(a.position, (a.velocity + cross(frameFrequency, a.position))));
     }
 
     // local angular momentum

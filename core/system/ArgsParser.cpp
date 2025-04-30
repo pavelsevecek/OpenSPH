@@ -12,6 +12,26 @@ ArgParser::ArgParser(ArrayView<const ArgDesc> args) {
                        } });
 }
 
+template <typename TValue>
+void ArgParser::insertArg(const String& name, const String& textValue) {
+    const Optional<TValue> value = fromString<TValue>(textValue);
+    if (!value) {
+        throw ArgError("Cannot parse value of parameter " + name);
+    }
+    params.insert(name, value.value());
+}
+
+template <>
+void ArgParser::insertArg<bool>(const String& name, const String& textValue) {
+    if (textValue == "true") {
+        params.insert(name, true);
+    } else if (textValue == "false") {
+        params.insert(name, false);
+    } else {
+        throw ArgError("Cannot parse value of parameter " + name);
+    }
+}
+
 void ArgParser::parse(const int argc, char** argv) {
     params.clear();
     for (int i = 1; i < argc; ++i) {
@@ -42,6 +62,8 @@ INLINE String toString(const ArgEnum type) {
         return "FLOAT";
     case ArgEnum::STRING:
         return "STRING";
+    case ArgEnum::BOOL:
+        return "BOOL";
     default:
         NOT_IMPLEMENTED;
     }
@@ -89,6 +111,9 @@ void ArgParser::parseValueArg(const ArgDesc& desc, const String& value) {
     case ArgEnum::STRING:
         insertArg<String>(desc.shortName, value);
         break;
+    case ArgEnum::BOOL:
+        insertArg<bool>(desc.shortName, value);
+        break;
     default:
         STOP;
     }
@@ -96,15 +121,6 @@ void ArgParser::parseValueArg(const ArgDesc& desc, const String& value) {
     if (desc.callback) {
         desc.callback();
     }
-}
-
-template <typename TValue>
-void ArgParser::insertArg(const String& name, const String& textValue) {
-    const Optional<TValue> value = fromString<TValue>(textValue);
-    if (!value) {
-        throw ArgError("Cannot parse value of parameter " + name);
-    }
-    params.insert(name, value.value());
 }
 
 void ArgParser::throwIfUnknownArg(const String& name) const {
