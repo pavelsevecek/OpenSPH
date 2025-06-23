@@ -34,6 +34,14 @@ static Array<ArgDesc> params{
     { "rd", "reconstructDensity", ArgEnum::BOOL, "Recompute particle densities using kernel sum." },
     { "tp", "totalParticles", ArgEnum::BOOL, "Compute the total number of particles in the simulation." },
     { "ppb", "particlesPerBody", ArgEnum::BOOL, "Compute the number of particles of bodies." },
+    { "mir",
+        "massInsideRadius",
+        ArgEnum::FLOAT,
+        "Compute the total mass of particles inside of given radius [km] from the central planet." },
+    { "mor",
+        "massOutsideRadius",
+        ArgEnum::FLOAT,
+        "Compute the total mass of particles outside of given radius [km] from the central planet." },
     { "c",
         "components",
         ArgEnum::BOOL,
@@ -82,6 +90,8 @@ int main(int argc, char* argv[]) {
         bool reconstructDensity = parser.tryGetArg<bool>("rd").valueOr(true);
         bool doTotalParticles = parser.tryGetArg<bool>("tp").valueOr(false);
         bool doParticlesPerBody = parser.tryGetArg<bool>("ppb").valueOr(false);
+        Optional<Float> radiusInsideKm = parser.tryGetArg<Float>("mir");
+        Optional<Float> radiusOutsideKm = parser.tryGetArg<Float>("mor");
 
         OutputFile mask = OutputFile(Path(filemask));
         Statistics stats;
@@ -93,6 +103,23 @@ int main(int argc, char* argv[]) {
             table.setCell(c + 1, 0, "# Mass " + toString(c + 1) + " [kg]");
         }
         nextColumn += outputCount;
+
+        Size massInsideRadiusColumn = 1;
+        if (radiusInsideKm) {
+            massInsideRadiusColumn = nextColumn;
+            table.setCell(
+                massInsideRadiusColumn, 0, "# Mass inside " + toString(radiusInsideKm.value()) + "km [kg]");
+            nextColumn++;
+        }
+
+        Size massOutsideRadiusColumn = 1;
+        if (radiusOutsideKm) {
+            massOutsideRadiusColumn = nextColumn;
+            table.setCell(massOutsideRadiusColumn,
+                0,
+                "# Mass outside " + toString(radiusOutsideKm.value()) + "km [kg]");
+            nextColumn++;
+        }
 
         Size particlesPerBodyColumn = 1;
         if (doParticlesPerBody) {
@@ -302,7 +329,7 @@ int main(int argc, char* argv[]) {
                         Float period = getLength(omega) > EPS ? 2 * PI / getLength(omega) : 0;
                         table.setCell(rotationPeriodColumn + c, tableRow, toString(period));
                     }
-                    
+
                     if (doParticlesPerBody) {
                         table.setCell(particlesPerBodyColumn + c, tableRow, toString(bodyIdxs.size()));
                     }
@@ -443,7 +470,7 @@ int main(int argc, char* argv[]) {
             }
 
             if (doAngularMomentum) {
-                Vector r0 = Vector(0);                
+                Vector r0 = Vector(0);
                 Vector v0 = Vector(0);
                 if (storage.getAttractorCnt() > 0) {
                     const Attractor& a = storage.getAttractors()[0];
@@ -465,6 +492,32 @@ int main(int argc, char* argv[]) {
             if (doPlanetMass && storage.getAttractorCnt() > 0) {
                 const Attractor& a = storage.getAttractors()[0];
                 table.setCell(pmColumn, tableRow, toString(a.mass));
+            }
+
+            if ((radiusInsideKm || radiusOutsideKm) && storage.getAttractorCnt() > 0) {
+                const Attractor& a = storage.getAttractors()[0];
+                ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+                ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+
+                Float massInside = 0._f;
+                Float massOutside = 0._f;
+
+                for (Size i = 0; i < r.size(); ++i) {
+                    const Float dist = getLength(r[i] - a.position);
+                    if (radiusInsideKm && dist < radiusInsideKm.value() * 1e3) {
+                        massInside += m[i];
+                    }
+                    if (radiusOutsideKm && dist > radiusOutsideKm.value() * 1e3) {
+                        massOutside += m[i];
+                    }
+                }
+
+                if (radiusInsideKm) {
+                    table.setCell(massInsideRadiusColumn, tableRow, toString(massInside));
+                }
+                if (radiusOutsideKm) {
+                    table.setCell(massOutsideRadiusColumn, tableRow, toString(massOutside));
+                }
             }
 
             tableRow++;
