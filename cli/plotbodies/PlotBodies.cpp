@@ -32,6 +32,8 @@ static Array<ArgDesc> params{
     { "moif", "momentOfInertiaFactor", ArgEnum::BOOL, "Compute the moment of inertia factor." },
     { "pm", "planetMass", ArgEnum::BOOL, "Compute the mass of the central planet." },
     { "rd", "reconstructDensity", ArgEnum::BOOL, "Recompute particle densities using kernel sum." },
+    { "tp", "totalParticles", ArgEnum::BOOL, "Compute the total number of particles in the simulation." },
+    { "ppb", "particlesPerBody", ArgEnum::BOOL, "Compute the number of particles of bodies." },
     { "c",
         "components",
         ArgEnum::BOOL,
@@ -78,6 +80,8 @@ int main(int argc, char* argv[]) {
         bool doRotationalAngularMomentum = parser.tryGetArg<bool>("ram").valueOr(false);
         bool doMomentOfInertia = parser.tryGetArg<bool>("moif").valueOr(false);
         bool reconstructDensity = parser.tryGetArg<bool>("rd").valueOr(true);
+        bool doTotalParticles = parser.tryGetArg<bool>("tp").valueOr(false);
+        bool doParticlesPerBody = parser.tryGetArg<bool>("ppb").valueOr(false);
 
         OutputFile mask = OutputFile(Path(filemask));
         Statistics stats;
@@ -89,6 +93,22 @@ int main(int argc, char* argv[]) {
             table.setCell(c + 1, 0, "# Mass " + toString(c + 1) + " [kg]");
         }
         nextColumn += outputCount;
+
+        Size particlesPerBodyColumn = 1;
+        if (doParticlesPerBody) {
+            particlesPerBodyColumn = nextColumn;
+            for (Size c = 0; c < outputCount; ++c) {
+                table.setCell(particlesPerBodyColumn + c, 0, "# Particles " + toString(c + 1));
+            }
+            nextColumn += outputCount;
+        }
+
+        Size totalParticlesColumn = 1;
+        if (doTotalParticles) {
+            totalParticlesColumn = nextColumn;
+            table.setCell(totalParticlesColumn, 0, "# Total Particles");
+            nextColumn++;
+        }
 
         Size smaColumn = 1;
         Size eccentricityColumn = 1;
@@ -205,6 +225,10 @@ int main(int argc, char* argv[]) {
             std::cout << "Analyzing simulation at time t=" << time << " ..." << std::endl;
             table.setCell(0, tableRow, toString(time));
 
+            if (doTotalParticles) {
+                table.setCell(totalParticlesColumn, tableRow, toString(storage.getParticleCnt()));
+            }
+
             if (doComponents) {
                 ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
                 ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
@@ -278,8 +302,13 @@ int main(int argc, char* argv[]) {
                         Float period = getLength(omega) > EPS ? 2 * PI / getLength(omega) : 0;
                         table.setCell(rotationPeriodColumn + c, tableRow, toString(period));
                     }
+                    
+                    if (doParticlesPerBody) {
+                        table.setCell(particlesPerBodyColumn + c, tableRow, toString(bodyIdxs.size()));
+                    }
 
-                    std::cout << "Body " << c << " has mass " << totalMass << std::endl;
+                    std::cout << "Body " << c << " has mass " << totalMass << " and " << bodyIdxs.size()
+                              << " particles." << std::endl;
                     table.setCell(massColumn + c, tableRow, toString(totalMass));
 
                     if (doPosition) {
