@@ -414,8 +414,22 @@ int main(int argc, char* argv[]) {
             }
 
             if (doAngularMomentum) {
-                TotalAngularMomentum am;
-                const double value = getLength(am.evaluate(storage));
+                Vector r0 = Vector(0);                
+                Vector v0 = Vector(0);
+                if (storage.getAttractorCnt() > 0) {
+                    const Attractor& a = storage.getAttractors()[0];
+                    r0 = a.position;
+                    v0 = a.velocity;
+                }
+                Vector total(0.);
+                ArrayView<const Vector> r, v, dv;
+                tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+                ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+                for (Size i = 0; i < v.size(); ++i) {
+                    total += m[i] * cross(r[i] - r0, v[i] - v0);
+                }
+
+                const double value = getLength(total);
                 table.setCell(amColumn + outputCount, tableRow, toString(value));
             }
 
