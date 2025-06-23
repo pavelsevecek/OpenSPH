@@ -24,6 +24,8 @@ const AttractorSettings& getDefaultSettings() {
         "Constant determining the softness of the collision." },
     { AttractorSettingsId::EPSILON,               "epsilon",          0.5_f,
         "Constant determining how inelastic the collision is." },
+    { AttractorSettingsId::LOCK_POSITION,         "lock_position",         false,
+        "Keep the position fixed." },
     { AttractorSettingsId::VISIBLE,               "visualization.visible", true,
         "Visible when rendered. "},
     { AttractorSettingsId::VISUALIZATION_TEXTURE, "visualization.texture", ""_s,

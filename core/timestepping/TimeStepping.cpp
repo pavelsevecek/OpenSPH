@@ -35,7 +35,9 @@ void ITimeStepping::step(IScheduler& scheduler, ISolver& solver, Statistics& sta
     Timer timer;
     // drift attractors
     for (Attractor& a : storage->getAttractors()) {
-        a.position += 0.5_f * a.velocity * timeStep;
+        if (!a.settings.getOr(AttractorSettingsId::LOCK_POSITION, false)) {
+            a.position += 0.5_f * a.velocity * timeStep;
+        }
     }
 
     // compute partiles
@@ -46,8 +48,10 @@ void ITimeStepping::step(IScheduler& scheduler, ISolver& solver, Statistics& sta
         // process particle interactions
         a.interact(scheduler, *storage, timeStep);
 
-        a.velocity += a.acceleration * timeStep;
-        a.position += 0.5_f * a.velocity * timeStep;
+        if (!a.settings.getOr(AttractorSettingsId::LOCK_POSITION, false)) {
+            a.velocity += a.acceleration * timeStep;
+            a.position += 0.5_f * a.velocity * timeStep;
+        }
     }
 
     stats.set(StatisticsId::TIMESTEP_ELAPSED, int(timer.elapsed(TimerUnit::MILLISECOND)));

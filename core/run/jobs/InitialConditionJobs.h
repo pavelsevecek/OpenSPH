@@ -76,6 +76,7 @@ private:
     EnumWrapper interaction;
     Float springConstant = 0.004_f;
     Float epsilon = 0.5_f;
+    bool lockPosition = false;
 
     bool visible = true;
     Float albedo = 1._f;
