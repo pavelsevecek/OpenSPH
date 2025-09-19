@@ -34,14 +34,16 @@ Storage smoothedToSolidHandoff(const Storage& input, const HandoffParams& params
 
     // radii handoff
     ArrayView<const Float> m = input.getValue<Float>(QuantityId::MASS);
-    ArrayView<const Float> rho = input.getValue<Float>(QuantityId::DENSITY);
+    ArrayView<const Size> matId = input.getValue<Size>(QuantityId::MATERIAL_ID);
     ArrayView<Vector> r_sphere = spheres.getValue<Vector>(QuantityId::POSITION);
-    SPH_ASSERT(r_sphere.size() == rho.size());
     for (Size i = 0; i < r_sphere.size(); ++i) {
         switch (params.radiusType) {
-        case (HandoffRadius::EQUAL_VOLUME):
-            r_sphere[i][H] = cbrt(3._f * m[i] / (4._f * PI * rho[i]));
+        case (HandoffRadius::EQUAL_VOLUME): {
+            MaterialView mat = input.getMaterial(matId[i]);
+            const Float rho = mat->getParam<Float>(BodySettingsId::DENSITY);
+            r_sphere[i][H] = cbrt(3._f * m[i] / (4._f * PI * rho));
             break;
+        }
         case (HandoffRadius::SMOOTHING_LENGTH):
             r_sphere[i][H] = params.smoothingLengthMult * r_sphere[i][H];
             break;
