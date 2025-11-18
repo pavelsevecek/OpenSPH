@@ -472,28 +472,15 @@ int main(int argc, char* argv[]) {
             if (doAngularMomentum) {
                 Vector r0 = Vector(0);
                 Vector v0 = Vector(0);
-                Float m_sum = 0._f;
+                if (storage.getAttractorCnt() > 0) {
+                    const Attractor& a = storage.getAttractors()[0];
+                    r0 = a.position;
+                    v0 = a.velocity;
+                }
+                Vector total(0.);
                 ArrayView<const Vector> r, v, dv;
                 tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
                 ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-                for (Size i = 0; i < r.size(); ++i) {
-                    m_sum += m[i];
-                    r0 += m[i] * r[i];
-                    v0 += m[i] * v[i];
-                }
-
-                for (const Attractor& a : storage.getAttractors()) {
-                    m_sum += a.mass;
-                    r0 += a.mass * a.position;
-                    v0 += a.mass * a.velocity;
-                }
-
-                if (m_sum > 0) {
-                    r0 /= m_sum;
-                    v0 /= m_sum;
-                }
-
-                Vector total(0.);
                 for (Size i = 0; i < v.size(); ++i) {
                     total += m[i] * cross(r[i] - r0, v[i] - v0);
                 }
