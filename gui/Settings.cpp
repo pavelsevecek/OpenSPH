@@ -180,6 +180,8 @@ const Settings<GuiSettingsId>& getDefaultSettings() {
         "Magnitude of the bloom effect" },
     { GuiSettingsId::SHOW_KEY,              "show_key",             true,
         "Include the distance scale in the rendered image." },
+    { GuiSettingsId::KEY_SCALE,             "key_scale",            1._f,
+        "Size of the key." },
     { GuiSettingsId::FORCE_GRAYSCALE,       "force_grayscale",      false,
         "Palette used for particle colorization is converted to grayscale. Useful for checking how the "
         "image will look when printed on blank-and-white printer. "},

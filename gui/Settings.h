@@ -164,6 +164,8 @@ enum class GuiSettingsId {
 
     SHOW_KEY,
 
+    KEY_SCALE,
+
     FORCE_GRAYSCALE,
 
     ANTIALIASED,

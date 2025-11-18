@@ -13,6 +13,7 @@ NAMESPACE_SPH_BEGIN
 void RenderParams::initialize(const GuiSettings& gui) {
     background = gui.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
     showKey = gui.get<bool>(GuiSettingsId::SHOW_KEY);
+    keyScale = (float)gui.get<Float>(GuiSettingsId::KEY_SCALE);
     particles.scale = float(gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS));
     particles.grayScale = gui.get<bool>(GuiSettingsId::FORCE_GRAYSCALE);
     particles.doAntialiasing = gui.get<bool>(GuiSettingsId::ANTIALIASED);
@@ -38,13 +39,13 @@ void RenderParams::initialize(const GuiSettings& gui) {
 void renderOverlay(IRenderContext& context, const RenderParams& params, const Statistics& stats) {
     if (params.showKey) {
         if (Optional<float> wtp = params.camera->getWorldToPixel(params.camera->getTarget())) {
-            drawKey(context, stats, wtp.value(), params.background);
+            drawKey(context, stats, wtp.value(), params.keyScale, params.background);
         }
 
         const AffineMatrix frame = params.camera->getFrame().inverse();
-        drawAxis(context, Rgba::red(), frame.row(0), "x");
-        drawAxis(context, Rgba::green(), -frame.row(1), "y");
-        drawAxis(context, Rgba::blue(), frame.row(2), "z");
+        drawAxis(context, Rgba::red(), frame.row(0), params.keyScale, "x");
+        drawAxis(context, Rgba::green(), -frame.row(1), params.keyScale, "y");
+        drawAxis(context, Rgba::blue(), frame.row(2), params.keyScale, "z");
     }
 }
 
@@ -126,6 +127,7 @@ void IRaytracer::postProcess(FrameBuffer& fb,
     }
 
     PreviewRenderContext<OverridePixelOp> context(bitmap);
+    context.setFontSize(int(9 * params.keyScale));
     renderOverlay(context, params, stats);
     output.update(std::move(bitmap), context.getLabels(), isFinal);
 }

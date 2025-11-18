@@ -74,6 +74,9 @@ struct RenderParams {
     /// \brief If true, a color palette and a distance scale is included in the image.
     bool showKey = true;
 
+    /// \brief Relative size of the key.
+    float keyScale = 1.f;
+
     /// \brief Parameters of the particle renderer
     struct {
         /// \brief  Scaling factor of drawn particles relative to 1.

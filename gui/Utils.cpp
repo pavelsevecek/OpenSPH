@@ -199,9 +199,14 @@ void printLabels(wxDC& dc, ArrayView<const IRenderOutput::Label> labels) {
 }
 
 
-void drawKey(IRenderContext& context, const Statistics& stats, const float wtp, const Rgba& background) {
+void drawKey(IRenderContext& context,
+    const Statistics& stats,
+    const float wtp,
+    const float scale,
+    const Rgba& background) {
     const Coords size = Coords(context.size());
-    const Coords keyStart = size - Coords(85, 80);
+    const Coords textStart = size - Coords(85 * scale, 44);
+    const Coords keyStart = textStart - Coords(0, 36 * scale);
     Flags<TextAlign> flags = TextAlign::HORIZONTAL_CENTER | TextAlign::BOTTOM;
 
     context.setColor(background.inverse(), ColorFlag::TEXT | ColorFlag::LINE);
@@ -212,13 +217,13 @@ void drawKey(IRenderContext& context, const Statistics& stats, const float wtp, 
     // context.drawText(keyStart + Coords(0, 50), flags, "fps = " + std::to_string(int(fps)));
 
     const float dFov_dPx = 1.f / wtp;
-    const float minimalScaleFov = dFov_dPx * 16;
+    const float minimalScaleFov = dFov_dPx * 16 * scale;
     float actScaleFov = pow(10.f, float(ceil(log10(minimalScaleFov))));
     const float scaleSize = actScaleFov / dFov_dPx;
-    const Coords lineStart = keyStart + Coords(0, 30);
+    const Coords lineStart = keyStart + Coords(0, 30 * scale);
     context.drawLine(lineStart + Coords(-scaleSize / 2, 0), lineStart + Coords(scaleSize / 2, 0));
-    context.drawLine(lineStart + Coords(-scaleSize / 2, -4), lineStart + Coords(-scaleSize / 2, 4));
-    context.drawLine(lineStart + Coords(scaleSize / 2 + 1, -4), lineStart + Coords(scaleSize / 2 + 1, 4));
+    context.drawLine(lineStart + Coords(-scaleSize / 2, -4), lineStart + Coords(-scaleSize / 2, 4 * scale));
+    context.drawLine(lineStart + Coords(scaleSize / 2 + 1, -4), lineStart + Coords(scaleSize / 2 + 1, 4* scale));
 
     /// \todo finally implement the units!
     String units = L" m";
@@ -234,11 +239,15 @@ void drawKey(IRenderContext& context, const Statistics& stats, const float wtp, 
         // convert 1x10^n  -> 10^n
         scaleText = scaleText.substr(3);
     }
-    context.drawText(keyStart + Coords(0, 36), flags, scaleText + units);
+    context.drawText(textStart, flags, scaleText + units);
 }
 
-void drawAxis(IRenderContext& context, const Rgba& color, const Vector& axis, const String& label) {
-    const float length = 40;
+void drawAxis(IRenderContext& context,
+    const Rgba& color,
+    const Vector& axis,
+    const float scale,
+    const String& label) {
+    const float length = 40 * scale;
     const Coords origin(50, context.size().y - 50);
     const Coords dir = Coords(-axis[0], axis[1]) * length;
     context.setColor(color.brighten(0.25), ColorFlag::LINE);
