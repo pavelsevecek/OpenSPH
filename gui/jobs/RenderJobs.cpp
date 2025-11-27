@@ -136,6 +136,9 @@ VirtualSettings AnimationJob::getSettings() {
         .setEnabler(particleEnabler);
     rendererCat.connect<bool>("Antialiasing", gui, GuiSettingsId::ANTIALIASED).setEnabler(particleEnabler);
     rendererCat.connect<bool>("Show key", gui, GuiSettingsId::SHOW_KEY);
+    rendererCat.connect<Float>("Key scale", gui, GuiSettingsId::KEY_SCALE).setEnabler([this] {
+        return gui.get<bool>(GuiSettingsId::SHOW_KEY);
+    });
     rendererCat.connect<int>("Interation count", gui, GuiSettingsId::RAYTRACE_ITERATION_LIMIT)
         .setEnabler(raytraceEnabler);
     rendererCat.connect<Float>("Surface level", gui, GuiSettingsId::SURFACE_LEVEL).setEnabler(surfaceEnabler);

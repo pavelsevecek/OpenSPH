@@ -32,6 +32,16 @@ static Array<ArgDesc> params{
     { "moif", "momentOfInertiaFactor", ArgEnum::BOOL, "Compute the moment of inertia factor." },
     { "pm", "planetMass", ArgEnum::BOOL, "Compute the mass of the central planet." },
     { "rd", "reconstructDensity", ArgEnum::BOOL, "Recompute particle densities using kernel sum." },
+    { "tp", "totalParticles", ArgEnum::BOOL, "Compute the total number of particles in the simulation." },
+    { "ppb", "particlesPerBody", ArgEnum::BOOL, "Compute the number of particles of bodies." },
+    { "mir",
+        "massInsideRadius",
+        ArgEnum::FLOAT,
+        "Compute the total mass of particles inside of given radius [km] from the central planet." },
+    { "mor",
+        "massOutsideRadius",
+        ArgEnum::FLOAT,
+        "Compute the total mass of particles outside of given radius [km] from the central planet." },
     { "c",
         "components",
         ArgEnum::BOOL,
@@ -78,6 +88,10 @@ int main(int argc, char* argv[]) {
         bool doRotationalAngularMomentum = parser.tryGetArg<bool>("ram").valueOr(false);
         bool doMomentOfInertia = parser.tryGetArg<bool>("moif").valueOr(false);
         bool reconstructDensity = parser.tryGetArg<bool>("rd").valueOr(true);
+        bool doTotalParticles = parser.tryGetArg<bool>("tp").valueOr(false);
+        bool doParticlesPerBody = parser.tryGetArg<bool>("ppb").valueOr(false);
+        Optional<Float> radiusInsideKm = parser.tryGetArg<Float>("mir");
+        Optional<Float> radiusOutsideKm = parser.tryGetArg<Float>("mor");
 
         OutputFile mask = OutputFile(Path(filemask));
         Statistics stats;
@@ -89,6 +103,39 @@ int main(int argc, char* argv[]) {
             table.setCell(c + 1, 0, "# Mass " + toString(c + 1) + " [kg]");
         }
         nextColumn += outputCount;
+
+        Size massInsideRadiusColumn = 1;
+        if (radiusInsideKm) {
+            massInsideRadiusColumn = nextColumn;
+            table.setCell(
+                massInsideRadiusColumn, 0, "# Mass inside " + toString(radiusInsideKm.value()) + "km [kg]");
+            nextColumn++;
+        }
+
+        Size massOutsideRadiusColumn = 1;
+        if (radiusOutsideKm) {
+            massOutsideRadiusColumn = nextColumn;
+            table.setCell(massOutsideRadiusColumn,
+                0,
+                "# Mass outside " + toString(radiusOutsideKm.value()) + "km [kg]");
+            nextColumn++;
+        }
+
+        Size particlesPerBodyColumn = 1;
+        if (doParticlesPerBody) {
+            particlesPerBodyColumn = nextColumn;
+            for (Size c = 0; c < outputCount; ++c) {
+                table.setCell(particlesPerBodyColumn + c, 0, "# Particles " + toString(c + 1));
+            }
+            nextColumn += outputCount;
+        }
+
+        Size totalParticlesColumn = 1;
+        if (doTotalParticles) {
+            totalParticlesColumn = nextColumn;
+            table.setCell(totalParticlesColumn, 0, "# Total Particles");
+            nextColumn++;
+        }
 
         Size smaColumn = 1;
         Size eccentricityColumn = 1;
@@ -205,6 +252,10 @@ int main(int argc, char* argv[]) {
             std::cout << "Analyzing simulation at time t=" << time << " ..." << std::endl;
             table.setCell(0, tableRow, toString(time));
 
+            if (doTotalParticles) {
+                table.setCell(totalParticlesColumn, tableRow, toString(storage.getParticleCnt()));
+            }
+
             if (doComponents) {
                 ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
                 ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
@@ -279,7 +330,12 @@ int main(int argc, char* argv[]) {
                         table.setCell(rotationPeriodColumn + c, tableRow, toString(period));
                     }
 
-                    std::cout << "Body " << c << " has mass " << totalMass << std::endl;
+                    if (doParticlesPerBody) {
+                        table.setCell(particlesPerBodyColumn + c, tableRow, toString(bodyIdxs.size()));
+                    }
+
+                    std::cout << "Body " << c << " has mass " << totalMass << " and " << bodyIdxs.size()
+                              << " particles." << std::endl;
                     table.setCell(massColumn + c, tableRow, toString(totalMass));
 
                     if (doPosition) {
@@ -414,14 +470,54 @@ int main(int argc, char* argv[]) {
             }
 
             if (doAngularMomentum) {
-                TotalAngularMomentum am;
-                const double value = getLength(am.evaluate(storage));
+                Vector r0 = Vector(0);
+                Vector v0 = Vector(0);
+                if (storage.getAttractorCnt() > 0) {
+                    const Attractor& a = storage.getAttractors()[0];
+                    r0 = a.position;
+                    v0 = a.velocity;
+                }
+                Vector total(0.);
+                ArrayView<const Vector> r, v, dv;
+                tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+                ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+                for (Size i = 0; i < v.size(); ++i) {
+                    total += m[i] * cross(r[i] - r0, v[i] - v0);
+                }
+
+                const double value = getLength(total);
                 table.setCell(amColumn + outputCount, tableRow, toString(value));
             }
 
             if (doPlanetMass && storage.getAttractorCnt() > 0) {
                 const Attractor& a = storage.getAttractors()[0];
                 table.setCell(pmColumn, tableRow, toString(a.mass));
+            }
+
+            if ((radiusInsideKm || radiusOutsideKm) && storage.getAttractorCnt() > 0) {
+                const Attractor& a = storage.getAttractors()[0];
+                ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+                ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+
+                Float massInside = 0._f;
+                Float massOutside = 0._f;
+
+                for (Size i = 0; i < r.size(); ++i) {
+                    const Float dist = getLength(r[i] - a.position);
+                    if (radiusInsideKm && dist < radiusInsideKm.value() * 1e3) {
+                        massInside += m[i];
+                    }
+                    if (radiusOutsideKm && dist > radiusOutsideKm.value() * 1e3) {
+                        massOutside += m[i];
+                    }
+                }
+
+                if (radiusInsideKm) {
+                    table.setCell(massInsideRadiusColumn, tableRow, toString(massInside));
+                }
+                if (radiusOutsideKm) {
+                    table.setCell(massOutsideRadiusColumn, tableRow, toString(massOutside));
+                }
             }
 
             tableRow++;

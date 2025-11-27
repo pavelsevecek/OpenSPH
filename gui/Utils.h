@@ -38,9 +38,9 @@ String toPrintableString(const Float value, const Size precision = 5, const Floa
 
 void printLabels(wxDC& dc, ArrayView<const IRenderOutput::Label> labels);
 
-void drawKey(IRenderContext& context, const Statistics& stats, const float wtp, const Rgba& background);
+void drawKey(IRenderContext& context, const Statistics& stats, const float wtp, const float scale, const Rgba& background);
 
-void drawAxis(IRenderContext& context, const Rgba& color, const Vector& axis, const String& label);
+void drawAxis(IRenderContext& context, const Rgba& color, const Vector& axis, const float scale, const String& label);
 
 class BusyCursor {
 private:

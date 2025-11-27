@@ -40,6 +40,7 @@ int main(int argc, char* argv[]) {
         }
 
         ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
         ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
         Attractor planet = storage.getAttractors()[0];
 
@@ -53,25 +54,44 @@ int main(int argc, char* argv[]) {
             std::cout << "Using Roche radius of " << R_Roche / 1000 << "km" << std::endl;
         }
 
-        Array<Float> histogram(binCount);
-        histogram.fill(0._f);
+        Array<Float> surfaceDensity(binCount);
+        Array<Float> velocityDispersion(binCount);
+        Array<Size> counts(binCount);
+        surfaceDensity.fill(0._f);
+        velocityDispersion.fill(0._f);
+        counts.fill(0);
 
         const Float annulus = (maxDist - minDist) / binCount;
         for (Size i = 0; i < m.size(); ++i) {
-            const Vector p = r[i] - planet.position;
-            const Float dist = sqrt(sqr(p[0]) + sqr(p[1]));
+            const Vector position = r[i] - planet.position;
+            const Vector velocity = v[i] - planet.velocity;
+            const Float dist = sqrt(sqr(position[0]) + sqr(position[1]));
             const Size bin =
                 clamp(Size(round((dist - minDist) / (maxDist - minDist) * binCount)), 0u, binCount - 1);
-            histogram[bin] += m[i] / (2 * PI * dist * annulus);
+            surfaceDensity[bin] += m[i] / (2 * PI * dist * annulus);
+
+            const Float v_rad = dot(velocity, getNormalized(position));
+            velocityDispersion[bin] += sqr(v_rad);
+            counts[bin]++;
         }
 
         std::ofstream ofs(outputFile.native());
-        ofs << "# Radial distance [Roche radius] vs. Surface density [Earth mass / Roche radius^2]\n";
+        ofs << "# Radial distance [Roche radius]   Surface density [Earth mass / Roche radius^2]   Toomre "
+               "Q\n";
         for (Size b = 0; b < binCount; ++b) {
-            const Float p = minDist + (maxDist - minDist) * Float(b) / (binCount - 1);
-            ofs << p / R_Roche << "    " << histogram[b] * sqr(R_Roche) / Constants::M_earth << '\n';
+            const Float dist = minDist + (maxDist - minDist) * Float(b) / (binCount - 1);
+            const Float sigma = surfaceDensity[b];
+            Float Q = 0;
+            if (counts[b] > 0) {
+                const Float Omega_kepl = sqrt(Constants::gravity * planet.mass / pow<3>(dist));
+                const Float v_r = sqrt(velocityDispersion[b] / counts[b]);
+                Q = v_r * Omega_kepl / (PI * Constants::gravity * sigma);
+            }
+
+            ofs << dist / R_Roche << "    " << sigma * sqr(R_Roche) / Constants::M_earth << "    " << Q
+                << '\n';
         }
-        std::cout << "Histogram saved to file " << outputFile << std::endl;
+        std::cout << "Histograms saved to file " << outputFile << std::endl;
 
     } catch (const std::exception& e) {
         std::cout << "Cannot run program. " << e.what() << std::endl;

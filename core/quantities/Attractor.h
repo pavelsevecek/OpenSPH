@@ -29,6 +29,8 @@ enum class AttractorSettingsId {
 
     EPSILON = 4,
 
+    LOCK_POSITION = 5,
+
     /// Visible when rendered
     VISIBLE = 99,
 

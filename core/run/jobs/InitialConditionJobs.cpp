@@ -275,6 +275,7 @@ VirtualSettings SingleParticleIc::getSettings() {
     particleCat.connect("Restitution", "restitution", epsilon).setEnabler([this] {
         return ParticleInteractionEnum(interaction) == ParticleInteractionEnum::REPEL;
     });
+    particleCat.connect("Lock position", "lock_position", lockPosition);
 
     VirtualSettings::Category& visCat = connector.addCategory("Visualization");
     visCat.connect("Visible", "visible", visible);
@@ -302,6 +303,7 @@ void SingleParticleIc::evaluate(const RunSettings& UNUSED(global), IRunCallbacks
     a.settings.set(AttractorSettingsId::ALBEDO, albedo);
     a.settings.set(AttractorSettingsId::SPRING_CONSTANT, springConstant);
     a.settings.set(AttractorSettingsId::EPSILON, epsilon);
+    a.settings.set(AttractorSettingsId::LOCK_POSITION, lockPosition);
     if (!texture.empty()) {
         a.settings.set(AttractorSettingsId::VISUALIZATION_TEXTURE, texture.string());
     }
