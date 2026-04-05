@@ -5,11 +5,11 @@ stages:
   - deploy
 
 default:
-  image: "debian:buster"
+  image: "debian:bullseye"
 
 before_script:
   - apt-get update -qy
-  - apt-get install -y make g++ clang qt5-default libwxgtk3.0-dev wx3.0-headers wx-common libtbb-dev wget
+  - apt-get install -y make g++ clang qtbase5-dev qt5-qmake qtbase5-dev-tools qtchooser libwxgtk3.0-gtk3-dev libtbb-dev wget
 
 gcc_debug:
   stage: build
