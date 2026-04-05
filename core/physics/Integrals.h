@@ -69,7 +69,7 @@ public:
     virtual Vector evaluate(const Storage& storage) const override;
 
     virtual String getName() const override {
-        return "Total momentum";
+        return "Total momentum [kg m / s]";
     }
 };
 
@@ -88,7 +88,7 @@ public:
     virtual Vector evaluate(const Storage& storage) const override;
 
     virtual String getName() const override {
-        return "Total angular momentum";
+        return "Total angular momentum [kg m^2 / s]";
     }
 };
 
@@ -107,7 +107,7 @@ public:
     virtual Float evaluate(const Storage& storage) const override;
 
     virtual String getName() const override {
-        return "Kinetic energy";
+        return "Total kinetic energy [J]";
     }
 };
 
@@ -121,7 +121,7 @@ public:
     virtual Float evaluate(const Storage& storage) const override;
 
     virtual String getName() const override {
-        return "Internal energy";
+        return "Total internal energy [J]";
     }
 };
 
@@ -139,7 +139,7 @@ public:
     virtual Float evaluate(const Storage& storage) const override;
 
     virtual String getName() const override {
-        return "Total energy";
+        return "Total energy [J]";
     }
 };
 

@@ -57,7 +57,7 @@ GridPage::GridPage(wxWindow* parent, const wxSize size, const Storage& storage)
     wxGridSizer* boxSizer = new wxGridSizer(4, 2, 2);
     boxSizer->Add(new wxCheckBox(this, int(CheckFlag::PARTICLE_COUNT), "Particle count"));
     boxSizer->Add(new wxCheckBox(this, int(CheckFlag::MASS), "Mass"));
-    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::MASS_FRACTION), "Mass fraction"));
+    boxSizer->Add(new wxCheckBox(this, int(CheckFlag::MASS_FRACTION), "Mass fraction [0-1]"));
     boxSizer->Add(new wxCheckBox(this, int(CheckFlag::AVERAGE_DENSITY), "Average density"));
     boxSizer->Add(new wxCheckBox(this, int(CheckFlag::DIAMETER), "Diameter"));
     boxSizer->Add(new wxCheckBox(this, int(CheckFlag::VELOCITY_DIFFERENCE), "Velocity difference"));

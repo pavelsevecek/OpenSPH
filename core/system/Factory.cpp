@@ -3,6 +3,7 @@
 #include "gravity/BruteForceGravity.h"
 #include "gravity/CachedGravity.h"
 #include "gravity/Collision.h"
+#include "gravity/SoftenedBruteForceGravity.h"
 #include "gravity/SphericalGravity.h"
 #include "gravity/SymmetricGravity.h"
 #include "io/LogWriter.h"
@@ -169,6 +170,8 @@ AutoPtr<ITimeStepping> Factory::getTimeStepping(const RunSettings& settings,
         return makeAuto<PredictorCorrector>(storage, settings);
     case TimesteppingEnum::LEAP_FROG:
         return makeAuto<LeapFrog>(storage, settings);
+    case TimesteppingEnum::SYMPLECTIC_EPICYCLE:
+        return makeAuto<SymplecticEpicycle>(storage, settings);
     case TimesteppingEnum::BULIRSCH_STOER:
         return makeAuto<BulirschStoer>(storage, settings);
     case TimesteppingEnum::MODIFIED_MIDPOINT:
@@ -360,6 +363,7 @@ AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler,
 
 AutoPtr<IGravity> Factory::getGravity(const RunSettings& settings) {
     const GravityEnum id = settings.get<GravityEnum>(RunSettingsId::GRAVITY_SOLVER);
+    const Float softening = settings.get<Float>(RunSettingsId::GRAVITY_SOFTENING_LENGTH);
     const GravityKernelEnum kernelId = settings.get<GravityKernelEnum>(RunSettingsId::GRAVITY_KERNEL);
     GravityLutKernel kernel;
     switch (kernelId) {
@@ -377,25 +381,49 @@ AutoPtr<IGravity> Factory::getGravity(const RunSettings& settings) {
     }
 
     AutoPtr<IGravity> gravity;
-    switch (id) {
-    case GravityEnum::SPHERICAL:
-        gravity = makeAuto<SphericalGravity>();
-        break;
-    case GravityEnum::BRUTE_FORCE:
-        gravity = makeAuto<BruteForceGravity>(std::move(kernel));
-        break;
-    case GravityEnum::BARNES_HUT: {
-        const Float theta = settings.get<Float>(RunSettingsId::GRAVITY_OPENING_ANGLE);
-        const MultipoleOrder order =
-            MultipoleOrder(settings.get<int>(RunSettingsId::GRAVITY_MULTIPOLE_ORDER));
-        const Size leafSize = settings.get<int>(RunSettingsId::FINDER_LEAF_SIZE);
-        const Size maxDepth = settings.get<int>(RunSettingsId::FINDER_MAX_PARALLEL_DEPTH);
+    if (softening > 0._f) {
+        if (kernelId != GravityKernelEnum::POINT_PARTICLES) {
+            throw InvalidSetup(
+                "Fixed gravitational softening cannot be combined with SPH or solid-sphere gravity kernels.");
+        }
         const Float constant = settings.get<Float>(RunSettingsId::GRAVITY_CONSTANT);
-        gravity = makeAuto<BarnesHut>(theta, order, std::move(kernel), leafSize, maxDepth, constant);
-        break;
-    }
-    default:
-        NOT_IMPLEMENTED;
+        switch (id) {
+        case GravityEnum::BRUTE_FORCE:
+            gravity = makeAuto<SoftenedBruteForceGravity>(constant, softening);
+            break;
+        case GravityEnum::BARNES_HUT: {
+            const Float theta = settings.get<Float>(RunSettingsId::GRAVITY_OPENING_ANGLE);
+            const MultipoleOrder order =
+                MultipoleOrder(settings.get<int>(RunSettingsId::GRAVITY_MULTIPOLE_ORDER));
+            const Size leafSize = settings.get<int>(RunSettingsId::FINDER_LEAF_SIZE);
+            const Size maxDepth = settings.get<int>(RunSettingsId::FINDER_MAX_PARALLEL_DEPTH);
+            gravity = makeAuto<BarnesHut>(theta, order, leafSize, maxDepth, constant, softening);
+            break;
+        }
+        default:
+            throw InvalidSetup("Fixed gravitational softening is not supported by the selected gravity solver.");
+        }
+    } else {
+        switch (id) {
+        case GravityEnum::SPHERICAL:
+            gravity = makeAuto<SphericalGravity>();
+            break;
+        case GravityEnum::BRUTE_FORCE:
+            gravity = makeAuto<BruteForceGravity>(std::move(kernel));
+            break;
+        case GravityEnum::BARNES_HUT: {
+            const Float theta = settings.get<Float>(RunSettingsId::GRAVITY_OPENING_ANGLE);
+            const MultipoleOrder order =
+                MultipoleOrder(settings.get<int>(RunSettingsId::GRAVITY_MULTIPOLE_ORDER));
+            const Size leafSize = settings.get<int>(RunSettingsId::FINDER_LEAF_SIZE);
+            const Size maxDepth = settings.get<int>(RunSettingsId::FINDER_MAX_PARALLEL_DEPTH);
+            const Float constant = settings.get<Float>(RunSettingsId::GRAVITY_CONSTANT);
+            gravity = makeAuto<BarnesHut>(theta, order, std::move(kernel), leafSize, maxDepth, constant);
+            break;
+        }
+        default:
+            NOT_IMPLEMENTED;
+        }
     }
 
     // wrap gravity in case of symmetric boundary conditions
@@ -495,8 +523,11 @@ AutoPtr<IDomain> Factory::getDomain(const BodySettings& settings) {
 
 AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& settings,
     SharedPtr<IDomain> domain) {
-    const BoundaryEnum id =
-        domain ? settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY) : BoundaryEnum::NONE;
+    const BoundaryEnum id = settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY);
+    if (!domain && id != BoundaryEnum::NONE && id != BoundaryEnum::SYMMETRIC &&
+        id != BoundaryEnum::SHEARING_SHEET) {
+        return makeAuto<NullBoundaryCondition>();
+    }
 
     switch (id) {
     case BoundaryEnum::NONE:
@@ -532,6 +563,8 @@ AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& se
         const Box box = domain->getBoundingBox();
         return makeAuto<Projection1D>(Interval(box.lower()[X], box.upper()[X]));
     }
+    case BoundaryEnum::SHEARING_SHEET:
+        return makeAuto<ShearingSheetBoundary>(settings);
     default:
         NOT_IMPLEMENTED;
     }

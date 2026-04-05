@@ -168,26 +168,22 @@ void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) 
     const wxSize size = this->GetSize();
     const AffineMatrix2 matrix = this->getPlotTransformMatrix(rangeX, rangeY);
 
-    // find point where y-axis appears on the polot
+    // Keep the vertical scale visible even if x = 0 is not in the plotted range.
     const Float x0 = -rangeX.lower() / rangeX.size();
-    if (x0 >= 0._f && x0 <= 1._f) {
-        // draw y-axis
-        const int dcX = int(padding.x + x0 * (size.x - 2 * padding.x));
-        dc.DrawLine(dcX, size.y - padding.y, dcX, padding.y);
-        if (ticsParams) {
-            Array<Float> tics = getLinearTics(rangeY, ticsParams->minCnt);
-            SPH_ASSERT(tics.size() >= ticsParams->minCnt);
-            for (const Float tic : tics) {
-                const PlotPoint plotPoint(0, tic);
-                const PlotPoint imagePoint = matrix.transformPoint(plotPoint);
-                dc.DrawLine(
-                    int(imagePoint.x) - 2, int(imagePoint.y), int(imagePoint.x) + 2, int(imagePoint.y));
-                const String text = toPrintableString(tic, ticsParams->digits);
-                const wxSize extent = dc.GetTextExtent(text.toUnicode());
-                const int labelX =
-                    (imagePoint.x > size.x / 2._f) ? int(imagePoint.x) - extent.x : int(imagePoint.x);
-                drawTextWithSubscripts(dc, text, wxPoint(labelX, int(imagePoint.y) - extent.y / 2));
-            }
+    const bool yAxisInRange = x0 >= 0._f && x0 <= 1._f;
+    const int dcX = yAxisInRange ? int(padding.x + x0 * (size.x - 2 * padding.x)) : padding.x;
+    dc.DrawLine(dcX, size.y - padding.y, dcX, padding.y);
+    if (ticsParams) {
+        Array<Float> tics = getLinearTics(rangeY, ticsParams->minCnt);
+        SPH_ASSERT(tics.size() >= ticsParams->minCnt);
+        for (const Float tic : tics) {
+            const PlotPoint plotPoint(rangeX.lower(), tic);
+            const PlotPoint imagePoint = matrix.transformPoint(plotPoint);
+            dc.DrawLine(dcX - 2, int(imagePoint.y), dcX + 2, int(imagePoint.y));
+            const String text = toPrintableString(tic, ticsParams->digits);
+            const wxSize extent = dc.GetTextExtent(text.toUnicode());
+            const int labelX = yAxisInRange ? ((dcX > size.x / 2._f) ? dcX - extent.x : dcX) : dcX + 4;
+            drawTextWithSubscripts(dc, text, wxPoint(labelX, int(imagePoint.y) - extent.y / 2));
         }
     }
     // find point where x-axis appears on the plot

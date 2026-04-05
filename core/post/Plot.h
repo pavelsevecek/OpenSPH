@@ -303,7 +303,7 @@ public:
     explicit AngularHistogramPlot(const Float period);
 
     virtual String getCaption() const override {
-        return "Angular histogram of velocities";
+        return "Angular histogram of velocities [rad]";
     }
 
     virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;

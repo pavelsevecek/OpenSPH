@@ -13,6 +13,7 @@ enum class Id {
     FRAGMENTATION_REACCUMULATION,
     CRATERING,
     PLANETESIMAL_MERGING,
+    SHEARING_SHEET,
     GALAXY_COLLISION,
     ACCRETION_DISK,
     PLANET_FORMATION,
@@ -35,6 +36,9 @@ SharedPtr<JobNode> makeCratering(UniqueNameManager& nameMgr, const Size particle
 
 /// \brief Creates a node tree for simulation of planetesimal collision.
 SharedPtr<JobNode> makePlanetesimalMerging(UniqueNameManager& nameMgr, const Size particleCnt = 10000);
+
+/// \brief Creates a node tree for a REBOUND-style shearing-sheet ring patch simulation.
+SharedPtr<JobNode> makeShearingSheet(UniqueNameManager& nameMgr, const Size particleCnt = 10000);
 
 /// \brief Creates a node tree for galaxy collision.
 SharedPtr<JobNode> makeGalaxyCollision(UniqueNameManager& nameMgr, const Size particleCnt = 10000);

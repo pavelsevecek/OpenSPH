@@ -27,6 +27,9 @@ static RegisterEnum<Id> sPresetsId({
     { Id::PLANETESIMAL_MERGING,
         "planetesimal_merging",
         "Two equal-sized planetesimals with iron core colliding and merging." },
+    { Id::SHEARING_SHEET,
+        "shearing_sheet",
+        "Local REBOUND-style shearing-sheet patch for ring and disk simulations." },
     { Id::GALAXY_COLLISION, "galaxy_collision", "Simulation of two interacting galaxies." },
     { Id::ACCRETION_DISK,
         "accretion_disk",
@@ -52,6 +55,8 @@ SharedPtr<JobNode> Presets::make(const Id id, UniqueNameManager& nameMgr, const 
         return makeCratering(nameMgr, particleCnt);
     case Id::PLANETESIMAL_MERGING:
         return makePlanetesimalMerging(nameMgr, particleCnt);
+    case Id::SHEARING_SHEET:
+        return makeShearingSheet(nameMgr, particleCnt);
     case Id::GALAXY_COLLISION:
         return makeGalaxyCollision(nameMgr, particleCnt);
     case Id::ACCRETION_DISK:
@@ -286,6 +291,53 @@ SharedPtr<JobNode> Presets::makePlanetesimalMerging(UniqueNameManager& nameMgr, 
     simSettings.set(RunSettingsId::TIMESTEPPING_CRITERION, criteria);
     merger->connect(sim, "particles");
 
+    return sim;
+}
+
+SharedPtr<JobNode> Presets::makeShearingSheet(UniqueNameManager& nameMgr, const Size particleCnt) {
+    SharedPtr<JobNode> ic = makeNode<ShearingSheetIc>(nameMgr.getName("shearing sheet"));
+    VirtualSettings icSettings = ic->getSettings();
+    icSettings.set("fill_mode", EnumWrapper(ShearingSheetFillMode::TARGET_SURFACE_DENSITY));
+    icSettings.set("particle_count", int(particleCnt));
+    icSettings.set("center", Vector(0._f));
+    icSettings.set("box_size", Vector(100._f, 100._f, 10._f));
+    icSettings.set("omega", 1.3143527e-4_f);
+    icSettings.set("softening", 0.1_f);
+    icSettings.set("ghost_x", 2);
+    icSettings.set("ghost_y", 2);
+    icSettings.set("ghost_z", 0);
+    icSettings.set("surface_density", 400._f);
+    icSettings.set("bulk_density", 400._f);
+    icSettings.set("radius_min", 1._f);
+    icSettings.set("radius_max", 4._f);
+    icSettings.set("radius_slope", -3._f);
+    icSettings.set("z_dispersion", 1._f);
+    icSettings.set("restitution_model", EnumWrapper(ShearingSheetRestitutionEnum::BRIDGES));
+    icSettings.set("minimum_collision_velocity", 1.3143527e-7_f);
+
+    SharedPtr<JobNode> sim = makeNode<NBodyJob>(nameMgr.getName("ring patch"), EMPTY_SETTINGS);
+    VirtualSettings simSettings = sim->getSettings();
+    const Float orbit = 2._f * PI / 1.3143527e-4_f;
+    const Float dt = 1.e-3_f * orbit;
+    simSettings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, EnumWrapper(TimesteppingEnum::SYMPLECTIC_EPICYCLE));
+    simSettings.set(
+        RunSettingsId::TIMESTEPPING_CRITERION, EnumWrapper::fromFlags(Flags<TimeStepCriterionEnum>()));
+    simSettings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, dt);
+    simSettings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, dt);
+    simSettings.set(RunSettingsId::GRAVITY_CONSTANT, 6.67428e-11_f);
+    simSettings.set(RunSettingsId::GRAVITY_SOLVER, EnumWrapper(GravityEnum::BARNES_HUT));
+    simSettings.set(RunSettingsId::GRAVITY_KERNEL, EnumWrapper(GravityKernelEnum::POINT_PARTICLES));
+    simSettings.set(RunSettingsId::SPH_FINDER, EnumWrapper(FinderEnum::KD_TREE));
+    simSettings.set(RunSettingsId::COLLISION_HANDLER, EnumWrapper(CollisionHandlerEnum::ELASTIC_BOUNCE));
+    simSettings.set(RunSettingsId::COLLISION_OVERLAP, EnumWrapper(OverlapEnum::INTERNAL_BOUNCE));
+    simSettings.set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 1._f);
+    simSettings.set(RunSettingsId::NBODY_SOFTSPHERE_ENABLE, false);
+    simSettings.set("run.end_time", orbit);
+    simSettings.set("run.output_interval", 0.1_f * orbit);
+    simSettings.set(RunSettingsId::RUN_OUTPUT_TYPE, EnumWrapper(IoEnum::NONE));
+    simSettings.set(RunSettingsId::RUN_LOGGER, EnumWrapper(LoggerEnum::NONE));
+
+    ic->connect(sim, "particles");
     return sim;
 }
 

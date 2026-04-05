@@ -147,6 +147,8 @@ enum class GuiSettingsId {
 
     REFRESH_ON_TIMESTEP,
 
+    PLOT_REFRESH_ON_TIMESTEP,
+
     /// Size of the grid cell in simulation units (not window units); if zero, no grid is drawn
     VIEW_GRID_SIZE,
 
@@ -173,6 +175,8 @@ enum class GuiSettingsId {
     SMOOTH_PARTICLES,
 
     RENDER_GHOST_PARTICLES,
+
+    SHOW_SHEARING_BOX,
 
     /// Displayed radius of particle in units of smoothing length
     PARTICLE_RADIUS,

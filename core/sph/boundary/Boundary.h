@@ -9,6 +9,7 @@
 #include "objects/containers/Array.h"
 #include "objects/geometry/Domain.h"
 #include "objects/geometry/Vector.h"
+#include "physics/ShearingSheet.h"
 #include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Interval.h"
 #include "quantities/Storage.h"
@@ -28,6 +29,8 @@ class ISymmetricFinder;
 /// quantities on ghosts, make sure that derivatives are zero/clamped as needed, etc.
 class IBoundaryCondition : public Polymorphic {
 public:
+    virtual void setTime(const Float UNUSED(t)) {}
+
     /// \brief Applies the boundary conditions before the derivatives are computed.
     ///
     /// Called every time step after equations are initialized.
@@ -221,6 +224,29 @@ private:
 
 public:
     explicit PeriodicBoundary(const Box& domain);
+
+    virtual void initialize(Storage& storage) override;
+
+    virtual void finalize(Storage& storage) override;
+};
+
+/// \brief Boundary implementing REBOUND-style shearing-sheet ghost boxes for SPH.
+class ShearingSheetBoundary : public IBoundaryCondition {
+private:
+    ShearingSheet::Config cfg;
+    Float time = 0._f;
+    Float searchRadius = 2._f;
+    bool fullGhosts = false;
+
+    Array<Ghost> ghosts;
+    Array<Size> ghostIdxs;
+
+public:
+    explicit ShearingSheetBoundary(const RunSettings& settings);
+
+    virtual void setTime(const Float t) override {
+        time = t;
+    }
 
     virtual void initialize(Storage& storage) override;
 

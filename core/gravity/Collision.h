@@ -7,6 +7,7 @@
 
 #include "objects/containers/FlatSet.h"
 #include "physics/Functions.h"
+#include "physics/ShearingSheet.h"
 #include "quantities/Storage.h"
 #include "system/Settings.h"
 
@@ -60,6 +61,19 @@ public:
     /// If so, the overlap is then resolved using \ref handle.
     /// \param i,j Indices of particles in the storage.
     virtual bool overlaps(const Size i, const Size j) const = 0;
+
+    /// \brief Returns true if two particles overlap, using explicitly supplied phase-space coordinates.
+    ///
+    /// This overload is used by shearing-sheet collision search where the interacting particle may be an
+    /// image with shifted position and velocity.
+    virtual bool overlaps(const Size i,
+        const Size j,
+        const Vector& UNUSED(r_i),
+        const Vector& UNUSED(v_i),
+        const Vector& UNUSED(r_j),
+        const Vector& UNUSED(v_j)) const {
+        return overlaps(i, j);
+    }
 
     /// \brief Handles the overlap of two particles.
     ///
@@ -295,10 +309,15 @@ protected:
 
     } restitution;
 
+    ShearingSheetRestitutionEnum model = ShearingSheetRestitutionEnum::CONSTANT;
+    Float minimumCollisionVelocity = 0._f;
+
 public:
     explicit ElasticBounceHandler(const RunSettings& settings) {
         restitution.n = settings.get<Float>(RunSettingsId::COLLISION_RESTITUTION_NORMAL);
         restitution.t = settings.get<Float>(RunSettingsId::COLLISION_RESTITUTION_TANGENT);
+        model = settings.get<ShearingSheetRestitutionEnum>(RunSettingsId::SHEARING_SHEET_RESTITUTION);
+        minimumCollisionVelocity = settings.get<Float>(RunSettingsId::SHEARING_SHEET_MIN_COLLISION_VELOCITY);
     }
 
     ElasticBounceHandler(const Float n, const Float t) {
@@ -313,10 +332,35 @@ public:
     }
 
     virtual CollisionResult collide(const Size i, const Size j, FlatSet<Size>& UNUSED(toRemove)) override {
-        const Vector dr = getNormalized(r[i] - r[j]);
-        const Vector v_com = weightedAverage(v[i], m[i], v[j], m[j]);
-        v[i] = this->reflect(v[i], v_com, -dr);
-        v[j] = this->reflect(v[j], v_com, dr);
+        const Vector n = getNormalized(r[i] - r[j]);
+        const Vector dv = v[i] - v[j];
+        const Float vn = dot(dv, n);
+        if (vn >= 0._f) {
+            return CollisionResult::NONE;
+        }
+
+        const Vector v_t = dv - vn * n;
+        Float eps_n = restitution.n;
+        if (model == ShearingSheetRestitutionEnum::BRIDGES) {
+            eps_n = ShearingSheet::restitutionBridges(abs(vn));
+        }
+
+        const Float minr = min(r[i][H], r[j][H]);
+        const Float maxr = max(r[i][H], r[j][H]);
+        Float minDv = minr * minimumCollisionVelocity;
+        const Float dist = getLength(r[i] - r[j]);
+        if (minr > 0._f) {
+            minDv *= 1._f - (dist - maxr) / minr;
+            minDv = min(minDv, maxr * minimumCollisionVelocity);
+            minDv = max(minDv, 0._f);
+        }
+
+        const Float targetNormal = max(eps_n * abs(vn), minDv);
+        const Vector dvAfter = restitution.t * v_t + targetNormal * n;
+        const Vector vCom = weightedAverage(v[i], m[i], v[j], m[j]);
+        const Float invMass = 1._f / (m[i] + m[j]);
+        v[i] = vCom + m[j] * invMass * dvAfter;
+        v[j] = vCom - m[i] * invMass * dvAfter;
 
         // no change of radius
         v[i][H] = 0._f;
@@ -324,18 +368,6 @@ public:
 
         SPH_ASSERT(isReal(v[i]) && isReal(v[j]));
         return CollisionResult::BOUNCE;
-    }
-
-private:
-    INLINE Vector reflect(const Vector& v_particle, const Vector& v_com, const Vector& dir) {
-        SPH_ASSERT(almostEqual(getSqrLength(dir), 1._f), dir);
-        const Vector v_rel = v_particle - v_com;
-        const Float proj = dot(v_rel, dir);
-        const Vector v_t = v_rel - proj * dir;
-        const Vector v_n = proj * dir;
-
-        // flip the orientation of normal component (bounce) and apply coefficients of restitution
-        return restitution.t * v_t - restitution.n * v_n + v_com;
     }
 };
 
@@ -512,6 +544,15 @@ public:
         return dot(dr, dv) < 0._f;
     }
 
+    virtual bool overlaps(const Size UNUSED(i),
+        const Size UNUSED(j),
+        const Vector& r_i,
+        const Vector& v_i,
+        const Vector& r_j,
+        const Vector& v_j) const override {
+        return dot(r_i - r_j, v_i - v_j) < 0._f;
+    }
+
     virtual void handle(const Size i, const Size j, FlatSet<Size>& toRemove) override {
         handler.collide(i, j, toRemove);
     }
@@ -572,6 +613,34 @@ public:
             return false;
         }
 
+        return true;
+    }
+
+    virtual bool overlaps(const Size i,
+        const Size j,
+        const Vector& r_i,
+        const Vector& v_i,
+        const Vector& r_j,
+        const Vector& v_j) const override {
+        const Float mSum = m[i] + m[j];
+        if (!areParticlesBound(mSum, r_i[H] + r_j[H], v_i - v_j, bounceLimit)) {
+            return false;
+        }
+
+        const Float hMerger = root<3>(pow<3>(r_i[H]) + pow<3>(r_j[H]));
+        const Float omegaCritSqr = Constants::gravity * mSum / pow<3>(hMerger);
+
+        const Vector rMerger = weightedAverage(r_i, m[i], r_j, m[j]);
+        const Vector vMerger = weightedAverage(v_i, m[i], v_j, m[j]);
+        const Vector lMerger = m[i] * cross(r_i - rMerger, v_i - vMerger) + //
+                               m[j] * cross(r_j - rMerger, v_j - vMerger) + //
+                               Rigid::sphereInertia(m[i], r_i[H]) * omega[i] + //
+                               Rigid::sphereInertia(m[j], r_j[H]) * omega[j];
+        const Vector omegaMerger = Rigid::sphereInertia(mSum, hMerger).inverse() * lMerger;
+        const Float omegaSqr = getSqrLength(omegaMerger);
+        if (omegaSqr * rotationLimit > omegaCritSqr) {
+            return false;
+        }
         return true;
     }
 

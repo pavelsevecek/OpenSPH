@@ -53,14 +53,23 @@ constexpr Float year = 3.154e7_f; // s
 /// http://asa.usno.navy.mil/static/files/2014/Astronomical_Constants_2014.pdf
 constexpr Float M_sun = 1.9884e30_f; // kg
 
+/// Jupiter mass
+constexpr Float M_jupiter = 1.89813e27_f; // kg
+
 /// Earth mass
 constexpr Float M_earth = 5.9722e24_f; // kg
+
+/// Moon mass
+constexpr Float M_moon = 7.34767309e22_f; // kg
 
 /// Solar radius
 constexpr Float R_sun = 6.957e8_f; // m
 
 /// Earth radius
 constexpr Float R_earth = 6.3781e6_f; // m
+
+/// Jupiter mean radius
+constexpr Float R_jupiter = 6.9911e7_f; // m
 
 } // namespace Constants
 

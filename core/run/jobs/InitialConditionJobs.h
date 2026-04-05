@@ -282,6 +282,75 @@ public:
     virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
 };
 
+enum class ShearingSheetFillMode {
+    TARGET_COUNT,
+    TARGET_SURFACE_DENSITY,
+    TOTAL_MASS_AND_COUNT,
+};
+
+enum class ShearingSheetMassUnit {
+    GRAMS,
+    KILOGRAMS,
+    EARTH_MASSES,
+    LUNAR_MASSES,
+    JOVIAN_MASSES,
+    SOLAR_MASSES,
+};
+
+enum class ShearingSheetLengthUnit {
+    EARTH_RADII,
+    LUNAR_RADII,
+    JOVIAN_RADII,
+    SOLAR_RADII,
+    KILOMETERS,
+    METERS,
+    AU,
+};
+
+class ShearingSheetIc : public IParticleJob {
+private:
+    EnumWrapper fillMode = EnumWrapper(ShearingSheetFillMode::TARGET_SURFACE_DENSITY);
+    EnumWrapper boxSizeUnit = EnumWrapper(ShearingSheetLengthUnit::METERS);
+    EnumWrapper totalMassUnit = EnumWrapper(ShearingSheetMassUnit::KILOGRAMS);
+    EnumWrapper verticalBoundary = EnumWrapper(ShearingSheetVerticalBoundaryEnum::PERIODIC);
+    EnumWrapper restitutionModel = EnumWrapper(ShearingSheetRestitutionEnum::BRIDGES);
+
+    int particleCount = 1000;
+    int seed = 1234;
+
+    Float omega = 1.3143527e-4_f;
+    Float softening = 0.1_f;
+    Vector center = Vector(0._f);
+    Vector boxSize = Vector(100._f, 100._f, 10._f);
+    Vector velocityDispersion = Vector(0._f);
+    Float surfaceDensity = 400._f;
+    Float totalMass = 4.e6_f;
+    Float bulkDensity = 400._f;
+    Float radiusMin = 1._f;
+    Float radiusMax = 4._f;
+    Float radiusSlope = -3._f;
+    Float zDispersion = 1._f;
+    int ghostX = 2;
+    int ghostY = 2;
+    int ghostZ = 0;
+    Float minimumCollisionVelocity = 1.3143527e-7_f;
+
+public:
+    explicit ShearingSheetIc(const String& name);
+
+    virtual String className() const override {
+        return "shearing sheet";
+    }
+
+    virtual UnorderedMap<String, ExtJobType> getSlots() const override {
+        return {};
+    }
+
+    virtual VirtualSettings getSettings() override;
+
+    virtual void evaluate(const RunSettings& global, IRunCallbacks& UNUSED(callbacks)) override;
+};
+
 class PolytropeIc : public IParticleJob {
 private:
     int particleCnt = 10000;

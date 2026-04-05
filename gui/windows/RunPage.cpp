@@ -19,6 +19,7 @@
 #include "io/FileSystem.h"
 #include "io/LogWriter.h"
 #include "io/Logger.h"
+#include "physics/Constants.h"
 #include "sph/Diagnostics.h"
 #include "thread/CheckFunction.h"
 #include "thread/Pool.h"
@@ -38,6 +39,7 @@
 #include <wx/statline.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
+#include <wx/tglbtn.h>
 
 #include <wx/aui/auibook.h>
 #include <wx/aui/framemanager.h>
@@ -45,6 +47,32 @@
 #include <wx/aui/dockart.h>
 
 NAMESPACE_SPH_BEGIN
+
+namespace {
+
+struct RulerUnitDesc {
+    String label;
+    Float scale;
+};
+
+const StaticArray<RulerUnitDesc, 12> RULER_UNITS = {
+    RulerUnitDesc{ "mm", 1.e-3_f },
+    RulerUnitDesc{ "cm", 1.e-2_f },
+    RulerUnitDesc{ "dm", 1.e-1_f },
+    RulerUnitDesc{ "m", 1._f },
+    RulerUnitDesc{ "dam", 1.e1_f },
+    RulerUnitDesc{ "hm", 1.e2_f },
+    RulerUnitDesc{ "km", 1.e3_f },
+    RulerUnitDesc{ "R_earth", Constants::R_earth },
+    RulerUnitDesc{ "R_jupiter", Constants::R_jupiter },
+    RulerUnitDesc{ "R_sun", Constants::R_sun },
+    RulerUnitDesc{ "au", Constants::au },
+    RulerUnitDesc{ "pc", Constants::pc },
+};
+
+constexpr Size DEFAULT_RULER_UNIT_IDX = 6;
+
+} // namespace
 
 class TimeLineCallbacks : public ITimeLineCallbacks {
 private:
@@ -77,8 +105,8 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
     , gui(settings) {
     manager = makeAuto<wxAuiManager>(this);
 
-    wxPanel* visBar = createVisBar();
     pane = alignedNew<OrthoPane>(this, parent, settings);
+    wxPanel* visBar = createVisBar();
 
     timelineBar = new TimeLine(this, Path(), makeShared<TimeLineCallbacks>(parent));
     progressBar = new ProgressPanel(this);
@@ -103,6 +131,50 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
             new PaletteSimpleWidget(this, wxSize(300, -1), palette.value(), defaultPalette.value());
         palettePanel->onPaletteChanged = [this](const Palette& palette) {
             controller->setPaletteOverride(palette);
+        };
+        palettePanel->onScaleRequested = [this] {
+            SharedPtr<IColorizer> colorizer = controller->getCurrentColorizer();
+            if (!colorizer || !colorizer->isInitialized() || !palettePanel) {
+                return;
+            }
+
+            const Size particleCnt = controller->getDisplayedParticleCount();
+            Optional<float> minValue;
+            Optional<float> maxValue;
+            Optional<float> minPositiveValue;
+            for (Size i = 0; i < particleCnt; ++i) {
+                const Optional<float> scalar = colorizer->evalScalar(i);
+                if (!scalar) {
+                    continue;
+                }
+                const float value = scalar.value();
+                minValue = minValue ? min(minValue.value(), value) : Optional<float>(value);
+                maxValue = maxValue ? max(maxValue.value(), value) : Optional<float>(value);
+                if (value > 0.f) {
+                    minPositiveValue =
+                        minPositiveValue ? min(minPositiveValue.value(), value) : Optional<float>(value);
+                }
+            }
+
+            if (!minValue || !maxValue) {
+                return;
+            }
+
+            const Palette palette = palettePanel->getPalette();
+            float lower = minValue.value();
+            float upper = maxValue.value();
+            if (palette.getScale() == PaletteScale::LOGARITHMIC) {
+                if (!minPositiveValue || upper <= 0.f) {
+                    messageBox("The current quantity has no positive values, so it cannot be auto-scaled on "
+                               "a logarithmic palette.",
+                        "Scale",
+                        wxOK | wxCENTRE);
+                    return;
+                }
+                lower = minPositiveValue.value();
+            }
+
+            palettePanel->setInterval(Interval(lower, upper));
         };
         info.Left()
             .MinSize(wxSize(300, -1))
@@ -188,6 +260,9 @@ const int checkBoxBorder = 1;
 
 wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     wxStaticBox* particleBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 118));
+#ifdef SPH_ARM
+    particleBox->SetMinSize(wxSize(300, 118));
+#endif
 
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
     boxPad(boxSizer);
@@ -246,6 +321,16 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
     aaSizer->Add(aaBox, 0, wxTOP, checkBoxBorder);
     boxSizer->Add(aaSizer);
 
+    wxBoxSizer* shearBoxSizer = new wxBoxSizer(wxHORIZONTAL);
+    shearBoxSizer->AddSpacer(boxPadding);
+    shearingBoxToggle = new wxCheckBox(particleBox, wxID_ANY, "Show shearing box");
+    shearingBoxToggle->SetValue(gui.get<bool>(GuiSettingsId::SHOW_SHEARING_BOX));
+    shearingBoxToggle->SetToolTip(
+        "If checked, draws the edges of the shearing-sheet box over the rendered image.");
+    shearBoxSizer->Add(shearingBoxToggle, 0, wxTOP, checkBoxBorder);
+    boxSizer->Add(shearBoxSizer);
+    shearingBoxToggle->Hide();
+
     particleBox->SetSizer(boxSizer);
 
     ghostBox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
@@ -258,12 +343,19 @@ wxWindow* RunPage::createParticleBox(wxPanel* parent) {
         gui.set(GuiSettingsId::ANTIALIASED, value);
         controller->refresh();
     });
+    shearingBoxToggle->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
+        gui.set(GuiSettingsId::SHOW_SHEARING_BOX, evt.IsChecked());
+        pane->Refresh();
+    });
 
     return particleBox;
 }
 
 wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
     wxStaticBox* raytraceBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 125));
+#ifdef SPH_ARM
+    raytraceBox->SetMinSize(wxSize(300, 125));
+#endif
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
     boxPad(boxSizer);
 
@@ -337,6 +429,9 @@ wxWindow* RunPage::createRaymarcherBox(wxPanel* parent) {
 
 wxWindow* RunPage::createVolumeBox(wxPanel* parent) {
     wxStaticBox* volumeBox = new wxStaticBox(parent, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 100));
+#ifdef SPH_ARM
+    volumeBox->SetMinSize(wxSize(300, 100));
+#endif
     wxBoxSizer* boxSizer = new wxBoxSizer(wxVERTICAL);
     boxPad(boxSizer);
 
@@ -432,6 +527,15 @@ wxPanel* RunPage::createVisBar() {
     });
     buttonSizer->Add(refresh);
 
+    wxButton* centerView = new wxButton(visbarPanel, wxID_ANY, "Center view");
+    centerView->SetToolTip(
+        "Re-centers the current frame on the center of mass of simulated particles and restores the initial "
+        "view width.");
+    centerView->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
+        pane->centerView();
+    });
+    buttonSizer->Add(centerView);
+
     wxButton* snap = new wxButton(visbarPanel, wxID_ANY, "Save image");
     snap->SetToolTip("Saves the currently rendered image.");
     buttonSizer->Add(snap);
@@ -460,6 +564,24 @@ wxPanel* RunPage::createVisBar() {
         "the performance of the code.");
     visbarSizer->Add(autoRefresh, 0, wxLEFT | wxTOP, checkBoxBorder);
 
+    wxCheckBox* autoPlotRefresh = new wxCheckBox(visbarPanel, wxID_ANY, "Refresh plots on timestep");
+    autoPlotRefresh->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
+        GuiSettings& gui = controller->getParams();
+        const bool wasEnabled = gui.get<bool>(GuiSettingsId::PLOT_REFRESH_ON_TIMESTEP);
+        const bool enabled = evt.IsChecked();
+        gui.set(GuiSettingsId::PLOT_REFRESH_ON_TIMESTEP, enabled);
+        if (enabled && !wasEnabled) {
+            this->clearPlots();
+            this->refreshPlots();
+        }
+    });
+    autoPlotRefresh->SetValue(gui.get<bool>(GuiSettingsId::PLOT_REFRESH_ON_TIMESTEP));
+    autoPlotRefresh->SetToolTip(
+        "When checked, the plots on the right are updated live during the run. This only affects curves, "
+        "not particle visualization. Re-enabling the option clears the current curves and starts them again "
+        "from the next timestep.");
+    visbarSizer->Add(autoPlotRefresh, 0, wxLEFT | wxTOP, checkBoxBorder);
+
     wxCheckBox* autoCamera = new wxCheckBox(visbarPanel, wxID_ANY, "Auto-zoom");
     autoCamera->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& evt) {
         GuiSettings& gui = controller->getParams();
@@ -471,6 +593,68 @@ wxPanel* RunPage::createVisBar() {
         "during the simulation.");
     visbarSizer->Add(autoCamera, 0, wxLEFT | wxTOP, checkBoxBorder);
     visbarSizer->AddSpacer(10);
+
+    wxBoxSizer* measureButtonsSizer = new wxBoxSizer(wxHORIZONTAL);
+    measureButtonsSizer->AddSpacer(10);
+    wxToggleButton* rulerButton = new wxToggleButton(visbarPanel, wxID_ANY, "Ruler");
+    rulerButton->SetToolTip(
+        "Measures a distance in the current orthogonal view plane. Click two free points to define the "
+        "segment. Clicking the button again disables the ruler.");
+    measureButtonsSizer->Add(rulerButton, 0, wxALIGN_CENTER_VERTICAL);
+    measureButtonsSizer->AddSpacer(8);
+    wxToggleButton* particlePairButton = new wxToggleButton(visbarPanel, wxID_ANY, "Particle to particle");
+    particlePairButton->SetToolTip(
+        "Measures the true 3D center-to-center distance between two particles. Click two particles to "
+        "select them. Clicking the button again disables the measurement.");
+    measureButtonsSizer->Add(particlePairButton, 0, wxALIGN_CENTER_VERTICAL);
+    measureButtonsSizer->AddSpacer(10);
+    visbarSizer->Add(measureButtonsSizer, 0, wxEXPAND | wxLEFT | wxRIGHT, 5);
+
+    wxBoxSizer* rulerSizer = new wxBoxSizer(wxHORIZONTAL);
+    rulerSizer->AddSpacer(10);
+    rulerSizer->Add(new wxStaticText(visbarPanel, wxID_ANY, "Scale"), 0, wxALIGN_CENTER_VERTICAL);
+    rulerSizer->AddSpacer(6);
+    ComboBox* rulerUnits = new ComboBox(visbarPanel, "", 115);
+    wxArrayString unitLabels;
+    for (const RulerUnitDesc& unit : RULER_UNITS) {
+        unitLabels.Add(unit.label.toUnicode());
+    }
+    rulerUnits->Set(unitLabels);
+    rulerUnits->SetSelection(DEFAULT_RULER_UNIT_IDX);
+    rulerUnits->SetToolTip("Sets the displayed unit used by the ruler.");
+    rulerSizer->Add(rulerUnits, 1, wxALIGN_CENTER_VERTICAL);
+    rulerSizer->AddSpacer(10);
+    visbarSizer->Add(rulerSizer, 0, wxEXPAND | wxLEFT | wxRIGHT, 5);
+
+    rulerText = new wxStaticText(visbarPanel, wxID_ANY, "Distance: --");
+    rulerText->SetMinSize(wxSize(260, -1));
+    visbarSizer->Add(rulerText, 0, wxLEFT | wxTOP, 15);
+    visbarSizer->AddSpacer(10);
+
+    pane->onRulerTextChanged = [this](const String& text) { this->updateRulerText(text); };
+    pane->setRulerUnits(RULER_UNITS[DEFAULT_RULER_UNIT_IDX].scale, RULER_UNITS[DEFAULT_RULER_UNIT_IDX].label);
+    rulerButton->Bind(wxEVT_TOGGLEBUTTON, [this, particlePairButton](wxCommandEvent& evt) {
+        const bool enabled = evt.IsChecked();
+        if (enabled) {
+            particlePairButton->SetValue(false);
+            pane->setParticlePairEnabled(false);
+        }
+        pane->setRulerEnabled(enabled);
+    });
+    particlePairButton->Bind(wxEVT_TOGGLEBUTTON, [this, rulerButton](wxCommandEvent& evt) {
+        const bool enabled = evt.IsChecked();
+        if (enabled) {
+            rulerButton->SetValue(false);
+            pane->setRulerEnabled(false);
+        }
+        pane->setParticlePairEnabled(enabled);
+    });
+    rulerUnits->Bind(wxEVT_COMBOBOX, [this, rulerUnits](wxCommandEvent& UNUSED(evt)) {
+        const int selection = rulerUnits->GetSelection();
+        if (selection >= 0 && selection < int(RULER_UNITS.size())) {
+            pane->setRulerUnits(RULER_UNITS[selection].scale, RULER_UNITS[selection].label);
+        }
+    });
 
 
     /*wxBoxSizer* colorSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -619,6 +803,28 @@ void RunPage::updateCutoff(const double cutoff) {
     controller->tryRedraw();
 }
 
+void RunPage::updateRulerText(const String& text) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    if (rulerText) {
+        rulerText->SetLabelText(text.toUnicode());
+    }
+}
+
+void RunPage::updateShearingBoxToggle() {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    if (!shearingBoxToggle) {
+        return;
+    }
+
+    const bool enabled = bool(controller->getShearingSheetView());
+    shearingBoxToggle->Show(enabled);
+    if (!enabled) {
+        gui.set(GuiSettingsId::SHOW_SHEARING_BOX, false);
+        shearingBoxToggle->SetValue(false);
+    }
+    shearingBoxToggle->GetParent()->Layout();
+}
+
 wxPanel* RunPage::createProbeBar() {
     wxPanel* sidebarPanel = new wxPanel(this);
     wxBoxSizer* sidebarSizer = new wxBoxSizer(wxVERTICAL);
@@ -662,7 +868,7 @@ wxPanel* RunPage::createStatsBar() {
 
     statsText = new wxTextCtrl(
         statsPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxTE_MULTILINE);
-    this->makeStatsText(0, 0, Statistics{});
+    this->makeStatsText(0, 0, 0._f, false, Statistics{});
 
     statsSizer->Add(statsText, 1, wxEXPAND | wxALL, 5);
     statsPanel->SetSizer(statsSizer);
@@ -699,7 +905,34 @@ void printStat<Float>(wxTextCtrl* text,
     }
 }
 
-void RunPage::makeStatsText(const Size particleCnt, const Size attractorCnt, const Statistics& stats) {
+static bool tryGetTotalMass(const Storage& storage, Float& totalMass) {
+    if (!storage.has(QuantityId::MASS)) {
+        return false;
+    }
+
+    totalMass = 0._f;
+    ArrayView<const Float> masses = storage.getValue<Float>(QuantityId::MASS);
+    for (const Float mass : masses) {
+        totalMass += mass;
+    }
+    return true;
+}
+
+static void printValueLine(wxTextCtrl* text, const String& desc, const Float value, const String units = "") {
+    std::stringstream ss;
+    if (value < 0.01_f || value > 1.e5_f) {
+        ss << std::setprecision(2) << std::scientific << value;
+    } else {
+        ss << value;
+    }
+    *text << desc.toUnicode() << ss.str() << units.toUnicode() << "\n";
+}
+
+void RunPage::makeStatsText(const Size particleCnt,
+    const Size attractorCnt,
+    const Float totalMass,
+    const bool hasTotalMass,
+    const Statistics& stats) {
     statsText->Freeze();
     statsText->Clear();
     *statsText << " - particles: ";
@@ -711,6 +944,16 @@ void RunPage::makeStatsText(const Size particleCnt, const Size attractorCnt, con
 
     if (attractorCnt > 0) {
         *statsText << " - attractors: " << int(attractorCnt) << "\n";
+    }
+
+    if (hasTotalMass) {
+        printValueLine(statsText, " - total mass: ", totalMass, " kg");
+        printValueLine(statsText, "    * Earth masses:  ", totalMass / Constants::M_earth, " M_earth");
+        printValueLine(statsText, "    * Lunar masses:  ", totalMass / Constants::M_moon, " M_moon");
+        printValueLine(statsText, "    * Jovian masses: ", totalMass / Constants::M_jupiter, " M_jupiter");
+        printValueLine(statsText, "    * Solar masses:  ", totalMass / Constants::M_sun, " M_sun");
+    } else {
+        *statsText << " - total mass: N/A\n";
     }
 
     printStat<Float>(statsText, stats, " - run time:  ", StatisticsId::RUN_TIME, "s");
@@ -904,6 +1147,22 @@ void RunPage::refresh() {
     pane->Refresh();
 }
 
+void RunPage::clearPlots() {
+    for (auto plot : plots) {
+        plot->clear();
+    }
+    if (selectedParticlePlot) {
+        selectedParticlePlot->clear();
+    }
+    plotRefreshPending = false;
+}
+
+void RunPage::refreshPlots() {
+    for (auto view : plotViews) {
+        view->Refresh();
+    }
+}
+
 void RunPage::showTimeLine(const bool show) {
     wxAuiPaneInfo& timelineInfo = manager->GetPane(timelineBar);
     wxAuiPaneInfo& progressInfo = manager->GetPane(progressBar);
@@ -920,21 +1179,23 @@ void RunPage::showTimeLine(const bool show) {
 void RunPage::runStarted(const Storage& storage, const Path& path) {
     Statistics dummy;
     pane->onTimeStep(storage, dummy);
+    executeOnMainThread([this] { this->updateShearingBoxToggle(); });
 
     const Size particleCnt = storage.getParticleCnt();
     const Size attractorCnt = storage.getAttractorCnt();
-    executeOnMainThread([this, particleCnt, attractorCnt] {
+    Float totalMass = 0._f;
+    const bool hasTotalMass = tryGetTotalMass(storage, totalMass);
+    executeOnMainThread([this, particleCnt, attractorCnt, totalMass, hasTotalMass] {
         Statistics dummyStats;
-        this->makeStatsText(particleCnt, attractorCnt, dummyStats);
+        this->makeStatsText(particleCnt, attractorCnt, totalMass, hasTotalMass, dummyStats);
     });
 
     if (!path.empty()) {
         timelineBar->update(path);
     }
 
-    for (auto plot : plots) {
-        plot->clear();
-    }
+    this->clearPlots();
+    this->refreshPlots();
 }
 
 void RunPage::onTimeStep(const Storage& storage, const Statistics& stats) {
@@ -944,8 +1205,10 @@ void RunPage::onTimeStep(const Storage& storage, const Statistics& stats) {
     if (statsText && statsTimer.elapsed(TimerUnit::MILLISECOND) > 100) {
         const Size particleCnt = storage.getParticleCnt();
         const Size attractorCnt = storage.getAttractorCnt();
-        executeOnMainThread([this, stats, particleCnt, attractorCnt] { //
-            this->makeStatsText(particleCnt, attractorCnt, stats);
+        Float totalMass = 0._f;
+        const bool hasTotalMass = tryGetTotalMass(storage, totalMass);
+        executeOnMainThread([this, stats, particleCnt, attractorCnt, totalMass, hasTotalMass] { //
+            this->makeStatsText(particleCnt, attractorCnt, totalMass, hasTotalMass, stats);
         });
         statsTimer.restart();
     }
@@ -962,18 +1225,21 @@ void RunPage::onTimeStep(const Storage& storage, const Statistics& stats) {
         selectedParticlePlot->setColorizer(colorizer);
     }
 
-    /* if (storage.has(QuantityId::MASS) && stats.has(StatisticsId::RUN_TIME)) {
-        // skip plots if we don't have mass, for simplicity; this can be generalized if needed
+    if (gui.get<bool>(GuiSettingsId::PLOT_REFRESH_ON_TIMESTEP) && stats.has(StatisticsId::RUN_TIME)) {
         for (auto plot : plots) {
             plot->onTimeStep(storage, stats);
         }
+        if (selectedParticlePlot) {
+            selectedParticlePlot->onTimeStep(storage, stats);
+        }
 
-        executeOnMainThread([this] {
-            for (auto view : plotViews) {
-                view->Refresh();
-            }
-        });
-    }*/
+        if (!plotRefreshPending.exchange(true)) {
+            executeOnMainThread([this] {
+                this->refreshPlots();
+                plotRefreshPending = false;
+            });
+        }
+    }
 }
 
 void RunPage::onRunEnd() {

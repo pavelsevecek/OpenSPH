@@ -1,5 +1,6 @@
 #include "timestepping/TimeStepping.h"
 #include "catch.hpp"
+#include "physics/ShearingSheet.h"
 #include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "sph/Materials.h"
@@ -62,6 +63,33 @@ struct LorentzForce : public ISolver {
             dv[i] = cross(v[i], B);
         }
     }
+
+    virtual void create(Storage&, IMaterial&) const override {
+        NOT_IMPLEMENTED;
+    }
+};
+
+struct RecordingSolver : public ISolver {
+    Array<Float> integrateTimes;
+    Array<Float> collideTimes;
+
+    virtual void integrate(Storage&, Statistics& stats) override {
+        integrateTimes.push(stats.getOr<Float>(StatisticsId::RUN_TIME, -1._f));
+    }
+
+    virtual void collide(Storage&, Statistics& stats, const Float UNUSED(dt)) override {
+        collideTimes.push(stats.getOr<Float>(StatisticsId::RUN_TIME, -1._f));
+    }
+
+    virtual void create(Storage&, IMaterial&) const override {
+        NOT_IMPLEMENTED;
+    }
+};
+
+struct ZeroForceSolver : public ISolver {
+    virtual void integrate(Storage&, Statistics&) override {}
+
+    virtual void collide(Storage&, Statistics&, const Float UNUSED(dt)) override {}
 
     virtual void create(Storage&, IMaterial&) const override {
         NOT_IMPLEMENTED;
@@ -300,6 +328,89 @@ TEST_CASE("ModifiedMidpoint", "[timestepping]") {
         settings.set(RunSettingsId::TIMESTEPPING_MIDPOINT_COUNT, int(n));
         context.callsPerStep = n;
         testAll<ModifiedMidpointMethod>(settings, context);
+    }
+}
+
+TEST_CASE("LeapFrog stage times", "[timestepping]") {
+    RunSettings settings;
+    settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1._f);
+    settings.set(RunSettingsId::TIMESTEPPING_CRITERION, EMPTY_FLAGS);
+
+    SharedPtr<Storage> storage = makeShared<Storage>(getMaterial(MaterialEnum::BASALT));
+    storage->insert<Vector>(
+        QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>{ Vector(0._f, 0._f, 0._f, 1._f) });
+
+    LeapFrog timestepping(storage, settings);
+    RecordingSolver solver;
+    Statistics stats;
+    stats.set(StatisticsId::RUN_TIME, 2._f);
+
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    timestepping.step(pool, solver, stats);
+
+    REQUIRE(solver.integrateTimes.size() == 1);
+    REQUIRE(solver.collideTimes.size() == 2);
+    REQUIRE(solver.integrateTimes[0] == approx(2.5_f));
+    REQUIRE(solver.collideTimes[0] == approx(2._f));
+    REQUIRE(solver.collideTimes[1] == approx(2.5_f));
+}
+
+TEST_CASE("RungeKutta stage times", "[timestepping]") {
+    RunSettings settings;
+    settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1._f);
+    settings.set(RunSettingsId::TIMESTEPPING_CRITERION, EMPTY_FLAGS);
+
+    SharedPtr<Storage> storage = makeShared<Storage>(getMaterial(MaterialEnum::BASALT));
+    storage->insert<Vector>(
+        QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>{ Vector(0._f, 0._f, 0._f, 1._f) });
+
+    RungeKutta timestepping(storage, settings);
+    RecordingSolver solver;
+    Statistics stats;
+    stats.set(StatisticsId::RUN_TIME, 3._f);
+
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    timestepping.step(pool, solver, stats);
+
+    REQUIRE(solver.collideTimes.empty());
+    REQUIRE(solver.integrateTimes ==
+        Array<Float>{ 3._f, 3.5_f, 3.5_f, 3.5_f, 3.5_f, 4._f, 4._f, 4._f });
+}
+
+TEST_CASE("SymplecticEpicycle background shear", "[timestepping]") {
+    RunSettings settings;
+    settings.set(RunSettingsId::DOMAIN_BOUNDARY, BoundaryEnum::SHEARING_SHEET);
+    settings.set(RunSettingsId::DOMAIN_CENTER, Vector(0._f));
+    settings.set(RunSettingsId::DOMAIN_SIZE, Vector(2._f, 2._f, 2._f));
+    settings.set(RunSettingsId::SHEARING_SHEET_OMEGA, 1._f);
+    settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.2_f);
+    settings.set(RunSettingsId::TIMESTEPPING_CRITERION, EMPTY_FLAGS);
+
+    ShearingSheet::Config cfg = ShearingSheet::tryGetConfig(settings).value();
+    SharedPtr<Storage> storage = makeShared<Storage>(getMaterial(MaterialEnum::BASALT));
+    storage->insert<Vector>(
+        QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>{ Vector(0.6_f, 0._f, 0._f, 0.1_f) });
+    ArrayView<Vector> r, v, dv;
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
+    v[0] = Vector(0._f, -0.9_f, 0._f);
+
+    SymplecticEpicycle timestepping(storage, settings);
+    ZeroForceSolver solver;
+    Statistics stats;
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+
+    Float time = 0._f;
+    for (Size i = 0; i < 20; ++i) {
+        stats.set(StatisticsId::RUN_TIME, time);
+        timestepping.step(pool, solver, stats);
+        time += timestepping.getTimeStep();
+
+        Vector expectedR(0.6_f, -0.9_f * time, 0._f, 0.1_f);
+        Vector expectedV(0._f, -0.9_f, 0._f);
+        ShearingSheet::remap(expectedR, expectedV, cfg, time);
+
+        REQUIRE(r[0] == approx(expectedR, 1.e-5_f));
+        REQUIRE(v[0] == approx(expectedV, 1.e-5_f));
     }
 }
 

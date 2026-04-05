@@ -1,8 +1,10 @@
 #include "gravity/NBodySolver.h"
 #include "gravity/BruteForceGravity.h"
 #include "gravity/Collision.h"
+#include "gravity/ShearingSheetGravity.h"
 #include "io/Logger.h"
 #include "objects/finders/NeighborFinder.h"
+#include "objects/finders/ShearingSheetFinder.h"
 #include "quantities/Quantity.h"
 #include "sph/Diagnostics.h"
 #include "system/Factory.h"
@@ -34,8 +36,17 @@ HardSphereSolver::HardSphereSolver(IScheduler& scheduler,
     : gravity(std::move(gravity))
     , scheduler(scheduler)
     , threadData(scheduler) {
+    shearingSheet = ShearingSheet::tryGetConfig(settings);
+    useSymplecticEpicycle = ShearingSheet::usesSymplecticEpicycle(settings);
+    if (shearingSheet) {
+        this->gravity = makeAuto<ShearingSheetGravity>(shearingSheet.value(), std::move(this->gravity));
+    }
     collision.handler = std::move(collisionHandler);
     collision.finder = Factory::getFinder(settings);
+    if (shearingSheet) {
+        collision.finder = makeAuto<ShearingSheetFinder>(
+            std::move(collision.finder), shearingSheet.value(), scheduler, true);
+    }
     collision.maxBounces = settings.get<int>(RunSettingsId::COLLISION_MAX_BOUNCES);
     overlap.handler = std::move(overlapHandler);
     overlap.allowedRatio = settings.get<Float>(RunSettingsId::COLLISION_ALLOWED_OVERLAP);
@@ -97,6 +108,13 @@ void HardSphereSolver::rotateLocalFrame(Storage& storage, const Float dt) {
 void HardSphereSolver::integrate(Storage& storage, Statistics& stats) {
     VERBOSE_LOG;
 
+    if (shearingSheet) {
+        const Float t = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
+        ShearingSheet::remap(storage, shearingSheet.value(), t);
+        gravity->setTime(t);
+        collision.finder->setTime(t);
+    }
+
     Timer timer;
     gravity->build(scheduler, storage);
 
@@ -106,6 +124,15 @@ void HardSphereSolver::integrate(Storage& storage, Statistics& stats) {
 
     ArrayView<Attractor> attractors = storage.getAttractors();
     gravity->evalAttractors(scheduler, attractors, dv);
+
+    if (shearingSheet && !useSymplecticEpicycle) {
+        ShearingSheet::applyHillForces(storage, shearingSheet.value());
+    }
+    if (shearingSheet) {
+        const ShearingSheet::Diagnostics diagnostics =
+            ShearingSheet::evaluateDiagnostics(storage, shearingSheet.value());
+        ShearingSheet::storeDiagnostics(diagnostics, stats);
+    }
 
     // null all derivatives of smoothing lengths (particle radii)
     ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
@@ -169,23 +196,47 @@ struct CollisionRecord {
 
     Float collisionTime = INFINITY;
     Float overlap = 0._f;
+    Vector positionOffset = Vector(0._f);
+    Vector velocityOffset = Vector(0._f);
 
     CollisionRecord() = default;
 
-    CollisionRecord(const Size i, const Size j, const Float overlap, const Float time)
+    CollisionRecord(const Size i,
+        const Size j,
+        const Float overlap,
+        const Float time,
+        const Vector& positionOffset,
+        const Vector& velocityOffset)
         : i(i)
         , j(j)
         , collisionTime(time)
-        , overlap(overlap) {}
+        , overlap(overlap)
+        , positionOffset(positionOffset)
+        , velocityOffset(velocityOffset) {}
 
     bool operator==(const CollisionRecord& other) const {
         return i == other.i && j == other.j && collisionTime == other.collisionTime &&
-               overlap == other.overlap;
+               overlap == other.overlap && positionOffset == other.positionOffset &&
+               velocityOffset == other.velocityOffset;
     }
 
     bool operator<(const CollisionRecord& other) const {
-        return std::make_tuple(collisionTime, -overlap, i, j) <
-               std::make_tuple(other.collisionTime, -other.overlap, other.i, other.j);
+        return std::make_tuple(collisionTime,
+                   -overlap,
+                   i,
+                   j,
+                   positionOffset[X],
+                   positionOffset[Y],
+                   positionOffset[Z],
+                   velocityOffset[Y]) <
+               std::make_tuple(other.collisionTime,
+                   -other.overlap,
+                   other.i,
+                   other.j,
+                   other.positionOffset[X],
+                   other.positionOffset[Y],
+                   other.positionOffset[Z],
+                   other.velocityOffset[Y]);
     }
 
     /// Returns true if there is some collision or overlap
@@ -193,12 +244,14 @@ struct CollisionRecord {
         return overlap > 0._f || collisionTime < INFTY;
     }
 
-    static CollisionRecord COLLISION(const Size i, const Size j, const Float time) {
-        return CollisionRecord(i, j, 0._f, time);
+    static CollisionRecord COLLISION(
+        const Size i, const Size j, const Float time, const NeighborRecord& n) {
+        return CollisionRecord(i, j, 0._f, time, n.positionOffset, n.velocityOffset);
     }
 
-    static CollisionRecord OVERLAP(const Size i, const Size j, const Float time, const Float overlap) {
-        return CollisionRecord(i, j, overlap, time);
+    static CollisionRecord OVERLAP(
+        const Size i, const Size j, const Float time, const Float overlap, const NeighborRecord& n) {
+        return CollisionRecord(i, j, overlap, time, n.positionOffset, n.velocityOffset);
     }
 
     bool isOverlap() const {
@@ -207,6 +260,31 @@ struct CollisionRecord {
 
     friend bool isReal(const CollisionRecord& col) {
         return col.isOverlap() ? isReal(col.overlap) : isReal(col.collisionTime);
+    }
+};
+
+class ImageShift {
+private:
+    ArrayView<Vector> r;
+    ArrayView<Vector> v;
+    Size idx;
+    Vector positionOffset;
+    Vector velocityOffset;
+
+public:
+    ImageShift(Storage& storage, const Size idx, const Vector& positionOffset, const Vector& velocityOffset)
+        : idx(idx)
+        , positionOffset(positionOffset)
+        , velocityOffset(velocityOffset) {
+        r = storage.getValue<Vector>(QuantityId::POSITION);
+        v = storage.getDt<Vector>(QuantityId::POSITION);
+        r[idx] += positionOffset;
+        v[idx] += velocityOffset;
+    }
+
+    ~ImageShift() {
+        r[idx] -= positionOffset;
+        v[idx] -= velocityOffset;
     }
 };
 
@@ -329,6 +407,12 @@ private:
 void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     VERBOSE_LOG
 
+    if (shearingSheet) {
+        const Float t = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
+        ShearingSheet::remap(storage, shearingSheet.value(), t);
+        collision.finder->setTime(t);
+    }
+
     if (!collision.handler) {
         // ignore all collisions
         return;
@@ -419,11 +503,21 @@ void HardSphereSolver::collide(Storage& storage, Statistics& stats, const Float 
         // check and handle overlaps
         CollisionResult result;
         if (col.isOverlap()) {
-            overlap.handler->handle(i, j, removed);
+            if (col.positionOffset != Vector(0._f) || col.velocityOffset != Vector(0._f)) {
+                ImageShift shift(storage, j, col.positionOffset, col.velocityOffset);
+                overlap.handler->handle(i, j, removed);
+            } else {
+                overlap.handler->handle(i, j, removed);
+            }
             result = CollisionResult::BOUNCE; ///\todo
             cs.overlapCount++;
         } else {
-            result = collision.handler->collide(i, j, removed);
+            if (col.positionOffset != Vector(0._f) || col.velocityOffset != Vector(0._f)) {
+                ImageShift shift(storage, j, col.positionOffset, col.velocityOffset);
+                result = collision.handler->collide(i, j, removed);
+            } else {
+                result = collision.handler->collide(i, j, removed);
+            }
             cs.clasify(result);
         }
 
@@ -540,23 +634,25 @@ CollisionRecord HardSphereSolver::findClosestCollision(const Size i,
         }
         // advance positions to the start of the interval
         const Vector r1 = r[i] + v[i] * interval.lower();
-        const Vector r2 = r[j] + v[j] * interval.lower();
+        const Vector r2 = r[j] + n.positionOffset + (v[j] + n.velocityOffset) * interval.lower();
         const Float overlapValue = 1._f - getSqrLength(r1 - r2) / sqr(r[i][H] + r[j][H]);
         if (overlapValue > sqr(overlap.allowedRatio)) {
-            if (overlap.handler->overlaps(i, j)) {
+            const bool overlaps =
+                overlap.handler->overlaps(i, j, r1, v[i], r2, v[j] + n.velocityOffset);
+            if (overlaps) {
                 // this overlap needs to be handled
-                return CollisionRecord::OVERLAP(i, j, interval.lower(), overlapValue);
+                return CollisionRecord::OVERLAP(i, j, interval.lower(), overlapValue, n);
             } else {
                 // skip this overlap, which also implies skipping the collision, so just continue
                 continue;
             }
         }
 
-        Optional<Float> t_coll = this->checkCollision(r1, v[i], r2, v[j], interval.size());
+        Optional<Float> t_coll = this->checkCollision(r1, v[i], r2, v[j] + n.velocityOffset, interval.size());
         if (t_coll) {
             // t_coll is relative to the interval, convert to timestep 'coordinates'
             const Float time = t_coll.value() + interval.lower();
-            closestCollision = min(closestCollision, CollisionRecord::COLLISION(i, j, time));
+            closestCollision = min(closestCollision, CollisionRecord::COLLISION(i, j, time, n));
         }
     }
     return closestCollision;
@@ -605,7 +701,15 @@ SoftSphereSolver::SoftSphereSolver(IScheduler& scheduler,
     : gravity(std::move(gravity))
     , scheduler(scheduler)
     , threadData(scheduler) {
+    shearingSheet = ShearingSheet::tryGetConfig(settings);
+    useSymplecticEpicycle = ShearingSheet::usesSymplecticEpicycle(settings);
+    if (shearingSheet) {
+        this->gravity = makeAuto<ShearingSheetGravity>(shearingSheet.value(), std::move(this->gravity));
+    }
     finder = Factory::getFinder(settings);
+    if (shearingSheet) {
+        finder = makeAuto<ShearingSheetFinder>(std::move(finder), shearingSheet.value(), scheduler, true);
+    }
     springConstant = settings.get<Float>(RunSettingsId::NBODY_SOFTSPHERE_SPRING_CONSTANT);
     epsilon = settings.get<Float>(RunSettingsId::NBODY_SOFTSPHERE_RESTITUTION_COEFFICIENT);
 
@@ -618,10 +722,16 @@ SoftSphereSolver::~SoftSphereSolver() = default;
 void SoftSphereSolver::integrate(Storage& storage, Statistics& stats) {
     VERBOSE_LOG;
 
+    if (shearingSheet) {
+        const Float t = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
+        ShearingSheet::remap(storage, shearingSheet.value(), t);
+        gravity->setTime(t);
+        finder->setTime(t);
+    }
+
     Timer timer;
     gravity->build(scheduler, storage);
 
-    ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     SPH_ASSERT_UNEVAL(std::all_of(dv.begin(), dv.end(), [](const Vector& a) { return a == Vector(0._f); }));
@@ -630,10 +740,20 @@ void SoftSphereSolver::integrate(Storage& storage, Statistics& stats) {
     ArrayView<Attractor> attractors = storage.getAttractors();
     gravity->evalAttractors(scheduler, attractors, dv);
 
+    if (shearingSheet && !useSymplecticEpicycle) {
+        ShearingSheet::applyHillForces(storage, shearingSheet.value());
+    }
+    if (shearingSheet) {
+        const ShearingSheet::Diagnostics diagnostics =
+            ShearingSheet::evaluateDiagnostics(storage, shearingSheet.value());
+        ShearingSheet::storeDiagnostics(diagnostics, stats);
+    }
+
     stats.set(StatisticsId::GRAVITY_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
     timer.restart();
 
-    if (RawPtr<const IBasicFinder> gravityFinder = gravity->getFinder()) {
+    RawPtr<const IBasicFinder> gravityFinder = gravity->getFinder();
+    if (!shearingSheet && gravityFinder) {
         evalCollisions(storage, *gravityFinder);
     } else {
         finder->build(scheduler, r);
@@ -641,6 +761,13 @@ void SoftSphereSolver::integrate(Storage& storage, Statistics& stats) {
     }
 
     stats.set(StatisticsId::COLLISION_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
+}
+
+void SoftSphereSolver::collide(Storage& storage, Statistics& stats, const Float UNUSED(dt)) {
+    if (shearingSheet) {
+        const Float t = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
+        ShearingSheet::remap(storage, shearingSheet.value(), t);
+    }
 }
 
 inline Float orbitTime(Float mass, Float a, Float G = Constants::gravity) {
@@ -671,10 +798,11 @@ void SoftSphereSolver::evalCollisions(Storage& storage, const IBasicFinder& find
 
             Vector dir;
             Float dist;
-            tieToTuple(dir, dist) = getNormalizedWithLength(r[j] - r[i]);
+            const Vector delta_r = r[j] + n.positionOffset - r[i];
+            tieToTuple(dir, dist) = getNormalizedWithLength(delta_r);
             const Float alpha = r[i][H] + r[j][H] - dist;
             SPH_ASSERT(alpha >= 0);
-            const Vector delta_v = v[j] - v[i];
+            const Vector delta_v = v[j] + n.velocityOffset - v[i];
             const Float alpha_dot = -dot(delta_v, dir);
             const Float m_eff = (m[i] * m[j]) / (m[i] + m[j]);
             const Float t_dur = springConstant * orbitTime(m[i] + m[j], r[i][H] + r[j][H]);
@@ -683,7 +811,6 @@ void SoftSphereSolver::evalCollisions(Storage& storage, const IBasicFinder& find
             const Vector force = (k1 * alpha + k2 * alpha_dot) * dir;
             dv[i] -= force / m[i];
 
-            const Vector delta_r = r[j] - r[i];
             divv[i] += dot(delta_v, delta_r) / getSqrLength(delta_r);
         }
         dv[i][H] = 0;

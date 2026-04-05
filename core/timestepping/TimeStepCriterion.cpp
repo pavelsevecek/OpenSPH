@@ -216,6 +216,8 @@ TimeStep DerivativeCriterion::computeImpl(IScheduler& scheduler,
 
 AccelerationCriterion::AccelerationCriterion(const RunSettings& settings) {
     factor = settings.get<Float>(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR);
+    shearingSheet = ShearingSheet::tryGetConfig(settings);
+    useSymplecticEpicycle = ShearingSheet::usesSymplecticEpicycle(settings);
 }
 
 TimeStep AccelerationCriterion::compute(IScheduler& scheduler,
@@ -231,7 +233,11 @@ TimeStep AccelerationCriterion::compute(IScheduler& scheduler,
     };
 
     auto functor = [&](const Size i, Tl& tl) {
-        const Float dvNorm = getSqrLength(dv[i]);
+        Vector acc = dv[i];
+        if (useSymplecticEpicycle && shearingSheet) {
+            acc = ShearingSheet::perturbingAcceleration(shearingSheet.value(), r[i], v[i], dv[i]);
+        }
+        const Float dvNorm = getSqrLength(acc);
         if (dvNorm > EPS) {
             const Float step = factor * root<4>(sqr(r[i][H]) / dvNorm);
             SPH_ASSERT(isReal(step) && step > 0._f && step < INFTY);

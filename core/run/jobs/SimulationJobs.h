@@ -25,7 +25,8 @@ public:
     virtual UnorderedMap<String, ExtJobType>
     requires() const override {
         UnorderedMap<String, ExtJobType> map{ { "particles", JobType::PARTICLES } };
-        if (settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY) != BoundaryEnum::NONE) {
+        const BoundaryEnum boundary = settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY);
+        if (boundary != BoundaryEnum::NONE && boundary != BoundaryEnum::SHEARING_SHEET) {
             map.insert("boundary", JobType::GEOMETRY);
         }
         return map;

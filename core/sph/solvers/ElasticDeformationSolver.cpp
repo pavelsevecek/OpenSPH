@@ -54,8 +54,11 @@ ElasticDeformationSolver::ElasticDeformationSolver(IScheduler& scheduler,
     gravity = settings.get<Vector>(RunSettingsId::FRAME_CONSTANT_ACCELERATION);
 }
 
-void ElasticDeformationSolver::integrate(Storage& storage, Statistics& UNUSED(stats)) {
+void ElasticDeformationSolver::integrate(Storage& storage, Statistics& stats) {
+    const Float t = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
+    bc->setTime(t);
     bc->initialize(storage);
+    bc->setTime(t);
     bc->finalize(storage);
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);

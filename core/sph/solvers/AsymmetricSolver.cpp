@@ -139,11 +139,13 @@ AsymmetricSolver::~AsymmetricSolver() = default;
 void AsymmetricSolver::beforeLoop(Storage& storage, Statistics& stats) {
     VERBOSE_LOG
 
+    const Float t = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
+
     // initialize boundary conditions first, as they may change the number of particles (ghosts, killbox, ...)
+    bc->setTime(t);
     bc->initialize(storage);
 
     // initialize all equation terms (applies dependencies between quantities)
-    const Float t = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
     equations.initialize(scheduler, storage, t);
 
     // sets up references to storage buffers for all derivatives
@@ -213,6 +215,7 @@ void AsymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {
     equations.finalize(scheduler, storage, t);
 
     // lastly, finalize boundary conditions, to make sure the computed quantities will not change any further
+    bc->setTime(t);
     bc->finalize(storage);
 
     // compute neighbor statistics

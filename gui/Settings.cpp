@@ -119,6 +119,8 @@ const Settings<GuiSettingsId>& getDefaultSettings() {
         "the performance of the simulation." },
     { GuiSettingsId::REFRESH_ON_TIMESTEP,   "view.refresh_on_timestep",  true,
         "If true, the image is automatically refreshed every timestep, otherwise manual refresh is needed." },
+    { GuiSettingsId::PLOT_REFRESH_ON_TIMESTEP, "view.plot_refresh_on_timestep", true,
+        "If true, plots are updated live during the run. This does not affect particle visualization." },
     { GuiSettingsId::VIEW_GRID_SIZE,        "view.grid_size",       0._f,
         "Step of the grid drawn into the bitmap. If zero, no grid is drawn." },
     { GuiSettingsId::SURFACE_RESOLUTION,    "surface.resolution",   100._f,  // m
@@ -165,6 +167,8 @@ const Settings<GuiSettingsId>& getDefaultSettings() {
         "Scattering coefficient per unit length. Used by volumetric renderer." },
     { GuiSettingsId::RENDER_GHOST_PARTICLES, "render_ghost_particles", true,
         "If true, ghost particles will be displayed as transparent circles, otherwise they are hidden." },
+    { GuiSettingsId::SHOW_SHEARING_BOX,      "show_shearing_box", false,
+        "If true, the periodic shearing-sheet box edges are drawn over the rendered image." },
     { GuiSettingsId::BACKGROUND_COLOR,      "background_color",     Vector(0._f, 0._f, 0._f, 1._f),
         "Background color of the rendered image." },
     { GuiSettingsId::COLORMAP_TYPE,         "colormap.type",        ColorMapEnum::LINEAR,

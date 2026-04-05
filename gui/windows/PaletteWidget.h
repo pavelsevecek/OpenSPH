@@ -22,6 +22,7 @@ private:
     FloatTextCtrl* lowerCtrl;
     FloatTextCtrl* upperCtrl;
     wxCheckBox* presetCheck;
+    wxButton* scaleButton;
     wxButton* defaultButton;
 
     UnorderedMap<String, Palette> presetMap;
@@ -31,10 +32,12 @@ public:
     PaletteSimpleWidget(wxWindow* parent, wxSize size, const Palette& palette, const Palette& defaultPalette);
 
     void setPalette(const Palette& palette, const Palette& defaultPalette);
+    void setInterval(const Interval& interval);
 
     Palette getPalette() const;
 
     Function<void(Palette)> onPaletteChanged;
+    Function<void()> onScaleRequested;
 
 private:
     void setFromPresets();

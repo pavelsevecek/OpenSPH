@@ -151,4 +151,31 @@ TEST_CASE("Acceleration Criterion", "[timestepping]") {
     REQUIRE(step.id == CriterionId::MAXIMAL_VALUE);
 }
 
+TEST_CASE("Acceleration Criterion ignores exact shearing-sheet epicycle", "[timestepping]") {
+    RunSettings settings;
+    settings.set(RunSettingsId::DOMAIN_BOUNDARY, BoundaryEnum::SHEARING_SHEET);
+    settings.set(RunSettingsId::DOMAIN_CENTER, Vector(0._f));
+    settings.set(RunSettingsId::DOMAIN_SIZE, Vector(10._f, 10._f, 10._f));
+    settings.set(RunSettingsId::SHEARING_SHEET_OMEGA, 2._f);
+    settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::SYMPLECTIC_EPICYCLE);
+    settings.set(RunSettingsId::TIMESTEPPING_DERIVATIVE_FACTOR, 1._f);
+
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    AccelerationCriterion criterion(settings);
+    Storage storage(getMaterial(MaterialEnum::BASALT));
+    storage.insert<Vector>(
+        QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f, 0.5_f) });
+
+    ArrayView<Vector> r, v, dv;
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+    v[0] = Vector(0._f, -3._f, 0._f);
+    const ShearingSheet::Config cfg = ShearingSheet::tryGetConfig(settings).value();
+    dv[0] = ShearingSheet::hillAcceleration(cfg, r[0], v[0]);
+
+    Statistics stats;
+    const TimeStep step = criterion.compute(pool, storage, 5._f, stats);
+    REQUIRE(step.value == 5._f);
+    REQUIRE(step.id == CriterionId::MAXIMAL_VALUE);
+}
+
 /// \todo test multicriterion

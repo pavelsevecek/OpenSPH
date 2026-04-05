@@ -19,17 +19,20 @@ BarnesHut::BarnesHut(const Float theta,
     const MultipoleOrder order,
     const Size leafSize,
     const Size maxDepth,
-    const Float gravityConstant)
+    const Float gravityConstant,
+    const Float softeningLength)
     : kdTree(leafSize, maxDepth)
     , thetaInv(1._f / theta)
     , order(order)
     , maxDepth(maxDepth)
-    , G(gravityConstant) {
+    , G(gravityConstant)
+    , softening(softeningLength) {
     // use default-constructed kernel; it works, because by default LutKernel has zero radius and functions
     // valueImpl and gradImpl are never called.
     // Check by assert to make sure this trick will work
     SPH_ASSERT(kernel.radius() == 0._f);
     SPH_ASSERT(theta > 0._f, theta);
+    SPH_ASSERT(softening >= 0._f, softening);
 }
 
 BarnesHut::BarnesHut(const Float theta,
@@ -37,14 +40,17 @@ BarnesHut::BarnesHut(const Float theta,
     GravityLutKernel&& kernel,
     const Size leafSize,
     const Size maxDepth,
-    const Float gravityConstant)
+    const Float gravityConstant,
+    const Float softeningLength)
     : kdTree(leafSize, maxDepth)
     , kernel(std::move(kernel))
     , thetaInv(1._f / theta)
     , order(order)
     , maxDepth(maxDepth)
-    , G(gravityConstant) {
+    , G(gravityConstant)
+    , softening(softeningLength) {
     SPH_ASSERT(theta > 0._f, theta);
+    SPH_ASSERT(softening >= 0._f, softening);
 }
 
 void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
@@ -101,24 +107,45 @@ void BarnesHut::evalSelfGravity(IScheduler& scheduler, ArrayView<Vector> dv, Sta
 void BarnesHut::evalAttractors(IScheduler& scheduler,
     ArrayView<Attractor> attractors,
     ArrayView<Vector> dv) const {
-    SymmetrizeSmoothingLengths<const GravityLutKernel&> symmetricKernel(kernel);
-    // attractor-particle interactions
-    for (Attractor& a : attractors) {
-        parallelFor(scheduler, 0, r.size(), [&dv, &a, &symmetricKernel, this](const Size i) {
-            const Vector f = symmetricKernel.grad(r[i], setH(a.position, a.radius));
-            dv[i] -= G * a.mass * f;
-            a.acceleration += m[i] * f;
-        });
-    }
-    // attractor-attractor interactions
-    for (Size i = 0; i < attractors.size(); ++i) {
-        for (Size j = i + 1; j < attractors.size(); ++j) {
-            Attractor& a1 = attractors[i];
-            Attractor& a2 = attractors[j];
-            const Vector f =
-                G * symmetricKernel.grad(setH(a1.position, a1.radius), setH(a2.position, a2.radius));
-            a1.acceleration -= attractors[j].mass * f;
-            a2.acceleration += attractors[i].mass * f;
+    if (softening > 0._f) {
+        for (Attractor& a : attractors) {
+            parallelFor(scheduler, 0, r.size(), [&dv, &a, this](const Size i) {
+                const Vector dr = a.position - r[i];
+                const Vector acc = G * a.mass * dr / pow(getSqrLength(dr) + sqr(softening), 1.5_f);
+                dv[i] += acc;
+                a.acceleration -= m[i] * acc / a.mass;
+            });
+        }
+        for (Size i = 0; i < attractors.size(); ++i) {
+            for (Size j = i + 1; j < attractors.size(); ++j) {
+                Attractor& a1 = attractors[i];
+                Attractor& a2 = attractors[j];
+                const Vector dr = a2.position - a1.position;
+                const Vector acc = G * a2.mass * dr / pow(getSqrLength(dr) + sqr(softening), 1.5_f);
+                a1.acceleration += acc;
+                a2.acceleration -= acc * (a1.mass / a2.mass);
+            }
+        }
+    } else {
+        SymmetrizeSmoothingLengths<const GravityLutKernel&> symmetricKernel(kernel);
+        // attractor-particle interactions
+        for (Attractor& a : attractors) {
+            parallelFor(scheduler, 0, r.size(), [&dv, &a, &symmetricKernel, this](const Size i) {
+                const Vector f = symmetricKernel.grad(r[i], setH(a.position, a.radius));
+                dv[i] -= G * a.mass * f;
+                a.acceleration += m[i] * f;
+            });
+        }
+        // attractor-attractor interactions
+        for (Size i = 0; i < attractors.size(); ++i) {
+            for (Size j = i + 1; j < attractors.size(); ++j) {
+                Attractor& a1 = attractors[i];
+                Attractor& a2 = attractors[j];
+                const Vector f =
+                    G * symmetricKernel.grad(setH(a1.position, a1.radius), setH(a2.position, a2.radius));
+                a1.acceleration -= attractors[j].mass * f;
+                a2.acceleration += attractors[i].mass * f;
+            }
         }
     }
 }
@@ -150,7 +177,11 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx) const {
         if (!node.box.contains(r0) && boxSizeSqr > 0._f &&
             boxSizeSqr / (boxDistSqr + EPS) < 1._f / sqr(thetaInv)) {
             // small node, use multipole approximation
-            f += evaluateGravity(r0 - node.com, node.moments, order);
+            if (softening > 0._f) {
+                f += softenedMonopole(node.moments.order<0>(), node.com - r0);
+            } else {
+                f += evaluateGravity(r0 - node.com, node.moments, order);
+            }
 
             // skip the children
             return false;
@@ -356,7 +387,11 @@ void BarnesHut::evalNodeList(const LeafNode<BarnesHutNode>& leaf,
         const BarnesHutNode& node = kdTree.getNode(idx);
         SPH_ASSERT(seq1.size() > 0);
         for (Size i : seq1) {
-            dv[i] += evaluateGravity(r[i] - node.com, node.moments, order);
+            if (softening > 0._f) {
+                dv[i] += softenedMonopole(node.moments.order<0>(), node.com - r[i]);
+            } else {
+                dv[i] += evaluateGravity(r[i] - node.com, node.moments, order);
+            }
         }
     }
 }
@@ -368,7 +403,11 @@ Vector BarnesHut::evalExact(const LeafNode<BarnesHutNode>& leaf, const Vector& r
         if (idx == i) {
             continue;
         }
-        f += m[i] * kernel.grad(r[i] - r0, r[i][H]);
+        if (softening > 0._f) {
+            f += softenedMonopole(m[i], r[i] - r0);
+        } else {
+            f += m[i] * kernel.grad(r[i] - r0, r[i][H]);
+        }
     }
     return f;
 }

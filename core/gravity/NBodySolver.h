@@ -6,6 +6,7 @@
 /// \date 2016-2021
 
 #include "objects/containers/FlatSet.h"
+#include "physics/ShearingSheet.h"
 #include "thread/ThreadLocal.h"
 #include "timestepping/ISolver.h"
 
@@ -88,6 +89,9 @@ private:
     ArrayView<Vector> r;
     ArrayView<Vector> v;
 
+    Optional<ShearingSheet::Config> shearingSheet;
+    bool useSymplecticEpicycle = false;
+
 public:
     /// \brief Creates the solver, using the gravity implementation specified by settings.
     HardSphereSolver(IScheduler& scheduler, const RunSettings& settings);
@@ -145,7 +149,7 @@ class SoftSphereSolver : public ISolver {
 
     IScheduler& scheduler;
 
-    AutoPtr<IBasicFinder> finder;
+    AutoPtr<ISymmetricFinder> finder;
 
     struct ThreadData {
         /// Neighbors for parallelized queries
@@ -159,6 +163,9 @@ class SoftSphereSolver : public ISolver {
     Float h1;
     Float h2;
 
+    Optional<ShearingSheet::Config> shearingSheet;
+    bool useSymplecticEpicycle = false;
+
 public:
     SoftSphereSolver(IScheduler& scheduler, const RunSettings& settings);
 
@@ -167,6 +174,8 @@ public:
     ~SoftSphereSolver() override;
 
     virtual void integrate(Storage& storage, Statistics& stats) override;
+
+    virtual void collide(Storage& storage, Statistics& stats, const Float dt) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 

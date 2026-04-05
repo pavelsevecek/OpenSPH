@@ -281,16 +281,16 @@ SfdPlot::SfdPlot(const Flags<Post::ComponentFlag> connectivity, const Float peri
     connect = connectivity;
 
     if (connect.has(Post::ComponentFlag::ESCAPE_VELOCITY)) {
-        name = "Predicted SFD";
+        name = "Predicted SFD [m]";
     } else {
-        name = "Current SFD";
+        name = "Current SFD [m]";
     }
 }
 
 SfdPlot::SfdPlot(const Float period)
     : period(period) {
     source = Post::HistogramSource::PARTICLES;
-    name = "Particle SFD";
+    name = "Particle SFD [m]";
 }
 
 String SfdPlot::getCaption() const {

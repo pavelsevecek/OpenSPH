@@ -56,6 +56,13 @@ public:
     virtual void render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const override;
 
     virtual void cancelRender() override;
+
+    Optional<Size> pickParticle(
+        const ICamera& camera,
+        const Pixel position,
+        const float particleScale,
+        const float toleranceEps
+    ) const;
 };
 
 NAMESPACE_SPH_END

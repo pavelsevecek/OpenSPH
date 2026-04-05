@@ -395,6 +395,147 @@ void PeriodicBoundary::finalize(Storage& storage) {
 }
 
 //-----------------------------------------------------------------------------------------------------------
+// ShearingSheetBoundary implementation
+//-----------------------------------------------------------------------------------------------------------
+
+ShearingSheetBoundary::ShearingSheetBoundary(const RunSettings& settings) {
+    Optional<ShearingSheet::Config> parsed = ShearingSheet::tryGetConfig(settings);
+    SPH_ASSERT(parsed);
+    cfg = parsed.value();
+    searchRadius = Factory::getKernel<3>(settings).radius();
+    fullGhosts =
+        settings.getFlags<ForceEnum>(RunSettingsId::SPH_SOLVER_FORCES).has(ForceEnum::SELF_GRAVITY);
+}
+
+static bool needsPeriodicImage(const Float coord,
+    const Float size,
+    const Float radius,
+    const int index,
+    const bool fullGhosts) {
+    if (index == 0) {
+        return true;
+    }
+    if (fullGhosts) {
+        return true;
+    }
+    if (index > 0) {
+        return coord < -0.5_f * size + radius;
+    } else {
+        return coord > 0.5_f * size - radius;
+    }
+}
+
+void ShearingSheetBoundary::initialize(Storage& storage) {
+    storage.setUserData(nullptr);
+    SPH_ASSERT(ghostIdxs.empty() && ghosts.empty());
+
+    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
+    Array<Vector>* v = nullptr;
+    if (storage.has<Vector>(QuantityId::POSITION, OrderEnum::SECOND)) {
+        v = &storage.getDt<Vector>(QuantityId::POSITION);
+        ShearingSheet::remap(storage, cfg, time);
+    } else {
+        for (Vector& ri : r) {
+            Vector vi(0._f);
+            ShearingSheet::remap(ri, vi, cfg, time);
+        }
+    }
+
+    Array<Size> duplIdxs;
+    Array<Vector> ghostVelocities;
+    const int nx = fullGhosts ? cfg.ghosts[X] : min(cfg.ghosts[X], 1);
+    const int ny = fullGhosts ? cfg.ghosts[Y] : min(cfg.ghosts[Y], 1);
+    const int nz = cfg.verticalBoundary == ShearingSheetVerticalBoundaryEnum::PERIODIC
+        ? (fullGhosts ? cfg.ghosts[Z] : min(cfg.ghosts[Z], 1))
+        : 0;
+
+    for (Size i = 0; i < r.size(); ++i) {
+        const Vector rel = ShearingSheet::relativePosition(cfg, r[i]);
+        const Float radius = searchRadius * r[i][H];
+
+        for (int ix = -nx; ix <= nx; ++ix) {
+            for (int iy = -ny; iy <= ny; ++iy) {
+                for (int iz = -nz; iz <= nz; ++iz) {
+                    if (ix == 0 && iy == 0 && iz == 0) {
+                        continue;
+                    }
+                    if (!needsPeriodicImage(rel[X], cfg.boxSize[X], radius, ix, fullGhosts) ||
+                        !needsPeriodicImage(rel[Y], cfg.boxSize[Y], radius, iy, fullGhosts) ||
+                        !needsPeriodicImage(rel[Z], cfg.boxSize[Z], radius, iz, fullGhosts)) {
+                        continue;
+                    }
+
+                    const ShearingSheet::GhostBox gb = ShearingSheet::getGhostBox(cfg, Indices(ix, iy, iz), time);
+                    ghosts.push(Ghost{ r[i] + gb.positionOffset, i });
+                    duplIdxs.push(i);
+                    ghostVelocities.push(v ? (*v)[i] + gb.velocityOffset : Vector(0._f));
+                }
+            }
+        }
+
+        if (cfg.verticalBoundary == ShearingSheetVerticalBoundaryEnum::REFLECTING) {
+            for (int ix = -nx; ix <= nx; ++ix) {
+                for (int iy = -ny; iy <= ny; ++iy) {
+                    const bool needX = needsPeriodicImage(rel[X], cfg.boxSize[X], radius, ix, fullGhosts);
+                    const bool needY = needsPeriodicImage(rel[Y], cfg.boxSize[Y], radius, iy, fullGhosts);
+                    if (!needX || !needY) {
+                        continue;
+                    }
+
+                    const ShearingSheet::GhostBox gb =
+                        ShearingSheet::getGhostBox(cfg, Indices(ix, iy, 0), time);
+                    Vector ghostRel = rel + gb.positionOffset;
+                    Vector ghostVel = v ? (*v)[i] + gb.velocityOffset : Vector(0._f);
+
+                    if (rel[Z] < -0.5_f * cfg.boxSize[Z] + radius) {
+                        ghostRel[Z] = -cfg.boxSize[Z] - rel[Z];
+                        ghostVel[Z] *= -1._f;
+                        ghosts.push(Ghost{ cfg.center + ghostRel, i });
+                        duplIdxs.push(i);
+                        ghostVelocities.push(ghostVel);
+                    }
+                    if (rel[Z] > 0.5_f * cfg.boxSize[Z] - radius) {
+                        ghostRel = rel + gb.positionOffset;
+                        ghostVel = v ? (*v)[i] + gb.velocityOffset : Vector(0._f);
+                        ghostRel[Z] = cfg.boxSize[Z] - rel[Z];
+                        ghostVel[Z] *= -1._f;
+                        ghosts.push(Ghost{ cfg.center + ghostRel, i });
+                        duplIdxs.push(i);
+                        ghostVelocities.push(ghostVel);
+                    }
+                }
+            }
+        }
+    }
+
+    ghostIdxs = storage.duplicate(duplIdxs);
+    SPH_ASSERT(ghostIdxs.size() == ghosts.size());
+
+    for (Size i = 0; i < ghostIdxs.size(); ++i) {
+        r[ghostIdxs[i]] = ghosts[i].position;
+        r[ghostIdxs[i]][H] = r[ghosts[i].index][H];
+    }
+    if (v) {
+        for (Size i = 0; i < ghostIdxs.size(); ++i) {
+            (*v)[ghostIdxs[i]] = ghostVelocities[i];
+        }
+    }
+
+    if (storage.has(QuantityId::FLAG)) {
+        ArrayView<Size> flag = storage.getValue<Size>(QuantityId::FLAG);
+        for (Size idx : ghostIdxs) {
+            flag[idx] = Size(-1);
+        }
+    }
+}
+
+void ShearingSheetBoundary::finalize(Storage& storage) {
+    storage.remove(ghostIdxs);
+    ghostIdxs.clear();
+    storage.setUserData(makeShared<GhostParticlesData>(std::move(ghosts)));
+}
+
+//-----------------------------------------------------------------------------------------------------------
 // SymmetricBoundary implementation
 //-----------------------------------------------------------------------------------------------------------
 

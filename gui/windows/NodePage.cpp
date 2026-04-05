@@ -1927,6 +1927,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
             static FlatSet<Presets::ExtId> SPH_SIMS = FlatSet<Presets::ExtId>(ElementsUniqueTag{},
                 {
                     Presets::Id::COLLISION,
+                    Presets::Id::FRAGMENTATION_REACCUMULATION,
                     Presets::Id::CRATERING,
                     Presets::Id::PLANETESIMAL_MERGING,
                     Presets::Id::ACCRETION_DISK,
@@ -1937,6 +1938,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
                 defaultSet = true;
                 GuiSettings& gui = Project::getInstance().getGuiSettings();
                 gui.set(GuiSettingsId::PARTICLE_RADIUS, 0.35_f);
+                gui.set(GuiSettingsId::DEFAULT_COLORIZER, ColorizerId::BEAUTY);
             }
         }
 

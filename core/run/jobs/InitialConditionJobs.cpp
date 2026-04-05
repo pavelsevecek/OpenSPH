@@ -1,9 +1,12 @@
 #include "run/jobs/InitialConditionJobs.h"
 #include "gravity/IGravity.h"
+#include "math/rng/Rng.h"
 #include "objects/finders/IncrementalFinder.h"
 #include "objects/geometry/Sphere.h"
 #include "physics/Eos.h"
 #include "physics/Functions.h"
+#include "physics/Constants.h"
+#include "physics/ShearingSheet.h"
 #include "post/Analysis.h"
 #include "quantities/Quantity.h"
 #include "quantities/Utility.h"
@@ -1037,6 +1040,316 @@ static JobRegistrar sRegisterNBodyIc(
     "initial conditions",
     [](const String& name) { return makeAuto<NBodyIc>(name); },
     "Creates a spherical or ellipsoidal cloud of particles.");
+
+// ----------------------------------------------------------------------------------------------------------
+// ShearingSheetIc
+// ----------------------------------------------------------------------------------------------------------
+
+static RegisterEnum<ShearingSheetFillMode> sShearingSheetFillMode({
+    { ShearingSheetFillMode::TARGET_COUNT,
+        "target_count",
+        "Create exactly the requested number of particles." },
+    { ShearingSheetFillMode::TARGET_SURFACE_DENSITY,
+        "target_surface_density",
+        "Keep sampling particles until the requested surface density in the box is reached." },
+    { ShearingSheetFillMode::TOTAL_MASS_AND_COUNT,
+        "total_mass_and_count",
+        "Create the requested number of particles with equal radii so that the total mass matches exactly." },
+});
+
+static RegisterEnum<ShearingSheetMassUnit> sShearingSheetMassUnit({
+    { ShearingSheetMassUnit::GRAMS, "grams", "Interpret total mass in grams." },
+    { ShearingSheetMassUnit::KILOGRAMS, "kilograms", "Interpret total mass in kilograms." },
+    { ShearingSheetMassUnit::EARTH_MASSES, "earth_masses", "Interpret total mass in Earth masses." },
+    { ShearingSheetMassUnit::LUNAR_MASSES, "lunar_masses", "Interpret total mass in Lunar masses." },
+    { ShearingSheetMassUnit::JOVIAN_MASSES, "jovian_masses", "Interpret total mass in Jovian masses." },
+    { ShearingSheetMassUnit::SOLAR_MASSES, "solar_masses", "Interpret total mass in Solar masses." },
+});
+
+static RegisterEnum<ShearingSheetLengthUnit> sShearingSheetLengthUnit({
+    { ShearingSheetLengthUnit::EARTH_RADII, "earth_radii", "Interpret box size in Earth radii." },
+    { ShearingSheetLengthUnit::LUNAR_RADII, "lunar_radii", "Interpret box size in Lunar radii." },
+    { ShearingSheetLengthUnit::JOVIAN_RADII, "jovian_radii", "Interpret box size in Jovian radii." },
+    { ShearingSheetLengthUnit::SOLAR_RADII, "solar_radii", "Interpret box size in Solar radii." },
+    { ShearingSheetLengthUnit::KILOMETERS, "kilometers", "Interpret box size in kilometers." },
+    { ShearingSheetLengthUnit::METERS, "meters", "Interpret box size in meters." },
+    { ShearingSheetLengthUnit::AU, "au", "Interpret box size in astronomical units." },
+});
+
+namespace {
+
+INLINE Float nextRandom(IRng& rng, int& dim) {
+    const int idx = dim % 6;
+    dim++;
+    return rng(idx);
+}
+
+INLINE Float sampleNormal(IRng& rng, int& dim, const Float sigma) {
+    if (sigma == 0._f) {
+        return 0._f;
+    }
+
+    static const Float epsilon = std::numeric_limits<Float>::min();
+    Float u1, u2;
+    do {
+        u1 = nextRandom(rng, dim);
+        u2 = nextRandom(rng, dim);
+    } while (u1 <= epsilon);
+
+    const Float z = sqrt(-2._f * log(u1)) * cos(2._f * PI * u2);
+    return z * sigma;
+}
+
+INLINE void reportProgress(IRunCallbacks& callbacks, const Float progress) {
+    Statistics stats;
+    stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
+    callbacks.onTimeStep(Storage(), stats);
+}
+
+INLINE Float shearingSheetMassToKg(const Float value, const ShearingSheetMassUnit unit) {
+    switch (unit) {
+    case ShearingSheetMassUnit::GRAMS:
+        return value * 1.e-3_f;
+    case ShearingSheetMassUnit::KILOGRAMS:
+        return value;
+    case ShearingSheetMassUnit::EARTH_MASSES:
+        return value * Constants::M_earth;
+    case ShearingSheetMassUnit::LUNAR_MASSES:
+        return value * Constants::M_moon;
+    case ShearingSheetMassUnit::JOVIAN_MASSES:
+        return value * Constants::M_jupiter;
+    case ShearingSheetMassUnit::SOLAR_MASSES:
+        return value * Constants::M_sun;
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+INLINE Float shearingSheetLengthToMeters(const Float value, const ShearingSheetLengthUnit unit) {
+    switch (unit) {
+    case ShearingSheetLengthUnit::EARTH_RADII:
+        return value * Constants::R_earth;
+    case ShearingSheetLengthUnit::LUNAR_RADII:
+        return value * 1.7374e6_f;
+    case ShearingSheetLengthUnit::JOVIAN_RADII:
+        return value * Constants::R_jupiter;
+    case ShearingSheetLengthUnit::SOLAR_RADII:
+        return value * Constants::R_sun;
+    case ShearingSheetLengthUnit::KILOMETERS:
+        return value * 1.e3_f;
+    case ShearingSheetLengthUnit::METERS:
+        return value;
+    case ShearingSheetLengthUnit::AU:
+        return value * Constants::au;
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+} // namespace
+
+ShearingSheetIc::ShearingSheetIc(const String& name)
+    : IParticleJob(name) {}
+
+VirtualSettings ShearingSheetIc::getSettings() {
+    VirtualSettings connector;
+    addGenericCategory(connector, instName);
+
+    auto countEnabler = [this] {
+        const ShearingSheetFillMode mode = ShearingSheetFillMode(fillMode);
+        return mode == ShearingSheetFillMode::TARGET_COUNT || mode == ShearingSheetFillMode::TOTAL_MASS_AND_COUNT;
+    };
+    auto sigmaEnabler = [this] {
+        return ShearingSheetFillMode(fillMode) == ShearingSheetFillMode::TARGET_SURFACE_DENSITY;
+    };
+    auto totalMassEnabler = [this] {
+        return ShearingSheetFillMode(fillMode) == ShearingSheetFillMode::TOTAL_MASS_AND_COUNT;
+    };
+    auto radiusEnabler = [this] {
+        return ShearingSheetFillMode(fillMode) != ShearingSheetFillMode::TOTAL_MASS_AND_COUNT;
+    };
+
+    VirtualSettings::Category& patchCat = connector.addCategory("Patch");
+    patchCat.connect("Center [m]", "center", center);
+    patchCat.connect("Box size", "box_size", boxSize);
+    patchCat.connect("Box size unit", "box_size_unit", boxSizeUnit);
+    patchCat.connect("Omega [1/s]", "omega", omega);
+    patchCat.connect("Softening [m]", "softening", softening);
+
+    VirtualSettings::Category& boundaryCat = connector.addCategory("Boundary");
+    boundaryCat.connect("Ghost layers X", "ghost_x", ghostX);
+    boundaryCat.connect("Ghost layers Y", "ghost_y", ghostY);
+    boundaryCat.connect("Ghost layers Z", "ghost_z", ghostZ);
+    boundaryCat.connect("Vertical boundary", "vertical_boundary", verticalBoundary);
+    boundaryCat.connect("Restitution model", "restitution_model", restitutionModel);
+    boundaryCat.connect(
+        "Minimum collision velocity [1/s]", "minimum_collision_velocity", minimumCollisionVelocity);
+
+    VirtualSettings::Category& particleCat = connector.addCategory("Particles");
+    particleCat.connect("Fill mode", "fill_mode", fillMode);
+    particleCat.connect("Particle count", "particle_count", particleCount).setEnabler(countEnabler);
+    particleCat.connect("Surface density [kg/m^2]", "surface_density", surfaceDensity).setEnabler(
+        sigmaEnabler);
+    particleCat.connect("Total mass", "total_mass", totalMass).setEnabler(totalMassEnabler);
+    particleCat.connect("Mass unit", "total_mass_unit", totalMassUnit).setEnabler(totalMassEnabler);
+    particleCat.connect("Bulk density [kg/m^3]", "bulk_density", bulkDensity);
+    particleCat.connect("Min radius [m]", "radius_min", radiusMin).setEnabler(radiusEnabler);
+    particleCat.connect("Max radius [m]", "radius_max", radiusMax).setEnabler(radiusEnabler);
+    particleCat.connect("Radius power-law slope", "radius_slope", radiusSlope).setEnabler(radiusEnabler);
+    particleCat.connect("Z dispersion [m]", "z_dispersion", zDispersion);
+    particleCat.connect("Random seed", "seed", seed);
+
+    VirtualSettings::Category& velocityCat = connector.addCategory("Velocities");
+    velocityCat.connect("Velocity dispersion [m/s]", "velocity_dispersion", velocityDispersion);
+
+    return connector;
+}
+
+void ShearingSheetIc::evaluate(const RunSettings& global, IRunCallbacks& callbacks) {
+    if (omega <= 0._f) {
+        throw InvalidSetup("Shearing sheet requires positive Omega.");
+    }
+    const Vector boxSizeSi(
+        shearingSheetLengthToMeters(boxSize[X], ShearingSheetLengthUnit(boxSizeUnit)),
+        shearingSheetLengthToMeters(boxSize[Y], ShearingSheetLengthUnit(boxSizeUnit)),
+        shearingSheetLengthToMeters(boxSize[Z], ShearingSheetLengthUnit(boxSizeUnit)));
+    if (boxSizeSi[X] <= 0._f || boxSizeSi[Y] <= 0._f || boxSizeSi[Z] <= 0._f) {
+        throw InvalidSetup("Shearing-sheet box size must be positive in all dimensions.");
+    }
+    if (bulkDensity <= 0._f) {
+        throw InvalidSetup("Particle bulk density must be positive.");
+    }
+    if (ShearingSheetFillMode(fillMode) != ShearingSheetFillMode::TOTAL_MASS_AND_COUNT &&
+        (radiusMin <= 0._f || radiusMax < radiusMin)) {
+        throw InvalidSetup("Invalid particle radius interval.");
+    }
+    if ((ShearingSheetFillMode(fillMode) == ShearingSheetFillMode::TARGET_COUNT ||
+            ShearingSheetFillMode(fillMode) == ShearingSheetFillMode::TOTAL_MASS_AND_COUNT) &&
+        particleCount <= 0) {
+        throw InvalidSetup("Target particle count must be positive.");
+    }
+    if (ShearingSheetFillMode(fillMode) == ShearingSheetFillMode::TARGET_SURFACE_DENSITY &&
+        surfaceDensity <= 0._f) {
+        throw InvalidSetup("Surface density must be positive.");
+    }
+    if (ShearingSheetFillMode(fillMode) == ShearingSheetFillMode::TOTAL_MASS_AND_COUNT && totalMass <= 0._f) {
+        throw InvalidSetup("Total mass must be positive.");
+    }
+
+    RunSettings rngSettings = global;
+    rngSettings.set(RunSettingsId::RUN_RNG_SEED, seed);
+    AutoPtr<IRng> rng = Factory::getRng(rngSettings);
+    const ShearingSheetFillMode mode = ShearingSheetFillMode(fillMode);
+    PowerLawSfd sfd{ radiusSlope, Interval(radiusMin, radiusMax) };
+
+    ShearingSheet::Config cfg;
+    cfg.center = center;
+    cfg.boxSize = boxSizeSi;
+    cfg.ghosts = Indices(ghostX, ghostY, ghostZ);
+    cfg.omega = omega;
+    cfg.softening = softening;
+    cfg.minCollisionVelocity = minimumCollisionVelocity;
+    cfg.verticalBoundary = ShearingSheetVerticalBoundaryEnum(verticalBoundary);
+    cfg.restitution = ShearingSheetRestitutionEnum(restitutionModel);
+
+    const Float totalMassKg =
+        mode == ShearingSheetFillMode::TOTAL_MASS_AND_COUNT
+        ? shearingSheetMassToKg(totalMass, ShearingSheetMassUnit(totalMassUnit))
+        : 0._f;
+    const Float surfaceTargetMass = surfaceDensity * boxSizeSi[X] * boxSizeSi[Y];
+    const Float particleMass = mode == ShearingSheetFillMode::TOTAL_MASS_AND_COUNT
+        ? totalMassKg / Float(particleCount)
+        : 0._f;
+    const Float monoRadius = mode == ShearingSheetFillMode::TOTAL_MASS_AND_COUNT
+        ? root<3>(3._f * particleMass / (4._f * PI * bulkDensity))
+        : 0._f;
+    const Size reportStep = max(Size(particleCount / 100), 1u);
+
+    Array<Vector> positions;
+    Array<Vector> velocities;
+    Array<Float> masses;
+    if (mode == ShearingSheetFillMode::TARGET_COUNT || mode == ShearingSheetFillMode::TOTAL_MASS_AND_COUNT) {
+        positions.reserve(Size(particleCount));
+        velocities.reserve(Size(particleCount));
+        masses.reserve(Size(particleCount));
+    }
+
+    Float totalMass = 0._f;
+    Size generated = 0;
+    while (true) {
+        const bool done = mode == ShearingSheetFillMode::TARGET_COUNT || mode == ShearingSheetFillMode::TOTAL_MASS_AND_COUNT
+            ? generated >= Size(particleCount)
+            : totalMass >= surfaceTargetMass;
+        if (done) {
+            break;
+        }
+
+        int dim = 0;
+        const Float radius = mode == ShearingSheetFillMode::TOTAL_MASS_AND_COUNT ? monoRadius
+                                                                                 : sfd(nextRandom(*rng, dim));
+        Vector position(center[X] + (nextRandom(*rng, dim) - 0.5_f) * boxSizeSi[X],
+            center[Y] + (nextRandom(*rng, dim) - 0.5_f) * boxSizeSi[Y],
+            center[Z] + sampleNormal(*rng, dim, zDispersion),
+            radius);
+        Vector velocity(sampleNormal(*rng, dim, velocityDispersion[X]),
+            -1.5_f * omega * (position[X] - center[X]) + sampleNormal(*rng, dim, velocityDispersion[Y]),
+            sampleNormal(*rng, dim, velocityDispersion[Z]));
+
+        if (cfg.verticalBoundary != ShearingSheetVerticalBoundaryEnum::OPEN) {
+            ShearingSheet::remap(position, velocity, cfg, 0._f);
+        }
+
+        const Float mass = mode == ShearingSheetFillMode::TOTAL_MASS_AND_COUNT ? particleMass
+                                                                               : bulkDensity * sphereVolume(radius);
+        positions.push(position);
+        velocities.push(velocity);
+        masses.push(mass);
+        totalMass += mass;
+        generated++;
+
+        if (generated % reportStep == 0) {
+            const Float progress = mode == ShearingSheetFillMode::TARGET_COUNT ||
+                    mode == ShearingSheetFillMode::TOTAL_MASS_AND_COUNT
+                ? Float(generated) / Float(particleCount)
+                : min(totalMass / surfaceTargetMass, 1._f);
+            reportProgress(callbacks, progress);
+            if (callbacks.shouldAbortRun()) {
+                return;
+            }
+        }
+    }
+
+    Storage storage(makeAuto<NullMaterial>(BodySettings::getDefaults()));
+    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(positions));
+    storage.getDt<Vector>(QuantityId::POSITION) = std::move(velocities);
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, std::move(masses));
+    storage.insert<Vector>(QuantityId::ANGULAR_FREQUENCY, OrderEnum::ZERO, Vector(0._f));
+
+    result = makeShared<ParticleData>();
+    result->storage = std::move(storage);
+
+    RunSettings& overrides = result->overrides;
+    overrides.set(RunSettingsId::DOMAIN_TYPE, DomainEnum::BLOCK);
+    overrides.set(RunSettingsId::DOMAIN_CENTER, center);
+    overrides.set(RunSettingsId::DOMAIN_SIZE, boxSizeSi);
+    overrides.set(RunSettingsId::DOMAIN_BOUNDARY, BoundaryEnum::SHEARING_SHEET);
+    overrides.set(RunSettingsId::SHEARING_SHEET_OMEGA, omega);
+    overrides.set(RunSettingsId::SHEARING_SHEET_GHOST_X, ghostX);
+    overrides.set(RunSettingsId::SHEARING_SHEET_GHOST_Y, ghostY);
+    overrides.set(RunSettingsId::SHEARING_SHEET_GHOST_Z, ghostZ);
+    overrides.set(RunSettingsId::SHEARING_SHEET_VERTICAL_BOUNDARY,
+        ShearingSheetVerticalBoundaryEnum(verticalBoundary));
+    overrides.set(
+        RunSettingsId::SHEARING_SHEET_RESTITUTION, ShearingSheetRestitutionEnum(restitutionModel));
+    overrides.set(RunSettingsId::SHEARING_SHEET_MIN_COLLISION_VELOCITY, minimumCollisionVelocity);
+    overrides.set(RunSettingsId::GRAVITY_SOFTENING_LENGTH, softening);
+}
+
+static JobRegistrar sRegisterShearingSheetIc(
+    "shearing sheet",
+    "initial conditions",
+    [](const String& name) { return makeAuto<ShearingSheetIc>(name); },
+    "Creates a REBOUND-style local shearing-sheet particle patch and matching run overrides.");
 
 
 // ----------------------------------------------------------------------------------------------------------

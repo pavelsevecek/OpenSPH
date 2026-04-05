@@ -8,6 +8,7 @@
 #include "common/ForwardDecl.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/AutoPtr.h"
+#include "physics/ShearingSheet.h"
 #include "quantities/QuantityIds.h"
 
 NAMESPACE_SPH_BEGIN
@@ -120,6 +121,8 @@ private:
 class AccelerationCriterion : public ITimeStepCriterion {
 private:
     Float factor;
+    Optional<ShearingSheet::Config> shearingSheet;
+    bool useSymplecticEpicycle = false;
 
 public:
     explicit AccelerationCriterion(const RunSettings& settings);

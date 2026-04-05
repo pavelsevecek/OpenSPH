@@ -6,6 +6,7 @@
 /// \date 2016-2021
 
 #include "physics/Functions.h"
+#include "physics/ShearingSheet.h"
 #include "sph/equations/EquationTerm.h"
 
 NAMESPACE_SPH_BEGIN
@@ -79,6 +80,29 @@ public:
             dv[i] -= 2._f * cross(omega, v[i]) + cross(omega, cross(omega, r[i]));
             // no energy term - energy is not generally conserved when external force is used
         }
+    }
+
+    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
+};
+
+/// \brief Hill/shearing-sheet inertial terms in the local rotating Cartesian frame.
+class ShearingSheetForce : public IEquationTerm {
+private:
+    ShearingSheet::Config cfg;
+
+public:
+    explicit ShearingSheetForce(const ShearingSheet::Config& cfg)
+        : cfg(cfg) {}
+
+    virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
+        const RunSettings& UNUSED(settings)) override {}
+
+    virtual void initialize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const Float UNUSED(t)) override {}
+
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& storage, const Float UNUSED(t)) override {
+        ShearingSheet::applyHillForces(storage, cfg);
     }
 
     virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}

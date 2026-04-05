@@ -291,4 +291,37 @@ void ParticleRenderer::cancelRender() {
     shouldContinue = false;
 }
 
+Optional<Size> ParticleRenderer::pickParticle(
+    const ICamera& camera,
+    const Pixel position,
+    const float particleScale,
+    const float toleranceEps
+) const {
+    if (cached.positions.empty()) {
+        return NOTHING;
+    }
+
+    const bool reverseOrder = dot(cached.cameraDir, camera.getFrame().row(2)) < 0._f;
+    for (Size k = 0; k < cached.positions.size(); ++k) {
+        const Size i = reverseOrder ? k : cached.positions.size() - k - 1;
+        if (cached.idxs[i] == GHOST_INDEX || cached.idxs[i] == ATTRACTOR_INDEX) {
+            continue;
+        }
+
+        const Optional<ProjectedPoint> projected = camera.project(cached.positions[i]);
+        if (!projected) {
+            continue;
+        }
+
+        const float radius = projected->radius * particleScale;
+        const float dx = projected->coords.x - float(position.x);
+        const float dy = projected->coords.y - float(position.y);
+        const float distanceSqr = dx * dx + dy * dy;
+        if (distanceSqr <= sqr(radius * (1.f + toleranceEps))) {
+            return cached.idxs[i];
+        }
+    }
+    return NOTHING;
+}
+
 NAMESPACE_SPH_END
