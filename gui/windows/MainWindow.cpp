@@ -4,6 +4,7 @@
 #include "gui/Settings.h"
 #include "gui/Utils.h"
 #include "gui/jobs/CameraJobs.h"
+#include "gui/objects/Colorizer.h"
 #include "gui/windows/GridPage.h"
 #include "gui/windows/GuiSettingsDialog.h"
 #include "gui/windows/NodePage.h"
@@ -14,7 +15,9 @@
 #include "io/FileSystem.h"
 #include "objects/utility/IteratorAdapters.h"
 #include "objects/utility/Streams.h"
+#include "objects/wrappers/Finally.h"
 #include "post/Plot.h"
+#include "run/Node.h"
 #include "run/jobs/GeometryJobs.h"
 #include "run/jobs/IoJobs.h"
 #include "run/jobs/ParticleJobs.h"
@@ -282,6 +285,19 @@ bool isSph(const Path& path) {
     return info && info->runType == RunTypeEnum::SPH;
 }
 
+static bool isSphRunNode(const SharedPtr<INode>& node) {
+    RawPtr<JobNode> jobNode = dynamicCast<JobNode, INode>(node.get());
+    if (!jobNode) {
+        return false;
+    }
+    bool sphRun = false;
+    jobNode->enumerate([&sphRun](SharedPtr<JobNode> job) {
+        const String className = job->className();
+        sphRun = sphRun || className == "SPH run" || className == "SPH stabilization";
+    });
+    return sphRun;
+}
+
 void MainWindow::open(const Path& openPath, const bool setDefaults) {
     BusyCursor wait(this);
 
@@ -290,7 +306,9 @@ void MainWindow::open(const Path& openPath, const bool setDefaults) {
         const bool isSphSim = isSph<BinaryInput>(openPath) || isSph<CompressedInput>(openPath);
         const bool isMiluphSim = openPath.extension() == Path("h5");
         if (isSphSim || isMiluphSim) {
-            Project::getInstance().getGuiSettings().set(GuiSettingsId::PARTICLE_RADIUS, 0.35_f);
+            GuiSettings& gui = Project::getInstance().getGuiSettings();
+            gui.set(GuiSettingsId::PARTICLE_RADIUS, 0.35_f);
+            gui.set(GuiSettingsId::DEFAULT_COLORIZER, ColorizerId::BEAUTY);
         }
     }
     AutoPtr<Controller> controller = makeAuto<Controller>(notebook);
@@ -755,6 +773,29 @@ wxMenu* MainWindow::createAnalysisMenu() {
 }
 
 void MainWindow::addRunPage(SharedPtr<INode> node, const RunSettings& globals, const String pageName) {
+    GuiSettings& gui = Project::getInstance().getGuiSettings();
+    const bool sphRun = isSphRunNode(node);
+    const ColorizerId originalColorizer = gui.get<ColorizerId>(GuiSettingsId::DEFAULT_COLORIZER);
+    const Float originalRadius = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
+    const bool overrideColorizer = sphRun;
+    const bool overrideRadius = sphRun;
+
+    if (overrideColorizer) {
+        gui.set(GuiSettingsId::DEFAULT_COLORIZER, ColorizerId::BEAUTY);
+    }
+    if (overrideRadius) {
+        gui.set(GuiSettingsId::PARTICLE_RADIUS, 0.35_f);
+    }
+
+    auto restoreGui = finally([&gui, overrideColorizer, originalColorizer, overrideRadius, originalRadius] {
+        if (overrideColorizer) {
+            gui.set(GuiSettingsId::DEFAULT_COLORIZER, originalColorizer);
+        }
+        if (overrideRadius) {
+            gui.set(GuiSettingsId::PARTICLE_RADIUS, originalRadius);
+        }
+    });
+
     AutoPtr<Controller> controller = makeAuto<Controller>(notebook);
     controller->start(std::move(node), globals);
 

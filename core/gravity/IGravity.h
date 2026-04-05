@@ -15,6 +15,8 @@ struct Attractor;
 /// \brief Interface for computing gravitational interactions of particles.
 class IGravity : public Polymorphic {
 public:
+    virtual void setTime(const Float UNUSED(t)) {}
+
     /// \brief Builds the accelerating structure.
     ///
     /// Needs to be called every time step.

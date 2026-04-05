@@ -69,6 +69,7 @@ void SymmetricSolver<Dim>::integrate(Storage& storage, Statistics& stats) {
     equations.initialize(scheduler, storage, t);
 
     // apply boundary conditions before the loop
+    bc->setTime(t);
     bc->initialize(storage);
 
     // initialize accumulate storages & derivatives
@@ -84,6 +85,7 @@ void SymmetricSolver<Dim>::integrate(Storage& storage, Statistics& stats) {
     equations.finalize(scheduler, storage, t);
 
     // apply boundary conditions after the loop
+    bc->setTime(t);
     bc->finalize(storage);
 
     // finalize all materials (integrate fragmentation model)

@@ -72,6 +72,9 @@ protected:
     /// \todo generalize
     Float G = Constants::gravity;
 
+    /// Fixed Plummer softening length. Zero means exact Newtonian gravity.
+    Float softening = 0._f;
+
 public:
     /// \brief Constructs the Barnes-Hut gravity assuming point-like particles (with zero radius).
     ///
@@ -83,7 +86,8 @@ public:
         const MultipoleOrder order,
         const Size leafSize = 25,
         const Size maxDepth = 50,
-        const Float gravityConstant = Constants::gravity);
+        const Float gravityConstant = Constants::gravity,
+        const Float softeningLength = 0._f);
 
     /// \brief Constructs the Barnes-Hut gravity with given smoothing kernel
     ///
@@ -97,7 +101,8 @@ public:
         GravityLutKernel&& kernel,
         const Size leafSize = 25,
         const Size maxDepth = 50,
-        const Float gravityConstant = Constants::gravity);
+        const Float gravityConstant = Constants::gravity,
+        const Float softeningLength = 0._f);
 
     /// Masses of particles must be strictly positive, otherwise center of mass would be undefined.
     virtual void build(IScheduler& pool, const Storage& storage) override;
@@ -191,6 +196,10 @@ protected:
     void buildLeaf(BarnesHutNode& node);
 
     void buildInner(BarnesHutNode& node, BarnesHutNode& left, BarnesHutNode& right);
+
+    INLINE Vector softenedMonopole(const Float mass, const Vector& dr) const {
+        return mass * dr / pow(getSqrLength(dr) + sqr(softening), 1.5_f);
+    }
 };
 
 NAMESPACE_SPH_END

@@ -43,6 +43,16 @@ struct ColorizerData {
     SharedPtr<IColorizer> colorizer;
 };
 
+struct OrthoViewSetup {
+    Vector centerOfMass;
+    Float worldToPixel;
+};
+
+struct ShearingSheetView {
+    Vector center = Vector(0._f);
+    Vector boxSize = Vector(0._f);
+};
+
 /// \brief Main GUI class connection the simulation with UI controls.
 class Controller : public IJobCallbacks {
 private:
@@ -81,6 +91,12 @@ private:
     struct Vis {
         /// Cached positions of particles for visualization.
         Array<Vector> positions;
+
+        /// Cached masses of particles for visualization.
+        Array<Float> masses;
+
+        /// Cached persistent indices matching the visualized particle positions.
+        Array<Size> persistentIdxs;
 
         /// Copy of statistics when the colorizer was initialized
         AutoPtr<Statistics> stats;
@@ -124,7 +140,7 @@ private:
         std::atomic_bool needsRefresh;
 
         /// CV for waiting till render thread events are processed
-        std::mutex renderThreadMutex;
+        mutable std::mutex renderThreadMutex;
         std::condition_variable renderThreadVar;
 
         /// Timer controlling refreshing rate of the view
@@ -185,6 +201,16 @@ public:
     /// \param toleranceEps Relative addition to effective radius of a particle; particles are considered to
     ///                     be under the point of they are closer than (displayedRadius * (1+toleranceEps)).
     Optional<Size> getIntersectedParticle(const Pixel position, const float toleranceEps);
+
+    Optional<Vector> getDisplayedParticlePosition(const Size index) const;
+
+    Optional<Size> getDisplayedPersistentIndex(const Size index) const;
+
+    Size getDisplayedParticleCount() const;
+
+    Optional<OrthoViewSetup> getDisplayedOrthoSetup(const Vector& cameraDir, const Pixel imageSize) const;
+
+    Optional<ShearingSheetView> getShearingSheetView() const;
 
     Optional<Size> getSelectedParticle() const;
 

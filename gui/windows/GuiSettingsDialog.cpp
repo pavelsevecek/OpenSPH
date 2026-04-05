@@ -17,16 +17,16 @@ NAMESPACE_SPH_BEGIN
 
 const static FlatMap<PlotEnum, wxString> sPlotTypes(ELEMENTS_UNIQUE,
     {
-        { PlotEnum::TOTAL_MOMENTUM, "Total momentum" },
-        { PlotEnum::TOTAL_ANGULAR_MOMENTUM, "Total angular momentum" },
-        { PlotEnum::INTERNAL_ENERGY, "Total internal energy" },
-        { PlotEnum::KINETIC_ENERGY, "Total kinetic energy" },
-        { PlotEnum::TOTAL_ENERGY, "Total energy" },
-        { PlotEnum::RELATIVE_ENERGY_CHANGE, "Relative change of total energy" },
-        { PlotEnum::CURRENT_SFD, "Current SFD" },
-        { PlotEnum::PREDICTED_SFD, "Predicted SFD" },
-        { PlotEnum::SPEED_HISTOGRAM, "Speed histogram" },
-        { PlotEnum::ANGULAR_HISTOGRAM_OF_VELOCITIES, "Angular histogram of velocities" },
+        { PlotEnum::TOTAL_MOMENTUM, "Total momentum [kg m / s]" },
+        { PlotEnum::TOTAL_ANGULAR_MOMENTUM, "Total angular momentum [kg m^2 / s]" },
+        { PlotEnum::INTERNAL_ENERGY, "Total internal energy [J]" },
+        { PlotEnum::KINETIC_ENERGY, "Total kinetic energy [J]" },
+        { PlotEnum::TOTAL_ENERGY, "Total energy [J]" },
+        { PlotEnum::RELATIVE_ENERGY_CHANGE, "Relative change of total energy [-]" },
+        { PlotEnum::CURRENT_SFD, "Current SFD [m]" },
+        { PlotEnum::PREDICTED_SFD, "Predicted SFD [m]" },
+        { PlotEnum::SPEED_HISTOGRAM, "Speed histogram [m / s]" },
+        { PlotEnum::ANGULAR_HISTOGRAM_OF_VELOCITIES, "Angular histogram of velocities [rad]" },
         { PlotEnum::SELECTED_PARTICLE, "Selected particle" },
     });
 

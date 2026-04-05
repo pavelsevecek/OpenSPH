@@ -179,6 +179,20 @@ enum class StatisticsId {
     /// Current angular position of the non-inertial frame
     FRAME_ANGLE,
 
+    /// Total mass currently contained in the shearing-sheet box.
+    SHEARING_SHEET_TOTAL_MASS,
+
+    /// Surface density currently contained in the shearing-sheet box.
+    SHEARING_SHEET_SURFACE_DENSITY,
+
+    /// Toomre wavelength estimated from the instantaneous box surface density.
+    SHEARING_SHEET_TOOMRE_WAVELENGTH,
+
+    /// Velocity-dispersion tensor diagonal measured relative to the background shear.
+    SHEARING_SHEET_VELOCITY_DISPERSION_X,
+    SHEARING_SHEET_VELOCITY_DISPERSION_Y,
+    SHEARING_SHEET_VELOCITY_DISPERSION_Z,
+
     /// Number of iterations used to compute density and smoothing length in summation solver
     SOLVER_SUMMATION_ITERATIONS,
 

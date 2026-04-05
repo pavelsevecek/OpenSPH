@@ -58,7 +58,10 @@ static RegisterEnum<KernelEnum> sKernel({
 static RegisterEnum<TimesteppingEnum> sTimestepping({
     { TimesteppingEnum::EULER_EXPLICIT, "euler_explicit", "Explicit (forward) 1st-order integration" },
     { TimesteppingEnum::LEAP_FROG, "leap_frog", "Leap-frog 2nd-order integration" },
-    //{ TimesteppingEnum::RUNGE_KUTTA, "runge_kutta", "Runge-Kutta 4-th order integration" },
+    { TimesteppingEnum::SYMPLECTIC_EPICYCLE,
+        "symplectic_epicycle",
+        "REBOUND-style symplectic epicycle integrator for shearing-sheet dynamics." },
+    { TimesteppingEnum::RUNGE_KUTTA, "runge_kutta", "Runge-Kutta 4-th order integration" },
     { TimesteppingEnum::PREDICTOR_CORRECTOR, "predictor_corrector", "Predictor-corrector scheme" },
     { TimesteppingEnum::MODIFIED_MIDPOINT,
         "modified_midpoint",
@@ -116,6 +119,21 @@ static RegisterEnum<BoundaryEnum> sBoundary({
         "Debug boundary condition, used to emulate 1D SPH solver. While the solver is still "
         "three-dimensional under the hood, the particles are projected on a line and can move only in one "
         "dimension. Note that this has to be supplied by correct kernel normalization, etc." },*/
+    { BoundaryEnum::SHEARING_SHEET,
+        "shearing_sheet",
+        "Shear-periodic boundary conditions for local shearing-sheet simulations." },
+});
+
+static RegisterEnum<ShearingSheetVerticalBoundaryEnum> sShearingSheetVerticalBoundary({
+    { ShearingSheetVerticalBoundaryEnum::PERIODIC,
+        "periodic",
+        "Periodic boundary conditions in the vertical direction." },
+    { ShearingSheetVerticalBoundaryEnum::REFLECTING,
+        "reflecting",
+        "Reflecting boundary conditions in the vertical direction." },
+    { ShearingSheetVerticalBoundaryEnum::OPEN,
+        "open",
+        "Open vertical boundary; particles may leave the box in z." },
 });
 
 static RegisterEnum<DomainEnum> sDomain({ { DomainEnum::NONE, "none", "No computational domain." },
@@ -300,6 +318,15 @@ static RegisterEnum<OverlapEnum> sOverlap({
         "pass_or_merge",
         "Overlap is allowed. If the relative velocity of particles is lower than the escape velocity, "
         "particles are merged, otherwise they simply pass through each other." },
+});
+
+static RegisterEnum<ShearingSheetRestitutionEnum> sShearingSheetRestitution({
+    { ShearingSheetRestitutionEnum::CONSTANT,
+        "constant",
+        "Use the constant normal and tangential restitution coefficients." },
+    { ShearingSheetRestitutionEnum::BRIDGES,
+        "bridges",
+        "Use the Bridges et al. velocity-dependent normal restitution model." },
 });
 
 static RegisterEnum<LoggerEnum> sLogger({
@@ -760,6 +787,32 @@ const RunSettings& getDefaultSettings() {
         "Useful to visualize the simulation results with surface textures." },
     { RunSettingsId::UVW_MAPPING,       "misc.uvw_mapping",     UvMapEnum::SPHERICAL,
         "Type of the UV mapping" },
+
+    /// Shearing-sheet and softened gravity parameters.
+    { RunSettingsId::GRAVITY_SOFTENING_LENGTH,      "gravity.softening_length", 0._f,
+        "Fixed gravitational softening length. Currently supported by the brute-force gravity path." },
+    { RunSettingsId::SHEARING_SHEET_OMEGA,          "shearing_sheet.omega",     0._f,
+        "Angular frequency of the local shearing-sheet frame." },
+    { RunSettingsId::SHEARING_SHEET_GHOST_X,        "shearing_sheet.ghost_x",   0,
+        "Number of shearing-sheet ghost layers in the radial direction." },
+    { RunSettingsId::SHEARING_SHEET_GHOST_Y,        "shearing_sheet.ghost_y",   0,
+        "Number of shearing-sheet ghost layers in the azimuthal direction." },
+    { RunSettingsId::SHEARING_SHEET_GHOST_Z,        "shearing_sheet.ghost_z",   0,
+        "Number of shearing-sheet ghost layers in the vertical direction." },
+    { RunSettingsId::SHEARING_SHEET_VERTICAL_BOUNDARY,
+        "shearing_sheet.vertical_boundary",
+        ShearingSheetVerticalBoundaryEnum::PERIODIC,
+        "Vertical boundary mode of the shearing sheet. Can be one of the following:\n" +
+            EnumMap::getDesc<ShearingSheetVerticalBoundaryEnum>() },
+    { RunSettingsId::SHEARING_SHEET_RESTITUTION,
+        "shearing_sheet.restitution",
+        ShearingSheetRestitutionEnum::CONSTANT,
+        "Restitution model used for hard-sphere collisions in shearing-sheet mode. Can be one of the "
+        "following:\n" + EnumMap::getDesc<ShearingSheetRestitutionEnum>() },
+    { RunSettingsId::SHEARING_SHEET_MIN_COLLISION_VELOCITY,
+        "shearing_sheet.minimum_collision_velocity",
+        0._f,
+        "Minimum collision-velocity safeguard used by the shearing-sheet hard-sphere collision model." },
     });
     return instance;
 }

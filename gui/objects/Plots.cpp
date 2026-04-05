@@ -123,7 +123,7 @@ public:
     }
 
     virtual String getName() const override {
-        return "Relative energy change";
+        return "Relative energy change [-]";
     }
 };
 
@@ -211,7 +211,7 @@ Array<PlotData> getPlotList(const GuiSettings& gui) {
 
     if (flags.has(PlotEnum::SPEED_HISTOGRAM)) {
         data.plot = makeLocking<HistogramPlot>(
-            Post::HistogramId::VELOCITIES, NOTHING, params.period, "Speed histogram");
+            Post::HistogramId::VELOCITIES, NOTHING, params.period, "Speed histogram [m / s]");
         data.color = Rgba(wxColour(40, 100, 150));
         list.push(data);
     }

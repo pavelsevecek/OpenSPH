@@ -10,12 +10,14 @@
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/windows/RunPage.h"
 #include "run/Node.h"
+#include "run/jobs/InitialConditionJobs.h"
 #include "run/jobs/IoJobs.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
 #include "system/Timer.h"
 #include "thread/CheckFunction.h"
 #include "thread/Pool.h"
+#include <algorithm>
 #include <wx/app.h>
 #include <wx/checkbox.h>
 #include <wx/dcgraph.h>
@@ -23,6 +25,40 @@
 #include <wx/msgdlg.h>
 
 NAMESPACE_SPH_BEGIN
+
+namespace {
+
+INLINE Float shearingSheetLengthToMetersGui(const Float value, const ShearingSheetLengthUnit unit) {
+    switch (unit) {
+    case ShearingSheetLengthUnit::EARTH_RADII:
+        return value * Constants::R_earth;
+    case ShearingSheetLengthUnit::LUNAR_RADII:
+        return value * 1.7374e6_f;
+    case ShearingSheetLengthUnit::JOVIAN_RADII:
+        return value * Constants::R_jupiter;
+    case ShearingSheetLengthUnit::SOLAR_RADII:
+        return value * Constants::R_sun;
+    case ShearingSheetLengthUnit::KILOMETERS:
+        return value * 1.e3_f;
+    case ShearingSheetLengthUnit::METERS:
+        return value;
+    case ShearingSheetLengthUnit::AU:
+        return value * Constants::au;
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+INLINE Vector shearingSheetBoxSizeToMeters(const VirtualSettings& settings) {
+    const Vector boxSize = settings.get("box_size").get<Vector>();
+    const ShearingSheetLengthUnit unit = ShearingSheetLengthUnit(settings.get("box_size_unit").get<EnumWrapper>());
+    return Vector(
+        shearingSheetLengthToMetersGui(boxSize[X], unit),
+        shearingSheetLengthToMetersGui(boxSize[Y], unit),
+        shearingSheetLengthToMetersGui(boxSize[Z], unit));
+}
+
+} // namespace
 
 Controller::Controller(wxWindow* parent)
     : project(Project::getInstance()) {
@@ -456,6 +492,12 @@ Optional<Size> Controller::getIntersectedParticle(const Pixel position, const fl
 
     const GuiSettings& gui = project.getGuiSettings();
     const float radius = float(gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS));
+    if (RawPtr<ParticleRenderer> particleRenderer = dynamicCast<ParticleRenderer>(vis.renderer.get())) {
+        if (Optional<Size> idx = particleRenderer->pickParticle(*camera, position, radius, toleranceEps)) {
+            return idx;
+        }
+    }
+
     const Optional<CameraRay> ray = camera->unproject(Coords(position));
     if (!ray) {
         return NOTHING;
@@ -507,6 +549,110 @@ Optional<Size> Controller::getIntersectedParticle(const Pixel position, const fl
     } else {
         return first.idx;
     }
+}
+
+Optional<Vector> Controller::getDisplayedParticlePosition(const Size index) const {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
+    if (index < vis.positions.size()) {
+        return vis.positions[index];
+    }
+    return NOTHING;
+}
+
+Optional<Size> Controller::getDisplayedPersistentIndex(const Size index) const {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
+    if (index < vis.persistentIdxs.size()) {
+        return vis.persistentIdxs[index];
+    }
+    return NOTHING;
+}
+
+Size Controller::getDisplayedParticleCount() const {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
+    return vis.positions.size();
+}
+
+Optional<OrthoViewSetup> Controller::getDisplayedOrthoSetup(const Vector& cameraDir, const Pixel imageSize) const {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
+    if (vis.positions.empty()) {
+        return NOTHING;
+    }
+
+    Float totalMass = 0._f;
+    Vector centerOfMass(0._f);
+    for (Size i = 0; i < vis.positions.size(); ++i) {
+        const Float mass = !vis.masses.empty() ? vis.masses[i] : 1._f;
+        totalMass += mass;
+        centerOfMass += mass * vis.positions[i];
+    }
+    if (totalMass <= 0._f) {
+        return NOTHING;
+    }
+    centerOfMass /= totalMass;
+
+    Array<Float> distances(vis.positions.size());
+    for (Size i = 0; i < vis.positions.size(); ++i) {
+        const Vector dr = vis.positions[i] - centerOfMass;
+        distances[i] = getLength(dr - cameraDir * dot(cameraDir, dr));
+    }
+
+    const Size mid = distances.size() / 2;
+    std::nth_element(distances.begin(), distances.begin() + mid, distances.end());
+    const Float width = max(5._f * distances[mid], EPS);
+    const Float worldToPixel = Float(imageSize.y) / width;
+    return OrthoViewSetup{ centerOfMass, worldToPixel };
+}
+
+Optional<ShearingSheetView> Controller::getShearingSheetView() const {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    RawPtr<JobNode> root = dynamicCast<JobNode>(sph.run.get());
+    if (!root) {
+        return NOTHING;
+    }
+
+    const String boundaryKey = RunSettings::getEntryName(RunSettingsId::DOMAIN_BOUNDARY).value();
+    const String centerKey = RunSettings::getEntryName(RunSettingsId::DOMAIN_CENTER).value();
+    const String sizeKey = RunSettings::getEntryName(RunSettingsId::DOMAIN_SIZE).value();
+    const String shearingCenterKey = "center";
+    Optional<ShearingSheetView> runView;
+    Optional<ShearingSheetView> icView;
+    root->enumerate(
+        [&runView, &icView, &boundaryKey, &centerKey, &sizeKey, &shearingCenterKey](
+            const SharedPtr<JobNode>& node) {
+        if (runView) {
+            return;
+        }
+
+        const String className = node->className();
+        try {
+            const VirtualSettings settings = node->getSettings();
+            if (className == "shearing sheet") {
+                icView = ShearingSheetView{
+                    settings.get(shearingCenterKey).get<Vector>(),
+                    shearingSheetBoxSizeToMeters(settings),
+                };
+                return;
+            }
+
+            if (className == "N-body run" || className == "SPH run" || className == "SPH stabilization") {
+                const EnumWrapper boundaryValue = settings.get(boundaryKey).get<EnumWrapper>();
+                if (BoundaryEnum(boundaryValue.value) != BoundaryEnum::SHEARING_SHEET) {
+                    return;
+                }
+
+                runView = ShearingSheetView{
+                    settings.get(centerKey).get<Vector>(),
+                    settings.get(sizeKey).get<Vector>(),
+                };
+            }
+        } catch (const std::exception&) {
+        }
+    });
+    return runView ? runView : icView;
 }
 
 void Controller::setColorizer(const SharedPtr<IColorizer>& newColorizer) {
@@ -591,6 +737,15 @@ void Controller::redraw(const Storage& storage, const Statistics& stats) {
 
     vis.stats = makeAuto<Statistics>(stats);
     vis.positions = copyable(storage.getValue<Vector>(QuantityId::POSITION));
+    if (storage.has(QuantityId::MASS)) {
+        vis.masses = copyable(storage.getValue<Float>(QuantityId::MASS));
+    } else {
+        vis.masses.clear();
+    }
+    vis.persistentIdxs.clear();
+    if (storage.has(QuantityId::PERSISTENT_INDEX)) {
+        vis.persistentIdxs = copyable(storage.getValue<Size>(QuantityId::PERSISTENT_INDEX));
+    }
 
     // initialize the currently selected colorizer; we create a local copy as vis.colorizer might be changed
     // in setColorizer before renderer->initialize is called

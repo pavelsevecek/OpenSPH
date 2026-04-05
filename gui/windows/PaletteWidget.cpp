@@ -133,6 +133,20 @@ static bool setUpperBound(Palette& palette, const float value) {
     return true;
 }
 
+static Interval makeVisibleInterval(const Palette& palette, const float minValue, const float maxValue) {
+    float lower = minValue;
+    float upper = maxValue;
+    if (palette.getScale() == PaletteScale::LOGARITHMIC) {
+        lower = max(lower, 1.e-12f);
+        upper = max(upper, lower * (1.f + 1.e-3f));
+    } else if (lower == upper) {
+        const float pad = max(abs(lower) * 0.01f, 1.e-6f);
+        lower -= pad;
+        upper += pad;
+    }
+    return Interval(lower, upper);
+}
+
 PaletteSimpleWidget::PaletteSimpleWidget(wxWindow* parent,
     wxSize size,
     const Palette& palette,
@@ -161,6 +175,13 @@ PaletteSimpleWidget::PaletteSimpleWidget(wxWindow* parent,
     rangeSizer->SetMinSize(wxSize(300, -1));
 
     mainSizer->Add(rangeSizer, 0, wxALIGN_CENTER_HORIZONTAL);
+    mainSizer->AddSpacer(6);
+
+    wxBoxSizer* actionSizer = new wxBoxSizer(wxHORIZONTAL);
+    scaleButton = new wxButton(this, wxID_ANY, "Scale");
+    actionSizer->Add(scaleButton);
+    mainSizer->Add(actionSizer, 0, wxALIGN_CENTER_HORIZONTAL);
+    mainSizer->AddSpacer(6);
 
     wxBoxSizer* presetSizer = new wxBoxSizer(wxHORIZONTAL);
     presetCheck = new wxCheckBox(this, wxID_ANY, "");
@@ -207,6 +228,9 @@ PaletteSimpleWidget::PaletteSimpleWidget(wxWindow* parent,
     this->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& UNUSED(evt)) { //
         this->setFromPresets();
     });
+    scaleButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
+        onScaleRequested.callIfNotNull();
+    });
 
     upperCtrl->onValueChanged = [this](const Float value) {
         Palette palette = canvas->getPalette();
@@ -246,6 +270,20 @@ void PaletteSimpleWidget::setPalette(const Palette& palette, const Palette& defa
     presetCheck->SetValue(false);
     presetBox->Enable(false);
     defaultButton->Enable(false);
+}
+
+Palette PaletteSimpleWidget::getPalette() const {
+    return canvas->getPalette();
+}
+
+void PaletteSimpleWidget::setInterval(const Interval& interval) {
+    Palette palette = canvas->getPalette();
+    const Interval newInterval = makeVisibleInterval(palette, float(interval.lower()), float(interval.upper()));
+    palette.setInterval(newInterval);
+    canvas->setPalette(palette);
+    lowerCtrl->setValue(newInterval.lower());
+    upperCtrl->setValue(newInterval.upper());
+    onPaletteChanged.callIfNotNull(palette);
 }
 
 void PaletteSimpleWidget::setPaletteColors(const Palette& palette) {

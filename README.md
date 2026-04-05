@@ -116,6 +116,38 @@ preset. The default simulation uses the following:
 - Adaptive smoothing length (AdaptiveSmoothingLength)
 - Basalt material parameters
 
+## Shearing-sheet support
+OpenSPH now includes a native `shearing sheet` initial-condition node and a matching preset for local disk and
+ring patches. The implementation follows the REBOUND shearing-sheet model:
+- Hill-frame inertial terms in the local rotating Cartesian frame
+- REBOUND-style `SEI` symplectic epicycle integrator for exact background shear/epicycle motion
+- shear-periodic remapping in `x` with the REBOUND azimuthal offset and velocity jump
+- REBOUND-style ghost boxes for collisions and gravity
+- Bridges et al. restitution model and minimum-collision-velocity safeguard
+- diagnostics for total mass, surface density, Toomre wavelength, and velocity dispersion
+
+### GUI usage
+In the node editor, create the `shearing sheet` initial-condition node or choose the `shearing_sheet`
+preset. The node exposes the shearing-sheet box size, `Omega`, `G`, ghost-layer counts, particle-size
+distribution, restitution model, timestep, softening, and solver hooks. The resulting particle data can be
+connected directly to `N-body run` or `SPH run`.
+
+### Headless usage
+The shearing-sheet setup is serialized through standard job settings and run overrides. Any saved session or
+project containing the `shearing sheet` node can be executed through the existing CLI/headless workflow
+without additional scripting.
+
+### Implementation notes
+The runtime integration lives in the existing OpenSPH solvers and boundary infrastructure, not in a separate
+standalone solver. N-body hard-sphere and soft-sphere paths both use the shearing-sheet remap and ghost-box
+logic; SPH uses the same boundary mode and Hill-force hooks. Multi-stage timesteppers now propagate the
+correct substep time into solver/boundary evaluation, so time-dependent ghost shifts remain consistent for
+Leapfrog, modified-midpoint, Runge-Kutta, and SEI.
+
+Current limitation: fixed softening is exact for brute-force gravity and for Barnes-Hut leaf interactions;
+Barnes-Hut far-field node approximations still use a softened monopole rather than a fully softened higher
+order multipole expansion, because OpenSPH's tree moments are derived for the Newtonian `1/r` kernel.
+
 ## Particle renderer
 OpenSPH contains useful tools for visualization of particles. It allows rendering
 individual spherical particles as well as rendering of isosurface, reconstructed 

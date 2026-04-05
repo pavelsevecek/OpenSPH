@@ -22,8 +22,15 @@ struct NeighborRecord {
     /// Squared distance of the particle from the queried particle / position
     Float distanceSqr;
 
+    /// Position offset of the periodic or sheared image associated with the neighbor.
+    Vector positionOffset = Vector(0._f);
+
+    /// Velocity offset of the periodic or sheared image associated with the neighbor.
+    Vector velocityOffset = Vector(0._f);
+
     bool operator!=(const NeighborRecord& other) const {
-        return index != other.index || distanceSqr != other.distanceSqr;
+        return index != other.index || distanceSqr != other.distanceSqr ||
+               positionOffset != other.positionOffset || velocityOffset != other.velocityOffset;
     }
 
     /// Sort by the distance
@@ -42,6 +49,8 @@ protected:
     ArrayView<const Vector> values;
 
 public:
+    virtual void setTime(const Float UNUSED(t)) {}
+
     /// \brief Constructs the struct with an array of vectors.
     ///
     /// Must be called before \ref findAll is called or if the referenced array is invalidated.

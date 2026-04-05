@@ -90,6 +90,7 @@ static void addTimeSteppingCategory(VirtualSettings& connector, RunSettings& set
 
 static void addGravityCategory(VirtualSettings& connector, RunSettings& settings) {
     VirtualSettings::Category& gravityCat = connector.addCategory("Gravity");
+    gravityCat.connect<Float>("G [SI]", settings, RunSettingsId::GRAVITY_CONSTANT);
     gravityCat.connect<EnumWrapper>("Gravity solver", settings, RunSettingsId::GRAVITY_SOLVER);
     gravityCat.connect<Float>("Opening angle", settings, RunSettingsId::GRAVITY_OPENING_ANGLE)
         .setEnabler([&settings] {
@@ -97,8 +98,38 @@ static void addGravityCategory(VirtualSettings& connector, RunSettings& settings
         });
     gravityCat.connect<int>("Multipole order", settings, RunSettingsId::GRAVITY_MULTIPOLE_ORDER);
     gravityCat.connect<EnumWrapper>("Softening kernel", settings, RunSettingsId::GRAVITY_KERNEL);
+    gravityCat.connect<Float>("Softening length [m]", settings, RunSettingsId::GRAVITY_SOFTENING_LENGTH);
     gravityCat.connect<Float>(
         "Recomputation period [s]", settings, RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD);
+}
+
+static void addShearingSheetCategory(VirtualSettings& connector, RunSettings& settings) {
+    auto shearingEnabler = [&settings] {
+        return settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY) == BoundaryEnum::SHEARING_SHEET;
+    };
+
+    VirtualSettings::Category& shearCat = connector.addCategory("Shearing sheet");
+    shearCat.connect<Vector>("Center [m]", settings, RunSettingsId::DOMAIN_CENTER).setEnabler(
+        shearingEnabler);
+    shearCat.connect<Vector>("Box size [m]", settings, RunSettingsId::DOMAIN_SIZE).setEnabler(
+        shearingEnabler);
+    shearCat.connect<Float>("Omega [1/s]", settings, RunSettingsId::SHEARING_SHEET_OMEGA).setEnabler(
+        shearingEnabler);
+    shearCat.connect<int>("Ghost layers X", settings, RunSettingsId::SHEARING_SHEET_GHOST_X)
+        .setEnabler(shearingEnabler);
+    shearCat.connect<int>("Ghost layers Y", settings, RunSettingsId::SHEARING_SHEET_GHOST_Y)
+        .setEnabler(shearingEnabler);
+    shearCat.connect<int>("Ghost layers Z", settings, RunSettingsId::SHEARING_SHEET_GHOST_Z)
+        .setEnabler(shearingEnabler);
+    shearCat.connect<EnumWrapper>(
+        "Vertical boundary", settings, RunSettingsId::SHEARING_SHEET_VERTICAL_BOUNDARY)
+        .setEnabler(shearingEnabler);
+    shearCat.connect<EnumWrapper>("Restitution model", settings, RunSettingsId::SHEARING_SHEET_RESTITUTION)
+        .setEnabler(shearingEnabler);
+    shearCat.connect<Float>("Minimum collision velocity [1/s]",
+        settings,
+        RunSettingsId::SHEARING_SHEET_MIN_COLLISION_VELOCITY)
+        .setEnabler(shearingEnabler);
 }
 
 static void addOutputCategory(VirtualSettings& connector, RunSettings& settings, const SharedToken& owner) {
@@ -325,6 +356,7 @@ VirtualSettings SphJob::getSettings() {
         .setEnabler(scriptEnabler);
 
     addGravityCategory(connector, settings);
+    addShearingSheetCategory(connector, settings);
     addOutputCategory(connector, settings, *this);
     addLoggerCategory(connector, settings);
 
@@ -335,7 +367,7 @@ AutoPtr<IRun> SphJob::getRun(const RunSettings& overrides) const {
     SPH_ASSERT(overrides.size() < 20); // not really required, just checking that we don't override everything
     const BoundaryEnum boundary = settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY);
     SharedPtr<IDomain> domain;
-    if (boundary != BoundaryEnum::NONE) {
+    if (boundary != BoundaryEnum::NONE && boundary != BoundaryEnum::SHEARING_SHEET) {
         domain = this->getInput<IDomain>("boundary");
     }
 
@@ -395,7 +427,7 @@ AutoPtr<IRun> SphStabilizationJob::getRun(const RunSettings& overrides) const {
     RunSettings run = overrideSettings(settings, overrides, isResumed);
     const BoundaryEnum boundary = settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY);
     SharedPtr<IDomain> domain;
-    if (boundary != BoundaryEnum::NONE) {
+    if (boundary != BoundaryEnum::NONE && boundary != BoundaryEnum::SHEARING_SHEET) {
         domain = this->getInput<IDomain>("boundary");
     }
     return makeAuto<SphStabilizationRun>(run, domain);
@@ -428,8 +460,6 @@ public:
         const bool softSphereEnable = settings.get<bool>(RunSettingsId::NBODY_SOFTSPHERE_ENABLE);
         const AggregateEnum aggregateSource =
             settings.get<AggregateEnum>(RunSettingsId::NBODY_AGGREGATES_SOURCE);
-        const CollisionHandlerEnum handler =
-            settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER);
         if (aggregateEnable) {
             AutoPtr<AggregateSolver> aggregates = makeAuto<AggregateSolver>(*scheduler, settings);
             aggregates->createAggregateData(*storage, aggregateSource);
@@ -530,6 +560,13 @@ VirtualSettings NBodyJob::getSettings() {
         return aggregates || handler == CollisionHandlerEnum::MERGE_OR_BOUNCE ||
                overlap == OverlapEnum::PASS_OR_MERGE || overlap == OverlapEnum::REPEL_OR_MERGE;
     };
+    VirtualSettings::Category& domainCat = connector.addCategory("Domain");
+    domainCat.connect<EnumWrapper>("Boundary condition", settings, RunSettingsId::DOMAIN_BOUNDARY)
+        .setValidator([](const IVirtualEntry::Value& value) {
+            const BoundaryEnum boundary = BoundaryEnum(value.get<EnumWrapper>());
+            return boundary == BoundaryEnum::NONE || boundary == BoundaryEnum::SHEARING_SHEET;
+        });
+    domainCat.connect<EnumWrapper>("Neighbor finder", settings, RunSettingsId::SPH_FINDER);
 
     VirtualSettings::Category& collisionCat = connector.addCategory("Collisions");
     collisionCat.connect<EnumWrapper>("Collision handler", settings, RunSettingsId::COLLISION_HANDLER)
@@ -569,6 +606,10 @@ VirtualSettings NBodyJob::getSettings() {
 
 AutoPtr<IRun> NBodyJob::getRun(const RunSettings& overrides) const {
     RunSettings run = overrideSettings(settings, overrides, isResumed);
+    if (run.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY) == BoundaryEnum::SHEARING_SHEET &&
+        run.get<Float>(RunSettingsId::GRAVITY_SOFTENING_LENGTH) > 0._f) {
+        run.set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::POINT_PARTICLES);
+    }
     if (run.get<TimesteppingEnum>(RunSettingsId::TIMESTEPPING_INTEGRATOR) ==
         TimesteppingEnum::PREDICTOR_CORRECTOR) {
         throw InvalidSetup(

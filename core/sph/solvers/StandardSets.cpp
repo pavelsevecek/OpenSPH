@@ -13,6 +13,7 @@ NAMESPACE_SPH_BEGIN
 
 EquationHolder getStandardEquations(const RunSettings& settings, const EquationHolder& other) {
     EquationHolder equations;
+    const Optional<ShearingSheet::Config> shearingSheet = ShearingSheet::tryGetConfig(settings);
 
     if (settings.get<bool>(RunSettingsId::SPH_USE_XSPH)) {
         // add XSPH as the very first term (it modifies velocities used by other terms)
@@ -45,6 +46,10 @@ EquationHolder getStandardEquations(const RunSettings& settings, const EquationH
     if (forces.has(ForceEnum::INERTIAL)) {
         const Vector omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
         equations += makeTerm<InertialForce>(omega);
+    }
+
+    if (shearingSheet && !ShearingSheet::usesSymplecticEpicycle(settings)) {
+        equations += makeTerm<ShearingSheetForce>(shearingSheet.value());
     }
 
     const Vector g = settings.get<Vector>(RunSettingsId::FRAME_CONSTANT_ACCELERATION);

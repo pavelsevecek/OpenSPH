@@ -86,6 +86,17 @@ void StandardLogWriter::write(const Storage& storage, const Statistics& stats) {
     printStat<int>(*logger, stats, StatisticsId::OVERLAP_COUNT,                " - overlaps:    ");
     printStat<int>(*logger, stats, StatisticsId::AGGREGATE_COUNT,              " - aggregates:  ");
     printStat<int>(*logger, stats, StatisticsId::SOLVER_SUMMATION_ITERATIONS,  " - iteration #: ");
+    printStat<Float>(*logger, stats, StatisticsId::SHEARING_SHEET_TOTAL_MASS,  " - box mass:    ");
+    printStat<Float>(*logger, stats, StatisticsId::SHEARING_SHEET_SURFACE_DENSITY, " - Sigma:       ");
+    printStat<Float>(*logger, stats, StatisticsId::SHEARING_SHEET_TOOMRE_WAVELENGTH, " - lambda_T:    ");
+    if (stats.has(StatisticsId::SHEARING_SHEET_VELOCITY_DISPERSION_X)) {
+        logger->write(" - c_x,c_y,c_z: ",
+            stats.get<Float>(StatisticsId::SHEARING_SHEET_VELOCITY_DISPERSION_X),
+            ", ",
+            stats.get<Float>(StatisticsId::SHEARING_SHEET_VELOCITY_DISPERSION_Y),
+            ", ",
+            stats.get<Float>(StatisticsId::SHEARING_SHEET_VELOCITY_DISPERSION_Z));
+    }
     // clang-format on
 }
 

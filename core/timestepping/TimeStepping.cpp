@@ -11,6 +11,33 @@
 
 NAMESPACE_SPH_BEGIN
 
+namespace {
+
+class StageTimeScope {
+private:
+    Statistics& stats;
+    Float originalTime;
+
+public:
+    explicit StageTimeScope(Statistics& stats)
+        : stats(stats)
+        , originalTime(stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f)) {}
+
+    void set(const Float time) {
+        stats.set(StatisticsId::RUN_TIME, time);
+    }
+
+    void restore() {
+        stats.set(StatisticsId::RUN_TIME, originalTime);
+    }
+
+    ~StageTimeScope() {
+        restore();
+    }
+};
+
+} // namespace
+
 ITimeStepping::ITimeStepping(const SharedPtr<Storage>& storage,
     const RunSettings& settings,
     AutoPtr<ITimeStepCriterion>&& criterion)
@@ -241,11 +268,16 @@ static void stepPairSecondOrder(Storage& storage1,
 void EulerExplicit::stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
     VERBOSE_LOG
 
+    const Float t0 = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
+    StageTimeScope stage(stats);
+
     // clear derivatives from previous timestep
     storage->zeroHighestDerivatives(scheduler);
 
     // compute derivatives
+    stage.set(t0);
     solver.integrate(*storage, stats);
+    stage.restore();
 
     updateTimestep(scheduler, stats);
 
@@ -258,7 +290,9 @@ void EulerExplicit::stepParticles(IScheduler& scheduler, ISolver& solver, Statis
         v += Type(dv * dt);
     });
     // find positions and velocities after collision (at the beginning of the time step
+    stage.set(t0);
     solver.collide(*storage, stats, timeStep);
+    stage.restore();
     // advance positions
     stepSecondOrder(*storage, scheduler, [dt](auto& r, auto& v, const auto& UNUSED(dv)) INL { //
         using Type = typename std::decay_t<decltype(v)>;
@@ -332,6 +366,9 @@ void PredictorCorrector::makeCorrections(IScheduler& scheduler) {
 
 void PredictorCorrector::stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
     VERBOSE_LOG
+    const Float t0 = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
+    const Float dt = timeStep;
+    StageTimeScope stage(stats);
 
     // make predictions
     this->makePredictions(scheduler);
@@ -343,7 +380,9 @@ void PredictorCorrector::stepParticles(IScheduler& scheduler, ISolver& solver, S
     storage->zeroHighestDerivatives(scheduler);
 
     // compute derivatives
+    stage.set(t0 + dt);
     solver.integrate(*storage, stats);
+    stage.restore();
     SPH_ASSERT(storage->getParticleCnt() == predictions->getParticleCnt(),
         storage->getParticleCnt(),
         predictions->getParticleCnt());
@@ -366,7 +405,11 @@ void LeapFrog::stepParticles(IScheduler& scheduler, ISolver& solver, Statistics&
 
     // move positions by half a timestep (drift)
     const Float dt = timeStep;
+    const Float t0 = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
+    StageTimeScope stage(stats);
+    stage.set(t0);
     solver.collide(*storage, stats, 0.5_f * dt);
+    stage.restore();
     stepSecondOrder(*storage, scheduler, [dt](auto& r, const auto& v, const auto& UNUSED(dv)) INL { //
         using Type = typename std::decay_t<decltype(v)>;
         r += Type(v * 0.5_f * dt);
@@ -374,7 +417,9 @@ void LeapFrog::stepParticles(IScheduler& scheduler, ISolver& solver, Statistics&
 
     // compute the derivatives
     storage->zeroHighestDerivatives(scheduler);
+    stage.set(t0 + 0.5_f * dt);
     solver.integrate(*storage, stats);
+    stage.restore();
 
     updateTimestep(scheduler, stats);
 
@@ -393,13 +438,110 @@ void LeapFrog::stepParticles(IScheduler& scheduler, ISolver& solver, Statistics&
     });
 
     // evaluate collisions
+    stage.set(t0 + 0.5_f * dt);
     solver.collide(*storage, stats, 0.5_f * dt);
+    stage.restore();
 
     // move positions by another half timestep (drift)
     stepSecondOrder(*storage, scheduler, [dt](auto& r, auto& v, const auto& UNUSED(dv)) INL { //
         using Type = typename std::decay_t<decltype(v)>;
         r += Type(v * 0.5_f * dt);
     });
+
+    SPH_ASSERT(storage->isValid());
+}
+
+//-----------------------------------------------------------------------------------------------------------
+// SymplecticEpicycle implementation
+//-----------------------------------------------------------------------------------------------------------
+
+SymplecticEpicycle::SymplecticEpicycle(const SharedPtr<Storage>& storage, const RunSettings& settings)
+    : ITimeStepping(storage, settings) {
+    const Optional<ShearingSheet::Config> parsed = ShearingSheet::tryGetConfig(settings);
+    if (!parsed) {
+        throw InvalidSetup("Symplectic epicycle integrator requires shearing-sheet boundary conditions.");
+    }
+    cfg = parsed.value();
+    if (cfg.omega <= 0._f) {
+        throw InvalidSetup("Symplectic epicycle integrator requires a positive shearing-sheet Omega.");
+    }
+}
+
+void SymplecticEpicycle::applyUnperturbedStep(IScheduler& scheduler, const Float dt) {
+    const Float omega = cfg.omega;
+    const Float sindt = sin(omega * (-0.5_f * dt));
+    const Float tandt = tan(omega * (-0.25_f * dt));
+    const Float sindtz = sindt;
+    const Float tandtz = tandt;
+
+    ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Vector> v = storage->getDt<Vector>(QuantityId::POSITION);
+    parallelFor(scheduler, 0, r.size(), [&](const Size i) {
+        Vector pos = ShearingSheet::relativePosition(cfg, r[i]);
+
+        // Exact vertical harmonic motion.
+        const Float zx = pos[Z] * omega;
+        const Float zy = v[i][Z];
+        const Float zt1 = zx - tandtz * zy;
+        const Float zyt = sindtz * zt1 + zy;
+        const Float zxt = zt1 - tandtz * zyt;
+        pos[Z] = zxt / omega;
+        v[i][Z] = zyt;
+
+        // Exact planar epicycle plus background shear, matching REBOUND's SEI operator_H012.
+        const Float a0 = 2._f * v[i][Y] + 4._f * pos[X] * omega;
+        const Float b0 = pos[Y] * omega - 2._f * v[i][X];
+        const Float ys = (pos[Y] * omega - b0) / 2._f;
+        const Float xs = pos[X] * omega - a0;
+        const Float xst1 = xs - tandt * ys;
+        const Float yst = sindt * xst1 + ys;
+        const Float xst = xst1 - tandt * yst;
+
+        pos[X] = (xst + a0) / omega;
+        pos[Y] = (2._f * yst + b0) / omega - 0.75_f * a0 * dt;
+        v[i][X] = yst;
+        v[i][Y] = -2._f * xst - 1.5_f * a0;
+        r[i] = setH(cfg.center + pos, r[i][H]);
+    });
+}
+
+void SymplecticEpicycle::stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
+    VERBOSE_LOG
+
+    const Float dt = timeStep;
+    const Float t0 = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
+    StageTimeScope stage(stats);
+
+    stage.set(t0);
+    solver.collide(*storage, stats, 0.5_f * dt);
+    stage.restore();
+
+    applyUnperturbedStep(scheduler, dt);
+    ShearingSheet::remap(*storage, cfg, t0 + 0.5_f * dt);
+
+    storage->zeroHighestDerivatives(scheduler);
+    stage.set(t0 + 0.5_f * dt);
+    solver.integrate(*storage, stats);
+    stage.restore();
+
+    updateTimestep(scheduler, stats);
+
+    stepFirstOrder(*storage, scheduler, [dt](auto& x, const auto& dx) INL {
+        using Type = typename std::decay_t<decltype(x)>;
+        x += Type(dx * dt);
+    });
+
+    stepSecondOrder(*storage, scheduler, [dt](auto& UNUSED(r), auto& v, const auto& dv) INL {
+        using Type = typename std::decay_t<decltype(v)>;
+        v += Type(dv * dt);
+    });
+
+    stage.set(t0 + 0.5_f * dt);
+    solver.collide(*storage, stats, 0.5_f * dt);
+    stage.restore();
+
+    applyUnperturbedStep(scheduler, dt);
+    ShearingSheet::remap(*storage, cfg, t0 + dt);
 
     SPH_ASSERT(storage->isValid());
 }
@@ -456,27 +598,37 @@ void RungeKutta::integrateAndAdvance(ISolver& solver,
 }
 
 void RungeKutta::stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
+    const Float t0 = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
+    const Float dt = timeStep;
+    StageTimeScope stage(stats);
     k1->zeroHighestDerivatives(scheduler);
     k2->zeroHighestDerivatives(scheduler);
     k3->zeroHighestDerivatives(scheduler);
     k4->zeroHighestDerivatives(scheduler);
 
+    stage.set(t0);
     solver.integrate(*k1, stats);
+    stage.set(t0 + 0.5_f * dt);
     integrateAndAdvance(solver, stats, *k1, 0.5_f, 1._f / 6._f);
     // swap values of 1st order quantities and both values and 1st derivatives of 2nd order quantities
     k1->swap(*k2, VisitorEnum::STATE_VALUES);
 
     /// \todo derivatives of storage (original, not k1, ..., k4) are never used
     // compute k2 derivatives based on values computes in previous integration
+    stage.set(t0 + 0.5_f * dt);
     solver.integrate(*k2, stats);
     /// \todo at this point, I no longer need k1, we just need 2 auxiliary buffers
+    stage.set(t0 + 0.5_f * dt);
     integrateAndAdvance(solver, stats, *k2, 0.5_f, 1._f / 3._f);
     k2->swap(*k3, VisitorEnum::STATE_VALUES);
 
+    stage.set(t0 + 0.5_f * dt);
     solver.integrate(*k3, stats);
+    stage.set(t0 + dt);
     integrateAndAdvance(solver, stats, *k3, 0.5_f, 1._f / 3._f);
     k3->swap(*k4, VisitorEnum::STATE_VALUES);
 
+    stage.set(t0 + dt);
     solver.integrate(*k4, stats);
 
     iteratePair<VisitorEnum::FIRST_ORDER>(
@@ -495,6 +647,12 @@ void RungeKutta::stepParticles(IScheduler& scheduler, ISolver& solver, Statistic
                 v[i] += Type(this->timeStep / 6._f * kdv[i]);
             }
         });
+
+    storage->zeroHighestDerivatives(scheduler);
+    stage.set(t0 + dt);
+    solver.integrate(*storage, stats);
+    stage.restore();
+    updateTimestep(scheduler, stats);
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -511,9 +669,13 @@ ModifiedMidpointMethod::ModifiedMidpointMethod(const SharedPtr<Storage>& storage
 }
 
 void ModifiedMidpointMethod::stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
+    const Float t0 = stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f);
     const Float h = timeStep / n; // current substep
+    StageTimeScope stage(stats);
 
+    stage.set(t0);
     solver.collide(*storage, stats, h);
+    stage.restore();
     // do first (half)step using current derivatives, save values to mid
     stepPairSecondOrder(*mid,
         *storage,
@@ -535,13 +697,18 @@ void ModifiedMidpointMethod::stepParticles(IScheduler& scheduler, ISolver& solve
 
     mid->zeroHighestDerivatives(scheduler);
     // evaluate the derivatives, using the advanced values
+    stage.set(t0 + h);
     solver.integrate(*mid, stats);
+    stage.restore();
 
     // now mid is half-step ahead of the storage in both values and derivatives
 
     // do (n-1) steps, keeping mid half-step ahead of the storage
     for (Size iter = 0; iter < n - 1; ++iter) {
+        const Float substepTime = t0 + (2._f * iter + 1._f) * h;
+        stage.set(substepTime);
         solver.collide(*storage, stats, 2._f * h);
+        stage.restore();
         stepPairSecondOrder(*storage,
             *mid,
             scheduler,
@@ -563,14 +730,18 @@ void ModifiedMidpointMethod::stepParticles(IScheduler& scheduler, ISolver& solve
                 using Type = typename std::decay_t<decltype(px)>;
                 px += Type(2._f * h * cdx);
                 SPH_ASSERT(isReal(px));
-            });
+        });
         storage->swap(*mid, VisitorEnum::ALL_BUFFERS);
         mid->zeroHighestDerivatives(scheduler);
+        stage.set(substepTime + h);
         solver.integrate(*mid, stats);
+        stage.restore();
     }
 
     // last step
+    stage.set(t0 + timeStep - h);
     solver.collide(*storage, stats, h);
+    stage.restore();
     stepPairSecondOrder(*storage,
         *mid,
         scheduler,
@@ -588,6 +759,12 @@ void ModifiedMidpointMethod::stepParticles(IScheduler& scheduler, ISolver& solve
             px = Type(0.5_f * (px + cx + h * cdx));
             SPH_ASSERT(isReal(px));
         });
+
+    storage->zeroHighestDerivatives(scheduler);
+    stage.set(t0 + timeStep);
+    solver.integrate(*storage, stats);
+    stage.restore();
+    updateTimestep(scheduler, stats);
 }
 
 //-----------------------------------------------------------------------------------------------------------

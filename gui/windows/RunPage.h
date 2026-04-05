@@ -6,12 +6,14 @@
 #include "objects/wrappers/LockingPtr.h"
 #include "system/Settings.h"
 #include "system/Timer.h"
+#include <atomic>
 #include <wx/panel.h>
 
 class wxBoxSizer;
 class wxGauge;
 class wxCheckBox;
 class wxTextCtrl;
+class wxStaticText;
 class wxPanel;
 class wxDialog;
 
@@ -53,7 +55,7 @@ private:
     GuiSettings& gui;
 
     /// Drawing pane (owned by wxWidgets)
-    RawPtr<IGraphicsPane> pane;
+    RawPtr<OrthoPane> pane;
 
     RawPtr<ParticleProbe> probe;
 
@@ -65,7 +67,10 @@ private:
     PaletteSimpleWidget* palettePanel = nullptr;
 
     wxTextCtrl* statsText = nullptr;
+    wxStaticText* rulerText = nullptr;
+    wxCheckBox* shearingBoxToggle = nullptr;
     Timer statsTimer;
+    std::atomic_bool plotRefreshPending{ false };
 
     /// Additional wx controls
     ComboBox* quantityBox = nullptr;
@@ -132,15 +137,27 @@ private:
     wxWindow* createRaymarcherBox(wxPanel* parent);
     wxWindow* createVolumeBox(wxPanel* parent);
 
-    void makeStatsText(const Size particleCnt, const Size pointCnt, const Statistics& stats);
+    void makeStatsText(const Size particleCnt,
+        const Size pointCnt,
+        const Float totalMass,
+        const bool hasTotalMass,
+        const Statistics& stats);
 
     void setColorizer(const Size idx);
 
     void replaceQuantityBar(const Size idx);
 
+    void clearPlots();
+
+    void refreshPlots();
+
     void addComponentIdBar(wxWindow* parent, wxSizer* sizer, SharedPtr<IColorizer> colorizer);
 
     void updateCutoff(const double cutoff);
+
+    void updateRulerText(const String& text);
+
+    void updateShearingBoxToggle();
 };
 
 

@@ -1,6 +1,8 @@
 #include "gravity/NBodySolver.h"
 #include "catch.hpp"
+#include "gravity/BruteForceGravity.h"
 #include "gravity/Collision.h"
+#include "gravity/ShearingSheetGravity.h"
 #include "physics/Integrals.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Quantity.h"
@@ -514,4 +516,72 @@ TEMPLATE_TEST_CASE("Collision cloud bounce", "[nbody]", EulerExplicit, LeapFrog)
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     HardSphereSolver solver(pool, settings);
     REQUIRE_NOTHROW(runCloud<TestType>(settings, 50));
+}
+
+TEST_CASE("Shearing sheet remap", "[nbody]") {
+    ShearingSheet::Config cfg;
+    cfg.boxSize = Vector(10._f, 20._f, 6._f);
+    cfg.omega = 2._f;
+    cfg.verticalBoundary = ShearingSheetVerticalBoundaryEnum::PERIODIC;
+
+    Vector r1(5.25_f, 0.5_f, 0._f, 1._f);
+    Vector v1(0._f, 3._f, 0._f);
+    const Float t = 1.25_f;
+    const Float yShift1 = ShearingSheet::xBoundaryPositionOffset(cfg, +1, t);
+    ShearingSheet::remap(r1, v1, cfg, t);
+    REQUIRE(r1[X] == approx(-4.75_f));
+    REQUIRE(r1[Y] == approx(0.5_f + yShift1));
+    REQUIRE(v1[Y] == approx(3._f + 1.5_f * cfg.omega * cfg.boxSize[X]));
+
+    Vector r2(-5.25_f, -0.25_f, 0._f, 1._f);
+    Vector v2(0._f, -4._f, 0._f);
+    const Float yShift2 = ShearingSheet::xBoundaryPositionOffset(cfg, -1, t);
+    ShearingSheet::remap(r2, v2, cfg, t);
+    REQUIRE(r2[X] == approx(4.75_f));
+    REQUIRE(r2[Y] == approx(-0.25_f + yShift2));
+    REQUIRE(v2[Y] == approx(-4._f - 1.5_f * cfg.omega * cfg.boxSize[X]));
+}
+
+TEST_CASE("Shearing sheet ghost gravity", "[nbody]") {
+    ShearingSheet::Config cfg;
+    cfg.boxSize = Vector(10._f, 12._f, 4._f);
+    cfg.ghosts = Indices(1, 0, 0);
+    cfg.omega = 1._f;
+    cfg.gravity = Constants::gravity;
+
+    Storage storage(makeAuto<NullMaterial>(EMPTY_SETTINGS));
+    storage.insert<Vector>(QuantityId::POSITION,
+        OrderEnum::SECOND,
+        Array<Vector>{ Vector(-4.9_f, 0._f, 0._f, 0.1_f), Vector(4.9_f, 0._f, 0._f, 0.1_f) });
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, Array<Float>{ 2._f, 3._f });
+
+    ShearingSheetGravity gravity(cfg, makeAuto<BruteForceGravity>(cfg.gravity));
+    gravity.setTime(0._f);
+    gravity.build(SEQUENTIAL, storage);
+
+    Array<Vector> dv(2, Vector(0._f));
+    Statistics stats;
+    gravity.evalSelfGravity(SEQUENTIAL, dv, stats);
+
+    const ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    const ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+
+    auto directAccel = [&](const Size i) {
+        Vector a(0._f);
+        ShearingSheet::iterateGhostBoxes(cfg, 0._f, false, [&](const ShearingSheet::GhostBox& gb) {
+            for (Size j = 0; j < r.size(); ++j) {
+                if (i == j && all(gb.index == Indices(0))) {
+                    continue;
+                }
+                const Vector dr = clearH(r[j] + gb.positionOffset - r[i]);
+                a += cfg.gravity * m[j] * dr / pow(getSqrLength(dr), 1.5_f);
+            }
+        });
+        return a;
+    };
+
+    REQUIRE(dv[0] == approx(directAccel(0), 1.e-10_f));
+    REQUIRE(dv[1] == approx(directAccel(1), 1.e-10_f));
+    REQUIRE(dv[0][X] < 0._f);
+    REQUIRE(dv[1][X] > 0._f);
 }

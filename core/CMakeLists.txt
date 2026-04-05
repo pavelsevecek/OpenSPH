@@ -125,6 +125,8 @@ set(CORE_HEADERS
     gravity/Handoff.h
     gravity/Moments.h 
     gravity/NBodySolver.h 
+    gravity/ShearingSheetGravity.h
+    gravity/SoftenedBruteForceGravity.h
     gravity/SphericalGravity.h 
     gravity/SymmetricGravity.h 
     io/Column.h 
@@ -178,6 +180,7 @@ set(CORE_HEADERS
     objects/finders/Octree.h 
     objects/finders/Order.h 
     objects/finders/PeriodicFinder.h
+    objects/finders/ShearingSheetFinder.h
     objects/finders/IncrementalFinder.h
     objects/finders/UniformGrid.h 
     objects/geometry/AntisymmetricTensor.h 
@@ -230,6 +233,7 @@ set(CORE_HEADERS
     physics/Functions.h 
     physics/Integrals.h 
     physics/Rheology.h 
+    physics/ShearingSheet.h
     physics/TimeFormat.h 
     physics/Units.h 
     post/Analysis.h 

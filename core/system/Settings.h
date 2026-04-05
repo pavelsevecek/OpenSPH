@@ -561,6 +561,9 @@ enum class TimesteppingEnum {
     /// Leap-frog 2nd-order integration
     LEAP_FROG,
 
+    /// Symplectic epicycle integrator for shearing-sheet dynamics
+    SYMPLECTIC_EPICYCLE,
+
     /// Runge-Kutta 4-th order integration
     RUNGE_KUTTA,
 
@@ -637,7 +640,21 @@ enum class BoundaryEnum {
     KILL_ESCAPERS,
 
     /// Project all movement onto a line, effectivelly reducing the simulation to 1D
-    PROJECT_1D
+    PROJECT_1D,
+
+    /// Shearing-sheet boundary conditions matching Hill's local approximation.
+    SHEARING_SHEET,
+};
+
+enum class ShearingSheetVerticalBoundaryEnum {
+    /// Periodic boundary in the vertical direction.
+    PERIODIC,
+
+    /// Reflecting boundary in the vertical direction.
+    REFLECTING,
+
+    /// No vertical boundary; particles are allowed to leave the box in z.
+    OPEN,
 };
 
 enum class DomainEnum {
@@ -849,6 +866,14 @@ enum class OverlapEnum {
     INTERNAL_BOUNCE,
 
     PASS_OR_MERGE,
+};
+
+enum class ShearingSheetRestitutionEnum {
+    /// Use the constant restitution coefficients configured by the collision handler.
+    CONSTANT,
+
+    /// Use the Bridges et al. velocity-dependent normal restitution law.
+    BRIDGES,
 };
 
 enum class LoggerEnum {
@@ -1359,6 +1384,30 @@ enum class RunSettingsId {
 
     /// Type of the UV mapping
     UVW_MAPPING,
+
+    /// Fixed Plummer-like gravitational softening length.
+    GRAVITY_SOFTENING_LENGTH,
+
+    /// Angular frequency of the shearing sheet frame.
+    SHEARING_SHEET_OMEGA,
+
+    /// Number of ghost layers in x.
+    SHEARING_SHEET_GHOST_X,
+
+    /// Number of ghost layers in y.
+    SHEARING_SHEET_GHOST_Y,
+
+    /// Number of ghost layers in z.
+    SHEARING_SHEET_GHOST_Z,
+
+    /// Vertical boundary mode of the shearing sheet.
+    SHEARING_SHEET_VERTICAL_BOUNDARY,
+
+    /// Restitution model used by hard-sphere collisions in shearing-sheet mode.
+    SHEARING_SHEET_RESTITUTION,
+
+    /// Minimum collision velocity safeguard used in shearing-sheet hard-sphere collisions.
+    SHEARING_SHEET_MIN_COLLISION_VELOCITY,
 };
 
 

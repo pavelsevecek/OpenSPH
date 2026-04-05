@@ -9,6 +9,7 @@
 #include "objects/containers/Array.h"
 #include "objects/geometry/Vector.h"
 #include "objects/wrappers/SharedPtr.h"
+#include "physics/ShearingSheet.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -126,6 +127,23 @@ class LeapFrog : public ITimeStepping {
 public:
     LeapFrog(const SharedPtr<Storage>& storage, const RunSettings& settings)
         : ITimeStepping(storage, settings) {}
+
+protected:
+    virtual void stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
+};
+
+/// \brief Symplectic epicycle integrator for shearing-sheet simulations.
+///
+/// This follows REBOUND's SEI split, advancing the unperturbed Hill problem exactly and applying
+/// perturbing forces in the kick step.
+class SymplecticEpicycle : public ITimeStepping {
+private:
+    ShearingSheet::Config cfg;
+
+    void applyUnperturbedStep(IScheduler& scheduler, const Float dt);
+
+public:
+    SymplecticEpicycle(const SharedPtr<Storage>& storage, const RunSettings& settings);
 
 protected:
     virtual void stepParticles(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;

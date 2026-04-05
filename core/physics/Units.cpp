@@ -28,7 +28,9 @@ FlatMap<BasicDimension, FlatSet<UnitDesc>> UNITS = [] {
             { "g", 1.e-3_kg },
             { "kg", 1._kg },
             { "M_sun", Unit::kilogram(Constants::M_sun) },
+            { "M_jupiter", Unit::kilogram(Constants::M_jupiter) },
             { "M_earth", Unit::kilogram(Constants::M_earth) },
+            { "M_moon", Unit::kilogram(Constants::M_moon) },
         });
     FlatSet<UnitDesc> time(ELEMENTS_UNIQUE,
         {

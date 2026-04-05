@@ -79,6 +79,27 @@ TEMPLATE_TEST_CASE("BarnesHut zero opening angle", "[gravity]", ThreadPool, Tbb)
     testOpeningAngle<TestType>(MultipoleOrder::OCTUPOLE);
 }
 
+TEMPLATE_TEST_CASE("BarnesHut fixed softening", "[gravity]", ThreadPool, Tbb) {
+    Storage storage;
+    storage.insert<Vector>(QuantityId::POSITION,
+        OrderEnum::SECOND,
+        Array<Vector>{ Vector(0._f, 0._f, 0._f, 1._f), Vector(2._f, 0._f, 0._f, 1._f) });
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, Array<Float>{ 3._f, 5._f });
+
+    BarnesHut bh(0.5_f, MultipoleOrder::OCTUPOLE, 10, 50, 1._f, 0.25_f);
+    TestType& pool = *TestType::getGlobalInstance();
+    bh.build(pool, storage);
+
+    ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
+    Statistics stats;
+    bh.evalSelfGravity(pool, dv, stats);
+
+    const Vector dr = Vector(2._f, 0._f, 0._f);
+    const Float inv = 1._f / pow(getSqrLength(dr) + sqr(0.25_f), 1.5_f);
+    REQUIRE(dv[0] == approx(5._f * dr * inv));
+    REQUIRE(dv[1] == approx(-3._f * dr * inv));
+}
+
 /*TEST_CASE("BarnesHut empty", "[gravity]") {
     // no particles = no acceleration
     BarnesHut bh(0.5_f, MultipoleOrder::OCTUPOLE);

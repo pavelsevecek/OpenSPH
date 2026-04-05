@@ -1,4 +1,8 @@
-QMAKE_CXXFLAGS += -Wall -Wextra -msse4.1 -std=c++14 -pthread
+QMAKE_CXXFLAGS += -Wall -Wextra -std=c++14 -pthread
+
+contains(QMAKE_HOST.arch, x86_64)|contains(QMAKE_HOST.arch, i[3-6]86)|contains(QMAKE_HOST.arch, amd64) {
+    QMAKE_CXXFLAGS += -msse4.1
+}
 
 linux-g++ {
     # extra warnings
