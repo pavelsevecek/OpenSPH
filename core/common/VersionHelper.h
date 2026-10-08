@@ -37,6 +37,12 @@ static String getEnabledFeatures() {
     desc += "OpenVDB: disabled\n";
 #endif
 
+#ifdef SPH_USE_HDF5
+    desc += "HDF5: enabled\n";
+#else
+    desc += "HDF5: disabled\n";
+#endif
+
 #ifdef SPH_USE_CHAISCRIPT
     desc += "Chaiscript: enabled";
 #else

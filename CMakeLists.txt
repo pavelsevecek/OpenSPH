@@ -32,6 +32,7 @@ option(WITH_TBB "Enable TBB parallelization" ON)
 option(WITH_EIGEN "Enable additional algorithms using Eigen" OFF)
 option(WITH_CHAISCRIPT "Enable scripting tools" OFF)
 option(WITH_VDB "Enable conversion to OpenVDB files" OFF)
+option(WITH_HDF5 "Enable HDF5 input/output" ON)
 option(BUILD_UTILS "Build auxiliary utilities" OFF)
 option(USE_SINGLE_PRECISION "Build OpenSPH with single precision" OFF)
 
@@ -104,6 +105,12 @@ if (WITH_VDB)
 
     # if IlmBase was required (either directly or indirectly via OpenVDB) add it to all occurances of OpenVDB
     set(OpenVDB_ALL_LIBRARIES ${OpenVDB_LIBRARIES} ${IlmBase_LIBRARIES} ${TBB_LIBRARIES})
+endif()
+
+if (WITH_HDF5)
+    find_package(HDF5 REQUIRED COMPONENTS C)
+    add_definitions(-DSPH_USE_HDF5)
+    include_directories(${HDF5_INCLUDE_DIRS})
 endif()
 
 if (WIN32)

@@ -467,6 +467,22 @@ public:
     virtual Outcome load(const Path& path, Storage& storage, Statistics& stats) override;
 };
 
+/// \brief Output saving data to native OpenSPH HDF5 format.
+class Hdf5Output : public IOutput {
+public:
+    explicit Hdf5Output(const OutputFile& fileMask);
+
+    virtual Expected<Path> dump(const Storage& storage, const Statistics& stats) override;
+};
+
+/// \brief Output saving data to standard cosmological GADGET / SWIFT HDF5 format.
+class GadgetHdf5Output : public IOutput {
+public:
+    explicit GadgetHdf5Output(const OutputFile& fileMask);
+
+    virtual Expected<Path> dump(const Storage& storage, const Statistics& stats) override;
+};
+
 /// \brief Reads data from Minor Planet Center Orbit Database exports.
 ///
 /// Since the database does not include the densities of bodies, a stand-in density has to be specified to

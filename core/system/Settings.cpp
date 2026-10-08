@@ -333,6 +333,9 @@ static RegisterEnum<IoEnum> sIo({
 #ifdef SPH_USE_VDB
     { IoEnum::VDB_FILE, "vdb_file", "Save output data as OpenVDB grid." },
 #endif
+#ifdef SPH_USE_HDF5
+    { IoEnum::GADGET_HDF5_FILE, "gadget_hdf5_file", "Save output data as GADGET / SWIFT cosmological HDF5 snapshot." },
+#endif
 });
 
 Optional<String> getIoExtension(const IoEnum type) {
@@ -350,6 +353,7 @@ Optional<String> getIoExtension(const IoEnum type) {
     case IoEnum::VTK_FILE:
         return String("vtu");
     case IoEnum::HDF5_FILE:
+    case IoEnum::GADGET_HDF5_FILE:
         return String("h5");
     case IoEnum::MPCORP_FILE:
         return String("dat");
@@ -371,7 +375,7 @@ Optional<IoEnum> getIoEnum(const String& ext) {
         return IoEnum::PKDGRAV_INPUT;
     } else if (ext == "vtu") {
         return IoEnum::VTK_FILE;
-    } else if (ext == "h5") {
+    } else if (ext == "h5" || ext == "hdf5") {
         return IoEnum::HDF5_FILE;
     } else if (ext == "dat") {
         return IoEnum::MPCORP_FILE;
@@ -397,7 +401,9 @@ String getIoDescription(const IoEnum type) {
     case IoEnum::VTK_FILE:
         return "VTK unstructured grid";
     case IoEnum::HDF5_FILE:
-        return "miluphcuda output file";
+        return "HDF5 scientific file (OpenSPH)";
+    case IoEnum::GADGET_HDF5_FILE:
+        return "GADGET / SWIFT cosmological HDF5";
     case IoEnum::MPCORP_FILE:
         return "mpcorp dump";
     case IoEnum::VDB_FILE:
@@ -422,7 +428,9 @@ Flags<IoCapability> getIoCapabilities(const IoEnum type) {
     case IoEnum::VTK_FILE:
         return IoCapability::OUTPUT;
     case IoEnum::HDF5_FILE:
-        return IoCapability::INPUT;
+        return IoCapability::INPUT | IoCapability::OUTPUT;
+    case IoEnum::GADGET_HDF5_FILE:
+        return IoCapability::INPUT | IoCapability::OUTPUT;
     case IoEnum::MPCORP_FILE:
         return IoCapability::INPUT;
     case IoEnum::VDB_FILE:
