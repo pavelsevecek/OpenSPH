@@ -27,6 +27,7 @@ SOURCES += \
     ../core/io/test/FileSystem.cpp \
     ../core/io/test/Logger.cpp \
     ../core/io/test/Output.cpp \
+    ../core/io/test/Hdf5.cpp \
     ../core/io/test/Path.cpp \
     ../core/io/test/Serializer.cpp \
     ../core/math/rng/test/Rng.cpp \

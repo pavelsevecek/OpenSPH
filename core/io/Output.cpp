@@ -1193,115 +1193,529 @@ Expected<Path> VtkOutput::dump(const Storage& storage, const Statistics& stats) 
 
 #ifdef SPH_USE_HDF5
 
+namespace {
+
+// Close handles on every exit path. Explicit closes on the success path also report failures.
+class Hdf5Handle : public Noncopyable {
+private:
+    hid_t id;
+    herr_t (*closer)(hid_t);
+
+public:
+    Hdf5Handle(const hid_t id, herr_t (*closer)(hid_t), const String& operation)
+        : id(id)
+        , closer(closer) {
+        if (id < 0) {
+            throw IoError("HDF5 operation failed: {}", operation);
+        }
+    }
+
+    ~Hdf5Handle() {
+        if (id >= 0) {
+            closer(id);
+        }
+    }
+
+    operator hid_t() const {
+        return id;
+    }
+
+    void close() {
+        if (id >= 0) {
+            if (closer(id) < 0) {
+                throw IoError("Cannot close HDF5 object");
+            }
+            id = -1;
+        }
+    }
+};
+
+static void checkHdf5(const herr_t result, const String& operation) {
+    if (result < 0) {
+        throw IoError("HDF5 operation failed: {}", operation);
+    }
+}
+
+static String hdf5Name(const std::string& name) {
+    return String::fromUtf8(name.c_str());
+}
+
+static bool hasHdf5Link(const hid_t parent, const std::string& name) {
+    const htri_t exists = H5Lexists(parent, name.c_str(), H5P_DEFAULT);
+    checkHdf5(exists, "Check link " + hdf5Name(name));
+    return exists > 0;
+}
+
+static Array<hsize_t> hdf5Dimensions(const hid_t space) {
+    const int rank = H5Sget_simple_extent_ndims(space);
+    checkHdf5(rank, "Read dataspace rank");
+    const Size dimensions = Size(rank);
+    Array<hsize_t> dims(dimensions);
+    if (rank > 0) {
+        checkHdf5(H5Sget_simple_extent_dims(space, &dims[0], nullptr), "Read dataspace dimensions");
+    }
+    return dims;
+}
+
+static Size hdf5ParticleCount(const hid_t file, const std::string& name) {
+    Hdf5Handle dataset(H5Dopen2(file, name.c_str(), H5P_DEFAULT), H5Dclose, "Open " + hdf5Name(name));
+    Hdf5Handle space(H5Dget_space(dataset), H5Sclose, "Get position dataspace");
+    const Array<hsize_t> dims = hdf5Dimensions(space);
+    if (dims.size() != 2 || dims[1] != 3 || dims[0] > NumericLimits<Size>::max() / 3) {
+        throw IoError("Invalid position dimensions in '{}' (expected N x 3)", hdf5Name(name));
+    }
+    const Size count = Size(dims[0]);
+    space.close();
+    dataset.close();
+    return count;
+}
+
 template <typename T>
-Size typeDim;
+constexpr Size hdf5TypeDim = 1;
 
 template <>
-Size typeDim<Float> = 1;
-template <>
-Size typeDim<Vector> = 3;
+constexpr Size hdf5TypeDim<Vector> = 3;
 
 template <typename T>
-T doubleToType(ArrayView<const double> data, const Size i);
+static T fromHdf5Buffer(const Array<double>& data, const Size i);
 
 template <>
-Float doubleToType(ArrayView<const double> data, const Size i) {
+Float fromHdf5Buffer<Float>(const Array<double>& data, const Size i) {
     return Float(data[i]);
 }
+
 template <>
-Vector doubleToType(ArrayView<const double> data, const Size i) {
-    return Vector(Float(data[3 * i + 0]), Float(data[3 * i + 1]), Float(data[3 * i + 2]));
+Vector fromHdf5Buffer<Vector>(const Array<double>& data, const Size i) {
+    return Vector(Float(data[3 * i]), Float(data[3 * i + 1]), Float(data[3 * i + 2]));
 }
 
 template <typename T>
-static void loadQuantity(const hid_t fileId,
-    const std::string& label,
+static bool tryLoadQuantity(const hid_t file,
+    const std::string& name,
     const QuantityId id,
     const OrderEnum order,
     Storage& storage) {
-    const hid_t hid = H5Dopen(fileId, label.c_str(), H5P_DEFAULT);
-    if (hid < 0) {
-        throw IoError("Cannot read " + getMetadata(id).quantityName + " data");
+    if (!hasHdf5Link(file, name)) {
+        return false;
     }
-    const Size particleCnt = storage.getParticleCnt();
-    Array<double> data(typeDim<T> * particleCnt);
-    H5Dread(hid, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &data[0]);
-    H5Dclose(hid);
+    Hdf5Handle dataset(H5Dopen2(file, name.c_str(), H5P_DEFAULT), H5Dclose, "Open " + hdf5Name(name));
+    Hdf5Handle space(H5Dget_space(dataset), H5Sclose, "Get dataspace " + hdf5Name(name));
+    const Array<hsize_t> dims = hdf5Dimensions(space);
+    const Size count = storage.getParticleCnt();
+    const Size dim = hdf5TypeDim<T>;
+    const bool validShape = dim == 1 ? (dims.size() == 1 || (dims.size() == 2 && dims[1] == 1))
+                                     : (dims.size() == 2 && dims[1] == dim);
+    if (!validShape || dims[0] != count || count > NumericLimits<Size>::max() / dim) {
+        throw IoError("Invalid dataset dimensions in '{}': expected {} particles, {} components",
+            hdf5Name(name),
+            count,
+            dim);
+    }
+    Array<double> data(dim * count);
+    if (count > 0) {
+        checkHdf5(H5Dread(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &data[0]),
+            "Read " + hdf5Name(name));
+    }
+    space.close();
+    dataset.close();
 
-    Array<T> values(particleCnt);
-    for (Size i = 0; i < particleCnt; ++i) {
-        values[i] = doubleToType<T>(data, i);
+    Array<T> values(count);
+    for (Size i = 0; i < count; ++i) {
+        values[i] = fromHdf5Buffer<T>(data, i);
     }
-    switch (order) {
-    case OrderEnum::ZERO:
+    if (order == OrderEnum::ZERO) {
         storage.insert<T>(id, OrderEnum::ZERO, std::move(values));
-        break;
-    case OrderEnum::FIRST:
+    } else {
         storage.getDt<T>(id) = std::move(values);
-        break;
-    case OrderEnum::SECOND:
-        storage.getD2t<T>(id) = std::move(values);
-        break;
-    default:
-        NOT_IMPLEMENTED;
     }
+    return true;
 }
 
-Outcome Hdf5Input::load(const Path& path, Storage& storage, Statistics& stats) {
-    const hid_t fileId = H5Fopen(path.native(), H5F_ACC_RDONLY, H5P_DEFAULT);
-    if (fileId < 0) {
-        return makeFailed("Cannot open file '{}'", path.string());
+static bool
+readHdf5Attribute(const hid_t group, const char* name, const hid_t type, void* buffer, const hsize_t count) {
+    const htri_t exists = H5Aexists(group, name);
+    checkHdf5(exists, "Check attribute " + String::fromAscii(name));
+    if (!exists) {
+        return false;
     }
-
-    storage = Storage(Factory::getMaterial(BodySettings::getDefaults()));
-
-    const hid_t posId = H5Dopen(fileId, "/x", H5P_DEFAULT);
-    if (posId < 0) {
-        return makeFailed("Cannot read position data from file '{}'", path.string());
+    Hdf5Handle attr(H5Aopen(group, name, H5P_DEFAULT), H5Aclose, "Open attribute " + String::fromAscii(name));
+    Hdf5Handle space(H5Aget_space(attr), H5Sclose, "Get attribute dataspace");
+    const hssize_t points = H5Sget_simple_extent_npoints(space);
+    if (points < 0 || hsize_t(points) != count) {
+        throw IoError("Invalid number of values in HDF5 attribute '{}'", name);
     }
-    const hid_t dspace = H5Dget_space(posId);
-    const Size ndims = H5Sget_simple_extent_ndims(dspace);
-    Array<hsize_t> dims(ndims);
-    H5Sget_simple_extent_dims(dspace, &dims[0], nullptr);
-    const Size particleCnt = dims[0];
-    H5Dclose(posId);
-    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>(particleCnt));
+    checkHdf5(H5Aread(attr, type, buffer), "Read attribute " + String::fromAscii(name));
+    space.close();
+    attr.close();
+    return true;
+}
 
-    const hid_t timeId = H5Dopen(fileId, "/time", H5P_DEFAULT);
-    if (timeId < 0) {
-        return makeFailed("Cannot read simulation time from file '{}'", path.string());
+template <typename T>
+static void insertHdf5Default(Storage& storage, const QuantityId id, const T value) {
+    Array<T> values(storage.getParticleCnt());
+    values.fill(value);
+    storage.insert<T>(id, OrderEnum::ZERO, std::move(values));
+}
+
+static Storage loadHdf5Particles(const hid_t file,
+    const std::string& prefix,
+    const bool gadget,
+    const Size particleType,
+    const double constantMass) {
+    const std::string position = prefix + (gadget ? "Coordinates" : "x");
+    const Size count = hdf5ParticleCount(file, position);
+    Storage storage;
+    if (count > 0) {
+        storage = Storage(Factory::getMaterial(BodySettings::getDefaults()));
     }
-    double runTime;
-    H5Dread(timeId, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &runTime);
-    H5Dclose(timeId);
-    stats.set(StatisticsId::RUN_TIME, Float(runTime));
+    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>(count));
+    tryLoadQuantity<Vector>(file, position, QuantityId::POSITION, OrderEnum::ZERO, storage);
+    // Missing velocities retain the zero derivative initialized by POSITION.
+    tryLoadQuantity<Vector>(
+        file, prefix + (gadget ? "Velocities" : "v"), QuantityId::POSITION, OrderEnum::FIRST, storage);
 
-    try {
-        loadQuantity<Vector>(fileId, "/x", QuantityId::POSITION, OrderEnum::ZERO, storage);
-        loadQuantity<Vector>(fileId, "/v", QuantityId::POSITION, OrderEnum::FIRST, storage);
-        loadQuantity<Float>(fileId, "/m", QuantityId::MASS, OrderEnum::ZERO, storage);
-        loadQuantity<Float>(fileId, "/p", QuantityId::PRESSURE, OrderEnum::ZERO, storage);
-        loadQuantity<Float>(fileId, "/rho", QuantityId::DENSITY, OrderEnum::ZERO, storage);
-        loadQuantity<Float>(fileId, "/e", QuantityId::ENERGY, OrderEnum::ZERO, storage);
-        loadQuantity<Float>(fileId, "/sml", QuantityId::SMOOTHING_LENGTH, OrderEnum::ZERO, storage);
-    } catch (const IoError& e) {
-        return makeFailed("Cannot read file '{}'.\n{}", path.string(), exceptionMessage(e));
+    if (!tryLoadQuantity<Float>(
+            file, prefix + (gadget ? "Masses" : "m"), QuantityId::MASS, OrderEnum::ZERO, storage)) {
+        if (gadget && count > 0 && (!isReal(constantMass) || constantMass <= 0.)) {
+            throw IoError(
+                "Missing Masses and a positive Header/MassTable entry for PartType{}", particleType);
+        }
+        insertHdf5Default<Float>(storage, QuantityId::MASS, gadget ? Float(constantMass) : 1._f);
     }
-
-    // copy the smoothing lengths
+    struct ScalarField {
+        const char* nativeName;
+        const char* gadgetName;
+        QuantityId id;
+        Float fallback;
+    };
+    for (const ScalarField& field : { ScalarField{ "p", "Pressure", QuantityId::PRESSURE, 0._f },
+             ScalarField{ "rho", "Density", QuantityId::DENSITY, 1000._f },
+             ScalarField{ "e", "InternalEnergy", QuantityId::ENERGY, 0._f } }) {
+        if (!tryLoadQuantity<Float>(file,
+                prefix + (gadget ? field.gadgetName : field.nativeName),
+                field.id,
+                OrderEnum::ZERO,
+                storage)) {
+            insertHdf5Default<Float>(storage, field.id, field.fallback);
+        }
+    }
+    bool smoothingLoaded = tryLoadQuantity<Float>(file,
+        prefix + (gadget ? "SmoothingLength" : "sml"),
+        QuantityId::SMOOTHING_LENGTH,
+        OrderEnum::ZERO,
+        storage);
+    if (gadget && !smoothingLoaded) {
+        smoothingLoaded = tryLoadQuantity<Float>(
+            file, prefix + "SmoothingLengths", QuantityId::SMOOTHING_LENGTH, OrderEnum::ZERO, storage);
+    }
+    if (!smoothingLoaded) {
+        insertHdf5Default<Float>(storage, QuantityId::SMOOTHING_LENGTH, 1._f);
+    }
+    tryLoadQuantity<Vector>(
+        file, prefix + (gadget ? "UVW" : "uvw"), QuantityId::UVW, OrderEnum::ZERO, storage);
+    if (gadget) {
+        insertHdf5Default<Size>(storage, QuantityId::FLAG, particleType);
+    }
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    ArrayView<Float> h = storage.getValue<Float>(QuantityId::SMOOTHING_LENGTH);
-    for (Size i = 0; i < particleCnt; ++i) {
+    ArrayView<const Float> h = storage.getValue<Float>(QuantityId::SMOOTHING_LENGTH);
+    for (Size i = 0; i < count; ++i) {
         r[i][H] = h[i];
     }
-    return SUCCESS;
+    return storage;
 }
 
+static void writeHdf5Dataset(const hid_t file,
+    const std::string& name,
+    const hid_t type,
+    const void* buffer,
+    const Size count,
+    const Size dim = 1) {
+    const hsize_t dims[2] = { count, dim };
+    Hdf5Handle space(H5Screate_simple(dim == 1 ? 1 : 2, dims, nullptr), H5Sclose, "Create dataspace");
+    Hdf5Handle dataset(H5Dcreate2(file, name.c_str(), type, space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT),
+        H5Dclose,
+        "Create " + hdf5Name(name));
+    if (count > 0) {
+        checkHdf5(H5Dwrite(dataset, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer), "Write " + hdf5Name(name));
+    }
+    dataset.close();
+    space.close();
+}
+
+static void writeHdf5Attribute(const hid_t group,
+    const char* name,
+    const hid_t type,
+    const void* buffer,
+    const hsize_t count = 0) {
+    Hdf5Handle space(count ? H5Screate_simple(1, &count, nullptr) : H5Screate(H5S_SCALAR),
+        H5Sclose,
+        "Create attribute dataspace");
+    Hdf5Handle attr(H5Acreate2(group, name, type, space, H5P_DEFAULT, H5P_DEFAULT),
+        H5Aclose,
+        "Create attribute " + String::fromAscii(name));
+    checkHdf5(H5Awrite(attr, type, buffer), "Write attribute " + String::fromAscii(name));
+    attr.close();
+    space.close();
+}
+
+static void setHdf5Buffer(Array<double>& buffer, const Float value, const Size i) {
+    buffer[i] = double(value);
+}
+
+static void setHdf5Buffer(Array<double>& buffer, const Vector& value, const Size i) {
+    buffer[3 * i] = double(value[X]);
+    buffer[3 * i + 1] = double(value[Y]);
+    buffer[3 * i + 2] = double(value[Z]);
+}
+
+template <typename T>
+static bool saveQuantity(const hid_t file,
+    const std::string& name,
+    const QuantityId id,
+    const OrderEnum order,
+    const Storage& storage) {
+    if (!storage.has(id) || storage.getQuantity(id).getOrderEnum() < order) {
+        return false;
+    }
+    const ArrayView<const T> values =
+        order == OrderEnum::ZERO ? storage.getValue<T>(id) : storage.getDt<T>(id);
+    const Size count = storage.getParticleCnt();
+    const Size dim = hdf5TypeDim<T>;
+    if (values.size() != count || count > NumericLimits<Size>::max() / dim) {
+        throw IoError("Invalid buffer size for '{}'", hdf5Name(name));
+    }
+    Array<double> buffer(dim * count);
+    for (Size i = 0; i < count; ++i) {
+        setHdf5Buffer(buffer, values[i], i);
+    }
+    writeHdf5Dataset(file, name, H5T_NATIVE_DOUBLE, count ? &buffer[0] : nullptr, count, dim);
+    return true;
+}
+
+static void saveHdf5Particles(const hid_t file, const Storage& storage, const bool gadget) {
+    const std::string prefix = gadget ? "/PartType0/" : "/";
+    if (!saveQuantity<Vector>(
+            file, prefix + (gadget ? "Coordinates" : "x"), QuantityId::POSITION, OrderEnum::ZERO, storage)) {
+        throw IoError("Cannot export HDF5 particles without positions");
+    }
+    if (!saveQuantity<Vector>(
+            file, prefix + (gadget ? "Velocities" : "v"), QuantityId::POSITION, OrderEnum::FIRST, storage) &&
+        gadget) {
+        Array<double> zeroVelocities(3 * storage.getParticleCnt());
+        zeroVelocities.fill(0.);
+        writeHdf5Dataset(file,
+            prefix + "Velocities",
+            H5T_NATIVE_DOUBLE,
+            zeroVelocities.empty() ? nullptr : &zeroVelocities[0],
+            storage.getParticleCnt(),
+            3);
+    }
+    if (!saveQuantity<Float>(
+            file, prefix + (gadget ? "Masses" : "m"), QuantityId::MASS, OrderEnum::ZERO, storage) &&
+        gadget) {
+        throw IoError("Cannot export GADGET particles without masses");
+    }
+    saveQuantity<Float>(
+        file, prefix + (gadget ? "Pressure" : "p"), QuantityId::PRESSURE, OrderEnum::ZERO, storage);
+    saveQuantity<Float>(
+        file, prefix + (gadget ? "Density" : "rho"), QuantityId::DENSITY, OrderEnum::ZERO, storage);
+    if (!saveQuantity<Float>(
+            file, prefix + (gadget ? "InternalEnergy" : "e"), QuantityId::ENERGY, OrderEnum::ZERO, storage) &&
+        gadget) {
+        Array<double> energy(storage.getParticleCnt());
+        energy.fill(0.);
+        writeHdf5Dataset(file,
+            prefix + "InternalEnergy",
+            H5T_NATIVE_DOUBLE,
+            energy.empty() ? nullptr : &energy[0],
+            energy.size());
+    }
+    saveQuantity<Vector>(file, prefix + (gadget ? "UVW" : "uvw"), QuantityId::UVW, OrderEnum::ZERO, storage);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    Array<double> smoothing(r.size());
+    for (Size i = 0; i < r.size(); ++i) {
+        smoothing[i] = double(r[i][H]);
+    }
+    writeHdf5Dataset(file,
+        prefix + (gadget ? "SmoothingLength" : "sml"),
+        H5T_NATIVE_DOUBLE,
+        smoothing.empty() ? nullptr : &smoothing[0],
+        smoothing.size());
+    if (gadget) {
+        Array<uint64_t> ids(r.size());
+        for (Size i = 0; i < ids.size(); ++i) {
+            ids[i] = uint64_t(i) + 1;
+        }
+        writeHdf5Dataset(
+            file, prefix + "ParticleIDs", H5T_NATIVE_UINT64, ids.empty() ? nullptr : &ids[0], ids.size());
+    }
+}
+
+static void saveGadgetHeader(const hid_t file, const Size count, const double time) {
+    Hdf5Handle header(
+        H5Gcreate2(file, "/Header", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT), H5Gclose, "Create Header");
+    const uint32_t counts[6] = { count, 0, 0, 0, 0, 0 };
+    const uint32_t highWords[6] = {};
+    const double masses[6] = {}; // All masses are stored in the Masses dataset.
+    writeHdf5Attribute(header, "NumPart_ThisFile", H5T_NATIVE_UINT32, counts, 6);
+    writeHdf5Attribute(header, "NumPart_Total", H5T_NATIVE_UINT32, counts, 6);
+    writeHdf5Attribute(header, "NumPart_Total_HighWord", H5T_NATIVE_UINT32, highWords, 6);
+    // The original GADGET-2 reader uses this older spelling.
+    writeHdf5Attribute(header, "NumPart_Total_HW", H5T_NATIVE_UINT32, highWords, 6);
+    writeHdf5Attribute(header, "MassTable", H5T_NATIVE_DOUBLE, masses, 6);
+    writeHdf5Attribute(header, "Time", H5T_NATIVE_DOUBLE, &time);
+    const double zero = 0., one = 1.;
+    // Non-periodic, non-cosmological export; do not invent a cosmology or box size.
+    for (const char* name : { "BoxSize", "Redshift", "Omega0", "OmegaLambda" }) {
+        writeHdf5Attribute(header, name, H5T_NATIVE_DOUBLE, &zero);
+    }
+    writeHdf5Attribute(header, "HubbleParam", H5T_NATIVE_DOUBLE, &one);
+    const int disabled = 0, enabled = 1;
+    writeHdf5Attribute(header, "NumFilesPerSnapshot", H5T_NATIVE_INT, &enabled);
+    writeHdf5Attribute(header, "Flag_DoublePrecision", H5T_NATIVE_INT, &enabled);
+    for (const char* name : { "Flag_Sfr",
+             "Flag_Feedback",
+             "Flag_Cooling",
+             "Flag_StellarAge",
+             "Flag_Metals",
+             "Flag_Entropy_ICs" }) {
+        writeHdf5Attribute(header, name, H5T_NATIVE_INT, &disabled);
+    }
+    header.close();
+}
+
+static Expected<Path>
+dumpHdf5(const Path& path, const Storage& storage, const Statistics& stats, const bool gadget) {
+    const Outcome dirResult = FileSystem::createDirectory(path.parentPath());
+    if (!dirResult) {
+        return makeUnexpected<Path>(
+            "Cannot create directory {}: {}", path.parentPath().string(), dirResult.error());
+    }
+    try {
+        Hdf5Handle file(H5Fcreate(path.string().toUtf8(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT),
+            H5Fclose,
+            "Create file " + path.string());
+        const double time = double(stats.getOr<Float>(StatisticsId::RUN_TIME, 0._f));
+        if (gadget) {
+            saveGadgetHeader(file, storage.getParticleCnt(), time);
+            Hdf5Handle group(H5Gcreate2(file, "/PartType0", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT),
+                H5Gclose,
+                "Create PartType0");
+            saveHdf5Particles(file, storage, true);
+            group.close();
+        } else {
+            writeHdf5Dataset(file, "/time", H5T_NATIVE_DOUBLE, &time, 1);
+            saveHdf5Particles(file, storage, false);
+        }
+        checkHdf5(H5Fflush(file, H5F_SCOPE_LOCAL), "Flush output file");
+        file.close();
+        return path;
+    } catch (const std::exception& e) {
+        return makeUnexpected<Path>("Cannot save HDF5 file '{}': {}", path.string(), exceptionMessage(e));
+    }
+}
+
+} // namespace
+
+Outcome Hdf5Input::load(const Path& path, Storage& storage, Statistics& stats) {
+    try {
+        Hdf5Handle file(H5Fopen(path.string().toUtf8(), H5F_ACC_RDONLY, H5P_DEFAULT),
+            H5Fclose,
+            "Open file " + path.string());
+        Array<Size> particleTypes;
+        for (Size type = 0; type < 6; ++type) {
+            if (hasHdf5Link(file, "/PartType" + std::to_string(type))) {
+                particleTypes.push(type);
+            }
+        }
+        const bool gadget = !particleTypes.empty();
+        double time = 0., masses[6] = {};
+        if (gadget && hasHdf5Link(file, "/Header")) {
+            Hdf5Handle header(H5Gopen2(file, "/Header", H5P_DEFAULT), H5Gclose, "Open Header");
+            readHdf5Attribute(header, "Time", H5T_NATIVE_DOUBLE, &time, 1);
+            readHdf5Attribute(header, "MassTable", H5T_NATIVE_DOUBLE, masses, 6);
+            int files = 1;
+            readHdf5Attribute(header, "NumFilesPerSnapshot", H5T_NATIVE_INT, &files, 1);
+            if (files != 1) {
+                throw IoError(
+                    "Multi-file GADGET snapshots are not supported (NumFilesPerSnapshot = {})", files);
+            }
+            header.close();
+        }
+        if (hasHdf5Link(file, "/time")) {
+            Hdf5Handle dataset(H5Dopen2(file, "/time", H5P_DEFAULT), H5Dclose, "Open time");
+            Hdf5Handle space(H5Dget_space(dataset), H5Sclose, "Get time dataspace");
+            if (H5Sget_simple_extent_npoints(space) != 1) {
+                throw IoError("Invalid time dataset: expected one value");
+            }
+            checkHdf5(H5Dread(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &time), "Read time");
+            space.close();
+            dataset.close();
+        }
+        Storage loaded;
+        if (gadget) {
+            for (const Size type : particleTypes) {
+                Storage group = loadHdf5Particles(
+                    file, "/PartType" + std::to_string(type) + "/", true, type, masses[type]);
+                if (group.empty()) {
+                    continue;
+                }
+                if (group.getParticleCnt() > NumericLimits<Size>::max() / 3 - loaded.getParticleCnt()) {
+                    throw IoError("Too many particles in GADGET snapshot");
+                }
+                loaded.merge(std::move(group));
+            }
+            if (loaded.getQuantityCnt() == 0) {
+                loaded = loadHdf5Particles(file,
+                    "/PartType" + std::to_string(particleTypes[0]) + "/",
+                    true,
+                    particleTypes[0],
+                    masses[particleTypes[0]]);
+            }
+        } else {
+            loaded = loadHdf5Particles(file, "/", false, 0, 0.);
+        }
+        file.close();
+        storage = std::move(loaded);
+        stats.set(StatisticsId::RUN_TIME, Float(time));
+        return SUCCESS;
+    } catch (const std::exception& e) {
+        return makeFailed("Cannot read HDF5 file '{}': {}", path.string(), exceptionMessage(e));
+    }
+}
+
+Hdf5Output::Hdf5Output(const OutputFile& fileMask)
+    : IOutput(fileMask) {}
+
+Expected<Path> Hdf5Output::dump(const Storage& storage, const Statistics& stats) {
+    return dumpHdf5(paths.getNextPath(stats), storage, stats, false);
+}
+
+GadgetHdf5Output::GadgetHdf5Output(const OutputFile& fileMask)
+    : IOutput(fileMask) {}
+
+Expected<Path> GadgetHdf5Output::dump(const Storage& storage, const Statistics& stats) {
+    return dumpHdf5(paths.getNextPath(stats), storage, stats, true);
+}
 
 #else
 
 Outcome Hdf5Input::load(const Path&, Storage&, Statistics&) {
-    return makeFailed("HDF5 support not enabled. Please rebuild the code with CONFIG+=use_hdf5.");
+    return makeFailed("HDF5 support not enabled. Please rebuild the code with CMake option -DWITH_HDF5=ON.");
+}
+
+Hdf5Output::Hdf5Output(const OutputFile& fileMask)
+    : IOutput(fileMask) {}
+
+Expected<Path> Hdf5Output::dump(const Storage&, const Statistics&) {
+    return makeUnexpected<Path>("HDF5 support not enabled. Please rebuild the code with CMake option -DWITH_HDF5=ON.");
+}
+
+GadgetHdf5Output::GadgetHdf5Output(const OutputFile& fileMask)
+    : IOutput(fileMask) {}
+
+Expected<Path> GadgetHdf5Output::dump(const Storage&, const Statistics&) {
+    return makeUnexpected<Path>("HDF5 support not enabled. Please rebuild the code with CMake option -DWITH_HDF5=ON.");
 }
 #endif
 

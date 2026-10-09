@@ -97,6 +97,26 @@ cmake -DCMAKE_BUILD_TYPE=Release -DWITH_TBB=ON ..
 
 Alternatively, the code can be compiled using <a href="QMAKE.md">qmake build system</a>.
 
+### HDF5 particle data
+
+HDF5 input and output are enabled by `-DWITH_HDF5=ON` and require the HDF5 C library.
+The native format reads and writes particle quantities and simulation time, and accepts miluphcuda input.
+GADGET input combines all present `PartType0` through `PartType5` groups, records their source types in
+`FLAG`, and reads constant masses from `Header/MassTable` when a `Masses` dataset is absent.
+Imports use default OpenSPH materials and retain the stored units and velocities without cosmological conversions.
+Multi-file GADGET snapshots are rejected explicitly.
+
+GADGET export writes a single non-cosmological `PartType0` snapshot with particle IDs and a GADGET header.
+These HDF5 formats export particle data; use the SPH state format for lossless simulation restarts.
+
+To build the HDF5 regression tests, install Catch2 v2 and configure with `-DBUILD_HDF5_TESTS=ON`.
+If needed, set `-DCATCH2_INCLUDE_DIR=/path/to/directory/containing/catch.hpp`. Then run:
+
+```sh
+cmake --build build --target hdf5-tests
+ctest --test-dir build --output-on-failure
+```
+
 ## Running a basic simulation
 Simulations can be easily set up in the graphical application `opensph`, using a node-based editor.
 To use one of the simulation templates, click 'Project -> New session' and select 

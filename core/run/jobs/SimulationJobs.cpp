@@ -348,10 +348,17 @@ AutoPtr<IRun> SphJob::getRun(const RunSettings& overrides) const {
     if (output != IoEnum::NONE && spacing == OutputSpacing::LINEAR) {
         const Float maxTimeStep = run.get<Float>(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP);
         const Float outputInterval = run.get<Float>(RunSettingsId::RUN_OUTPUT_INTERVAL);
+        if (outputInterval <= 0._f) {
+            throw InvalidSetup("Output interval must be positive.");
+        }
         if (maxTimeStep > outputInterval) {
-            throw InvalidSetup(
-                "Output interval is larger than the maximal time step. This could cause inconsistent "
-                "simulation speed in the output file sequence.");
+            // Keep the output spacing without rejecting a valid simulation setup.
+            run.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, outputInterval);
+        }
+        // The first step (and fixed-step runs) use the initial timestep, not the maximal timestep.
+        const Float initialTimeStep = run.get<Float>(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP);
+        if (initialTimeStep > outputInterval) {
+            run.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, outputInterval);
         }
     }
 

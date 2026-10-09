@@ -629,6 +629,10 @@ AutoPtr<IOutput> Factory::getOutput(const RunSettings& settings) {
         pkd.omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
         return makeAuto<PkdgravOutput>(file, std::move(pkd));
     }
+    case IoEnum::HDF5_FILE:
+        return makeAuto<Hdf5Output>(file);
+    case IoEnum::GADGET_HDF5_FILE:
+        return makeAuto<GadgetHdf5Output>(file);
 #ifdef SPH_USE_VDB
     case IoEnum::VDB_FILE:
         return makeAuto<VdbOutput>(file);
@@ -644,7 +648,7 @@ AutoPtr<IInput> Factory::getInput(const Path& path) {
         return makeAuto<BinaryInput>();
     } else if (ext == "sdf" || ext == "scf") { // .scf is an older extension of this format
         return makeAuto<CompressedInput>();
-    } else if (ext == "h5") {
+    } else if (ext == "h5" || ext == "hdf5") {
         return makeAuto<Hdf5Input>();
     } else if (ext == "tab") {
         return makeAuto<TabInput>();
