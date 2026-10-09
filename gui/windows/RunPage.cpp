@@ -1,4 +1,5 @@
 #include "gui/windows/RunPage.h"
+#include "gui/Theme.h"
 #include "gui/Controller.h"
 #include "gui/Factory.h"
 #include "gui/MainLoop.h"
@@ -76,6 +77,7 @@ RunPage::RunPage(wxWindow* window, Controller* parent, GuiSettings& settings)
     , controller(parent)
     , gui(settings) {
     manager = makeAuto<wxAuiManager>(this);
+    DarkTheme::apply(&*manager);
 
     wxPanel* visBar = createVisBar();
     pane = alignedNew<OrthoPane>(this, parent, settings);
@@ -663,6 +665,7 @@ wxPanel* RunPage::createStatsBar() {
 
     statsText = new wxTextCtrl(
         statsPanel, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxTE_MULTILINE);
+    DarkTheme::apply(statsText);
     this->makeStatsText(0, 0, Statistics{});
 
     statsSizer->Add(statsText, 1, wxEXPAND | wxALL, 5);

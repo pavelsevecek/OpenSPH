@@ -28,7 +28,15 @@ public:
 
     void setValue(double newValue);
 
+#ifdef __WXMSW__
+    virtual WXHBRUSH MSWControlColor(WXHDC dc, WXHWND window) override;
+#endif
+
 private:
+#ifdef __WXMSW__
+    virtual WXLRESULT MSWWindowProc(WXUINT message, WXWPARAM wParam, WXLPARAM lParam) override;
+#endif
+
     void validate();
 };
 

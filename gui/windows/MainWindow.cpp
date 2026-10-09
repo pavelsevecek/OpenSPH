@@ -1,4 +1,5 @@
 #include "common/VersionHelper.h"
+#include "gui/Theme.h"
 #include "gui/windows/MainWindow.h"
 #include "gui/Controller.h"
 #include "gui/Settings.h"
@@ -25,6 +26,15 @@
 #include <wx/msgdlg.h>
 
 NAMESPACE_SPH_BEGIN
+
+#ifdef __WXMSW__
+WXLRESULT MainWindow::MSWWindowProc(WXUINT message, WXWPARAM wParam, WXLPARAM lParam) {
+    if (DarkTheme::drawMenuBar(static_cast<HWND>(this->GetHandle()), message, lParam)) {
+        return 0;
+    }
+    return wxFrame::MSWWindowProc(message, wParam, lParam);
+}
+#endif
 
 constexpr int NOTEBOOK_ID = 4257;
 
@@ -142,6 +152,10 @@ MainWindow::MainWindow(const Path& openPath)
         wxDefaultPosition,
         wxDefaultSize,
         wxAUI_NB_DEFAULT_STYLE & ~wxAUI_NB_CLOSE_ON_ACTIVE_TAB);
+    auto* tabArt = new wxAuiSimpleTabArt();
+    tabArt->SetColour(DarkTheme::background());
+    tabArt->SetActiveColour(DarkTheme::surface());
+    notebook->SetArtProvider(tabArt);
     notebook->SetMinSize(wxSize(1024, 768));
     notebook->Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& evt) {
         const int code = evt.GetKeyCode();

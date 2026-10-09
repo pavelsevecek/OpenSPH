@@ -21,6 +21,8 @@ private:
 
     virtual int OnExit() override;
 
+    virtual int FilterEvent(wxEvent& event) override;
+
     void processEvents(MainLoopEvent& evt) {
         evt.execute();
     }

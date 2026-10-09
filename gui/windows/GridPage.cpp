@@ -1,4 +1,5 @@
 #include "gui/windows/GridPage.h"
+#include "gui/Theme.h"
 #include "gui/MainLoop.h"
 #include "gui/Utils.h"
 #include "io/Path.h"
@@ -117,6 +118,7 @@ GridPage::GridPage(wxWindow* parent, const wxSize size, const Storage& storage)
             grid->EnableEditing(false);
             sizer->Add(grid);
             grid->CreateGrid(countSpinner->GetValue(), checkCount);
+            DarkTheme::apply(grid);
             this->Layout();
             saveButton->Enable(true);
 

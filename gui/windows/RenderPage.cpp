@@ -1,4 +1,5 @@
 #include "gui/windows/RenderPage.h"
+#include "gui/Theme.h"
 #include "gui/MainLoop.h"
 #include "gui/Utils.h"
 #include "gui/jobs/RenderJobs.h"
@@ -163,6 +164,7 @@ public:
 RenderPage::RenderPage(wxWindow* parent, const RunSettings& global, const SharedPtr<INode>& node)
     : ClosablePage(parent, "render") {
     manager = makeAuto<wxAuiManager>(this);
+    DarkTheme::apply(&*manager);
 
     ImagePane* pane = new ImagePane(this);
     ProgressPanel* progress = new ProgressPanel(this);

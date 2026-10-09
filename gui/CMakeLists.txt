@@ -50,6 +50,8 @@ set(GUI_SOURCES
     windows/Widgets.cpp)
 
 set(GUI_HEADERS
+    Theme.h
+    WindowsTheme.h
     ArcBall.h 
     Controller.h 
     Factory.h 

@@ -42,6 +42,10 @@ public:
     MainWindow(const Path& openPath = Path());
 
 private:
+#ifdef __WXMSW__
+    virtual WXLRESULT MSWWindowProc(WXUINT message, WXWPARAM wParam, WXLPARAM lParam) override;
+#endif
+
     wxMenu* createProjectMenu();
 
     wxMenu* createRunMenu();

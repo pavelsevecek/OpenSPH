@@ -1,4 +1,5 @@
 #include "gui/windows/BatchDialog.h"
+#include "gui/Theme.h"
 #include "gui/windows/Widgets.h"
 #include "run/Config.h"
 #include <wx/button.h>
@@ -270,6 +271,7 @@ BatchDialog::BatchDialog(wxWindow* parent, const BatchManager& mgr, Array<Shared
     grid->SetDefaultColSize(200);
     grid->SetTabBehaviour(wxGrid::Tab_Wrap);
     grid->CreateGrid(manager.getRunCount(), manager.getParamCount());
+    DarkTheme::apply(grid);
     grid->EnableEditing(true);
 
     sizer->Add(grid);

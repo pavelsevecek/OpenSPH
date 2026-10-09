@@ -1,4 +1,5 @@
 #include "gui/windows/NodePage.h"
+#include "gui/Theme.h"
 #include "gui/Controller.h"
 #include "gui/Factory.h"
 #include "gui/Project.h"
@@ -1745,12 +1746,14 @@ public:
 NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callbacks)
     : wxPanel(parent, wxID_ANY) {
     aui = makeAuto<wxAuiManager>(this);
+    DarkTheme::apply(&*aui);
 
     nodeEditor = new NodeEditor(this, callbacks);
     nodeMgr = makeShared<NodeManager>(nodeEditor, callbacks);
     nodeEditor->setNodeMgr(nodeMgr);
 
     grid = new wxPropertyGrid(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxPG_DEFAULT_STYLE);
+    DarkTheme::apply(grid);
     grid->SetExtraStyle(wxPG_EX_HELP_AS_TOOLTIPS);
     grid->SetMinSize(wxSize(300, -1));
 
@@ -1847,6 +1850,7 @@ NodeWindow::NodeWindow(wxWindow* parent, SharedPtr<INodeManagerCallbacks> callba
     TooltippedWindow<wxTreeCtrl, wxTreeItemId>* jobView = new TooltippedWindow<wxTreeCtrl, wxTreeItemId>(
         this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTR_DEFAULT_STYLE | wxTR_HIDE_ROOT);
     jobView->SetMinSize(wxSize(300, -1));
+    DarkTheme::apply(jobView);
 
     wxTreeItemId rootId = jobView->AddRoot("Nodes");
 

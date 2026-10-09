@@ -68,6 +68,8 @@ SOURCES += \
     objects/Plots.cpp
 
 HEADERS += \
+    Theme.h \
+    WindowsTheme.h \
     ArcBall.h \
     Controller.h \
     Factory.h \
